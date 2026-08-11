@@ -374,7 +374,7 @@ const BANNED_VOCABULARY: [&str; 4] = ["factory", "candidate", "promotion", "self
 /// Lawful survivals: `(repository-relative path, word, why it stands)`. A term
 /// stands only where it is named to FORBID it, to record a kill, or to
 /// document a rename — never as live vocabulary.
-const BANNED_VOCABULARY_ALLOWLIST: [(&str, &str, &str); 4] = [
+const BANNED_VOCABULARY_ALLOWLIST: [(&str, &str, &str); 3] = [
     (
         "src/23_evidence/README.md",
         "candidate",
@@ -391,21 +391,26 @@ const BANNED_VOCABULARY_ALLOWLIST: [(&str, &str, &str); 4] = [
         "factory",
         "the same record: `realization owner` replaced it",
     ),
-    (
-        "src/23_evidence/types.rs",
-        "candidate",
-        "diagnostic-narrowing vocabulary, not construction lifecycle: a narrowed \
-         cause under investigation. FLAGGED for the repository owner — this home's \
-         README records the rename as executed, so the spelling here is a standing \
-         inconsistency awaiting a naming ruling",
-    ),
 ];
 
 /// No banned construction-lifecycle word appears in the specification tree.
-/// Matching is whole-word and case-insensitive: word edges are ASCII
-/// alphanumerics, so `snake_case`, `SCREAMING_SNAKE`, kebab-case strings, and
-/// plain prose all count, while a longer word merely containing the term does
-/// not.
+///
+/// Two scans run over every file, and a hit from either is an offence:
+///
+/// 1. Whole-word, case-insensitive over the whole text: word edges are ASCII
+///    alphanumerics, so `snake_case`, `SCREAMING_SNAKE`, kebab-case strings,
+///    and plain prose all count, while a longer word merely containing the
+///    term does not.
+/// 2. Split-identifier: every identifier-like token is cut on `camelCase` and
+///    `snake_case` boundaries and each resulting word is compared
+///    case-insensitively against the banned list AND its simple plural, so
+///    a `CamelCase` type name ending in the plural, a `mixedCase` field, and
+///    the plural in plain prose are all caught. A hyphenated banned term
+///    matches a consecutive run of split words inside one token, so
+///    `SelfHosting` and `self_hosting` are caught too.
+///
+/// Both scans report the banned ROOT word, so one allowlist entry covers a
+/// file for either scan.
 fn check_banned_vocabulary(root: &Path) -> Result<(), String> {
     let mut offenders = Vec::new();
     let mut inspect = |path: &Path| -> Result<(), String> {
@@ -417,11 +422,20 @@ fn check_banned_vocabulary(root: &Path) -> Result<(), String> {
         }
         let relative = relative_slash_path(root, path);
         let bytes = fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
-        let text = String::from_utf8_lossy(&bytes).to_lowercase();
+        let text = String::from_utf8_lossy(&bytes).into_owned();
+        let lowered = text.to_lowercase();
+        let mut hits: Vec<&'static str> = Vec::new();
         for word in BANNED_VOCABULARY {
-            if !contains_whole_word(&text, word) {
-                continue;
+            if contains_whole_word(&lowered, word) && !hits.contains(&word) {
+                hits.push(word);
             }
+        }
+        for banned in split_scan_hits(&text) {
+            if !hits.contains(&banned) {
+                hits.push(banned);
+            }
+        }
+        for word in hits {
             let allowed = BANNED_VOCABULARY_ALLOWLIST
                 .iter()
                 .any(|(file, allowed, _)| *file == relative && *allowed == word);
@@ -469,6 +483,88 @@ fn contains_whole_word(haystack: &str, needle: &str) -> bool {
         }
         from = end;
     }
+}
+
+/// Every banned root word spelled by an identifier-like token in `text` once
+/// that token is cut on `camelCase` and `snake_case` boundaries.
+fn split_scan_hits(text: &str) -> Vec<&'static str> {
+    let mut hits: Vec<&'static str> = Vec::new();
+    let tokens = text.split(|c: char| !(c.is_ascii_alphanumeric() || c == '_'));
+    for token in tokens {
+        if token.is_empty() {
+            continue;
+        }
+        let words = split_identifier_words(token);
+        for word in &words {
+            if let Some(banned) = spells_banned_word(word) {
+                if !hits.contains(&banned) {
+                    hits.push(banned);
+                }
+            }
+        }
+        for banned in BANNED_VOCABULARY {
+            let parts: Vec<&str> = banned.split('-').collect();
+            if parts.len() < 2 || words.len() < parts.len() {
+                continue;
+            }
+            let spelled = words.windows(parts.len()).any(|run| {
+                run.iter()
+                    .zip(parts.iter())
+                    .all(|(word, part)| word == part)
+            });
+            if spelled && !hits.contains(&banned) {
+                hits.push(banned);
+            }
+        }
+    }
+    hits
+}
+
+/// Cuts one identifier-like token into its lowercase words on `snake_case`
+/// separators, `camelCase` boundaries, and acronym-to-word boundaries
+/// (`SELFHosting` cuts before `Hosting`).
+fn split_identifier_words(token: &str) -> Vec<String> {
+    let mut words = Vec::new();
+    let mut current = String::new();
+    let mut previous_is_lower_or_digit = false;
+    let mut chars = token.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '_' {
+            if !current.is_empty() {
+                words.push(std::mem::take(&mut current));
+            }
+            previous_is_lower_or_digit = false;
+            continue;
+        }
+        let next_is_lower = chars.peek().is_some_and(char::is_ascii_lowercase);
+        if c.is_ascii_uppercase()
+            && !current.is_empty()
+            && (previous_is_lower_or_digit || next_is_lower)
+        {
+            words.push(std::mem::take(&mut current));
+        }
+        current.push(c.to_ascii_lowercase());
+        previous_is_lower_or_digit = c.is_ascii_lowercase() || c.is_ascii_digit();
+    }
+    if !current.is_empty() {
+        words.push(current);
+    }
+    words
+}
+
+/// The banned root word a single lowercase split word spells, counting the
+/// simple plural (`candidates`, `promotions`, `factories`). Hyphenated banned
+/// terms are matched as word runs, never here.
+fn spells_banned_word(word: &str) -> Option<&'static str> {
+    BANNED_VOCABULARY.into_iter().find(|banned| {
+        if banned.contains('-') {
+            return false;
+        }
+        let plural = banned
+            .strip_suffix('y')
+            .map_or_else(|| format!("{banned}s"), |stem| format!("{stem}ies"));
+        word == *banned || word == plural
+    })
 }
 
 /// The repository-relative path, slash-separated on every platform.

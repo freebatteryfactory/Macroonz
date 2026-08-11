@@ -114,20 +114,20 @@ pub struct ArenaIndex {
 /// the security home's.)
 #[derive(Debug)]
 pub struct CapabilityHandle {
-    _process_local: PhantomData<*const ()>,
+    _execution_context_local: PhantomData<*const ()>,
 }
 
 /// Live port authority — same laws as the capability handle.
 #[derive(Debug)]
 pub struct PortHandle {
-    _process_local: PhantomData<*const ()>,
+    _execution_context_local: PhantomData<*const ()>,
 }
 
 /// One-shot reply authority: grants only the live response crossing —
 /// consumed on use, never reusable, never a bearer token.
 #[derive(Debug)]
 pub struct ReplyHandle {
-    _process_local: PhantomData<*const ()>,
+    _execution_context_local: PhantomData<*const ()>,
 }
 
 // ---------------------------------------------------------------------------

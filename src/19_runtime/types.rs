@@ -729,7 +729,7 @@ pub enum CompletionTerminal {
 /// semantic budget, carrier credit, or the membrane's reservation.
 #[derive(Debug)]
 pub struct Permit {
-    _process_local: core::marker::PhantomData<*const ()>,
+    _execution_context_local: core::marker::PhantomData<*const ()>,
 }
 
 /// The four never-substitutable motions — where recovery is promised,

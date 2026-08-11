@@ -3219,7 +3219,7 @@ mod pakvm {
     }
 
     /// law: pakvm.live-handles-do-not-cross-threads — three role-distinct
-    /// executor handles exist, structurally process-local via the
+    /// executor handles exist, structurally execution-context-local via the
     /// raw-pointer phantom.
     /// Owed reversal (red twin): sending any handle across threads must not
     /// compile — the trybuild fixture is testpak's.
@@ -4535,7 +4535,7 @@ mod evidence {
     use super::pairwise_distinct;
     use crate::evidence::{
         AdoptionDecisionReceipt, Basis, CalibrationEvidence, CalibrationModel, CauseDisposition,
-        CommitmentLayers, Coverage, DiagnosticCause, DiagnosticCauseCandidates,
+        CommitmentLayers, Coverage, DiagnosticCause, DiagnosticCauseSuspects,
         EVIDENCE_NON_COLLAPSE, EXPLANATION_LADDER, Enforcement, EvidenceCarriage,
         GeneratedPublicationReceipt, Lane, LaneDomain, Method, QualificationTerminal,
         RECEIPT_FAMILIES, ReleaseEvidence, Route, SubstrateDisclosure, VerificationDenominator,
@@ -4696,8 +4696,8 @@ mod evidence {
     fn cause_disposition_narrows() {
         let established =
             CauseDisposition::EstablishedCause(DiagnosticCause(Commitment::raw([212; 32])));
-        let narrowed = CauseDisposition::NarrowedCauseCandidates(DiagnosticCauseCandidates {
-            candidates: Bounded::admitted(
+        let narrowed = CauseDisposition::NarrowedCauseSuspects(DiagnosticCauseSuspects {
+            suspects: Bounded::admitted(
                 vec![DiagnosticCause(Commitment::raw([213; 32]))],
                 &LimitWitness::declared(8),
             )
@@ -4707,7 +4707,7 @@ mod evidence {
         assert_ne!(established, unresolved);
         assert!(matches!(
             narrowed,
-            CauseDisposition::NarrowedCauseCandidates(_)
+            CauseDisposition::NarrowedCauseSuspects(_)
         ));
     }
 

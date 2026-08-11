@@ -214,7 +214,7 @@ pub struct SecretAuthorityBackend(pub Commitment<SecretBackendDomain>);
 /// child scope's narrowing is established by the authority algebra and the
 /// derivation policy, which the derivation then realizes.
 pub struct SecretUseHandle {
-    _process_local: core::marker::PhantomData<*const ()>,
+    _execution_context_local: core::marker::PhantomData<*const ()>,
 }
 
 /// The four consumer-selected secret capability configurations — portability

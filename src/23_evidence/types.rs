@@ -384,20 +384,20 @@ pub struct DiagnosticCauseDomain;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DiagnosticCause(pub Commitment<DiagnosticCauseDomain>);
 
-/// Limit family for narrowed candidate sets.
+/// Limit family for narrowed suspect sets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct CauseCandidateLimit;
-impl Limit for CauseCandidateLimit {}
+pub struct CauseSuspectLimit;
+impl Limit for CauseSuspectLimit {}
 
-/// The bounded narrowed-candidate set — its public meaning is "narrowed
-/// candidates", never a raw bounded vector and never a bare universal cause.
+/// The bounded narrowed-suspect set — its public meaning is "narrowed
+/// suspects", never a raw bounded vector and never a bare universal cause.
 /// Three causation vocabularies stay apart: the runtime home's Attempt
 /// lineage set, the refusal home's handling chain, and this investigation
 /// carrier.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct DiagnosticCauseCandidates {
-    /// The narrowed candidates.
-    pub candidates: Bounded<DiagnosticCause, CauseCandidateLimit>,
+pub struct DiagnosticCauseSuspects {
+    /// The narrowed suspects.
+    pub suspects: Bounded<DiagnosticCause, CauseSuspectLimit>,
 }
 
 /// The diagnostic epistemic posture — NARROWING IS PROGRESS, NOT A FORCED
@@ -408,8 +408,8 @@ pub struct DiagnosticCauseCandidates {
 pub enum CauseDisposition {
     /// One cause was established.
     EstablishedCause(DiagnosticCause),
-    /// The candidates were narrowed.
-    NarrowedCauseCandidates(DiagnosticCauseCandidates),
+    /// The suspects were narrowed.
+    NarrowedCauseSuspects(DiagnosticCauseSuspects),
     /// Unresolved.
     UnresolvedCause,
 }

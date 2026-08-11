@@ -404,7 +404,7 @@ impl RefusalFamily for AttemptAdmission {
 /// reservation residue, nothing to reconcile.
 #[derive(Debug)]
 pub struct PlannedInvocation {
-    _process_local: PhantomData<*const ()>,
+    _execution_context_local: PhantomData<*const ()>,
 }
 
 /// The FIRST Attempt state: grants, bounds, generations, capacity closed.
@@ -413,7 +413,7 @@ pub struct PlannedInvocation {
 #[derive(Debug)]
 pub struct AdmittedAttempt {
     attempt: AttemptId,
-    _process_local: PhantomData<*const ()>,
+    _execution_context_local: PhantomData<*const ()>,
 }
 
 impl AdmittedAttempt {
@@ -422,7 +422,7 @@ impl AdmittedAttempt {
     pub(crate) const fn for_laws(attempt: AttemptId) -> Self {
         Self {
             attempt,
-            _process_local: PhantomData,
+            _execution_context_local: PhantomData,
         }
     }
 
@@ -437,7 +437,7 @@ impl AdmittedAttempt {
 #[derive(Debug)]
 pub struct RunningAttempt {
     attempt: AttemptId,
-    _process_local: PhantomData<*const ()>,
+    _execution_context_local: PhantomData<*const ()>,
 }
 
 impl RunningAttempt {
@@ -454,7 +454,7 @@ impl RunningAttempt {
 #[derive(Debug)]
 pub struct LiveSuspendedAttempt {
     attempt: AttemptId,
-    _process_local: PhantomData<*const ()>,
+    _execution_context_local: PhantomData<*const ()>,
 }
 
 impl LiveSuspendedAttempt {
@@ -470,7 +470,7 @@ impl LiveSuspendedAttempt {
 #[derive(Debug)]
 pub struct TerminalAttempt {
     attempt: AttemptId,
-    _process_local: PhantomData<*const ()>,
+    _execution_context_local: PhantomData<*const ()>,
 }
 
 /// Attempt-evidence claim marker.
@@ -483,7 +483,7 @@ impl TerminalAttempt {
     pub(crate) const fn for_laws(attempt: AttemptId) -> Self {
         Self {
             attempt,
-            _process_local: PhantomData,
+            _execution_context_local: PhantomData,
         }
     }
 
@@ -552,7 +552,7 @@ pub enum AdmissionOutcome {
 /// partial authority. `requested ≠ reserved ≠ consumed ≠ released`.
 #[derive(Debug)]
 pub struct ResourceReservation {
-    _process_local: PhantomData<*const ()>,
+    _execution_context_local: PhantomData<*const ()>,
 }
 
 /// Host-guarantee domain marker.
