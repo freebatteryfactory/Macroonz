@@ -43,10 +43,13 @@ typed relation, never the ordinal's bytes.
 
 The sans-I/O protocol core's step machinery, the generated projections, and
 the carrier design inventory (a design denominator, never a support claim) →
-macros + hosts. Restricted-query eligibility derives from the operator
-register's declared effect and suspension posture at 15_execution — never
-from a roster of operation names kept here; the derived predicate is owed to
-the metaprogramming phase (macros). The information-release contract and
+the metaprogramming services (macroc) + hosts; participant surfaces are
+projections of the one global contract, produced by the projection engine
+and exposed through macro, xtask, or host tooling surfaces. Restricted-query
+eligibility derives from the operator register's declared effect and
+suspension posture at 15_execution — never from a roster of operation names
+kept here; the derived predicate is owed to the metaprogramming services
+(macroc). The information-release contract and
 firewall authorship → 22. Projection-completeness and trace-equivalence proof
 → 23 (a consumer of the contract, never its co-owner).
 

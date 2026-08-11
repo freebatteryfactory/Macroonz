@@ -60,11 +60,14 @@ knows which host is running it.
 - Safe Rust only. The workspace lint wall is declared once at the root and inherited by
   every member; no member may weaken it; `#[allow]` is forbidden.
 - NO PYTHON in this repository, ever. All tooling is Rust (xtask; trybuild).
-- The macros crate projects contracts; it never decides meaning and is never its own
-  oracle. Every macro family ships with a planted defective expansion that testpak must
-  reject. Proc-macro expansion is deterministic from its token input: no network, no
-  filesystem scans, no environment reads, no clock, no entropy — and testpak carries
-  hostiles proving those pathways are unused.
+- The metaprogramming services project contracts; they never decide meaning and are
+  never their own oracle. The services live in `macroc/` (ordinary callable Rust —
+  planning, rendering, inspection, explanation); the proc-macro crate (`macros/`) is
+  one thin Rust-facing expansion surface over them, and `threadc` is reserved for a
+  future language frontend. Every macro family ships with a planted defective
+  expansion that testpak must reject. Expansion is deterministic from its declared
+  input: no network, no filesystem scans, no environment reads, no clock, no
+  entropy — and testpak carries hostiles proving those pathways are unused.
 - testpak depends inward on core; nothing depends on testpak. Production never depends
   on its judge.
 - Probes (throwaway compiler experiments) never enter this repository.
