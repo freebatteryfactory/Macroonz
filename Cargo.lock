@@ -7,11 +7,18 @@ name = "threadpak"
 version = "0.0.0"
 
 [[package]]
-name = "threadpak-macroc"
+name = "threadpak-macro-consumer"
 version = "0.0.0"
 dependencies = [
  "threadpak",
  "threadpak-macros",
+]
+
+[[package]]
+name = "threadpak-macroc"
+version = "0.0.0"
+dependencies = [
+ "threadpak",
 ]
 
 [[package]]

@@ -135,6 +135,24 @@ impl<T, L: ConstLimit> Bounded<T, L> {
 }
 
 impl<T, L: Limit> Bounded<T, L> {
+    /// The empty collection: a *total structural* constructor.
+    ///
+    /// The two constructor classes are not interchangeable and are not spelled
+    /// alike. A **checked** constructor ([`Bounded::admitted_const`],
+    /// [`Bounded::admitted`]) reads a runtime count against a declared bound and
+    /// MAY REFUSE; its name carries `admitted` because admission is exactly what
+    /// it performs. A **total structural** constructor CANNOT FORM THE FAILING
+    /// CASE: no limit family admits fewer than zero items, so this road has no
+    /// refusal to return, and callers outside this crate get a bounded value
+    /// without an impossible error branch to invent a value for.
+    #[must_use]
+    pub const fn empty() -> Self {
+        Self {
+            items: Vec::new(),
+            _family: PhantomData,
+        }
+    }
+
     /// Checked construction against a schema-minted runtime witness of the same
     /// limit family — a witness for another family does not typecheck.
     ///
@@ -163,6 +181,22 @@ impl<T, L: Limit> Bounded<T, L> {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.items.is_empty()
+    }
+
+    /// Read the held values. Read-only by construction: the collection is
+    /// borrowed, not consumed, and no mutable or positional road exists beside
+    /// this one — there is no `iter_mut`, no `Index`, and no slice escape.
+    ///
+    /// # The order law
+    ///
+    /// Iteration exposes values for observation; iteration order may influence
+    /// semantic meaning ONLY where the owner type explicitly declares ordering
+    /// as semantic. Identity-bearing generation over order-insensitive
+    /// collections must canonicalize by an owner-declared order or key first.
+    /// testpak owes the permutation hostiles: identical plans and identical
+    /// output identities under permuted order-insensitive inputs.
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
+        self.items.iter()
     }
 }
 
@@ -202,6 +236,37 @@ impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
             })
         } else {
             Err(NonEmptyBoundedConstruction::OverLimit)
+        }
+    }
+
+    /// The one-item collection: a *total structural* constructor whose "at
+    /// least one" proof is discharged at COMPILE TIME.
+    ///
+    /// The two constructor classes are not interchangeable. A **checked**
+    /// constructor ([`NonEmptyBounded::admitted_const`],
+    /// [`NonEmptyBounded::admitted`]) reads a runtime count against a declared
+    /// bound and MAY REFUSE. This **total structural** road CANNOT FORM THE
+    /// FAILING CASE: the only way a single item could exceed a family's
+    /// maximum is a family declaring `MAX = 0`, and the `const` block below
+    /// rejects that instantiation. Post-monomorphization refusal *is*
+    /// compile-time refusal — no artifact containing this road under a
+    /// zero-maximum family is ever produced, so the failing case never reaches
+    /// a running program to be refused at.
+    ///
+    /// Its reason for existing is downstream honesty: a caller assembling a
+    /// one-issue refusal body has no impossible error branch to fabricate a
+    /// value for, so refusal construction never becomes the place a consumer
+    /// reaches for a panic.
+    ///
+    /// Owed reversal (red twin): a trybuild fixture instantiating this road
+    /// under a family declaring `MAX = 0` must fail to compile.
+    #[must_use]
+    pub const fn singleton(value: T) -> Self {
+        const { assert!(L::MAX >= 1, "a limit family admitting no item at all") }
+        Self {
+            first: value,
+            rest: Vec::new(),
+            _family: PhantomData,
         }
     }
 }
@@ -246,6 +311,23 @@ impl<T, L: Limit> NonEmptyBounded<T, L> {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         false
+    }
+
+    /// Read the held values, the guaranteed first item ahead of the rest.
+    /// Read-only by construction: the collection is borrowed, not consumed, and
+    /// no mutable or positional road exists beside this one — there is no
+    /// `iter_mut`, no `Index`, and no slice escape.
+    ///
+    /// # The order law
+    ///
+    /// Iteration exposes values for observation; iteration order may influence
+    /// semantic meaning ONLY where the owner type explicitly declares ordering
+    /// as semantic. Identity-bearing generation over order-insensitive
+    /// collections must canonicalize by an owner-declared order or key first.
+    /// testpak owes the permutation hostiles: identical plans and identical
+    /// output identities under permuted order-insensitive inputs.
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
+        core::iter::once(&self.first).chain(self.rest.iter())
     }
 }
 

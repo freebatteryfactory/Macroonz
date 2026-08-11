@@ -1,0 +1,14 @@
+[package]
+name = "threadpak-macro-consumer"
+description = "The outside consumer fixture: composition proven from outside the participants."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+threadpak = { path = "../../.." }
+threadpak-macros = { path = "../../../macros/proc" }

@@ -205,41 +205,99 @@ const TOOLING_PACKAGES: [&str; 2] = ["threadpak-macroc", "threadpak-macros"];
 /// The subsystem directory no core dependency path may point into.
 const TOOLING_DIRECTORY: &str = "macros";
 
+/// The services package, and the one manifest this law reads for the second
+/// absence.
+const SERVICES_MANIFEST: &str = "macros/macroc/Cargo.toml";
+
+/// The Rust-facing expansion surface over the services.
+const FRONTEND_PACKAGE: &str = "threadpak-macros";
+
+/// The directory that surface lives in, under [`TOOLING_DIRECTORY`].
+const FRONTEND_DIRECTORY: &str = "proc";
+
 /// Every Cargo dependency-edge kind, each of which the law covers.
 const DEPENDENCY_TABLE_KINDS: [&str; 3] =
     ["dependencies", "dev-dependencies", "build-dependencies"];
 
-/// The core `threadpak` package carries no dependency edge to the
-/// metaprogramming tooling under any Cargo edge kind.
+/// The topology law, in two parts.
 ///
-/// The edges run one way and inward — `macros/proc` → `macros/macroc` →
-/// `threadpak` — so the machine never depends on the tools that project its
-/// contracts. Those lawful inward edges live in the subsystem manifests; this
-/// law reads the ROOT manifest only, where any tooling edge at all is a
-/// reversal of the topology.
+/// **Part one: the core never depends on tooling.** The `threadpak` package
+/// carries no dependency edge to the metaprogramming tooling under any Cargo
+/// edge kind. The edges run one way and inward — `macros/proc` →
+/// `macros/macroc` → `threadpak` — so the machine never depends on the tools
+/// that project its contracts. Those lawful inward edges live in the subsystem
+/// manifests; part one reads the ROOT manifest only, where any tooling edge at
+/// all is a reversal of the topology.
+///
+/// **Part two: macroc never depends on its frontends.** A compiler service
+/// never depends on its frontend surfaces, EVEN FOR TESTS. So the services
+/// manifest carries no edge to `threadpak-macros` under any kind either — a dev
+/// edge is still an edge, and a composition test bought with one is the
+/// participant grading itself. Composition is proven from outside the
+/// participants, by the consumer fixture at `xtask/fixtures/macro-consumer`.
 fn check_no_core_tooling_edge(root: &Path) -> Result<(), String> {
+    let mut reported = Vec::new();
     let manifest =
         fs::read_to_string(root.join("Cargo.toml")).map_err(|e| format!("Cargo.toml: {e}"))?;
-    let violations = core_tooling_edge_violations(&manifest);
-    if violations.is_empty() {
+    for violation in core_tooling_edge_violations(&manifest) {
+        reported.push(format!(
+            "core package reaches metaprogramming tooling: {violation}"
+        ));
+    }
+    let services = fs::read_to_string(root.join(SERVICES_MANIFEST))
+        .map_err(|e| format!("{SERVICES_MANIFEST}: {e}"))?;
+    for violation in services_frontend_edge_violations(&services) {
+        reported.push(format!(
+            "services reach their expansion surface: {violation}"
+        ));
+    }
+    if reported.is_empty() {
         Ok(())
     } else {
-        Err(format!(
-            "core package reaches metaprogramming tooling: {}",
-            violations.join("; ")
-        ))
+        Err(reported.join("; "))
     }
 }
 
 /// Every tooling edge the root manifest declares, one description per edge.
 ///
-/// Ordinary, renamed, dev, build, and target-specific dependencies are all read
-/// the same way: an entry's PACKAGE IDENTITY is its `package = "…"` key when it
-/// carries one and its own key otherwise, and an entry is a violation when that
-/// identity names a tooling package or when its `path` points into the tooling
-/// subsystem directory. Renaming therefore hides nothing.
+/// An entry's PACKAGE IDENTITY is its `package = "…"` key when it carries one
+/// and its own key otherwise, and an entry is a violation when that identity
+/// names a tooling package or when its `path` points into the tooling subsystem
+/// directory. Renaming therefore hides nothing.
 fn core_tooling_edge_violations(manifest_text: &str) -> Vec<String> {
-    let mut violations = Vec::new();
+    dependency_entries(manifest_text)
+        .into_iter()
+        .filter_map(|(kind, key, package, path)| {
+            judge_dependency(kind, &key, package.as_deref(), path.as_deref())
+        })
+        .collect()
+}
+
+/// Every frontend edge the services manifest declares, one description per
+/// edge.
+///
+/// Read exactly like the core law: package identity first, so a renamed entry
+/// betrays itself, and then the declared path, so an entry named anything at
+/// all that reaches into `macros/proc/` is caught by where it points.
+fn services_frontend_edge_violations(manifest_text: &str) -> Vec<String> {
+    dependency_entries(manifest_text)
+        .into_iter()
+        .filter_map(|(kind, key, package, path)| {
+            judge_frontend_dependency(kind, &key, package.as_deref(), path.as_deref())
+        })
+        .collect()
+}
+
+/// Every dependency entry a manifest declares, as
+/// `(edge kind, entry key, declared package, declared path)`.
+///
+/// Ordinary, renamed, dev, build, and target-specific dependencies are all read
+/// the same way, across the table spellings Cargo admits: the bare table, the
+/// `[KIND.entry]` sub-table, and either under a `target.'…'` prefix.
+fn dependency_entries(
+    manifest_text: &str,
+) -> Vec<(&'static str, String, Option<String>, Option<String>)> {
+    let mut entries = Vec::new();
     let mut table: Option<&'static str> = None;
     let mut pending: Option<(&'static str, String, Option<String>, Option<String>)> = None;
     for raw in manifest_text.lines() {
@@ -248,13 +306,8 @@ fn core_tooling_edge_violations(manifest_text: &str) -> Vec<String> {
             continue;
         }
         if let Some(header) = line.strip_prefix('[').and_then(|h| h.strip_suffix(']')) {
-            if let Some((kind, key, package, path)) = pending.take() {
-                violations.extend(judge_dependency(
-                    kind,
-                    &key,
-                    package.as_deref(),
-                    path.as_deref(),
-                ));
+            if let Some(entry) = pending.take() {
+                entries.push(entry);
             }
             match dependency_table(header.trim()) {
                 Some((kind, None)) => table = Some(kind),
@@ -286,25 +339,20 @@ fn core_tooling_edge_violations(manifest_text: &str) -> Vec<String> {
             continue;
         }
         let value = value.trim();
-        violations.extend(judge_dependency(
+        entries.push((
             kind,
-            key,
-            quoted_assignment(value, "package").as_deref(),
-            quoted_assignment(value, "path").as_deref(),
+            key.to_string(),
+            quoted_assignment(value, "package"),
+            quoted_assignment(value, "path"),
         ));
     }
-    if let Some((kind, key, package, path)) = pending {
-        violations.extend(judge_dependency(
-            kind,
-            &key,
-            package.as_deref(),
-            path.as_deref(),
-        ));
+    if let Some(entry) = pending {
+        entries.push(entry);
     }
-    violations
+    entries
 }
 
-/// The violation one dependency entry commits, if any.
+/// The violation one dependency entry of the ROOT manifest commits, if any.
 fn judge_dependency(
     kind: &str,
     key: &str,
@@ -325,11 +373,43 @@ fn judge_dependency(
     None
 }
 
+/// The violation one dependency entry of the SERVICES manifest commits, if any.
+fn judge_frontend_dependency(
+    kind: &str,
+    key: &str,
+    package: Option<&str>,
+    path: Option<&str>,
+) -> Option<String> {
+    let identity = package.unwrap_or(key);
+    if identity == FRONTEND_PACKAGE {
+        return Some(format!(
+            "[{kind}] `{key}` resolves to package `{FRONTEND_PACKAGE}`"
+        ));
+    }
+    if let Some(path) = path
+        && points_into_frontend(path)
+    {
+        return Some(format!(
+            "[{kind}] `{key}` has path `{path}` inside `{FRONTEND_DIRECTORY}/`"
+        ));
+    }
+    None
+}
+
 /// Whether a dependency path enters the tooling subsystem directory.
 fn points_into_tooling(path: &str) -> bool {
     path.replace('\\', "/")
         .split('/')
         .any(|segment| segment == TOOLING_DIRECTORY)
+}
+
+/// Whether a dependency path enters the expansion surface's directory. The
+/// segment is matched wherever it appears, so `../proc`, `macros/proc`, and any
+/// longer detour that lands there are all the same edge.
+fn points_into_frontend(path: &str) -> bool {
+    path.replace('\\', "/")
+        .split('/')
+        .any(|segment| segment == FRONTEND_DIRECTORY)
 }
 
 /// The dependency-edge kind a table header declares, plus the single entry the
@@ -909,14 +989,25 @@ fn readme_yaml_block(root: &Path) -> Result<Vec<String>, String> {
 /// against fixture text, never by dirtying the repository it guards.
 #[cfg(test)]
 mod tests {
-    use super::{core_tooling_edge_violations, repo_root};
+    use super::{
+        SERVICES_MANIFEST, core_tooling_edge_violations, repo_root,
+        services_frontend_edge_violations,
+    };
 
-    /// The manifest preamble every fixture shares: the core package itself.
+    /// The manifest preamble every core fixture shares: the core package itself.
     const PREAMBLE: &str = "[package]\nname = \"threadpak\"\n\n";
+
+    /// The manifest preamble every services fixture shares.
+    const SERVICES_PREAMBLE: &str = "[package]\nname = \"threadpak-macroc\"\n\n";
 
     /// The violations a fixture manifest commits, preamble supplied.
     fn violations(body: &str) -> Vec<String> {
         core_tooling_edge_violations(&format!("{PREAMBLE}{body}"))
+    }
+
+    /// The frontend violations a services fixture manifest commits.
+    fn services_violations(body: &str) -> Vec<String> {
+        services_frontend_edge_violations(&format!("{SERVICES_PREAMBLE}{body}"))
     }
 
     /// Reversal (a): the plain edge — a normal dependency on the services.
@@ -998,6 +1089,61 @@ mod tests {
         let manifest = std::fs::read_to_string(root.join("Cargo.toml")).unwrap_or_default();
         assert!(!manifest.is_empty(), "root Cargo.toml is unreadable");
         let found = core_tooling_edge_violations(&manifest);
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    /// Part-two reversal (a): the plain edge — the services taking an ordinary
+    /// dependency on the surface that is supposed to call THEM.
+    #[test]
+    fn a_services_dependency_on_the_frontend_is_a_violation() {
+        let found =
+            services_violations("[dependencies]\nthreadpak-macros = { path = \"../proc\" }\n");
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found.iter().any(|v| v.contains("threadpak-macros")));
+    }
+
+    /// Part-two reversal (b): the test-only edge — the exact shape the law was
+    /// written to kill, since a composition test bought with a dev edge is the
+    /// participant grading itself.
+    #[test]
+    fn a_services_dev_dependency_on_the_frontend_is_a_violation() {
+        let found =
+            services_violations("[dev-dependencies]\nthreadpak-macros = { path = \"../proc\" }\n");
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found.iter().any(|v| v.contains("dev-dependencies")));
+    }
+
+    /// Part-two reversal (c): the disguised edge — the surface renamed at the
+    /// key, and separately an entry named anything at all whose path reaches
+    /// into the surface's directory.
+    #[test]
+    fn a_renamed_services_dependency_on_the_frontend_is_a_violation() {
+        let renamed = services_violations(
+            "[dev-dependencies]\nshell = { package = \"threadpak-macros\", version = \"0.0.0\" }\n",
+        );
+        assert_eq!(renamed.len(), 1, "{renamed:?}");
+        assert!(renamed.iter().any(|v| v.contains("threadpak-macros")));
+        let by_path = services_violations("[dependencies]\nshell = { path = \"../proc\" }\n");
+        assert_eq!(by_path.len(), 1, "{by_path:?}");
+        assert!(by_path.iter().any(|v| v.contains("proc/")));
+    }
+
+    /// The part-two positive control: the services depending only on the
+    /// machine are clean, so the law reports something real rather than
+    /// everything.
+    #[test]
+    fn a_services_manifest_without_a_frontend_edge_is_clean() {
+        let found = services_violations("[dependencies]\nthreadpak = { path = \"../..\" }\n");
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    /// Part two judges the real services manifest, and it holds.
+    #[test]
+    fn the_real_services_manifest_carries_no_frontend_edge() {
+        let root = repo_root().unwrap_or_else(|_| std::path::PathBuf::from("."));
+        let manifest = std::fs::read_to_string(root.join(SERVICES_MANIFEST)).unwrap_or_default();
+        assert!(!manifest.is_empty(), "services Cargo.toml is unreadable");
+        let found = services_frontend_edge_violations(&manifest);
         assert!(found.is_empty(), "{found:?}");
     }
 }

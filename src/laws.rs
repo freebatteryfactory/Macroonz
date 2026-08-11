@@ -140,11 +140,16 @@ mod root {
         ));
     }
 
-    /// law: root.bounded-construction-is-a-seam — both constructor roads check
-    /// the limit and refuse with the family body; the const road enforces the
-    /// compile-time maximum, the witness road enforces the schema-minted one;
-    /// a non-empty collection cannot be empty by signature.
-    /// Owed reversal (red twin): an unchecked public constructor must not exist.
+    /// law: root.bounded-construction-is-a-seam — both checked constructor roads
+    /// check the limit and refuse with the family body; the const road enforces
+    /// the compile-time maximum, the witness road enforces the schema-minted one;
+    /// a non-empty collection cannot be empty by signature. The two total
+    /// structural roads — `empty` and `singleton` — cannot form the failing
+    /// case at all: the empty collection carries nothing, and the one-item
+    /// collection compiles only where the declared maximum is proven at compile
+    /// time to admit an item.
+    /// Owed reversal (red twin): an unchecked public constructor must not exist,
+    /// and `singleton` under a family declaring `MAX = 0` must not compile.
     #[test]
     fn bounded_construction_is_a_seam() {
         use crate::types::{
@@ -178,6 +183,51 @@ mod root {
             too_many,
             Err(NonEmptyBoundedConstruction::OverLimit)
         ));
+
+        let empty: Bounded<u8, SmallDemo> = Bounded::empty();
+        assert!(empty.is_empty());
+        let one: NonEmptyBounded<u8, SmallDemo> = NonEmptyBounded::singleton(5);
+        assert!(!one.is_empty() && one.len() == 1 && *one.first() == 5);
+    }
+
+    /// law: root.reading-is-not-gaining — reading a bounded collection is an
+    /// observation, not a crossing: `iter` borrows, so the values are visible
+    /// and the collection is neither consumed nor changed, and no mutable or
+    /// positional road stands beside it (`iter_mut`, `Index`, and a slice
+    /// escape all absent).
+    ///
+    /// The order law this read carries: iteration exposes values for
+    /// observation; iteration order may influence semantic meaning ONLY where
+    /// the owner type explicitly declares ordering as semantic; identity-bearing
+    /// generation over order-insensitive collections must canonicalize by an
+    /// owner-declared order or key first; testpak owes the permutation hostiles
+    /// — identical plans and identical output identities under permuted
+    /// order-insensitive inputs.
+    ///
+    /// Owed reversal (red twin): a consuming or mutating read road — `iter_mut`,
+    /// an `Index` impl, or a slice escape — must not compile.
+    #[test]
+    fn reading_is_not_gaining() {
+        use crate::types::{Bounded, NonEmptyBounded};
+        struct ReadDemo;
+        impl Limit for ReadDemo {}
+        impl ConstLimit for ReadDemo {
+            const MAX: usize = 4;
+        }
+
+        let bounded: Bounded<u8, ReadDemo> = Bounded::admitted_const(vec![1, 2, 3])
+            .unwrap_or_else(|_| Bounded::<u8, ReadDemo>::empty());
+        let seen: Vec<u8> = bounded.iter().copied().collect();
+        assert_eq!(seen, vec![1, 2, 3]);
+        // The collection survives the read unchanged and can be read again.
+        assert_eq!(bounded.len(), 3);
+        assert!(!bounded.is_empty());
+        assert_eq!(bounded.iter().count(), 3);
+
+        let non_empty: NonEmptyBounded<u8, ReadDemo> = NonEmptyBounded::singleton(9);
+        assert_eq!(non_empty.iter().copied().collect::<Vec<u8>>(), vec![9]);
+        assert_eq!(non_empty.len(), 1);
+        assert_eq!(*non_empty.first(), 9);
     }
 
     /// law: root.closure-bar-is-implementable — a minimal two-state machine

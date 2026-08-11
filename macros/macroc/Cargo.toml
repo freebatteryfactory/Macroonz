@@ -10,6 +10,3 @@ workspace = true
 
 [dependencies]
 threadpak = { path = "../.." }
-
-[dev-dependencies]
-threadpak-macros = { path = "../proc" }

@@ -10,7 +10,7 @@ workspace = true
 
 [workspace]
 resolver = "3"
-members = ["macros/macroc", "macros/proc", "xtask"]
+members = ["macros/macroc", "macros/proc", "xtask", "xtask/fixtures/macro-consumer"]
 
 [workspace.package]
 version = "0.0.0"

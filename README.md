@@ -23,12 +23,13 @@ knows which host is running it.
 
 ## Workspace
 
-| Crate            | Role                                                           |
-| ---------------- | -------------------------------------------------------------- |
-| `threadpak`      | the machine — root package at the repository root              |
-| `macros/macroc`  | the metaprogramming services — package `threadpak-macroc`      |
-| `macros/proc`    | the Rust-facing expansion shell — package `threadpak-macros`   |
-| `xtask`          | repository law checks and tooling — `cargo xtask check`        |
+| Crate                           | Role                                                              |
+| ------------------------------- | ----------------------------------------------------------------- |
+| `threadpak`                     | the machine — root package at the repository root                 |
+| `macros/macroc`                 | the metaprogramming services — package `threadpak-macroc`         |
+| `macros/proc`                   | the Rust-facing expansion shell — package `threadpak-macros`      |
+| `xtask`                         | repository law checks and tooling — `cargo xtask check`           |
+| `xtask/fixtures/macro-consumer` | the outside consumer fixture — package `threadpak-macro-consumer` |
 
 The repository root is itself the `threadpak` package; its `src/` carries the machine.
 `macros/`, `testpak/`, `xtask/`, and `hosts/` are unnumbered: first-class, but never on
@@ -37,6 +38,12 @@ package: it holds the services (`macros/macroc`) and the one Rust-facing expansi
 over them (`macros/proc`). The metaprogramming edges run one way and inward —
 `macros/proc` → `macros/macroc` → `threadpak` — and the machine depends on neither, an
 absence the `no-core-tooling-edge` check enforces across every Cargo edge kind.
+
+That check enforces a second absence in the same breath: the services never depend on
+their frontend surfaces either, not even for tests. Composition is proven from outside
+the participants instead — `xtask/fixtures/macro-consumer` depends on the machine and on
+the expansion shell, exactly as an application would, and holds the one test that
+applies the shell's derive to a struct carrying a machine type.
 
 ## The band map
 
@@ -86,6 +93,7 @@ workspace_members:
   - macros/macroc
   - macros/proc
   - xtask
+  - xtask/fixtures/macro-consumer
 ```
 
 ## Root calculus obligations
@@ -123,6 +131,10 @@ obligations:
   - id: root.bounded-construction-is-a-seam
     challenge_kind: compile-law
     green: laws.rs root::bounded_construction_is_a_seam
+    red: owed-to-testpak
+  - id: root.reading-is-not-gaining
+    challenge_kind: compile-law
+    green: laws.rs root::reading_is_not_gaining
     red: owed-to-testpak
   - id: root.closure-bar-is-implementable
     challenge_kind: compile-law

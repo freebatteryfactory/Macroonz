@@ -73,6 +73,10 @@ knows which host is running it.
   shell obligation has earned it. The core package carries no dependency edge to the
   metaprogramming tooling under any Cargo edge kind — ordinary, renamed, dev, build,
   or target-specific — and the `no-core-tooling-edge` gate enforces that absence.
+  Compiler services never depend on their frontend surfaces, even for tests;
+  composition is proven from an outside consumer fixture. A tooling type may
+  summarize, reference, plan, explain, or project an owner fact; it may never create
+  a second value that independently answers the owner's semantic question.
 - testpak depends inward on core; nothing depends on testpak. Production never depends
   on its judge.
 - Probes (throwaway compiler experiments) never enter this repository.
