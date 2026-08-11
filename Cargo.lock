@@ -7,5 +7,20 @@ name = "threadpak"
 version = "0.0.0"
 
 [[package]]
+name = "threadpak-macroc"
+version = "0.0.0"
+dependencies = [
+ "threadpak",
+ "threadpak-macros",
+]
+
+[[package]]
+name = "threadpak-macros"
+version = "0.0.0"
+dependencies = [
+ "threadpak-macroc",
+]
+
+[[package]]
 name = "xtask"
 version = "0.0.0"

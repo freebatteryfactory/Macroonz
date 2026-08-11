@@ -37,13 +37,14 @@ fn repo_root() -> Result<PathBuf, Box<dyn Error>> {
 
 /// Runs every repository law, printing one PASS or FAIL line per law.
 fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
-    let checks: [Check; 11] = [
+    let checks: [Check; 12] = [
         ("agents-claude-parity", check_agents_claude_parity),
         ("lf-and-no-symlinks", check_lf_and_no_symlinks),
         ("no-python", check_no_python),
         ("toolchain-pin-matches-readme", check_toolchain_pin),
         ("workspace-members-match-readme", check_workspace_members),
         ("lint-wall-inherited", check_lint_wall),
+        ("no-core-tooling-edge", check_no_core_tooling_edge),
         (
             "underscore-fields-are-phantom",
             check_underscore_fields_are_phantom,
@@ -195,6 +196,193 @@ fn check_lint_wall(root: &Path) -> Result<(), String> {
         Ok(())
     } else {
         Err(format!("members not inheriting the lint wall: {missing:?}"))
+    }
+}
+
+/// The metaprogramming packages the core package may never reach.
+const TOOLING_PACKAGES: [&str; 2] = ["threadpak-macroc", "threadpak-macros"];
+
+/// The subsystem directory no core dependency path may point into.
+const TOOLING_DIRECTORY: &str = "macros";
+
+/// Every Cargo dependency-edge kind, each of which the law covers.
+const DEPENDENCY_TABLE_KINDS: [&str; 3] =
+    ["dependencies", "dev-dependencies", "build-dependencies"];
+
+/// The core `threadpak` package carries no dependency edge to the
+/// metaprogramming tooling under any Cargo edge kind.
+///
+/// The edges run one way and inward — `macros/proc` → `macros/macroc` →
+/// `threadpak` — so the machine never depends on the tools that project its
+/// contracts. Those lawful inward edges live in the subsystem manifests; this
+/// law reads the ROOT manifest only, where any tooling edge at all is a
+/// reversal of the topology.
+fn check_no_core_tooling_edge(root: &Path) -> Result<(), String> {
+    let manifest =
+        fs::read_to_string(root.join("Cargo.toml")).map_err(|e| format!("Cargo.toml: {e}"))?;
+    let violations = core_tooling_edge_violations(&manifest);
+    if violations.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "core package reaches metaprogramming tooling: {}",
+            violations.join("; ")
+        ))
+    }
+}
+
+/// Every tooling edge the root manifest declares, one description per edge.
+///
+/// Ordinary, renamed, dev, build, and target-specific dependencies are all read
+/// the same way: an entry's PACKAGE IDENTITY is its `package = "…"` key when it
+/// carries one and its own key otherwise, and an entry is a violation when that
+/// identity names a tooling package or when its `path` points into the tooling
+/// subsystem directory. Renaming therefore hides nothing.
+fn core_tooling_edge_violations(manifest_text: &str) -> Vec<String> {
+    let mut violations = Vec::new();
+    let mut table: Option<&'static str> = None;
+    let mut pending: Option<(&'static str, String, Option<String>, Option<String>)> = None;
+    for raw in manifest_text.lines() {
+        let line = raw.trim();
+        if line.starts_with('#') || line.is_empty() {
+            continue;
+        }
+        if let Some(header) = line.strip_prefix('[').and_then(|h| h.strip_suffix(']')) {
+            if let Some((kind, key, package, path)) = pending.take() {
+                violations.extend(judge_dependency(
+                    kind,
+                    &key,
+                    package.as_deref(),
+                    path.as_deref(),
+                ));
+            }
+            match dependency_table(header.trim()) {
+                Some((kind, None)) => table = Some(kind),
+                Some((kind, Some(key))) => {
+                    table = None;
+                    pending = Some((kind, key, None, None));
+                }
+                None => table = None,
+            }
+            continue;
+        }
+        if let Some((_, _, package, path)) = pending.as_mut() {
+            if let Some(value) = quoted_assignment(line, "package") {
+                *package = Some(value);
+            }
+            if let Some(value) = quoted_assignment(line, "path") {
+                *path = Some(value);
+            }
+            continue;
+        }
+        let Some(kind) = table else {
+            continue;
+        };
+        let Some((key, value)) = line.split_once('=') else {
+            continue;
+        };
+        let key = key.trim().trim_matches('"');
+        if key.is_empty() {
+            continue;
+        }
+        let value = value.trim();
+        violations.extend(judge_dependency(
+            kind,
+            key,
+            quoted_assignment(value, "package").as_deref(),
+            quoted_assignment(value, "path").as_deref(),
+        ));
+    }
+    if let Some((kind, key, package, path)) = pending {
+        violations.extend(judge_dependency(
+            kind,
+            &key,
+            package.as_deref(),
+            path.as_deref(),
+        ));
+    }
+    violations
+}
+
+/// The violation one dependency entry commits, if any.
+fn judge_dependency(
+    kind: &str,
+    key: &str,
+    package: Option<&str>,
+    path: Option<&str>,
+) -> Option<String> {
+    let identity = package.unwrap_or(key);
+    if TOOLING_PACKAGES.contains(&identity) {
+        return Some(format!("[{kind}] `{key}` resolves to package `{identity}`"));
+    }
+    if let Some(path) = path
+        && points_into_tooling(path)
+    {
+        return Some(format!(
+            "[{kind}] `{key}` has path `{path}` inside `{TOOLING_DIRECTORY}/`"
+        ));
+    }
+    None
+}
+
+/// Whether a dependency path enters the tooling subsystem directory.
+fn points_into_tooling(path: &str) -> bool {
+    path.replace('\\', "/")
+        .split('/')
+        .any(|segment| segment == TOOLING_DIRECTORY)
+}
+
+/// The dependency-edge kind a table header declares, plus the single entry the
+/// header names when it is the `[dependencies.name]` sub-table form.
+///
+/// Recognized: the three bare kinds, each `[target.'…'.KIND]` form, and either
+/// spelled with a trailing entry name.
+fn dependency_table(header: &str) -> Option<(&'static str, Option<String>)> {
+    for kind in DEPENDENCY_TABLE_KINDS {
+        if header == kind {
+            return Some((kind, None));
+        }
+        if let Some(prefix) = header.strip_suffix(kind)
+            && let Some(prefix) = prefix.strip_suffix('.')
+            && prefix.starts_with("target.")
+        {
+            return Some((kind, None));
+        }
+        if let Some(entry) = header.strip_prefix(&format!("{kind}.")) {
+            return Some((kind, Some(entry.trim().trim_matches('"').to_string())));
+        }
+        if let Some((prefix, entry)) = header.split_once(&format!(".{kind}."))
+            && prefix.starts_with("target.")
+        {
+            return Some((kind, Some(entry.trim().trim_matches('"').to_string())));
+        }
+    }
+    None
+}
+
+/// The double-quoted value assigned to `key` anywhere in one line of manifest
+/// text, whether the line is a table entry or an inline table body. The key is
+/// matched whole, so `package` never matches inside a longer key.
+fn quoted_assignment(text: &str, key: &str) -> Option<String> {
+    let mut from = 0usize;
+    loop {
+        let rest = text.get(from..)?;
+        let offset = rest.find(key)?;
+        let start = from.saturating_add(offset);
+        let end = start.saturating_add(key.len());
+        let before_is_key = text
+            .get(..start)
+            .and_then(|head| head.chars().next_back())
+            .is_some_and(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+        if !before_is_key
+            && let Some(tail) = text.get(end..)
+            && let Some(value) = tail.trim_start().strip_prefix('=')
+            && let Some(quoted) = value.trim_start().strip_prefix('"')
+            && let Some(index) = quoted.find('"')
+        {
+            return quoted.get(..index).map(str::to_string);
+        }
+        from = end;
     }
 }
 
@@ -397,29 +585,17 @@ const BANNED_VOCABULARY_ALLOWLIST: [(&str, &str, &str); 3] = [
     ),
 ];
 
-/// No banned construction-lifecycle word appears in the specification tree.
-///
-/// Two scans run over every file, and a hit from either is an offence:
-///
-/// 1. Whole-word, case-insensitive over the whole text: word edges are ASCII
-///    alphanumerics, so `snake_case`, `SCREAMING_SNAKE`, kebab-case strings,
-///    and plain prose all count, while a longer word merely containing the
-///    term does not.
-/// 2. Split-identifier: every identifier-like token is cut on `camelCase` and
-///    `snake_case` boundaries and each resulting word is compared
-///    case-insensitively against the banned list AND its simple plural, so
-///    a `CamelCase` type name ending in the plural, a `mixedCase` field, and
-///    the plural in plain prose are all caught. A hyphenated banned term
-///    matches a consecutive run of split words inside one token, so
-///    `SelfHosting` and `self_hosting` are caught too.
-///
 /// An underscore-prefixed field is lawful only when it is a `PhantomData`
 /// type-level law. Real data behind an underscore is the suppressor idiom —
 /// "ignore this mess" — and the repository refuses it: the only honest `_`
 /// is one with nothing to read.
+///
+/// The scan covers the machine (`src/`) and the metaprogramming subsystem
+/// (`macros/`): the tools that project the machine's contracts are held to the
+/// machine's own honesty about what a field carries.
 fn check_underscore_fields_are_phantom(root: &Path) -> Result<(), String> {
     let mut offenders = Vec::new();
-    visit_files(&root.join("src"), &mut |path| {
+    let mut inspect = |path: &Path| -> Result<(), String> {
         if path.extension().is_none_or(|extension| extension != "rs") {
             return Ok(());
         }
@@ -444,7 +620,9 @@ fn check_underscore_fields_are_phantom(root: &Path) -> Result<(), String> {
             }
         }
         Ok(())
-    })?;
+    };
+    visit_files(&root.join("src"), &mut inspect)?;
+    visit_files(&root.join(TOOLING_DIRECTORY), &mut inspect)?;
     if offenders.is_empty() {
         Ok(())
     } else {
@@ -452,8 +630,26 @@ fn check_underscore_fields_are_phantom(root: &Path) -> Result<(), String> {
     }
 }
 
+/// No banned construction-lifecycle word appears in the specification tree.
+///
+/// Two scans run over every file, and a hit from either is an offence:
+///
+/// 1. Whole-word, case-insensitive over the whole text: word edges are ASCII
+///    alphanumerics, so `snake_case`, `SCREAMING_SNAKE`, kebab-case strings,
+///    and plain prose all count, while a longer word merely containing the
+///    term does not.
+/// 2. Split-identifier: every identifier-like token is cut on `camelCase` and
+///    `snake_case` boundaries and each resulting word is compared
+///    case-insensitively against the banned list AND its simple plural, so
+///    a `CamelCase` type name ending in the plural, a `mixedCase` field, and
+///    the plural in plain prose are all caught. A hyphenated banned term
+///    matches a consecutive run of split words inside one token, so
+///    `SelfHosting` and `self_hosting` are caught too.
+///
 /// Both scans report the banned ROOT word, so one allowlist entry covers a
-/// file for either scan.
+/// file for either scan. The scanned tree is the machine (`src/`), the root
+/// `README.md`, and the metaprogramming subsystem (`macros/`): the tools speak
+/// the machine's vocabulary or they speak none.
 fn check_banned_vocabulary(root: &Path) -> Result<(), String> {
     let mut offenders = Vec::new();
     let mut inspect = |path: &Path| -> Result<(), String> {
@@ -489,6 +685,7 @@ fn check_banned_vocabulary(root: &Path) -> Result<(), String> {
         Ok(())
     };
     visit_files(&root.join("src"), &mut inspect)?;
+    visit_files(&root.join(TOOLING_DIRECTORY), &mut inspect)?;
     inspect(&root.join("README.md"))?;
     if offenders.is_empty() {
         Ok(())
@@ -539,10 +736,10 @@ fn split_scan_hits(text: &str) -> Vec<&'static str> {
         }
         let words = split_identifier_words(token);
         for word in &words {
-            if let Some(banned) = spells_banned_word(word) {
-                if !hits.contains(&banned) {
-                    hits.push(banned);
-                }
+            if let Some(banned) = spells_banned_word(word)
+                && !hits.contains(&banned)
+            {
+                hits.push(banned);
             }
         }
         for banned in BANNED_VOCABULARY {
@@ -619,21 +816,29 @@ fn relative_slash_path(root: &Path, path: &Path) -> String {
 }
 
 /// Visits every file under `dir`, skipping [`SKIP_DIRS`].
+///
+/// Entries are visited in file-name order rather than in the order the
+/// filesystem happens to return them, so every check's traversal — and so every
+/// diagnostic it emits — is the same on every machine and every run.
 fn visit_files(
     dir: &Path,
     visit: &mut dyn FnMut(&Path) -> Result<(), String>,
 ) -> Result<(), String> {
-    let entries = fs::read_dir(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
-    for entry in entries {
+    let read = fs::read_dir(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    let mut entries = Vec::new();
+    for entry in read {
         let entry = entry.map_err(|e| format!("{}: {e}", dir.display()))?;
         let path = entry.path();
-        let file_type = entry
+        let is_dir = entry
             .file_type()
-            .map_err(|e| format!("{}: {e}", path.display()))?;
-        if file_type.is_dir() {
-            let name = entry.file_name();
-            let name = name.to_string_lossy();
-            if !SKIP_DIRS.contains(&name.as_ref()) {
+            .map_err(|e| format!("{}: {e}", path.display()))?
+            .is_dir();
+        entries.push((entry.file_name(), path, is_dir));
+    }
+    entries.sort_by(|(left, _, _), (right, _, _)| left.cmp(right));
+    for (name, path, is_dir) in entries {
+        if is_dir {
+            if !SKIP_DIRS.contains(&name.to_string_lossy().as_ref()) {
                 visit_files(&path, visit)?;
             }
         } else {
@@ -693,4 +898,106 @@ fn readme_yaml_block(root: &Path) -> Result<Vec<String>, String> {
         }
     }
     Err(String::from("README.md has no fenced yaml block"))
+}
+
+/// Planted reversals for the laws whose subject is text rather than the tree.
+///
+/// A check that cannot fail is not a check. Each reversal here hands
+/// [`core_tooling_edge_violations`] a synthetic manifest that reverses the
+/// topology one Cargo edge kind at a time and proves the reversal is caught.
+/// The manifests are written here rather than on disk: the law is proven
+/// against fixture text, never by dirtying the repository it guards.
+#[cfg(test)]
+mod tests {
+    use super::{core_tooling_edge_violations, repo_root};
+
+    /// The manifest preamble every fixture shares: the core package itself.
+    const PREAMBLE: &str = "[package]\nname = \"threadpak\"\n\n";
+
+    /// The violations a fixture manifest commits, preamble supplied.
+    fn violations(body: &str) -> Vec<String> {
+        core_tooling_edge_violations(&format!("{PREAMBLE}{body}"))
+    }
+
+    /// Reversal (a): the plain edge — a normal dependency on the services.
+    #[test]
+    fn a_normal_tooling_dependency_is_a_violation() {
+        let found = violations("[dependencies]\nthreadpak-macroc = { path = \"macros/macroc\" }\n");
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found.iter().any(|v| v.contains("threadpak-macroc")));
+    }
+
+    /// Reversal (b): the disguised edge — the package renamed at the key, so
+    /// only the resolved package identity betrays it.
+    #[test]
+    fn a_renamed_tooling_dependency_is_a_violation() {
+        let found = violations(
+            "[dependencies]\nhelpers = { package = \"threadpak-macroc\", version = \"0.0.0\" }\n",
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found.iter().any(|v| v.contains("threadpak-macroc")));
+    }
+
+    /// Reversal (c): the test-only edge.
+    #[test]
+    fn a_tooling_dev_dependency_is_a_violation() {
+        let found =
+            violations("[dev-dependencies]\nthreadpak-macros = { path = \"macros/proc\" }\n");
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found.iter().any(|v| v.contains("dev-dependencies")));
+    }
+
+    /// Reversal (d): the build-script edge.
+    #[test]
+    fn a_tooling_build_dependency_is_a_violation() {
+        let found =
+            violations("[build-dependencies]\nthreadpak-macroc = { path = \"macros/macroc\" }\n");
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found.iter().any(|v| v.contains("build-dependencies")));
+    }
+
+    /// Reversal (e): the platform-conditional edge, which no scan of the three
+    /// bare tables would ever see.
+    #[test]
+    fn a_target_specific_tooling_dependency_is_a_violation() {
+        let found = violations(
+            "[target.'cfg(unix)'.dependencies]\nthreadpak-macroc = { path = \"macros/macroc\" }\n",
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found.iter().any(|v| v.contains("threadpak-macroc")));
+    }
+
+    /// Reversal (f): the path edge — a dependency named anything at all whose
+    /// path reaches into the tooling subsystem directory.
+    #[test]
+    fn a_path_into_the_tooling_directory_is_a_violation() {
+        let found = violations("[dependencies]\nhelpers = { path = \"macros/macroc\" }\n");
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found.iter().any(|v| v.contains("macros/")));
+    }
+
+    /// The positive control: a manifest with ordinary edges and none to the
+    /// tooling is clean, so the law reports something real rather than
+    /// everything.
+    #[test]
+    fn a_manifest_without_tooling_edges_is_clean() {
+        let found = violations(
+            "[dependencies]\nserde = \"1\"\n\n[dev-dependencies]\ntrybuild = { version = \"1\" }\n\n\
+             [target.'cfg(windows)'.dependencies]\nwindows-sys = { version = \"0\" }\n",
+        );
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    /// The law judges the ROOT manifest, and the root manifest holds. The
+    /// lawful inward edges — `macros/macroc` on the machine, `macros/proc` on
+    /// `macros/macroc` — live in the subsystem manifests, which this law never
+    /// reads and which are not violations.
+    #[test]
+    fn the_real_root_manifest_carries_no_tooling_edge() {
+        let root = repo_root().unwrap_or_else(|_| std::path::PathBuf::from("."));
+        let manifest = std::fs::read_to_string(root.join("Cargo.toml")).unwrap_or_default();
+        assert!(!manifest.is_empty(), "root Cargo.toml is unreadable");
+        let found = core_tooling_edge_violations(&manifest);
+        assert!(found.is_empty(), "{found:?}");
+    }
 }

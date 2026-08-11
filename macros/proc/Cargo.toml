@@ -1,0 +1,15 @@
+[package]
+name = "threadpak-macros"
+description = "The Rust-facing expansion shell: one thin surface over the metaprogramming services."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+proc-macro = true
+
+[lints]
+workspace = true
+
+[dependencies]
+threadpak-macroc = { path = "../macroc" }

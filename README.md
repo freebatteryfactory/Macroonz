@@ -23,14 +23,20 @@ knows which host is running it.
 
 ## Workspace
 
-| Crate       | Role                                                    |
-| ----------- | ------------------------------------------------------- |
-| `threadpak` | the machine — root package at the repository root       |
-| `xtask`     | repository law checks and tooling — `cargo xtask check` |
+| Crate            | Role                                                           |
+| ---------------- | -------------------------------------------------------------- |
+| `threadpak`      | the machine — root package at the repository root              |
+| `macros/macroc`  | the metaprogramming services — package `threadpak-macroc`      |
+| `macros/proc`    | the Rust-facing expansion shell — package `threadpak-macros`   |
+| `xtask`          | repository law checks and tooling — `cargo xtask check`        |
 
 The repository root is itself the `threadpak` package; its `src/` carries the machine.
 `macros/`, `testpak/`, `xtask/`, and `hosts/` are unnumbered: first-class, but never on
-the production dependency path.
+the production dependency path. `macros/` is a plain subsystem directory rather than a
+package: it holds the services (`macros/macroc`) and the one Rust-facing expansion shell
+over them (`macros/proc`). The metaprogramming edges run one way and inward —
+`macros/proc` → `macros/macroc` → `threadpak` — and the machine depends on neither, an
+absence the `no-core-tooling-edge` check enforces across every Cargo edge kind.
 
 ## The band map
 
@@ -77,6 +83,8 @@ machine implementation. Implementation opens per home only on explicit authoriza
 phase: architecture-closure
 toolchain: "1.97.1"
 workspace_members:
+  - macros/macroc
+  - macros/proc
   - xtask
 ```
 

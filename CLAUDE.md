@@ -61,13 +61,18 @@ knows which host is running it.
   every member; no member may weaken it; `#[allow]` is forbidden.
 - NO PYTHON in this repository, ever. All tooling is Rust (xtask; trybuild).
 - The metaprogramming services project contracts; they never decide meaning and are
-  never their own oracle. The services live in `macroc/` (ordinary callable Rust —
-  planning, rendering, inspection, explanation); the proc-macro crate (`macros/`) is
-  one thin Rust-facing expansion surface over them, and `threadc` is reserved for a
-  future language frontend. Every macro family ships with a planted defective
-  expansion that testpak must reject. Expansion is deterministic from its declared
-  input: no network, no filesystem scans, no environment reads, no clock, no
-  entropy — and testpak carries hostiles proving those pathways are unused.
+  never their own oracle. The services live in `macros/macroc/` (ordinary callable
+  Rust — planning, rendering, inspection, explanation); the proc-macro crate
+  (`macros/proc/`) is one thin Rust-facing expansion surface over them, and `threadc`
+  is reserved for a future language frontend. Every macro family ships with a planted
+  defective expansion that testpak must reject. Expansion is deterministic from its
+  declared input: no network, no filesystem scans, no environment reads, no clock, no
+  entropy — and testpak carries hostiles proving those pathways are unused. The proc
+  shell is semantically empty, ambient-free, thin, and dependency-minimized: a
+  third-party dependency enters it only by explicit mechanism admission, when a real
+  shell obligation has earned it. The core package carries no dependency edge to the
+  metaprogramming tooling under any Cargo edge kind — ordinary, renamed, dev, build,
+  or target-specific — and the `no-core-tooling-edge` gate enforces that absence.
 - testpak depends inward on core; nothing depends on testpak. Production never depends
   on its judge.
 - Probes (throwaway compiler experiments) never enter this repository.
