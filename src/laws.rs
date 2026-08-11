@@ -2308,10 +2308,10 @@ mod declaration {
         CANONICAL_FACET_SEQUENCE, CONVERGENCE_ROUTES, ClaimKind, ClosureNamespace, CoordinateRole,
         DeclarationGraph, ExportAliasDerivation, Facet, FacetForm, FrontendRole, HOW_FACET_CONTENT,
         HygieneClass, LINKER_CONTRACT, LinkResolution, LinkResolutionIssue, META_EVALUATION_LOCKS,
-        ProjectionClaim, ProjectionContractConstruction, ProjectionContractConstructionIssue,
-        ProjectionProfileId, ProjectionProfileVersion, SourceCoordinate, Stage, SymbolIdentity,
-        TopLevelForm, WHAT_FACET_CONTENT, WHEN_FACET_CONTENT, WHERE_FACET_CONTENT,
-        WHO_FACET_CONTENT, WHY_FACET_CONTENT,
+        MetaStageLaw, ProjectionClaim, ProjectionContractConstruction,
+        ProjectionContractConstructionIssue, ProjectionProfileId, ProjectionProfileVersion,
+        SourceCoordinate, Stage, SymbolIdentity, TopLevelForm, WHAT_FACET_CONTENT,
+        WHEN_FACET_CONTENT, WHERE_FACET_CONTENT, WHO_FACET_CONTENT, WHY_FACET_CONTENT,
     };
     use crate::identity::{
         AuthorityPosition, Commitment, Occurrence, OccurrenceForm, OrderComparison,
@@ -2556,6 +2556,16 @@ mod declaration {
         assert_eq!(LINKER_CONTRACT.len(), 7);
         assert_eq!(CONVERGENCE_ROUTES.len(), 4);
         assert_eq!(META_EVALUATION_LOCKS.len(), 3);
+        let stage_laws = [
+            MetaStageLaw::ExplicitBoundedLift,
+            MetaStageLaw::DescriptorIsData,
+            MetaStageLaw::NoLiveAuthorityAsMetaValue,
+            MetaStageLaw::OutputReentersUntrusted,
+            MetaStageLaw::RefusalFamiliesStayDistinct,
+            MetaStageLaw::BoundsDeclaredBeforeEvaluation,
+        ];
+        assert_eq!(stage_laws.len(), 6);
+        assert!(pairwise_distinct(&stage_laws));
         let graph = DeclarationGraph::for_laws(Commitment::raw([23; 32]));
         assert_eq!(graph.linked(), &Commitment::raw([23; 32]));
     }

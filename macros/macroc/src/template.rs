@@ -17,8 +17,11 @@
 //! this module speaks of: that a quoted fragment is typed data rather than
 //! text, that splicing substitutes typed values only, that instantiation mints
 //! no authority, and that produced material re-enters the ordinary validation
-//! and linking path with no shortcut. This module summarizes and references
-//! those facts as typed members; it answers none of them a second time.
+//! and linking path with no shortcut. The six stage laws governing meta
+//! evaluation are the owner's closed roster,
+//! [`threadpak::declaration::MetaStageLaw`] — this module cites that surface
+//! and answers none of it a second time; every fact here is a typed member
+//! summarizing an owner declaration.
 //!
 //! Any front door may offer a template surface, or none. Nothing here knows
 //! which one is calling.

@@ -242,8 +242,8 @@ limits! {
 ///
 /// 1. **No public raw-byte constructor.** The only public roads are
 ///    [`ExactIdentity::of_commitment`] and [`ExactIdentity::of_reason`], each of
-///    which reads an identity the machine already minted. The byte seam is
-///    [`ExactIdentity::decoded`], which is crate-internal.
+///    which reads an identity the machine already minted. The byte seam
+///    (`decoded`) is crate-internal, awaiting the real decoder.
 /// 2. **No cross-subject substitution.** `Subject` is a `PhantomData`
 ///    parameter, so a reference naming one subject is a different type than a
 ///    reference naming another regardless of bytes, and neither coerces to the

@@ -464,6 +464,31 @@ pub const META_EVALUATION_LOCKS: [&str; 3] = [
     "checked-evaluation-meter",
 ];
 
+/// The six stage laws governing the meta stage — the closed roster every
+/// meta or template evaluation obeys, owned here beside the stage vocabulary
+/// it governs. The compiler plane cites this roster; it never restates it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MetaStageLaw {
+    /// Runtime material crosses into meta only through an explicit bounded
+    /// lift with a closed portable schema, identity, and source commitment.
+    ExplicitBoundedLift,
+    /// A meta descriptor is data describing meaning — parsing or serializing
+    /// it neither grants authority nor injects runtime meaning.
+    DescriptorIsData,
+    /// Live capabilities, grants, ports, continuations, attempts, handles,
+    /// secrets, clocks, entropy, and host state cannot become meta values.
+    NoLiveAuthorityAsMetaValue,
+    /// Meta output re-enters ordinary fragment validation and linking; it
+    /// arrives neither trusted nor prequalified.
+    OutputReentersUntrusted,
+    /// Compile-time refusal, runtime refusal, image-admission refusal, and
+    /// qualification failure remain different result families.
+    RefusalFamiliesStayDistinct,
+    /// Finite input, work, memory, recursion, declaration, symbol,
+    /// diagnostic, and output-byte bounds are declared BEFORE evaluation.
+    BoundsDeclaredBeforeEvaluation,
+}
+
 // ---------------------------------------------------------------------------
 // Classification domain markers for the families' typed payloads.
 // ---------------------------------------------------------------------------
