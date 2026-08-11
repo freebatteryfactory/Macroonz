@@ -73,6 +73,14 @@ obligations:
     challenge_kind: compile-law
     green: laws.rs numeric::knowledge_axis_selection_order_is_declared
     red: owed-to-testpak
+  - id: numeric.quantize-evidence-binds-nine-facts
+    challenge_kind: compile-law
+    green: laws.rs numeric::quantize_evidence_binds_nine_facts
+    red: owed-to-testpak
+  - id: numeric.designations-do-not-unify
+    challenge_kind: compile-refusal
+    green: laws.rs numeric::designations_do_not_unify
+    red: owed-to-testpak
   - id: numeric.interval-truth-tables-cell-for-cell
     challenge_kind: runtime-positive
     green: owed — executable when the interval family roster lands

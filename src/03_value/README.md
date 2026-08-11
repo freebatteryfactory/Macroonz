@@ -80,6 +80,10 @@ obligations:
     challenge_kind: compile-refusal
     green: laws.rs value::bounded_text_carries_its_limit_family
     red: owed-to-testpak
+  - id: value.text-admission-roster-is-eight
+    challenge_kind: compile-law
+    green: laws.rs value::text_admission_roster_is_eight
+    red: owed-to-testpak
   - id: value.no-universal-null-sentinel
     challenge_kind: repository-structure
     green: none — the type's nonexistence is the law

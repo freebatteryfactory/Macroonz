@@ -66,6 +66,10 @@ obligations:
     challenge_kind: compile-law
     green: laws.rs identity::typed_ref_equality_is_referent_and_version
     red: owed-to-testpak
+  - id: identity.minting-profiles-are-three
+    challenge_kind: compile-law
+    green: laws.rs identity::minting_profiles_are_three
+    red: owed-to-testpak
   - id: identity.commitment-domains-do-not-unify
     challenge_kind: compile-refusal
     green: laws.rs identity::commitment_domains_do_not_unify

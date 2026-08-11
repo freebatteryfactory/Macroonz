@@ -79,3 +79,45 @@ toolchain: "1.97.1"
 workspace_members:
   - xtask
 ```
+
+## Root calculus obligations
+
+The root calculus (`src/types.rs`) is the one home without a numbered
+directory; its obligations live here.
+
+```yaml
+home: root
+obligations:
+  - id: root.cut-families-are-caller-supplied
+    challenge_kind: compile-law
+    green: laws.rs root::cut_families_are_caller_supplied
+    red: owed-to-testpak
+  - id: root.no-coordinate-forecloses-stale
+    challenge_kind: compile-law
+    green: laws.rs root::no_coordinate_forecloses_stale
+    red: owed-to-testpak
+  - id: root.completeness-domains-do-not-unify
+    challenge_kind: compile-refusal
+    green: laws.rs root::completeness_domains_do_not_unify
+    red: owed-to-testpak
+  - id: root.limit-families-do-not-unify
+    challenge_kind: compile-refusal
+    green: laws.rs root::limit_families_do_not_unify
+    red: owed-to-testpak
+  - id: root.dispatch-is-owner-refusal-generic
+    challenge_kind: compile-law
+    green: laws.rs root::dispatch_is_owner_refusal_generic
+    red: owed-to-testpak
+  - id: root.evidence-ref-identity-is-referent-and-version
+    challenge_kind: compile-law
+    green: laws.rs root::evidence_ref_identity_is_referent_and_version
+    red: owed-to-testpak
+  - id: root.bounded-construction-is-a-seam
+    challenge_kind: compile-law
+    green: laws.rs root::bounded_construction_is_a_seam
+    red: owed-to-testpak
+  - id: root.closure-bar-is-implementable
+    challenge_kind: compile-law
+    green: laws.rs root::closure_bar_is_implementable
+    red: owed-to-testpak
+```

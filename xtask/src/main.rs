@@ -37,13 +37,16 @@ fn repo_root() -> Result<PathBuf, Box<dyn Error>> {
 
 /// Runs every repository law, printing one PASS or FAIL line per law.
 fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
-    let checks: [Check; 6] = [
+    let checks: [Check; 9] = [
         ("agents-claude-parity", check_agents_claude_parity),
         ("lf-and-no-symlinks", check_lf_and_no_symlinks),
         ("no-python", check_no_python),
         ("toolchain-pin-matches-readme", check_toolchain_pin),
         ("workspace-members-match-readme", check_workspace_members),
         ("lint-wall-inherited", check_lint_wall),
+        ("band-map-matches-lib", check_band_map),
+        ("readme-obligations-join", check_obligations_join),
+        ("no-personal-names", check_no_personal_names),
     ];
     let mut failures = Vec::new();
     for (name, check) in checks {
@@ -187,6 +190,177 @@ fn check_lint_wall(root: &Path) -> Result<(), String> {
         Ok(())
     } else {
         Err(format!("members not inheriting the lint wall: {missing:?}"))
+    }
+}
+
+/// Every numbered band directory is complete (README.md, mod.rs, types.rs) and
+/// `lib.rs` declares every band via its `#[path]` attribute in ascending band
+/// order — the band map and the crate never drift apart.
+fn check_band_map(root: &Path) -> Result<(), String> {
+    let src = root.join("src");
+    let mut bands = Vec::new();
+    let entries = fs::read_dir(&src).map_err(|e| format!("{}: {e}", src.display()))?;
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("{}: {e}", src.display()))?;
+        if !entry
+            .file_type()
+            .map_err(|e| format!("{}: {e}", src.display()))?
+            .is_dir()
+        {
+            continue;
+        }
+        let name = entry.file_name().to_string_lossy().into_owned();
+        let Some((number, _)) = name.split_once('_') else {
+            continue;
+        };
+        if number.len() == 2 && number.chars().all(|c| c.is_ascii_digit()) {
+            bands.push(name);
+        }
+    }
+    bands.sort();
+    let mut offenders = Vec::new();
+    for band in &bands {
+        for file in ["README.md", "mod.rs", "types.rs"] {
+            if !src.join(band).join(file).is_file() {
+                offenders.push(format!("{band} missing {file}"));
+            }
+        }
+    }
+    let lib = fs::read_to_string(src.join("lib.rs")).map_err(|e| format!("lib.rs: {e}"))?;
+    let mut declared_positions = Vec::new();
+    for band in &bands {
+        let needle = format!("#[path = \"{band}/mod.rs\"]");
+        match lib.find(&needle) {
+            Some(position) => declared_positions.push((position, band.clone())),
+            None => offenders.push(format!("lib.rs does not declare {band}")),
+        }
+    }
+    let mut sorted = declared_positions.clone();
+    sorted.sort();
+    if sorted != declared_positions {
+        offenders.push(String::from(
+            "lib.rs band declarations are out of band order",
+        ));
+    }
+    if offenders.is_empty() {
+        Ok(())
+    } else {
+        Err(offenders.join("; "))
+    }
+}
+
+/// The obligations join: every README obligation naming a `laws.rs` green law
+/// points at a law that exists, and every law in `laws.rs` is claimed by some
+/// obligation — the READMEs and the laws never drift apart. (The third leg —
+/// the owed red twin — joins when testpak lands.)
+fn check_obligations_join(root: &Path) -> Result<(), String> {
+    let mut claimed = Vec::new();
+    let mut readmes = vec![root.join("README.md")];
+    let src = root.join("src");
+    let entries = fs::read_dir(&src).map_err(|e| format!("{}: {e}", src.display()))?;
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("{}: {e}", src.display()))?;
+        let candidate = entry.path().join("README.md");
+        if candidate.is_file() {
+            readmes.push(candidate);
+        }
+    }
+    for readme in &readmes {
+        let text = fs::read_to_string(readme).map_err(|e| format!("{}: {e}", readme.display()))?;
+        for line in text.lines() {
+            let Some(rest) = line.trim().strip_prefix("green: laws.rs ") else {
+                continue;
+            };
+            let target: String = rest
+                .chars()
+                .take_while(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == ':')
+                .collect();
+            match target.split_once("::") {
+                Some((module, law)) => {
+                    claimed.push((module.to_string(), law.to_string(), readme.clone()));
+                }
+                None => {
+                    return Err(format!(
+                        "{}: green target `{target}` is not module::law",
+                        readme.display()
+                    ));
+                }
+            }
+        }
+    }
+    let laws_path = src.join("laws.rs");
+    let laws = fs::read_to_string(&laws_path).map_err(|e| format!("laws.rs: {e}"))?;
+    let mut existing = Vec::new();
+    let mut current_module = String::new();
+    let mut previous_was_test = false;
+    for line in laws.lines() {
+        if let Some(rest) = line.strip_prefix("mod ")
+            && let Some(module) = rest.strip_suffix(" {")
+        {
+            current_module = module.to_string();
+        }
+        if previous_was_test
+            && let Some(rest) = line.trim().strip_prefix("fn ")
+            && let Some(law) = rest.split('(').next()
+        {
+            existing.push((current_module.clone(), law.to_string()));
+        }
+        previous_was_test = line.trim() == "#[test]";
+    }
+    let mut offenders = Vec::new();
+    for (module, law, readme) in &claimed {
+        if !existing.iter().any(|(m, l)| m == module && l == law) {
+            offenders.push(format!(
+                "{} claims {module}::{law} but laws.rs has no such law",
+                readme.display()
+            ));
+        }
+    }
+    for (module, law) in &existing {
+        if !claimed.iter().any(|(m, l, _)| m == module && l == law) {
+            offenders.push(format!(
+                "laws.rs {module}::{law} is claimed by no obligation"
+            ));
+        }
+    }
+    if offenders.is_empty() {
+        Ok(())
+    } else {
+        Err(offenders.join("; "))
+    }
+}
+
+/// No personal name appears in any repository file — role terms only. The
+/// banned spellings are assembled from bytes so this checker never contains
+/// what it forbids.
+fn check_no_personal_names(root: &Path) -> Result<(), String> {
+    let banned: [Vec<u8>; 2] = [
+        vec![0x65, 0x61, 0x73, 0x73, 0x61],
+        vec![0x61, 0x79, 0x6f, 0x75, 0x62],
+    ];
+    let banned: Vec<String> = banned
+        .iter()
+        .map(|bytes| String::from_utf8_lossy(bytes).into_owned())
+        .collect();
+    let mut offenders = Vec::new();
+    visit_files(root, &mut |path| {
+        let bytes = fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
+        let text = String::from_utf8_lossy(&bytes).to_lowercase();
+        for name in &banned {
+            if text.contains(name.as_str()) {
+                offenders.push(path.display().to_string());
+                break;
+            }
+        }
+        Ok(())
+    })?;
+    if offenders.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "personal name present in: {}",
+            offenders.join(", ")
+        ))
     }
 }
 
