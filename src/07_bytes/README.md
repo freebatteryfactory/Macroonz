@@ -25,16 +25,20 @@ from one row, by the macros crate, so wire id, human prefix, and hash domain
 cannot drift. Two layers stay distinct: the logical preimage
 (algorithm-independent) and the digest transcript (algorithm-specific).
 
-## Repository-owner calls carried by this home
+## Mechanism admissions (RULED by the repository owner, 2026-08-10)
 
-1. **Digest family admission**: blake3-256 is the primary's day-one proposal
-   (hash / keyed-hash-under-KeyScope / derive-key-as-domain-tag map natively
-   onto settled law; its tree structure makes verified slice reads of content
-   regions realizable — a required capability with its own qualification
-   surface, never free). A mechanism admission ruling.
-2. **Checksum mechanism** for the text-form scheme (strict role-covering
-   checksum; the bech32m family is the natural candidate). A mechanism
-   admission ruling.
+1. **Digest family: blake3-256 — ADMITTED.** Hash / keyed-hash-under-KeyScope
+   / derive-key-as-domain-tag map natively onto settled law; the tree
+   structure makes verified slice reads of content regions realizable (a
+   capability with its own qualification surface, never free). An admitted
+   mechanism under the mechanism-standing law: admission is not
+   qualification, qualification is not a support promise, and the family
+   remains swappable behind the machine-owned digest role contract.
+2. **Text-form checksum: bech32m — ADMITTED.** The strict role-covering
+   scheme (checksum domain includes the role prefix; mixed case refuses).
+   Gates only the human-surface text rendering of identities — persistence
+   and the event store are binary and never touch it. Same standing law
+   applies.
 
 ## Obligations
 
