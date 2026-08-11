@@ -16,8 +16,9 @@ from here: logic owns what truth *is*; owners downstream own what *produces* it.
 
 ## The connectives (authored: strong Kleene, the standard K3 reading)
 
-The old corpus names K3 but never writes the connective tables; strong Kleene is
-the standard it names. The load-bearing consequence: `False` dominates
+This home reads K3 as strong Kleene and writes the connective tables here —
+the reading is a design decision of this home, not an inherited one. The
+load-bearing consequence: `False` dominates
 conjunction, so a lagging answer can never hide a known failure —
 `Pending AND False = False`.
 

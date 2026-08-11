@@ -5,9 +5,9 @@ pub mod types;
 
 pub use types::{
     AdoptionDecisionReceipt, Basis, CalibrationEvidence, CalibrationModel, CauseDisposition,
-    CommitmentLayers, Coverage, DENOMINATOR_AXES, DiagnosticCause, DiagnosticCauseCandidates,
-    EVIDENCE_NON_COLLAPSE, EXPLANATION_LADDER, Enforcement, EvidenceCarriage,
-    GeneratedPublicationReceipt, Lane, Method, QualificationTerminal, RECEIPT_FAMILIES,
-    ReleaseEvidence, Route, SubstrateDisclosure, VerificationDenominator, VerificationResult,
-    VerificationTerminal, VerifiedClaim,
+    CommitmentLayers, Coverage, DiagnosticCause, DiagnosticCauseCandidates, EVIDENCE_NON_COLLAPSE,
+    EXPLANATION_LADDER, Enforcement, EvidenceCarriage, GeneratedPublicationReceipt, Lane,
+    LaneDomain, Method, QualificationTerminal, RECEIPT_FAMILIES, ReleaseEvidence, Route,
+    SubstrateDisclosure, VerificationDenominator, VerificationResult, VerificationTerminal,
+    VerifiedClaim,
 };

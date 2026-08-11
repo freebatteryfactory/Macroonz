@@ -68,7 +68,7 @@ pub struct PortFamilyVersion(pub AuthorityPosition<PortFamilyId>);
 // The port role inventory.
 // ---------------------------------------------------------------------------
 
-/// The fourteen port roles — descriptions of one semantic boundary each,
+/// The thirteen port roles — descriptions of one semantic boundary each,
 /// never one port per line. Split where authority or recovery differs;
 /// composed ONLY where one contract proves a shared boundary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -95,8 +95,6 @@ pub enum PortRole {
     EntropyGeneratedIdentity,
     /// Transport / external effects.
     TransportExternalEffects,
-    /// Compiler services.
-    CompilerServices,
     /// Namespace publication.
     NamespacePublication,
     /// Device / qualified-external-tool effects.

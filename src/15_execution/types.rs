@@ -40,9 +40,9 @@ use crate::types::{Bounded, ConstLimit, EvidenceRef, Limit, NonEmptyBounded};
 // The authored operator register (v1) and Execution-Form identity.
 // ---------------------------------------------------------------------------
 
-/// The v1 operator register — AUTHORED from the corpus's complete
-/// named-operation harvest (the corpus fixes what every operator states and
-/// how the set versions, and never enumerates the set). Grouped: the four
+/// The v1 operator register — AUTHORED here, the one owner of the set: what
+/// every operator states and how the set versions are law, and the
+/// enumeration lives with them. Grouped: the four
 /// boundary forms; the two structured-recursion operators; fourteen iteration
 /// operations; the three settled traversal spellings; two query operations
 /// (`truncate` is the renamed truncation — iteration already owns lowercase
@@ -363,8 +363,8 @@ pub const INDEPENDENCE_MAY_SHARE: [&str; 6] = [
 /// What the independence seam MAY NOT share — sharing any of these would fuse
 /// the very seam the independent route must challenge.
 pub const INDEPENDENCE_MAY_NOT_SHARE: [&str; 11] = [
-    "challenged-lexer",
-    "parser-tables",
+    "challenged-input-reader",
+    "challenged-syntax-tables",
     "compiler-ast",
     "name-resolution-and-collision-helpers",
     "normalization-implementation",

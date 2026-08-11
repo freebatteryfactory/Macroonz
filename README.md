@@ -41,7 +41,7 @@ exists empty.
 
 | Band | Home        | Owns |
 | ---- | ----------- | ---- |
-| —    | `src/types.rs` | root calculus: generic composition shapes + promoted axes |
+| —    | `src/types.rs` | root calculus: generic composition shapes + root-admitted axes |
 | —    | `src/laws.rs`  | the one compile-time proof surface, sectioned by home |
 | 00   | refusal     | refusal envelope, families, handling, `ReasonId` |
 | 01   | logic       | three-valued logic, truth tables, finality primitives |

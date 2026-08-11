@@ -17,12 +17,11 @@
 use crate::refusal::{FamilyShape, RefusalFamily};
 use core::marker::PhantomData;
 
-/// The closed class register — SEVEN, per the register's owner (the program
-/// corpus fixes the closed question set at seven; the foundation corpus
-/// counted six — a source conflict resolved in the register owner's favor,
-/// flagged, 2026-08-10). The first five are the cross-domain minimum every
-/// admitted computation carries; `Output` and `Time` complete the two-level
-/// register, whose dimension level is owned by the program home.
+/// The closed class register — seven, closed. The first five are the
+/// cross-domain minimum every admitted computation carries; `Output` and
+/// `Time` complete the two-level register, whose dimension level is owned by
+/// the execution home. `Time` is the durable deadline-policy budget, enforced
+/// at the time home.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BoundClass {
     /// Bounded work — how much portable semantic computation may occur.
@@ -62,7 +61,7 @@ pub const CROSS_DOMAIN_MINIMUM: [BoundClass; 5] = [
 pub trait Dimension {}
 
 /// A registered dimension identity (u16-registered; the dimension roster —
-/// the register's second level — is owed to the program home, because the
+/// the register's second level — is owed to the execution home, because the
 /// dimensions derive from what operators charge).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DimensionId(u16);

@@ -6,10 +6,10 @@ CommitPoint via it), identity, refusal, and the root calculus. The derived
 plane: never authority, always rebuildable, four core rules (R1–R4) in the
 module docs.
 
-## The settled rulings, carried verbatim (cross-checked in the og primary)
+## The settled rulings
 
-- **The two-seat hybrid** (the settled Layer-1a ruling — the og text IS the
-  hybrid): preimage-derived `RowDomainId` (seat 1, gating every composition)
+- **The two-seat hybrid**: preimage-derived `RowDomainId` (seat 1, gating
+  every composition)
   + fresh `OccurrenceId` (seat 2, naming which build), neither doing double
   duty; `RowDomainEqualityUnproven` is a DISTINCT fail-closed outcome from a
   proven mismatch — fail-closed is not permission to report the stronger one.
@@ -36,8 +36,13 @@ the sharing the default); the three materialization axes plus staleness as
 the fourth (evidence) axis — staleness never occupies a presence or
 availability variant; `MaterializationCoverage` rides root `Completeness`
 (non-erasable domain); the `PlanTemplate`/`PlanBinding` split with the
-ephemeral-bound-specialization rule; scratch-consumed-or-dropped; renames
-executed (candidate→proposal, promotion→admission) per the vocabulary law.
+ephemeral-bound-specialization rule; scratch-consumed-or-dropped; the
+construction-lifecycle vocabulary renames executed per the repository
+vocabulary law (the record is the evidence home's, at 23).
+
+Mechanism-diagnostic rosters are per-host-profile declarations, never core
+content: `DATA_SEMANTIC_WORK` is the portable surface, and the law that a
+diagnostic never becomes semantic work is carried on it.
 
 ## The parity contracts (the navigation heartbeat's derived half — testpak's
 campaigns)

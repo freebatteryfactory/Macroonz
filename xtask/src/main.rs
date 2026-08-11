@@ -37,7 +37,7 @@ fn repo_root() -> Result<PathBuf, Box<dyn Error>> {
 
 /// Runs every repository law, printing one PASS or FAIL line per law.
 fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
-    let checks: [Check; 9] = [
+    let checks: [Check; 10] = [
         ("agents-claude-parity", check_agents_claude_parity),
         ("lf-and-no-symlinks", check_lf_and_no_symlinks),
         ("no-python", check_no_python),
@@ -47,6 +47,7 @@ fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
         ("band-map-matches-lib", check_band_map),
         ("readme-obligations-join", check_obligations_join),
         ("no-personal-names", check_no_personal_names),
+        ("banned-vocabulary", check_banned_vocabulary),
     ];
     let mut failures = Vec::new();
     for (name, check) in checks {
@@ -362,6 +363,120 @@ fn check_no_personal_names(root: &Path) -> Result<(), String> {
             offenders.join(", ")
         ))
     }
+}
+
+/// The construction-lifecycle vocabulary the working law bans in prose and in
+/// identifiers. This checker spells the words plainly because `xtask` sits
+/// outside the tree it scans; `AGENTS.md` and `CLAUDE.md` state the ban itself
+/// and are likewise outside it.
+const BANNED_VOCABULARY: [&str; 4] = ["factory", "candidate", "promotion", "self-hosting"];
+
+/// Lawful survivals: `(repository-relative path, word, why it stands)`. A term
+/// stands only where it is named to FORBID it, to record a kill, or to
+/// document a rename — never as live vocabulary.
+const BANNED_VOCABULARY_ALLOWLIST: [(&str, &str, &str); 4] = [
+    (
+        "src/23_evidence/README.md",
+        "candidate",
+        "the executed-rename record: the dead word is named once to record that \
+         `proposal` replaced it",
+    ),
+    (
+        "src/23_evidence/README.md",
+        "promotion",
+        "the same record: `adoption` replaced it",
+    ),
+    (
+        "src/23_evidence/README.md",
+        "factory",
+        "the same record: `realization owner` replaced it",
+    ),
+    (
+        "src/23_evidence/types.rs",
+        "candidate",
+        "diagnostic-narrowing vocabulary, not construction lifecycle: a narrowed \
+         cause under investigation. FLAGGED for the repository owner — this home's \
+         README records the rename as executed, so the spelling here is a standing \
+         inconsistency awaiting a naming ruling",
+    ),
+];
+
+/// No banned construction-lifecycle word appears in the specification tree.
+/// Matching is whole-word and case-insensitive: word edges are ASCII
+/// alphanumerics, so `snake_case`, `SCREAMING_SNAKE`, kebab-case strings, and
+/// plain prose all count, while a longer word merely containing the term does
+/// not.
+fn check_banned_vocabulary(root: &Path) -> Result<(), String> {
+    let mut offenders = Vec::new();
+    let mut inspect = |path: &Path| -> Result<(), String> {
+        let scanned = path
+            .extension()
+            .is_some_and(|extension| extension == "rs" || extension == "md");
+        if !scanned {
+            return Ok(());
+        }
+        let relative = relative_slash_path(root, path);
+        let bytes = fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
+        let text = String::from_utf8_lossy(&bytes).to_lowercase();
+        for word in BANNED_VOCABULARY {
+            if !contains_whole_word(&text, word) {
+                continue;
+            }
+            let allowed = BANNED_VOCABULARY_ALLOWLIST
+                .iter()
+                .any(|(file, allowed, _)| *file == relative && *allowed == word);
+            if !allowed {
+                offenders.push(format!("{relative}: {word}"));
+            }
+        }
+        Ok(())
+    };
+    visit_files(&root.join("src"), &mut inspect)?;
+    inspect(&root.join("README.md"))?;
+    if offenders.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "banned vocabulary present: {}",
+            offenders.join(", ")
+        ))
+    }
+}
+
+/// Whether `haystack` contains `needle` bounded by non-alphanumerics on both
+/// sides.
+fn contains_whole_word(haystack: &str, needle: &str) -> bool {
+    let mut from = 0usize;
+    loop {
+        let Some(rest) = haystack.get(from..) else {
+            return false;
+        };
+        let Some(offset) = rest.find(needle) else {
+            return false;
+        };
+        let start = from.saturating_add(offset);
+        let end = start.saturating_add(needle.len());
+        let before_is_word = haystack
+            .get(..start)
+            .and_then(|head| head.chars().next_back())
+            .is_some_and(|c| c.is_ascii_alphanumeric());
+        let after_is_word = haystack
+            .get(end..)
+            .and_then(|tail| tail.chars().next())
+            .is_some_and(|c| c.is_ascii_alphanumeric());
+        if !before_is_word && !after_is_word {
+            return true;
+        }
+        from = end;
+    }
+}
+
+/// The repository-relative path, slash-separated on every platform.
+fn relative_slash_path(root: &Path, path: &Path) -> String {
+    path.strip_prefix(root)
+        .unwrap_or(path)
+        .to_string_lossy()
+        .replace('\\', "/")
 }
 
 /// Visits every file under `dir`, skipping [`SKIP_DIRS`].

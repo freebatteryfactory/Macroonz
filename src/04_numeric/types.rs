@@ -29,8 +29,7 @@
 //!
 //! # Admitted approximation
 //!
-//! (The old corpus's word was "qualified" — banned vocabulary; "admitted" is the
-//! uniform replacement.) Approximate observation is first-class but quarantined:
+//! Approximate observation is first-class but quarantined:
 //! approximate arithmetic is admitted only under an explicitly selected profile
 //! with sound error or interval propagation; a typed wrapper around host floating
 //! point is not an admitted approximate operation.
@@ -161,8 +160,8 @@ impl UnitDesignation {
 pub struct DecimalProfileDomain;
 
 /// The identity of one declared decimal profile — a Class-A commitment over the
-/// profile declaration (authored seating; the old book names "the profile
-/// identity" without a type).
+/// profile declaration (AUTHORED seating: the profile identity is a type
+/// here, not a bare name).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DecimalProfileId(Commitment<DecimalProfileDomain>);
 
@@ -653,8 +652,9 @@ impl RefusalFamily for IntervalComparison {
 /// | `MoreThan` | `lo > t` | `hi ≤ t` | `lo ≤ t < hi` |
 /// | `AtLeast` | `lo ≥ t` | `hi < t` | `lo < t ≤ hi` |
 ///
-/// (`IsNot` is enumerated from the source's "exact complement" rule — derived
-/// from stated law, marked as such.) General rule: whole interval satisfies →
+/// (`IsNot` is enumerated cell-for-cell as the exact complement of `Is` —
+/// derived from stated law, marked as such.) General rule: whole interval
+/// satisfies →
 /// `True`; contradicts → `False`; overlaps the boundary → `Pending`. A
 /// `Pending` from boundary overlap is a lawful outcome, never a refusal; a
 /// decided `Truth` carries no authority — a policy alone maps it to a decision.
@@ -732,7 +732,8 @@ pub enum DiscardedRemainder {
 }
 
 /// Declared interval or error evidence carried by an approximate observation or
-/// a crossing (authored shape; the old book names the fact without a type).
+/// a crossing (AUTHORED shape: the fact carries a type here, never bare
+/// prose).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ErrorEvidence {
     /// A finite exact enclosing interval.
@@ -901,8 +902,8 @@ impl FloatBitPattern {
     }
 }
 
-/// Approximation taint (authored roster — the old book names the fact without a
-/// roster): whether the observation is as-observed or has propagated through
+/// Approximation taint (AUTHORED roster): whether the observation is
+/// as-observed or has propagated through
 /// admitted approximate operations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ApproximationTaint {

@@ -612,7 +612,7 @@ pub struct StorageDurabilityDomain;
 /// A storage-durability observation row (physical-observation family — the
 /// family is a NAME, not a type: role-specific records sharing at most a
 /// private common header; no public universal observation payload exists,
-/// so a socket acknowledgement can never satisfy a durable-file witness).
+/// so a carrier acknowledgement can never satisfy a durable-content witness).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct StorageDurabilityObservation(pub Commitment<StorageDurabilityDomain>);
 
@@ -640,7 +640,7 @@ pub const PHYSICAL_OBSERVATION_KINDS: [&str; 12] = [
     "operation-admitted",
     "physical-attempt-created",
     "mechanism-invocation-started",
-    "request-submitted-beyond-local-process",
+    "request-submitted-beyond-the-local-execution-context",
     "acknowledgement-observed",
     "completion-observed",
     "durability-evidence-observed",
@@ -664,7 +664,7 @@ pub const PAIRWISE_NON_SUBSTITUTION: [&str; 13] = [
     "effect-attempted-vs-effect-completed",
     "bytes-prepared-vs-bytes-written",
     "bytes-written-vs-bytes-durable",
-    "file-content-durable-vs-namespace-publication-durable",
+    "content-durable-vs-namespace-publication-durable",
     "digest-matched-vs-authority-verified",
     "request-sent-vs-response-received",
     "response-received-vs-semantic-reconciliation",

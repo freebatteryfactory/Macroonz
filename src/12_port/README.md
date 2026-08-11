@@ -4,9 +4,8 @@ Band 12. Imports schema, identity, refusal, and the root calculus. What a port
 IS: one typed semantic boundary contract per family, the seventeen-fact
 operation contract, outbound external operations, the foreign-claim admission
 seam, the one-shot response-binding refusal, and the host-obligation shapes
-mechanisms qualify against. The primary owns this matrix here by name: "the
-port-family-and-host-mechanism matrix (owned here; the programs, runtime, and
-Bvisor chapters consume it)."
+mechanisms qualify against. The port-family-and-host-mechanism matrix is owned
+here; the image, runtime, and Bvisor homes consume it and never re-mint it.
 
 ## The four-way law (binding, verbatim structure)
 
@@ -54,9 +53,9 @@ obligations:
     challenge_kind: compile-refusal
     green: laws.rs port::family_version_rides_authority_position
     red: owed-to-testpak — cross-family version compare must not typecheck
-  - id: port.roles-are-fourteen
+  - id: port.roles-are-thirteen
     challenge_kind: compile-law
-    green: laws.rs port::roles_are_fourteen
+    green: laws.rs port::roles_are_thirteen
     red: owed-to-testpak
   - id: port.response-binding-owes-its-order
     challenge_kind: compile-law

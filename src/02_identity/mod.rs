@@ -6,5 +6,5 @@ pub mod types;
 
 pub use types::{
     ApplicationScope, AuthorityPosition, ByteIdentity, Commitment, CreationLaw, IdentityClass,
-    IdentityRole, MintingProfile, Occurrence, OccurrenceForm, OrderComparison, TypedRef,
+    IdentityRole, Occurrence, OccurrenceForm, OrderComparison, TypedRef,
 };

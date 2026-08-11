@@ -66,8 +66,9 @@ pub enum HandlingClass {
     Escalate,
 }
 
-/// Which declared bound stopped an enumeration early — the old book's own pair:
-/// "stopped at a declared issue or work bound".
+/// Which declared bound stopped an enumeration early — exactly two: an
+/// enumeration stops at a declared issue bound or a declared work bound, and
+/// says which.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StopBound {
     /// The declared issue bound was reached.

@@ -12,7 +12,7 @@ and supervision.
 The STITCH is the transition contract (state + one observation → one bounded
 deterministic transition → one of seven outputs); the TURN is the identity of
 one such transition over frozen inputs. The Stitch trait's concrete Rust
-shape (the corpus's own open) lands with the runtime machinery — the seven
+shape lands with the runtime machinery — the seven
 outputs, the fifteen-item driver-invariance list, and the seven driver
 freedoms are law now.
 
@@ -25,8 +25,9 @@ stays fresh-per-effort; the quartet never merges.
 
 ## Nuances carried
 
-TurnPhase fourteen flat (the prose's pairs documented on the enum; persisted
-vocabulary is flat); BoundedCauseSet is a SET (order-insensitive membership;
+TurnPhase fourteen flat (the semantic pairs are documented on the enum;
+persisted vocabulary is flat); BoundedCauseSet is a SET (order-insensitive
+membership;
 deterministic storage order is canonical-emission-only); the `…Edge` spelling
 stays reserved and a bare `Cause` is refused; the checkpoint's eight closed
 non-reasons; ProcessStateRole is the AUTHORED name for the four fixed roles;
@@ -42,9 +43,11 @@ no generic released flag; supervision strategy names deliberately not frozen.
 
 ## Owed onward
 
-Serve/session/DeliveryIndex carriage → 21. The live Mailbox/Broadcast
+Session and DeliveryIndex carriage → 21. The live Mailbox/Broadcast
 mechanisms, capacity profiles, and the Stitch trait → this home's machinery
-phase. The calibration pair → 23.
+phase. The calibration pair → 23. The concrete driver catalogue is host
+documentation: `DRIVER_INVARIANCE` and `DRIVER_MAY_CHANGE` carry the whole
+law, and no roster of driver names lives in core.
 
 ## Obligations
 

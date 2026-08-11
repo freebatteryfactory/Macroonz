@@ -13,14 +13,14 @@ A fact's admission `Address` answers where that fact entered the address
 space; a state coordinate or `Fix<T>` answers where accepted evidence places
 the application now. One never substitutes for the other.
 
-## The nine postures, resolved by shape (the primary's own two lists disagreed)
+## The nine postures, resolved by shape
 
 One admitted route IS the success channel; several lawful alternatives are the
 fix's bounded member; incomplete search is the closure axis; ambiguous
 destination and approximation are fix shapes; stale inputs are the freshness
 axis; no-route-under-closure, unauthorized source region, unsupported
-operation, and exceeded bounds are `PositioningRefusal`'s four causes. Both of
-the primary's enumerations hold structurally, so neither had to win.
+operation, and exceeded bounds are `PositioningRefusal`'s four causes. Every
+posture lands on exactly one owner; no posture enum exists.
 
 ## Authored fresh here (flagged in the code)
 
@@ -33,7 +33,7 @@ CrossQuery → CrossFilter → CrossOrder → CrossDirection → CrossCut — fa
 gates decode; generations are scoped to sources; a query precedes its own
 refinements; cuts compare last).
 
-## Prohibited collapses (the primary's rows, binding)
+## Prohibited collapses (binding)
 
 one universal identity/version/digest/status/position/cursor/receipt · package
 path as semantic identity · route/host/placement/connection as write authority

@@ -6,19 +6,6 @@ extension slot), twelve refusal families, interval decisions, quantization,
 rounding, admitted approximation, and the numeric-honesty layer — including
 `Finality`, ruled to live here with its first caller.
 
-## Executed rulings (delegated by the repository owner)
-
-1. **Percent's range is fully schema-side** — no default profile here; 0–100 is
-   not implied by the name.
-2. **`i128` is the day-one coefficient carrier** — realization, never value law;
-   widths stay evidence-selected; the wide-exact seam is owed.
-3. **"admitted" uniformly replaces the banned word "qualified"** — admitted
-   approximation, admitted under profile.
-4. **`IsNot`'s truth table is enumerated cell-for-cell** from the source's
-   "exact complement" rule, marked derived-from-stated-law.
-5. **Cause payloads are documented per variant** and materialize with the schema
-   home's designation and profile-identity types — owed, not hidden.
-
 ## The ladder
 
 `unit → scale → range → witness coherence` (`CONSTRUCTOR_AXIS_LADDER`). This IS
@@ -27,6 +14,12 @@ the rule; repair direction is the ladder itself. A family that lists a cause for
 an axis it does not carry has copied a neighbour rather than stated itself.
 Every numeric constructor family is a closed single-cause enum — no
 `CompletionPosture`, no issue carrier, no exhaustiveness claim.
+
+## Not here
+
+No changelog of executed rulings lives here: every ruling this home received
+is restated at the declaration it governs. Change history is the repository
+ledger's, never a section of a specification.
 
 ## Declared incomplete (owed to owners)
 

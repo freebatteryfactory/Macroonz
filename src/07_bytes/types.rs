@@ -51,7 +51,7 @@ use crate::identity::{ByteIdentity, CreationLaw, IdentityClass, IdentityRole};
 use crate::refusal::{FamilyShape, RefusalFamily};
 use crate::types::EvidenceRef;
 
-/// The one magic for every binary `ThreadPak` file. The registered role
+/// The one magic for every binary `ThreadPak` artifact. The registered role
 /// distinguishes kinds.
 pub const FRAME_MAGIC: [u8; 4] = *b"TPAK";
 
@@ -128,9 +128,10 @@ pub struct CapacityProfile {
     pub admitted_bytes: u32,
 }
 
-/// Frame decode refusal: dependent checks in declared order. Inside a history
-/// file a digest mismatch is classified under the recovery law instead of
-/// refusing plainly — that classification is the history home's.
+/// Frame decode refusal: dependent checks in declared order. Inside an
+/// accepted-history frame a digest mismatch is classified under the recovery
+/// law instead of refusing plainly — that classification is the history
+/// home's.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FrameDecode {
     /// The role is not registered.
@@ -240,8 +241,8 @@ pub struct ContentRegionRole;
 /// identity and only those. In the sealed-extent case it digests exact
 /// ciphertext (revealing nothing about protected meaning) and never
 /// substitutes for the keyed payload binding — same ciphertext is never proof
-/// of same protected meaning. (The general unprotected case extends the
-/// primary's sealed-extent row under the tiering law — recorded extension.)
+/// of same protected meaning. (The general unprotected case is this home's
+/// extension of the sealed-extent row under the tiering law.)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ContentRegionId(ByteIdentity<ContentRegionRole>);
 

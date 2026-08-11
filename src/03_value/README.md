@@ -50,10 +50,10 @@ performing one owes its own disclosure row.
    unblocks `BoundedText`'s real constructor when the text machinery lands.
    Admitted under the mechanism-standing law: admission is not
    qualification; swappable behind the machine-owned text role contract.
-3. **Confusables / identifier hygiene (UTS #39 tables): PARKED with the
-   language** behind the same plug-in bar — the live Rust-macro frontend's
-   names are already vetted by rustc; the heavy tables re-enter with a
-   second front door, not before.
+3. **Confusables / identifier hygiene (UTS #39 tables): NOT ADMITTED.** The
+   live Rust-declaration frontend's names are already vetted by rustc, so no
+   core home carries the heavy tables. A frontend that needs confusable
+   detection carries it itself, on its own side of the declaration path.
 
 ## Obligations
 

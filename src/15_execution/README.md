@@ -6,10 +6,9 @@ register, the per-operator declaration, Execution Form and its fifteen-cause
 family, the agreement seam, well-founded recursion, the effect batch as pure
 data, and the five kernel contract types with their three families.
 
-## The authored operator register (v1 — AUTHORED, the corpus never enumerates
-the set)
+## The operator register (v1 — AUTHORED here)
 
-38 operators from the corpus's complete named-operation harvest: the four
+38 operators, enumerated here because the set has one owner: the four
 boundary forms · fold/unfold (the only bounded-lane traversal) · fourteen
 iteration operations (including `group` under the grouping ruling and
 `relation_expansion` as the separate multi-membership operation) · the three

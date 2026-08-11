@@ -142,7 +142,7 @@ pub struct ClockSourcePolicy {
 }
 
 /// The skew disposition of an observed remote reading under the admission
-/// policy (authored roster — the primary names the role without a shape).
+/// policy (AUTHORED roster: the role carries a shape here, never a bare name).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ClockSkewDisposition {
     /// Within the policy's tolerance.
@@ -418,14 +418,15 @@ pub struct ConsumedBudgetEvidence {
     pub spends: Bounded<SpendRecord, SpendLimit>,
 }
 
-/// The per-process-life enforcement point: unserializable by construction,
-/// dead with the process, derived only by the rebase morphism. The raw-pointer
-/// phantom makes it structurally `!Send` and `!Sync`; no morphism leads from a
-/// live monotonic value to any durable form.
+/// The per-clock-domain-life enforcement point: unserializable by
+/// construction, dead with the clock domain that produced it, derived only by
+/// the rebase morphism. The raw-pointer phantom makes it structurally `!Send`
+/// and `!Sync`; no morphism leads from a live monotonic value to any durable
+/// form.
 #[derive(Debug)]
 pub struct LiveMonotonicDeadline {
     remaining: DurationLimit,
-    _process_local: PhantomData<*const ()>,
+    _clock_domain_local: PhantomData<*const ()>,
 }
 
 impl LiveMonotonicDeadline {
@@ -551,8 +552,8 @@ impl ChronologySummary {
 }
 
 /// The stateful chronology admission clock — a distinct owned object sharing NO
-/// surface with the summary merge (authored name; the primary fixes the role
-/// and its nine-item ownership roster but never the spelling). It owns: local
+/// surface with the summary merge (AUTHORED name: the role and its nine-item
+/// ownership roster are law, the spelling is this home's). It owns: local
 /// tick (the clock's tick), remote observation, wall-clock input, counter
 /// advancement, clock-regression behavior, excessive-future classification,
 /// overflow refusal (or another selected safe behavior), `SourceHlc`

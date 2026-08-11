@@ -11,8 +11,8 @@ pub use types::{
     FUSIBLE_FOLD_OUTPUTS, Fix, FixShape, FrameTransformation, FrameVersion,
     HistoricalReconstruction, INCOMPARABLE_ROUTE_DIMENSIONS, JournalView,
     MultiAuthorityRelationship, MultiplicityPosture, NavigationRequest, PATH_CONTRACT_FACETS,
-    PROHIBITED_SILENT_MERGERS, PageDowngradeTrigger, PointRole, PositioningRefusal,
-    RECONSTRUCTABLE_FACETS, REGISTERED_PATH_SELECTORS, ReferenceFrameId, RegionRole, RelationRole,
-    ResolvedRoute, ReversibilityPosture, RouteClosureEvidence, SemanticPathProgram,
-    SupportDistinction, TraversalForm,
+    PROHIBITED_SILENT_MERGERS, PageDowngradeTrigger, PathSelector, PointRole, PositioningRefusal,
+    RECONSTRUCTABLE_FACETS, ReferenceFrameId, RegionRole, RelationRole, ResolvedRoute,
+    ReversibilityPosture, RouteClosureEvidence, SemanticPathProgram, SupportDistinction,
+    TraversalForm,
 };

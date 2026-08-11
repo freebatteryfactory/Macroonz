@@ -40,11 +40,18 @@ resolve to one principal.
 
 ## Authored v1 shapes (flagged)
 
-ThreatProfile rows (subject → posture; the full axis roster is the primary's
-list); grant content (scope; full member roster rides the meet's normal form);
+ThreatProfile rows (subject → posture; the full axis roster is this home's,
+carried on the type); grant content (scope; full member roster rides the
+meet's normal form);
 attenuation operand (axes narrowed); KeyScope normal form (byte-lexicographic
 component order — one canonical normalization, never free bytes; the normal form
 IS the byte form the secret generation's scope binds); release subrecord cores.
+
+## Not here
+
+The postcondition matrix carries thirteen rows: the safe-Rust /
+supply-chain row is 22_security's substance and lives there, not as a
+fourteenth row of an authority-plane matrix.
 
 ## Obligations
 
@@ -83,16 +90,17 @@ obligations:
     challenge_kind: compile-law
     green: laws.rs authority::keyscope_is_application_scope
     red: owed-to-testpak
-  - id: authority.postcondition-matrix-is-fourteen
+  - id: authority.postcondition-matrix-is-thirteen
     challenge_kind: compile-law
-    green: laws.rs authority::postcondition_matrix_is_fourteen
+    green: laws.rs authority::postcondition_matrix_is_thirteen
     red: owed-to-testpak
   - id: authority.admission-composes-two-judgments
     challenge_kind: compile-law
     green: laws.rs authority::admission_composes_two_judgments
     red: owed-to-testpak
-  - id: authority.grant-use-handle-is-process-local
+  - id: authority.grant-use-handle-is-execution-context-local
     challenge_kind: compile-refusal
     green: structural (raw-pointer phantom makes the handle !Send and !Sync)
-    red: owed-to-testpak — sending a GrantUseHandle across threads must not compile
+    red: owed-to-testpak — moving a GrantUseHandle out of its execution context
+      must not compile
 ```

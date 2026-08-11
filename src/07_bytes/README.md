@@ -2,7 +2,7 @@
 
 Band 07. Imports identity, refusal, and the root calculus. Owns what every
 binary role shares: the one frame grammar (14-byte header, 32-byte digest
-trailer, one `TPAK` magic for every binary file), the domain-tag register's
+trailer, one `TPAK` magic for every binary artifact), the domain-tag register's
 shape and its four-projections law, the digest-family law, the width
 conventions, the text-form scheme, the eight commitment roles, content regions,
 and the sixteen-maxima bounded-reader roster. **Role-specific frame profiles are

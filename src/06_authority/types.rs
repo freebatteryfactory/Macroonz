@@ -57,8 +57,8 @@ pub enum ForeignSurface {
     ProgramAuthoring,
     /// Presentation — cannot strengthen the underlying claim.
     Rendering,
-    /// External request, model suggestion, webhook, tool result — a typed
-    /// effect candidate under the ordinary admission checks.
+    /// External request, model suggestion, callback, tool result — a typed
+    /// effect proposal under the ordinary admission checks.
     EffectIngress,
 }
 
@@ -88,9 +88,8 @@ impl Limit for ThreatProfileLimit {}
 pub struct ThreatSubjectLimit;
 impl Limit for ThreatSubjectLimit {}
 
-/// One row of a threat profile: a named subject bound to its posture (authored
-/// v1 shape; the profile axes roster is the old book's long list, carried in
-/// this home's README).
+/// One row of a threat profile: a named subject bound to its posture (AUTHORED
+/// v1 shape; the profile axes roster is carried in this home's README).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ThreatProfileRow {
     /// The named subject (caller, host, backend, carrier, dependency…).
@@ -386,13 +385,13 @@ impl CapabilityGrant {
     }
 }
 
-/// One process-local route to use one grant. Never a bearer token: the raw
-/// pointer phantom makes the handle structurally `!Send` and `!Sync`, and no
-/// serialization exists — live authority cannot be reconstructed from an
-/// encoded object.
+/// One execution-context-local route to use one grant. Never a bearer token:
+/// the raw pointer phantom makes the handle structurally `!Send` and `!Sync`,
+/// and no serialization exists — live authority cannot be reconstructed from
+/// an encoded object.
 #[derive(Debug)]
 pub struct GrantUseHandle {
-    _process_local: PhantomData<*const ()>,
+    _execution_context_local: PhantomData<*const ()>,
 }
 
 /// The six narrow-only attenuation axes. Widening is not expressible — no
@@ -582,8 +581,8 @@ pub struct ReleaseClaim;
 /// The release contract: one typed record of seven role-qualified subrecords —
 /// never a flat scalar pile. Missing facts refuse release; no serializer,
 /// formatter, adapter, route, or generated projection may infer them.
-/// (Subrecord members are authored v1 cores; the full member rosters ride each
-/// subrecord's docs from the primary.)
+/// (Subrecord members are AUTHORED v1 cores; the full member rosters ride
+/// each subrecord's own docs.)
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InformationReleaseContract {
     /// The source subrecord.
@@ -602,11 +601,11 @@ pub struct InformationReleaseContract {
     pub evidence: InformationReleaseEvidence,
 }
 
-/// The postcondition honesty matrix — the fourteen non-substitutions, whose
+/// The postcondition honesty matrix — the thirteen non-substitutions, whose
 /// only orderings are declared implication edges, never one ladder. Partial
 /// evidence preserves successful and missing subclaims without rendering a
 /// stronger combined success.
-pub const POSTCONDITION_NON_SUBSTITUTIONS: [(&str, &str); 14] = [
+pub const POSTCONDITION_NON_SUBSTITUTIONS: [(&str, &str); 13] = [
     ("requested", "granted"),
     ("authenticated", "authorized"),
     ("authorized", "admitted"),
@@ -619,6 +618,5 @@ pub const POSTCONDITION_NON_SUBSTITUTIONS: [(&str, &str); 14] = [
     ("shred-requested", "shred-acknowledged"),
     ("key-unavailable", "shredded"),
     ("isolated", "semantically-correct"),
-    ("safe-rust", "supply-chain-proof"),
     ("qualified-mechanism", "universal-support-promise"),
 ];

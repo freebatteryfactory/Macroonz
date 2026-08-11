@@ -5,18 +5,14 @@ topology probe: budgets carry typed magnitudes; numeric never needed bounds back
 
 ## The seven classes
 
-Work · Memory · Result · Effect · Suspension · Output · Time — closed.
-(AMENDED 2026-08-10: the program corpus, which owns the bound-dimension
-register, fixes the closed question set at SEVEN — Time is the durable
-deadline-policy budget, enforced at the time home riding this home's affine
-shape. The foundation corpus counted six; the register owner's count wins —
-a flagged source-conflict resolution, not a silent edit.) The first five
-are the cross-domain minimum: no computation is admitted without enforceable
-finite bounds in all five. The register is two-level; the dimension level under
-each class is owed to the program home (the old book's own delegation, and a
-hard sequencing fact: dimensions derive from what operators charge, and the
-operator register is authored at the execution home). Carried here only as the
-registered `DimensionId` shape.
+Work · Memory · Result · Effect · Suspension · Output · Time — seven, closed.
+Time is the durable deadline-policy budget, enforced at the time home riding
+this home's affine shape. The first five are the cross-domain minimum: no
+computation is admitted without enforceable finite bounds in all five. The
+register is two-level; the dimension level under each class is owed to the
+execution home — dimensions derive from what operators charge, and the
+operator register is authored there. Carried here only as the registered
+`DimensionId` shape.
 
 ## Budgets are affine — the monotone-shrink law at the type level
 
@@ -35,7 +31,7 @@ becomes part of semantic meaning — determinism rides on this.
 
 Deadlines — their own axis by law, never a bound class: the time home owns the
 policy and rides this budget shape with its own dimension marker. The dimension
-roster — program home, after the operator register. The widening morphism —
+roster — execution home, after the operator register. The widening morphism —
 authority and evidence homes. The 16 decode maxima — the bytes home instantiates
 them from these shapes.
 

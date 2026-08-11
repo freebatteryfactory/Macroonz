@@ -32,16 +32,19 @@ existing), `!Send`/`!Sync` structurally. Mechanism standing is DERIVED from
 four append-only fact families (never one mutable status enum; the old
 first-state word renamed to PROPOSED); a historical fact is never erased.
 The trust-boundary acronym is dead — the substance is TRUST-BOUNDARY
-DISCLOSURE, claim-local. The old constitution citations are dropped; the
-safe-Rust floor and the named-receipted-loosening law (declassification,
-widening-as-new-grant, KDF-realizes-attenuation) are stated as this repo's
-own law in the docs.
+DISCLOSURE, claim-local. The safe-Rust floor is repository policy, enforced
+by the workspace lint wall; the named-receipted-loosening law
+(declassification, widening-as-new-grant, KDF-realizes-attenuation) is stated
+as this home's own law in the docs.
 
-## Flags carried (from the ore, unresolved by the source)
+Permanent hostile families are not a roster here: the qualifying owner
+(testpak) declares them, and 23_evidence already carries that assignment.
 
-`ProtectedResolution` variant drift (the prose lists `Unavailable` and
+## Flags carried
+
+`ProtectedResolution` variant drift (prose elsewhere lists `Unavailable` and
 backend-unreachable as peers the eight-variant enum does not carry — the
-eight are law; the prose is a second unowned roster, flagged). The
+eight are law; any second roster is unowned, flagged). The
 release-projection default: refusal releases inherit the
 typed-redacted-diagnostic default posture — one answer, never a second per
 family (reconciling 20's length-disclosure flag).

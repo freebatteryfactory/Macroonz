@@ -207,23 +207,6 @@ pub enum InvocationProfile {
     RestrictedQuery,
 }
 
-/// The restricted-query admitted operation set.
-pub const RESTRICTED_QUERY_OPERATIONS: [&str; 13] = [
-    "bounded-read",
-    "seek",
-    "filter",
-    "projection",
-    "fold",
-    "group",
-    "aggregate",
-    "match",
-    "traverse",
-    "join",
-    "order",
-    "page",
-    "structured-explanation",
-];
-
 /// Resource-reference domain marker.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ResourceDomain;
@@ -295,11 +278,27 @@ pub const FAMILY_FACTS: [&str; 9] = [
     "exact-protocol-version",
 ];
 
-/// The nine adapter-supplied observations the sans-I/O core consumes — all
-/// host obligations; the core itself reads NOTHING directly (no socket,
-/// clock, entropy, filesystem, environment, browser API, credential store,
-/// or async executor).
+/// Transport-security claim marker — what a carrier can carry evidence
+/// ABOUT, never a truth it may establish.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct TransportSecurityClaim;
+
+/// Identity-possession claim marker — what a carrier can carry evidence
+/// ABOUT, never a truth it may establish.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PossessionClaim;
+
+/// The nine adapter-supplied observations the sans-I/O core consumes — all
+/// host obligations; the core itself reads NOTHING directly (no carrier,
+/// clock, entropy, artifact store, environment, credential store, or async
+/// executor).
+///
+/// Two observations carry EVIDENCE rather than a verdict: a carrier never
+/// mints semantic truth by announcing that something is "verified". It hands
+/// over a typed reference to the claim it observed; the security and
+/// admission owners interpret that evidence and decide what, if anything,
+/// follows. (Variant names pending the repository owner's review.)
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CarrierObservation {
     /// Bytes received.
     BytesReceived,
@@ -309,10 +308,12 @@ pub enum CarrierObservation {
     FlowControlAvailability,
     /// Connection opened, half-closed, or closed.
     ConnectionTransition,
-    /// Transport security established.
-    TransportSecurityEstablished,
-    /// Identity or possession verified.
-    IdentityPossessionVerified,
+    /// Evidence about the carrier's transport security, carried for the
+    /// security owner to interpret.
+    TransportSecurityEvidence(EvidenceRef<TransportSecurityClaim>),
+    /// Evidence about identity possession on the carrier, carried for the
+    /// admission owner to interpret.
+    PossessionEvidence(EvidenceRef<PossessionClaim>),
     /// An idle threshold.
     IdleThreshold,
     /// An absolute deadline reached (the host's own clock domain — no
@@ -664,8 +665,8 @@ pub const AUTH_ROLES: [&str; 13] = [
     "receipt",
 ];
 
-/// What replayable carrier early data carries NONE of — and carrier, proxy,
-/// or HTTP retry, reconnect, or fallback cannot silently resubmit an
+/// What replayable carrier early data carries NONE of — and no carrier,
+/// intermediary, retry, reconnect, or fallback can silently resubmit an
 /// effectful operation under a new logical identity.
 pub const EARLY_DATA_NEVER: [&str; 8] = [
     "an-effectful-invocation",

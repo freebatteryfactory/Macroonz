@@ -8,14 +8,11 @@ history, the complete authorized-removal model, and `.tlog` recovery.
 
 ## Two band-forced seatings and one executed rename
 
-1. **`SourceClosure` seats here** (the reading carries it; navigation, one band
-   up, imports it for `Fix`) — one owner, navigation a consumer. This
-   supersedes the earlier navigation-seating note: band math beats prose
-   ownership, and the evidence ore's own root-bucket table already named the
-   history home for it.
-2. **Executed rename**: the cut's ordinal member is `ceiling` — the primary's
-   word was watermark-family banned vocabulary; substance ("the visible ceiling
-   of published history") unchanged.
+1. **`SourceClosure` seats here** (navigation, one band up, imports it for
+   `Fix`) — one owner, navigation a consumer. Band math decides the seat.
+2. **Executed rename**: the cut's ordinal member is `ceiling` — the
+   watermark-family word is banned vocabulary; the substance ("the visible
+   ceiling of published history") is unchanged.
 
 ## Firsts
 
@@ -48,12 +45,18 @@ equivocation · restored material earns standing only after witness comparison �
 Required witness absent = refuse not weaken · lost ack lowers receipt
 completeness only · per-record verdicts speak K3, narrowing fail-closed.
 
-## Resolved: the primary's implementation-swap identity row (discharged by structure)
+## Not here
 
-The primary's one identity-stability row written in the retired
-construction-lifecycle frame ("…changes implementation authority while
-preserving lineage and semantic target identity") is discharged, not carried:
-its guarantee is structural in this machine. Identity is a commitment over
+The storage port's method roster and its postcondition rows land with the
+storage adapter contract in host space, not in this home. What is law here is
+the durability CLAIM algebra: twelve typed postcondition axes and the profile
+that carries them, so no adapter can substitute a weaker guarantee.
+
+## Resolved: implementation-swap identity stability (discharged by structure)
+
+An implementation swap changing implementation authority while preserving
+lineage and semantic target identity needs no row here: its guarantee is
+structural in this machine. Identity is a commitment over
 meaning and the realization is never in the preimage, so an implementation swap
 cannot change identity arithmetic; accepted history never contains
 realizations, so a swap cannot touch it; and a reuse key spanning a swap

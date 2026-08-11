@@ -174,8 +174,8 @@ pub struct AddressSpace {
 /// database, file, writer, actor, or socket per coordinate. One accepted
 /// event may participate in several views without duplication,
 /// re-identification, or re-admission; every view resolves to the accepted
-/// authority and exact cut supporting its claim. (`Send` posture is unstated
-/// in the source and left to the default; flagged.)
+/// authority and exact cut supporting its claim. (`Send` posture is
+/// deliberately left to the default; flagged, not decided.)
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct JournalView<'a, Role: AddressRole> {
     /// The address this view serves.
@@ -227,8 +227,8 @@ pub enum ReversibilityPosture {
     NotInvertible,
 }
 
-/// One declared frame transformation — AUTHORED name (the nine facets are the
-/// primary's, the type name never was). The immutability law: historic facts
+/// One declared frame transformation — AUTHORED name over the nine declared
+/// facets. The immutability law: historic facts
 /// remain bound to the frame under which they were admitted — a newer frame
 /// may derive or explicitly migrate an interpretation but cannot silently
 /// rewrite the old address.
@@ -356,7 +356,7 @@ pub struct AdmittedRoute {
 pub struct StatePredicateDomain;
 
 /// What kind of position was derived. `Region` and `State` payloads are
-/// AUTHORED (the primary's sketch left them empty): a region-shaped fix
+/// AUTHORED here rather than left empty: a region-shaped fix
 /// returns the region address it derived; a state-shaped fix returns the
 /// predicate it established. `Ambiguous` carries no payload — the ambiguity's
 /// account rides the fix's explanation evidence.
@@ -374,8 +374,8 @@ pub enum FixShape<T> {
     Ambiguous,
 }
 
-/// The three multi-authority relationship postures — closed, AUTHORED carrier
-/// for the primary's roster. A cut vector alone proves none of these and
+/// The three multi-authority relationship postures — closed, with an AUTHORED
+/// carrier. A cut vector alone proves none of these and
 /// invents no distributed snapshot or transaction; under the coordination
 /// posture, the named profile is what proves more, never the vector.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -420,8 +420,8 @@ pub struct FixBoundsClaim;
 /// the success channel; alternatives are the bounded member; incomplete
 /// search is the closure axis; ambiguity and approximation are shapes;
 /// staleness is the freshness axis; the remaining four are
-/// [`PositioningRefusal`]'s causes — so the primary's two disagreeing posture
-/// lists both hold, and neither had to win.
+/// [`PositioningRefusal`]'s causes — every posture lands on exactly one
+/// owner, and no posture enum exists.
 #[must_use]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Fix<T> {
@@ -580,9 +580,17 @@ pub const PROHIBITED_SILENT_MERGERS: [&str; 5] = [
     "adapter-normalization",
 ];
 
-/// The registered path selector set. Extension is by registration under the
-/// owner, never by parser fallback.
-pub const REGISTERED_PATH_SELECTORS: [&str; 2] = ["*", "**"];
+/// The registered path selectors — a closed typed set, never a table of
+/// spellings: how a frontend or host writes a selector is that surface's own
+/// vocabulary. Extension is by registration under this owner, never by parser
+/// fallback.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PathSelector {
+    /// Matches exactly one segment at this position.
+    SegmentWildcard,
+    /// Matches zero or more segments, descending.
+    RecursiveDescent,
+}
 
 /// The three explicit downgrade triggers of paged-evidence composition. Pages
 /// taken under one frozen cut through an unbroken cursor chain establish, in
@@ -679,8 +687,8 @@ pub struct Cursor {
 }
 
 /// Cursor transplantation refusal — eight causes. The selection order is
-/// AUTHORED (the primary enumerates the causes and the house doctrine owes an
-/// order it never declared): a wrong-family cursor cannot even be decoded, so
+/// AUTHORED, because a single-cause family owes a declared order: a
+/// wrong-family cursor cannot even be decoded, so
 /// no other question exists; source precedes generation because generations
 /// are scoped to their source; the query precedes its own refinements
 /// (filter, order, direction); the cut ranks last because comparing cuts
@@ -719,10 +727,9 @@ impl RefusalFamily for CursorTransplantation {
     ];
 }
 
-/// The ten things that cannot advance a durable checkpoint. (The primary
-/// says "nine" and lists ten; baked as the list, discrepancy noted.) The
+/// The ten things that cannot advance a durable checkpoint. The
 /// checkpoint itself is runtime-owned and referenced, never redefined, here;
-/// `DeliveryIndex` is Serve-owned and is not `AuthoritySequence`,
+/// `DeliveryIndex` is the application home's and is not `AuthoritySequence`,
 /// `CommitPoint`, HLC, cursor, checkpoint, Turn, Attempt, or federation cut.
 /// A checkpoint survives reconnection through a new compatible session, and
 /// session identity alone can neither validate nor invalidate it.

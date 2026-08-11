@@ -23,8 +23,8 @@ knows which host is running it.
 - Numbered directories are dependency bands: band N imports only bands lower than N.
   Numbers live on directories only; module names stay clean via `#[path]`.
 - The crate root owns generic composition shapes only. A semantic noun lives at the
-  root solely by an explicit promotion ruling from the repository owner; otherwise it
-  has an owner home. The root is never a shared-noun drawer.
+  root solely by an explicit root admission ruling from the repository owner;
+  otherwise it has an owner home. The root is never a shared-noun drawer.
 - Every semantic home is `README.md` + `mod.rs` + `types.rs`. A home README is markdown
   prose plus fenced yaml blocks that tooling parses and verifies against derived facts.
 - `types.rs` owns the home's public types: a `pub` struct, enum, type alias, or trait

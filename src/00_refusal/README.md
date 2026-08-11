@@ -44,17 +44,11 @@ prefix on a positively stated property, no `-Dependent` antonym, no `-Mismatch`.
 Cross-family spelling collisions over distinct types are deliberate and lawful —
 a shared word is shared vocabulary, never a shared type.
 
-## Seed trigger roster
+## Not here
 
-The old foundation chapter names these refusal triggers; families landing in later
-homes must cover them (roster preserved as authoring seed, not as families):
-malformed · noncanonical · wrong-role decode · unknown required meaning ·
-pre-allocation ladder breach (length/count/offset/expansion/role) · unlawful
-combination · bounds unenforceable at admission · bound exceeded under metering ·
-crossing-gain without the named morphism · unmatched (state, input) · undeclared
-ambiguity · unlawful chronology advancement · foreign claim unadmitted ·
-completeness unproven · configuration unadmitted · atomicity unproven · authority
-not earned.
+No seed roster of refusal triggers lives here: every trigger this home once
+listed as authoring seed has materialized as a family in its owner home, and
+what remains to be written is work-tracking, not specification.
 
 ## Obligations
 

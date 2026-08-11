@@ -86,23 +86,6 @@ pub const DRIVER_MAY_CHANGE: [&str; 7] = [
     "wall-time",
 ];
 
-/// The nine driver-family rows — all preserve the invariance list; an
-/// adapter may expose host-native ergonomics but may not create a second
-/// semantic API whose behavior changes when a future is dropped, a promise
-/// loses its page, a task is aborted, a runtime shuts down, or a callback
-/// arrives late.
-pub const DRIVER_FAMILY: [&str; 9] = [
-    "direct-blocking",
-    "cooperative-poll-pump",
-    "threaded-native",
-    "rust-future",
-    "browser-promise",
-    "browser-worker",
-    "ecosystem-async-runtime",
-    "embedded-custom",
-    "deterministic-testpak",
-];
-
 /// The twelve liveness facts every driver/delivery profile declares —
 /// fairness is a declared claim, not queue-library folklore; no wake
 /// protocol may lose work in the check-to-register/register-to-park window;
@@ -119,7 +102,7 @@ pub const LIVENESS_DECLARATION: [&str; 12] = [
     "reentrancy",
     "callback-custody",
     "shutdown-drain-restart",
-    "panic-and-host-failure-containment",
+    "abrupt-termination-and-host-failure-containment",
     "which-liveness-claim-becomes-unavailable",
 ];
 
@@ -202,9 +185,10 @@ impl EffectIntentId {
 }
 
 /// The fourteen Turn phases — semantic phases realized as a runtime state
-/// machine PLUS persisted data, never one mutable object (the prose pairs
-/// executing/live-suspended and the three outstanding/settled pairs; the
-/// flat fourteen is the persisted vocabulary). Initial posture is
+/// machine PLUS persisted data, never one mutable object (the semantic
+/// pairing of executing/live-suspended and the three outstanding/settled
+/// pairs is documented; the flat fourteen is the persisted vocabulary).
+/// Initial posture is
 /// `Runnable`; terminal is `ReconciliationComplete`, past which replay
 /// identity does not silently resume; every unmatched (phase, observation)
 /// pair yields a typed refusal — never a silent drop, never a panic.

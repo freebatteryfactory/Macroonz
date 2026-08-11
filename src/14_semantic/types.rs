@@ -229,7 +229,7 @@ impl RefusalFamily for SemanticFormConstruction {
 }
 
 // ---------------------------------------------------------------------------
-// The nine-axis judgment — carriers AUTHORED thin (the corpus's own open).
+// The nine-axis judgment — carriers AUTHORED thin, thickened by their owners.
 // ---------------------------------------------------------------------------
 
 /// The domain marker for semantic types.

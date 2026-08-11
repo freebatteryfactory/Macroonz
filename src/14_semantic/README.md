@@ -7,17 +7,16 @@ construction family, the nine-axis complete expression judgment, and the
 kernel-inventory contract frame. The judgment ALGEBRA is owned here; its
 source spelling, inference, and elaboration are the declaration home's.
 
-## Executed in this wave: the bound-class register amendment (flagged)
+## The bound-class register
 
-The program corpus — which owns the bound-dimension register — fixes the
-closed question set at SEVEN classes; the foundation corpus counted six. The
-register owner's count wins: `BoundClass::Time` (the durable deadline-policy
-budget) was added at 05_bounds, with enforcement at the time home riding the
-affine budget shape. A source-conflict resolution, recorded there and here.
+The closed question set is SEVEN classes: `BoundClass::Time` (the durable
+deadline-policy budget) is seated at 05_bounds, with enforcement at the time
+home riding the affine budget shape. This home's judgment carries the
+dimension rows against that register.
 
 ## Authored fresh here (flagged in the code)
 
-The judgment's carrier types were sketch-only in the corpus (its own open):
+The judgment's carrier types are AUTHORED thin here rather than left open:
 `SemanticTypeRef`, `RefusalSet`, `OrderedEffectRegions` (order carried by
 construction), `CapabilityRequirements` (requirements, never grants),
 `SourceCutPosture`, `ExplanationObligation`, `EvidenceObligation`, and

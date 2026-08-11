@@ -554,9 +554,9 @@ pub struct CompatibilityEdge {
 // primitives; this home owns the declaration that binds them to schemas.
 // ---------------------------------------------------------------------------
 
-/// An authored codec profile (authored v1 core: the bound schema; the full
-/// fifteen-item roster is documented law — with the primary's own 14-vs-15
-/// count discrepancy flagged and unresolved).
+/// An authored codec profile (AUTHORED v1 core: the bound schema; the full
+/// fifteen-item roster is documented law — the 14-vs-15 count discrepancy is
+/// flagged and unresolved).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CodecProfile {
     /// The admitted schema relationship.
@@ -631,9 +631,9 @@ pub enum CheckableObject {
     SelectiveAccess,
 }
 
-/// Which preservation object a layout failed to preserve — authored as seven
-/// (null-and-extension law read as one object per the prose); the primary's
-/// 5-vs-7 count ambiguity is flagged, not resolved.
+/// Which preservation object a layout failed to preserve — AUTHORED as seven
+/// (the null-and-extension law reads as one object); the 5-vs-7 count
+/// ambiguity is flagged, not resolved.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PreservationObject {
     /// Schema meaning.

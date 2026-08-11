@@ -173,9 +173,9 @@ pub struct TextIssue {
 /// Bounded text as a semantic value, carrying its limit family like every other
 /// bounded value. Admission checks are the declaring schema's selected text
 /// refinements (drawn from [`TextAdmissionIssue`]); the checker rides an
-/// admitted external Unicode mechanism behind a machine-owned role contract
-/// (the old book's own posture for Unicode machinery). The constructor lands
-/// with that mechanism's admission.
+/// admitted external Unicode mechanism behind a machine-owned role contract —
+/// the mechanism is swappable, the role contract is not. The constructor
+/// lands with that mechanism's admission.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BoundedText<L: Limit> {
     bytes: Bounded<u8, L>,

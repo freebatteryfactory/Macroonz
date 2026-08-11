@@ -10,7 +10,8 @@ pub use types::{
     DeliveryGuarantee, DeliveryIndex, DirectionState, EARLY_DATA_NEVER, EntrypointId, FAMILY_FACTS,
     FLOW_CONTROL_FACTS, INGRESS_PIPELINE, IdempotencyIdentity, IngressAck, InstanceId,
     InstanceLifecycle, InterfaceCommitment, InvocationProfile, LOCAL_NOUNS, LagOverrunObservation,
-    MESSAGE_FAMILIES, NON_IDENTITIES, NON_SUBSTITUTABLE_PREIMAGES, RAW_RETENTION_GUARDRAILS,
-    REMOTE_VERBS, RESOURCE_NEVER_BECOMES, RESTRICTED_QUERY_OPERATIONS, RejectedContentReason,
+    MESSAGE_FAMILIES, NON_IDENTITIES, NON_SUBSTITUTABLE_PREIMAGES, PossessionClaim,
+    RAW_RETENTION_GUARDRAILS, REMOTE_VERBS, RESOURCE_NEVER_BECOMES, RejectedContentReason,
     RemovalHole, ResourceRef, SessionId, SessionState, SessionTerminal, StreamClosure, StreamState,
+    TransportSecurityClaim,
 };

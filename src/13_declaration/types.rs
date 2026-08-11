@@ -266,7 +266,16 @@ pub enum AuthoringRole {
     Fragment,
     /// A typed meta function.
     MetaFunction,
-    /// Typed semantic quotation/splicing.
+    /// Typed semantic templates: a quoted fragment is typed data, not text. A
+    /// template is authored against this algebra, instantiated with typed
+    /// arguments, and produces origin-bound [`DeclarationFragment`] material
+    /// that re-enters the ordinary validation and linking path with no
+    /// shortcut. Splicing substitutes typed values only — a string never
+    /// becomes an identifier, a symbol, or a coordinate — and instantiation
+    /// mints no authority: every produced fragment carries the instantiating
+    /// site's origin and is judged there. Frontend-neutral: any front door may
+    /// offer a template surface, or none, without changing this algebra.
+    /// (Role name pending the repository owner's review.)
     Quotation,
 }
 
@@ -378,7 +387,7 @@ pub const WHEN_FACET_CONTENT: [&str; 6] = [
     "deadline-policy",
 ];
 
-/// HOW's closed content roster — the richest single roster the corpus states.
+/// HOW's closed content roster — the richest single roster in this home.
 pub const HOW_FACET_CONTENT: [&str; 14] = [
     "fold",
     "match",
@@ -410,13 +419,21 @@ pub const WHY_FACET_CONTENT: [&str; 10] = [
     "receipt",
 ];
 
-/// The registered named facet forms.
-pub const REGISTERED_FACET_FORMS: [&str; 4] = [
-    "capture_current",
-    "requires_evidence",
-    "produces_evidence",
-    "explain",
-];
+/// The registered named facet forms — a closed typed roster, never a set of
+/// spellings. How a front door spells each form is that frontend's own
+/// vocabulary and never travels into this algebra.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum FacetForm {
+    /// WHEN's elaboration into one explicit captured exact cut per
+    /// participating authority.
+    CaptureCurrent,
+    /// WHY's demand that named evidence be presented.
+    RequiresEvidence,
+    /// WHY's declaration that this work produces named evidence.
+    ProducesEvidence,
+    /// WHY's demand for an explanation of the judgment.
+    Explain,
+}
 
 /// The linker contract's seven acts, in order — it emits a complete linked
 /// fact set or a typed refusal, and never repairs.
@@ -435,7 +452,7 @@ pub const CONVERGENCE_ROUTES: [&str; 4] = [
     "direct-declarations",
     "fragment-instantiations",
     "typed-meta-expansion",
-    "rust-macro-declarations",
+    "typed-quotation",
 ];
 
 /// The three locks every meta evaluation declares BEFORE evaluation — it
@@ -500,7 +517,7 @@ pub struct ConflictRelationDomain;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ExportAliasDerivation {
     /// The compiler supports no such projection profile — refused before any
-    /// candidate spelling exists; type existence fabricates no supported row.
+    /// proposed spelling exists; type existence fabricates no supported row.
     UnsupportedTargetProfile {
         /// The unsupported profile.
         profile: ProjectionProfileVersion,
@@ -515,7 +532,7 @@ pub enum ExportAliasDerivation {
         /// The typed representability class.
         class: Commitment<RepresentabilityDomain>,
     },
-    /// A produced candidate scalar leaves the profile's declared repertoire.
+    /// A produced scalar leaves the profile's declared repertoire.
     CharacterSetViolation {
         /// The symbol.
         symbol: SymbolIdentity,
@@ -526,13 +543,13 @@ pub enum ExportAliasDerivation {
         /// Its typed coordinate.
         coordinate: SourceCoordinate,
     },
-    /// The candidate spelling is a reserved word of the target profile —
+    /// The proposed spelling is a reserved word of the target profile —
     /// carries the word's identity within the closed set, never the spelling.
     ReservedWord {
         /// The reserved word's typed identity.
         word: Commitment<ReservedWordDomain>,
     },
-    /// The candidate exceeds the profile's declared length bound.
+    /// The proposed spelling exceeds the profile's declared length bound.
     LengthExceeded {
         /// The declared bound.
         bound: u64,
@@ -541,7 +558,7 @@ pub enum ExportAliasDerivation {
         /// The counting coordinate role both are stated under.
         counting_role: CoordinateRole,
     },
-    /// A produced candidate broke one named target-profile rule that is not
+    /// A produced spelling broke one named target-profile rule that is not
     /// repertoire, reserved word, length, or collision.
     TargetProfileConstraintViolation {
         /// The violated rule's typed identity.

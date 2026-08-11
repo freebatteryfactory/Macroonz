@@ -10,7 +10,7 @@ their complete rosters and compile-time bounds.
 
 ## Variant-spelling law (verbatim, mechanical)
 
-Negated adjective where the book states it (`Unresolved`, `Contradictory`,
+Negated adjective (`Unresolved`, `Contradictory`,
 `Unbounded`, `Ownerless`, `MechanismDefined`, `Ambiguous`, `Overlapping`,
 `OutOfRange`, `WrongRole`, `WrongProfile`, `NonReconstructable`,
 `Nondeterministic`); `Not` before a positively stated property (`NotTotal`,
@@ -49,14 +49,13 @@ reader removed while its published compatibility promise remains.
 ## Representation gates (minted, unresolved by design)
 
 Value-carrier gate (this home) · refusal-carrier gate (repository plane) ·
-presentation-value gate (dead with the language; revives with a frontend) ·
 numeric-width route (evidence-selected). A universal opaque-storage token is
 forbidden — gates are owner-named, never generic.
 
 ## Flags carried
 
-Codec roster 14-vs-15 count discrepancy (the primary's own arithmetic — the
-"which profile item" payload stays unreportable until settled).
+Codec roster 14-vs-15 count discrepancy, unresolved — the "which profile
+item" payload stays unreportable until it is settled.
 `MeaningOrBindingNotPreserved` authored as seven preservation objects
 (null-and-extension read as one law); the 5-vs-7 ambiguity flagged.
 

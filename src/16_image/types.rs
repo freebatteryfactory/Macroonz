@@ -147,9 +147,9 @@ impl IdentityRole for AdmittedProgramId {
 // The component table.
 // ---------------------------------------------------------------------------
 
-/// The component-role roster — AUTHORED (the genuine hole: the corpus fixes
-/// the image's eighteen bound facts and never says which component roles
-/// carry them). One role per separable bound-fact carrier; identities ride
+/// The component-role roster — AUTHORED here: the image's eighteen bound
+/// facts are law, and which component roles carry them is this home's
+/// decision. One role per separable bound-fact carrier; identities ride
 /// the root frame header, not a component. The wire form is the `img` row's
 /// registered role `u16`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -283,10 +283,9 @@ pub const BOUND_FACT_ROSTER: [&str; 18] = [
     "optional-origin-authenticity-qualification-references",
 ];
 
-/// The program-image file extension — the file-kind register's row: one
-/// `TPAK` magic for every binary file (the bytes home's frame grammar), the
-/// registered role `u16` distinguishing kinds; `.thread` stays text with no
-/// magic.
+/// The program-image artifact suffix — the artifact-kind register's row: one
+/// `TPAK` magic for every binary artifact (the bytes home's frame grammar),
+/// with the registered role `u16` distinguishing kinds.
 pub const PROGRAM_IMAGE_EXTENSION: &str = ".program.tpk";
 
 // ---------------------------------------------------------------------------

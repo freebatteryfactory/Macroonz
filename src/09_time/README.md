@@ -12,8 +12,9 @@ opaque over a private triple — a public enum would grant public construction;
 `DurationBudget` is the paved road), `ConsumedBudgetEvidence` (persisted spend
 at named durable points, never a raw instant — the durable coordinate rides a
 typed reference because the coordinate value is the history home's, above this
-band), and `LiveMonotonicDeadline` (per-process-life, structurally `!Send`/
-`!Sync` via raw-pointer phantom, unserializable, dead with the process). The
+band), and `LiveMonotonicDeadline` (per-clock-domain-life, structurally
+`!Send`/`!Sync` via raw-pointer phantom, unserializable, dead with the clock
+domain that produced it). The
 narrowing law: remaining = policy − (consumed widened by ±u); a crash-restart
 loop monotonically loses budget; adapters receive derived allowances and never
 hold the policy. `DeadlineDimension` rides the bounds home's affine budget as
@@ -26,8 +27,9 @@ value — its extrema are independent fields so it cannot even look like one; no
 morphism leads back). The summary merge is a real seam (`try_merge`), proven
 commutative/associative/idempotent in the laws. The stateful admission clock is
 a distinct owned object sharing no surface with the merge; its name
-(`ChronologyAdmissionClock`) is authored — the primary fixed the role and its
-nine-item roster, never the spelling. Logical counter u32: overflow refuses,
+(`ChronologyAdmissionClock`) is AUTHORED: the role and its nine-item roster
+are law here, the spelling is this home's. Logical counter u32: overflow
+refuses,
 never wraps — the smallest width whose overflow can only mean broken clock
 physics.
 

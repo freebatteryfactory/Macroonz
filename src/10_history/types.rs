@@ -205,8 +205,8 @@ impl AuthoritySequence {
 
 /// An exact durable historical cut: the same writer-order scope under its own
 /// role-distinct domain tag, plus the cut's ordinal ceiling (the visible
-/// ceiling of published history — renamed from the primary's banned
-/// watermark-family word; the substance is unchanged). Never a wall-clock
+/// ceiling of published history — the watermark-family word is banned
+/// vocabulary; the substance is unchanged). Never a wall-clock
 /// time, HLC, page cursor, item count, route, or best-known observation.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CommitPoint {
@@ -668,24 +668,24 @@ pub enum CommitReconciliation {
 /// The twelve claim axes of a durability profile — a typed set of explicit
 /// postcondition claims, never one global adjective. Content durability is not
 /// namespace durability: a staged object with durable bytes is not published,
-/// and a successful rename call is not itself proof of durable namespace
+/// and a successful replacement call is not itself proof of durable namespace
 /// publication.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DurabilityClaimAxis {
-    /// Process-visible bytes.
-    ProcessVisibleBytes,
-    /// Kernel-visible bytes.
-    KernelVisibleBytes,
+    /// Bytes visible within the writing execution context.
+    ExecutionContextVisibleBytes,
+    /// Bytes visible to the host storage service.
+    HostServiceVisibleBytes,
     /// Durable content.
     DurableContent,
     /// Durable extent/segment metadata.
     DurableExtentMetadata,
     /// Durable namespace entry.
     DurableNamespaceEntry,
-    /// Durable replacement/rename.
+    /// Durable replacement of an existing entry.
     DurableReplacement,
-    /// Parent-namespace publication.
-    ParentNamespacePublication,
+    /// Enclosing-namespace publication.
+    EnclosingNamespacePublication,
     /// Cross-object ordering.
     CrossObjectOrdering,
     /// Acknowledged batch membership.
@@ -731,13 +731,12 @@ impl OpenReadOnly {
 /// A writable storage root: proves live write authority; failure to establish
 /// or close it is reported, never hidden by construction. An injected adapter
 /// is the ONLY physical route for the operation using it — no ambient host
-/// filesystem call compiles into a port operation. (The port trait's method
-/// roster — create/open, bounded reads/writes, append, content durability
-/// handoff, namespace durability handoff, atomic publication, enumeration,
-/// single-writer exclusion, rename, quota, short-io, crash/reload, compaction,
-/// snapshot/fork/import/export/restore, lineage validation — lands with the
-/// adapter machinery; its postcondition rows are the source's own deferral to
-/// the adapter set.)
+/// call compiles into a port operation. (The port trait's method roster —
+/// create/open, bounded reads/writes, append, content durability handoff,
+/// namespace durability handoff, atomic publication, enumeration,
+/// single-writer exclusion, crash/reload, compaction,
+/// snapshot/fork/import/export/restore, lineage validation — and its
+/// postcondition rows land with the storage adapter contract in host space.)
 #[derive(Debug)]
 pub struct OpenWritable {
     lineage: StoreLineageId,
@@ -862,8 +861,8 @@ pub struct SourceRegions {
 }
 
 /// The typed completeness axis over declared source regions at named cuts —
-/// seated HERE by band math (the reading carries it, and navigation at the
-/// band above imports it for `Fix`); one owner, with navigation a consumer.
+/// seated HERE by band math (navigation, one band above, imports it for
+/// `Fix`); one owner, with navigation a consumer.
 /// An instantiation of the root's non-erasable completeness shape.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SourceClosure(pub Completeness<SourceRegions>);
@@ -974,8 +973,8 @@ pub struct RemovalPolicyBasis {
 
 /// The caller-authored checked removal intent — twelve members in declared
 /// order (the order IS the canonical issue order of its construction family).
-/// Collections ride bounded carriers — the primary's own bare-vector sketch
-/// contradicted its own closed-carrier law, fixed here as flagged. Retained
+/// Collections ride bounded carriers — a bare vector would contradict this
+/// machine's closed-carrier law. Retained
 /// commitments and removed material answer two different questions, so their
 /// overlap is never a defect.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -1168,9 +1167,9 @@ pub struct RemovalCommitment(pub Commitment<RemovalDomain>);
 // The .tlog container and recovery.
 // ---------------------------------------------------------------------------
 
-/// The named body-frame kinds of the `.tlog` container (the primary leaves
-/// roster closure open — the minting restriction implies more lifecycle kinds
-/// need representation; flagged, not resolved).
+/// The named body-frame kinds of the `.tlog` container (roster closure stays
+/// open — the minting restriction implies more lifecycle kinds need
+/// representation; flagged, not resolved).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TlogFrameKind {
     /// An accepted-event record.

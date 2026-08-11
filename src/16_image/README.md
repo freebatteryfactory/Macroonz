@@ -6,9 +6,9 @@ calculus. The self-explaining executable package: identities, the component
 table, packaging, the affine validation ladder, and the sixteen-stage
 admission pipeline.
 
-## Nuance from the original docs (not the ore)
+## The component table is fixed at the bytes
 
-The `img` frame row in the schema chapter's byte-profile register fixes the
+The `img` frame row in the byte-profile register fixes the
 component table AT THE BYTES: `u32 count × { role u16, profile u16, content
 digest 32 B, length u64 }` — so `ComponentRole`'s wire form is a registered
 `u16` and the component profile is a registered `u16`, typed accordingly.
@@ -18,8 +18,8 @@ in packaging.
 
 ## Authored fresh here (flagged): the ComponentRole roster
 
-The corpus's genuine hole: the image's eighteen bound facts are complete, but
-nothing says which component roles carry them. AUTHORED as nineteen roles —
+The image's eighteen bound facts are complete; which component roles carry
+them is decided here. AUTHORED as nineteen roles —
 one per separable bound-fact carrier, identities riding the root frame header
 — with the three optional roles (origin maps, authenticity, qualification)
 admitted only where a profile admits them.

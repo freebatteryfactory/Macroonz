@@ -1,7 +1,7 @@
 //! The root shape calculus: the generic composition shapes every home instantiates,
-//! plus the two axes promoted to root by explicit ruling. Nothing here is a semantic
-//! noun beyond those promotions — a semantic noun lives at root only by an explicit
-//! promotion ruling from the repository owner.
+//! plus the two axes admitted to root by explicit ruling. Nothing here is a semantic
+//! noun beyond those two — a semantic noun lives at root only by an explicit root
+//! admission ruling from the repository owner.
 //!
 //! # The structural spine
 //!
@@ -250,7 +250,7 @@ impl<T, L: Limit> NonEmptyBounded<T, L> {
 }
 
 // ---------------------------------------------------------------------------
-// Freshness: promoted axis. Current and Stale are TYPES, not variants — an API
+// Freshness: root-admitted axis. Current and Stale are TYPES, not variants — an API
 // that requires fresh input demands `Current<T>` and stale data does not typecheck.
 // ---------------------------------------------------------------------------
 
@@ -329,7 +329,7 @@ pub enum Freshness<T, Cut: EvidenceCut> {
 }
 
 // ---------------------------------------------------------------------------
-// Proof and completeness: promoted axis + the non-erasable-domain shape.
+// Proof and completeness: root-admitted axis + the non-erasable-domain shape.
 // ---------------------------------------------------------------------------
 
 /// What one verification run established about one claim. Its own axis — never a

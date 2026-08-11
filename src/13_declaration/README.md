@@ -30,8 +30,8 @@ origin capture, translation into this algebra).
   function cannot publish files, promote source, change law, or control
   qualification — survive as the staged-meta laws baked here. Two phases
   remain: semantic expansion and post-link projection.
-- "Compiler output is a candidate until…" reads: compiler output is an
-  UNADMITTED ARTIFACT until independently checked and admitted.
+- Compiler output is an UNADMITTED ARTIFACT until it is independently checked
+  and admitted. Nothing about producing it confers standing.
 
 ## The three collision questions, three owners
 
@@ -54,9 +54,8 @@ The `Judgment` record and its axes → 14_semantic (this home seats `Stage`).
 ASK/DO/REQUEST/PEND boundary semantics and lowering → 15_execution (this home
 seats the authoring-surface `TopLevelForm`). The traversal spellings
 (`seek` / `children` / `descendants`) and the HOW-roster operations are
-operator-register rows → 15_execution. The compiler-service evidence chain →
-21_application riding 12_port's compiler-services role. The build-time trust
-profile of the proc-macro process → 22_security (the source's own deferral).
+operator-register rows → 15_execution. The build-time trust profile of the
+declaration frontend's expansion → 22_security.
 
 ## Obligations
 

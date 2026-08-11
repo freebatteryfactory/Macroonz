@@ -4,22 +4,13 @@
 //! protected resolution, release contracts) lives at the authority home;
 //! this band collects the lifecycle machinery band math forced upward.
 //!
-//! # The safe-Rust floor (the old constitution's substance, re-homed)
+//! # The safe-Rust floor
 //!
-//! Machine-owned source is safe Rust — the semantic kernel, frontends,
-//! linker and lowerers, executor validator and reference interpreter, the
-//! Stitch core, the membrane, native codecs, history semantics, derived
-//! reference and optimized behavior, generated first-party source, every
-//! first-party adapter, and the permanent independent reference route. No
-//! unsafe-Rust, C, assembly, or FFI escape hatch for parser speed, ownership
-//! pressure, memory layout, vectorization, or performance; a target that
-//! cannot be realized through safe first-party Rust plus safe typed ports
-//! stays unsupported unless an explicit future ruling reopens the law. Safe
-//! Rust narrows memory-corruption risk WITHOUT proving semantic correctness,
-//! bounded work, determinism, constant-time cryptography, honest receipts,
-//! supply-chain integrity, or safety inside transitive dependencies — and a
-//! clean grep or one green build is not that proof. Safe Rust and `no_std`
-//! are different properties.
+//! Safe Rust is repository policy, enforced by the workspace lint wall — not
+//! a claim this home makes. What matters here: safe Rust narrows
+//! memory-corruption risk WITHOUT proving semantic correctness, bounded work,
+//! determinism, constant-time cryptography, honest receipts, supply-chain
+//! integrity, or safety inside transitive dependencies.
 //!
 //! # Release surfaces
 //!
@@ -33,15 +24,13 @@
 //!
 //! # Two supply-chain claims, neither substituting
 //!
-//! Source-to-artifact continuity (reproducible builds) and public semantic
-//! equivalence (a public independent checker that can reject a
-//! wrong-but-compiling implementation without executing any private-line
-//! code). The private generation line that produces the published source is
-//! OUTSIDE the published trust boundary and is never a supported trust
-//! claim. Build and release actors use scoped short-lived authority; the
-//! exact artifact qualified for one target and profile is the artifact
-//! eligible for that release row — no hidden rebuild or mutable tag crosses
-//! the boundary.
+//! Source-to-artifact continuity and public semantic equivalence (a public
+//! independent checker that can reject a wrong-but-compiling implementation
+//! without executing unpublished code) are different claims; neither
+//! substitutes for the other. Any source-generation process outside the
+//! published boundary is OUTSIDE the published trust boundary and is never a
+//! supported trust claim. Release mechanics — reproducible-build posture,
+//! actor scoping, artifact eligibility — are repository policy.
 
 use crate::authority::CapabilityGrantId;
 use crate::identity::Commitment;
@@ -452,19 +441,4 @@ pub const TRUST_BOUNDARY_MEMBERS: [&str; 8] = [
     "host-adapters-and-external-services",
     "keys-witnesses-configuration-deployment-assumptions",
     "independent-verifier-assumptions-where-relied-upon",
-];
-
-/// The ten permanent hostile families — each a permanent regression naming
-/// the exact substitution it prevents.
-pub const HOSTILE_FAMILIES: [&str; 10] = [
-    "foreign-content-firewall",
-    "identity-capability-admission",
-    "image-admission",
-    "history-freshness-rollback",
-    "protected-payload-secret",
-    "partition-transport",
-    "interface-outbound",
-    "bounds-denial-of-service",
-    "safe-rust-dependency-sovereignty",
-    "bvisor-physical-observations",
 ];

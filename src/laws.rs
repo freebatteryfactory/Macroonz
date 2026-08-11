@@ -476,22 +476,6 @@ mod identity {
         assert_eq!(newer.version(), 2);
     }
 
-    /// law: identity.minting-profiles-are-three — the fresh-minting layout
-    /// roster is the old book's three; selection is admission policy, and the
-    /// reader contract (no structure parsed) holds for all three.
-    /// Owed reversal: adding a fourth profile must break this law.
-    #[test]
-    fn minting_profiles_are_three() {
-        use crate::identity::MintingProfile;
-        let profiles = [
-            MintingProfile::FullyRandom,
-            MintingProfile::TimePrefixed,
-            MintingProfile::WriterCounter,
-        ];
-        assert_eq!(profiles.len(), 3);
-        assert!(super::pairwise_distinct(&profiles));
-    }
-
     /// law: identity.commitment-domains-do-not-unify — commitments from
     /// different domains are different types.
     /// Owed reversal (red twin): passing a `Commitment<DomA>` where
@@ -586,8 +570,8 @@ mod value {
         assert!(pairwise_distinct(&operations));
     }
 
-    /// law: value.text-admission-roster-is-eight — the profile's defect roster
-    /// from the primary, closed and distinct; every issue carries its offending
+    /// law: value.text-admission-roster-is-eight — the profile's defect
+    /// roster, closed and distinct; every issue carries its offending
     /// scalar and coordinate.
     /// Owed reversal: collapsing the join-control cause into the
     /// default-ignorable cause must break this law (their repairs differ).
@@ -996,12 +980,12 @@ mod authority {
         requires_application_scope::<KeyScope>();
     }
 
-    /// law: authority.postcondition-matrix-is-fourteen — the honesty matrix
+    /// law: authority.postcondition-matrix-is-thirteen — the honesty matrix
     /// holds its rows, requested≠granted first.
     /// Owed reversal: dropping a row must break this law.
     #[test]
-    fn postcondition_matrix_is_fourteen() {
-        assert_eq!(POSTCONDITION_NON_SUBSTITUTIONS.len(), 14);
+    fn postcondition_matrix_is_thirteen() {
+        assert_eq!(POSTCONDITION_NON_SUBSTITUTIONS.len(), 13);
         assert_eq!(
             POSTCONDITION_NON_SUBSTITUTIONS.first(),
             Some(&("requested", "granted"))
@@ -1832,8 +1816,8 @@ mod navigation {
         CLOSURE_REQUIRED_CLAIMS, Cursor, CursorTransplantation, DestinationKind,
         FUSIBLE_FOLD_OUTPUTS, Fix, FixShape, FrameVersion, INCOMPARABLE_ROUTE_DIMENSIONS,
         MultiAuthorityRelationship, PATH_CONTRACT_FACETS, PROHIBITED_SILENT_MERGERS,
-        PageDowngradeTrigger, PositioningRefusal, RECONSTRUCTABLE_FACETS,
-        REGISTERED_PATH_SELECTORS, ReferenceFrameId, RouteClosureEvidence, TraversalForm,
+        PageDowngradeTrigger, PathSelector, PositioningRefusal, RECONSTRUCTABLE_FACETS,
+        ReferenceFrameId, RouteClosureEvidence, TraversalForm,
     };
     use crate::refusal::{FamilyShape, RefusalFamily};
     use crate::types::{
@@ -1879,7 +1863,7 @@ mod navigation {
     }
 
     /// law: navigation.positioning-order-is-declared — four causes in the
-    /// primary's declared precedence, `Unsupported` first, `NoRoute` last and
+    /// declared precedence, `Unsupported` first, `NoRoute` last and
     /// alone owing its closure witness.
     /// Owed reversal (red twin): a payload-free `NoRoute` must not compile.
     #[test]
@@ -2062,7 +2046,12 @@ mod navigation {
         assert_eq!(INCOMPARABLE_ROUTE_DIMENSIONS.len(), 5);
         assert_eq!(PATH_CONTRACT_FACETS.len(), 8);
         assert_eq!(PROHIBITED_SILENT_MERGERS.len(), 5);
-        assert_eq!(REGISTERED_PATH_SELECTORS, ["*", "**"]);
+        let selectors = [
+            PathSelector::SegmentWildcard,
+            PathSelector::RecursiveDescent,
+        ];
+        assert_eq!(selectors.len(), 2);
+        assert!(pairwise_distinct(&selectors));
         assert_eq!(CHECKPOINT_NON_ADVANCERS.len(), 10);
         assert_eq!(RECONSTRUCTABLE_FACETS.len(), 6);
     }
@@ -2114,10 +2103,10 @@ mod port {
         ));
     }
 
-    /// law: port.roles-are-fourteen — the closed role inventory.
-    /// Owed reversal: a fifteenth role appearing silently must break this law.
+    /// law: port.roles-are-thirteen — the closed role inventory.
+    /// Owed reversal: a fourteenth role appearing silently must break this law.
     #[test]
-    fn roles_are_fourteen() {
+    fn roles_are_thirteen() {
         let roles = [
             PortRole::AcceptedHistoryInspection,
             PortRole::EventPublication,
@@ -2130,11 +2119,10 @@ mod port {
             PortRole::AbsoluteMonotonicProgress,
             PortRole::EntropyGeneratedIdentity,
             PortRole::TransportExternalEffects,
-            PortRole::CompilerServices,
             PortRole::NamespacePublication,
             PortRole::DeviceExternalToolEffects,
         ];
-        assert_eq!(roles.len(), 14);
+        assert_eq!(roles.len(), 13);
         assert!(pairwise_distinct(&roles));
     }
 
@@ -2268,12 +2256,12 @@ mod declaration {
     use crate::declaration::{
         AuthoredNameConstruction, AuthoredNameConstructionIssue, AuthoringRole,
         CANONICAL_FACET_SEQUENCE, CONVERGENCE_ROUTES, ClaimKind, ClosureNamespace, CoordinateRole,
-        DeclarationGraph, ExportAliasDerivation, Facet, FrontendRole, HOW_FACET_CONTENT,
+        DeclarationGraph, ExportAliasDerivation, Facet, FacetForm, FrontendRole, HOW_FACET_CONTENT,
         HygieneClass, LINKER_CONTRACT, LinkResolution, LinkResolutionIssue, META_EVALUATION_LOCKS,
         ProjectionClaim, ProjectionContractConstruction, ProjectionContractConstructionIssue,
-        ProjectionProfileId, ProjectionProfileVersion, REGISTERED_FACET_FORMS, SourceCoordinate,
-        Stage, SymbolIdentity, TopLevelForm, WHAT_FACET_CONTENT, WHEN_FACET_CONTENT,
-        WHERE_FACET_CONTENT, WHO_FACET_CONTENT, WHY_FACET_CONTENT,
+        ProjectionProfileId, ProjectionProfileVersion, SourceCoordinate, Stage, SymbolIdentity,
+        TopLevelForm, WHAT_FACET_CONTENT, WHEN_FACET_CONTENT, WHERE_FACET_CONTENT,
+        WHO_FACET_CONTENT, WHY_FACET_CONTENT,
     };
     use crate::identity::{
         AuthorityPosition, Commitment, Occurrence, OccurrenceForm, OrderComparison,
@@ -2411,7 +2399,8 @@ mod declaration {
     }
 
     /// law: declaration.facets-are-six-in-canonical-sequence — WHO first,
-    /// WHY last, and the six content rosters hold their exact cardinalities.
+    /// WHY last, the six content rosters hold their exact cardinalities, and
+    /// the registered facet forms are four typed values, pairwise distinct.
     /// Owed reversal: reordering the canonical sequence must break this law.
     #[test]
     fn facets_are_six_in_canonical_sequence() {
@@ -2433,7 +2422,14 @@ mod declaration {
         assert_eq!(WHEN_FACET_CONTENT.len(), 6);
         assert_eq!(HOW_FACET_CONTENT.len(), 14);
         assert_eq!(WHY_FACET_CONTENT.len(), 10);
-        assert_eq!(REGISTERED_FACET_FORMS.len(), 4);
+        let forms = [
+            FacetForm::CaptureCurrent,
+            FacetForm::RequiresEvidence,
+            FacetForm::ProducesEvidence,
+            FacetForm::Explain,
+        ];
+        assert_eq!(forms.len(), 4);
+        assert!(pairwise_distinct(&forms));
     }
 
     /// law: declaration.projection-profile-version-rides-authority-position —
@@ -3599,13 +3595,13 @@ mod runtime {
         AttemptCause, AttemptLineageNode, BoundOutcome, BoundedCauseSet,
         CANCELLATION_DISTINCT_FACTS, CHECKPOINT_NON_REASONS, CancellationDurablePosition,
         CancellationObservation, CancellationPhysicalPosition, CompensationSupport,
-        CompletionTerminal, ConcurrencyConstraints, DRIVER_FAMILY, DRIVER_INVARIANCE,
-        DRIVER_MAY_CHANGE, DeliveryRole, DurableCheckpoint, EffectIntentId,
-        EffectReconciliationRecord, EffectRecoveryProfile, EvidenceRetention, ExternalOutcome,
-        FOUR_MOTIONS, IdempotencyKeySupport, IdempotencyPosture, LIVENESS_DECLARATION,
-        LogicalOperationId, MAILBOX_FACTS, NEVER_SUFFICIENT, OutcomeKnowledge, OutcomeQuerySupport,
-        ProcessStateRole, RECOVERY_ACTIONS, ReconciliationDisposition, ReconciliationLifecycle,
-        ReplayPosture, STITCH_OUTPUTS, SemanticRecoveryAuthority, TURN_PREIMAGE, TurnId, TurnPhase,
+        CompletionTerminal, ConcurrencyConstraints, DRIVER_INVARIANCE, DRIVER_MAY_CHANGE,
+        DeliveryRole, DurableCheckpoint, EffectIntentId, EffectReconciliationRecord,
+        EffectRecoveryProfile, EvidenceRetention, ExternalOutcome, FOUR_MOTIONS,
+        IdempotencyKeySupport, IdempotencyPosture, LIVENESS_DECLARATION, LogicalOperationId,
+        MAILBOX_FACTS, NEVER_SUFFICIENT, OutcomeKnowledge, OutcomeQuerySupport, ProcessStateRole,
+        RECOVERY_ACTIONS, ReconciliationDisposition, ReconciliationLifecycle, ReplayPosture,
+        STITCH_OUTPUTS, SemanticRecoveryAuthority, TURN_PREIMAGE, TurnId, TurnPhase,
     };
     use crate::types::{
         Bounded, EvidenceRef, LimitWitness, ReferentAvailability, ReferentIntegrity,
@@ -3621,8 +3617,8 @@ mod runtime {
     }
 
     /// law: runtime.stitch-contract-and-driver-invariance — seven outputs,
-    /// fifteen invariants no driver may change, seven freedoms, nine driver
-    /// rows, twelve liveness declarations.
+    /// fifteen invariants no driver may change, seven freedoms, twelve
+    /// liveness declarations.
     /// Owed reversal: a driver changing an invariant must break this law.
     #[test]
     fn stitch_contract_and_driver_invariance() {
@@ -3630,8 +3626,6 @@ mod runtime {
         assert_eq!(DRIVER_INVARIANCE.len(), 15);
         assert!(DRIVER_INVARIANCE.contains(&"turn-identity"));
         assert_eq!(DRIVER_MAY_CHANGE.len(), 7);
-        assert_eq!(DRIVER_FAMILY.len(), 9);
-        assert!(DRIVER_FAMILY.contains(&"deterministic-testpak"));
         assert_eq!(LIVENESS_DECLARATION.len(), 12);
     }
 
@@ -3871,14 +3865,13 @@ mod derived {
     use super::pairwise_distinct;
     use crate::bytes::ContentRegionId;
     use crate::derived::{
-        BindingEntryRef, Column, DATA_MECHANISM_DIAGNOSTICS, DATA_SEMANTIC_WORK,
-        DERIVATION_PRIMITIVES, DERIVED_REFUSAL_CLASSES, DataBlockState, ExtentEntry,
-        ExtentEntryRef, KERNEL_ADMISSION_GATE, LayoutId, MaskRepresentation,
-        MaterializationAppliedCut, MaterializationAvailability, MaterializationCoverage,
-        MaterializationGeneration, MaterializationId, MaterializationPresence,
-        MaterializationSourceCuts, OccurrenceId, PLAN_CANNOT, PROTECTED_INDEX_STANDING_BAR,
-        PayloadLocator, PlanBinding, PlanTemplate, RowDomainId, SelectionMask,
-        SelectionMaskConstruction, SourceBinding, ValidityCondition,
+        BindingEntryRef, Column, DATA_SEMANTIC_WORK, DERIVATION_PRIMITIVES,
+        DERIVED_REFUSAL_CLASSES, DataBlockState, ExtentEntry, ExtentEntryRef,
+        KERNEL_ADMISSION_GATE, LayoutId, MaskRepresentation, MaterializationAppliedCut,
+        MaterializationAvailability, MaterializationCoverage, MaterializationGeneration,
+        MaterializationId, MaterializationPresence, MaterializationSourceCuts, OccurrenceId,
+        PLAN_CANNOT, PROTECTED_INDEX_STANDING_BAR, PayloadLocator, PlanBinding, PlanTemplate,
+        RowDomainId, SelectionMask, SelectionMaskConstruction, SourceBinding, ValidityCondition,
     };
     use crate::history::{CommitPoint, FederationCutEntries};
     use crate::identity::{
@@ -4103,7 +4096,6 @@ mod derived {
         assert_eq!(PLAN_CANNOT.len(), 9);
         assert_eq!(KERNEL_ADMISSION_GATE.len(), 11);
         assert_eq!(DATA_SEMANTIC_WORK.len(), 10);
-        assert_eq!(DATA_MECHANISM_DIAGNOSTICS.len(), 12);
     }
 
     /// law: derived.never-authority-rosters-hold — the lifecycle five, the
@@ -4136,9 +4128,9 @@ mod application {
         DeliveryGuarantee, DeliveryIndex, DirectionState, EARLY_DATA_NEVER, FAMILY_FACTS,
         FLOW_CONTROL_FACTS, INGRESS_PIPELINE, IdempotencyIdentity, IngressAck, InstanceId,
         InstanceLifecycle, InvocationProfile, LOCAL_NOUNS, LagOverrunObservation, MESSAGE_FAMILIES,
-        NON_IDENTITIES, NON_SUBSTITUTABLE_PREIMAGES, RAW_RETENTION_GUARDRAILS, REMOTE_VERBS,
-        RESOURCE_NEVER_BECOMES, RESTRICTED_QUERY_OPERATIONS, RejectedContentReason, RemovalHole,
-        SessionId, SessionState, SessionTerminal, StreamClosure, StreamState,
+        NON_IDENTITIES, NON_SUBSTITUTABLE_PREIMAGES, PossessionClaim, RAW_RETENTION_GUARDRAILS,
+        REMOTE_VERBS, RESOURCE_NEVER_BECOMES, RejectedContentReason, RemovalHole, SessionId,
+        SessionState, SessionTerminal, StreamClosure, StreamState, TransportSecurityClaim,
     };
     use crate::bvisor::PortRequestId;
     use crate::history::RemovalCommitment;
@@ -4210,8 +4202,7 @@ mod application {
     }
 
     /// law: application.invocation-profiles-are-three — typed configuration
-    /// with the restricted-query operation roster and the resource
-    /// never-becomes list.
+    /// with the resource never-becomes list.
     /// Owed reversal: a fourth profile must break this law.
     #[test]
     fn invocation_profiles_are_three() {
@@ -4222,7 +4213,6 @@ mod application {
         ];
         assert_eq!(profiles.len(), 3);
         assert!(pairwise_distinct(&profiles));
-        assert_eq!(RESTRICTED_QUERY_OPERATIONS.len(), 13);
         assert_eq!(RESOURCE_NEVER_BECOMES.len(), 8);
     }
 
@@ -4335,8 +4325,9 @@ mod application {
     }
 
     /// law: application.contract-and-rosters-hold — the contract's six
-    /// components, the nine carrier observations, sixteen message families
-    /// with nine facts each, thirteen auth roles, and the surface rosters.
+    /// components, the nine carrier observations (two of which carry typed
+    /// evidence, never a verdict), sixteen message families with nine facts
+    /// each, thirteen auth roles, and the surface rosters.
     /// Owed reversal: any roster growing silently must break this law.
     #[test]
     fn contract_and_rosters_hold() {
@@ -4346,8 +4337,10 @@ mod application {
             CarrierObservation::BytesAcceptedForWrite,
             CarrierObservation::FlowControlAvailability,
             CarrierObservation::ConnectionTransition,
-            CarrierObservation::TransportSecurityEstablished,
-            CarrierObservation::IdentityPossessionVerified,
+            CarrierObservation::TransportSecurityEvidence(demo_evidence::<TransportSecurityClaim>(
+                181,
+            )),
+            CarrierObservation::PossessionEvidence(demo_evidence::<PossessionClaim>(182)),
             CarrierObservation::IdleThreshold,
             CarrierObservation::AbsoluteDeadlineReached,
             CarrierObservation::CarrierRetry,
@@ -4368,8 +4361,8 @@ mod security {
     use crate::authority::CapabilityGrantId;
     use crate::identity::{Commitment, Occurrence, OccurrenceForm};
     use crate::security::{
-        CRYPTO_ROLES, CapabilityLease, FIREWALL_ACT_TABLE, ForeignExecution, HOSTILE_FAMILIES,
-        LabelArrow, LeaseRenewalAuthority, MechanismAdmissionFact, MechanismQualificationFact,
+        CRYPTO_ROLES, CapabilityLease, FIREWALL_ACT_TABLE, ForeignExecution, LabelArrow,
+        LeaseRenewalAuthority, MechanismAdmissionFact, MechanismQualificationFact,
         MechanismRetirementFact, MechanismStandingView, MechanismSupportFact, REVOCATION_DEFAULTS,
         RevocationAcknowledgement, RevocationEvidence, RevocationObservation, SECRET_CAPABILITIES,
         SecretUseHandle, ShredDenominatorRow, ShredEvidence, ShredProgress, ShredRowStatus,
@@ -4511,7 +4504,7 @@ mod security {
 
     /// law: security.firewall-and-rosters-hold — the act table, crypto
     /// roles, witness role, foreign-execution pair, label arrows, secret
-    /// capabilities, trust-boundary members, and hostile families.
+    /// capabilities, and trust-boundary members.
     /// Owed reversal: any roster growing silently must break this law.
     #[test]
     fn firewall_and_rosters_hold() {
@@ -4535,7 +4528,6 @@ mod security {
         assert!(pairwise_distinct(&arrows));
         assert_eq!(SECRET_CAPABILITIES.len(), 4);
         assert_eq!(TRUST_BOUNDARY_MEMBERS.len(), 8);
-        assert_eq!(HOSTILE_FAMILIES.len(), 10);
     }
 }
 
@@ -4543,11 +4535,11 @@ mod evidence {
     use super::pairwise_distinct;
     use crate::evidence::{
         AdoptionDecisionReceipt, Basis, CalibrationEvidence, CalibrationModel, CauseDisposition,
-        CommitmentLayers, Coverage, DENOMINATOR_AXES, DiagnosticCause, DiagnosticCauseCandidates,
+        CommitmentLayers, Coverage, DiagnosticCause, DiagnosticCauseCandidates,
         EVIDENCE_NON_COLLAPSE, EXPLANATION_LADDER, Enforcement, EvidenceCarriage,
-        GeneratedPublicationReceipt, Lane, Method, QualificationTerminal, RECEIPT_FAMILIES,
-        ReleaseEvidence, Route, SubstrateDisclosure, VerificationDenominator, VerificationResult,
-        VerificationTerminal, VerifiedClaim,
+        GeneratedPublicationReceipt, Lane, LaneDomain, Method, QualificationTerminal,
+        RECEIPT_FAMILIES, ReleaseEvidence, Route, SubstrateDisclosure, VerificationDenominator,
+        VerificationResult, VerificationTerminal, VerifiedClaim,
     };
     use crate::identity::Commitment;
     use crate::types::{
@@ -4577,14 +4569,14 @@ mod evidence {
             claim: VerifiedClaim::Conformance,
             coverage: Coverage::Bounded,
             enforcement: Enforcement::Blocking,
-            lane: Lane::Merge,
+            lane: Lane(Commitment::raw([211; 32])),
             denominator: VerificationDenominator(Completeness::Complete {
                 over: Commitment::raw([210; 32]),
             }),
             proof: ProofDisposition::Established,
             terminal: VerificationTerminal::Concluded,
         };
-        assert_eq!(result.lane, Lane::Merge);
+        assert_eq!(result.lane, Lane(Commitment::raw([211; 32])));
         let bases = [
             Basis::ContractProjection,
             Basis::IndependentReference,
@@ -4650,13 +4642,10 @@ mod evidence {
         ];
         assert_eq!(enforcement.len(), 3);
         let lanes = [
-            Lane::PullRequestFast,
-            Lane::Merge,
-            Lane::Scheduled,
-            Lane::Release,
-            Lane::Runtime,
+            Lane(Commitment::<LaneDomain>::raw([211; 32])),
+            Lane(Commitment::<LaneDomain>::raw([212; 32])),
         ];
-        assert_eq!(lanes.len(), 5);
+        assert_eq!(lanes.len(), 2);
         assert!(pairwise_distinct(&lanes));
     }
 
@@ -4699,8 +4688,8 @@ mod evidence {
     }
 
     /// law: evidence.cause-disposition-narrows — narrowing is progress, not
-    /// a forced verdict: all three postures construct, and the candidate set
-    /// is a typed carrier, never a raw vector.
+    /// a forced verdict: all three postures construct, and the narrowed-cause
+    /// set is a typed carrier, never a raw vector.
     /// Owed reversal (red twin): upgrading a correlation into an established
     /// cause must not compile.
     #[test]
@@ -4756,7 +4745,7 @@ mod evidence {
     /// law: evidence.lifecycles-are-four-and-separate — adoption is a human
     /// act resting on qualification by reference; generated publication is
     /// all-or-refusal; release is a conjunction with agreeing denominators;
-    /// the ladder and axis rosters hold.
+    /// the explanation ladder holds.
     /// Owed reversal (red twin): a self-adoption must not compile.
     #[test]
     fn lifecycles_are_four_and_separate() {
@@ -4784,7 +4773,6 @@ mod evidence {
             Completeness::Complete { .. }
         ));
         assert_eq!(EXPLANATION_LADDER.len(), 4);
-        assert_eq!(DENOMINATOR_AXES.len(), 14);
     }
 }
 
@@ -4799,9 +4787,8 @@ mod bounds {
     struct EffectDemo;
     impl Dimension for EffectDemo {}
 
-    /// law: bounds.classes-are-closed-and-seven — seven distinct classes
-    /// (the register owner's count; the six-count source conflict resolved
-    /// 2026-08-10 — Time is the durable deadline-policy budget).
+    /// law: bounds.classes-are-closed-and-seven — seven distinct classes;
+    /// Time is the durable deadline-policy budget, enforced at the time home.
     /// Owed reversal: an eighth class must break this law.
     #[test]
     fn classes_are_closed_and_seven() {
@@ -4820,7 +4807,7 @@ mod bounds {
     }
 
     /// law: bounds.cross-domain-minimum-is-five — exactly the five, Output
-    /// excluded (its dimension level is the program home's).
+    /// excluded (its dimension level is the execution home's).
     /// Owed reversal: adding Output to the minimum must break this law.
     #[test]
     fn cross_domain_minimum_is_five() {

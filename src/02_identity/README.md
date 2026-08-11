@@ -39,11 +39,16 @@ Internal seams speak refusal family bodies (`OrderComparison` here); the
 universal envelope is the publication form, minted only where reasons are
 registered. Canonical refusal ≠ released refusal — one fact, two projections.
 
-## Deferred by ruling
+## Delegated by ruling
 
-Text forms (Display/FromStr/prefixes): none exist and none are invented —
-explicit codec only, until a real consumer earns a text form. Class F's
-composition normal form: authored at 06_authority beside `KeyScope`.
+Text forms (Display/FromStr/prefixes): identity SEMANTICS live here; text
+REPRESENTATION is delegated to 07_bytes and its role-prefixed scheme, whose
+checksum domain includes the role prefix — mechanism admitted, one owner.
+Fresh-minting layout selection (fully random, time-prefixed, writer-counter,
+or anything else) is host and admission policy: no roster lives in core, and
+the reader contract on `OccurrenceForm` carries the whole semantics — 16
+opaque bytes, no structure parsed. Class F's composition normal form:
+authored at 06_authority beside `KeyScope`.
 
 ## Obligations
 
@@ -65,10 +70,6 @@ obligations:
   - id: identity.typed-ref-equality-is-referent-and-version
     challenge_kind: compile-law
     green: laws.rs identity::typed_ref_equality_is_referent_and_version
-    red: owed-to-testpak
-  - id: identity.minting-profiles-are-three
-    challenge_kind: compile-law
-    green: laws.rs identity::minting_profiles_are_three
     red: owed-to-testpak
   - id: identity.commitment-domains-do-not-unify
     challenge_kind: compile-refusal

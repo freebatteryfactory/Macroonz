@@ -185,20 +185,6 @@ impl<Scope: Eq> AuthorityPosition<Scope> {
     }
 }
 
-/// The three fresh-minting layout families the old book names for Class-D fresh
-/// identities. Which family a deployment uses is admission policy selected by
-/// evidence; the reader contract holds regardless: 16 opaque bytes, and no
-/// reader may parse structure out of them.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum MintingProfile {
-    /// All sixteen bytes from admitted entropy.
-    FullyRandom,
-    /// A time-prefixed layout (structure exists; readers still parse none).
-    TimePrefixed,
-    /// A writer-counter layout (structure exists; readers still parse none).
-    WriterCounter,
-}
-
 /// The two byte forms of a Class-D identity, per the class byte law: a derived
 /// occurrence is a 32-byte domain-tagged preimage digest; a fresh occurrence is
 /// 16 entropy bytes with no meaning in the bytes.
@@ -207,7 +193,9 @@ pub enum OccurrenceForm {
     /// Derived: 32-byte domain-tagged preimage digest (the derived-seat law's
     /// two seats earned).
     Derived([u8; 32]),
-    /// Fresh: 16 opaque entropy bytes under an admitted [`MintingProfile`].
+    /// Fresh: 16 opaque entropy bytes. Which layout a deployment mints them
+    /// under is host and admission policy; the reader contract binds either
+    /// way — no reader parses structure out of these bytes.
     Fresh([u8; 16]),
 }
 

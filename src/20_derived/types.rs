@@ -623,6 +623,13 @@ pub const KERNEL_ADMISSION_GATE: [&str; 11] = [
 
 /// The data-execution portable semantic-work categories (one SHAPE of the
 /// physical-observation family, not a universal contract).
+///
+/// Mechanism diagnostics are a SECOND, independently versioned surface and
+/// never cross into this one: a diagnostic never changes a canonical result,
+/// becomes a semantic-work unit, proves durability, advances an applied cut,
+/// authorizes a protected read, or creates a support claim; elapsed time
+/// alone proves no bound. Which diagnostics a deployment can report at all is
+/// a per-host-profile declaration — no roster of them lives here.
 pub const DATA_SEMANTIC_WORK: [&str; 10] = [
     "source-rows-considered",
     "values-validated",
@@ -634,25 +641,6 @@ pub const DATA_SEMANTIC_WORK: [&str; 10] = [
     "bounded-derivation-steps",
     "bytes-inspected-under-the-work-profile",
     "result-explanation-evidence-items-produced",
-];
-
-/// The data-execution mechanism diagnostics — kept DISTINCT: diagnostics
-/// never change canonical results, become semantic-work units, prove
-/// durability, advance an applied cut, authorize a protected read, or
-/// create a support claim; elapsed time alone proves no bound.
-pub const DATA_MECHANISM_DIAGNOSTICS: [&str; 12] = [
-    "kernel-and-layout-selected",
-    "blocks-and-compressed-members-read",
-    "physical-bytes",
-    "payload-chunks-touched",
-    "mask-representation-and-conversion",
-    "copies-and-allocations",
-    "mapping-and-page-fault-behavior",
-    "cache-and-branch-observations",
-    "vector-and-instruction-observations",
-    "contention",
-    "wall-and-cpu-time",
-    "host-counters",
 ];
 
 /// The fifteen refusal classes derived-data operations must distinguish —
