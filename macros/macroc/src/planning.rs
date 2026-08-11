@@ -412,6 +412,23 @@ pub enum WrapperComponent {
     Explanation,
 }
 
+/// The declared wrapper-component roster, in the order the plane states it.
+///
+/// The roster is what an exhaustive disposition is checked against: a view
+/// that must decide every component reads this, so a component added here and
+/// nowhere else stops compiling at the closure law rather than passing
+/// silently undecided.
+pub const WRAPPER_COMPONENTS: [WrapperComponent; 8] = [
+    WrapperComponent::Admission,
+    WrapperComponent::Decode,
+    WrapperComponent::Encode,
+    WrapperComponent::Cancellation,
+    WrapperComponent::Receipt,
+    WrapperComponent::EffectDispatch,
+    WrapperComponent::Observation,
+    WrapperComponent::Explanation,
+];
+
 /// A host wrapper's facts: which host contract, which components were selected,
 /// and on whose declared capability.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -791,7 +808,7 @@ mod laws {
         OutputIdentity, PatternStampProjection, PlannedMembership, ProjectionBundlePlan,
         ProjectionContext, ProjectionDisposition, ProjectionKind, ProjectionPlan,
         RemoteSurfaceProjection, TargetBinding, TargetRequirement, TestDescriptorProjection,
-        UNIVERSAL_QUESTIONS, WrapperComponent,
+        UNIVERSAL_QUESTIONS, WRAPPER_COMPONENTS, WrapperComponent,
     };
     use crate::explanation_protocol::{EXPLANATION_QUESTIONS, ExplanationQuestion};
     use crate::origin_graph::{
@@ -1032,6 +1049,43 @@ mod laws {
         ];
         assert_eq!(triggers.len(), 8);
         let indexes: Vec<usize> = triggers.iter().map(trigger_index).collect();
+        assert!(
+            indexes
+                .iter()
+                .enumerate()
+                .all(|(position, index)| *index == position)
+        );
+    }
+
+    /// The closed wrapper-component roster, proven closed by an exhaustive
+    /// match: a new component stops compiling here until it is placed.
+    const fn component_index(component: WrapperComponent) -> usize {
+        match component {
+            WrapperComponent::Admission => 0,
+            WrapperComponent::Decode => 1,
+            WrapperComponent::Encode => 2,
+            WrapperComponent::Cancellation => 3,
+            WrapperComponent::Receipt => 4,
+            WrapperComponent::EffectDispatch => 5,
+            WrapperComponent::Observation => 6,
+            WrapperComponent::Explanation => 7,
+        }
+    }
+
+    /// law: planning.wrapper-components-are-eight-and-closed — the components a
+    /// host wrapper may compose are a closed roster in one declared order, and
+    /// the roster is the denominator every exhaustive disposition is checked
+    /// against.
+    /// Owed reversal: adding a component without placing it must break this
+    /// law.
+    #[test]
+    fn wrapper_components_are_eight_and_closed() {
+        assert_eq!(WRAPPER_COMPONENTS.len(), 8);
+        let indexes: Vec<usize> = WRAPPER_COMPONENTS
+            .iter()
+            .copied()
+            .map(component_index)
+            .collect();
         assert!(
             indexes
                 .iter()

@@ -132,6 +132,28 @@ subjects! {
     ExpansionSurfaceSubject,
     /// One runtime trace a generated unit corresponds to.
     RuntimeTraceSubject,
+    /// One authored declaration template.
+    TemplateSubject,
+    /// One typed hole a template declares.
+    TemplateParameterSubject,
+    /// One typed commitment supplied to fill such a hole.
+    TemplateArgumentSubject,
+    /// One declared symbolic bound formula. The formula itself belongs to the
+    /// owner that declared it; the plane names it and never evaluates it.
+    BoundFormulaSubject,
+    /// One validated input descriptor a meta evaluation ranges over.
+    InputDescriptorSubject,
+    /// The exact source snapshot one invocation was read against.
+    SourceSnapshotSubject,
+    /// One language profile — the notation a front door speaks.
+    LanguageProfileSubject,
+    /// One meta profile — the posture a template evaluation runs under.
+    MetaProfileSubject,
+    /// One deliberately declared distinctness between otherwise identical
+    /// template applications.
+    ApplicationDistinctnessSubject,
+    /// One declared provider of descriptor material.
+    DescriptorProviderSubject,
 }
 
 limits! {
@@ -179,6 +201,33 @@ limits! {
     /// Facets one documentation projection may cover — the machine's facet
     /// roster is six, and a documentation projection covers a subset of it.
     FacetLimit = 6,
+    /// Typed holes one template may declare, and therefore the bindings one
+    /// application of it may supply: one binding per declared hole, exactly.
+    TemplateParameterLimit = 32,
+    /// Validated input descriptors one bound formula stands over and one
+    /// invocation key commits to.
+    InputDescriptorLimit = 32,
+    /// Declaration fragments one invocation key names as a dependency.
+    FragmentDependencyLimit = 64,
+    /// Axis ceilings one profile ceiling carries — the meta bound-axis
+    /// roster's own cardinality, since a ceiling names each axis exactly once.
+    MetaBoundAxisLimit = 8,
+    /// Issues one template-construction refusal body may carry: at most one
+    /// per declared parameter seat, since no two parameter issues hold of one
+    /// parameter at once, and the ceiling seam's own pass fits inside the same
+    /// magnitude.
+    TemplateIssueLimit = 32,
+    /// Owner facts one wrapper-trigger selection or omission may cite.
+    SelectionCitationLimit = 8,
+    /// Issues one trigger-view refusal body may carry — the wrapper-component
+    /// roster's cardinality, since a component is either undisposed or
+    /// doubled and never both.
+    TriggerViewIssueLimit = 8,
+    /// Descriptor providers one composition root may declare.
+    DescriptorProviderLimit = 64,
+    /// Issues one composition-root refusal body may carry — at most one per
+    /// declared provider seat.
+    CompositionIssueLimit = 64,
 }
 
 /// A reference to one exact machine identity, tagged by the subject it names.

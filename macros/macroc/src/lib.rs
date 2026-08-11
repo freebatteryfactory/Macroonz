@@ -44,13 +44,20 @@
 //! this crate reaches for any of them, and there is no seat where one could
 //! enter.
 
+pub mod composition;
 pub mod diagnostics;
 pub mod explanation_protocol;
 pub mod origin_graph;
 pub mod plane;
 pub mod planning;
 pub mod refusal;
+pub mod template;
+pub mod trigger_view;
 
+pub use composition::{
+    CompositionRoot, CompositionRootDeclaration, CompositionRootIssue, DESCRIPTOR_KINDS,
+    DescriptorKind, DescriptorProvider,
+};
 pub use diagnostics::{
     MACROC_PHASES, MacrocDiagnostic, MacrocPhase, ObservedClassification, ReleasePosture,
     RepairAction, ReproductionRoute,
@@ -73,10 +80,21 @@ pub use planning::{
     PlannedMembership, ProjectionBundlePlan, ProjectionContext, ProjectionDisposition,
     ProjectionKind, ProjectionPlan, RemoteSurfaceContent, RemoteSurfaceProjection,
     SourceDeclarations, SurfaceDirection, TargetBinding, TargetRequirement, TestDescriptorContent,
-    TestDescriptorProjection, UNIVERSAL_QUESTIONS, WrapperComponent,
+    TestDescriptorProjection, UNIVERSAL_QUESTIONS, WRAPPER_COMPONENTS, WrapperComponent,
 };
 pub use refusal::{
     BOUND_AXES, BoundAxis, PlanIdentity, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue,
+};
+pub use template::{
+    ApplicativeDistinctness, AxisCeiling, CheckedMeterPosture, DeclarationTemplate,
+    ForbiddenKeyFact, INVOCATION_KEY_NEVER, META_BOUND_AXES, MetaBoundAxis, ProfileCeiling,
+    SPLICE_CATEGORIES, SpliceCategory, SymbolicBoundFormula, TemplateApplication, TemplateArgument,
+    TemplateBinding, TemplateBindingIssue, TemplateConstruction, TemplateConstructionIssue,
+    TemplateInvocationKey, TemplateParameter, TemplateSeat, VersionedProfile,
+};
+pub use trigger_view::{
+    TriggerCitations, TriggerOmission, TriggerSelection, TriggerViewComposition, TriggerViewIssue,
+    WrapperTriggerView,
 };
 
 /// The machine's frontend-role type, re-exported rather than restated. The
