@@ -281,21 +281,89 @@ mod root {
 
 mod refusal {
     use crate::refusal::{
-        CompletionPosture, FamilyShape, HandlingClass, Refusal, RefusalFamily, StopBound,
+        CauseId, CauseOrderDeclaration, CompletionPosture, DeclaredCause, DeclaredCauseOrder,
+        FamilyShape, HandlingClass, Refusal, RefusalFamily, StopBound,
     };
-    use crate::types::{Limit, NonEmptyBounded};
+    use crate::types::{BoundedConstruction, Limit, NonEmptyBounded, NonEmptyBoundedConstruction};
 
     struct DemoSingle;
     impl RefusalFamily for DemoSingle {
         const SHAPE: FamilyShape = FamilyShape::SingleCause;
         const SELECTION_ORDER: &'static [&'static str] =
-            &["NotCanonical", "RoleMismatch", "BoundExceeded"];
+            &["NotCanonical", "WrongRole", "BoundExceeded"];
+    }
+
+    impl CauseOrderDeclaration for DemoSingle {
+        const DECLARED_ORDER: DeclaredCauseOrder = DeclaredCauseOrder::declared(&[
+            DeclaredCause::declared(
+                CauseId::declared("demo.single.not-canonical"),
+                "NotCanonical",
+            ),
+            DeclaredCause::declared(CauseId::declared("demo.single.role-mismatch"), "WrongRole"),
+            DeclaredCause::declared(
+                CauseId::declared("demo.single.bound-exceeded"),
+                "BoundExceeded",
+            ),
+        ]);
+    }
+
+    /// The same family after a pure Rust rename: three new spellings over the
+    /// three identities that were already declared.
+    struct DemoRenamed;
+    impl RefusalFamily for DemoRenamed {
+        const SHAPE: FamilyShape = FamilyShape::SingleCause;
+        const SELECTION_ORDER: &'static [&'static str] =
+            &["NotNormalized", "NotTheDeclaredRole", "Unbounded"];
+    }
+
+    impl CauseOrderDeclaration for DemoRenamed {
+        const DECLARED_ORDER: DeclaredCauseOrder = DeclaredCauseOrder::declared(&[
+            DeclaredCause::declared(
+                CauseId::declared("demo.single.not-canonical"),
+                "NotNormalized",
+            ),
+            DeclaredCause::declared(
+                CauseId::declared("demo.single.role-mismatch"),
+                "NotTheDeclaredRole",
+            ),
+            DeclaredCause::declared(CauseId::declared("demo.single.bound-exceeded"), "Unbounded"),
+        ]);
+    }
+
+    /// The same family after its middle cause changed MEANING: the spelling
+    /// stands, and the identity is a different one.
+    struct DemoMeaningChanged;
+    impl RefusalFamily for DemoMeaningChanged {
+        const SHAPE: FamilyShape = FamilyShape::SingleCause;
+        const SELECTION_ORDER: &'static [&'static str] =
+            &["NotCanonical", "WrongRole", "BoundExceeded"];
+    }
+
+    impl CauseOrderDeclaration for DemoMeaningChanged {
+        const DECLARED_ORDER: DeclaredCauseOrder = DeclaredCauseOrder::declared(&[
+            DeclaredCause::declared(
+                CauseId::declared("demo.single.not-canonical"),
+                "NotCanonical",
+            ),
+            DeclaredCause::declared(
+                CauseId::declared("demo.single.role-mismatch-under-the-narrowed-reading"),
+                "WrongRole",
+            ),
+            DeclaredCause::declared(
+                CauseId::declared("demo.single.bound-exceeded"),
+                "BoundExceeded",
+            ),
+        ]);
     }
 
     struct DemoCollection;
     impl RefusalFamily for DemoCollection {
         const SHAPE: FamilyShape = FamilyShape::IssueCollection;
         const SELECTION_ORDER: &'static [&'static str] = &[];
+    }
+
+    impl CauseOrderDeclaration for DemoCollection {
+        const DECLARED_ORDER: DeclaredCauseOrder = DeclaredCauseOrder::none();
     }
 
     /// law: refusal.envelope-is-family-generic — the universal envelope binds any
@@ -365,6 +433,95 @@ mod refusal {
         ));
         assert_eq!(DemoSingle::SHAPE, FamilyShape::SingleCause);
         assert_eq!(DemoCollection::SHAPE, FamilyShape::IssueCollection);
+    }
+
+    /// law: refusal.cause-identity-outlives-its-spelling — a cause's stable
+    /// identity and its position are independent of the Rust variant that
+    /// spells it: renaming every variant moves every spelling and moves neither
+    /// identity nor ordinal, while a cause whose MEANING changed carries a
+    /// different identity under an unchanged spelling. An identity this order
+    /// does not declare has no position at all.
+    /// Owed reversal (red twin): deriving the identity from the spelling — or
+    /// admitting a `CauseOrdinal` constructor that takes a number — must break
+    /// this law.
+    #[test]
+    fn cause_identity_outlives_its_spelling() {
+        assert_ne!(DemoSingle::SELECTION_ORDER, DemoRenamed::SELECTION_ORDER);
+        assert_eq!(DemoSingle::DECLARED_ORDER.len(), 3);
+        assert!(!DemoSingle::DECLARED_ORDER.is_empty());
+
+        let renamed_throughout = DemoSingle::DECLARED_ORDER
+            .iter()
+            .zip(DemoRenamed::DECLARED_ORDER.iter())
+            .all(|(before, after)| {
+                before.id() == after.id()
+                    && before.spelling() != after.spelling()
+                    && DemoSingle::DECLARED_ORDER.ordinal_of(before.id())
+                        == DemoRenamed::DECLARED_ORDER.ordinal_of(after.id())
+            });
+        assert!(renamed_throughout);
+
+        let middle =
+            DemoSingle::DECLARED_ORDER.ordinal_of(CauseId::declared("demo.single.role-mismatch"));
+        assert!(middle.is_some_and(|ordinal| {
+            ordinal.position() == 1
+                && DemoSingle::DECLARED_ORDER.identity_at(ordinal)
+                    == DemoRenamed::DECLARED_ORDER.identity_at(ordinal)
+                && DemoSingle::DECLARED_ORDER.identity_at(ordinal)
+                    != DemoMeaningChanged::DECLARED_ORDER.identity_at(ordinal)
+        }));
+        assert!(
+            DemoSingle::DECLARED_ORDER
+                .ordinal_of(CauseId::declared("demo.single.never-declared"))
+                .is_none()
+        );
+    }
+
+    /// law: refusal.selection-order-projects-the-typed-order — the textual
+    /// selection order is exactly the typed order's projection, and the join
+    /// says so: the declared pairs project, and a permuted, a shortened, and a
+    /// foreign textual order each fail to project. A collection family declares
+    /// no typed order and its empty textual order projects it faithfully. The
+    /// two root construction families share the cause SPELLING `OverLimit` and
+    /// share no cause IDENTITY.
+    /// Owed reversal (red twin): a projection check that compared lengths only,
+    /// or ignored position, must break this law.
+    #[test]
+    fn selection_order_projects_the_typed_order() {
+        assert!(DemoSingle::DECLARED_ORDER.projects_to(DemoSingle::SELECTION_ORDER));
+        assert!(DemoRenamed::DECLARED_ORDER.projects_to(DemoRenamed::SELECTION_ORDER));
+        assert!(!DemoSingle::DECLARED_ORDER.projects_to(&[
+            "WrongRole",
+            "NotCanonical",
+            "BoundExceeded"
+        ]));
+        assert!(!DemoSingle::DECLARED_ORDER.projects_to(&["NotCanonical", "WrongRole"]));
+        assert!(!DemoSingle::DECLARED_ORDER.projects_to(DemoRenamed::SELECTION_ORDER));
+
+        assert!(DemoCollection::DECLARED_ORDER.is_empty());
+        assert!(DemoCollection::DECLARED_ORDER.projects_to(DemoCollection::SELECTION_ORDER));
+
+        assert!(
+            BoundedConstruction::DECLARED_ORDER.projects_to(BoundedConstruction::SELECTION_ORDER)
+        );
+        assert!(
+            NonEmptyBoundedConstruction::DECLARED_ORDER
+                .projects_to(NonEmptyBoundedConstruction::SELECTION_ORDER)
+        );
+        let bounded = BoundedConstruction::DECLARED_ORDER
+            .iter()
+            .next()
+            .map(DeclaredCause::id);
+        let non_empty = NonEmptyBoundedConstruction::DECLARED_ORDER
+            .iter()
+            .next()
+            .map(DeclaredCause::id);
+        assert!(bounded.is_some());
+        assert_ne!(bounded, non_empty);
+        assert_eq!(
+            bounded.map(CauseId::as_declared),
+            Some("root.bounded-construction.over-limit")
+        );
     }
 }
 
@@ -538,6 +695,77 @@ mod identity {
         let over_removal: fn(Commitment<RemovalDomain>) = drop;
         assert!((over_schema as usize) != 0);
         assert!((over_removal as usize) != 0);
+    }
+
+    /// The scope this home's demo stamp is instantiated over.
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    struct DemoStampScope(u8);
+
+    crate::scope_guard_version! {
+        /// The stamped demo scope-guard version — written by the declarative
+        /// stamp from one explicit typed invocation, not by hand.
+        struct StampedDemoVersion over DemoStampScope;
+    }
+
+    /// The hand-written twin of what the stamp writes, authored exactly the way
+    /// every scope-guard version already in the machine is authored. No existing
+    /// guard was replaced to make room for the stamp; this twin is the bar the
+    /// stamp has to meet.
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    struct HandWrittenDemoVersion(AuthorityPosition<DemoStampScope>);
+
+    impl HandWrittenDemoVersion {
+        fn try_cmp_same_scope(&self, other: &Self) -> Result<Ordering, OrderComparison> {
+            self.0.try_cmp_same_scope(&other.0)
+        }
+    }
+
+    /// law: identity.stamped-scope-guard-matches-its-hand-written-twin — the
+    /// declarative stamp writes the Class-C guard this home rules, and its
+    /// output agrees with a hand-written twin cause for cause: same order inside
+    /// one scope, same refusal across scopes, same equality, same distinctness.
+    /// The stamp adds no comparison of its own — it forwards to the machinery
+    /// this home already owns.
+    /// Owed reversal (red twin): comparing two stamped guards over DIFFERENT
+    /// scope types must not compile, and neither must `a < b` on one — trybuild
+    /// fixtures in testpak.
+    #[test]
+    fn a_stamped_scope_guard_matches_its_hand_written_twin() {
+        let scope = DemoStampScope(3);
+        let elsewhere = DemoStampScope(4);
+
+        let stamped_earlier = StampedDemoVersion(AuthorityPosition::assigned(scope.clone(), 1));
+        let stamped_later = StampedDemoVersion(AuthorityPosition::assigned(scope.clone(), 2));
+        let stamped_elsewhere =
+            StampedDemoVersion(AuthorityPosition::assigned(elsewhere.clone(), 1));
+
+        let twin_earlier = HandWrittenDemoVersion(AuthorityPosition::assigned(scope.clone(), 1));
+        let twin_later = HandWrittenDemoVersion(AuthorityPosition::assigned(scope, 2));
+        let twin_elsewhere = HandWrittenDemoVersion(AuthorityPosition::assigned(elsewhere, 1));
+
+        assert_eq!(
+            stamped_earlier.try_cmp_same_scope(&stamped_later),
+            twin_earlier.try_cmp_same_scope(&twin_later)
+        );
+        assert_eq!(
+            stamped_later.try_cmp_same_scope(&stamped_earlier),
+            twin_later.try_cmp_same_scope(&twin_earlier)
+        );
+        assert_eq!(
+            stamped_earlier.try_cmp_same_scope(&stamped_elsewhere),
+            twin_earlier.try_cmp_same_scope(&twin_elsewhere)
+        );
+
+        assert!(matches!(
+            stamped_earlier.try_cmp_same_scope(&stamped_later),
+            Ok(Ordering::Less)
+        ));
+        assert!(matches!(
+            stamped_earlier.try_cmp_same_scope(&stamped_elsewhere),
+            Err(OrderComparison::NotSameScope)
+        ));
+        assert_eq!(stamped_earlier, stamped_earlier.clone());
+        assert_ne!(stamped_earlier, stamped_later);
     }
 }
 

@@ -45,9 +45,11 @@
 //! enter.
 
 pub mod composition;
+pub mod derive_refusal;
 pub mod diagnostics;
 pub mod explanation_protocol;
 pub mod origin_graph;
+pub mod pattern_stamp;
 pub mod plane;
 pub mod planning;
 pub mod refusal;
@@ -57,6 +59,12 @@ pub mod trigger_view;
 pub use composition::{
     CompositionRoot, CompositionRootDeclaration, CompositionRootIssue, DESCRIPTOR_KINDS,
     DescriptorKind, DescriptorProvider,
+};
+pub use derive_refusal::{
+    CaptureDiagnosticAnchors, CapturedCause, CauseOrderStanding, DerivationAnchors, DerivedItem,
+    DerivedMembership, DerivedProjection, PlantedDefect, RefusalDeriveCapture,
+    RefusalDeriveDisposition, RefusalDeriveRefusal, RefusalDeriveSurface, RefusalFamilyDerivation,
+    RefusalOwnerFacts, RenderedDerivation, captured, disposed,
 };
 pub use diagnostics::{
     MACROC_PHASES, MacrocDiagnostic, MacrocPhase, ObservedClassification, ReleasePosture,
@@ -71,6 +79,7 @@ pub use origin_graph::{
     DecisionTrace, Nonclaim, ORIGIN_RELATIONS, OriginEdge, OriginRelation, OriginTrail,
     TraceDecision, TraceEntry,
 };
+pub use pattern_stamp::{ScopeGuardOwnerFacts, ScopeGuardStampAnchors, plan_scope_guard_stamp};
 pub use plane::{ExactIdentity, HumanProjection, OwnerFactRef, ProfileVersion};
 pub use planning::{
     BenchmarkDescriptorContent, BenchmarkDescriptorProjection, CodecContent, CodecDirection,

@@ -28,6 +28,7 @@ knows which host is running it.
 | `threadpak`                     | the machine — root package at the repository root                 |
 | `macros/macroc`                 | the metaprogramming services — package `threadpak-macroc`         |
 | `macros/proc`                   | the Rust-facing expansion shell — package `threadpak-macros`      |
+| `testpak`                       | the qualification plane — package `threadpak-testpak`             |
 | `xtask`                         | repository law checks and tooling — `cargo xtask check`           |
 | `xtask/fixtures/macro-consumer` | the outside consumer fixture — package `threadpak-macro-consumer` |
 
@@ -42,8 +43,11 @@ absence the `no-core-tooling-edge` check enforces across every Cargo edge kind.
 That check enforces a second absence in the same breath: the services never depend on
 their frontend surfaces either, not even for tests. Composition is proven from outside
 the participants instead — `xtask/fixtures/macro-consumer` depends on the machine and on
-the expansion shell, exactly as an application would, and holds the one test that
-applies the shell's derive to a struct carrying a machine type.
+the expansion shell, exactly as an application would, and holds the tests that apply the
+shell's derives and prove one derived implementation equal to a hand-written twin.
+
+The same check enforces a third absence: **nothing depends on testpak**. testpak depends
+inward on the machine and on the tooling, and production never depends on its judge.
 
 ## The band map
 
@@ -92,6 +96,7 @@ toolchain: "1.97.1"
 workspace_members:
   - macros/macroc
   - macros/proc
+  - testpak
   - xtask
   - xtask/fixtures/macro-consumer
 ```

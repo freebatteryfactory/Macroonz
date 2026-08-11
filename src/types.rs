@@ -248,10 +248,12 @@ impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
     /// bound and MAY REFUSE. This **total structural** road CANNOT FORM THE
     /// FAILING CASE: the only way a single item could exceed a family's
     /// maximum is a family declaring `MAX = 0`, and the `const` block below
-    /// rejects that instantiation. Post-monomorphization refusal *is*
-    /// compile-time refusal — no artifact containing this road under a
-    /// zero-maximum family is ever produced, so the failing case never reaches
-    /// a running program to be refused at.
+    /// rejects that instantiation at const evaluation. The honest scope: the
+    /// refusal fires when the instantiation is const-evaluated — a `const`
+    /// item refuses under `cargo check`, while a function-body call refuses at
+    /// codegen — so no artifact containing this road under a zero-maximum
+    /// family is ever produced, and the failing case never reaches a running
+    /// program. The qualification fixture exercises the `const`-item form.
     ///
     /// Its reason for existing is downstream honesty: a caller assembling a
     /// one-issue refusal body has no impossible error branch to fabricate a

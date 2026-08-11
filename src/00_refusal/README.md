@@ -28,6 +28,26 @@ limit family and carry `CompletionPosture` as an **instance value** (single-caus
 families carry no posture at all). Pairs have exactly two seats; separable
 questions must separate.
 
+## The order is typed; the text is its projection
+
+A cause has a stable identity (`CauseId`) that is not its Rust spelling, not its
+display text, not prose, and not its position. `DeclaredCauseOrder` states the
+canonical order as `DeclaredCause` rows — identity plus today's spelling — and
+mints the position (`CauseOrdinal`) out of its own layout, so no position can
+disagree with the order it belongs to. Two consequences are law:
+
+- renaming a Rust variant moves the spelling and moves neither identity nor
+  order;
+- changing a cause's meaning mints a different identity, and cannot hide behind
+  an unchanged spelling.
+
+`RefusalFamily::SELECTION_ORDER` stays exactly what it was and is now named for
+what it is: the **textual projection** of that typed order, joined to it by
+`DeclaredCauseOrder::projects_to`. One fact, two forms. A family that has not yet
+been given stable cause identities does not implement `CauseOrderDeclaration` at
+all — an absent declaration is visible where a defaulted one would be a claim
+nobody made.
+
 Reason granularity is shape-determined law: single-cause families map every
 inhabited cause value to its own stable `ReasonId`; collection families map the
 envelope reason at the **family** level — issue identities stay inside the
@@ -74,5 +94,13 @@ obligations:
   - id: refusal.posture-is-a-collection-instance-value
     challenge_kind: compile-law
     green: laws.rs refusal::posture_is_a_collection_instance_value
+    red: owed-to-testpak
+  - id: refusal.cause-identity-outlives-its-spelling
+    challenge_kind: compile-law
+    green: laws.rs refusal::cause_identity_outlives_its_spelling
+    red: owed-to-testpak
+  - id: refusal.selection-order-projects-the-typed-order
+    challenge_kind: compile-law
+    green: laws.rs refusal::selection_order_projects_the_typed_order
     red: owed-to-testpak
 ```

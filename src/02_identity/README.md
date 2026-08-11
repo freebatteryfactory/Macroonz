@@ -39,6 +39,20 @@ Internal seams speak refusal family bodies (`OrderComparison` here); the
 universal envelope is the publication form, minted only where reasons are
 registered. Canonical refusal ≠ released refusal — one fact, two projections.
 
+## The declarative stamp
+
+This home owns the Class-C shape and its guard law, so this home stamps it:
+`scope_guard_version!` writes the version newtype over `AuthorityPosition<Scope>`
+from one explicit typed invocation. The caller states the docs, the visibility,
+the type name, and the scope type; the stamp infers nothing and derives no
+ordering — no `Ord`, no `PartialOrd`, one `try_cmp_same_scope` forwarding to the
+machinery this home already owns. Rust exports `macro_rules!` at the crate root;
+that is Rust's macro namespacing rule and not a root admission of a semantic
+noun, because the stamp declares no type of its own.
+
+Every scope-guard already written by hand stays written by hand. The stamp is
+proven against one of them, not substituted for them.
+
 ## Delegated by ruling
 
 Text forms (Display/FromStr/prefixes): identity SEMANTICS live here; text
@@ -75,4 +89,8 @@ obligations:
     challenge_kind: compile-refusal
     green: laws.rs identity::commitment_domains_do_not_unify
     red: owed-to-testpak
+  - id: identity.stamped-scope-guard-matches-its-hand-written-twin
+    challenge_kind: compile-law
+    green: laws.rs identity::a_stamped_scope_guard_matches_its_hand_written_twin
+    red: testpak/tests/compile-fail/cross-scope-comparison-on-a-stamped-guard.rs
 ```

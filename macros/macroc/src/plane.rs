@@ -228,6 +228,13 @@ limits! {
     /// Issues one composition-root refusal body may carry — at most one per
     /// declared provider seat.
     CompositionIssueLimit = 64,
+    /// Bytes one captured derive surface may carry. Capture reads a declared
+    /// input, and a declared input has a declared magnitude: past this, the
+    /// capture refuses rather than parsing an unbounded body.
+    DeriveSourceLimit = 8192,
+    /// Causes one captured refusal family may declare. Past this the capture
+    /// refuses rather than truncating a family's cause set.
+    DeriveCauseLimit = 64,
 }
 
 /// A reference to one exact machine identity, tagged by the subject it names.

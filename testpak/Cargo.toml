@@ -1,0 +1,18 @@
+[package]
+name = "threadpak-testpak"
+description = "The qualification plane: orchestration, hostile execution, and denominators. Production never depends on its judge."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+threadpak = { path = ".." }
+threadpak-macroc = { path = "../macros/macroc" }
+threadpak-macros = { path = "../macros/proc" }
+
+[dev-dependencies]
+trybuild = "1"

@@ -215,19 +215,26 @@ const FRONTEND_PACKAGE: &str = "threadpak-macros";
 /// The directory that surface lives in, under [`TOOLING_DIRECTORY`].
 const FRONTEND_DIRECTORY: &str = "proc";
 
+/// The qualification plane — the machine's judge.
+const JUDGE_PACKAGE: &str = "threadpak-testpak";
+
+/// The directory the judge lives in.
+const JUDGE_DIRECTORY: &str = "testpak";
+
 /// Every Cargo dependency-edge kind, each of which the law covers.
 const DEPENDENCY_TABLE_KINDS: [&str; 3] =
     ["dependencies", "dev-dependencies", "build-dependencies"];
 
 /// The topology law, in two parts.
 ///
-/// **Part one: the core never depends on tooling.** The `threadpak` package
-/// carries no dependency edge to the metaprogramming tooling under any Cargo
-/// edge kind. The edges run one way and inward — `macros/proc` →
-/// `macros/macroc` → `threadpak` — so the machine never depends on the tools
-/// that project its contracts. Those lawful inward edges live in the subsystem
-/// manifests; part one reads the ROOT manifest only, where any tooling edge at
-/// all is a reversal of the topology.
+/// **Part one: the core never depends on tooling, and never on its judge.** The
+/// `threadpak` package carries no dependency edge to the metaprogramming
+/// tooling or to `testpak` under any Cargo edge kind. The edges run one way and
+/// inward — `macros/proc` → `macros/macroc` → `threadpak`, and `testpak` →
+/// everything — so the machine never depends on the tools that project its
+/// contracts and never depends on the plane that judges it. Those lawful inward
+/// edges live in the subsystem manifests; part one reads the ROOT manifest only,
+/// where any such edge at all is a reversal of the topology.
 ///
 /// **Part two: macroc never depends on its frontends.** A compiler service
 /// never depends on its frontend surfaces, EVEN FOR TESTS. So the services
@@ -241,7 +248,7 @@ fn check_no_core_tooling_edge(root: &Path) -> Result<(), String> {
         fs::read_to_string(root.join("Cargo.toml")).map_err(|e| format!("Cargo.toml: {e}"))?;
     for violation in core_tooling_edge_violations(&manifest) {
         reported.push(format!(
-            "core package reaches metaprogramming tooling: {violation}"
+            "core package reaches tooling or its judge: {violation}"
         ));
     }
     let services = fs::read_to_string(root.join(SERVICES_MANIFEST))
@@ -262,8 +269,9 @@ fn check_no_core_tooling_edge(root: &Path) -> Result<(), String> {
 ///
 /// An entry's PACKAGE IDENTITY is its `package = "…"` key when it carries one
 /// and its own key otherwise, and an entry is a violation when that identity
-/// names a tooling package or when its `path` points into the tooling subsystem
-/// directory. Renaming therefore hides nothing.
+/// names a tooling package or the judge, or when its `path` points into the
+/// tooling subsystem directory or the judge's directory. Renaming therefore
+/// hides nothing.
 fn core_tooling_edge_violations(manifest_text: &str) -> Vec<String> {
     dependency_entries(manifest_text)
         .into_iter()
@@ -360,15 +368,20 @@ fn judge_dependency(
     path: Option<&str>,
 ) -> Option<String> {
     let identity = package.unwrap_or(key);
-    if TOOLING_PACKAGES.contains(&identity) {
+    if TOOLING_PACKAGES.contains(&identity) || identity == JUDGE_PACKAGE {
         return Some(format!("[{kind}] `{key}` resolves to package `{identity}`"));
     }
-    if let Some(path) = path
-        && points_into_tooling(path)
-    {
-        return Some(format!(
-            "[{kind}] `{key}` has path `{path}` inside `{TOOLING_DIRECTORY}/`"
-        ));
+    if let Some(path) = path {
+        if points_into(path, TOOLING_DIRECTORY) {
+            return Some(format!(
+                "[{kind}] `{key}` has path `{path}` inside `{TOOLING_DIRECTORY}/`"
+            ));
+        }
+        if points_into(path, JUDGE_DIRECTORY) {
+            return Some(format!(
+                "[{kind}] `{key}` has path `{path}` inside `{JUDGE_DIRECTORY}/`"
+            ));
+        }
     }
     None
 }
@@ -387,7 +400,7 @@ fn judge_frontend_dependency(
         ));
     }
     if let Some(path) = path
-        && points_into_frontend(path)
+        && points_into(path, FRONTEND_DIRECTORY)
     {
         return Some(format!(
             "[{kind}] `{key}` has path `{path}` inside `{FRONTEND_DIRECTORY}/`"
@@ -396,20 +409,13 @@ fn judge_frontend_dependency(
     None
 }
 
-/// Whether a dependency path enters the tooling subsystem directory.
-fn points_into_tooling(path: &str) -> bool {
+/// Whether a dependency path enters one named directory. The segment is matched
+/// wherever it appears, so `../proc`, `macros/proc`, and any longer detour that
+/// lands there are all the same edge.
+fn points_into(path: &str, directory: &str) -> bool {
     path.replace('\\', "/")
         .split('/')
-        .any(|segment| segment == TOOLING_DIRECTORY)
-}
-
-/// Whether a dependency path enters the expansion surface's directory. The
-/// segment is matched wherever it appears, so `../proc`, `macros/proc`, and any
-/// longer detour that lands there are all the same edge.
-fn points_into_frontend(path: &str) -> bool {
-    path.replace('\\', "/")
-        .split('/')
-        .any(|segment| segment == FRONTEND_DIRECTORY)
+        .any(|segment| segment == directory)
 }
 
 /// The dependency-edge kind a table header declares, plus the single entry the
@@ -670,8 +676,9 @@ const BANNED_VOCABULARY_ALLOWLIST: [(&str, &str, &str); 3] = [
 /// "ignore this mess" — and the repository refuses it: the only honest `_`
 /// is one with nothing to read.
 ///
-/// The scan covers the machine (`src/`) and the metaprogramming subsystem
-/// (`macros/`): the tools that project the machine's contracts are held to the
+/// The scan covers the machine (`src/`), the metaprogramming subsystem
+/// (`macros/`), and the qualification plane (`testpak/`): the tools that project
+/// the machine's contracts, and the plane that judges them, are held to the
 /// machine's own honesty about what a field carries.
 fn check_underscore_fields_are_phantom(root: &Path) -> Result<(), String> {
     let mut offenders = Vec::new();
@@ -703,6 +710,7 @@ fn check_underscore_fields_are_phantom(root: &Path) -> Result<(), String> {
     };
     visit_files(&root.join("src"), &mut inspect)?;
     visit_files(&root.join(TOOLING_DIRECTORY), &mut inspect)?;
+    visit_files(&root.join(JUDGE_DIRECTORY), &mut inspect)?;
     if offenders.is_empty() {
         Ok(())
     } else {
@@ -728,8 +736,9 @@ fn check_underscore_fields_are_phantom(root: &Path) -> Result<(), String> {
 ///
 /// Both scans report the banned ROOT word, so one allowlist entry covers a
 /// file for either scan. The scanned tree is the machine (`src/`), the root
-/// `README.md`, and the metaprogramming subsystem (`macros/`): the tools speak
-/// the machine's vocabulary or they speak none.
+/// `README.md`, the metaprogramming subsystem (`macros/`), and the
+/// qualification plane (`testpak/`): the tools and the judge speak the
+/// machine's vocabulary or they speak none.
 fn check_banned_vocabulary(root: &Path) -> Result<(), String> {
     let mut offenders = Vec::new();
     let mut inspect = |path: &Path| -> Result<(), String> {
@@ -766,6 +775,7 @@ fn check_banned_vocabulary(root: &Path) -> Result<(), String> {
     };
     visit_files(&root.join("src"), &mut inspect)?;
     visit_files(&root.join(TOOLING_DIRECTORY), &mut inspect)?;
+    visit_files(&root.join(JUDGE_DIRECTORY), &mut inspect)?;
     inspect(&root.join("README.md"))?;
     if offenders.is_empty() {
         Ok(())
@@ -1067,9 +1077,42 @@ mod tests {
         assert!(found.iter().any(|v| v.contains("macros/")));
     }
 
+    /// Reversal (g): the judge edge — the machine taking an ordinary dependency
+    /// on the plane that judges it. Production never depends on its judge.
+    #[test]
+    fn a_core_dependency_on_the_judge_is_a_violation() {
+        let found = violations("[dependencies]\nthreadpak-testpak = { path = \"testpak\" }\n");
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found.iter().any(|v| v.contains("threadpak-testpak")));
+    }
+
+    /// Reversal (h): the judge edge bought for tests only — the shape a "just
+    /// for the test harness" edge actually takes.
+    #[test]
+    fn a_core_dev_dependency_on_the_judge_is_a_violation() {
+        let found = violations("[dev-dependencies]\nthreadpak-testpak = { path = \"testpak\" }\n");
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found.iter().any(|v| v.contains("dev-dependencies")));
+    }
+
+    /// Reversal (i): the disguised judge edge — renamed at the key, and
+    /// separately an entry named anything at all whose path reaches into the
+    /// judge's directory.
+    #[test]
+    fn a_renamed_or_path_edge_to_the_judge_is_a_violation() {
+        let renamed = violations(
+            "[dependencies]\nharness = { package = \"threadpak-testpak\", version = \"0.0.0\" }\n",
+        );
+        assert_eq!(renamed.len(), 1, "{renamed:?}");
+        assert!(renamed.iter().any(|v| v.contains("threadpak-testpak")));
+        let by_path = violations("[dependencies]\nharness = { path = \"testpak\" }\n");
+        assert_eq!(by_path.len(), 1, "{by_path:?}");
+        assert!(by_path.iter().any(|v| v.contains("testpak/")));
+    }
+
     /// The positive control: a manifest with ordinary edges and none to the
-    /// tooling is clean, so the law reports something real rather than
-    /// everything.
+    /// tooling or the judge is clean, so the law reports something real rather
+    /// than everything.
     #[test]
     fn a_manifest_without_tooling_edges_is_clean() {
         let found = violations(
