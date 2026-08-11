@@ -38,10 +38,22 @@ Seven, closed, distinct: quantization · redaction · summarization · projectio
 sampling · truncation · selection. Never one generic transform; each owner
 performing one owes its own disclosure row.
 
-## Open ruling carried
+## Unicode mechanism — RULED by the repository owner (2026-08-10), in tiers
 
-`BoundedText` normalization profile (only paths pinned: NFC, refuse
-non-canonical). No constructor until ruled.
+1. **Contraband refusal is IN-HOUSE owned code, not a mechanism**: bidi
+   ordering controls, raw controls, surrogates, and noncharacters refuse
+   against hardcoded scalar sets (a stable dozen ranges) — no crate, no
+   tables. This is the data-as-instruction firewall's text tier.
+2. **NFC validation: the `unicode-normalization` crate family — ADMITTED.**
+   Protects digest-identity honesty (one meaning, one byte spelling, one
+   commitment) wherever a schema declares a normalized text refinement, and
+   unblocks `BoundedText`'s real constructor when the text machinery lands.
+   Admitted under the mechanism-standing law: admission is not
+   qualification; swappable behind the machine-owned text role contract.
+3. **Confusables / identifier hygiene (UTS #39 tables): PARKED with the
+   language** behind the same plug-in bar — the live Rust-macro frontend's
+   names are already vetted by rustc; the heavy tables re-enter with a
+   second front door, not before.
 
 ## Obligations
 
