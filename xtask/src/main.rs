@@ -37,13 +37,17 @@ fn repo_root() -> Result<PathBuf, Box<dyn Error>> {
 
 /// Runs every repository law, printing one PASS or FAIL line per law.
 fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
-    let checks: [Check; 10] = [
+    let checks: [Check; 11] = [
         ("agents-claude-parity", check_agents_claude_parity),
         ("lf-and-no-symlinks", check_lf_and_no_symlinks),
         ("no-python", check_no_python),
         ("toolchain-pin-matches-readme", check_toolchain_pin),
         ("workspace-members-match-readme", check_workspace_members),
         ("lint-wall-inherited", check_lint_wall),
+        (
+            "underscore-fields-are-phantom",
+            check_underscore_fields_are_phantom,
+        ),
         ("band-map-matches-lib", check_band_map),
         ("readme-obligations-join", check_obligations_join),
         ("no-personal-names", check_no_personal_names),
@@ -409,6 +413,45 @@ const BANNED_VOCABULARY_ALLOWLIST: [(&str, &str, &str); 3] = [
 ///    matches a consecutive run of split words inside one token, so
 ///    `SelfHosting` and `self_hosting` are caught too.
 ///
+/// An underscore-prefixed field is lawful only when it is a `PhantomData`
+/// type-level law. Real data behind an underscore is the suppressor idiom —
+/// "ignore this mess" — and the repository refuses it: the only honest `_`
+/// is one with nothing to read.
+fn check_underscore_fields_are_phantom(root: &Path) -> Result<(), String> {
+    let mut offenders = Vec::new();
+    visit_files(&root.join("src"), &mut |path| {
+        if path.extension().is_none_or(|extension| extension != "rs") {
+            return Ok(());
+        }
+        let text = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+        for (index, line) in text.lines().enumerate() {
+            let trimmed = line.trim_start();
+            let field = trimmed
+                .strip_prefix("pub(crate) ")
+                .or_else(|| trimmed.strip_prefix("pub "))
+                .unwrap_or(trimmed);
+            if field.starts_with('_')
+                && !field.starts_with("_ ")
+                && field.contains(": ")
+                && !trimmed.starts_with("//")
+                && !line.contains("PhantomData")
+            {
+                offenders.push(format!(
+                    "{}:{}: underscore field without PhantomData",
+                    path.display(),
+                    index.saturating_add(1)
+                ));
+            }
+        }
+        Ok(())
+    })?;
+    if offenders.is_empty() {
+        Ok(())
+    } else {
+        Err(offenders.join("; "))
+    }
+}
+
 /// Both scans report the banned ROOT word, so one allowlist entry covers a
 /// file for either scan.
 fn check_banned_vocabulary(root: &Path) -> Result<(), String> {
