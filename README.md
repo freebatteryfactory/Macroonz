@@ -136,7 +136,7 @@ obligations:
   - id: root.bounded-construction-is-a-seam
     challenge_kind: compile-law
     green: laws.rs root::bounded_construction_is_a_seam
-    red: owed-to-testpak
+    red: testpak/tests/compile-fail/singleton-under-a-zero-maximum-family.rs
   - id: root.reading-is-not-gaining
     challenge_kind: compile-law
     green: laws.rs root::reading_is_not_gaining

@@ -17,8 +17,11 @@ knows which host is running it.
 
 ## Format law
 
-- The repository is the specification. There is no separate book: `cargo xtask book`
-  assembles the review artifact from the owner surfaces. No semantic fact is manually
+- The repository is the specification. There is no separate book, and there will be no
+  separate book: the review artifact is ASSEMBLED from the owner surfaces rather than
+  authored. `cargo xtask book` is the command that will assemble it; it is owned by
+  xtask and lands with the typed repository model, in the macroc era. It does not
+  exist yet, and nothing may cite it as though it does. No semantic fact is manually
   restated in two places — cite the owner, never copy.
 - Numbered directories are dependency bands: band N imports only bands lower than N.
   Numbers live on directories only; module names stay clean via `#[path]`.
@@ -27,9 +30,14 @@ knows which host is running it.
   otherwise it has an owner home. The root is never a shared-noun drawer.
 - Every semantic home is `README.md` + `mod.rs` + `types.rs`. A home README is markdown
   prose plus fenced yaml blocks that tooling parses and verifies against derived facts.
-- `types.rs` owns the home's public types: a `pub` struct, enum, type alias, or trait
-  outside the owning `types.rs` refuses. Private implementation types live beside their
-  algorithms and never leak into public signatures, bytes, or identities.
+- `types.rs` owns the home's public types **in the core crate**: a `pub` struct, enum,
+  type alias, or trait outside the owning `types.rs` refuses. Private implementation
+  types live beside their algorithms and never leak into public signatures, bytes, or
+  identities. The rule governs semantic homes; it is not a workspace-wide file law. The
+  tooling crates carry the same discipline in the form their material admits —
+  machine-enforced module order, and types discoverable at the module that owns them —
+  and it is formalized under policy-scoped surfaces when the typed repository model
+  lands.
 - One root `laws.rs` in the core crate carries the compile-time green laws, sectioned
   by home. It is non-public and outside the derived ABI surface. A law that cannot fail
   is not a law; every law is proven non-vacuous by reversal.

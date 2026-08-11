@@ -43,18 +43,68 @@
 //! filesystem scans, no environment reads, no clock, no entropy. Nothing in
 //! this crate reaches for any of them, and there is no seat where one could
 //! enter.
+//!
+//! # Declaration order IS the dependency order
+//!
+//! The machine states its dependency bands with numbered directories. This
+//! crate is flat, so it states the same fact with the only ordering a flat
+//! module list has: **the order the `pub mod` declarations appear below.** A
+//! module imports only modules declared EARLIER than itself, never a later one
+//! and never itself-by-way-of-another. Read top to bottom and you have read the
+//! dependency graph; there is no second place to look and nothing to keep in
+//! sync by hand.
+//!
+//! The rule is machine-enforced, not a convention: `cargo xtask check` runs
+//! `tooling-module-order`, which reads the declaration order out of this file,
+//! reads each module's `crate::` references out of its own source, and refuses
+//! any reference pointing later in the list. A cycle cannot survive that check,
+//! because a cycle always contains at least one backward-pointing edge.
+//!
+//! The order is a straight line, not an accident of the alphabet. The formatter
+//! is told so — `reorder_modules = false` in `rustfmt.toml` — because a tool
+//! that re-alphabetizes this list would be erasing a law.
+//!
+//! ```text
+//! plane                 the shared carriers; over nothing
+//! refusal               over plane
+//! diagnostics           over plane
+//! question              the closed question roster; over nothing at all
+//! origin_graph          over plane, refusal
+//! planning              over plane, refusal, question, origin_graph
+//! explanation_protocol  over plane, diagnostics, question, origin_graph, planning
+//! template              over plane, origin_graph
+//! trigger_view          over plane, refusal, planning
+//! composition           over plane
+//! pattern_stamp         over plane, refusal, origin_graph, planning
+//! derive_refusal        over plane, refusal, diagnostics, origin_graph,
+//!                       planning, explanation_protocol
+//! ```
+//!
+//! `question` is a leaf over nothing and could sit anywhere earlier; it is
+//! seated exactly where both its readers need it, which is the honest place for
+//! a vocabulary that exists to keep two machinery modules from importing each
+//! other.
+//!
+//! Only `mod` declarations carry the rule. The proof surface (`laws`) is
+//! declared last, is not public, is excluded by its `#[cfg(test)]`, and reaches
+//! every module by design: it is what proves the order, not a participant in it.
+//!
+//! The graph above is stated here once. The declarations below carry no
+//! commentary of their own, because a second copy of a dependency map is a
+//! second thing to keep true.
 
-pub mod composition;
-pub mod derive_refusal;
-pub mod diagnostics;
-pub mod explanation_protocol;
-pub mod origin_graph;
-pub mod pattern_stamp;
 pub mod plane;
-pub mod planning;
 pub mod refusal;
+pub mod diagnostics;
+pub mod question;
+pub mod origin_graph;
+pub mod planning;
+pub mod explanation_protocol;
 pub mod template;
 pub mod trigger_view;
+pub mod composition;
+pub mod pattern_stamp;
+pub mod derive_refusal;
 
 pub use composition::{
     CompositionRoot, CompositionRootDeclaration, CompositionRootIssue, DESCRIPTOR_KINDS,
@@ -71,9 +121,8 @@ pub use diagnostics::{
     RepairAction, ReproductionRoute,
 };
 pub use explanation_protocol::{
-    EXPLANATION_QUESTIONS, ExplanationAnswer, ExplanationCoverage, ExplanationCoverageIssue,
-    ExplanationQuestion, ProjectionExplanation, ProjectionExplanationView, QuestionApplicability,
-    kind_admits,
+    ExplanationAnswer, ExplanationCoverage, ExplanationCoverageIssue, ProjectionExplanation,
+    ProjectionExplanationView, kind_admits,
 };
 pub use origin_graph::{
     DecisionTrace, Nonclaim, ORIGIN_RELATIONS, OriginEdge, OriginRelation, OriginTrail,
@@ -91,6 +140,7 @@ pub use planning::{
     SourceDeclarations, SurfaceDirection, TargetBinding, TargetRequirement, TestDescriptorContent,
     TestDescriptorProjection, UNIVERSAL_QUESTIONS, WRAPPER_COMPONENTS, WrapperComponent,
 };
+pub use question::{EXPLANATION_QUESTIONS, ExplanationQuestion, QuestionApplicability};
 pub use refusal::{
     BOUND_AXES, BoundAxis, PlanIdentity, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue,
 };
@@ -119,3 +169,6 @@ pub const fn describe_frontend_role(role: FrontendRole) -> &'static str {
         FrontendRole::ApplicationLanguage => "the pluggable application-language front door",
     }
 }
+
+#[cfg(test)]
+mod laws;

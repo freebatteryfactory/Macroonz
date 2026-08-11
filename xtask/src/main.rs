@@ -37,7 +37,7 @@ fn repo_root() -> Result<PathBuf, Box<dyn Error>> {
 
 /// Runs every repository law, printing one PASS or FAIL line per law.
 fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
-    let checks: [Check; 12] = [
+    let checks: [Check; 13] = [
         ("agents-claude-parity", check_agents_claude_parity),
         ("lf-and-no-symlinks", check_lf_and_no_symlinks),
         ("no-python", check_no_python),
@@ -50,6 +50,7 @@ fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
             check_underscore_fields_are_phantom,
         ),
         ("band-map-matches-lib", check_band_map),
+        ("tooling-module-order", check_tooling_module_order),
         ("readme-obligations-join", check_obligations_join),
         ("no-personal-names", check_no_personal_names),
         ("banned-vocabulary", check_banned_vocabulary),
@@ -528,10 +529,169 @@ fn check_band_map(root: &Path) -> Result<(), String> {
     }
 }
 
-/// The obligations join: every README obligation naming a `laws.rs` green law
+/// The services crate's source directory, whose flat module list carries its
+/// dependency order the way numbered directories carry the machine's.
+const TOOLING_MODULE_ROOT: [&str; 3] = ["macros", "macroc", "src"];
+
+/// Declaration order IS the dependency order.
+///
+/// The machine states its bands with numbered directories; the services crate
+/// is flat and states the same fact with the only ordering a flat module list
+/// has — the order its `mod` declarations appear in `lib.rs`. A module may
+/// reference modules declared EARLIER than itself and no others. That single
+/// rule outlaws cycles outright, because every cycle contains at least one
+/// backward-pointing edge, and it needs no hand-maintained dependency map: the
+/// order is read from the declarations and the edges from the sources.
+///
+/// The reader is deliberately dumb. It takes every `crate::name` spelling in a
+/// module's own text — `use` lines, inline paths, and rustdoc links alike —
+/// because all three break when the named module moves, and a reference that
+/// breaks is a dependency whatever syntax carries it.
+///
+/// Test-only declarations are excluded: the proof surface (`laws`) is declared
+/// `#[cfg(test)] mod laws;` precisely so it can look in every direction without
+/// standing in the order it proves.
+fn check_tooling_module_order(root: &Path) -> Result<(), String> {
+    let mut src = root.to_path_buf();
+    for segment in TOOLING_MODULE_ROOT {
+        src.push(segment);
+    }
+    let lib_path = src.join("lib.rs");
+    let lib = fs::read_to_string(&lib_path).map_err(|e| format!("{}: {e}", lib_path.display()))?;
+    let order = declared_module_order(&lib);
+    if order.is_empty() {
+        return Err(format!("{} declares no modules", lib_path.display()));
+    }
+    let mut modules = Vec::new();
+    for name in &order {
+        let path = src.join(format!("{name}.rs"));
+        let text = fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        modules.push((name.clone(), text));
+    }
+    let violations = module_order_violations(&order, &modules);
+    if violations.is_empty() {
+        Ok(())
+    } else {
+        Err(violations.join("; "))
+    }
+}
+
+/// The module names one `lib.rs` declares, in declaration order.
+///
+/// Both `mod name;` and `pub mod name;` count — a private module participates
+/// in the order exactly as a public one does. A declaration carrying
+/// `#[cfg(test)]` on the line before it does not: the proof surface is outside
+/// the order by construction.
+fn declared_module_order(lib_text: &str) -> Vec<String> {
+    let mut order = Vec::new();
+    let mut test_only = false;
+    for raw in lib_text.lines() {
+        let line = raw.trim();
+        if line.is_empty() || line.starts_with("//") {
+            continue;
+        }
+        if line == "#[cfg(test)]" {
+            test_only = true;
+            continue;
+        }
+        let declaration = line.strip_prefix("pub ").unwrap_or(line);
+        if let Some(rest) = declaration.strip_prefix("mod ")
+            && let Some(name) = rest.strip_suffix(';')
+            && !name.contains(' ')
+        {
+            if !test_only {
+                order.push(name.to_string());
+            }
+            test_only = false;
+            continue;
+        }
+        test_only = false;
+    }
+    order
+}
+
+/// Every module name one module's text reaches through a `crate::` path, in
+/// the order the text spells them, duplicates included.
+///
+/// The `crate` keyword is matched whole, so a longer identifier ending in
+/// `crate` is never mistaken for the crate root.
+fn crate_references(module_text: &str) -> Vec<String> {
+    const OPENING: &str = "crate::";
+    let mut found = Vec::new();
+    let mut from = 0usize;
+    loop {
+        let Some(rest) = module_text.get(from..) else {
+            return found;
+        };
+        let Some(offset) = rest.find(OPENING) else {
+            return found;
+        };
+        let start = from.saturating_add(offset);
+        let end = start.saturating_add(OPENING.len());
+        let before_is_word = module_text
+            .get(..start)
+            .and_then(|head| head.chars().next_back())
+            .is_some_and(|c| c.is_ascii_alphanumeric() || c == '_');
+        if !before_is_word && let Some(tail) = module_text.get(end..) {
+            let name: String = tail
+                .chars()
+                .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+                .collect();
+            if !name.is_empty() {
+                found.push(name);
+            }
+        }
+        from = end;
+    }
+}
+
+/// Every backward-pointing edge in one module set, one description per edge.
+///
+/// A reference to a module declared at the same position (a module naming
+/// itself) is not an edge. A reference to a name the declaration list does not
+/// carry is not judged here — an undeclared module is a compile error, which is
+/// a louder check than this one.
+fn module_order_violations(order: &[String], modules: &[(String, String)]) -> Vec<String> {
+    let position = |name: &str| order.iter().position(|declared| declared == name);
+    let mut violations = Vec::new();
+    for (name, text) in modules {
+        let Some(here) = position(name) else {
+            continue;
+        };
+        let mut reported: Vec<String> = Vec::new();
+        for referenced in crate_references(text) {
+            let Some(there) = position(&referenced) else {
+                continue;
+            };
+            if there > here && !reported.contains(&referenced) {
+                reported.push(referenced.clone());
+                violations.push(format!(
+                    "`{name}` (declared {here}) references `{referenced}` (declared {there}), \
+                     which is declared later"
+                ));
+            }
+        }
+    }
+    violations
+}
+
+/// The obligations join, in three legs.
+///
+/// **Green, both ways.** Every README obligation naming a `laws.rs` green law
 /// points at a law that exists, and every law in `laws.rs` is claimed by some
-/// obligation — the READMEs and the laws never drift apart. (The third leg —
-/// the owed red twin — joins when testpak lands.)
+/// obligation — the READMEs and the laws never drift apart.
+///
+/// **Red, and counted out loud.** Every obligation also declares a `red:` row.
+/// A row spelled `owed-to-…` is a lawful debt: the reversal is named and not yet
+/// written, and saying so is the honest state. Any other row NAMES a reversal
+/// that is supposed to exist, and it must resolve to a real testpak test file or
+/// compile-fail fixture — a row pointing at a reversal nobody wrote is worse
+/// than an owed row, because it reads as discharged.
+///
+/// The leg prints its denominator on every run, discharged over owed. The
+/// number is meant to be uncomfortable and is meant to be watched: a repository
+/// that quietly loses red twins would otherwise keep passing this check while
+/// the accounting shrank.
 fn check_obligations_join(root: &Path) -> Result<(), String> {
     let mut claimed = Vec::new();
     let mut readmes = vec![root.join("README.md")];
@@ -602,11 +762,106 @@ fn check_obligations_join(root: &Path) -> Result<(), String> {
             ));
         }
     }
+    let mut rows = Vec::new();
+    for readme in &readmes {
+        let text = fs::read_to_string(readme).map_err(|e| format!("{}: {e}", readme.display()))?;
+        for row in red_twin_rows(&text) {
+            rows.push((row, relative_slash_path(root, readme)));
+        }
+    }
+    let reversals = testpak_reversals(root)?;
+    let ledger = red_twin_ledger(&rows, &reversals);
+    println!(
+        "red twins: {} discharged / {} owed",
+        ledger.discharged, ledger.owed
+    );
+    offenders.extend(ledger.offenders);
     if offenders.is_empty() {
         Ok(())
     } else {
         Err(offenders.join("; "))
     }
+}
+
+/// The prefix a lawful debt is spelled with: `owed-to-testpak`,
+/// `owed-to-xtask-and-testpak`, and any other named creditor.
+const OWED_PREFIX: &str = "owed-to";
+
+/// What the red leg counted, and what it refuses.
+///
+/// A tally over README rows, deliberately not the plane's own
+/// `RedTwinLedger`: that one accounts for reversals a qualification run
+/// executed, this one for reversals the specification declares. Two
+/// denominators over two populations, named apart so neither can stand in for
+/// the other.
+struct RedTwinTally {
+    /// Rows naming a reversal that exists.
+    discharged: usize,
+    /// Rows declaring a named, unwritten debt.
+    owed: usize,
+    /// Rows naming a reversal nobody wrote.
+    offenders: Vec<String>,
+}
+
+/// The value of every `red:` obligation row in one README, in file order.
+///
+/// The prefix is matched on the TRIMMED line, so a word merely ending in `red`
+/// followed by a colon — `unnumbered:`, `authored:`, `Shred:` — is never a row.
+fn red_twin_rows(readme_text: &str) -> Vec<String> {
+    readme_text
+        .lines()
+        .filter_map(|line| line.trim().strip_prefix("red: "))
+        .map(|value| value.trim().to_string())
+        .collect()
+}
+
+/// Reads one red row and counts it, or names it as an offence.
+fn red_twin_ledger(rows: &[(String, String)], reversals: &[String]) -> RedTwinTally {
+    let mut ledger = RedTwinTally {
+        discharged: 0,
+        owed: 0,
+        offenders: Vec::new(),
+    };
+    for (value, readme) in rows {
+        if value.starts_with(OWED_PREFIX) {
+            ledger.owed = ledger.owed.saturating_add(1);
+            continue;
+        }
+        let named = value.split_whitespace().next().unwrap_or(value);
+        if reversals.iter().any(|path| names_reversal(path, named)) {
+            ledger.discharged = ledger.discharged.saturating_add(1);
+        } else {
+            ledger.offenders.push(format!(
+                "{readme}: red row names `{named}`, which is no testpak test or fixture"
+            ));
+        }
+    }
+    ledger
+}
+
+/// Whether one red row's spelling names one existing reversal file. Containment
+/// either way: the row may state the repository-relative path or just the file
+/// name, and both name the same reversal.
+fn names_reversal(path: &str, named: &str) -> bool {
+    let file = path.rsplit('/').next().unwrap_or(path);
+    path == named || path.contains(named) || (!file.is_empty() && named.contains(file))
+}
+
+/// Every reversal testpak carries, as repository-relative slash paths: the test
+/// files under `testpak/tests/` and the compile-fail fixtures beneath them.
+fn testpak_reversals(root: &Path) -> Result<Vec<String>, String> {
+    let tests = root.join(JUDGE_DIRECTORY).join("tests");
+    if !tests.is_dir() {
+        return Ok(Vec::new());
+    }
+    let mut found = Vec::new();
+    visit_files(&tests, &mut |path| {
+        if path.extension().is_some_and(|extension| extension == "rs") {
+            found.push(relative_slash_path(root, path));
+        }
+        Ok(())
+    })?;
+    Ok(found)
 }
 
 /// No personal name appears in any repository file — role terms only. The
@@ -751,26 +1006,7 @@ fn check_banned_vocabulary(root: &Path) -> Result<(), String> {
         let relative = relative_slash_path(root, path);
         let bytes = fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
         let text = String::from_utf8_lossy(&bytes).into_owned();
-        let lowered = text.to_lowercase();
-        let mut hits: Vec<&'static str> = Vec::new();
-        for word in BANNED_VOCABULARY {
-            if contains_whole_word(&lowered, word) && !hits.contains(&word) {
-                hits.push(word);
-            }
-        }
-        for banned in split_scan_hits(&text) {
-            if !hits.contains(&banned) {
-                hits.push(banned);
-            }
-        }
-        for word in hits {
-            let allowed = BANNED_VOCABULARY_ALLOWLIST
-                .iter()
-                .any(|(file, allowed, _)| *file == relative && *allowed == word);
-            if !allowed {
-                offenders.push(format!("{relative}: {word}"));
-            }
-        }
+        offenders.extend(banned_vocabulary_offences(&relative, &text));
         Ok(())
     };
     visit_files(&root.join("src"), &mut inspect)?;
@@ -785,6 +1021,39 @@ fn check_banned_vocabulary(root: &Path) -> Result<(), String> {
             offenders.join(", ")
         ))
     }
+}
+
+/// Every banned root word one text spells, by either scan, each reported once.
+///
+/// Both scans are pure over the text, which is what makes the law provable
+/// against fixture strings rather than against the tree it guards.
+fn banned_words_in(text: &str) -> Vec<&'static str> {
+    let lowered = text.to_lowercase();
+    let mut hits: Vec<&'static str> = Vec::new();
+    for word in BANNED_VOCABULARY {
+        if contains_whole_word(&lowered, word) && !hits.contains(&word) {
+            hits.push(word);
+        }
+    }
+    for banned in split_scan_hits(text) {
+        if !hits.contains(&banned) {
+            hits.push(banned);
+        }
+    }
+    hits
+}
+
+/// The offences one file commits, its allowlisted survivals removed.
+fn banned_vocabulary_offences(relative: &str, text: &str) -> Vec<String> {
+    banned_words_in(text)
+        .into_iter()
+        .filter(|word| {
+            !BANNED_VOCABULARY_ALLOWLIST
+                .iter()
+                .any(|(file, allowed, _)| *file == relative && allowed == word)
+        })
+        .map(|word| format!("{relative}: {word}"))
+        .collect()
 }
 
 /// Whether `haystack` contains `needle` bounded by non-alphanumerics on both
@@ -1000,8 +1269,10 @@ fn readme_yaml_block(root: &Path) -> Result<Vec<String>, String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        SERVICES_MANIFEST, core_tooling_edge_violations, repo_root,
-        services_frontend_edge_violations,
+        SERVICES_MANIFEST, TOOLING_MODULE_ROOT, banned_vocabulary_offences, banned_words_in,
+        core_tooling_edge_violations, declared_module_order, module_order_violations,
+        red_twin_ledger, red_twin_rows, repo_root, services_frontend_edge_violations,
+        testpak_reversals,
     };
 
     /// The manifest preamble every core fixture shares: the core package itself.
@@ -1188,5 +1459,334 @@ mod tests {
         assert!(!manifest.is_empty(), "services Cargo.toml is unreadable");
         let found = services_frontend_edge_violations(&manifest);
         assert!(found.is_empty(), "{found:?}");
+    }
+
+    // -----------------------------------------------------------------------
+    // tooling-module-order
+    // -----------------------------------------------------------------------
+
+    /// One synthetic module set, as `(name, source text)` pairs.
+    fn sources(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
+        pairs
+            .iter()
+            .map(|(name, text)| ((*name).to_string(), (*text).to_string()))
+            .collect()
+    }
+
+    /// The declaration order is read out of the file in file order, not sorted,
+    /// and the test-only proof surface is excluded from it.
+    #[test]
+    fn the_declaration_order_is_file_order_without_the_proof_surface() {
+        let lib = "//! doc\n\npub mod plane;\n\n/// note\npub mod refusal;\n\nmod helper;\n\n\
+                   #[cfg(test)]\nmod laws;\n";
+        assert_eq!(
+            declared_module_order(lib),
+            vec![
+                String::from("plane"),
+                String::from("refusal"),
+                String::from("helper")
+            ]
+        );
+    }
+
+    /// Planted reversal: a module reaching FORWARD to a module declared after
+    /// it — the shape every cycle contains at least one of.
+    #[test]
+    fn a_forward_reference_is_a_violation() {
+        let order = vec![String::from("plane"), String::from("planning")];
+        let found = module_order_violations(
+            &order,
+            &sources(&[
+                ("plane", "use crate::planning::ProjectionPlan;\n"),
+                ("planning", "use crate::plane::ExactIdentity;\n"),
+            ]),
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found.iter().any(|v| v.contains("declared later")));
+        assert!(found.iter().any(|v| v.contains("`plane`")));
+    }
+
+    /// Planted reversal: the exact cycle this discipline was written to kill —
+    /// two modules importing each other. Whichever way the pair is declared,
+    /// one of the two edges points forward.
+    #[test]
+    fn a_two_module_cycle_is_a_violation() {
+        let order = vec![
+            String::from("planning"),
+            String::from("explanation_protocol"),
+        ];
+        let found = module_order_violations(
+            &order,
+            &sources(&[
+                (
+                    "planning",
+                    "use crate::explanation_protocol::ExplanationQuestion;\n",
+                ),
+                (
+                    "explanation_protocol",
+                    "use crate::planning::ProjectionPlan;\n",
+                ),
+            ]),
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found.iter().any(|v| v.contains("`planning`")));
+    }
+
+    /// Planted reversal: the forward reference spelled inline rather than in a
+    /// `use` line, which no scan of import lines alone would see.
+    #[test]
+    fn an_inline_forward_path_is_a_violation() {
+        let order = vec![String::from("plane"), String::from("diagnostics")];
+        let found = module_order_violations(
+            &order,
+            &sources(&[(
+                "plane",
+                "fn f() { let _ = crate::diagnostics::MacrocPhase::Capture; }\n",
+            )]),
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+    }
+
+    /// The positive control: a clean set passes. Backward references, repeated
+    /// references, a module naming itself, and a longer identifier merely
+    /// ENDING in `crate` are all lawful, so the check reports something real
+    /// rather than everything.
+    #[test]
+    fn a_clean_module_set_passes() {
+        let order = vec![
+            String::from("plane"),
+            String::from("refusal"),
+            String::from("planning"),
+        ];
+        let found = module_order_violations(
+            &order,
+            &sources(&[
+                ("plane", "//! no edges at all\n"),
+                (
+                    "refusal",
+                    "use crate::plane::ExactIdentity;\nfn f() { crate::plane::helper(); }\n",
+                ),
+                (
+                    "planning",
+                    "use crate::plane::OwnerFactRef;\nuse crate::refusal::PlanSeat;\n\
+                     // othercrate::planning is not this crate\n\
+                     fn f() { crate::planning::own(); }\n",
+                ),
+            ]),
+        );
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    /// The real services tree holds: declaration order IS its dependency order.
+    #[test]
+    fn the_real_services_modules_are_in_dependency_order() {
+        let root = repo_root().unwrap_or_else(|_| std::path::PathBuf::from("."));
+        let mut src = root;
+        for segment in TOOLING_MODULE_ROOT {
+            src.push(segment);
+        }
+        let lib = std::fs::read_to_string(src.join("lib.rs")).unwrap_or_default();
+        let order = declared_module_order(&lib);
+        assert!(order.len() > 1, "services lib.rs declares {order:?}");
+        let modules: Vec<(String, String)> = order
+            .iter()
+            .map(|name| {
+                let text =
+                    std::fs::read_to_string(src.join(format!("{name}.rs"))).unwrap_or_default();
+                assert!(!text.is_empty(), "{name}.rs is unreadable");
+                (name.clone(), text)
+            })
+            .collect();
+        let found = module_order_violations(&order, &modules);
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    // -----------------------------------------------------------------------
+    // the red-twin ledger
+    // -----------------------------------------------------------------------
+
+    /// One synthetic README's rows, attributed to a fixture file name.
+    fn rows(readme_text: &str) -> Vec<(String, String)> {
+        red_twin_rows(readme_text)
+            .into_iter()
+            .map(|value| (value, String::from("FIXTURE.md")))
+            .collect()
+    }
+
+    /// A row is read off the trimmed line, so an ordinary word ending in `red`
+    /// followed by a colon is never mistaken for one.
+    #[test]
+    fn only_a_red_row_is_a_red_row() {
+        let text = "unnumbered: first-class, not a row\n\
+                    Shred: the four progress facts, not a row\n\
+                    ## The connectives (authored: a heading, not a row)\n\
+                    \x20   red: owed-to-testpak\n";
+        assert_eq!(red_twin_rows(text), vec![String::from("owed-to-testpak")]);
+    }
+
+    /// An owed row is lawful and counts as owed, whoever the named creditor is.
+    #[test]
+    fn an_owed_row_is_counted_not_refused() {
+        let text = "    red: owed-to-testpak\n\
+                        red: owed-to-xtask-and-testpak\n\
+                        red: owed-to-testpak — cloning a Budget must not compile\n";
+        let ledger = red_twin_ledger(&rows(text), &[]);
+        assert_eq!(ledger.owed, 3);
+        assert_eq!(ledger.discharged, 0);
+        assert!(ledger.offenders.is_empty(), "{:?}", ledger.offenders);
+    }
+
+    /// Planted reversal: a row naming a reversal nobody wrote. This is the
+    /// failure the leg exists for — it reads as discharged and is not.
+    #[test]
+    fn a_phantom_fixture_name_is_a_violation() {
+        let text = "    red: testpak/tests/compile-fail/nobody-ever-wrote-this.rs\n";
+        let ledger = red_twin_ledger(
+            &rows(text),
+            &[String::from(
+                "testpak/tests/compile-fail/a-real-fixture-that-exists.rs",
+            )],
+        );
+        assert_eq!(ledger.discharged, 0);
+        assert_eq!(ledger.owed, 0);
+        assert_eq!(ledger.offenders.len(), 1, "{:?}", ledger.offenders);
+        assert!(
+            ledger
+                .offenders
+                .first()
+                .is_some_and(|offence| offence.contains("nobody-ever-wrote-this.rs"))
+        );
+    }
+
+    /// A row naming a real reversal discharges it, whether it states the
+    /// repository-relative path or only the file name.
+    #[test]
+    fn a_named_reversal_that_exists_is_discharged() {
+        let reversals = vec![
+            String::from("testpak/tests/compile-fail/a-real-fixture.rs"),
+            String::from("testpak/tests/planted_defect.rs"),
+        ];
+        let by_path = red_twin_ledger(
+            &rows("    red: testpak/tests/compile-fail/a-real-fixture.rs\n"),
+            &reversals,
+        );
+        assert_eq!(by_path.discharged, 1);
+        assert!(by_path.offenders.is_empty(), "{:?}", by_path.offenders);
+        let by_name = red_twin_ledger(&rows("    red: planted_defect.rs\n"), &reversals);
+        assert_eq!(by_name.discharged, 1);
+        assert!(by_name.offenders.is_empty(), "{:?}", by_name.offenders);
+    }
+
+    /// The real repository holds: every named red twin resolves to a reversal
+    /// that exists, and the denominator is real rather than empty.
+    #[test]
+    fn the_real_red_ledger_names_only_reversals_that_exist() {
+        let root = repo_root().unwrap_or_else(|_| std::path::PathBuf::from("."));
+        let reversals = testpak_reversals(&root).unwrap_or_default();
+        assert!(!reversals.is_empty(), "testpak carries no reversal files");
+        let mut collected = Vec::new();
+        let mut readmes = vec![root.join("README.md")];
+        if let Ok(entries) = std::fs::read_dir(root.join("src")) {
+            for entry in entries.flatten() {
+                let candidate = entry.path().join("README.md");
+                if candidate.is_file() {
+                    readmes.push(candidate);
+                }
+            }
+        }
+        for readme in &readmes {
+            let text = std::fs::read_to_string(readme).unwrap_or_default();
+            let name = readme.display().to_string();
+            for value in red_twin_rows(&text) {
+                collected.push((value, name.clone()));
+            }
+        }
+        let ledger = red_twin_ledger(&collected, &reversals);
+        assert!(ledger.offenders.is_empty(), "{:?}", ledger.offenders);
+        assert!(
+            ledger.owed > 0,
+            "no owed red twins found; the ledger cannot be empty here"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // banned-vocabulary
+    // -----------------------------------------------------------------------
+    //
+    // The scans are pure over text, so every reversal below is a fixture
+    // string. Nothing on disk is written, read, or mutated: the law that
+    // guards the tree is never proven by dirtying the tree.
+
+    /// Planted reversal: the term smuggled into a `camelCase` identifier, where
+    /// no whole-word scan of the text would ever find it.
+    #[test]
+    fn a_camel_case_smuggle_is_caught() {
+        let found = banned_words_in("let selectedFactoryFloor = 1;");
+        assert_eq!(found, vec!["factory"], "{found:?}");
+    }
+
+    /// Planted reversal: the plural, in prose and in a `CamelCase` type name.
+    #[test]
+    fn a_plural_is_caught() {
+        let prose = banned_words_in("the surviving candidates were counted");
+        assert_eq!(prose, vec!["candidate"], "{prose:?}");
+        let irregular = banned_words_in("struct RegisteredFactories;");
+        assert_eq!(irregular, vec!["factory"], "{irregular:?}");
+    }
+
+    /// Planted reversal: a hyphenated term spelled as a consecutive run of
+    /// words inside one identifier, in both casings.
+    #[test]
+    fn a_hyphen_run_is_caught() {
+        let camel = banned_words_in("enum SelfHosting { No }");
+        assert_eq!(camel, vec!["self-hosting"], "{camel:?}");
+        let snake = banned_words_in("const SELF_HOSTING_POSTURE: u8 = 0;");
+        assert_eq!(snake, vec!["self-hosting"], "{snake:?}");
+    }
+
+    /// Planted reversal: plain `snake_case`, and the kebab-case string a
+    /// README row would carry.
+    #[test]
+    fn a_snake_case_or_kebab_spelling_is_caught() {
+        let snake = banned_words_in("fn promotion_route() {}");
+        assert_eq!(snake, vec!["promotion"], "{snake:?}");
+        let kebab = banned_words_in("id: gate.promotion-ladder");
+        assert_eq!(kebab, vec!["promotion"], "{kebab:?}");
+    }
+
+    /// The positive control: clean text passes, and a longer word merely
+    /// CONTAINING a banned root is not a hit. A checker that flagged
+    /// everything would satisfy every reversal above and be worthless.
+    #[test]
+    fn clean_text_passes() {
+        let found = banned_words_in(
+            "The proposal was adopted by its realization owner. \
+             Manufactured goods and refactoring are ordinary words.",
+        );
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    /// An allowlisted path keeps its one named survival and nothing else: the
+    /// allowance is per file AND per word, never a blanket pass.
+    #[test]
+    fn an_allowlisted_path_keeps_only_its_named_survival() {
+        let allowed = banned_vocabulary_offences(
+            "src/23_evidence/README.md",
+            "`proposal` replaced the dead word candidate",
+        );
+        assert!(allowed.is_empty(), "{allowed:?}");
+        let elsewhere =
+            banned_vocabulary_offences("src/00_refusal/README.md", "the dead word candidate");
+        assert_eq!(elsewhere.len(), 1, "{elsewhere:?}");
+        let unallowed = banned_vocabulary_offences(
+            "src/23_evidence/README.md",
+            "a self-hosting posture is not allowlisted anywhere",
+        );
+        assert_eq!(unallowed.len(), 1, "{unallowed:?}");
+        assert!(
+            unallowed
+                .first()
+                .is_some_and(|offence| offence.contains("self-hosting"))
+        );
     }
 }

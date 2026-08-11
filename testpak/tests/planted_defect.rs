@@ -68,3 +68,69 @@ fn a_rendering_with_no_projection_at_all_is_unreadable_not_conforming() {
         RenderVerdict::Unreadable
     );
 }
+
+/// The rehearsed false alarm: a LAWFUL rendering whose anchor text has been
+/// shifted by whitespace is `Unreadable`, and is `Unreadable` loudly.
+///
+/// This is the case the judge's alarm exists for and the case that is easiest to
+/// mistake for noise. The rendering below is correct — same order, same
+/// identities, same everything the declaration states — and the only change is
+/// blank space inside the const item the reader anchors on. The reader loses its
+/// anchor, reads nothing, and must say `Unreadable` rather than fall through to
+/// a verdict about content it never saw.
+///
+/// Rehearsing it here means the alarm is known to sound before anyone has to
+/// interpret one in anger. And it fixes the response: when a real rendering
+/// changes shape, the anchor in `03_judge/mod.rs` is re-stated to match the new
+/// shape, deliberately and visibly. It is never loosened — no whitespace
+/// trimming, no prefix matching, no looser fallback — because a reader widened
+/// until it matches again has stopped reading the artifact and started agreeing
+/// with the renderer.
+#[test]
+fn a_whitespace_shifted_lawful_rendering_is_unreadable() {
+    assert_eq!(shifted_anchor_verdicts(), Ok(FalseAlarmRehearsal::ThePair));
+}
+
+/// What the rehearsal proves, as one value: the unshifted lawful rendering
+/// conformed AND the whitespace-shifted one was `Unreadable`. Stating it as one
+/// answer keeps the control from being quietly dropped later.
+#[derive(Debug, PartialEq, Eq)]
+enum FalseAlarmRehearsal {
+    /// Both halves held.
+    ThePair,
+    /// The unshifted control did not conform: the rendering itself was wrong,
+    /// so the rehearsal proves nothing about the anchor.
+    ControlDidNotConform(RenderVerdict),
+    /// The anchor text was not present to shift.
+    NothingToShift,
+    /// The shifted rendering produced some verdict other than `Unreadable`.
+    ShiftedWasNotUnreadable(RenderVerdict),
+}
+
+/// Renders the lawful artifact, judges it, then shifts blank space inside the
+/// anchored const item and judges it again.
+fn shifted_anchor_verdicts() -> Result<FalseAlarmRehearsal, ()> {
+    let derivation = captured(DECLARATION).map_err(|_| ())?.planned();
+    let lawful = derivation.rendered();
+    let source = lawful.source();
+
+    let control = judge_declared_order(source, &DECLARED_SPELLINGS, &DECLARED_IDENTITIES);
+    if control != RenderVerdict::Conforms {
+        return Ok(FalseAlarmRehearsal::ControlDidNotConform(control));
+    }
+
+    let shifted = source.replace(
+        "const SELECTION_ORDER: &'static [&'static str] = &[",
+        "const SELECTION_ORDER : &'static [&'static str] =\n    &[",
+    );
+    if shifted == source {
+        return Ok(FalseAlarmRehearsal::NothingToShift);
+    }
+
+    let alarmed = judge_declared_order(&shifted, &DECLARED_SPELLINGS, &DECLARED_IDENTITIES);
+    if alarmed == RenderVerdict::Unreadable {
+        Ok(FalseAlarmRehearsal::ThePair)
+    } else {
+        Ok(FalseAlarmRehearsal::ShiftedWasNotUnreadable(alarmed))
+    }
+}
