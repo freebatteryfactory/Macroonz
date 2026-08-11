@@ -13,6 +13,13 @@ workspace = true
 threadpak = { path = ".." }
 threadpak-macroc = { path = "../macros/macroc" }
 threadpak-macros = { path = "../macros/proc" }
+# The structural lane's parser, admitted by the note in README.md. Pinned exact
+# to the version the lockfile already carries, and cut to the two features the
+# lane uses: `parsing` to read text into an AST at all, `full` because items and
+# their associated constants are only in the AST under it. Printing, folding,
+# visiting, derive input, and the proc-macro bridge are all off: the lane reads
+# and never writes, and never runs inside a macro.
+syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }
 
 [dev-dependencies]
 trybuild = "1"

@@ -99,6 +99,7 @@ workspace_members:
   - testpak
   - xtask
   - xtask/fixtures/macro-consumer
+  - xtask/fixtures/renamed-consumer
 ```
 
 ## Root calculus obligations

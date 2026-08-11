@@ -543,10 +543,32 @@ const TOOLING_MODULE_ROOT: [&str; 3] = ["macros", "macroc", "src"];
 /// backward-pointing edge, and it needs no hand-maintained dependency map: the
 /// order is read from the declarations and the edges from the sources.
 ///
-/// The reader is deliberately dumb. It takes every `crate::name` spelling in a
-/// module's own text — `use` lines, inline paths, and rustdoc links alike —
-/// because all three break when the named module moves, and a reference that
-/// breaks is a dependency whatever syntax carries it.
+/// # The dependency spellings this check recognizes
+///
+/// The reader is deliberately dumb, and its narrowness is part of the law it
+/// states. It recognizes exactly these routes, and nothing else:
+///
+/// 1. `crate::name` — a plain path, in a `use` line, an inline expression, or a
+///    rustdoc link. All three break when the named module moves.
+/// 2. `crate::{a::…, b::…}` — a GROUPED use. Every segment head inside the
+///    braces is read, so wrapping three imports in one `use` hides none of them.
+/// 3. `use crate::name as alias;` — an ALIASED import. The edge is read off the
+///    `crate::` path, so renaming the binding hides nothing.
+/// 4. `super::name` inside a FLAT module — which is the crate root under another
+///    spelling, and therefore the same edge.
+/// 5. `crate::Thing` where `Thing` is not a declared module — a CRATE-ROOT
+///    RE-EXPORT route. Reaching a sibling's content through the crate root
+///    launders the edge: the reference names no owner, so nothing about the
+///    declaration order can be read off it. Owner paths only.
+///
+/// A module is `name.rs` or the directory `name/`, and a directory module's
+/// edges are the union of every `.rs` file under it — a submodule reaching
+/// forward is its parent reaching forward.
+///
+/// What it does NOT recognize is stated as plainly: a path built at runtime, a
+/// macro that composes `crate::` from fragments, and a re-export chain through a
+/// third crate. Those are outside this check, and this check does not pretend
+/// otherwise.
 ///
 /// Test-only declarations are excluded: the proof surface (`laws`) is declared
 /// `#[cfg(test)] mod laws;` precisely so it can look in every direction without
@@ -564,9 +586,30 @@ fn check_tooling_module_order(root: &Path) -> Result<(), String> {
     }
     let mut modules = Vec::new();
     for name in &order {
-        let path = src.join(format!("{name}.rs"));
-        let text = fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
-        modules.push((name.clone(), text));
+        let flat = src.join(format!("{name}.rs"));
+        let directory = src.join(name);
+        if flat.is_file() {
+            let text = fs::read_to_string(&flat).map_err(|e| format!("{}: {e}", flat.display()))?;
+            modules.push((name.clone(), text, false));
+        } else if directory.is_dir() {
+            let mut collected = String::new();
+            visit_files(&directory, &mut |path| {
+                if path.extension().is_some_and(|extension| extension == "rs") {
+                    let text =
+                        fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+                    collected.push_str(&text);
+                    collected.push('\n');
+                }
+                Ok(())
+            })?;
+            modules.push((name.clone(), collected, true));
+        } else {
+            return Err(format!(
+                "{name} is declared and is neither {} nor {}/",
+                flat.display(),
+                directory.display()
+            ));
+        }
     }
     let violations = module_order_violations(&order, &modules);
     if violations.is_empty() {
@@ -610,65 +653,144 @@ fn declared_module_order(lib_text: &str) -> Vec<String> {
     order
 }
 
-/// Every module name one module's text reaches through a `crate::` path, in
-/// the order the text spells them, duplicates included.
+/// Every name one module's text reaches through a crate-root path, in the order
+/// the text spells them, duplicates included.
 ///
-/// The `crate` keyword is matched whole, so a longer identifier ending in
-/// `crate` is never mistaken for the crate root.
-fn crate_references(module_text: &str) -> Vec<String> {
-    const OPENING: &str = "crate::";
+/// Both openings are read: `crate::` and `super::`. In a flat module list the
+/// two mean the same place, so a module reaching a sibling through `super::` has
+/// taken exactly the edge `crate::` would have taken.
+///
+/// The keyword is matched whole, so a longer identifier ending in `crate` or
+/// `super` is never mistaken for the crate root. A grouped use expands: every
+/// segment head inside `{ … }` is read, at any nesting, so wrapping three
+/// imports in one `use` hides none of them.
+fn crate_references(module_text: &str, nested: bool) -> Vec<String> {
+    let openings: &[&str] = if nested {
+        &["crate::"]
+    } else {
+        &["crate::", "super::"]
+    };
     let mut found = Vec::new();
-    let mut from = 0usize;
-    loop {
-        let Some(rest) = module_text.get(from..) else {
-            return found;
-        };
-        let Some(offset) = rest.find(OPENING) else {
-            return found;
-        };
-        let start = from.saturating_add(offset);
-        let end = start.saturating_add(OPENING.len());
-        let before_is_word = module_text
-            .get(..start)
-            .and_then(|head| head.chars().next_back())
-            .is_some_and(|c| c.is_ascii_alphanumeric() || c == '_');
-        if !before_is_word && let Some(tail) = module_text.get(end..) {
-            let name: String = tail
-                .chars()
-                .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
-                .collect();
-            if !name.is_empty() {
-                found.push(name);
+    for opening in openings.iter().copied() {
+        let mut from = 0usize;
+        while let Some(offset) = module_text.get(from..).and_then(|rest| rest.find(opening)) {
+            let start = from.saturating_add(offset);
+            let end = start.saturating_add(opening.len());
+            let before_is_word = module_text
+                .get(..start)
+                .and_then(|head| head.chars().next_back())
+                .is_some_and(|c| c.is_ascii_alphanumeric() || c == '_');
+            if !before_is_word && let Some(tail) = module_text.get(end..) {
+                found.extend(referenced_heads(tail));
             }
+            from = end;
         }
-        from = end;
     }
+    found
 }
 
-/// Every backward-pointing edge in one module set, one description per edge.
+/// The segment heads one crate-root path reaches: the single name of a plain
+/// path, or every head inside a grouped use.
+fn referenced_heads(tail: &str) -> Vec<String> {
+    let trimmed = tail.trim_start();
+    if !trimmed.starts_with('{') {
+        let name: String = trimmed
+            .chars()
+            .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+            .collect();
+        return if name.is_empty() {
+            Vec::new()
+        } else {
+            vec![name]
+        };
+    }
+    let mut heads = Vec::new();
+    let mut depth = 0usize;
+    let mut current = String::new();
+    let mut at_head = false;
+    for character in trimmed.chars() {
+        match character {
+            '{' => {
+                depth = depth.saturating_add(1);
+                at_head = true;
+                current.clear();
+            }
+            '}' => {
+                if !current.is_empty() {
+                    heads.push(std::mem::take(&mut current));
+                }
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    break;
+                }
+            }
+            ',' => {
+                if !current.is_empty() {
+                    heads.push(std::mem::take(&mut current));
+                }
+                at_head = true;
+            }
+            ':' => {
+                if !current.is_empty() {
+                    heads.push(std::mem::take(&mut current));
+                }
+                at_head = false;
+            }
+            _ if character.is_whitespace() => {}
+            _ if at_head && (character.is_ascii_alphanumeric() || character == '_') => {
+                current.push(character);
+            }
+            _ => {
+                current.clear();
+                at_head = false;
+            }
+        }
+    }
+    heads
+}
+
+/// Every unlawful edge in one module set, one description per edge.
+///
+/// Two kinds are refused, and they are different findings:
+///
+/// 1. **A forward edge** — a module referencing one declared later. That is the
+///    shape every cycle contains at least one of.
+/// 2. **A crate-root re-export route** — a module referencing a crate-root name
+///    that is not a declared module at all. Reaching a sibling's content that
+///    way names no owner, so the declaration order says nothing about it, and a
+///    check reading owner paths cannot see the edge. Explicit owner paths only.
 ///
 /// A reference to a module declared at the same position (a module naming
-/// itself) is not an edge. A reference to a name the declaration list does not
-/// carry is not judged here — an undeclared module is a compile error, which is
-/// a louder check than this one.
-fn module_order_violations(order: &[String], modules: &[(String, String)]) -> Vec<String> {
+/// itself, or a submodule naming its own parent through `super::`) is not an
+/// edge.
+fn module_order_violations(order: &[String], modules: &[(String, String, bool)]) -> Vec<String> {
     let position = |name: &str| order.iter().position(|declared| declared == name);
     let mut violations = Vec::new();
-    for (name, text) in modules {
+    for (name, text, nested) in modules {
         let Some(here) = position(name) else {
             continue;
         };
         let mut reported: Vec<String> = Vec::new();
-        for referenced in crate_references(text) {
-            let Some(there) = position(&referenced) else {
+        for referenced in crate_references(text, *nested) {
+            if reported.contains(&referenced) {
                 continue;
-            };
-            if there > here && !reported.contains(&referenced) {
-                reported.push(referenced.clone());
-                violations.push(format!(
-                    "`{name}` (declared {here}) references `{referenced}` (declared {there}), \
-                     which is declared later"
-                ));
+            }
+            match position(&referenced) {
+                Some(there) if there > here => {
+                    reported.push(referenced.clone());
+                    violations.push(format!(
+                        "`{name}` (declared {here}) references `{referenced}` (declared \
+                         {there}), which is declared later"
+                    ));
+                }
+                Some(_) => {}
+                None => {
+                    reported.push(referenced.clone());
+                    violations.push(format!(
+                        "`{name}` reaches `{referenced}` through the crate root, which is no \
+                         declared module: owner paths only"
+                    ));
+                }
             }
         }
     }
@@ -692,8 +814,8 @@ fn module_order_violations(order: &[String], modules: &[(String, String)]) -> Ve
 /// number is meant to be uncomfortable and is meant to be watched: a repository
 /// that quietly loses red twins would otherwise keep passing this check while
 /// the accounting shrank.
-fn check_obligations_join(root: &Path) -> Result<(), String> {
-    let mut claimed = Vec::new();
+/// Every home README the join reads: the root one, and one per numbered band.
+fn home_readmes(root: &Path) -> Result<Vec<PathBuf>, String> {
     let mut readmes = vec![root.join("README.md")];
     let src = root.join("src");
     let entries = fs::read_dir(&src).map_err(|e| format!("{}: {e}", src.display()))?;
@@ -704,7 +826,13 @@ fn check_obligations_join(root: &Path) -> Result<(), String> {
             readmes.push(candidate);
         }
     }
-    for readme in &readmes {
+    Ok(readmes)
+}
+
+/// Every green law one README claims, as `(module, law, declaring README)`.
+fn claimed_green_laws(readmes: &[PathBuf]) -> Result<Vec<(String, String, PathBuf)>, String> {
+    let mut claimed = Vec::new();
+    for readme in readmes {
         let text = fs::read_to_string(readme).map_err(|e| format!("{}: {e}", readme.display()))?;
         for line in text.lines() {
             let Some(rest) = line.trim().strip_prefix("green: laws.rs ") else {
@@ -714,20 +842,22 @@ fn check_obligations_join(root: &Path) -> Result<(), String> {
                 .chars()
                 .take_while(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == ':')
                 .collect();
-            match target.split_once("::") {
-                Some((module, law)) => {
-                    claimed.push((module.to_string(), law.to_string(), readme.clone()));
-                }
-                None => {
-                    return Err(format!(
-                        "{}: green target `{target}` is not module::law",
-                        readme.display()
-                    ));
-                }
-            }
+            let Some((module, law)) = target.split_once("::") else {
+                return Err(format!(
+                    "{}: green target `{target}` is not module::law",
+                    readme.display()
+                ));
+            };
+            claimed.push((module.to_string(), law.to_string(), readme.clone()));
         }
     }
-    let laws_path = src.join("laws.rs");
+    Ok(claimed)
+}
+
+fn check_obligations_join(root: &Path) -> Result<(), String> {
+    let readmes = home_readmes(root)?;
+    let claimed = claimed_green_laws(&readmes)?;
+    let laws_path = root.join("src").join("laws.rs");
     let laws = fs::read_to_string(&laws_path).map_err(|e| format!("laws.rs: {e}"))?;
     let mut existing = Vec::new();
     let mut current_module = String::new();
@@ -771,16 +901,73 @@ fn check_obligations_join(root: &Path) -> Result<(), String> {
     }
     let reversals = testpak_reversals(root)?;
     let ledger = red_twin_ledger(&rows, &reversals);
+
+    let tooling_rows = tooling_rows(root)?;
+    let tooling = red_twin_ledger(&tooling_rows, &reversals);
+
+    // TWO denominators, printed apart, always. The populations are challenged by
+    // different methods and owned by different homes; one number over both would
+    // be a number nobody can act on.
     println!(
-        "red twins: {} discharged / {} owed",
+        "red twins (core): {} discharged / {} owed",
         ledger.discharged, ledger.owed
     );
+    println!(
+        "tooling reversals: {} discharged / {} owed",
+        tooling.discharged, tooling.owed
+    );
+    if tooling_rows.is_empty() {
+        offenders.push(String::from(
+            "no tooling qualification obligation declares a reversal row: the tooling denominator \
+             cannot be empty while tooling exists",
+        ));
+    }
     offenders.extend(ledger.offenders);
+    offenders.extend(tooling.offenders);
     if offenders.is_empty() {
         Ok(())
     } else {
         Err(offenders.join("; "))
     }
+}
+
+/// The READMEs that carry tooling qualification obligations.
+///
+/// A distinct population from the machine's homes: these are claims about the
+/// TOOLS — what a service refuses, what a check catches, what a judge is
+/// rehearsed against — and their reversals are counted on their own denominator.
+const TOOLING_READMES: [&str; 2] = ["macros/macroc/README.md", "testpak/README.md"];
+
+/// Every `tooling-red:` row the tooling READMEs declare, attributed to the file
+/// that declared it.
+fn tooling_rows(root: &Path) -> Result<Vec<(String, String)>, String> {
+    let mut rows = Vec::new();
+    for readme in TOOLING_READMES {
+        let path = root.join(readme);
+        if !path.is_file() {
+            continue;
+        }
+        let text = fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        for row in tooling_red_rows(&text) {
+            rows.push((row, relative_slash_path(root, &path)));
+        }
+    }
+    Ok(rows)
+}
+
+/// The value of every `tooling-red:` obligation row in one README, in file
+/// order.
+///
+/// Read exactly like a core `red:` row and counted on its own ledger. An
+/// `owed-to-…` row is a lawful debt; any other row NAMES a reversal that must
+/// resolve to a real testpak test or compile-fail fixture, and the check refuses
+/// it if it does not.
+fn tooling_red_rows(readme_text: &str) -> Vec<String> {
+    readme_text
+        .lines()
+        .filter_map(|line| line.trim().strip_prefix("tooling-red: "))
+        .map(|value| value.trim().to_string())
+        .collect()
 }
 
 /// The prefix a lawful debt is spelled with: `owed-to-testpak`,
@@ -1272,7 +1459,7 @@ mod tests {
         SERVICES_MANIFEST, TOOLING_MODULE_ROOT, banned_vocabulary_offences, banned_words_in,
         core_tooling_edge_violations, declared_module_order, module_order_violations,
         red_twin_ledger, red_twin_rows, repo_root, services_frontend_edge_violations,
-        testpak_reversals,
+        testpak_reversals, tooling_red_rows,
     };
 
     /// The manifest preamble every core fixture shares: the core package itself.
@@ -1466,10 +1653,10 @@ mod tests {
     // -----------------------------------------------------------------------
 
     /// One synthetic module set, as `(name, source text)` pairs.
-    fn sources(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
+    fn sources(pairs: &[(&str, &str)]) -> Vec<(String, String, bool)> {
         pairs
             .iter()
-            .map(|(name, text)| ((*name).to_string(), (*text).to_string()))
+            .map(|(name, text)| ((*name).to_string(), (*text).to_string(), false))
             .collect()
     }
 
@@ -1588,13 +1775,25 @@ mod tests {
         let lib = std::fs::read_to_string(src.join("lib.rs")).unwrap_or_default();
         let order = declared_module_order(&lib);
         assert!(order.len() > 1, "services lib.rs declares {order:?}");
-        let modules: Vec<(String, String)> = order
+        let modules: Vec<(String, String, bool)> = order
             .iter()
             .map(|name| {
-                let text =
-                    std::fs::read_to_string(src.join(format!("{name}.rs"))).unwrap_or_default();
-                assert!(!text.is_empty(), "{name}.rs is unreadable");
-                (name.clone(), text)
+                let flat = src.join(format!("{name}.rs"));
+                if flat.is_file() {
+                    let text = std::fs::read_to_string(&flat).unwrap_or_default();
+                    assert!(!text.is_empty(), "{name}.rs is unreadable");
+                    return (name.clone(), text, false);
+                }
+                let mut collected = String::new();
+                let directory = src.join(name);
+                if let Ok(entries) = std::fs::read_dir(&directory) {
+                    for entry in entries.flatten() {
+                        collected
+                            .push_str(&std::fs::read_to_string(entry.path()).unwrap_or_default());
+                    }
+                }
+                assert!(!collected.is_empty(), "{name}/ is unreadable");
+                (name.clone(), collected, true)
             })
             .collect();
         let found = module_order_violations(&order, &modules);
@@ -1707,6 +1906,63 @@ mod tests {
             ledger.owed > 0,
             "no owed red twins found; the ledger cannot be empty here"
         );
+    }
+
+    /// A tooling row is read off the trimmed line and counted on its OWN
+    /// ledger, never folded into the core one. An `owed-to-…` tooling row is a
+    /// lawful debt exactly as a core one is.
+    #[test]
+    fn a_tooling_row_is_read_and_counted_apart() {
+        let text = "  tooling-red: testpak/tests/planted_defect.rs\n\
+                    red: owed-to-testpak\n\
+                    tooling-red: owed-to-testpak — the structural lane\n";
+        let found = tooling_red_rows(text);
+        assert_eq!(found.len(), 2, "{found:?}");
+        assert_eq!(red_twin_rows(text).len(), 1);
+        let attributed: Vec<(String, String)> = found
+            .into_iter()
+            .map(|row| (row, String::from("FIXTURE.md")))
+            .collect();
+        let ledger = red_twin_ledger(
+            &attributed,
+            &[String::from("testpak/tests/planted_defect.rs")],
+        );
+        assert_eq!(ledger.discharged, 1);
+        assert_eq!(ledger.owed, 1);
+        assert!(ledger.offenders.is_empty(), "{:?}", ledger.offenders);
+    }
+
+    /// Planted reversal: a tooling row naming a reversal nobody wrote. It reads
+    /// as discharged and is not.
+    #[test]
+    fn a_phantom_tooling_reversal_is_a_violation() {
+        let ledger = red_twin_ledger(
+            &[(
+                String::from("testpak/tests/nobody-wrote-this-lane.rs"),
+                String::from("FIXTURE.md"),
+            )],
+            &[String::from("testpak/tests/planted_defect.rs")],
+        );
+        assert_eq!(ledger.offenders.len(), 1, "{:?}", ledger.offenders);
+    }
+
+    /// The real tooling READMEs declare a non-empty denominator, and every row
+    /// naming a reversal resolves to one that exists.
+    #[test]
+    fn the_real_tooling_ledger_names_only_reversals_that_exist() {
+        let root = repo_root().unwrap_or_else(|_| std::path::PathBuf::from("."));
+        let reversals = testpak_reversals(&root).unwrap_or_default();
+        let mut collected = Vec::new();
+        for readme in ["macros/macroc/README.md", "testpak/README.md"] {
+            let text = std::fs::read_to_string(root.join(readme)).unwrap_or_default();
+            for row in tooling_red_rows(&text) {
+                collected.push((row, String::from(readme)));
+            }
+        }
+        assert!(!collected.is_empty(), "no tooling reversal rows found");
+        let ledger = red_twin_ledger(&collected, &reversals);
+        assert!(ledger.offenders.is_empty(), "{:?}", ledger.offenders);
+        assert!(ledger.owed > 0, "the tooling ledger claims no debt at all");
     }
 
     // -----------------------------------------------------------------------

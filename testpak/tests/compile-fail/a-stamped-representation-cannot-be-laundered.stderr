@@ -1,0 +1,34 @@
+error[E0603]: tuple struct constructor `RoleBVersion` is private
+  --> tests/compile-fail/a-stamped-representation-cannot-be-laundered.rs:36:25
+   |
+27 | /     threadpak::scope_guard_version! {
+28 | |         /// Role B's version, positioned under role B's authority — over the very
+29 | |         /// same scope.
+30 | |         pub struct RoleBVersion over OneScopeId;
+31 | |     }
+   | |_____- a constructor is private if any of the fields is private
+...
+36 |           |role_a| roles::RoleBVersion(role_a.0);
+   |                           ^^^^^^^^^^^^ private tuple struct constructor
+   |
+note: the tuple struct constructor `RoleBVersion` is defined here
+  --> tests/compile-fail/a-stamped-representation-cannot-be-laundered.rs:27:5
+   |
+27 | /     threadpak::scope_guard_version! {
+28 | |         /// Role B's version, positioned under role B's authority — over the very
+29 | |         /// same scope.
+30 | |         pub struct RoleBVersion over OneScopeId;
+31 | |     }
+   | |_____^
+   = note: this error originates in the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider making the field publicly accessible
+  --> $WORKSPACE/src/02_identity/mod.rs
+   |
+   |         $vis struct $name(pub $crate::identity::AuthorityPosition<$scope>);
+   |                           +++
+
+error[E0616]: field `0` of struct `RoleAVersion` is private
+  --> tests/compile-fail/a-stamped-representation-cannot-be-laundered.rs:36:45
+   |
+36 |         |role_a| roles::RoleBVersion(role_a.0);
+   |                                             ^ private field

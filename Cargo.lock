@@ -164,9 +164,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "threadpak-renamed-consumer"
+version = "0.0.0"
+dependencies = [
+ "threadpak",
+ "threadpak-macros",
+]
+
+[[package]]
 name = "threadpak-testpak"
 version = "0.0.0"
 dependencies = [
+ "syn",
  "threadpak",
  "threadpak-macroc",
  "threadpak-macros",

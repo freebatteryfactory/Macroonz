@@ -26,18 +26,18 @@
 use crate::diagnostics::RepairAction;
 use crate::origin_graph::DecisionTrace;
 use crate::plane::{
-    AssumptionLimit, ExactIdentity, ExplanationIssueLimit, ExplanationSeatLimit,
-    GeneratedUnitSubject, HumanProjection, HumanTextLimit, MembershipLimit, OwnerFactRef,
-    PatternInstanceSubject, PatternSubject, ProfileVersion, ProjectionKindSubject,
-    ProjectionProfileSubject, RepairLimit, RuntimeTraceSubject, TraceEntryLimit,
+    AssumptionLimit, ExplanationIssueLimit, ExplanationSeatLimit, GeneratedUnitSubject,
+    HumanProjection, HumanTextLimit, MembershipLimit, OutputBytesSubject, OwnerFactRef,
+    OwnerIdentityRef, PatternInstanceSubject, PatternSubject, ProfileVersion, ProjectionIdentity,
+    ProjectionKindSubject, ProjectionProfileSubject, RepairLimit, RuntimeTraceSubject,
+    TraceEntryLimit,
 };
 use crate::planning::{
-    InvalidationSet, OutputIdentity, ProjectionDisposition, ProjectionKind, ProjectionPlan,
-    SourceDeclarations,
+    CauseAnchoring, GraphAnchoring, InvalidationSet, PlannedOutput, ProjectionDisposition,
+    ProjectionKind, ProjectionPlan,
 };
 use crate::question::{ExplanationQuestion, QuestionApplicability};
 use core::marker::PhantomData;
-use threadpak::declaration::types::LinkedGraphDomain;
 use threadpak::refusal::{CompletionPosture, FamilyShape, RefusalFamily, StopBound};
 use threadpak::types::{Bounded, ConstLimit, NonEmptyBounded, NonEmptyBoundedConstruction};
 
@@ -49,7 +49,7 @@ pub enum ExplanationAnswer {
     /// What are you: the projection kind.
     Kind {
         /// The kind's identity.
-        kind: ExactIdentity<ProjectionKindSubject>,
+        kind: ProjectionIdentity<ProjectionKindSubject>,
     },
     /// Which owner required you.
     Owner {
@@ -59,21 +59,21 @@ pub enum ExplanationAnswer {
     /// Which declarations caused you.
     CausingDeclarations {
         /// The cause set.
-        sources: SourceDeclarations,
+        sources: CauseAnchoring,
     },
     /// Which pattern instance produced you.
     PatternInstance {
         /// The authored pattern.
-        pattern: ExactIdentity<PatternSubject>,
+        pattern: OwnerIdentityRef<PatternSubject>,
         /// This instantiation of it.
-        instance: ExactIdentity<PatternInstanceSubject>,
+        instance: OwnerIdentityRef<PatternInstanceSubject>,
     },
     /// Which graph and profile you were decided under.
     GraphAndProfile {
-        /// The closed graph.
-        graph: ExactIdentity<LinkedGraphDomain>,
+        /// What the plan was decided against.
+        graph: GraphAnchoring,
         /// The profile.
-        profile: ExactIdentity<ProjectionProfileSubject>,
+        profile: ProjectionIdentity<ProjectionProfileSubject>,
         /// That profile's version.
         version: ProfileVersion,
     },
@@ -88,24 +88,33 @@ pub enum ExplanationAnswer {
         assumptions: Bounded<OwnerFactRef, AssumptionLimit>,
     },
     /// Which output identity and digest you are.
+    ///
+    /// Two values, because they come from two places and always did: the planned
+    /// member is what the PLAN declared, and the digest is what the CLOSURE
+    /// proved over bytes that exist. An answer carrying only the first would be
+    /// answering half the question; an answer carrying a digest the plan
+    /// supplied would be answering it with a value nobody computed.
     OutputAndDigest {
-        /// The output.
-        output: OutputIdentity,
+        /// The planned member. Boxed because one answer of fourteen must not set
+        /// the size of the other thirteen.
+        output: Box<PlannedOutput>,
+        /// The digest the closure proved over the bytes actually rendered.
+        digest: ProjectionIdentity<OutputBytesSubject>,
     },
     /// Which tests challenge you.
     ChallengingTests {
         /// The test descriptors.
-        descriptors: Bounded<ExactIdentity<GeneratedUnitSubject>, MembershipLimit>,
+        descriptors: Bounded<ProjectionIdentity<GeneratedUnitSubject>, MembershipLimit>,
     },
     /// Which benchmarks measure you.
     MeasuringBenchmarks {
         /// The benchmark descriptors.
-        descriptors: Bounded<ExactIdentity<GeneratedUnitSubject>, MembershipLimit>,
+        descriptors: Bounded<ProjectionIdentity<GeneratedUnitSubject>, MembershipLimit>,
     },
     /// Which runtime traces correspond to you.
     CorrespondingRuntimeTraces {
         /// The corresponding traces.
-        traces: Bounded<ExactIdentity<RuntimeTraceSubject>, TraceEntryLimit>,
+        traces: Bounded<OwnerIdentityRef<RuntimeTraceSubject>, TraceEntryLimit>,
     },
     /// What invalidates you.
     Invalidators {
@@ -115,7 +124,7 @@ pub enum ExplanationAnswer {
     /// Why a related projection was not generated.
     RelatedProjectionDisposition {
         /// The related kind.
-        related: ExactIdentity<ProjectionKindSubject>,
+        related: ProjectionIdentity<ProjectionKindSubject>,
         /// What happened to it.
         disposition: ProjectionDisposition,
     },

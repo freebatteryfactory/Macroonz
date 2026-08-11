@@ -1,43 +1,77 @@
 //! Seat 03 — judge: the readers that state a verdict over one rendered
-//! artifact.
+//! artifact, and the mutations they are rehearsed against.
 //!
 //! # What a judge here may read, and what it may not
 //!
-//! A judge reads an ARTIFACT — the rendered source text a service produced —
-//! and compares it against a declared order the caller states independently. It
+//! A judge reads an ARTIFACT — the rendered text a service produced — and
+//! compares it against a declared order the caller states independently. It
 //! never asks the service under judgement what the answer was, because a
 //! comparison between a value and itself proves that the value equals itself.
 //!
-//! # Two lanes, and a verdict belongs to exactly one of them
+//! # Three lanes, and a verdict belongs to exactly one of them
 //!
-//! **The fast lane is a string scan, and it is deliberately dumb.** The readers
-//! below find one declared construct in the text and report what they found.
-//! They read text `rustc` never touched, which is precisely their value: they
-//! catch a renderer that emits the wrong bytes before those bytes are ever
-//! offered to a compiler, and they cost a string search. A cleverer reader
-//! would start agreeing with the renderer about what the text means, so the
-//! dumbness is the design and not a stage on the way to something better.
+//! **Lane A — the byte-profile scan.** The readers below find one declared
+//! textual form in the rendered text and report what they found. The claim they
+//! support is exactly this and no more:
 //!
-//! **The authoritative lane compiles the artifact and reads its trait constants
-//! as values.** There, `rustc` is the independent decoder: it parses the
-//! rendered source by its own rules, with no anchor of ours anywhere in the
-//! path, and hands back typed values rather than substrings. That lane is the
-//! consumer-fixture parity tests at `xtask/fixtures/macro-consumer`, which
-//! apply the shell's derive in a crate owning neither participant and compare
-//! the derived `SHAPE`, `SELECTION_ORDER`, and `DECLARED_ORDER` against a
-//! hand-written twin, value for value.
+//! > *the rendered text contains this exact declared textual form.*
 //!
-//! Neither lane subsumes the other and neither is a weaker version of the
-//! other. **A verdict is method-specific**, exactly as the machine's evidence
-//! law requires: "the permuted rendering was rejected by the string scan over
-//! these two declared orders" and "the derived implementation equals its
-//! hand-written twin under compilation" are two claims, each true of its own
-//! method and neither standing in for the other. Reporting a fast-lane verdict
-//! as if it came from the authoritative lane — or the reverse — is the
+//! That is a claim about BYTES. It is not a claim about structure, and it never
+//! becomes one however many anchors are added: a scan that finds
+//! `const SELECTION_ORDER: … = &["A", "B"]` has established that those bytes are
+//! present somewhere in the text — not that the artifact declares an
+//! implementation, not that the implementation targets the right type, not that
+//! the constant is a member of it, and not that a comment did not put the same
+//! bytes there. The lane is worth having because it costs a string search and
+//! catches a renderer emitting wrong bytes before those bytes reach a compiler.
+//! It is worth having *honestly* only if its claim stays this narrow.
+//!
+//! **Lane B — the structural read** ([`structural`]). The claim lane A cannot
+//! support is structural: what item is this, what does the implementation
+//! target, which trait does it realize, what are its members, and are the cause
+//! rows the declared ones. Answering that means parsing Rust, which the byte
+//! scan deliberately does not do — so the lane hands the text to a parser
+//! nobody here wrote and reads the tree back. Its dependency is admitted in this
+//! package's README, which states what the lane reads, what it refuses to claim,
+//! and which producer components it shares nothing with.
+//!
+//! **Lane C — the compiled behaviour.** `rustc` compiles the rendered artifact
+//! and the test reads its trait constants AS VALUES. There the compiler is the
+//! independent decoder: it parses by its own rules, with no anchor of ours in
+//! the path, and hands back typed values rather than substrings. That lane is
+//! the consumer-fixture parity tests at `xtask/fixtures/macro-consumer` and
+//! `xtask/fixtures/renamed-consumer`, which apply the shell's derive in crates
+//! owning neither participant and compare the derived `SHAPE`,
+//! `SELECTION_ORDER`, and `DECLARED_ORDER` against hand-written twins.
+//!
+//! No lane subsumes another and none is a weaker version of another. **A verdict
+//! is method-specific**, exactly as the machine's evidence law requires:
+//! "the permuted rendering was rejected by the byte scan over these two declared
+//! orders" and "the derived implementation equals its hand-written twin under
+//! compilation" are two claims, each true of its own method and neither standing
+//! in for the other. Reporting one as though it came from another is the
 //! collapse the whole plane exists to refuse.
+//!
+//! # The readers are dumb on purpose, and the reason is not "simplicity"
+//!
+//! A cleverer reader would have to decide what the text MEANS, and the only way
+//! to decide that is to implement the same understanding the renderer already
+//! has. Two implementations of one understanding, written by the same hands
+//! against the same document, agree because they SHARE THE CHALLENGED
+//! IMPLEMENTATION — not because either of them understands Rust. Their agreement
+//! is therefore correlated evidence, and correlated evidence about a renderer is
+//! not independent of that renderer. Lane C escapes this because `rustc` is a
+//! decoder nobody here wrote.
 
+pub mod mutation;
+pub mod structural;
 pub mod types;
 
+pub use mutation::{ARTIFACT_MUTATIONS, ArtifactMutation, LaneOwnership, mutated};
+pub use structural::{
+    ArtifactStructure, CauseRow, DeclaredStructure, ImplementationStructure,
+    StructuralDisagreement, StructuralVerdict, judge_structure, structure_of,
+};
 pub use types::RenderVerdict;
 
 /// The `SELECTION_ORDER` opening this reader looks for.
@@ -45,11 +79,11 @@ pub use types::RenderVerdict;
 /// The anchor is an exact spelling on purpose. Where a lawful artifact stops
 /// matching it, the reader reports [`RenderVerdict::Unreadable`] and the anchor
 /// is re-stated here, deliberately — never loosened to match whatever arrived.
-const SELECTION_ORDER_OPENING: &str = "const SELECTION_ORDER: &'static [&'static str] = &[";
+const SELECTION_ORDER_OPENING: &str = "const SELECTION_ORDER : & 'static [ & 'static str ] = &";
 
 /// The `CauseId` opening this reader looks for. Anchored exactly, for the same
 /// reason.
-const CAUSE_IDENTITY_OPENING: &str = "CauseId::declared(\"";
+const CAUSE_IDENTITY_OPENING: &str = "CauseId :: declared ( \"";
 
 /// The textual selection order one rendering states, or `None` where the
 /// rendering states none.
@@ -59,8 +93,9 @@ pub fn selection_order_in(rendered: &str) -> Option<Vec<String>> {
         .find(SELECTION_ORDER_OPENING)?
         .checked_add(SELECTION_ORDER_OPENING.len())?;
     let tail = rendered.get(start..)?;
+    let open = tail.find('[')?;
     let end = tail.find(']')?;
-    let inner = tail.get(..end)?;
+    let inner = tail.get(open.checked_add(1)?..end)?;
     Some(inner.split(',').filter_map(unquoted).collect())
 }
 
@@ -100,6 +135,10 @@ pub fn cause_identities_in(rendered: &str) -> Vec<String> {
 /// rather than a verdict about content it never read. Callers assert on the
 /// exact verdict they expect; treating `Unreadable` as an acceptable stand-in
 /// for `Conforms` disarms every assertion downstream of it.
+///
+/// **The claim this function supports** is lane A's and only lane A's: the
+/// rendered text contains these exact declared textual forms. It says nothing
+/// about what the artifact declares.
 #[must_use]
 pub fn judge_declared_order(
     rendered: &str,

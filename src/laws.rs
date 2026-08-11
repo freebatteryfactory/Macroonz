@@ -711,10 +711,19 @@ mod identity {
     /// every scope-guard version already in the machine is authored. No existing
     /// guard was replaced to make room for the stamp; this twin is the bar the
     /// stamp has to meet.
+    ///
+    /// Its position field is private, as a hand-written guard's always was. The
+    /// stamp used to be the only guard in the machine emitting that field
+    /// publicly; closing it is the twin's shape reaching the stamp, not a new
+    /// rule reaching both.
     #[derive(Debug, Clone, PartialEq, Eq, Hash)]
     struct HandWrittenDemoVersion(AuthorityPosition<DemoStampScope>);
 
     impl HandWrittenDemoVersion {
+        fn positioned(position: AuthorityPosition<DemoStampScope>) -> Self {
+            Self(position)
+        }
+
         fn try_cmp_same_scope(&self, other: &Self) -> Result<Ordering, OrderComparison> {
             self.0.try_cmp_same_scope(&other.0)
         }
@@ -726,22 +735,29 @@ mod identity {
     /// one scope, same refusal across scopes, same equality, same distinctness.
     /// The stamp adds no comparison of its own — it forwards to the machinery
     /// this home already owns.
+    /// The parity includes the way an instance is made: both are made through a
+    /// named mint over a private position, neither through a public field.
     /// Owed reversal (red twin): comparing two stamped guards over DIFFERENT
     /// scope types must not compile, and neither must `a < b` on one — trybuild
-    /// fixtures in testpak.
+    /// fixtures in testpak. Taking one role's position out and re-entering it
+    /// under another role must not compile either.
     #[test]
     fn a_stamped_scope_guard_matches_its_hand_written_twin() {
         let scope = DemoStampScope(3);
         let elsewhere = DemoStampScope(4);
 
-        let stamped_earlier = StampedDemoVersion(AuthorityPosition::assigned(scope.clone(), 1));
-        let stamped_later = StampedDemoVersion(AuthorityPosition::assigned(scope.clone(), 2));
+        let stamped_earlier =
+            StampedDemoVersion::positioned(AuthorityPosition::assigned(scope.clone(), 1));
+        let stamped_later =
+            StampedDemoVersion::positioned(AuthorityPosition::assigned(scope.clone(), 2));
         let stamped_elsewhere =
-            StampedDemoVersion(AuthorityPosition::assigned(elsewhere.clone(), 1));
+            StampedDemoVersion::positioned(AuthorityPosition::assigned(elsewhere.clone(), 1));
 
-        let twin_earlier = HandWrittenDemoVersion(AuthorityPosition::assigned(scope.clone(), 1));
-        let twin_later = HandWrittenDemoVersion(AuthorityPosition::assigned(scope, 2));
-        let twin_elsewhere = HandWrittenDemoVersion(AuthorityPosition::assigned(elsewhere, 1));
+        let twin_earlier =
+            HandWrittenDemoVersion::positioned(AuthorityPosition::assigned(scope.clone(), 1));
+        let twin_later = HandWrittenDemoVersion::positioned(AuthorityPosition::assigned(scope, 2));
+        let twin_elsewhere =
+            HandWrittenDemoVersion::positioned(AuthorityPosition::assigned(elsewhere, 1));
 
         assert_eq!(
             stamped_earlier.try_cmp_same_scope(&stamped_later),

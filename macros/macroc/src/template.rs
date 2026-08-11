@@ -56,9 +56,9 @@
 
 use crate::origin_graph::Nonclaim;
 use crate::plane::{
-    ApplicationDistinctnessSubject, BoundFormulaSubject, ExactIdentity, FragmentDependencyLimit,
+    ApplicationDistinctnessSubject, BoundFormulaSubject, FragmentDependencyLimit,
     InputDescriptorLimit, InputDescriptorSubject, LanguageProfileSubject, MetaBoundAxisLimit,
-    MetaProfileSubject, OwnerFactRef, ProfileVersion, SourceSnapshotSubject,
+    MetaProfileSubject, OwnerFactRef, OwnerIdentityRef, ProfileVersion, SourceSnapshotSubject,
     TemplateArgumentSubject, TemplateIssueLimit, TemplateParameterLimit, TemplateParameterSubject,
     TemplateSubject,
 };
@@ -109,7 +109,7 @@ pub struct TemplateParameter {
     /// The category of material this hole admits.
     pub category: SpliceCategory,
     /// The parameter's own identity.
-    pub parameter: ExactIdentity<TemplateParameterSubject>,
+    pub parameter: OwnerIdentityRef<TemplateParameterSubject>,
 }
 
 /// One typed commitment offered to fill a hole: which category the material
@@ -122,7 +122,7 @@ pub struct TemplateArgument {
     /// The category of the offered material.
     pub category: SpliceCategory,
     /// The argument's exact commitment.
-    pub commitment: ExactIdentity<TemplateArgumentSubject>,
+    pub commitment: OwnerIdentityRef<TemplateArgumentSubject>,
 }
 
 /// How one binding fails.
@@ -217,12 +217,13 @@ impl TemplateBinding {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SymbolicBoundFormula {
     /// The declared formula, by identity.
-    pub formula: ExactIdentity<BoundFormulaSubject>,
+    pub formula: OwnerIdentityRef<BoundFormulaSubject>,
     /// The owner fact that declares it.
     pub declared_by: OwnerFactRef,
     /// The validated inputs the formula stands over — at least one, by shape:
     /// a formula over nothing bounds nothing.
-    pub over_inputs: NonEmptyBounded<ExactIdentity<InputDescriptorSubject>, InputDescriptorLimit>,
+    pub over_inputs:
+        NonEmptyBounded<OwnerIdentityRef<InputDescriptorSubject>, InputDescriptorLimit>,
 }
 
 /// The closed roster of meta bound axes a profile ceiling covers.
@@ -371,7 +372,7 @@ pub struct CheckedMeterPosture {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct VersionedProfile<Profile> {
     /// The profile.
-    pub profile: ExactIdentity<Profile>,
+    pub profile: OwnerIdentityRef<Profile>,
     /// That profile's version.
     pub version: ProfileVersion,
 }
@@ -398,22 +399,22 @@ pub enum TemplateConstructionIssue {
     /// Two declared holes claim the same parameter identity.
     DuplicateParameter {
         /// The doubled parameter.
-        parameter: ExactIdentity<TemplateParameterSubject>,
+        parameter: OwnerIdentityRef<TemplateParameterSubject>,
     },
     /// A binding names a parameter this template does not declare.
     UnknownParameter {
         /// The unrecognized parameter.
-        parameter: ExactIdentity<TemplateParameterSubject>,
+        parameter: OwnerIdentityRef<TemplateParameterSubject>,
     },
     /// A declared hole was left unbound.
     MissingBinding {
         /// The unbound parameter.
-        parameter: ExactIdentity<TemplateParameterSubject>,
+        parameter: OwnerIdentityRef<TemplateParameterSubject>,
     },
     /// A declared hole was bound more than once.
     DuplicateBinding {
         /// The doubly bound parameter.
-        parameter: ExactIdentity<TemplateParameterSubject>,
+        parameter: OwnerIdentityRef<TemplateParameterSubject>,
     },
     /// A binding names a declared parameter under the wrong category. Distinct
     /// from [`TemplateBindingIssue::CategoryMismatch`], which is the argument
@@ -421,7 +422,7 @@ pub enum TemplateConstructionIssue {
     /// disagreeing with the template's declaration of it.
     DeclaredCategoryDisagreement {
         /// The parameter both sides name.
-        parameter: ExactIdentity<TemplateParameterSubject>,
+        parameter: OwnerIdentityRef<TemplateParameterSubject>,
         /// The category the template declared.
         declared: SpliceCategory,
         /// The category the binding carried.
@@ -509,7 +510,7 @@ impl TemplateConstruction {
 /// template with no hole is a declaration, and the machine already has those.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DeclarationTemplate {
-    identity: ExactIdentity<TemplateSubject>,
+    identity: OwnerIdentityRef<TemplateSubject>,
     parameters: NonEmptyBounded<TemplateParameter, TemplateParameterLimit>,
     formula: SymbolicBoundFormula,
     ceiling: ProfileCeiling,
@@ -527,7 +528,7 @@ impl DeclarationTemplate {
     /// declared magnitude. Two holes under one identity are refused rather than
     /// merged: merging them silently drops one hole's category.
     pub fn declared(
-        identity: ExactIdentity<TemplateSubject>,
+        identity: OwnerIdentityRef<TemplateSubject>,
         first: TemplateParameter,
         rest: Vec<TemplateParameter>,
         formula: SymbolicBoundFormula,
@@ -582,7 +583,7 @@ impl DeclarationTemplate {
 
     /// The template's own identity.
     #[must_use]
-    pub const fn identity(&self) -> ExactIdentity<TemplateSubject> {
+    pub const fn identity(&self) -> OwnerIdentityRef<TemplateSubject> {
         self.identity
     }
 
@@ -648,7 +649,7 @@ pub enum ApplicativeDistinctness {
     Applicative,
     /// Deliberately distinct from an otherwise identical application, under
     /// this declared distinctness identity.
-    DeliberatelyDistinct(ExactIdentity<ApplicationDistinctnessSubject>),
+    DeliberatelyDistinct(OwnerIdentityRef<ApplicationDistinctnessSubject>),
 }
 
 /// One application of one template: which template, the canonical argument
@@ -669,7 +670,7 @@ pub enum ApplicativeDistinctness {
 /// same bindings supplied in another order must yield the same application.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TemplateApplication {
-    template: ExactIdentity<TemplateSubject>,
+    template: OwnerIdentityRef<TemplateSubject>,
     bindings: NonEmptyBounded<TemplateBinding, TemplateParameterLimit>,
     language_profile: VersionedProfile<LanguageProfileSubject>,
     meta_profile: VersionedProfile<MetaProfileSubject>,
@@ -764,7 +765,7 @@ impl TemplateApplication {
 
     /// The template applied.
     #[must_use]
-    pub const fn template(&self) -> ExactIdentity<TemplateSubject> {
+    pub const fn template(&self) -> OwnerIdentityRef<TemplateSubject> {
         self.template
     }
 
@@ -821,20 +822,20 @@ impl TemplateApplication {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TemplateInvocationKey {
     /// The template's semantic identity.
-    pub template: ExactIdentity<TemplateSubject>,
+    pub template: OwnerIdentityRef<TemplateSubject>,
     /// The validated input descriptors this invocation commits to.
-    pub inputs: Bounded<ExactIdentity<InputDescriptorSubject>, InputDescriptorLimit>,
+    pub inputs: Bounded<OwnerIdentityRef<InputDescriptorSubject>, InputDescriptorLimit>,
     /// The exact source snapshot the invocation was read against.
-    pub source_snapshot: ExactIdentity<SourceSnapshotSubject>,
+    pub source_snapshot: OwnerIdentityRef<SourceSnapshotSubject>,
     /// The declaration fragments this invocation depends on.
     pub fragment_dependencies:
-        Bounded<ExactIdentity<FragmentIdentityDomain>, FragmentDependencyLimit>,
+        Bounded<OwnerIdentityRef<FragmentIdentityDomain>, FragmentDependencyLimit>,
     /// The language profile and version.
     pub language_profile: VersionedProfile<LanguageProfileSubject>,
     /// The meta profile and version.
     pub meta_profile: VersionedProfile<MetaProfileSubject>,
     /// The configuration commitment in force.
-    pub configuration: ExactIdentity<ProjectionConfigurationDomain>,
+    pub configuration: OwnerIdentityRef<ProjectionConfigurationDomain>,
 }
 
 /// The closed roster of facts that never participate in an invocation key.

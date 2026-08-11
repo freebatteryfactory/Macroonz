@@ -50,6 +50,14 @@ machinery this home already owns. Rust exports `macro_rules!` at the crate root;
 that is Rust's macro namespacing rule and not a root admission of a semantic
 noun, because the stamp declares no type of its own.
 
+The stamped position is private, exactly as a hand-written guard's always was,
+and the stamp emits one road in and none out: `positioned` reads a position the
+caller already holds under this role, and no accessor hands it back. A role
+whose representation could be taken out and re-entered under another role would
+be a label rather than a wall, so both directions refuse from outside the
+module the stamp expanded in — and the refusal is proven over ONE scope type,
+where nothing about the scope is helping.
+
 Every scope-guard already written by hand stays written by hand. The stamp is
 proven against one of them, not substituted for them.
 
@@ -93,4 +101,8 @@ obligations:
     challenge_kind: compile-law
     green: laws.rs identity::a_stamped_scope_guard_matches_its_hand_written_twin
     red: testpak/tests/compile-fail/cross-scope-comparison-on-a-stamped-guard.rs
+  - id: identity.stamped-representation-cannot-be-laundered
+    challenge_kind: compile-refusal
+    green: laws.rs identity::a_stamped_scope_guard_matches_its_hand_written_twin
+    red: testpak/tests/compile-fail/a-stamped-representation-cannot-be-laundered.rs
 ```

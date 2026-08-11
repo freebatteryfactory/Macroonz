@@ -23,7 +23,7 @@
 //! subjects and owner facts by identity, and identities carry no spelling.
 
 use crate::plane::{
-    ExactIdentity, NonclaimSubject, OriginEdgeLimit, OriginNodeSubject, OwnerFactRef,
+    NonclaimSubject, OriginEdgeLimit, OriginNodeSubject, OwnerFactRef, ProjectionIdentity,
     TraceEntryLimit, TracedSubject,
 };
 use crate::refusal::{BoundAxis, ProjectionPlanning};
@@ -87,11 +87,11 @@ pub const ORIGIN_RELATIONS: [OriginRelation; 14] = [
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct OriginEdge {
     /// The node the relation starts at.
-    pub from: ExactIdentity<OriginNodeSubject>,
+    pub from: ProjectionIdentity<OriginNodeSubject>,
     /// The ruled relation this edge stands for.
     pub relation: OriginRelation,
     /// The node the relation produces.
-    pub to: ExactIdentity<OriginNodeSubject>,
+    pub to: ProjectionIdentity<OriginNodeSubject>,
 }
 
 /// The origin trail every generated unit carries: a bounded, structurally
@@ -171,7 +171,7 @@ pub enum TraceDecision {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TraceEntry {
     /// The subject decided about.
-    pub subject: ExactIdentity<TracedSubject>,
+    pub subject: ProjectionIdentity<TracedSubject>,
     /// What was decided, and on whose fact.
     pub decision: TraceDecision,
 }
@@ -238,7 +238,7 @@ impl DecisionTrace {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Nonclaim {
     /// The subject the plan makes no claim about.
-    pub unclaimed: ExactIdentity<NonclaimSubject>,
+    pub unclaimed: ProjectionIdentity<NonclaimSubject>,
     /// The owner fact that leaves it unclaimed.
     pub because: OwnerFactRef,
 }

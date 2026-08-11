@@ -34,8 +34,8 @@
 //! shape above is the check, written down.
 
 use crate::plane::{
-    CompositionIssueLimit, DescriptorProviderLimit, DescriptorProviderSubject, ExactIdentity,
-    OwnerFactRef,
+    CompositionIssueLimit, DescriptorProviderLimit, DescriptorProviderSubject, OwnerFactRef,
+    OwnerIdentityRef,
 };
 use threadpak::refusal::{CompletionPosture, FamilyShape, RefusalFamily, StopBound};
 use threadpak::types::{ConstLimit, NonEmptyBounded, NonEmptyBoundedConstruction};
@@ -80,7 +80,7 @@ pub const DESCRIPTOR_KINDS: [DescriptorKind; 6] = [
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DescriptorProvider {
     /// The provider's own identity.
-    pub provider: ExactIdentity<DescriptorProviderSubject>,
+    pub provider: OwnerIdentityRef<DescriptorProviderSubject>,
     /// The owning home whose fact this provider derives from.
     pub home: OwnerFactRef,
     /// The kind of descriptor material it composes.
@@ -93,7 +93,7 @@ pub enum CompositionRootIssue {
     /// One provider identity is declared more than once.
     DuplicateProvider {
         /// The doubled provider.
-        provider: ExactIdentity<DescriptorProviderSubject>,
+        provider: OwnerIdentityRef<DescriptorProviderSubject>,
     },
     /// The provider seat outran its declared magnitude.
     SeatBoundExceeded {

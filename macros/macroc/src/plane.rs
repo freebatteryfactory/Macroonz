@@ -1,21 +1,29 @@
-//! The metaprogramming plane's shared carriers: exact-identity references,
+//! The metaprogramming plane's shared carriers: the two identity families,
 //! owner-fact references, profile versions, bounded human projections, and the
 //! plane's declared limit families.
 //!
-//! # Why the plane references identities instead of minting them
+//! # Two identity families, and neither can stand in for the other
 //!
-//! The machine's identity home mints identities; the services never do. Every
-//! identity a plan carries therefore arrives as an [`ExactIdentity`] — a
-//! reference in the identity's own declared raw-byte storage order, tagged by
-//! the subject it names so two subjects never unify at compile time. The
-//! production road is [`ExactIdentity::of_commitment`], which reads a machine
+//! **[`OwnerIdentityRef`] is a read-only lens on an identity the MACHINE
+//! minted.** The machine's identity home mints; the services never do. A lens
+//! arrives through [`OwnerIdentityRef::of_commitment`], which reads a machine
 //! commitment's published bytes and adapts nothing: identity, schema, authority,
 //! bounds, and meaning cross unchanged, which is exactly what a projection is
-//! allowed to do. Neither the commitment road nor the reason road grants
-//! anything: a plane reference admits no operation, carries no authority, and is
-//! never accepted by the machine as a mint. There is no public raw-byte road at
-//! all — the one byte seam is crate-internal and named for the decoder it is
-//! waiting for.
+//! allowed to do. Holding one means only "the compiler refers exactly to this
+//! owner identity" — nothing about admission, authority, freshness, or
+//! equivalence. There is no public raw-byte road at all.
+//!
+//! **[`ProjectionIdentity`] is an identity the COMPILER PLANE owns.** Plans,
+//! origin nodes, rendered units, generated units, and bundles are the plane's
+//! own material: the machine has no opinion about them and mints nothing for
+//! them, so the plane names them itself. Every one is derived deterministically
+//! from an explicit typed [`ProjectionPreimage`] that is recorded inside the
+//! identity, so the question "where did this identity come from?" is answered by
+//! reading the value rather than by trusting the producer.
+//!
+//! The two families are different types over different subject markers and
+//! neither converts to the other. A plane identity is never accepted by the
+//! machine as a mint, and an owner lens is never derived by the plane.
 //!
 //! # Human text is never load-bearing
 //!
@@ -154,6 +162,19 @@ subjects! {
     ApplicationDistinctnessSubject,
     /// One declared provider of descriptor material.
     DescriptorProviderSubject,
+    /// One captured declaration, as the compiler plane read it. Distinct from
+    /// the machine's declaration fragment: the fragment is a linked artifact the
+    /// machine owns, while this names exactly the token material one expansion
+    /// was handed, before anything was linked at all.
+    CapturedDeclarationSubject,
+    /// One rendered unit — the thing a renderer actually materialized, as
+    /// opposed to the generated unit a plan declared it would.
+    RenderedUnitSubject,
+    /// One proved closure between a plan's declared membership and the units a
+    /// renderer actually produced.
+    ClosureSubject,
+    /// One closed expansion: the whole receipt one live compilation produced.
+    ClosedExpansionSubject,
 }
 
 limits! {
@@ -165,7 +186,7 @@ limits! {
     MembershipLimit = 32,
     /// Invalidation triggers one plan may watch — the trigger roster's own
     /// cardinality, since one trigger per kind is all that can be watched.
-    InvalidationLimit = 8,
+    InvalidationLimit = 9,
     /// Entries one decision trace may record.
     TraceEntryLimit = 128,
     /// Origin edges one trail may draw.
@@ -235,6 +256,19 @@ limits! {
     /// Causes one captured refusal family may declare. Past this the capture
     /// refuses rather than truncating a family's cause set.
     DeriveCauseLimit = 64,
+    /// Token trees one captured input may carry at any one nesting level. A
+    /// declared input has a declared magnitude; past this the capture refuses
+    /// rather than walking an unbounded tree.
+    CapturedTokenLimit = 4096,
+    /// Bytes one rendered unit may carry. A renderer that would emit past this
+    /// refuses rather than materializing part of a unit.
+    RenderedByteLimit = 65536,
+    /// Tokens one generated token tree may carry at any one nesting level.
+    GeneratedTokenLimit = 4096,
+    /// Issues one closure refusal body may carry: at most one per planned member
+    /// seat plus one per unplanned rendered unit, which is twice the membership
+    /// bound.
+    ClosureIssueLimit = 64,
 }
 
 /// A reference to one exact machine identity, tagged by the subject it names.
@@ -248,14 +282,14 @@ limits! {
 /// # The walls, all structural
 ///
 /// 1. **No public raw-byte constructor.** The only public roads are
-///    [`ExactIdentity::of_commitment`] and [`ExactIdentity::of_reason`], each of
+///    [`OwnerIdentityRef::of_commitment`] and [`OwnerIdentityRef::of_reason`], each of
 ///    which reads an identity the machine already minted. The byte seam
 ///    (`decoded`) is crate-internal, awaiting the real decoder.
 /// 2. **No cross-subject substitution.** `Subject` is a `PhantomData`
 ///    parameter, so a reference naming one subject is a different type than a
 ///    reference naming another regardless of bytes, and neither coerces to the
 ///    other.
-/// 3. **No subject-erasing conversion.** [`ExactIdentity::as_bytes`] hands back
+/// 3. **No subject-erasing conversion.** [`OwnerIdentityRef::as_bytes`] hands back
 ///    a borrow for comparison and rendering, and re-wrapping those bytes under
 ///    a different subject is *unrepresentable outside this crate* precisely
 ///    because there is no public byte constructor to wrap them with.
@@ -266,12 +300,12 @@ limits! {
 /// The value carries the identity's declared raw-byte storage order and nothing
 /// else — no availability, no version, no authority.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ExactIdentity<Subject> {
+pub struct OwnerIdentityRef<Subject> {
     bytes: [u8; 32],
     _subject: PhantomData<Subject>,
 }
 
-impl<Subject> ExactIdentity<Subject> {
+impl<Subject> OwnerIdentityRef<Subject> {
     /// The production road: project one machine commitment into the plane. The
     /// commitment's domain is the reference's subject, so a commitment over one
     /// domain cannot become a reference naming another. Nothing is adapted —
@@ -314,7 +348,7 @@ impl<Subject> ExactIdentity<Subject> {
     }
 }
 
-impl ExactIdentity<RefusalReason> {
+impl OwnerIdentityRef<RefusalReason> {
     /// Project one registered refusal reason into the plane. A diagnostic names
     /// the reason the machine registered; it never registers one.
     #[must_use]
@@ -323,18 +357,81 @@ impl ExactIdentity<RefusalReason> {
     }
 }
 
+/// One owning home and one fact it declares, named by their declared stable
+/// names rather than by minted identity.
+///
+/// This is a REFERENCE to an owner fact and never a second answer to it. The
+/// plane reads the names the owning home wrote down; it derives nothing from
+/// them, decides nothing by them, and mints no identity to stand where the
+/// machine's would be.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct OwnerFactName {
+    /// The owning semantic home, by its declared name.
+    pub home: &'static str,
+    /// The fact that home declares, by its declared stable name.
+    pub fact: &'static str,
+}
+
 /// A typed reference naming the owning band fact that caused a decision.
 ///
 /// Every selection, omission, exclusion, and non-applicability in the plane
 /// cites one of these. A bare boolean would say a decision happened without
 /// saying whose fact decided it, which is exactly the explanation the plane
 /// owes.
+///
+/// # Two postures, and neither is silence
+///
+/// The machine mints fact identities inside its own homes. Where a caller HOLDS
+/// those identities, a citation carries them exactly
+/// ([`OwnerFactRef::Minted`]). Where a caller does not — and an expansion shell
+/// running inside `rustc` does not, because nothing has been linked and no home
+/// has published an identity to it — the citation names the home and the fact by
+/// their declared stable names ([`OwnerFactRef::Declared`]).
+///
+/// The second posture is a reference, not a substitute. The plane does not mint
+/// an identity to fill the gap, because a plane-minted "owner fact identity"
+/// would be a second value independently answering the owner's question, which
+/// the services are forbidden to create. Naming the fact is what a deriver is
+/// allowed to do; minting one is not.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct OwnerFactRef {
-    /// The owning semantic home.
-    pub home: ExactIdentity<OwnerHomeSubject>,
-    /// The exact fact that home declares.
-    pub fact: ExactIdentity<OwnerFactSubject>,
+pub enum OwnerFactRef {
+    /// The machine's own identities for the home and the fact.
+    Minted {
+        /// The owning semantic home.
+        home: OwnerIdentityRef<OwnerHomeSubject>,
+        /// The exact fact that home declares.
+        fact: OwnerIdentityRef<OwnerFactSubject>,
+    },
+    /// The home and the fact by their declared stable names.
+    Declared(OwnerFactName),
+}
+
+impl OwnerFactRef {
+    /// Cite one owner fact by the declared names its home wrote down.
+    #[must_use]
+    pub const fn named(home: &'static str, fact: &'static str) -> Self {
+        Self::Declared(OwnerFactName { home, fact })
+    }
+
+    /// The canonical bytes of this citation, for a preimage to be taken over.
+    #[must_use]
+    pub fn citation_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        match self {
+            Self::Minted { home, fact } => {
+                bytes.push(0);
+                bytes.extend_from_slice(home.as_bytes());
+                bytes.extend_from_slice(fact.as_bytes());
+            }
+            Self::Declared(named) => {
+                bytes.push(1);
+                bytes.extend_from_slice(named.home.as_bytes());
+                bytes.push(b'.');
+                bytes.extend_from_slice(named.fact.as_bytes());
+            }
+        }
+        bytes
+    }
 }
 
 /// One version of one projection profile: a position in that profile's own
@@ -378,7 +475,48 @@ impl<L: ConstLimit> HumanProjection<L> {
     pub fn projected(text: &str) -> Result<Self, BoundedConstruction> {
         Bounded::admitted_const(text.as_bytes().to_vec()).map(|text| Self { text })
     }
+
+    /// The seam behind [`human_projection!`], which is the only road to it.
+    ///
+    /// It takes text whose length the CALLER already proved against `L::MAX` in
+    /// a `const` block, so there is no runtime check here and no refusal to
+    /// return. Reaching it without that proof is the one thing the macro exists
+    /// to prevent, which is why the seam is crate-internal.
+    #[must_use]
+    pub(crate) fn proven(text: &'static str) -> Self {
+        Self {
+            text: Bounded::admitted_const(text.as_bytes().to_vec()).unwrap_or_else(|_| {
+                // Unreachable by the macro's compile-time proof; the total road
+                // is taken rather than a panic, because a projection that
+                // somehow did not fit must still not stop the compiler.
+                Bounded::empty()
+            }),
+        }
+    }
 }
+
+/// Projects one STATIC rendering, proving at COMPILE TIME that it fits the named
+/// limit family.
+///
+/// This is the total road. `HumanProjection::projected` reads a runtime length
+/// and may refuse, and a caller that swallowed that refusal with an empty
+/// fallback would be silently deleting an explanation — which is exactly the
+/// defect this macro exists to make unrepresentable. Where the material is
+/// static, the length is a compile-time fact, so it is proven at compile time
+/// and the refusal road never appears.
+macro_rules! human_projection {
+    ($limit:ty, $text:literal) => {{
+        const {
+            ::core::assert!(
+                $text.len() <= <$limit as ::threadpak::types::ConstLimit>::MAX,
+                "a static human projection longer than its limit family admits",
+            );
+        }
+        $crate::plane::HumanProjection::<$limit>::proven($text)
+    }};
+}
+
+pub(crate) use human_projection;
 
 impl<L: Limit> HumanProjection<L> {
     /// The empty rendering. Total: nothing exceeds any bound, and a caller with
@@ -401,4 +539,379 @@ impl<L: Limit> HumanProjection<L> {
     pub fn is_empty(&self) -> bool {
         self.text.is_empty()
     }
+
+    /// The rendering, for a caller to SHOW a person.
+    ///
+    /// This is the one lawful use of the bytes and it is a one-way road out of
+    /// the plane. Nothing inside the plane calls it: no decision, no identity,
+    /// and no refusal consults a human projection, and none ever will. A
+    /// frontend that must put a sentence in front of somebody calls this, and
+    /// that is what the type exists for.
+    #[must_use]
+    pub fn shown(&self) -> String {
+        let bytes: Vec<u8> = self.text.iter().copied().collect();
+        String::from_utf8_lossy(&bytes).into_owned()
+    }
+}
+
+// ---------------------------------------------------------------------------
+// The compiler plane's own identities.
+// ---------------------------------------------------------------------------
+
+/// The closed roster of roles a plane identity may stand for.
+///
+/// The role is part of the preimage, so two identities derived from the same
+/// anchor under different roles are different identities by construction rather
+/// than by convention. A role that means something else is a law change, not a
+/// new string.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ProjectionRole {
+    /// The token material one expansion was handed.
+    CapturedDeclaration,
+    /// One projection plan.
+    Plan,
+    /// One node of the origin graph.
+    OriginNode,
+    /// One generated unit a plan declares it will materialize.
+    GeneratedUnit,
+    /// One rendered unit a renderer actually materialized.
+    RenderedUnit,
+    /// The canonical bytes of one rendered unit.
+    OutputBytes,
+    /// One bundle materialized across a single publication boundary.
+    Bundle,
+    /// One proved closure between a plan and its rendering.
+    Closure,
+    /// One closed expansion.
+    ClosedExpansion,
+}
+
+/// The declared role roster, in the order the plane states it.
+pub const PROJECTION_ROLES: [ProjectionRole; 9] = [
+    ProjectionRole::CapturedDeclaration,
+    ProjectionRole::Plan,
+    ProjectionRole::OriginNode,
+    ProjectionRole::GeneratedUnit,
+    ProjectionRole::RenderedUnit,
+    ProjectionRole::OutputBytes,
+    ProjectionRole::Bundle,
+    ProjectionRole::Closure,
+    ProjectionRole::ClosedExpansion,
+];
+
+impl ProjectionRole {
+    /// The role's position in the declared roster — the byte the preimage
+    /// encoding carries for it.
+    #[must_use]
+    pub const fn slot(self) -> u8 {
+        match self {
+            Self::CapturedDeclaration => 0,
+            Self::Plan => 1,
+            Self::OriginNode => 2,
+            Self::GeneratedUnit => 3,
+            Self::RenderedUnit => 4,
+            Self::OutputBytes => 5,
+            Self::Bundle => 6,
+            Self::Closure => 7,
+            Self::ClosedExpansion => 8,
+        }
+    }
+}
+
+/// The typed compiler-plane preimage one [`ProjectionIdentity`] is derived from.
+///
+/// Four recorded facts, and every one of them is readable back off the identity:
+///
+/// 1. the **role** the identity stands for;
+/// 2. the **anchor fold** — the plane's fold over the declared bytes of the
+///    identity this one is derived under, whether that is an owner lens or
+///    another plane identity;
+/// 3. the **content fold** — the plane's fold over the varying material (a
+///    family name, a rendered byte sequence, a role word);
+/// 4. the **position** the identity holds inside its anchor's declared sequence.
+///
+/// # What the record does and does not carry
+///
+/// The role and the position are carried exactly. The anchor and the content are
+/// carried as FOLDS and not as themselves, because a preimage rides inside every
+/// plan and every refusal body in the plane and neither of those may carry an
+/// unbounded value. That is a stated limit of the provenance this record leaves,
+/// not a hidden one: reading a preimage back tells you what role, at which
+/// position, under a fold of which anchor, over a fold of which content — it
+/// hands back neither the anchor nor the content.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ProjectionPreimage {
+    role: ProjectionRole,
+    anchor: [u8; 8],
+    content: [u8; 8],
+    position: u32,
+}
+
+impl ProjectionPreimage {
+    /// Derive under an identity the MACHINE minted.
+    #[must_use]
+    pub fn under_owner<Subject>(
+        role: ProjectionRole,
+        anchor: &OwnerIdentityRef<Subject>,
+        content: &[u8],
+        position: u32,
+    ) -> Self {
+        Self {
+            role,
+            anchor: folded(anchor.as_bytes()),
+            content: folded(content),
+            position,
+        }
+    }
+
+    /// Derive under another identity the PLANE owns.
+    #[must_use]
+    pub fn under_projection<Subject>(
+        role: ProjectionRole,
+        anchor: &ProjectionIdentity<Subject>,
+        content: &[u8],
+        position: u32,
+    ) -> Self {
+        Self {
+            role,
+            anchor: folded(anchor.as_bytes()),
+            content: folded(content),
+            position,
+        }
+    }
+
+    /// Derive under no anchor at all — the root of one plane's derivation chain,
+    /// where the content IS the whole preimage. The captured declaration is the
+    /// only thing that stands here: everything else in a plan hangs off it.
+    #[must_use]
+    pub fn rooted(role: ProjectionRole, content: &[u8], position: u32) -> Self {
+        Self {
+            role,
+            anchor: [0u8; 8],
+            content: folded(content),
+            position,
+        }
+    }
+
+    /// The role this preimage stands for.
+    #[must_use]
+    pub const fn role(&self) -> ProjectionRole {
+        self.role
+    }
+
+    /// The fold over the declared bytes of the identity this preimage is derived
+    /// under.
+    #[must_use]
+    pub const fn anchor(&self) -> &[u8; 8] {
+        &self.anchor
+    }
+
+    /// The fold over the varying material.
+    #[must_use]
+    pub const fn content(&self) -> &[u8; 8] {
+        &self.content
+    }
+
+    /// The position inside the anchor's declared sequence.
+    #[must_use]
+    pub const fn position(&self) -> u32 {
+        self.position
+    }
+
+    /// The preimage's canonical byte encoding — role slot, anchor, content fold,
+    /// and position, each at a fixed width and in a fixed order.
+    fn encoded(&self) -> [u8; 21] {
+        let mut encoded = [0u8; 21];
+        if let Some(window) = encoded.get_mut(0..1) {
+            window.copy_from_slice(&[self.role.slot()]);
+        }
+        if let Some(window) = encoded.get_mut(1..9) {
+            window.copy_from_slice(&self.anchor);
+        }
+        if let Some(window) = encoded.get_mut(9..17) {
+            window.copy_from_slice(&self.content);
+        }
+        if let Some(window) = encoded.get_mut(17..21) {
+            window.copy_from_slice(&self.position.to_be_bytes());
+        }
+        encoded
+    }
+}
+
+/// The eight-byte fold of one byte sequence — the width a preimage records an
+/// anchor and a content at.
+///
+/// Eight bytes rather than thirty-two because a preimage rides inside every
+/// refusal body in the plane, and the rarest issue must not set the size of
+/// every seam. The nonclaim is the fold's own and is not weakened by the
+/// narrower width: collision resistance was never claimed at any width.
+fn folded(material: &[u8]) -> [u8; 8] {
+    let tag = provenance_tag(&[material]);
+    let mut narrow = [0u8; 8];
+    if let Some(window) = tag.get(0..8) {
+        narrow.copy_from_slice(window);
+    }
+    narrow
+}
+
+/// The plane's in-house deterministic byte fold.
+///
+/// # This is a PROVENANCE TAG, and it is NOT a cryptographic commitment
+///
+/// The nonclaim is stated here rather than implied: **collision resistance is
+/// not claimed.** Two different preimages may in principle fold to one tag, and
+/// nothing in the plane treats a tag as evidence that two things are the same
+/// thing. A tag exists so that a plane identity is DETERMINISTIC and traceable —
+/// the same declared input yields the same identities on every machine and every
+/// run — and for nothing else. Where the machine needs a commitment, the machine
+/// mints one; the plane never substitutes this for it.
+///
+/// A real digest for tooling is a mechanism admission the repository owner has
+/// not made. Until that admission exists this fold stands, self-contained, with
+/// no dependency edge bought for it.
+///
+/// The fold is four independent lanes of an FNV-1a-shaped mix, each seeded
+/// differently and each length-prefixed per part, so a tag is stable under
+/// nothing but the exact parts it was taken over.
+#[must_use]
+pub fn provenance_tag(parts: &[&[u8]]) -> [u8; 32] {
+    /// The lane seed.
+    const OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+    /// The lane multiplier.
+    const PRIME: u64 = 0x0000_0100_0000_01b3;
+    /// The per-lane separation constant.
+    const LANE_STEP: u64 = 0x9e37_79b9_7f4a_7c15;
+
+    let mut tag = [0u8; 32];
+    for (lane, window) in tag.chunks_exact_mut(8).enumerate() {
+        let seed = u64::try_from(lane).unwrap_or(0).wrapping_mul(LANE_STEP);
+        let mut state = OFFSET ^ seed;
+        for part in parts {
+            let length = u64::try_from(part.len()).unwrap_or(u64::MAX);
+            state = (state ^ length).wrapping_mul(PRIME);
+            for byte in *part {
+                state = (state ^ u64::from(*byte)).wrapping_mul(PRIME);
+            }
+        }
+        window.copy_from_slice(&state.to_be_bytes());
+    }
+    tag
+}
+
+/// One identity the COMPILER PLANE owns, tagged by the subject it names.
+///
+/// # What holding one means
+///
+/// It means the plane derived this identity from the recorded
+/// [`ProjectionPreimage`], deterministically, and would derive the same one
+/// again from the same preimage. It means nothing about the machine: the machine
+/// mints no plane identity and accepts none.
+///
+/// # The walls
+///
+/// 1. **No raw-byte constructor at all.** The only road is
+///    [`ProjectionIdentity::derived`], which takes a typed preimage. There is no
+///    public or crate-internal seam that wraps arbitrary bytes.
+/// 2. **No cross-subject substitution.** `Subject` is a `PhantomData` parameter,
+///    so an identity naming one subject is a different type than one naming
+///    another regardless of bytes.
+/// 3. **No conversion to or from [`OwnerIdentityRef`].** The two families answer
+///    different questions and neither is reachable from the other.
+/// 4. **No `Ord`.** Plane identities are never ranked.
+///
+/// # The provenance nonclaim
+///
+/// The bytes are a [`provenance_tag`], not a commitment. Collision resistance is
+/// not claimed — see the fold's own documentation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ProjectionIdentity<Subject> {
+    tag: [u8; 32],
+    preimage: ProjectionPreimage,
+    _subject: PhantomData<Subject>,
+}
+
+impl<Subject> ProjectionIdentity<Subject> {
+    /// Derive one plane identity from its typed preimage. Deterministic and
+    /// total: every preimage names an identity.
+    #[must_use]
+    pub fn derived(preimage: ProjectionPreimage) -> Self {
+        Self {
+            tag: provenance_tag(&[&preimage.encoded()]),
+            preimage,
+            _subject: PhantomData,
+        }
+    }
+
+    /// The provenance tag. Not a commitment — see [`provenance_tag`].
+    #[must_use]
+    pub const fn as_bytes(&self) -> &[u8; 32] {
+        &self.tag
+    }
+
+    /// The recorded preimage this identity was derived from.
+    #[must_use]
+    pub const fn preimage(&self) -> &ProjectionPreimage {
+        &self.preimage
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Rendered roles.
+// ---------------------------------------------------------------------------
+
+/// The closed roster of rendered units one projection kind materializes.
+///
+/// A kind declares this roster once, and the closure check reads it: a rendered
+/// unit is matched to a planned member by ROLE, so "the family implementation"
+/// and "the cause-order implementation" are different seats rather than two
+/// entries in an ordered list nobody can tell apart. A rendering that produced
+/// the right number of units in the wrong roles is caught by the role, not by a
+/// count.
+pub trait RenderedRole: Copy + PartialEq + Eq + core::fmt::Debug + Sized + 'static {
+    /// The complete roster, in the order the kind states it.
+    const ROLES: &'static [Self];
+
+    /// This role's position in the roster. Part of every preimage derived for
+    /// the role, so two roles never derive one identity.
+    fn slot(self) -> u32;
+
+    /// The role rendered for a person. A projection: nothing reads it back.
+    fn described(self) -> &'static str;
+}
+
+/// The one-unit rendered roster, for kinds that materialize exactly one unit.
+///
+/// Not a placeholder and not an absence: a kind whose rendering is one unit says
+/// so with a roster of one, and the closure check over it is the same check.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SoleRenderedUnit {
+    /// The kind's one rendered unit.
+    Sole,
+}
+
+impl RenderedRole for SoleRenderedUnit {
+    const ROLES: &'static [Self] = &[Self::Sole];
+
+    fn slot(self) -> u32 {
+        0
+    }
+
+    fn described(self) -> &'static str {
+        "the kind's one rendered unit"
+    }
+}
+
+/// One plane identity minted for the proof surface alone.
+///
+/// Test-gated on purpose. The laws need distinguishable identities without
+/// having a captured declaration to derive them from, and this road exists
+/// nowhere else: a production caller derives from a real preimage or has no
+/// identity at all.
+#[cfg(test)]
+pub(crate) fn for_laws<Subject>(tag: u8) -> ProjectionIdentity<Subject> {
+    ProjectionIdentity::derived(ProjectionPreimage::rooted(
+        ProjectionRole::Plan,
+        &[tag],
+        u32::from(tag),
+    ))
 }

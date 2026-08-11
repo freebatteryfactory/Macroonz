@@ -19,10 +19,11 @@
 //! the program promised.
 
 use crate::plane::{
-    ContractSubject, ExactIdentity, ExpansionSurfaceSubject, FixturePopulationSubject,
-    HumanProjection, HumanTextLimit, OwnerFactRef, RefusalFamilySubject, RefusalReason,
-    RelatedIssueLimit, RelatedIssueSubject, RepairLimit, ServiceEntrySubject,
+    ContractSubject, ExpansionSurfaceSubject, FixturePopulationSubject, HumanProjection,
+    HumanTextLimit, OwnerFactRef, OwnerIdentityRef, ProjectionIdentity, RefusalFamilySubject,
+    RefusalReason, RelatedIssueLimit, RelatedIssueSubject, RepairLimit, ServiceEntrySubject,
 };
+use crate::token::SpanHandle;
 use threadpak::declaration::SourceCoordinate;
 use threadpak::declaration::types::{FragmentIdentityDomain, LinkedGraphDomain, SymbolDomain};
 use threadpak::evidence::CauseDisposition;
@@ -96,17 +97,17 @@ pub enum ReproductionRoute {
     /// proc-macro at all.
     CallableServices {
         /// The entry point.
-        entry: ExactIdentity<ServiceEntrySubject>,
+        entry: ProjectionIdentity<ServiceEntrySubject>,
     },
     /// Expand through the Rust-facing shell's surface.
     ExpansionShell {
         /// The expansion surface.
-        surface: ExactIdentity<ExpansionSurfaceSubject>,
+        surface: ProjectionIdentity<ExpansionSurfaceSubject>,
     },
     /// Replay against a recorded fixture population.
     RecordedFixture {
         /// The recorded population.
-        population: ExactIdentity<FixturePopulationSubject>,
+        population: ProjectionIdentity<FixturePopulationSubject>,
     },
 }
 
@@ -119,43 +120,102 @@ pub enum ReleasePosture {
     /// A released artifact covers this subject.
     UnderReleasePromise {
         /// The exact released artifact.
-        artifact: ExactIdentity<ReleaseArtifactDomain>,
+        artifact: OwnerIdentityRef<ReleaseArtifactDomain>,
     },
     /// No release promise covers this subject.
     NoReleasePromise,
 }
 
+/// The machine's own identities for one observation.
+///
+/// Every seat here names something the machine minted. A caller that holds them
+/// supplies them; nothing in the plane derives one.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MachineAnchors {
+    /// The registered reason, as the machine's refusal home published it.
+    pub reason: OwnerIdentityRef<RefusalReason>,
+    /// The refusal family that owns the reason.
+    pub family: OwnerIdentityRef<RefusalFamilySubject>,
+    /// The declaring symbol.
+    pub declaration: OwnerIdentityRef<SymbolDomain>,
+    /// The declaration fragment involved.
+    pub fragment: OwnerIdentityRef<FragmentIdentityDomain>,
+    /// The closed graph the observation was made against.
+    pub graph: OwnerIdentityRef<LinkedGraphDomain>,
+}
+
+/// Whether one diagnostic is anchored in the machine's own identities.
+///
+/// # Not a hole, and not an optional seat
+///
+/// A diagnostic raised where the caller holds the machine's identities carries
+/// them exactly. A diagnostic raised INSIDE AN EXPANSION does not: at that seam
+/// nothing has been linked, no fragment exists, no graph exists, and no reason
+/// has been registered to the compiler plane. The honest answer is to say so.
+///
+/// The plane refuses the alternative. Minting a stand-in "reason identity" or a
+/// stand-in "graph identity" would be creating a second value that independently
+/// answers a question the machine owns — exactly what a deriver may never do.
+/// So the seat states the posture instead, and a reader can tell an anchored
+/// diagnostic from an unanchored one without reading anything else.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum MachineAnchoring {
+    /// The machine's identities, as the caller held them. Boxed because a
+    /// diagnostic travels by value and the anchored posture must not set the
+    /// size of the unanchored one.
+    Anchored(Box<MachineAnchors>),
+    /// No machine identity stands here, because none exists at this seam yet.
+    /// The plane names the posture and mints nothing to fill the seat.
+    UnmintedAtThisSeam,
+}
+
+/// Where one diagnostic points.
+///
+/// Two seats, and the first is the load-bearing one. The **token handle** names
+/// the offending token in the producer's own span table, so whoever produced the
+/// input can put a compiler error on exactly that token rather than on the first
+/// token of the declaration. The **coordinate** is that position rendered in
+/// whatever coordinate role the producer speaks — a byte offset where the input
+/// was read from text, and the handle's own index where the producer holds the
+/// compiler's spans itself.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DiagnosticSite {
+    /// The offending token.
+    pub token: SpanHandle,
+    /// Where that token sits, in the producer's coordinate role.
+    pub coordinate: SourceCoordinate,
+}
+
 /// One diagnostic from the services.
 ///
-/// Every seat is required. A diagnostic that could omit its phase, its
-/// coordinate, its expected contract, or its cause posture would be a
-/// diagnostic that sometimes says less than it knows, and the shape forbids it.
+/// Every seat is required. A diagnostic that could omit its phase, its site, its
+/// expected contract, or its cause posture would be a diagnostic that sometimes
+/// says less than it knows, and the shape forbids it.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MacrocDiagnostic {
-    /// The registered reason, as the machine's refusal home published it.
-    pub reason: ExactIdentity<RefusalReason>,
-    /// The refusal family that owns the reason.
-    pub family: ExactIdentity<RefusalFamilySubject>,
+    /// Whether the machine's own identities stand behind this observation.
+    pub machine: MachineAnchoring,
     /// The act that was running.
     pub phase: MacrocPhase,
-    /// Where in the source the observation sits, under its declared coordinate
-    /// role.
-    pub coordinate: SourceCoordinate,
-    /// The declaring symbol.
-    pub declaration: ExactIdentity<SymbolDomain>,
-    /// The declaration fragment involved.
-    pub fragment: ExactIdentity<FragmentIdentityDomain>,
-    /// The closed graph the observation was made against.
-    pub graph: ExactIdentity<LinkedGraphDomain>,
-    /// The contract that was expected to hold.
-    pub expected: ExactIdentity<ContractSubject>,
+    /// Where the observation sits, and which token it is about.
+    pub site: DiagnosticSite,
+    /// The one line this diagnostic projects for a person.
+    ///
+    /// Composed inside the services, where the typed value it projects lives,
+    /// so no frontend ever writes a sentence of its own. It is a projection and
+    /// only a projection: nothing in the plane reads it back, and a frontend
+    /// SHOWS it rather than deciding from it.
+    pub summary: HumanProjection<HumanTextLimit>,
+    /// The contract that was expected to hold. A compiler-plane contract: the
+    /// plane states what it expected of the material it read.
+    pub expected: ProjectionIdentity<ContractSubject>,
     /// How what was found differs from it.
     pub observed: ObservedClassification,
     /// The machine's cause posture: an established cause, narrowed suspects, or
     /// unresolved. Narrowing is progress, never a forced verdict.
     pub cause: CauseDisposition,
     /// Other issues this one points at.
-    pub related: Bounded<ExactIdentity<RelatedIssueSubject>, RelatedIssueLimit>,
+    pub related: Bounded<ProjectionIdentity<RelatedIssueSubject>, RelatedIssueLimit>,
     /// The owner-declared repairs that apply.
     pub repairs: Bounded<RepairAction, RepairLimit>,
     /// How to reach this observation again.

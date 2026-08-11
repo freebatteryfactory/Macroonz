@@ -22,7 +22,7 @@ mod tests {
         CauseId, CauseOrderDeclaration, DeclaredCause, DeclaredCauseOrder, FamilyShape,
         RefusalFamily,
     };
-    use threadpak_macros::{RefusalFamilyDerive, ThreadpakSkeleton};
+    use threadpak_macros::ThreadpakSkeleton;
 
     /// A consumer shaped like an application: it holds a type owned by the
     /// machine and wears a derive owned by the expansion shell. Nothing here
@@ -48,13 +48,14 @@ mod tests {
     /// selection-order string anywhere. The declared order is deliberately NOT
     /// the order the variants are written in, so a derive that read the body
     /// layout instead of the order clause would fail the parity below.
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, RefusalFamilyDerive)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, threadpak_macros::RefusalFamily)]
     #[refusal(
+        family = "consumer.demo",
         shape = single_cause,
         order(
-            NotCanonical = "consumer.demo.not-canonical",
-            NotAdmitted = "consumer.demo.not-admitted",
-            Unbounded = "consumer.demo.unbounded",
+            NotCanonical = "not-canonical",
+            NotAdmitted = "not-admitted",
+            Unbounded = "unbounded",
         )
     )]
     enum DerivedDemoFamily {

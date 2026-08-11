@@ -13,7 +13,7 @@
 
 mod plane {
     use crate::plane::{
-        ExactIdentity, HumanProjection, HumanTextLimit, OwnerFactSubject, OwnerHomeSubject,
+        HumanProjection, HumanTextLimit, OwnerFactSubject, OwnerHomeSubject, OwnerIdentityRef,
         ProfileVersion, RefusalReason,
     };
     use threadpak::types::{BoundedConstruction, ConstLimit};
@@ -23,10 +23,10 @@ mod plane {
     /// Owed reversal: erasing the subject parameter must break this law.
     #[test]
     fn subjects_do_not_unify() {
-        let home: fn(ExactIdentity<OwnerHomeSubject>) = drop;
-        let fact: fn(ExactIdentity<OwnerFactSubject>) = drop;
+        let home: fn(OwnerIdentityRef<OwnerHomeSubject>) = drop;
+        let fact: fn(OwnerIdentityRef<OwnerFactSubject>) = drop;
         assert!((home as usize) != 0 && (fact as usize) != 0);
-        let same_bytes_different_subject = ExactIdentity::<OwnerHomeSubject>::decoded([3; 32]);
+        let same_bytes_different_subject = OwnerIdentityRef::<OwnerHomeSubject>::decoded([3; 32]);
         assert_eq!(same_bytes_different_subject.as_bytes(), &[3_u8; 32]);
     }
 
@@ -36,7 +36,7 @@ mod plane {
     /// Owed reversal: a projection that rewrote the bytes must break this law.
     #[test]
     fn reason_projection_preserves_bytes() {
-        let declared = ExactIdentity::<RefusalReason>::decoded([9; 32]);
+        let declared = OwnerIdentityRef::<RefusalReason>::decoded([9; 32]);
         assert_eq!(declared.as_bytes(), &[9_u8; 32]);
     }
 
@@ -67,7 +67,7 @@ mod plane {
 }
 
 mod refusal {
-    use crate::plane::{ExactIdentity, PlanningIssueLimit};
+    use crate::plane::PlanningIssueLimit;
     use crate::refusal::{
         BOUND_AXES, BoundAxis, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue,
     };
@@ -142,7 +142,7 @@ mod refusal {
     /// break this law.
     #[test]
     fn co_established_issues_stay_whole_or_say_they_stopped() {
-        let node = ExactIdentity::decoded([1; 32]);
+        let node = crate::plane::for_laws(1);
         let whole = ProjectionPlanning::co_established(
             ProjectionPlanningIssue::OrphanGeneratedNode { node },
             vec![ProjectionPlanningIssue::MembershipIncomplete { absent: node }],
@@ -187,10 +187,11 @@ mod refusal {
 
 mod diagnostics {
     use crate::diagnostics::{
-        MACROC_PHASES, MacrocDiagnostic, MacrocPhase, ObservedClassification, ReleasePosture,
-        RepairAction, ReproductionRoute,
+        DiagnosticSite, MACROC_PHASES, MachineAnchoring, MachineAnchors, MacrocDiagnostic,
+        MacrocPhase, ObservedClassification, ReleasePosture, RepairAction, ReproductionRoute,
     };
-    use crate::plane::{ExactIdentity, HumanProjection, OwnerFactRef};
+    use crate::plane::{HumanProjection, OwnerFactRef, OwnerIdentityRef};
+    use crate::token::SpanHandle;
     use threadpak::declaration::{CoordinateRole, SourceCoordinate};
     use threadpak::evidence::CauseDisposition;
     use threadpak::types::Bounded;
@@ -230,9 +231,9 @@ mod diagnostics {
     /// Owed reversal (red twin): omitting any seat must not compile.
     #[test]
     fn a_diagnostic_constructs_complete() {
-        let declared_by = OwnerFactRef {
-            home: ExactIdentity::decoded([40; 32]),
-            fact: ExactIdentity::decoded([41; 32]),
+        let declared_by = OwnerFactRef::Minted {
+            home: OwnerIdentityRef::decoded([40; 32]),
+            fact: OwnerIdentityRef::decoded([41; 32]),
         };
         let description = HumanProjection::projected("bind the declared host contract");
         let repairs = description.map_err(|_| ()).and_then(|description| {
@@ -243,33 +244,83 @@ mod diagnostics {
             .map_err(|_| ())
         });
         let built = repairs.map(|repairs| MacrocDiagnostic {
-            reason: ExactIdentity::decoded([42; 32]),
-            family: ExactIdentity::decoded([43; 32]),
+            machine: MachineAnchoring::Anchored(Box::new(MachineAnchors {
+                reason: OwnerIdentityRef::decoded([42; 32]),
+                family: OwnerIdentityRef::decoded([43; 32]),
+                declaration: OwnerIdentityRef::decoded([44; 32]),
+                fragment: OwnerIdentityRef::decoded([45; 32]),
+                graph: OwnerIdentityRef::decoded([46; 32]),
+            })),
+            summary: HumanProjection::empty(),
             phase: MacrocPhase::Planning,
-            coordinate: SourceCoordinate {
-                role: CoordinateRole::SemanticOrigin,
-                position: 17,
+            site: DiagnosticSite {
+                token: SpanHandle::at(4),
+                coordinate: SourceCoordinate {
+                    role: CoordinateRole::SemanticOrigin,
+                    position: 17,
+                },
             },
-            declaration: ExactIdentity::decoded([44; 32]),
-            fragment: ExactIdentity::decoded([45; 32]),
-            graph: ExactIdentity::decoded([46; 32]),
-            expected: ExactIdentity::decoded([47; 32]),
+            expected: crate::plane::for_laws(47),
             observed: ObservedClassification::SeatAbsent,
             cause: CauseDisposition::UnresolvedCause,
             related: Bounded::empty(),
             repairs,
             reproduction: ReproductionRoute::CallableServices {
-                entry: ExactIdentity::decoded([48; 32]),
+                entry: crate::plane::for_laws(48),
             },
             release: ReleasePosture::NoReleasePromise,
         });
         assert!(built.is_ok_and(|diagnostic| {
             diagnostic.repairs.len() == 1
                 && diagnostic.related.is_empty()
-                && diagnostic.coordinate.position == 17
+                && diagnostic.site.coordinate.position == 17
+                && diagnostic.site.token == SpanHandle::at(4)
+                && matches!(diagnostic.machine, MachineAnchoring::Anchored(_))
                 && matches!(diagnostic.cause, CauseDisposition::UnresolvedCause)
                 && matches!(diagnostic.phase, MacrocPhase::Planning)
         }));
+    }
+
+    /// law: diagnostics.an-unanchored-diagnostic-says-so — where the machine has
+    /// minted no identity for an observation, the diagnostic states the posture
+    /// rather than carrying a stand-in. The compiler plane never mints a value
+    /// that independently answers a question the machine owns.
+    /// Owed reversal (red twin): a plane-minted "reason identity" filling the
+    /// seat must break this law.
+    #[test]
+    fn an_unanchored_diagnostic_says_so() {
+        let anchored = MachineAnchoring::Anchored(Box::new(MachineAnchors {
+            reason: OwnerIdentityRef::decoded([42; 32]),
+            family: OwnerIdentityRef::decoded([43; 32]),
+            declaration: OwnerIdentityRef::decoded([44; 32]),
+            fragment: OwnerIdentityRef::decoded([45; 32]),
+            graph: OwnerIdentityRef::decoded([46; 32]),
+        }));
+        assert_ne!(anchored, MachineAnchoring::UnmintedAtThisSeam);
+        assert!(matches!(
+            MachineAnchoring::UnmintedAtThisSeam,
+            MachineAnchoring::UnmintedAtThisSeam
+        ));
+    }
+
+    /// law: diagnostics.an-owner-fact-may-be-named-without-being-minted — a
+    /// citation names the home and the fact the owning home wrote down, which is
+    /// a reference to an owner fact and never a second answer to it.
+    /// Owed reversal: a `Declared` citation that derived an identity of its own
+    /// must break this law.
+    #[test]
+    fn an_owner_fact_may_be_named_without_being_minted() {
+        let named = OwnerFactRef::named("refusal", "family-shapes-are-three-and-closed");
+        let minted = OwnerFactRef::Minted {
+            home: OwnerIdentityRef::decoded([40; 32]),
+            fact: OwnerIdentityRef::decoded([41; 32]),
+        };
+        assert_ne!(named, minted);
+        assert_ne!(named.citation_bytes(), minted.citation_bytes());
+        assert_eq!(
+            named.citation_bytes(),
+            OwnerFactRef::named("refusal", "family-shapes-are-three-and-closed").citation_bytes()
+        );
     }
 
     /// law: diagnostics.repairs-cite-their-owner — a repair carries the owner
@@ -278,9 +329,9 @@ mod diagnostics {
     /// Owed reversal: a repair whose only member is text must break this law.
     #[test]
     fn repairs_cite_their_owner() {
-        let declared_by = OwnerFactRef {
-            home: ExactIdentity::decoded([49; 32]),
-            fact: ExactIdentity::decoded([50; 32]),
+        let declared_by = OwnerFactRef::Minted {
+            home: OwnerIdentityRef::decoded([49; 32]),
+            fact: OwnerIdentityRef::decoded([50; 32]),
         };
         let repair =
             HumanProjection::projected("declare the missing obligation").map(|description| {
@@ -299,14 +350,14 @@ mod diagnostics {
     #[test]
     fn reproduction_does_not_require_the_shell() {
         let route = ReproductionRoute::CallableServices {
-            entry: ExactIdentity::decoded([51; 32]),
+            entry: crate::plane::for_laws(51),
         };
         assert!(matches!(route, ReproductionRoute::CallableServices { .. }));
         let shell = ReproductionRoute::ExpansionShell {
-            surface: ExactIdentity::decoded([52; 32]),
+            surface: crate::plane::for_laws(52),
         };
         let fixture = ReproductionRoute::RecordedFixture {
-            population: ExactIdentity::decoded([53; 32]),
+            population: crate::plane::for_laws(53),
         };
         assert_ne!(route, shell);
         assert_ne!(shell, fixture);
@@ -361,7 +412,7 @@ mod origin_graph {
         DecisionTrace, Nonclaim, ORIGIN_RELATIONS, OriginEdge, OriginRelation, OriginTrail,
         TraceDecision, TraceEntry,
     };
-    use crate::plane::{ExactIdentity, OriginEdgeLimit, OwnerFactRef, TraceEntryLimit};
+    use crate::plane::{OriginEdgeLimit, OwnerFactRef, OwnerIdentityRef, TraceEntryLimit};
     use crate::refusal::{BoundAxis, ProjectionPlanningIssue};
     use threadpak::types::ConstLimit;
 
@@ -387,18 +438,18 @@ mod origin_graph {
 
     /// One owner fact, for laws that need a citation.
     fn owner_fact() -> OwnerFactRef {
-        OwnerFactRef {
-            home: ExactIdentity::decoded([1; 32]),
-            fact: ExactIdentity::decoded([2; 32]),
+        OwnerFactRef::Minted {
+            home: OwnerIdentityRef::decoded([1; 32]),
+            fact: OwnerIdentityRef::decoded([2; 32]),
         }
     }
 
     /// One edge, for laws that need a trail.
     fn edge() -> OriginEdge {
         OriginEdge {
-            from: ExactIdentity::decoded([3; 32]),
+            from: crate::plane::for_laws(3),
             relation: OriginRelation::AuthoredDeclaration,
-            to: ExactIdentity::decoded([4; 32]),
+            to: crate::plane::for_laws(4),
         }
     }
 
@@ -464,15 +515,15 @@ mod origin_graph {
     #[test]
     fn not_run_is_not_passed() {
         let selected = TraceEntry {
-            subject: ExactIdentity::decoded([5; 32]),
+            subject: crate::plane::for_laws(5),
             decision: TraceDecision::SelectedBecause(owner_fact()),
         };
         let omitted = TraceEntry {
-            subject: ExactIdentity::decoded([5; 32]),
+            subject: crate::plane::for_laws(5),
             decision: TraceDecision::OmittedBecause(owner_fact()),
         };
         let not_run = TraceEntry {
-            subject: ExactIdentity::decoded([5; 32]),
+            subject: crate::plane::for_laws(5),
             decision: TraceDecision::NotRun,
         };
         assert_ne!(selected, omitted);
@@ -487,11 +538,11 @@ mod origin_graph {
     #[test]
     fn traces_keep_selection_order_and_a_declared_bound() {
         let first = TraceEntry {
-            subject: ExactIdentity::decoded([6; 32]),
+            subject: crate::plane::for_laws(6),
             decision: TraceDecision::NotRun,
         };
         let second = TraceEntry {
-            subject: ExactIdentity::decoded([7; 32]),
+            subject: crate::plane::for_laws(7),
             decision: TraceDecision::SelectedBecause(owner_fact()),
         };
         let recorded = DecisionTrace::recorded(first, vec![second]);
@@ -514,7 +565,7 @@ mod origin_graph {
     #[test]
     fn nonclaims_cite_an_owner_fact() {
         let nonclaim = Nonclaim {
-            unclaimed: ExactIdentity::decoded([8; 32]),
+            unclaimed: crate::plane::for_laws(8),
             because: owner_fact(),
         };
         assert_eq!(nonclaim.because, owner_fact());
@@ -525,14 +576,16 @@ mod planning {
     use crate::origin_graph::{
         DecisionTrace, Nonclaim, OriginEdge, OriginRelation, OriginTrail, TraceDecision, TraceEntry,
     };
-    use crate::plane::{ExactIdentity, OwnerFactRef, ProfileVersion};
+    use crate::plane::{OwnerFactRef, OwnerIdentityRef, ProfileVersion, SoleRenderedUnit};
     use crate::planning::{
-        BenchmarkDescriptorProjection, CodecProjection, DeriveImplContent, DeriveImplProjection,
-        DocumentationProjection, HostWrapperContent, HostWrapperProjection, InvalidationTrigger,
-        OutputIdentity, PatternStampProjection, PlannedMembership, ProjectionBundlePlan,
-        ProjectionContext, ProjectionDisposition, ProjectionKind, ProjectionPlan,
-        RemoteSurfaceProjection, TargetBinding, TargetRequirement, TestDescriptorProjection,
-        UNIVERSAL_QUESTIONS, WRAPPER_COMPONENTS, WrapperComponent,
+        BenchmarkDescriptorProjection, CauseAnchoring, CodecProjection, DeriveImplContent,
+        DeriveImplProjection, DigestContract, DocumentationProjection, GraphAnchoring,
+        HostWrapperContent, HostWrapperProjection, InvalidationTrigger, MemberDestination,
+        PatternStampProjection, PlannedMember, PlannedMembership, PlannedOutput,
+        ProjectionBundlePlan, ProjectionContext, ProjectionDisposition, ProjectionKind,
+        ProjectionPlan, RemoteSurfaceProjection, RenderedImplementation, TargetBinding,
+        TargetRequirement, TestDescriptorProjection, UNIVERSAL_QUESTIONS, WRAPPER_COMPONENTS,
+        WrapperComponent,
     };
     use crate::question::{EXPLANATION_QUESTIONS, ExplanationQuestion};
     use crate::refusal::{PlanSeat, ProjectionPlanning, ProjectionPlanningIssue};
@@ -540,38 +593,62 @@ mod planning {
 
     /// One owner fact, for laws that need a citation.
     fn owner_fact() -> OwnerFactRef {
-        OwnerFactRef {
-            home: ExactIdentity::decoded([10; 32]),
-            fact: ExactIdentity::decoded([11; 32]),
+        OwnerFactRef::Minted {
+            home: OwnerIdentityRef::decoded([10; 32]),
+            fact: OwnerIdentityRef::decoded([11; 32]),
         }
     }
 
     /// One origin trail, for laws that need a generated unit.
     fn trail() -> OriginTrail {
         OriginTrail::from_edge(OriginEdge {
-            from: ExactIdentity::decoded([12; 32]),
+            from: crate::plane::for_laws(12),
             relation: OriginRelation::SemanticDerivation,
-            to: ExactIdentity::decoded([13; 32]),
+            to: crate::plane::for_laws(13),
         })
     }
 
-    /// One declared output.
-    fn output() -> OutputIdentity {
-        OutputIdentity {
-            unit: ExactIdentity::decoded([14; 32]),
-            digest: ExactIdentity::decoded([15; 32]),
+    /// One planned member under one rendered role. Logical only: a semantic key,
+    /// a destination, an origin, a renderer, and a digest CONTRACT — never a
+    /// digest, because no byte has been rendered when a plan is made.
+    fn member(role: RenderedImplementation, tag: u8) -> PlannedMember<RenderedImplementation> {
+        PlannedMember {
+            role,
+            output: planned_output(tag),
+        }
+    }
+
+    /// One planned output, tagged so two of them are distinguishable.
+    fn planned_output(tag: u8) -> PlannedOutput {
+        let key = crate::plane::for_laws(tag);
+        PlannedOutput {
+            semantic_key: key,
+            destination: MemberDestination::AtDeclarationSite,
             origin: trail(),
+            expected_profile: crate::plane::for_laws(17),
+            expected_profile_version: ProfileVersion::declared(3),
+            digest_contract: DigestContract::over(key),
+        }
+    }
+
+    /// One planned member for a kind whose rendering is a single unit.
+    fn sole_member(tag: u8) -> PlannedMember<SoleRenderedUnit> {
+        PlannedMember {
+            role: SoleRenderedUnit::Sole,
+            output: planned_output(tag),
         }
     }
 
     /// One shared context, under the binding the caller names.
     fn context(target: TargetBinding) -> ProjectionContext {
         ProjectionContext {
-            graph: ExactIdentity::decoded([16; 32]),
-            profile: ExactIdentity::decoded([17; 32]),
+            graph: GraphAnchoring::ClosedGraph(OwnerIdentityRef::decoded([16; 32])),
+            profile: crate::plane::for_laws(17),
             profile_version: ProfileVersion::declared(3),
-            sources: ProjectionContext::one_source(ExactIdentity::decoded([18; 32])),
-            generator: ExactIdentity::decoded([19; 32]),
+            sources: CauseAnchoring::Declarations(ProjectionContext::one_source(
+                OwnerIdentityRef::decoded([18; 32]),
+            )),
+            generator: crate::plane::for_laws(19),
             target,
         }
     }
@@ -579,8 +656,8 @@ mod planning {
     /// The implementation-projection content, for the complete-plan law.
     fn derive_content() -> DeriveImplContent {
         DeriveImplContent {
-            derived_type: ExactIdentity::decoded([20; 32]),
-            contract: ExactIdentity::decoded([21; 32]),
+            derived_type: crate::plane::for_laws(20),
+            contract: crate::plane::for_laws(21),
             assumptions: Bounded::empty(),
         }
     }
@@ -588,7 +665,7 @@ mod planning {
     /// The trace the complete-plan law records.
     fn trace() -> DecisionTrace {
         DecisionTrace::from_entry(TraceEntry {
-            subject: ExactIdentity::decoded([22; 32]),
+            subject: crate::plane::for_laws(22),
             decision: TraceDecision::SelectedBecause(owner_fact()),
         })
     }
@@ -602,9 +679,9 @@ mod planning {
         let planned = ProjectionPlan::<DeriveImplProjection>::planned(
             context(TargetBinding::TargetFree),
             derive_content(),
-            PlannedMembership::from_output(output()),
+            PlannedMembership::from_member(member(RenderedImplementation::RenderedFamilyImpl, 14)),
             InvalidationTrigger::one_watched(InvalidationTrigger::GraphIdentityChanged {
-                watched: ExactIdentity::decoded([16; 32]),
+                watched: OwnerIdentityRef::decoded([16; 32]),
             }),
             trace(),
             trail(),
@@ -618,7 +695,7 @@ mod planning {
                 && plan.origin().len() == 1
                 && plan.nonclaims().is_empty()
                 && plan.context().profile_version.position() == 3
-                && !plan.membership().first().origin.is_empty()
+                && !plan.membership().first().output.origin.is_empty()
         }));
     }
 
@@ -630,11 +707,15 @@ mod planning {
     #[test]
     fn several_outputs_and_nonclaims_ride_the_same_plan() {
         let nonclaims = Bounded::admitted_const(vec![Nonclaim {
-            unclaimed: ExactIdentity::decoded([23; 32]),
+            unclaimed: crate::plane::for_laws(23),
             because: owner_fact(),
         }])
         .map_err(|_| ());
-        let membership = PlannedMembership::declared(output(), vec![output()]).map_err(|_| ());
+        let membership = PlannedMembership::declared(
+            member(RenderedImplementation::RenderedFamilyImpl, 14),
+            vec![member(RenderedImplementation::RenderedCauseOrderImpl, 15)],
+        )
+        .map_err(|_| ());
         let built = nonclaims.and_then(|nonclaims| {
             membership.and_then(|membership| {
                 ProjectionPlan::<DeriveImplProjection>::planned(
@@ -643,7 +724,7 @@ mod planning {
                     membership,
                     InvalidationTrigger::one_watched(
                         InvalidationTrigger::GeneratorVersionChanged {
-                            watched: ExactIdentity::decoded([19; 32]),
+                            watched: crate::plane::for_laws(19),
                         },
                     ),
                     trace(),
@@ -673,15 +754,21 @@ mod planning {
     /// break this law.
     #[test]
     fn a_declared_output_set_reads_back_whole() {
-        let sibling = OutputIdentity {
-            unit: ExactIdentity::decoded([31; 32]),
-            digest: ExactIdentity::decoded([32; 32]),
-            origin: trail(),
-        };
-        let membership = PlannedMembership::declared(output(), vec![sibling]);
+        let membership = PlannedMembership::declared(
+            member(RenderedImplementation::RenderedFamilyImpl, 14),
+            vec![member(RenderedImplementation::RenderedCauseOrderImpl, 31)],
+        );
         assert!(membership.is_ok_and(|membership| {
-            let units: Vec<[u8; 32]> = membership.iter().map(|out| *out.unit.as_bytes()).collect();
-            units == vec![[14_u8; 32], [31_u8; 32]]
+            let keys: Vec<[u8; 32]> = membership
+                .iter()
+                .map(|row| *row.output.semantic_key.as_bytes())
+                .collect();
+            keys.len() == 2
+                && keys.first() != keys.get(1)
+                && membership
+                    .under(RenderedImplementation::RenderedCauseOrderImpl)
+                    .is_some()
+                && membership.count_under(RenderedImplementation::RenderedFamilyImpl) == 1
                 && membership.iter().count() == 2
                 && membership.len() == 2
                 && !membership.is_empty()
@@ -701,13 +788,13 @@ mod planning {
         let refused = ProjectionPlan::<HostWrapperProjection>::planned(
             context(TargetBinding::TargetFree),
             HostWrapperContent {
-                host_contract: ExactIdentity::decoded([24; 32]),
+                host_contract: OwnerIdentityRef::decoded([24; 32]),
                 components: NonEmptyBounded::singleton(WrapperComponent::Admission),
                 capability_basis: owner_fact(),
             },
-            PlannedMembership::from_output(output()),
+            PlannedMembership::from_member(sole_member(14)),
             InvalidationTrigger::one_watched(InvalidationTrigger::TargetContractChanged {
-                watched: ExactIdentity::decoded([24; 32]),
+                watched: OwnerIdentityRef::decoded([24; 32]),
             }),
             trace(),
             trail(),
@@ -725,49 +812,53 @@ mod planning {
     const fn trigger_index(trigger: &InvalidationTrigger) -> usize {
         match trigger {
             InvalidationTrigger::SourceDeclarationChanged { .. } => 0,
-            InvalidationTrigger::GraphIdentityChanged { .. } => 1,
-            InvalidationTrigger::ProjectionProfileChanged { .. } => 2,
-            InvalidationTrigger::TargetContractChanged { .. } => 3,
-            InvalidationTrigger::GeneratorVersionChanged { .. } => 4,
-            InvalidationTrigger::MechanismProfileChanged { .. } => 5,
-            InvalidationTrigger::WorkFormulaChanged { .. } => 6,
-            InvalidationTrigger::FixturePopulationChanged { .. } => 7,
+            InvalidationTrigger::CapturedDeclarationChanged { .. } => 1,
+            InvalidationTrigger::GraphIdentityChanged { .. } => 2,
+            InvalidationTrigger::ProjectionProfileChanged { .. } => 3,
+            InvalidationTrigger::TargetContractChanged { .. } => 4,
+            InvalidationTrigger::GeneratorVersionChanged { .. } => 5,
+            InvalidationTrigger::MechanismProfileChanged { .. } => 6,
+            InvalidationTrigger::WorkFormulaChanged { .. } => 7,
+            InvalidationTrigger::FixturePopulationChanged { .. } => 8,
         }
     }
 
-    /// law: planning.invalidation-triggers-are-eight-and-each-watches-an-identity
-    /// — the roster is closed at eight, its members are pairwise distinct, and
+    /// law: planning.invalidation-triggers-are-nine-and-each-watches-an-identity
+    /// — the roster is closed at nine, its members are pairwise distinct, and
     /// each names the exact identity whose change invalidates.
     /// Owed reversal: a payload-free trigger must break this law.
     #[test]
-    fn invalidation_triggers_are_eight_and_each_watches_an_identity() {
+    fn invalidation_triggers_are_nine_and_each_watches_an_identity() {
         let triggers = [
             InvalidationTrigger::SourceDeclarationChanged {
-                watched: ExactIdentity::decoded([25; 32]),
+                watched: OwnerIdentityRef::decoded([25; 32]),
+            },
+            InvalidationTrigger::CapturedDeclarationChanged {
+                watched: crate::plane::for_laws(25),
             },
             InvalidationTrigger::GraphIdentityChanged {
-                watched: ExactIdentity::decoded([25; 32]),
+                watched: OwnerIdentityRef::decoded([25; 32]),
             },
             InvalidationTrigger::ProjectionProfileChanged {
-                watched: ExactIdentity::decoded([25; 32]),
+                watched: crate::plane::for_laws(25),
             },
             InvalidationTrigger::TargetContractChanged {
-                watched: ExactIdentity::decoded([25; 32]),
+                watched: OwnerIdentityRef::decoded([25; 32]),
             },
             InvalidationTrigger::GeneratorVersionChanged {
-                watched: ExactIdentity::decoded([25; 32]),
+                watched: crate::plane::for_laws(25),
             },
             InvalidationTrigger::MechanismProfileChanged {
-                watched: ExactIdentity::decoded([25; 32]),
+                watched: OwnerIdentityRef::decoded([25; 32]),
             },
             InvalidationTrigger::WorkFormulaChanged {
-                watched: ExactIdentity::decoded([25; 32]),
+                watched: OwnerIdentityRef::decoded([25; 32]),
             },
             InvalidationTrigger::FixturePopulationChanged {
-                watched: ExactIdentity::decoded([25; 32]),
+                watched: OwnerIdentityRef::decoded([25; 32]),
             },
         ];
-        assert_eq!(triggers.len(), 8);
+        assert_eq!(triggers.len(), 9);
         let indexes: Vec<usize> = triggers.iter().map(trigger_index).collect();
         assert!(
             indexes
@@ -833,7 +924,9 @@ mod planning {
     #[test]
     fn every_absence_has_a_named_disposition() {
         let dispositions = [
-            ProjectionDisposition::Generated { output: output() },
+            ProjectionDisposition::Generated {
+                output: Box::new(planned_output(14)),
+            },
             ProjectionDisposition::NotApplicable {
                 because: owner_fact(),
             },
@@ -845,12 +938,12 @@ mod planning {
                 ),
             },
             ProjectionDisposition::UnavailableUnderProfile {
-                profile: ExactIdentity::decoded([26; 32]),
+                profile: crate::plane::for_laws(26),
                 version: ProfileVersion::declared(1),
             },
             ProjectionDisposition::NotRequested,
             ProjectionDisposition::ExcludedByConfiguration {
-                configuration: ExactIdentity::decoded([27; 32]),
+                configuration: OwnerIdentityRef::decoded([27; 32]),
             },
         ];
         assert_eq!(dispositions.len(), 6);
@@ -870,16 +963,14 @@ mod planning {
     #[test]
     fn a_bundle_names_its_members_and_refuses_a_partial_set() {
         let bundle = ProjectionBundlePlan::materialized(
-            ExactIdentity::decoded([28; 32]),
-            ExactIdentity::decoded([29; 32]),
-            vec![ExactIdentity::decoded([30; 32])],
+            crate::plane::for_laws(28),
+            crate::plane::for_laws(29),
+            vec![crate::plane::for_laws(30)],
         );
         assert!(bundle.is_ok_and(|plan| plan.len() == 2 && !plan.is_empty()));
-        let single = ProjectionBundlePlan::of_one(
-            ExactIdentity::decoded([28; 32]),
-            ExactIdentity::decoded([29; 32]),
-        );
-        assert_eq!(single.bundle(), ExactIdentity::decoded([28; 32]));
+        let single =
+            ProjectionBundlePlan::of_one(crate::plane::for_laws(28), crate::plane::for_laws(29));
+        assert_eq!(single.bundle(), crate::plane::for_laws(28));
     }
 
     /// law: planning.no-kind-ducks-the-explanation-protocol — every kind names
@@ -929,10 +1020,11 @@ mod explanation_protocol {
         DecisionTrace, OriginEdge, OriginRelation, OriginTrail, TraceDecision, TraceEntry,
     };
     use crate::plane::{
-        ExactIdentity, HumanProjection, HumanTextLimit, OwnerFactRef, ProfileVersion,
+        HumanProjection, HumanTextLimit, OwnerFactRef, OwnerIdentityRef, ProfileVersion,
     };
     use crate::planning::{
-        DeriveImplProjection, HostWrapperProjection, InvalidationTrigger, OutputIdentity,
+        CauseAnchoring, DeriveImplProjection, DigestContract, GraphAnchoring,
+        HostWrapperProjection, InvalidationTrigger, MemberDestination, PlannedOutput,
         ProjectionContext, ProjectionDisposition,
     };
     use crate::question::{ExplanationQuestion, QuestionApplicability};
@@ -940,9 +1032,9 @@ mod explanation_protocol {
 
     /// One owner fact.
     fn owner_fact() -> OwnerFactRef {
-        OwnerFactRef {
-            home: ExactIdentity::decoded([60; 32]),
-            fact: ExactIdentity::decoded([61; 32]),
+        OwnerFactRef::Minted {
+            home: OwnerIdentityRef::decoded([60; 32]),
+            fact: OwnerIdentityRef::decoded([61; 32]),
         }
     }
 
@@ -956,14 +1048,14 @@ mod explanation_protocol {
     /// The eight universal answers every kind owes.
     fn universal_answers() -> Vec<ProjectionExplanation> {
         let trail = OriginTrail::from_edge(OriginEdge {
-            from: ExactIdentity::decoded([62; 32]),
+            from: crate::plane::for_laws(62),
             relation: OriginRelation::Rendering,
-            to: ExactIdentity::decoded([63; 32]),
+            to: crate::plane::for_laws(63),
         });
         vec![
             ProjectionExplanation::answered(
                 ExplanationAnswer::Kind {
-                    kind: ExactIdentity::decoded([64; 32]),
+                    kind: crate::plane::for_laws(64),
                 },
                 human(),
             ),
@@ -975,25 +1067,31 @@ mod explanation_protocol {
             ),
             ProjectionExplanation::answered(
                 ExplanationAnswer::CausingDeclarations {
-                    sources: ProjectionContext::one_source(ExactIdentity::decoded([65; 32])),
+                    sources: CauseAnchoring::Declarations(ProjectionContext::one_source(
+                        OwnerIdentityRef::decoded([65; 32]),
+                    )),
                 },
                 human(),
             ),
             ProjectionExplanation::answered(
                 ExplanationAnswer::GraphAndProfile {
-                    graph: ExactIdentity::decoded([66; 32]),
-                    profile: ExactIdentity::decoded([67; 32]),
+                    graph: GraphAnchoring::ClosedGraph(OwnerIdentityRef::decoded([66; 32])),
+                    profile: crate::plane::for_laws(67),
                     version: ProfileVersion::declared(2),
                 },
                 human(),
             ),
             ProjectionExplanation::answered(
                 ExplanationAnswer::OutputAndDigest {
-                    output: OutputIdentity {
-                        unit: ExactIdentity::decoded([68; 32]),
-                        digest: ExactIdentity::decoded([69; 32]),
+                    output: Box::new(PlannedOutput {
+                        semantic_key: crate::plane::for_laws(68),
+                        destination: MemberDestination::AtDeclarationSite,
                         origin: trail,
-                    },
+                        expected_profile: crate::plane::for_laws(67),
+                        expected_profile_version: ProfileVersion::declared(2),
+                        digest_contract: DigestContract::over(crate::plane::for_laws(68)),
+                    }),
+                    digest: crate::plane::for_laws(69),
                 },
                 human(),
             ),
@@ -1001,7 +1099,7 @@ mod explanation_protocol {
                 ExplanationAnswer::Invalidators {
                     triggers: InvalidationTrigger::one_watched(
                         InvalidationTrigger::GraphIdentityChanged {
-                            watched: ExactIdentity::decoded([66; 32]),
+                            watched: OwnerIdentityRef::decoded([66; 32]),
                         },
                     ),
                 },
@@ -1009,7 +1107,7 @@ mod explanation_protocol {
             ),
             ProjectionExplanation::answered(
                 ExplanationAnswer::RelatedProjectionDisposition {
-                    related: ExactIdentity::decoded([70; 32]),
+                    related: crate::plane::for_laws(70),
                     disposition: ProjectionDisposition::NotRequested,
                 },
                 human(),
@@ -1123,7 +1221,7 @@ mod explanation_protocol {
         foreign.push(ProjectionExplanation::answered(
             ExplanationAnswer::SelectedWrappers {
                 trace: DecisionTrace::from_entry(TraceEntry {
-                    subject: ExactIdentity::decoded([71; 32]),
+                    subject: crate::plane::for_laws(71),
                     decision: TraceDecision::SelectedBecause(owner_fact()),
                 }),
             },
@@ -1160,7 +1258,7 @@ mod explanation_protocol {
 
 mod template {
     use crate::origin_graph::Nonclaim;
-    use crate::plane::{ExactIdentity, OwnerFactRef, ProfileVersion};
+    use crate::plane::{OwnerFactRef, OwnerIdentityRef, ProfileVersion};
     use crate::template::{
         ApplicativeDistinctness, AxisCeiling, CheckedMeterPosture, DeclarationTemplate,
         ForbiddenKeyFact, INVOCATION_KEY_NEVER, META_BOUND_AXES, MetaBoundAxis, ProfileCeiling,
@@ -1226,9 +1324,9 @@ mod template {
 
     /// One owner fact, for laws that need a citation.
     fn owner_fact() -> OwnerFactRef {
-        OwnerFactRef {
-            home: ExactIdentity::decoded([80; 32]),
-            fact: ExactIdentity::decoded([81; 32]),
+        OwnerFactRef::Minted {
+            home: OwnerIdentityRef::decoded([80; 32]),
+            fact: OwnerIdentityRef::decoded([81; 32]),
         }
     }
 
@@ -1236,7 +1334,7 @@ mod template {
     fn parameter(category: SpliceCategory, tag: u8) -> TemplateParameter {
         TemplateParameter {
             category,
-            parameter: ExactIdentity::decoded([tag; 32]),
+            parameter: OwnerIdentityRef::decoded([tag; 32]),
         }
     }
 
@@ -1244,7 +1342,7 @@ mod template {
     fn argument(category: SpliceCategory, tag: u8) -> TemplateArgument {
         TemplateArgument {
             category,
-            commitment: ExactIdentity::decoded([tag; 32]),
+            commitment: OwnerIdentityRef::decoded([tag; 32]),
         }
     }
 
@@ -1266,9 +1364,9 @@ mod template {
     /// The first lock, over one validated input.
     fn formula() -> SymbolicBoundFormula {
         SymbolicBoundFormula {
-            formula: ExactIdentity::decoded([82; 32]),
+            formula: OwnerIdentityRef::decoded([82; 32]),
             declared_by: owner_fact(),
-            over_inputs: NonEmptyBounded::singleton(ExactIdentity::decoded([83; 32])),
+            over_inputs: NonEmptyBounded::singleton(OwnerIdentityRef::decoded([83; 32])),
         }
     }
 
@@ -1277,7 +1375,7 @@ mod template {
         CheckedMeterPosture {
             obliged_by: owner_fact(),
             unmeasured: Nonclaim {
-                unclaimed: ExactIdentity::decoded([84; 32]),
+                unclaimed: crate::plane::for_laws(84),
                 because: owner_fact(),
             },
         }
@@ -1290,7 +1388,7 @@ mod template {
     ) -> Result<DeclarationTemplate, TemplateConstruction> {
         complete_ceiling().and_then(|ceiling| {
             DeclarationTemplate::declared(
-                ExactIdentity::decoded([85; 32]),
+                OwnerIdentityRef::decoded([85; 32]),
                 first,
                 rest,
                 formula(),
@@ -1304,7 +1402,7 @@ mod template {
     /// The language profile, at a declared version.
     fn language() -> VersionedProfile<crate::plane::LanguageProfileSubject> {
         VersionedProfile {
-            profile: ExactIdentity::decoded([86; 32]),
+            profile: OwnerIdentityRef::decoded([86; 32]),
             version: ProfileVersion::declared(4),
         }
     }
@@ -1312,7 +1410,7 @@ mod template {
     /// The meta profile, at a declared version.
     fn meta() -> VersionedProfile<crate::plane::MetaProfileSubject> {
         VersionedProfile {
-            profile: ExactIdentity::decoded([87; 32]),
+            profile: OwnerIdentityRef::decoded([87; 32]),
             version: ProfileVersion::declared(5),
         }
     }
@@ -1350,8 +1448,8 @@ mod template {
         );
         assert!(bound.is_ok_and(|binding| {
             matches!(binding.category(), SpliceCategory::IdentifierBinding)
-                && binding.argument().commitment == ExactIdentity::decoded([2; 32])
-                && binding.parameter().parameter == ExactIdentity::decoded([1; 32])
+                && binding.argument().commitment == OwnerIdentityRef::decoded([2; 32])
+                && binding.parameter().parameter == OwnerIdentityRef::decoded([1; 32])
         }));
 
         let refused = TemplateBinding::bound(
@@ -1467,7 +1565,7 @@ mod template {
         assert!(declared.is_ok_and(|template| {
             template.arity() == 2
                 && template.parameters().count() == 2
-                && template.identity() == ExactIdentity::decoded([85; 32])
+                && template.identity() == OwnerIdentityRef::decoded([85; 32])
                 && template.formula().over_inputs.len() == 1
                 && template.formula().declared_by == owner_fact()
                 && template.ceiling().len() == 8
@@ -1542,7 +1640,7 @@ mod template {
         assert!(applied.is_ok_and(|application| {
             application.arity() == 2
                 && application.bindings().count() == 2
-                && application.template() == ExactIdentity::decoded([85; 32])
+                && application.template() == OwnerIdentityRef::decoded([85; 32])
                 && application.language_profile().version.position() == 4
                 && application.meta_profile().version.position() == 5
                 && matches!(
@@ -1635,7 +1733,9 @@ mod template {
                     vec![binding],
                     language(),
                     meta(),
-                    ApplicativeDistinctness::DeliberatelyDistinct(ExactIdentity::decoded([42; 32])),
+                    ApplicativeDistinctness::DeliberatelyDistinct(OwnerIdentityRef::decoded(
+                        [42; 32],
+                    )),
                 );
                 applicative
                     .and_then(|applicative| {
@@ -1659,16 +1759,16 @@ mod template {
     #[test]
     fn the_invocation_key_names_seven_lawful_inputs() {
         let key = TemplateInvocationKey {
-            template: ExactIdentity::decoded([50; 32]),
+            template: OwnerIdentityRef::decoded([50; 32]),
             inputs: Bounded::empty(),
-            source_snapshot: ExactIdentity::decoded([51; 32]),
+            source_snapshot: OwnerIdentityRef::decoded([51; 32]),
             fragment_dependencies: Bounded::empty(),
             language_profile: language(),
             meta_profile: meta(),
-            configuration: ExactIdentity::decoded([52; 32]),
+            configuration: OwnerIdentityRef::decoded([52; 32]),
         };
         let reconfigured = TemplateInvocationKey {
-            configuration: ExactIdentity::decoded([53; 32]),
+            configuration: OwnerIdentityRef::decoded([53; 32]),
             ..key.clone()
         };
         assert_ne!(key, reconfigured);
@@ -1735,7 +1835,7 @@ mod template {
 }
 
 mod trigger_view {
-    use crate::plane::{ExactIdentity, OwnerFactRef};
+    use crate::plane::{OwnerFactRef, OwnerIdentityRef};
     use crate::planning::{WRAPPER_COMPONENTS, WrapperComponent};
     use crate::trigger_view::{
         TriggerOmission, TriggerSelection, TriggerViewComposition, TriggerViewIssue,
@@ -1746,9 +1846,9 @@ mod trigger_view {
 
     /// One owner fact, for laws that need a citation.
     fn owner_fact(tag: u8) -> OwnerFactRef {
-        OwnerFactRef {
-            home: ExactIdentity::decoded([tag; 32]),
-            fact: ExactIdentity::decoded([tag.saturating_add(1); 32]),
+        OwnerFactRef::Minted {
+            home: OwnerIdentityRef::decoded([tag; 32]),
+            fact: OwnerIdentityRef::decoded([tag.saturating_add(1); 32]),
         }
     }
 
@@ -1799,7 +1899,7 @@ mod trigger_view {
     /// must break this law.
     #[test]
     fn every_component_is_disposed_exactly_once() {
-        let plan = ExactIdentity::decoded([88; 32]);
+        let plan = crate::plane::for_laws(88);
         let selections: Vec<TriggerSelection> = WRAPPER_COMPONENTS
             .iter()
             .copied()
@@ -1870,7 +1970,7 @@ mod trigger_view {
         assert!(TriggerViewComposition::SELECTION_ORDER.is_empty());
 
         let refused = WrapperTriggerView::composed(
-            ExactIdentity::decoded([89; 32]),
+            crate::plane::for_laws(89),
             vec![selection(WrapperComponent::Admission)],
             Vec::new(),
         );
@@ -1883,7 +1983,7 @@ mod composition {
         CompositionRoot, CompositionRootDeclaration, CompositionRootIssue, DESCRIPTOR_KINDS,
         DescriptorKind, DescriptorProvider,
     };
-    use crate::plane::{ExactIdentity, OwnerFactRef};
+    use crate::plane::{OwnerFactRef, OwnerIdentityRef};
     use threadpak::refusal::{FamilyShape, RefusalFamily};
 
     /// The closed descriptor-kind roster, proven closed by an exhaustive match:
@@ -1901,16 +2001,16 @@ mod composition {
 
     /// One owner fact, for laws that need a home citation.
     fn owner_fact(tag: u8) -> OwnerFactRef {
-        OwnerFactRef {
-            home: ExactIdentity::decoded([tag; 32]),
-            fact: ExactIdentity::decoded([tag.saturating_add(1); 32]),
+        OwnerFactRef::Minted {
+            home: OwnerIdentityRef::decoded([tag; 32]),
+            fact: OwnerIdentityRef::decoded([tag.saturating_add(1); 32]),
         }
     }
 
     /// One provider of the named kind under the identity byte named.
     fn provider(kind: DescriptorKind, tag: u8) -> DescriptorProvider {
         DescriptorProvider {
-            provider: ExactIdentity::decoded([tag; 32]),
+            provider: OwnerIdentityRef::decoded([tag; 32]),
             home: owner_fact(tag.saturating_add(50)),
             kind,
         }
@@ -1954,7 +2054,7 @@ mod composition {
                 && homes == vec![owner_fact(51), owner_fact(52)]
                 && root.len() == 2
                 && !root.is_empty()
-                && root.first().provider == ExactIdentity::decoded([1; 32])
+                && root.first().provider == OwnerIdentityRef::decoded([1; 32])
         }));
     }
 
@@ -2024,14 +2124,14 @@ mod pattern_stamp {
     use crate::pattern_stamp::{
         ScopeGuardOwnerFacts, ScopeGuardStampAnchors, plan_scope_guard_stamp,
     };
-    use crate::plane::{ExactIdentity, OwnerFactRef, ProfileVersion};
-    use crate::planning::{ProjectionContext, TargetBinding};
+    use crate::plane::{OwnerFactRef, OwnerIdentityRef, ProfileVersion};
+    use crate::planning::{CauseAnchoring, GraphAnchoring, ProjectionContext, TargetBinding};
 
     /// One owner fact, distinguished by its fact identity.
     fn owner_fact(fact: u8) -> OwnerFactRef {
-        OwnerFactRef {
-            home: ExactIdentity::decoded([100; 32]),
-            fact: ExactIdentity::decoded([fact; 32]),
+        OwnerFactRef::Minted {
+            home: OwnerIdentityRef::decoded([100; 32]),
+            fact: OwnerIdentityRef::decoded([fact; 32]),
         }
     }
 
@@ -2039,23 +2139,24 @@ mod pattern_stamp {
     fn anchors() -> ScopeGuardStampAnchors {
         ScopeGuardStampAnchors {
             context: ProjectionContext {
-                graph: ExactIdentity::decoded([101; 32]),
-                profile: ExactIdentity::decoded([102; 32]),
+                graph: GraphAnchoring::ClosedGraph(OwnerIdentityRef::decoded([101; 32])),
+                profile: crate::plane::for_laws(102),
                 profile_version: ProfileVersion::declared(1),
-                sources: ProjectionContext::one_source(ExactIdentity::decoded([103; 32])),
-                generator: ExactIdentity::decoded([104; 32]),
+                sources: CauseAnchoring::Declarations(ProjectionContext::one_source(
+                    OwnerIdentityRef::decoded([103; 32]),
+                )),
+                generator: crate::plane::for_laws(104),
                 target: TargetBinding::TargetFree,
             },
-            pattern: ExactIdentity::decoded([105; 32]),
-            instance: ExactIdentity::decoded([106; 32]),
-            guard_name: ExactIdentity::decoded([107; 32]),
-            scope_type: ExactIdentity::decoded([108; 32]),
-            authored_node: ExactIdentity::decoded([109; 32]),
-            instantiated_node: ExactIdentity::decoded([110; 32]),
-            rendered_node: ExactIdentity::decoded([111; 32]),
-            stamped_unit: ExactIdentity::decoded([112; 32]),
-            stamped_digest: ExactIdentity::decoded([113; 32]),
-            traced: ExactIdentity::decoded([114; 32]),
+            pattern: OwnerIdentityRef::decoded([105; 32]),
+            instance: OwnerIdentityRef::decoded([106; 32]),
+            guard_name: OwnerIdentityRef::decoded([107; 32]),
+            scope_type: OwnerIdentityRef::decoded([108; 32]),
+            authored_node: crate::plane::for_laws(109),
+            instantiated_node: crate::plane::for_laws(110),
+            rendered_node: crate::plane::for_laws(111),
+            stamped_unit: crate::plane::for_laws(112),
+            traced: crate::plane::for_laws(114),
             owner_facts: ScopeGuardOwnerFacts {
                 class_c_carries_no_ordering: owner_fact(115),
                 comparison_is_scope_guarded: owner_fact(116),
@@ -2088,8 +2189,16 @@ mod pattern_stamp {
                 && plan.invalidation().len() == 3
                 && plan.content().arguments.len() == 2
                 && plan.nonclaims().is_empty()
-                && !plan.membership().first().origin.is_empty()
+                && !plan.membership().first().output.origin.is_empty()
         }));
+    }
+
+    /// The owning home one citation names.
+    fn citation_home(cited: OwnerFactRef) -> [u8; 32] {
+        match cited {
+            OwnerFactRef::Minted { home, .. } => *home.as_bytes(),
+            OwnerFactRef::Declared(named) => crate::plane::provenance_tag(&[named.home.as_bytes()]),
+        }
     }
 
     /// law: pattern-stamp.the-stamp-cites-the-identity-home-and-never-itself —
@@ -2101,12 +2210,12 @@ mod pattern_stamp {
     fn the_stamp_cites_the_identity_home_and_never_itself() {
         let facts = anchors().owner_facts;
         assert_eq!(
-            facts.class_c_carries_no_ordering.home,
-            facts.comparison_is_scope_guarded.home
+            citation_home(facts.class_c_carries_no_ordering),
+            citation_home(facts.comparison_is_scope_guarded)
         );
         assert_ne!(
-            facts.class_c_carries_no_ordering.fact,
-            facts.comparison_is_scope_guarded.fact
+            facts.class_c_carries_no_ordering.citation_bytes(),
+            facts.comparison_is_scope_guarded.citation_bytes()
         );
         let planned = plan_scope_guard_stamp(&anchors());
         assert!(planned.is_ok_and(|plan| {
@@ -2119,425 +2228,466 @@ mod pattern_stamp {
 }
 
 mod derive_refusal {
+    use crate::closure::ClosureIssue;
     use crate::derive_refusal::{
-        CaptureDiagnosticAnchors, CapturedCause, CauseOrderStanding, DerivationAnchors,
-        DerivedItem, DerivedMembership, PlantedDefect, RefusalDeriveCapture,
-        RefusalDeriveDisposition, RefusalDeriveSurface, RefusalOwnerFacts, captured, disposed,
+        CapturedCause, CauseOrderStanding, DerivedMembership, RefusalDeriveCapture,
+        RefusalDeriveSurface, captured, captured_text, compile_refusal, compile_refusal_text,
     };
-    use crate::diagnostics::MacrocPhase;
-    use crate::plane::{ExactIdentity, OwnerFactRef, ProfileVersion};
-    use crate::planning::{ProjectionContext, ProjectionDisposition, TargetBinding};
+    use crate::diagnostics::{MachineAnchoring, MacrocPhase};
+    use crate::planning::{ProjectionDisposition, RenderedImplementation};
+    use crate::token::TextCapture;
     use threadpak::declaration::CoordinateRole;
-    use threadpak::evidence::CauseDisposition;
     use threadpak::refusal::{CauseOrderDeclaration, FamilyShape, RefusalFamily};
 
     /// The lawful single-cause declaration, as a token stream renders it.
-    const SINGLE_CAUSE: &str = "#[refusal(shape = single_cause, order(NotCanonical = \
-        \"demo.not-canonical\", NotAdmitted = \"demo.not-admitted\"))] enum DemoFamily { \
-        NotCanonical, NotAdmitted, }";
+    const SINGLE_CAUSE: &str = "#[refusal(family = \"demo.example\", shape = single_cause, \
+        order(NotCanonical = \"not-canonical\", NotAdmitted = \"not-admitted\"))] \
+        enum DemoFamily { NotCanonical, NotAdmitted, }";
 
     /// The lawful collection declaration: no order clause, and none admitted.
-    const ISSUE_COLLECTION: &str = "#[refusal(shape = issue_collection)] enum DemoIssues { \
-        NotCanonical, NotAdmitted, }";
+    const ISSUE_COLLECTION: &str = "#[refusal(family = \"demo.example\", shape = issue_collection)] \
+        enum DemoIssues { NotBound, NotCovered, }";
 
-    /// One owner fact, distinguished by its fact identity.
-    fn owner_fact(fact: u8) -> OwnerFactRef {
-        OwnerFactRef {
-            home: ExactIdentity::decoded([200; 32]),
-            fact: ExactIdentity::decoded([fact; 32]),
-        }
+    /// One captured surface, or the cause the capture established.
+    fn surface(source: &str) -> Result<RefusalDeriveSurface, RefusalDeriveCapture> {
+        captured_text(source)
+            .map(|(_, surface)| surface)
+            .map_err(crate::derive_refusal::RefusalDeriveRefusal::cause)
     }
 
-    /// The anchors one demo derivation is projected against.
-    fn anchors() -> DerivationAnchors {
-        DerivationAnchors {
-            context: ProjectionContext {
-                graph: ExactIdentity::decoded([201; 32]),
-                profile: ExactIdentity::decoded([202; 32]),
-                profile_version: ProfileVersion::declared(1),
-                sources: ProjectionContext::one_source(ExactIdentity::decoded([203; 32])),
-                generator: ExactIdentity::decoded([204; 32]),
-                target: TargetBinding::TargetFree,
-            },
-            kind: ExactIdentity::decoded([205; 32]),
-            derived_type: ExactIdentity::decoded([206; 32]),
-            family_contract: ExactIdentity::decoded([207; 32]),
-            authored_node: ExactIdentity::decoded([208; 32]),
-            family_node: ExactIdentity::decoded([209; 32]),
-            family_unit: ExactIdentity::decoded([210; 32]),
-            family_digest: ExactIdentity::decoded([211; 32]),
-            order_node: ExactIdentity::decoded([212; 32]),
-            order_unit: ExactIdentity::decoded([213; 32]),
-            order_digest: ExactIdentity::decoded([214; 32]),
-            traced: ExactIdentity::decoded([215; 32]),
-            owner_facts: RefusalOwnerFacts {
-                body_shapes: owner_fact(216),
-                canonical_order_is_shape_ruled: owner_fact(217),
-            },
-        }
-    }
-
-    /// law: derive-refusal.the-engine-declares-its-own-order-by-hand — the
-    /// capture family is single-cause, its typed order carries ten distinct
-    /// stable identities, and its textual selection order is exactly that
-    /// order's projection. The services never derive their own contracts.
-    /// Owed reversal: a projection that permuted, dropped, or added a spelling
-    /// must break this law.
+    /// law: derive.the-engine-declares-its-own-order-by-hand — the capture
+    /// family's own declared facts are authored, never derived by the derive
+    /// this module ships. A generator that produced its own contracts would be
+    /// its own oracle.
+    /// Owed reversal: deriving the engine's own order must break this law.
     #[test]
     fn the_engine_declares_its_own_order_by_hand() {
-        assert_eq!(RefusalDeriveCapture::SHAPE, FamilyShape::SingleCause);
-        assert_eq!(RefusalDeriveCapture::DECLARED_ORDER.len(), 10);
+        assert!(matches!(
+            RefusalDeriveCapture::SHAPE,
+            FamilyShape::SingleCause
+        ));
+        assert_eq!(
+            RefusalDeriveCapture::SELECTION_ORDER.len(),
+            RefusalDeriveCapture::DECLARED_ORDER.len()
+        );
         assert!(
             RefusalDeriveCapture::DECLARED_ORDER.projects_to(RefusalDeriveCapture::SELECTION_ORDER)
         );
-        let identities: Vec<&str> = RefusalDeriveCapture::DECLARED_ORDER
-            .iter()
-            .map(|cause| cause.id().as_declared())
-            .collect();
-        assert!(identities.iter().enumerate().all(|(position, identity)| {
-            identities
+    }
+
+    /// law: derive.a-cause-identity-is-its-family-and-its-local-key — every
+    /// cause of the capture family carries the derived pair band 00 declares,
+    /// the pair's family is one family, and no two causes share a local key.
+    /// Owed reversal: two causes sharing a local key must break this law.
+    #[test]
+    fn a_cause_identity_is_its_family_and_its_local_key() {
+        let causes = [
+            RefusalDeriveCapture::NotAnEnum,
+            RefusalDeriveCapture::UnsupportedDeclarationForm,
+            RefusalDeriveCapture::NotNamed,
+            RefusalDeriveCapture::UnavailableUnderCompilerProfile,
+            RefusalDeriveCapture::NotBodied,
+            RefusalDeriveCapture::NotInhabited,
+            RefusalDeriveCapture::UnsupportedVariantPayload,
+            RefusalDeriveCapture::NotFamilyDeclared,
+            RefusalDeriveCapture::NotFamilyGrammatical,
+            RefusalDeriveCapture::NotShapeDeclared,
+            RefusalDeriveCapture::NotAnAdmittedShape,
+            RefusalDeriveCapture::NotOrderDeclared,
+            RefusalDeriveCapture::NotOrderAdmitted,
+            RefusalDeriveCapture::NotCovered,
+            RefusalDeriveCapture::NotDistinct,
+            RefusalDeriveCapture::NotKeyed,
+            RefusalDeriveCapture::Unbounded,
+        ];
+        assert_eq!(causes.len(), RefusalDeriveCapture::SELECTION_ORDER.len());
+        assert!(
+            causes
                 .iter()
+                .all(|cause| cause.key().family() == RefusalDeriveCapture::FAMILY)
+        );
+        let keys: Vec<&str> = causes
+            .iter()
+            .map(|cause| cause.key().local().as_declared())
+            .collect();
+        assert!(keys.iter().enumerate().all(|(position, key)| {
+            keys.iter()
                 .skip(position.saturating_add(1))
-                .all(|other| other != identity)
+                .all(|other| other != key)
         }));
     }
 
-    /// law: derive-refusal.a-lawful-declaration-captures-typed — the captured
-    /// surface carries the family name, the machine's own body shape, and the
-    /// causes in the declared canonical order with their stable identities,
-    /// and the caller wrote no selection-order string anywhere.
-    /// Owed reversal: a capture that read the order from the body layout rather
-    /// than from the order clause must break this law.
+    /// law: derive.a-lawful-declaration-captures-typed — a well-formed
+    /// declaration yields the machine's shape, the author's family identity, the
+    /// author's local keys, and the default crate binding.
+    /// Owed reversal: a capture that read the body layout instead of the order
+    /// clause must break this law.
     #[test]
     fn a_lawful_declaration_captures_typed() {
-        let captured = captured(SINGLE_CAUSE);
-        assert!(captured.is_ok_and(|surface| {
-            let causes: Vec<&CapturedCause> = surface.causes().collect();
+        assert!(surface(SINGLE_CAUSE).is_ok_and(|surface| {
             surface.family_name() == "DemoFamily"
-                && surface.shape() == FamilyShape::SingleCause
-                && causes.len() == 2
-                && causes.first().is_some_and(|cause| {
-                    cause.spelling() == "NotCanonical" && cause.stable_id() == "demo.not-canonical"
-                })
-                && causes
-                    .get(1)
-                    .is_some_and(|cause| cause.spelling() == "NotAdmitted")
+                && surface.family_id() == "demo.example"
+                && surface.binding().spelling() == "threadpak"
+                && matches!(surface.shape(), FamilyShape::SingleCause)
+                && surface.causes().count() == 2
+                && surface
+                    .causes()
+                    .next()
+                    .is_some_and(|cause: &CapturedCause| {
+                        cause.spelling() == "NotCanonical" && cause.local_key() == "not-canonical"
+                    })
+        }));
+        assert!(surface(ISSUE_COLLECTION).is_ok_and(|surface| {
+            matches!(surface.shape(), FamilyShape::IssueCollection) && surface.causes().count() == 0
         }));
     }
 
-    /// law: derive-refusal.the-declared-order-is-the-selector-not-the-layout —
-    /// an order clause naming the same causes in another order captures that
-    /// order, because the canonical order is a selector over established
-    /// conditions and not the order the variants happen to be written in.
-    /// Owed reversal: a capture that sorted the causes, or took them from the
-    /// body, must break this law.
+    /// law: derive.the-crate-binding-travels-with-the-declaration — a consumer
+    /// that renamed its dependency is captured under the name it used, and the
+    /// binding reaches the rendering rather than being assumed there.
+    /// Owed reversal (red twin): a renderer hardcoding `::threadpak` must break
+    /// this law.
+    #[test]
+    fn the_crate_binding_travels_with_the_declaration() {
+        let renamed = "#[refusal(crate = tp, family = \"demo.example\", shape = issue_collection)] \
+            enum DemoIssues { NotBound, }";
+        assert!(surface(renamed).is_ok_and(|surface| surface.binding().spelling() == "tp"));
+        let rendered = compile_refusal_text(renamed)
+            .map(|(_, closed)| closed.inspected())
+            .map_err(|_| ());
+        assert!(rendered.is_ok_and(|text| {
+            text.contains(":: tp :: refusal :: RefusalFamily") && !text.contains("threadpak")
+        }));
+    }
+
+    /// law: derive.the-declared-order-is-the-selector-not-the-layout — the
+    /// captured order follows the order clause, not the order the variants
+    /// happen to be written in.
+    /// Owed reversal: a capture reading the body layout must break this law.
     #[test]
     fn the_declared_order_is_the_selector_not_the_layout() {
-        let reordered = "#[refusal(shape = single_cause, order(NotAdmitted = \
-            \"demo.not-admitted\", NotCanonical = \"demo.not-canonical\"))] enum DemoFamily { \
-            NotCanonical, NotAdmitted, }";
-        let captured = captured(reordered);
-        assert!(captured.is_ok_and(|surface| {
-            surface
-                .causes()
-                .next()
-                .is_some_and(|cause| cause.spelling() == "NotAdmitted")
+        let reordered = "#[refusal(family = \"demo.example\", shape = single_cause, \
+            order(NotAdmitted = \"not-admitted\", NotCanonical = \"not-canonical\"))] \
+            enum DemoFamily { NotCanonical, NotAdmitted, }";
+        assert!(surface(reordered).is_ok_and(|surface| {
+            let spellings: Vec<&str> = surface.causes().map(CapturedCause::spelling).collect();
+            spellings == vec!["NotAdmitted", "NotCanonical"]
         }));
     }
 
-    /// law: derive-refusal.every-malformed-declaration-establishes-one-cause —
-    /// each grammar failure establishes its own cause at a byte coordinate, and
-    /// no two of them collapse into one.
-    /// Owed reversal (red twin): collapsing two causes into one, or returning a
-    /// bare unit error, must break this law.
+    /// law: derive.a-real-enum-is-never-told-it-is-not-an-enum — a declaration
+    /// that IS a real Rust item and merely meets a limit of this grammar gets a
+    /// cause naming that limit. A caller told `NotAnEnum` about a perfectly good
+    /// enum goes looking for the wrong problem.
+    /// Owed reversal (red twin): folding these forms back into `NotAnEnum` must
+    /// break this law.
+    #[test]
+    fn a_real_enum_is_never_told_it_is_not_an_enum() {
+        let cases = [
+            (
+                "#[refusal(family = \"demo.example\", shape = issue_collection)] \
+                 struct NotAnEnumAtAll;",
+                RefusalDeriveCapture::UnsupportedDeclarationForm,
+            ),
+            (
+                "#[refusal(family = \"demo.example\", shape = issue_collection)] \
+                 enum Generic<T> { NotBound, }",
+                RefusalDeriveCapture::UnavailableUnderCompilerProfile,
+            ),
+            (
+                "#[refusal(family = \"demo.example\", shape = issue_collection)] \
+                 enum Payloaded { NotBound(u8), }",
+                RefusalDeriveCapture::UnsupportedVariantPayload,
+            ),
+        ];
+        assert!(
+            cases
+                .iter()
+                .all(|(source, expected)| surface(source) == Err(*expected))
+        );
+    }
+
+    /// law: derive.every-malformed-declaration-establishes-one-cause — the
+    /// capture family is single-cause, and each malformed declaration
+    /// establishes exactly the cause its defect names.
+    /// Owed reversal: collapsing two defects onto one cause must break this law.
     #[test]
     fn every_malformed_declaration_establishes_one_cause() {
-        let cases: [(&str, RefusalDeriveCapture); 7] = [
-            ("struct NotAnEnumAtAll;", RefusalDeriveCapture::NotAnEnum),
-            ("enum { A, }", RefusalDeriveCapture::NotNamed),
+        let cases = [
+            ("nothing declared here", RefusalDeriveCapture::NotAnEnum),
             (
-                "#[refusal(shape = single_cause, order())] enum DemoFamily { }",
+                "#[refusal(family = \"demo.example\", shape = issue_collection)] enum { A, }",
+                RefusalDeriveCapture::NotNamed,
+            ),
+            (
+                "#[refusal(family = \"demo.example\", shape = issue_collection)] enum Empty { }",
                 RefusalDeriveCapture::NotInhabited,
             ),
             (
-                "enum DemoFamily { A, }",
+                "#[refusal(shape = issue_collection)] enum Demo { A, }",
+                RefusalDeriveCapture::NotFamilyDeclared,
+            ),
+            (
+                "#[refusal(family = \"NotKebab\", shape = issue_collection)] enum Demo { A, }",
+                RefusalDeriveCapture::NotFamilyGrammatical,
+            ),
+            (
+                "#[refusal(family = \"demo.example\")] enum Demo { A, }",
                 RefusalDeriveCapture::NotShapeDeclared,
             ),
             (
-                "#[refusal(shape = tri_state)] enum DemoFamily { A, }",
+                "#[refusal(family = \"demo.example\", shape = tri_state)] enum Demo { A, }",
                 RefusalDeriveCapture::NotAnAdmittedShape,
             ),
             (
-                "#[refusal(shape = single_cause)] enum DemoFamily { A, }",
+                "#[refusal(family = \"demo.example\", shape = single_cause)] enum Demo { A, }",
                 RefusalDeriveCapture::NotOrderDeclared,
             ),
             (
-                "#[refusal(shape = issue_collection, order(A = \"x\"))] enum DemoFamily { A, }",
+                "#[refusal(family = \"demo.example\", shape = issue_collection, \
+                 order(A = \"a\"))] enum Demo { A, }",
                 RefusalDeriveCapture::NotOrderAdmitted,
             ),
+            (
+                "#[refusal(family = \"demo.example\", shape = single_cause, \
+                 order(A = \"a\"))] enum Demo { A, B, }",
+                RefusalDeriveCapture::NotCovered,
+            ),
+            (
+                "#[refusal(family = \"demo.example\", shape = single_cause, \
+                 order(A = \"a\", B = \"a\"))] enum Demo { A, B, }",
+                RefusalDeriveCapture::NotDistinct,
+            ),
+            (
+                "#[refusal(family = \"demo.example\", shape = single_cause, \
+                 order(A = \"NotKebab\"))] enum Demo { A, }",
+                RefusalDeriveCapture::NotKeyed,
+            ),
         ];
-        for (source, expected) in cases {
-            let refused = captured(source);
-            assert!(
-                refused.is_err_and(|refusal| {
-                    refusal.cause() == expected && refusal.coordinate().role == CoordinateRole::Byte
-                }),
-                "{source}"
-            );
-        }
-    }
-
-    /// law: derive-refusal.coverage-and-distinctness-are-separate-causes — an
-    /// order clause that names a cause the body does not, and one that reuses a
-    /// stable identity, establish different causes.
-    /// Owed reversal: folding distinctness into coverage must break this law.
-    #[test]
-    fn coverage_and_distinctness_are_separate_causes() {
-        let uncovered = "#[refusal(shape = single_cause, order(NotCanonical = \"a\"))] \
-            enum DemoFamily { NotCanonical, NotAdmitted, }";
-        let repeated = "#[refusal(shape = single_cause, order(NotCanonical = \"a\", \
-            NotAdmitted = \"a\"))] enum DemoFamily { NotCanonical, NotAdmitted, }";
         assert!(
-            captured(uncovered)
-                .is_err_and(|refusal| refusal.cause() == RefusalDeriveCapture::NotCovered)
-        );
-        assert!(
-            captured(repeated)
-                .is_err_and(|refusal| refusal.cause() == RefusalDeriveCapture::NotDistinct)
+            cases
+                .iter()
+                .all(|(source, expected)| surface(source) == Err(*expected))
         );
     }
 
-    /// law: derive-refusal.an-oversized-declaration-refuses-rather-than-reads —
-    /// a declared input past the declared magnitude is refused before it is
-    /// parsed at all.
-    /// Owed reversal: an unbounded read must break this law.
+    /// law: derive.a-refusal-names-the-offending-token — a capture refusal
+    /// carries the token it was established at, and the text route resolves that
+    /// token to a byte position. A refusal that always pointed at the first
+    /// token would send every reader to the same wrong place.
+    /// Owed reversal (red twin): reporting at `token[0]` must break this law.
     #[test]
-    fn an_oversized_declaration_refuses_rather_than_reads() {
-        let oversized = format!("enum DemoFamily {{ {} }}", "A, ".repeat(4096));
-        assert!(
-            captured(&oversized)
-                .is_err_and(|refusal| refusal.cause() == RefusalDeriveCapture::Unbounded)
-        );
-    }
-
-    /// law: derive-refusal.a-capture-refusal-projects-into-a-diagnostic — the
-    /// typed cause projects into the services' structured diagnostic with the
-    /// capture phase, the byte coordinate, the typed observed classification,
-    /// the established cause, an owner-cited repair, and the callable
-    /// reproduction route.
-    /// Owed reversal: a diagnostic without a coordinate or without a cited
-    /// repair must break this law.
-    #[test]
-    fn a_capture_refusal_projects_into_a_diagnostic() {
-        let refused = captured("struct NotAnEnumAtAll;");
+    fn a_refusal_names_the_offending_token() {
+        let source = "#[refusal(family = \"demo.example\", shape = tri_state)] enum Demo { A, }";
+        let read = TextCapture::read(source).map_err(|_| ());
+        let refused = captured_text(source).map(|_| ());
+        assert!(read.is_ok());
         assert!(refused.is_err_and(|refusal| {
-            let diagnostic = refusal.diagnosed(&CaptureDiagnosticAnchors {
-                reason: ExactIdentity::decoded([220; 32]),
-                family: ExactIdentity::decoded([221; 32]),
-                declaration: ExactIdentity::decoded([222; 32]),
-                fragment: ExactIdentity::decoded([223; 32]),
-                graph: ExactIdentity::decoded([224; 32]),
-                expected: ExactIdentity::decoded([225; 32]),
-                posture: CauseDisposition::UnresolvedCause,
-                entry: ExactIdentity::decoded([227; 32]),
-                repair_declared_by: owner_fact(228),
-            });
-            matches!(diagnostic.phase, MacrocPhase::Capture)
-                && diagnostic.coordinate.role == CoordinateRole::Byte
-                && diagnostic.repairs.len() == 1
-                && matches!(diagnostic.cause, CauseDisposition::UnresolvedCause)
+            let table = TextCapture::read(source).map(|read| read.spans().clone());
+            table.is_ok_and(|table| {
+                let coordinate = table.coordinate_of(refusal.token());
+                coordinate.role == CoordinateRole::Byte
+                    && coordinate.position > 0
+                    && refusal.cause() == RefusalDeriveCapture::NotAnAdmittedShape
+            })
+        }));
+    }
+
+    /// law: derive.the-standing-of-the-cause-order-is-typed — a shape that
+    /// declares no canonical order says so with a typed standing, and the plan's
+    /// disposition names the owner fact rather than saying nothing.
+    /// Owed reversal: an untyped standing must break this law.
+    #[test]
+    fn the_standing_of_the_cause_order_is_typed() {
+        let single = surface(SINGLE_CAUSE).map(RefusalDeriveSurface::planned);
+        let collection = surface(ISSUE_COLLECTION).map(RefusalDeriveSurface::planned);
+        assert!(single.is_ok_and(|draft| {
+            matches!(draft.cause_order_standing(), CauseOrderStanding::Declared)
+                && draft.declared_membership() == DerivedMembership::FamilyAndCauseOrder
+                && draft.declared_membership().len() == 2
+                && !draft.declared_membership().is_empty()
+        }));
+        assert!(collection.is_ok_and(|draft| {
+            matches!(
+                draft.cause_order_standing(),
+                CauseOrderStanding::NotApplicableToShape
+            ) && draft.declared_membership() == DerivedMembership::FamilyOnly
+        }));
+    }
+
+    /// law: derive.the-one-road-closes-before-it-emits — the live road produces
+    /// a plan, a rendering, a proved closure, and a complete explanation, and
+    /// the token tree is reachable only off the closed expansion those four
+    /// produced.
+    /// Owed reversal (red twin): a render road that skipped the closure must
+    /// break this law.
+    #[test]
+    fn the_one_road_closes_before_it_emits() {
+        let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
+        assert!(compiled.is_ok_and(|(_, closed)| {
+            let plan = closed.plan();
+            let closure = closed.closure();
+            plan.membership().len() == 2
+                && closure.rendered().len() == 2
+                && closure.reconstructed().len() == 2
+                && plan.trace().len() == 3
+                && plan.invalidation().len() == 3
+                && plan.origin().len() == 1
+                && closed.explanation().len() == 9
+                && !closed.emitted().is_empty()
                 && matches!(
-                    diagnostic.observed,
-                    crate::diagnostics::ObservedClassification::ContractDisagreement
-                )
-                && matches!(
-                    diagnostic.reproduction,
-                    crate::diagnostics::ReproductionRoute::CallableServices { .. }
-                )
-                && !refusal.compiler_message().is_empty()
-        }));
-    }
-
-    /// law: derive-refusal.rendering-materializes-exactly-what-was-planned —
-    /// the rendered membership is the planned membership, item for item, and
-    /// the single-cause family renders both implementations while the
-    /// collection family renders one.
-    /// Owed reversal (red twin): a rendering that emitted a sibling the plan did
-    /// not declare must break this law.
-    #[test]
-    fn rendering_materializes_exactly_what_was_planned() {
-        let single = captured(SINGLE_CAUSE).map(RefusalDeriveSurface::planned);
-        assert!(single.is_ok_and(|derivation| {
-            let rendered = derivation.rendered();
-            rendered.membership() == derivation.declared_membership()
-                && derivation.declared_membership() == DerivedMembership::FamilyAndCauseOrder
-                && derivation.declared_membership().len() == 2
-                && !derivation.declared_membership().is_empty()
-                && derivation.declared_membership().items()
-                    == [
-                        DerivedItem::FamilyImplementation,
-                        DerivedItem::CauseOrderImplementation,
-                    ]
-                && rendered
-                    .source()
-                    .contains("impl ::threadpak::refusal::RefusalFamily")
-                && rendered
-                    .source()
-                    .contains("impl ::threadpak::refusal::CauseOrderDeclaration")
-        }));
-        let collection = captured(ISSUE_COLLECTION).map(RefusalDeriveSurface::planned);
-        assert!(collection.is_ok_and(|derivation| {
-            let rendered = derivation.rendered();
-            derivation.declared_membership() == DerivedMembership::FamilyOnly
-                && rendered.membership() == derivation.declared_membership()
-                && !rendered
-                    .source()
-                    .contains("impl ::threadpak::refusal::CauseOrderDeclaration")
-        }));
-    }
-
-    /// law: derive-refusal.the-textual-order-is-emitted-from-the-typed-rows —
-    /// the rendered selection order is the declared spellings in the declared
-    /// positions, and the rendered typed order carries the declared identities.
-    /// Owed reversal: emitting a caller-supplied string list must break this
-    /// law.
-    #[test]
-    fn the_textual_order_is_emitted_from_the_typed_rows() {
-        let rendered = captured(SINGLE_CAUSE).map(|surface| surface.planned().rendered());
-        assert!(rendered.is_ok_and(|rendered| {
-            rendered
-                .source()
-                .contains("&[\"NotCanonical\", \"NotAdmitted\"]")
-                && rendered.source().contains("\"demo.not-canonical\"")
-                && rendered.source().contains("\"demo.not-admitted\"")
-        }));
-    }
-
-    /// law: derive-refusal.a-planted-defect-changes-the-rendering-and-not-the-declaration
-    /// — both planted defects leave the captured surface untouched and change
-    /// only what the rendering claims, which is what makes them catchable from
-    /// outside.
-    /// Owed reversal: a planted defect that also moved the typed order would be
-    /// undetectable and must break this law.
-    #[test]
-    fn a_planted_defect_changes_the_rendering_and_not_the_declaration() {
-        let derivation = captured(SINGLE_CAUSE).map(RefusalDeriveSurface::planned);
-        assert!(derivation.is_ok_and(|derivation| {
-            let lawful = derivation.rendered();
-            let permuted =
-                derivation.rendered_with_planted_defect(PlantedDefect::SelectionOrderPermuted);
-            let recycled =
-                derivation.rendered_with_planted_defect(PlantedDefect::CauseIdentityRecycled);
-            lawful.source() != permuted.source()
-                && lawful.source() != recycled.source()
-                && permuted
-                    .source()
-                    .contains("&[\"NotAdmitted\", \"NotCanonical\"]")
-                && !recycled.source().contains("\"demo.not-admitted\"")
-                && lawful.membership() == permuted.membership()
-                && derivation
-                    .surface()
-                    .causes()
-                    .next()
-                    .is_some_and(|cause| cause.stable_id() == "demo.not-canonical")
-        }));
-    }
-
-    /// law: derive-refusal.the-plan-carries-the-derivation-and-its-absences —
-    /// a single-cause derivation plans two outputs and disposes the cause-order
-    /// projection as generated; a collection derivation plans one and disposes
-    /// it as not applicable on the refusal home's fact. Silence is never the
-    /// answer.
-    /// Owed reversal: a shorter membership with no stated disposition must break
-    /// this law.
-    #[test]
-    fn the_plan_carries_the_derivation_and_its_absences() {
-        let anchors = anchors();
-        let single = captured(SINGLE_CAUSE)
-            .map(RefusalDeriveSurface::planned)
-            .map_err(|_| ())
-            .and_then(|derivation| derivation.projected(&anchors).map_err(|_| ()));
-        assert!(single.is_ok_and(|projection| {
-            projection.plan().membership().len() == 2
-                && projection.plan().trace().len() == 2
-                && projection.plan().invalidation().len() == 3
-                && projection.plan().content().assumptions.len() == 2
-                && matches!(
-                    projection.cause_order(),
+                    closed.cause_order(),
                     ProjectionDisposition::Generated { .. }
                 )
         }));
-        let collection = captured(ISSUE_COLLECTION)
-            .map(RefusalDeriveSurface::planned)
-            .map_err(|_| ())
-            .and_then(|derivation| derivation.projected(&anchors).map_err(|_| ()));
-        assert!(collection.is_ok_and(|projection| {
-            projection.plan().membership().len() == 1
-                && matches!(
-                    projection.cause_order(),
-                    ProjectionDisposition::NotApplicable { because }
-                        if *because == anchors.owner_facts.canonical_order_is_shape_ruled
-                )
+    }
+
+    /// law: derive.inspection-and-emission-read-one-value — the text a caller
+    /// inspects is a projection of the same tree that is emitted, and the plan
+    /// and closure a caller reads are the same values the emission came from.
+    /// There is no parallel plan and no synthetic sibling.
+    /// Owed reversal (red twin): a second rendering built for inspection must
+    /// break this law.
+    #[test]
+    fn inspection_and_emission_read_one_value() {
+        let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
+        assert!(compiled.is_ok_and(|(_, closed)| {
+            let inspected = closed.inspected();
+            let emitted = closed.emitted().inspected();
+            let joined = closed
+                .rendered()
+                .joined_tree()
+                .map(|tree| tree.inspected())
+                .unwrap_or_default();
+            inspected == emitted
+                && inspected == joined
+                && closed.closure().identity() == closed.closure().identity()
         }));
     }
 
-    /// law: derive-refusal.the-derivation-answers-every-applicable-question —
-    /// the explanation view completes over the implementation kind's nine
-    /// applicable questions, and the why-not-generated seat carries the
-    /// cause-order disposition rather than a sentence.
-    /// Owed reversal: a view missing the disposition seat must break this law.
+    /// law: derive.the-plan-is-a-function-of-the-declaration — two captures of
+    /// the same declaration produce the same plan identities and the same
+    /// closure identity, and a different declaration produces different ones.
+    /// Owed reversal: an identity carrying anything ambient must break this law.
     #[test]
-    fn the_derivation_answers_every_applicable_question() {
-        let anchors = anchors();
-        let explained = captured(ISSUE_COLLECTION)
-            .map(RefusalDeriveSurface::planned)
-            .map_err(|_| ())
-            .and_then(|derivation| {
-                derivation
-                    .projected(&anchors)
-                    .map_err(|_| ())
-                    .and_then(|projection| {
-                        derivation
-                            .explained(&projection, &anchors)
-                            .map_err(|_| ())
-                            .map(|view| view.len())
-                    })
-            });
-        assert_eq!(explained, Ok(9));
+    fn the_plan_is_a_function_of_the_declaration() {
+        let once = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
+        let twice = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
+        let other = compile_refusal_text(ISSUE_COLLECTION).map_err(|_| ());
+        assert!(once.is_ok_and(|(_, first)| {
+            twice.is_ok_and(|(_, second)| {
+                other.is_ok_and(|(_, third)| {
+                    first.closure().identity() == second.closure().identity()
+                        && first.surface().identity() == second.surface().identity()
+                        && first.closure().identity() != third.closure().identity()
+                })
+            })
+        }));
     }
 
-    /// law: derive-refusal.the-standing-of-the-cause-order-is-typed — whether a
-    /// family carries the typed cause order is a typed answer read off the
-    /// shape, never a boolean the caller reinterprets.
-    /// Owed reversal: returning a boolean must break this law.
+    /// law: derive.a-membership-only-draft-renders-nothing — the draft states
+    /// what the shape fixed and carries no rendering road. The frontage road is
+    /// closed: there is no public value in this home other than a closed
+    /// expansion that carries a token tree.
+    /// Owed reversal (red twin): re-adding `rendered()` to the draft must break
+    /// this law.
     #[test]
-    fn the_standing_of_the_cause_order_is_typed() {
-        let single = captured(SINGLE_CAUSE).map(RefusalDeriveSurface::planned);
-        let collection = captured(ISSUE_COLLECTION).map(RefusalDeriveSurface::planned);
-        assert!(single.is_ok_and(|derivation| matches!(
-            derivation.cause_order_standing(),
-            CauseOrderStanding::Declared
-        )));
-        assert!(collection.is_ok_and(|derivation| matches!(
-            derivation.cause_order_standing(),
-            CauseOrderStanding::NotApplicableToShape
-        )));
+    fn a_membership_only_draft_renders_nothing() {
+        let draft = surface(SINGLE_CAUSE).map(RefusalDeriveSurface::planned);
+        assert!(draft.is_ok_and(|draft| {
+            // The draft answers what the SHAPE fixed and nothing else. Every
+            // question about bytes is answered by a closed expansion or by
+            // nobody.
+            draft.declared_membership().roles().len() == 2
+                && draft.surface().family_id() == "demo.example"
+        }));
     }
 
-    /// law: derive-refusal.the-one-call-road-disposes-either-way — the road an
-    /// expansion surface takes answers with a rendering or with an established
-    /// refusal, and never with silence.
-    /// Owed reversal: an empty expansion on a malformed input must break this
+    /// law: derive.the-explanation-carries-the-proved-digest — the
+    /// output-and-digest seat is answered with the digest the CLOSURE proved
+    /// over bytes that exist, never with a value the plan invented.
+    /// Owed reversal (red twin): a plan-supplied digest must break this law.
+    #[test]
+    fn the_explanation_carries_the_proved_digest() {
+        let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
+        assert!(compiled.is_ok_and(|(_, closed)| {
+            let family = closed
+                .rendered()
+                .under(RenderedImplementation::RenderedFamilyImpl);
+            family.is_some_and(|unit| {
+                let planned = closed
+                    .plan()
+                    .membership()
+                    .under(RenderedImplementation::RenderedFamilyImpl);
+                planned.is_some_and(|member| {
+                    unit.digest_under(member.output.digest_contract) == unit.digest()
+                        && unit.semantic_key() == member.output.semantic_key
+                })
+            })
+        }));
+    }
+
+    /// law: derive.a-diagnostic-from-an-expansion-says-it-is-unanchored — the
+    /// live road refuses with a diagnostic that states the machine posture it
+    /// actually has, rather than carrying a stand-in identity nobody minted.
+    /// Owed reversal (red twin): a plane-minted machine identity must break this
     /// law.
     #[test]
-    fn the_one_call_road_disposes_either_way() {
-        assert!(matches!(
-            disposed(SINGLE_CAUSE),
-            RefusalDeriveDisposition::Generated(_)
-        ));
-        assert!(matches!(
-            disposed("struct NotAnEnumAtAll;"),
-            RefusalDeriveDisposition::Refused(_)
-        ));
+    fn a_diagnostic_from_an_expansion_says_it_is_unanchored() {
+        let malformed = "#[refusal(family = \"demo.example\", shape = tri_state)] enum Demo { A, }";
+        let read = TextCapture::read(malformed).map_err(|_| ());
+        assert!(read.is_ok_and(|read| {
+            let context = crate::derive_refusal::RefusalCompileContext {
+                spans: read.spans().clone(),
+                machine: MachineAnchoring::UnmintedAtThisSeam,
+                owner_facts: crate::derive_refusal::RefusalOwnerFacts::declared(),
+                nonclaims: threadpak::types::Bounded::empty(),
+            };
+            compile_refusal(read.input(), &context).is_err_and(|diagnostic| {
+                matches!(diagnostic.machine, MachineAnchoring::UnmintedAtThisSeam)
+                    && matches!(diagnostic.phase, MacrocPhase::Capture)
+                    && !diagnostic.summary.is_empty()
+                    && diagnostic.repairs.len() == 1
+            })
+        }));
+    }
+
+    /// law: derive.a-closure-refuses-a-rendering-that-drops-a-planned-role — the
+    /// closure check is claim-specific: a rendering that materializes fewer
+    /// units than the plan declared is refused by role, before any token exists.
+    /// Owed reversal (red twin): a closure that compared counts must break this
+    /// law.
+    #[test]
+    fn a_closure_refuses_a_rendering_that_drops_a_planned_role() {
+        let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
+        assert!(compiled.is_ok_and(|(_, closed)| {
+            let family = closed
+                .rendered()
+                .under(RenderedImplementation::RenderedFamilyImpl)
+                .cloned();
+            family.is_some_and(|unit| {
+                let partial = crate::closure::RenderedProjection::of_one(unit);
+                crate::closure::ProjectionClosure::proved(closed.plan().membership(), partial)
+                    .is_err_and(|refusal| {
+                        *refusal.issues.first()
+                            == ClosureIssue::MemberMissing {
+                                role: RenderedImplementation::RenderedCauseOrderImpl,
+                            }
+                    })
+            })
+        }));
+    }
+
+    /// law: derive.the-callable-route-needs-no-proc-macro — the whole road runs
+    /// from text, with no proc-macro anywhere in the path, which is what makes a
+    /// diagnostic's declared reproduction route a real road.
+    /// Owed reversal: a road reachable only through an expansion must break this
+    /// law.
+    #[test]
+    fn the_callable_route_needs_no_proc_macro() {
+        let read = TextCapture::read(SINGLE_CAUSE).map_err(|_| ());
+        assert!(read.is_ok_and(|read| {
+            captured(read.input()).is_ok_and(|surface| surface.family_id() == "demo.example")
+        }));
     }
 }

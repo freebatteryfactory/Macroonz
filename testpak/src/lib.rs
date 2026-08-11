@@ -34,7 +34,12 @@ pub mod plan;
 #[path = "03_judge/mod.rs"]
 pub mod judge;
 
-pub use judge::{RenderVerdict, cause_identities_in, judge_declared_order, selection_order_in};
+pub use judge::{
+    ARTIFACT_MUTATIONS, ArtifactMutation, ArtifactStructure, CauseRow, DeclaredStructure,
+    ImplementationStructure, LaneOwnership, RenderVerdict, StructuralDisagreement,
+    StructuralVerdict, cause_identities_in, judge_declared_order, judge_structure, mutated,
+    selection_order_in, structure_of,
+};
 pub use plan::RedTwinLedger;
 
 #[cfg(test)]

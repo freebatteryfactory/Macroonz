@@ -1,5 +1,5 @@
-error: threadpak refusal-family derive: the declared shape word is none of `single_cause`, `issue_collection`, `inseparable_pair` (at source byte 18)
-  --> tests/compile-fail/a-malformed-refusal-declaration-refuses.rs:11:1
+error: the declared shape word is none of `single_cause`, `issue_collection`, `inseparable_pair`
+  --> tests/compile-fail/a-malformed-refusal-declaration-refuses.rs:11:44
    |
-11 | #[refusal(shape = tri_state, order(NotCanonical = "fixture.demo.not-canonical"))]
-   | ^
+11 | #[refusal(family = "fixture.demo", shape = tri_state, order(NotCanonical = "not-canonical"))]
+   |                                            ^^^^^^^^^

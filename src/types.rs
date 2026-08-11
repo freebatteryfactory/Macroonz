@@ -116,6 +116,34 @@ pub struct Bounded<T, L: Limit> {
 }
 
 impl<T, L: ConstLimit> Bounded<T, L> {
+    /// The fixed-arity collection: a *total structural* constructor whose "fits
+    /// the bound" proof is discharged at COMPILE TIME.
+    ///
+    /// The item count is `N`, a compile-time constant, so the `const` block
+    /// below decides the whole question before the program runs and this road
+    /// has no refusal to return. Its reason for existing is downstream honesty:
+    /// where the material is known statically — a declared roster, a fixed pair
+    /// of assumptions, one repair — a caller has no runtime failure to invent a
+    /// value for, so the place a caller reaches for `unwrap_or_else(empty)` and
+    /// silently deletes its own content simply is not on the road.
+    ///
+    /// The honest scope is [`NonEmptyBounded::singleton`]'s: the refusal fires
+    /// when the instantiation is const-evaluated, so no artifact carrying an
+    /// over-long fixed collection is ever produced.
+    #[must_use]
+    pub fn from_array<const N: usize>(items: [T; N]) -> Self {
+        const {
+            assert!(
+                N <= L::MAX,
+                "a fixed collection longer than its limit family admits"
+            );
+        }
+        Self {
+            items: Vec::from(items),
+            _family: PhantomData,
+        }
+    }
+
     /// Checked construction against the family's compile-time maximum.
     ///
     /// # Errors

@@ -5,6 +5,7 @@
 pub mod types;
 
 pub use types::{
-    CauseId, CauseOrderDeclaration, CauseOrdinal, CompletionPosture, DeclaredCause,
-    DeclaredCauseOrder, FamilyShape, HandlingClass, ReasonId, Refusal, RefusalFamily, StopBound,
+    CauseId, CauseKey, CauseOrderDeclaration, CauseOrdinal, CompletionPosture, DeclaredCause,
+    DeclaredCauseOrder, FamilyShape, HandlingClass, LocalCauseKey, ReasonId, Refusal,
+    RefusalFamily, RefusalFamilyId, StopBound,
 };

@@ -1,0 +1,14 @@
+[package]
+name = "threadpak-renamed-consumer"
+description = "The renamed-dependency consumer fixture: the machine reached under a name the consumer chose."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+tp = { package = "threadpak", path = "../../.." }
+threadpak-macros = { path = "../../../macros/proc" }

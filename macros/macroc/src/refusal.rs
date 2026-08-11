@@ -11,8 +11,8 @@
 //! reasons are registered, which is the machine's business, not the plane's.
 
 use crate::plane::{
-    ExactIdentity, GeneratedUnitSubject, OwnerFactRef, PlanSubject, PlanningIssueLimit,
-    ProfileVersion, ProjectionKindSubject, ProjectionProfileSubject,
+    GeneratedUnitSubject, OwnerFactRef, PlanSubject, PlanningIssueLimit, ProfileVersion,
+    ProjectionIdentity, ProjectionKindSubject, ProjectionProfileSubject,
 };
 use threadpak::refusal::{CompletionPosture, FamilyShape, RefusalFamily, StopBound};
 use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction};
@@ -94,12 +94,12 @@ pub enum ProjectionPlanningIssue {
     /// Unreachable on the typed route, where a kind is a type.
     UnknownProjectionKind {
         /// The named kind's identity.
-        named: ExactIdentity<ProjectionKindSubject>,
+        named: ProjectionIdentity<ProjectionKindSubject>,
     },
     /// The named profile and version admit no such projection.
     ProfileUnsupported {
         /// The profile.
-        profile: ExactIdentity<ProjectionProfileSubject>,
+        profile: ProjectionIdentity<ProjectionProfileSubject>,
         /// The profile version.
         version: ProfileVersion,
     },
@@ -117,13 +117,13 @@ pub enum ProjectionPlanningIssue {
     /// because a partially declared set is what silently drops a projection.
     MembershipIncomplete {
         /// The absent unit.
-        absent: ExactIdentity<GeneratedUnitSubject>,
+        absent: ProjectionIdentity<GeneratedUnitSubject>,
     },
     /// A generated node arrived with no origin edge. Unreachable on the typed
     /// route, where the trail seat is structurally non-empty.
     OrphanGeneratedNode {
         /// The orphaned node.
-        node: ExactIdentity<GeneratedUnitSubject>,
+        node: ProjectionIdentity<GeneratedUnitSubject>,
     },
 }
 
@@ -195,4 +195,4 @@ impl ProjectionPlanning {
 /// The identity of one plan, as a bundle names its members. Carried here
 /// because a bundle's membership and the planning family's issues are the two
 /// places a plan is spoken of by identity rather than by value.
-pub type PlanIdentity = ExactIdentity<PlanSubject>;
+pub type PlanIdentity = ProjectionIdentity<PlanSubject>;

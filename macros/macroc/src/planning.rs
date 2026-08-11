@@ -27,12 +27,13 @@
 
 use crate::origin_graph::{DecisionTrace, Nonclaim, OriginTrail};
 use crate::plane::{
-    AssumptionLimit, BundleMemberLimit, BundleSubject, ByteRoleSubject, DerivedTypeSubject,
-    DocumentedSubject, ExactIdentity, FacetLimit, FixturePopulationSubject, GeneratedUnitSubject,
-    GeneratorVersionSubject, ImplementedContractSubject, InvalidationLimit, MeasuredSubject,
-    MechanismProfileSubject, MembershipLimit, NonclaimLimit, ObligationSubject, OutputBytesSubject,
-    OwnerFactRef, PatternArgumentLimit, PatternArgumentSubject, PatternInstanceSubject,
-    PatternSubject, PortSubject, ProfileVersion, ProjectionProfileSubject, SchemaSubject,
+    AssumptionLimit, BundleMemberLimit, BundleSubject, ByteRoleSubject, CapturedDeclarationSubject,
+    DerivedTypeSubject, DocumentedSubject, FacetLimit, FixturePopulationSubject,
+    GeneratedUnitSubject, GeneratorVersionSubject, ImplementedContractSubject, InvalidationLimit,
+    MeasuredSubject, MechanismProfileSubject, MembershipLimit, NonclaimLimit, ObligationSubject,
+    OwnerFactRef, OwnerIdentityRef, PatternArgumentLimit, PatternArgumentSubject,
+    PatternInstanceSubject, PatternSubject, PortSubject, ProfileVersion, ProjectionIdentity,
+    ProjectionProfileSubject, RenderedRole, SchemaSubject, SoleRenderedUnit,
     SourceDeclarationLimit, WireContractSubject, WorkCurrencySubject, WorkFormulaSubject,
     WrapperComponentLimit,
 };
@@ -61,49 +62,79 @@ use threadpak::types::{Bounded, ConstLimit, NonEmptyBounded};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TargetBinding {
     /// Bound to one named host contract.
-    HostContract(ExactIdentity<ProjectionTargetDomain>),
+    HostContract(OwnerIdentityRef<ProjectionTargetDomain>),
     /// Deliberately bound to no host contract.
     TargetFree,
 }
 
 /// The source declarations one plan names as its cause.
 pub type SourceDeclarations =
-    NonEmptyBounded<ExactIdentity<FragmentIdentityDomain>, SourceDeclarationLimit>;
+    NonEmptyBounded<OwnerIdentityRef<FragmentIdentityDomain>, SourceDeclarationLimit>;
 
 /// The triggers one plan watches.
 pub type InvalidationSet = NonEmptyBounded<InvalidationTrigger, InvalidationLimit>;
 
-/// The exact identities every plan shares, whatever its kind: which closed
-/// graph, which profile at which version, which declarations caused it, which
+/// What a plan was decided AGAINST at its graph end.
+///
+/// Not an option. A plan decided against the machine's closed declaration graph
+/// says so and names it; a plan decided at expansion time, where nothing has
+/// been linked and there is no closed graph to name, says THAT — and names the
+/// captured declaration it was decided against instead. The two postures never
+/// read alike, and neither is a missing graph.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GraphAnchoring {
+    /// Decided against the machine's closed declaration graph.
+    ClosedGraph(OwnerIdentityRef<LinkedGraphDomain>),
+    /// Decided against one captured declaration alone, with no closed graph in
+    /// existence yet. The expansion-time posture, stated rather than implied.
+    CapturedDeclarationOnly(ProjectionIdentity<CapturedDeclarationSubject>),
+}
+
+/// What CAUSED a plan.
+///
+/// The same split, at the other end: the machine's declaration fragments where a
+/// caller holds them, and otherwise the exact token material one expansion was
+/// handed. A capture is a real cause and is named as one; it is never dressed up
+/// as a fragment the linker never minted.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum CauseAnchoring {
+    /// The machine's declaration fragments — at least one, by shape.
+    Declarations(SourceDeclarations),
+    /// The captured declaration this plan was derived from.
+    CapturedDeclaration(ProjectionIdentity<CapturedDeclarationSubject>),
+}
+
+/// The exact identities every plan shares, whatever its kind: what it was
+/// decided against, which profile at which version, what caused it, which
 /// version of the services produced it, and what it is bound to.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProjectionContext {
-    /// The closed declaration graph this plan was decided against.
-    pub graph: ExactIdentity<LinkedGraphDomain>,
+    /// What this plan was decided against.
+    pub graph: GraphAnchoring,
     /// The projection profile selected.
-    pub profile: ExactIdentity<ProjectionProfileSubject>,
+    pub profile: ProjectionIdentity<ProjectionProfileSubject>,
     /// That profile's version.
     pub profile_version: ProfileVersion,
-    /// The declarations that caused this plan — at least one, by shape.
-    pub sources: SourceDeclarations,
+    /// What caused this plan.
+    pub sources: CauseAnchoring,
     /// The version of the services that produced this plan.
-    pub generator: ExactIdentity<GeneratorVersionSubject>,
+    pub generator: ProjectionIdentity<GeneratorVersionSubject>,
     /// What the plan binds to at its target end.
     pub target: TargetBinding,
 }
 
 impl ProjectionContext {
     /// Read the machine's own closed-graph commitment into the plane. This is
-    /// the production road: the services observe the identity the linker minted
-    /// and never mint one of their own.
+    /// the production road for a caller that HOLDS a closed graph: the services
+    /// observe the identity the linker minted and never mint one of their own.
     #[must_use]
-    pub fn graph_of(graph: &DeclarationGraph) -> ExactIdentity<LinkedGraphDomain> {
-        ExactIdentity::of_commitment(graph.linked())
+    pub fn graph_of(graph: &DeclarationGraph) -> GraphAnchoring {
+        GraphAnchoring::ClosedGraph(OwnerIdentityRef::of_commitment(graph.linked()))
     }
 
     /// The one-declaration cause set. Total: one cause always fits.
     #[must_use]
-    pub fn one_source(first: ExactIdentity<FragmentIdentityDomain>) -> SourceDeclarations {
+    pub fn one_source(first: OwnerIdentityRef<FragmentIdentityDomain>) -> SourceDeclarations {
         NonEmptyBounded::singleton(first)
     }
 
@@ -116,8 +147,8 @@ impl ProjectionContext {
     /// not trimmed: an explanation that names some of its causes is wrong about
     /// all of them.
     pub fn declared_sources(
-        first: ExactIdentity<FragmentIdentityDomain>,
-        rest: Vec<ExactIdentity<FragmentIdentityDomain>>,
+        first: OwnerIdentityRef<FragmentIdentityDomain>,
+        rest: Vec<OwnerIdentityRef<FragmentIdentityDomain>>,
     ) -> Result<SourceDeclarations, ProjectionPlanning> {
         let observed = rest.len().saturating_add(1);
         NonEmptyBounded::admitted_const(first, rest).map_err(|_| {
@@ -128,26 +159,130 @@ impl ProjectionContext {
             )
         })
     }
+
+    /// The invalidation trigger that watches whatever this context was caused
+    /// by — the fragment where a caller holds one, and the captured declaration
+    /// where the cause IS the capture.
+    #[must_use]
+    pub fn cause_trigger(&self) -> InvalidationTrigger {
+        match &self.sources {
+            CauseAnchoring::Declarations(sources) => {
+                InvalidationTrigger::SourceDeclarationChanged {
+                    watched: *sources.first(),
+                }
+            }
+            CauseAnchoring::CapturedDeclaration(captured) => {
+                InvalidationTrigger::CapturedDeclarationChanged { watched: *captured }
+            }
+        }
+    }
+
+    /// The invalidation trigger that watches whatever this context was decided
+    /// against.
+    #[must_use]
+    pub const fn graph_trigger(&self) -> InvalidationTrigger {
+        match self.graph {
+            GraphAnchoring::ClosedGraph(graph) => {
+                InvalidationTrigger::GraphIdentityChanged { watched: graph }
+            }
+            GraphAnchoring::CapturedDeclarationOnly(captured) => {
+                InvalidationTrigger::CapturedDeclarationChanged { watched: captured }
+            }
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
 // The output firewall.
 // ---------------------------------------------------------------------------
 
-/// One declared output of a plan: what it is, what bytes it will be, and where
-/// it came from.
+/// Where one planned member lands once it is rendered.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MemberDestination {
+    /// Spliced into the declaration the plan was derived from — the expansion
+    /// destination, where the rendered unit replaces or accompanies the
+    /// caller's own item.
+    AtDeclarationSite,
+    /// Written as a standalone artifact under the named byte role.
+    AsArtifact {
+        /// The byte role the artifact is written under.
+        byte_role: OwnerIdentityRef<ByteRoleSubject>,
+    },
+}
+
+/// What the eventual rendered-byte digest of one member must satisfy — stated
+/// before a single byte of it exists.
+///
+/// # Why a plan carries a contract and never a digest
+///
+/// A plan is made BEFORE anything is rendered. A digest of rendered bytes is a
+/// fact about bytes, and those bytes do not exist yet, so a plan that carried
+/// one would be carrying a value nobody computed — either a placeholder, or a
+/// digest smuggled in from a rendering that already happened, which makes the
+/// closure check compare a value against itself.
+///
+/// So the plan states the CONTRACT: the role the digest will carry, and the
+/// member identity it must be anchored to. The closure check recomputes the
+/// digest from the rendered bytes under exactly this contract and compares. A
+/// digest anchored anywhere else belongs to a different member.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DigestContract {
+    /// The identity role the eventual digest will carry.
+    pub role: crate::plane::ProjectionRole,
+    /// The member identity the digest must be anchored to.
+    pub anchored_to: ProjectionIdentity<GeneratedUnitSubject>,
+}
+
+impl DigestContract {
+    /// The contract binding one member's digest to that member.
+    #[must_use]
+    pub const fn over(anchored_to: ProjectionIdentity<GeneratedUnitSubject>) -> Self {
+        Self {
+            role: crate::plane::ProjectionRole::OutputBytes,
+            anchored_to,
+        }
+    }
+}
+
+/// One declared output of a plan — LOGICAL, and only logical.
+///
+/// What it IS (the semantic key), where it LANDS (the destination), where it
+/// CAME FROM (the origin trail), who is expected to MATERIALIZE it (the
+/// renderer's profile at its version), and what its eventual digest must satisfy
+/// (the contract). No rendered bytes and no rendered-byte digest: those are the
+/// rendering's facts and they live on the rendered unit.
 ///
 /// The origin seat is what makes a generated unit non-orphanable: there is no
 /// output value in the plane that does not carry a trail back to authored
 /// material.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct OutputIdentity {
-    /// The generated unit's own identity.
-    pub unit: ExactIdentity<GeneratedUnitSubject>,
-    /// The canonical bytes that unit's rendering commits to.
-    pub digest: ExactIdentity<OutputBytesSubject>,
-    /// Where the unit came from. Structurally non-empty.
+pub struct PlannedOutput {
+    /// What this member is, independently of any bytes.
+    pub semantic_key: ProjectionIdentity<GeneratedUnitSubject>,
+    /// Where it lands.
+    pub destination: MemberDestination,
+    /// Where it came from. Structurally non-empty.
     pub origin: OriginTrail,
+    /// The profile expected to render it.
+    pub expected_profile: ProjectionIdentity<ProjectionProfileSubject>,
+    /// That profile's version.
+    pub expected_profile_version: ProfileVersion,
+    /// What the eventual digest must satisfy.
+    pub digest_contract: DigestContract,
+}
+
+/// One planned member: the rendered role it stands for, and the logical output
+/// under that role.
+///
+/// The role is what closure matches on. A rendering that produced the right
+/// NUMBER of units in the wrong roles is caught by the role rather than passing
+/// a count.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PlannedMember<R: RenderedRole> {
+    /// The rendered role this member plans.
+    pub role: R,
+    /// The logical output under that role.
+    pub output: PlannedOutput,
 }
 
 /// The complete declared output set of one plan — the output firewall.
@@ -156,16 +291,16 @@ pub struct OutputIdentity {
 /// it is a disposition. Bounded: a plan that would generate past the declared
 /// magnitude refuses rather than materializing part of a set.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PlannedMembership {
-    outputs: NonEmptyBounded<OutputIdentity, MembershipLimit>,
+pub struct PlannedMembership<R: RenderedRole> {
+    members: NonEmptyBounded<PlannedMember<R>, MembershipLimit>,
 }
 
-impl PlannedMembership {
-    /// The one-output membership. Total: one output always fits.
+impl<R: RenderedRole> PlannedMembership<R> {
+    /// The one-member membership. Total: one member always fits.
     #[must_use]
-    pub fn from_output(output: OutputIdentity) -> Self {
+    pub fn from_member(member: PlannedMember<R>) -> Self {
         Self {
-            outputs: NonEmptyBounded::singleton(output),
+            members: NonEmptyBounded::singleton(member),
         }
     }
 
@@ -176,12 +311,12 @@ impl PlannedMembership {
     /// Returns the planning family naming [`BoundAxis::Outputs`] when the set
     /// outgrows the declared bound.
     pub fn declared(
-        first: OutputIdentity,
-        rest: Vec<OutputIdentity>,
+        first: PlannedMember<R>,
+        rest: Vec<PlannedMember<R>>,
     ) -> Result<Self, ProjectionPlanning> {
         let observed = rest.len().saturating_add(1);
         NonEmptyBounded::admitted_const(first, rest)
-            .map(|outputs| Self { outputs })
+            .map(|members| Self { members })
             .map_err(|_| {
                 ProjectionPlanning::bound_exceeded(
                     BoundAxis::Outputs,
@@ -191,34 +326,49 @@ impl PlannedMembership {
             })
     }
 
-    /// The guaranteed first output.
+    /// The guaranteed first member.
     #[must_use]
-    pub fn first(&self) -> &OutputIdentity {
-        self.outputs.first()
+    pub fn first(&self) -> &PlannedMember<R> {
+        self.members.first()
     }
 
-    /// The number of outputs declared; structurally at least one.
+    /// The member planned under one role, where one is.
+    #[must_use]
+    pub fn under(&self, role: R) -> Option<&PlannedMember<R>> {
+        self.members.iter().find(|member| member.role == role)
+    }
+
+    /// How many members are planned under one role. Two is a defect the closure
+    /// check names; the membership itself never elects one of them.
+    #[must_use]
+    pub fn count_under(&self, role: R) -> usize {
+        self.members
+            .iter()
+            .filter(|member| member.role == role)
+            .count()
+    }
+
+    /// The number of members declared; structurally at least one.
     #[must_use]
     pub fn len(&self) -> usize {
-        self.outputs.len()
+        self.members.len()
     }
 
     /// Always `false`: a plan declaring no output is unrepresentable.
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.outputs.is_empty()
+        self.members.is_empty()
     }
 
-    /// Read the declared outputs, the guaranteed first one ahead of the rest.
+    /// Read the declared members, the guaranteed first one ahead of the rest.
     ///
     /// The order law applies and is not weakened here: a declared output SET is
     /// order-insensitive, so nothing identity-bearing may be derived from the
-    /// order this yields. A plan identity computed over these outputs
-    /// canonicalizes by an owner-declared order or key first, and testpak owes
-    /// the permutation hostile — the same outputs supplied in another order
-    /// must yield the same plan and the same output identities.
-    pub fn iter(&self) -> impl Iterator<Item = &OutputIdentity> {
-        self.outputs.iter()
+    /// order this yields. Every member identity is derived from its ROLE and its
+    /// anchor, never from its position in this iteration, so the same members
+    /// supplied in another order yield the same plan.
+    pub fn iter(&self) -> impl Iterator<Item = &PlannedMember<R>> {
+        self.members.iter()
     }
 }
 
@@ -236,42 +386,49 @@ pub enum InvalidationTrigger {
     /// A source declaration this plan was derived from changed.
     SourceDeclarationChanged {
         /// The watched declaration.
-        watched: ExactIdentity<FragmentIdentityDomain>,
+        watched: OwnerIdentityRef<FragmentIdentityDomain>,
+    },
+    /// The captured declaration this plan was derived from changed. The
+    /// expansion-time twin of the fragment trigger: where the cause IS the
+    /// captured token material, that is what is watched.
+    CapturedDeclarationChanged {
+        /// The watched capture.
+        watched: ProjectionIdentity<CapturedDeclarationSubject>,
     },
     /// The closed graph this plan was decided against changed.
     GraphIdentityChanged {
         /// The watched graph.
-        watched: ExactIdentity<LinkedGraphDomain>,
+        watched: OwnerIdentityRef<LinkedGraphDomain>,
     },
     /// The projection profile changed.
     ProjectionProfileChanged {
         /// The watched profile.
-        watched: ExactIdentity<ProjectionProfileSubject>,
+        watched: ProjectionIdentity<ProjectionProfileSubject>,
     },
     /// The host contract this plan is bound to changed.
     TargetContractChanged {
         /// The watched contract.
-        watched: ExactIdentity<ProjectionTargetDomain>,
+        watched: OwnerIdentityRef<ProjectionTargetDomain>,
     },
     /// The version of the services that produced this plan changed.
     GeneratorVersionChanged {
         /// The watched generator version.
-        watched: ExactIdentity<GeneratorVersionSubject>,
+        watched: ProjectionIdentity<GeneratorVersionSubject>,
     },
     /// An admitted mechanism profile changed.
     MechanismProfileChanged {
         /// The watched mechanism profile.
-        watched: ExactIdentity<MechanismProfileSubject>,
+        watched: OwnerIdentityRef<MechanismProfileSubject>,
     },
     /// A declared work formula changed.
     WorkFormulaChanged {
         /// The watched work formula.
-        watched: ExactIdentity<WorkFormulaSubject>,
+        watched: OwnerIdentityRef<WorkFormulaSubject>,
     },
     /// A fixture population a descriptor ranges over changed.
     FixturePopulationChanged {
         /// The watched population.
-        watched: ExactIdentity<FixturePopulationSubject>,
+        watched: OwnerIdentityRef<FixturePopulationSubject>,
     },
 }
 
@@ -343,6 +500,13 @@ pub trait ProjectionKind {
     /// The kind-specific facts a plan of this kind carries.
     type Content: Debug + Clone + PartialEq + Eq;
 
+    /// The closed roster of rendered units plans of this kind materialize.
+    ///
+    /// Declared by the kind rather than discovered from a rendering, which is
+    /// what lets the closure check ask "was every planned role rendered, and was
+    /// anything rendered that no role planned?" before a token is emitted.
+    type Rendered: RenderedRole;
+
     /// The questions this kind answers *beyond* [`UNIVERSAL_QUESTIONS`]. The
     /// universal ones are not restated here — one roster, one home, and a kind
     /// that could drop a universal question by forgetting to list it does not
@@ -382,9 +546,9 @@ pub enum CodecDirection {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CodecContent {
     /// The schema the codec is projected from.
-    pub schema: ExactIdentity<SchemaSubject>,
+    pub schema: OwnerIdentityRef<SchemaSubject>,
     /// The byte role the codec reads or writes.
-    pub byte_role: ExactIdentity<ByteRoleSubject>,
+    pub byte_role: OwnerIdentityRef<ByteRoleSubject>,
     /// The direction covered.
     pub direction: CodecDirection,
     /// The owner facts this projection assumes.
@@ -434,7 +598,7 @@ pub const WRAPPER_COMPONENTS: [WrapperComponent; 8] = [
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct HostWrapperContent {
     /// The host contract the wrapper binds to.
-    pub host_contract: ExactIdentity<ProjectionTargetDomain>,
+    pub host_contract: OwnerIdentityRef<ProjectionTargetDomain>,
     /// The components composed — at least one, by shape.
     pub components: NonEmptyBounded<WrapperComponent, WrapperComponentLimit>,
     /// The declared capability that selected them.
@@ -454,9 +618,9 @@ pub enum SurfaceDirection {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RemoteSurfaceContent {
     /// The port declaration projected.
-    pub port: ExactIdentity<PortSubject>,
+    pub port: OwnerIdentityRef<PortSubject>,
     /// The wire contract spoken.
-    pub wire_contract: ExactIdentity<WireContractSubject>,
+    pub wire_contract: OwnerIdentityRef<WireContractSubject>,
     /// Which way the surface faces.
     pub direction: SurfaceDirection,
 }
@@ -467,7 +631,7 @@ pub struct RemoteSurfaceContent {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TestDescriptorContent {
     /// The obligation challenged.
-    pub obligation: ExactIdentity<ObligationSubject>,
+    pub obligation: OwnerIdentityRef<ObligationSubject>,
     /// The challenge method.
     pub challenge: Method,
 }
@@ -478,9 +642,9 @@ pub struct TestDescriptorContent {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BenchmarkDescriptorContent {
     /// The unit measured.
-    pub measured: ExactIdentity<MeasuredSubject>,
+    pub measured: OwnerIdentityRef<MeasuredSubject>,
     /// The named work currency the envelope is stated in.
-    pub work_currency: ExactIdentity<WorkCurrencySubject>,
+    pub work_currency: OwnerIdentityRef<WorkCurrencySubject>,
     /// The claim the envelope stands for.
     pub claim: VerifiedClaim,
 }
@@ -490,9 +654,9 @@ pub struct BenchmarkDescriptorContent {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DocumentationContent {
     /// The subject documented.
-    pub subject: ExactIdentity<DocumentedSubject>,
+    pub subject: OwnerIdentityRef<DocumentedSubject>,
     /// The audience the projection is written for.
-    pub audience: ExactIdentity<ProjectionAudienceDomain>,
+    pub audience: OwnerIdentityRef<ProjectionAudienceDomain>,
     /// The facets covered.
     pub facets: Bounded<Facet, FacetLimit>,
 }
@@ -502,9 +666,9 @@ pub struct DocumentationContent {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DeriveImplContent {
     /// The type the implementation is derived for.
-    pub derived_type: ExactIdentity<DerivedTypeSubject>,
+    pub derived_type: ProjectionIdentity<DerivedTypeSubject>,
     /// The contract it realizes.
-    pub contract: ExactIdentity<ImplementedContractSubject>,
+    pub contract: ProjectionIdentity<ImplementedContractSubject>,
     /// The owner facts assumed.
     pub assumptions: Bounded<OwnerFactRef, AssumptionLimit>,
 }
@@ -514,11 +678,11 @@ pub struct DeriveImplContent {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PatternStampContent {
     /// The authored pattern.
-    pub pattern: ExactIdentity<PatternSubject>,
+    pub pattern: OwnerIdentityRef<PatternSubject>,
     /// This instantiation of it.
-    pub instance: ExactIdentity<PatternInstanceSubject>,
+    pub instance: OwnerIdentityRef<PatternInstanceSubject>,
     /// The typed arguments supplied.
-    pub arguments: Bounded<ExactIdentity<PatternArgumentSubject>, PatternArgumentLimit>,
+    pub arguments: Bounded<OwnerIdentityRef<PatternArgumentSubject>, PatternArgumentLimit>,
 }
 
 /// Declares one projection kind: a zero-sized marker plus its sealed
@@ -526,7 +690,8 @@ pub struct PatternStampContent {
 macro_rules! kinds {
     ($(
         $(#[$note:meta])*
-        $name:ident => $content:ty, $requirement:expr, [$($question:expr),* $(,)?]
+        $name:ident => $content:ty, $rendered:ty, $requirement:expr,
+            [$($question:expr),* $(,)?]
     );+ $(;)?) => {
         $(
             $(#[$note])*
@@ -536,6 +701,7 @@ macro_rules! kinds {
             impl ProjectionKind for $name {
                 const SEAL: KindSeal = KindSeal::admitted();
                 type Content = $content;
+                type Rendered = $rendered;
                 const KIND_QUESTIONS: &'static [ExplanationQuestion] = &[$($question),*];
                 const TARGET_REQUIREMENT: TargetRequirement = $requirement;
             }
@@ -543,41 +709,85 @@ macro_rules! kinds {
     };
 }
 
+/// The rendered units one implementation projection materializes.
+///
+/// Two seats, and they are role-distinct rather than positions in a list. The
+/// machine's refusal home splits what a family declares across two contracts —
+/// the family's shape and textual order, and the typed cause order — so an
+/// implementation projection over such a declaration materializes one unit per
+/// contract, each under its own role.
+///
+/// A rendering that produced two units and swapped them is not "the same set in
+/// another order": it is two units under the wrong roles, and the closure check
+/// says so.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RenderedImplementation {
+    /// The family contract's implementation: the body shape and the textual
+    /// selection order.
+    RenderedFamilyImpl,
+    /// The typed cause-order contract's implementation.
+    RenderedCauseOrderImpl,
+}
+
+impl RenderedRole for RenderedImplementation {
+    const ROLES: &'static [Self] = &[Self::RenderedFamilyImpl, Self::RenderedCauseOrderImpl];
+
+    fn slot(self) -> u32 {
+        match self {
+            Self::RenderedFamilyImpl => 0,
+            Self::RenderedCauseOrderImpl => 1,
+        }
+    }
+
+    fn described(self) -> &'static str {
+        match self {
+            Self::RenderedFamilyImpl => "the family contract's implementation",
+            Self::RenderedCauseOrderImpl => "the typed cause order's implementation",
+        }
+    }
+}
+
 kinds! {
     /// Projects a schema into the codec that reads and writes its canonical
     /// bytes.
-    CodecProjection => CodecContent, TargetRequirement::EitherBinding,
+    CodecProjection => CodecContent, SoleRenderedUnit, TargetRequirement::EitherBinding,
         [ExplanationQuestion::WhichAssumptionsAndSpecializations];
 
     /// Projects a declared surface into the wrapper one host contract needs.
-    HostWrapperProjection => HostWrapperContent, TargetRequirement::BoundHostContract,
+    HostWrapperProjection => HostWrapperContent, SoleRenderedUnit,
+        TargetRequirement::BoundHostContract,
         [
             ExplanationQuestion::WhichCapabilitiesSelectedWrappers,
             ExplanationQuestion::WhichRuntimeTracesCorrespond,
         ];
 
     /// Projects a port declaration into a remote surface over a wire contract.
-    RemoteSurfaceProjection => RemoteSurfaceContent, TargetRequirement::BoundHostContract,
+    RemoteSurfaceProjection => RemoteSurfaceContent, SoleRenderedUnit,
+        TargetRequirement::BoundHostContract,
         [ExplanationQuestion::WhichRuntimeTracesCorrespond];
 
     /// Projects a declared obligation into the descriptor that challenges it.
-    TestDescriptorProjection => TestDescriptorContent, TargetRequirement::EitherBinding,
+    TestDescriptorProjection => TestDescriptorContent, SoleRenderedUnit,
+        TargetRequirement::EitherBinding,
         [ExplanationQuestion::WhichTestsChallenge];
 
     /// Projects a declared work formula into the descriptor that measures it.
-    BenchmarkDescriptorProjection => BenchmarkDescriptorContent,
+    BenchmarkDescriptorProjection => BenchmarkDescriptorContent, SoleRenderedUnit,
         TargetRequirement::EitherBinding,
         [ExplanationQuestion::WhichBenchmarksMeasure];
 
     /// Projects declared meaning into prose for a named audience.
-    DocumentationProjection => DocumentationContent, TargetRequirement::EitherBinding, [];
+    DocumentationProjection => DocumentationContent, SoleRenderedUnit,
+        TargetRequirement::EitherBinding, [];
 
     /// Projects a declared contract into the implementation that realizes it.
-    DeriveImplProjection => DeriveImplContent, TargetRequirement::EitherBinding,
+    DeriveImplProjection => DeriveImplContent, RenderedImplementation,
+        TargetRequirement::EitherBinding,
         [ExplanationQuestion::WhichAssumptionsAndSpecializations];
 
     /// Projects an authored pattern's instantiation into declaration material.
-    PatternStampProjection => PatternStampContent, TargetRequirement::EitherBinding,
+    PatternStampProjection => PatternStampContent, SoleRenderedUnit,
+        TargetRequirement::EitherBinding,
         [ExplanationQuestion::WhichTemplateOrPatternInstance];
 }
 
@@ -595,7 +805,7 @@ kinds! {
 pub struct ProjectionPlan<K: ProjectionKind> {
     context: ProjectionContext,
     content: K::Content,
-    membership: PlannedMembership,
+    membership: PlannedMembership<K::Rendered>,
     invalidation: InvalidationSet,
     trace: DecisionTrace,
     origin: OriginTrail,
@@ -614,7 +824,7 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
     pub fn planned(
         context: ProjectionContext,
         kind_content: K::Content,
-        membership: PlannedMembership,
+        membership: PlannedMembership<K::Rendered>,
         invalidation: InvalidationSet,
         trace: DecisionTrace,
         origin: OriginTrail,
@@ -654,7 +864,7 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
 
     /// The complete declared output set.
     #[must_use]
-    pub const fn membership(&self) -> &PlannedMembership {
+    pub const fn membership(&self) -> &PlannedMembership<K::Rendered> {
         &self.membership
     }
 
@@ -702,14 +912,14 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
 /// of sibling projections is a set whose siblings disagree.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProjectionBundlePlan {
-    bundle: ExactIdentity<BundleSubject>,
+    bundle: ProjectionIdentity<BundleSubject>,
     members: NonEmptyBounded<PlanIdentity, BundleMemberLimit>,
 }
 
 impl ProjectionBundlePlan {
     /// The one-member bundle. Total: one member always fits.
     #[must_use]
-    pub fn of_one(bundle: ExactIdentity<BundleSubject>, member: PlanIdentity) -> Self {
+    pub fn of_one(bundle: ProjectionIdentity<BundleSubject>, member: PlanIdentity) -> Self {
         Self {
             bundle,
             members: NonEmptyBounded::singleton(member),
@@ -723,7 +933,7 @@ impl ProjectionBundlePlan {
     /// Returns the planning family naming [`BoundAxis::Outputs`] when the member
     /// set outgrows the declared bound.
     pub fn materialized(
-        bundle: ExactIdentity<BundleSubject>,
+        bundle: ProjectionIdentity<BundleSubject>,
         first: PlanIdentity,
         rest: Vec<PlanIdentity>,
     ) -> Result<Self, ProjectionPlanning> {
@@ -741,7 +951,7 @@ impl ProjectionBundlePlan {
 
     /// The bundle's own identity.
     #[must_use]
-    pub const fn bundle(&self) -> ExactIdentity<BundleSubject> {
+    pub const fn bundle(&self) -> ProjectionIdentity<BundleSubject> {
         self.bundle
     }
 
@@ -769,10 +979,12 @@ impl ProjectionBundlePlan {
 /// caused it, a citation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProjectionDisposition {
-    /// It was generated, and this is the output.
+    /// It was generated, and this is the output. Boxed because a disposition
+    /// travels by value beside every plan, and the largest answer must not set
+    /// the size of the five smaller ones.
     Generated {
         /// The generated unit.
-        output: OutputIdentity,
+        output: Box<PlannedOutput>,
     },
     /// It does not apply here, because of this owner fact.
     NotApplicable {
@@ -787,7 +999,7 @@ pub enum ProjectionDisposition {
     /// The selected profile does not offer it.
     UnavailableUnderProfile {
         /// The profile that does not offer it.
-        profile: ExactIdentity<ProjectionProfileSubject>,
+        profile: ProjectionIdentity<ProjectionProfileSubject>,
         /// That profile's version.
         version: ProfileVersion,
     },
@@ -796,6 +1008,6 @@ pub enum ProjectionDisposition {
     /// A configuration excluded it.
     ExcludedByConfiguration {
         /// The excluding configuration.
-        configuration: ExactIdentity<ProjectionConfigurationDomain>,
+        configuration: OwnerIdentityRef<ProjectionConfigurationDomain>,
     },
 }

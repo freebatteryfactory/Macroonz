@@ -141,6 +141,106 @@ impl CauseId {
     }
 }
 
+/// The stable identity of one refusal family.
+///
+/// Spelled `<domain>.<family>` — two lowercase kebab-case segments, the domain
+/// naming who owns the family and the family naming which one it is. It is an
+/// identity on exactly [`CauseId`]'s terms: new meaning mints a new one, and it
+/// is never recycled.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct RefusalFamilyId(&'static str);
+
+impl RefusalFamilyId {
+    /// Declare one stable family identity.
+    #[must_use]
+    pub const fn declared(identity: &'static str) -> Self {
+        Self(identity)
+    }
+
+    /// The declared identity, for equality and for machine-readable joins.
+    #[must_use]
+    pub const fn as_declared(self) -> &'static str {
+        self.0
+    }
+}
+
+/// One cause's key WITHIN its family.
+///
+/// A local key is unique inside its family and says nothing outside it. Two
+/// families may both declare `not-canonical`; that is a shared word, never
+/// shared ownership, and the [`CauseKey`] pair is what keeps the two apart.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct LocalCauseKey(&'static str);
+
+impl LocalCauseKey {
+    /// Declare one local cause key: one lowercase kebab-case segment.
+    #[must_use]
+    pub const fn declared(key: &'static str) -> Self {
+        Self(key)
+    }
+
+    /// The declared key.
+    #[must_use]
+    pub const fn as_declared(self) -> &'static str {
+        self.0
+    }
+}
+
+/// The derived pair one cause identity is built from: which family, and which
+/// cause inside it.
+///
+/// # The canonical key grammar
+///
+/// ```text
+/// CauseId  ::=  <family> "." <local>
+/// family   ::=  <domain> "." <family-name>
+/// domain, family-name, local  ::=  lowercase kebab-case segment
+/// ```
+///
+/// So `refusal.derive-capture` + `not-an-enum` joins to
+/// `refusal.derive-capture.not-an-enum`. The join is the grammar and nothing
+/// else: nothing in the machine parses a [`CauseId`] back into a pair, because
+/// an identity is read for equality and never for meaning.
+///
+/// # What the pair makes provable, and what it does not
+///
+/// A generator holding the pair can prove **local uniqueness** — that no two
+/// causes in one family declare the same local key — and it can prove the
+/// family's cause count fits [`CauseOrdinal`]'s declared magnitude. Both are
+/// facts about ONE declaration and are provable where that declaration is read.
+///
+/// **Family uniqueness is not provable there** and is not claimed here: whether
+/// two separately declared families collide on one `<domain>.<family>` is a
+/// question about the whole program, and it is answered where the whole program
+/// is assembled. That join is owed to the composition root and is stated as owed
+/// rather than quietly assumed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CauseKey {
+    family: RefusalFamilyId,
+    local: LocalCauseKey,
+}
+
+impl CauseKey {
+    /// Declare one cause key: the family first, because the key is a position
+    /// inside that family.
+    #[must_use]
+    pub const fn declared(family: RefusalFamilyId, local: LocalCauseKey) -> Self {
+        Self { family, local }
+    }
+
+    /// The family this key sits in.
+    #[must_use]
+    pub const fn family(self) -> RefusalFamilyId {
+        self.family
+    }
+
+    /// The cause's key inside that family.
+    #[must_use]
+    pub const fn local(self) -> LocalCauseKey {
+        self.local
+    }
+}
+
 /// The typed position of one cause in its family's declared order.
 ///
 /// There is no constructor taking a number. An ordinal is minted only by

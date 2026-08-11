@@ -27,13 +27,14 @@ use crate::origin_graph::{
     DecisionTrace, OriginEdge, OriginRelation, OriginTrail, TraceDecision, TraceEntry,
 };
 use crate::plane::{
-    ExactIdentity, GeneratedUnitSubject, OriginNodeSubject, OutputBytesSubject, OwnerFactRef,
-    PatternArgumentLimit, PatternArgumentSubject, PatternInstanceSubject, PatternSubject,
-    TracedSubject,
+    GeneratedUnitSubject, OriginNodeSubject, OwnerFactRef, OwnerIdentityRef, PatternArgumentLimit,
+    PatternArgumentSubject, PatternInstanceSubject, PatternSubject, ProjectionIdentity,
+    SoleRenderedUnit, TracedSubject,
 };
 use crate::planning::{
-    InvalidationTrigger, OutputIdentity, PatternStampContent, PatternStampProjection,
-    PlannedMembership, ProjectionContext, ProjectionPlan,
+    DigestContract, InvalidationTrigger, MemberDestination, PatternStampContent,
+    PatternStampProjection, PlannedMember, PlannedMembership, PlannedOutput, ProjectionContext,
+    ProjectionPlan,
 };
 use crate::refusal::{BoundAxis, ProjectionPlanning};
 use threadpak::types::{Bounded, ConstLimit};
@@ -64,26 +65,24 @@ pub struct ScopeGuardStampAnchors {
     /// generator version, and target binding.
     pub context: ProjectionContext,
     /// The authored pattern — the machine's scope-guard version pattern.
-    pub pattern: ExactIdentity<PatternSubject>,
+    pub pattern: OwnerIdentityRef<PatternSubject>,
     /// This instantiation of it.
-    pub instance: ExactIdentity<PatternInstanceSubject>,
+    pub instance: OwnerIdentityRef<PatternInstanceSubject>,
     /// The first typed argument: the guard type the caller named.
-    pub guard_name: ExactIdentity<PatternArgumentSubject>,
+    pub guard_name: OwnerIdentityRef<PatternArgumentSubject>,
     /// The second typed argument: the scope type the caller named. A string
     /// never becomes an argument here — the caller states a type.
-    pub scope_type: ExactIdentity<PatternArgumentSubject>,
+    pub scope_type: OwnerIdentityRef<PatternArgumentSubject>,
     /// The authored declaration the invocation sits in.
-    pub authored_node: ExactIdentity<OriginNodeSubject>,
+    pub authored_node: ProjectionIdentity<OriginNodeSubject>,
     /// The instantiated pattern as an origin node.
-    pub instantiated_node: ExactIdentity<OriginNodeSubject>,
+    pub instantiated_node: ProjectionIdentity<OriginNodeSubject>,
     /// The rendered guard as an origin node.
-    pub rendered_node: ExactIdentity<OriginNodeSubject>,
+    pub rendered_node: ProjectionIdentity<OriginNodeSubject>,
     /// The generated unit the stamp materializes.
-    pub stamped_unit: ExactIdentity<GeneratedUnitSubject>,
-    /// That unit's canonical bytes.
-    pub stamped_digest: ExactIdentity<OutputBytesSubject>,
+    pub stamped_unit: ProjectionIdentity<GeneratedUnitSubject>,
     /// The subject the plan's decisions are recorded about.
-    pub traced: ExactIdentity<TracedSubject>,
+    pub traced: ProjectionIdentity<TracedSubject>,
     /// The owner facts the stamp rests on.
     pub owner_facts: ScopeGuardOwnerFacts,
 }
@@ -139,19 +138,21 @@ pub fn plan_scope_guard_stamp(
             ),
         }],
     )?;
-    let membership = PlannedMembership::from_output(OutputIdentity {
-        unit: anchors.stamped_unit,
-        digest: anchors.stamped_digest,
-        origin: origin.clone(),
+    let membership = PlannedMembership::from_member(PlannedMember {
+        role: SoleRenderedUnit::Sole,
+        output: PlannedOutput {
+            semantic_key: anchors.stamped_unit,
+            destination: MemberDestination::AtDeclarationSite,
+            origin: origin.clone(),
+            expected_profile: anchors.context.profile,
+            expected_profile_version: anchors.context.profile_version,
+            digest_contract: DigestContract::over(anchors.stamped_unit),
+        },
     });
     let invalidation = InvalidationTrigger::watched(
-        InvalidationTrigger::SourceDeclarationChanged {
-            watched: *anchors.context.sources.first(),
-        },
+        anchors.context.cause_trigger(),
         vec![
-            InvalidationTrigger::GraphIdentityChanged {
-                watched: anchors.context.graph,
-            },
+            anchors.context.graph_trigger(),
             InvalidationTrigger::GeneratorVersionChanged {
                 watched: anchors.context.generator,
             },
