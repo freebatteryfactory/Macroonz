@@ -162,7 +162,7 @@ impl RefusalFamily for IdentityRoleAdmission {
 #[must_use = "an admitted role is the evidence a two-column declaration passed its join; \
               dropping it discards the only proof a road may act on that declaration"]
 pub struct AdmittedIdentityRole<T: IdentityRole> {
-    columns: DeclaredIdentityRole,
+    columns: AdmittedIdentityColumns,
     _role: PhantomData<T>,
 }
 
@@ -177,7 +177,7 @@ impl<T: IdentityRole> AdmittedIdentityRole<T> {
         match T::CREATION.declared_class() {
             Some(named) if named != T::CLASS => Err(IdentityRoleAdmission::NotClassCoherent),
             _ => Ok(Self {
-                columns: DeclaredIdentityRole {
+                columns: AdmittedIdentityColumns {
                     class: T::CLASS,
                     creation: T::CREATION,
                 },
@@ -187,7 +187,8 @@ impl<T: IdentityRole> AdmittedIdentityRole<T> {
     }
 }
 
-/// One identity role's two columns, read as a value.
+/// One ADMITTED identity role's two columns, read as a value with the role
+/// erased.
 ///
 /// # The reification is reachable only from the witness
 ///
@@ -198,16 +199,24 @@ impl<T: IdentityRole> AdmittedIdentityRole<T> {
 /// witness. A declaration that has not passed its join never becomes a value
 /// the machine passes around.
 ///
-/// It carries no role parameter on purpose: once read, the two columns are the
-/// facts, and a reader deciding by them is deciding by the declaration rather
-/// than by which Rust type declared it.
+/// # Why the name says admitted, and why the role parameter goes
+///
+/// This is the projection that ERASES `T`, and a name is owed to what a value
+/// actually is rather than to where it came from. Every one of these was read
+/// off an [`AdmittedIdentityRole`] — there is no other road — so what a reader
+/// holds is admitted columns, and the name says so. The role parameter is gone
+/// on purpose: once read, the two columns ARE the facts, and a reader deciding
+/// by them is deciding by the declaration rather than by which Rust type
+/// declared it. `AdmittedIdentityRole<T>` keeps both its name and its `T`,
+/// because a witness is exactly a statement about one role; the erasing
+/// projection is the thing that stopped being about one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DeclaredIdentityRole {
+pub struct AdmittedIdentityColumns {
     class: IdentityClass,
     creation: CreationLaw,
 }
 
-impl DeclaredIdentityRole {
+impl AdmittedIdentityColumns {
     /// Read one admitted role's two columns.
     ///
     /// The columns come off the WITNESS rather than off a fresh read of the

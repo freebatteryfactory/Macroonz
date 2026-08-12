@@ -5,8 +5,8 @@
 pub mod types;
 
 pub use types::{
-    AdmittedIdentityRole, ApplicationScope, AuthorityPosition, ByteIdentity, Commitment,
-    CreationLaw, DeclaredIdentityRole, IdentityClass, IdentityRole, IdentityRoleAdmission,
+    AdmittedIdentityColumns, AdmittedIdentityRole, ApplicationScope, AuthorityPosition,
+    ByteIdentity, Commitment, CreationLaw, IdentityClass, IdentityRole, IdentityRoleAdmission,
     Occurrence, OccurrenceForm, OrderComparison, TypedRef,
 };
 

@@ -523,11 +523,19 @@ impl CauseOrderDeclaration for FamilyAdmission {
     ]);
 }
 
-/// Which joins one admission run actually performed.
+/// Which joins one admission run performed, read as a value.
 ///
-/// Carried on the witness because the two mints do not establish the same
-/// thing, and a witness that hid which one produced it would let the weaker
-/// admission pass for the stronger one everywhere it travelled.
+/// This is the **inspection projection** of a witness's coverage and nothing
+/// else. The coverage itself is a type parameter on
+/// [`AdmittedRefusalFamily`], and that is where enforcement lives: a consumer
+/// states the strength it needs as a bound and the compiler settles it. This
+/// enum is how that settled fact writes itself down — in a diagnostic, in a
+/// receipt, on the published envelope — so a reader can see which joins stood
+/// behind a declaration.
+///
+/// No road decides by it. A road branching on this value would be re-deciding
+/// at runtime what the type system already decided, and one missed arm would
+/// let the weaker coverage act as the stronger.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FamilyAdmissionCoverage {
     /// The shape and the textual selection order were found coherent. The
@@ -538,6 +546,77 @@ pub enum FamilyAdmissionCoverage {
     /// was found to project onto the textual one.
     ShapeCoherenceAndOrderProjection,
 }
+
+mod sealed {
+    /// The seal: another coverage is admitted only when a real admission road
+    /// establishes a distinct set of joins — by decision, in this crate, never
+    /// by downstream impl. A coverage an outside crate could implement would be
+    /// a proof strength anybody could declare for itself, and every consumer
+    /// demanding one would be demanding nothing.
+    #[expect(
+        unnameable_types,
+        reason = "the sealed-trait pattern makes the supertrait deliberately unnameable so downstream crates cannot implement a coverage"
+    )]
+    pub trait Sealed {}
+}
+
+/// The coverage of a witness minted on the coherence join alone: the shape and
+/// the textual selection order were found to agree, and nothing was projected.
+///
+/// A type-level token, never a value the machine constructs. What it does is
+/// stand in [`AdmittedRefusalFamily`]'s coverage seat, where it satisfies
+/// [`ShapeAdmission`] and fails [`OrderAdmission`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ShapeCoherent;
+
+/// The coverage of a witness minted on the coherence join AND the projection
+/// join: the strictly stronger of the two.
+///
+/// It satisfies both [`ShapeAdmission`] and [`OrderAdmission`], so a witness
+/// carrying it reaches every consumer a [`ShapeCoherent`] one reaches and the
+/// order-sensitive consumers besides. That containment IS the implication
+/// hierarchy, and it runs one way.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct OrderProjected;
+
+/// The floor every coverage clears: the shape and the textual selection order
+/// were joined.
+///
+/// A consumer that only needs a family's declaration to be self-consistent
+/// takes its coverage generically under this bound, so both coverages reach it.
+/// Sealed — see the module's admission rule.
+pub trait ShapeAdmission: sealed::Sealed {
+    /// This coverage's inspection projection: the value form a diagnostic, a
+    /// receipt, or a published envelope writes down. One fact in two forms —
+    /// the type is what a consumer demands, and this constant is what a reader
+    /// reads.
+    const INSPECTION: FamilyAdmissionCoverage;
+}
+
+/// The stronger coverage: the projection join ran too, so the family's typed
+/// cause order and its textual projection were found to be one fact in two
+/// forms.
+///
+/// An order-sensitive consumer demands this bound, and the supertrait relation
+/// is what makes the demand asymmetric: every [`OrderAdmission`] coverage is a
+/// [`ShapeAdmission`] coverage, and no [`ShapeAdmission`] coverage is admitted
+/// here by that fact alone. Sealed on the same terms.
+pub trait OrderAdmission: ShapeAdmission {}
+
+impl sealed::Sealed for ShapeCoherent {}
+
+impl ShapeAdmission for ShapeCoherent {
+    const INSPECTION: FamilyAdmissionCoverage = FamilyAdmissionCoverage::ShapeCoherence;
+}
+
+impl sealed::Sealed for OrderProjected {}
+
+impl ShapeAdmission for OrderProjected {
+    const INSPECTION: FamilyAdmissionCoverage =
+        FamilyAdmissionCoverage::ShapeCoherenceAndOrderProjection;
+}
+
+impl OrderAdmission for OrderProjected {}
 
 /// Evidence that one refusal family's declaration closed its own joins.
 ///
@@ -550,14 +629,30 @@ pub enum FamilyAdmissionCoverage {
 /// nobody joined. This witness is that join, and it is opaque and
 /// constructor-free, so holding one *is* the evidence.
 ///
-/// # What the mints establish
+/// # The coverage is a type parameter, so strength cannot be lost in transit
 ///
-/// [`admitted`](Self::admitted) runs the coherence join: `SELECTION_ORDER` is
-/// non-empty exactly when `SHAPE` is [`FamilyShape::SingleCause`].
-/// [`admitted_with_order`](Self::admitted_with_order) runs that join and then
-/// the projection join — [`DeclaredCauseOrder::projects_to`] over the family's
-/// typed order — and is available only where the family declares one. Both
-/// refuse with a typed cause; neither normalizes, repairs, or narrows.
+/// The two admission roads do not establish the same thing, and the difference
+/// is carried in the witness's TYPE: [`admit_shape`] returns a witness covered
+/// by [`ShapeCoherent`], [`admit_order`] one covered by [`OrderProjected`]. A
+/// consumer states the strength it needs as a bound — [`ShapeAdmission`] where
+/// self-consistency is enough, [`OrderAdmission`] where the family's declared
+/// order is about to be acted on, as [`cause_order`](Self::cause_order) does —
+/// and the compiler settles whether the witness in hand clears it. The weaker
+/// coverage reaching a stronger consumer is unrepresentable rather than checked,
+/// and no runtime read stands between the two.
+///
+/// [`FamilyAdmissionCoverage`] survives as the inspection projection of that
+/// type — [`ShapeAdmission::INSPECTION`] — so the settled fact can still be
+/// written down on a receipt. It is never the axis enforcement rides.
+///
+/// # What the roads establish
+///
+/// [`admit_shape`] runs the coherence join: `SELECTION_ORDER` is non-empty
+/// exactly when `SHAPE` is [`FamilyShape::SingleCause`]. [`admit_order`] runs
+/// that join and then the projection join — [`DeclaredCauseOrder::projects_to`]
+/// over the family's typed order — and is available only where the family
+/// declares one. Both refuse with a typed cause; neither normalizes, repairs,
+/// or narrows.
 ///
 /// # The claim ceiling, exactly
 ///
@@ -570,59 +665,81 @@ pub enum FamilyAdmissionCoverage {
 /// composition root's join, exactly as [`CauseId`] states.
 #[must_use = "an admitted family is the evidence a declaration closed its joins; dropping it \
               discards the only proof a road may act on that declaration"]
-pub struct AdmittedRefusalFamily<F: RefusalFamily> {
-    coverage: FamilyAdmissionCoverage,
+pub struct AdmittedRefusalFamily<F: RefusalFamily, Coverage: ShapeAdmission> {
     _family: PhantomData<F>,
+    _coverage: PhantomData<Coverage>,
 }
 
-impl<F: RefusalFamily> AdmittedRefusalFamily<F> {
-    /// Admit one family's declaration on the coherence join.
+impl<F: RefusalFamily, Coverage: ShapeAdmission> AdmittedRefusalFamily<F, Coverage> {
+    /// This witness's coverage, written as a value.
     ///
-    /// # Errors
-    ///
-    /// Returns [`FamilyAdmission::NotShapeCoherent`] when the declared shape and
-    /// the declared selection order contradict each other.
-    pub fn admitted() -> Result<Self, FamilyAdmission> {
-        if shape_coheres::<F>() {
-            Ok(Self {
-                coverage: FamilyAdmissionCoverage::ShapeCoherence,
-                _family: PhantomData,
-            })
-        } else {
-            Err(FamilyAdmission::NotShapeCoherent)
-        }
-    }
-
-    /// Which joins the run that minted this witness performed.
+    /// The projection of the coverage type, not a second record of it: there is
+    /// no stored field to disagree with the parameter, so what a reader reads is
+    /// what the compiler enforced.
     #[must_use]
     pub const fn coverage(&self) -> FamilyAdmissionCoverage {
-        self.coverage
+        Coverage::INSPECTION
     }
 }
 
-impl<F: CauseOrderDeclaration> AdmittedRefusalFamily<F> {
-    /// Admit one family's declaration on the coherence join AND the projection
-    /// join. Available only where the family declares its typed cause order,
-    /// because there is nothing to project against otherwise.
+/// Admit one family's declaration on the coherence join.
+///
+/// # Errors
+///
+/// Returns [`FamilyAdmission::NotShapeCoherent`] when the declared shape and
+/// the declared selection order contradict each other.
+pub fn admit_shape<F: RefusalFamily>()
+-> Result<AdmittedRefusalFamily<F, ShapeCoherent>, FamilyAdmission> {
+    if shape_coheres::<F>() {
+        Ok(AdmittedRefusalFamily {
+            _family: PhantomData,
+            _coverage: PhantomData,
+        })
+    } else {
+        Err(FamilyAdmission::NotShapeCoherent)
+    }
+}
+
+/// Admit one family's declaration on the coherence join AND the projection
+/// join. Available only where the family declares its typed cause order,
+/// because there is nothing to project against otherwise.
+///
+/// # Errors
+///
+/// Returns [`FamilyAdmission::NotShapeCoherent`] when the declared shape and
+/// the declared selection order contradict each other, and
+/// [`FamilyAdmission::NotProjected`] when the typed order and the textual
+/// order are two facts rather than one fact in two forms.
+pub fn admit_order<F: CauseOrderDeclaration>()
+-> Result<AdmittedRefusalFamily<F, OrderProjected>, FamilyAdmission> {
+    if !shape_coheres::<F>() {
+        return Err(FamilyAdmission::NotShapeCoherent);
+    }
+    if F::DECLARED_ORDER.projects_to(F::SELECTION_ORDER) {
+        Ok(AdmittedRefusalFamily {
+            _family: PhantomData,
+            _coverage: PhantomData,
+        })
+    } else {
+        Err(FamilyAdmission::NotProjected)
+    }
+}
+
+impl<F: CauseOrderDeclaration, Coverage: OrderAdmission> AdmittedRefusalFamily<F, Coverage> {
+    /// This family's typed cause order.
     ///
-    /// # Errors
+    /// The order-sensitive consumer, and the reason [`OrderAdmission`] exists. A
+    /// caller holding this value is about to rank causes by it, and a rank taken
+    /// from an order nobody projected against the family's textual one would be
+    /// a position in an order the family may not be declaring. So the road hangs
+    /// off the stronger bound, and a [`ShapeCoherent`] witness does not reach it.
     ///
-    /// Returns [`FamilyAdmission::NotShapeCoherent`] when the declared shape and
-    /// the declared selection order contradict each other, and
-    /// [`FamilyAdmission::NotProjected`] when the typed order and the textual
-    /// order are two facts rather than one fact in two forms.
-    pub fn admitted_with_order() -> Result<Self, FamilyAdmission> {
-        if !shape_coheres::<F>() {
-            return Err(FamilyAdmission::NotShapeCoherent);
-        }
-        if F::DECLARED_ORDER.projects_to(F::SELECTION_ORDER) {
-            Ok(Self {
-                coverage: FamilyAdmissionCoverage::ShapeCoherenceAndOrderProjection,
-                _family: PhantomData,
-            })
-        } else {
-            Err(FamilyAdmission::NotProjected)
-        }
+    /// The witness is the permission rather than the storage: the order is the
+    /// family's own declared constant, read off the type, so there is no second
+    /// copy kept here to drift from the declaration it came from.
+    #[must_use]
+    pub fn cause_order(&self) -> DeclaredCauseOrder {
+        F::DECLARED_ORDER
     }
 }
 
@@ -655,19 +772,24 @@ impl<F: RefusalFamily> Refusal<F> {
     /// declared facts become trusted: publication is exactly the act that hands
     /// a refusal to a reader who will act on the family's shape and order
     /// without re-reading them, so an unadmitted declaration must not reach it.
-    /// The witness's coverage travels onto the envelope rather than being
-    /// checked and forgotten, so a reader can see which joins stood behind the
+    ///
+    /// This is a **shape-only consumer**: publication acts on the family's
+    /// declared shape and needs no rank taken out of its cause order, so the
+    /// coverage rides generically under [`ShapeAdmission`] and both coverages
+    /// reach it. What the witness carried in its type is projected onto the
+    /// envelope through [`ShapeAdmission::INSPECTION`] rather than being checked
+    /// and forgotten, so a reader can see which joins stood behind the
     /// declaration it is reading — a refusal published under coherence alone and
     /// one published under coherence and projection are not the same receipt.
     ///
     /// Its reach today is the crate's own: [`ReasonId`] has no public mint until
     /// the evidence home registers reasons, so nothing outside can hold the
     /// first argument. That is a stated ceiling, not a claim of use.
-    pub fn published(
+    pub fn published<Coverage: ShapeAdmission>(
         reason: ReasonId,
         handling: HandlingClass,
         family: F,
-        admitted: &AdmittedRefusalFamily<F>,
+        admitted: &AdmittedRefusalFamily<F, Coverage>,
     ) -> Self {
         Self {
             reason,
