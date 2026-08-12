@@ -93,6 +93,17 @@
 //! and is not a crate-root route; in a FLAT module `super::` IS the crate root,
 //! and the checker reads it as one.
 //!
+//! Five of the modules above are directories today — `plane/`, `token/`,
+//! `planning/`, `closure/`, and `derive_refusal/` — and each carries the
+//! repository's file grammar inside it: `mod.rs` is the door and re-exports the
+//! home's public names, so `crate::plane::X` names the owner exactly as it did
+//! when the home was one file; `types.rs` declares; `types.rs`'s own child
+//! `type_guard.rs` holds every road that reaches a private field, which is what
+//! makes each home's walls structural; `type_contract.rs` states the declarative
+//! trait implementations; and the remaining files are role-named and pure. No
+//! home publishes a second path to its own contents: the seat files are private
+//! and reached through the door.
+//!
 //! Reaching a sibling's content through a crate-root re-export is refused
 //! outright, whatever the declaration order says: `crate::planning::PlannedMember`
 //! names an owner and `crate::PlannedMember` names none, so only the first can

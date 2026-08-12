@@ -4,7 +4,7 @@ error[E0624]: associated function `bound` is private
 21 |       let _ = ClosedExpansion::bound;
    |                                ^^^^^ private associated function
    |
-  ::: $WORKSPACE/macros/macroc/src/derive_refusal/types.rs
+  ::: $WORKSPACE/macros/macroc/src/derive_refusal/type_guard.rs
    |
    | /     pub(crate) fn bound(
    | |         surface: RefusalDeriveSurface,

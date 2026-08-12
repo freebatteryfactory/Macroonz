@@ -1,43 +1,22 @@
-//! The metaprogramming plane's shared carriers: the two identity families,
-//! owner-fact references, profile versions, bounded human projections, and the
-//! plane's declared limit families.
+//! The plane's declarations: the two identity families, the subject and limit
+//! rosters, the profile and generator facts, the transcript and its derivation
+//! record, and the rendered-role contract.
 //!
-//! # Two identity families, and neither can stand in for the other
-//!
-//! **[`OwnerIdentityRef`] is a read-only lens on an identity the MACHINE
-//! minted.** The machine's identity home mints; the services never do. A lens
-//! arrives through [`OwnerIdentityRef::of_commitment`], which reads a machine
-//! commitment's published bytes and adapts nothing: identity, schema, authority,
-//! bounds, and meaning cross unchanged, which is exactly what a projection is
-//! allowed to do. Holding one means only "the compiler refers exactly to this
-//! owner identity" — nothing about admission, authority, freshness, or
-//! equivalence. There is no public raw-byte road at all.
-//!
-//! **[`ProjectionIdentity`] is an identity the COMPILER PLANE owns.** Plans,
-//! origin nodes, rendered units, generated units, closures, and bundles are the
-//! plane's own material: the machine has no opinion about them and mints nothing
-//! for them, so the plane names them itself. Every one is derived
-//! deterministically from a COMPLETE [`ProjectionTranscript`] under the
-//! versioned, domain-separated profile [`PROJECTION_IDENTITY_PROFILE`], and the
-//! derivation record — which subject, which role, which profile version, which
-//! transcript members — is a separate inspectable value,
-//! [`ProjectionProvenance`], carried once where the derivation happened rather
-//! than inside every identity.
-//!
-//! The two families are different types over different subject markers and
-//! neither converts to the other. A plane identity is never accepted by the
-//! machine as a mint, and an owner lens is never derived by the plane.
-//!
-//! # Human text is never load-bearing
-//!
-//! [`HumanProjection`] carries bytes a caller may show a person. Nothing in the
-//! plane reads it back, matches on it, or decides from it — every decision cites
-//! an [`OwnerFactRef`] or a typed value instead.
+//! Declarations only. Every constructor that must see a private field lives in
+//! `type_guard.rs`, which is declared below as this file's own child so the
+//! invariant nucleus and the fields it protects are never separated by a module
+//! boundary.
 
 use core::marker::PhantomData;
-use threadpak::identity::Commitment;
-use threadpak::refusal::ReasonId;
-use threadpak::types::{Bounded, BoundedConstruction, ConstLimit, Limit};
+use threadpak::types::{Bounded, ConstLimit, Limit};
+
+#[path = "type_guard.rs"]
+mod guard;
+
+pub(crate) use guard::{human_projection, static_bytes};
+
+#[cfg(test)]
+pub(crate) use guard::for_laws;
 
 /// One identity subject, by the name the domain-separation grammar spells it
 /// with.
@@ -351,58 +330,6 @@ pub struct OwnerIdentityRef<Subject> {
     _subject: PhantomData<Subject>,
 }
 
-impl<Subject> OwnerIdentityRef<Subject> {
-    /// The production road: project one machine commitment into the plane. The
-    /// commitment's domain is the reference's subject, so a commitment over one
-    /// domain cannot become a reference naming another. Nothing is adapted —
-    /// the bytes cross unchanged.
-    #[must_use]
-    pub fn of_commitment(commitment: &Commitment<Subject>) -> Self {
-        Self {
-            bytes: *commitment.as_bytes(),
-            _subject: PhantomData,
-        }
-    }
-
-    /// The decode-route seam, awaiting a real decoder.
-    ///
-    /// It is crate-internal on purpose: an identity that arrived already in its
-    /// declared byte order comes from an artifact somebody decoded, and the
-    /// decoder that will own this route does not exist yet. Until it does, this
-    /// is the single byte road in the plane and no caller outside the services
-    /// can reach it. It mints nothing and admits nothing; the machine never
-    /// accepts a plane reference as an identity mint.
-    #[must_use]
-    pub(crate) const fn decoded(bytes: [u8; 32]) -> Self {
-        Self {
-            bytes,
-            _subject: PhantomData,
-        }
-    }
-
-    /// The identity's declared raw-byte storage order, borrowed for comparison
-    /// and for rendering.
-    ///
-    /// This is not a subject-erasing conversion. Reading the bytes out and
-    /// re-wrapping them under a different subject is unrepresentable outside
-    /// this crate because no public byte constructor exists to wrap them with —
-    /// the accessor is one-way by the absence of its inverse, not by a runtime
-    /// check.
-    #[must_use]
-    pub const fn as_bytes(&self) -> &[u8; 32] {
-        &self.bytes
-    }
-}
-
-impl OwnerIdentityRef<RefusalReason> {
-    /// Project one registered refusal reason into the plane. A diagnostic names
-    /// the reason the machine registered; it never registers one.
-    #[must_use]
-    pub fn of_reason(reason: ReasonId) -> Self {
-        Self::decoded(*reason.as_bytes())
-    }
-}
-
 /// One owning home and one fact it declares, named by their declared stable
 /// names rather than by minted identity.
 ///
@@ -452,53 +379,11 @@ pub enum OwnerFactRef {
     Declared(OwnerFactName),
 }
 
-impl OwnerFactRef {
-    /// Cite one owner fact by the declared names its home wrote down.
-    #[must_use]
-    pub const fn named(home: &'static str, fact: &'static str) -> Self {
-        Self::Declared(OwnerFactName { home, fact })
-    }
-
-    /// The canonical bytes of this citation, for a transcript to be taken over.
-    #[must_use]
-    pub fn citation_bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-        match self {
-            Self::Minted { home, fact } => {
-                bytes.push(0);
-                bytes.extend_from_slice(home.as_bytes());
-                bytes.extend_from_slice(fact.as_bytes());
-            }
-            Self::Declared(named) => {
-                bytes.push(1);
-                bytes.extend_from_slice(named.home.as_bytes());
-                bytes.push(b'.');
-                bytes.extend_from_slice(named.fact.as_bytes());
-            }
-        }
-        bytes
-    }
-}
-
 /// One version of one projection profile: a position in that profile's own
 /// order. There is no `Ord` — versions of two different profiles are not
 /// comparable, and the plane never ranks them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ProfileVersion(u64);
-
-impl ProfileVersion {
-    /// The version the profile's authority assigned.
-    #[must_use]
-    pub const fn declared(position: u64) -> Self {
-        Self(position)
-    }
-
-    /// The assigned position.
-    #[must_use]
-    pub const fn position(self) -> u64 {
-        self.0
-    }
-}
 
 /// One bounded human-readable rendering of a typed value.
 ///
@@ -508,150 +393,6 @@ impl ProfileVersion {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct HumanProjection<L: Limit> {
     text: Bounded<u8, L>,
-}
-
-impl<L: ConstLimit> HumanProjection<L> {
-    /// Render one bounded human projection.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`BoundedConstruction::OverLimit`] when the rendering exceeds the
-    /// family's declared byte maximum. A projection that does not fit refuses
-    /// rather than truncating: a silently cut explanation is a false one.
-    pub fn projected(text: &str) -> Result<Self, BoundedConstruction> {
-        Bounded::admitted_const(text.as_bytes().to_vec()).map(|text| Self { text })
-    }
-
-    /// The seam behind [`human_projection!`], which is the only road to it.
-    ///
-    /// # There is no length to check here, so there is no branch to fall down
-    ///
-    /// The rendering arrives as a fixed-width byte array, and the width is the
-    /// array's own TYPE. So this road carries no runtime count, returns no
-    /// refusal, and has no branch where a rendering that did not fit becomes an
-    /// empty one — the earlier seam had exactly that branch, and an oversized
-    /// explanation silently became a blank one.
-    ///
-    /// The width cannot be chosen independently of the material either: the
-    /// caller does not pass a length, it passes the array, and
-    /// [`human_projection!`] builds that array in a `const` item out of the
-    /// rendering itself. A rendering the width does not cover stops the
-    /// compiler during that const evaluation.
-    #[must_use]
-    pub(crate) fn proven<const N: usize>(rendered: [u8; N]) -> Self {
-        Self {
-            text: Bounded::from_array(rendered),
-        }
-    }
-}
-
-/// One static rendering's bytes, at the fixed width the caller declared.
-///
-/// Written for the `const` item [`human_projection!`] builds. Evaluated at
-/// compile time, where a width the rendering does not reach is a compile error
-/// rather than a padded or cut projection handed to a reader.
-#[expect(
-    clippy::indexing_slicing,
-    reason = "the walk is a const evaluation over the declared width, so an index past the rendering stops the compiler instead of reading at runtime"
-)]
-#[must_use]
-pub(crate) const fn static_bytes<const N: usize>(text: &str) -> [u8; N] {
-    let source = text.as_bytes();
-    let mut rendered = [0u8; N];
-    let mut at = 0usize;
-    while at < N {
-        rendered[at] = source[at];
-        at = at.saturating_add(1);
-    }
-    rendered
-}
-
-/// Projects one STATIC rendering, proving at COMPILE TIME that it fits the named
-/// limit family.
-///
-/// This is the total road, and it is the only road to
-/// [`HumanProjection::proven`]. `HumanProjection::projected` reads a runtime
-/// length and may refuse, and a caller that swallowed that refusal with an empty
-/// fallback would be silently deleting an explanation — which is exactly the
-/// defect this macro exists to make unrepresentable. Where the material is
-/// static, the length is a compile-time fact: the `const` block below settles
-/// the bound, the `const` item below carries the rendering at its own width, and
-/// no refusal road appears anywhere between them.
-macro_rules! human_projection {
-    ($limit:ty, $text:literal) => {{
-        const RENDERED: [u8; $text.len()] = $crate::plane::static_bytes($text);
-        const {
-            ::core::assert!(
-                $text.len() <= <$limit as ::threadpak::types::ConstLimit>::MAX,
-                "a static human projection longer than its limit family admits",
-            );
-        }
-        $crate::plane::HumanProjection::<$limit>::proven(RENDERED)
-    }};
-}
-
-pub(crate) use human_projection;
-
-impl<L: Limit> HumanProjection<L> {
-    /// The empty rendering. Total: nothing exceeds any bound, and a caller with
-    /// nothing to say for a person still owes a value rather than a hole.
-    #[must_use]
-    pub const fn empty() -> Self {
-        Self {
-            text: Bounded::empty(),
-        }
-    }
-
-    /// The rendering's byte length.
-    #[must_use]
-    pub fn len(&self) -> usize {
-        self.text.len()
-    }
-
-    /// Whether the rendering carries no bytes.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.text.is_empty()
-    }
-
-    /// The rendering, for a caller to SHOW a person.
-    ///
-    /// This is the one lawful use of the bytes and it is a one-way road out of
-    /// the plane. Nothing inside the plane calls it: no decision, no identity,
-    /// and no refusal consults a human projection, and none ever will. A
-    /// frontend that must put a sentence in front of somebody calls this, and
-    /// that is what the type exists for.
-    #[must_use]
-    pub fn shown(&self) -> String {
-        let bytes: Vec<u8> = self.text.iter().copied().collect();
-        String::from_utf8_lossy(&bytes).into_owned()
-    }
-}
-
-// ---------------------------------------------------------------------------
-// The compiler plane's own identities.
-// ---------------------------------------------------------------------------
-
-/// Append one length as eight big-endian bytes.
-///
-/// The plane's one length framing, used by every canonical encoding it writes.
-/// Eight bytes at a fixed width rather than a varint, because a canonical
-/// encoding that admitted two spellings of one length would admit two preimages
-/// for one value.
-pub fn encode_length(length: usize, into: &mut Vec<u8>) {
-    into.extend_from_slice(&u64::try_from(length).unwrap_or(u64::MAX).to_be_bytes());
-}
-
-/// Append one length-prefixed byte string: the eight-byte length, then the
-/// bytes.
-///
-/// Every variable-length member of every canonical encoding in the plane is
-/// written this way. Without the prefix, two members could be split at a
-/// different boundary and encode identically — the classic concatenation
-/// collision, which the length prefix removes outright.
-pub fn encode_bytes(material: &[u8], into: &mut Vec<u8>) {
-    encode_length(material.len(), into);
-    into.extend_from_slice(material);
 }
 
 /// The closed roster of roles a plane identity may stand for.
@@ -696,49 +437,6 @@ pub const PROJECTION_ROLES: [ProjectionRole; 9] = [
     ProjectionRole::ClosedExpansion,
 ];
 
-impl ProjectionRole {
-    /// The role's position in the declared roster — the byte the transcript
-    /// carries for it.
-    #[must_use]
-    pub const fn slot(self) -> u8 {
-        match self {
-            Self::CapturedDeclaration => 0,
-            Self::Plan => 1,
-            Self::OriginNode => 2,
-            Self::GeneratedUnit => 3,
-            Self::RenderedUnit => 4,
-            Self::OutputBytes => 5,
-            Self::Bundle => 6,
-            Self::Closure => 7,
-            Self::ClosedExpansion => 8,
-        }
-    }
-
-    /// The role's declared segment of the derive-key context.
-    ///
-    /// Declared rather than taken from the Rust spelling, for the same reason
-    /// [`IdentitySubject::SUBJECT_NAME`] is: renaming a variant must not rename
-    /// every identity derived under it.
-    #[must_use]
-    pub const fn context_name(self) -> &'static str {
-        match self {
-            Self::CapturedDeclaration => "captured-declaration",
-            Self::Plan => "plan",
-            Self::OriginNode => "origin-node",
-            Self::GeneratedUnit => "generated-unit",
-            Self::RenderedUnit => "rendered-unit",
-            Self::OutputBytes => "output-bytes",
-            Self::Bundle => "bundle",
-            Self::Closure => "closure",
-            Self::ClosedExpansion => "closed-expansion",
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// The versioned identity profile.
-// ---------------------------------------------------------------------------
-
 /// One version of the projection-identity profile.
 ///
 /// The version is a typed constant and a real segment of every derive-key
@@ -759,20 +457,6 @@ impl ProjectionRole {
 /// stayed green.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct IdentityProfileVersion(u32);
-
-impl IdentityProfileVersion {
-    /// The version the profile's authority assigned.
-    #[must_use]
-    pub const fn declared(position: u32) -> Self {
-        Self(position)
-    }
-
-    /// The assigned position.
-    #[must_use]
-    pub const fn position(self) -> u32 {
-        self.0
-    }
-}
 
 /// The versioned, domain-separated profile the plane derives its identities
 /// under.
@@ -801,44 +485,11 @@ pub struct IdentityProfile {
     version: IdentityProfileVersion,
 }
 
-impl IdentityProfile {
-    /// The profile at one stem and one version.
-    #[must_use]
-    pub const fn declared(stem: &'static str, version: IdentityProfileVersion) -> Self {
-        Self { stem, version }
-    }
-
-    /// The declared stem — everything of the context ahead of the version.
-    #[must_use]
-    pub const fn stem(self) -> &'static str {
-        self.stem
-    }
-
-    /// The declared version.
-    #[must_use]
-    pub const fn version(self) -> IdentityProfileVersion {
-        self.version
-    }
-
-    /// The derive-key context for one subject under one role, spelled by the
-    /// grammar above.
-    #[must_use]
-    pub fn context_for(self, subject: &str, role: ProjectionRole) -> String {
-        let version = self.version.position();
-        let role = role.context_name();
-        format!("{}/v{version}/{subject}/{role}", self.stem)
-    }
-}
-
 /// The profile every plane identity in this crate is derived under.
 pub const PROJECTION_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
     "threadpak/macroc/projection-identity",
     IdentityProfileVersion::declared(2),
 );
-
-// ---------------------------------------------------------------------------
-// The generator identity.
-// ---------------------------------------------------------------------------
 
 /// The stable name of the generator that derives plane identities.
 ///
@@ -846,20 +497,6 @@ pub const PROJECTION_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declar
 /// different generator starts producing this material.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GeneratorProfileId(&'static str);
-
-impl GeneratorProfileId {
-    /// The generator under its declared stable name.
-    #[must_use]
-    pub const fn declared(spelling: &'static str) -> Self {
-        Self(spelling)
-    }
-
-    /// The declared name.
-    #[must_use]
-    pub const fn spelling(self) -> &'static str {
-        self.0
-    }
-}
 
 /// The version of the SHAPE this generator renders.
 ///
@@ -880,20 +517,6 @@ impl GeneratorProfileId {
 /// the fact a plan is invalidated by.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GeneratorSchemaVersion(u32);
-
-impl GeneratorSchemaVersion {
-    /// The schema version the generator's authority assigned.
-    #[must_use]
-    pub const fn declared(position: u32) -> Self {
-        Self(position)
-    }
-
-    /// The assigned position.
-    #[must_use]
-    pub const fn position(self) -> u32 {
-        self.0
-    }
-}
 
 /// Which generator produced a plane identity, and under which rendered shape.
 ///
@@ -919,51 +542,12 @@ pub struct GeneratorIdentity {
     package: &'static str,
 }
 
-impl GeneratorIdentity {
-    /// The generator under its declared name, rendered shape, and recorded
-    /// package version.
-    #[must_use]
-    pub const fn declared(
-        profile: GeneratorProfileId,
-        schema: GeneratorSchemaVersion,
-        package: &'static str,
-    ) -> Self {
-        Self {
-            profile,
-            schema,
-            package,
-        }
-    }
-
-    /// The generator's stable name. Load-bearing: it is in every transcript.
-    #[must_use]
-    pub const fn profile(self) -> GeneratorProfileId {
-        self.profile
-    }
-
-    /// The rendered shape's version. Load-bearing: it is in every transcript.
-    #[must_use]
-    pub const fn schema(self) -> GeneratorSchemaVersion {
-        self.schema
-    }
-
-    /// The package version, recorded for a reader and load-bearing nowhere.
-    #[must_use]
-    pub const fn package_version(self) -> &'static str {
-        self.package
-    }
-}
-
 /// This generator, as every transcript in this crate names it.
 pub const MACROC_GENERATOR: GeneratorIdentity = GeneratorIdentity::declared(
     GeneratorProfileId::declared("threadpak-macroc"),
     GeneratorSchemaVersion::declared(1),
     env!("CARGO_PKG_VERSION"),
 );
-
-// ---------------------------------------------------------------------------
-// The transcript.
-// ---------------------------------------------------------------------------
 
 /// What one transcript is anchored under.
 ///
@@ -980,29 +564,6 @@ pub enum TranscriptAnchoring {
     UnderOwnerIdentity([u8; 32]),
     /// Anchored under another identity the PLANE owns, carried at full width.
     UnderProjectionIdentity([u8; 32]),
-}
-
-impl TranscriptAnchoring {
-    /// The discriminant byte the transcript carries for this posture.
-    #[must_use]
-    pub const fn slot(self) -> u8 {
-        match self {
-            Self::Rooted => 0,
-            Self::UnderOwnerIdentity(_) => 1,
-            Self::UnderProjectionIdentity(_) => 2,
-        }
-    }
-
-    /// The anchor commitment at full width, where there is one.
-    #[must_use]
-    pub const fn commitment(&self) -> Option<&[u8; 32]> {
-        match self {
-            Self::Rooted => None,
-            Self::UnderOwnerIdentity(anchor) | Self::UnderProjectionIdentity(anchor) => {
-                Some(anchor)
-            }
-        }
-    }
 }
 
 /// The COMPLETE preimage one [`ProjectionIdentity`] is derived from.
@@ -1055,156 +616,6 @@ pub struct ProjectionTranscript<'material> {
     position: u32,
 }
 
-impl<'material> ProjectionTranscript<'material> {
-    /// Derive under an identity the MACHINE minted.
-    #[must_use]
-    pub fn under_owner<Subject>(
-        role: ProjectionRole,
-        anchor: &OwnerIdentityRef<Subject>,
-        content: &'material [u8],
-        position: u32,
-    ) -> Self {
-        Self::anchored(
-            role,
-            TranscriptAnchoring::UnderOwnerIdentity(*anchor.as_bytes()),
-            content,
-            position,
-        )
-    }
-
-    /// Derive under another identity the PLANE owns.
-    #[must_use]
-    pub fn under_projection<Subject>(
-        role: ProjectionRole,
-        anchor: &ProjectionIdentity<Subject>,
-        content: &'material [u8],
-        position: u32,
-    ) -> Self {
-        Self::anchored(
-            role,
-            TranscriptAnchoring::UnderProjectionIdentity(*anchor.as_bytes()),
-            content,
-            position,
-        )
-    }
-
-    /// Derive under no anchor at all — the root of one derivation chain.
-    #[must_use]
-    pub fn rooted(role: ProjectionRole, content: &'material [u8], position: u32) -> Self {
-        Self::anchored(role, TranscriptAnchoring::Rooted, content, position)
-    }
-
-    /// Derive under an anchoring the caller already decided.
-    ///
-    /// The road for a mint site whose anchor depends on a typed posture rather
-    /// than on which of two identity families it holds — a plan hangs off
-    /// whatever caused it, and what caused it is a sum type.
-    #[must_use]
-    pub fn under(
-        role: ProjectionRole,
-        anchoring: TranscriptAnchoring,
-        content: &'material [u8],
-        position: u32,
-    ) -> Self {
-        Self::anchored(role, anchoring, content, position)
-    }
-
-    /// The shared constructor: every transcript names the one declared profile
-    /// and the one declared generator, so neither can be varied per call site.
-    #[must_use]
-    fn anchored(
-        role: ProjectionRole,
-        anchoring: TranscriptAnchoring,
-        content: &'material [u8],
-        position: u32,
-    ) -> Self {
-        Self {
-            profile: PROJECTION_IDENTITY_PROFILE,
-            generator: MACROC_GENERATOR,
-            role,
-            anchoring,
-            content,
-            position,
-        }
-    }
-
-    /// The profile this transcript is written under.
-    #[must_use]
-    pub const fn profile(&self) -> IdentityProfile {
-        self.profile
-    }
-
-    /// The generator this transcript names.
-    #[must_use]
-    pub const fn generator(&self) -> GeneratorIdentity {
-        self.generator
-    }
-
-    /// The role this transcript stands for.
-    #[must_use]
-    pub const fn role(&self) -> ProjectionRole {
-        self.role
-    }
-
-    /// What this transcript is anchored under.
-    #[must_use]
-    pub const fn anchoring(&self) -> TranscriptAnchoring {
-        self.anchoring
-    }
-
-    /// The varying material, at full length.
-    #[must_use]
-    pub const fn content(&self) -> &'material [u8] {
-        self.content
-    }
-
-    /// The position inside the anchor's declared sequence.
-    #[must_use]
-    pub const fn position(&self) -> u32 {
-        self.position
-    }
-
-    /// The transcript's bytes for one identity subject, exactly as the
-    /// specification above states them.
-    #[must_use]
-    pub fn encoded(&self, subject: &str) -> Vec<u8> {
-        let mut bytes = Vec::new();
-        encode_bytes(self.profile.stem().as_bytes(), &mut bytes);
-        bytes.extend_from_slice(&self.profile.version().position().to_be_bytes());
-        encode_bytes(subject.as_bytes(), &mut bytes);
-        encode_bytes(self.role.context_name().as_bytes(), &mut bytes);
-        bytes.push(self.role.slot());
-        bytes.push(self.anchoring.slot());
-        match self.anchoring.commitment() {
-            Some(anchor) => encode_bytes(anchor, &mut bytes),
-            None => encode_bytes(&[], &mut bytes),
-        }
-        encode_bytes(self.content, &mut bytes);
-        bytes.extend_from_slice(&self.position.to_be_bytes());
-        encode_bytes(self.generator.profile().spelling().as_bytes(), &mut bytes);
-        bytes.extend_from_slice(&self.generator.schema().position().to_be_bytes());
-        bytes
-    }
-
-    /// The derivation record this transcript leaves for one identity subject.
-    #[must_use]
-    pub fn provenance(&self, subject: &'static str) -> ProjectionProvenance {
-        ProjectionProvenance {
-            subject,
-            role: self.role,
-            profile: self.profile,
-            generator: self.generator,
-            anchoring: self.anchoring,
-            content_length: u64::try_from(self.content.len()).unwrap_or(u64::MAX),
-            position: self.position,
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// The derivation record.
-// ---------------------------------------------------------------------------
-
 /// The inspectable record of ONE derivation: which subject, which role, which
 /// profile at which version, which generator, what it was anchored under, and
 /// how much content went in.
@@ -1246,61 +657,6 @@ pub struct ProjectionProvenance {
     content_length: u64,
     position: u32,
 }
-
-impl ProjectionProvenance {
-    /// The identity subject this derivation named.
-    #[must_use]
-    pub const fn subject(&self) -> &'static str {
-        self.subject
-    }
-
-    /// The role it stood for.
-    #[must_use]
-    pub const fn role(&self) -> ProjectionRole {
-        self.role
-    }
-
-    /// The profile and version it was derived under.
-    #[must_use]
-    pub const fn profile(&self) -> IdentityProfile {
-        self.profile
-    }
-
-    /// The generator that derived it.
-    #[must_use]
-    pub const fn generator(&self) -> GeneratorIdentity {
-        self.generator
-    }
-
-    /// What it was anchored under, anchor commitment included.
-    #[must_use]
-    pub const fn anchoring(&self) -> TranscriptAnchoring {
-        self.anchoring
-    }
-
-    /// How many bytes of content went into the transcript.
-    #[must_use]
-    pub const fn content_length(&self) -> u64 {
-        self.content_length
-    }
-
-    /// The position inside the anchor's declared sequence.
-    #[must_use]
-    pub const fn position(&self) -> u32 {
-        self.position
-    }
-
-    /// The derive-key context this derivation ran under, rendered by the domain
-    /// grammar.
-    #[must_use]
-    pub fn context(&self) -> String {
-        self.profile.context_for(self.subject, self.role)
-    }
-}
-
-// ---------------------------------------------------------------------------
-// The identity.
-// ---------------------------------------------------------------------------
 
 /// One identity the COMPILER PLANE owns, tagged by the subject it names.
 ///
@@ -1353,48 +709,6 @@ pub struct ProjectionIdentity<Subject> {
     _subject: PhantomData<Subject>,
 }
 
-impl<Subject: IdentitySubject> ProjectionIdentity<Subject> {
-    /// Derive one plane identity from its complete transcript. Deterministic
-    /// and total: every transcript names an identity.
-    #[must_use]
-    pub fn derived(transcript: ProjectionTranscript<'_>) -> Self {
-        let context = transcript
-            .profile()
-            .context_for(Subject::SUBJECT_NAME, transcript.role());
-        Self {
-            bytes: blake3::derive_key(&context, &transcript.encoded(Subject::SUBJECT_NAME)),
-            _subject: PhantomData,
-        }
-    }
-
-    /// Derive one plane identity and the record of how it was derived.
-    ///
-    /// The record is for whoever is going to keep it. Three values keep theirs:
-    /// a plan, a proved closure, and a closed expansion — the three whose
-    /// identity a reader is most likely to be handed on its own and asked to
-    /// account for. A caller with nowhere to put one takes
-    /// [`ProjectionIdentity::derived`] instead, and the record is simply not
-    /// made rather than made and carried by everything.
-    #[must_use]
-    pub fn derived_with_provenance(
-        transcript: ProjectionTranscript<'_>,
-    ) -> (Self, ProjectionProvenance) {
-        (
-            Self::derived(transcript),
-            transcript.provenance(Subject::SUBJECT_NAME),
-        )
-    }
-}
-
-impl<Subject> ProjectionIdentity<Subject> {
-    /// The identity's thirty-two bytes, borrowed for comparison and for
-    /// rendering.
-    #[must_use]
-    pub const fn as_bytes(&self) -> &[u8; 32] {
-        &self.bytes
-    }
-}
-
 /// One projection plan's own identity.
 ///
 /// A plan is spoken of by identity in three places — a bundle's membership, the
@@ -1408,10 +722,6 @@ pub type ClosureId = ProjectionIdentity<ClosureSubject>;
 /// One closed expansion's own identity.
 pub type ClosedExpansionId = ProjectionIdentity<ClosedExpansionSubject>;
 
-// ---------------------------------------------------------------------------
-// Rendered roles.
-// ---------------------------------------------------------------------------
-
 /// The seal on the rendered-role roster.
 ///
 /// A value of this type is producible only inside the services, so a roster
@@ -1424,13 +734,6 @@ pub type ClosedExpansionId = ProjectionIdentity<ClosedExpansionSubject>;
 /// at all.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RenderedRoleSeal(());
-
-impl RenderedRoleSeal {
-    /// The seal, admitted only within the services.
-    pub(crate) const fn admitted() -> Self {
-        Self(())
-    }
-}
 
 /// The closed roster of rendered units one projection kind materializes.
 ///
@@ -1473,32 +776,4 @@ pub trait RenderedRole: Copy + PartialEq + Eq + core::fmt::Debug + Sized + 'stat
 pub enum SoleRenderedUnit {
     /// The kind's one rendered unit.
     Sole,
-}
-
-impl RenderedRole for SoleRenderedUnit {
-    const SEAL: RenderedRoleSeal = RenderedRoleSeal::admitted();
-    const ROLES: &'static [Self] = &[Self::Sole];
-
-    fn slot(self) -> u32 {
-        0
-    }
-
-    fn described(self) -> &'static str {
-        "the kind's one rendered unit"
-    }
-}
-
-/// One plane identity minted for the proof surface alone.
-///
-/// Test-gated on purpose. The laws need distinguishable identities without
-/// having a captured declaration to derive them from, and this road exists
-/// nowhere else: a production caller derives from a real transcript or has no
-/// identity at all.
-#[cfg(test)]
-pub(crate) fn for_laws<Subject: IdentitySubject>(tag: u8) -> ProjectionIdentity<Subject> {
-    ProjectionIdentity::derived(ProjectionTranscript::rooted(
-        ProjectionRole::Plan,
-        &[tag],
-        u32::from(tag),
-    ))
 }

@@ -172,7 +172,7 @@ tooling-obligation: macroc.the-identity-profile-is-pinned-and-separated
     bit anywhere in the transcript moves the identity, two members swapped move
     it, and one transcript under two roles or two subjects derives two
     identities.
-  owner: macros/macroc/src/plane.rs
+  owner: macros/macroc/src/plane/type_guard.rs
   positive: macros/macroc/src/laws.rs
   method: executable-law
   activation: cargo test -p threadpak-macroc identity_profile
@@ -188,7 +188,7 @@ tooling-obligation: macroc.the-transcript-specification-is-complete
     The published transcript specification says enough for an implementation
     sharing none of the producer's encoding to derive the same identity,
     including for a captured declaration the services actually read.
-  owner: macros/macroc/src/plane.rs
+  owner: macros/macroc/src/plane/transcript.rs
   positive: testpak/tests/independent_identity_transcript.rs
   method: independent-reconstruction
   activation: cargo test -p threadpak-testpak --test independent_identity_transcript
@@ -224,7 +224,7 @@ tooling-obligation: macroc.the-emitted-tree-is-inside-the-closure-proof
     it, and named by its identity: the closure transcript commits to the joined
     tree's digest, and a closed expansion emits the closure's own tree rather than
     a second concatenation performed after the proof returned.
-  owner: macros/macroc/src/closure.rs
+  owner: macros/macroc/src/closure/type_guard.rs
   positive: macros/macroc/src/laws.rs
   method: executable-law
   activation: cargo test -p threadpak-macroc failure_path_closure
@@ -243,7 +243,7 @@ tooling-obligation: macroc.a-declared-input-stands-under-four-magnitudes
     exceeding any of them refuses naming that bound before any partial tree
     exists. Each captured token carries the index route from the root, which
     locates exactly one token.
-  owner: macros/macroc/src/token.rs
+  owner: macros/macroc/src/token/type_guard.rs
   positive: macros/macroc/src/laws.rs
   method: executable-law
   activation: cargo test -p threadpak-macroc failure_path_closure
@@ -264,7 +264,7 @@ tooling-obligation: macroc.an-unresolvable-handle-refuses-rather-than-resolving
     itself, and every caller carries the posture forward — the diagnostic's site
     seat states which of the two it holds, and the compiler-facing line says the
     locating half is missing rather than printing a number that means nothing.
-  owner: macros/macroc/src/token.rs
+  owner: macros/macroc/src/token/resolve.rs
   positive: macros/macroc/src/laws.rs
   method: executable-law
   activation: cargo test -p threadpak-macroc failure_path_closure
@@ -302,7 +302,7 @@ tooling-obligation: macroc.the-generator-identity-is-a-deliberate-fact
     A plan names the generator that produced it by a declared profile name and a
     deliberately bumped schema version, so the identity a plan watches for
     invalidation is a value that moves when the rendered shape moves.
-  owner: macros/macroc/src/plane.rs
+  owner: macros/macroc/src/plane/types.rs
   positive: macros/macroc/src/laws.rs
   method: executable-law
   activation: cargo test -p threadpak-macroc identity_profile

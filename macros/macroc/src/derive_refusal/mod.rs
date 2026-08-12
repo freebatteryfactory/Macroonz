@@ -57,6 +57,7 @@ pub mod diagnose;
 pub mod explain;
 pub mod plan;
 pub mod render;
+mod type_contract;
 pub mod types;
 
 pub use capture::{captured, captured_text};

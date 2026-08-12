@@ -4,7 +4,7 @@ error[E0624]: method `joined_tree` is private
 24 |         let _ = rendered.joined_tree();
    |                          ^^^^^^^^^^^ private method
    |
-  ::: $WORKSPACE/macros/macroc/src/closure.rs
+  ::: $WORKSPACE/macros/macroc/src/closure/type_guard.rs
    |
    |     pub(crate) fn joined_tree(&self) -> Result<GeneratedTree, RenderingRefusal> {
    |     --------------------------------------------------------------------------- private method defined here
