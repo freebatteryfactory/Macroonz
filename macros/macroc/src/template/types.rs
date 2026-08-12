@@ -1,58 +1,11 @@
-//! The declaration-template contract: what a typed template declares,
-//! what a binding may fill it with, and what one invocation of it is keyed by.
+//! The template home's declarations: category-typed holes, the three locks, the
+//! template and its application, and the semantic invocation key.
 //!
-//! # Category-typed holes
-//!
-//! A template's holes are typed by category, and the category travels on both
-//! ends of every binding: a string can never become an identifier; a type
-//! cannot enter an expression hole. The disagreement is a typed refusal at the
-//! binding seam ([`TemplateBinding::bound`]), never a substitution nobody
-//! notices.
-//!
-//! # Frontend-neutral, and owned elsewhere
-//!
-//! Templating is the machine's own authoring role — band 13 declares it as
-//! [`threadpak::declaration::AuthoringRole::Quotation`], and that declaration
-//! owns every semantic fact
-//! this module speaks of: that a quoted fragment is typed data rather than
-//! text, that splicing substitutes typed values only, that instantiation mints
-//! no authority, and that produced material re-enters the ordinary validation
-//! and linking path with no shortcut. The six stage laws governing meta
-//! evaluation are the owner's closed roster,
-//! [`threadpak::declaration::MetaStageLaw`] — this module cites that surface
-//! and answers none of it a second time; every fact here is a typed member
-//! summarizing an owner declaration.
-//!
-//! Any front door may offer a template surface, or none. Nothing here knows
-//! which one is calling.
-//!
-//! # The three locks are members, not prose
-//!
-//! Band 13's [`threadpak::declaration::META_EVALUATION_LOCKS`] names the three
-//! locks every meta
-//! evaluation declares BEFORE evaluation. This module carries one typed member
-//! per lock — [`SymbolicBoundFormula`], [`ProfileCeiling`], and
-//! [`CheckedMeterPosture`] — so a template that declared none of them is
-//! unrepresentable rather than refused. The lock roster's wording stays band
-//! 13's; these members cite it.
-//!
-//! # The staged-meta laws, and where they live
-//!
-//! The stage a judgment stands at is band 13's [`Stage`], and the staged-meta
-//! laws are band 13's too. A template records the stage its owner declared it
-//! is evaluated at and nothing more: the plane never decides a stage, never
-//! promotes material across one, and never mints Semantic Form — what a
-//! template produces is declaration material that re-enters the machine's own
-//! path untrusted, is judged at the instantiating site, and carries no live
-//! authority of its own.
-//!
-//! # The meter is a mechanism, and mechanisms are gated
-//!
-//! [`CheckedMeterPosture`] is an obligation carrier and a stated nonclaim, not
-//! a meter. The actual meter must refuse before over-limit allocation and must
-//! never return a partial fragment set; that obligation is the owner's, the
-//! mechanism is gated, and this module says which owner declared it rather
-//! than pretending to run it.
+//! Declarations only. Every road that reaches a private field — a binding's two
+//! ends, a ceiling's axes, a template's holes, an application's bindings — lives
+//! in `type_guard.rs`, this file's own child. That is what makes each of this
+//! home's proofs structural: a cross-category binding, a ceiling missing an
+//! axis, and an application with an unbound hole are values nobody can build.
 
 use crate::origin_graph::Nonclaim;
 use crate::plane::{
@@ -64,10 +17,11 @@ use crate::plane::{
 };
 use threadpak::declaration::Stage;
 use threadpak::declaration::types::{FragmentIdentityDomain, ProjectionConfigurationDomain};
-use threadpak::refusal::{CompletionPosture, FamilyShape, RefusalFamily, StopBound};
-use threadpak::types::{
-    AdmittedLimit, Bounded, ConstLimit, NonEmptyBounded, NonEmptyBoundedConstruction,
-};
+use threadpak::refusal::CompletionPosture;
+use threadpak::types::{Bounded, NonEmptyBounded};
+
+#[path = "type_guard.rs"]
+mod guard;
 
 // ---------------------------------------------------------------------------
 // Category-typed holes.
@@ -144,11 +98,6 @@ pub enum TemplateBindingIssue {
     },
 }
 
-impl RefusalFamily for TemplateBindingIssue {
-    const SHAPE: FamilyShape = FamilyShape::SingleCause;
-    const SELECTION_ORDER: &'static [&'static str] = &["CategoryMismatch"];
-}
-
 /// One argument bound to one parameter of the same category.
 ///
 /// Holding one *is* the category proof: the only road here is
@@ -161,51 +110,6 @@ pub struct TemplateBinding {
     argument: TemplateArgument,
 }
 
-impl TemplateBinding {
-    /// Bind one argument to one parameter.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`TemplateBindingIssue::CategoryMismatch`] naming both
-    /// categories when the argument's category is not the parameter's. The
-    /// mismatch is never coerced: a coercion here is exactly how a string
-    /// becomes an identifier.
-    pub fn bound(
-        parameter: TemplateParameter,
-        argument: TemplateArgument,
-    ) -> Result<Self, TemplateBindingIssue> {
-        if parameter.category == argument.category {
-            Ok(Self {
-                parameter,
-                argument,
-            })
-        } else {
-            Err(TemplateBindingIssue::CategoryMismatch {
-                expected: parameter.category,
-                found: argument.category,
-            })
-        }
-    }
-
-    /// The parameter filled.
-    #[must_use]
-    pub const fn parameter(&self) -> TemplateParameter {
-        self.parameter
-    }
-
-    /// The argument that fills it.
-    #[must_use]
-    pub const fn argument(&self) -> TemplateArgument {
-        self.argument
-    }
-
-    /// The category both ends agree on.
-    #[must_use]
-    pub const fn category(&self) -> SpliceCategory {
-        self.parameter.category
-    }
-}
-
 // ---------------------------------------------------------------------------
 // The three locks.
 // ---------------------------------------------------------------------------
@@ -216,7 +120,7 @@ impl TemplateBinding {
 /// names the formula its owner declared, names the owner fact that declares
 /// it, and names the validated inputs it stands over. Nothing here evaluates,
 /// parses, or rewrites a formula — evaluating one is a mechanism, and the
-/// mechanism is not this module's.
+/// mechanism is not this home's.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SymbolicBoundFormula {
     /// The declared formula, by identity.
@@ -288,66 +192,6 @@ pub struct AxisCeiling {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProfileCeiling {
     axes: Bounded<AxisCeiling, MetaBoundAxisLimit>,
-}
-
-impl ProfileCeiling {
-    /// Declare the complete ceiling.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`TemplateConstruction`] naming
-    /// [`TemplateConstructionIssue::CeilingAxisAbsent`] for every axis nobody
-    /// bounded and [`TemplateConstructionIssue::CeilingAxisDoubled`] for every
-    /// axis bounded twice — all of them at once, because a caller repairing a
-    /// ceiling one axis per attempt is a caller this seam failed.
-    pub fn declared(axes: Vec<AxisCeiling>) -> Result<Self, TemplateConstruction> {
-        let mut issues: Vec<TemplateConstructionIssue> = Vec::new();
-        for axis in META_BOUND_AXES {
-            let stated = axes.iter().filter(|held| held.axis == axis).count();
-            if stated == 0 {
-                issues.push(TemplateConstructionIssue::CeilingAxisAbsent { axis });
-            } else if stated > 1 {
-                issues.push(TemplateConstructionIssue::CeilingAxisDoubled { axis });
-            }
-        }
-        let mut established = issues.into_iter();
-        if let Some(first) = established.next() {
-            return Err(TemplateConstruction::co_established(
-                first,
-                established.collect(),
-            ));
-        }
-        let observed = axes.len();
-        Bounded::admitted_const(axes, &AdmittedLimit::under_ceiling())
-            .map(|axes| Self { axes })
-            .map_err(|_| {
-                TemplateConstruction::established(TemplateConstructionIssue::SeatBoundExceeded {
-                    seat: TemplateSeat::AxisCeilings,
-                    bound: u64::try_from(MetaBoundAxisLimit::MAX).unwrap_or(u64::MAX),
-                    observed: u64::try_from(observed).unwrap_or(u64::MAX),
-                })
-            })
-    }
-
-    /// Read the declared axis ceilings.
-    ///
-    /// The order law applies: the ceiling is a set keyed by axis, so nothing
-    /// identity-bearing is derived from the order this yields.
-    pub fn iter(&self) -> impl Iterator<Item = &AxisCeiling> {
-        self.axes.iter()
-    }
-
-    /// The number of axes bounded — the roster's cardinality, by construction.
-    #[must_use]
-    pub fn len(&self) -> usize {
-        self.axes.len()
-    }
-
-    /// Always `false`: a ceiling covers every axis or does not exist.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.axes.is_empty()
-    }
 }
 
 /// The third lock: the declared posture of the checked evaluation meter.
@@ -467,43 +311,6 @@ pub struct TemplateConstruction {
     pub posture: CompletionPosture,
 }
 
-impl RefusalFamily for TemplateConstruction {
-    const SHAPE: FamilyShape = FamilyShape::IssueCollection;
-    const SELECTION_ORDER: &'static [&'static str] = &[];
-}
-
-impl TemplateConstruction {
-    /// The one-issue body. Total: the declared bound admits an item by
-    /// compile-time proof, so refusing never needs an error road of its own.
-    pub fn established(issue: TemplateConstructionIssue) -> Self {
-        Self {
-            issues: NonEmptyBounded::singleton(issue),
-            posture: CompletionPosture::Complete,
-        }
-    }
-
-    /// The several-issue body. When the supplied issues outrun the declared
-    /// bound the body keeps the first and reports that enumeration stopped
-    /// there — never a silent drop, never an unearned claim of completeness.
-    pub fn co_established(
-        first: TemplateConstructionIssue,
-        rest: Vec<TemplateConstructionIssue>,
-    ) -> Self {
-        match NonEmptyBounded::admitted_const(first, rest) {
-            Ok(issues) => Self {
-                issues,
-                posture: CompletionPosture::Complete,
-            },
-            Err(NonEmptyBoundedConstruction::OverLimit) => Self {
-                issues: NonEmptyBounded::singleton(first),
-                posture: CompletionPosture::EarlyStopped {
-                    stopped_at: StopBound::DeclaredIssueBound,
-                },
-            },
-        }
-    }
-}
-
 /// One authored declaration template: its identity, its typed holes, the three
 /// locks it declares before any evaluation, and the stage its owner declared it
 /// is evaluated at.
@@ -518,120 +325,6 @@ pub struct DeclarationTemplate {
     ceiling: ProfileCeiling,
     meter: CheckedMeterPosture,
     stage: Stage,
-}
-
-impl DeclarationTemplate {
-    /// Declare one template.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`TemplateConstruction`] naming every parameter identity
-    /// declared twice, and the parameter seat when the hole set outgrows its
-    /// declared magnitude. Two holes under one identity are refused rather than
-    /// merged: merging them silently drops one hole's category.
-    pub fn declared(
-        identity: OwnerIdentityRef<TemplateSubject>,
-        first: TemplateParameter,
-        rest: Vec<TemplateParameter>,
-        formula: SymbolicBoundFormula,
-        ceiling: ProfileCeiling,
-        meter: CheckedMeterPosture,
-        stage: Stage,
-    ) -> Result<Self, TemplateConstruction> {
-        let mut issues: Vec<TemplateConstructionIssue> = Vec::new();
-        let declared: Vec<TemplateParameter> = core::iter::once(first)
-            .chain(rest.iter().copied())
-            .collect();
-        for (position, parameter) in declared.iter().enumerate() {
-            let earlier = declared
-                .iter()
-                .take(position)
-                .any(|other| other.parameter == parameter.parameter);
-            let repeated = declared
-                .iter()
-                .skip(position.saturating_add(1))
-                .any(|other| other.parameter == parameter.parameter);
-            if repeated && !earlier {
-                issues.push(TemplateConstructionIssue::DuplicateParameter {
-                    parameter: parameter.parameter,
-                });
-            }
-        }
-        let mut established = issues.into_iter();
-        if let Some(issue) = established.next() {
-            return Err(TemplateConstruction::co_established(
-                issue,
-                established.collect(),
-            ));
-        }
-        let observed = rest.len().saturating_add(1);
-        NonEmptyBounded::admitted_const(first, rest)
-            .map(|parameters| Self {
-                identity,
-                parameters,
-                formula,
-                ceiling,
-                meter,
-                stage,
-            })
-            .map_err(|_| {
-                TemplateConstruction::established(TemplateConstructionIssue::SeatBoundExceeded {
-                    seat: TemplateSeat::DeclaredParameters,
-                    bound: u64::try_from(TemplateParameterLimit::MAX).unwrap_or(u64::MAX),
-                    observed: u64::try_from(observed).unwrap_or(u64::MAX),
-                })
-            })
-    }
-
-    /// The template's own identity.
-    #[must_use]
-    pub const fn identity(&self) -> OwnerIdentityRef<TemplateSubject> {
-        self.identity
-    }
-
-    /// The guaranteed first declared hole.
-    #[must_use]
-    pub fn first_parameter(&self) -> TemplateParameter {
-        *self.parameters.first()
-    }
-
-    /// Read the declared holes.
-    ///
-    /// The order law applies: the hole set is keyed by parameter identity, so
-    /// nothing identity-bearing is derived from the order this yields.
-    pub fn parameters(&self) -> impl Iterator<Item = &TemplateParameter> {
-        self.parameters.iter()
-    }
-
-    /// The number of holes declared; structurally at least one.
-    #[must_use]
-    pub fn arity(&self) -> usize {
-        self.parameters.len()
-    }
-
-    /// The first lock: the symbolic bound formula over validated inputs.
-    #[must_use]
-    pub const fn formula(&self) -> &SymbolicBoundFormula {
-        &self.formula
-    }
-
-    /// The second lock: the hard profile ceiling.
-    #[must_use]
-    pub const fn ceiling(&self) -> &ProfileCeiling {
-        &self.ceiling
-    }
-
-    /// The third lock: the declared checked-meter posture.
-    #[must_use]
-    pub const fn meter(&self) -> CheckedMeterPosture {
-        self.meter
-    }
-
-    /// The stage the owner declared this template is evaluated at.
-    #[must_use]
-    pub const fn stage(&self) -> Stage {
-        self.stage
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -677,137 +370,6 @@ pub struct TemplateApplication {
     language_profile: VersionedProfile<LanguageProfileSubject>,
     meta_profile: VersionedProfile<MetaProfileSubject>,
     distinctness: ApplicativeDistinctness,
-}
-
-impl TemplateApplication {
-    /// Apply one template to one complete set of bindings.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`TemplateConstruction`] naming every declared hole left
-    /// unbound, every hole bound twice, every binding naming a hole this
-    /// template does not declare, and every binding whose parameter category
-    /// disagrees with the template's declaration of it. All of them are
-    /// reported together, and the binding seat is named when the supplied set
-    /// outgrows its declared magnitude.
-    pub fn applied(
-        template: &DeclarationTemplate,
-        bindings: Vec<TemplateBinding>,
-        language_profile: VersionedProfile<LanguageProfileSubject>,
-        meta_profile: VersionedProfile<MetaProfileSubject>,
-        distinctness: ApplicativeDistinctness,
-    ) -> Result<Self, TemplateConstruction> {
-        let mut issues: Vec<TemplateConstructionIssue> = Vec::new();
-        for declared in template.parameters() {
-            let mut supplied = bindings
-                .iter()
-                .filter(|binding| binding.parameter().parameter == declared.parameter);
-            // The dispatch answers one question — what issue, if any, does this
-            // declared parameter establish — and every arm answers it. An arm
-            // that pushes a side effect at its own depth says nothing about the
-            // arms beside it; an arm that yields the answer is comparable with
-            // them, and the exhaustive shape is what proves nothing was missed.
-            let established_issue = match (supplied.next(), supplied.next()) {
-                (None, _) => Some(TemplateConstructionIssue::MissingBinding {
-                    parameter: declared.parameter,
-                }),
-                (Some(bound), None) if bound.category() != declared.category => {
-                    Some(TemplateConstructionIssue::DeclaredCategoryDisagreement {
-                        parameter: declared.parameter,
-                        declared: declared.category,
-                        bound: bound.category(),
-                    })
-                }
-                (Some(_), None) => None,
-                (Some(_), Some(_)) => Some(TemplateConstructionIssue::DuplicateBinding {
-                    parameter: declared.parameter,
-                }),
-            };
-            issues.extend(established_issue);
-        }
-        for binding in &bindings {
-            let known = template
-                .parameters()
-                .any(|declared| declared.parameter == binding.parameter().parameter);
-            if !known {
-                issues.push(TemplateConstructionIssue::UnknownParameter {
-                    parameter: binding.parameter().parameter,
-                });
-            }
-        }
-        let mut established = issues.into_iter();
-        if let Some(issue) = established.next() {
-            return Err(TemplateConstruction::co_established(
-                issue,
-                established.collect(),
-            ));
-        }
-        let observed = bindings.len();
-        let mut supplied = bindings.into_iter();
-        let Some(first) = supplied.next() else {
-            // Foreclosed above: a template declares at least one hole, so an
-            // empty binding set has already established a missing binding.
-            return Err(TemplateConstruction::established(
-                TemplateConstructionIssue::MissingBinding {
-                    parameter: template.first_parameter().parameter,
-                },
-            ));
-        };
-        NonEmptyBounded::admitted_const(first, supplied.collect())
-            .map(|bounded_bindings| Self {
-                template: template.identity(),
-                bindings: bounded_bindings,
-                language_profile,
-                meta_profile,
-                distinctness,
-            })
-            .map_err(|_| {
-                TemplateConstruction::established(TemplateConstructionIssue::SeatBoundExceeded {
-                    seat: TemplateSeat::SuppliedBindings,
-                    bound: u64::try_from(TemplateParameterLimit::MAX).unwrap_or(u64::MAX),
-                    observed: u64::try_from(observed).unwrap_or(u64::MAX),
-                })
-            })
-    }
-
-    /// The template applied.
-    #[must_use]
-    pub const fn template(&self) -> OwnerIdentityRef<TemplateSubject> {
-        self.template
-    }
-
-    /// Read the canonical argument commitments, one per declared hole.
-    ///
-    /// The order law applies as stated on the type: this order is not
-    /// identity-bearing.
-    pub fn bindings(&self) -> impl Iterator<Item = &TemplateBinding> {
-        self.bindings.iter()
-    }
-
-    /// The number of holes filled; structurally at least one, and equal to the
-    /// template's arity by construction.
-    #[must_use]
-    pub fn arity(&self) -> usize {
-        self.bindings.len()
-    }
-
-    /// The language profile and version this application was made under.
-    #[must_use]
-    pub const fn language_profile(&self) -> VersionedProfile<LanguageProfileSubject> {
-        self.language_profile
-    }
-
-    /// The meta profile and version this application was made under.
-    #[must_use]
-    pub const fn meta_profile(&self) -> VersionedProfile<MetaProfileSubject> {
-        self.meta_profile
-    }
-
-    /// Whether this application is applicative or deliberately distinct.
-    #[must_use]
-    pub const fn distinctness(&self) -> ApplicativeDistinctness {
-        self.distinctness
-    }
 }
 
 // ---------------------------------------------------------------------------

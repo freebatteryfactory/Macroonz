@@ -326,7 +326,7 @@ tooling-obligation: macroc.an-established-outcome-is-not-silently-discarded
     families and the services' own outcome values alike; identities, markers,
     rosters, and the components a marked outcome carries are deliberately outside
     it, because dropping a copied identity is ordinary.
-  owner: macros/macroc/src/refusal.rs
+  owner: macros/macroc/src/refusal/types.rs
   positive: macros/macroc/src/laws.rs
   method: compile-refusal
   activation: cargo test -p threadpak-testpak --test compile_refusals

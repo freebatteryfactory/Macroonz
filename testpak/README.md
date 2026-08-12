@@ -31,23 +31,32 @@ suites, because cargo requires executable challenge material to live under
 | Seat | Name | Occupancy |
 | ---- | ---- | --------- |
 | 00 | plan | **seated as `src/00_plan/`** — the denominators a verdict is stated over |
-| 01 | corpus | reserved, unmaterialized |
-| 02 | arena | reserved, unmaterialized |
+| 01 | corpus | reserved — `src/01_corpus/README.md` states the question, the filling condition, and the nonclaims |
+| 02 | arena | reserved — `src/02_arena/README.md` states the question, the filling condition, and the nonclaims |
 | 03 | judge | **seated as `src/03_judge/`** — the readers that state a verdict over a rendered artifact: lane A in `byte_profile.rs`, lane B in `structural.rs`, the damage in `mutation.rs`, everything they may say in `types.rs` |
-| 04 | simulation | reserved, unmaterialized |
-| 05 | fault | reserved, unmaterialized |
+| 04 | simulation | reserved — `src/04_simulation/README.md` states the question, the filling condition, and the nonclaims |
+| 05 | fault | reserved — `src/05_fault/README.md` states the question, the filling condition, and the nonclaims |
 | 06 | muterprater | **seated as `tests/planted_defect.rs`, `tests/failed_seat_refusals.rs`, `tests/declared_magnitudes.rs`, and `tests/compiled_behaviour.rs`** — the mutation seat: the damaged artifacts and the proof each lane notices what it owns, the killed repairs restored one at a time, the declared magnitudes driven both directions, and the two mutants that need a compiler |
 | 07 | conformance | **seated as `tests/compile_refusals.rs` + `tests/compile-fail/`** — the compile-refusal suite, run through trybuild — and as `tests/independent_identity_transcript.rs`, the independent transcript lane |
-| 08 | evidence | reserved, unmaterialized |
+| 08 | evidence | reserved — `src/08_evidence/README.md` states the question, the filling condition, and the nonclaims |
 
 The five reserved names restore the plane's original nine-seat design; they were
 placed on this map by decision, not authored to fill it. **A reserved name fixes the
 intended question of a seat. It does not claim that the seat exists, has an
 owner implementation, or has satisfied admission** — name reserved ≠ home
-materialized ≠ implementation admitted ≠ qualification established. No
-directory, placeholder type, or obligation stands for a reserved seat until real
-content lands, and content that does not fit its reserved name comes back for an
-explicit decision instead of being normalized into the nearest drawer.
+materialized ≠ implementation admitted ≠ qualification established. Content that
+does not fit its reserved name comes back for an explicit decision instead of
+being normalized into the nearest drawer.
+
+Each reserved seat is a directory carrying exactly one file: a README stating the
+seat's question, that its state is reserved, that it currently contains nothing,
+the exact condition that would fill it, and what the reservation explicitly does
+not claim. That is a coordinate carrying its own honest specification, and it is
+the opposite of an empty directory dressed up to look occupied. **No `mod.rs`, no
+type, no API, and no obligation row stands for a reserved seat** — `lib.rs`
+declares no module at any of these five coordinates, so nothing in this package
+can reach one, and the map says so out loud rather than leaving a reader to
+discover it.
 
 | Path | What it carries |
 | --- | --- |

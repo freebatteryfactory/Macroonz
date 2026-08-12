@@ -10,9 +10,11 @@
 //!
 //! The plane is a numbered waterfall of seats, mapped by `#[path]` exactly as
 //! the machine maps its bands, so a seat's number is visible in the tree and
-//! never in a module name. A seat exists only once it holds something: the
-//! package README carries the full seat map and states which seats are occupied
-//! and which are reserved and empty.
+//! never in a module name. A seat holds a MODULE only once it holds something:
+//! the package README carries the full seat map, and each reserved seat's own
+//! directory carries one README stating its question, its filling condition, and
+//! its nonclaims. No module is declared at a reserved coordinate, so nothing
+//! here can reach one.
 //!
 //! Two seats are open here as source homes — `00_plan` and `03_judge`. Two more
 //! are occupied by test suites rather than source (the mutation seat, and

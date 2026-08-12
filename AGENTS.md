@@ -59,6 +59,14 @@ knows which host is running it.
   tooling crates carry the same grammar inside their earned directories, under the same
   machine-enforced module order — `macros/macroc/src/derive_refusal/` is the worked
   precedent.
+- **A reserved architectural coordinate is not an empty directory.** A numbered seat may
+  stand as a directory carrying exactly one file — a README stating the seat's question,
+  that its state is reserved, that it holds nothing today, the exact condition that fills
+  it, and what the reservation does not claim. That is one honest specification at the
+  coordinate it is about, and it is the opposite of empty-directory theater, which stays
+  killed: no `mod.rs`, no placeholder type, no stub API, and no obligation row may stand
+  for work that does not exist. The distinction is whether the file admits the seat is
+  empty or dresses it up as occupied.
 - One root `laws.rs` in the core crate carries the compile-time green laws, sectioned
   by home. It is non-public and outside the derived ABI surface. A law that cannot fail
   is not a law; every law is proven non-vacuous by reversal. It is the residue seat —

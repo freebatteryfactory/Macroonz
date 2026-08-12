@@ -2,11 +2,12 @@
 //!
 //! Two laws state the same fact about two crates that spell it differently. The
 //! machine states its dependency bands with numbered directories, and `lib.rs`
-//! must declare every one of them in band order. The services crate is flat and
-//! has only one ordering available to it — the order its `mod` declarations
-//! appear — so that order IS its dependency order. In both crates the map and
-//! the crate are derived from each other rather than maintained by hand, which
-//! is why neither can quietly drift.
+//! must declare every one of them in band order. The services crate carries no
+//! numbers and states the same fact with the one ordering that is left to it —
+//! the order its `mod` declarations appear — so that order IS its dependency
+//! order. A services home may be a file or a directory, and the check reads both
+//! the same way. In both crates the map and the crate are derived from each
+//! other rather than maintained by hand, which is why neither can quietly drift.
 
 use std::fs;
 use std::path::Path;
@@ -70,16 +71,16 @@ pub(crate) fn check_band_map(root: &Path) -> Result<(), String> {
     }
 }
 
-/// The services crate's source directory, whose flat module list carries its
-/// dependency order the way numbered directories carry the machine's.
+/// The services crate's source directory, whose unnumbered module list carries
+/// its dependency order the way numbered directories carry the machine's.
 const TOOLING_MODULE_ROOT: [&str; 3] = ["macros", "macroc", "src"];
 
 /// Declaration order IS the dependency order.
 ///
 /// The machine states its bands with numbered directories; the services crate
-/// is flat and states the same fact with the only ordering a flat module list
-/// has — the order its `mod` declarations appear in `lib.rs`. A module may
-/// reference modules declared EARLIER than itself and no others. That single
+/// carries no numbers and states the same fact with the one ordering that is
+/// left to it — the order its `mod` declarations appear in `lib.rs`. A module
+/// may reference modules declared EARLIER than itself and no others. That single
 /// rule outlaws cycles outright, because every cycle contains at least one
 /// backward-pointing edge, and it needs no hand-maintained dependency map: the
 /// order is read from the declarations and the edges from the sources.
@@ -95,8 +96,8 @@ const TOOLING_MODULE_ROOT: [&str; 3] = ["macros", "macroc", "src"];
 ///    braces is read, so wrapping three imports in one `use` hides none of them.
 /// 3. `use crate::name as alias;` — an ALIASED import. The edge is read off the
 ///    `crate::` path, so renaming the binding hides nothing.
-/// 4. `super::name` inside a FLAT module — which is the crate root under another
-///    spelling, and therefore the same edge.
+/// 4. `super::name` inside a SINGLE-FILE module — which is the crate root under
+///    another spelling, and therefore the same edge.
 /// 5. `crate::Thing` where `Thing` is not a declared module — a CRATE-ROOT
 ///    RE-EXPORT route. Reaching a sibling's content through the crate root
 ///    launders the edge: the reference names no owner, so nothing about the
@@ -175,7 +176,7 @@ fn declared_module_order(lib_text: &str) -> Vec<String> {
 /// Every name one module's text reaches through a crate-root path, in the order
 /// the text spells them, duplicates included.
 ///
-/// Both openings are read: `crate::` and `super::`. In a flat module list the
+/// Both openings are read: `crate::` and `super::`. In a single-file module the
 /// two mean the same place, so a module reaching a sibling through `super::` has
 /// taken exactly the edge `crate::` would have taken.
 ///

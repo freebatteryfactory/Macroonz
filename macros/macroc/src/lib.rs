@@ -52,12 +52,12 @@
 //! # Declaration order IS the dependency order
 //!
 //! The machine states its dependency bands with numbered directories. This
-//! crate is flat, so it states the same fact with the only ordering a flat
-//! module list has: **the order the `pub mod` declarations appear below.** A
-//! module imports only modules declared EARLIER than itself, never a later one
-//! and never itself-by-way-of-another. Read top to bottom and you have read the
-//! dependency graph; there is no second place to look and nothing to keep in
-//! sync by hand.
+//! crate carries no numbers, so it states the same fact with the only ordering
+//! an unnumbered module list has: **the order the `pub mod` declarations appear
+//! below.** A module imports only modules declared EARLIER than itself, never a
+//! later one and never itself-by-way-of-another. Read top to bottom and you
+//! have read the dependency graph; there is no second place to look and nothing
+//! to keep in sync by hand.
 //!
 //! The rule is machine-enforced, not a convention: `cargo xtask check` runs
 //! `tooling-module-order`, which reads the declaration order out of this file,
@@ -86,21 +86,24 @@
 //! derive_refusal        over every module above it
 //! ```
 //!
-//! A module may be a file or a DIRECTORY, and a directory module's edges are the
-//! union of every file under it: `derive_refusal/` reaches what its capture,
-//! plan, render, explain, and diagnose files reach, and a submodule pointing
-//! forward is its parent pointing forward. Inside a directory, `super::` names the parent
-//! and is not a crate-root route; in a FLAT module `super::` IS the crate root,
-//! and the checker reads it as one.
+//! A directory module's edges are the union of every file under it:
+//! `derive_refusal/` reaches what its capture, plan, render, explain, and
+//! diagnose files reach, and a submodule pointing forward is its parent pointing
+//! forward. Inside a directory, `super::` names the parent and is not a
+//! crate-root route; in a single-file module `super::` IS the crate root, and
+//! the checker reads it as one.
 //!
-//! Five of the modules above are directories today — `plane/`, `token/`,
-//! `planning/`, `closure/`, and `derive_refusal/` — and each carries the
-//! repository's file grammar inside it: `mod.rs` is the door and re-exports the
-//! home's public names, so `crate::plane::X` names the owner exactly as it did
-//! when the home was one file; `types.rs` declares; `types.rs`'s own child
-//! `type_guard.rs` holds every road that reaches a private field, which is what
-//! makes each home's walls structural; `type_contract.rs` states the declarative
-//! trait implementations; and the remaining files are role-named and pure. No
+//! Every module above is a directory home, and each carries the repository's
+//! file grammar inside it: `README.md` states what the home owns and why, and is
+//! the module's own documentation — `mod.rs` includes it rather than restating
+//! it. `mod.rs` is the door and re-exports the home's public names, so
+//! `crate::plane::X` names the owner exactly as it did when the home was one
+//! file; `types.rs` declares; `types.rs`'s own child `type_guard.rs` holds every
+//! road that reaches a private field, which is what makes each home's walls
+//! structural; `type_contract.rs` states the declarative surface; and the
+//! remaining files are role-named and pure. A seat exists only where it has
+//! content: a home with no private field carries no `type_guard.rs`, and a home
+//! that declares and computes nothing else is `mod.rs` and `types.rs` alone. No
 //! home publishes a second path to its own contents: the seat files are private
 //! and reached through the door.
 //!
