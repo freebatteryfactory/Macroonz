@@ -109,6 +109,7 @@ pub enum CompositionRootIssue {
 /// Independent members: several providers may be doubled in one declaration,
 /// and reporting one of them would leave a caller repairing the root one
 /// provider per attempt.
+#[must_use = "a refusal family body carries every established issue with the root"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CompositionRootDeclaration {
     /// The established issues — at least one, at most the declared bound.
@@ -126,7 +127,6 @@ impl CompositionRootDeclaration {
     /// The body a declaration check refuses with. When the issues outrun the
     /// declared bound the body keeps the first and reports that examination
     /// stopped there.
-    #[must_use]
     fn established(first: CompositionRootIssue, rest: Vec<CompositionRootIssue>) -> Self {
         match NonEmptyBounded::admitted_const(first, rest) {
             Ok(issues) => Self {

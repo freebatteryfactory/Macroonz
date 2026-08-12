@@ -18,6 +18,15 @@ pub(crate) use guard::{human_projection, static_bytes};
 #[cfg(test)]
 pub(crate) use guard::for_laws;
 
+/// The seal on the identity-subject roster.
+///
+/// A value of this type is producible only inside the services, so a subject
+/// declared anywhere else cannot satisfy [`IdentitySubject`]. It is the third
+/// value seal in the plane, beside [`RenderedRoleSeal`] and the planning home's
+/// kind seal, and it is the one that guards the derive-key context itself.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SubjectSeal(());
+
 /// One identity subject, by the name the domain-separation grammar spells it
 /// with.
 ///
@@ -29,7 +38,27 @@ pub(crate) use guard::for_laws;
 ///
 /// The grammar is closed: lowercase ASCII letters and digits, in `-`-joined
 /// segments, with no leading, trailing, or doubled separator.
+///
+/// # The roster is closed, and the seal is why
+///
+/// Sealed, and the seal is load-bearing rather than decorative. The name a
+/// subject declares IS a domain separator: it is written into the derive-key
+/// context [`IdentityProfile::context_for`] composes and into every transcript
+/// derived under it, so the subject a type declares decides which name space its
+/// identities live in. An open trait would let a type outside the services pick
+/// that name space — declare `"plan"` and derive under the plan context, or
+/// declare a name nothing else uses and mint a separation context the plane never
+/// admitted. Either way an outside type would be choosing how the plane separates
+/// its own identities, which is a law change rather than an extension point.
+///
+/// The roster below is the whole of it, and it is declared by the `subjects!`
+/// macro, the only place a seal value is stamped. A downstream implementation is not
+/// discouraged: it is unwritable, because the constant it would have to furnish
+/// has no constructor outside this crate.
 pub trait IdentitySubject {
+    /// The seal. Only the services can produce a value of this type.
+    const SEAL: SubjectSeal;
+
     /// The subject's declared segment of the derive-key context.
     const SUBJECT_NAME: &'static str;
 }
@@ -38,6 +67,9 @@ pub trait IdentitySubject {
 /// subject, each `Eq`/`Hash`/`Copy` so an identity tagged with it composes into
 /// the plane's records without hand-written impls, and each carrying its
 /// declared [`IdentitySubject`] name so no marker can exist without one.
+///
+/// This is the only site that stamps a [`SubjectSeal`], which is what closes the
+/// roster: a subject exists because it was declared here, or it does not exist.
 macro_rules! subjects {
     ($( $(#[$note:meta])* $name:ident = $declared:literal ),+ $(,)?) => {
         $(
@@ -46,6 +78,7 @@ macro_rules! subjects {
             pub struct $name;
 
             impl IdentitySubject for $name {
+                const SEAL: SubjectSeal = SubjectSeal::admitted();
                 const SUBJECT_NAME: &'static str = $declared;
             }
         )+

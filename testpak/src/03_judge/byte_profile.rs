@@ -97,7 +97,6 @@ pub fn cause_identities_in(rendered: &str) -> Vec<String> {
 /// **The claim this function supports** is lane A's and only lane A's: the
 /// rendered text contains these exact declared textual forms. It says nothing
 /// about what the artifact declares.
-#[must_use]
 pub fn judge_declared_order(
     rendered: &str,
     declared_spellings: &[&str],

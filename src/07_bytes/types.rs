@@ -132,6 +132,7 @@ pub struct CapacityProfile {
 /// accepted-history frame a digest mismatch is classified under the recovery
 /// law instead of refusing plainly — that classification is the history
 /// home's.
+#[must_use = "a decode refusal carries the lawful reason the frame was not read"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FrameDecode {
     /// The role is not registered.
@@ -216,6 +217,7 @@ pub enum CommitmentRole {
 /// the copy-paste layer, before any parser runs). Mixed case refuses: a free
 /// mangled-paste detector. The checker rides an admitted checksum mechanism
 /// behind a machine-owned role contract.
+#[must_use = "a decode refusal carries the lawful reason the text form was not read"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TextFormDecode {
     /// The prefix is not in the closed role-prefix register.

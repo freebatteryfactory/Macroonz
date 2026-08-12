@@ -25,6 +25,7 @@ mod guard;
 ///
 /// Distinct from a closure disagreement: nothing has been compared yet. These
 /// are the two ways the act of materializing refuses, and both are magnitudes.
+#[must_use = "a rendering refusal names the magnitude the renderer would have passed"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RenderingRefusal {
     /// The rendered bytes exceed the declared magnitude. A renderer that would
@@ -159,6 +160,7 @@ pub enum ClosureIssue<R: RenderedRole> {
 /// Independent members: a rendering may drop one role and orphan another in one
 /// pass, and reporting one of them would leave a caller repairing a rendering
 /// one role per attempt.
+#[must_use = "a refusal family body carries every way the rendering and the plan disagree"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProjectionClosureRefusal<R: RenderedRole> {
     /// The established issues — at least one, at most the declared bound.
@@ -176,6 +178,7 @@ pub struct ProjectionClosureRefusal<R: RenderedRole> {
 /// **Tokens are emitted only from a value of this type.** That is the whole
 /// point of the type existing: the road from a declaration to emitted tokens
 /// passes through here or it does not exist.
+#[must_use = "a closure is the proof that what was rendered is what was planned"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProjectionClosure<R: RenderedRole> {
     plan: PlanId,

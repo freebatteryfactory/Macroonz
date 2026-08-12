@@ -165,13 +165,11 @@ impl RefusalDeriveSurface {
 
 impl RefusalDeriveRefusal {
     /// The established refusal at one token of the declared input.
-    #[must_use]
     pub const fn established(cause: RefusalDeriveCapture, token: SpanHandle) -> Self {
         Self { cause, token }
     }
 
     /// The established cause.
-    #[must_use]
     pub const fn cause(self) -> RefusalDeriveCapture {
         self.cause
     }
@@ -219,7 +217,6 @@ impl RefusalDeriveRefusal {
     /// is its to mint — the services classify what they OBSERVED
     /// ([`RefusalDeriveCapture::observed`]) and never mint the machine's cause
     /// commitment.
-    #[must_use]
     pub fn diagnosed(self, spans: &SpanTable, machine: MachineAnchoring) -> MacrocDiagnostic {
         let repairs = Bounded::from_array([RepairAction {
             declared_by: OwnerFactRef::named("refusal", "family-shapes-are-three-and-closed"),
@@ -398,25 +395,21 @@ impl ClosedExpansion {
 
     /// The complete plan: context, content, membership, invalidation set,
     /// decision trace, origin trail, and nonclaims.
-    #[must_use]
     pub const fn plan(&self) -> &ProjectionPlan<DeriveImplProjection> {
         &self.plan
     }
 
     /// The proof that what was rendered is what was planned.
-    #[must_use]
     pub const fn closure(&self) -> &ProjectionClosure<RenderedImplementation> {
         &self.closure
     }
 
     /// The complete explanation over this kind's applicable questions.
-    #[must_use]
     pub const fn explanation(&self) -> &ProjectionExplanationView<DeriveImplProjection> {
         &self.explanation
     }
 
     /// What happened to the typed cause-order projection.
-    #[must_use]
     pub const fn cause_order(&self) -> &ProjectionDisposition {
         &self.cause_order
     }

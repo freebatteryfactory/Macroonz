@@ -42,6 +42,7 @@ pub enum CapturedDelimiter {
 /// other three. Every one of them refuses BEFORE any partial tree exists: a
 /// truncated capture is a different declaration, and capturing one would put the
 /// whole road downstream to work on material nobody wrote.
+#[must_use = "a bound refusal names which declared magnitude the capture would have passed"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CaptureBound {
     /// The declared input nests deeper than the declared magnitude.
@@ -145,6 +146,7 @@ pub struct CapturedInput {
 /// and how far it reaches. A caller holding both can tell a handle issued by
 /// another producer from a handle issued past the end of a truncated table,
 /// which is the whole of what is knowable from this side.
+#[must_use = "a resolution refusal carries the handle and how far the table reaches"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SpanResolutionRefusal {
     /// The handle the table was asked to resolve.
@@ -173,6 +175,7 @@ pub enum SpanTable {
 /// Why one text read refused. Dependent checks: there is no group to balance
 /// until the characters were cut, and no magnitude to exceed until the trees
 /// were built.
+#[must_use = "an established cause is why the text read refused"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TextReadCause {
     /// A text literal was never closed.
@@ -192,6 +195,7 @@ pub enum TextReadCause {
 }
 
 /// One refused text read: the established cause, and the byte it sits at.
+#[must_use = "a read refusal carries the established cause and the byte it sits at"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TextReadRefusal {
     /// The established cause.

@@ -96,6 +96,7 @@ pub enum TriggerViewIssue {
 /// Independent members: several components may be undecided while another is
 /// doubled, and a caller repairing a view one component per attempt is a caller
 /// this seam failed.
+#[must_use = "a refusal family body carries every undisposed or doubled component"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TriggerViewComposition {
     /// The established issues — at least one, at most the declared bound.
@@ -113,7 +114,6 @@ impl TriggerViewComposition {
     /// The body a composition check refuses with. When the issues outrun the
     /// declared bound the body keeps the first and reports that examination
     /// stopped there.
-    #[must_use]
     fn established(first: TriggerViewIssue, rest: Vec<TriggerViewIssue>) -> Self {
         match NonEmptyBounded::admitted_const(first, rest) {
             Ok(issues) => Self {
@@ -135,6 +135,7 @@ impl TriggerViewComposition {
 /// Holding one is the proof of exhaustive disposition: every component in
 /// [`WRAPPER_COMPONENTS`] appears exactly once, either selected with citations
 /// or omitted with citations. There is no third list and no silent remainder.
+#[must_use = "a complete view is the proof every wrapper component was disposed of once"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct WrapperTriggerView {
     plan: PlanId,

@@ -701,6 +701,7 @@ impl ConstLimit for ContractIssueLimit {
 /// Contract construction — posture normally Complete (fixed finite axis set,
 /// no recursion). Claims nothing about whether a behavior SHOULD declare a
 /// given axis.
+#[must_use = "a construction refusal carries every established issue with the declaration"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ContractConstruction {
     /// The established issues.
@@ -754,6 +755,7 @@ impl ConstLimit for RefinementIssueLimit {
 
 /// Refinement construction — the one family in the register whose posture is
 /// ALWAYS Complete: one object, no site structure, no bound to stop at.
+#[must_use = "a construction refusal carries every established issue with the declaration"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RefinementConstruction {
     /// The established issues.
@@ -818,6 +820,7 @@ impl ConstLimit for MigrationIssueLimit {
 /// `EarlyStopped`. Apply-time facts (wrong-base application, target validation,
 /// atomic visibility) stay out; independent testability has no
 /// declaration-side counterpart.
+#[must_use = "a construction refusal carries every established issue with the declaration"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MigrationConstruction {
     /// The established issues.
@@ -875,6 +878,7 @@ impl ConstLimit for CompatibilityIssueLimit {
 
 /// Compatibility-edge construction — posture normally Complete over the nine
 /// members (no recursive structure).
+#[must_use = "a construction refusal carries every established issue with the declaration"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CompatibilityEdgeConstruction {
     /// The established issues.
@@ -944,6 +948,7 @@ impl ConstLimit for SchemaIssueLimit {
 /// Schema construction — the family that most often reports `EarlyStopped`
 /// (recursive declarations reach the bound). No variant refuses a version-role
 /// substitution: opaque owner-minted identity roles make it inexpressible.
+#[must_use = "a construction refusal carries every established issue with the declaration"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SchemaConstruction {
     /// The established issues.
@@ -1005,6 +1010,7 @@ impl ConstLimit for LayoutIssueLimit {
 
 /// Layout construction — enumeration runs over components and fields; a wide
 /// layout reports `EarlyStopped`.
+#[must_use = "a construction refusal carries every established issue with the declaration"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LayoutConstruction {
     /// The established issues.
@@ -1072,6 +1078,7 @@ impl ConstLimit for CodecIssueLimit {
 /// Codec construction — posture normally Complete over the profile items; a
 /// partially authored profile typically reports several at once. Seated here
 /// by band math (the profile binds a schema relationship).
+#[must_use = "a construction refusal carries every established issue with the declaration"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CodecConstruction {
     /// The established issues.

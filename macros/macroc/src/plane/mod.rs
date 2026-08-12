@@ -70,9 +70,9 @@ pub use types::{
     ProjectionTranscript, RefusalFamilySubject, RefusalReason, RelatedIssueLimit,
     RelatedIssueSubject, RenderedByteLimit, RenderedRole, RenderedRoleSeal, RenderedUnitSubject,
     RepairLimit, RuntimeTraceSubject, SchemaSubject, SelectionCitationLimit, ServiceEntrySubject,
-    SoleRenderedUnit, SourceDeclarationLimit, SourceSnapshotSubject, TemplateArgumentSubject,
-    TemplateIssueLimit, TemplateParameterLimit, TemplateParameterSubject, TemplateSubject,
-    TokenPathDepthLimit, TraceEntryLimit, TracedSubject, TranscriptAnchoring,
+    SoleRenderedUnit, SourceDeclarationLimit, SourceSnapshotSubject, SubjectSeal,
+    TemplateArgumentSubject, TemplateIssueLimit, TemplateParameterLimit, TemplateParameterSubject,
+    TemplateSubject, TokenPathDepthLimit, TraceEntryLimit, TracedSubject, TranscriptAnchoring,
     TriggerViewIssueLimit, WireContractSubject, WorkCurrencySubject, WorkFormulaSubject,
     WrapperComponentLimit,
 };

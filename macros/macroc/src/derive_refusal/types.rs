@@ -130,6 +130,8 @@ macro_rules! capture_causes {
         ///
         /// The canonical order below is the SELECTOR's order, not the execution
         /// schedule.
+        #[must_use = "a capture refusal carries the established cause the declaration \
+                      was not read"]
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
         pub enum RefusalDeriveCapture {
             $( $(#[$note])* $variant ),+
@@ -293,6 +295,7 @@ capture_causes! {
 /// Both seats are required. A refusal that could omit its token would send the
 /// caller looking, and a refusal that could omit its cause would be a complaint
 /// rather than an answer.
+#[must_use = "a capture refusal carries the established cause and the offending token"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RefusalDeriveRefusal {
     cause: RefusalDeriveCapture,
@@ -408,6 +411,7 @@ pub struct RefusalCompileContext {
 /// CLOSURE, which built it as part of proving and committed to its digest inside
 /// its own identity; this value borrows it. A receipt that had been handed a
 /// tree alongside a closure could have been handed one the closure never joined.
+#[must_use = "a closed expansion is the whole receipt one live compilation produced"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClosedExpansion {
     identity: ClosedExpansionId,

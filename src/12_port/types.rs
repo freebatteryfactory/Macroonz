@@ -379,6 +379,7 @@ pub struct AdmittedForeign<T> {
 /// request identity before contract shape; contract before authority;
 /// declared bounds before temporal facts; `Late` ranks last because lateness
 /// only means anything against an otherwise-matching response.
+#[must_use = "a binding refusal carries the lawful reason the response was not bound"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ResponseBinding {
     /// The Attempt is dead or foreign.

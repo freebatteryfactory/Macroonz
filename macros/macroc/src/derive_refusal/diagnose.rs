@@ -83,7 +83,6 @@ const RENDERING_FAMILY: u8 = 3;
 ///
 /// Every issue's axis, declared magnitude, observed count, seat, and doubled
 /// role survive: the first one in the summary, all of them in the related set.
-#[must_use]
 pub fn planning_refused(refusal: &ProjectionPlanning) -> MacrocDiagnostic {
     let first = refusal.issues.first();
     let material: Vec<Vec<u8>> = refusal.issues.iter().map(planning_bytes).collect();
@@ -215,7 +214,6 @@ const fn planning_observed(issue: &ProjectionPlanningIssue) -> ObservedClassific
 /// Project one closure refusal.
 ///
 /// Every issue's role and its kind of disagreement survive, role by role.
-#[must_use]
 pub fn closure_refused<R: RenderedRole>(refusal: &ProjectionClosureRefusal<R>) -> MacrocDiagnostic {
     let first = refusal.issues.first();
     let material: Vec<Vec<u8>> = refusal.issues.iter().map(closure_bytes).collect();
@@ -307,7 +305,6 @@ const fn closure_observed<R: RenderedRole>(issue: &ClosureIssue<R>) -> ObservedC
 ///
 /// An absent subject names its seat; a coverage refusal names every question it
 /// established an issue about.
-#[must_use]
 pub fn explanation_refused(refusal: &ExplanationBindingRefusal) -> MacrocDiagnostic {
     let owner = OwnerFactRef::named("macroc", "every-kind-answers-the-explanation-protocol");
     let repair = human_projection!(
@@ -408,7 +405,6 @@ const fn coverage_observed(issue: &ExplanationCoverageIssue) -> ObservedClassifi
 
 /// Project one materialization refusal: the exact declared magnitude, and the
 /// unit it governs.
-#[must_use]
 pub fn rendering_refused<R: RenderedRole>(refusal: RenderingRefusal, role: R) -> MacrocDiagnostic {
     let (bound, unit, slot) = match refusal {
         RenderingRefusal::BytesUnbounded => (
@@ -427,7 +423,6 @@ pub fn rendering_refused<R: RenderedRole>(refusal: RenderingRefusal, role: R) ->
 
 /// Project one assembly refusal: the tree magnitude, and the role that overran
 /// it.
-#[must_use]
 pub fn render_refused<R: RenderedRole>(refusal: RenderRefusal, role: R) -> MacrocDiagnostic {
     match refusal {
         RenderRefusal::Unbounded => bounded_rendering(

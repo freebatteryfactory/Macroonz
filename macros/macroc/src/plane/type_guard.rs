@@ -13,7 +13,7 @@ use super::{
     IdentityProfile, IdentityProfileVersion, IdentitySubject, MACROC_GENERATOR, OwnerFactName,
     OwnerFactRef, OwnerIdentityRef, PROJECTION_IDENTITY_PROFILE, ProfileVersion,
     ProjectionIdentity, ProjectionProvenance, ProjectionRole, ProjectionTranscript, RefusalReason,
-    RenderedRoleSeal, TranscriptAnchoring,
+    RenderedRoleSeal, SubjectSeal, TranscriptAnchoring,
 };
 use core::marker::PhantomData;
 use threadpak::identity::Commitment;
@@ -537,6 +537,14 @@ impl<Subject> ProjectionIdentity<Subject> {
 
 impl RenderedRoleSeal {
     /// The seal, admitted only within the services.
+    pub(crate) const fn admitted() -> Self {
+        Self(())
+    }
+}
+
+impl SubjectSeal {
+    /// The seal, admitted only within the services. The `subjects!` declaration
+    /// is the one caller, which is what makes the subject roster closed.
     pub(crate) const fn admitted() -> Self {
         Self(())
     }

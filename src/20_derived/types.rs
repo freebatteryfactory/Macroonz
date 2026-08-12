@@ -327,6 +327,7 @@ pub struct SelectionMask {
 /// budget/resource cause (the bounds law already keeps those distinct — a
 /// third spelling would be that distinction's second home); no completion
 /// posture (single-cause bodies report one established cause).
+#[must_use = "a construction refusal carries the lawful reason the mask was not admitted"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SelectionMaskConstruction {
     /// The preimages are comparable AND THEY DIFFER.

@@ -134,6 +134,7 @@ pub fn compile_refusal(
 /// table to point into; a text that cut fine and said the wrong thing has both.
 /// Folding them together would hand a caller a diagnostic whose site indexes a
 /// table that was never built.
+#[must_use = "a refusal names which of the two ways the callable text route refused"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TextCompileRefusal {
     /// The text could not be cut into tokens.

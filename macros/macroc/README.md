@@ -297,6 +297,49 @@ tooling-obligation: macroc.a-related-set-that-stops-says-what-it-dropped
     not come back. The typed refusal body a caller of the underlying seam holds
     is where they remain readable.
 
+tooling-obligation: macroc.the-subject-roster-is-sealed
+  claim: >
+    The identity-subject roster is closed. A subject's declared name is a segment
+    of the derive-key context every plane identity is derived under, so a type
+    outside the services cannot satisfy `IdentitySubject` and cannot choose its
+    own separation context: the seal constant it would have to furnish has no
+    reachable constructor, and the seat has no default to skip.
+  owner: macros/macroc/src/plane/types.rs
+  positive: macros/macroc/src/laws.rs
+  method: compile-refusal
+  activation: cargo test -p threadpak-testpak --test compile_refusals
+  tooling-red: testpak/tests/compile-fail/an-outside-identity-subject.rs
+  nonclaims: >
+    It does not claim the declared names are collision-free against a name space
+    nobody in this crate spells; the roster's distinctness is proven over the
+    roster, and the roster is what the seal closes. It does not claim anything
+    about the two other value seals, which close different rosters for different
+    reasons.
+
+tooling-obligation: macroc.an-established-outcome-is-not-silently-discarded
+  claim: >
+    Every value that carries an outcome — a refusal, a refusal-family body, a
+    diagnostic, a verdict, a receipt, a decision, a plan, a closure, a closed
+    expansion, a proof a check produced — is marked `#[must_use]` with a message
+    stating what it carries, so discarding one fails the build rather than
+    passing quietly. The population is semantic and spans the machine's refusal
+    families and the services' own outcome values alike; identities, markers,
+    rosters, and the components a marked outcome carries are deliberately outside
+    it, because dropping a copied identity is ordinary.
+  owner: macros/macroc/src/refusal.rs
+  positive: macros/macroc/src/laws.rs
+  method: compile-refusal
+  activation: cargo test -p threadpak-testpak --test compile_refusals
+  tooling-red: testpak/tests/compile-fail/a-discarded-refusal.rs
+  nonclaims: >
+    It does not claim per-type non-vacuity: one fixture exercises one
+    representative refusal, and every other marked type stands on the attribute
+    being the same attribute. It does not claim the explicit `let _ = …` discard
+    is refused HERE — that road is invisible to rustc and is closed by clippy's
+    `let_underscore_must_use` on the workspace wall, which is a different gate
+    over a different population. It does not claim the marked population is
+    closed: a value that begins carrying an outcome earns its mark then.
+
 tooling-obligation: macroc.the-generator-identity-is-a-deliberate-fact
   claim: >
     A plan names the generator that produced it by a declared profile name and a

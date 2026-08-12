@@ -230,6 +230,7 @@ pub enum ExplanationCoverageIssue {
 /// Independent members: several questions may be unanswered while another is
 /// doubled, and reporting one of them would leave a caller repairing the view
 /// one question per attempt.
+#[must_use = "a refusal family body carries every uncovered, doubled, or inadmissible question"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ExplanationCoverage {
     /// The established issues — at least one, at most the declared bound.
@@ -247,7 +248,6 @@ impl ExplanationCoverage {
     /// The body a coverage check refuses with. When the issues outrun the
     /// declared bound the body keeps the first and reports that examination
     /// stopped there.
-    #[must_use]
     fn established(first: ExplanationCoverageIssue, rest: Vec<ExplanationCoverageIssue>) -> Self {
         match NonEmptyBounded::admitted_const(first, rest) {
             Ok(issues) => Self {
@@ -269,6 +269,7 @@ impl ExplanationCoverage {
 /// Holding one is the proof: every applicable question has exactly one answer,
 /// and no question outside the kind's roster was answered. There is no partial
 /// view — a view that could not be completed is a refusal instead.
+#[must_use = "a complete view is the proof every applicable question has exactly one answer"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProjectionExplanationView<K: ProjectionKind> {
     answers: Bounded<ProjectionExplanation, ExplanationSeatLimit>,

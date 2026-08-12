@@ -14,6 +14,8 @@
 /// The canonical K3 truth value. Produced first by interval comparison (the
 /// numeric home), consumed by evidence, gates, and every place a question's
 /// answer can honestly lag.
+#[must_use = "a truth value is what a comparison established, including the honest `Pending`; \
+              dropping it discards the answer the check ran to produce"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Truth {
     /// Established true.
@@ -29,7 +31,6 @@ impl Truth {
     /// K3 conjunction: `False` dominates, `True` is neutral, `Pending`
     /// propagates otherwise. A lagging answer can never hide a known failure:
     /// `Pending.and(False)` is `False`.
-    #[must_use]
     pub const fn and(self, other: Self) -> Self {
         match (self, other) {
             (Self::False, _) | (_, Self::False) => Self::False,
@@ -40,7 +41,6 @@ impl Truth {
 
     /// K3 disjunction: `True` dominates, `False` is neutral, `Pending`
     /// propagates otherwise.
-    #[must_use]
     pub const fn or(self, other: Self) -> Self {
         match (self, other) {
             (Self::True, _) | (_, Self::True) => Self::True,
@@ -50,7 +50,6 @@ impl Truth {
     }
 
     /// K3 negation: swaps the established values; `Pending` stays `Pending`.
-    #[must_use]
     pub const fn negate(self) -> Self {
         match self {
             Self::True => Self::False,
@@ -63,6 +62,8 @@ impl Truth {
 /// The normalized decision algebra, beside `Truth` and never convertible to or
 /// from it. `Defer` means the gate declines to decide now — it is not `Pending`,
 /// and it is not a refusal.
+#[must_use = "a decision is what the gate concluded; an admitted operation that dropped it \
+              proceeded without the gate"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Decision {
     /// The gate admits the subject.

@@ -607,6 +607,7 @@ pub struct PlanDerivation {
 ///
 /// A plan carries its OWN identity, derived when it is planned. See
 /// [`PlanDerivation`] for the transcript that identity commits to.
+#[must_use = "a plan is the complete declared output set nothing may be rendered without"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProjectionPlan<K: ProjectionKind> {
     derivation: PlanDerivation,
@@ -625,6 +626,7 @@ pub struct ProjectionPlan<K: ProjectionKind> {
 /// members are staged as a unit, checked as a unit, and published as a unit. A
 /// partial materialization is a refusal, never a partial success — half a set
 /// of sibling projections is a set whose siblings disagree.
+#[must_use = "a bundle plan is materialized whole or not at all"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProjectionBundlePlan {
     bundle: ProjectionIdentity<BundleSubject>,
@@ -636,6 +638,7 @@ pub struct ProjectionBundlePlan {
 /// Every kind that could apply gets one of these. Silence is not a variant:
 /// where a projection is absent, the absence has a name and, where a fact
 /// caused it, a citation.
+#[must_use = "a disposition is what happened to a projection, and silence is not a variant"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProjectionDisposition {
     /// It was generated, and this is the output. Boxed because a disposition

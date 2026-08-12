@@ -215,6 +215,7 @@ impl Limit for SemanticFormIssueLimit {}
 /// may mint an agreement-checked image); no capability satisfaction; no
 /// effect admission; no recursion-witness validity; no exhaustiveness unless
 /// `Complete`.
+#[must_use = "a construction refusal carries every established issue with the form"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SemanticFormConstruction {
     /// The established issues.
@@ -345,6 +346,7 @@ pub struct EvidenceObligation(pub Commitment<EvidenceObligationDomain>);
 /// `Γ ⊢ e : T stage P refuses R effects E requires C reads S within B
 /// explains X evidences V`. Public operations expose the closed COMPLETED
 /// judgment; omission from convenient source is not absence from meaning.
+#[must_use = "a judgment is the nine axes the checker established, and no axis survives alone"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Judgment {
     /// T — the normal value type.

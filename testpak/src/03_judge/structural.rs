@@ -115,7 +115,6 @@ pub fn structure_of(rendered: &str) -> Option<ArtifactStructure> {
 /// artifact DECLARES these implementations, of these traits, for this target,
 /// written this way, carrying these members and no others. It says nothing about
 /// whether any of it compiles.
-#[must_use]
 pub fn judge_structure(rendered: &str, declared: &DeclaredStructure<'_>) -> StructuralVerdict {
     let Some(structure) = structure_of(rendered) else {
         return StructuralVerdict::Unparsable;

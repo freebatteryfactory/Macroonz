@@ -426,7 +426,7 @@ pub struct FixBoundsClaim;
 /// staleness is the freshness axis; the remaining four are
 /// [`PositioningRefusal`]'s causes — every posture lands on exactly one
 /// owner, and no posture enum exists.
-#[must_use]
+#[must_use = "a fix is the position that positioning derived, with every axis it resolved"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Fix<T> {
     /// What kind of position was derived.
@@ -468,6 +468,7 @@ pub struct RouteClosureClaim;
 /// The final no-route claim's witness: the exact searched region and the
 /// cut-closure evidence that excludes every lawful route. Claim-specific,
 /// never a universal evidence record.
+#[must_use = "a witness is the proof the searched region excludes every lawful route"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RouteClosureEvidence {
     /// The exact searched region.
@@ -488,6 +489,7 @@ pub struct RouteClosureEvidence {
 /// copied them would store one fact in two homes. Its `Unauthorized` is
 /// source-region authorization only — protected-payload resolution answers a
 /// different question and the two never merge.
+#[must_use = "a positioning refusal carries the established cause the route was not taken"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum PositioningRefusal {
     /// The route does not offer this operation — an operation that does not
@@ -697,6 +699,7 @@ pub struct Cursor {
 /// are scoped to their source; the query precedes its own refinements
 /// (filter, order, direction); the cut ranks last because comparing cuts
 /// means anything only once everything above matches.
+#[must_use = "a transplantation refusal carries why the cursor was not honored"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CursorTransplantation {
     /// Wrong cursor family.

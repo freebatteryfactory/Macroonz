@@ -382,6 +382,7 @@ impl Limit for AdmissionIssueLimit {}
 /// disclosure, or authority a hidden canonical issue would forbid. A refusal
 /// creates no Attempt, no reservation residue, no partial authority, and no
 /// Attempt-shaped report — in every projection alike.
+#[must_use = "an admission refusal carries every established reason no Attempt was created"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AttemptAdmission {
     /// The established issues, in the vocabulary's canonical order.
@@ -515,7 +516,6 @@ impl TerminalAttempt {
     /// Sealing CONSUMES the terminal Attempt and mints the immutable report —
     /// evidence produced at the boundary, never a later identity or phase of
     /// the Attempt it observed. Reconciliation is never an Attempt phase.
-    #[must_use]
     pub fn seal(self, evidence: EvidenceRef<AttemptEvidenceClaim>) -> AttemptReport {
         AttemptReport {
             attempt: self.attempt,
@@ -544,6 +544,7 @@ pub enum AttemptState {
 /// checkpoint advancement, accepted-event truth, backend atomicity, external
 /// completion, or a reconciliation conclusion — the Attempt-report route is
 /// never its own only judge.
+#[must_use = "a sealed report is the Attempt's only evidence, and nothing re-derives it later"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AttemptReport {
     /// The Attempt this report seals.
@@ -555,6 +556,7 @@ pub struct AttemptReport {
 /// The admission outcome — the ONLY minting site of an Attempt identity. A
 /// refusal creates no Attempt at all (the seam returns the family body per
 /// the canonical≠released law).
+#[must_use = "an outcome is the admitted Attempt or the refusal that created none"]
 #[derive(Debug)]
 pub enum AdmissionOutcome {
     /// Admitted: one fresh Attempt under live custody.
@@ -699,6 +701,7 @@ pub const PAIRWISE_NON_SUBSTITUTION: [&str; 13] = [
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CapabilityWitnessClaim;
 /// The capability witness family.
+#[must_use = "a witness is the proof its postcondition was established, and nothing weaker"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CapabilityWitness(pub EvidenceRef<CapabilityWitnessClaim>);
 
@@ -706,6 +709,7 @@ pub struct CapabilityWitness(pub EvidenceRef<CapabilityWitnessClaim>);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BudgetWitnessClaim;
 /// The budget witness family.
+#[must_use = "a witness is the proof its postcondition was established, and nothing weaker"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BudgetWitness(pub EvidenceRef<BudgetWitnessClaim>);
 
@@ -713,6 +717,7 @@ pub struct BudgetWitness(pub EvidenceRef<BudgetWitnessClaim>);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EffectProgressWitnessClaim;
 /// The effect-progress witness family.
+#[must_use = "a witness is the proof its postcondition was established, and nothing weaker"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct EffectProgressWitness(pub EvidenceRef<EffectProgressWitnessClaim>);
 
@@ -720,6 +725,7 @@ pub struct EffectProgressWitness(pub EvidenceRef<EffectProgressWitnessClaim>);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DurabilityWitnessClaim;
 /// The durability witness family.
+#[must_use = "a witness is the proof its postcondition was established, and nothing weaker"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DurabilityWitness(pub EvidenceRef<DurabilityWitnessClaim>);
 
@@ -727,6 +733,7 @@ pub struct DurabilityWitness(pub EvidenceRef<DurabilityWitnessClaim>);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AuthenticityWitnessClaim;
 /// The authenticity witness family.
+#[must_use = "a witness is the proof its postcondition was established, and nothing weaker"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AuthenticityWitness(pub EvidenceRef<AuthenticityWitnessClaim>);
 
@@ -735,6 +742,7 @@ pub struct AuthenticityWitness(pub EvidenceRef<AuthenticityWitnessClaim>);
 pub struct CarrierWitnessClaim;
 /// The carrier witness family. Semantic reconciliation is a runtime
 /// conclusion — never a physical witness at all.
+#[must_use = "a witness is the proof its postcondition was established, and nothing weaker"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CarrierWitness(pub EvidenceRef<CarrierWitnessClaim>);
 

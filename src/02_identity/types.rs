@@ -139,6 +139,7 @@ impl<Role> ByteIdentity<Role> {
 /// positions across scopes is a category error, not a runtime edge case — the
 /// lawful cross-scope expression is a cut vector. Its treatment is do-not-retry:
 /// repeating the same comparison is unlawful.
+#[must_use = "a comparison refusal carries the lawful reason two positions were not ranked"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum OrderComparison {
     /// The two positions do not share one scope.

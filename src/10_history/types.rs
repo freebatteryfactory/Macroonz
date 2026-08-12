@@ -320,6 +320,7 @@ pub enum LineageTransition {
 /// compared; the residual holds exactly when nothing stronger was established.
 /// Reasons are unit: the record already owns one evidence home, and a
 /// per-reason carrier would store one fact twice.
+#[must_use = "an established cause is why the lineage transition refused"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LineageRefusalReason {
     /// Evidence positively contradicts the claimed relationship — never
@@ -351,6 +352,7 @@ pub struct LineageRefusalEvidence {
 /// answer means anything alone. It establishes no relationship, changes no
 /// accepted material, and owns neither fork detection nor equivocation
 /// handling.
+#[must_use = "a refusal carries the lawful reason the lineage transition did not proceed"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LineageRefusal {
     /// The established reason.
@@ -404,6 +406,7 @@ impl Limit for SuccessorLimit {}
 /// identities and original accepted positions. A predecessor cut and a
 /// successor cut are joined only by an explicit succession or cut-translation
 /// witness — never by matching integer components.
+#[must_use = "a witness is the proof successors cover the sealed predecessor exactly"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CoverageWitness {
     /// The sealed predecessor.
@@ -418,6 +421,7 @@ pub struct CoverageWitness {
 /// it was admitted. Routing reports authority; it does not grant it — a
 /// reachable old writer, valid connection, authenticated host, nearby shard,
 /// or later HLC cannot admit work under a stale epoch.
+#[must_use = "an epoch refusal carries the lawful reason the write was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum EpochValidation {
     /// The write's epoch has been superseded.
@@ -439,6 +443,7 @@ pub struct CutTranslationClaim;
 
 /// The explicit succession witness joining a predecessor cut to a successor
 /// cut — the ONLY lawful join; matching integer components never join cuts.
+#[must_use = "a witness is the only lawful join between a predecessor and a successor cut"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SuccessionWitness {
     /// The predecessor's sealed cut.
@@ -451,6 +456,7 @@ pub struct SuccessionWitness {
 
 /// The explicit cut-translation witness carrying one cut's meaning across a
 /// partition transition.
+#[must_use = "a witness is the only lawful carriage of one cut across a partition transition"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CutTranslationWitness {
     /// The cut translated from.
@@ -470,6 +476,7 @@ impl Limit for FederationLimit {}
 /// cuts — explicit authority entries, closed source-set membership,
 /// deterministic ordering; duplicate and omitted authorities refuse; no
 /// raw-map constructor exists.
+#[must_use = "a composition refusal carries why the federation cut vector was not formed"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FederationComposition {
     /// The same authority appears twice.
@@ -904,6 +911,7 @@ pub struct HistoryIntegrityEvidence {
 /// an event never existed: `AuthorizedlyRemoved` never collapses into
 /// `HistoricalAbsence` or a generic not-found, and no reader may down-report
 /// it to hide that a removal occurred.
+#[must_use = "a disposition is what the read found; dropping it is how a removal goes unseen"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum HistoryDisposition<T> {
     /// The material is present.
@@ -923,6 +931,7 @@ pub enum HistoryDisposition<T> {
 /// resolve on the disposition; closure and freshness ride their own axes;
 /// protected access resolves through the protected-resolution axis. One
 /// inhabited cause, so no cause-selection rule is owed.
+#[must_use = "a read refusal carries the lawful reason the route declined the operation"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum HistoryReadRefusal {
     /// The route declines this operation.
@@ -936,7 +945,7 @@ impl RefusalFamily for HistoryReadRefusal {
 
 /// One history read: three orthogonal axes — the disposition never absorbs
 /// source closure or freshness.
-#[must_use]
+#[must_use = "a reading carries three orthogonal axes, and dropping it discards all three"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct HistoryReading<T> {
     /// What was found.
@@ -1066,6 +1075,7 @@ impl crate::types::ConstLimit for RemovalPlanIssueLimit {
 /// coherence of authored intent only — never capability, policy sufficiency,
 /// scope, generation, retention, or participant capability (those close at
 /// admission); mints nothing; decides no removal lawfulness.
+#[must_use = "a construction refusal carries every established issue with the plan"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RemovalPlanConstruction {
     /// The established issues.
@@ -1099,6 +1109,7 @@ impl crate::types::ConstLimit for RemovalClaimIssueLimit {
 
 /// Removal-authorization-claim construction: validates claim shape only —
 /// never verifies the claimed authority; binds no scope, no generation.
+#[must_use = "a construction refusal carries every established issue with the claim"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RemovalAuthorizationClaimConstruction {
     /// The established issues.
@@ -1140,6 +1151,7 @@ impl crate::types::ConstLimit for RemovalRefusalIssueLimit {
 
 /// The removal-admission act's refusal. A refusal to remove changes no
 /// accepted material.
+#[must_use = "a removal refusal carries every established reason the removal did not proceed"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RemovalRefusal {
     /// The established issues.
@@ -1207,6 +1219,7 @@ pub const RECOVERY_SCAN: [&str; 5] = [
 
 /// The recovery receipt: byte range, partial-record count, and the cut
 /// recovered to — admitted into the successor history.
+#[must_use = "a receipt records what recovery discarded and the cut it recovered to"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RecoveryReceipt {
     /// The discarded byte range start.
@@ -1220,6 +1233,7 @@ pub struct RecoveryReceipt {
 }
 
 /// How recovery may end — no fourth ending exists.
+#[must_use = "an outcome is how recovery ended, and there is no fourth ending"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RecoveryOutcome {
     /// A committed prefix stands.

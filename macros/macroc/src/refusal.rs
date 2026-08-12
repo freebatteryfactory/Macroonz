@@ -208,6 +208,7 @@ impl ProjectionPlanningIssue {
 /// Independent members, no ladder, no primary issue, posture carried as an
 /// instance value. A body that stopped at its declared bound says so rather
 /// than implying no further defects exist.
+#[must_use = "a refusal family body carries every planning issue the pass established"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProjectionPlanning {
     /// The established issues — at least one, at most the declared bound.
@@ -225,7 +226,6 @@ impl ProjectionPlanning {
     /// The one-issue body, for a seam whose checks can establish exactly one
     /// issue. Total: the declared bound admits an item by compile-time proof, so
     /// refusing never needs an error road of its own.
-    #[must_use]
     pub fn established(issue: ProjectionPlanningIssue) -> Self {
         Self {
             issues: NonEmptyBounded::singleton(issue),
@@ -237,7 +237,6 @@ impl ProjectionPlanning {
     /// supplied issues outrun the declared bound the body keeps the first and
     /// reports that enumeration stopped there — it never silently drops the
     /// remainder and never claims completeness it does not have.
-    #[must_use]
     pub fn co_established(
         first: ProjectionPlanningIssue,
         rest: Vec<ProjectionPlanningIssue>,
@@ -258,7 +257,6 @@ impl ProjectionPlanning {
 
     /// The body a bounded seam refuses with: the axis it overran, the magnitude
     /// it declared, and the count it observed.
-    #[must_use]
     pub fn bound_exceeded(axis: BoundAxis, bound: usize, observed: usize) -> Self {
         Self::established(ProjectionPlanningIssue::BoundExceeded {
             axis,

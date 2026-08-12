@@ -257,6 +257,7 @@ pub enum RelatedSetCompletion {
 /// Every seat is required. A diagnostic that could omit its phase, its site, its
 /// expected contract, or its cause posture would be a diagnostic that sometimes
 /// says less than it knows, and the shape forbids it.
+#[must_use = "a diagnostic carries the observation, its site, and the owner-declared repair"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MacrocDiagnostic {
     /// Whether the machine's own identities stand behind this observation.

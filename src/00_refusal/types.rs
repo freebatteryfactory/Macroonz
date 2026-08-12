@@ -463,6 +463,7 @@ impl CauseOrderDeclaration for crate::types::NonEmptyBoundedConstruction {
 /// location carries its own location type, so this envelope imports nothing from
 /// any later home. (Authored structural law, not an old-book quote: band 00 must
 /// import nothing.)
+#[must_use = "a refusal carries the lawful reason the operation did not proceed"]
 pub struct Refusal<F: RefusalFamily> {
     reason: ReasonId,
     handling: HandlingClass,

@@ -427,7 +427,6 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
 
 impl ProjectionBundlePlan {
     /// The one-member bundle. Total: one member always fits.
-    #[must_use]
     pub fn of_one(bundle: ProjectionIdentity<BundleSubject>, member: PlanId) -> Self {
         Self {
             bundle,

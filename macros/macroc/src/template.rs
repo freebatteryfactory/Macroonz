@@ -130,6 +130,7 @@ pub struct TemplateArgument {
 /// A single-cause family with one inhabited cause: binding one argument to one
 /// parameter runs exactly one check, so one cause is all that can truthfully
 /// exist and a collection body would claim checks that never ran.
+#[must_use = "a binding refusal carries the two categories that disagreed"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TemplateBindingIssue {
     /// The argument's category is not the parameter's category.
@@ -455,6 +456,7 @@ pub enum TemplateConstructionIssue {
 /// another category-disagreeing, and an application may leave one hole unbound
 /// while binding an unknown one. No primary issue is elected, and a zero-issue
 /// refusal is unrepresentable.
+#[must_use = "a refusal family body carries every established issue with the template"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TemplateConstruction {
     /// The established issues — at least one, at most the declared bound.
@@ -471,7 +473,6 @@ impl RefusalFamily for TemplateConstruction {
 impl TemplateConstruction {
     /// The one-issue body. Total: the declared bound admits an item by
     /// compile-time proof, so refusing never needs an error road of its own.
-    #[must_use]
     pub fn established(issue: TemplateConstructionIssue) -> Self {
         Self {
             issues: NonEmptyBounded::singleton(issue),
@@ -482,7 +483,6 @@ impl TemplateConstruction {
     /// The several-issue body. When the supplied issues outrun the declared
     /// bound the body keeps the first and reports that enumeration stopped
     /// there — never a silent drop, never an unearned claim of completeness.
-    #[must_use]
     pub fn co_established(
         first: TemplateConstructionIssue,
         rest: Vec<TemplateConstructionIssue>,

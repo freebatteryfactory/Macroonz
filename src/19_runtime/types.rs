@@ -555,6 +555,7 @@ pub enum OutcomeKnowledge {
 /// it inside `Complete` makes disposition-without-completion unrepresentable,
 /// and `Outstanding` can never masquerade as resolved handling. Lifecycle
 /// answers WHETHER; disposition answers HOW; the two never share one enum.
+#[must_use = "a disposition is how reconciliation was handled, and it is never assumed"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ReconciliationDisposition {
     /// Reconciled.
@@ -744,6 +745,7 @@ pub const FOUR_MOTIONS: [&str; 4] = ["pull", "push", "wake", "durable-checkpoint
 /// The resource-exhausted arm BINDS the membrane's physical record (the
 /// Attempt-existence line: the admission issue answers why no Attempt was
 /// admitted; this answers how an admitted one ended — no conversion).
+#[must_use = "an outcome is how the admitted operation ended at its bound"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum BoundOutcome {
     /// Declared work exceeded its admitted bound — this home's own fact.

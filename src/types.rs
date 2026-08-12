@@ -75,6 +75,8 @@ pub trait ConstLimit: Limit {
 /// A runtime magnitude for the limit family `L`, minted only by schema validation.
 /// Carrying the family as a type parameter keeps runtime-limited and compile-limited
 /// values in the same shape without confusing their authorities.
+#[must_use = "a limit witness is the magnitude schema validation established; dropping it \
+              discards the only admitted bound for its family"]
 pub struct LimitWitness<L: Limit> {
     max: usize,
     _family: PhantomData<L>,
@@ -100,6 +102,7 @@ impl<L: Limit> LimitWitness<L> {
 
 /// The construction refusal for bounded collections. A plain root enum — the
 /// refusal-family binding is implemented by the refusal home, pointing downward.
+#[must_use = "a refusal carries the lawful reason the construction did not proceed"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BoundedConstruction {
     /// The supplied items exceed the limit family's admitted maximum.
@@ -231,6 +234,7 @@ impl<T, L: Limit> Bounded<T, L> {
 /// The construction refusal for non-empty bounded collections. Emptiness is not
 /// a cause: the constructor signature takes the first item separately, so a
 /// zero-item value is unrepresentable rather than refused.
+#[must_use = "a refusal carries the lawful reason the construction did not proceed"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NonEmptyBoundedConstruction {
     /// The supplied items exceed the limit family's admitted maximum.
@@ -476,6 +480,8 @@ pub enum Freshness<T, Cut: EvidenceCut> {
 /// What one verification run established about one claim. Its own axis — never a
 /// terminal variant, never a rank, and (by ruling) not a knowledge axis: no variant
 /// means "not yet".
+#[must_use = "a disposition is what the verification run established; dropping it leaves the \
+              run's conclusion unrecorded"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ProofDisposition {
     /// The claim held under the run's denominator.
@@ -615,6 +621,8 @@ impl<Claim> core::hash::Hash for EvidenceRef<Claim> {
 
 /// One dispatch outcome. Generic over the owner's refusal family — the root grammar
 /// names no concrete refusal type.
+#[must_use = "a dispatch outcome carries the transition that fired or the typed refusal that \
+              stood in its place; dropping it is the silent drop the grammar forbids"]
 pub enum Dispatch<T, R> {
     /// Exactly one transition applies.
     One(T),

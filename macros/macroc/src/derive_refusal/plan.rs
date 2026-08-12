@@ -90,6 +90,7 @@ pub fn derive_impl_kind() -> ProjectionIdentity<ProjectionKindSubject> {
 
 /// One planned derivation: the plan, the semantic keys its members carry, and
 /// what happened to the cause-order projection.
+#[must_use = "a planned derivation carries the plan and the cause-order disposition"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DerivedPlan {
     plan: ProjectionPlan<DeriveImplProjection>,
@@ -98,19 +99,16 @@ pub struct DerivedPlan {
 
 impl DerivedPlan {
     /// The identity-bearing plan.
-    #[must_use]
     pub const fn plan(&self) -> &ProjectionPlan<DeriveImplProjection> {
         &self.plan
     }
 
     /// What happened to the typed cause-order projection.
-    #[must_use]
     pub const fn cause_order(&self) -> &ProjectionDisposition {
         &self.cause_order
     }
 
     /// Take the plan out, for a closed expansion to bind.
-    #[must_use]
     pub fn into_parts(self) -> (ProjectionPlan<DeriveImplProjection>, ProjectionDisposition) {
         (self.plan, self.cause_order)
     }

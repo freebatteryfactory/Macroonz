@@ -171,8 +171,8 @@ pub use plane::{
     HumanProjection, IdentityProfile, IdentityProfileVersion, IdentitySubject, MACROC_GENERATOR,
     OwnerFactName, OwnerFactRef, OwnerIdentityRef, PROJECTION_IDENTITY_PROFILE, PROJECTION_ROLES,
     PlanId, ProfileVersion, ProjectionIdentity, ProjectionProvenance, ProjectionRole,
-    ProjectionTranscript, RenderedRole, RenderedRoleSeal, SoleRenderedUnit, TranscriptAnchoring,
-    encode_bytes, encode_length,
+    ProjectionTranscript, RenderedRole, RenderedRoleSeal, SoleRenderedUnit, SubjectSeal,
+    TranscriptAnchoring, encode_bytes, encode_length,
 };
 pub use planning::{
     BenchmarkDescriptorContent, BenchmarkDescriptorProjection, CauseAnchoring, CodecContent,

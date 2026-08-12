@@ -51,6 +51,7 @@ pub fn cause_identity(surface: &RefusalDeriveSurface, cause: &CapturedCause) -> 
 }
 
 /// How one rendering failed to assemble.
+#[must_use = "a rendering refusal names the magnitude the tree would have passed"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RenderRefusal {
     /// The rendered tree exceeds the declared token magnitude.

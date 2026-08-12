@@ -43,6 +43,7 @@
 /// `testpak/tests/planted_defect.rs` shifts whitespace inside a lawful
 /// rendering and requires `Unreadable`, so the alarm is known to sound before
 /// anyone has to interpret one.
+#[must_use = "a verdict is what the reading concluded about the rendering"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RenderVerdict {
     /// The rendering states exactly the declared order, spelling for spelling
@@ -223,6 +224,7 @@ pub enum StructuralDisagreement {
 ///
 /// Three answers, and none of them is silence — see `structural.rs` for why
 /// `Unparsable` is its own failure class.
+#[must_use = "a verdict is what the structural reading concluded"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StructuralVerdict {
     /// The artifact declares exactly what the caller declared it would.

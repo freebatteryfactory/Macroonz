@@ -336,6 +336,7 @@ impl Limit for ExecutionFormIssueLimit {}
 /// with the bound form; no satisfaction of the declared algebraic laws (that
 /// is qualification); no recursion-witness validity; no claim the operator
 /// set is owner-derived (version admission's); no assumed exhaustiveness.
+#[must_use = "a construction refusal carries every established issue with the form"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ExecutionFormConstruction {
     /// The established issues.
@@ -420,6 +421,7 @@ pub struct MeasureTraceDomain;
 /// universal static unrolling. Two locks: runtime metering remains active
 /// after static admission, and tail position is never itself a termination
 /// proof.
+#[must_use = "a witness is the independently checkable proof that the recursion terminates"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RecursionWitness {
     /// The call graph.
@@ -666,6 +668,7 @@ impl Limit for EffectBatchIssueLimit {}
 /// and reserves nothing; names no capability or grant verdict; asserts no
 /// outcome; proves no boundary; creates no identity/existence/capability/
 /// secret/freshness/workload oracle.
+#[must_use = "a composition refusal carries every established issue with the batch"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct EffectBatchComposition {
     /// The established issues.
@@ -922,6 +925,7 @@ impl Limit for KernelSemanticIssueLimit {}
 /// states its reason. Non-claims: no boundary facts; no satisfaction of the
 /// declared laws; no agreement with the interface contract; no assumed
 /// exhaustiveness.
+#[must_use = "a construction refusal carries every established issue with the contract"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct KernelSemanticContractConstruction {
     /// The established issues.
@@ -986,6 +990,7 @@ impl Limit for KernelInterfaceIssueLimit {}
 /// REALIZATION (that is qualification, with the physical membrane supplying
 /// enforcement facts); no resolution of which realization serves; no assumed
 /// exhaustiveness.
+#[must_use = "a construction refusal carries every established issue with the contract"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct KernelInterfaceContractConstruction {
     /// The established issues.
@@ -1011,6 +1016,7 @@ impl RefusalFamily for KernelInterfaceContractConstruction {
 /// the realization identity. At most one cause is establishable at a time;
 /// the resolution cause names the resolution form attempted, never the
 /// decoded name.
+#[must_use = "a construction refusal carries the lawful reason the policy was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum KernelBindingPolicyConstruction {
     /// The policy arm is missing or ambiguous.

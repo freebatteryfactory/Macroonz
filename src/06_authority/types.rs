@@ -329,6 +329,7 @@ pub enum CapabilityClaimConstructionIssue {
 /// It reads only the facts the claim itself carries; success mints nothing on
 /// the authority path; no authority-algebra refusal is expressible here; a
 /// broad claim is not malformed (over-grant is an admission finding).
+#[must_use = "a construction refusal carries every established issue with the claim"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CapabilityClaimConstruction {
     /// The established issues — at least one, at most the roster.
@@ -494,6 +495,7 @@ impl ApplicationScope for KeyScope {}
 /// decoder-error value substitutes for any of them. Resolution changes with
 /// capability, key authority, generation, or availability without rewriting
 /// event meaning or derived bytes.
+#[must_use = "a resolution is what the protected read established; no absence stands in for it"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ProtectedResolution {
     /// The payload resolves.
@@ -517,6 +519,7 @@ pub enum ProtectedResolution {
 /// One operation admission: the composition of the domain owner's transition
 /// judgment and security's authority judgment. The operation proceeds only when
 /// both allow, and neither seat ever answers for the other.
+#[must_use = "an admission is the pair of judgments that let the operation proceed"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct OperationAdmission {
     /// The domain owner's judgment of the business transition.

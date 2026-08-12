@@ -428,6 +428,7 @@ use crate::refusal::{FamilyShape, RefusalFamily};
 
 /// `ExactInteger` construction: range alone. Payload owed: supplied exact value;
 /// declared bound and which side was exceeded; the admitting profile's identity.
+#[must_use = "a construction refusal carries the lawful reason the value was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ExactIntegerConstruction {
     /// The value lies outside the admitted bound.
@@ -442,6 +443,7 @@ impl RefusalFamily for ExactIntegerConstruction {
 /// `FixedDecimal` construction: scale → range. On the derived quantization route
 /// no cause is reachable — the crossing establishes and releases through
 /// `QuantizeCrossing`, and one crossing never releases two families.
+#[must_use = "a construction refusal carries the lawful reason the value was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FixedDecimalConstruction {
     /// The supplied scale is not in the declared decimal profile's admitted set.
@@ -458,6 +460,7 @@ impl RefusalFamily for FixedDecimalConstruction {
 }
 
 /// `ExactRatio` construction: denominator admissibility → range.
+#[must_use = "a construction refusal carries the lawful reason the value was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ExactRatioConstruction {
     /// The denominator is zero — there is no ratio to canonicalize. Payload
@@ -476,6 +479,7 @@ impl RefusalFamily for ExactRatioConstruction {
 /// `Money` construction: currency → scale → range. On the derived receipted
 /// conversion route only `RangeExceeded` is reachable — a rate multiplication is
 /// not magnitude-bounded by its operands.
+#[must_use = "a construction refusal carries the lawful reason the value was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MoneyConstruction {
     /// Currency unstated or not admitted by the declaring schema. Payload owed:
@@ -497,6 +501,7 @@ impl RefusalFamily for MoneyConstruction {
 
 /// `Percent` construction: scale → range, against the percent's own declared
 /// profile.
+#[must_use = "a construction refusal carries the lawful reason the value was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PercentConstruction {
     /// The supplied scale is not admitted by the percent's own profile.
@@ -512,6 +517,7 @@ impl RefusalFamily for PercentConstruction {
 
 /// `PercentagePoints` construction: same two axes, its own family, against its
 /// own declared profile and range.
+#[must_use = "a construction refusal carries the lawful reason the value was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PercentagePointsConstruction {
     /// The supplied scale is not admitted by this family's own profile.
@@ -526,6 +532,7 @@ impl RefusalFamily for PercentagePointsConstruction {
 }
 
 /// `Duration` construction: time unit → scale → range.
+#[must_use = "a construction refusal carries the lawful reason the value was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DurationConstruction {
     /// Time unit unstated or not admitted by the declaring schema. Payload
@@ -544,6 +551,7 @@ impl RefusalFamily for DurationConstruction {
 }
 
 /// `Count` construction: range alone — `[0, schema-declared upper]`.
+#[must_use = "a construction refusal carries the lawful reason the value was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CountConstruction {
     /// The value lies outside the admitted range. Payload owed: supplied value;
@@ -561,6 +569,7 @@ impl RefusalFamily for CountConstruction {
 /// derived interval-decision route (direction is computed from the distance, so
 /// contradiction is unrepresentable; the distance cannot exceed its own domain's
 /// span).
+#[must_use = "a construction refusal carries the lawful reason the margin was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TypedMarginConstruction {
     /// The unit is not admitted by the declaring schema's unit domain.
@@ -593,6 +602,7 @@ impl RefusalFamily for TypedMarginConstruction {
 /// owns no repair it can perform — a refusal is never a licence to select a
 /// rate, widen a currency domain, or convert by convenience. The operation
 /// family and the value family are never released for one event.
+#[must_use = "an arithmetic refusal carries the lawful reason the operation did not proceed"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MoneyArithmetic {
     /// A money operand multiplied by another dimensional operand — `Money ×
@@ -617,6 +627,7 @@ impl RefusalFamily for MoneyArithmetic {
 /// scale difference is never an incompatibility — only a finer threshold scale
 /// refuses, because entering the domain would be a scale reduction, and
 /// `decide` neither takes a rounding mode nor may invent one.
+#[must_use = "a comparison refusal carries the lawful reason no truth was established"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum IntervalComparison {
     /// The threshold's unit domain is not the interval's. Payload owed: both
@@ -678,6 +689,7 @@ pub enum IntervalRelation {
 /// a second three-valued enum — its truth IS the canonical `Truth`. Travels
 /// first-class into normalized form, explanation, evidence, and independent
 /// replay. The time home's temporal comparisons route through this same family.
+#[must_use = "a decided result carries the established truth and the margin that decided it"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IntervalDecision {
     /// The established truth.
@@ -804,6 +816,7 @@ pub struct QuantizeInterval {
 /// representability. There is no missing-rounding-mode cause — structurally: a
 /// fact supplied at the call site is structurally mandatory and has no absence
 /// cause, while a fact the crossing must resolve can genuinely be absent.
+#[must_use = "a crossing refusal carries the lawful reason the quantization did not proceed"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum QuantizeCrossing {
     /// The target profile was not resolvable. Payload owed: the identity of the
@@ -989,6 +1002,7 @@ pub enum FloatClass {
 /// terms that produced it (payloads owed to their owners). Composition may
 /// never turn `Unresolved` or `SourceIncomplete` into rejection, nor let a
 /// decisive branch hide a term's invalidity.
+#[must_use = "a disposition is what checking the evidence requirement concluded"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RequirementDisposition {
     /// The requirement conclusively held.
@@ -1092,7 +1106,8 @@ pub struct LossEvidence;
 /// A declared, typed exact-to-estimate information-loss crossing carrying
 /// mandatory loss evidence — the quantize discipline generalized. `#[must_use]`
 /// by law: an unobserved crossing is a silent collapse.
-#[must_use]
+#[must_use = "a crossing carries the loss it disclosed; an unobserved crossing is the silent \
+              collapse the type exists to prevent"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InformationLossCrossing<From, To> {
     /// The crossing kind.

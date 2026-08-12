@@ -96,6 +96,7 @@ pub struct SemanticWork {
 
 /// The charge refusal: single cause. Payload owed: charged amount, remaining
 /// magnitude, and the dimension identity.
+#[must_use = "a charge refusal carries the lawful reason the budget was not spent"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BudgetCharge {
     /// The charge exceeds the remaining budget.

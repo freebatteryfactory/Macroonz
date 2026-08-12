@@ -143,6 +143,7 @@ pub struct ClockSourcePolicy {
 
 /// The skew disposition of an observed remote reading under the admission
 /// policy (AUTHORED roster: the role carries a shape here, never a bare name).
+#[must_use = "a skew disposition is what the admission policy concluded about the reading"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ClockSkewDisposition {
     /// Within the policy's tolerance.
@@ -186,6 +187,7 @@ impl DurationLimit {
 /// unit, in the declared order — representation before value, value before
 /// provenance, provenance before arithmetic. Zero is lawful and never appears
 /// as a cause; no cause judges whether a budget SUFFICES.
+#[must_use = "a construction refusal carries the lawful reason the limit was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DurationLimitConstruction {
     /// The decoded value is not finite.
@@ -344,6 +346,7 @@ impl DeadlinePolicy {
 /// last, over members already admitted. Never a package-wide deadline error;
 /// the nested `DurationLimit` family is never shadowed; the rebase refusal is
 /// not here; and no cause judges whether a budget SUFFICES.
+#[must_use = "a construction refusal carries the lawful reason the policy was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DeadlinePolicyConstruction {
     /// A selected profile this boundary does not admit — refuses rather than
@@ -515,6 +518,7 @@ pub struct ChronologySummary {
 /// exists — counter advancement, regression, excessive-future classification,
 /// and overflow refusal belong to the stateful admission clock, with which this
 /// operation shares no surface.
+#[must_use = "a merge refusal carries the lawful reason two chronologies were not joined"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ChronologyMerge {
     /// The two summaries bind different profiles.

@@ -81,6 +81,7 @@ impl ExplanationSeat {
 /// BOUND never reached the coverage check — there was no subject to write nine
 /// seats about. A view that was written and does not cover its kind's questions
 /// reached it and failed it.
+#[must_use = "a refusal carries the unbound seat or the coverage the view failed"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ExplanationBindingRefusal {
     /// A required seat's subject is absent. The explanation refuses rather than

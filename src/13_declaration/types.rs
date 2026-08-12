@@ -539,6 +539,7 @@ pub struct ConflictRelationDomain;
 /// a second home for one fact). A derivation refusal names one established
 /// cause and claims nothing about the gates that did not run. No cause is
 /// payload-free; no payload carries a spelling.
+#[must_use = "a derivation refusal carries the lawful reason the alias was not derived"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ExportAliasDerivation {
     /// The compiler supports no such projection profile — refused before any
@@ -702,6 +703,7 @@ impl Limit for AuthoredNameIssueLimit {}
 /// collection, ordered by declared cause order then ascending scalar
 /// coordinate. Owns no scope-relative fact — collisions are
 /// [`ClosureNamespace`]'s, where the set they are relative to exists.
+#[must_use = "a construction refusal carries every established issue with the name"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AuthoredNameConstruction {
     /// The established issues.
@@ -813,6 +815,7 @@ impl Limit for ClosureNamespaceIssueLimit {}
 /// and no target-namespace alias collision ([`ExportAliasDerivation`]'s) —
 /// three collision questions, three owners, three types, no shared enum, no
 /// conversion.
+#[must_use = "a namespace refusal carries every established issue with the closure"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ClosureNamespace {
     /// The established issues.
@@ -922,6 +925,7 @@ impl Limit for LinkResolutionIssueLimit {}
 /// and several claims may be defective at once — reporting one is a missing
 /// diagnostic. Ordering: declared cause order, then the typed origin
 /// coordinate of the offending claim. The linker refuses; it never repairs.
+#[must_use = "a resolution refusal carries every established issue with the link"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LinkResolution {
     /// The established issues.
@@ -1033,6 +1037,7 @@ impl ConstLimit for ProjectionIssueLimit {
 /// Projection-contract construction: a caller can omit several members and
 /// claims at once. Ordering: declared cause order, then the fixed member and
 /// claim order of the two five-item lists.
+#[must_use = "a construction refusal carries every established issue with the contract"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProjectionContractConstruction {
     /// The established issues.
