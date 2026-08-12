@@ -11,7 +11,7 @@
 //!
 //! # Why the road stops at the first red
 //!
-//! Four of the six stages compile the workspace. A source that does not build
+//! Four of the seven stages compile the workspace. A source that does not build
 //! makes each of them print the same errors again, so a run that continued past
 //! the first failure would bury the one thing to fix under three copies of its
 //! consequences. Stopping names it once, on the last line of the log.
@@ -22,20 +22,42 @@
 //! already knows. Fail fast across stages that share a cause; report everything
 //! within a stage whose findings do not.
 //!
+//! # Why every resolving stage is `--locked`
+//!
+//! `Cargo.lock` is checked in, so the exact dependency versions a build uses are
+//! a decision the repository already made and a reader can see. Left to itself,
+//! cargo repairs a lock file it finds stale and carries on, which qualifies a
+//! dependency set nobody chose and no second machine reproduces. `--locked`
+//! turns that silent repair into a refusal: the checked lock file is an INPUT to
+//! qualification rather than something the run may rewrite on its way past.
+//! Formatting resolves nothing and therefore carries no such flag — a flag on a
+//! stage that never reads a manifest would be decoration.
+//!
+//! # Why the road ends by reading the checkout
+//!
+//! The last stage refuses a worktree that qualification itself dirtied. Every
+//! stage before it READS the source: compiling, testing, and building
+//! documentation must leave the tree byte-for-byte as they found it, and a stage
+//! that instead generated or rewrote repository material would otherwise report
+//! PASS about a tree that no longer exists. Committed bytes and qualified bytes
+//! have to be the same bytes, and this is where that is checked rather than
+//! assumed.
+//!
 //! # Why the stages shell out the way they do
 //!
-//! Five stages are cargo invocations and one is a function call. The five are
-//! spawned with an explicit argument list and an explicit working directory, so
-//! no shell parses them, no platform's quoting rules apply, and no path
-//! separator is ever spelled — the same table runs on a Windows working machine
-//! and on a Linux runner. The sixth is called directly because the repository
-//! laws are already linked into this binary; spawning a second cargo to reach
-//! them would buy nothing and cost a rebuild.
+//! Five stages are cargo invocations, one reads the checkout through git, and
+//! one is a function call. The six spawned stages are given an explicit argument
+//! list and an explicit working directory, so no shell parses them, no
+//! platform's quoting rules apply, and no path separator is ever spelled — the
+//! same table runs on a Windows working machine and on a Linux runner. The one
+//! stage that spawns nothing is the repository laws: they are already linked
+//! into this binary, so spawning a second cargo to reach them would buy nothing
+//! and cost a rebuild.
 
 use std::error::Error;
 use std::ffi::OsString;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 /// One qualification stage: what the log calls it, and the work it is.
 struct Stage {
@@ -58,17 +80,21 @@ enum Work {
     },
     /// The in-process repository laws.
     Repository,
+    /// A read of the checkout, spawned the same way a cargo stage is.
+    Worktree,
 }
 
 /// The complete battery, in the order it runs.
 ///
 /// The order is cheapest-refusal-first among the stages that can refuse for
 /// unrelated reasons: formatting costs no compilation, the lint wall settles
-/// what compiles at all, and the remaining four stand on a workspace already
-/// known to build. The wall is deny-by-configuration in the workspace manifest,
-/// so the clippy stage carries no lint flags of its own — a flag here would be a
-/// second place the wall is stated.
-const STAGES: [Stage; 6] = [
+/// what compiles at all, and the next four stand on a workspace already known to
+/// build. The wall is deny-by-configuration in the workspace manifest, so the
+/// clippy stage carries no lint flags of its own — a flag here would be a second
+/// place the wall is stated. The worktree check is last for the opposite reason
+/// to all of them: its subject is what the other six did, so it has nothing to
+/// read until they are over.
+const STAGES: [Stage; 7] = [
     Stage {
         name: "formatting",
         work: Work::Cargo {
@@ -79,14 +105,14 @@ const STAGES: [Stage; 6] = [
     Stage {
         name: "lint wall",
         work: Work::Cargo {
-            args: &["clippy", "--workspace", "--all-targets"],
+            args: &["clippy", "--locked", "--workspace", "--all-targets"],
             env: &[],
         },
     },
     Stage {
         name: "tests",
         work: Work::Cargo {
-            args: &["test", "--workspace"],
+            args: &["test", "--locked", "--workspace"],
             env: &[],
         },
     },
@@ -99,6 +125,7 @@ const STAGES: [Stage; 6] = [
         work: Work::Cargo {
             args: &[
                 "build",
+                "--locked",
                 "--package",
                 "threadpak",
                 "--target",
@@ -110,9 +137,13 @@ const STAGES: [Stage; 6] = [
     Stage {
         name: "documentation",
         work: Work::Cargo {
-            args: &["doc", "--workspace", "--no-deps"],
+            args: &["doc", "--locked", "--workspace", "--no-deps"],
             env: &[("RUSTDOCFLAGS", "-D warnings")],
         },
+    },
+    Stage {
+        name: "worktree clean",
+        work: Work::Worktree,
     },
 ];
 
@@ -139,6 +170,7 @@ pub(crate) fn qualify(
         let settled = match stage.work {
             Work::Cargo { args, env } => run_cargo(root, args, env),
             Work::Repository => repository_laws(root).map_err(|error| error.to_string()),
+            Work::Worktree => run_worktree_clean(root),
         };
         match settled {
             Ok(()) => println!("<== PASS {}", stage.name),
@@ -179,6 +211,7 @@ fn spelling(work: &Work) -> String {
             line
         }
         Work::Repository => String::from("in-process, linked into this binary"),
+        Work::Worktree => String::from("git status --porcelain"),
     }
 }
 
@@ -208,6 +241,56 @@ fn run_cargo(root: &Path, args: &[&str], env: &[(&str, &str)]) -> Result<(), Str
     }
 }
 
+/// Refuses a checkout that does not match what is committed.
+///
+/// `git status --porcelain` is the machine-readable spelling of the same
+/// question a person asks before committing: it prints one line per path that
+/// differs from `HEAD` or is untracked, and prints NOTHING when the checkout is
+/// clean. Empty output is therefore the entire pass condition — no parsing, no
+/// interpretation, no list of paths this stage forgives.
+///
+/// The dirty paths are named rather than counted, because the two failures this
+/// stage catches need different repairs and only the paths tell them apart: a
+/// stage that wrote into the tree is a defect in qualification, while an
+/// uncommitted local edit is a run that was started too early.
+///
+/// stdout is captured because it is the verdict; stderr is inherited so that
+/// git's own complaint about a checkout it cannot read lands in the log next to
+/// the stage that asked.
+fn run_worktree_clean(root: &Path) -> Result<(), String> {
+    let output = Command::new("git")
+        .current_dir(root)
+        .args(["status", "--porcelain"])
+        .stderr(Stdio::inherit())
+        .output()
+        .map_err(|error| format!("git could not be started: {error}"))?;
+    if !output.status.success() {
+        return match output.status.code() {
+            Some(code) => Err(format!("git exited {code}")),
+            None => Err(String::from("git was ended by a signal")),
+        };
+    }
+    let listing = String::from_utf8_lossy(&output.stdout);
+    let dirty = dirty_entries(&listing);
+    if dirty.is_empty() {
+        return Ok(());
+    }
+    Err(format!(
+        "the checkout does not match what is committed: {}",
+        dirty.join("; ")
+    ))
+}
+
+/// Every entry a porcelain listing reports, each carrying git's two-column
+/// status ahead of the path so the log says both what differs and how.
+///
+/// Pure over the listing, which is what lets the verdict this stage turns on be
+/// proven against fixture text: a law about a clean checkout that could only be
+/// tested by dirtying one would be proving itself false to run.
+fn dirty_entries(listing: &str) -> Vec<&str> {
+    listing.lines().filter(|line| !line.is_empty()).collect()
+}
+
 /// The cargo binary a stage is spawned with.
 ///
 /// Cargo sets `CARGO` for every process it starts, so a nested invocation
@@ -217,4 +300,46 @@ fn run_cargo(root: &Path, args: &[&str], env: &[(&str, &str)]) -> Result<(), Str
 /// been resolved and the search path is all there is.
 fn cargo_binary() -> OsString {
     std::env::var_os("CARGO").unwrap_or_else(|| OsString::from("cargo"))
+}
+
+/// Planted reversals for the closing stage's verdict.
+///
+/// The verdict is pure over git's listing, so every case below is a fixture
+/// string. Nothing on disk is written, read, or moved: the stage that refuses a
+/// dirty checkout is never proven by dirtying one.
+#[cfg(test)]
+mod tests {
+    use super::dirty_entries;
+
+    /// The pass condition, stated exactly: a clean checkout prints nothing, and
+    /// a trailing newline is still nothing.
+    #[test]
+    fn an_empty_listing_is_the_whole_pass_condition() {
+        assert!(dirty_entries("").is_empty());
+        assert!(dirty_entries("\n").is_empty());
+    }
+
+    /// Planted reversal: a stage that generated repository material and a stage
+    /// that rewrote it. Every entry survives to the caller with its status
+    /// column intact, so the failure names what to look at rather than counting
+    /// it — and a verdict that dropped entries would report a smaller mess than
+    /// the one it found.
+    #[test]
+    fn every_reported_entry_reaches_the_verdict() {
+        let found = dirty_entries("?? xtask/generated.rs\n M src/lib.rs\n");
+        assert_eq!(
+            found,
+            vec!["?? xtask/generated.rs", " M src/lib.rs"],
+            "{found:?}"
+        );
+    }
+
+    /// The positive control: one dirty path is a failure, so a verdict that
+    /// only fired on many would pass the single-file case this stage exists to
+    /// catch.
+    #[test]
+    fn one_dirty_path_is_already_a_failure() {
+        let found = dirty_entries(" M Cargo.lock\n");
+        assert_eq!(found.len(), 1, "{found:?}");
+    }
 }

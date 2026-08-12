@@ -8,9 +8,10 @@
 //! that nothing checks.
 //!
 //! `cargo xtask qualify` runs the complete entry bar: formatting, the lint wall,
-//! the tests, those same repository laws, the wasm build, and the documentation
-//! build. It is the whole bar and the only spelling of it, so the road a hosted
-//! runner takes and the road a working machine takes cannot differ.
+//! the tests, those same repository laws, the wasm build, the documentation
+//! build, and a closing read of the checkout that refuses a worktree the run
+//! itself dirtied. It is the whole bar and the only spelling of it, so the road a
+//! hosted runner takes and the road a working machine takes cannot differ.
 //!
 //! This file is the shell and nothing else. It resolves the command, holds the
 //! one table that names every law beside the function that checks it, and runs

@@ -5,9 +5,10 @@ text. This file is the binding law for any person, model, or agent working in th
 repository. `AGENTS.md` and `CLAUDE.md` are byte-identical; the parity is
 machine-checked by `cargo xtask check`, one stage of `cargo xtask qualify` — the
 complete entry bar: formatting, the lint wall, the tests, the repository laws, the
-wasm build, and the documentation build. `qualify` is the whole bar and the only
-spelling of it, so a hosted run calls that one command rather than restating any
-stage of it and the road never forks between a working machine and a clean host.
+wasm build, the documentation build, and a checkout left exactly as the run found
+it. `qualify` is the whole bar and the only spelling of it, so a hosted run calls
+that one command rather than restating any stage of it and the road never forks
+between a working machine and a clean host.
 
 ## The spine
 

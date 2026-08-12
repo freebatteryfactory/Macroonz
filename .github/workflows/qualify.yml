@@ -1,20 +1,25 @@
 # The hosted runner is a caller. The battery is `cargo xtask qualify`.
 #
 # Every stage of the entry bar — formatting, the lint wall, the tests, the
-# repository laws, the wasm build, the documentation build — lives in xtask, so
-# a contributor runs on a working machine the exact road a change runs here.
-# What a hosted run supplies is the one thing a working machine cannot: a host
-# nobody configured, and a refusal standing between a change and the branch.
-# Changing what qualification MEANS is a change to xtask and never a change to
-# this file; a stage restated here would be a second definition, and the two
-# would drift the first time either was edited alone.
+# repository laws, the wasm build, the documentation build, and the worktree
+# check — lives in xtask, so a contributor runs on a working machine the exact
+# road a change runs here. What a hosted run supplies is the one thing a working
+# machine cannot: a host nobody configured, and a refusal standing between a
+# change and the branch. Changing what qualification MEANS is a change to xtask
+# and never a change to this file; a stage restated here would be a second
+# definition, and the two would drift the first time either was edited alone.
 name: qualify
 
 on:
   # Every pull request, whatever it targets.
   pull_request:
-  # And direct pushes to the trunk, until branch protection forbids them. In
-  # normal flow a change arrives one way or the other, never both at once.
+  # And direct pushes to the trunk, which are still possible because branch
+  # protection is not yet in place. A change that arrives as a pull request and
+  # is then merged runs TWICE under this policy: once on the request, once on the
+  # resulting push. That duplication is the cost of the cover, and the cover is
+  # what matters while a direct push to the trunk can still bypass the request
+  # entirely. This trigger is bootstrap-era belt-and-suspenders, and it comes out
+  # the day branch protection forbids the direct push it exists to catch.
   push:
     branches: [main]
 
@@ -32,7 +37,18 @@ jobs:
   qualify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Pinned to the exact commit `v4` named when this line was written. A tag
+      # is a movable label: whoever can move it can change what a hosted run
+      # executes without any change landing here. A commit cannot move, so the
+      # pin is what makes "the runner ran this" a statement about known bytes.
+      # The tag survives as a comment because the number is what an updater
+      # needs and the hash is what the machine needs.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # The job reads the tree and writes nothing back, matching the read-only
+          # token above. Leaving no credential in the checkout means a later step,
+          # or anything a later step runs, has nothing to find.
+          persist-credentials: false
 
       # rust-toolchain.toml is the pin, here as on every machine. Invoked inside
       # the checkout, rustup reads that file and installs the exact channel it
@@ -46,18 +62,30 @@ jobs:
           rustup target add wasm32-unknown-unknown
           rustup show
 
-      # Keyed on the lock file and the pin, because those two decide what is
-      # built. A miss costs a cold build and nothing else.
-      - name: Cache cargo registry and build output
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: cargo-${{ hashFiles('rust-toolchain.toml') }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys: |
-            cargo-${{ hashFiles('rust-toolchain.toml') }}-
+      # NO CACHE, DELIBERATELY. Restoring `~/.cargo` and `target` would carry
+      # build state produced by earlier runs onto the host this file calls one
+      # nobody configured, and the gate would then be qualifying a source tree
+      # plus whatever a previous run left in the directory cargo trusts. The
+      # first bar the repository stands behind runs cold, because a cold run is
+      # the only one whose result is about the tree alone.
+      #
+      # A cache is an optimization mechanism. It never quietly joins the proof
+      # substrate, and it returns to this file only by clearing all five bars:
+      #   1. Registry before build output. Downloaded crate sources are content
+      #      addressed and cheap to verify; compiled artifacts are neither. The
+      #      registry alone is cached first, and `target` only once the registry
+      #      is measured and shown insufficient.
+      #   2. The caching action is pinned to a full commit, exactly as checkout
+      #      is, for exactly the same reason.
+      #   3. The key declares every input that influences what is built — the
+      #      toolchain pin, the lock file, the feature and target profile — so a
+      #      changed influence is a miss rather than a stale hit. A restore-keys
+      #      fallback that serves an entry keyed on fewer inputs is a hit whose
+      #      influence was not declared, and it does not qualify.
+      #   4. A miss and a hit are shown to reach the same qualification outcome
+      #      on the same tree, so the cache is proven not to decide anything.
+      #   5. Uncached runs stay on a schedule after the cache lands. A cache that
+      #      begins lying is only caught by a run that cannot be lied to.
 
       # The whole bar, in one command that owns its own order and its own
       # reporting. It stops at the first red, so the last line of this log names
