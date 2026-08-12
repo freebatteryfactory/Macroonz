@@ -33,6 +33,18 @@ refuses,
 never wraps — the smallest width whose overflow can only mean broken clock
 physics.
 
+The two roles are made of the same payload and are no longer cross-constructible
+from it. `HlcCoordinate` carries no role, `SourceHlc::observed` is the open end
+because an observation genuinely arrives from anywhere, and `AcceptedHlc` has no
+public mint at all — "yielded only by the admission clock" is the type's shape
+now rather than a sentence a reader has to remember. The crossing between them is
+declared as a contract (`ChronologyAdmission`): the observation is consumed,
+exactly one admitted position comes out, the clock is mutated by the act, and no
+road runs the other way. Its RULE — counter advancement, regression behavior,
+excessive-future classification, the overflow refusal — is the clock's machinery
+and is deliberately unwritten, because writing a body would mean choosing that
+rule in the seat that is supposed to receive it.
+
 ## Presentation keys (doc law)
 
 Within one local writer authority: HLC, then the authority order. Across
@@ -77,6 +89,10 @@ obligations:
     challenge_kind: compile-refusal
     green: laws.rs time::hlc_roles_do_not_unify
     red: owed-to-testpak — a morphism from the envelope to either HLC role must not compile
+  - id: time.admission-is-the-only-crossing
+    challenge_kind: compile-law
+    green: laws.rs time::admission_is_the_only_crossing
+    red: owed-to-testpak — a road minting an admitted position without consuming an observation must not compile
   - id: time.spend-uses-the-dimension-register
     challenge_kind: compile-law
     green: laws.rs time::spend_uses_the_dimension_register

@@ -17,90 +17,38 @@ use crate::plane::{
 use threadpak::refusal::{CompletionPosture, FamilyShape, RefusalFamily, StopBound};
 use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction};
 
-/// The plan's declared bound axes. A bound refusal names which magnitude it
-/// exceeded, so "too big" is never an unlocated word.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum BoundAxis {
-    /// The source declarations one plan may name.
-    Declarations,
-    /// The outputs one plan may declare.
-    Outputs,
-    /// The entries one decision trace may record.
-    TraceEntries,
-    /// The diagnostics one pass may carry.
-    Diagnostics,
-    /// The edges one origin trail may draw.
-    OriginEdges,
-    /// The bytes one bounded projection may carry.
-    Bytes,
-}
-
-impl BoundAxis {
-    /// The axis's position in the declared roster — what a canonical encoding
-    /// of an issue carries for it, and what a diagnostic names it by.
-    #[must_use]
-    pub const fn slot(self) -> u8 {
-        match self {
-            Self::Declarations => 0,
-            Self::Outputs => 1,
-            Self::TraceEntries => 2,
-            Self::Diagnostics => 3,
-            Self::OriginEdges => 4,
-            Self::Bytes => 5,
-        }
-    }
-
-    /// The axis rendered for a person. A projection of the typed value: nothing
-    /// reads it back.
-    #[must_use]
-    pub const fn described(self) -> &'static str {
-        match self {
-            Self::Declarations => "the source declarations one plan may name",
-            Self::Outputs => "the outputs one plan may declare",
-            Self::TraceEntries => "the entries one decision trace may record",
-            Self::Diagnostics => "the diagnostics one pass may carry",
-            Self::OriginEdges => "the edges one origin trail may draw",
-            Self::Bytes => "the bytes one bounded projection may carry",
-        }
+threadpak::closed_register! {
+    /// The plan's declared bound axes. A bound refusal names which magnitude it
+    /// exceeded, so "too big" is never an unlocated word.
+    ///
+    /// `ALL` is the roster in the order the plane states the axes, and `slot` is
+    /// that order read back as a position — the position a canonical encoding of
+    /// an issue carries, and the one a diagnostic names the axis by.
+    pub enum BoundAxis {
+        /// The source declarations one plan may name.
+        Declarations = "declarations", "the source declarations one plan may name";
+        /// The outputs one plan may declare.
+        Outputs = "outputs", "the outputs one plan may declare";
+        /// The entries one decision trace may record.
+        TraceEntries = "trace-entries", "the entries one decision trace may record";
+        /// The diagnostics one pass may carry.
+        Diagnostics = "diagnostics", "the diagnostics one pass may carry";
+        /// The edges one origin trail may draw.
+        OriginEdges = "origin-edges", "the edges one origin trail may draw";
+        /// The bytes one bounded projection may carry.
+        Bytes = "bytes", "the bytes one bounded projection may carry";
     }
 }
 
-/// The declared bound axes, in the order the plane states them.
-pub const BOUND_AXES: [BoundAxis; 6] = [
-    BoundAxis::Declarations,
-    BoundAxis::Outputs,
-    BoundAxis::TraceEntries,
-    BoundAxis::Diagnostics,
-    BoundAxis::OriginEdges,
-    BoundAxis::Bytes,
-];
-
-/// The plan seats an owner fact can be missing from. Only seats a plan can
-/// actually leave unfurnished appear: every other seat is structurally
-/// required by the plan's own shape, so its absence is unrepresentable rather
-/// than refused.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PlanSeat {
-    /// The context's target binding, where the kind requires a bound host
-    /// contract and the context is target-free.
-    TargetBinding,
-}
-
-impl PlanSeat {
-    /// The seat's position in the declared roster.
-    #[must_use]
-    pub const fn slot(self) -> u8 {
-        match self {
-            Self::TargetBinding => 0,
-        }
-    }
-
-    /// The seat rendered for a person.
-    #[must_use]
-    pub const fn described(self) -> &'static str {
-        match self {
-            Self::TargetBinding => "the context's target binding",
-        }
+threadpak::closed_register! {
+    /// The plan seats an owner fact can be missing from. Only seats a plan can
+    /// actually leave unfurnished appear: every other seat is structurally
+    /// required by the plan's own shape, so its absence is unrepresentable rather
+    /// than refused.
+    pub enum PlanSeat {
+        /// The context's target binding, where the kind requires a bound host
+        /// contract and the context is target-free.
+        TargetBinding = "target-binding", "the context's target binding";
     }
 }
 

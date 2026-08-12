@@ -149,7 +149,7 @@ mod root {
     #[test]
     fn bounded_construction_is_a_seam() {
         use crate::types::{
-            Bounded, BoundedConstruction, LimitWitness, NonEmptyBounded,
+            AdmittedLimit, Bounded, BoundedConstruction, LimitWitness, NonEmptyBounded,
             NonEmptyBoundedConstruction,
         };
         struct SmallDemo;
@@ -158,9 +158,11 @@ mod root {
             const MAX: usize = 2;
         }
 
-        let ok: Result<Bounded<u8, SmallDemo>, _> = Bounded::admitted_const(vec![1, 2]);
+        let ok: Result<Bounded<u8, SmallDemo>, _> =
+            Bounded::admitted_const(vec![1, 2], &AdmittedLimit::under_ceiling());
         assert!(ok.is_ok_and(|bounded| bounded.len() == 2));
-        let over: Result<Bounded<u8, SmallDemo>, _> = Bounded::admitted_const(vec![1, 2, 3]);
+        let over: Result<Bounded<u8, SmallDemo>, _> =
+            Bounded::admitted_const(vec![1, 2, 3], &AdmittedLimit::under_ceiling());
         assert!(matches!(over, Err(BoundedConstruction::OverLimit)));
 
         let witness: LimitWitness<SmallDemo> = LimitWitness::declared(1);
@@ -188,6 +190,58 @@ mod root {
         );
     }
 
+    /// law: root.admission-precedes-a-trusted-magnitude — a declared magnitude
+    /// becomes a machine fact only through the admission witness: the mint
+    /// carries the family's own `MAX`, the witness is family-tagged so one
+    /// family's admission cannot authorize another, and the checked const
+    /// constructor reads its bound off the witness rather than off the
+    /// declaration.
+    ///
+    /// The claim ceiling: admission establishes that the magnitude admits an
+    /// item and stands under the declared workspace ceiling. It establishes
+    /// nothing about whether the number is the right one for its domain, and
+    /// the total structural roads — `from_array`, `singleton` — together with
+    /// `NonEmptyBounded::admitted_const` still read `L::MAX` bare; moving them
+    /// behind the same evidence is owed and is not claimed here.
+    ///
+    /// Owed reversal (red twin): a family declaring a magnitude past
+    /// `WORKSPACE_LIMIT_CEILING` must not compile — the fixture is testpak's.
+    #[test]
+    fn admission_precedes_a_trusted_magnitude() {
+        use crate::types::{AdmittedLimit, Bounded, WORKSPACE_LIMIT_CEILING};
+        struct AdmissibleDemo;
+        impl Limit for AdmissibleDemo {}
+        impl ConstLimit for AdmissibleDemo {
+            const MAX: usize = 4;
+        }
+        struct OtherDemo;
+        impl Limit for OtherDemo {}
+        impl ConstLimit for OtherDemo {
+            const MAX: usize = 4;
+        }
+
+        let admitted: AdmittedLimit<AdmissibleDemo> = AdmittedLimit::under_ceiling();
+        assert_eq!(admitted.max(), AdmissibleDemo::MAX);
+        assert!(admitted.max() <= WORKSPACE_LIMIT_CEILING);
+
+        // The witness is family-tagged, so an admission of one family is not an
+        // admission of another that happens to share a magnitude.
+        let over_other: Option<fn(AdmittedLimit<OtherDemo>)> = Some(drop);
+        assert!(over_other.is_some());
+
+        // The road whose whole claim is "no refusal is possible" takes the
+        // evidence by signature; there is no arity here that could refuse.
+        // The checked const road reads its bound off the witness rather than off
+        // the declaration, so the number it compares against is one that passed
+        // admission.
+        let fits: Result<Bounded<u8, AdmissibleDemo>, _> =
+            Bounded::admitted_const(vec![1, 2, 3], &admitted);
+        assert!(fits.is_ok_and(|bounded| bounded.len() == 3));
+        let over: Result<Bounded<u8, AdmissibleDemo>, _> =
+            Bounded::admitted_const(vec![1, 2, 3, 4, 5], &admitted);
+        assert!(over.is_err());
+    }
+
     /// law: root.reading-is-not-gaining — reading a bounded collection is an
     /// observation, not a crossing: `iter` borrows, so the values are visible
     /// and the collection is neither consumed nor changed, and no mutable or
@@ -206,15 +260,16 @@ mod root {
     /// an `Index` impl, or a slice escape — must not compile.
     #[test]
     fn reading_is_not_gaining() {
-        use crate::types::{Bounded, NonEmptyBounded};
+        use crate::types::{AdmittedLimit, Bounded, NonEmptyBounded};
         struct ReadDemo;
         impl Limit for ReadDemo {}
         impl ConstLimit for ReadDemo {
             const MAX: usize = 4;
         }
 
-        let bounded: Bounded<u8, ReadDemo> = Bounded::admitted_const(vec![1, 2, 3])
-            .unwrap_or_else(|_| Bounded::<u8, ReadDemo>::empty());
+        let bounded: Bounded<u8, ReadDemo> =
+            Bounded::admitted_const(vec![1, 2, 3], &AdmittedLimit::under_ceiling())
+                .unwrap_or_else(|_| Bounded::<u8, ReadDemo>::empty());
         let seen: Vec<u8> = bounded.iter().copied().collect();
         assert_eq!(seen, vec![1, 2, 3]);
         // The collection survives the read unchanged and can be read again.
@@ -289,9 +344,9 @@ mod root {
 
 mod refusal {
     use crate::refusal::{
-        CauseId, CauseOrderDeclaration, CompletionPosture, DeclaredCause, DeclaredCauseOrder,
-        FamilyShape, HandlingClass, LocalCauseKey, Refusal, RefusalFamily, RefusalFamilyId,
-        StopBound,
+        AdmittedRefusalFamily, CauseId, CauseOrderDeclaration, CompletionPosture, DeclaredCause,
+        DeclaredCauseOrder, FamilyAdmission, FamilyAdmissionCoverage, FamilyShape, HandlingClass,
+        LocalCauseKey, ReasonId, Refusal, RefusalFamily, RefusalFamilyId, StopBound,
     };
     use crate::types::{BoundedConstruction, Limit, NonEmptyBounded, NonEmptyBoundedConstruction};
 
@@ -406,6 +461,121 @@ mod refusal {
 
     impl CauseOrderDeclaration for DemoCollection {
         const DECLARED_ORDER: DeclaredCauseOrder = DeclaredCauseOrder::none();
+    }
+
+    /// A family declaring the single-cause shape and ordering nothing: the
+    /// canonical order stands for exactly this shape, so an empty order under it
+    /// is a declaration disagreeing with itself.
+    struct DemoUnordered;
+    impl RefusalFamily for DemoUnordered {
+        const SHAPE: FamilyShape = FamilyShape::SingleCause;
+        const SELECTION_ORDER: &'static [&'static str] = &[];
+    }
+
+    /// A collection-shaped family ordering something: the same disagreement from
+    /// the other direction.
+    struct DemoOverOrdered;
+    impl RefusalFamily for DemoOverOrdered {
+        const SHAPE: FamilyShape = FamilyShape::IssueCollection;
+        const SELECTION_ORDER: &'static [&'static str] = &["NotCanonical"];
+    }
+
+    /// A family whose typed order and textual order are two facts rather than
+    /// one fact in two forms: coherent on shape, and the projection disagrees.
+    struct DemoUnprojected;
+    impl RefusalFamily for DemoUnprojected {
+        const SHAPE: FamilyShape = FamilyShape::SingleCause;
+        const SELECTION_ORDER: &'static [&'static str] = &["NotCanonical"];
+    }
+
+    impl CauseOrderDeclaration for DemoUnprojected {
+        const DECLARED_ORDER: DeclaredCauseOrder =
+            DeclaredCauseOrder::declared(&[DeclaredCause::declared(
+                CauseId::declared(
+                    RefusalFamilyId::declared("demo.unprojected"),
+                    LocalCauseKey::declared("not-canonical"),
+                ),
+                "NotNormalized",
+            )]);
+    }
+
+    /// law: refusal.admission-joins-shape-and-order — a family's declaration is
+    /// not a machine fact until its own joins closed: the coherence join refuses
+    /// in BOTH directions (a single-cause family ordering nothing, and a
+    /// collection family ordering something), the projection join refuses a
+    /// typed order the textual order does not project, and the witness records
+    /// which of the two roads minted it so the weaker admission never passes for
+    /// the stronger.
+    ///
+    /// The claim ceiling: admission establishes that the declarations agree with
+    /// each other. It establishes nothing about whether the declared order is
+    /// the right selector for the family's checks, nothing about the family's
+    /// Rust body, and nothing about family uniqueness across a whole program —
+    /// that join stays the composition root's.
+    ///
+    /// Owed reversal (red twin): constructing the witness without admitting must
+    /// not compile — the fixture is testpak's.
+    #[test]
+    fn admission_joins_shape_and_order() {
+        assert!(matches!(
+            AdmittedRefusalFamily::<DemoUnordered>::admitted(),
+            Err(FamilyAdmission::NotShapeCoherent)
+        ));
+        assert!(matches!(
+            AdmittedRefusalFamily::<DemoOverOrdered>::admitted(),
+            Err(FamilyAdmission::NotShapeCoherent)
+        ));
+        assert!(matches!(
+            AdmittedRefusalFamily::<DemoUnprojected>::admitted_with_order(),
+            Err(FamilyAdmission::NotProjected)
+        ));
+        assert!(matches!(
+            AdmittedRefusalFamily::<DemoUnprojected>::admitted()
+                .map(|admitted| admitted.coverage()),
+            Ok(FamilyAdmissionCoverage::ShapeCoherence)
+        ));
+        assert!(matches!(
+            AdmittedRefusalFamily::<DemoSingle>::admitted_with_order()
+                .map(|admitted| admitted.coverage()),
+            Ok(FamilyAdmissionCoverage::ShapeCoherenceAndOrderProjection)
+        ));
+        assert!(matches!(
+            AdmittedRefusalFamily::<DemoCollection>::admitted_with_order()
+                .map(|admitted| admitted.coverage()),
+            Ok(FamilyAdmissionCoverage::ShapeCoherenceAndOrderProjection)
+        ));
+        assert_eq!(
+            FamilyAdmission::SHAPE,
+            FamilyShape::SingleCause,
+            "the admission family's own declaration is one of the three shapes"
+        );
+    }
+
+    /// law: refusal.publication-requires-an-admitted-family — the universal
+    /// envelope has exactly one mint, and it demands the admission witness: a
+    /// reader handed a published refusal acts on the family's declared shape and
+    /// order without re-reading them, so an unjoined declaration never reaches
+    /// publication.
+    ///
+    /// The claim ceiling: the road's reach today is this crate's, because
+    /// `ReasonId` carries no public mint until the evidence home registers
+    /// reasons. Nothing here claims an outside caller can publish.
+    ///
+    /// Owed reversal (red twin): a publication road that skips the witness must
+    /// not compile — the fixture is testpak's.
+    #[test]
+    fn publication_requires_an_admitted_family() {
+        let admitted = AdmittedRefusalFamily::<DemoSingle>::admitted_with_order()
+            .unwrap_or_else(|_| unreachable!("the demo family's declarations agree"));
+        let published = Refusal::published(
+            ReasonId::for_laws([11; 32]),
+            HandlingClass::DoNotRetry,
+            DemoSingle,
+            &admitted,
+        );
+        assert_eq!(published.reason().as_bytes(), &[11; 32]);
+        assert!(matches!(published.handling(), HandlingClass::DoNotRetry));
+        let _body: &DemoSingle = published.family();
     }
 
     /// law: refusal.envelope-is-family-generic — the universal envelope binds any
@@ -721,6 +891,65 @@ mod identity {
         }
         assert_eq!(DerivedRole::CLASS, FreshRole::CLASS);
         assert_ne!(DerivedRole::CREATION, FreshRole::CREATION);
+    }
+
+    /// law: identity.admission-joins-creation-to-class — a two-column
+    /// declaration is not a machine fact until its own join closed: where the
+    /// declared creation law names a class in its own declaration, a role
+    /// declaring a different class refuses admission, and the reification that
+    /// turns the two columns into a travelling value is reachable only from the
+    /// witness.
+    ///
+    /// The claim ceiling is narrow and is stated as such. The three class-open
+    /// creation laws admit under ANY class — that is the two-column law itself,
+    /// and this join does not touch it. Admission establishes nothing about the
+    /// derived-seat law's two seats, which are facts about a deployment's design
+    /// rather than about a pair of constants, and nothing about whether a
+    /// concrete minter follows the creation law it declared: that is behavioral,
+    /// it is owed, and it opens when minters exist.
+    ///
+    /// Owed reversal (red twin): constructing the witness without admitting must
+    /// not compile — the fixture is testpak's.
+    #[test]
+    fn admission_joins_creation_to_class() {
+        use crate::identity::{AdmittedIdentityRole, DeclaredIdentityRole, IdentityRoleAdmission};
+
+        /// A role declaring Class B's own creation law under Class A's question.
+        struct IncoherentRole;
+        impl IdentityRole for IncoherentRole {
+            const CLASS: IdentityClass = IdentityClass::SemanticCommitment;
+            const CREATION: CreationLaw = CreationLaw::DigestOfExactBytes;
+        }
+        /// The same creation law under the class its own declaration names.
+        struct CoherentRole;
+        impl IdentityRole for CoherentRole {
+            const CLASS: IdentityClass = IdentityClass::ByteDigest;
+            const CREATION: CreationLaw = CreationLaw::DigestOfExactBytes;
+        }
+        /// A class-open creation law: no declared fact to join against, so the
+        /// columns stay independent and admission says nothing about the pair.
+        struct OpenRole;
+        impl IdentityRole for OpenRole {
+            const CLASS: IdentityClass = IdentityClass::AuthorityOrder;
+            const CREATION: CreationLaw = CreationLaw::FreshOpaque;
+        }
+
+        assert!(matches!(
+            AdmittedIdentityRole::<IncoherentRole>::admitted(),
+            Err(IdentityRoleAdmission::NotClassCoherent)
+        ));
+        assert_eq!(
+            CreationLaw::FreshOpaque.declared_class(),
+            None,
+            "a class-open creation law names no class to join against"
+        );
+        assert!(AdmittedIdentityRole::<OpenRole>::admitted().is_ok());
+
+        let admitted = AdmittedIdentityRole::<CoherentRole>::admitted()
+            .unwrap_or_else(|_| unreachable!("the demo role's columns agree"));
+        let declared = DeclaredIdentityRole::of(&admitted);
+        assert_eq!(declared.class(), IdentityClass::ByteDigest);
+        assert_eq!(declared.creation(), CreationLaw::DigestOfExactBytes);
     }
 
     /// law: identity.scope-mismatch-refuses — comparison is total within one
@@ -1897,10 +2126,10 @@ mod time {
     use crate::identity::{Occurrence, OccurrenceForm};
     use crate::refusal::{FamilyShape, RefusalFamily};
     use crate::time::{
-        AcceptedHlc, ChronologyMerge, ChronologyProfileId, ChronologySummary, ClockDomainId,
-        ClockObservation, ClockObservationProvenance, DeadlinePolicy, DeadlinePolicyConstruction,
-        DeadlinePostureView, DurationLimit, DurationLimitConstruction, HlcCoordinate,
-        ObservedWallTime, RecordingSite, SourceHlc, SpendRecord, TimeDelta,
+        AcceptedHlc, ChronologyAdmission, ChronologyMerge, ChronologyProfileId, ChronologySummary,
+        ClockDomainId, ClockObservation, ClockObservationProvenance, DeadlinePolicy,
+        DeadlinePolicyConstruction, DeadlinePostureView, DurationLimit, DurationLimitConstruction,
+        HlcCoordinate, ObservedWallTime, RecordingSite, SourceHlc, SpendRecord, TimeDelta,
     };
 
     /// law: time.tick-is-the-clock-observation — a tick is one admitted clock
@@ -2053,11 +2282,71 @@ mod time {
         assert!(over_source.is_some());
         assert!(over_accepted.is_some());
         assert!(over_summary.is_some());
-        let coordinate = HlcCoordinate {
-            physical: 1,
-            logical: 2,
+        let coordinate = HlcCoordinate::at(1, 2);
+        assert_eq!(coordinate.logical(), 2);
+        // The two roles are made of the same payload and are not
+        // cross-constructible from it: an observation is minted here, and the
+        // admitted role carries no mint at all outside this crate.
+        let observed = SourceHlc::observed(coordinate);
+        assert_eq!(observed.coordinate(), coordinate);
+        assert_eq!(AcceptedHlc::for_laws(coordinate).coordinate(), coordinate);
+    }
+
+    /// A demo admission clock, standing at module scope so the contract's
+    /// implementation is read beside the law rather than nested inside it.
+    struct DemoClock {
+        current: AcceptedHlc,
+    }
+
+    /// The demo's own refusal family: the contract names no shared one, so an
+    /// implementor states its refusals in its own vocabulary.
+    enum DemoAdmission {
+        /// This demo admits no zero physical component. It is the demo's rule
+        /// and nothing else — the machine's admission rule does not exist yet.
+        NotAdmissible,
+    }
+
+    impl ChronologyAdmission for DemoClock {
+        type Refusal = DemoAdmission;
+
+        fn admit(&mut self, observed: SourceHlc) -> Result<AcceptedHlc, Self::Refusal> {
+            let coordinate = observed.coordinate();
+            if coordinate.physical() == 0 {
+                return Err(DemoAdmission::NotAdmissible);
+            }
+            self.current = AcceptedHlc::for_laws(coordinate);
+            Ok(self.current)
+        }
+    }
+
+    /// law: time.admission-is-the-only-crossing — the crossing from observed
+    /// chronology into admitted chronology is declared as a contract and is
+    /// implementable: the observation is CONSUMED, exactly one admitted position
+    /// comes out, the clock is mutated by the act, and the contract names a
+    /// typed refusal family of the implementor's own rather than a shared one.
+    ///
+    /// The claim ceiling: this establishes the crossing's SHAPE. The rule the
+    /// crossing runs — counter advancement, clock-regression behavior,
+    /// excessive-future classification, the overflow refusal — is the admission
+    /// clock's machinery, it does not exist at this phase, and the contract's
+    /// unwritten body is the seat it lands in. The demo below advances nothing
+    /// and claims nothing about advancement.
+    ///
+    /// Owed reversal (red twin): a road that mints an admitted position without
+    /// consuming an observation must not compile.
+    #[test]
+    fn admission_is_the_only_crossing() {
+        let mut clock = DemoClock {
+            current: AcceptedHlc::for_laws(HlcCoordinate::at(0, 0)),
         };
-        assert_eq!(coordinate.logical, 2);
+        let admitted = clock.admit(SourceHlc::observed(HlcCoordinate::at(7, 1)));
+        assert!(admitted.is_ok_and(|position| position.coordinate().physical() == 7));
+        // The observation was consumed, so nothing holds a source value and an
+        // admitted value claiming to be one reading.
+        assert!(matches!(
+            clock.admit(SourceHlc::observed(HlcCoordinate::at(0, 0))),
+            Err(DemoAdmission::NotAdmissible)
+        ));
     }
 
     /// law: time.spend-uses-the-dimension-register — a spend record binds a
@@ -2623,7 +2912,9 @@ mod port {
     };
     use crate::refusal::{FamilyShape, RefusalFamily};
     use crate::schema::SchemaSemanticCommitment;
-    use crate::types::{Bounded, ConstLimit, EvidenceRef, ReferentAvailability, ReferentIntegrity};
+    use crate::types::{
+        AdmittedLimit, Bounded, ConstLimit, EvidenceRef, ReferentAvailability, ReferentIntegrity,
+    };
     use core::cmp::Ordering;
 
     fn demo_family(seed: u8) -> PortFamilyId {
@@ -2753,8 +3044,11 @@ mod port {
                 output: 2_048,
             },
             deadline_allowance: Commitment::raw([14; 32]),
-            postconditions: Bounded::admitted_const(vec![PortPostcondition::Durability])
-                .unwrap_or_else(|_| unreachable!("one fits three")),
+            postconditions: Bounded::admitted_const(
+                vec![PortPostcondition::Durability],
+                &AdmittedLimit::under_ceiling(),
+            )
+            .unwrap_or_else(|_| unreachable!("one fits three")),
             evidence_families: Commitment::raw([15; 32]),
             refusal_families: Commitment::raw([16; 32]),
             qualification: demo_evidence(17),
@@ -3447,7 +3741,7 @@ mod execution {
         let batch = EffectBatch {
             commands: Bounded::admitted(
                 vec![EffectCommand {
-                    ordinal: CommandOrdinal(0),
+                    ordinal: CommandOrdinal::declared(0),
                     kind: CommandKind::EventAppend,
                     contracts: Commitment::raw([44; 32]),
                 }],
@@ -3503,7 +3797,7 @@ mod execution {
         let refusal = EffectBatchComposition {
             issues: NonEmptyBounded::admitted(
                 EffectBatchCompositionIssue::RequiredContractUnbound {
-                    command: CommandOrdinal(0),
+                    command: CommandOrdinal::declared(0),
                     contract: RequiredContractKind::Receipt,
                 },
                 vec![],
@@ -3870,11 +4164,9 @@ mod pakvm {
             ValueResidence::OwnedValue,
         ];
         assert_eq!(residences.len(), 4);
-        let index = ArenaIndex {
-            index: 7,
-            generation: 2,
-        };
-        assert_eq!(index.generation, 2);
+        let index = ArenaIndex::located(7, 2);
+        assert_eq!(index.index(), 7);
+        assert_eq!(index.generation(), 2);
     }
 
     /// law: pakvm.live-handles-do-not-cross-threads — three role-distinct
@@ -4718,12 +5010,12 @@ mod derived {
     #[test]
     fn payload_locator_is_closed_two_forms() {
         let slice = PayloadLocator::ExtentSlice {
-            extent: ExtentEntryRef(0),
+            extent: ExtentEntryRef::declared(0),
             offset: 4_096,
             length: 512,
         };
         let binding = PayloadLocator::BindingEntry {
-            binding: BindingEntryRef(3),
+            binding: BindingEntryRef::declared(3),
         };
         assert_ne!(slice, binding);
         let entry = ExtentEntry {

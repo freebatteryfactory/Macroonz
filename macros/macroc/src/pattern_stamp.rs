@@ -37,7 +37,7 @@ use crate::planning::{
     ProjectionPlan,
 };
 use crate::refusal::{BoundAxis, ProjectionPlanning};
-use threadpak::types::{Bounded, ConstLimit};
+use threadpak::types::{AdmittedLimit, Bounded, ConstLimit};
 
 /// The owner facts one scope-guard stamp cites.
 ///
@@ -104,14 +104,13 @@ pub struct ScopeGuardStampAnchors {
 pub fn plan_scope_guard_stamp(
     anchors: &ScopeGuardStampAnchors,
 ) -> Result<ProjectionPlan<PatternStampProjection>, ProjectionPlanning> {
-    let arguments =
-        Bounded::admitted_const(vec![anchors.guard_name, anchors.scope_type]).map_err(|_| {
-            ProjectionPlanning::bound_exceeded(
-                BoundAxis::Declarations,
-                PatternArgumentLimit::MAX,
-                2,
-            )
-        })?;
+    let arguments = Bounded::admitted_const(
+        vec![anchors.guard_name, anchors.scope_type],
+        &AdmittedLimit::under_ceiling(),
+    )
+    .map_err(|_| {
+        ProjectionPlanning::bound_exceeded(BoundAxis::Declarations, PatternArgumentLimit::MAX, 2)
+    })?;
     let origin = OriginTrail::drawn(
         OriginEdge {
             from: anchors.authored_node,

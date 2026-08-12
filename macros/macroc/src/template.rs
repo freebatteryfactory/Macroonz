@@ -65,7 +65,9 @@ use crate::plane::{
 use threadpak::declaration::Stage;
 use threadpak::declaration::types::{FragmentIdentityDomain, ProjectionConfigurationDomain};
 use threadpak::refusal::{CompletionPosture, FamilyShape, RefusalFamily, StopBound};
-use threadpak::types::{Bounded, ConstLimit, NonEmptyBounded, NonEmptyBoundedConstruction};
+use threadpak::types::{
+    AdmittedLimit, Bounded, ConstLimit, NonEmptyBounded, NonEmptyBoundedConstruction,
+};
 
 // ---------------------------------------------------------------------------
 // Category-typed holes.
@@ -316,7 +318,7 @@ impl ProfileCeiling {
             ));
         }
         let observed = axes.len();
-        Bounded::admitted_const(axes)
+        Bounded::admitted_const(axes, &AdmittedLimit::under_ceiling())
             .map(|axes| Self { axes })
             .map_err(|_| {
                 TemplateConstruction::established(TemplateConstructionIssue::SeatBoundExceeded {

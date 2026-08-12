@@ -1,0 +1,25 @@
+error[E0080]: evaluation panicked: a declared magnitude past the workspace ceiling bounds nothing
+ --> $RUST/core/src/panic.rs
+  |
+  |           $crate::panicking::panic_fmt($crate::const_format_args!($($t)+));
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ evaluation of `threadpak::types::AdmittedLimit::<PastTheCeiling>::under_ceiling::{constant#0}` failed here
+  |
+ ::: $WORKSPACE/src/types.rs
+  |
+  | /             assert!(
+  | |                 L::MAX <= WORKSPACE_LIMIT_CEILING,
+  | |                 "a declared magnitude past the workspace ceiling bounds nothing"
+  | |             );
+  | |_____________- in this macro invocation
+
+note: erroneous constant encountered
+ --> $WORKSPACE/src/types.rs
+  |
+  | /         const {
+  | |             assert!(L::MAX >= 1, "a limit family admitting no item at all");
+  | |             assert!(
+  | |                 L::MAX <= WORKSPACE_LIMIT_CEILING,
+  | |                 "a declared magnitude past the workspace ceiling bounds nothing"
+  | |             );
+  | |         }
+  | |_________^

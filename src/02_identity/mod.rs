@@ -5,8 +5,9 @@
 pub mod types;
 
 pub use types::{
-    ApplicationScope, AuthorityPosition, ByteIdentity, Commitment, CreationLaw, IdentityClass,
-    IdentityRole, Occurrence, OccurrenceForm, OrderComparison, TypedRef,
+    AdmittedIdentityRole, ApplicationScope, AuthorityPosition, ByteIdentity, Commitment,
+    CreationLaw, DeclaredIdentityRole, IdentityClass, IdentityRole, IdentityRoleAdmission,
+    Occurrence, OccurrenceForm, OrderComparison, TypedRef,
 };
 
 /// Stamps one Class-C scope-guard version newtype over

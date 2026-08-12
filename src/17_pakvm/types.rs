@@ -91,12 +91,47 @@ pub enum ValueResidence {
 
 /// A dumb arena index with a generation — it LOCATES, and that is all;
 /// policy lives in the operators, never in a pointer.
+///
+/// # The ruled posture for a reference that is persisted or transported
+///
+/// A reference that leaves the arena it points into is identity PLUS
+/// generation, and the generation is what makes the crossing back in an
+/// explicit act rather than a dereference. [`located`](Self::located) is the
+/// authoring road: it names a slot and the generation the namer believes that
+/// slot stands at. It establishes neither. Whether the arena's slot is live and
+/// whether its generation still matches is a validation crossing performed by
+/// the consuming operator against a specific arena, and it is **owed** — no
+/// road here performs it.
+///
+/// The live-arena shape is a different one and is not this. A handle that
+/// cannot outlive its arena, and so needs no generation compared at all, is a
+/// declared-and-owed shape behind the runtime gate; it is named here so this
+/// type is not mistaken for it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ArenaIndex {
-    /// The slot index.
-    pub index: u32,
-    /// The generation.
-    pub generation: u32,
+    index: u32,
+    generation: u32,
+}
+
+impl ArenaIndex {
+    /// Name one arena slot at one generation.
+    #[must_use]
+    pub const fn located(index: u32, generation: u32) -> Self {
+        Self { index, generation }
+    }
+
+    /// The named slot, unresolved against any arena.
+    #[must_use]
+    pub const fn index(self) -> u32 {
+        self.index
+    }
+
+    /// The generation the namer believes that slot stands at, uncompared
+    /// against any arena.
+    #[must_use]
+    pub const fn generation(self) -> u32 {
+        self.generation
+    }
 }
 
 // ---------------------------------------------------------------------------

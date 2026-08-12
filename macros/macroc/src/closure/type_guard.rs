@@ -25,7 +25,7 @@ use crate::planning::{
 };
 use crate::question::EXPLANATION_PROTOCOL_VERSION;
 use crate::token::GeneratedTree;
-use threadpak::types::{Bounded, NonEmptyBounded};
+use threadpak::types::{AdmittedLimit, Bounded, NonEmptyBounded};
 
 impl<R: RenderedRole> RenderedUnit<R> {
     /// Materialize one rendered unit from the tree a renderer produced.
@@ -60,7 +60,8 @@ impl<R: RenderedRole> RenderedUnit<R> {
             &raw,
             role.slot(),
         ));
-        let bytes = Bounded::admitted_const(raw).map_err(|_| RenderingRefusal::BytesUnbounded)?;
+        let bytes = Bounded::admitted_const(raw, &AdmittedLimit::under_ceiling())
+            .map_err(|_| RenderingRefusal::BytesUnbounded)?;
         Ok(Self {
             role,
             identity,

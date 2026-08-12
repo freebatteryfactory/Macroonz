@@ -54,7 +54,7 @@ use crate::token::{
     TextReadRefusal,
 };
 use threadpak::refusal::FamilyShape;
-use threadpak::types::{Bounded, ConstLimit};
+use threadpak::types::{AdmittedLimit, Bounded, ConstLimit};
 
 /// Capture one refusal-family declaration from a typed token tree.
 ///
@@ -75,7 +75,7 @@ pub fn captured(input: &CapturedInput) -> Result<RefusalDeriveSurface, RefusalDe
     let declared = read_enum(&trees)?;
     let attribute = read_attribute(&trees)?;
     let causes = read_causes(&attribute, &declared)?;
-    let causes = Bounded::admitted_const(causes)
+    let causes = Bounded::admitted_const(causes, &AdmittedLimit::under_ceiling())
         .map_err(|_| refuse(RefusalDeriveCapture::Unbounded, declared.body_span))?;
     Ok(RefusalDeriveSurface::assembled(
         declared.family_name,

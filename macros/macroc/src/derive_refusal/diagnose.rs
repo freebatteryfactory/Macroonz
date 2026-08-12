@@ -60,7 +60,7 @@ use crate::plane::{
 use crate::refusal::{ProjectionPlanning, ProjectionPlanningIssue};
 use threadpak::evidence::CauseDisposition;
 use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{Bounded, BoundedConstruction, ConstLimit};
+use threadpak::types::{AdmittedLimit, Bounded, BoundedConstruction, ConstLimit};
 
 /// The family tag written ahead of every related issue's material, so two
 /// families' issues never encode alike.
@@ -586,7 +586,7 @@ pub(crate) fn related_set(
     let issues = per_issue.len();
     let mut all = vec![body];
     all.extend(per_issue);
-    match Bounded::admitted_const(all) {
+    match Bounded::admitted_const(all, &AdmittedLimit::under_ceiling()) {
         Ok(set) => (set, RelatedSetCompletion::Complete),
         Err(BoundedConstruction::OverLimit) => (
             Bounded::from_array([body]),

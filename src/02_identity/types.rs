@@ -72,6 +72,37 @@ pub enum CreationLaw {
     ApplicationComposed,
 }
 
+impl CreationLaw {
+    /// The identity class this creation law names in its OWN declaration, where
+    /// it names one.
+    ///
+    /// Four of the seven creation laws are declared as one class's law and say
+    /// so above: the domain-tagged digest is Class A's, the exact-byte digest is
+    /// Class B's, bound pointer construction is Class E's, and application
+    /// composition is Class F's. The remaining three name no class and are open
+    /// to any — a fresh occurrence identity and a fresh schema family identity
+    /// are the same creation law under two different questions.
+    ///
+    /// This reads in exactly one direction, and the direction matters. The
+    /// two-column law says the CLASS never implies the creation law, and that
+    /// stands untouched: [`IdentityClass::Occurrence`] admits derived minting
+    /// and fresh minting both, which is why the columns are independent. What
+    /// this answers is the other direction, for the four laws whose own
+    /// declaration is class-specific.
+    #[must_use]
+    pub const fn declared_class(self) -> Option<IdentityClass> {
+        match self {
+            Self::DomainTaggedDigestOfMeaning => Some(IdentityClass::SemanticCommitment),
+            Self::DigestOfExactBytes => Some(IdentityClass::ByteDigest),
+            Self::BoundPointerConstruction => Some(IdentityClass::TypedReference),
+            Self::ApplicationComposed => Some(IdentityClass::ApplicationScope),
+            Self::AssignedByOneAuthority
+            | Self::DerivedFromAdmittedPreimage
+            | Self::FreshOpaque => None,
+        }
+    }
+}
+
 /// The two-column declaration every concrete identity makes: machine-readable
 /// law, joined by tooling against the owner's README and (later) derived by the
 /// macros crate rather than hand-written.
@@ -80,6 +111,125 @@ pub trait IdentityRole {
     const CLASS: IdentityClass;
     /// How instances are minted.
     const CREATION: CreationLaw;
+}
+
+/// How admitting one identity role's two-column declaration refuses.
+///
+/// One inhabited cause, so no cause-selection rule is owed. It is a single-cause
+/// family rather than a collection because there is exactly one join to run.
+#[must_use = "an admission refusal carries the established reason a role's declaration was not \
+              admitted"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum IdentityRoleAdmission {
+    /// The declared creation law names one class in its own declaration, and
+    /// the declared class is a different one.
+    NotClassCoherent,
+}
+
+impl RefusalFamily for IdentityRoleAdmission {
+    const SHAPE: FamilyShape = FamilyShape::SingleCause;
+    const SELECTION_ORDER: &'static [&'static str] = &["NotClassCoherent"];
+}
+
+/// Evidence that one identity role's two-column declaration was admitted.
+///
+/// # Why a declaration is not yet a machine fact
+///
+/// [`IdentityRole`] is an extension point: every concrete identity in the
+/// machine declares its own two columns, and nothing in the type system makes
+/// the pair coherent. A road that reads either constant and acts on it is
+/// trusting two declarations nobody joined. This witness is that join, and it is
+/// opaque and constructor-free, so holding one *is* the evidence.
+///
+/// # What the mint establishes, and the claim ceiling
+///
+/// [`admitted`](Self::admitted) runs the one join the home's own declarations
+/// support: where the declared creation law names a class in its own
+/// declaration — see [`CreationLaw::declared_class`] — the declared class must
+/// be that class.
+///
+/// That is a narrow claim and it is stated narrowly. Admission establishes
+/// NOTHING about the three class-open creation laws: a role declaring
+/// `AssignedByOneAuthority`, `DerivedFromAdmittedPreimage`, or `FreshOpaque`
+/// passes this join under any class, because the two-column law says the class
+/// does not imply the creation law and there is no declared fact to join
+/// against. It establishes nothing about the derived-seat law's two seats — a
+/// named consumer of convergence and preimage custody are facts about a
+/// deployment's design, not about a pair of constants, and no road here can see
+/// them. And it establishes nothing about any minter's conduct: whether a
+/// concrete mint actually follows the creation law it declared is a behavioral
+/// claim, it is owed, and it opens when minters exist.
+#[must_use = "an admitted role is the evidence a two-column declaration passed its join; \
+              dropping it discards the only proof a road may act on that declaration"]
+pub struct AdmittedIdentityRole<T: IdentityRole> {
+    columns: DeclaredIdentityRole,
+    _role: PhantomData<T>,
+}
+
+impl<T: IdentityRole> AdmittedIdentityRole<T> {
+    /// Admit one role's two-column declaration.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`IdentityRoleAdmission::NotClassCoherent`] when the declared
+    /// creation law names a class and the declared class is a different one.
+    pub fn admitted() -> Result<Self, IdentityRoleAdmission> {
+        match T::CREATION.declared_class() {
+            Some(named) if named != T::CLASS => Err(IdentityRoleAdmission::NotClassCoherent),
+            _ => Ok(Self {
+                columns: DeclaredIdentityRole {
+                    class: T::CLASS,
+                    creation: T::CREATION,
+                },
+                _role: PhantomData,
+            }),
+        }
+    }
+}
+
+/// One identity role's two columns, read as a value.
+///
+/// # The reification is reachable only from the witness
+///
+/// The columns are trait constants: anything can read `T::CLASS` directly, and
+/// nothing stops it. What this type is for is the road in the other direction —
+/// turning the declaration into a VALUE that travels, that a projection can
+/// carry, that a diagnostic can name — and that road demands the admission
+/// witness. A declaration that has not passed its join never becomes a value
+/// the machine passes around.
+///
+/// It carries no role parameter on purpose: once read, the two columns are the
+/// facts, and a reader deciding by them is deciding by the declaration rather
+/// than by which Rust type declared it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DeclaredIdentityRole {
+    class: IdentityClass,
+    creation: CreationLaw,
+}
+
+impl DeclaredIdentityRole {
+    /// Read one admitted role's two columns.
+    ///
+    /// The columns come off the WITNESS rather than off a fresh read of the
+    /// trait, so what travels is the reading admission actually joined. A second
+    /// read here would be a second value that could disagree with the one the
+    /// join ran over.
+    #[must_use]
+    pub fn of<T: IdentityRole>(admitted: &AdmittedIdentityRole<T>) -> Self {
+        admitted.columns
+    }
+
+    /// Which question this identity answers.
+    #[must_use]
+    pub const fn class(self) -> IdentityClass {
+        self.class
+    }
+
+    /// How instances are minted.
+    #[must_use]
+    pub const fn creation(self) -> CreationLaw {
+        self.creation
+    }
 }
 
 /// Class A shape: an opaque domain-tagged commitment over normalized meaning.

@@ -35,6 +35,8 @@
 //! evidence home, downstream. Location types are carried by owner families, never by
 //! the universal envelope.
 
+use core::marker::PhantomData;
+
 /// The stable identity of one registered refusal reason. A registered reason is a
 /// semantic commitment: new meaning mints a new id, never recycled. Opaque; equality
 /// and hashing only; no ordering beyond the declared raw-byte storage order; minted
@@ -44,6 +46,13 @@
 pub struct ReasonId([u8; 32]);
 
 impl ReasonId {
+    /// In-crate mint for laws. Test-gated until the evidence home registers
+    /// reasons — the gate comes off when a lawful minter exists, never before.
+    #[cfg(test)]
+    pub(crate) const fn for_laws(bytes: [u8; 32]) -> Self {
+        Self(bytes)
+    }
+
     /// The declared raw-byte storage order of this identity.
     #[must_use]
     pub fn as_bytes(&self) -> &[u8; 32] {
@@ -469,19 +478,211 @@ impl CauseOrderDeclaration for crate::types::NonEmptyBoundedConstruction {
         )]);
 }
 
-/// The universal refusal envelope: the registered reason, the treatment class, and
-/// the family body. Deliberately location-free — an owner family that needs a
-/// location carries its own location type, so this envelope imports nothing from
-/// any later home. (Authored structural law, not an old-book quote: band 00 must
-/// import nothing.)
+/// How admitting one refusal family's declaration refuses.
+///
+/// Single cause, because the checks are dependent: there is no order to project
+/// against until the shape and the textual order were found to agree, so a
+/// projection verdict from a run that never got that far would be a claim about
+/// a check that did not run.
+#[must_use = "an admission refusal carries the established reason a family's declaration was \
+              not admitted"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum FamilyAdmission {
+    /// The declared shape and the declared selection order contradict each
+    /// other. A canonical selection order stands for single-cause families and
+    /// for no other shape, so this one cause covers both directions: a
+    /// single-cause family that orders nothing, and a collection or pair family
+    /// that orders something.
+    NotShapeCoherent,
+    /// The typed cause order is not projected by the textual selection order —
+    /// the two are supposed to be one fact in two forms, and here they are two.
+    NotProjected,
+}
+
+impl RefusalFamily for FamilyAdmission {
+    const SHAPE: FamilyShape = FamilyShape::SingleCause;
+    const SELECTION_ORDER: &'static [&'static str] = &["NotShapeCoherent", "NotProjected"];
+}
+
+impl CauseOrderDeclaration for FamilyAdmission {
+    const DECLARED_ORDER: DeclaredCauseOrder = DeclaredCauseOrder::declared(&[
+        DeclaredCause::declared(
+            CauseId::declared(
+                RefusalFamilyId::declared("refusal.family-admission"),
+                LocalCauseKey::declared("not-shape-coherent"),
+            ),
+            "NotShapeCoherent",
+        ),
+        DeclaredCause::declared(
+            CauseId::declared(
+                RefusalFamilyId::declared("refusal.family-admission"),
+                LocalCauseKey::declared("not-projected"),
+            ),
+            "NotProjected",
+        ),
+    ]);
+}
+
+/// Which joins one admission run actually performed.
+///
+/// Carried on the witness because the two mints do not establish the same
+/// thing, and a witness that hid which one produced it would let the weaker
+/// admission pass for the stronger one everywhere it travelled.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum FamilyAdmissionCoverage {
+    /// The shape and the textual selection order were found coherent. The
+    /// family declares no typed cause order, so there was nothing to project
+    /// against.
+    ShapeCoherence,
+    /// The shape and the textual order were found coherent, AND the typed order
+    /// was found to project onto the textual one.
+    ShapeCoherenceAndOrderProjection,
+}
+
+/// Evidence that one refusal family's declaration closed its own joins.
+///
+/// # Why a declaration is not yet a machine fact
+///
+/// [`RefusalFamily`] is an extension point: any home, and any consumer outside
+/// this crate, declares a family and states its own `SHAPE` and
+/// `SELECTION_ORDER`. Nothing in the type system makes those two agree. A road
+/// that reads either constant and acts on it is trusting a pair of declarations
+/// nobody joined. This witness is that join, and it is opaque and
+/// constructor-free, so holding one *is* the evidence.
+///
+/// # What the mints establish
+///
+/// [`admitted`](Self::admitted) runs the coherence join: `SELECTION_ORDER` is
+/// non-empty exactly when `SHAPE` is [`FamilyShape::SingleCause`].
+/// [`admitted_with_order`](Self::admitted_with_order) runs that join and then
+/// the projection join — [`DeclaredCauseOrder::projects_to`] over the family's
+/// typed order — and is available only where the family declares one. Both
+/// refuse with a typed cause; neither normalizes, repairs, or narrows.
+///
+/// # The claim ceiling, exactly
+///
+/// It establishes nothing about whether the declared order is the RIGHT
+/// selector for the family's checks; that is the owner's declaration and no road
+/// can check it. It establishes nothing about the family's Rust body — that the
+/// variants a `SingleCause` family declares are the causes its order names is a
+/// join the derive performs over a captured declaration, not one this witness
+/// can reach. And family uniqueness across a whole program remains the
+/// composition root's join, exactly as [`CauseId`] states.
+#[must_use = "an admitted family is the evidence a declaration closed its joins; dropping it \
+              discards the only proof a road may act on that declaration"]
+pub struct AdmittedRefusalFamily<F: RefusalFamily> {
+    coverage: FamilyAdmissionCoverage,
+    _family: PhantomData<F>,
+}
+
+impl<F: RefusalFamily> AdmittedRefusalFamily<F> {
+    /// Admit one family's declaration on the coherence join.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FamilyAdmission::NotShapeCoherent`] when the declared shape and
+    /// the declared selection order contradict each other.
+    pub fn admitted() -> Result<Self, FamilyAdmission> {
+        if shape_coheres::<F>() {
+            Ok(Self {
+                coverage: FamilyAdmissionCoverage::ShapeCoherence,
+                _family: PhantomData,
+            })
+        } else {
+            Err(FamilyAdmission::NotShapeCoherent)
+        }
+    }
+
+    /// Which joins the run that minted this witness performed.
+    #[must_use]
+    pub const fn coverage(&self) -> FamilyAdmissionCoverage {
+        self.coverage
+    }
+}
+
+impl<F: CauseOrderDeclaration> AdmittedRefusalFamily<F> {
+    /// Admit one family's declaration on the coherence join AND the projection
+    /// join. Available only where the family declares its typed cause order,
+    /// because there is nothing to project against otherwise.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FamilyAdmission::NotShapeCoherent`] when the declared shape and
+    /// the declared selection order contradict each other, and
+    /// [`FamilyAdmission::NotProjected`] when the typed order and the textual
+    /// order are two facts rather than one fact in two forms.
+    pub fn admitted_with_order() -> Result<Self, FamilyAdmission> {
+        if !shape_coheres::<F>() {
+            return Err(FamilyAdmission::NotShapeCoherent);
+        }
+        if F::DECLARED_ORDER.projects_to(F::SELECTION_ORDER) {
+            Ok(Self {
+                coverage: FamilyAdmissionCoverage::ShapeCoherenceAndOrderProjection,
+                _family: PhantomData,
+            })
+        } else {
+            Err(FamilyAdmission::NotProjected)
+        }
+    }
+}
+
+/// Whether one family's declared shape and declared selection order agree.
+///
+/// Stated once, here, because both mints ask it and a second copy would be a
+/// second thing to keep true.
+fn shape_coheres<F: RefusalFamily>() -> bool {
+    matches!(F::SHAPE, FamilyShape::SingleCause) != F::SELECTION_ORDER.is_empty()
+}
+
+/// The universal refusal envelope: the registered reason, the treatment class,
+/// what the family's declaration was admitted as covering, and the family body.
+/// Deliberately location-free — an owner family that needs a location carries
+/// its own location type, so this envelope imports nothing from any later home.
+/// (Authored structural law, not an old-book quote: band 00 must import
+/// nothing.)
 #[must_use = "a refusal carries the lawful reason the operation did not proceed"]
 pub struct Refusal<F: RefusalFamily> {
     reason: ReasonId,
     handling: HandlingClass,
+    admission: FamilyAdmissionCoverage,
     family: F,
 }
 
 impl<F: RefusalFamily> Refusal<F> {
+    /// Publish one refusal under a family whose declaration was admitted.
+    ///
+    /// This is the envelope's only mint, and it is the seat where a family's
+    /// declared facts become trusted: publication is exactly the act that hands
+    /// a refusal to a reader who will act on the family's shape and order
+    /// without re-reading them, so an unadmitted declaration must not reach it.
+    /// The witness's coverage travels onto the envelope rather than being
+    /// checked and forgotten, so a reader can see which joins stood behind the
+    /// declaration it is reading — a refusal published under coherence alone and
+    /// one published under coherence and projection are not the same receipt.
+    ///
+    /// Its reach today is the crate's own: [`ReasonId`] has no public mint until
+    /// the evidence home registers reasons, so nothing outside can hold the
+    /// first argument. That is a stated ceiling, not a claim of use.
+    pub fn published(
+        reason: ReasonId,
+        handling: HandlingClass,
+        family: F,
+        admitted: &AdmittedRefusalFamily<F>,
+    ) -> Self {
+        Self {
+            reason,
+            handling,
+            admission: admitted.coverage(),
+            family,
+        }
+    }
+
+    /// Which joins the family's declaration was admitted on.
+    #[must_use]
+    pub const fn admission(&self) -> FamilyAdmissionCoverage {
+        self.admission
+    }
+
     /// The registered reason identity.
     #[must_use]
     pub fn reason(&self) -> ReasonId {

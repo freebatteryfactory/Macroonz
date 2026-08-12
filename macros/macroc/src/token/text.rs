@@ -15,7 +15,7 @@ use super::{
     CapturedTokenTree, SpanHandle, SpanTable, TextCapture, TextReadCause, TextReadRefusal,
     TokenPath,
 };
-use threadpak::types::Bounded;
+use threadpak::types::{AdmittedLimit, Bounded};
 
 impl TextCapture {
     /// Read one declared input from source text.
@@ -32,10 +32,11 @@ impl TextCapture {
         let mut characters = source.char_indices().peekable();
         let trees = reader.read_group(&mut characters, None, &TokenPath::root())?;
         let issued = u32::try_from(reader.offsets.len()).unwrap_or(u32::MAX);
-        let offsets = Bounded::admitted_const(reader.offsets).map_err(|_| TextReadRefusal {
-            cause: TextReadCause::Unbounded(CaptureBound::TreeUnbounded),
-            at: 0,
-        })?;
+        let offsets = Bounded::admitted_const(reader.offsets, &AdmittedLimit::under_ceiling())
+            .map_err(|_| TextReadRefusal {
+                cause: TextReadCause::Unbounded(CaptureBound::TreeUnbounded),
+                at: 0,
+            })?;
         let input = CapturedInput::taken(trees, issued).map_err(|bound| TextReadRefusal {
             cause: TextReadCause::Unbounded(bound),
             at: 0,
@@ -150,10 +151,13 @@ impl TextReader {
             let span = self.issue(at);
             let _consumed = characters.next();
             let inner = self.read_group(characters, Some((closing_of(delimiter), at)), &path)?;
-            let trees = Bounded::admitted_const(inner).map_err(|_| TextReadRefusal {
-                cause: TextReadCause::Unbounded(CaptureBound::LevelUnbounded),
-                at,
-            })?;
+            let trees =
+                Bounded::admitted_const(inner, &AdmittedLimit::under_ceiling()).map_err(|_| {
+                    TextReadRefusal {
+                        cause: TextReadCause::Unbounded(CaptureBound::LevelUnbounded),
+                        at,
+                    }
+                })?;
             return Ok(CapturedTokenTree::captured(
                 CapturedPayload::Group { delimiter, trees },
                 path,

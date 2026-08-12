@@ -72,6 +72,91 @@ pub trait ConstLimit: Limit {
     const MAX: usize;
 }
 
+/// The ceiling every admitted compile-time magnitude stands under.
+///
+/// A number this repository CHOSE, stated here rather than inherited from a
+/// machine width, because an inherited number is a number nobody decided. What
+/// it rules out is a "bound" that bounds nothing: a magnitude no realistic input
+/// could reach makes its checked constructor unfalsifiable, and a constructor
+/// that cannot refuse is not a checked constructor. The widest magnitude the
+/// workspace declares today is a rendered unit's byte ceiling at `65_536`; this
+/// number is sixteen times that, which leaves room for a magnitude nobody has
+/// needed yet and stops well short of a number that has stopped meaning
+/// anything.
+pub const WORKSPACE_LIMIT_CEILING: usize = 1_048_576;
+
+/// Evidence that one limit family's declared magnitude was admitted.
+///
+/// # Why a declaration is not yet a machine fact
+///
+/// [`Limit`] and [`ConstLimit`] are extension points: any home — and any
+/// frontend outside this crate — declares a family, and the compiler checks
+/// nothing about the number it declares. A road that reads `L::MAX` and acts on
+/// it is trusting a value nobody validated. This witness is what a family's
+/// declaration must pass through before a road may treat it as a fact, and it is
+/// opaque and constructor-free, so holding one *is* the evidence.
+///
+/// # What the mint establishes
+///
+/// [`under_ceiling`](Self::under_ceiling) establishes exactly two things about
+/// `L`, both at COMPILE TIME, so no artifact carrying an inadmissible family is
+/// ever produced:
+///
+/// - the family admits at least one item — a family declaring `MAX = 0` bounds
+///   every seat under it to nothing, which is a dead seat rather than a bound;
+/// - the magnitude stands under [`WORKSPACE_LIMIT_CEILING`].
+///
+/// # The claim ceiling, exactly
+///
+/// It establishes nothing about whether the magnitude is the RIGHT one for its
+/// domain. That is the owner's declaration, no road can check it, and this
+/// witness does not pretend to. It establishes nothing about any runtime value.
+/// [`Bounded::admitted_const`] is the one road that reads its bound off this
+/// witness today; the total structural roads and
+/// [`NonEmptyBounded::admitted_const`] still read `L::MAX` bare, and moving them
+/// behind the same evidence is owed. And it says nothing whatever about a
+/// [`Limit`] family that declares no compile-time magnitude: such a family has
+/// no `MAX` to admit, its runtime magnitude is the schema home's
+/// [`LimitWitness`] to mint, and no road here admits it.
+#[must_use = "an admitted limit is the evidence a family's declared magnitude passed admission; \
+              dropping it discards the only proof a road may act on that declaration"]
+pub struct AdmittedLimit<L: Limit> {
+    max: usize,
+    _family: PhantomData<L>,
+}
+
+impl<L: ConstLimit> AdmittedLimit<L> {
+    /// Admit one compile-time magnitude against the declared workspace ceiling.
+    ///
+    /// The `const` block below settles both questions before the program runs:
+    /// a `const` item refuses under `cargo check`, a function-body call refuses
+    /// at codegen, and there is no road that reaches a running program with an
+    /// inadmissible family. This is why the road has no refusal to return —
+    /// the failing case is not a value a caller has to invent a repair for, it
+    /// is a program that does not exist.
+    pub const fn under_ceiling() -> Self {
+        const {
+            assert!(L::MAX >= 1, "a limit family admitting no item at all");
+            assert!(
+                L::MAX <= WORKSPACE_LIMIT_CEILING,
+                "a declared magnitude past the workspace ceiling bounds nothing"
+            );
+        }
+        Self {
+            max: L::MAX,
+            _family: PhantomData,
+        }
+    }
+}
+
+impl<L: Limit> AdmittedLimit<L> {
+    /// The admitted maximum this witness carries.
+    #[must_use]
+    pub const fn max(&self) -> usize {
+        self.max
+    }
+}
+
 /// A runtime magnitude for the limit family `L`, minted only by schema validation.
 /// Carrying the family as a type parameter keeps runtime-limited and compile-limited
 /// values in the same shape without confusing their authorities.
@@ -133,6 +218,11 @@ impl<T, L: ConstLimit> Bounded<T, L> {
     /// The honest scope is [`NonEmptyBounded::singleton`]'s: the refusal fires
     /// when the instantiation is const-evaluated, so no artifact carrying an
     /// over-long fixed collection is ever produced.
+    ///
+    /// This road still reads `L::MAX` bare rather than through an
+    /// [`AdmittedLimit`]. The arity question it settles is about `N`, written at
+    /// the call site, and moving the family's magnitude behind admission here is
+    /// owed — see [`Bounded::admitted_const`], where the move is made.
     #[must_use]
     pub fn from_array<const N: usize>(items: [T; N]) -> Self {
         const {
@@ -147,14 +237,32 @@ impl<T, L: ConstLimit> Bounded<T, L> {
         }
     }
 
-    /// Checked construction against the family's compile-time maximum.
+    /// Checked construction against the family's ADMITTED compile-time maximum.
+    ///
+    /// # The bound comes from the witness, not from the declaration
+    ///
+    /// [`Limit`] and [`ConstLimit`] are extension points, so `L::MAX` is
+    /// whatever its author wrote and the compiler checks nothing about it. This
+    /// road reads its bound off the [`AdmittedLimit`] witness instead, which
+    /// means the number it compares against is one that passed admission rather
+    /// than one nobody validated. That is the whole difference, and it is why
+    /// the witness is a parameter rather than a comment: a caller that has not
+    /// admitted the family has no value to pass.
+    ///
+    /// The total structural roads beside this one — [`Bounded::from_array`],
+    /// [`NonEmptyBounded::singleton`], [`NonEmptyBounded::from_array`] — still
+    /// read `L::MAX` bare, as does [`NonEmptyBounded::admitted_const`]. Moving
+    /// them behind the same evidence is owed and is not claimed here.
     ///
     /// # Errors
     ///
-    /// Returns [`BoundedConstruction::OverLimit`] when the items exceed
-    /// `L::MAX`.
-    pub fn admitted_const(items: Vec<T>) -> Result<Self, BoundedConstruction> {
-        if items.len() <= L::MAX {
+    /// Returns [`BoundedConstruction::OverLimit`] when the items exceed the
+    /// admitted maximum.
+    pub fn admitted_const(
+        items: Vec<T>,
+        admitted: &AdmittedLimit<L>,
+    ) -> Result<Self, BoundedConstruction> {
+        if items.len() <= admitted.max() {
             Ok(Self {
                 items,
                 _family: PhantomData,

@@ -30,7 +30,9 @@ use crate::plane::{
 };
 use crate::planning::{WRAPPER_COMPONENTS, WrapperComponent};
 use threadpak::refusal::{CompletionPosture, FamilyShape, RefusalFamily, StopBound};
-use threadpak::types::{Bounded, ConstLimit, NonEmptyBounded, NonEmptyBoundedConstruction};
+use threadpak::types::{
+    AdmittedLimit, Bounded, ConstLimit, NonEmptyBounded, NonEmptyBoundedConstruction,
+};
 
 /// The owner facts one disposition cites — at least one, by shape.
 pub type TriggerCitations = NonEmptyBounded<OwnerFactRef, SelectionCitationLimit>;
@@ -182,10 +184,11 @@ impl WrapperTriggerView {
             ));
         }
         let observed = selections.len().saturating_add(omissions.len());
-        let admitted = Bounded::admitted_const(selections).and_then(|bounded_selections| {
-            Bounded::admitted_const(omissions)
-                .map(|bounded_omissions| (bounded_selections, bounded_omissions))
-        });
+        let admitted = Bounded::admitted_const(selections, &AdmittedLimit::under_ceiling())
+            .and_then(|bounded_selections| {
+                Bounded::admitted_const(omissions, &AdmittedLimit::under_ceiling())
+                    .map(|bounded_omissions| (bounded_selections, bounded_omissions))
+            });
         admitted
             .map(|(bounded_selections, bounded_omissions)| Self {
                 plan,

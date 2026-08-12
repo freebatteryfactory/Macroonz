@@ -572,8 +572,30 @@ pub struct ImmediateHistoryPredecessor(pub Commitment<PredecessorDomain>);
 /// machine owns acyclicity, the finite fan-in bound, and the commitment role
 /// that makes a join verifiable; applications own which kinds exist and what
 /// they mean.
+///
+/// # The mint is the AUTHORING road, and it names a row
+///
+/// [`declared`](Self::declared) states which row of the application's edge-kind
+/// registry this value means. Naming a row is not the same as establishing that
+/// the registry holds one, and the machine cannot establish it: which kinds
+/// exist is the application's question by law. The join against a specific
+/// registry belongs to the owner consuming the edge, and it is **owed**.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct CausationEdgeKindId(pub u16);
+pub struct CausationEdgeKindId(u16);
+
+impl CausationEdgeKindId {
+    /// Declare one row of the application's edge-kind registry.
+    #[must_use]
+    pub const fn declared(row: u16) -> Self {
+        Self(row)
+    }
+
+    /// The declared row, unresolved against any registry.
+    #[must_use]
+    pub const fn row(self) -> u16 {
+        self.0
+    }
+}
 
 /// Limit family for causation fan-in (bound value evidence-selected).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

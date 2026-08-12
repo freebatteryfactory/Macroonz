@@ -14,6 +14,25 @@ rows differ in creation law while answering the same kind of question. An
 identity is designed by classification plus one named minting rule, never by
 taste.
 
+## A declaration becomes a machine fact by admission
+
+`IdentityRole` stays open and derivable, and nothing in the type system makes a
+declared pair of columns coherent. `AdmittedIdentityRole` is the join, opaque and
+constructor-free, and `DeclaredIdentityRole` — the road that turns the two
+columns into a value that travels — is reachable only from it.
+
+The join the home's own declarations support is narrow and is stated narrowly:
+four of the seven creation laws name a class in their own declaration
+(`CreationLaw::declared_class`), and a role declaring one of those under a
+different class refuses. This reads creation → class and only there; the
+two-column law reads class → creation and stands untouched, which is exactly why
+the three class-open creation laws admit under any class.
+
+Admission establishes nothing about the derived-seat law's two seats — those are
+facts about a deployment's design, not about a pair of constants — and nothing
+about whether a concrete minter follows the creation law it declared. That claim
+is behavioral, it is owed, and it opens when minters exist.
+
 ## The six classes
 
 | Class | Shape | Question | Guard |
@@ -101,6 +120,10 @@ obligations:
     challenge_kind: compile-law
     green: laws.rs identity::a_stamped_scope_guard_matches_its_hand_written_twin
     red: testpak/tests/compile-fail/cross-scope-comparison-on-a-stamped-guard.rs
+  - id: identity.admission-joins-creation-to-class
+    challenge_kind: compile-refusal
+    green: laws.rs identity::admission_joins_creation_to_class
+    red: testpak/tests/compile-fail/an-admitted-role-minted-bare.rs
   - id: identity.stamped-representation-cannot-be-laundered
     challenge_kind: compile-refusal
     green: laws.rs identity::a_stamped_representation_cannot_be_laundered

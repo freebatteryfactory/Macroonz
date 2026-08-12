@@ -385,14 +385,59 @@ impl RefusalFamily for SelectionMaskConstruction {
 // Payload locators and block tables.
 // ---------------------------------------------------------------------------
 
-/// A bounded ordinal into the block's extent table — AUTHORED thin (the
-/// corpus uses the reference without defining it).
+/// A declared ordinal into the block's extent table.
+///
+/// # The mint is the AUTHORING road, and it names a position
+///
+/// [`declared`](Self::declared) states which position of the extent table this
+/// locator means. Naming a position is not the same as establishing that the
+/// block's extent table holds one: this value carries no evidence that its
+/// position resolves, and it never will, because the table it indexes is not
+/// its own. That join belongs to the owner consuming the locator against a
+/// specific block, and it is **owed** — no road here performs it, and no doc
+/// here implies it was performed.
+///
+/// The type distinction from [`BindingEntryRef`] is load-bearing and stays: two
+/// tables, two positions, and a position from one table does not typecheck as a
+/// position in the other.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ExtentEntryRef(pub u32);
+pub struct ExtentEntryRef(u32);
 
-/// A bounded ordinal into the block's binding table — AUTHORED thin.
+impl ExtentEntryRef {
+    /// Declare one position in the extent table.
+    #[must_use]
+    pub const fn declared(position: u32) -> Self {
+        Self(position)
+    }
+
+    /// The declared position, unresolved against any table.
+    #[must_use]
+    pub const fn position(self) -> u32 {
+        self.0
+    }
+}
+
+/// A declared ordinal into the block's binding table.
+///
+/// Its mint is [`ExtentEntryRef::declared`]'s in every respect: an authoring
+/// road that names a position, and a validation join against a block's actual
+/// binding table that stays owed to the consuming owner.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct BindingEntryRef(pub u32);
+pub struct BindingEntryRef(u32);
+
+impl BindingEntryRef {
+    /// Declare one position in the binding table.
+    #[must_use]
+    pub const fn declared(position: u32) -> Self {
+        Self(position)
+    }
+
+    /// The declared position, unresolved against any table.
+    #[must_use]
+    pub const fn position(self) -> u32 {
+        self.0
+    }
+}
 
 /// The closed two-form payload locator — never four context-free scalars,
 /// never one all-fields record: an offset or length alone locates nothing,

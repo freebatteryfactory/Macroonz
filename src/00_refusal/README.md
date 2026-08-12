@@ -63,6 +63,30 @@ envelope reason at the **family** level — issue identities stay inside the
 family value, and no owner elects a "primary issue". No implementation may match
 on a cause *spelling* rather than a family *type*.
 
+## A declaration becomes a machine fact by admission
+
+`RefusalFamily` stays open and derivable: any home, and any consumer outside this
+crate, declares a family and states its own shape and selection order. Nothing in
+the type system makes those two agree, so a road that reads either constant and
+acts on it is trusting a pair of declarations nobody joined.
+`AdmittedRefusalFamily` is that join, and it is opaque and constructor-free —
+holding one IS the evidence. The coherence road establishes that the selection
+order is non-empty exactly when the shape is single-cause; the order road
+establishes that and the typed order's projection, and is available only where a
+family declares one. The witness records which road minted it, so the weaker
+admission never passes for the stronger.
+
+The envelope's one mint demands it. Publication is the act that hands a refusal
+to a reader who will act on the family's shape and order without re-reading
+them, so an unjoined declaration does not reach it. The road's reach today is
+this crate's, because `ReasonId` carries no public mint until the evidence home
+registers reasons.
+
+What admission does NOT establish: whether the declared order is the right
+selector for the family's checks, anything about the family's Rust body, and
+family uniqueness across a whole program — that join stays the composition
+root's.
+
 ## Variant spelling
 
 Family variants spell themselves one of four ways: negated adjective
@@ -115,5 +139,13 @@ obligations:
   - id: refusal.selection-order-projects-the-typed-order
     challenge_kind: compile-law
     green: laws.rs refusal::selection_order_projects_the_typed_order
+    red: owed-to-testpak
+  - id: refusal.admission-joins-shape-and-order
+    challenge_kind: compile-refusal
+    green: laws.rs refusal::admission_joins_shape_and_order
+    red: testpak/tests/compile-fail/an-admitted-family-minted-bare.rs
+  - id: refusal.publication-requires-an-admitted-family
+    challenge_kind: compile-law
+    green: laws.rs refusal::publication_requires_an_admitted_family
     red: owed-to-testpak
 ```

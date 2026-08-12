@@ -4,8 +4,8 @@
 pub mod types;
 
 pub use types::{
-    AcceptedHlc, ChronologyAdmissionClock, ChronologyAnchor, ChronologyMerge, ChronologyProfileId,
-    ChronologySummary, ClockDomainId, ClockDomainRole, ClockObservation,
+    AcceptedHlc, ChronologyAdmission, ChronologyAdmissionClock, ChronologyAnchor, ChronologyMerge,
+    ChronologyProfileId, ChronologySummary, ClockDomainId, ClockDomainRole, ClockObservation,
     ClockObservationProvenance, ClockPolicyLimit, ClockSkewDisposition, ClockSourcePolicy,
     ConsumedBudgetEvidence, DeadlineDimension, DeadlinePolicy, DeadlinePolicyConstruction,
     DeadlinePostureView, DurationLimit, DurationLimitConstruction, HlcCoordinate,

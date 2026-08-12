@@ -455,23 +455,128 @@ impl Dimension for DeadlineDimension {}
 /// The HLC coordinate shape: physical u64 + logical u32. The logical counter
 /// overflow refuses, never wraps — u32 is the smallest width whose overflow can
 /// only mean broken clock physics, never legitimate load.
+///
+/// A bare coordinate carries no ROLE. It is the payload the two roles are made
+/// of and is never itself observed chronology or admitted chronology; which of
+/// those a coordinate stands for is [`SourceHlc`]'s and [`AcceptedHlc`]'s
+/// question, and those two are separate types precisely so the payload cannot
+/// answer it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct HlcCoordinate {
+    physical: u64,
+    logical: u32,
+}
+
+impl HlcCoordinate {
+    /// State one coordinate from its two components.
+    #[must_use]
+    pub const fn at(physical: u64, logical: u32) -> Self {
+        Self { physical, logical }
+    }
+
     /// The physical component.
-    pub physical: u64,
+    #[must_use]
+    pub const fn physical(self) -> u64 {
+        self.physical
+    }
+
     /// The logical counter.
-    pub logical: u32,
+    #[must_use]
+    pub const fn logical(self) -> u32 {
+        self.logical
+    }
 }
 
 /// Chronology supplied or observed from a source — always preserved, never
 /// clamped into a false source value.
+///
+/// # Observation is the open end of the crossing
+///
+/// [`observed`](Self::observed) is public because an observation genuinely
+/// arrives from anywhere: a peer's envelope, a decoded record, a host's reading.
+/// Admitting one is the closed end — see [`AcceptedHlc`] — and the two ends do
+/// not meet through a shared payload: reading this value back yields a
+/// role-free [`HlcCoordinate`], and no mint takes a coordinate into admitted
+/// chronology.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SourceHlc(pub HlcCoordinate);
+pub struct SourceHlc(HlcCoordinate);
+
+impl SourceHlc {
+    /// Record one observation of chronology from a source.
+    #[must_use]
+    pub const fn observed(coordinate: HlcCoordinate) -> Self {
+        Self(coordinate)
+    }
+
+    /// The observed coordinate, preserved exactly as it arrived.
+    #[must_use]
+    pub const fn coordinate(self) -> HlcCoordinate {
+        self.0
+    }
+}
 
 /// Chronology lawfully admitted into local state — yielded only by the
 /// stateful chronology admission clock.
+///
+/// # There is no mint here, and that absence IS the law
+///
+/// "Yielded only by the admission clock" was prose while the payload seat was
+/// public: anyone holding a coordinate could write `AcceptedHlc(coordinate)` and
+/// have a value the whole machine reads as admitted. The seat is private now, so
+/// the sentence is the type's shape rather than a rule a reader has to remember.
+/// The one road that produces this value is [`ChronologyAdmission::admit`], and
+/// it consumes a [`SourceHlc`] to do it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct AcceptedHlc(pub HlcCoordinate);
+pub struct AcceptedHlc(HlcCoordinate);
+
+impl AcceptedHlc {
+    /// In-crate mint for laws. Test-gated until the admission clock's
+    /// advancement rule exists — the gate comes off when a lawful minter does,
+    /// never before.
+    #[cfg(test)]
+    pub(crate) const fn for_laws(coordinate: HlcCoordinate) -> Self {
+        Self(coordinate)
+    }
+
+    /// The admitted coordinate.
+    #[must_use]
+    pub const fn coordinate(self) -> HlcCoordinate {
+        self.0
+    }
+}
+
+/// The one lawful crossing from observed chronology into admitted chronology.
+///
+/// # Why this is a contract and not a written body
+///
+/// The crossing's SHAPE is settled and is stated here: the observation is
+/// CONSUMED, exactly one admitted position comes out, the admitting clock is
+/// mutated by the act, and no road runs the other way — an admitted position
+/// cannot be turned back into an observation, and an observation cannot become
+/// admitted by any route that skips a clock.
+///
+/// The crossing's RULE is not settled and is not stated here. Counter
+/// advancement, clock-regression behavior, excessive-future classification, and
+/// the overflow refusal are the admission clock's declared machinery, and this
+/// phase carries no machinery. Writing a body would mean choosing that rule
+/// here, in the seat that is supposed to receive it — so the seat is declared
+/// empty and the rule lands in it when the time home opens for implementation.
+/// An implementor is core's own clock: nothing outside this crate can satisfy
+/// this contract, because nothing outside can mint an [`AcceptedHlc`].
+pub trait ChronologyAdmission {
+    /// The typed refusal family this admission road speaks — the clock's
+    /// overflow refusal and its regression posture are named there, by the
+    /// implementor, in its own vocabulary.
+    type Refusal;
+
+    /// Consume one observation and yield the position this clock admitted.
+    ///
+    /// # Errors
+    ///
+    /// Returns the implementor's refusal family when the observation is not
+    /// admissible under the clock's declared profile.
+    fn admit(&mut self, observed: SourceHlc) -> Result<AcceptedHlc, Self::Refusal>;
+}
 
 /// A registered chronology profile identity.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

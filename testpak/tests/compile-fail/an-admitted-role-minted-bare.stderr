@@ -1,0 +1,7 @@
+error: cannot construct `AdmittedIdentityRole<_>` with struct literal syntax due to private fields
+  --> tests/compile-fail/an-admitted-role-minted-bare.rs:21:9
+   |
+21 |         AdmittedIdentityRole { _role: PhantomData };
+   |         ^^^^^^^^^^^^^^^^^^^^   ------------------ private field
+   |
+   = note: ...and other private field `columns` that was not provided

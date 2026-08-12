@@ -387,9 +387,7 @@ mod identity_profile {
 
 mod refusal {
     use crate::plane::PlanningIssueLimit;
-    use crate::refusal::{
-        BOUND_AXES, BoundAxis, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue,
-    };
+    use crate::refusal::{BoundAxis, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue};
     use threadpak::refusal::{CompletionPosture, FamilyShape, RefusalFamily, StopBound};
     use threadpak::types::ConstLimit;
 
@@ -411,14 +409,24 @@ mod refusal {
     /// Owed reversal: adding an axis without placing it must break this law.
     #[test]
     fn bound_axes_are_six_and_closed() {
-        assert_eq!(BOUND_AXES.len(), 6);
-        let indexes: Vec<usize> = BOUND_AXES.iter().copied().map(axis_index).collect();
+        assert_eq!(BoundAxis::ALL.len(), 6);
+        let indexes: Vec<usize> = BoundAxis::ALL.iter().copied().map(axis_index).collect();
         assert!(
             indexes
                 .iter()
                 .enumerate()
                 .all(|(position, index)| *index == position)
         );
+        // The stamped roster answers its own layout: the hand-written index
+        // above and the generated slot are the same position, and the stable
+        // name is declared apart from the Rust spelling.
+        assert!(
+            BoundAxis::ALL
+                .iter()
+                .copied()
+                .all(|axis| usize::from(axis.slot()) == axis_index(axis))
+        );
+        assert_eq!(BoundAxis::TraceEntries.stable_name(), "trace-entries");
     }
 
     /// law: refusal.family-is-an-issue-collection — the planning family declares
@@ -514,7 +522,7 @@ mod diagnostics {
     use crate::token::SpanHandle;
     use threadpak::declaration::{CoordinateRole, SourceCoordinate};
     use threadpak::evidence::CauseDisposition;
-    use threadpak::types::Bounded;
+    use threadpak::types::{AdmittedLimit, Bounded};
 
     /// The closed phase roster, proven closed by an exhaustive match.
     const fn phase_index(phase: MacrocPhase) -> usize {
@@ -563,10 +571,13 @@ mod diagnostics {
         };
         let description = HumanProjection::projected("bind the declared host contract");
         let repairs = description.map_err(|_| ()).and_then(|description| {
-            Bounded::admitted_const(vec![RepairAction {
-                declared_by,
-                description,
-            }])
+            Bounded::admitted_const(
+                vec![RepairAction {
+                    declared_by,
+                    description,
+                }],
+                &AdmittedLimit::under_ceiling(),
+            )
             .map_err(|_| ())
         });
         let built = repairs.map(|repairs| MacrocDiagnostic {
@@ -935,7 +946,7 @@ mod planning {
     };
     use crate::question::ExplanationQuestion;
     use crate::refusal::{PlanSeat, ProjectionPlanning, ProjectionPlanningIssue};
-    use threadpak::types::{Bounded, NonEmptyBounded};
+    use threadpak::types::{AdmittedLimit, Bounded, NonEmptyBounded};
 
     /// One owner fact, for laws that need a citation.
     fn owner_fact() -> OwnerFactRef {
@@ -1052,10 +1063,13 @@ mod planning {
     /// law.
     #[test]
     fn several_outputs_and_nonclaims_ride_the_same_plan() {
-        let nonclaims = Bounded::admitted_const(vec![Nonclaim {
-            unclaimed: crate::plane::for_laws(23),
-            because: owner_fact(),
-        }])
+        let nonclaims = Bounded::admitted_const(
+            vec![Nonclaim {
+                unclaimed: crate::plane::for_laws(23),
+                because: owner_fact(),
+            }],
+            &AdmittedLimit::under_ceiling(),
+        )
         .map_err(|_| ());
         let membership = PlannedMembership::declared(
             member(RenderedImplementation::RenderedFamilyImpl, 14),

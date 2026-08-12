@@ -37,41 +37,22 @@ use threadpak::types::Bounded;
 
 use super::plan::derive_impl_kind;
 
-/// The seat one explanation could not bind its subject to.
-///
-/// Named seats rather than one "something was missing": a caller repairing a
-/// derivation needs to know whether the PLAN failed to declare the member, the
-/// CLOSURE failed to prove its bytes, or the plan cited no owner fact at all,
-/// and those are three different repairs.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ExplanationSeat {
-    /// The planned member standing under the family implementation's role.
-    PlannedFamilyMember,
-    /// The digest the closure proved over that member's rendered bytes.
-    ProvedFamilyDigest,
-    /// The first owner fact the plan declares as an assumption.
-    DeclaredAssumption,
-}
-
-impl ExplanationSeat {
-    /// The seat's position in the declared roster.
-    #[must_use]
-    pub const fn slot(self) -> u8 {
-        match self {
-            Self::PlannedFamilyMember => 0,
-            Self::ProvedFamilyDigest => 1,
-            Self::DeclaredAssumption => 2,
-        }
-    }
-
-    /// The seat rendered for a person. A projection: nothing reads it back.
-    #[must_use]
-    pub const fn described(self) -> &'static str {
-        match self {
-            Self::PlannedFamilyMember => "the planned member under the family role",
-            Self::ProvedFamilyDigest => "the digest the closure proved over the family bytes",
-            Self::DeclaredAssumption => "the first owner fact the plan declares",
-        }
+threadpak::closed_register! {
+    /// The seat one explanation could not bind its subject to.
+    ///
+    /// Named seats rather than one "something was missing": a caller repairing a
+    /// derivation needs to know whether the PLAN failed to declare the member, the
+    /// CLOSURE failed to prove its bytes, or the plan cited no owner fact at all,
+    /// and those are three different repairs.
+    pub enum ExplanationSeat {
+        /// The planned member standing under the family implementation's role.
+        PlannedFamilyMember = "planned-family-member",
+            "the planned member under the family role";
+        /// The digest the closure proved over that member's rendered bytes.
+        ProvedFamilyDigest = "proved-family-digest",
+            "the digest the closure proved over the family bytes";
+        /// The first owner fact the plan declares as an assumption.
+        DeclaredAssumption = "declared-assumption", "the first owner fact the plan declares";
     }
 }
 

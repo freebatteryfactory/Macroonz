@@ -18,7 +18,7 @@ use super::{
     SpanHandle, TokenPath,
 };
 use crate::plane::{CapturedTokenLimit, CapturedTreeTokenLimit};
-use threadpak::types::{Bounded, BoundedConstruction, ConstLimit};
+use threadpak::types::{AdmittedLimit, Bounded, BoundedConstruction, ConstLimit};
 
 impl SpanHandle {
     /// The handle at one index of the producer's table.
@@ -54,7 +54,7 @@ impl TokenPath {
     pub fn stepped(&self, index: u32) -> Result<Self, CaptureBound> {
         let mut steps: Vec<u32> = self.steps.iter().copied().collect();
         steps.push(index);
-        Bounded::admitted_const(steps)
+        Bounded::admitted_const(steps, &AdmittedLimit::under_ceiling())
             .map(|steps| Self { steps })
             .map_err(|_| CaptureBound::DepthUnbounded)
     }
@@ -220,7 +220,7 @@ impl CapturedTokenTree {
         path: TokenPath,
         span: SpanHandle,
     ) -> Result<Self, CaptureBound> {
-        Bounded::admitted_const(trees)
+        Bounded::admitted_const(trees, &AdmittedLimit::under_ceiling())
             .map(|trees| Self::captured(CapturedPayload::Group { delimiter, trees }, path, span))
             .map_err(|_| CaptureBound::LevelUnbounded)
     }
@@ -252,7 +252,7 @@ impl CapturedInput {
     /// trees than the declared magnitude admits. A capture that does not fit
     /// refuses rather than reading part of a declaration.
     pub fn taken(trees: Vec<CapturedTokenTree>, issued: u32) -> Result<Self, CaptureBound> {
-        Bounded::admitted_const(trees)
+        Bounded::admitted_const(trees, &AdmittedLimit::under_ceiling())
             .map(|trees| Self { trees, issued })
             .map_err(|_| CaptureBound::LevelUnbounded)
     }
@@ -336,7 +336,8 @@ impl GeneratedToken {
         delimiter: GeneratedDelimiter,
         tokens: Vec<Self>,
     ) -> Result<Self, BoundedConstruction> {
-        Bounded::admitted_const(tokens).map(|tokens| Self::Group { delimiter, tokens })
+        Bounded::admitted_const(tokens, &AdmittedLimit::under_ceiling())
+            .map(|tokens| Self::Group { delimiter, tokens })
     }
 
     /// The absolute path `::a::b::c`, as the tokens that spell it.
@@ -378,7 +379,8 @@ impl GeneratedTree {
     /// Returns [`BoundedConstruction::OverLimit`] when the tree carries more
     /// top-level tokens than the declared magnitude admits.
     pub fn assembled(tokens: Vec<GeneratedToken>) -> Result<Self, BoundedConstruction> {
-        Bounded::admitted_const(tokens).map(|tokens| Self { tokens })
+        Bounded::admitted_const(tokens, &AdmittedLimit::under_ceiling())
+            .map(|tokens| Self { tokens })
     }
 
     /// The top-level tokens, in the order they were written.

@@ -500,10 +500,32 @@ pub enum CommandKind {
     SecretAuthorityMutation,
 }
 
-/// A bounded position in the AUTHORED command order — never a host or wire
+/// A declared position in the AUTHORED command order — never a host or wire
 /// identity.
+///
+/// # The mint is the AUTHORING road, and it names a position
+///
+/// [`declared`](Self::declared) states which position of a batch's authored
+/// order this ordinal means. Naming a position is not the same as establishing
+/// that a batch holds a command there: this value carries no evidence that its
+/// position resolves against any command list, and the join against a specific
+/// batch belongs to the owner consuming it. That join is **owed**.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct CommandOrdinal(pub u32);
+pub struct CommandOrdinal(u32);
+
+impl CommandOrdinal {
+    /// Declare one position in a batch's authored command order.
+    #[must_use]
+    pub const fn declared(position: u32) -> Self {
+        Self(position)
+    }
+
+    /// The declared position, unresolved against any batch.
+    #[must_use]
+    pub const fn position(self) -> u32 {
+        self.0
+    }
+}
 
 /// The command-contract domain marker (expected result / receipt /
 /// reconciliation contracts).

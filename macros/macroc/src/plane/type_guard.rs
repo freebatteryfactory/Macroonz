@@ -18,7 +18,7 @@ use super::{
 use core::marker::PhantomData;
 use threadpak::identity::Commitment;
 use threadpak::refusal::ReasonId;
-use threadpak::types::{Bounded, BoundedConstruction, ConstLimit, Limit};
+use threadpak::types::{AdmittedLimit, Bounded, BoundedConstruction, ConstLimit, Limit};
 
 impl<Subject> OwnerIdentityRef<Subject> {
     /// The production road: project one machine commitment into the plane. The
@@ -103,7 +103,8 @@ impl<L: ConstLimit> HumanProjection<L> {
     /// family's declared byte maximum. A projection that does not fit refuses
     /// rather than truncating: a silently cut explanation is a false one.
     pub fn projected(text: &str) -> Result<Self, BoundedConstruction> {
-        Bounded::admitted_const(text.as_bytes().to_vec()).map(|text| Self { text })
+        Bounded::admitted_const(text.as_bytes().to_vec(), &AdmittedLimit::under_ceiling())
+            .map(|text| Self { text })
     }
 
     /// The seam behind [`human_projection!`], which is the only road to it.

@@ -39,7 +39,9 @@ use crate::planning::{
 use crate::question::{ExplanationQuestion, QuestionApplicability};
 use core::marker::PhantomData;
 use threadpak::refusal::{CompletionPosture, FamilyShape, RefusalFamily, StopBound};
-use threadpak::types::{Bounded, ConstLimit, NonEmptyBounded, NonEmptyBoundedConstruction};
+use threadpak::types::{
+    AdmittedLimit, Bounded, ConstLimit, NonEmptyBounded, NonEmptyBoundedConstruction,
+};
 
 /// One typed answer. Each variant carries the exact values that answer its
 /// question — identities, typed rosters, and typed dispositions, never a
@@ -314,7 +316,7 @@ impl<K: ProjectionKind> ProjectionExplanationView<K> {
             ));
         }
         let observed = answers.len();
-        Bounded::admitted_const(answers)
+        Bounded::admitted_const(answers, &AdmittedLimit::under_ceiling())
             .map(|answers| Self {
                 answers,
                 _kind: PhantomData,

@@ -106,6 +106,23 @@ workspace_members:
   - xtask/fixtures/renamed-consumer
 ```
 
+## A declared magnitude becomes a machine fact by admission
+
+`Limit` and `ConstLimit` stay open: any home, and any frontend outside this
+crate, declares a limit family and states its own magnitude, and the compiler
+checks nothing about the number. `AdmittedLimit` is what a declaration passes
+through before a road treats it as a fact — opaque, family-tagged, and minted by
+a const road that establishes two things at compile time: the family admits at
+least one item, and its magnitude stands under `WORKSPACE_LIMIT_CEILING`, a
+number this repository chose rather than inherited. `Bounded::admitted_const`
+reads its bound off that witness rather than off the declaration, so the number
+it compares against is one that passed admission.
+
+The ceiling on the claim: admission says nothing about whether a magnitude is the
+right one for its domain, and the roads beside it — `from_array`, `singleton`,
+`NonEmptyBounded::admitted_const` — still read `L::MAX` bare. Moving them behind
+the same evidence is owed.
+
 ## Root calculus obligations
 
 The root calculus (`src/types.rs`) is the one home without a numbered
@@ -142,6 +159,10 @@ obligations:
     challenge_kind: compile-law
     green: laws.rs root::bounded_construction_is_a_seam
     red: testpak/tests/compile-fail/singleton-under-a-zero-maximum-family.rs
+  - id: root.admission-precedes-a-trusted-magnitude
+    challenge_kind: compile-refusal
+    green: laws.rs root::admission_precedes_a_trusted_magnitude
+    red: testpak/tests/compile-fail/a-magnitude-past-the-workspace-ceiling.rs
   - id: root.reading-is-not-gaining
     challenge_kind: compile-law
     green: laws.rs root::reading_is_not_gaining
