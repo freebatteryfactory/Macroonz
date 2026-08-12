@@ -29,8 +29,8 @@ use crate::planning::{
 };
 use crate::token::{SpanHandle, SpanTable};
 use threadpak::refusal::{
-    CauseId, CauseKey, CauseOrderDeclaration, DeclaredCause, DeclaredCauseOrder, FamilyShape,
-    LocalCauseKey, RefusalFamily, RefusalFamilyId,
+    CauseId, CauseOrderDeclaration, DeclaredCause, DeclaredCauseOrder, FamilyShape, LocalCauseKey,
+    RefusalFamily, RefusalFamilyId,
 };
 use threadpak::types::Bounded;
 
@@ -76,11 +76,11 @@ pub struct CrateBinding {
 /// One cause as the capture read it: the Rust variant that spells it, and the
 /// LOCAL key the author declared for it.
 ///
-/// The local key is not the cause identity. The identity is the family's
-/// identity joined to this key under band 00's canonical key grammar, and the
-/// derive composes it rather than asking the author to write it out — which is
-/// what keeps a family's causes from drifting apart one hand-typed prefix at a
-/// time.
+/// The local key is not the cause identity. The identity is band 00's pair —
+/// the family's declared identity in one seat and this key in the other — and
+/// the derive mints it from the two rather than asking the author to write a
+/// whole identity out, which is what keeps a family's causes from drifting apart
+/// one hand-typed prefix at a time.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CapturedCause {
     spelling: String,
@@ -153,7 +153,8 @@ macro_rules! capture_causes {
                 $(
                     DeclaredCause::declared(
                         CauseId::declared(
-                            concat!("macroc.refusal-derive-capture.", $key),
+                            RefusalDeriveCapture::FAMILY,
+                            LocalCauseKey::declared($key),
                         ),
                         stringify!($variant),
                     )
@@ -166,11 +167,11 @@ macro_rules! capture_causes {
             pub const FAMILY: RefusalFamilyId =
                 RefusalFamilyId::declared("macroc.refusal-derive-capture");
 
-            /// The derived key pair for one cause: the family, and the cause's
-            /// local key inside it.
+            /// One cause's stable identity: this family, and the cause's local
+            /// key inside it.
             #[must_use]
-            pub const fn key(self) -> CauseKey {
-                CauseKey::declared(
+            pub const fn id(self) -> CauseId {
+                CauseId::declared(
                     Self::FAMILY,
                     match self {
                         $( Self::$variant => LocalCauseKey::declared($key) ),+
@@ -362,8 +363,8 @@ pub struct RefusalOwnerFacts {
     /// The refusal home's fact that the canonical cause order stands for
     /// single-cause families and for no other shape.
     pub canonical_order_is_shape_ruled: OwnerFactRef,
-    /// The refusal home's fact that a cause identity is its family's identity
-    /// joined to its local key.
+    /// The refusal home's fact that a cause identity is the pair of its
+    /// family's identity and its local key.
     pub cause_key_grammar: OwnerFactRef,
 }
 

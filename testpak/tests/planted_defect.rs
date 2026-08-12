@@ -26,14 +26,20 @@ const DECLARATION: &str = "#[refusal(family = \"testpak.demo\", shape = single_c
 /// The declared spellings, stated independently of the services.
 const DECLARED_SPELLINGS: [&str; 3] = ["NotCanonical", "NotAdmitted", "Unbounded"];
 
-/// The declared stable identities, stated independently of the services. The
-/// caller writes them out in full HERE precisely because the derive composes
+/// The declared stable identities, stated independently of the services, each
+/// as the `(family, local)` pair the artifact spells.
+///
+/// The caller writes both seats out HERE precisely because the derive mints
 /// them from a family identity and three local keys — so the two statements are
-/// independent.
-const DECLARED_IDENTITIES: [&str; 3] = [
-    "testpak.demo.not-canonical",
-    "testpak.demo.not-admitted",
-    "testpak.demo.unbounded",
+/// independent. They are stated as pairs rather than as joined names because a
+/// cause identity IS a pair: a caller asserting over `testpak.demo.unbounded`
+/// would be asserting over a string the artifact does not carry, and the join
+/// it would have to compose is the producer's grammar rather than the caller's
+/// declaration.
+const DECLARED_IDENTITIES: [(&str, &str); 3] = [
+    ("testpak.demo", "not-canonical"),
+    ("testpak.demo", "not-admitted"),
+    ("testpak.demo", "unbounded"),
 ];
 
 /// The trait paths the artifact declares, in the order it declares them —
@@ -53,6 +59,12 @@ const DECLARED_ROW_CONSTRUCTOR: &str = "::threadpak::refusal::DeclaredCause::dec
 
 /// The constructor every row's stable identity is minted through.
 const DECLARED_IDENTITY_CONSTRUCTOR: &str = "::threadpak::refusal::CauseId::declared";
+
+/// The constructor every identity's family seat is declared through.
+const DECLARED_FAMILY_CONSTRUCTOR: &str = "::threadpak::refusal::RefusalFamilyId::declared";
+
+/// The constructor every identity's local seat is declared through.
+const DECLARED_LOCAL_CONSTRUCTOR: &str = "::threadpak::refusal::LocalCauseKey::declared";
 
 /// The attributes the declaration admits on an implementation or a member: none
 /// at all. A doc comment is not one of these — it decides nothing — and a `cfg`
@@ -77,6 +89,8 @@ const DECLARED_STRUCTURE: DeclaredStructure<'static> = DeclaredStructure {
     order_constructor: DECLARED_ORDER_CONSTRUCTOR,
     row_constructor: DECLARED_ROW_CONSTRUCTOR,
     identity_constructor: DECLARED_IDENTITY_CONSTRUCTOR,
+    family_constructor: DECLARED_FAMILY_CONSTRUCTOR,
+    local_constructor: DECLARED_LOCAL_CONSTRUCTOR,
 };
 
 /// The lawful artifact, as the receipt-rich road produced and closed over it.

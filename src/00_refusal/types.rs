@@ -107,40 +107,6 @@ pub enum FamilyShape {
     InseparablePair,
 }
 
-/// The stable identity of one declared cause inside one refusal family.
-///
-/// Separate from the Rust variant that spells it, from any display text, from
-/// prose, and from position — and that separation is the whole point. Renaming a
-/// Rust variant must not change what a cause *is* or where it sits in the
-/// declared order; a change of a cause's *meaning* must mint a different
-/// identity rather than reuse this one. A cause identity is a semantic
-/// commitment on exactly the terms [`ReasonId`] is: never recycled.
-///
-/// Opaque, equality and hashing only, and no ordering: a cause identity carries
-/// no rank of its own. Rank is [`CauseOrdinal`]'s question, and only inside one
-/// family's declared order.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct CauseId(&'static str);
-
-impl CauseId {
-    /// Declare one stable cause identity.
-    ///
-    /// The text is an identity and only an identity: nothing in the machine
-    /// reads it for meaning, renders it to a person, or derives a message from
-    /// it. It exists so that the identity survives being written down — in a
-    /// README row, in a registered reason, in a generated implementation.
-    #[must_use]
-    pub const fn declared(identity: &'static str) -> Self {
-        Self(identity)
-    }
-
-    /// The declared identity, for equality and for machine-readable joins.
-    #[must_use]
-    pub const fn as_declared(self) -> &'static str {
-        self.0
-    }
-}
-
 /// The stable identity of one refusal family.
 ///
 /// Spelled `<domain>.<family>` — two lowercase kebab-case segments, the domain
@@ -168,7 +134,7 @@ impl RefusalFamilyId {
 ///
 /// A local key is unique inside its family and says nothing outside it. Two
 /// families may both declare `not-canonical`; that is a shared word, never
-/// shared ownership, and the [`CauseKey`] pair is what keeps the two apart.
+/// shared ownership, and [`CauseId`]'s family seat is what keeps the two apart.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LocalCauseKey(&'static str);
 
@@ -186,26 +152,49 @@ impl LocalCauseKey {
     }
 }
 
-/// The derived pair one cause identity is built from: which family, and which
-/// cause inside it.
+/// The stable identity of one declared cause: which family declares it, and
+/// which cause it is inside that family.
 ///
-/// # The canonical key grammar
+/// # The identity IS the pair
+///
+/// Two seats, both required, neither derivable from the other. A cause is not a
+/// name that happens to look like a family's name with something after it; it
+/// is a position inside exactly one family, and the value says which family
+/// without anybody parsing anything. Two families may declare the same local
+/// key — `not-canonical` is an ordinary word — and the two identities are
+/// different values because their family seats differ. A shared word is shared
+/// vocabulary, never shared ownership, and here the shape is what says so.
+///
+/// Separate from the Rust variant that spells it, from any display text, from
+/// prose, and from position — and that separation is the whole point. Renaming
+/// a Rust variant must not change what a cause *is* or where it sits in the
+/// declared order; a change of a cause's *meaning* must mint a different
+/// identity rather than reuse this one. A cause identity is a semantic
+/// commitment on exactly the terms [`ReasonId`] is: never recycled.
+///
+/// Equality and hashing only, and no ordering: a cause identity carries no rank
+/// of its own. Rank is [`CauseOrdinal`]'s question, and only inside one family's
+/// declared order.
+///
+/// # The canonical text form is derived, never stored
 ///
 /// ```text
-/// CauseId  ::=  <family> "." <local>
-/// family   ::=  <domain> "." <family-name>
+/// text form  ::=  <family> "." <local>
+/// family     ::=  <domain> "." <family-name>
 /// domain, family-name, local  ::=  lowercase kebab-case segment
 /// ```
 ///
-/// So `refusal.derive-capture` + `not-an-enum` joins to
-/// `refusal.derive-capture.not-an-enum`. The join is the grammar and nothing
-/// else: nothing in the machine parses a [`CauseId`] back into a pair, because
-/// an identity is read for equality and never for meaning.
+/// So `refusal.derive-capture` and `not-an-enum` render as
+/// `refusal.derive-capture.not-an-enum`. [`CauseId::canonical_text`] composes
+/// that text out of the two seats every time it is asked; nothing stores it, and
+/// nothing parses it back. A stored join would be a third value that could
+/// disagree with the two it was joined from, and a parse back would make the
+/// separator load-bearing over a segment that is allowed to contain one.
 ///
-/// # What the pair makes provable, and what it does not
+/// # What the shape makes provable, and what it does not
 ///
-/// A generator holding the pair can prove **local uniqueness** — that no two
-/// causes in one family declare the same local key — and it can prove the
+/// A reader holding a family's causes can prove **local uniqueness** — that no
+/// two causes in one family declare the same local key — and it can prove the
 /// family's cause count fits [`CauseOrdinal`]'s declared magnitude. Both are
 /// facts about ONE declaration and are provable where that declaration is read.
 ///
@@ -215,20 +204,20 @@ impl LocalCauseKey {
 /// is assembled. That join is owed to the composition root and is stated as owed
 /// rather than quietly assumed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct CauseKey {
+pub struct CauseId {
     family: RefusalFamilyId,
     local: LocalCauseKey,
 }
 
-impl CauseKey {
-    /// Declare one cause key: the family first, because the key is a position
-    /// inside that family.
+impl CauseId {
+    /// Declare one stable cause identity: the family first, because the
+    /// identity is a position inside that family.
     #[must_use]
     pub const fn declared(family: RefusalFamilyId, local: LocalCauseKey) -> Self {
         Self { family, local }
     }
 
-    /// The family this key sits in.
+    /// The family that declares this cause.
     #[must_use]
     pub const fn family(self) -> RefusalFamilyId {
         self.family
@@ -238,6 +227,21 @@ impl CauseKey {
     #[must_use]
     pub const fn local(self) -> LocalCauseKey {
         self.local
+    }
+
+    /// This identity's canonical text form, composed from the two seats.
+    ///
+    /// A projection for writing an identity down — in a README row, in a
+    /// registered reason, in a rendered implementation. Nothing in the machine
+    /// reads it back, matches on it, or decides by it: identity questions are
+    /// answered by comparing values, which is why the text is composed on demand
+    /// and never carried.
+    #[must_use]
+    pub fn canonical_text(self) -> String {
+        let mut text = String::from(self.family.as_declared());
+        text.push('.');
+        text.push_str(self.local.as_declared());
+        text
     }
 }
 
@@ -437,7 +441,10 @@ impl RefusalFamily for crate::types::BoundedConstruction {
 impl CauseOrderDeclaration for crate::types::BoundedConstruction {
     const DECLARED_ORDER: DeclaredCauseOrder =
         DeclaredCauseOrder::declared(&[DeclaredCause::declared(
-            CauseId::declared("root.bounded-construction.over-limit"),
+            CauseId::declared(
+                RefusalFamilyId::declared("root.bounded-construction"),
+                LocalCauseKey::declared("over-limit"),
+            ),
             "OverLimit",
         )]);
 }
@@ -447,13 +454,17 @@ impl RefusalFamily for crate::types::NonEmptyBoundedConstruction {
     const SELECTION_ORDER: &'static [&'static str] = &["OverLimit"];
 }
 
-/// The two root construction families share a cause *spelling* and share no
-/// cause *identity*: a shared word is shared vocabulary, never shared ownership,
-/// and the stable identities say so where the spellings cannot.
+/// The two root construction families share a cause *spelling* AND a cause
+/// *local key*, and share no cause *identity*: a shared word is shared
+/// vocabulary, never shared ownership, and the family seat of a stable identity
+/// says so where neither the spelling nor the local key can.
 impl CauseOrderDeclaration for crate::types::NonEmptyBoundedConstruction {
     const DECLARED_ORDER: DeclaredCauseOrder =
         DeclaredCauseOrder::declared(&[DeclaredCause::declared(
-            CauseId::declared("root.non-empty-bounded-construction.over-limit"),
+            CauseId::declared(
+                RefusalFamilyId::declared("root.non-empty-bounded-construction"),
+                LocalCauseKey::declared("over-limit"),
+            ),
             "OverLimit",
         )]);
 }

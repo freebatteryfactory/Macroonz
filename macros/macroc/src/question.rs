@@ -14,9 +14,14 @@
 //! is a dependency order nobody can state. Seated here, the roster is a leaf
 //! both sides import, and the order is a straight line again.
 //!
-//! The module imports nothing at all, from this crate or from the machine. That
-//! is the point: a closed roster of names is the one thing in the plane with no
-//! dependencies to have.
+//! The module names nothing from this crate, and that is the point: a closed
+//! roster of names is the one thing in the plane with no machinery to depend
+//! on. The one thing it takes from the machine is the authoring stamp that
+//! writes a closed roster down. A stamp decides no meaning, carries no
+//! semantic noun, and reaches no band's material, so taking it costs the leaf
+//! nothing it was protecting — what the leaf protects is the absence of an edge
+//! to another module of THIS crate, and that absence is exactly as complete as
+//! it was.
 
 /// The version of the explanation protocol this roster states.
 ///
@@ -31,107 +36,51 @@
 /// is a different claim.
 pub const EXPLANATION_PROTOCOL_VERSION: u32 = 1;
 
-/// The fourteen questions. A generated thing that cannot answer one of these is
-/// a generated thing nobody can hold to account.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ExplanationQuestion {
-    /// What are you?
-    WhatAreYou,
-    /// Which owner required you?
-    WhichOwnerRequired,
-    /// Which declaration caused you?
-    WhichDeclarationCaused,
-    /// Which template or pattern instance produced you?
-    WhichTemplateOrPatternInstance,
-    /// Which graph and profile were you decided under?
-    WhichGraphAndProfile,
-    /// Which capabilities selected your wrappers?
-    WhichCapabilitiesSelectedWrappers,
-    /// Which assumptions and specializations do you rest on?
-    WhichAssumptionsAndSpecializations,
-    /// Which output identity and digest are you?
-    WhichOutputIdentityAndDigest,
-    /// Which tests challenge you?
-    WhichTestsChallenge,
-    /// Which benchmarks measure you?
-    WhichBenchmarksMeasure,
-    /// Which runtime traces correspond to you?
-    WhichRuntimeTracesCorrespond,
-    /// What invalidates you?
-    WhatInvalidates,
-    /// Why was a related projection not generated?
-    WhyWasRelatedProjectionNotGenerated,
-    /// What repairs a refusal?
-    WhatRepairsARefusal,
-}
-
-/// The declared question roster, in the order the protocol states it.
-pub const EXPLANATION_QUESTIONS: [ExplanationQuestion; 14] = [
-    ExplanationQuestion::WhatAreYou,
-    ExplanationQuestion::WhichOwnerRequired,
-    ExplanationQuestion::WhichDeclarationCaused,
-    ExplanationQuestion::WhichTemplateOrPatternInstance,
-    ExplanationQuestion::WhichGraphAndProfile,
-    ExplanationQuestion::WhichCapabilitiesSelectedWrappers,
-    ExplanationQuestion::WhichAssumptionsAndSpecializations,
-    ExplanationQuestion::WhichOutputIdentityAndDigest,
-    ExplanationQuestion::WhichTestsChallenge,
-    ExplanationQuestion::WhichBenchmarksMeasure,
-    ExplanationQuestion::WhichRuntimeTracesCorrespond,
-    ExplanationQuestion::WhatInvalidates,
-    ExplanationQuestion::WhyWasRelatedProjectionNotGenerated,
-    ExplanationQuestion::WhatRepairsARefusal,
-];
-
-impl ExplanationQuestion {
-    /// The question's position in the declared roster — what a canonical
-    /// encoding of a coverage issue carries for it.
-    #[must_use]
-    pub const fn slot(self) -> u8 {
-        match self {
-            Self::WhatAreYou => 0,
-            Self::WhichOwnerRequired => 1,
-            Self::WhichDeclarationCaused => 2,
-            Self::WhichTemplateOrPatternInstance => 3,
-            Self::WhichGraphAndProfile => 4,
-            Self::WhichCapabilitiesSelectedWrappers => 5,
-            Self::WhichAssumptionsAndSpecializations => 6,
-            Self::WhichOutputIdentityAndDigest => 7,
-            Self::WhichTestsChallenge => 8,
-            Self::WhichBenchmarksMeasure => 9,
-            Self::WhichRuntimeTracesCorrespond => 10,
-            Self::WhatInvalidates => 11,
-            Self::WhyWasRelatedProjectionNotGenerated => 12,
-            Self::WhatRepairsARefusal => 13,
-        }
-    }
-
-    /// The question as it is asked, for a person to read. A projection of the
-    /// typed value: nothing reads it back.
-    #[must_use]
-    pub const fn described(self) -> &'static str {
-        match self {
-            Self::WhatAreYou => "what are you",
-            Self::WhichOwnerRequired => "which owner required you",
-            Self::WhichDeclarationCaused => "which declaration caused you",
-            Self::WhichTemplateOrPatternInstance => {
-                "which template or pattern instance produced you"
-            }
-            Self::WhichGraphAndProfile => "which graph and profile were you decided under",
-            Self::WhichCapabilitiesSelectedWrappers => "which capabilities selected your wrappers",
-            Self::WhichAssumptionsAndSpecializations => {
-                "which assumptions and specializations do you rest on"
-            }
-            Self::WhichOutputIdentityAndDigest => "which output identity and digest are you",
-            Self::WhichTestsChallenge => "which tests challenge you",
-            Self::WhichBenchmarksMeasure => "which benchmarks measure you",
-            Self::WhichRuntimeTracesCorrespond => "which runtime traces correspond to you",
-            Self::WhatInvalidates => "what invalidates you",
-            Self::WhyWasRelatedProjectionNotGenerated => {
-                "why was a related projection not generated"
-            }
-            Self::WhatRepairsARefusal => "what repairs a refusal",
-        }
+threadpak::closed_register! {
+    /// The fourteen questions. A generated thing that cannot answer one of
+    /// these is a generated thing nobody can hold to account.
+    ///
+    /// `ALL` is the declared roster in protocol order, `slot` is what a
+    /// canonical encoding of a coverage issue carries for a question, and
+    /// `described` is the question as it is asked.
+    pub enum ExplanationQuestion {
+        /// What are you?
+        WhatAreYou = "what-are-you", "what are you";
+        /// Which owner required you?
+        WhichOwnerRequired = "which-owner-required", "which owner required you";
+        /// Which declaration caused you?
+        WhichDeclarationCaused = "which-declaration-caused",
+            "which declaration caused you";
+        /// Which template or pattern instance produced you?
+        WhichTemplateOrPatternInstance = "which-template-or-pattern-instance",
+            "which template or pattern instance produced you";
+        /// Which graph and profile were you decided under?
+        WhichGraphAndProfile = "which-graph-and-profile",
+            "which graph and profile were you decided under";
+        /// Which capabilities selected your wrappers?
+        WhichCapabilitiesSelectedWrappers = "which-capabilities-selected-wrappers",
+            "which capabilities selected your wrappers";
+        /// Which assumptions and specializations do you rest on?
+        WhichAssumptionsAndSpecializations = "which-assumptions-and-specializations",
+            "which assumptions and specializations do you rest on";
+        /// Which output identity and digest are you?
+        WhichOutputIdentityAndDigest = "which-output-identity-and-digest",
+            "which output identity and digest are you";
+        /// Which tests challenge you?
+        WhichTestsChallenge = "which-tests-challenge", "which tests challenge you";
+        /// Which benchmarks measure you?
+        WhichBenchmarksMeasure = "which-benchmarks-measure",
+            "which benchmarks measure you";
+        /// Which runtime traces correspond to you?
+        WhichRuntimeTracesCorrespond = "which-runtime-traces-correspond",
+            "which runtime traces correspond to you";
+        /// What invalidates you?
+        WhatInvalidates = "what-invalidates", "what invalidates you";
+        /// Why was a related projection not generated?
+        WhyWasRelatedProjectionNotGenerated = "why-was-related-projection-not-generated",
+            "why was a related projection not generated";
+        /// What repairs a refusal?
+        WhatRepairsARefusal = "what-repairs-a-refusal", "what repairs a refusal";
     }
 }
 

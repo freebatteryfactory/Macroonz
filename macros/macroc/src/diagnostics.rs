@@ -31,32 +31,28 @@ use threadpak::evidence::types::ReleaseArtifactDomain;
 use threadpak::refusal::StopBound;
 use threadpak::types::Bounded;
 
-/// Which act of the services was running when the disagreement was observed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum MacrocPhase {
-    /// Capturing the caller's declared input.
-    Capture,
-    /// Constructing declaration material from it.
-    DeclarationConstruction,
-    /// Linking that material into a closed graph.
-    Linking,
-    /// Planning a projection over the closed graph.
-    Planning,
-    /// Rendering a planned output.
-    Rendering,
-    /// Inspecting or explaining an existing plan or output.
-    Inspection,
+threadpak::closed_register! {
+    /// Which act of the services was running when the disagreement was
+    /// observed.
+    ///
+    /// `ALL` is the roster in the order the services run the phases, and `slot`
+    /// is that order read back as a position.
+    pub enum MacrocPhase {
+        /// Capturing the caller's declared input.
+        Capture = "capture", "capturing the caller's declared input";
+        /// Constructing declaration material from it.
+        DeclarationConstruction = "declaration-construction",
+            "constructing declaration material from the captured input";
+        /// Linking that material into a closed graph.
+        Linking = "linking", "linking declaration material into a closed graph";
+        /// Planning a projection over the closed graph.
+        Planning = "planning", "planning a projection over the closed graph";
+        /// Rendering a planned output.
+        Rendering = "rendering", "rendering a planned output";
+        /// Inspecting or explaining an existing plan or output.
+        Inspection = "inspection", "inspecting or explaining an existing plan or output";
+    }
 }
-
-/// The declared phase roster, in the order the services run them.
-pub const MACROC_PHASES: [MacrocPhase; 6] = [
-    MacrocPhase::Capture,
-    MacrocPhase::DeclarationConstruction,
-    MacrocPhase::Linking,
-    MacrocPhase::Planning,
-    MacrocPhase::Rendering,
-    MacrocPhase::Inspection,
-];
 
 /// How what was observed differs from the contract that was expected. A typed
 /// classification, never a sentence: the sentence is a projection of this.

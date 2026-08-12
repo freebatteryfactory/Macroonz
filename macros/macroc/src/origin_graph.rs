@@ -29,80 +29,48 @@ use crate::plane::{
 use crate::refusal::{BoundAxis, ProjectionPlanning};
 use threadpak::types::{ConstLimit, NonEmptyBounded};
 
-/// The closed roster of origin relations — the ruled categories an edge may
-/// stand for. Fourteen, and the roster is the vocabulary: an edge that means
-/// something else is a law change, not a new string.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum OriginRelation {
-    /// A declaration a person authored.
-    AuthoredDeclaration,
-    /// An authored pattern instantiated with typed arguments.
-    PatternInstantiation,
-    /// Meaning derived from admitted meaning.
-    SemanticDerivation,
-    /// A declaration fragment constructed from parts.
-    FragmentConstruction,
-    /// A link an author stated explicitly.
-    ExplicitLink,
-    /// A normalization step that changed form and not meaning.
-    Normalization,
-    /// A projection profile selected.
-    ProfileSelection,
-    /// A projection kind selected under that profile.
-    ProjectionSelection,
-    /// Wrapper components composed for a host.
-    WrapperComposition,
-    /// Typed material rendered into a target's syntax.
-    Rendering,
-    /// A rendered surface bound to a host contract.
-    HostBinding,
-    /// A test descriptor derived from an obligation.
-    TestDerivation,
-    /// A benchmark descriptor derived from a work formula.
-    BenchmarkDerivation,
-    /// A diagnostic derived from an observed disagreement.
-    DiagnosticDerivation,
-}
-
-/// The declared origin-relation roster, in the order the plane states it.
-pub const ORIGIN_RELATIONS: [OriginRelation; 14] = [
-    OriginRelation::AuthoredDeclaration,
-    OriginRelation::PatternInstantiation,
-    OriginRelation::SemanticDerivation,
-    OriginRelation::FragmentConstruction,
-    OriginRelation::ExplicitLink,
-    OriginRelation::Normalization,
-    OriginRelation::ProfileSelection,
-    OriginRelation::ProjectionSelection,
-    OriginRelation::WrapperComposition,
-    OriginRelation::Rendering,
-    OriginRelation::HostBinding,
-    OriginRelation::TestDerivation,
-    OriginRelation::BenchmarkDerivation,
-    OriginRelation::DiagnosticDerivation,
-];
-
-impl OriginRelation {
-    /// The relation's position in the declared roster — the byte a canonical
-    /// encoding carries for it.
-    #[must_use]
-    pub const fn slot(self) -> u8 {
-        match self {
-            Self::AuthoredDeclaration => 0,
-            Self::PatternInstantiation => 1,
-            Self::SemanticDerivation => 2,
-            Self::FragmentConstruction => 3,
-            Self::ExplicitLink => 4,
-            Self::Normalization => 5,
-            Self::ProfileSelection => 6,
-            Self::ProjectionSelection => 7,
-            Self::WrapperComposition => 8,
-            Self::Rendering => 9,
-            Self::HostBinding => 10,
-            Self::TestDerivation => 11,
-            Self::BenchmarkDerivation => 12,
-            Self::DiagnosticDerivation => 13,
-        }
+threadpak::closed_register! {
+    /// The closed roster of origin relations — the ruled categories an edge may
+    /// stand for. Fourteen, and the roster is the vocabulary: an edge that means
+    /// something else is a law change, not a new string.
+    ///
+    /// `ALL` is the roster in the order the plane states it, and `slot` is the
+    /// byte a canonical encoding carries for a relation.
+    pub enum OriginRelation {
+        /// A declaration a person authored.
+        AuthoredDeclaration = "authored-declaration", "a declaration a person authored";
+        /// An authored pattern instantiated with typed arguments.
+        PatternInstantiation = "pattern-instantiation",
+            "an authored pattern instantiated with typed arguments";
+        /// Meaning derived from admitted meaning.
+        SemanticDerivation = "semantic-derivation", "meaning derived from admitted meaning";
+        /// A declaration fragment constructed from parts.
+        FragmentConstruction = "fragment-construction",
+            "a declaration fragment constructed from parts";
+        /// A link an author stated explicitly.
+        ExplicitLink = "explicit-link", "a link an author stated explicitly";
+        /// A normalization step that changed form and not meaning.
+        Normalization = "normalization",
+            "a normalization step that changed form and not meaning";
+        /// A projection profile selected.
+        ProfileSelection = "profile-selection", "a projection profile selected";
+        /// A projection kind selected under that profile.
+        ProjectionSelection = "projection-selection",
+            "a projection kind selected under that profile";
+        /// Wrapper components composed for a host.
+        WrapperComposition = "wrapper-composition", "wrapper components composed for a host";
+        /// Typed material rendered into a target's syntax.
+        Rendering = "rendering", "typed material rendered into a target's syntax";
+        /// A rendered surface bound to a host contract.
+        HostBinding = "host-binding", "a rendered surface bound to a host contract";
+        /// A test descriptor derived from an obligation.
+        TestDerivation = "test-derivation", "a test descriptor derived from an obligation";
+        /// A benchmark descriptor derived from a work formula.
+        BenchmarkDerivation = "benchmark-derivation",
+            "a benchmark descriptor derived from a work formula";
+        /// A diagnostic derived from an observed disagreement.
+        DiagnosticDerivation = "diagnostic-derivation",
+            "a diagnostic derived from an observed disagreement";
     }
 }
 

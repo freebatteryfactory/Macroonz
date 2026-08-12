@@ -31,10 +31,19 @@ questions must separate.
 ## The order is typed; the text is its projection
 
 A cause has a stable identity (`CauseId`) that is not its Rust spelling, not its
-display text, not prose, and not its position. `DeclaredCauseOrder` states the
-canonical order as `DeclaredCause` rows — identity plus today's spelling — and
-mints the position (`CauseOrdinal`) out of its own layout, so no position can
-disagree with the order it belongs to. Two consequences are law:
+display text, not prose, and not its position. The identity is a PAIR — the
+`RefusalFamilyId` that declares the cause and the `LocalCauseKey` it answers to
+inside that family — so family ownership travels in the value and is read rather
+than parsed. Two families may declare the same local key; that is a shared word,
+and the family seat is what keeps the two identities apart. The canonical text
+form `<family>.<local>` is composed from the two seats on demand and is never
+stored: a stored join is a third value that can disagree with the two it came
+from, and two identities that render alike are still two identities.
+
+`DeclaredCauseOrder` states the canonical order as `DeclaredCause` rows —
+identity plus today's spelling — and mints the position (`CauseOrdinal`) out of
+its own layout, so no position can disagree with the order it belongs to. Two
+consequences are law:
 
 - renaming a Rust variant moves the spelling and moves neither identity nor
   order;
@@ -99,6 +108,10 @@ obligations:
     challenge_kind: compile-law
     green: laws.rs refusal::cause_identity_outlives_its_spelling
     red: owed-to-testpak
+  - id: refusal.cause-identity-is-a-family-and-a-local-key
+    challenge_kind: compile-refusal
+    green: laws.rs refusal::cause_identity_is_a_family_and_a_local_key
+    red: testpak/tests/compile-fail/a-cause-identity-cut-from-one-string.rs
   - id: refusal.selection-order-projects-the-typed-order
     challenge_kind: compile-law
     green: laws.rs refusal::selection_order_projects_the_typed_order

@@ -19,11 +19,16 @@
 mod tests {
     use threadpak::refusal::{
         CauseId, CauseOrderDeclaration, DeclaredCause, DeclaredCauseOrder, FamilyShape,
-        RefusalFamily,
+        LocalCauseKey, RefusalFamily, RefusalFamilyId,
     };
 
+    /// The family identity both implementations below declare, written once
+    /// here because the hand-written twin states it as a value exactly as the
+    /// derived implementation emits it.
+    const FAMILY: RefusalFamilyId = RefusalFamilyId::declared("consumer.demo");
+
     /// The derived family. The caller states three things — the shape, the
-    /// variants, and one stable identity per cause — and writes no
+    /// variants, and one local key per cause — and writes no
     /// selection-order string anywhere. The declared order is deliberately NOT
     /// the order the variants are written in, so a derive that read the body
     /// layout instead of the order clause would fail the parity below.
@@ -63,14 +68,17 @@ mod tests {
     impl CauseOrderDeclaration for HandWrittenDemoFamily {
         const DECLARED_ORDER: DeclaredCauseOrder = DeclaredCauseOrder::declared(&[
             DeclaredCause::declared(
-                CauseId::declared("consumer.demo.not-canonical"),
+                CauseId::declared(FAMILY, LocalCauseKey::declared("not-canonical")),
                 "NotCanonical",
             ),
             DeclaredCause::declared(
-                CauseId::declared("consumer.demo.not-admitted"),
+                CauseId::declared(FAMILY, LocalCauseKey::declared("not-admitted")),
                 "NotAdmitted",
             ),
-            DeclaredCause::declared(CauseId::declared("consumer.demo.unbounded"), "Unbounded"),
+            DeclaredCause::declared(
+                CauseId::declared(FAMILY, LocalCauseKey::declared("unbounded")),
+                "Unbounded",
+            ),
         ]);
     }
 
@@ -110,9 +118,19 @@ mod tests {
         );
         assert_eq!(
             DerivedDemoFamily::DECLARED_ORDER
-                .ordinal_of(CauseId::declared("consumer.demo.unbounded"))
+                .ordinal_of(CauseId::declared(
+                    FAMILY,
+                    LocalCauseKey::declared("unbounded")
+                ))
                 .map(threadpak::refusal::CauseOrdinal::position),
             Some(2)
+        );
+        // The family seat travels in the value: every derived row says which
+        // family owns it without anybody cutting a string apart.
+        assert!(
+            DerivedDemoFamily::DECLARED_ORDER
+                .iter()
+                .all(|row| row.id().family() == FAMILY)
         );
     }
 

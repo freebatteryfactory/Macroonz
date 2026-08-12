@@ -428,47 +428,52 @@ pub struct HumanProjection<L: Limit> {
     text: Bounded<u8, L>,
 }
 
-/// The closed roster of roles a plane identity may stand for.
-///
-/// The role is part of the derive-key context AND part of the transcript, so two
-/// identities derived from the same anchor under different roles are different
-/// identities twice over: they are separated before a byte of the transcript is
-/// read, and they disagree inside it. A role that means something else is a law
-/// change, not a new string.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ProjectionRole {
-    /// The token material one expansion was handed.
-    CapturedDeclaration,
-    /// One projection plan.
-    Plan,
-    /// One node of the origin graph.
-    OriginNode,
-    /// One generated unit a plan declares it will materialize.
-    GeneratedUnit,
-    /// One rendered unit a renderer actually materialized.
-    RenderedUnit,
-    /// The canonical bytes of one rendered unit.
-    OutputBytes,
-    /// One bundle materialized across a single publication boundary.
-    Bundle,
-    /// One proved closure between a plan and its rendering.
-    Closure,
-    /// One closed expansion.
-    ClosedExpansion,
+threadpak::closed_register! {
+    /// The closed roster of roles a plane identity may stand for.
+    ///
+    /// The role is part of the derive-key context AND part of the transcript, so
+    /// two identities derived from the same anchor under different roles are
+    /// different identities twice over: they are separated before a byte of the
+    /// transcript is read, and they disagree inside it. A role that means
+    /// something else is a law change, not a new string.
+    ///
+    /// # The stable name is a transcript member
+    ///
+    /// `stable_name` is the role's declared segment of the derive-key context
+    /// and is written into every transcript. It is declared rather than taken
+    /// from the Rust spelling for exactly the reason
+    /// [`IdentitySubject::SUBJECT_NAME`] is: renaming a variant must not rename
+    /// every identity derived under it. Changing one of these literals renames
+    /// every identity the profile ever derived under that role, which is an
+    /// identity-profile version bump and never an edit.
+    ///
+    /// `slot` is the byte the transcript carries beside it, and `ALL` is the
+    /// roster in the order the plane states it.
+    ///
+    /// [`IdentitySubject::SUBJECT_NAME`]: super::IdentitySubject::SUBJECT_NAME
+    pub enum ProjectionRole {
+        /// The token material one expansion was handed.
+        CapturedDeclaration = "captured-declaration",
+            "the token material one expansion was handed";
+        /// One projection plan.
+        Plan = "plan", "one projection plan";
+        /// One node of the origin graph.
+        OriginNode = "origin-node", "one node of the origin graph";
+        /// One generated unit a plan declares it will materialize.
+        GeneratedUnit = "generated-unit",
+            "one generated unit a plan declares it will materialize";
+        /// One rendered unit a renderer actually materialized.
+        RenderedUnit = "rendered-unit", "one rendered unit a renderer actually materialized";
+        /// The canonical bytes of one rendered unit.
+        OutputBytes = "output-bytes", "the canonical bytes of one rendered unit";
+        /// One bundle materialized across a single publication boundary.
+        Bundle = "bundle", "one bundle materialized across a single publication boundary";
+        /// One proved closure between a plan and its rendering.
+        Closure = "closure", "one proved closure between a plan and its rendering";
+        /// One closed expansion.
+        ClosedExpansion = "closed-expansion", "one closed expansion";
+    }
 }
-
-/// The declared role roster, in the order the plane states it.
-pub const PROJECTION_ROLES: [ProjectionRole; 9] = [
-    ProjectionRole::CapturedDeclaration,
-    ProjectionRole::Plan,
-    ProjectionRole::OriginNode,
-    ProjectionRole::GeneratedUnit,
-    ProjectionRole::RenderedUnit,
-    ProjectionRole::OutputBytes,
-    ProjectionRole::Bundle,
-    ProjectionRole::Closure,
-    ProjectionRole::ClosedExpansion,
-];
 
 /// One version of the projection-identity profile.
 ///
@@ -505,7 +510,7 @@ pub struct IdentityProfileVersion(u32);
 /// with `<stem>` the profile's declared stem, `<version>` the decimal position
 /// of [`IdentityProfileVersion`], `<subject>` the target subject's
 /// [`IdentitySubject::SUBJECT_NAME`], and `<role>` the
-/// [`ProjectionRole::context_name`]. Every segment is lowercase ASCII letters,
+/// [`ProjectionRole::stable_name`]. Every segment is lowercase ASCII letters,
 /// digits, and `-`, joined by `/`.
 ///
 /// Separation is by CONTEXT and not by message prefix. Two identities over
@@ -621,7 +626,7 @@ pub enum TranscriptAnchoring {
 /// | 1 | profile stem | `bytes(utf8)` |
 /// | 2 | profile version | `u32be` |
 /// | 3 | identity subject | `bytes(utf8)` of [`IdentitySubject::SUBJECT_NAME`] |
-/// | 4 | role | `bytes(utf8)` of [`ProjectionRole::context_name`] |
+/// | 4 | role | `bytes(utf8)` of [`ProjectionRole::stable_name`] |
 /// | 5 | role slot | one byte, [`ProjectionRole::slot`] |
 /// | 6 | anchoring | one byte, [`TranscriptAnchoring::slot`] |
 /// | 7 | anchor commitment | `bytes(…)` — empty when rooted, else the full 32 |

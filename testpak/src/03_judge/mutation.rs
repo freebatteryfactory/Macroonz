@@ -114,9 +114,14 @@ fn reversed_list(lawful: &str) -> Option<String> {
     Some(format!("{head}{}{tail}", items.join(", ")))
 }
 
-/// Emit every cause identity under the first one.
+/// Emit every cause under the first cause's local key.
+///
+/// The local seat is the one that is cut, because it is the seat that separates
+/// causes INSIDE one family. Recycling the family seat of a one-family roster
+/// would change nothing at all, and a mutation that damages nothing is a row in
+/// the ledger that measures nothing.
 fn recycled_identities(lawful: &str) -> Option<String> {
-    const OPENING: &str = "CauseId :: declared ( \"";
+    const OPENING: &str = "LocalCauseKey :: declared ( \"";
     let first_at = lawful.find(OPENING)?.checked_add(OPENING.len())?;
     let first_end = lawful.get(first_at..)?.find('"')?.checked_add(first_at)?;
     let first = lawful.get(first_at..first_end)?.to_owned();

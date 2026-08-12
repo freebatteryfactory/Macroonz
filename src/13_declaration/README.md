@@ -48,6 +48,24 @@ plain `Limit` families whose bound values are evidence-selected. The
 projection-contract family alone is derivable (5 member kinds + 5 unstatable
 claims = 10) and carries the compile-time cap.
 
+## The closed-roster stamp
+
+`closed_register!` is this home's authoring stamp for a closed, fieldless
+roster: one declaration of the rows writes the enum, the roster constant, each
+row's position, each row's declared stable name, and the prose a person is
+shown. It sits here because a closed roster of declared words is an authoring
+shape — not an identity, not a refusal, not a value — and this home owns the
+authoring algebra. It reaches no band's material and declares no type of its
+own; `scope_guard_version!` in band 02 is the precedent for a home stamping its
+own pattern and for macro export landing at the crate root by Rust's rule
+rather than by root admission.
+
+What it retires is the hand-kept pair: a roster array beside a `match`
+returning numbers. Those are two statements of one fact, and the second drifts
+silently. Under the stamp the position IS the roster's layout, so a roster whose
+fourth row answers `2` is not a defect anybody catches — it is a value nobody
+can write.
+
 ## Owed upward
 
 The `Judgment` record and its axes → 14_semantic (this home seats `Stage`).
@@ -90,6 +108,11 @@ obligations:
     challenge_kind: compile-law
     green: laws.rs declaration::authoring_rosters_hold
     red: owed-to-testpak
+  - id: declaration.a-stamped-roster-cannot-disagree-with-its-own-order
+    challenge_kind: compile-law
+    green: laws.rs declaration::a_stamped_roster_cannot_disagree_with_its_own_order
+    red: owed-to-testpak — a stamped roster whose position is kept by hand must
+      be unwritable
   - id: declaration.source-never-rides-in-a-refusal-body
     challenge_kind: compile-refusal
     green: none — no family payload can carry a spelling, skeleton, or scalar

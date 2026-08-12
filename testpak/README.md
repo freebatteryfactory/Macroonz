@@ -54,7 +54,7 @@ explicit ruling instead of being normalized into the nearest drawer.
 | `src/00_plan/` | `RedTwinLedger`: expected against discharged, with no road past the denominator |
 | `src/03_judge/types.rs` | everything the seat can say: both verdicts, everything lane B recovers, what a caller declares against, and the fifteen-mutation roster |
 | `src/03_judge/type_contract.rs` | the roster's closed tables: which lane owns catching each mutation, and the sentence each one is shown as |
-| `src/03_judge/byte_profile.rs` | lane A: the two exact anchors and the readers that scan for them |
+| `src/03_judge/byte_profile.rs` | lane A: the three exact anchors and the readers that scan for them |
 | `src/03_judge/structural.rs` | lane B: the walk over the tree `syn` hands back, and the coarse-to-fine comparison against the caller's declaration |
 | `src/03_judge/mutation.rs` | the damage itself: string surgery that makes a lawful artifact lie |
 | `src/laws.rs` | the plane's own compile-time proof surface, sectioned by seat |
@@ -128,6 +128,7 @@ the universal one. Each fixture here discharges a red twin some green law names:
 | `a-closure-minted-without-proving.rs` | every field of the proof is private and `proved` is the only road to one, so a closure assembled field by field does not compile |
 | `a-post-proof-join-outside-the-closure.rs` | joining the rendered units is crate-internal with one caller — the proof — so there is no public road to a joined tree outside it |
 | `a-materialized-malformed-mutant.rs` | lane C's `MalformedRust` seat: the mutated artifact text, checked in with its provenance stated, does not compile |
+| `a-cause-identity-cut-from-one-string.rs` | a cause identity is the pair of a family and a local key, so the retired string road — one literal cut by convention — does not compile |
 
 ## Owed, and counted out loud
 
@@ -310,7 +311,8 @@ off: the lane reads and never writes, and never runs inside a macro.
 implementation at all, the trait path (segments and leading `::`), the target
 type path, and each associated constant by name — `SHAPE`'s variant word,
 `SELECTION_ORDER`'s string list in order, and `DECLARED_ORDER`'s cause rows as
-the pairs they are, each row's stable identity and its spelling, in order. Across
+the rows they are — the four constructor paths each row is built through, the two
+seats of the stable identity it mints, and the spelling it states, in order. Across
 items: how many were declared, whether one trait-and-target pair was implemented
 twice, and whether anything that is not a declared trait implementation came
 along.
@@ -343,7 +345,7 @@ never a skip, never a softer `Deviates`.
 | `DecoyInComment` | the selection order the artifact DECLARES is not the declared roster — the comment carrying the anchored bytes is not in the tree at all |
 | `ImplMemberDuplicated` | one expected constant is stated twice, and the second reading is recorded rather than written over the first |
 | `ImplMemberUnexpected` | the implementation carries a member the declaration did not name, described by what it is |
-| `ConstructorPathAltered` | a cause row carries the declared values through a constructor the declaration did not name |
+| `ConstructorPathAltered` | a cause row carries the declared values through one of the four constructors the declaration did not name |
 | `ImplPostureAltered` | the implementation is written `unsafe`, where the declaration names none of the four postures |
 | `MeaningBearingAttributeAdded` | the implementation carries an attribute that decides something — a doc comment decides nothing and is not one |
 

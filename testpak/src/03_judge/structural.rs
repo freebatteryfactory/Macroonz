@@ -236,6 +236,8 @@ fn member_disagreement(
     if rows.iter().any(|row| {
         row.row_constructor != declared.row_constructor
             || row.identity_constructor != declared.identity_constructor
+            || row.family_constructor != declared.family_constructor
+            || row.local_constructor != declared.local_constructor
     }) {
         return Some(StructuralDisagreement::ConstructorPath);
     }
@@ -281,16 +283,17 @@ fn same_spellings(read: &[String], declared: &[&str]) -> bool {
 }
 
 /// Whether the read cause rows are the declared identities and spellings, in
-/// order. Both columns are held: a roster keeping every spelling and recycling
-/// one identity is as wrong as a permuted one.
+/// order. Every column is held: a roster keeping every spelling and recycling
+/// one local key is as wrong as a permuted one, and a roster that moved one row
+/// under another family declares causes nobody declared.
 fn same_rows(read: &[CauseRow], declared: &DeclaredStructure<'_>) -> bool {
     read.len() == declared.identities.len()
         && read.len() == declared.spellings.len()
         && read
             .iter()
             .zip(declared.identities.iter().zip(declared.spellings.iter()))
-            .all(|(row, (identity, spelling))| {
-                row.identity == *identity && row.spelling == *spelling
+            .all(|(row, ((family, local), spelling))| {
+                row.family == *family && row.local == *local && row.spelling == *spelling
             })
 }
 
@@ -509,9 +512,9 @@ fn array_elements(expression: &syn::Expr) -> Option<syn::punctuated::Iter<'_, sy
     Some(array.elems.iter())
 }
 
-/// One `Row::declared(Identity::declared("…"), "…")` element, as its four
-/// columns: the two constructors it is built through, and the two values it
-/// carries.
+/// One `Row::declared(Identity::declared(Family::declared("…"),
+/// Local::declared("…")), "…")` element, as its seven columns: the four
+/// constructors it is built through, and the three values it carries.
 fn cause_row(expression: &syn::Expr) -> Option<CauseRow> {
     let syn::Expr::Call(call) = expression else {
         return None;
@@ -524,12 +527,26 @@ fn cause_row(expression: &syn::Expr) -> Option<CauseRow> {
     let syn::Expr::Call(identity) = minted else {
         return None;
     };
+    let mut seats = identity.args.iter();
+    let family_seat = seats.next()?;
+    let local_seat = seats.next()?;
     Some(CauseRow {
         row_constructor,
         identity_constructor,
-        identity: string_literal(identity.args.first()?)?,
+        family_constructor: called_path(family_seat)?,
+        local_constructor: called_path(local_seat)?,
+        family: sole_string_argument(family_seat)?,
+        local: sole_string_argument(local_seat)?,
         spelling,
     })
+}
+
+/// The one string literal a `Type::declared("…")` call carries.
+fn sole_string_argument(expression: &syn::Expr) -> Option<String> {
+    let syn::Expr::Call(call) = expression else {
+        return None;
+    };
+    string_literal(call.args.first()?)
 }
 
 /// The value of a string-literal expression.

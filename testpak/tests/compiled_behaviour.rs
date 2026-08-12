@@ -38,7 +38,8 @@
 //! would catch both mutants and prove nothing.
 
 use threadpak::refusal::{
-    CauseId, CauseOrderDeclaration, DeclaredCause, DeclaredCauseOrder, FamilyShape, RefusalFamily,
+    CauseId, CauseOrderDeclaration, DeclaredCauseOrder, FamilyShape, LocalCauseKey, RefusalFamily,
+    RefusalFamilyId,
 };
 use threadpak_macroc::compile_refusal_text;
 use threadpak_testpak::{ARTIFACT_MUTATIONS, ArtifactMutation, LaneOwnership, mutated};
@@ -58,12 +59,13 @@ const MUTATED_SHAPE: FamilyShape = FamilyShape::IssueCollection;
 /// The declared spellings, in declared order.
 const DECLARED_SPELLINGS: [&str; 3] = ["NotCanonical", "NotAdmitted", "Unbounded"];
 
-/// The declared stable identities, in declared order.
-const DECLARED_IDENTITIES: [&str; 3] = [
-    "testpak.demo.not-canonical",
-    "testpak.demo.not-admitted",
-    "testpak.demo.unbounded",
-];
+/// The family every declared identity sits in.
+const DECLARED_FAMILY: &str = "testpak.demo";
+
+/// The declared local keys, in declared order. The family is stated once beside
+/// them because the artifact states it once per row, and a lane that wrote the
+/// joined name would be asserting over a value no compiled constant carries.
+const DECLARED_LOCAL_KEYS: [&str; 3] = ["not-canonical", "not-admitted", "unbounded"];
 
 /// The lawful artifact's compiled seat.
 ///
@@ -128,13 +130,20 @@ fn lawful_rendering() -> String {
 
 /// Whether one compiled declared order carries the declared identities and
 /// spellings, in order, read back as values.
+///
+/// The identity each row must carry is BUILT here, out of the two seats this
+/// file declares, and compared as a value. Nothing reads a name back out of the
+/// compiled constant and nothing compares text: an identity comparison that went
+/// through a rendering would be lane A's method wearing lane C's name.
 fn order_reads_as_declared(order: DeclaredCauseOrder) -> bool {
-    order.len() == DECLARED_IDENTITIES.len()
+    let family = RefusalFamilyId::declared(DECLARED_FAMILY);
+    order.len() == DECLARED_LOCAL_KEYS.len()
         && order
             .iter()
-            .zip(DECLARED_IDENTITIES.iter().zip(DECLARED_SPELLINGS.iter()))
-            .all(|(row, (identity, spelling))| {
-                row.id() == DeclaredCause::declared(CauseId::declared(identity), spelling).id()
+            .zip(DECLARED_LOCAL_KEYS.iter().zip(DECLARED_SPELLINGS.iter()))
+            .all(|(row, (local, spelling))| {
+                row.id() == CauseId::declared(family, LocalCauseKey::declared(local))
+                    && row.id().family() == family
                     && row.spelling() == *spelling
             })
 }

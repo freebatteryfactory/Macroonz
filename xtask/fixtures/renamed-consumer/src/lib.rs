@@ -21,14 +21,20 @@
 mod tests {
     use tp::refusal::{
         CauseId, CauseOrderDeclaration, DeclaredCause, DeclaredCauseOrder, FamilyShape,
-        RefusalFamily,
+        LocalCauseKey, RefusalFamily, RefusalFamilyId,
     };
+
+    /// The family identity both implementations below declare, written once
+    /// here because the hand-written twin states it as a value exactly as the
+    /// derived implementation emits it.
+    const FAMILY: RefusalFamilyId = RefusalFamilyId::declared("consumer.renamed");
 
     /// The derived family, reached through the renamed binding.
     ///
     /// The caller writes no cause identity out in full: it declares the family
-    /// identity once and one local key per cause, and the derive composes the
-    /// identities under band 00's canonical key grammar.
+    /// identity once and one local key per cause, and the derive mints each
+    /// identity as band 00's pair — the family seat and the local seat, each
+    /// through its own constructor on the renamed binding.
     #[derive(Debug, Clone, Copy, PartialEq, Eq, threadpak_macros::RefusalFamily)]
     #[refusal(
         crate = tp,
@@ -58,9 +64,12 @@ mod tests {
 
     impl CauseOrderDeclaration for HandWrittenRenamedFamily {
         const DECLARED_ORDER: DeclaredCauseOrder = DeclaredCauseOrder::declared(&[
-            DeclaredCause::declared(CauseId::declared("consumer.renamed.not-bound"), "NotBound"),
             DeclaredCause::declared(
-                CauseId::declared("consumer.renamed.not-covered"),
+                CauseId::declared(FAMILY, LocalCauseKey::declared("not-bound")),
+                "NotBound",
+            ),
+            DeclaredCause::declared(
+                CauseId::declared(FAMILY, LocalCauseKey::declared("not-covered")),
                 "NotCovered",
             ),
         ]);
@@ -90,16 +99,24 @@ mod tests {
         assert!(identical);
     }
 
-    /// The composed identity is the family identity joined to the local key, and
-    /// the ordinal is the position in the declared order — both read back off
+    /// The minted identity is the family seat and the local seat, and the
+    /// ordinal is the position in the declared order — all of it read back off
     /// the derived implementation rather than off anything the caller wrote.
     #[test]
-    fn the_composed_identity_is_the_family_and_the_key() {
+    fn the_minted_identity_is_the_family_and_the_key() {
         assert_eq!(
             RenamedDemoFamily::DECLARED_ORDER
-                .ordinal_of(CauseId::declared("consumer.renamed.not-covered"))
+                .ordinal_of(CauseId::declared(
+                    FAMILY,
+                    LocalCauseKey::declared("not-covered")
+                ))
                 .map(tp::refusal::CauseOrdinal::position),
             Some(1)
+        );
+        assert!(
+            RenamedDemoFamily::DECLARED_ORDER
+                .iter()
+                .all(|row| row.id().family() == FAMILY)
         );
         assert!(RenamedDemoFamily::DECLARED_ORDER.projects_to(RenamedDemoFamily::SELECTION_ORDER));
         assert_ne!(RenamedDemoFamily::NotBound, RenamedDemoFamily::NotCovered);

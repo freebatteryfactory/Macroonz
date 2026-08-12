@@ -250,7 +250,7 @@ impl IdentityProfile {
     #[must_use]
     pub fn context_for(self, subject: &str, role: ProjectionRole) -> String {
         let version = self.version.position();
-        let role = role.context_name();
+        let role = role.stable_name();
         format!("{}/v{version}/{subject}/{role}", self.stem)
     }
 }

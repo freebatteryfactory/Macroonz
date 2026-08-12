@@ -7,54 +7,13 @@
 //! private field, because the encoding is an operation over a value that is
 //! already informed rather than part of the invariant that made it.
 //!
-//! The role's slot and its declared context segment sit here beside the encoder
-//! that writes them. They are declarations in method form: renaming a variant
-//! must not rename every identity derived under it, so the spelling is stated
-//! rather than taken from Rust.
+//! The role's slot and its declared context segment are not restated here: they
+//! are stamped onto [`ProjectionRole`] at its own declaration by the machine's
+//! closed-roster stamp, which writes the roster and the position from one row
+//! list. This file reads them.
 
 use super::encode::encode_bytes;
-use super::{ProjectionRole, ProjectionTranscript, TranscriptAnchoring};
-
-impl ProjectionRole {
-    /// The role's position in the declared roster — the byte the transcript
-    /// carries for it.
-    #[must_use]
-    pub const fn slot(self) -> u8 {
-        match self {
-            Self::CapturedDeclaration => 0,
-            Self::Plan => 1,
-            Self::OriginNode => 2,
-            Self::GeneratedUnit => 3,
-            Self::RenderedUnit => 4,
-            Self::OutputBytes => 5,
-            Self::Bundle => 6,
-            Self::Closure => 7,
-            Self::ClosedExpansion => 8,
-        }
-    }
-
-    /// The role's declared segment of the derive-key context.
-    ///
-    /// Declared rather than taken from the Rust spelling, for the same reason
-    /// [`IdentitySubject::SUBJECT_NAME`] is: renaming a variant must not rename
-    /// every identity derived under it.
-    ///
-    /// [`IdentitySubject::SUBJECT_NAME`]: super::IdentitySubject::SUBJECT_NAME
-    #[must_use]
-    pub const fn context_name(self) -> &'static str {
-        match self {
-            Self::CapturedDeclaration => "captured-declaration",
-            Self::Plan => "plan",
-            Self::OriginNode => "origin-node",
-            Self::GeneratedUnit => "generated-unit",
-            Self::RenderedUnit => "rendered-unit",
-            Self::OutputBytes => "output-bytes",
-            Self::Bundle => "bundle",
-            Self::Closure => "closure",
-            Self::ClosedExpansion => "closed-expansion",
-        }
-    }
-}
+use super::{ProjectionTranscript, TranscriptAnchoring};
 
 impl TranscriptAnchoring {
     /// The discriminant byte the transcript carries for this posture.
@@ -88,7 +47,7 @@ impl ProjectionTranscript<'_> {
         encode_bytes(self.profile().stem().as_bytes(), &mut bytes);
         bytes.extend_from_slice(&self.profile().version().position().to_be_bytes());
         encode_bytes(subject.as_bytes(), &mut bytes);
-        encode_bytes(self.role().context_name().as_bytes(), &mut bytes);
+        encode_bytes(self.role().stable_name().as_bytes(), &mut bytes);
         bytes.push(self.role().slot());
         bytes.push(self.anchoring().slot());
         match self.anchoring().commitment() {

@@ -56,22 +56,34 @@ pub enum RenderVerdict {
     Unreadable,
 }
 
-/// One cause row, as the artifact declares it: the two constructor paths it is
-/// built through, the stable identity minted for the cause, and the spelling
-/// that cause is projected under.
+/// One cause row, as the artifact declares it: the four constructor paths it is
+/// built through, the two seats of the stable identity minted for the cause, and
+/// the spelling that cause is projected under.
 ///
 /// The constructors are columns of the row and not decoration. A row spelling
-/// the declared identity and the declared spelling through some other pair of
-/// constructors declares something else entirely, and a reader that kept only
-/// the two strings would have called it conforming.
+/// the declared values through some other set of constructors declares something
+/// else entirely, and a reader that kept only the strings would have called it
+/// conforming.
+///
+/// There are four constructors and not two because a cause identity is a PAIR:
+/// the row is built, the identity is minted, and each of the identity's two
+/// seats is declared through its own type. A rendering that handed the joined
+/// text to one seat, or minted the family through the local key's constructor,
+/// is a different declaration and this reading says which column moved.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CauseRow {
     /// The path the row itself is constructed through.
     pub row_constructor: String,
     /// The path the row's stable identity is minted through.
     pub identity_constructor: String,
-    /// The stable identity the row states.
-    pub identity: String,
+    /// The path the identity's family seat is declared through.
+    pub family_constructor: String,
+    /// The path the identity's local seat is declared through.
+    pub local_constructor: String,
+    /// The family the row's identity names.
+    pub family: String,
+    /// The local key the row's identity names inside that family.
+    pub local: String,
     /// The spelling the row states.
     pub spelling: String,
 }
@@ -167,14 +179,21 @@ pub struct DeclaredStructure<'a> {
     /// cause rows are held to this one roster, because both project the same
     /// declared causes.
     pub spellings: &'a [&'a str],
-    /// The stable cause identities, in declared order.
-    pub identities: &'a [&'a str],
+    /// The stable cause identities, in declared order, each as the
+    /// `(family, local)` pair the artifact spells. Stated as a pair rather than
+    /// as a joined name because the artifact declares a pair: a caller who wrote
+    /// the join would be asserting over a value the artifact does not carry.
+    pub identities: &'a [(&'a str, &'a str)],
     /// The path the declared order is constructed through.
     pub order_constructor: &'a str,
     /// The path every cause row is constructed through.
     pub row_constructor: &'a str,
     /// The path every row's stable identity is minted through.
     pub identity_constructor: &'a str,
+    /// The path every identity's family seat is declared through.
+    pub family_constructor: &'a str,
+    /// The path every identity's local seat is declared through.
+    pub local_constructor: &'a str,
 }
 
 /// Which structural fact the artifact and the declaration disagree about.
@@ -262,8 +281,8 @@ pub enum ArtifactMutation {
     /// The textual selection order is reversed while the typed order stands as
     /// declared — the projection no longer projects.
     OrderPermuted,
-    /// Every cause is emitted under the first cause's identity — distinct causes
-    /// made to share one identity.
+    /// Every cause is emitted under the first cause's local key — distinct
+    /// causes inside one family made to share one identity.
     IdentityRecycled,
     /// One planned output is deleted from the artifact.
     PlannedOutputOmitted,

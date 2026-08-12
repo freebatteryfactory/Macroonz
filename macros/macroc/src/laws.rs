@@ -85,9 +85,9 @@ mod plane {
 mod identity_profile {
     use crate::plane::{
         GeneratedUnitSubject, IdentityProfileVersion, MACROC_GENERATOR,
-        PROJECTION_IDENTITY_PROFILE, PROJECTION_ROLES, PlanSubject, ProjectionIdentity,
-        ProjectionRole, ProjectionTranscript, RenderedUnitSubject, SUBJECT_NAMES,
-        TranscriptAnchoring, encode_bytes,
+        PROJECTION_IDENTITY_PROFILE, PlanSubject, ProjectionIdentity, ProjectionRole,
+        ProjectionTranscript, RenderedUnitSubject, SUBJECT_NAMES, TranscriptAnchoring,
+        encode_bytes,
     };
 
     /// The anchor every anchored vector below is taken under.
@@ -171,15 +171,15 @@ mod identity_profile {
         seen.dedup();
         assert_eq!(seen.len(), counted);
         assert!(
-            PROJECTION_ROLES
+            ProjectionRole::ALL
                 .iter()
                 .copied()
-                .all(|role| legal(role.context_name()))
+                .all(|role| legal(role.stable_name()))
         );
-        let mut roles: Vec<&str> = PROJECTION_ROLES
+        let mut roles: Vec<&str> = ProjectionRole::ALL
             .iter()
             .copied()
-            .map(ProjectionRole::context_name)
+            .map(ProjectionRole::stable_name)
             .collect();
         roles.sort_unstable();
         let role_count = roles.len();
@@ -506,8 +506,8 @@ mod refusal {
 
 mod diagnostics {
     use crate::diagnostics::{
-        DiagnosticSite, MACROC_PHASES, MachineAnchoring, MachineAnchors, MacrocDiagnostic,
-        MacrocPhase, ObservedClassification, RelatedSetCompletion, ReleasePosture, RepairAction,
+        DiagnosticSite, MachineAnchoring, MachineAnchors, MacrocDiagnostic, MacrocPhase,
+        ObservedClassification, RelatedSetCompletion, ReleasePosture, RepairAction,
         ReproductionRoute, SiteCoordinate,
     };
     use crate::plane::{HumanProjection, OwnerFactRef, OwnerIdentityRef};
@@ -533,8 +533,14 @@ mod diagnostics {
     /// Owed reversal: adding a phase without placing it must break this law.
     #[test]
     fn phases_are_six_and_closed() {
-        assert_eq!(MACROC_PHASES.len(), 6);
-        let indexes: Vec<usize> = MACROC_PHASES.iter().copied().map(phase_index).collect();
+        assert_eq!(MacrocPhase::ALL.len(), 6);
+        let indexes: Vec<usize> = MacrocPhase::ALL.iter().copied().map(phase_index).collect();
+        assert!(
+            MacrocPhase::ALL
+                .iter()
+                .copied()
+                .all(|phase| usize::from(phase.slot()) == phase_index(phase))
+        );
         assert!(
             indexes
                 .iter()
@@ -694,7 +700,7 @@ mod diagnostics {
 }
 
 mod question {
-    use crate::question::{EXPLANATION_QUESTIONS, ExplanationQuestion};
+    use crate::question::ExplanationQuestion;
 
     /// The closed question roster, proven closed by an exhaustive match.
     const fn question_index(question: ExplanationQuestion) -> usize {
@@ -721,12 +727,18 @@ mod question {
     /// Owed reversal: adding a question without placing it must break this law.
     #[test]
     fn questions_are_fourteen_and_closed() {
-        assert_eq!(EXPLANATION_QUESTIONS.len(), 14);
-        let indexes: Vec<usize> = EXPLANATION_QUESTIONS
+        assert_eq!(ExplanationQuestion::ALL.len(), 14);
+        let indexes: Vec<usize> = ExplanationQuestion::ALL
             .iter()
             .copied()
             .map(question_index)
             .collect();
+        assert!(
+            ExplanationQuestion::ALL
+                .iter()
+                .copied()
+                .all(|question| usize::from(question.slot()) == question_index(question))
+        );
         assert!(
             indexes
                 .iter()
@@ -738,8 +750,7 @@ mod question {
 
 mod origin_graph {
     use crate::origin_graph::{
-        DecisionTrace, Nonclaim, ORIGIN_RELATIONS, OriginEdge, OriginRelation, OriginTrail,
-        TraceDecision, TraceEntry,
+        DecisionTrace, Nonclaim, OriginEdge, OriginRelation, OriginTrail, TraceDecision, TraceEntry,
     };
     use crate::plane::{OriginEdgeLimit, OwnerFactRef, OwnerIdentityRef, TraceEntryLimit};
     use crate::refusal::{BoundAxis, ProjectionPlanningIssue};
@@ -788,12 +799,18 @@ mod origin_graph {
     /// Owed reversal: adding a relation without placing it must break this law.
     #[test]
     fn relations_are_fourteen_and_closed() {
-        assert_eq!(ORIGIN_RELATIONS.len(), 14);
-        let indexes: Vec<usize> = ORIGIN_RELATIONS
+        assert_eq!(OriginRelation::ALL.len(), 14);
+        let indexes: Vec<usize> = OriginRelation::ALL
             .iter()
             .copied()
             .map(relation_index)
             .collect();
+        assert!(
+            OriginRelation::ALL
+                .iter()
+                .copied()
+                .all(|relation| usize::from(relation.slot()) == relation_index(relation))
+        );
         assert!(
             indexes
                 .iter()
@@ -916,7 +933,7 @@ mod planning {
         TargetRequirement, TestDescriptorProjection, UNIVERSAL_QUESTIONS, WRAPPER_COMPONENTS,
         WrapperComponent,
     };
-    use crate::question::{EXPLANATION_QUESTIONS, ExplanationQuestion};
+    use crate::question::ExplanationQuestion;
     use crate::refusal::{PlanSeat, ProjectionPlanning, ProjectionPlanningIssue};
     use threadpak::types::{Bounded, NonEmptyBounded};
 
@@ -1333,7 +1350,7 @@ mod planning {
             }));
         }
         assert!(
-            EXPLANATION_QUESTIONS
+            ExplanationQuestion::ALL
                 .iter()
                 .all(|question| rosters.iter().any(|roster| roster.contains(question)))
         );
@@ -2636,11 +2653,11 @@ mod derive_refusal {
         assert!(
             causes
                 .iter()
-                .all(|cause| cause.key().family() == RefusalDeriveCapture::FAMILY)
+                .all(|cause| cause.id().family() == RefusalDeriveCapture::FAMILY)
         );
         let keys: Vec<&str> = causes
             .iter()
-            .map(|cause| cause.key().local().as_declared())
+            .map(|cause| cause.id().local().as_declared())
             .collect();
         assert!(keys.iter().enumerate().all(|(position, key)| {
             keys.iter()

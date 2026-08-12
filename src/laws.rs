@@ -290,7 +290,8 @@ mod root {
 mod refusal {
     use crate::refusal::{
         CauseId, CauseOrderDeclaration, CompletionPosture, DeclaredCause, DeclaredCauseOrder,
-        FamilyShape, HandlingClass, Refusal, RefusalFamily, StopBound,
+        FamilyShape, HandlingClass, LocalCauseKey, Refusal, RefusalFamily, RefusalFamilyId,
+        StopBound,
     };
     use crate::types::{BoundedConstruction, Limit, NonEmptyBounded, NonEmptyBoundedConstruction};
 
@@ -304,12 +305,24 @@ mod refusal {
     impl CauseOrderDeclaration for DemoSingle {
         const DECLARED_ORDER: DeclaredCauseOrder = DeclaredCauseOrder::declared(&[
             DeclaredCause::declared(
-                CauseId::declared("demo.single.not-canonical"),
+                CauseId::declared(
+                    RefusalFamilyId::declared("demo.single"),
+                    LocalCauseKey::declared("not-canonical"),
+                ),
                 "NotCanonical",
             ),
-            DeclaredCause::declared(CauseId::declared("demo.single.role-mismatch"), "WrongRole"),
             DeclaredCause::declared(
-                CauseId::declared("demo.single.bound-exceeded"),
+                CauseId::declared(
+                    RefusalFamilyId::declared("demo.single"),
+                    LocalCauseKey::declared("role-mismatch"),
+                ),
+                "WrongRole",
+            ),
+            DeclaredCause::declared(
+                CauseId::declared(
+                    RefusalFamilyId::declared("demo.single"),
+                    LocalCauseKey::declared("bound-exceeded"),
+                ),
                 "BoundExceeded",
             ),
         ]);
@@ -327,14 +340,26 @@ mod refusal {
     impl CauseOrderDeclaration for DemoRenamed {
         const DECLARED_ORDER: DeclaredCauseOrder = DeclaredCauseOrder::declared(&[
             DeclaredCause::declared(
-                CauseId::declared("demo.single.not-canonical"),
+                CauseId::declared(
+                    RefusalFamilyId::declared("demo.single"),
+                    LocalCauseKey::declared("not-canonical"),
+                ),
                 "NotNormalized",
             ),
             DeclaredCause::declared(
-                CauseId::declared("demo.single.role-mismatch"),
+                CauseId::declared(
+                    RefusalFamilyId::declared("demo.single"),
+                    LocalCauseKey::declared("role-mismatch"),
+                ),
                 "NotTheDeclaredRole",
             ),
-            DeclaredCause::declared(CauseId::declared("demo.single.bound-exceeded"), "Unbounded"),
+            DeclaredCause::declared(
+                CauseId::declared(
+                    RefusalFamilyId::declared("demo.single"),
+                    LocalCauseKey::declared("bound-exceeded"),
+                ),
+                "Unbounded",
+            ),
         ]);
     }
 
@@ -350,15 +375,24 @@ mod refusal {
     impl CauseOrderDeclaration for DemoMeaningChanged {
         const DECLARED_ORDER: DeclaredCauseOrder = DeclaredCauseOrder::declared(&[
             DeclaredCause::declared(
-                CauseId::declared("demo.single.not-canonical"),
+                CauseId::declared(
+                    RefusalFamilyId::declared("demo.single"),
+                    LocalCauseKey::declared("not-canonical"),
+                ),
                 "NotCanonical",
             ),
             DeclaredCause::declared(
-                CauseId::declared("demo.single.role-mismatch-under-the-narrowed-reading"),
+                CauseId::declared(
+                    RefusalFamilyId::declared("demo.single"),
+                    LocalCauseKey::declared("role-mismatch-under-the-narrowed-reading"),
+                ),
                 "WrongRole",
             ),
             DeclaredCause::declared(
-                CauseId::declared("demo.single.bound-exceeded"),
+                CauseId::declared(
+                    RefusalFamilyId::declared("demo.single"),
+                    LocalCauseKey::declared("bound-exceeded"),
+                ),
                 "BoundExceeded",
             ),
         ]);
@@ -469,8 +503,10 @@ mod refusal {
             });
         assert!(renamed_throughout);
 
-        let middle =
-            DemoSingle::DECLARED_ORDER.ordinal_of(CauseId::declared("demo.single.role-mismatch"));
+        let middle = DemoSingle::DECLARED_ORDER.ordinal_of(CauseId::declared(
+            RefusalFamilyId::declared("demo.single"),
+            LocalCauseKey::declared("role-mismatch"),
+        ));
         assert!(middle.is_some_and(|ordinal| {
             ordinal.position() == 1
                 && DemoSingle::DECLARED_ORDER.identity_at(ordinal)
@@ -480,9 +516,49 @@ mod refusal {
         }));
         assert!(
             DemoSingle::DECLARED_ORDER
-                .ordinal_of(CauseId::declared("demo.single.never-declared"))
+                .ordinal_of(CauseId::declared(
+                    RefusalFamilyId::declared("demo.single"),
+                    LocalCauseKey::declared("never-declared")
+                ))
                 .is_none()
         );
+    }
+
+    /// law: refusal.cause-identity-is-a-family-and-a-local-key — a cause
+    /// identity is the PAIR and not a string that reads like one. Two families
+    /// declaring the same local key declare two identities; the owning family
+    /// is read off the value rather than parsed out of it; and the canonical
+    /// text form is composed from the two seats on demand, so two identities
+    /// that render alike are still two identities.
+    /// Reversal: `testpak/tests/compile-fail/a-cause-identity-cut-from-one-string.rs`
+    /// — the retired road, `CauseId::declared("family.local")`, does not
+    /// typecheck.
+    #[test]
+    fn cause_identity_is_a_family_and_a_local_key() {
+        let mine = CauseId::declared(
+            RefusalFamilyId::declared("demo.left"),
+            LocalCauseKey::declared("not-canonical"),
+        );
+        let yours = CauseId::declared(
+            RefusalFamilyId::declared("demo.right"),
+            LocalCauseKey::declared("not-canonical"),
+        );
+        assert_eq!(mine.local(), yours.local());
+        assert_ne!(mine.family(), yours.family());
+        assert_ne!(mine, yours);
+        assert_eq!(mine.canonical_text(), "demo.left.not-canonical");
+
+        // The retired string road could not tell these two apart: both render
+        // as `demo.left.not-canonical`, and they are different causes owned by
+        // different families. The pair keeps them apart, and this is exactly
+        // why the text stays a projection — a reader cutting it back into a
+        // pair would have to guess which separator was the one that mattered.
+        let cut_elsewhere = CauseId::declared(
+            RefusalFamilyId::declared("demo"),
+            LocalCauseKey::declared("left.not-canonical"),
+        );
+        assert_eq!(cut_elsewhere.canonical_text(), mine.canonical_text());
+        assert_ne!(cut_elsewhere, mine);
     }
 
     /// law: refusal.selection-order-projects-the-typed-order — the textual
@@ -527,8 +603,22 @@ mod refusal {
         assert!(bounded.is_some());
         assert_ne!(bounded, non_empty);
         assert_eq!(
-            bounded.map(CauseId::as_declared),
-            Some("root.bounded-construction.over-limit")
+            bounded.map(CauseId::family),
+            Some(RefusalFamilyId::declared("root.bounded-construction"))
+        );
+        assert_eq!(
+            non_empty.map(CauseId::family),
+            Some(RefusalFamilyId::declared(
+                "root.non-empty-bounded-construction"
+            ))
+        );
+        // The two families share the local key and share no identity: the
+        // family seat is the whole of the difference, and the shape is what
+        // carries it.
+        assert_eq!(bounded.map(CauseId::local), non_empty.map(CauseId::local));
+        assert_eq!(
+            bounded.map(CauseId::canonical_text),
+            Some(String::from("root.bounded-construction.over-limit"))
         );
     }
 }
@@ -2981,6 +3071,102 @@ mod declaration {
         assert!(pairwise_distinct(&stage_laws));
         let graph = DeclarationGraph::for_laws(Commitment::raw([23; 32]));
         assert_eq!(graph.linked(), &Commitment::raw([23; 32]));
+    }
+
+    crate::closed_register! {
+        /// One roster stamped by this home's own stamp, for this law alone.
+        enum StampedRoster {
+            /// The first row.
+            First = "first", "the first row";
+            /// The second row.
+            Second = "second", "the second row";
+            /// The third row.
+            Third = "third", "the third row";
+        }
+    }
+
+    /// The hand-kept form of the same roster: a roster array beside a `match`
+    /// returning numbers.
+    ///
+    /// The middle two rows are deliberately transposed. This is the planted
+    /// reversal, and it is planted rather than described because the whole
+    /// claim below is that the stamp makes exactly this value unwritable — a
+    /// claim nobody can read as non-vacuous until the writable form is sitting
+    /// beside it, wrong.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum HandKeptRoster {
+        /// The first row.
+        First,
+        /// The second row.
+        Second,
+        /// The third row.
+        Third,
+    }
+
+    impl HandKeptRoster {
+        /// The roster, in the order this declaration states it.
+        const ALL: [Self; 3] = [Self::First, Self::Second, Self::Third];
+
+        /// The position each row claims — kept by hand, and drifted.
+        const fn slot(self) -> u8 {
+            match self {
+                Self::First => 0,
+                Self::Second => 2,
+                Self::Third => 1,
+            }
+        }
+    }
+
+    /// Whether every row of one roster answers its own position in it.
+    fn positions_answer_themselves<T: Copy>(roster: &[T], slot: fn(T) -> u8) -> bool {
+        roster
+            .iter()
+            .enumerate()
+            .all(|(position, row)| usize::from(slot(*row)) == position)
+    }
+
+    /// law: declaration.a-stamped-roster-cannot-disagree-with-its-own-order —
+    /// `closed_register!` writes the roster constant and the position answer
+    /// from one row list in one expansion, so a stamped roster's slot IS its
+    /// position in `ALL` rather than a second number that agrees with it. The
+    /// declared stable name and the declared prose come back per row, in the
+    /// row they were declared on.
+    /// Executed reversal: the hand-kept twin above states the same claim
+    /// through the writable form — an array beside a `match` — and this law
+    /// requires it to FAIL, so the stamped half is proven non-vacuous rather
+    /// than asserted.
+    /// The claim's ceiling: closure of the roster is not checked here and is
+    /// not checkable anywhere. A row outside the declaration does not exist
+    /// because the stamp is the enum's only declaration site, which is a
+    /// property of macro output rather than a defect anything catches.
+    #[test]
+    fn a_stamped_roster_cannot_disagree_with_its_own_order() {
+        assert_eq!(StampedRoster::ALL.len(), 3);
+        assert!(positions_answer_themselves(
+            &StampedRoster::ALL,
+            StampedRoster::slot
+        ));
+        assert_eq!(StampedRoster::ALL.first(), Some(&StampedRoster::First));
+
+        let names: Vec<&str> = StampedRoster::ALL
+            .iter()
+            .map(|row| row.stable_name())
+            .collect();
+        assert_eq!(names, vec!["first", "second", "third"]);
+        let prose: Vec<&str> = StampedRoster::ALL
+            .iter()
+            .map(|row| row.described())
+            .collect();
+        assert_eq!(
+            prose,
+            vec!["the first row", "the second row", "the third row"]
+        );
+
+        assert_eq!(HandKeptRoster::ALL.len(), StampedRoster::ALL.len());
+        assert!(!positions_answer_themselves(
+            &HandKeptRoster::ALL,
+            HandKeptRoster::slot
+        ));
     }
 }
 

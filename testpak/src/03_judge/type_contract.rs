@@ -46,10 +46,10 @@ impl ArtifactMutation {
     #[must_use]
     pub const fn owned_by(self) -> LaneOwnership {
         match self {
-            // The first pair changes the exact spellings or the exact identities
-            // the scan reads out of the anchored forms. The second pair changes
-            // how MANY `CauseId` forms the artifact carries, which the scan's
-            // magnitude check sees. Different reasons, one lane.
+            // The first pair changes the exact spellings or the exact identity
+            // seats the scan reads out of the anchored forms. The second pair
+            // changes how MANY identity pairs the artifact carries, which the
+            // scan's magnitude check sees. Different reasons, one lane.
             Self::OrderPermuted
             | Self::IdentityRecycled
             | Self::PlannedOutputOmitted
@@ -78,7 +78,7 @@ impl ArtifactMutation {
     pub const fn described(self) -> &'static str {
         match self {
             Self::OrderPermuted => "the textual selection order is reversed",
-            Self::IdentityRecycled => "every cause is emitted under one identity",
+            Self::IdentityRecycled => "every cause is emitted under one local key",
             Self::PlannedOutputOmitted => "a planned output is deleted",
             Self::UnplannedOutputAdded => "an unplanned output is appended",
             Self::ImplTargetAltered => "the implementation targets a different type",

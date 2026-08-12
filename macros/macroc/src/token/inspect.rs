@@ -1,41 +1,18 @@
 //! What a person is shown: the Rust source text a generated tree projects, and
-//! the sentences the seam's two refusals render themselves as.
+//! the sentence the seam's span refusal renders itself as.
 //!
 //! Every projection here is one-way. Nothing in the services reads a projection
 //! back, derives an identity from one, or decides anything by one — the artifact
 //! is the tree, and the refusal is the typed value. These exist so that a
-//! producer reporting a refused capture or an unresolvable handle composes no
-//! sentence of its own.
+//! producer reporting an unresolvable handle composes no sentence of its own.
+//!
+//! The bound refusal's sentence is not here: `CaptureBound` is a closed roster
+//! stamped at its declaration, and its prose is one of the columns that
+//! declaration states. A projection that is a constant per row belongs beside
+//! the row rather than in a second file that has to be kept in step with it.
 
 use super::SpanResolutionRefusal;
-use super::{CaptureBound, GeneratedDelimiter, GeneratedSpacing, GeneratedToken};
-
-impl CaptureBound {
-    /// The bound rendered for a person. A projection of the typed value: nothing
-    /// reads it back, and it exists so that a producer reporting a refused
-    /// capture composes no sentence of its own.
-    #[must_use]
-    pub const fn described(self) -> &'static str {
-        match self {
-            Self::DepthUnbounded => {
-                "threadpak refusal-family derive: the declared input nests deeper than the \
-                 declared magnitude"
-            }
-            Self::LevelUnbounded => {
-                "threadpak refusal-family derive: one nesting level of the declared input carries \
-                 more tokens than the declared magnitude"
-            }
-            Self::TreeUnbounded => {
-                "threadpak refusal-family derive: the declared input carries more tokens than the \
-                 declared magnitude"
-            }
-            Self::WorkUnbounded => {
-                "threadpak refusal-family derive: reading the declared input spent the declared \
-                 capture-work budget"
-            }
-        }
-    }
-}
+use super::{GeneratedDelimiter, GeneratedSpacing, GeneratedToken};
 
 impl SpanResolutionRefusal {
     /// The refusal rendered for a person. A projection of the typed value:

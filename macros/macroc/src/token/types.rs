@@ -35,24 +35,37 @@ pub enum CapturedDelimiter {
     Bare,
 }
 
-/// How one capture refuses on a declared magnitude.
-///
-/// Four magnitudes and four causes, because they are four different facts about
-/// a declared input and repairing one of them tells a caller nothing about the
-/// other three. Every one of them refuses BEFORE any partial tree exists: a
-/// truncated capture is a different declaration, and capturing one would put the
-/// whole road downstream to work on material nobody wrote.
-#[must_use = "a bound refusal names which declared magnitude the capture would have passed"]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum CaptureBound {
-    /// The declared input nests deeper than the declared magnitude.
-    DepthUnbounded,
-    /// One nesting level carries more token trees than the declared magnitude.
-    LevelUnbounded,
-    /// The whole tree carries more tokens than the declared magnitude.
-    TreeUnbounded,
-    /// The walk spent the declared capture-work budget.
-    WorkUnbounded,
+threadpak::closed_register! {
+    /// How one capture refuses on a declared magnitude.
+    ///
+    /// Four magnitudes and four causes, because they are four different facts
+    /// about a declared input and repairing one of them tells a caller nothing
+    /// about the other three. Every one of them refuses BEFORE any partial tree
+    /// exists: a truncated capture is a different declaration, and capturing one
+    /// would put the whole road downstream to work on material nobody wrote.
+    ///
+    /// `described` is the bound rendered for a person — a projection of the
+    /// typed value that nothing reads back, carried so that a producer reporting
+    /// a refused capture composes no sentence of its own.
+    #[must_use = "a bound refusal names which declared magnitude the capture would have passed"]
+    pub enum CaptureBound {
+        /// The declared input nests deeper than the declared magnitude.
+        DepthUnbounded = "depth-unbounded",
+            "threadpak refusal-family derive: the declared input nests deeper than the \
+             declared magnitude";
+        /// One nesting level carries more token trees than the declared magnitude.
+        LevelUnbounded = "level-unbounded",
+            "threadpak refusal-family derive: one nesting level of the declared input carries \
+             more tokens than the declared magnitude";
+        /// The whole tree carries more tokens than the declared magnitude.
+        TreeUnbounded = "tree-unbounded",
+            "threadpak refusal-family derive: the declared input carries more tokens than the \
+             declared magnitude";
+        /// The walk spent the declared capture-work budget.
+        WorkUnbounded = "work-unbounded",
+            "threadpak refusal-family derive: reading the declared input spent the declared \
+             capture-work budget";
+    }
 }
 
 /// Where one captured token sits, as the index route from the root of the

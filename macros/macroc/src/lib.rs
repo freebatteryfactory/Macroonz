@@ -153,7 +153,7 @@ pub use derive_refusal::{
     captured_text, compile_refusal, compile_refusal_text,
 };
 pub use diagnostics::{
-    DiagnosticSite, MACROC_PHASES, MachineAnchoring, MachineAnchors, MacrocDiagnostic, MacrocPhase,
+    DiagnosticSite, MachineAnchoring, MachineAnchors, MacrocDiagnostic, MacrocPhase,
     ObservedClassification, RelatedSetCompletion, ReleasePosture, RepairAction, ReproductionRoute,
     SiteCoordinate,
 };
@@ -162,17 +162,16 @@ pub use explanation_protocol::{
     ProjectionExplanationView, kind_admits,
 };
 pub use origin_graph::{
-    DecisionTrace, Nonclaim, ORIGIN_RELATIONS, OriginEdge, OriginRelation, OriginTrail,
-    TraceDecision, TraceEntry,
+    DecisionTrace, Nonclaim, OriginEdge, OriginRelation, OriginTrail, TraceDecision, TraceEntry,
 };
 pub use pattern_stamp::{ScopeGuardOwnerFacts, ScopeGuardStampAnchors, plan_scope_guard_stamp};
 pub use plane::{
     ClosedExpansionId, ClosureId, GeneratorIdentity, GeneratorProfileId, GeneratorSchemaVersion,
     HumanProjection, IdentityProfile, IdentityProfileVersion, IdentitySubject, MACROC_GENERATOR,
-    OwnerFactName, OwnerFactRef, OwnerIdentityRef, PROJECTION_IDENTITY_PROFILE, PROJECTION_ROLES,
-    PlanId, ProfileVersion, ProjectionIdentity, ProjectionProvenance, ProjectionRole,
-    ProjectionTranscript, RenderedRole, RenderedRoleSeal, SoleRenderedUnit, SubjectSeal,
-    TranscriptAnchoring, encode_bytes, encode_length,
+    OwnerFactName, OwnerFactRef, OwnerIdentityRef, PROJECTION_IDENTITY_PROFILE, PlanId,
+    ProfileVersion, ProjectionIdentity, ProjectionProvenance, ProjectionRole, ProjectionTranscript,
+    RenderedRole, RenderedRoleSeal, SoleRenderedUnit, SubjectSeal, TranscriptAnchoring,
+    encode_bytes, encode_length,
 };
 pub use planning::{
     BenchmarkDescriptorContent, BenchmarkDescriptorProjection, CauseAnchoring, CodecContent,
@@ -185,9 +184,7 @@ pub use planning::{
     SurfaceDirection, TargetBinding, TargetRequirement, TestDescriptorContent,
     TestDescriptorProjection, UNIVERSAL_QUESTIONS, WRAPPER_COMPONENTS, WrapperComponent,
 };
-pub use question::{
-    EXPLANATION_PROTOCOL_VERSION, EXPLANATION_QUESTIONS, ExplanationQuestion, QuestionApplicability,
-};
+pub use question::{EXPLANATION_PROTOCOL_VERSION, ExplanationQuestion, QuestionApplicability};
 pub use refusal::{BOUND_AXES, BoundAxis, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue};
 pub use template::{
     ApplicativeDistinctness, AxisCeiling, CheckedMeterPosture, DeclarationTemplate,

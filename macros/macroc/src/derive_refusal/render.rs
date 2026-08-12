@@ -37,17 +37,54 @@ const fn shape_variant(shape: FamilyShape) -> &'static str {
     }
 }
 
-/// The canonical cause identity one captured cause carries: the family's stable
-/// identity joined to the cause's local key, under band 00's key grammar.
+/// The tokens one captured cause's stable identity is minted through: the
+/// family's declared identity and the cause's local key, each through its own
+/// constructor on the binding the capture read.
 ///
-/// Composed here rather than written by the author, so a family's causes cannot
-/// drift apart one hand-typed prefix at a time.
-#[must_use]
-pub fn cause_identity(surface: &RefusalDeriveSurface, cause: &CapturedCause) -> String {
-    let mut identity = String::from(surface.family_id());
-    identity.push('.');
-    identity.push_str(cause.local_key());
-    identity
+/// # Two seats, and no join
+///
+/// A cause identity IS the pair, so the rendering emits the pair. The renderer
+/// composes no text at all here — it did once, joining the family identity and
+/// the local key into a single literal, and that join put a family's ownership
+/// of its own cause back into a spelling exactly where band 00's shape had
+/// taken it out of one. What survives of the old composition is the property it
+/// bought: the author writes the local key and never the prefix, so a family's
+/// causes cannot drift apart one hand-typed prefix at a time.
+fn cause_identity(
+    surface: &RefusalDeriveSurface,
+    cause: &CapturedCause,
+) -> Result<Vec<GeneratedToken>, RenderRefusal> {
+    let binding = surface.binding().spelling();
+    let mut seats =
+        GeneratedToken::absolute_path(&[binding, "refusal", "RefusalFamilyId", "declared"]);
+    seats.push(
+        GeneratedToken::group(
+            GeneratedDelimiter::Parenthesis,
+            vec![GeneratedToken::text(surface.family_id())],
+        )
+        .map_err(|_| RenderRefusal::Unbounded)?,
+    );
+    seats.push(GeneratedToken::alone(','));
+    seats.extend(GeneratedToken::absolute_path(&[
+        binding,
+        "refusal",
+        "LocalCauseKey",
+        "declared",
+    ]));
+    seats.push(
+        GeneratedToken::group(
+            GeneratedDelimiter::Parenthesis,
+            vec![GeneratedToken::text(cause.local_key())],
+        )
+        .map_err(|_| RenderRefusal::Unbounded)?,
+    );
+
+    let mut minted = GeneratedToken::absolute_path(&[binding, "refusal", "CauseId", "declared"]);
+    minted.push(
+        GeneratedToken::group(GeneratedDelimiter::Parenthesis, seats)
+            .map_err(|_| RenderRefusal::Unbounded)?,
+    );
+    Ok(minted)
 }
 
 /// How one rendering failed to assemble.
@@ -121,22 +158,14 @@ pub fn cause_order_implementation(
     let binding = surface.binding().spelling();
     let mut rows: Vec<GeneratedToken> = Vec::new();
     for cause in surface.causes() {
-        let mut identity_arguments =
-            GeneratedToken::absolute_path(&[binding, "refusal", "CauseId", "declared"]);
-        identity_arguments.push(
-            GeneratedToken::group(
-                GeneratedDelimiter::Parenthesis,
-                vec![GeneratedToken::text(&cause_identity(surface, cause))],
-            )
-            .map_err(|_| RenderRefusal::Unbounded)?,
-        );
-        identity_arguments.push(GeneratedToken::alone(','));
-        identity_arguments.push(GeneratedToken::text(cause.spelling()));
+        let mut row_arguments = cause_identity(surface, cause)?;
+        row_arguments.push(GeneratedToken::alone(','));
+        row_arguments.push(GeneratedToken::text(cause.spelling()));
 
         let mut row =
             GeneratedToken::absolute_path(&[binding, "refusal", "DeclaredCause", "declared"]);
         row.push(
-            GeneratedToken::group(GeneratedDelimiter::Parenthesis, identity_arguments)
+            GeneratedToken::group(GeneratedDelimiter::Parenthesis, row_arguments)
                 .map_err(|_| RenderRefusal::Unbounded)?,
         );
         rows.extend(row);
