@@ -301,6 +301,82 @@ mod root {
         assert!(held.is_ok_and(|value| value.len() == 2 && *value.first() == 1));
     }
 
+    /// law: root.the-positive-witness-carries-the-admitted-one — the stronger
+    /// witness establishes the ceiling fact by CONTAINING the base witness, not
+    /// by restating its comparison, so the profile-admission claim has exactly
+    /// one owner.
+    ///
+    /// The green half is the magnitude: what the positive witness reports is
+    /// what the base witness admitted, read off the contained value rather than
+    /// off a second copy. The half that matters more is the red one, and it is
+    /// the reason the fixture is named below rather than owed: a family past the
+    /// admitting profile's ceiling stops the compiler at the POSITIVE mint, and
+    /// the diagnostic it stops with is the BASE mint's — which is only true
+    /// while the base check is the one that runs. Restating the comparison here
+    /// would keep the fixture failing and stop it saying anything about whether
+    /// the two roads still agree.
+    ///
+    /// The claim ceiling: this says nothing about whether either number is right
+    /// for a seat. It says the two witnesses cannot drift apart on the fact they
+    /// share.
+    ///
+    /// Red twin: a past-ceiling family minting the positive witness must not
+    /// compile, and must fail inside the base road.
+    #[test]
+    fn the_positive_witness_carries_the_admitted_one() {
+        use crate::types::{AdmittedLimit, PositiveLimit, RootLawsProfile};
+        struct ContainedDemo;
+        impl Limit for ContainedDemo {}
+        impl ConstLimit for ContainedDemo {
+            const MAX: usize = 5;
+        }
+        let base: AdmittedLimit<ContainedDemo, RootLawsProfile> = AdmittedLimit::under_profile();
+        let positive: PositiveLimit<ContainedDemo, RootLawsProfile> =
+            PositiveLimit::inhabited_under_profile();
+        assert_eq!(positive.max(), base.max());
+        assert_eq!(positive.max(), ContainedDemo::MAX);
+    }
+
+    /// law: root.a-prefix-road-reports-what-it-did-not-carry — the one
+    /// construction road that truncates hands back the count it truncated by,
+    /// both directions: material that fits reports nothing omitted, and material
+    /// that does not fit is carried up to the admitted magnitude with the exact
+    /// remainder reported beside it.
+    ///
+    /// The claim ceiling: this is a fact about the ROAD and says nothing about
+    /// what a caller does with the count. What the count makes impossible is a
+    /// body that dropped issues and cannot say so, and that consequence is band
+    /// 00's to state — see `refusal::a_truncated_report_is_not_a_halted_examination`.
+    ///
+    /// Owed reversal (red twin): a truncating road that returned the collection
+    /// alone must break this law, because the seat that carries the remainder
+    /// would be gone.
+    #[test]
+    fn a_prefix_road_reports_what_it_did_not_carry() {
+        use crate::types::{NonEmptyBounded, PositiveLimit, RootLawsProfile};
+        struct PrefixDemo;
+        impl Limit for PrefixDemo {}
+        impl ConstLimit for PrefixDemo {
+            const MAX: usize = 3;
+        }
+        let admitted: PositiveLimit<PrefixDemo, RootLawsProfile> =
+            PositiveLimit::inhabited_under_profile();
+
+        // Under the magnitude: everything is carried and nothing is reported
+        // missing.
+        let (whole, none_omitted) = NonEmptyBounded::admitted_prefix(1_u8, vec![2, 3], &admitted);
+        assert_eq!(whole.len(), 3);
+        assert_eq!(none_omitted, 0);
+        assert_eq!(whole.iter().copied().collect::<Vec<u8>>(), vec![1, 2, 3]);
+
+        // Past it: the prefix the magnitude holds is carried — never the first
+        // item alone — and the remainder is counted exactly.
+        let (prefix, omitted) = NonEmptyBounded::admitted_prefix(1_u8, vec![2, 3, 4, 5], &admitted);
+        assert_eq!(prefix.len(), PrefixDemo::MAX);
+        assert_eq!(omitted, 2);
+        assert_eq!(prefix.iter().copied().collect::<Vec<u8>>(), vec![1, 2, 3]);
+    }
+
     /// law: root.an-admission-does-not-cross-profiles — a witness names WHICH
     /// profile admitted the family, so one plane's admission is never another's.
     ///
@@ -800,6 +876,49 @@ mod refusal {
         ));
         assert_eq!(DemoSingle::SHAPE, FamilyShape::SingleCause);
         assert_eq!(DemoCollection::SHAPE, FamilyShape::IssueCollection);
+    }
+
+    /// law: refusal.a-truncated-report-is-not-a-halted-examination — the posture
+    /// a complete examination writes is SELECTED by how much its report left
+    /// out, both directions: nothing omitted mints `Complete`, and anything
+    /// omitted mints a truncation naming the declared bound and the exact count.
+    /// A pass that covered every site therefore cannot write `EarlyStopped`,
+    /// because the road that mints a truncation is the only road to one and it
+    /// does not produce that variant at all.
+    ///
+    /// The two postures are separately inhabited and are not equal, which is
+    /// what makes the distinction load-bearing rather than cosmetic: a reader
+    /// branching on a halted examination must re-run the pass, and a reader
+    /// branching on a truncated report already knows the total.
+    ///
+    /// The claim ceiling: this says nothing about whether any particular pass
+    /// runs to completion. It says a pass that DID cannot report that it did
+    /// not, and a body that dropped findings cannot report that it did not.
+    ///
+    /// Owed reversal (red twin): a public constructor for `ReportTruncation`, or
+    /// a mint that took the posture from a caller rather than from a count, must
+    /// break this law.
+    #[test]
+    fn a_truncated_report_is_not_a_halted_examination() {
+        let carried_everything =
+            CompletionPosture::examined_completely(0, StopBound::DeclaredIssueBound);
+        assert_eq!(carried_everything, CompletionPosture::Complete);
+
+        let left_some_out =
+            CompletionPosture::examined_completely(7, StopBound::DeclaredIssueBound);
+        assert!(matches!(
+            left_some_out,
+            CompletionPosture::ReportTruncated(truncation)
+                if truncation.omitted().get() == 7
+                    && matches!(truncation.stopped_at(), StopBound::DeclaredIssueBound)
+        ));
+
+        // The halted posture is a different value, and no count produces it.
+        let halted = CompletionPosture::EarlyStopped {
+            stopped_at: StopBound::DeclaredWorkBound,
+        };
+        assert_ne!(left_some_out, halted);
+        assert_ne!(carried_everything, halted);
     }
 
     /// law: refusal.cause-identity-outlives-its-spelling — a cause's stable

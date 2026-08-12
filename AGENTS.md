@@ -33,8 +33,17 @@ knows which host is running it.
 - The crate root owns generic composition shapes only. A semantic noun lives at the
   root solely by an explicit root admission decision; otherwise it has an owner home.
   The root is never a shared-noun drawer.
-- A home README is markdown prose plus fenced yaml blocks that tooling parses and
-  verifies against derived facts.
+- A SEMANTIC home's README is markdown prose plus fenced yaml blocks that tooling parses
+  and verifies against derived facts — the `README.md` + `mod.rs` + `types.rs` +
+  obligations-yaml shape belongs to the machine's own homes, where an obligation row is
+  joined against a law by `cargo xtask check`. A TOOLING home's README is prose carried
+  as its module documentation, and its qualification obligations live in the CRATE
+  README's tooling-obligation blocks, on their own denominator. A tooling home does not
+  mint a second obligation ledger of its own: two ledgers over one population is the
+  hand-maintained inventory this file bans, and a yaml block nothing parses is a
+  machine-readable claim about a machine that never reads it. Each tooling home's README
+  closes by naming where its obligations do live. The versioned claims ledger arriving
+  with the laws-drain phase supersedes both shapes.
 - **The file grammar.** Every semantic home is its numbered folder carrying `README.md`
   + `mod.rs` + `types.rs`, and the folder's files are named by what they are about.
   `types.rs` owns the home's public types **in the core crate**: a `pub` struct, enum,

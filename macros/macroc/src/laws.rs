@@ -13,30 +13,79 @@
 
 mod plane {
     use crate::plane::{
-        AuthoringLimitProfile, HumanProjection, HumanTextLimit, OwnerFactSubject, OwnerHomeSubject,
-        OwnerIdentityRef, ProfileVersion, RefusalReason, RenderedByteLimit,
+        AuthoringLimitProfile, DECLARED_LIMITS, HumanProjection, HumanTextLimit, OwnerFactSubject,
+        OwnerHomeSubject, OwnerIdentityRef, ProfileVersion, RefusalReason,
     };
     use threadpak::types::{BoundedConstruction, ConstLimit, LimitAdmissionProfile};
+
+    /// The widest magnitude the plane's limit roster declares, read off the
+    /// roster itself.
+    ///
+    /// `DECLARED_LIMITS` is emitted from the same rows the families are, so this
+    /// answer moves the moment a declaration does — which is the whole point:
+    /// naming a family here would make the law green against a roster that had
+    /// grown past it.
+    fn widest_declared_magnitude() -> usize {
+        DECLARED_LIMITS.iter().fold(
+            0usize,
+            |widest, &(_, declared)| {
+                if declared > widest { declared } else { widest }
+            },
+        )
+    }
 
     /// law: plane.the-authoring-ceiling-is-this-plane-s-own — the services admit
     /// their declared magnitudes under a ceiling this plane wrote down, and the
     /// relation that justifies the number holds: the ceiling is sixteen times
     /// the widest magnitude the plane declares.
     ///
+    /// The widest magnitude is DERIVED from the roster rather than named. The
+    /// law used to compare the ceiling against one family by its Rust spelling,
+    /// which meant a new family wider than that one left the law green while the
+    /// obligation's own rationale — "sixteen times the widest magnitude the
+    /// plane declares" — had quietly stopped being true. Reading the roster is
+    /// what makes the relation the thing under test.
+    ///
     /// The claim ceiling: this is the positive control for the AUTHORING plane's
-    /// policy and nothing about the machine's algebra. It reads the number here
-    /// so a silent drift in either the ceiling or the widest family fails at the
-    /// relation rather than at whoever first reads the prose.
+    /// policy and nothing about the machine's algebra.
     ///
     /// Owed reversal (red twin): a family declaring a magnitude past this
     /// ceiling must not compile — the fixture is testpak's.
     #[test]
     fn the_authoring_ceiling_is_this_planes_own() {
         assert_eq!(AuthoringLimitProfile::MAX_DECLARED_LIMIT, 1_048_576);
-        assert_eq!(RenderedByteLimit::MAX, 65_536);
+        let widest = widest_declared_magnitude();
+        assert!(widest > 0, "the plane declares no limit family at all");
         assert_eq!(
             AuthoringLimitProfile::MAX_DECLARED_LIMIT,
-            RenderedByteLimit::MAX.saturating_mul(16)
+            widest.saturating_mul(16)
+        );
+    }
+
+    /// law: plane.the-declared-limit-roster-is-read-from-its-own-rows — the
+    /// roster a claim about "every declared family" is answered from is emitted
+    /// by the same expansion that declares the families, so it cannot list a
+    /// family the plane does not declare and cannot omit one it does.
+    ///
+    /// The two spot checks are the joins a hand-maintained table would fail: a
+    /// named family's magnitude read through the table equals the magnitude read
+    /// through its own `ConstLimit`, and the table's length is the count of rows
+    /// the macro was given rather than a number anybody wrote down.
+    ///
+    /// Owed reversal (red twin): a table authored beside the declarations rather
+    /// than emitted from them must break this law — the fixture is testpak's.
+    #[test]
+    fn the_declared_limit_roster_is_read_from_its_own_rows() {
+        let named = DECLARED_LIMITS
+            .iter()
+            .find(|(name, _)| *name == "RenderedByteLimit")
+            .map(|&(_, declared)| declared);
+        assert_eq!(named, Some(crate::plane::RenderedByteLimit::MAX));
+        assert!(DECLARED_LIMITS.len() > 30);
+        assert!(
+            DECLARED_LIMITS
+                .iter()
+                .all(|&(name, declared)| !name.is_empty() && declared > 0)
         );
     }
 
@@ -484,13 +533,23 @@ mod refusal {
         ));
     }
 
-    /// law: refusal.co-established-issues-stay-whole-or-say-they-stopped — a
-    /// body carrying several issues either covers them all or reports the
-    /// declared bound that stopped it.
-    /// Owed reversal (red twin): a body that dropped the remainder silently must
-    /// break this law.
+    /// law: refusal.co-established-issues-stay-whole-or-say-what-they-left-out —
+    /// a body carrying several issues either carries them all and says
+    /// `Complete`, or carries what the declared bound holds and names the exact
+    /// number of established issues it does not carry. Both directions, at the
+    /// one road every planning seam builds a body through.
+    ///
+    /// The over-bound reading is the one that used to be false twice over: the
+    /// body kept the FIRST issue alone whatever the bound admitted, and reported
+    /// that examination had stopped — when the pass had already run to the end
+    /// and the caller was simply handed one finding out of many. Both halves are
+    /// asserted here, so restoring either fails.
+    ///
+    /// Owed reversal (red twin): a body that dropped the remainder silently, or
+    /// one that reported a halted examination after a complete pass, must break
+    /// this law.
     #[test]
-    fn co_established_issues_stay_whole_or_say_they_stopped() {
+    fn co_established_issues_stay_whole_or_say_what_they_left_out() {
         let node = crate::plane::for_laws(1);
         let whole = ProjectionPlanning::co_established(
             ProjectionPlanningIssue::OrphanGeneratedNode { node },
@@ -499,21 +558,30 @@ mod refusal {
         assert_eq!(whole.issues.len(), 2);
         assert!(matches!(whole.posture, CompletionPosture::Complete));
 
+        // One issue past the declared magnitude: the body fills to the bound
+        // rather than collapsing to its first issue, and names the one it could
+        // not carry.
         let overrun: Vec<ProjectionPlanningIssue> = core::iter::repeat_n(
             ProjectionPlanningIssue::OrphanGeneratedNode { node },
             PlanningIssueLimit::MAX,
         )
         .collect();
-        let stopped = ProjectionPlanning::co_established(
+        let truncated = ProjectionPlanning::co_established(
             ProjectionPlanningIssue::MembershipIncomplete { absent: node },
             overrun,
         );
-        assert_eq!(stopped.issues.len(), 1);
+        assert_eq!(truncated.issues.len(), PlanningIssueLimit::MAX);
         assert!(matches!(
-            stopped.posture,
-            CompletionPosture::EarlyStopped {
-                stopped_at: StopBound::DeclaredIssueBound
-            }
+            truncated.posture,
+            CompletionPosture::ReportTruncated(truncation)
+                if truncation.omitted().get() == 1
+                    && matches!(truncation.stopped_at(), StopBound::DeclaredIssueBound)
+        ));
+        // The first issue survives at the front: a report that reordered its
+        // findings under pressure would be a different report.
+        assert!(matches!(
+            truncated.issues.first(),
+            ProjectionPlanningIssue::MembershipIncomplete { .. }
         ));
     }
 
@@ -867,14 +935,43 @@ mod origin_graph {
         ));
     }
 
+    /// One node of a demo walk, distinguished by its step.
+    fn node(step: usize) -> crate::plane::ProjectionIdentity<crate::plane::OriginNodeSubject> {
+        crate::plane::for_laws(u8::try_from(step.saturating_add(10)).unwrap_or(u8::MAX))
+    }
+
+    /// A CONNECTED walk of the requested edge count: each edge starts where the
+    /// one before it ended.
+    ///
+    /// The bound laws take their material from here on purpose. A walk built by
+    /// repeating one edge is discontinuous, so a bound law written over it would
+    /// stop testing the bound the moment continuity became a real check — which
+    /// is exactly what happened, and is why the helper exists rather than a
+    /// repeated edge.
+    fn walk(edges: usize) -> (OriginEdge, Vec<OriginEdge>) {
+        let first = OriginEdge {
+            from: node(0),
+            relation: OriginRelation::AuthoredDeclaration,
+            to: node(1),
+        };
+        let rest = (1..edges)
+            .map(|step| OriginEdge {
+                from: node(step),
+                relation: OriginRelation::Rendering,
+                to: node(step.saturating_add(1)),
+            })
+            .collect();
+        (first, rest)
+    }
+
     /// law: origin.trails-refuse-rather-than-truncate — a walk past the declared
     /// bound refuses with the bound axis named, so an origin never quietly
     /// shortens into a span.
     /// Owed reversal: a constructor that truncated must break this law.
     #[test]
     fn trails_refuse_rather_than_truncate() {
-        let overrun: Vec<OriginEdge> = core::iter::repeat_n(edge(), OriginEdgeLimit::MAX).collect();
-        let refused = OriginTrail::drawn(edge(), overrun);
+        let (first, overrun) = walk(OriginEdgeLimit::MAX.saturating_add(1));
+        let refused = OriginTrail::drawn(first, overrun);
         assert!(refused.is_err_and(|planning| matches!(
             planning.issues.first(),
             ProjectionPlanningIssue::BoundExceeded {
@@ -882,8 +979,44 @@ mod origin_graph {
                 ..
             }
         )));
-        let fits = OriginTrail::drawn(edge(), vec![edge()]);
+        let (head, tail) = walk(2);
+        let fits = OriginTrail::drawn(head, tail);
         assert!(fits.is_ok_and(|trail| trail.len() == 2));
+    }
+
+    /// law: origin.a-trail-is-a-walk-or-it-is-refused — a drawn trail's edges
+    /// join end to end, and one that does not refuses naming the position of the
+    /// first edge that fails to join.
+    ///
+    /// Both directions. A connected walk draws; the same walk with one edge's
+    /// start moved refuses, and the refusal names WHERE — a caller told only
+    /// that a trail is broken has nothing to repair. The seam checked the edge
+    /// count and nothing else before this, so a disconnected list could become
+    /// an `OriginTrail` and receive canonical bytes as a provenance path.
+    ///
+    /// The position is what makes the law non-vacuous in both halves: a check
+    /// that always reported the first edge would pass a two-edge fixture and say
+    /// nothing, so the break is planted at the third.
+    ///
+    /// Owed reversal (red twin): a `drawn` that checked the bound alone must
+    /// break this law.
+    #[test]
+    fn a_trail_is_a_walk_or_it_is_refused() {
+        let (first, rest) = walk(4);
+        let connected = OriginTrail::drawn(first, rest);
+        assert!(connected.is_ok_and(|trail| trail.len() == 4));
+
+        let (head, mut tail) = walk(4);
+        // The third edge of the trail — the second of the remainder — is cut
+        // loose: it now starts at a node nobody produced.
+        if let Some(third) = tail.get_mut(1) {
+            third.from = node(99);
+        }
+        let broken = OriginTrail::drawn(head, tail);
+        assert!(broken.is_err_and(|planning| matches!(
+            planning.issues.first(),
+            ProjectionPlanningIssue::TrailDiscontinuous { at: 2 }
+        )));
     }
 
     /// law: origin.not-run-is-not-passed — a check that did not run is a
@@ -1403,10 +1536,7 @@ mod explanation_protocol {
     use crate::origin_graph::{
         DecisionTrace, OriginEdge, OriginRelation, OriginTrail, TraceDecision, TraceEntry,
     };
-    use crate::plane::{
-        HumanProjection, HumanTextLimit, OwnerFactRef, OwnerIdentityRef, ProfileVersion,
-        human_projection,
-    };
+    use crate::plane::{OwnerFactRef, OwnerIdentityRef, ProfileVersion};
     use crate::planning::{
         CauseAnchoring, DeriveImplProjection, DigestContract, GraphAnchoring,
         HostWrapperProjection, InvalidationTrigger, MemberDestination, PlannedOutput,
@@ -1423,16 +1553,6 @@ mod explanation_protocol {
         }
     }
 
-    /// One rendering, for laws that need a human projection.
-    ///
-    /// Taken through the compile-time-proven road, so the helper carries no
-    /// refusal and no substitute. It used to swallow the checked road's refusal
-    /// with an empty rendering, which is the same defect the proof surface
-    /// exists to catch — a helper is not exempt from the law it helps prove.
-    fn human() -> HumanProjection<HumanTextLimit> {
-        human_projection!(HumanTextLimit, "derived from the declared contract")
-    }
-
     /// The eight universal answers every kind owes.
     fn universal_answers() -> Vec<ProjectionExplanation> {
         let trail = OriginTrail::from_edge(OriginEdge {
@@ -1441,71 +1561,47 @@ mod explanation_protocol {
             to: crate::plane::for_laws(63),
         });
         vec![
-            ProjectionExplanation::answered(
-                ExplanationAnswer::Kind {
-                    kind: crate::plane::for_laws(64),
-                },
-                human(),
-            ),
-            ProjectionExplanation::answered(
-                ExplanationAnswer::Owner {
-                    owner: owner_fact(),
-                },
-                human(),
-            ),
-            ProjectionExplanation::answered(
-                ExplanationAnswer::CausingDeclarations {
-                    sources: CauseAnchoring::Declarations(ProjectionContext::one_source(
-                        OwnerIdentityRef::decoded([65; 32]),
-                    )),
-                },
-                human(),
-            ),
-            ProjectionExplanation::answered(
-                ExplanationAnswer::GraphAndProfile {
-                    graph: GraphAnchoring::ClosedGraph(OwnerIdentityRef::decoded([66; 32])),
-                    profile: crate::plane::for_laws(67),
-                    version: ProfileVersion::declared(2),
-                },
-                human(),
-            ),
-            ProjectionExplanation::answered(
-                ExplanationAnswer::OutputAndDigest {
-                    output: Box::new(PlannedOutput {
-                        semantic_key: crate::plane::for_laws(68),
-                        destination: MemberDestination::AtDeclarationSite,
-                        origin: trail,
-                        expected_profile: crate::plane::for_laws(67),
-                        expected_profile_version: ProfileVersion::declared(2),
-                        digest_contract: DigestContract::over(crate::plane::for_laws(68)),
-                    }),
-                    digest: crate::plane::for_laws(69),
-                },
-                human(),
-            ),
-            ProjectionExplanation::answered(
-                ExplanationAnswer::Invalidators {
-                    triggers: InvalidationTrigger::one_watched(
-                        InvalidationTrigger::GraphIdentityChanged {
-                            watched: OwnerIdentityRef::decoded([66; 32]),
-                        },
-                    ),
-                },
-                human(),
-            ),
-            ProjectionExplanation::answered(
-                ExplanationAnswer::RelatedProjectionDisposition {
-                    related: crate::plane::for_laws(70),
-                    disposition: ProjectionDisposition::NotRequested,
-                },
-                human(),
-            ),
-            ProjectionExplanation::answered(
-                ExplanationAnswer::Repairs {
-                    repairs: Bounded::empty(),
-                },
-                human(),
-            ),
+            ProjectionExplanation::answered(ExplanationAnswer::Kind {
+                kind: crate::plane::for_laws(64),
+            }),
+            ProjectionExplanation::answered(ExplanationAnswer::Owner {
+                owner: owner_fact(),
+            }),
+            ProjectionExplanation::answered(ExplanationAnswer::CausingDeclarations {
+                sources: CauseAnchoring::Declarations(ProjectionContext::one_source(
+                    OwnerIdentityRef::decoded([65; 32]),
+                )),
+            }),
+            ProjectionExplanation::answered(ExplanationAnswer::GraphAndProfile {
+                graph: GraphAnchoring::ClosedGraph(OwnerIdentityRef::decoded([66; 32])),
+                profile: crate::plane::for_laws(67),
+                version: ProfileVersion::declared(2),
+            }),
+            ProjectionExplanation::answered(ExplanationAnswer::OutputAndDigest {
+                output: Box::new(PlannedOutput {
+                    semantic_key: crate::plane::for_laws(68),
+                    destination: MemberDestination::AtDeclarationSite,
+                    origin: trail,
+                    expected_profile: crate::plane::for_laws(67),
+                    expected_profile_version: ProfileVersion::declared(2),
+                    digest_contract: DigestContract::over(crate::plane::for_laws(68)),
+                }),
+                digest: crate::plane::for_laws(69),
+            }),
+            ProjectionExplanation::answered(ExplanationAnswer::Invalidators {
+                triggers: InvalidationTrigger::one_watched(
+                    InvalidationTrigger::GraphIdentityChanged {
+                        watched: OwnerIdentityRef::decoded([66; 32]),
+                    },
+                ),
+            }),
+            ProjectionExplanation::answered(ExplanationAnswer::RelatedProjectionDisposition {
+                related: crate::plane::for_laws(70),
+                disposition: ProjectionDisposition::NotRequested,
+            }),
+            ProjectionExplanation::answered(ExplanationAnswer::Repairs {
+                repairs: Bounded::empty(),
+            }),
         ]
     }
 
@@ -1516,12 +1612,9 @@ mod explanation_protocol {
     /// caller must break this law.
     #[test]
     fn an_answer_names_its_own_question() {
-        let explanation = ProjectionExplanation::answered(
-            ExplanationAnswer::Owner {
-                owner: owner_fact(),
-            },
-            human(),
-        );
+        let explanation = ProjectionExplanation::answered(ExplanationAnswer::Owner {
+            owner: owner_fact(),
+        });
         assert!(matches!(
             explanation.question(),
             ExplanationQuestion::WhichOwnerRequired
@@ -1539,6 +1632,46 @@ mod explanation_protocol {
         }));
     }
 
+    /// law: explanation.a-rendering-cannot-disagree-with-its-answer — the line a
+    /// person reads is a function of the typed answer and of nothing else.
+    ///
+    /// The structural half is the constructor's shape: `answered` takes the
+    /// answer and only the answer, so there is no seat a caller could fill with
+    /// a sentence about a different value, and no stored rendering to drift from
+    /// the answer it was projected out of. The seat existed until now — a free
+    /// `HumanProjection` argument, unrelated by type or check to the answer
+    /// beside it — and the home's own README already claimed the rendering was
+    /// derived.
+    ///
+    /// The executed half is below, both directions: two explanations over the
+    /// same answer render the same line, two over different answers render
+    /// different lines, and every answer in the universal roster renders
+    /// something rather than an empty string.
+    ///
+    /// Owed reversal (red twin): restoring a caller-supplied rendering seat must
+    /// break this law — the fixture is testpak's, because the strongest half of
+    /// the claim is about a call that no longer compiles.
+    #[test]
+    fn a_rendering_cannot_disagree_with_its_answer() {
+        let answer = ExplanationAnswer::Owner {
+            owner: owner_fact(),
+        };
+        let one = ProjectionExplanation::answered(answer.clone());
+        let again = ProjectionExplanation::answered(answer);
+        assert_eq!(one.human().shown(), again.human().shown());
+
+        let different = ProjectionExplanation::answered(ExplanationAnswer::Repairs {
+            repairs: Bounded::empty(),
+        });
+        assert_ne!(one.human().shown(), different.human().shown());
+
+        assert!(
+            universal_answers()
+                .iter()
+                .all(|explanation| !explanation.human().is_empty())
+        );
+    }
+
     /// law: explanation.a-complete-view-fills-every-applicable-seat — a view
     /// completes exactly when every applicable question has one answer.
     /// Owed reversal: a view accepting a subset must break this law.
@@ -1549,7 +1682,6 @@ mod explanation_protocol {
             ExplanationAnswer::AssumptionsAndSpecializations {
                 assumptions: Bounded::empty(),
             },
-            human(),
         ));
         let view = ProjectionExplanationView::<DeriveImplProjection>::complete(answers);
         assert!(view.is_ok_and(|view| view.len() == 9 && !view.is_empty()));
@@ -1583,14 +1715,10 @@ mod explanation_protocol {
             ExplanationAnswer::AssumptionsAndSpecializations {
                 assumptions: Bounded::empty(),
             },
-            human(),
         ));
-        doubled.push(ProjectionExplanation::answered(
-            ExplanationAnswer::Owner {
-                owner: owner_fact(),
-            },
-            human(),
-        ));
+        doubled.push(ProjectionExplanation::answered(ExplanationAnswer::Owner {
+            owner: owner_fact(),
+        }));
         let refused = ProjectionExplanationView::<DeriveImplProjection>::complete(doubled);
         assert!(refused.is_err_and(|coverage| matches!(
             coverage.issues.first(),
@@ -1604,7 +1732,6 @@ mod explanation_protocol {
             ExplanationAnswer::AssumptionsAndSpecializations {
                 assumptions: Bounded::empty(),
             },
-            human(),
         ));
         foreign.push(ProjectionExplanation::answered(
             ExplanationAnswer::SelectedWrappers {
@@ -1613,7 +1740,6 @@ mod explanation_protocol {
                     decision: TraceDecision::SelectedBecause(owner_fact()),
                 }),
             },
-            human(),
         ));
         let rejected = ProjectionExplanationView::<DeriveImplProjection>::complete(foreign);
         assert!(rejected.is_err_and(|coverage| matches!(
@@ -2087,6 +2213,64 @@ mod template {
         )));
     }
 
+    /// law: template.a-doubled-hole-does-not-hide-a-recategorized-one — where
+    /// one declared hole is bound twice AND one of those bindings disagrees with
+    /// its declared category, the pass reports BOTH, because both are true and
+    /// each is its own repair.
+    ///
+    /// The two questions co-establish and are now asked separately. The pass
+    /// used to ask about the category only in the arm where exactly one binding
+    /// named the hole, so a doubled hole reported the doubling and swallowed the
+    /// disagreement — and a caller who removed the duplicate learned about the
+    /// category on the NEXT attempt, which is the one-defect-per-attempt road
+    /// this home exists to close.
+    ///
+    /// Both directions: the doubled-and-recategorized set establishes two issues
+    /// over the one hole, and the doubled-but-well-categorized set establishes
+    /// one. The second half is what stops the fix from reporting a category
+    /// disagreement nobody made.
+    ///
+    /// Owed reversal (red twin): asking the category question only where exactly
+    /// one binding was supplied must break this law.
+    #[test]
+    fn a_doubled_hole_does_not_hide_a_recategorized_one() {
+        let both = apply(bindings(&[
+            (SpliceCategory::Type, 20, 30),
+            (SpliceCategory::Pattern, 20, 33),
+            (SpliceCategory::Expression, 21, 31),
+        ]));
+        assert!(both.is_err_and(|refusal| {
+            let established: Vec<&TemplateConstructionIssue> = refusal.issues.iter().collect();
+            established.len() == 2
+                && established.iter().any(|issue| {
+                    matches!(issue, TemplateConstructionIssue::DuplicateBinding { .. })
+                })
+                && established.iter().any(|issue| {
+                    matches!(
+                        issue,
+                        TemplateConstructionIssue::DeclaredCategoryDisagreement {
+                            declared: SpliceCategory::Type,
+                            bound: SpliceCategory::Pattern,
+                            ..
+                        }
+                    )
+                })
+        }));
+
+        let doubling_alone = apply(bindings(&[
+            (SpliceCategory::Type, 20, 30),
+            (SpliceCategory::Type, 20, 33),
+            (SpliceCategory::Expression, 21, 31),
+        ]));
+        assert!(doubling_alone.is_err_and(|refusal| {
+            refusal.issues.len() == 1
+                && matches!(
+                    refusal.issues.first(),
+                    TemplateConstructionIssue::DuplicateBinding { .. }
+                )
+        }));
+    }
+
     /// law: template.deliberate-distinctness-is-identity-bearing — two
     /// applications of one template over the same bindings and profiles differ
     /// only when a distinctness identity says so; the applicative posture and a
@@ -2514,7 +2698,9 @@ mod pattern_stamp {
         ScopeGuardOwnerFacts, ScopeGuardStampAnchors, plan_scope_guard_stamp,
     };
     use crate::plane::{OwnerFactRef, OwnerIdentityRef, ProfileVersion};
-    use crate::planning::{CauseAnchoring, GraphAnchoring, ProjectionContext, TargetBinding};
+    use crate::planning::{
+        CauseAnchoring, GraphAnchoring, InvalidationTrigger, ProjectionContext, TargetBinding,
+    };
 
     /// One owner fact, distinguished by its fact identity.
     fn owner_fact(fact: u8) -> OwnerFactRef {
@@ -2556,7 +2742,7 @@ mod pattern_stamp {
     /// law: pattern-stamp.a-declarative-stamp-carries-a-complete-plan — the plan
     /// family carries a declarative stamp: one output, a trail that walks back
     /// through the pattern-instantiation edge to the authored declaration, two
-    /// decisions in selection order each citing an identity-home fact, three
+    /// decisions in selection order each citing an identity-home fact, four
     /// watched identities, and the two typed arguments the caller stated.
     /// Owed reversal: a stamp planned without its instantiation edge, or with a
     /// string where a typed argument belongs, must break this law.
@@ -2575,10 +2761,48 @@ mod pattern_stamp {
                     plan.trace().first().decision,
                     TraceDecision::SelectedBecause(_)
                 )
-                && plan.invalidation().len() == 3
+                && plan.invalidation().len() == 4
                 && plan.content().arguments.len() == 2
                 && plan.nonclaims().is_empty()
                 && !plan.membership().first().output.origin.is_empty()
+        }));
+    }
+
+    /// law: pattern-stamp.the-watch-set-covers-every-context-anchor — every
+    /// identity the shared plan context carries is watched by a trigger of its
+    /// own: the cause set, the graph, the projection profile, and the generator
+    /// version. Four seats, four triggers, none of them the same kind twice.
+    ///
+    /// The profile was the missing one. A stamp's planned member declares the
+    /// profile and version it EXPECTS to render under, so a profile that moved
+    /// left a plan whose expectation nobody re-decided — stale, and still
+    /// reading as current.
+    ///
+    /// The claim ceiling, stated because it is the honest boundary: this covers
+    /// the CONTEXT and not the anchors supplied beside it. The pattern, the
+    /// instantiation, the two typed arguments, the origin nodes, the stamped
+    /// unit, the traced subject, and the cited owner facts define the plan too,
+    /// and the trigger roster declares no seat any of them could be watched
+    /// through. The gap is named in `pattern_stamp/plan.rs` rather than papered
+    /// over here.
+    ///
+    /// Owed reversal (red twin): dropping any context trigger from the watch set
+    /// must break this law.
+    #[test]
+    fn the_watch_set_covers_every_context_anchor() {
+        let anchors = anchors();
+        let planned = plan_scope_guard_stamp(&anchors);
+        assert!(planned.is_ok_and(|plan| {
+            let watched: Vec<InvalidationTrigger> = plan.invalidation().iter().copied().collect();
+            watched.len() == 4
+                && watched.contains(&anchors.context.cause_trigger())
+                && watched.contains(&anchors.context.graph_trigger())
+                && watched.contains(&InvalidationTrigger::ProjectionProfileChanged {
+                    watched: anchors.context.profile,
+                })
+                && watched.contains(&InvalidationTrigger::GeneratorVersionChanged {
+                    watched: anchors.context.generator,
+                })
         }));
     }
 
@@ -3508,18 +3732,22 @@ mod failure_path_closure {
         }));
     }
 
-    /// law: closure.an-early-stopped-related-set-says-what-it-dropped — a
-    /// related set that fits carries the complete body's identity and one per
-    /// established issue and reports `Complete`; a set that would overrun the
-    /// declared magnitude carries the body's identity alone and reports
-    /// `EarlyStopped` at the declared issue bound, naming how many per-issue
-    /// identities are not there. The seam this replaced returned the coarser
-    /// set silently, which is a smaller success wearing the shape of a complete
-    /// one.
+    /// law: closure.a-truncated-related-set-says-what-it-dropped — a related set
+    /// that fits carries the complete body's identity and one per established
+    /// issue and reports `Complete`; a set that would overrun the declared
+    /// magnitude carries the body's identity alone and reports `ReportTruncated`
+    /// at the declared issue bound, naming how many per-issue identities are not
+    /// there. The seam this replaced returned the coarser set silently, which is
+    /// a smaller success wearing the shape of a complete one.
+    ///
+    /// The posture is spelled for truncation rather than for an early stop, on
+    /// band 00's distinction: the refusal body is complete before the set is
+    /// built, so nothing here ever halts an examination and a set that reported
+    /// one would be claiming an ignorance it does not have.
     /// Owed reversal (red twin): an overflow road returning the coarser set with
     /// no posture must break this law.
     #[test]
-    fn an_early_stopped_related_set_says_what_it_dropped() {
+    fn a_truncated_related_set_says_what_it_dropped() {
         use crate::plane::{ProjectionIdentity, ProjectionRole, ProjectionTranscript};
         use threadpak::refusal::StopBound;
         use threadpak::types::ConstLimit;
@@ -3542,12 +3770,12 @@ mod failure_path_closure {
         // AT the declared magnitude overruns the set by exactly one.
         let magnitude = u32::try_from(crate::plane::RelatedIssueLimit::MAX).unwrap_or(u32::MAX);
         let over: Vec<_> = (1..=magnitude).map(identity).collect();
-        let (stopped_set, stopped) = diagnose::related_set(body, over);
-        assert_eq!(stopped_set.len(), 1);
-        assert_eq!(stopped_set.iter().next(), Some(&body));
+        let (truncated_set, truncated) = diagnose::related_set(body, over);
+        assert_eq!(truncated_set.len(), 1);
+        assert_eq!(truncated_set.iter().next(), Some(&body));
         assert!(matches!(
-            stopped,
-            RelatedSetCompletion::EarlyStopped {
+            truncated,
+            RelatedSetCompletion::ReportTruncated {
                 stopped_at: StopBound::DeclaredIssueBound,
                 omitted,
             } if omitted == crate::plane::RelatedIssueLimit::MAX
@@ -3555,12 +3783,12 @@ mod failure_path_closure {
 
         // The one line rustc shows carries the same statement, because the
         // typed posture beside it is not something rustc shows. A complete set
-        // adds nothing to the line; a stopped one names the count it dropped.
+        // adds nothing to the line; a truncated one names the count it dropped.
         let plain = diagnose::witnessed("planning refused", RelatedSetCompletion::Complete);
         assert_eq!(plain, "planning refused");
-        let said = diagnose::witnessed("planning refused", stopped);
+        let said = diagnose::witnessed("planning refused", truncated);
         assert!(said.starts_with("planning refused"));
-        assert!(said.contains("the related set stopped at the declared issue bound"));
+        assert!(said.contains("the related set was truncated at the declared issue bound"));
         assert!(said.contains(&crate::plane::RelatedIssueLimit::MAX.to_string()));
     }
 

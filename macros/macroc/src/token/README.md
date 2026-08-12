@@ -41,3 +41,6 @@ first token of the declaration.
 a private field, which is where all four magnitudes are settled. `text.rs` is the
 callable text route end to end, `resolve.rs` answers a span handle, `encode.rs`
 writes the canonical bytes, and `inspect.rs` renders what a person is shown.
+
+This home's qualification obligations live in the crate README's tooling-obligation
+blocks.

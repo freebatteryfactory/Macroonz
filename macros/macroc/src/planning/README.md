@@ -34,3 +34,6 @@ firewall and every other road that reaches a private field. `type_contract.rs`
 states the rendered-role roster an implementation projection materializes,
 `anchor.rs` reads a plan's footing and the triggers that follow from it, and
 `encode.rs` writes the bytes a plan's transcript is taken over.
+
+This home's qualification obligations live in the crate README's tooling-obligation
+blocks.

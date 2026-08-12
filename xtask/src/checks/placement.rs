@@ -80,10 +80,13 @@ const TOOLING_MODULE_ROOT: [&str; 3] = ["macros", "macroc", "src"];
 /// The machine states its bands with numbered directories; the services crate
 /// carries no numbers and states the same fact with the one ordering that is
 /// left to it — the order its `mod` declarations appear in `lib.rs`. A module
-/// may reference modules declared EARLIER than itself and no others. That single
-/// rule outlaws cycles outright, because every cycle contains at least one
-/// backward-pointing edge, and it needs no hand-maintained dependency map: the
-/// order is read from the declarations and the edges from the sources.
+/// may not reference another listed module declared LATER than itself. A module
+/// naming ITSELF is not an edge and is lawful, which is why the rule is stated
+/// as a prohibition on forward references rather than as a permission for
+/// backward ones. That single rule outlaws cycles outright, because every cycle
+/// contains at least one forward-pointing edge, and it needs no hand-maintained
+/// dependency map: the order is read from the declarations and the edges from
+/// the sources.
 ///
 /// # The dependency spellings this check recognizes
 ///

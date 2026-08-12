@@ -9,9 +9,11 @@
 //! explanation is a reading of what happened rather than a restatement of what
 //! was intended.
 //!
-//! Every human rendering below is a static literal proven to fit its limit
-//! family at compile time. There is no road here that swallows an over-long
-//! projection and hands back an empty one.
+//! No human rendering is written here at all. A seat used to stand beside every
+//! answer for a sentence this module composed, which meant the sentence and the
+//! typed answer were two values that could disagree. The rendering is projected
+//! from the answer now — see `explanation_protocol::project` — so there is
+//! nothing to write and nothing to keep in agreement.
 //!
 //! # An explanation that cannot bind its subject refuses
 //!
@@ -31,7 +33,7 @@ use crate::closure::{ProjectionClosure, RenderedUnit};
 use crate::explanation_protocol::{
     ExplanationAnswer, ExplanationCoverage, ProjectionExplanation, ProjectionExplanationView,
 };
-use crate::plane::{HumanTextLimit, OwnerFactRef, human_projection};
+use crate::plane::OwnerFactRef;
 use crate::planning::{DeriveImplProjection, RenderedImplementation};
 use threadpak::types::Bounded;
 
@@ -126,82 +128,34 @@ fn seats(
 ) -> Vec<ProjectionExplanation> {
     let plan = planned.plan();
     vec![
-        ProjectionExplanation::answered(
-            ExplanationAnswer::Kind {
-                kind: derive_impl_kind(),
-            },
-            human_projection!(
-                HumanTextLimit,
-                "an implementation projection over a declared refusal family"
-            ),
-        ),
-        ProjectionExplanation::answered(
-            ExplanationAnswer::Owner { owner },
-            human_projection!(
-                HumanTextLimit,
-                "the refusal home requires a declared body shape"
-            ),
-        ),
-        ProjectionExplanation::answered(
-            ExplanationAnswer::CausingDeclarations {
-                sources: plan.context().sources.clone(),
-            },
-            human_projection!(HumanTextLimit, "the enum declaration the caller wrote"),
-        ),
-        ProjectionExplanation::answered(
-            ExplanationAnswer::GraphAndProfile {
-                graph: plan.context().graph,
-                profile: plan.context().profile,
-                version: plan.context().profile_version,
-            },
-            human_projection!(
-                HumanTextLimit,
-                "what the plan was decided against, and the selected projection profile"
-            ),
-        ),
-        ProjectionExplanation::answered(
-            ExplanationAnswer::OutputAndDigest {
-                output: Box::new(family.output.clone()),
-                digest,
-            },
-            human_projection!(
-                HumanTextLimit,
-                "the family implementation, and the digest the closure proved over its bytes"
-            ),
-        ),
-        ProjectionExplanation::answered(
-            ExplanationAnswer::AssumptionsAndSpecializations {
-                assumptions: plan.content().assumptions.clone(),
-            },
-            human_projection!(
-                HumanTextLimit,
-                "the refusal home's shape, order, and cause-key facts"
-            ),
-        ),
-        ProjectionExplanation::answered(
-            ExplanationAnswer::Invalidators {
-                triggers: plan.invalidation().clone(),
-            },
-            human_projection!(
-                HumanTextLimit,
-                "the captured declaration, the projection profile, and the generator version"
-            ),
-        ),
-        ProjectionExplanation::answered(
-            ExplanationAnswer::RelatedProjectionDisposition {
-                related: derive_impl_kind(),
-                disposition: planned.cause_order().clone(),
-            },
-            human_projection!(
-                HumanTextLimit,
-                "what happened to the typed cause-order projection"
-            ),
-        ),
-        ProjectionExplanation::answered(
-            ExplanationAnswer::Repairs {
-                repairs: Bounded::empty(),
-            },
-            human_projection!(HumanTextLimit, "nothing was refused, so no repair applies"),
-        ),
+        ProjectionExplanation::answered(ExplanationAnswer::Kind {
+            kind: derive_impl_kind(),
+        }),
+        ProjectionExplanation::answered(ExplanationAnswer::Owner { owner }),
+        ProjectionExplanation::answered(ExplanationAnswer::CausingDeclarations {
+            sources: plan.context().sources.clone(),
+        }),
+        ProjectionExplanation::answered(ExplanationAnswer::GraphAndProfile {
+            graph: plan.context().graph,
+            profile: plan.context().profile,
+            version: plan.context().profile_version,
+        }),
+        ProjectionExplanation::answered(ExplanationAnswer::OutputAndDigest {
+            output: Box::new(family.output.clone()),
+            digest,
+        }),
+        ProjectionExplanation::answered(ExplanationAnswer::AssumptionsAndSpecializations {
+            assumptions: plan.content().assumptions.clone(),
+        }),
+        ProjectionExplanation::answered(ExplanationAnswer::Invalidators {
+            triggers: plan.invalidation().clone(),
+        }),
+        ProjectionExplanation::answered(ExplanationAnswer::RelatedProjectionDisposition {
+            related: derive_impl_kind(),
+            disposition: planned.cause_order().clone(),
+        }),
+        ProjectionExplanation::answered(ExplanationAnswer::Repairs {
+            repairs: Bounded::empty(),
+        }),
     ]
 }

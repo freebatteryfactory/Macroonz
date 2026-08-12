@@ -84,7 +84,10 @@ pub enum TriggerViewIssue {
 pub struct TriggerViewComposition {
     /// The established issues — at least one, at most the declared bound.
     pub issues: NonEmptyBounded<TriggerViewIssue, TriggerViewIssueLimit>,
-    /// Whether every component was examined.
+    /// Whether the body carries every issue the disposition pass established,
+    /// or names how many stand outside the declared bound. The pass itself
+    /// always covers every component, so this seat never reports a halted
+    /// examination.
     pub posture: CompletionPosture,
 }
 

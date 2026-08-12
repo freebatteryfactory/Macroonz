@@ -17,7 +17,7 @@ use crate::plane::AuthoringLimitProfile;
 use crate::planning::{ProjectionKind, ProjectionPlan};
 use crate::question::{ExplanationQuestion, QuestionApplicability};
 use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction, PositiveLimit};
+use threadpak::types::{NonEmptyBounded, PositiveLimit};
 
 /// Whether one kind admits one question.
 #[must_use]
@@ -74,28 +74,26 @@ pub(super) fn refused(issues: Vec<ExplanationCoverageIssue>) -> Option<Explanati
 }
 
 impl ExplanationCoverage {
-    /// The body a coverage check refuses with. When the issues outrun the
-    /// declared bound the body keeps the first and reports that examination
-    /// stopped there.
+    /// The body a coverage check refuses with.
+    ///
+    /// The coverage pass above walks the kind's whole applicable roster and then
+    /// every supplied answer before a body exists, so the posture here is about
+    /// the REPORT rather than the pass. Where every established issue fits the
+    /// declared bound the body carries all of them; where it does not, the body
+    /// carries what the bound holds and names how many established issues stand
+    /// outside it.
     pub(super) fn established(
         first: ExplanationCoverageIssue,
         rest: Vec<ExplanationCoverageIssue>,
     ) -> Self {
-        match NonEmptyBounded::admitted_const(
+        let (issues, omitted) = NonEmptyBounded::admitted_prefix(
             first,
             rest,
             &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
-        ) {
-            Ok(issues) => Self {
-                issues,
-                posture: CompletionPosture::Complete,
-            },
-            Err(NonEmptyBoundedConstruction::OverLimit) => Self {
-                issues: NonEmptyBounded::singleton(first),
-                posture: CompletionPosture::EarlyStopped {
-                    stopped_at: StopBound::DeclaredIssueBound,
-                },
-            },
+        );
+        Self {
+            issues,
+            posture: CompletionPosture::examined_completely(omitted, StopBound::DeclaredIssueBound),
         }
     }
 }

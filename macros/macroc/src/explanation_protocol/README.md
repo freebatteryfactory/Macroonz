@@ -18,19 +18,26 @@ roster is what the view is checked against.
 
 ## Answers reference identities, not prose
 
-Every [`ExplanationAnswer`] carries typed values and exact identities. The human
-projection riding alongside is for a person to read and is derived from those
-values; nothing reads it back. The question an answer belongs to is derived from
-the answer itself, so a mismatched question-and-answer pair is unrepresentable
-rather than validated.
+Every [`ExplanationAnswer`] carries typed values and exact identities. Two things
+are derived from the answer and neither is a seat a caller fills: the question it
+belongs to, and the human projection a person reads. A mismatched
+question-and-answer pair is unrepresentable rather than validated, and so is a
+sentence that contradicts its answer — the rendering is composed from the answer
+when it is asked for and is never stored, so there is no second value to keep in
+agreement. Nothing reads the rendering back.
 
 ## The seats
 
 `types.rs` declares. Its own child `type_guard.rs` holds every road that reaches
-a private field — an explanation's question, answer, and human projection, and
-the view's own seats — which is what makes "the question comes from the answer"
-structural: there is no seam anywhere that files a true answer under a question
-somebody supplied. `type_contract.rs` states the refusal family's shape and the
-closed table that maps an answer to its question. `establish.rs` is the coverage
-pass, the admission answer a caller asks for one kind, and the body the
-established issues amount to.
+a private field — an explanation's question and answer, and the view's own seats
+— which is what makes "the question comes from the answer" structural: there is
+no seam anywhere that files a true answer under a question somebody supplied.
+`project.rs` renders one answer for a person, exhaustively and from static
+literals proven at compile time, which is the same claim for the sentence.
+`type_contract.rs` states the refusal family's shape and the closed table that
+maps an answer to its question. `establish.rs` is the coverage pass, the
+admission answer a caller asks for one kind, and the body the established issues
+amount to.
+
+This home's qualification obligations live in the crate README's tooling-obligation
+blocks.

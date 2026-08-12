@@ -8,5 +8,6 @@ pub use types::{
     AdmittedRefusalFamily, CauseId, CauseOrderDeclaration, CauseOrdinal, CompletionPosture,
     DeclaredCause, DeclaredCauseOrder, FamilyAdmission, FamilyAdmissionCoverage, FamilyShape,
     HandlingClass, LocalCauseKey, OrderAdmission, OrderProjected, ReasonId, Refusal, RefusalFamily,
-    RefusalFamilyId, ShapeAdmission, ShapeCoherent, StopBound, admit_order, admit_shape,
+    RefusalFamilyId, ReportTruncation, ShapeAdmission, ShapeCoherent, StopBound, admit_order,
+    admit_shape,
 };

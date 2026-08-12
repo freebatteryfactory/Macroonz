@@ -21,3 +21,6 @@ so this home has no invariant nucleus and no `type_guard.rs` exists to hold one.
 `type_contract.rs` states the family's declared shape and the issue roster's own
 slot table. `establish.rs` is the one road a body is built through: the one-issue
 seam, the co-establishing pass, and the bounded seam's own spelling.
+
+This home's qualification obligations live in the crate README's tooling-obligation
+blocks.

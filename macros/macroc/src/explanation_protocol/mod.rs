@@ -1,6 +1,7 @@
 #![doc = include_str!("README.md")]
 
 mod establish;
+mod project;
 mod type_contract;
 mod types;
 

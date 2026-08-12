@@ -65,3 +65,6 @@ axis, and an application with an unbound hole are values nobody can build.
 `establish.rs` is the pure passes those roads consume — what a hole set, a
 ceiling, and a binding set each establish — and the body the established issues
 amount to.
+
+This home's qualification obligations live in the crate README's tooling-obligation
+blocks.

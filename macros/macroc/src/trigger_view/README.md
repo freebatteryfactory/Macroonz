@@ -36,3 +36,6 @@ family's declared shape. `establish.rs` is the per-component disposition pass an
 the body the established issues amount to — the component roster is the
 quantifier, so "every component was examined" is a fact about the loop rather
 than a claim about it.
+
+This home's qualification obligations live in the crate README's tooling-obligation
+blocks.

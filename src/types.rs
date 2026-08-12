@@ -239,48 +239,60 @@ impl<L: Limit, P: LimitAdmissionProfile> AdmittedLimit<L, P> {
 /// claim is seated in the stronger witness, and the roads that promise an
 /// inhabitant are the ones that consume it.
 ///
+/// # The stronger witness CONTAINS the weaker one
+///
+/// The admission fact is not restated here — it is carried. This type's one
+/// field is an [`AdmittedLimit`] minted by [`AdmittedLimit::under_profile`], and
+/// the magnitude this witness reports is that witness's own. So the ceiling
+/// comparison, the diagnostic it fails with, and the number it admits have
+/// exactly one owner, and "the positive witness is the stronger form of the base
+/// one" is a fact about this value's shape rather than an agreement between two
+/// assertions somebody has to keep in step. A change to the base admission
+/// reaches here because it IS the base admission, not because two copies were
+/// edited together.
+///
 /// # No widening road back
 ///
-/// There is no conversion from here to [`AdmittedLimit`]. Dropping a claim
-/// would be lawful, but no seat needs it, and an unearned conversion is surface
-/// nobody asked for.
+/// Containment is not a conversion. The contained witness is private, no
+/// accessor hands it out, and there is no road from here to [`AdmittedLimit`].
+/// Dropping a claim would be lawful, but no seat needs it, and an unearned
+/// conversion is surface nobody asked for.
 #[must_use = "a positive limit is the evidence a family's declared magnitude passed admission and \
               admits an item; dropping it discards the only proof a road promising an inhabitant \
               may act on"]
 pub struct PositiveLimit<L: Limit, P: LimitAdmissionProfile> {
-    max: usize,
-    _family: PhantomData<L>,
-    _profile: PhantomData<P>,
+    admitted: AdmittedLimit<L, P>,
 }
 
 impl<L: ConstLimit, P: LimitAdmissionProfile> PositiveLimit<L, P> {
     /// Admit one compile-time magnitude against one profile's ceiling AND
     /// establish that the family admits an item.
     ///
-    /// Both questions are settled by the `const` block before the program runs,
-    /// on [`AdmittedLimit::under_profile`]'s terms, so this road has no refusal
-    /// to return either.
+    /// The ceiling question is not asked here. It is asked by
+    /// [`AdmittedLimit::under_profile`], whose witness this road holds, so
+    /// instantiating the stronger witness instantiates the weaker one and its
+    /// `const` block settles the ceiling in the one place that owns it. The
+    /// `const` block below adds the single fact this witness is stronger by and
+    /// nothing else. Both are settled before the program runs, so this road has
+    /// no refusal to return either.
     pub const fn inhabited_under_profile() -> Self {
         const {
-            assert!(
-                L::MAX <= P::MAX_DECLARED_LIMIT,
-                "a declared magnitude past the admitting profile's ceiling bounds nothing"
-            );
             assert!(L::MAX >= 1, "a limit family admitting no item at all");
         }
         Self {
-            max: L::MAX,
-            _family: PhantomData,
-            _profile: PhantomData,
+            admitted: AdmittedLimit::under_profile(),
         }
     }
 }
 
 impl<L: Limit, P: LimitAdmissionProfile> PositiveLimit<L, P> {
     /// The admitted maximum this witness carries; at least one by construction.
+    ///
+    /// Read off the contained base witness, so no second copy of the magnitude
+    /// stands here to disagree with the one that was admitted.
     #[must_use]
     pub const fn max(&self) -> usize {
-        self.max
+        self.admitted.max()
     }
 }
 
@@ -546,6 +558,53 @@ impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
         } else {
             Err(NonEmptyBoundedConstruction::OverLimit)
         }
+    }
+
+    /// Carry as many supplied items as the family's ADMITTED maximum holds, and
+    /// hand back how many it could not carry.
+    ///
+    /// # The claim class: ADMITTED FAMILY MAGNITUDE, reported rather than refused
+    ///
+    /// A third constructor class, and it exists because the other two answer the
+    /// wrong question for a REPORT. A checked constructor refuses the whole
+    /// value, which is right for material that is meaningless in part — a trail,
+    /// a membership, a ceiling. A collection-shaped refusal body is not that: the
+    /// issues an over-bound pass established are each true on their own, and
+    /// refusing the body would leave a caller with no findings at all. So this
+    /// road carries the prefix the admitted magnitude holds and RETURNS the
+    /// remainder count, which is the seat that keeps the truncation from being
+    /// silent. A caller that has nowhere to put that count is a caller writing a
+    /// body that cannot say what it left out, and the signature makes that
+    /// visible at the call site rather than at review.
+    ///
+    /// It is total for the same reason [`NonEmptyBounded::singleton`] is: the
+    /// witness is [`PositiveLimit`], so the maximum is at least one, so the first
+    /// item always fits and the prefix is never empty. There is no failing case
+    /// to return, and therefore no impossible arm for a caller to fill with a
+    /// value nobody computed.
+    ///
+    /// The bound is read off the witness, so the number this road truncates at is
+    /// one that stood under a named plane's ceiling rather than one nobody
+    /// validated. The profile rides on the witness and is not stamped onto the
+    /// returned value.
+    #[must_use = "the remainder count is what keeps a truncated report from claiming completeness"]
+    pub fn admitted_prefix<P: LimitAdmissionProfile>(
+        first: T,
+        rest: Vec<T>,
+        admitted: &PositiveLimit<L, P>,
+    ) -> (Self, usize) {
+        let carried = admitted.max().saturating_sub(1);
+        let omitted = rest.len().saturating_sub(carried);
+        let mut prefix = rest;
+        prefix.truncate(carried);
+        (
+            Self {
+                first,
+                rest: prefix,
+                _family: PhantomData,
+            },
+            omitted,
+        )
     }
 
     /// The fixed-arity collection: a *total structural* constructor whose "at

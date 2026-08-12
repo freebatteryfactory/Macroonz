@@ -90,7 +90,9 @@ pub enum CompositionRootIssue {
 pub struct CompositionRootDeclaration {
     /// The established issues — at least one, at most the declared bound.
     pub issues: NonEmptyBounded<CompositionRootIssue, CompositionIssueLimit>,
-    /// Whether every declared provider was examined.
+    /// Whether the body carries every issue the scan established, or names how
+    /// many stand outside the declared bound. The scan itself always covers
+    /// every declared provider, so this seat never reports a halted examination.
     pub posture: CompletionPosture,
 }
 

@@ -36,6 +36,7 @@
 //! the universal envelope.
 
 use core::marker::PhantomData;
+use core::num::NonZeroUsize;
 
 /// The stable identity of one registered refusal reason. A registered reason is a
 /// semantic commitment: new meaning mints a new id, never recycled. Opaque; equality
@@ -86,20 +87,99 @@ pub enum StopBound {
     DeclaredWorkBound,
 }
 
-/// Whether an issue enumeration ran to completion or stopped at a declared
-/// bound. Carried as an **instance value inside collection-shaped refusals
-/// only** — single-cause families carry no posture at all, and no family mints a
-/// local copy of this type. Stopping reports incomplete enumeration rather than
-/// pretending no further defects exist.
+/// How much one report left outside its declared bound.
+///
+/// Opaque, with no public constructor: the only road to one is
+/// [`CompletionPosture::examined_completely`], and that road takes the count off
+/// a collection that was actually truncated. So a body that carried every issue
+/// it established cannot write down a truncation posture, and a body that
+/// truncated cannot write down a count it did not truncate by — the two are
+/// minted together or not at all.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ReportTruncation {
+    stopped_at: StopBound,
+    omitted: NonZeroUsize,
+}
+
+impl ReportTruncation {
+    /// The declared bound the report stopped at.
+    #[must_use]
+    pub const fn stopped_at(self) -> StopBound {
+        self.stopped_at
+    }
+
+    /// How many established issues the body does not carry; at least one, by
+    /// shape — a truncation that omitted nothing is [`CompletionPosture::Complete`]
+    /// and is unrepresentable here.
+    #[must_use]
+    pub const fn omitted(self) -> NonZeroUsize {
+        self.omitted
+    }
+}
+
+/// What one collection-shaped refusal body says about its own coverage. Carried
+/// as an **instance value inside collection-shaped refusals only** —
+/// single-cause families carry no posture at all, and no family mints a local
+/// copy of this type.
+///
+/// # Three postures, because they are three different facts
+///
+/// Two of them are easy to conflate and must never be, because a reader ACTS
+/// differently on each. `EarlyStopped` says the examination itself halted: there
+/// may be defects nobody looked for, so a caller who repairs what is reported
+/// must run the pass again to learn whether anything remains.
+/// `ReportTruncated` says the opposite about the examination and the same thing
+/// about the report: every declared site WAS examined, the count of what was
+/// established is known exactly, and the body simply does not have room for all
+/// of it. Writing the first where the second is true claims ignorance the pass
+/// does not have; writing `Complete` where the second is true claims coverage
+/// the body does not have.
+///
+/// The truncation posture carries the count because the posture alone does not
+/// say enough: a reader holding a shortened body otherwise cannot tell a
+/// two-issue refusal from a two-hundred-issue one, and "some were dropped" is
+/// the shape of a claim nobody can act on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CompletionPosture {
-    /// Enumeration covered every declared site.
+    /// Every declared site was examined and the body carries every issue that
+    /// was established.
     Complete,
-    /// Enumeration stopped at a declared bound, naming which.
+    /// Enumeration stopped at a declared bound, naming which. The sites past
+    /// that bound were never examined, so nothing is known about them.
     EarlyStopped {
         /// The declared bound that stopped enumeration.
         stopped_at: StopBound,
     },
+    /// Every declared site was examined; the body carries what the declared
+    /// bound holds and names how many established issues stand outside it.
+    ReportTruncated(ReportTruncation),
+}
+
+impl CompletionPosture {
+    /// The posture a COMPLETE examination's report amounts to, given how many of
+    /// its established issues the body could not carry.
+    ///
+    /// This is the one mint for [`ReportTruncation`], and the omission count is
+    /// what selects the posture rather than the caller: nothing omitted is
+    /// `Complete`, and anything omitted is a truncation naming the bound and the
+    /// count. A pass that carried every issue therefore cannot claim it
+    /// truncated, and a pass that dropped issues cannot claim completeness —
+    /// neither is a discipline a site has to remember, because neither is a
+    /// value a site can build.
+    ///
+    /// A pass whose examination genuinely halted does not come here. It states
+    /// [`CompletionPosture::EarlyStopped`] directly, because the fact it is
+    /// reporting is about the scan and not about the report.
+    #[must_use]
+    pub const fn examined_completely(omitted: usize, at: StopBound) -> Self {
+        match NonZeroUsize::new(omitted) {
+            None => Self::Complete,
+            Some(omitted) => Self::ReportTruncated(ReportTruncation {
+                stopped_at: at,
+                omitted,
+            }),
+        }
+    }
 }
 
 /// Which of the three lawful body shapes a family takes. The selector is

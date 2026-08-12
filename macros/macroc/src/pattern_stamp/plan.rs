@@ -5,6 +5,29 @@
 //! the account — the complete output set, the walk back to the authored
 //! declaration, the decisions in selection order with the identity home's facts
 //! cited, and the identities whose change makes the account stale.
+//!
+//! # What the watch set covers, exactly
+//!
+//! It covers the SHARED CONTEXT completely: the cause set, the graph the plan
+//! was decided against, the projection profile the member expects to be rendered
+//! by, and the version of the services that produced the plan. Every identity
+//! [`ProjectionContext`](crate::planning::ProjectionContext) carries has a
+//! trigger, and a law states that.
+//!
+//! It does NOT cover the anchors a caller supplies beside the context — the
+//! authored pattern, this instantiation of it, the two typed arguments, the
+//! origin nodes, the stamped unit, the traced subject, and the cited owner
+//! facts. Those define the plan as surely as the context does, and a stamp
+//! planned against different ones is a different account. The reason is not a
+//! judgment that they do not matter: [`InvalidationTrigger`]'s roster declares
+//! no seat any of them could be watched through, and minting seats for them is a
+//! roster decision this file has no standing to take. Stated here rather than
+//! left for a reader to discover, because an unwatched anchor nobody wrote down
+//! is the shape of a plan that goes stale silently.
+//!
+//! The derivation home has no such gap and needs no such statement: everything
+//! its plan is made of is derived from the captured declaration, so watching the
+//! capture watches the whole plan.
 
 use super::ScopeGuardStampAnchors;
 use crate::origin_graph::{
@@ -79,10 +102,21 @@ pub fn plan_scope_guard_stamp(
             digest_contract: DigestContract::over(anchors.stamped_unit),
         },
     });
+    // Every identity the shared context carries is watched, and the profile is
+    // the one that used to be missing. The plan's member declares the profile
+    // and version it EXPECTS to be rendered by, so a profile that moved leaves a
+    // plan whose expectation nobody re-decided — a stale account that still
+    // reads as current. The remaining anchors are named as unwatched in the
+    // module's own account below, because the trigger roster has no seat for
+    // them and inventing one here would be a decision this file has no standing
+    // to make.
     let invalidation = InvalidationTrigger::watched(
         anchors.context.cause_trigger(),
         vec![
             anchors.context.graph_trigger(),
+            InvalidationTrigger::ProjectionProfileChanged {
+                watched: anchors.context.profile,
+            },
             InvalidationTrigger::GeneratorVersionChanged {
                 watched: anchors.context.generator,
             },

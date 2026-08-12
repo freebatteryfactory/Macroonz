@@ -10,10 +10,9 @@ use crate::diagnostics::RepairAction;
 use crate::origin_graph::DecisionTrace;
 use crate::plane::{
     AssumptionLimit, ExplanationIssueLimit, ExplanationSeatLimit, GeneratedUnitSubject,
-    HumanProjection, HumanTextLimit, MembershipLimit, OutputBytesSubject, OwnerFactRef,
-    OwnerIdentityRef, PatternInstanceSubject, PatternSubject, ProfileVersion, ProjectionIdentity,
-    ProjectionKindSubject, ProjectionProfileSubject, RepairLimit, RuntimeTraceSubject,
-    TraceEntryLimit,
+    MembershipLimit, OutputBytesSubject, OwnerFactRef, OwnerIdentityRef, PatternInstanceSubject,
+    PatternSubject, ProfileVersion, ProjectionIdentity, ProjectionKindSubject,
+    ProjectionProfileSubject, RepairLimit, RuntimeTraceSubject, TraceEntryLimit,
 };
 use crate::planning::{
     CauseAnchoring, GraphAnchoring, InvalidationSet, PlannedOutput, ProjectionDisposition,
@@ -121,13 +120,20 @@ pub enum ExplanationAnswer {
     },
 }
 
-/// One answered question: the typed answer, the question it answers, and one
-/// bounded rendering of it for a person.
+/// One answered question: the typed answer, and the question it answers.
+///
+/// # Two seats, because the rendering is not one
+///
+/// There is no seat here for a rendering. The line a person reads is a function
+/// of the answer — see `project.rs` — and it is composed when it is asked for
+/// rather than carried, so an explanation whose sentence contradicts its typed
+/// content is not a value anybody can build. A stored rendering would be a
+/// second value answering a question the answer already answers, which is
+/// exactly what a projection may never become.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProjectionExplanation {
     question: ExplanationQuestion,
     answer: ExplanationAnswer,
-    human: HumanProjection<HumanTextLimit>,
 }
 
 /// How one explanation view fails to be complete.
@@ -158,7 +164,10 @@ pub enum ExplanationCoverageIssue {
 pub struct ExplanationCoverage {
     /// The established issues — at least one, at most the declared bound.
     pub issues: NonEmptyBounded<ExplanationCoverageIssue, ExplanationIssueLimit>,
-    /// Whether every applicable question was examined.
+    /// Whether the body carries every issue the coverage pass established, or
+    /// names how many stand outside the declared bound. The pass itself always
+    /// covers every applicable question, so this seat never reports a halted
+    /// examination.
     pub posture: CompletionPosture,
 }
 

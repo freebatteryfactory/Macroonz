@@ -165,7 +165,9 @@ pub enum ClosureIssue<R: RenderedRole> {
 pub struct ProjectionClosureRefusal<R: RenderedRole> {
     /// The established issues — at least one, at most the declared bound.
     pub issues: NonEmptyBounded<ClosureIssue<R>, ClosureIssueLimit>,
-    /// Whether every applicable role was examined.
+    /// Whether the body carries every issue the pass established, or names how
+    /// many stand outside the declared bound. The pass itself always covers
+    /// every applicable role, so this seat never reports a halted examination.
     pub posture: CompletionPosture,
 }
 

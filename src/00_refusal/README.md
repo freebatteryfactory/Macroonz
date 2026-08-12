@@ -28,6 +28,25 @@ limit family and carry `CompletionPosture` as an **instance value** (single-caus
 families carry no posture at all). Pairs have exactly two seats; separable
 questions must separate.
 
+## A halted examination and a truncated report are different facts
+
+`CompletionPosture` names three states, not two, because a reader acts
+differently on each. `EarlyStopped` says the EXAMINATION halted at a declared
+bound: nothing is known about the sites past it, so a caller who repairs what is
+reported must run the pass again to learn whether anything remains.
+`ReportTruncated` says the examination covered every declared site and the BODY
+does not have room for everything it established — the count is known exactly and
+is carried, because "some were dropped" is a claim nobody can act on.
+
+The distinction is minted rather than declared. `ReportTruncation` is opaque with
+no public constructor, and `CompletionPosture::examined_completely` is its only
+road: the road takes the number of issues a collection could not carry and
+selects the posture from it, so a body that carried everything cannot claim it
+truncated and a body that dropped issues cannot claim completeness. Neither is a
+discipline a site has to remember, because neither is a value a site can build.
+`NonEmptyBounded::admitted_prefix` is where that count comes from, and it is the
+only construction road in the machine that truncates at all.
+
 ## The order is typed; the text is its projection
 
 A cause has a stable identity (`CauseId`) that is not its Rust spelling, not its
@@ -140,6 +159,10 @@ obligations:
   - id: refusal.posture-is-a-collection-instance-value
     challenge_kind: compile-law
     green: laws.rs refusal::posture_is_a_collection_instance_value
+    red: owed-to-testpak
+  - id: refusal.a-truncated-report-is-not-a-halted-examination
+    challenge_kind: compile-law
+    green: laws.rs refusal::a_truncated_report_is_not_a_halted_examination
     red: owed-to-testpak
   - id: refusal.cause-identity-outlives-its-spelling
     challenge_kind: compile-law

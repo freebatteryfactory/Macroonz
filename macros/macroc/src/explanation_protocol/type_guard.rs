@@ -2,13 +2,15 @@
 //! private field.
 //!
 //! Declared inside `types.rs` as its own child, which is what makes the
-//! protocol's two central claims structural. An explanation's question is taken
-//! HERE, from the answer itself, so a true answer filed under the wrong question
-//! is a value nobody can build. A view is completed HERE, after the coverage
-//! pass agreed, so there is no partial view for a reader to mistake for a
-//! complete one.
+//! protocol's central claims structural. An explanation's question and its human
+//! rendering are both taken HERE, from the answer itself, so a true answer filed
+//! under the wrong question and a sentence that contradicts its answer are
+//! values nobody can build. A view is completed HERE, after the coverage pass
+//! agreed, so there is no partial view for a reader to mistake for a complete
+//! one.
 
 use super::super::establish::{coverage_issues, refused};
+use super::super::project::human_line;
 use super::{
     ExplanationAnswer, ExplanationCoverage, ExplanationCoverageIssue, ProjectionExplanation,
     ProjectionExplanationView,
@@ -20,15 +22,19 @@ use core::marker::PhantomData;
 use threadpak::types::{AdmittedLimit, Bounded, ConstLimit};
 
 impl ProjectionExplanation {
-    /// Answer one question. The question is taken from the answer, never from
-    /// the caller, so no explanation can file a true answer under the wrong
-    /// question.
+    /// Answer one question.
+    ///
+    /// The answer is the whole input, and that is the claim. The question is
+    /// taken from the answer, so no explanation can file a true answer under the
+    /// wrong question; the rendering is taken from the answer too, so no
+    /// explanation can carry a sentence its typed content does not support. Both
+    /// used to be seats a caller could fill independently — the question was
+    /// closed first, and this road closes the second.
     #[must_use]
-    pub fn answered(answer: ExplanationAnswer, human: HumanProjection<HumanTextLimit>) -> Self {
+    pub fn answered(answer: ExplanationAnswer) -> Self {
         Self {
             question: answer.question(),
             answer,
-            human,
         }
     }
 
@@ -44,10 +50,11 @@ impl ProjectionExplanation {
         &self.answer
     }
 
-    /// The rendering for a person. Derived from the answer; never read back.
+    /// The rendering for a person, composed from the answer at the moment it is
+    /// asked for. Never stored, never read back, and never supplied.
     #[must_use]
-    pub const fn human(&self) -> &HumanProjection<HumanTextLimit> {
-        &self.human
+    pub fn human(&self) -> HumanProjection<HumanTextLimit> {
+        human_line(&self.answer)
     }
 }
 

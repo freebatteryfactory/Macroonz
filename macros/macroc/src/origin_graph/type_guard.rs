@@ -2,15 +2,16 @@
 //! field.
 //!
 //! Declared inside `types.rs` as its own child, which is what makes this home's
-//! two central claims structural. A trail is drawn HERE, so a generated unit
-//! with no origin is a value nobody can build rather than a shape a check has to
-//! catch. A trace is recorded HERE, in selection order, so a trace that had been
+//! central claims structural. A trail is drawn HERE, so a generated unit with no
+//! origin is a value nobody can build rather than a shape a check has to catch,
+//! and a trail whose edges do not join is refused at the one seam that can draw
+//! one. A trace is recorded HERE, in selection order, so a trace that had been
 //! sorted into an inventory is likewise not a value that exists. There is no
 //! other seam in the crate that can produce either one.
 
 use super::{DecisionTrace, OriginEdge, OriginTrail, TraceEntry};
 use crate::plane::{AuthoringLimitProfile, OriginEdgeLimit, TraceEntryLimit};
-use crate::refusal::{BoundAxis, ProjectionPlanning};
+use crate::refusal::{BoundAxis, ProjectionPlanning, ProjectionPlanningIssue};
 use threadpak::types::{ConstLimit, NonEmptyBounded, PositiveLimit};
 
 impl OriginTrail {
@@ -24,12 +25,34 @@ impl OriginTrail {
 
     /// Draw a trail of several edges.
     ///
+    /// # The two checks are dependent, and continuity runs first
+    ///
+    /// A trail is a WALK: each edge starts where the one before it ended, and
+    /// following it backwards is what makes a generated unit's provenance
+    /// readable. A sequence of edges that does not join is not a shorter walk, it
+    /// is two walks presented as one — and whichever end a reader trusts, the
+    /// other end is provenance nobody established. Accepting one would let a
+    /// disconnected list receive canonical bytes as a provenance path, which is
+    /// the exact defect the orphan law exists to prevent, one level up.
+    ///
+    /// So continuity is settled before the magnitude. The declared bound is a
+    /// fact about how long a walk may be, and measuring a sequence that is not a
+    /// walk would be measuring the wrong thing.
+    ///
     /// # Errors
     ///
-    /// Returns the planning family naming [`BoundAxis::OriginEdges`] when the
-    /// walk outgrows the declared bound. A trail that does not fit refuses:
-    /// truncating a trail is how an origin silently becomes a span.
+    /// Returns the planning family naming
+    /// [`ProjectionPlanningIssue::TrailDiscontinuous`] with the position of the
+    /// first edge that does not join its predecessor, and
+    /// [`BoundAxis::OriginEdges`] when a joined walk outgrows the declared
+    /// bound. A trail that does not fit refuses: truncating a trail is how an
+    /// origin silently becomes a span.
     pub fn drawn(first: OriginEdge, rest: Vec<OriginEdge>) -> Result<Self, ProjectionPlanning> {
+        if let Some(at) = break_position(&first, &rest) {
+            return Err(ProjectionPlanning::established(
+                ProjectionPlanningIssue::TrailDiscontinuous { at },
+            ));
+        }
         let observed = rest.len().saturating_add(1);
         NonEmptyBounded::admitted_const(
             first,
@@ -73,6 +96,28 @@ impl OriginTrail {
     pub fn iter(&self) -> impl Iterator<Item = &OriginEdge> {
         self.edges.iter()
     }
+}
+
+/// The position of the first edge that does not start where its predecessor
+/// ended, or `None` where the sequence joins end to end.
+///
+/// Identity equality is what "joins" means here, and it is well defined without
+/// interpretation: both ends of an edge are
+/// [`ProjectionIdentity`](crate::plane::ProjectionIdentity) values over the
+/// origin-node subject, so two nodes are the same node exactly when their bytes
+/// are. Nothing is normalized, and no near-match is accepted.
+///
+/// The position counts from the trail's first edge, so it names the edge a
+/// caller must repair rather than the gap's ordinal.
+fn break_position(first: &OriginEdge, rest: &[OriginEdge]) -> Option<u32> {
+    let mut previous = first;
+    for (position, edge) in rest.iter().enumerate() {
+        if edge.from != previous.to {
+            return Some(u32::try_from(position.saturating_add(1)).unwrap_or(u32::MAX));
+        }
+        previous = edge;
+    }
+    None
 }
 
 impl DecisionTrace {
