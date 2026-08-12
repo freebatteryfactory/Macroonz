@@ -23,9 +23,9 @@ mod plane {
     /// Owed reversal: erasing the subject parameter must break this law.
     #[test]
     fn subjects_do_not_unify() {
-        let home: fn(OwnerIdentityRef<OwnerHomeSubject>) = drop;
-        let fact: fn(OwnerIdentityRef<OwnerFactSubject>) = drop;
-        assert!((home as usize) != 0 && (fact as usize) != 0);
+        let home: Option<fn(OwnerIdentityRef<OwnerHomeSubject>)> = Some(drop);
+        let fact: Option<fn(OwnerIdentityRef<OwnerFactSubject>)> = Some(drop);
+        assert!(home.is_some() && fact.is_some());
         let same_bytes_different_subject = OwnerIdentityRef::<OwnerHomeSubject>::decoded([3; 32]);
         assert_eq!(same_bytes_different_subject.as_bytes(), &[3_u8; 32]);
     }

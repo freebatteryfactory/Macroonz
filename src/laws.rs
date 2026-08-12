@@ -54,16 +54,10 @@ mod root {
     fn completeness_domains_do_not_unify() {
         struct QueryDomain;
         struct VerifyDomain;
-        let over_query: fn(Completeness<QueryDomain>) = drop;
-        let over_verify: fn(Completeness<VerifyDomain>) = drop;
-        assert!(!core::ptr::eq(
-            (over_query as usize) as *const (),
-            core::ptr::null()
-        ));
-        assert!(!core::ptr::eq(
-            (over_verify as usize) as *const (),
-            core::ptr::null()
-        ));
+        let over_query: Option<fn(Completeness<QueryDomain>)> = Some(drop);
+        let over_verify: Option<fn(Completeness<VerifyDomain>)> = Some(drop);
+        assert!(over_query.is_some());
+        assert!(over_verify.is_some());
     }
 
     /// law: root.limit-families-do-not-unify — `Bounded` under one limit family is
@@ -81,12 +75,12 @@ mod root {
         struct ArenaDemo;
         impl Limit for ArenaDemo {}
 
-        let decode_bounded: fn(Bounded<u8, DecodeDemo>) = drop;
-        let arena_bounded: fn(Bounded<u8, ArenaDemo>) = drop;
-        let arena_witness: fn(LimitWitness<ArenaDemo>) = drop;
-        assert!((decode_bounded as usize) != 0);
-        assert!((arena_bounded as usize) != 0);
-        assert!((arena_witness as usize) != 0);
+        let decode_bounded: Option<fn(Bounded<u8, DecodeDemo>)> = Some(drop);
+        let arena_bounded: Option<fn(Bounded<u8, ArenaDemo>)> = Some(drop);
+        let arena_witness: Option<fn(LimitWitness<ArenaDemo>)> = Some(drop);
+        assert!(decode_bounded.is_some());
+        assert!(arena_bounded.is_some());
+        assert!(arena_witness.is_some());
         assert_eq!(DecodeDemo::MAX, 8);
     }
 
@@ -386,8 +380,8 @@ mod refusal {
         struct DemoIssue;
         struct IssueLimit;
         impl Limit for IssueLimit {}
-        let shape: fn(NonEmptyBounded<DemoIssue, IssueLimit>) = drop;
-        assert!((shape as usize) != 0);
+        let shape: Option<fn(NonEmptyBounded<DemoIssue, IssueLimit>)> = Some(drop);
+        assert!(shape.is_some());
     }
 
     /// law: refusal.handling-carries-do-not-retry — the treatment roster carries
@@ -691,10 +685,10 @@ mod identity {
     fn commitment_domains_do_not_unify() {
         struct SchemaDomain;
         struct RemovalDomain;
-        let over_schema: fn(Commitment<SchemaDomain>) = drop;
-        let over_removal: fn(Commitment<RemovalDomain>) = drop;
-        assert!((over_schema as usize) != 0);
-        assert!((over_removal as usize) != 0);
+        let over_schema: Option<fn(Commitment<SchemaDomain>)> = Some(drop);
+        let over_removal: Option<fn(Commitment<RemovalDomain>)> = Some(drop);
+        assert!(over_schema.is_some());
+        assert!(over_removal.is_some());
     }
 
     /// The scope this home's demo stamp is instantiated over.
@@ -907,10 +901,10 @@ mod value {
         impl Limit for PathLimit {}
         struct LabelLimit;
         impl Limit for LabelLimit {}
-        let over_path: fn(BoundedText<PathLimit>) = drop;
-        let over_label: fn(BoundedText<LabelLimit>) = drop;
-        assert!((over_path as usize) != 0);
-        assert!((over_label as usize) != 0);
+        let over_path: Option<fn(BoundedText<PathLimit>)> = Some(drop);
+        let over_label: Option<fn(BoundedText<LabelLimit>)> = Some(drop);
+        assert!(over_path.is_some());
+        assert!(over_label.is_some());
     }
 }
 
@@ -1129,16 +1123,16 @@ mod numeric {
             CurrencyDesignation, DistributionEstimate, ExactEstimate, IntervalEstimate,
             UnitDesignation,
         };
-        let over_currency: fn(CurrencyDesignation) = drop;
-        let over_unit: fn(UnitDesignation) = drop;
-        let over_exact: fn(ExactEstimate<u8>) = drop;
-        let over_interval: fn(IntervalEstimate) = drop;
-        let over_distribution: fn(DistributionEstimate) = drop;
-        assert!((over_currency as usize) != 0);
-        assert!((over_unit as usize) != 0);
-        assert!((over_exact as usize) != 0);
-        assert!((over_interval as usize) != 0);
-        assert!((over_distribution as usize) != 0);
+        let over_currency: Option<fn(CurrencyDesignation)> = Some(drop);
+        let over_unit: Option<fn(UnitDesignation)> = Some(drop);
+        let over_exact: Option<fn(ExactEstimate<u8>)> = Some(drop);
+        let over_interval: Option<fn(IntervalEstimate)> = Some(drop);
+        let over_distribution: Option<fn(DistributionEstimate)> = Some(drop);
+        assert!(over_currency.is_some());
+        assert!(over_unit.is_some());
+        assert!(over_exact.is_some());
+        assert!(over_interval.is_some());
+        assert!(over_distribution.is_some());
     }
 }
 
@@ -1629,8 +1623,8 @@ mod schema {
             IdentityClass::SemanticCommitment
         );
         assert_eq!(SchemaDescriptorDigest::CLASS, IdentityClass::ByteDigest);
-        let version_shape: fn(SchemaVersion) = drop;
-        assert!((version_shape as usize) != 0);
+        let version_shape: Option<fn(SchemaVersion)> = Some(drop);
+        assert!(version_shape.is_some());
     }
 }
 
@@ -1652,13 +1646,13 @@ mod time {
     #[test]
     fn tick_is_the_clock_observation() {
         use crate::value::BoundedText;
-        let text_shape: fn(BoundedText<crate::time::ProvenanceLimit>) = drop;
+        let text_shape: Option<fn(BoundedText<crate::time::ProvenanceLimit>)> = Some(drop);
         let domain = ClockDomainId::for_laws(Occurrence::for_laws(OccurrenceForm::Fresh([5; 16])));
-        let observation_shape: fn(ClockObservation) = drop;
-        let provenance_shape: fn(ClockObservationProvenance) = drop;
-        assert!((text_shape as usize) != 0);
-        assert!((observation_shape as usize) != 0);
-        assert!((provenance_shape as usize) != 0);
+        let observation_shape: Option<fn(ClockObservation)> = Some(drop);
+        let provenance_shape: Option<fn(ClockObservationProvenance)> = Some(drop);
+        assert!(text_shape.is_some());
+        assert!(observation_shape.is_some());
+        assert!(provenance_shape.is_some());
         assert_eq!(domain, domain);
     }
 
@@ -1788,12 +1782,12 @@ mod time {
     /// role must not compile.
     #[test]
     fn hlc_roles_do_not_unify() {
-        let over_source: fn(SourceHlc) = drop;
-        let over_accepted: fn(AcceptedHlc) = drop;
-        let over_summary: fn(ChronologySummary) = drop;
-        assert!((over_source as usize) != 0);
-        assert!((over_accepted as usize) != 0);
-        assert!((over_summary as usize) != 0);
+        let over_source: Option<fn(SourceHlc)> = Some(drop);
+        let over_accepted: Option<fn(AcceptedHlc)> = Some(drop);
+        let over_summary: Option<fn(ChronologySummary)> = Some(drop);
+        assert!(over_source.is_some());
+        assert!(over_accepted.is_some());
+        assert!(over_summary.is_some());
         let coordinate = HlcCoordinate {
             physical: 1,
             logical: 2,
@@ -1956,14 +1950,14 @@ mod history {
     /// Owed reversal (red twin): a From/Into between any two must not compile.
     #[test]
     fn order_roles_do_not_unify() {
-        let over_sequence: fn(AuthoritySequence) = drop;
-        let over_cut: fn(CommitPoint) = drop;
-        let over_applied: fn(ScopeAppliedCut) = drop;
-        let over_turn_input: fn(TurnInputCut) = drop;
-        assert!((over_sequence as usize) != 0);
-        assert!((over_cut as usize) != 0);
-        assert!((over_applied as usize) != 0);
-        assert!((over_turn_input as usize) != 0);
+        let over_sequence: Option<fn(AuthoritySequence)> = Some(drop);
+        let over_cut: Option<fn(CommitPoint)> = Some(drop);
+        let over_applied: Option<fn(ScopeAppliedCut)> = Some(drop);
+        let over_turn_input: Option<fn(TurnInputCut)> = Some(drop);
+        assert!(over_sequence.is_some());
+        assert!(over_cut.is_some());
+        assert!(over_applied.is_some());
+        assert!(over_turn_input.is_some());
     }
 
     /// law: history.reading-has-three-orthogonal-axes — a real reading carries
@@ -1990,8 +1984,8 @@ mod history {
             reading.disposition,
             HistoryDisposition::Present(7)
         ));
-        let cut_shape: fn(HistoryCut) = drop;
-        assert!((cut_shape as usize) != 0);
+        let cut_shape: Option<fn(HistoryCut)> = Some(drop);
+        assert!(cut_shape.is_some());
         assert_eq!(HistoryReadRefusal::SELECTION_ORDER, ["UnsupportedAccess"]);
     }
 
@@ -2296,12 +2290,12 @@ mod navigation {
     /// Owed reversal (red twin): a From/Into among them must not compile.
     #[test]
     fn continuation_roles_do_not_unify() {
-        let over_cursor: fn(Cursor) = drop;
-        let over_applied: fn(ScopeAppliedCut) = drop;
-        let over_turn_input: fn(TurnInputCut) = drop;
-        assert!((over_cursor as usize) != 0);
-        assert!((over_applied as usize) != 0);
-        assert!((over_turn_input as usize) != 0);
+        let over_cursor: Option<fn(Cursor)> = Some(drop);
+        let over_applied: Option<fn(ScopeAppliedCut)> = Some(drop);
+        let over_turn_input: Option<fn(TurnInputCut)> = Some(drop);
+        assert!(over_cursor.is_some());
+        assert!(over_applied.is_some());
+        assert!(over_turn_input.is_some());
     }
 
     /// law: navigation.rosters-hold — traversal forms, destination kinds,
@@ -2540,8 +2534,8 @@ mod port {
         assert_eq!(RESULT_PROJECTION_AXES.len(), 11);
         assert_eq!(SELF_DESCRIBING_REFUSAL_STATEMENTS.len(), 5);
         assert_eq!(HOST_OBLIGATION_AXES.len(), 16);
-        let bounds_shape: fn(OutboundBounds) = drop;
-        assert!((bounds_shape as usize) != 0);
+        let bounds_shape: Option<fn(OutboundBounds)> = Some(drop);
+        assert!(bounds_shape.is_some());
     }
 }
 
@@ -3201,10 +3195,10 @@ mod execution {
     /// not compile.
     #[test]
     fn kernels_partition_not_duplicate() {
-        let over_semantic: fn(KernelSemanticContract) = drop;
-        let over_interface: fn(KernelInterfaceContract) = drop;
-        assert!((over_semantic as usize) != 0);
-        assert!((over_interface as usize) != 0);
+        let over_semantic: Option<fn(KernelSemanticContract)> = Some(drop);
+        let over_interface: Option<fn(KernelInterfaceContract)> = Some(drop);
+        assert!(over_semantic.is_some());
+        assert!(over_interface.is_some());
         let realization =
             KernelRealizationId::for_laws(Occurrence::for_laws(OccurrenceForm::Fresh([53; 16])));
         let pinned = KernelBindingPolicy::exact_realization(realization);
@@ -3428,16 +3422,16 @@ mod image {
     /// verifier-minted rungs must not compile.
     #[test]
     fn validation_ladder_is_five_and_minted() {
-        let rung_one: fn(UntrustedImageBytes) = drop;
-        let rung_two: fn(BoundedDecodedImage) = drop;
-        let rung_three: fn(SemanticImage) = drop;
-        let rung_four: fn(AgreementCheckedImage) = drop;
-        let rung_five: fn(ExecutableImage) = drop;
-        assert!((rung_one as usize) != 0);
-        assert!((rung_two as usize) != 0);
-        assert!((rung_three as usize) != 0);
-        assert!((rung_four as usize) != 0);
-        assert!((rung_five as usize) != 0);
+        let rung_one: Option<fn(UntrustedImageBytes)> = Some(drop);
+        let rung_two: Option<fn(BoundedDecodedImage)> = Some(drop);
+        let rung_three: Option<fn(SemanticImage)> = Some(drop);
+        let rung_four: Option<fn(AgreementCheckedImage)> = Some(drop);
+        let rung_five: Option<fn(ExecutableImage)> = Some(drop);
+        assert!(rung_one.is_some());
+        assert!(rung_two.is_some());
+        assert!(rung_three.is_some());
+        assert!(rung_four.is_some());
+        assert!(rung_five.is_some());
         let phases = [
             ImageValidation::UntrustedBytes,
             ImageValidation::BoundedDecoded,
@@ -3529,12 +3523,12 @@ mod pakvm {
     /// compile — the trybuild fixture is testpak's.
     #[test]
     fn live_handles_do_not_cross_threads() {
-        let over_capability: fn(CapabilityHandle) = drop;
-        let over_port: fn(PortHandle) = drop;
-        let over_reply: fn(ReplyHandle) = drop;
-        assert!((over_capability as usize) != 0);
-        assert!((over_port as usize) != 0);
-        assert!((over_reply as usize) != 0);
+        let over_capability: Option<fn(CapabilityHandle)> = Some(drop);
+        let over_port: Option<fn(PortHandle)> = Some(drop);
+        let over_reply: Option<fn(ReplyHandle)> = Some(drop);
+        assert!(over_capability.is_some());
+        assert!(over_port.is_some());
+        assert!(over_reply.is_some());
     }
 
     /// law: pakvm.continuation-record-binds-twelve — a real persisted
@@ -4348,12 +4342,12 @@ mod derived {
             coverage.coverage,
             Completeness::Complete { over: 4 }
         ));
-        let over_commit: fn(CommitPoint) = drop;
-        let over_applied: fn(MaterializationAppliedCut) = drop;
-        let over_checkpoint: fn(DurableCheckpoint) = drop;
-        assert!((over_commit as usize) != 0);
-        assert!((over_applied as usize) != 0);
-        assert!((over_checkpoint as usize) != 0);
+        let over_commit: Option<fn(CommitPoint)> = Some(drop);
+        let over_applied: Option<fn(MaterializationAppliedCut)> = Some(drop);
+        let over_checkpoint: Option<fn(DurableCheckpoint)> = Some(drop);
+        assert!(over_commit.is_some());
+        assert!(over_applied.is_some());
+        assert!(over_checkpoint.is_some());
     }
 
     /// law: derived.payload-locator-is-closed-two-forms — both forms
@@ -4527,10 +4521,10 @@ mod application {
     /// Owed reversal (red twin): one satisfying the other must not compile.
     #[test]
     fn carrier_identities_stay_apart() {
-        let over_carrier: fn(CarrierRequestId) = drop;
-        let over_port: fn(PortRequestId) = drop;
-        assert!((over_carrier as usize) != 0);
-        assert!((over_port as usize) != 0);
+        let over_carrier: Option<fn(CarrierRequestId)> = Some(drop);
+        let over_port: Option<fn(PortRequestId)> = Some(drop);
+        assert!(over_carrier.is_some());
+        assert!(over_port.is_some());
         assert_eq!(CarrierRequestId::CLASS, IdentityClass::Occurrence);
         let carrier =
             CarrierRequestId::for_laws(Occurrence::for_laws(OccurrenceForm::Fresh([180; 16])));
@@ -4802,8 +4796,8 @@ mod security {
     /// not compile — trybuild fixtures owed to testpak.
     #[test]
     fn secret_handle_refuses_the_morphism() {
-        let over_handle: fn(SecretUseHandle) = drop;
-        assert!((over_handle as usize) != 0);
+        let over_handle: Option<fn(SecretUseHandle)> = Some(drop);
+        assert!(over_handle.is_some());
     }
 
     /// law: security.firewall-and-rosters-hold — the act table, crypto
@@ -5154,11 +5148,11 @@ mod bounds {
     /// is required must not compile.
     #[test]
     fn dimensions_do_not_unify() {
-        let over_work: fn(Budget<WorkDemo>) = drop;
-        let over_effect: fn(Budget<EffectDemo>) = drop;
-        let over_id: fn(DimensionId) = drop;
-        assert!((over_work as usize) != 0);
-        assert!((over_effect as usize) != 0);
-        assert!((over_id as usize) != 0);
+        let over_work: Option<fn(Budget<WorkDemo>)> = Some(drop);
+        let over_effect: Option<fn(Budget<EffectDemo>)> = Some(drop);
+        let over_id: Option<fn(DimensionId)> = Some(drop);
+        assert!(over_work.is_some());
+        assert!(over_effect.is_some());
+        assert!(over_id.is_some());
     }
 }
