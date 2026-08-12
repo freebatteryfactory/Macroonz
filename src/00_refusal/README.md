@@ -2,10 +2,10 @@
 
 Band 00. It stands below every band, because every checked constructor in every
 later band refuses through it, and it imports nothing from any of them. Its one
-edge runs the other way: `PrefixRemainder`, the root calculus's witness to a
-truncating construction, because the posture a truncated report writes is
-selected by that witness rather than by a number a caller chose. The root
-calculus imports nothing at all and is the floor under this home.
+edge runs the other way, into the root calculus: a collection-shaped refusal body
+is a `NonEmptyBounded` and this home owns the posture that body reports its own
+coverage with, so this home is where the two are married and `AdmittedPrefix`
+lives. The root calculus imports nothing at all and is the floor under this home.
 
 Four observables never collapse: **success ≠ refusal ≠ uncertainty ≠ failure**.
 A refusal is a typed, lawful "no" from a check that ran. It is never silent
@@ -27,10 +27,11 @@ selector is structural — how the checks relate — never taste:
 
 Single-cause families declare a canonical **selection order** — a selector over
 established conditions, never an execution schedule — as a machine-readable
-constant on the family. Issue collections ride `NonEmptyBounded` under a declared
-limit family and carry `CompletionPosture` as an **instance value** (single-cause
-families carry no posture at all). Pairs have exactly two seats; separable
-questions must separate.
+constant on the family. Issue collections ride `AdmittedPrefix`, which is a
+`NonEmptyBounded` under a declared limit family married to the
+`CompletionPosture` its own construction selected, carried as an **instance
+value** (single-cause families carry no posture at all). Pairs have exactly two
+seats; separable questions must separate.
 
 ## A halted examination and a truncated report are different facts
 
@@ -43,21 +44,28 @@ does not have room for everything it established — the count is known exactly 
 is carried, because "some were dropped" is a claim nobody can act on.
 
 The distinction is minted rather than declared. `ReportTruncation` is opaque with
-no public constructor, and `CompletionPosture::examined_completely` is its only
-road. That road takes no number. It takes a `PrefixRemainder` — the root
-calculus's witness to a truncation that actually happened — and selects the
-posture from it, so a body that carried everything cannot claim it truncated and
-a body that dropped issues cannot claim completeness. Neither is a discipline a
-site has to remember, because neither is a value a site can build.
+no public constructor, and `AdmittedPrefix::examined_completely` is its only
+road. That road takes no number. It takes the material and performs the
+truncation, so the count it writes down is the count it just dropped: a body that
+carried everything cannot claim it truncated and a body that dropped issues
+cannot claim completeness. Neither is a discipline a site has to remember,
+because neither is a value a site can build.
 
-The witness is what makes the count belong to the body. A `usize` parameter would
-have made the posture accurate only by convention: a body that dropped nothing
-could still state that seven issues stand outside it, and the type would be
-recording an assertion rather than an act. `NonEmptyBounded::admitted_prefix`
-mints the witness and has no rival — it is the only construction road in the
-machine that truncates at all — so the count a reader acts on is the count that
-truncation performed. Writing a remainder by hand does not compile, and neither
-does handing the posture road a bare number; both reversals are testpak's.
+Performing the act is what makes the count belong to the body. A `usize`
+parameter would have made the posture accurate only by convention: a body that
+dropped nothing could still state that seven issues stand outside it, and the
+type would be recording an assertion rather than an act.
+
+And the count leaves that road married to the carry, because provenance alone is
+not enough. A count minted by the one road that truncates is a count some
+truncation really performed — but two values handed to a caller are two values a
+caller may pair, so the body one pass truncated could be reported under the count
+another pass dropped, with both halves honest and the pair a lie. So a report
+body IS an `AdmittedPrefix`: private seats, no `into_parts`, no owned carry, and
+one construction behind both readings. A collection-shaped family carries that
+one seat rather than an issue seat and a posture seat beside it. Writing a
+truncation posture by hand does not compile, and neither does marrying one
+report's carry to another report's completion; both reversals are testpak's.
 
 ## The order is typed; the text is its projection
 

@@ -67,7 +67,7 @@ fn lawful() -> Result<threadpak_macroc::ClosedExpansion, ()> {
 fn related(
     diagnostic: &threadpak_macroc::MacrocDiagnostic,
 ) -> Vec<ProjectionIdentity<RelatedIssueSubject>> {
-    diagnostic.related.iter().copied().collect()
+    diagnostic.related.carried().iter().copied().collect()
 }
 
 /// The lawful road binds every required seat and closes over what it rendered.
@@ -115,7 +115,7 @@ fn a_shortened_complete_set_proves_a_smaller_claim() {
                 closed.closure().rendered().clone(),
             )
             .is_err_and(|refusal| {
-                *refusal.issues.first()
+                *refusal.report.carried().first()
                     == ClosureIssue::MemberUnplanned {
                         role: RenderedImplementation::RenderedCauseOrderImpl,
                     }
@@ -167,7 +167,7 @@ fn a_neighbouring_digest_answers_about_another_value() -> Result<(), ()> {
         RenderedProjection::of_one(neighbour),
     );
     assert!(closed_earlier.is_err_and(|refusal| {
-        *refusal.issues.first()
+        *refusal.report.carried().first()
             == ClosureIssue::MemberMissing {
                 role: RenderedImplementation::RenderedFamilyImpl,
             }
@@ -256,12 +256,12 @@ fn a_doubled_role_refuses_at_the_declaration_and_at_the_closure() -> Result<(), 
     .err()
     .ok_or(())?;
     assert!(
-        *planning.issues.first()
+        *planning.report.carried().first()
             == ProjectionPlanningIssue::MembershipDoubled {
                 role_slot: RenderedImplementation::RenderedFamilyImpl.slot(),
                 observed: 2,
             }
-            && *closure.issues.first()
+            && *closure.report.carried().first()
                 == ClosureIssue::MemberPlannedTwice {
                     role: RenderedImplementation::RenderedFamilyImpl,
                     observed: 2,

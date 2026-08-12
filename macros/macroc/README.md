@@ -313,14 +313,17 @@ tooling-obligation: macroc.a-related-set-that-stops-says-what-it-dropped
     A diagnostic's related set carries the complete body's identity and one per
     established issue, and where the set would overrun its declared magnitude it
     carries the body's identity alone AND reports the posture that says so, with
-    the count of per-issue identities it does not carry. The one line rustc shows
-    carries the same statement.
-  owner: macros/macroc/src/derive_refusal/diagnose.rs
+    the count of per-issue identities it does not carry. Set and posture are one
+    value built by one road, so a diagnostic cannot show one refusal's set under
+    another refusal's posture. The one line rustc shows carries the same
+    statement.
+  owner: macros/macroc/src/diagnostics/type_guard.rs
   positive: macros/macroc/src/laws.rs
   method: executable-law
   activation: cargo test -p threadpak-macroc failure_path_closure
   tooling-red: owed-to-testpak — the coarser set restored without its posture,
-    shown reading exactly like a complete one
+    shown reading exactly like a complete one, and a road handing the set and the
+    posture back as two values a caller pairs
   nonclaims: >
     It does not claim the dropped identities are recoverable from the diagnostic;
     the body identity commits to every issue at once and the per-issue ones do

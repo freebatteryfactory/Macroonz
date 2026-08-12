@@ -523,10 +523,13 @@ mod refusal {
         let refusal = ProjectionPlanning::established(ProjectionPlanningIssue::MissingOwnerFact {
             seat: PlanSeat::TargetBinding,
         });
-        assert_eq!(refusal.issues.len(), 1);
-        assert!(matches!(refusal.posture, CompletionPosture::Complete));
+        assert_eq!(refusal.report.carried().len(), 1);
         assert!(matches!(
-            refusal.issues.first(),
+            refusal.report.completion(),
+            CompletionPosture::Complete
+        ));
+        assert!(matches!(
+            refusal.report.carried().first(),
             ProjectionPlanningIssue::MissingOwnerFact {
                 seat: PlanSeat::TargetBinding
             }
@@ -555,8 +558,11 @@ mod refusal {
             ProjectionPlanningIssue::OrphanGeneratedNode { node },
             vec![ProjectionPlanningIssue::MembershipIncomplete { absent: node }],
         );
-        assert_eq!(whole.issues.len(), 2);
-        assert!(matches!(whole.posture, CompletionPosture::Complete));
+        assert_eq!(whole.report.carried().len(), 2);
+        assert!(matches!(
+            whole.report.completion(),
+            CompletionPosture::Complete
+        ));
 
         // One issue past the declared magnitude: the body fills to the bound
         // rather than collapsing to its first issue, and names the one it could
@@ -570,9 +576,9 @@ mod refusal {
             ProjectionPlanningIssue::MembershipIncomplete { absent: node },
             overrun,
         );
-        assert_eq!(truncated.issues.len(), PlanningIssueLimit::MAX);
+        assert_eq!(truncated.report.carried().len(), PlanningIssueLimit::MAX);
         assert!(matches!(
-            truncated.posture,
+            truncated.report.completion(),
             CompletionPosture::ReportTruncated(truncation)
                 if truncation.omitted().get() == 1
                     && matches!(truncation.stopped_at(), StopBound::DeclaredIssueBound)
@@ -580,7 +586,7 @@ mod refusal {
         // The first issue survives at the front: a report that reordered its
         // findings under pressure would be a different report.
         assert!(matches!(
-            truncated.issues.first(),
+            truncated.report.carried().first(),
             ProjectionPlanningIssue::MembershipIncomplete { .. }
         ));
     }
@@ -592,7 +598,7 @@ mod refusal {
     fn bound_refusals_name_their_magnitude() {
         let refusal = ProjectionPlanning::bound_exceeded(BoundAxis::Outputs, 32, 33);
         assert!(matches!(
-            refusal.issues.first(),
+            refusal.report.carried().first(),
             ProjectionPlanningIssue::BoundExceeded {
                 axis: BoundAxis::Outputs,
                 bound: 32,
@@ -605,7 +611,7 @@ mod refusal {
 mod diagnostics {
     use crate::diagnostics::{
         DiagnosticSite, MachineAnchoring, MachineAnchors, MacrocDiagnostic, MacrocPhase,
-        ObservedClassification, RelatedSetCompletion, ReleasePosture, RepairAction,
+        ObservedClassification, RelatedSet, RelatedSetCompletion, ReleasePosture, RepairAction,
         ReproductionRoute, SiteCoordinate,
     };
     use crate::plane::{AuthoringLimitProfile, HumanProjection, OwnerFactRef, OwnerIdentityRef};
@@ -690,8 +696,7 @@ mod diagnostics {
             expected: crate::plane::for_laws(47),
             observed: ObservedClassification::SeatAbsent,
             cause: CauseDisposition::UnresolvedCause,
-            related: Bounded::empty(),
-            related_completion: RelatedSetCompletion::Complete,
+            related: RelatedSet::nothing_enumerated(),
             repairs,
             reproduction: ReproductionRoute::CallableServices {
                 entry: crate::plane::for_laws(48),
@@ -700,9 +705,9 @@ mod diagnostics {
         });
         assert!(built.is_ok_and(|diagnostic| {
             diagnostic.repairs.len() == 1
-                && diagnostic.related.is_empty()
+                && diagnostic.related.carried().is_empty()
                 && matches!(
-                    diagnostic.related_completion,
+                    diagnostic.related.completion(),
                     RelatedSetCompletion::Complete
                 )
                 && diagnostic
@@ -973,7 +978,7 @@ mod origin_graph {
         let (first, overrun) = walk(OriginEdgeLimit::MAX.saturating_add(1));
         let refused = OriginTrail::drawn(first, overrun);
         assert!(refused.is_err_and(|planning| matches!(
-            planning.issues.first(),
+            planning.report.carried().first(),
             ProjectionPlanningIssue::BoundExceeded {
                 axis: BoundAxis::OriginEdges,
                 ..
@@ -1014,7 +1019,7 @@ mod origin_graph {
         }
         let broken = OriginTrail::drawn(head, tail);
         assert!(broken.is_err_and(|planning| matches!(
-            planning.issues.first(),
+            planning.report.carried().first(),
             ProjectionPlanningIssue::TrailDiscontinuous { at: 2 }
         )));
     }
@@ -1063,7 +1068,7 @@ mod origin_graph {
         let overrun: Vec<TraceEntry> = core::iter::repeat_n(second, TraceEntryLimit::MAX).collect();
         let refused = DecisionTrace::recorded(first, overrun);
         assert!(refused.is_err_and(|planning| matches!(
-            planning.issues.first(),
+            planning.report.carried().first(),
             ProjectionPlanningIssue::BoundExceeded {
                 axis: BoundAxis::TraceEntries,
                 ..
@@ -1318,7 +1323,7 @@ mod planning {
             Bounded::empty(),
         );
         assert!(refused.is_err_and(|planning| matches!(
-            planning.issues.first(),
+            planning.report.carried().first(),
             ProjectionPlanningIssue::MissingOwnerFact {
                 seat: PlanSeat::TargetBinding
             }
@@ -1696,9 +1701,9 @@ mod explanation_protocol {
     fn an_incomplete_view_names_every_missing_seat() {
         let refused = ProjectionExplanationView::<HostWrapperProjection>::complete(Vec::new());
         assert!(refused.is_err_and(|coverage| {
-            coverage.issues.len() == 10
+            coverage.report.carried().len() == 10
                 && matches!(
-                    coverage.issues.first(),
+                    coverage.report.carried().first(),
                     ExplanationCoverageIssue::QuestionUnanswered(ExplanationQuestion::WhatAreYou)
                 )
         }));
@@ -1721,7 +1726,7 @@ mod explanation_protocol {
         }));
         let refused = ProjectionExplanationView::<DeriveImplProjection>::complete(doubled);
         assert!(refused.is_err_and(|coverage| matches!(
-            coverage.issues.first(),
+            coverage.report.carried().first(),
             ExplanationCoverageIssue::QuestionAnsweredTwice(
                 ExplanationQuestion::WhichOwnerRequired
             )
@@ -1743,7 +1748,7 @@ mod explanation_protocol {
         ));
         let rejected = ProjectionExplanationView::<DeriveImplProjection>::complete(foreign);
         assert!(rejected.is_err_and(|coverage| matches!(
-            coverage.issues.first(),
+            coverage.report.carried().first(),
             ExplanationCoverageIssue::QuestionNotApplicableToKind(
                 ExplanationQuestion::WhichCapabilitiesSelectedWrappers
             )
@@ -2039,7 +2044,7 @@ mod template {
                 .collect(),
         );
         assert!(short.is_err_and(|refusal| matches!(
-            refusal.issues.first(),
+            refusal.report.carried().first(),
             TemplateConstructionIssue::CeilingAxisAbsent {
                 axis: MetaBoundAxis::Memory
             }
@@ -2058,7 +2063,7 @@ mod template {
                 .collect(),
         );
         assert!(doubled.is_err_and(|refusal| matches!(
-            refusal.issues.first(),
+            refusal.report.carried().first(),
             TemplateConstructionIssue::CeilingAxisDoubled {
                 axis: MetaBoundAxis::Work
             }
@@ -2094,7 +2099,7 @@ mod template {
             vec![parameter(SpliceCategory::Expression, 10)],
         );
         assert!(doubled.is_err_and(|refusal| matches!(
-            refusal.issues.first(),
+            refusal.report.carried().first(),
             TemplateConstructionIssue::DuplicateParameter { .. }
         )));
     }
@@ -2165,7 +2170,7 @@ mod template {
 
         let unbound = apply(bindings(&[(SpliceCategory::Type, 20, 30)]));
         assert!(unbound.is_err_and(|refusal| matches!(
-            refusal.issues.first(),
+            refusal.report.carried().first(),
             TemplateConstructionIssue::MissingBinding { .. }
         )));
 
@@ -2175,7 +2180,7 @@ mod template {
             (SpliceCategory::Expression, 21, 31),
         ]));
         assert!(doubled.is_err_and(|refusal| matches!(
-            refusal.issues.first(),
+            refusal.report.carried().first(),
             TemplateConstructionIssue::DuplicateBinding { .. }
         )));
     }
@@ -2195,7 +2200,7 @@ mod template {
             (SpliceCategory::Pattern, 99, 98),
         ]));
         assert!(stranger.is_err_and(|refusal| matches!(
-            refusal.issues.first(),
+            refusal.report.carried().first(),
             TemplateConstructionIssue::UnknownParameter { .. }
         )));
 
@@ -2204,7 +2209,7 @@ mod template {
             (SpliceCategory::Expression, 21, 31),
         ]));
         assert!(recategorized.is_err_and(|refusal| matches!(
-            refusal.issues.first(),
+            refusal.report.carried().first(),
             TemplateConstructionIssue::DeclaredCategoryDisagreement {
                 declared: SpliceCategory::Type,
                 bound: SpliceCategory::Pattern,
@@ -2240,7 +2245,8 @@ mod template {
             (SpliceCategory::Expression, 21, 31),
         ]));
         assert!(both.is_err_and(|refusal| {
-            let established: Vec<&TemplateConstructionIssue> = refusal.issues.iter().collect();
+            let established: Vec<&TemplateConstructionIssue> =
+                refusal.report.carried().iter().collect();
             established.len() == 2
                 && established.iter().any(|issue| {
                     matches!(issue, TemplateConstructionIssue::DuplicateBinding { .. })
@@ -2263,9 +2269,9 @@ mod template {
             (SpliceCategory::Expression, 21, 31),
         ]));
         assert!(doubling_alone.is_err_and(|refusal| {
-            refusal.issues.len() == 1
+            refusal.report.carried().len() == 1
                 && matches!(
-                    refusal.issues.first(),
+                    refusal.report.carried().first(),
                     TemplateConstructionIssue::DuplicateBinding { .. }
                 )
         }));
@@ -2389,7 +2395,7 @@ mod template {
             .collect();
         let refused = template(parameter(SpliceCategory::Expression, 99), overrun);
         assert!(refused.is_err_and(|refusal| matches!(
-            refusal.issues.first(),
+            refusal.report.carried().first(),
             TemplateConstructionIssue::SeatBoundExceeded {
                 seat: TemplateSeat::DeclaredParameters,
                 bound: 32,
@@ -2508,7 +2514,7 @@ mod trigger_view {
             .collect();
         let refused = WrapperTriggerView::composed(plan, undecided, Vec::new());
         assert!(refused.is_err_and(|composition| matches!(
-            composition.issues.first(),
+            composition.report.carried().first(),
             TriggerViewIssue::MissingComponentDisposition {
                 component: WrapperComponent::Cancellation
             }
@@ -2522,7 +2528,7 @@ mod trigger_view {
             vec![omission(WrapperComponent::Observation)],
         );
         assert!(twice.is_err_and(|composition| matches!(
-            composition.issues.first(),
+            composition.report.carried().first(),
             TriggerViewIssue::DoubledComponent {
                 component: WrapperComponent::Observation
             }
@@ -2547,7 +2553,7 @@ mod trigger_view {
             vec![selection(WrapperComponent::Admission)],
             Vec::new(),
         );
-        assert!(refused.is_err_and(|composition| composition.issues.len() == 7));
+        assert!(refused.is_err_and(|composition| composition.report.carried().len() == 7));
     }
 }
 
@@ -2644,7 +2650,7 @@ mod composition {
             vec![provider(DescriptorKind::BenchmarkDescriptor, 3)],
         );
         assert!(doubled.is_err_and(|refusal| matches!(
-            refusal.issues.first(),
+            refusal.report.carried().first(),
             CompositionRootIssue::DuplicateProvider { .. }
         )));
 
@@ -2659,7 +2665,7 @@ mod composition {
         let refused =
             CompositionRoot::declared(provider(DescriptorKind::RemoteSurfaceEntry, 4), overrun);
         assert!(refused.is_err_and(|refusal| matches!(
-            refusal.issues.first(),
+            refusal.report.carried().first(),
             CompositionRootIssue::SeatBoundExceeded {
                 bound: 64,
                 observed: 71
@@ -2688,7 +2694,7 @@ mod composition {
                 provider(DescriptorKind::ApiInventoryRow, 6),
             ],
         );
-        assert!(refused.is_err_and(|refusal| refusal.issues.len() == 2));
+        assert!(refused.is_err_and(|refusal| refusal.report.carried().len() == 2));
     }
 }
 
@@ -3287,7 +3293,7 @@ mod derive_refusal {
             partial,
         );
         assert!(proved.is_err_and(|refusal| {
-            *refusal.issues.first()
+            *refusal.report.carried().first()
                 == ClosureIssue::MemberMissing {
                     role: RenderedImplementation::RenderedCauseOrderImpl,
                 }
@@ -3394,7 +3400,7 @@ mod failure_path_closure {
             .ok_or(())?;
         let doubled = PlannedMembership::declared(member.clone(), vec![member]);
         assert!(doubled.is_err_and(|refusal| {
-            *refusal.issues.first()
+            *refusal.report.carried().first()
                 == ProjectionPlanningIssue::MembershipDoubled {
                     role_slot: RenderedImplementation::RenderedFamilyImpl.slot(),
                     observed: 2,
@@ -3430,7 +3436,7 @@ mod failure_path_closure {
             RenderedProjection::of_one(unit),
         );
         assert!(proved.is_err_and(|refusal| {
-            *refusal.issues.first()
+            *refusal.report.carried().first()
                 == ClosureIssue::MemberPlannedTwice {
                     role: RenderedImplementation::RenderedFamilyImpl,
                     observed: 2,
@@ -3571,12 +3577,12 @@ mod failure_path_closure {
                 .contains("the outputs one plan may declare")
         );
         // The body's own identity, then one per established issue.
-        assert_eq!(outputs.related.len(), 2);
+        assert_eq!(outputs.related.carried().len(), 2);
         assert_ne!(outputs.summary, declarations.summary);
         let mine: Vec<&crate::plane::ProjectionIdentity<crate::plane::RelatedIssueSubject>> =
-            outputs.related.iter().collect();
+            outputs.related.carried().iter().collect();
         let theirs: Vec<&crate::plane::ProjectionIdentity<crate::plane::RelatedIssueSubject>> =
-            declarations.related.iter().collect();
+            declarations.related.carried().iter().collect();
         assert_ne!(mine, theirs);
 
         let seat = diagnose::explanation_refused(
@@ -3617,7 +3623,7 @@ mod failure_path_closure {
                 .summary
                 .shown()
                 .contains(RenderedImplementation::RenderedCauseOrderImpl.described())
-                && projected.related.len() == 2
+                && projected.related.carried().len() == 2
         }));
         Ok(())
     }
@@ -3745,15 +3751,19 @@ mod failure_path_closure {
     /// built, so nothing here ever halts an examination and a set that reported
     /// one would be claiming an ignorance it does not have.
     ///
-    /// The count is read off the identities the road actually dropped, and the
-    /// seat that carries it has no public mint — so a set that carried
-    /// everything cannot report that it dropped anything, and the number a
-    /// reader acts on belongs to this truncation rather than to whoever wrote
-    /// the posture down.
+    /// The count is read off the identities the road actually dropped, and it
+    /// lands in the same value as what the road kept — so a set that carried
+    /// everything cannot report that it dropped anything, the number a reader
+    /// acts on belongs to this truncation rather than to whoever wrote the
+    /// posture down, and one diagnostic's set cannot be shown under another
+    /// diagnostic's completion. The road builds the set rather than being handed
+    /// one, which is what closes the gap band 00's package closes upstream.
     /// Owed reversal (red twin): an overflow road returning the coarser set with
-    /// no posture must break this law.
+    /// no posture must break this law, and so must a road handing a set and a
+    /// completion back as two values a caller pairs.
     #[test]
     fn a_truncated_related_set_says_what_it_dropped() {
+        use crate::diagnostics::RelatedSet;
         use crate::plane::{ProjectionIdentity, ProjectionRole, ProjectionTranscript};
         use threadpak::refusal::StopBound;
         use threadpak::types::ConstLimit;
@@ -3768,19 +3778,19 @@ mod failure_path_closure {
 
         let body = identity(0);
         let fits: Vec<_> = (1..=3).map(identity).collect();
-        let (set, completion) = diagnose::related_set(body, &fits);
-        assert_eq!(set.len(), 4);
-        assert!(matches!(completion, RelatedSetCompletion::Complete));
+        let set = RelatedSet::carrying(body, &fits);
+        assert_eq!(set.carried().len(), 4);
+        assert!(matches!(set.completion(), RelatedSetCompletion::Complete));
 
         // The body's own identity rides ahead of the per-issue ones, so a body
         // AT the declared magnitude overruns the set by exactly one.
         let magnitude = u32::try_from(crate::plane::RelatedIssueLimit::MAX).unwrap_or(u32::MAX);
         let over: Vec<_> = (1..=magnitude).map(identity).collect();
-        let (truncated_set, truncated) = diagnose::related_set(body, &over);
-        assert_eq!(truncated_set.len(), 1);
-        assert_eq!(truncated_set.iter().next(), Some(&body));
+        let truncated_set = RelatedSet::carrying(body, &over);
+        assert_eq!(truncated_set.carried().len(), 1);
+        assert_eq!(truncated_set.carried().iter().next(), Some(&body));
         assert!(matches!(
-            truncated,
+            truncated_set.completion(),
             RelatedSetCompletion::ReportTruncated(truncation)
                 if truncation.omitted().get() == crate::plane::RelatedIssueLimit::MAX
                     && matches!(truncation.stopped_at(), StopBound::DeclaredIssueBound)
@@ -3791,7 +3801,7 @@ mod failure_path_closure {
         // adds nothing to the line; a truncated one names the count it dropped.
         let plain = diagnose::witnessed("planning refused", RelatedSetCompletion::Complete);
         assert_eq!(plain, "planning refused");
-        let said = diagnose::witnessed("planning refused", truncated);
+        let said = diagnose::witnessed("planning refused", truncated_set.completion());
         assert!(said.starts_with("planning refused"));
         assert!(said.contains("the related set was truncated at the declared issue bound"));
         assert!(said.contains(&crate::plane::RelatedIssueLimit::MAX.to_string()));

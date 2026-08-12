@@ -48,19 +48,19 @@ use super::render::RenderRefusal;
 use super::types::{callable_entry, expected_contract};
 use crate::closure::{ClosureIssue, ProjectionClosureRefusal, RenderingRefusal};
 use crate::diagnostics::{
-    DiagnosticSite, MacrocDiagnostic, MacrocPhase, ObservedClassification, RelatedSetCompletion,
-    ReleasePosture, RepairAction, ReproductionRoute, SiteCoordinate,
+    DiagnosticSite, MacrocDiagnostic, MacrocPhase, ObservedClassification, RelatedSet,
+    RelatedSetCompletion, ReleasePosture, RepairAction, ReproductionRoute, SiteCoordinate,
 };
 use crate::explanation_protocol::{ExplanationCoverage, ExplanationCoverageIssue};
 use crate::plane::{
-    AuthoringLimitProfile, GeneratedTokenLimit, HumanProjection, HumanTextLimit, MembershipLimit,
-    OwnerFactRef, ProjectionIdentity, ProjectionRole, ProjectionTranscript, RelatedIssueLimit,
-    RelatedIssueSubject, RenderedByteLimit, RenderedRole, encode_bytes, human_projection,
+    GeneratedTokenLimit, HumanProjection, HumanTextLimit, MembershipLimit, OwnerFactRef,
+    ProjectionIdentity, ProjectionRole, ProjectionTranscript, RelatedIssueSubject,
+    RenderedByteLimit, RenderedRole, encode_bytes, human_projection,
 };
 use crate::refusal::{ProjectionPlanning, ProjectionPlanningIssue};
 use threadpak::evidence::CauseDisposition;
-use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{AdmittedLimit, Bounded, BoundedConstruction, ConstLimit};
+use threadpak::refusal::CompletionPosture;
+use threadpak::types::{Bounded, BoundedConstruction, ConstLimit};
 
 /// The family tag written ahead of every related issue's material, so two
 /// families' issues never encode alike.
@@ -84,16 +84,21 @@ const RENDERING_FAMILY: u8 = 3;
 /// Every issue's axis, declared magnitude, observed count, seat, and doubled
 /// role survive: the first one in the summary, all of them in the related set.
 pub fn planning_refused(refusal: &ProjectionPlanning) -> MacrocDiagnostic {
-    let first = refusal.issues.first();
-    let material: Vec<Vec<u8>> = refusal.issues.iter().map(planning_bytes).collect();
+    let first = refusal.report.carried().first();
+    let material: Vec<Vec<u8>> = refusal
+        .report
+        .carried()
+        .iter()
+        .map(planning_bytes)
+        .collect();
     diagnosed(
         MacrocPhase::Planning,
         planning_observed(first),
         &summary(
             "planning refused",
             &planning_line(first),
-            refusal.issues.len().saturating_sub(1),
-            refusal.posture,
+            refusal.report.carried().len().saturating_sub(1),
+            refusal.report.completion(),
         ),
         PLANNING_FAMILY,
         &material,
@@ -231,16 +236,16 @@ const fn planning_observed(issue: &ProjectionPlanningIssue) -> ObservedClassific
 ///
 /// Every issue's role and its kind of disagreement survive, role by role.
 pub fn closure_refused<R: RenderedRole>(refusal: &ProjectionClosureRefusal<R>) -> MacrocDiagnostic {
-    let first = refusal.issues.first();
-    let material: Vec<Vec<u8>> = refusal.issues.iter().map(closure_bytes).collect();
+    let first = refusal.report.carried().first();
+    let material: Vec<Vec<u8>> = refusal.report.carried().iter().map(closure_bytes).collect();
     diagnosed(
         MacrocPhase::Rendering,
         closure_observed(first),
         &summary(
             "the rendering does not close over the plan it claims to materialize",
             &closure_line(first),
-            refusal.issues.len().saturating_sub(1),
-            refusal.posture,
+            refusal.report.carried().len().saturating_sub(1),
+            refusal.report.completion(),
         ),
         CLOSURE_FAMILY,
         &material,
@@ -352,16 +357,21 @@ fn coverage_refused(
     owner: OwnerFactRef,
     repair: HumanProjection<HumanTextLimit>,
 ) -> MacrocDiagnostic {
-    let first = coverage.issues.first();
-    let material: Vec<Vec<u8>> = coverage.issues.iter().map(coverage_bytes).collect();
+    let first = coverage.report.carried().first();
+    let material: Vec<Vec<u8>> = coverage
+        .report
+        .carried()
+        .iter()
+        .map(coverage_bytes)
+        .collect();
     diagnosed(
         MacrocPhase::Inspection,
         coverage_observed(first),
         &summary(
             "the explanation does not cover its kind's questions",
             &coverage_line(first),
-            coverage.issues.len().saturating_sub(1),
-            coverage.posture,
+            coverage.report.carried().len().saturating_sub(1),
+            coverage.report.completion(),
         ),
         COVERAGE_FAMILY,
         &material,
@@ -534,11 +544,11 @@ fn diagnosed(
         .iter()
         .map(|issue| related_identity(family, issue))
         .collect();
-    let (related, related_completion) = related_set(body, &per_issue);
+    let related = RelatedSet::carrying(body, &per_issue);
     MacrocDiagnostic {
         // The one line says which of the two sets stands behind it, because the
         // typed posture beside it is not what rustc shows.
-        summary: shown(&witnessed(composed, related_completion)),
+        summary: shown(&witnessed(composed, related.completion())),
         machine: crate::diagnostics::MachineAnchoring::UnmintedAtThisSeam,
         phase,
         // The declaration's first token. The disagreement is about the
@@ -560,7 +570,6 @@ fn diagnosed(
         // cause posture: narrowing is the machine's progress to report.
         cause: CauseDisposition::UnresolvedCause,
         related,
-        related_completion,
         repairs: Bounded::from_array([RepairAction {
             declared_by,
             description: repair,
@@ -590,46 +599,6 @@ fn related_identity(family: u8, material: &[u8]) -> ProjectionIdentity<RelatedIs
         &content,
         u32::from(family),
     ))
-}
-
-/// The related set: the whole body's identity first, then one per issue, and
-/// the posture that says whether that is all of them.
-///
-/// [`RelatedIssueLimit`] is declared at the widest refusal-body magnitude in the
-/// plane, so a body built through the typed seams always fits — but the widest
-/// body and the set are the same width, and the body's own identity sits ahead
-/// of the per-issue ones, so a body AT the magnitude overruns by exactly one.
-///
-/// Where that happens the body's own identity is carried alone — a coarser
-/// commitment to the same refusal, never a shorter commitment to a different one
-/// — and the posture returned beside it states `ReportTruncated` with the count
-/// it dropped. Carrying the coarser set silently is the defect: it has the shape
-/// of a complete answer, and the reader has nothing to compare it against.
-///
-/// The per-issue identities stay in hand across the attempt, because the posture
-/// is taken off the material this road actually drops rather than off a number
-/// it computed earlier. A count computed ahead of the truncation is a count that
-/// can outlive the reason for it.
-pub(crate) fn related_set(
-    body: ProjectionIdentity<RelatedIssueSubject>,
-    per_issue: &[ProjectionIdentity<RelatedIssueSubject>],
-) -> (
-    Bounded<ProjectionIdentity<RelatedIssueSubject>, RelatedIssueLimit>,
-    RelatedSetCompletion,
-) {
-    let mut all = Vec::with_capacity(per_issue.len().saturating_add(1));
-    all.push(body);
-    all.extend(per_issue.iter().copied());
-    match Bounded::admitted_const(
-        all,
-        &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
-    ) {
-        Ok(set) => (set, RelatedSetCompletion::Complete),
-        Err(BoundedConstruction::OverLimit) => (
-            Bounded::from_array([body]),
-            RelatedSetCompletion::carrying_all_but(per_issue, StopBound::DeclaredIssueBound),
-        ),
-    }
 }
 
 /// One composed line, with the related set's own posture written into it.

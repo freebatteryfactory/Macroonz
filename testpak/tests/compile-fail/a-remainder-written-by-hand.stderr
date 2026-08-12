@@ -1,5 +1,0 @@
-error[E0451]: field `omitted` of struct `PrefixRemainder` is private
-  --> tests/compile-fail/a-remainder-written-by-hand.rs:23:40
-   |
-23 |     let fabricated = PrefixRemainder { omitted: 7 };
-   |                                        ^^^^^^^ private field

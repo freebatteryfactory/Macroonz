@@ -8,10 +8,11 @@
 //! Exactly one seat is not WRITABLE, and the two are different properties. A
 //! truncated related set's count is a fact about an act the services performed,
 //! so a caller able to write it could state that identities were dropped by a
-//! set that dropped none. `RelatedSetTruncation` is therefore opaque with public
-//! readers and a single crate-internal mint, and that mint is what earns this
-//! home its `type_guard.rs`: the nucleus holds the one road that reaches the
-//! seat, and reaching it is what makes the count belong to the truncation.
+//! set that dropped none. `RelatedSetTruncation` is therefore opaque, `RelatedSet`
+//! carries it married to the identities it is about, and one road builds both,
+//! which is what earns this home its `type_guard.rs`: the nucleus holds the road
+//! that reaches the seat, and reaching it is what makes the count belong to the
+//! truncation and the truncation belong to the set.
 
 use crate::plane::{
     ContractSubject, ExpansionSurfaceSubject, FixturePopulationSubject, HumanProjection,
@@ -248,6 +249,26 @@ pub enum RelatedSetCompletion {
     ReportTruncated(RelatedSetTruncation),
 }
 
+/// One diagnostic's related set: the identities it carries, married to whether
+/// that is all of them.
+///
+/// The two are one value for band 00's reason. A completion is a claim ABOUT a
+/// set, and a claim about a set that can be carried away from it is a claim that
+/// can be told about a different one — a diagnostic could then wear the coarser
+/// set of one refusal under the completion of another, with both halves honest
+/// on their own and the pair a lie. So the set-building road is the only road
+/// in, the seats are private, and there is no road back out to a loose pair.
+///
+/// It takes the same shape band 00's [`threadpak::refusal::AdmittedPrefix`]
+/// takes, because it reports the same kind of fact about the same kind of act. A
+/// tooling value reporting a truncation under a weaker discipline would be the
+/// weaker statement that keeps passing after the stronger one is gone.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RelatedSet {
+    carried: Bounded<ProjectionIdentity<RelatedIssueSubject>, RelatedIssueLimit>,
+    completion: RelatedSetCompletion,
+}
+
 /// One diagnostic from the services.
 ///
 /// Every seat is required. A diagnostic that could omit its phase, its site, its
@@ -277,11 +298,11 @@ pub struct MacrocDiagnostic {
     /// The machine's cause posture: an established cause, narrowed suspects, or
     /// unresolved. Narrowing is progress, never a forced verdict.
     pub cause: CauseDisposition,
-    /// Other issues this one points at.
-    pub related: Bounded<ProjectionIdentity<RelatedIssueSubject>, RelatedIssueLimit>,
-    /// Whether that set names every established issue, or stopped at a declared
-    /// bound and says how many it does not name.
-    pub related_completion: RelatedSetCompletion,
+    /// Other issues this one points at, and whether that set names every
+    /// established issue or stopped at a declared bound and says how many it
+    /// does not name. One seat rather than two: the completion belongs to the
+    /// set it was built beside and to no other.
+    pub related: RelatedSet,
     /// The owner-declared repairs that apply.
     pub repairs: Bounded<RepairAction, RepairLimit>,
     /// How to reach this observation again.

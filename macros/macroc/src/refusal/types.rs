@@ -10,8 +10,7 @@ use crate::plane::{
     GeneratedUnitSubject, OwnerFactRef, PlanningIssueLimit, ProfileVersion, ProjectionIdentity,
     ProjectionKindSubject, ProjectionProfileSubject,
 };
-use threadpak::refusal::CompletionPosture;
-use threadpak::types::NonEmptyBounded;
+use threadpak::refusal::AdmittedPrefix;
 
 threadpak::closed_register! {
     /// The plan's declared bound axes. A bound refusal names which magnitude it
@@ -154,9 +153,10 @@ pub enum ProjectionPlanningIssue {
 #[must_use = "a refusal family body carries every planning issue the pass established"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProjectionPlanning {
-    /// The established issues — at least one, at most the declared bound.
-    pub issues: NonEmptyBounded<ProjectionPlanningIssue, PlanningIssueLimit>,
-    /// Whether the body carries every issue its seam established, or names how
-    /// many stand outside the declared bound.
-    pub posture: CompletionPosture,
+    /// The established issues — at least one, at most the declared bound —
+    /// together with whether the body carries every issue its seam established
+    /// or names how many stand outside that bound. One seat rather than two,
+    /// because a coverage claim seated beside its body is a claim that can be
+    /// swapped for another body's.
+    pub report: AdmittedPrefix<ProjectionPlanningIssue, PlanningIssueLimit>,
 }

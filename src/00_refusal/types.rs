@@ -16,7 +16,9 @@
 //!    claiming unexecuted checks unrepresentable.
 //! 2. **Issue collection** — independent, co-establishable facts: a bounded,
 //!    non-empty collection ([`crate::types::NonEmptyBounded`]) over a closed issue
-//!    set. The shape makes both a zero-issue refusal and a dropped co-true defect
+//!    set, carried inside an [`AdmittedPrefix`] so the body and what it says about
+//!    its own coverage are one value. The shape makes a zero-issue refusal, a
+//!    dropped co-true defect, and a coverage claim about somebody else's body all
 //!    unrepresentable.
 //! 3. **Inseparable pair** — exactly two questions neither of which means anything
 //!    alone: a composite record with exactly two seats. If the questions can be
@@ -35,7 +37,7 @@
 //! evidence home, downstream. Location types are carried by owner families, never by
 //! the universal envelope.
 
-use crate::types::PrefixRemainder;
+use crate::types::{ConstLimit, Limit, LimitAdmissionProfile, NonEmptyBounded, PositiveLimit};
 use core::marker::PhantomData;
 use core::num::NonZeroUsize;
 
@@ -91,12 +93,13 @@ pub enum StopBound {
 /// How much one report left outside its declared bound.
 ///
 /// Opaque, with no public constructor: the only road to one is
-/// [`CompletionPosture::examined_completely`], and that road takes no count at
-/// all. It takes a [`PrefixRemainder`], which only the construction road that
-/// actually truncated a collection can mint. So a body that carried every issue
-/// it established cannot write down a truncation posture, and a body that
-/// truncated cannot write down a count it did not truncate by — the two are
-/// minted together or not at all, and neither is a number a caller supplies.
+/// [`AdmittedPrefix::examined_completely`], and that road takes no count at all.
+/// It takes the material itself and performs the truncation, so the count it
+/// writes down is the count it just dropped. A body that carried every issue it
+/// established cannot write down a truncation posture, and a body that truncated
+/// cannot write down a count it did not truncate by — the posture and the carry
+/// leave that road married inside one [`AdmittedPrefix`] and have no road back
+/// apart.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ReportTruncation {
     stopped_at: StopBound,
@@ -157,40 +160,118 @@ pub enum CompletionPosture {
     ReportTruncated(ReportTruncation),
 }
 
-impl CompletionPosture {
-    /// The posture a COMPLETE examination's report amounts to, given the
-    /// remainder the construction road that built its body handed back.
+/// One collection-shaped refusal body: the issues the declared bound held,
+/// married to the posture the same construction amounts to.
+///
+/// # Why the two travel as one value
+///
+/// A posture is a claim ABOUT a body, and a claim about a body that can be
+/// carried away from it is a claim that can be told about a different one. Two
+/// passes truncating under the same limit family produce two carries and two
+/// postures; hand a caller four loose values and nothing in the types stops the
+/// carry of one from being reported under the posture of the other. Both halves
+/// stay individually honest and the pair is a lie — the kind no runtime check
+/// catches, because there is nothing wrong to detect at either end.
+///
+/// So the mint is the only road in, the seats are private, and there is no road
+/// back out to a loose pair: no `into_parts`, no owned carry, no seat a caller
+/// can write. What a consumer holds is one value in which the coverage claim and
+/// the material it is about were produced by a single act. A body that needs the
+/// issues and the posture as separate FIELDS extracts them inside its own
+/// guarded constructor, off this value, and never off two values it was handed.
+///
+/// [`AdmittedPrefix::completion`] hands the posture out for RENDERING, which is
+/// a read and not a seat: a rendered sentence is not a body, and no body has a
+/// posture seat to re-house it in.
+#[must_use = "a report body carries the issues it established and what it says about its own coverage"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct AdmittedPrefix<T, L: Limit> {
+    carried: NonEmptyBounded<T, L>,
+    completion: CompletionPosture,
+}
+
+impl<T, L: ConstLimit> AdmittedPrefix<T, L> {
+    /// The report a COMPLETE examination amounts to: the prefix the family's
+    /// admitted magnitude holds, and the posture the same truncation selects.
     ///
-    /// This is the one mint for [`ReportTruncation`], and the WITNESS is what
-    /// selects the posture rather than the caller: a remainder of nothing is
-    /// `Complete`, and any other remainder is a truncation naming the bound and
-    /// the exact count. A pass that carried every issue therefore cannot claim it
-    /// truncated, and a pass that dropped issues cannot claim completeness —
-    /// neither is a discipline a site has to remember, because neither is a
-    /// value a site can build.
+    /// This is the one mint for [`ReportTruncation`], and the ACT is what
+    /// selects the posture rather than the caller: material that fits is
+    /// `Complete`, and material that does not is a truncation naming the bound
+    /// and the exact count it just dropped. A pass that carried every issue
+    /// therefore cannot claim it truncated, and a pass that dropped issues
+    /// cannot claim completeness — neither is a discipline a site has to
+    /// remember, because neither is a value a site can build.
     ///
-    /// The parameter is a [`PrefixRemainder`] and not a number, and that is the
+    /// The road takes the material rather than a count, and that is the
     /// difference between a posture that MATCHES a body and one that merely
     /// describes it. A count is a value anybody can choose, so a road taking one
     /// would let a body carrying every issue it established mint a posture saying
     /// seven were dropped, and the type would be recording a caller's assertion
-    /// rather than the construction's own act. The witness is minted by
-    /// [`PrefixRemainder`]'s single road — the one collection road that truncates
-    /// — so the count this posture carries is the count that truncation
-    /// performed, structurally and not by convention.
+    /// rather than the construction's own act.
+    ///
+    /// The bound is named HERE, at the one call that also supplies the limit
+    /// family, because which declared bound a magnitude stands for is the
+    /// caller's own statement about the family it just handed over. Naming it
+    /// later would make the posture a re-derivation, and two reads of one body
+    /// could then name different bounds.
+    ///
+    /// It is total for [`NonEmptyBounded::singleton`]'s reason: the witness is
+    /// [`PositiveLimit`], so the maximum is at least one, so the prefix is never
+    /// empty and there is no failing case to return.
     ///
     /// A pass whose examination genuinely halted does not come here. It states
     /// [`CompletionPosture::EarlyStopped`] directly, because the fact it is
     /// reporting is about the scan and not about the report.
-    #[must_use]
-    pub const fn examined_completely(remainder: PrefixRemainder, at: StopBound) -> Self {
-        match NonZeroUsize::new(remainder.omitted()) {
-            None => Self::Complete,
-            Some(omitted) => Self::ReportTruncated(ReportTruncation {
+    pub fn examined_completely<P: LimitAdmissionProfile>(
+        first: T,
+        rest: Vec<T>,
+        admitted: &PositiveLimit<L, P>,
+        at: StopBound,
+    ) -> Self {
+        let (carried, omitted) = NonEmptyBounded::admitted_prefix(first, rest, admitted);
+        let completion = match NonZeroUsize::new(omitted) {
+            None => CompletionPosture::Complete,
+            Some(omitted) => CompletionPosture::ReportTruncated(ReportTruncation {
                 stopped_at: at,
                 omitted,
             }),
+        };
+        Self {
+            carried,
+            completion,
         }
+    }
+
+    /// The report a seam that can establish exactly one issue amounts to.
+    ///
+    /// Total, and `Complete` by shape rather than by assertion: the road is
+    /// handed one item and carries one item, so there is no material it could
+    /// have dropped and no bound it could name. A one-issue seam therefore
+    /// reaches the same package every other seam does, and never assembles a
+    /// posture beside a body of its own.
+    pub fn carrying_one(item: T) -> Self {
+        Self {
+            carried: NonEmptyBounded::singleton(item),
+            completion: CompletionPosture::Complete,
+        }
+    }
+}
+
+impl<T, L: Limit> AdmittedPrefix<T, L> {
+    /// The issues the body carries — at least one, at most the declared bound.
+    ///
+    /// Borrowed and never owned. An owned carry is half of the pair this type
+    /// exists to keep together, and a caller holding it could seat it under
+    /// another report's posture.
+    #[must_use]
+    pub const fn carried(&self) -> &NonEmptyBounded<T, L> {
+        &self.carried
+    }
+
+    /// What this body says about its own coverage.
+    #[must_use]
+    pub const fn completion(&self) -> CompletionPosture {
+        self.completion
     }
 }
 

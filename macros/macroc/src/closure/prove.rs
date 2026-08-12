@@ -15,8 +15,8 @@
 use super::{ClosureIssue, ProjectionClosureRefusal, RenderedProjection};
 use crate::plane::{AuthoringLimitProfile, RenderedRole};
 use crate::planning::{PlannedMember, PlannedMembership};
-use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{NonEmptyBounded, PositiveLimit};
+use threadpak::refusal::{AdmittedPrefix, StopBound};
+use threadpak::types::PositiveLimit;
 
 /// The per-role pass: every issue the two establish at a role, and the members
 /// rebuilt at the roles where they agreed.
@@ -107,15 +107,11 @@ impl<R: RenderedRole> ProjectionClosureRefusal<R> {
     /// all of them; where it does not, the body carries what the bound holds and
     /// names how many established issues stand outside it — never a silent drop.
     pub(super) fn established(first: ClosureIssue<R>, rest: Vec<ClosureIssue<R>>) -> Self {
-        let (issues, remainder) = NonEmptyBounded::admitted_prefix(
-            first,
-            rest,
-            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
-        );
         Self {
-            issues,
-            posture: CompletionPosture::examined_completely(
-                remainder,
+            report: AdmittedPrefix::examined_completely(
+                first,
+                rest,
+                &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
                 StopBound::DeclaredIssueBound,
             ),
         }

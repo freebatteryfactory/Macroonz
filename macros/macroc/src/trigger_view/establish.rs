@@ -15,8 +15,8 @@
 use super::{TriggerOmission, TriggerSelection, TriggerViewComposition, TriggerViewIssue};
 use crate::plane::AuthoringLimitProfile;
 use crate::planning::WRAPPER_COMPONENTS;
-use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{NonEmptyBounded, PositiveLimit};
+use threadpak::refusal::{AdmittedPrefix, StopBound};
+use threadpak::types::PositiveLimit;
 
 /// Every component the two lists leave undecided or dispose of twice, in roster
 /// order.
@@ -64,15 +64,11 @@ impl TriggerViewComposition {
     /// all of them; where it does not, the body carries what the bound holds and
     /// names how many established issues stand outside it.
     pub(super) fn established(first: TriggerViewIssue, rest: Vec<TriggerViewIssue>) -> Self {
-        let (issues, remainder) = NonEmptyBounded::admitted_prefix(
-            first,
-            rest,
-            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
-        );
         Self {
-            issues,
-            posture: CompletionPosture::examined_completely(
-                remainder,
+            report: AdmittedPrefix::examined_completely(
+                first,
+                rest,
+                &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
                 StopBound::DeclaredIssueBound,
             ),
         }

@@ -20,8 +20,8 @@ use crate::planning::{
 };
 use crate::question::ExplanationQuestion;
 use core::marker::PhantomData;
-use threadpak::refusal::CompletionPosture;
-use threadpak::types::{Bounded, NonEmptyBounded};
+use threadpak::refusal::AdmittedPrefix;
+use threadpak::types::Bounded;
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -162,13 +162,14 @@ pub enum ExplanationCoverageIssue {
 #[must_use = "a refusal family body carries every uncovered, doubled, or inadmissible question"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ExplanationCoverage {
-    /// The established issues — at least one, at most the declared bound.
-    pub issues: NonEmptyBounded<ExplanationCoverageIssue, ExplanationIssueLimit>,
-    /// Whether the body carries every issue the coverage pass established, or
-    /// names how many stand outside the declared bound. The pass itself always
-    /// covers every applicable question, so this seat never reports a halted
+    /// The established issues — at least one, at most the declared bound —
+    /// together with whether the body carries every issue the coverage pass
+    /// established or names how many stand outside that bound. One seat rather
+    /// than two, because a coverage claim seated beside its body is a claim that
+    /// can be swapped for another body's. The pass itself always covers every
+    /// applicable question, so the completion here never reports a halted
     /// examination.
-    pub posture: CompletionPosture,
+    pub report: AdmittedPrefix<ExplanationCoverageIssue, ExplanationIssueLimit>,
 }
 
 /// A complete explanation view over one kind's plans.

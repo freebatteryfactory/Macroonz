@@ -338,25 +338,28 @@ mod root {
     }
 
     /// law: root.a-prefix-road-reports-what-it-did-not-carry — the one
-    /// construction road that truncates hands back a witness to the truncation
-    /// it performed, both directions: material that fits mints a remainder
-    /// reading zero, and material that does not fit is carried up to the
-    /// admitted magnitude with a remainder reading the exact count beside it.
+    /// construction road that truncates reports the truncation it performed,
+    /// both directions: material that fits is carried whole and reports nothing
+    /// omitted, and material that does not fit is carried up to the admitted
+    /// magnitude with the exact dropped count beside it.
     ///
-    /// The witness is minted HERE and has no other road, so the count a
-    /// downstream seat reads is the count this truncation performed rather than
-    /// one a caller chose. That is what makes the remainder provenance-bearing
-    /// rather than merely informative, and the reversal below is what proves the
-    /// mint is closed.
+    /// The road is the crate's own seam and not a public one, which is the
+    /// structural half. A carry and a count handed to a caller are two values
+    /// the caller may pair with anything, so the pair leaves here only inside
+    /// [`crate::refusal::AdmittedPrefix`], the package built in the same
+    /// construction that produced both. That is what makes a downstream claim
+    /// about how much was lost a claim about THIS truncation rather than an
+    /// assertion anybody could have written.
     ///
     /// The claim ceiling: this is a fact about the ROAD and says nothing about
-    /// what a caller does with the witness. What the witness makes impossible is
-    /// a body that dropped issues and cannot say so, and that consequence is band
-    /// 00's to state — see `refusal::a_truncated_report_is_not_a_halted_examination`.
+    /// what a consumer does with the package. What the package makes impossible
+    /// is a body that dropped issues and cannot say so, and that consequence is
+    /// band 00's to state — see
+    /// `refusal::a_truncated_report_is_not_a_halted_examination`.
     ///
-    /// Red twin: writing a remainder by hand — a struct literal choosing its own
-    /// omission count — must not compile, because the seat is private and the
-    /// road is the only mint.
+    /// Red twin: marrying one prefix operation's carry to another's completion
+    /// must not compile, because the pair has no public two-value road, no
+    /// `into_parts`, and no writable seat.
     #[test]
     fn a_prefix_road_reports_what_it_did_not_carry() {
         use crate::types::{NonEmptyBounded, PositiveLimit, RootLawsProfile};
@@ -368,26 +371,25 @@ mod root {
         let admitted: PositiveLimit<PrefixDemo, RootLawsProfile> =
             PositiveLimit::inhabited_under_profile();
 
-        // Under the magnitude: everything is carried and the witness reads
-        // nothing omitted.
+        // Under the magnitude: everything is carried and nothing is reported
+        // omitted.
         let (whole, none_omitted) = NonEmptyBounded::admitted_prefix(1_u8, vec![2, 3], &admitted);
         assert_eq!(whole.len(), 3);
-        assert_eq!(none_omitted.omitted(), 0);
+        assert_eq!(none_omitted, 0);
         assert_eq!(whole.iter().copied().collect::<Vec<u8>>(), vec![1, 2, 3]);
 
         // Past it: the prefix the magnitude holds is carried — never the first
-        // item alone — and the witness reads the remainder exactly.
-        let (prefix, remainder) =
-            NonEmptyBounded::admitted_prefix(1_u8, vec![2, 3, 4, 5], &admitted);
+        // item alone — and the count reads the remainder exactly.
+        let (prefix, omitted) = NonEmptyBounded::admitted_prefix(1_u8, vec![2, 3, 4, 5], &admitted);
         assert_eq!(prefix.len(), PrefixDemo::MAX);
-        assert_eq!(remainder.omitted(), 2);
+        assert_eq!(omitted, 2);
         assert_eq!(prefix.iter().copied().collect::<Vec<u8>>(), vec![1, 2, 3]);
 
-        // Two truncations of different magnitude mint different witnesses: the
-        // value tracks the act rather than standing for "some were dropped".
+        // Two truncations of different magnitude report different counts: the
+        // number tracks the act rather than standing for "some were dropped".
         let (_, larger) = NonEmptyBounded::admitted_prefix(1_u8, vec![2, 3, 4, 5, 6, 7], &admitted);
-        assert_eq!(larger.omitted(), 4);
-        assert_ne!(larger, remainder);
+        assert_eq!(larger, 4);
+        assert_ne!(larger, omitted);
     }
 
     /// law: root.an-admission-does-not-cross-profiles — a witness names WHICH
@@ -900,12 +902,14 @@ mod refusal {
     /// truncation is the only road to one and it does not produce that variant
     /// at all.
     ///
-    /// The posture is taken off a witness rather than off a number, so the
-    /// count is not merely accurate by discipline — it is the count the
-    /// construction below actually truncated by. The body and the posture are
-    /// therefore two readings of one act: substituting one truncation's witness
-    /// for another's would be substituting one body for another, and inventing a
-    /// count with no truncation behind it is not expressible at all.
+    /// The posture is taken off the act rather than off a number, so the count
+    /// is not merely accurate by discipline — it is the count the construction
+    /// below actually truncated by. The body and the posture are two readings of
+    /// one act and travel as ONE value: the package hands out its carry only by
+    /// reference and its posture only for rendering, so substituting one
+    /// truncation's completion for another's is unwritable rather than merely
+    /// discouraged, and inventing a count with no truncation behind it is not
+    /// expressible at all.
     ///
     /// The two postures are separately inhabited and are not equal, which is
     /// what makes the distinction load-bearing rather than cosmetic: a reader
@@ -919,11 +923,13 @@ mod refusal {
     /// did not, and a caller holding no truncation cannot mint a posture that
     /// claims one.
     ///
-    /// Red twin: handing this road a bare count — a number with no truncation
-    /// behind it — must not compile, because the parameter is the witness and
-    /// the witness has no public mint.
+    /// Red twin: writing a truncation posture with no truncation behind it —
+    /// a `ReportTruncated` assembled from a bound and a number — must not
+    /// compile, because the seats are private and the package's mint is the
+    /// only road to one.
     #[test]
     fn a_truncated_report_is_not_a_halted_examination() {
+        use crate::refusal::AdmittedPrefix;
         use crate::types::{ConstLimit, PositiveLimit, RootLawsProfile};
         struct PostureDemo;
         impl Limit for PostureDemo {}
@@ -935,25 +941,39 @@ mod refusal {
 
         // A body whose construction carried everything: the posture it can write
         // is the complete one, and it is the only one it can write.
-        let (whole, carried) = NonEmptyBounded::admitted_prefix(1_u8, vec![2, 3], &admitted);
-        let carried_everything =
-            CompletionPosture::examined_completely(carried, StopBound::DeclaredIssueBound);
-        assert_eq!(whole.len(), 3);
+        let whole = AdmittedPrefix::examined_completely(
+            1_u8,
+            vec![2, 3],
+            &admitted,
+            StopBound::DeclaredIssueBound,
+        );
+        let carried_everything = whole.completion();
+        assert_eq!(whole.carried().len(), 3);
         assert_eq!(carried_everything, CompletionPosture::Complete);
 
         // A body whose construction dropped four: the posture names the bound
-        // and the count the construction itself performed.
-        let (prefix, dropped) =
-            NonEmptyBounded::admitted_prefix(1_u8, vec![2, 3, 4, 5, 6, 7], &admitted);
-        let left_some_out =
-            CompletionPosture::examined_completely(dropped, StopBound::DeclaredIssueBound);
-        assert_eq!(prefix.len(), 3);
+        // and the count the construction itself performed, and it is READ off
+        // the same value that holds the carry.
+        let prefix = AdmittedPrefix::examined_completely(
+            1_u8,
+            vec![2, 3, 4, 5, 6, 7],
+            &admitted,
+            StopBound::DeclaredIssueBound,
+        );
+        let left_some_out = prefix.completion();
+        assert_eq!(prefix.carried().len(), 3);
         assert!(matches!(
             left_some_out,
             CompletionPosture::ReportTruncated(truncation)
                 if truncation.omitted().get() == 4
                     && matches!(truncation.stopped_at(), StopBound::DeclaredIssueBound)
         ));
+
+        // A one-issue body reaches the same package and is complete by shape:
+        // one item in, one item carried, no bound to name.
+        let single = AdmittedPrefix::<u8, PostureDemo>::carrying_one(9);
+        assert_eq!(single.carried().len(), 1);
+        assert_eq!(single.completion(), CompletionPosture::Complete);
 
         // The halted posture is a different value, and no truncation produces it.
         let halted = CompletionPosture::EarlyStopped {

@@ -18,8 +18,8 @@ use super::{
     TemplateConstructionIssue, TemplateParameter,
 };
 use crate::plane::AuthoringLimitProfile;
-use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{NonEmptyBounded, PositiveLimit};
+use threadpak::refusal::{AdmittedPrefix, StopBound};
+use threadpak::types::PositiveLimit;
 
 /// Every parameter identity a hole set declares more than once, reported at its
 /// first occurrence.
@@ -136,8 +136,7 @@ impl TemplateConstruction {
     /// compile-time proof, so refusing never needs an error road of its own.
     pub fn established(issue: TemplateConstructionIssue) -> Self {
         Self {
-            issues: NonEmptyBounded::singleton(issue),
-            posture: CompletionPosture::Complete,
+            report: AdmittedPrefix::carrying_one(issue),
         }
     }
 
@@ -153,15 +152,11 @@ impl TemplateConstruction {
         first: TemplateConstructionIssue,
         rest: Vec<TemplateConstructionIssue>,
     ) -> Self {
-        let (issues, remainder) = NonEmptyBounded::admitted_prefix(
-            first,
-            rest,
-            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
-        );
         Self {
-            issues,
-            posture: CompletionPosture::examined_completely(
-                remainder,
+            report: AdmittedPrefix::examined_completely(
+                first,
+                rest,
+                &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
                 StopBound::DeclaredIssueBound,
             ),
         }

@@ -10,7 +10,7 @@ use crate::plane::{
     CompositionIssueLimit, DescriptorProviderLimit, DescriptorProviderSubject, OwnerFactRef,
     OwnerIdentityRef,
 };
-use threadpak::refusal::CompletionPosture;
+use threadpak::refusal::AdmittedPrefix;
 use threadpak::types::NonEmptyBounded;
 
 #[path = "type_guard.rs"]
@@ -88,12 +88,13 @@ pub enum CompositionRootIssue {
 #[must_use = "a refusal family body carries every established issue with the root"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CompositionRootDeclaration {
-    /// The established issues — at least one, at most the declared bound.
-    pub issues: NonEmptyBounded<CompositionRootIssue, CompositionIssueLimit>,
-    /// Whether the body carries every issue the scan established, or names how
-    /// many stand outside the declared bound. The scan itself always covers
-    /// every declared provider, so this seat never reports a halted examination.
-    pub posture: CompletionPosture,
+    /// The established issues — at least one, at most the declared bound —
+    /// together with whether the body carries every issue the scan established
+    /// or names how many stand outside that bound. One seat rather than two,
+    /// because a coverage claim seated beside its body is a claim that can be
+    /// swapped for another body's. The scan itself always covers every declared
+    /// provider, so the completion here never reports a halted examination.
+    pub report: AdmittedPrefix<CompositionRootIssue, CompositionIssueLimit>,
 }
 
 /// The one composition root: every provider that participates, named once.
