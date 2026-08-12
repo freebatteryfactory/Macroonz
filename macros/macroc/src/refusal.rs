@@ -11,8 +11,8 @@
 //! reasons are registered, which is the machine's business, not the plane's.
 
 use crate::plane::{
-    GeneratedUnitSubject, OwnerFactRef, PlanSubject, PlanningIssueLimit, ProfileVersion,
-    ProjectionIdentity, ProjectionKindSubject, ProjectionProfileSubject,
+    GeneratedUnitSubject, OwnerFactRef, PlanningIssueLimit, ProfileVersion, ProjectionIdentity,
+    ProjectionKindSubject, ProjectionProfileSubject,
 };
 use threadpak::refusal::{CompletionPosture, FamilyShape, RefusalFamily, StopBound};
 use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction};
@@ -191,8 +191,3 @@ impl ProjectionPlanning {
         })
     }
 }
-
-/// The identity of one plan, as a bundle names its members. Carried here
-/// because a bundle's membership and the planning family's issues are the two
-/// places a plan is spoken of by identity rather than by value.
-pub type PlanIdentity = ProjectionIdentity<PlanSubject>;

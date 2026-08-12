@@ -14,9 +14,10 @@ use crate::diagnostics::{
 use crate::explanation_protocol::ProjectionExplanationView;
 use crate::origin_graph::Nonclaim;
 use crate::plane::{
-    CapturedDeclarationSubject, ContractSubject, DeriveCauseLimit, HumanProjection, HumanTextLimit,
-    NonclaimLimit, OwnerFactRef, ProjectionIdentity, ProjectionPreimage, ProjectionRole,
-    ServiceEntrySubject, human_projection,
+    CapturedDeclarationSubject, ClosedExpansionId, ContractSubject, DeriveCauseLimit,
+    HumanProjection, HumanTextLimit, NonclaimLimit, OwnerFactRef, ProjectionIdentity,
+    ProjectionProvenance, ProjectionRole, ProjectionTranscript, ServiceEntrySubject, encode_bytes,
+    human_projection,
 };
 use crate::planning::{
     DeriveImplProjection, ProjectionDisposition, ProjectionPlan, RenderedImplementation,
@@ -485,7 +486,7 @@ impl RefusalDeriveRefusal {
 /// The compiler-plane contract this derive expects a declaration to satisfy.
 #[must_use]
 pub fn expected_contract() -> ProjectionIdentity<ContractSubject> {
-    ProjectionIdentity::derived(ProjectionPreimage::rooted(
+    ProjectionIdentity::derived(ProjectionTranscript::rooted(
         ProjectionRole::ClosedExpansion,
         b"macroc.derive_refusal.declaration-grammar",
         0,
@@ -496,7 +497,7 @@ pub fn expected_contract() -> ProjectionIdentity<ContractSubject> {
 /// proc-macro anywhere in the path.
 #[must_use]
 pub fn callable_entry() -> ProjectionIdentity<ServiceEntrySubject> {
-    ProjectionIdentity::derived(ProjectionPreimage::rooted(
+    ProjectionIdentity::derived(ProjectionTranscript::rooted(
         ProjectionRole::ClosedExpansion,
         b"macroc.derive_refusal.compile_refusal",
         1,
@@ -692,6 +693,8 @@ impl RefusalCompileContext {
 /// "what does it say it did" and "what did it do" cannot drift.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClosedExpansion {
+    identity: ClosedExpansionId,
+    provenance: ProjectionProvenance,
     surface: RefusalDeriveSurface,
     plan: ProjectionPlan<DeriveImplProjection>,
     closure: ProjectionClosure<RenderedImplementation>,
@@ -703,7 +706,17 @@ pub struct ClosedExpansion {
 impl ClosedExpansion {
     /// Bind one closed expansion. Crate-internal: the only road to one is
     /// [`compile_refusal`](crate::derive_refusal::compile_refusal).
-    pub(crate) const fn bound(
+    ///
+    /// # The closed-expansion transcript
+    ///
+    /// The identity is derived under [`ProjectionRole::ClosedExpansion`],
+    /// anchored on the CLOSURE's identity — because a receipt exists only where
+    /// a closure does — over a content transcript committing to the captured
+    /// declaration's identity, the plan's identity, and the emitted token tree's
+    /// canonical bytes at full length. Those are exactly the three things a
+    /// reader of one receipt asks about: what was read, what was decided, and
+    /// what was handed to the compiler.
+    pub(crate) fn bound(
         surface: RefusalDeriveSurface,
         plan: ProjectionPlan<DeriveImplProjection>,
         closure: ProjectionClosure<RenderedImplementation>,
@@ -711,7 +724,21 @@ impl ClosedExpansion {
         cause_order: ProjectionDisposition,
         emitted: GeneratedTree,
     ) -> Self {
+        let mut content = Vec::new();
+        encode_bytes(surface.identity().as_bytes(), &mut content);
+        encode_bytes(plan.identity().as_bytes(), &mut content);
+        encode_bytes(&emitted.canonical_bytes(), &mut content);
+        let closure_identity = closure.identity();
+        let (identity, provenance) =
+            ClosedExpansionId::derived_with_provenance(ProjectionTranscript::under_projection(
+                ProjectionRole::ClosedExpansion,
+                &closure_identity,
+                &content,
+                0,
+            ));
         Self {
+            identity,
+            provenance,
             surface,
             plan,
             closure,
@@ -719,6 +746,18 @@ impl ClosedExpansion {
             cause_order,
             emitted,
         }
+    }
+
+    /// This closed expansion's own identity: the name of the whole receipt.
+    #[must_use]
+    pub const fn identity(&self) -> ClosedExpansionId {
+        self.identity
+    }
+
+    /// How that identity was derived.
+    #[must_use]
+    pub const fn provenance(&self) -> &ProjectionProvenance {
+        &self.provenance
     }
 
     /// The captured typed declaration this expansion was compiled from.

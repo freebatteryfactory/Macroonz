@@ -32,15 +32,14 @@ use crate::plane::{
     GeneratedUnitSubject, GeneratorVersionSubject, ImplementedContractSubject, InvalidationLimit,
     MeasuredSubject, MechanismProfileSubject, MembershipLimit, NonclaimLimit, ObligationSubject,
     OwnerFactRef, OwnerIdentityRef, PatternArgumentLimit, PatternArgumentSubject,
-    PatternInstanceSubject, PatternSubject, PortSubject, ProfileVersion, ProjectionIdentity,
-    ProjectionProfileSubject, RenderedRole, SchemaSubject, SoleRenderedUnit,
-    SourceDeclarationLimit, WireContractSubject, WorkCurrencySubject, WorkFormulaSubject,
-    WrapperComponentLimit,
+    PatternInstanceSubject, PatternSubject, PlanId, PortSubject, ProfileVersion,
+    ProjectionIdentity, ProjectionProfileSubject, ProjectionProvenance, ProjectionRole,
+    ProjectionTranscript, RenderedRole, SchemaSubject, SoleRenderedUnit, SourceDeclarationLimit,
+    TranscriptAnchoring, WireContractSubject, WorkCurrencySubject, WorkFormulaSubject,
+    WrapperComponentLimit, encode_bytes, encode_length,
 };
 use crate::question::ExplanationQuestion;
-use crate::refusal::{
-    BoundAxis, PlanIdentity, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue,
-};
+use crate::refusal::{BoundAxis, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue};
 use core::fmt::Debug;
 use threadpak::declaration::types::{
     FragmentIdentityDomain, LinkedGraphDomain, ProjectionAudienceDomain,
@@ -67,6 +66,24 @@ pub enum TargetBinding {
     TargetFree,
 }
 
+impl TargetBinding {
+    /// Append this binding's canonical bytes: the posture's discriminant, then
+    /// the contract where one is named. Target-free is written as a posture and
+    /// never as an absent contract, exactly as the type states it.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        match self {
+            Self::HostContract(contract) => {
+                into.push(0);
+                encode_bytes(contract.as_bytes(), into);
+            }
+            Self::TargetFree => {
+                into.push(1);
+                encode_bytes(&[], into);
+            }
+        }
+    }
+}
+
 /// The source declarations one plan names as its cause.
 pub type SourceDeclarations =
     NonEmptyBounded<OwnerIdentityRef<FragmentIdentityDomain>, SourceDeclarationLimit>;
@@ -90,6 +107,23 @@ pub enum GraphAnchoring {
     CapturedDeclarationOnly(ProjectionIdentity<CapturedDeclarationSubject>),
 }
 
+impl GraphAnchoring {
+    /// Append this anchoring's canonical bytes: the posture's discriminant, then
+    /// the identity it names.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        match self {
+            Self::ClosedGraph(graph) => {
+                into.push(0);
+                encode_bytes(graph.as_bytes(), into);
+            }
+            Self::CapturedDeclarationOnly(captured) => {
+                into.push(1);
+                encode_bytes(captured.as_bytes(), into);
+            }
+        }
+    }
+}
+
 /// What CAUSED a plan.
 ///
 /// The same split, at the other end: the machine's declaration fragments where a
@@ -102,6 +136,46 @@ pub enum CauseAnchoring {
     Declarations(SourceDeclarations),
     /// The captured declaration this plan was derived from.
     CapturedDeclaration(ProjectionIdentity<CapturedDeclarationSubject>),
+}
+
+impl CauseAnchoring {
+    /// Append this cause's canonical bytes: the posture's discriminant, then
+    /// every declaration it names, in the order the cause set was declared.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        match self {
+            Self::Declarations(sources) => {
+                into.push(0);
+                encode_length(sources.len(), into);
+                for source in sources.iter() {
+                    encode_bytes(source.as_bytes(), into);
+                }
+            }
+            Self::CapturedDeclaration(captured) => {
+                into.push(1);
+                encode_length(1, into);
+                encode_bytes(captured.as_bytes(), into);
+            }
+        }
+    }
+
+    /// What a transcript derived under this cause is anchored to.
+    ///
+    /// A plan hangs off what caused it: the captured declaration where the cause
+    /// IS the capture, and the first declared fragment where a caller holds the
+    /// machine's own identities. The remaining fragments are inside the
+    /// transcript's content rather than at its anchor, because an anchor names
+    /// one thing.
+    #[must_use]
+    pub fn anchoring(&self) -> TranscriptAnchoring {
+        match self {
+            Self::Declarations(sources) => {
+                TranscriptAnchoring::UnderOwnerIdentity(*sources.first().as_bytes())
+            }
+            Self::CapturedDeclaration(captured) => {
+                TranscriptAnchoring::UnderProjectionIdentity(*captured.as_bytes())
+            }
+        }
+    }
 }
 
 /// The exact identities every plan shares, whatever its kind: what it was
@@ -190,6 +264,18 @@ impl ProjectionContext {
             }
         }
     }
+
+    /// Append this context's canonical bytes: what it was decided against, the
+    /// profile and its version, what caused it, the generator identity, and the
+    /// target binding, each at full width and in that order.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        self.graph.encode_into(into);
+        encode_bytes(self.profile.as_bytes(), into);
+        into.extend_from_slice(&self.profile_version.position().to_be_bytes());
+        self.sources.encode_into(into);
+        encode_bytes(self.generator.as_bytes(), into);
+        self.target.encode_into(into);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -210,6 +296,23 @@ pub enum MemberDestination {
     },
 }
 
+impl MemberDestination {
+    /// Append this destination's canonical bytes: the discriminant, then the
+    /// byte role where one is named.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        match self {
+            Self::AtDeclarationSite => {
+                into.push(0);
+                encode_bytes(&[], into);
+            }
+            Self::AsArtifact { byte_role } => {
+                into.push(1);
+                encode_bytes(byte_role.as_bytes(), into);
+            }
+        }
+    }
+}
+
 /// What the eventual rendered-byte digest of one member must satisfy — stated
 /// before a single byte of it exists.
 ///
@@ -228,7 +331,7 @@ pub enum MemberDestination {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DigestContract {
     /// The identity role the eventual digest will carry.
-    pub role: crate::plane::ProjectionRole,
+    pub role: ProjectionRole,
     /// The member identity the digest must be anchored to.
     pub anchored_to: ProjectionIdentity<GeneratedUnitSubject>,
 }
@@ -238,9 +341,16 @@ impl DigestContract {
     #[must_use]
     pub const fn over(anchored_to: ProjectionIdentity<GeneratedUnitSubject>) -> Self {
         Self {
-            role: crate::plane::ProjectionRole::OutputBytes,
+            role: ProjectionRole::OutputBytes,
             anchored_to,
         }
+    }
+
+    /// Append this contract's canonical bytes: the role slot the digest will
+    /// carry, then the member identity it must be anchored to.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        into.push(self.role.slot());
+        encode_bytes(self.anchored_to.as_bytes(), into);
     }
 }
 
@@ -271,6 +381,21 @@ pub struct PlannedOutput {
     pub digest_contract: DigestContract,
 }
 
+impl PlannedOutput {
+    /// Append this output's canonical bytes: the semantic key, the destination,
+    /// the origin trail in walk order, the expected profile and its version, and
+    /// the digest contract — everything a plan states about one member, and no
+    /// rendered byte, because a plan has none.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        encode_bytes(self.semantic_key.as_bytes(), into);
+        self.destination.encode_into(into);
+        self.origin.encode_into(into);
+        encode_bytes(self.expected_profile.as_bytes(), into);
+        into.extend_from_slice(&self.expected_profile_version.position().to_be_bytes());
+        self.digest_contract.encode_into(into);
+    }
+}
+
 /// One planned member: the rendered role it stands for, and the logical output
 /// under that role.
 ///
@@ -283,6 +408,15 @@ pub struct PlannedMember<R: RenderedRole> {
     pub role: R,
     /// The logical output under that role.
     pub output: PlannedOutput,
+}
+
+impl<R: RenderedRole> PlannedMember<R> {
+    /// Append this member's canonical bytes: the rendered role's slot, then the
+    /// logical output.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        into.extend_from_slice(&self.role.slot().to_be_bytes());
+        self.output.encode_into(into);
+    }
 }
 
 /// The complete declared output set of one plan — the output firewall.
@@ -370,6 +504,31 @@ impl<R: RenderedRole> PlannedMembership<R> {
     pub fn iter(&self) -> impl Iterator<Item = &PlannedMember<R>> {
         self.members.iter()
     }
+
+    /// Append this membership's canonical bytes, in the kind's declared ROLE
+    /// ROSTER order.
+    ///
+    /// Roster order and never declaration order: a declared output set is
+    /// order-insensitive, so the same members supplied in another order must
+    /// encode identically. Every member standing under a role is written, not
+    /// just the first, so a membership that doubled a role encodes differently
+    /// from one that did not — the closure check reports that as a defect, and
+    /// the encoding must not hide it before the check runs.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        encode_length(R::ROLES.len(), into);
+        for role in R::ROLES {
+            into.extend_from_slice(&role.slot().to_be_bytes());
+            let under: Vec<&PlannedMember<R>> = self
+                .members
+                .iter()
+                .filter(|member| member.role == *role)
+                .collect();
+            encode_length(under.len(), into);
+            for member in under {
+                member.encode_into(into);
+            }
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -433,6 +592,41 @@ pub enum InvalidationTrigger {
 }
 
 impl InvalidationTrigger {
+    /// The trigger kind's discriminant byte, written ahead of the identity it
+    /// watches so two kinds watching the same bytes never encode alike.
+    #[must_use]
+    pub const fn slot(&self) -> u8 {
+        match self {
+            Self::SourceDeclarationChanged { .. } => 0,
+            Self::CapturedDeclarationChanged { .. } => 1,
+            Self::GraphIdentityChanged { .. } => 2,
+            Self::ProjectionProfileChanged { .. } => 3,
+            Self::TargetContractChanged { .. } => 4,
+            Self::GeneratorVersionChanged { .. } => 5,
+            Self::MechanismProfileChanged { .. } => 6,
+            Self::WorkFormulaChanged { .. } => 7,
+            Self::FixturePopulationChanged { .. } => 8,
+        }
+    }
+
+    /// Append this trigger's canonical bytes: the kind, then the watched
+    /// identity at full width.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        into.push(self.slot());
+        let watched: &[u8; 32] = match self {
+            Self::SourceDeclarationChanged { watched } => watched.as_bytes(),
+            Self::CapturedDeclarationChanged { watched } => watched.as_bytes(),
+            Self::GraphIdentityChanged { watched } => watched.as_bytes(),
+            Self::ProjectionProfileChanged { watched } => watched.as_bytes(),
+            Self::TargetContractChanged { watched } => watched.as_bytes(),
+            Self::GeneratorVersionChanged { watched } => watched.as_bytes(),
+            Self::MechanismProfileChanged { watched } => watched.as_bytes(),
+            Self::WorkFormulaChanged { watched } => watched.as_bytes(),
+            Self::FixturePopulationChanged { watched } => watched.as_bytes(),
+        };
+        encode_bytes(watched, into);
+    }
+
     /// The one-trigger watch set. Total: one trigger always fits.
     #[must_use]
     pub fn one_watched(trigger: Self) -> InvalidationSet {
@@ -496,6 +690,12 @@ pub enum TargetRequirement {
 pub trait ProjectionKind {
     /// The seal. Only the services can produce a value of this type.
     const SEAL: KindSeal;
+
+    /// The kind's declared stable name — its segment of a plan's transcript.
+    ///
+    /// Declared rather than taken from the Rust spelling, so a type rename does
+    /// not rename every plan identity of that kind.
+    const KIND_NAME: &'static str;
 
     /// The kind-specific facts a plan of this kind carries.
     type Content: Debug + Clone + PartialEq + Eq;
@@ -690,7 +890,7 @@ pub struct PatternStampContent {
 macro_rules! kinds {
     ($(
         $(#[$note:meta])*
-        $name:ident => $content:ty, $rendered:ty, $requirement:expr,
+        $name:ident = $declared:literal => $content:ty, $rendered:ty, $requirement:expr,
             [$($question:expr),* $(,)?]
     );+ $(;)?) => {
         $(
@@ -700,6 +900,7 @@ macro_rules! kinds {
 
             impl ProjectionKind for $name {
                 const SEAL: KindSeal = KindSeal::admitted();
+                const KIND_NAME: &'static str = $declared;
                 type Content = $content;
                 type Rendered = $rendered;
                 const KIND_QUESTIONS: &'static [ExplanationQuestion] = &[$($question),*];
@@ -750,11 +951,12 @@ impl RenderedRole for RenderedImplementation {
 kinds! {
     /// Projects a schema into the codec that reads and writes its canonical
     /// bytes.
-    CodecProjection => CodecContent, SoleRenderedUnit, TargetRequirement::EitherBinding,
+    CodecProjection = "codec-projection" => CodecContent, SoleRenderedUnit,
+        TargetRequirement::EitherBinding,
         [ExplanationQuestion::WhichAssumptionsAndSpecializations];
 
     /// Projects a declared surface into the wrapper one host contract needs.
-    HostWrapperProjection => HostWrapperContent, SoleRenderedUnit,
+    HostWrapperProjection = "host-wrapper-projection" => HostWrapperContent, SoleRenderedUnit,
         TargetRequirement::BoundHostContract,
         [
             ExplanationQuestion::WhichCapabilitiesSelectedWrappers,
@@ -762,31 +964,31 @@ kinds! {
         ];
 
     /// Projects a port declaration into a remote surface over a wire contract.
-    RemoteSurfaceProjection => RemoteSurfaceContent, SoleRenderedUnit,
+    RemoteSurfaceProjection = "remote-surface-projection" => RemoteSurfaceContent, SoleRenderedUnit,
         TargetRequirement::BoundHostContract,
         [ExplanationQuestion::WhichRuntimeTracesCorrespond];
 
     /// Projects a declared obligation into the descriptor that challenges it.
-    TestDescriptorProjection => TestDescriptorContent, SoleRenderedUnit,
-        TargetRequirement::EitherBinding,
+    TestDescriptorProjection = "test-descriptor-projection" => TestDescriptorContent,
+        SoleRenderedUnit, TargetRequirement::EitherBinding,
         [ExplanationQuestion::WhichTestsChallenge];
 
     /// Projects a declared work formula into the descriptor that measures it.
-    BenchmarkDescriptorProjection => BenchmarkDescriptorContent, SoleRenderedUnit,
-        TargetRequirement::EitherBinding,
+    BenchmarkDescriptorProjection = "benchmark-descriptor-projection" =>
+        BenchmarkDescriptorContent, SoleRenderedUnit, TargetRequirement::EitherBinding,
         [ExplanationQuestion::WhichBenchmarksMeasure];
 
     /// Projects declared meaning into prose for a named audience.
-    DocumentationProjection => DocumentationContent, SoleRenderedUnit,
+    DocumentationProjection = "documentation-projection" => DocumentationContent, SoleRenderedUnit,
         TargetRequirement::EitherBinding, [];
 
     /// Projects a declared contract into the implementation that realizes it.
-    DeriveImplProjection => DeriveImplContent, RenderedImplementation,
+    DeriveImplProjection = "derive-impl-projection" => DeriveImplContent, RenderedImplementation,
         TargetRequirement::EitherBinding,
         [ExplanationQuestion::WhichAssumptionsAndSpecializations];
 
     /// Projects an authored pattern's instantiation into declaration material.
-    PatternStampProjection => PatternStampContent, SoleRenderedUnit,
+    PatternStampProjection = "pattern-stamp-projection" => PatternStampContent, SoleRenderedUnit,
         TargetRequirement::EitherBinding,
         [ExplanationQuestion::WhichTemplateOrPatternInstance];
 }
@@ -795,14 +997,73 @@ kinds! {
 // The plan itself.
 // ---------------------------------------------------------------------------
 
+/// One projection plan's own identity, and the record of how it was derived.
+///
+/// # The plan transcript, and its one stated boundary
+///
+/// A plan's identity is derived under [`ProjectionRole::Plan`], anchored on
+/// whatever CAUSED the plan ([`CauseAnchoring::anchoring`]), over a content
+/// transcript that commits to, in this order:
+///
+/// 1. the kind's declared name ([`ProjectionKind::KIND_NAME`]);
+/// 2. the shared context — graph anchoring, profile and version, cause
+///    anchoring, generator identity, target binding;
+/// 3. the complete logical membership, in role-roster order;
+/// 4. the watch set, canonicalized (see below);
+/// 5. the decision trace, in selection order;
+/// 6. the origin trail, in walk order;
+/// 7. the nonclaims, canonicalized.
+///
+/// The watch set and the nonclaims are SETS: each member is encoded, the
+/// encodings are sorted, and the sorted sequence is written. The same members
+/// supplied in another order therefore produce the same identity, which is what
+/// a set means. The trace and the trail are SEQUENCES — their order is their
+/// meaning — so they are written in the order they hold.
+///
+/// **What the transcript does NOT commit to: the kind-specific content's
+/// values.** The kind is named, and every plane-typed fact the content carries
+/// that a plan actually turns on — the derived type, the realized contract, the
+/// semantic keys — reaches the identity through the membership. But
+/// [`ProjectionKind::Content`] is an owner-typed record with no canonical byte
+/// encoding, and the plane declares none for it: an encoding of the machine's
+/// verification methods, semantic facets, and verified claims would be a second
+/// answer to the machine's own encoding question, which the services are
+/// forbidden to create. Two plans of one kind, over one context and one
+/// membership, differing only inside their kind content, therefore carry one
+/// plan identity. That is stated here rather than implied, and it is the one
+/// place a plan transcript is narrower than the plan.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PlanDerivation {
+    identity: PlanId,
+    provenance: ProjectionProvenance,
+}
+
+impl PlanDerivation {
+    /// The plan's identity.
+    #[must_use]
+    pub const fn identity(&self) -> PlanId {
+        self.identity
+    }
+
+    /// The record of how that identity was derived.
+    #[must_use]
+    pub const fn provenance(&self) -> &ProjectionProvenance {
+        &self.provenance
+    }
+}
+
 /// One projection plan: the shared spine on the generic.
 ///
 /// Every seat is required, and the seats that could be empty are shapes that
 /// cannot be: the cause set, the output set, the watch set, the trace, and the
 /// trail are all structurally non-empty. Only nonclaims may be empty, because a
 /// plan that claims exactly what it does has none to state.
+///
+/// A plan carries its OWN identity, derived when it is planned. See
+/// [`PlanDerivation`] for the transcript that identity commits to.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProjectionPlan<K: ProjectionKind> {
+    derivation: PlanDerivation,
     context: ProjectionContext,
     content: K::Content,
     membership: PlannedMembership<K::Rendered>,
@@ -810,6 +1071,35 @@ pub struct ProjectionPlan<K: ProjectionKind> {
     trace: DecisionTrace,
     origin: OriginTrail,
     nonclaims: Bounded<Nonclaim, NonclaimLimit>,
+}
+
+/// Append one declared SET's canonical bytes: every member encoded, the
+/// encodings sorted, the sorted sequence written length-prefixed.
+///
+/// Sorting the ENCODINGS rather than the members is what lets a set be
+/// canonicalized without an `Ord` the plane refuses to declare: the plane ranks
+/// nothing, and a byte order over finished encodings is not a ranking of the
+/// values — it is a spelling rule for a collection whose order carries no
+/// meaning.
+fn encode_set<'member, T: 'member, Encode>(
+    members: impl Iterator<Item = &'member T>,
+    encode: Encode,
+    into: &mut Vec<u8>,
+) where
+    Encode: Fn(&T, &mut Vec<u8>),
+{
+    let mut encoded: Vec<Vec<u8>> = members
+        .map(|member| {
+            let mut bytes = Vec::new();
+            encode(member, &mut bytes);
+            bytes
+        })
+        .collect();
+    encoded.sort_unstable();
+    encode_length(encoded.len(), into);
+    for member in &encoded {
+        encode_bytes(member, into);
+    }
 }
 
 impl<K: ProjectionKind> ProjectionPlan<K> {
@@ -837,7 +1127,30 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
                 }),
             ),
             (TargetRequirement::BoundHostContract | TargetRequirement::EitherBinding, _) => {
+                let mut claim = Vec::new();
+                encode_bytes(K::KIND_NAME.as_bytes(), &mut claim);
+                context.encode_into(&mut claim);
+                membership.encode_into(&mut claim);
+                encode_set(
+                    invalidation.iter(),
+                    InvalidationTrigger::encode_into,
+                    &mut claim,
+                );
+                trace.encode_into(&mut claim);
+                origin.encode_into(&mut claim);
+                encode_set(nonclaims.iter(), Nonclaim::encode_into, &mut claim);
+                let (identity, provenance) =
+                    PlanId::derived_with_provenance(ProjectionTranscript::under(
+                        ProjectionRole::Plan,
+                        context.sources.anchoring(),
+                        &claim,
+                        0,
+                    ));
                 Ok(Self {
+                    derivation: PlanDerivation {
+                        identity,
+                        provenance,
+                    },
                     context,
                     content: kind_content,
                     membership,
@@ -848,6 +1161,19 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
                 })
             }
         }
+    }
+
+    /// This plan's own identity.
+    #[must_use]
+    pub const fn identity(&self) -> PlanId {
+        self.derivation.identity()
+    }
+
+    /// How this plan's identity was derived — the record lives here, once,
+    /// rather than inside the identity value it explains.
+    #[must_use]
+    pub const fn derivation(&self) -> &PlanDerivation {
+        &self.derivation
     }
 
     /// The shared exact identities this plan was decided under.
@@ -913,13 +1239,13 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProjectionBundlePlan {
     bundle: ProjectionIdentity<BundleSubject>,
-    members: NonEmptyBounded<PlanIdentity, BundleMemberLimit>,
+    members: NonEmptyBounded<PlanId, BundleMemberLimit>,
 }
 
 impl ProjectionBundlePlan {
     /// The one-member bundle. Total: one member always fits.
     #[must_use]
-    pub fn of_one(bundle: ProjectionIdentity<BundleSubject>, member: PlanIdentity) -> Self {
+    pub fn of_one(bundle: ProjectionIdentity<BundleSubject>, member: PlanId) -> Self {
         Self {
             bundle,
             members: NonEmptyBounded::singleton(member),
@@ -934,8 +1260,8 @@ impl ProjectionBundlePlan {
     /// set outgrows the declared bound.
     pub fn materialized(
         bundle: ProjectionIdentity<BundleSubject>,
-        first: PlanIdentity,
-        rest: Vec<PlanIdentity>,
+        first: PlanId,
+        rest: Vec<PlanId>,
     ) -> Result<Self, ProjectionPlanning> {
         let observed = rest.len().saturating_add(1);
         NonEmptyBounded::admitted_const(first, rest)

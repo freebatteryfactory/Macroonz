@@ -14,12 +14,15 @@
 //! equivalence. There is no public raw-byte road at all.
 //!
 //! **[`ProjectionIdentity`] is an identity the COMPILER PLANE owns.** Plans,
-//! origin nodes, rendered units, generated units, and bundles are the plane's
-//! own material: the machine has no opinion about them and mints nothing for
-//! them, so the plane names them itself. Every one is derived deterministically
-//! from an explicit typed [`ProjectionPreimage`] that is recorded inside the
-//! identity, so the question "where did this identity come from?" is answered by
-//! reading the value rather than by trusting the producer.
+//! origin nodes, rendered units, generated units, closures, and bundles are the
+//! plane's own material: the machine has no opinion about them and mints nothing
+//! for them, so the plane names them itself. Every one is derived
+//! deterministically from a COMPLETE [`ProjectionTranscript`] under the
+//! versioned, domain-separated profile [`PROJECTION_IDENTITY_PROFILE`], and the
+//! derivation record — which subject, which role, which profile version, which
+//! transcript members — is a separate inspectable value,
+//! [`ProjectionProvenance`], carried once where the derivation happened rather
+//! than inside every identity.
 //!
 //! The two families are different types over different subject markers and
 //! neither converts to the other. A plane identity is never accepted by the
@@ -36,16 +39,42 @@ use threadpak::identity::Commitment;
 use threadpak::refusal::ReasonId;
 use threadpak::types::{Bounded, BoundedConstruction, ConstLimit, Limit};
 
+/// One identity subject, by the name the domain-separation grammar spells it
+/// with.
+///
+/// The name is the subject's segment of the derive-key context, so it is part of
+/// what separates one subject's identities from another's. It is DECLARED beside
+/// the marker rather than taken from the Rust spelling: a type rename is a
+/// refactor, and a refactor that silently renamed every identity in the tree
+/// would be a law change nobody wrote down.
+///
+/// The grammar is closed: lowercase ASCII letters and digits, in `-`-joined
+/// segments, with no leading, trailing, or doubled separator.
+pub trait IdentitySubject {
+    /// The subject's declared segment of the derive-key context.
+    const SUBJECT_NAME: &'static str;
+}
+
 /// Declares the plane's subject markers: one zero-sized type per identity
 /// subject, each `Eq`/`Hash`/`Copy` so an identity tagged with it composes into
-/// the plane's records without hand-written impls.
+/// the plane's records without hand-written impls, and each carrying its
+/// declared [`IdentitySubject`] name so no marker can exist without one.
 macro_rules! subjects {
-    ($( $(#[$note:meta])* $name:ident ),+ $(,)?) => {
+    ($( $(#[$note:meta])* $name:ident = $declared:literal ),+ $(,)?) => {
         $(
             $(#[$note])*
             #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
             pub struct $name;
+
+            impl IdentitySubject for $name {
+                const SUBJECT_NAME: &'static str = $declared;
+            }
         )+
+
+        /// Every declared subject name, in roster order. The proof surface reads
+        /// it to hold the grammar and the distinctness of the roster.
+        #[cfg(test)]
+        pub(crate) const SUBJECT_NAMES: &[&str] = &[$($declared),+];
     };
 }
 
@@ -67,114 +96,114 @@ macro_rules! limits {
 
 subjects! {
     /// One registered refusal reason, as published by the machine's refusal home.
-    RefusalReason,
+    RefusalReason = "refusal-reason",
     /// One refusal family, named by identity rather than by its Rust spelling.
-    RefusalFamilySubject,
+    RefusalFamilySubject = "refusal-family",
     /// One owning semantic home of the machine. The home roster itself belongs
     /// to the machine and is derived by its tooling; the plane names a home by
     /// identity so it never carries a second copy of that roster.
-    OwnerHomeSubject,
+    OwnerHomeSubject = "owner-home",
     /// One exact fact an owning home declares.
-    OwnerFactSubject,
+    OwnerFactSubject = "owner-fact",
     /// One node of the origin graph.
-    OriginNodeSubject,
+    OriginNodeSubject = "origin-node",
     /// One subject a decision trace entry is about.
-    TracedSubject,
+    TracedSubject = "traced-subject",
     /// One subject a plan explicitly does not claim.
-    NonclaimSubject,
+    NonclaimSubject = "nonclaim",
     /// One generated unit — the thing a plan declares it will materialize.
-    GeneratedUnitSubject,
+    GeneratedUnitSubject = "generated-unit",
     /// The canonical bytes of one generated unit.
-    OutputBytesSubject,
+    OutputBytesSubject = "output-bytes",
     /// One projection profile.
-    ProjectionProfileSubject,
+    ProjectionProfileSubject = "projection-profile",
     /// One version of the services themselves — the generator identity a plan
     /// was produced under.
-    GeneratorVersionSubject,
+    GeneratorVersionSubject = "generator-version",
     /// One projection kind, named by identity where a decoded route may name a
     /// kind the plane does not implement.
-    ProjectionKindSubject,
+    ProjectionKindSubject = "projection-kind",
     /// One projection plan.
-    PlanSubject,
+    PlanSubject = "plan",
     /// One bundle of plans materialized across a single publication boundary.
-    BundleSubject,
+    BundleSubject = "bundle",
     /// One schema the machine's schema home owns.
-    SchemaSubject,
+    SchemaSubject = "schema",
     /// One byte role the machine's bytes home owns.
-    ByteRoleSubject,
+    ByteRoleSubject = "byte-role",
     /// One port declaration.
-    PortSubject,
+    PortSubject = "port",
     /// One wire contract a remote surface speaks.
-    WireContractSubject,
+    WireContractSubject = "wire-contract",
     /// One declared obligation a test descriptor challenges.
-    ObligationSubject,
+    ObligationSubject = "obligation",
     /// One measured unit a benchmark descriptor observes.
-    MeasuredSubject,
+    MeasuredSubject = "measured-unit",
     /// One named work currency a benchmark envelope is stated in.
-    WorkCurrencySubject,
+    WorkCurrencySubject = "work-currency",
     /// One subject a documentation projection documents.
-    DocumentedSubject,
+    DocumentedSubject = "documented-subject",
     /// One type an implementation projection is derived for.
-    DerivedTypeSubject,
+    DerivedTypeSubject = "derived-type",
     /// One contract an implementation projection realizes.
-    ImplementedContractSubject,
+    ImplementedContractSubject = "implemented-contract",
     /// One authored pattern.
-    PatternSubject,
+    PatternSubject = "pattern",
     /// One instantiation of an authored pattern.
-    PatternInstanceSubject,
+    PatternInstanceSubject = "pattern-instance",
     /// One typed argument supplied to a pattern instantiation.
-    PatternArgumentSubject,
+    PatternArgumentSubject = "pattern-argument",
     /// One admitted mechanism profile.
-    MechanismProfileSubject,
+    MechanismProfileSubject = "mechanism-profile",
     /// One declared work formula.
-    WorkFormulaSubject,
+    WorkFormulaSubject = "work-formula",
     /// One fixture population a descriptor ranges over.
-    FixturePopulationSubject,
+    FixturePopulationSubject = "fixture-population",
     /// One contract a diagnostic expected to hold.
-    ContractSubject,
+    ContractSubject = "contract",
     /// One related issue a diagnostic points at.
-    RelatedIssueSubject,
+    RelatedIssueSubject = "related-issue",
     /// One callable services entry point.
-    ServiceEntrySubject,
+    ServiceEntrySubject = "service-entry",
     /// One expansion surface of the Rust-facing shell.
-    ExpansionSurfaceSubject,
+    ExpansionSurfaceSubject = "expansion-surface",
     /// One runtime trace a generated unit corresponds to.
-    RuntimeTraceSubject,
+    RuntimeTraceSubject = "runtime-trace",
     /// One authored declaration template.
-    TemplateSubject,
+    TemplateSubject = "template",
     /// One typed hole a template declares.
-    TemplateParameterSubject,
+    TemplateParameterSubject = "template-parameter",
     /// One typed commitment supplied to fill such a hole.
-    TemplateArgumentSubject,
+    TemplateArgumentSubject = "template-argument",
     /// One declared symbolic bound formula. The formula itself belongs to the
     /// owner that declared it; the plane names it and never evaluates it.
-    BoundFormulaSubject,
+    BoundFormulaSubject = "bound-formula",
     /// One validated input descriptor a meta evaluation ranges over.
-    InputDescriptorSubject,
+    InputDescriptorSubject = "input-descriptor",
     /// The exact source snapshot one invocation was read against.
-    SourceSnapshotSubject,
+    SourceSnapshotSubject = "source-snapshot",
     /// One language profile — the notation a front door speaks.
-    LanguageProfileSubject,
+    LanguageProfileSubject = "language-profile",
     /// One meta profile — the posture a template evaluation runs under.
-    MetaProfileSubject,
+    MetaProfileSubject = "meta-profile",
     /// One deliberately declared distinctness between otherwise identical
     /// template applications.
-    ApplicationDistinctnessSubject,
+    ApplicationDistinctnessSubject = "application-distinctness",
     /// One declared provider of descriptor material.
-    DescriptorProviderSubject,
+    DescriptorProviderSubject = "descriptor-provider",
     /// One captured declaration, as the compiler plane read it. Distinct from
     /// the machine's declaration fragment: the fragment is a linked artifact the
     /// machine owns, while this names exactly the token material one expansion
     /// was handed, before anything was linked at all.
-    CapturedDeclarationSubject,
+    CapturedDeclarationSubject = "captured-declaration",
     /// One rendered unit — the thing a renderer actually materialized, as
     /// opposed to the generated unit a plan declared it would.
-    RenderedUnitSubject,
+    RenderedUnitSubject = "rendered-unit",
     /// One proved closure between a plan's declared membership and the units a
     /// renderer actually produced.
-    ClosureSubject,
+    ClosureSubject = "closure",
     /// One closed expansion: the whole receipt one live compilation produced.
-    ClosedExpansionSubject,
+    ClosedExpansionSubject = "closed-expansion",
 }
 
 limits! {
@@ -413,7 +442,7 @@ impl OwnerFactRef {
         Self::Declared(OwnerFactName { home, fact })
     }
 
-    /// The canonical bytes of this citation, for a preimage to be taken over.
+    /// The canonical bytes of this citation, for a transcript to be taken over.
     #[must_use]
     pub fn citation_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
@@ -558,12 +587,35 @@ impl<L: Limit> HumanProjection<L> {
 // The compiler plane's own identities.
 // ---------------------------------------------------------------------------
 
+/// Append one length as eight big-endian bytes.
+///
+/// The plane's one length framing, used by every canonical encoding it writes.
+/// Eight bytes at a fixed width rather than a varint, because a canonical
+/// encoding that admitted two spellings of one length would admit two preimages
+/// for one value.
+pub fn encode_length(length: usize, into: &mut Vec<u8>) {
+    into.extend_from_slice(&u64::try_from(length).unwrap_or(u64::MAX).to_be_bytes());
+}
+
+/// Append one length-prefixed byte string: the eight-byte length, then the
+/// bytes.
+///
+/// Every variable-length member of every canonical encoding in the plane is
+/// written this way. Without the prefix, two members could be split at a
+/// different boundary and encode identically — the classic concatenation
+/// collision, which the length prefix removes outright.
+pub fn encode_bytes(material: &[u8], into: &mut Vec<u8>) {
+    encode_length(material.len(), into);
+    into.extend_from_slice(material);
+}
+
 /// The closed roster of roles a plane identity may stand for.
 ///
-/// The role is part of the preimage, so two identities derived from the same
-/// anchor under different roles are different identities by construction rather
-/// than by convention. A role that means something else is a law change, not a
-/// new string.
+/// The role is part of the derive-key context AND part of the transcript, so two
+/// identities derived from the same anchor under different roles are different
+/// identities twice over: they are separated before a byte of the transcript is
+/// read, and they disagree inside it. A role that means something else is a law
+/// change, not a new string.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ProjectionRole {
     /// The token material one expansion was handed.
@@ -600,8 +652,8 @@ pub const PROJECTION_ROLES: [ProjectionRole; 9] = [
 ];
 
 impl ProjectionRole {
-    /// The role's position in the declared roster — the byte the preimage
-    /// encoding carries for it.
+    /// The role's position in the declared roster — the byte the transcript
+    /// carries for it.
     #[must_use]
     pub const fn slot(self) -> u8 {
         match self {
@@ -616,52 +668,352 @@ impl ProjectionRole {
             Self::ClosedExpansion => 8,
         }
     }
+
+    /// The role's declared segment of the derive-key context.
+    ///
+    /// Declared rather than taken from the Rust spelling, for the same reason
+    /// [`IdentitySubject::SUBJECT_NAME`] is: renaming a variant must not rename
+    /// every identity derived under it.
+    #[must_use]
+    pub const fn context_name(self) -> &'static str {
+        match self {
+            Self::CapturedDeclaration => "captured-declaration",
+            Self::Plan => "plan",
+            Self::OriginNode => "origin-node",
+            Self::GeneratedUnit => "generated-unit",
+            Self::RenderedUnit => "rendered-unit",
+            Self::OutputBytes => "output-bytes",
+            Self::Bundle => "bundle",
+            Self::Closure => "closure",
+            Self::ClosedExpansion => "closed-expansion",
+        }
+    }
 }
 
-/// The typed compiler-plane preimage one [`ProjectionIdentity`] is derived from.
+// ---------------------------------------------------------------------------
+// The versioned identity profile.
+// ---------------------------------------------------------------------------
+
+/// One version of the projection-identity profile.
 ///
-/// Four recorded facts, and every one of them is readable back off the identity:
-///
-/// 1. the **role** the identity stands for;
-/// 2. the **anchor fold** — the plane's fold over the declared bytes of the
-///    identity this one is derived under, whether that is an owner lens or
-///    another plane identity;
-/// 3. the **content fold** — the plane's fold over the varying material (a
-///    family name, a rendered byte sequence, a role word);
-/// 4. the **position** the identity holds inside its anchor's declared sequence.
-///
-/// # What the record does and does not carry
-///
-/// The role and the position are carried exactly. The anchor and the content are
-/// carried as FOLDS and not as themselves, because a preimage rides inside every
-/// plan and every refusal body in the plane and neither of those may carry an
-/// unbounded value. That is a stated limit of the provenance this record leaves,
-/// not a hidden one: reading a preimage back tells you what role, at which
-/// position, under a fold of which anchor, over a fold of which content — it
-/// hands back neither the anchor nor the content.
+/// The version is a typed constant and a real segment of every derive-key
+/// context, not a comment about one. Changing what a transcript contains, what
+/// order it is written in, or what the domain grammar spells is a version bump,
+/// and a bump renames every identity the profile derives — which is exactly what
+/// it is for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ProjectionPreimage {
+pub struct IdentityProfileVersion(u32);
+
+impl IdentityProfileVersion {
+    /// The version the profile's authority assigned.
+    #[must_use]
+    pub const fn declared(position: u32) -> Self {
+        Self(position)
+    }
+
+    /// The assigned position.
+    #[must_use]
+    pub const fn position(self) -> u32 {
+        self.0
+    }
+}
+
+/// The versioned, domain-separated profile the plane derives its identities
+/// under.
+///
+/// # The domain grammar
+///
+/// One derive-key context per subject and role, spelled exactly:
+///
+/// ```text
+/// <stem>/v<version>/<subject>/<role>
+/// ```
+///
+/// with `<stem>` the profile's declared stem, `<version>` the decimal position
+/// of [`IdentityProfileVersion`], `<subject>` the target subject's
+/// [`IdentitySubject::SUBJECT_NAME`], and `<role>` the
+/// [`ProjectionRole::context_name`]. Every segment is lowercase ASCII letters,
+/// digits, and `-`, joined by `/`.
+///
+/// Separation is by CONTEXT and not by message prefix. Two identities over
+/// identical transcript bytes under different subjects or different roles are
+/// derived under different keys, so they are unrelated values rather than
+/// neighbouring ones — there is no shared hash state for them to collide inside.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct IdentityProfile {
+    stem: &'static str,
+    version: IdentityProfileVersion,
+}
+
+impl IdentityProfile {
+    /// The profile at one stem and one version.
+    #[must_use]
+    pub const fn declared(stem: &'static str, version: IdentityProfileVersion) -> Self {
+        Self { stem, version }
+    }
+
+    /// The declared stem — everything of the context ahead of the version.
+    #[must_use]
+    pub const fn stem(self) -> &'static str {
+        self.stem
+    }
+
+    /// The declared version.
+    #[must_use]
+    pub const fn version(self) -> IdentityProfileVersion {
+        self.version
+    }
+
+    /// The derive-key context for one subject under one role, spelled by the
+    /// grammar above.
+    #[must_use]
+    pub fn context_for(self, subject: &str, role: ProjectionRole) -> String {
+        let version = self.version.position();
+        let role = role.context_name();
+        format!("{}/v{version}/{subject}/{role}", self.stem)
+    }
+}
+
+/// The profile every plane identity in this crate is derived under.
+pub const PROJECTION_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
+    "threadpak/macroc/projection-identity",
+    IdentityProfileVersion::declared(1),
+);
+
+// ---------------------------------------------------------------------------
+// The generator identity.
+// ---------------------------------------------------------------------------
+
+/// The stable name of the generator that derives plane identities.
+///
+/// A name, not a version: it says WHICH generator, and it changes only when a
+/// different generator starts producing this material.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct GeneratorProfileId(&'static str);
+
+impl GeneratorProfileId {
+    /// The generator under its declared stable name.
+    #[must_use]
+    pub const fn declared(spelling: &'static str) -> Self {
+        Self(spelling)
+    }
+
+    /// The declared name.
+    #[must_use]
+    pub const fn spelling(self) -> &'static str {
+        self.0
+    }
+}
+
+/// The version of the SHAPE this generator renders.
+///
+/// # It is bumped deliberately, and the rule is exact
+///
+/// Bump it when the rendered output's shape changes: a different token layout, a
+/// different set of rendered roles, a different contract realized, or a
+/// different meaning attached to one that already existed. Do not bump it for a
+/// change that cannot reach the output — a comment, a refactor, a renamed local.
+///
+/// It is load-bearing: it rides in every transcript, so a bump renames every
+/// identity this generator derives, and a plan produced under the old shape can
+/// never be mistaken for one produced under the new.
+///
+/// This is deliberately NOT the package version. The package version moves for
+/// reasons that have nothing to do with the rendered shape, and — at `0.0.0`
+/// before the first release — does not move at all, which makes it worthless as
+/// the fact a plan is invalidated by.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct GeneratorSchemaVersion(u32);
+
+impl GeneratorSchemaVersion {
+    /// The schema version the generator's authority assigned.
+    #[must_use]
+    pub const fn declared(position: u32) -> Self {
+        Self(position)
+    }
+
+    /// The assigned position.
+    #[must_use]
+    pub const fn position(self) -> u32 {
+        self.0
+    }
+}
+
+/// Which generator produced a plane identity, and under which rendered shape.
+///
+/// # Two load-bearing facts and one recorded one
+///
+/// The profile name and the schema version are IN the transcript: they decide
+/// identity, and a change to either renames what the generator derives. The
+/// package version is recorded and read back, and it is NOT in the transcript,
+/// because it moves for reasons the rendered shape does not follow — and an
+/// identity that changed on a version bump nobody's output noticed would be
+/// noise dressed as provenance.
+///
+/// # What is NOT here, and why
+///
+/// There is no digest of this generator's own source. Computing one would mean
+/// reading the source tree at expansion time, which the ambient-free law
+/// forbids, or running a build script, which this repository forbids outright. A
+/// self-digest that could not be computed honestly is not carried dishonestly.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct GeneratorIdentity {
+    profile: GeneratorProfileId,
+    schema: GeneratorSchemaVersion,
+    package: &'static str,
+}
+
+impl GeneratorIdentity {
+    /// The generator under its declared name, rendered shape, and recorded
+    /// package version.
+    #[must_use]
+    pub const fn declared(
+        profile: GeneratorProfileId,
+        schema: GeneratorSchemaVersion,
+        package: &'static str,
+    ) -> Self {
+        Self {
+            profile,
+            schema,
+            package,
+        }
+    }
+
+    /// The generator's stable name. Load-bearing: it is in every transcript.
+    #[must_use]
+    pub const fn profile(self) -> GeneratorProfileId {
+        self.profile
+    }
+
+    /// The rendered shape's version. Load-bearing: it is in every transcript.
+    #[must_use]
+    pub const fn schema(self) -> GeneratorSchemaVersion {
+        self.schema
+    }
+
+    /// The package version, recorded for a reader and load-bearing nowhere.
+    #[must_use]
+    pub const fn package_version(self) -> &'static str {
+        self.package
+    }
+}
+
+/// This generator, as every transcript in this crate names it.
+pub const MACROC_GENERATOR: GeneratorIdentity = GeneratorIdentity::declared(
+    GeneratorProfileId::declared("threadpak-macroc"),
+    GeneratorSchemaVersion::declared(1),
+    env!("CARGO_PKG_VERSION"),
+);
+
+// ---------------------------------------------------------------------------
+// The transcript.
+// ---------------------------------------------------------------------------
+
+/// What one transcript is anchored under.
+///
+/// Three postures, and each is written into the transcript as a distinct
+/// discriminant ahead of its commitment, so a rooted transcript can never encode
+/// as an anchored one whose anchor happened to be empty.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TranscriptAnchoring {
+    /// No anchor at all — the root of one derivation chain, where the content is
+    /// the whole of what varies. The captured declaration is what stands here:
+    /// everything else in a plan hangs off it.
+    Rooted,
+    /// Anchored under an identity the MACHINE minted, carried at full width.
+    UnderOwnerIdentity([u8; 32]),
+    /// Anchored under another identity the PLANE owns, carried at full width.
+    UnderProjectionIdentity([u8; 32]),
+}
+
+impl TranscriptAnchoring {
+    /// The discriminant byte the transcript carries for this posture.
+    #[must_use]
+    pub const fn slot(self) -> u8 {
+        match self {
+            Self::Rooted => 0,
+            Self::UnderOwnerIdentity(_) => 1,
+            Self::UnderProjectionIdentity(_) => 2,
+        }
+    }
+
+    /// The anchor commitment at full width, where there is one.
+    #[must_use]
+    pub const fn commitment(&self) -> Option<&[u8; 32]> {
+        match self {
+            Self::Rooted => None,
+            Self::UnderOwnerIdentity(anchor) | Self::UnderProjectionIdentity(anchor) => {
+                Some(anchor)
+            }
+        }
+    }
+}
+
+/// The COMPLETE preimage one [`ProjectionIdentity`] is derived from.
+///
+/// # The transcript specification
+///
+/// A transcript is the exact byte string handed to the digest. It is written
+/// once, here, and this specification is complete: an independent implementation
+/// needs this section and nothing else.
+///
+/// Two primitives:
+///
+/// - `u32be(n)` / `u64be(n)` — the integer in four or eight big-endian bytes.
+/// - `bytes(x)` — `u64be(x.len())` followed by the bytes of `x`. Every
+///   variable-length member is written this way, so no two member sequences can
+///   be cut at a different boundary and produce one byte string.
+///
+/// The members, in exactly this order, with no separators and no padding:
+///
+/// | # | member | encoding |
+/// | - | ------ | -------- |
+/// | 1 | profile stem | `bytes(utf8)` |
+/// | 2 | profile version | `u32be` |
+/// | 3 | identity subject | `bytes(utf8)` of [`IdentitySubject::SUBJECT_NAME`] |
+/// | 4 | role | `bytes(utf8)` of [`ProjectionRole::context_name`] |
+/// | 5 | role slot | one byte, [`ProjectionRole::slot`] |
+/// | 6 | anchoring | one byte, [`TranscriptAnchoring::slot`] |
+/// | 7 | anchor commitment | `bytes(…)` — empty when rooted, else the full 32 |
+/// | 8 | content | `bytes(…)` — the full material, never a fold |
+/// | 9 | roster position | `u32be` |
+/// | 10 | generator profile | `bytes(utf8)` of [`GeneratorProfileId::spelling`] |
+/// | 11 | generator schema version | `u32be` |
+///
+/// The derive-key context is [`IdentityProfile::context_for`] over the same
+/// subject and role. The identity is
+/// `blake3::derive_key(context, transcript) -> [u8; 32]`.
+///
+/// # Nothing is folded on the way in
+///
+/// The anchor is carried at its full 32 bytes and the content at its full
+/// length. The 32-byte output is the only compression anywhere in the
+/// derivation, and it is the digest's own.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ProjectionTranscript<'material> {
+    profile: IdentityProfile,
+    generator: GeneratorIdentity,
     role: ProjectionRole,
-    anchor: [u8; 8],
-    content: [u8; 8],
+    anchoring: TranscriptAnchoring,
+    content: &'material [u8],
     position: u32,
 }
 
-impl ProjectionPreimage {
+impl<'material> ProjectionTranscript<'material> {
     /// Derive under an identity the MACHINE minted.
     #[must_use]
     pub fn under_owner<Subject>(
         role: ProjectionRole,
         anchor: &OwnerIdentityRef<Subject>,
-        content: &[u8],
+        content: &'material [u8],
         position: u32,
     ) -> Self {
-        Self {
+        Self::anchored(
             role,
-            anchor: folded(anchor.as_bytes()),
-            content: folded(content),
+            TranscriptAnchoring::UnderOwnerIdentity(*anchor.as_bytes()),
+            content,
             position,
-        }
+        )
     }
 
     /// Derive under another identity the PLANE owns.
@@ -669,47 +1021,85 @@ impl ProjectionPreimage {
     pub fn under_projection<Subject>(
         role: ProjectionRole,
         anchor: &ProjectionIdentity<Subject>,
-        content: &[u8],
+        content: &'material [u8],
+        position: u32,
+    ) -> Self {
+        Self::anchored(
+            role,
+            TranscriptAnchoring::UnderProjectionIdentity(*anchor.as_bytes()),
+            content,
+            position,
+        )
+    }
+
+    /// Derive under no anchor at all — the root of one derivation chain.
+    #[must_use]
+    pub fn rooted(role: ProjectionRole, content: &'material [u8], position: u32) -> Self {
+        Self::anchored(role, TranscriptAnchoring::Rooted, content, position)
+    }
+
+    /// Derive under an anchoring the caller already decided.
+    ///
+    /// The road for a mint site whose anchor depends on a typed posture rather
+    /// than on which of two identity families it holds — a plan hangs off
+    /// whatever caused it, and what caused it is a sum type.
+    #[must_use]
+    pub fn under(
+        role: ProjectionRole,
+        anchoring: TranscriptAnchoring,
+        content: &'material [u8],
+        position: u32,
+    ) -> Self {
+        Self::anchored(role, anchoring, content, position)
+    }
+
+    /// The shared constructor: every transcript names the one declared profile
+    /// and the one declared generator, so neither can be varied per call site.
+    #[must_use]
+    fn anchored(
+        role: ProjectionRole,
+        anchoring: TranscriptAnchoring,
+        content: &'material [u8],
         position: u32,
     ) -> Self {
         Self {
+            profile: PROJECTION_IDENTITY_PROFILE,
+            generator: MACROC_GENERATOR,
             role,
-            anchor: folded(anchor.as_bytes()),
-            content: folded(content),
+            anchoring,
+            content,
             position,
         }
     }
 
-    /// Derive under no anchor at all — the root of one plane's derivation chain,
-    /// where the content IS the whole preimage. The captured declaration is the
-    /// only thing that stands here: everything else in a plan hangs off it.
+    /// The profile this transcript is written under.
     #[must_use]
-    pub fn rooted(role: ProjectionRole, content: &[u8], position: u32) -> Self {
-        Self {
-            role,
-            anchor: [0u8; 8],
-            content: folded(content),
-            position,
-        }
+    pub const fn profile(&self) -> IdentityProfile {
+        self.profile
     }
 
-    /// The role this preimage stands for.
+    /// The generator this transcript names.
+    #[must_use]
+    pub const fn generator(&self) -> GeneratorIdentity {
+        self.generator
+    }
+
+    /// The role this transcript stands for.
     #[must_use]
     pub const fn role(&self) -> ProjectionRole {
         self.role
     }
 
-    /// The fold over the declared bytes of the identity this preimage is derived
-    /// under.
+    /// What this transcript is anchored under.
     #[must_use]
-    pub const fn anchor(&self) -> &[u8; 8] {
-        &self.anchor
+    pub const fn anchoring(&self) -> TranscriptAnchoring {
+        self.anchoring
     }
 
-    /// The fold over the varying material.
+    /// The varying material, at full length.
     #[must_use]
-    pub const fn content(&self) -> &[u8; 8] {
-        &self.content
+    pub const fn content(&self) -> &'material [u8] {
+        self.content
     }
 
     /// The position inside the anchor's declared sequence.
@@ -718,142 +1108,249 @@ impl ProjectionPreimage {
         self.position
     }
 
-    /// The preimage's canonical byte encoding — role slot, anchor, content fold,
-    /// and position, each at a fixed width and in a fixed order.
-    fn encoded(&self) -> [u8; 21] {
-        let mut encoded = [0u8; 21];
-        if let Some(window) = encoded.get_mut(0..1) {
-            window.copy_from_slice(&[self.role.slot()]);
+    /// The transcript's bytes for one identity subject, exactly as the
+    /// specification above states them.
+    #[must_use]
+    pub fn encoded(&self, subject: &str) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        encode_bytes(self.profile.stem().as_bytes(), &mut bytes);
+        bytes.extend_from_slice(&self.profile.version().position().to_be_bytes());
+        encode_bytes(subject.as_bytes(), &mut bytes);
+        encode_bytes(self.role.context_name().as_bytes(), &mut bytes);
+        bytes.push(self.role.slot());
+        bytes.push(self.anchoring.slot());
+        match self.anchoring.commitment() {
+            Some(anchor) => encode_bytes(anchor, &mut bytes),
+            None => encode_bytes(&[], &mut bytes),
         }
-        if let Some(window) = encoded.get_mut(1..9) {
-            window.copy_from_slice(&self.anchor);
+        encode_bytes(self.content, &mut bytes);
+        bytes.extend_from_slice(&self.position.to_be_bytes());
+        encode_bytes(self.generator.profile().spelling().as_bytes(), &mut bytes);
+        bytes.extend_from_slice(&self.generator.schema().position().to_be_bytes());
+        bytes
+    }
+
+    /// The derivation record this transcript leaves for one identity subject.
+    #[must_use]
+    pub fn provenance(&self, subject: &'static str) -> ProjectionProvenance {
+        ProjectionProvenance {
+            subject,
+            role: self.role,
+            profile: self.profile,
+            generator: self.generator,
+            anchoring: self.anchoring,
+            content_length: u64::try_from(self.content.len()).unwrap_or(u64::MAX),
+            position: self.position,
         }
-        if let Some(window) = encoded.get_mut(9..17) {
-            window.copy_from_slice(&self.content);
-        }
-        if let Some(window) = encoded.get_mut(17..21) {
-            window.copy_from_slice(&self.position.to_be_bytes());
-        }
-        encoded
     }
 }
 
-/// The eight-byte fold of one byte sequence — the width a preimage records an
-/// anchor and a content at.
+// ---------------------------------------------------------------------------
+// The derivation record.
+// ---------------------------------------------------------------------------
+
+/// The inspectable record of ONE derivation: which subject, which role, which
+/// profile at which version, which generator, what it was anchored under, and
+/// how much content went in.
 ///
-/// Eight bytes rather than thirty-two because a preimage rides inside every
-/// refusal body in the plane, and the rarest issue must not set the size of
-/// every seam. The nonclaim is the fold's own and is not weakened by the
-/// narrower width: collision resistance was never claimed at any width.
-fn folded(material: &[u8]) -> [u8; 8] {
-    let tag = provenance_tag(&[material]);
-    let mut narrow = [0u8; 8];
-    if let Some(window) = tag.get(0..8) {
-        narrow.copy_from_slice(window);
-    }
-    narrow
+/// # Why this is a separate value from the identity
+///
+/// The identity answers "which thing is this?" and is thirty-two bytes. The
+/// record answers "where did those thirty-two bytes come from?" and is
+/// inspection material. Carrying the second inside the first put a derivation
+/// record on every identity in every plan, every trace entry, and every refusal
+/// body — which is what made an earlier design fold its anchor and its content
+/// down to eight bytes each just to keep the record small enough to travel.
+///
+/// Split apart, neither constrains the other: the transcript can be complete
+/// because it is not stored, and the record can be honest because it is written
+/// once where the derivation happened rather than copied everywhere the identity
+/// goes.
+///
+/// # What it carries exactly, and what it states rather than carries
+///
+/// The subject, the role, the profile and its version, the generator, the
+/// anchoring posture, the anchor commitment at its FULL thirty-two bytes, and
+/// the roster position are all carried exactly. The content is stated by its
+/// LENGTH and not carried, because content is unbounded — a rendered unit's
+/// canonical bytes run to the declared rendering magnitude — and a record that
+/// copied it would double every rendering in memory to say something the
+/// rendered unit already holds.
+///
+/// That is a stated limit and not a hidden one, and it is not a fold: nothing
+/// here is a lossy summary of the content presented as though it identified it.
+/// The identity is what commits to the content, at full width, under BLAKE3.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ProjectionProvenance {
+    subject: &'static str,
+    role: ProjectionRole,
+    profile: IdentityProfile,
+    generator: GeneratorIdentity,
+    anchoring: TranscriptAnchoring,
+    content_length: u64,
+    position: u32,
 }
 
-/// The plane's in-house deterministic byte fold.
-///
-/// # This is a PROVENANCE TAG, and it is NOT a cryptographic commitment
-///
-/// The nonclaim is stated here rather than implied: **collision resistance is
-/// not claimed.** Two different preimages may in principle fold to one tag, and
-/// nothing in the plane treats a tag as evidence that two things are the same
-/// thing. A tag exists so that a plane identity is DETERMINISTIC and traceable —
-/// the same declared input yields the same identities on every machine and every
-/// run — and for nothing else. Where the machine needs a commitment, the machine
-/// mints one; the plane never substitutes this for it.
-///
-/// A real digest for tooling is a mechanism admission the repository owner has
-/// not made. Until that admission exists this fold stands, self-contained, with
-/// no dependency edge bought for it.
-///
-/// The fold is four independent lanes of an FNV-1a-shaped mix, each seeded
-/// differently and each length-prefixed per part, so a tag is stable under
-/// nothing but the exact parts it was taken over.
-#[must_use]
-pub fn provenance_tag(parts: &[&[u8]]) -> [u8; 32] {
-    /// The lane seed.
-    const OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
-    /// The lane multiplier.
-    const PRIME: u64 = 0x0000_0100_0000_01b3;
-    /// The per-lane separation constant.
-    const LANE_STEP: u64 = 0x9e37_79b9_7f4a_7c15;
-
-    let mut tag = [0u8; 32];
-    for (lane, window) in tag.chunks_exact_mut(8).enumerate() {
-        let seed = u64::try_from(lane).unwrap_or(0).wrapping_mul(LANE_STEP);
-        let mut state = OFFSET ^ seed;
-        for part in parts {
-            let length = u64::try_from(part.len()).unwrap_or(u64::MAX);
-            state = (state ^ length).wrapping_mul(PRIME);
-            for byte in *part {
-                state = (state ^ u64::from(*byte)).wrapping_mul(PRIME);
-            }
-        }
-        window.copy_from_slice(&state.to_be_bytes());
+impl ProjectionProvenance {
+    /// The identity subject this derivation named.
+    #[must_use]
+    pub const fn subject(&self) -> &'static str {
+        self.subject
     }
-    tag
+
+    /// The role it stood for.
+    #[must_use]
+    pub const fn role(&self) -> ProjectionRole {
+        self.role
+    }
+
+    /// The profile and version it was derived under.
+    #[must_use]
+    pub const fn profile(&self) -> IdentityProfile {
+        self.profile
+    }
+
+    /// The generator that derived it.
+    #[must_use]
+    pub const fn generator(&self) -> GeneratorIdentity {
+        self.generator
+    }
+
+    /// What it was anchored under, anchor commitment included.
+    #[must_use]
+    pub const fn anchoring(&self) -> TranscriptAnchoring {
+        self.anchoring
+    }
+
+    /// How many bytes of content went into the transcript.
+    #[must_use]
+    pub const fn content_length(&self) -> u64 {
+        self.content_length
+    }
+
+    /// The position inside the anchor's declared sequence.
+    #[must_use]
+    pub const fn position(&self) -> u32 {
+        self.position
+    }
+
+    /// The derive-key context this derivation ran under, rendered by the domain
+    /// grammar.
+    #[must_use]
+    pub fn context(&self) -> String {
+        self.profile.context_for(self.subject, self.role)
+    }
 }
+
+// ---------------------------------------------------------------------------
+// The identity.
+// ---------------------------------------------------------------------------
 
 /// One identity the COMPILER PLANE owns, tagged by the subject it names.
 ///
 /// # What holding one means
 ///
-/// It means the plane derived this identity from the recorded
-/// [`ProjectionPreimage`], deterministically, and would derive the same one
-/// again from the same preimage. It means nothing about the machine: the machine
-/// mints no plane identity and accepts none.
+/// It means the plane derived these thirty-two bytes from a complete
+/// [`ProjectionTranscript`] under [`PROJECTION_IDENTITY_PROFILE`], and would
+/// derive the same ones again from the same transcript on any machine. It means
+/// nothing about the machine: the machine mints no plane identity and accepts
+/// none.
+///
+/// # The collision claim, stated exactly
+///
+/// **Collision resistance is claimed AS BLAKE3's, for the transcript as
+/// specified on [`ProjectionTranscript`], under profile version
+/// [`IdentityProfileVersion`] as declared by
+/// [`PROJECTION_IDENTITY_PROFILE`] — and nothing broader.**
+///
+/// Read the boundaries of that sentence as strictly as it is written. It claims
+/// that finding two different transcripts deriving one identity is as hard as
+/// finding a BLAKE3 collision. It does NOT claim that two things the plane
+/// considers different always have different transcripts — that is the
+/// transcript's completeness, which each mint site is responsible for and which
+/// each mint site documents. It does NOT claim anything about a different
+/// profile version, which derives under different contexts and is a different
+/// name space. And it does NOT make a plane identity into a machine commitment:
+/// where the machine needs a commitment the machine mints one, and no plane
+/// identity is ever accepted in its place.
+///
+/// The weak in-house fold this replaced claimed no collision resistance at any
+/// width and folded its anchor and content to eight bytes before hashing. It is
+/// retired: nothing in the plane derives an identity that way, and the narrow
+/// folds are gone rather than re-hashed.
 ///
 /// # The walls
 ///
 /// 1. **No raw-byte constructor at all.** The only road is
-///    [`ProjectionIdentity::derived`], which takes a typed preimage. There is no
-///    public or crate-internal seam that wraps arbitrary bytes.
+///    [`ProjectionIdentity::derived`], which takes a typed transcript. There is
+///    no public or crate-internal seam that wraps arbitrary bytes.
 /// 2. **No cross-subject substitution.** `Subject` is a `PhantomData` parameter,
 ///    so an identity naming one subject is a different type than one naming
-///    another regardless of bytes.
+///    another regardless of bytes — and their derive-key contexts differ too, so
+///    the separation is a runtime fact and not only a compile-time one.
 /// 3. **No conversion to or from [`OwnerIdentityRef`].** The two families answer
 ///    different questions and neither is reachable from the other.
 /// 4. **No `Ord`.** Plane identities are never ranked.
-///
-/// # The provenance nonclaim
-///
-/// The bytes are a [`provenance_tag`], not a commitment. Collision resistance is
-/// not claimed — see the fold's own documentation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ProjectionIdentity<Subject> {
-    tag: [u8; 32],
-    preimage: ProjectionPreimage,
+    bytes: [u8; 32],
     _subject: PhantomData<Subject>,
 }
 
-impl<Subject> ProjectionIdentity<Subject> {
-    /// Derive one plane identity from its typed preimage. Deterministic and
-    /// total: every preimage names an identity.
+impl<Subject: IdentitySubject> ProjectionIdentity<Subject> {
+    /// Derive one plane identity from its complete transcript. Deterministic
+    /// and total: every transcript names an identity.
     #[must_use]
-    pub fn derived(preimage: ProjectionPreimage) -> Self {
+    pub fn derived(transcript: ProjectionTranscript<'_>) -> Self {
+        let context = transcript
+            .profile()
+            .context_for(Subject::SUBJECT_NAME, transcript.role());
         Self {
-            tag: provenance_tag(&[&preimage.encoded()]),
-            preimage,
+            bytes: blake3::derive_key(&context, &transcript.encoded(Subject::SUBJECT_NAME)),
             _subject: PhantomData,
         }
     }
 
-    /// The provenance tag. Not a commitment — see [`provenance_tag`].
+    /// Derive one plane identity and the record of how it was derived.
+    ///
+    /// The record is for whoever is going to keep it. Three values keep theirs:
+    /// a plan, a proved closure, and a closed expansion — the three whose
+    /// identity a reader is most likely to be handed on its own and asked to
+    /// account for. A caller with nowhere to put one takes
+    /// [`ProjectionIdentity::derived`] instead, and the record is simply not
+    /// made rather than made and carried by everything.
     #[must_use]
-    pub const fn as_bytes(&self) -> &[u8; 32] {
-        &self.tag
-    }
-
-    /// The recorded preimage this identity was derived from.
-    #[must_use]
-    pub const fn preimage(&self) -> &ProjectionPreimage {
-        &self.preimage
+    pub fn derived_with_provenance(
+        transcript: ProjectionTranscript<'_>,
+    ) -> (Self, ProjectionProvenance) {
+        (
+            Self::derived(transcript),
+            transcript.provenance(Subject::SUBJECT_NAME),
+        )
     }
 }
+
+impl<Subject> ProjectionIdentity<Subject> {
+    /// The identity's thirty-two bytes, borrowed for comparison and for
+    /// rendering.
+    #[must_use]
+    pub const fn as_bytes(&self) -> &[u8; 32] {
+        &self.bytes
+    }
+}
+
+/// One projection plan's own identity.
+///
+/// A plan is spoken of by identity in three places — a bundle's membership, the
+/// planning family's issues, and the closure that proves a rendering against it
+/// — and all three name this one type.
+pub type PlanId = ProjectionIdentity<PlanSubject>;
+
+/// One proved closure's own identity.
+pub type ClosureId = ProjectionIdentity<ClosureSubject>;
+
+/// One closed expansion's own identity.
+pub type ClosedExpansionId = ProjectionIdentity<ClosedExpansionSubject>;
 
 // ---------------------------------------------------------------------------
 // Rendered roles.
@@ -871,7 +1368,7 @@ pub trait RenderedRole: Copy + PartialEq + Eq + core::fmt::Debug + Sized + 'stat
     /// The complete roster, in the order the kind states it.
     const ROLES: &'static [Self];
 
-    /// This role's position in the roster. Part of every preimage derived for
+    /// This role's position in the roster. Part of every transcript derived for
     /// the role, so two roles never derive one identity.
     fn slot(self) -> u32;
 
@@ -905,11 +1402,11 @@ impl RenderedRole for SoleRenderedUnit {
 ///
 /// Test-gated on purpose. The laws need distinguishable identities without
 /// having a captured declaration to derive them from, and this road exists
-/// nowhere else: a production caller derives from a real preimage or has no
+/// nowhere else: a production caller derives from a real transcript or has no
 /// identity at all.
 #[cfg(test)]
-pub(crate) fn for_laws<Subject>(tag: u8) -> ProjectionIdentity<Subject> {
-    ProjectionIdentity::derived(ProjectionPreimage::rooted(
+pub(crate) fn for_laws<Subject: IdentitySubject>(tag: u8) -> ProjectionIdentity<Subject> {
+    ProjectionIdentity::derived(ProjectionTranscript::rooted(
         ProjectionRole::Plan,
         &[tag],
         u32::from(tag),

@@ -37,7 +37,7 @@ suites, because cargo requires executable challenge material to live under
 | 04 | simulation | reserved, unmaterialized |
 | 05 | fault | reserved, unmaterialized |
 | 06 | muterprater | **seated as `tests/planted_defect.rs`** — the mutation seat; today one planted defective expansion and the proof the checker notices |
-| 07 | conformance | **seated as `tests/compile_refusals.rs` + `tests/compile-fail/`** — the compile-refusal seat, run through trybuild |
+| 07 | conformance | **seated as `tests/compile_refusals.rs` + `tests/compile-fail/`** — the compile-refusal suite, run through trybuild — and as `tests/independent_identity_transcript.rs`, the independent transcript lane |
 | 08 | evidence | reserved, unmaterialized |
 
 The five reserved names restore the plane's original nine-seat design; they were
@@ -57,6 +57,7 @@ explicit ruling instead of being normalized into the nearest drawer.
 | `tests/planted_defect.rs` | the planted defective expansion, the proof the checker notices, and the rehearsed false alarm |
 | `tests/compile_refusals.rs` | the trybuild runner over the compile-fail fixtures |
 | `tests/compile-fail/` | one fixture per discharged red twin |
+| `tests/independent_identity_transcript.rs` | the independent transcript lane: a second encoder, written from the published specification, re-deriving the services' own identities |
 
 ## `Unreadable` is a failure class with its own alarm
 
@@ -213,6 +214,33 @@ same hands against the same document, agree because they SHARE THE CHALLENGED
 IMPLEMENTATION — not because either of them understands Rust. Correlated evidence
 about a renderer is not independent of that renderer. Lanes B and C escape this
 because their decoders — `syn` and `rustc` — are decoders nobody here wrote.
+
+## The independent transcript lane
+
+The services derive every plane identity from a transcript whose specification
+they publish. A specification is a promise that somebody else can re-derive the
+value; `tests/independent_identity_transcript.rs` is that somebody else.
+
+**What it shares with the producer: nothing that encodes.** The length framing,
+the field order, the domain-string grammar, the subject names, the role names,
+the role slots, the anchoring discriminants, the profile stem, the profile
+version, the generator name, and the generator schema version are all written out
+in full in the test, from the specification, exactly as the planted-defect lane
+writes out the declared order it judges against. Not one encoding function or
+spelling is imported from `threadpak-macroc`.
+
+**What it does share, deliberately: the digest.** Both sides call BLAKE3, pinned
+exact at the same version with the same minimal feature set. A lane that
+reimplemented the hash would be judging an arithmetic exercise; the hash is not
+what is under judgement. What is under judgement is whether the specification says
+enough — which is the question a reader of a published receipt actually has.
+
+**What it derives.** A real captured-declaration identity, over a declaration the
+services actually read, plus rooted and anchored transcripts across three
+subjects. **And it rehearses its own reversal twice**: an encoder that drops the
+content's length prefix must disagree, and a context assembled with the subject
+and the role transposed must disagree. A match that could not fail would be
+evidence of nothing.
 
 ## The structural lane's admitted dependency
 

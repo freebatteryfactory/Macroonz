@@ -26,10 +26,9 @@
 //! second truth table this view exists to refuse.
 
 use crate::plane::{
-    OwnerFactRef, SelectionCitationLimit, TriggerViewIssueLimit, WrapperComponentLimit,
+    OwnerFactRef, PlanId, SelectionCitationLimit, TriggerViewIssueLimit, WrapperComponentLimit,
 };
 use crate::planning::{WRAPPER_COMPONENTS, WrapperComponent};
-use crate::refusal::PlanIdentity;
 use threadpak::refusal::{CompletionPosture, FamilyShape, RefusalFamily, StopBound};
 use threadpak::types::{Bounded, ConstLimit, NonEmptyBounded, NonEmptyBoundedConstruction};
 
@@ -138,7 +137,7 @@ impl TriggerViewComposition {
 /// or omitted with citations. There is no third list and no silent remainder.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct WrapperTriggerView {
-    plan: PlanIdentity,
+    plan: PlanId,
     selections: Bounded<TriggerSelection, WrapperComponentLimit>,
     omissions: Bounded<TriggerOmission, WrapperComponentLimit>,
 }
@@ -153,7 +152,7 @@ impl WrapperTriggerView {
     /// together, and a component left undecided is refused rather than read as
     /// an omission: "nobody said" and "the owner said no" are different facts.
     pub fn composed(
-        plan: PlanIdentity,
+        plan: PlanId,
         selections: Vec<TriggerSelection>,
         omissions: Vec<TriggerOmission>,
     ) -> Result<Self, TriggerViewComposition> {
@@ -204,7 +203,7 @@ impl WrapperTriggerView {
 
     /// The plan whose decisions this view summarizes.
     #[must_use]
-    pub const fn plan(&self) -> PlanIdentity {
+    pub const fn plan(&self) -> PlanId {
         self.plan
     }
 

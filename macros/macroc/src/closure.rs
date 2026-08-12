@@ -39,13 +39,15 @@
 
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
-    ClosureIssueLimit, ClosureSubject, GeneratedUnitSubject, MembershipLimit, OutputBytesSubject,
-    ProfileVersion, ProjectionIdentity, ProjectionPreimage, ProjectionProfileSubject,
-    ProjectionRole, RenderedByteLimit, RenderedRole, RenderedUnitSubject,
+    ClosureId, ClosureIssueLimit, GeneratedUnitSubject, MembershipLimit, OutputBytesSubject,
+    PlanId, ProfileVersion, ProjectionIdentity, ProjectionProfileSubject, ProjectionProvenance,
+    ProjectionRole, ProjectionTranscript, RenderedByteLimit, RenderedRole, RenderedUnitSubject,
+    encode_bytes, encode_length,
 };
 use crate::planning::{
     DigestContract, MemberDestination, PlannedMember, PlannedMembership, PlannedOutput,
 };
+use crate::question::EXPLANATION_PROTOCOL_VERSION;
 use crate::token::GeneratedTree;
 use threadpak::refusal::{CompletionPosture, FamilyShape, RefusalFamily, StopBound};
 use threadpak::types::{Bounded, NonEmptyBounded, NonEmptyBoundedConstruction};
@@ -112,13 +114,13 @@ impl<R: RenderedRole> RenderedUnit<R> {
         tree: GeneratedTree,
     ) -> Result<Self, RenderingRefusal> {
         let raw = tree.canonical_bytes();
-        let digest = ProjectionIdentity::derived(ProjectionPreimage::under_projection(
+        let digest = ProjectionIdentity::derived(ProjectionTranscript::under_projection(
             ProjectionRole::OutputBytes,
             &semantic_key,
             &raw,
             role.slot(),
         ));
-        let identity = ProjectionIdentity::derived(ProjectionPreimage::under_projection(
+        let identity = ProjectionIdentity::derived(ProjectionTranscript::under_projection(
             ProjectionRole::RenderedUnit,
             &semantic_key,
             &raw,
@@ -218,12 +220,31 @@ impl<R: RenderedRole> RenderedUnit<R> {
     #[must_use]
     pub fn digest_under(&self, contract: DigestContract) -> ProjectionIdentity<OutputBytesSubject> {
         let raw: Vec<u8> = self.bytes.iter().copied().collect();
-        ProjectionIdentity::derived(ProjectionPreimage::under_projection(
+        ProjectionIdentity::derived(ProjectionTranscript::under_projection(
             contract.role,
             &contract.anchored_to,
             &raw,
             self.role.slot(),
         ))
+    }
+
+    /// Append this unit's canonical bytes: the role it stood under, its own
+    /// identity, the semantic key it answers to, where it landed, the profile
+    /// and version it was rendered under, where it came from, and the digest of
+    /// the bytes it carries.
+    ///
+    /// The rendered bytes themselves are not written. They do not need to be:
+    /// the digest is derived over them at full width, so a byte that changed
+    /// changes the digest and therefore this encoding.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        into.extend_from_slice(&self.role.slot().to_be_bytes());
+        encode_bytes(self.identity.as_bytes(), into);
+        encode_bytes(self.semantic_key.as_bytes(), into);
+        self.destination.encode_into(into);
+        encode_bytes(self.profile.as_bytes(), into);
+        into.extend_from_slice(&self.profile_version.position().to_be_bytes());
+        self.origin.encode_into(into);
+        encode_bytes(self.digest.as_bytes(), into);
     }
 }
 
@@ -414,13 +435,39 @@ impl<R: RenderedRole> ProjectionClosureRefusal<R> {
 /// passes through here or it does not exist.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProjectionClosure<R: RenderedRole> {
+    plan: PlanId,
     reconstructed: PlannedMembership<R>,
     rendered: RenderedProjection<R>,
-    identity: ProjectionIdentity<ClosureSubject>,
+    identity: ClosureId,
+    provenance: ProjectionProvenance,
 }
 
 impl<R: RenderedRole> ProjectionClosure<R> {
     /// Prove the closure between one plan's membership and one rendering.
+    ///
+    /// # The closure transcript
+    ///
+    /// The identity is derived under [`ProjectionRole::Closure`], anchored on
+    /// the PLAN's own identity, over a content transcript that commits to the
+    /// COMPLETE closure claim, in this order:
+    ///
+    /// 1. the explanation protocol version
+    ///    ([`EXPLANATION_PROTOCOL_VERSION`]) — a closure claims a rendering
+    ///    answers a protocol, and a claim made under a different protocol is a
+    ///    different claim;
+    /// 2. the full planned membership, in role-roster order — every semantic
+    ///    key, destination, origin trail, expected profile and version, and
+    ///    digest contract the plan declared;
+    /// 3. the role roster's own length;
+    /// 4. for every role in roster order: the role slot, how many units stood
+    ///    under it, and the unit that did — its identity, semantic key,
+    ///    destination, profile and version, origin trail, and digest.
+    ///
+    /// So the identity names the whole agreement rather than a sample of it.
+    /// The earlier design anchored on the first planned member's semantic key
+    /// and hashed the concatenated digests: it committed to no destination, no
+    /// origin, no profile, no plan, and — because bare concatenation admits two
+    /// splits of one byte string — not reliably to the digest sequence either.
     ///
     /// # Errors
     ///
@@ -428,6 +475,7 @@ impl<R: RenderedRole> ProjectionClosure<R> {
     /// at. All of them are reported together: a caller repairing a rendering one
     /// role per attempt is a caller the check failed.
     pub fn proved(
+        plan: PlanId,
         planned: &PlannedMembership<R>,
         rendered: RenderedProjection<R>,
     ) -> Result<Self, ProjectionClosureRefusal<R>> {
@@ -500,22 +548,26 @@ impl<R: RenderedRole> ProjectionClosure<R> {
         })?;
 
         let mut material: Vec<u8> = Vec::new();
+        material.extend_from_slice(&EXPLANATION_PROTOCOL_VERSION.to_be_bytes());
+        planned.encode_into(&mut material);
+        encode_length(R::ROLES.len(), &mut material);
         for role in R::ROLES {
+            material.extend_from_slice(&role.slot().to_be_bytes());
+            encode_length(rendered.count_under(*role), &mut material);
             if let Some(unit) = rendered.under(*role) {
-                material.extend_from_slice(unit.digest().as_bytes());
+                unit.encode_into(&mut material);
             }
         }
-        let identity = ProjectionIdentity::derived(ProjectionPreimage::under_projection(
-            ProjectionRole::Closure,
-            &planned.first().output.semantic_key,
-            &material,
-            0,
-        ));
+        let (identity, provenance) = ClosureId::derived_with_provenance(
+            ProjectionTranscript::under_projection(ProjectionRole::Closure, &plan, &material, 0),
+        );
 
         Ok(Self {
+            plan,
             reconstructed,
             rendered,
             identity,
+            provenance,
         })
     }
 
@@ -531,10 +583,22 @@ impl<R: RenderedRole> ProjectionClosure<R> {
         &self.rendered
     }
 
+    /// The plan this closure was proved against.
+    #[must_use]
+    pub const fn plan(&self) -> PlanId {
+        self.plan
+    }
+
     /// This closure's own identity. Inspection and emission both read THIS
     /// value, so there is no second closure identity anywhere to disagree with.
     #[must_use]
-    pub const fn identity(&self) -> ProjectionIdentity<ClosureSubject> {
+    pub const fn identity(&self) -> ClosureId {
         self.identity
+    }
+
+    /// How this closure's identity was derived.
+    #[must_use]
+    pub const fn provenance(&self) -> &ProjectionProvenance {
+        &self.provenance
     }
 }

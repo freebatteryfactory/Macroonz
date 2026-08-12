@@ -18,6 +18,19 @@
 //! is the point: a closed roster of names is the one thing in the plane with no
 //! dependencies to have.
 
+/// The version of the explanation protocol this roster states.
+///
+/// A plain number rather than a typed carrier, because this module imports
+/// nothing and that absence is the reason it exists: a leaf that reached for a
+/// version type would stop being a leaf.
+///
+/// Bump it when the protocol changes — a question added, a question removed, or
+/// a question that keeps its spelling and asks something else. It is
+/// load-bearing where a closure identity is derived: a closure claims that a
+/// rendering answers this protocol, and a claim made under a different protocol
+/// is a different claim.
+pub const EXPLANATION_PROTOCOL_VERSION: u32 = 1;
+
 /// The fourteen questions. A generated thing that cannot answer one of these is
 /// a generated thing nobody can hold to account.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

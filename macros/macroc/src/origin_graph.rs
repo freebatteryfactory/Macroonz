@@ -24,7 +24,7 @@
 
 use crate::plane::{
     NonclaimSubject, OriginEdgeLimit, OriginNodeSubject, OwnerFactRef, ProjectionIdentity,
-    TraceEntryLimit, TracedSubject,
+    TraceEntryLimit, TracedSubject, encode_bytes, encode_length,
 };
 use crate::refusal::{BoundAxis, ProjectionPlanning};
 use threadpak::types::{ConstLimit, NonEmptyBounded};
@@ -82,6 +82,30 @@ pub const ORIGIN_RELATIONS: [OriginRelation; 14] = [
     OriginRelation::DiagnosticDerivation,
 ];
 
+impl OriginRelation {
+    /// The relation's position in the declared roster — the byte a canonical
+    /// encoding carries for it.
+    #[must_use]
+    pub const fn slot(self) -> u8 {
+        match self {
+            Self::AuthoredDeclaration => 0,
+            Self::PatternInstantiation => 1,
+            Self::SemanticDerivation => 2,
+            Self::FragmentConstruction => 3,
+            Self::ExplicitLink => 4,
+            Self::Normalization => 5,
+            Self::ProfileSelection => 6,
+            Self::ProjectionSelection => 7,
+            Self::WrapperComposition => 8,
+            Self::Rendering => 9,
+            Self::HostBinding => 10,
+            Self::TestDerivation => 11,
+            Self::BenchmarkDerivation => 12,
+            Self::DiagnosticDerivation => 13,
+        }
+    }
+}
+
 /// One edge of the origin graph: which node, under which relation, produced
 /// which node. The edge is directed and names both ends by identity.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -92,6 +116,16 @@ pub struct OriginEdge {
     pub relation: OriginRelation,
     /// The node the relation produces.
     pub to: ProjectionIdentity<OriginNodeSubject>,
+}
+
+impl OriginEdge {
+    /// Append this edge's canonical bytes: the node it starts at, the relation
+    /// slot, the node it produces.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        encode_bytes(self.from.as_bytes(), into);
+        into.push(self.relation.slot());
+        encode_bytes(self.to.as_bytes(), into);
+    }
 }
 
 /// The origin trail every generated unit carries: a bounded, structurally
@@ -149,6 +183,24 @@ impl OriginTrail {
     pub fn is_empty(&self) -> bool {
         self.edges.is_empty()
     }
+
+    /// The edges, in the order the trail walks them.
+    ///
+    /// The walk order is the trail's own meaning — it is the path back to the
+    /// authored material — so unlike a declared SET, an identity may be derived
+    /// from it and this iteration is load-bearing.
+    pub fn iter(&self) -> impl Iterator<Item = &OriginEdge> {
+        self.edges.iter()
+    }
+
+    /// Append this trail's canonical bytes: the edge count, then every edge in
+    /// walk order.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        encode_length(self.edges.len(), into);
+        for edge in self.edges.iter() {
+            edge.encode_into(into);
+        }
+    }
 }
 
 /// What the plane decided about one subject, and on whose fact.
@@ -167,6 +219,31 @@ pub enum TraceDecision {
     NotRun,
 }
 
+impl TraceDecision {
+    /// The decision's discriminant byte, written ahead of its citation so a
+    /// selection can never encode as an omission over the same fact.
+    #[must_use]
+    pub const fn slot(self) -> u8 {
+        match self {
+            Self::SelectedBecause(_) => 0,
+            Self::OmittedBecause(_) => 1,
+            Self::NotRun => 2,
+        }
+    }
+
+    /// Append this decision's canonical bytes: the discriminant, then the cited
+    /// fact where one was cited.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        into.push(self.slot());
+        match self {
+            Self::SelectedBecause(cited) | Self::OmittedBecause(cited) => {
+                encode_bytes(&cited.citation_bytes(), into);
+            }
+            Self::NotRun => encode_bytes(&[], into),
+        }
+    }
+}
+
 /// One recorded decision about one subject.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TraceEntry {
@@ -174,6 +251,14 @@ pub struct TraceEntry {
     pub subject: ProjectionIdentity<TracedSubject>,
     /// What was decided, and on whose fact.
     pub decision: TraceDecision,
+}
+
+impl TraceEntry {
+    /// Append this entry's canonical bytes: the subject, then the decision.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        encode_bytes(self.subject.as_bytes(), into);
+        self.decision.encode_into(into);
+    }
 }
 
 /// The decision trace of one plan: the entries in selection order, bounded.
@@ -230,6 +315,24 @@ impl DecisionTrace {
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
+
+    /// The entries, in selection order.
+    ///
+    /// Selection order is the trace's meaning, so an identity may be derived
+    /// from it: two plans that decided the same things in a different order
+    /// decided differently.
+    pub fn iter(&self) -> impl Iterator<Item = &TraceEntry> {
+        self.entries.iter()
+    }
+
+    /// Append this trace's canonical bytes: the entry count, then every entry in
+    /// selection order.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        encode_length(self.entries.len(), into);
+        for entry in self.entries.iter() {
+            entry.encode_into(into);
+        }
+    }
 }
 
 /// One thing a plan explicitly does not claim, and the owner fact that leaves
@@ -241,4 +344,13 @@ pub struct Nonclaim {
     pub unclaimed: ProjectionIdentity<NonclaimSubject>,
     /// The owner fact that leaves it unclaimed.
     pub because: OwnerFactRef,
+}
+
+impl Nonclaim {
+    /// Append this nonclaim's canonical bytes: the unclaimed subject, then the
+    /// fact that leaves it unclaimed.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        encode_bytes(self.unclaimed.as_bytes(), into);
+        encode_bytes(&self.because.citation_bytes(), into);
+    }
 }

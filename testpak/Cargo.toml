@@ -23,3 +23,10 @@ syn = { version = "=3.0.3", default-features = false, features = ["full", "parsi
 
 [dev-dependencies]
 trybuild = "1"
+# The independent transcript lane's digest, admitted by the note in README.md.
+# The judge hashes with the same admitted mechanism the services do — a lane
+# that reimplemented BLAKE3 would be testing an arithmetic exercise rather than
+# a specification. Pinned exact to the services' own version, and cut to the
+# same minimal feature set, so the two crates differ in what they ENCODE and in
+# nothing else.
+blake3 = { version = "=1.8.6", default-features = false }

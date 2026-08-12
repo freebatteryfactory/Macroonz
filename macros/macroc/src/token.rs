@@ -29,7 +29,7 @@
 //! compiler span. That is what puts a `compile_error!` on the offending token
 //! rather than on the first token of the declaration.
 
-use crate::plane::{CapturedTokenLimit, GeneratedTokenLimit};
+use crate::plane::{CapturedTokenLimit, GeneratedTokenLimit, encode_bytes, encode_length};
 use threadpak::declaration::{CoordinateRole, SourceCoordinate};
 use threadpak::types::{Bounded, BoundedConstruction};
 
@@ -322,15 +322,9 @@ fn encode_captured(tree: &CapturedTokenTree, into: &mut Vec<u8>) {
     }
 }
 
-/// Encode one length-prefixed text.
+/// Encode one length-prefixed text under the plane's one length framing.
 fn encode_text(text: &str, into: &mut Vec<u8>) {
-    encode_length(text.len(), into);
-    into.extend_from_slice(text.as_bytes());
-}
-
-/// Encode one length as eight big-endian bytes.
-fn encode_length(length: usize, into: &mut Vec<u8>) {
-    into.extend_from_slice(&u64::try_from(length).unwrap_or(u64::MAX).to_be_bytes());
+    encode_bytes(text.as_bytes(), into);
 }
 
 // ---------------------------------------------------------------------------

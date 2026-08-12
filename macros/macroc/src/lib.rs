@@ -155,9 +155,12 @@ pub use origin_graph::{
 };
 pub use pattern_stamp::{ScopeGuardOwnerFacts, ScopeGuardStampAnchors, plan_scope_guard_stamp};
 pub use plane::{
-    HumanProjection, OwnerFactName, OwnerFactRef, OwnerIdentityRef, PROJECTION_ROLES,
-    ProfileVersion, ProjectionIdentity, ProjectionPreimage, ProjectionRole, RenderedRole,
-    SoleRenderedUnit, provenance_tag,
+    ClosedExpansionId, ClosureId, GeneratorIdentity, GeneratorProfileId, GeneratorSchemaVersion,
+    HumanProjection, IdentityProfile, IdentityProfileVersion, IdentitySubject, MACROC_GENERATOR,
+    OwnerFactName, OwnerFactRef, OwnerIdentityRef, PROJECTION_IDENTITY_PROFILE, PROJECTION_ROLES,
+    PlanId, ProfileVersion, ProjectionIdentity, ProjectionProvenance, ProjectionRole,
+    ProjectionTranscript, RenderedRole, SoleRenderedUnit, TranscriptAnchoring, encode_bytes,
+    encode_length,
 };
 pub use planning::{
     BenchmarkDescriptorContent, BenchmarkDescriptorProjection, CauseAnchoring, CodecContent,
@@ -170,10 +173,10 @@ pub use planning::{
     SurfaceDirection, TargetBinding, TargetRequirement, TestDescriptorContent,
     TestDescriptorProjection, UNIVERSAL_QUESTIONS, WRAPPER_COMPONENTS, WrapperComponent,
 };
-pub use question::{EXPLANATION_QUESTIONS, ExplanationQuestion, QuestionApplicability};
-pub use refusal::{
-    BOUND_AXES, BoundAxis, PlanIdentity, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue,
+pub use question::{
+    EXPLANATION_PROTOCOL_VERSION, EXPLANATION_QUESTIONS, ExplanationQuestion, QuestionApplicability,
 };
+pub use refusal::{BOUND_AXES, BoundAxis, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue};
 pub use template::{
     ApplicativeDistinctness, AxisCeiling, CheckedMeterPosture, DeclarationTemplate,
     ForbiddenKeyFact, INVOCATION_KEY_NEVER, META_BOUND_AXES, MetaBoundAxis, ProfileCeiling,

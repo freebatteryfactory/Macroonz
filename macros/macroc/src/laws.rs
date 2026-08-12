@@ -66,6 +66,325 @@ mod plane {
     }
 }
 
+/// The identity profile's proof surface: the golden vectors that pin the
+/// derivation, the mutation vectors that prove it is sensitive to its whole
+/// transcript, and the crossing vectors that prove domain separation bites.
+///
+/// # Why golden vectors and not only properties
+///
+/// A property test says the derivation is self-consistent. A golden vector says
+/// WHICH derivation it is. Without one, a change to the field order, the length
+/// framing, the domain grammar, or the profile version would keep every property
+/// green while silently renaming every identity in the tree — and the rename
+/// would be discovered by whoever compared an old receipt to a new one, which is
+/// the worst possible time.
+///
+/// These vectors are the profile's version-1 fingerprint. A vector that fails is
+/// a profile change, and a profile change is a version bump, not a fixed
+/// constant.
+mod identity_profile {
+    use crate::plane::{
+        GeneratedUnitSubject, IdentityProfileVersion, MACROC_GENERATOR,
+        PROJECTION_IDENTITY_PROFILE, PROJECTION_ROLES, PlanSubject, ProjectionIdentity,
+        ProjectionRole, ProjectionTranscript, RenderedUnitSubject, SUBJECT_NAMES,
+        TranscriptAnchoring, encode_bytes,
+    };
+
+    /// The anchor every anchored vector below is taken under.
+    const GOLDEN_ANCHOR: [u8; 32] = [7; 32];
+
+    /// The content every content-bearing vector below is taken over.
+    const GOLDEN_CONTENT: &[u8] = b"golden-vector-content";
+
+    /// The roster position every anchored vector below is taken at.
+    const GOLDEN_POSITION: u32 = 3;
+
+    /// The fixed anchored transcript: role `GeneratedUnit`, anchored under a
+    /// plane identity of thirty-two `7` bytes, over `golden-vector-content`, at
+    /// roster position three.
+    fn anchored_vector() -> ProjectionTranscript<'static> {
+        ProjectionTranscript::under(
+            ProjectionRole::GeneratedUnit,
+            TranscriptAnchoring::UnderProjectionIdentity(GOLDEN_ANCHOR),
+            GOLDEN_CONTENT,
+            GOLDEN_POSITION,
+        )
+    }
+
+    /// The fixed rooted transcript: role `Plan`, no anchor, empty content, at
+    /// roster position zero — the narrowest transcript the profile admits.
+    fn rooted_vector() -> ProjectionTranscript<'static> {
+        ProjectionTranscript::rooted(ProjectionRole::Plan, &[], 0)
+    }
+
+    /// law: identity-profile.the-declared-version-is-one — the profile's version
+    /// is a typed constant, and every vector below is a fingerprint OF that
+    /// version. Reading the vectors without reading the version they pin would
+    /// make a version bump look like a broken law.
+    /// Owed reversal: bumping the version without restating the vectors must
+    /// break this law.
+    #[test]
+    fn the_declared_version_is_one() {
+        assert_eq!(
+            PROJECTION_IDENTITY_PROFILE.version(),
+            IdentityProfileVersion::declared(1)
+        );
+        assert_eq!(
+            PROJECTION_IDENTITY_PROFILE.stem(),
+            "threadpak/macroc/projection-identity"
+        );
+        assert_eq!(MACROC_GENERATOR.profile().spelling(), "threadpak-macroc");
+        assert_eq!(MACROC_GENERATOR.schema().position(), 1);
+    }
+
+    /// law: identity-profile.the-domain-grammar-is-spelled-exactly — the
+    /// derive-key context is `<stem>/v<version>/<subject>/<role>`, and nothing
+    /// about it is inferred at a call site.
+    /// Owed reversal: a context assembled in another order must break this law.
+    #[test]
+    fn the_domain_grammar_is_spelled_exactly() {
+        assert_eq!(
+            PROJECTION_IDENTITY_PROFILE.context_for("generated-unit", ProjectionRole::OutputBytes),
+            "threadpak/macroc/projection-identity/v1/generated-unit/output-bytes"
+        );
+    }
+
+    /// law: identity-profile.every-subject-and-role-name-is-distinct-and-legal —
+    /// two subjects sharing a name would share a key space, and a name outside
+    /// the grammar would make the context unreadable.
+    /// Owed reversal: two subjects declaring one name must break this law.
+    #[test]
+    fn every_subject_and_role_name_is_distinct_and_legal() {
+        let legal = |name: &str| {
+            !name.is_empty()
+                && !name.starts_with('-')
+                && !name.ends_with('-')
+                && !name.contains("--")
+                && name
+                    .chars()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+        };
+        assert!(SUBJECT_NAMES.iter().copied().all(legal));
+        let mut seen: Vec<&str> = SUBJECT_NAMES.to_vec();
+        seen.sort_unstable();
+        let counted = seen.len();
+        seen.dedup();
+        assert_eq!(seen.len(), counted);
+        assert!(
+            PROJECTION_ROLES
+                .iter()
+                .copied()
+                .all(|role| legal(role.context_name()))
+        );
+        let mut roles: Vec<&str> = PROJECTION_ROLES
+            .iter()
+            .copied()
+            .map(ProjectionRole::context_name)
+            .collect();
+        roles.sort_unstable();
+        let role_count = roles.len();
+        roles.dedup();
+        assert_eq!(roles.len(), role_count);
+    }
+
+    /// law: identity-profile.the-transcript-is-spelled-exactly — the transcript
+    /// is the eleven members of the specification, in order, with every
+    /// variable-length member length-prefixed. This law rebuilds the anchored
+    /// vector's bytes by hand from that specification and requires the
+    /// producer's own encoder to agree.
+    /// Owed reversal: dropping a member or a length prefix must break this law.
+    #[test]
+    fn the_transcript_is_spelled_exactly() {
+        let mut expected = Vec::new();
+        encode_bytes(b"threadpak/macroc/projection-identity", &mut expected);
+        expected.extend_from_slice(&1_u32.to_be_bytes());
+        encode_bytes(b"generated-unit", &mut expected);
+        encode_bytes(b"generated-unit", &mut expected);
+        expected.push(3);
+        expected.push(2);
+        encode_bytes(&GOLDEN_ANCHOR, &mut expected);
+        encode_bytes(GOLDEN_CONTENT, &mut expected);
+        expected.extend_from_slice(&GOLDEN_POSITION.to_be_bytes());
+        encode_bytes(b"threadpak-macroc", &mut expected);
+        expected.extend_from_slice(&1_u32.to_be_bytes());
+        assert_eq!(anchored_vector().encoded("generated-unit"), expected);
+    }
+
+    /// law: identity-profile.golden-vectors-pin-the-derivation — three fixed
+    /// transcripts derive three exact values, across two subjects and both
+    /// anchoring postures.
+    /// Owed reversal (red twin): any change to the field order, the length
+    /// framing, the domain grammar, or the digest must break this law.
+    #[test]
+    fn golden_vectors_pin_the_derivation() {
+        assert_eq!(
+            *ProjectionIdentity::<GeneratedUnitSubject>::derived(anchored_vector()).as_bytes(),
+            [
+                0x22, 0x5b, 0x59, 0x27, 0x6a, 0xd4, 0xb7, 0xa0, 0x78, 0x22, 0x95, 0xc3, 0xc7, 0x61,
+                0xf4, 0x2c, 0x70, 0x3e, 0xdc, 0x8e, 0x03, 0x5c, 0xde, 0xc9, 0xbc, 0x8f, 0x09, 0xc9,
+                0xc3, 0xb0, 0xe1, 0x8a
+            ]
+        );
+        assert_eq!(
+            *ProjectionIdentity::<RenderedUnitSubject>::derived(anchored_vector()).as_bytes(),
+            [
+                0xb8, 0x3c, 0xd9, 0xef, 0x48, 0x32, 0x72, 0xc2, 0x2c, 0x41, 0x7c, 0x53, 0x62, 0xd1,
+                0x4d, 0xf3, 0x27, 0x14, 0xb9, 0x08, 0xa7, 0x62, 0xfe, 0xf7, 0x7f, 0x29, 0xe2, 0xc7,
+                0x4d, 0xde, 0xc4, 0xd4
+            ]
+        );
+        assert_eq!(
+            *ProjectionIdentity::<PlanSubject>::derived(rooted_vector()).as_bytes(),
+            [
+                0x3e, 0xb8, 0x1c, 0xf9, 0xb7, 0x39, 0x0b, 0x3e, 0xbd, 0x8f, 0xa4, 0xdd, 0x4b, 0x3f,
+                0x2d, 0xa4, 0x22, 0x30, 0x8b, 0xc6, 0x4d, 0xc5, 0xb8, 0x39, 0x42, 0xe1, 0x5b, 0x64,
+                0x7b, 0x9b, 0xd9, 0xc8
+            ]
+        );
+    }
+
+    /// law: identity-profile.one-bit-anywhere-moves-the-identity — flipping one
+    /// bit of the content, one bit of the anchor, or one step of the position
+    /// derives a different identity. Nothing in the transcript is decoration.
+    /// Owed reversal (red twin): a derivation that dropped the position or
+    /// folded the anchor must break this law.
+    #[test]
+    fn one_bit_anywhere_moves_the_identity() {
+        let base = ProjectionIdentity::<GeneratedUnitSubject>::derived(anchored_vector());
+
+        let mut flipped_content = GOLDEN_CONTENT.to_vec();
+        if let Some(byte) = flipped_content.first_mut() {
+            *byte ^= 0x01;
+        }
+        let content_moved =
+            ProjectionIdentity::<GeneratedUnitSubject>::derived(ProjectionTranscript::under(
+                ProjectionRole::GeneratedUnit,
+                TranscriptAnchoring::UnderProjectionIdentity(GOLDEN_ANCHOR),
+                &flipped_content,
+                GOLDEN_POSITION,
+            ));
+        assert_ne!(base, content_moved);
+
+        let mut flipped_anchor = GOLDEN_ANCHOR;
+        if let Some(byte) = flipped_anchor.last_mut() {
+            *byte ^= 0x01;
+        }
+        let anchor_moved =
+            ProjectionIdentity::<GeneratedUnitSubject>::derived(ProjectionTranscript::under(
+                ProjectionRole::GeneratedUnit,
+                TranscriptAnchoring::UnderProjectionIdentity(flipped_anchor),
+                GOLDEN_CONTENT,
+                GOLDEN_POSITION,
+            ));
+        assert_ne!(base, anchor_moved);
+
+        let position_moved =
+            ProjectionIdentity::<GeneratedUnitSubject>::derived(ProjectionTranscript::under(
+                ProjectionRole::GeneratedUnit,
+                TranscriptAnchoring::UnderProjectionIdentity(GOLDEN_ANCHOR),
+                GOLDEN_CONTENT,
+                GOLDEN_POSITION.saturating_add(1),
+            ));
+        assert_ne!(base, position_moved);
+
+        let rooted_moved =
+            ProjectionIdentity::<GeneratedUnitSubject>::derived(ProjectionTranscript::under(
+                ProjectionRole::GeneratedUnit,
+                TranscriptAnchoring::Rooted,
+                GOLDEN_CONTENT,
+                GOLDEN_POSITION,
+            ));
+        assert_ne!(base, rooted_moved);
+    }
+
+    /// law: identity-profile.reordering-parts-moves-the-identity — two members
+    /// swapped inside one content, and one boundary moved between two members,
+    /// both derive different identities. This is what the length prefix buys:
+    /// bare concatenation would let `ab|c` and `a|bc` encode alike.
+    /// Owed reversal (red twin): dropping the length prefix must break this law.
+    #[test]
+    fn reordering_parts_moves_the_identity() {
+        let joined = |left: &[u8], right: &[u8]| {
+            let mut bytes = Vec::new();
+            encode_bytes(left, &mut bytes);
+            encode_bytes(right, &mut bytes);
+            ProjectionIdentity::<GeneratedUnitSubject>::derived(ProjectionTranscript::under(
+                ProjectionRole::GeneratedUnit,
+                TranscriptAnchoring::UnderProjectionIdentity(GOLDEN_ANCHOR),
+                &bytes,
+                GOLDEN_POSITION,
+            ))
+        };
+        assert_ne!(joined(b"alpha", b"beta"), joined(b"beta", b"alpha"));
+        assert_ne!(joined(b"ab", b"c"), joined(b"a", b"bc"));
+    }
+
+    /// law: identity-profile.domain-separation-bites — one transcript under two
+    /// roles, and one transcript under two subjects, derive different
+    /// identities. The separation is a runtime fact and not only the compile-time
+    /// one the `PhantomData` parameter already gives.
+    /// Owed reversal (red twin): a single context for every subject and role
+    /// must break this law.
+    #[test]
+    fn domain_separation_bites() {
+        let under_role = |role: ProjectionRole| {
+            *ProjectionIdentity::<GeneratedUnitSubject>::derived(ProjectionTranscript::under(
+                role,
+                TranscriptAnchoring::UnderProjectionIdentity(GOLDEN_ANCHOR),
+                GOLDEN_CONTENT,
+                GOLDEN_POSITION,
+            ))
+            .as_bytes()
+        };
+        assert_ne!(
+            under_role(ProjectionRole::GeneratedUnit),
+            under_role(ProjectionRole::RenderedUnit)
+        );
+        assert_ne!(
+            *ProjectionIdentity::<GeneratedUnitSubject>::derived(anchored_vector()).as_bytes(),
+            *ProjectionIdentity::<RenderedUnitSubject>::derived(anchored_vector()).as_bytes()
+        );
+        assert_ne!(
+            *ProjectionIdentity::<PlanSubject>::derived(rooted_vector()).as_bytes(),
+            *ProjectionIdentity::<GeneratedUnitSubject>::derived(rooted_vector()).as_bytes()
+        );
+    }
+
+    /// law: identity-profile.the-record-carries-the-anchor-whole — a derivation
+    /// record states its subject, role, profile, generator, position, and
+    /// content LENGTH, and carries its anchor at the full thirty-two bytes. The
+    /// retired design folded that anchor to eight.
+    /// Owed reversal (red twin): narrowing the recorded anchor must break this
+    /// law.
+    #[test]
+    fn the_record_carries_the_anchor_whole() {
+        let (identity, provenance) =
+            ProjectionIdentity::<GeneratedUnitSubject>::derived_with_provenance(anchored_vector());
+        assert_eq!(
+            identity,
+            ProjectionIdentity::<GeneratedUnitSubject>::derived(anchored_vector())
+        );
+        assert_eq!(provenance.subject(), "generated-unit");
+        assert!(matches!(provenance.role(), ProjectionRole::GeneratedUnit));
+        assert_eq!(provenance.profile(), PROJECTION_IDENTITY_PROFILE);
+        assert_eq!(provenance.generator(), MACROC_GENERATOR);
+        assert_eq!(provenance.position(), GOLDEN_POSITION);
+        assert_eq!(
+            provenance.content_length(),
+            u64::try_from(GOLDEN_CONTENT.len()).unwrap_or(u64::MAX)
+        );
+        assert_eq!(
+            provenance.anchoring().commitment(),
+            Some(&GOLDEN_ANCHOR),
+            "the anchor is recorded at full width"
+        );
+        assert_eq!(
+            provenance.context(),
+            "threadpak/macroc/projection-identity/v1/generated-unit/generated-unit"
+        );
+    }
+}
+
 mod refusal {
     use crate::plane::PlanningIssueLimit;
     use crate::refusal::{
@@ -2193,11 +2512,11 @@ mod pattern_stamp {
         }));
     }
 
-    /// The owning home one citation names.
-    fn citation_home(cited: OwnerFactRef) -> [u8; 32] {
+    /// The owning home one citation names, as the bytes that name it.
+    fn citation_home(cited: OwnerFactRef) -> Vec<u8> {
         match cited {
-            OwnerFactRef::Minted { home, .. } => *home.as_bytes(),
-            OwnerFactRef::Declared(named) => crate::plane::provenance_tag(&[named.home.as_bytes()]),
+            OwnerFactRef::Minted { home, .. } => home.as_bytes().to_vec(),
+            OwnerFactRef::Declared(named) => named.home.as_bytes().to_vec(),
         }
     }
 
@@ -2667,13 +2986,17 @@ mod derive_refusal {
                 .cloned();
             family.is_some_and(|unit| {
                 let partial = crate::closure::RenderedProjection::of_one(unit);
-                crate::closure::ProjectionClosure::proved(closed.plan().membership(), partial)
-                    .is_err_and(|refusal| {
-                        *refusal.issues.first()
-                            == ClosureIssue::MemberMissing {
-                                role: RenderedImplementation::RenderedCauseOrderImpl,
-                            }
-                    })
+                crate::closure::ProjectionClosure::proved(
+                    closed.plan().identity(),
+                    closed.plan().membership(),
+                    partial,
+                )
+                .is_err_and(|refusal| {
+                    *refusal.issues.first()
+                        == ClosureIssue::MemberMissing {
+                            role: RenderedImplementation::RenderedCauseOrderImpl,
+                        }
+                })
             })
         }));
     }

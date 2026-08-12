@@ -47,7 +47,7 @@ use super::types::{
     SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
 };
 use crate::plane::{
-    CapturedTokenLimit, DeriveCauseLimit, ProjectionIdentity, ProjectionPreimage, ProjectionRole,
+    CapturedTokenLimit, DeriveCauseLimit, ProjectionIdentity, ProjectionRole, ProjectionTranscript,
 };
 use crate::token::{
     CapturedDelimiter, CapturedInput, CapturedTokenTree, SpanHandle, TextCapture, TextReadCause,
@@ -64,7 +64,7 @@ use threadpak::types::{Bounded, ConstLimit};
 /// [`RefusalDeriveCapture`] cause and the token it was established at.
 pub fn captured(input: &CapturedInput) -> Result<RefusalDeriveSurface, RefusalDeriveRefusal> {
     let trees: Vec<&CapturedTokenTree> = input.trees().collect();
-    let identity = ProjectionIdentity::derived(ProjectionPreimage::rooted(
+    let identity = ProjectionIdentity::derived(ProjectionTranscript::rooted(
         ProjectionRole::CapturedDeclaration,
         &input.canonical_bytes(),
         0,

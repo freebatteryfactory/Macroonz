@@ -94,13 +94,17 @@ pub fn compile_refusal(
 
     let rendered = render_units(&draft)?;
 
-    let closure =
-        ProjectionClosure::proved(planned.plan().membership(), rendered).map_err(|_| {
-            step_refusal(
-                MacrocPhase::Rendering,
-                ObservedClassification::IdentityDisagreement,
-            )
-        })?;
+    let closure = ProjectionClosure::proved(
+        planned.plan().identity(),
+        planned.plan().membership(),
+        rendered,
+    )
+    .map_err(|_| {
+        step_refusal(
+            MacrocPhase::Rendering,
+            ObservedClassification::IdentityDisagreement,
+        )
+    })?;
 
     let explanation = explain::explained(&planned, &closure)
         .map_err(|_| step_refusal(MacrocPhase::Inspection, ObservedClassification::SeatAbsent))?;
