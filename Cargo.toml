@@ -4,6 +4,8 @@ description = "A host-neutral semantic machine: programs are typed data, not tex
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
 
 [lints]
 workspace = true
@@ -23,6 +25,8 @@ members = [
 version = "0.0.0"
 edition = "2024"
 rust-version = "1.97"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/freebatteryfactory/ThreadPak"
 
 [profile.release]
 # Release arithmetic traps instead of wrapping; defense in depth behind the
