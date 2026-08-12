@@ -155,7 +155,10 @@ impl CapturedTokenTree {
     pub fn word(&self) -> Option<&str> {
         match &self.payload {
             CapturedPayload::Word(word) => Some(word.as_str()),
-            _ => None,
+            CapturedPayload::Punct(_)
+            | CapturedPayload::Text(_)
+            | CapturedPayload::Number(_)
+            | CapturedPayload::Group { .. } => None,
         }
     }
 
@@ -164,7 +167,10 @@ impl CapturedTokenTree {
     pub const fn punct(&self) -> Option<char> {
         match &self.payload {
             CapturedPayload::Punct(mark) => Some(*mark),
-            _ => None,
+            CapturedPayload::Word(_)
+            | CapturedPayload::Text(_)
+            | CapturedPayload::Number(_)
+            | CapturedPayload::Group { .. } => None,
         }
     }
 
@@ -173,7 +179,10 @@ impl CapturedTokenTree {
     pub fn text(&self) -> Option<&str> {
         match &self.payload {
             CapturedPayload::Text(text) => Some(text.as_str()),
-            _ => None,
+            CapturedPayload::Word(_)
+            | CapturedPayload::Punct(_)
+            | CapturedPayload::Number(_)
+            | CapturedPayload::Group { .. } => None,
         }
     }
 
@@ -211,7 +220,10 @@ impl CapturedTokenTree {
     )> {
         match &self.payload {
             CapturedPayload::Group { delimiter, trees } => Some((*delimiter, trees)),
-            _ => None,
+            CapturedPayload::Word(_)
+            | CapturedPayload::Punct(_)
+            | CapturedPayload::Text(_)
+            | CapturedPayload::Number(_) => None,
         }
     }
 }

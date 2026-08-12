@@ -163,6 +163,10 @@ pub fn structure_of(rendered: &str) -> Option<ArtifactStructure> {
     let mut implementations = Vec::new();
     let mut other_items = 0usize;
     for item in &file.items {
+        #[expect(
+            clippy::wildcard_enum_match_arm,
+            reason = "`syn::Item` is non_exhaustive, so no crate outside syn can enumerate its variants; a wildcard is the only arm that closes this match, and every item it catches is one this reading counts rather than reads"
+        )]
         match item {
             syn::Item::Impl(declared) => match implementation_structure(declared) {
                 Some(structure) => implementations.push(structure),
@@ -358,6 +362,10 @@ fn path_spelling(path: &syn::Path) -> String {
 }
 
 /// The path one type spells, or `None` where the type is not a plain path.
+#[expect(
+    clippy::wildcard_enum_match_arm,
+    reason = "`syn::Type` is non_exhaustive, so no crate outside syn can enumerate its variants; a wildcard is the only arm that closes this match, and every type it catches is by definition not a plain path"
+)]
 fn type_path(declared: &syn::Type) -> Option<String> {
     match declared {
         syn::Type::Path(typed) => Some(path_spelling(&typed.path)),

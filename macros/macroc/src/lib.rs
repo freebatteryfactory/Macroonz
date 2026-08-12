@@ -191,19 +191,5 @@ pub use trigger_view::{
     WrapperTriggerView,
 };
 
-/// The machine's frontend-role type, re-exported rather than restated. The
-/// expansion shell reaches the machine's vocabulary through the services, so
-/// the shell needs no edge of its own to the machine and no copy of the type.
-pub use threadpak::declaration::FrontendRole;
-
-/// Names the front door a role stands for.
-#[must_use]
-pub const fn describe_frontend_role(role: FrontendRole) -> &'static str {
-    match role {
-        FrontendRole::RustDeclaration => "the live Rust-declaration front door",
-        FrontendRole::ApplicationLanguage => "the pluggable application-language front door",
-    }
-}
-
 #[cfg(test)]
 mod laws;

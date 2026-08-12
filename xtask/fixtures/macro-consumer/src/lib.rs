@@ -17,31 +17,10 @@
 
 #[cfg(test)]
 mod tests {
-    use threadpak::declaration::FrontendRole;
     use threadpak::refusal::{
         CauseId, CauseOrderDeclaration, DeclaredCause, DeclaredCauseOrder, FamilyShape,
         RefusalFamily,
     };
-    use threadpak_macros::ThreadpakSkeleton;
-
-    /// A consumer shaped like an application: it holds a type owned by the
-    /// machine and wears a derive owned by the expansion shell. Nothing here
-    /// reaches the services the shell is a surface over.
-    #[derive(ThreadpakSkeleton)]
-    struct Consumer {
-        role: FrontendRole,
-    }
-
-    /// The composition proof: the machine's public type and the shell's derive
-    /// meet on one struct in a crate that owns neither.
-    #[test]
-    fn a_consumer_composes_the_machine_and_the_shell() {
-        let consumer = Consumer {
-            role: FrontendRole::RustDeclaration,
-        };
-        assert!(matches!(consumer.role, FrontendRole::RustDeclaration));
-        assert_ne!(consumer.role, FrontendRole::ApplicationLanguage);
-    }
 
     /// The derived family. The caller states three things — the shape, the
     /// variants, and one stable identity per cause — and writes no

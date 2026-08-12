@@ -44,7 +44,7 @@ That check enforces a second absence in the same breath: the services never depe
 their frontend surfaces either, not even for tests. Composition is proven from outside
 the participants instead — `xtask/fixtures/macro-consumer` depends on the machine and on
 the expansion shell, exactly as an application would, and holds the tests that apply the
-shell's derives and prove one derived implementation equal to a hand-written twin.
+shell's derive and prove one derived implementation equal to a hand-written twin.
 
 The same check enforces a third absence: **nothing depends on testpak**. testpak depends
 inward on the machine and on the tooling, and production never depends on its judge.

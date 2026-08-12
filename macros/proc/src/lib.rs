@@ -15,7 +15,7 @@
 //!
 //! # What "semantically empty" means here
 //!
-//! Read the derives below and there is no grammar, no roster, no shape decision,
+//! Read the derive below and there is no grammar, no roster, no shape decision,
 //! no identity, no plan, and no message. Every sentence a user reads was
 //! composed inside the services, where the typed value it projects lives. The
 //! shell does not even build the string it emits: the services hand it tokens.
@@ -45,32 +45,9 @@
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 use threadpak_macroc::{
     CapturedDelimiter, CapturedInput, CapturedPayload, CapturedTokenTree, ClosedExpansion,
-    FrontendRole, GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree,
-    LocalCoordinate, MacrocDiagnostic, RefusalCompileContext, SpanHandle, compile_refusal,
-    describe_frontend_role,
+    GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree, LocalCoordinate,
+    MacrocDiagnostic, RefusalCompileContext, SpanHandle, compile_refusal,
 };
-
-/// A no-op derive that expands to nothing.
-///
-/// The expansion is empty by construction: the skeleton exists to price the
-/// crate topology, not to author anything. What it does prove is that the
-/// shell can call the services during expansion and can see the machine's
-/// public types through them.
-///
-/// ```
-/// use threadpak_macros::ThreadpakSkeleton;
-///
-/// #[derive(ThreadpakSkeleton)]
-/// struct Local;
-/// ```
-#[proc_macro_derive(ThreadpakSkeleton)]
-pub fn threadpak_skeleton(item: TokenStream) -> TokenStream {
-    let described = describe_frontend_role(FrontendRole::RustDeclaration);
-    if described.is_empty() {
-        return item;
-    }
-    TokenStream::new()
-}
 
 /// Derives a refusal family's declared facts from its declaration.
 ///

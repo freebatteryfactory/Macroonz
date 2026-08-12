@@ -24,22 +24,39 @@ version = "0.0.0"
 edition = "2024"
 rust-version = "1.97"
 
+# The lint wall is declared here once and inherited by every member; no member
+# weakens it. `#[allow]` is refused outright, so the single escape hatch is
+# `#[expect]`, and it is disciplined: an expectation names the exact lint,
+# carries a mandatory reason, and sits on the narrowest item that contains the
+# concern — never a module, never a crate. One expectation states one concern;
+# two concerns are two expectations. The reason states the structural fact that
+# makes the lint wrong there, not the inconvenience it causes. Because an
+# unfulfilled expectation is itself a warning and warnings are denied, an
+# expectation that outlives its cause fails the build, which is why the wall
+# admits this hatch and refuses the silent one. Generated code never emits an
+# expectation: an expansion that needs one is an expansion whose plan is wrong.
 [workspace.lints.rust]
 warnings = { level = "deny", priority = -1 }
 unsafe_code = "forbid"
 missing_docs = "deny"
+let_underscore_drop = "deny"
+non_ascii_idents = "deny"
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
 pedantic = { level = "deny", priority = -1 }
 allow_attributes = "deny"
+allow_attributes_without_reason = "deny"
 arithmetic_side_effects = "deny"
 dbg_macro = "deny"
 expect_used = "deny"
 indexing_slicing = "deny"
 iter_over_hash_type = "deny"
+let_underscore_must_use = "deny"
 mem_forget = "deny"
 panic = "deny"
+rest_pat_in_fully_bound_structs = "deny"
 todo = "deny"
 unimplemented = "deny"
 unwrap_used = "deny"
+wildcard_enum_match_arm = "deny"
