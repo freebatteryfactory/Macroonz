@@ -460,8 +460,8 @@ fn a_rendering_with_no_projection_at_all_is_unreadable_not_conforming() {
 ///
 /// Rehearsing it here means the alarm is known to sound before anyone has to
 /// interpret one in anger. And it fixes the response: when a real rendering
-/// changes shape, the anchor in `03_judge/mod.rs` is re-stated to match the new
-/// shape, deliberately and visibly. It is never loosened — no whitespace
+/// changes shape, the anchor in `03_judge/byte_profile.rs` is re-stated to match
+/// the new shape, deliberately and visibly. It is never loosened — no whitespace
 /// trimming, no prefix matching, no looser fallback — because a reader widened
 /// until it matches again has stopped reading the artifact and started agreeing
 /// with the renderer.

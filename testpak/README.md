@@ -33,7 +33,7 @@ suites, because cargo requires executable challenge material to live under
 | 00 | plan | **seated as `src/00_plan/`** — the denominators a verdict is stated over |
 | 01 | corpus | reserved, unmaterialized |
 | 02 | arena | reserved, unmaterialized |
-| 03 | judge | **seated as `src/03_judge/`** — the readers that state a verdict over a rendered artifact |
+| 03 | judge | **seated as `src/03_judge/`** — the readers that state a verdict over a rendered artifact: lane A in `byte_profile.rs`, lane B in `structural.rs`, the damage in `mutation.rs`, everything they may say in `types.rs` |
 | 04 | simulation | reserved, unmaterialized |
 | 05 | fault | reserved, unmaterialized |
 | 06 | muterprater | **seated as `tests/planted_defect.rs`, `tests/failed_seat_refusals.rs`, `tests/declared_magnitudes.rs`, and `tests/compiled_behaviour.rs`** — the mutation seat: the damaged artifacts and the proof each lane notices what it owns, the killed repairs restored one at a time, the declared magnitudes driven both directions, and the two mutants that need a compiler |
@@ -52,7 +52,11 @@ explicit ruling instead of being normalized into the nearest drawer.
 | Path | What it carries |
 | --- | --- |
 | `src/00_plan/` | `RedTwinLedger`: expected against discharged, with no road past the denominator |
-| `src/03_judge/` | `RenderVerdict` and the readers that produce it; `structural.rs` carries lane B |
+| `src/03_judge/types.rs` | everything the seat can say: both verdicts, everything lane B recovers, what a caller declares against, and the fifteen-mutation roster |
+| `src/03_judge/type_contract.rs` | the roster's closed tables: which lane owns catching each mutation, and the sentence each one is shown as |
+| `src/03_judge/byte_profile.rs` | lane A: the two exact anchors and the readers that scan for them |
+| `src/03_judge/structural.rs` | lane B: the walk over the tree `syn` hands back, and the coarse-to-fine comparison against the caller's declaration |
+| `src/03_judge/mutation.rs` | the damage itself: string surgery that makes a lawful artifact lie |
 | `src/laws.rs` | the plane's own compile-time proof surface, sectioned by seat |
 | `tests/planted_defect.rs` | the planted defective expansion, the proof the checker notices, and the rehearsed false alarm |
 | `tests/failed_seat_refusals.rs` | each repair the failure-path law killed, restored by this plane and shown to be about another subject |
@@ -79,11 +83,11 @@ downstream of it quietly stops testing anything.
 
 **The response to a false alarm is to fix the anchor deliberately, never to
 loosen the reader.** When a rendering legitimately changes shape, the anchor
-constant in `src/03_judge/mod.rs` is re-stated to match the new shape, in one
-place, on purpose, visible in the diff. Widening the reader until it matches
-again — trimming whitespace, matching a prefix, adding a looser fallback — buys
-a green run by making the judge cleverer, and a clever judge has stopped reading
-the artifact and started agreeing with the renderer.
+constant in `src/03_judge/byte_profile.rs` is re-stated to match the new shape,
+in one place, on purpose, visible in the diff. Widening the reader until it
+matches again — trimming whitespace, matching a prefix, adding a looser fallback
+— buys a green run by making the judge cleverer, and a clever judge has stopped
+reading the artifact and started agreeing with the renderer.
 
 The alarm is rehearsed rather than trusted:
 `a_whitespace_shifted_lawful_rendering_is_unreadable` takes a genuinely lawful
@@ -152,7 +156,7 @@ tooling-obligation: testpak.lane-a-catches-what-lane-a-owns
   claim: >
     The byte-profile scan catches every mutation whose ownership it is recorded
     as holding, and the lawful artifact passes it.
-  owner: testpak/src/03_judge/mod.rs
+  owner: testpak/src/03_judge/byte_profile.rs
   positive: testpak/tests/planted_defect.rs
   method: mutation
   activation: cargo test -p threadpak-testpak --test planted_defect
@@ -203,7 +207,7 @@ tooling-obligation: testpak.lane-c-compiles-the-mutants-it-owns
     back as VALUES disagreeing with the shape this plane declares, and the
     lawful artifact compiled the same way reads back as declared. Every
     materialized artifact's provenance is re-derived on every run.
-  owner: testpak/src/03_judge/mutation.rs
+  owner: testpak/src/03_judge/type_contract.rs
   positive: testpak/tests/compiled_behaviour.rs
   method: compiled-behaviour
   activation: cargo test -p threadpak-testpak --test compiled_behaviour
@@ -217,11 +221,11 @@ tooling-obligation: testpak.lane-c-compiles-the-mutants-it-owns
 
 ## The three lanes, and what each one may claim
 
-**Lane A — the byte-profile scan** (`src/03_judge/mod.rs`). Its claim is exactly
-*the rendered text contains this exact declared textual form* and never anything
-structural. It reads text `rustc` never touched, which is exactly its value: it
-catches a renderer emitting the wrong bytes before those bytes are ever offered
-to a compiler, and it costs a string search.
+**Lane A — the byte-profile scan** (`src/03_judge/byte_profile.rs`). Its claim
+is exactly *the rendered text contains this exact declared textual form* and
+never anything structural. It reads text `rustc` never touched, which is exactly
+its value: it catches a renderer emitting the wrong bytes before those bytes are
+ever offered to a compiler, and it costs a string search.
 
 **Lane B — the structural read** (`src/03_judge/structural.rs`). Its claim is
 exactly *the artifact DECLARES these implementations, of these traits, for this
@@ -329,7 +333,7 @@ one declared* and never as *no such contract*. All of that is lane C's, where
 never a skip, never a softer `Deviates`.
 
 **The planted mutations it must catch**, all nine recorded as structural in
-`src/03_judge/mutation.rs`, each landing on a different structural fact:
+`src/03_judge/type_contract.rs`, each landing on a different structural fact:
 
 | Mutation | What lane B reports |
 | --- | --- |
@@ -351,9 +355,11 @@ their own methods, about different questions.
 
 The services no longer carry a road that renders a deliberately defective
 artifact. A generator writing its own exam is rehearsed only against the defects
-it already imagined. `src/03_judge/mutation.rs` declares fifteen mutations,
-damages lawful artifacts itself, and records per mutation WHICH LANE owns
-catching it. Ownership is the seat of the CLAIM rather than a boast of
+it already imagined. `src/03_judge/types.rs` declares fifteen mutations,
+`src/03_judge/mutation.rs` damages lawful artifacts itself, and
+`src/03_judge/type_contract.rs` records per mutation WHICH LANE owns catching
+it — three files because a roster, a cut, and a ledger are three different
+statements. Ownership is the seat of the CLAIM rather than a boast of
 exclusivity: lane B notices a permuted order too and says nothing about it,
 because that verdict is stated over lane A's method and belongs to lane A's row.
 
