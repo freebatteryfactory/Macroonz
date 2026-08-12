@@ -1,1 +1,15 @@
 /target
+
+# What operating systems drop into a directory without being asked.
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor and IDE state, which belongs to a person rather than to the work.
+.vscode/
+.idea/
+
+# Backup and merge leftovers, which are a moment in an edit rather than a file.
+*.rs.bk
+*.orig
+*.rej

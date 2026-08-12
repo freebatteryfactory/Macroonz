@@ -42,10 +42,13 @@
 //! policy selects the families admissible for new writes; non-32-byte outputs
 //! are distinct registered roles with their own tags, never ad-hoc truncations —
 //! truncation changes the collision claim, so it must change the name. The
-//! day-one family proposal is blake3-256 (hash = plain commitments, keyed hash =
+//! day-one family is blake3-256, admitted (hash = plain commitments, keyed hash =
 //! keyed-when-protected under `KeyScope`, derive-key context = the domain-tag
-//! register); admitting it is a mechanism decision, and the final roster is
-//! selected by security-plane evidence.
+//! register): its three modes map natively onto settled law, so the family
+//! needed no bending to fit. Admission is not qualification and qualification is
+//! not a support promise. The family stays swappable behind the machine-owned
+//! digest role contract, which is why security-plane evidence widening the
+//! roster changes a register row rather than this law.
 
 use crate::identity::{ByteIdentity, CreationLaw, IdentityClass, IdentityRole};
 use crate::refusal::{FamilyShape, RefusalFamily};

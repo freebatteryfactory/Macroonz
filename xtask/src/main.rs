@@ -1,20 +1,30 @@
 //! The `cargo xtask` command shell.
 //!
+//! Two commands, and the second contains the first.
+//!
 //! `cargo xtask check` runs every day-zero repository law and reports each
 //! result; any broken law fails the run. Checks grow one at a time as each
 //! written rule gains something to enforce — the repository never carries a rule
 //! that nothing checks.
 //!
+//! `cargo xtask qualify` runs the complete entry bar: formatting, the lint wall,
+//! the tests, those same repository laws, the wasm build, and the documentation
+//! build. It is the whole bar and the only spelling of it, so the road a hosted
+//! runner takes and the road a working machine takes cannot differ.
+//!
 //! This file is the shell and nothing else. It resolves the command, holds the
 //! one table that names every law beside the function that checks it, and runs
 //! that table in order. The laws live in [`checks`]; the reading they do lives
-//! in [`repository`]. Keeping the table alone here is what makes the registered
-//! set readable in one screen: adding a law is one line beside twelve others, so
-//! a law added without a name, or a name registered twice, is visible at a
-//! glance rather than buried among the checks themselves.
+//! in [`repository`]; the ordered battery `qualify` runs lives in
+//! [`qualification`], which is handed the law table's runner rather than
+//! reaching back for it. Keeping the table alone here is what makes the
+//! registered set readable in one screen: adding a law is one line beside twelve
+//! others, so a law added without a name, or a name registered twice, is visible
+//! at a glance rather than buried among the checks themselves.
 
 mod checks;
 mod repository;
+mod qualification;
 
 use std::error::Error;
 use std::path::Path;
@@ -38,6 +48,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .unwrap_or_else(|| String::from("check"));
     match command.as_str() {
         "check" => run_checks(&root),
+        "qualify" => qualification::qualify(&root, run_checks),
         other => Err(format!("unknown xtask command: {other}").into()),
     }
 }

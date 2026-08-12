@@ -29,7 +29,7 @@ knows which host is running it.
 | `macros/macroc`                   | the metaprogramming services — package `threadpak-macroc`                     |
 | `macros/proc`                     | the Rust-facing expansion shell — package `threadpak-macros`                  |
 | `testpak`                         | the qualification plane — package `threadpak-testpak`                         |
-| `xtask`                           | repository law checks and tooling — `cargo xtask check`                       |
+| `xtask`                           | repository law and the qualification road — `cargo xtask qualify`             |
 | `xtask/fixtures/macro-consumer`   | the outside consumer fixture — package `threadpak-macro-consumer`             |
 | `xtask/fixtures/renamed-consumer` | the renamed-dependency consumer fixture — `threadpak-renamed-consumer`        |
 

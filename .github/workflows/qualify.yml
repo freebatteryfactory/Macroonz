@@ -1,0 +1,66 @@
+# The hosted runner is a caller. The battery is `cargo xtask qualify`.
+#
+# Every stage of the entry bar — formatting, the lint wall, the tests, the
+# repository laws, the wasm build, the documentation build — lives in xtask, so
+# a contributor runs on a working machine the exact road a change runs here.
+# What a hosted run supplies is the one thing a working machine cannot: a host
+# nobody configured, and a refusal standing between a change and the branch.
+# Changing what qualification MEANS is a change to xtask and never a change to
+# this file; a stage restated here would be a second definition, and the two
+# would drift the first time either was edited alone.
+name: qualify
+
+on:
+  # Every pull request, whatever it targets.
+  pull_request:
+  # And direct pushes to the trunk, until branch protection forbids them. In
+  # normal flow a change arrives one way or the other, never both at once.
+  push:
+    branches: [main]
+
+# One live run per ref. A push that supersedes another has nothing to learn from
+# finishing the older one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# The run reads the tree and writes nothing back.
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # rust-toolchain.toml is the pin, here as on every machine. Invoked inside
+      # the checkout, rustup reads that file and installs the exact channel it
+      # names together with the components and targets it declares. The target
+      # is then named again out loud: the pin already carries it, and a step
+      # that states the requirement makes a silent removal from the pin fail
+      # here rather than three stages later.
+      - name: Install the pinned toolchain
+        run: |
+          rustup toolchain install
+          rustup target add wasm32-unknown-unknown
+          rustup show
+
+      # Keyed on the lock file and the pin, because those two decide what is
+      # built. A miss costs a cold build and nothing else.
+      - name: Cache cargo registry and build output
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ hashFiles('rust-toolchain.toml') }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ hashFiles('rust-toolchain.toml') }}-
+
+      # The whole bar, in one command that owns its own order and its own
+      # reporting. It stops at the first red, so the last line of this log names
+      # the one thing to fix.
+      - name: Qualify
+        run: cargo xtask qualify
