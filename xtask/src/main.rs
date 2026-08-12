@@ -42,7 +42,7 @@ use crate::checks::vocabulary::{check_banned_vocabulary, check_no_personal_names
 use crate::repository::types::Check;
 use crate::repository::walk::repo_root;
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn  main() -> Result<(), Box<dyn Error>> {
     let root = repo_root()?;
     let command = std::env::args()
         .nth(1)
