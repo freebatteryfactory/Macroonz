@@ -1,5 +1,7 @@
 # ThreadPak
 
+[![qualify](https://github.com/freebatteryfactory/ThreadPak/actions/workflows/qualify.yml/badge.svg)](https://github.com/freebatteryfactory/ThreadPak/actions/workflows/qualify.yml)
+
 ThreadPak is a host-neutral semantic machine written in safe Rust. Programs are typed
 data, not text: a builder constructs typed declarations, and the machine validates,
 seals, executes, and remembers them. Any frontend — Rust today, others later — enters
