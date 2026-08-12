@@ -13,10 +13,11 @@
 //! unreachable.
 
 use super::{ExplanationCoverage, ExplanationCoverageIssue, ProjectionExplanation};
+use crate::plane::AuthoringLimitProfile;
 use crate::planning::{ProjectionKind, ProjectionPlan};
 use crate::question::{ExplanationQuestion, QuestionApplicability};
 use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction};
+use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction, PositiveLimit};
 
 /// Whether one kind admits one question.
 #[must_use]
@@ -80,7 +81,11 @@ impl ExplanationCoverage {
         first: ExplanationCoverageIssue,
         rest: Vec<ExplanationCoverageIssue>,
     ) -> Self {
-        match NonEmptyBounded::admitted_const(first, rest) {
+        match NonEmptyBounded::admitted_const(
+            first,
+            rest,
+            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+        ) {
             Ok(issues) => Self {
                 issues,
                 posture: CompletionPosture::Complete,

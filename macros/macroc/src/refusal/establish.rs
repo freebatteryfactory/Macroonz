@@ -9,8 +9,9 @@
 //! claims a completeness it does not have.
 
 use super::{BoundAxis, ProjectionPlanning, ProjectionPlanningIssue};
+use crate::plane::AuthoringLimitProfile;
 use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction};
+use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction, PositiveLimit};
 
 impl ProjectionPlanning {
     /// The one-issue body, for a seam whose checks can establish exactly one
@@ -31,7 +32,11 @@ impl ProjectionPlanning {
         first: ProjectionPlanningIssue,
         rest: Vec<ProjectionPlanningIssue>,
     ) -> Self {
-        match NonEmptyBounded::admitted_const(first.clone(), rest) {
+        match NonEmptyBounded::admitted_const(
+            first.clone(),
+            rest,
+            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+        ) {
             Ok(issues) => Self {
                 issues,
                 posture: CompletionPosture::Complete,

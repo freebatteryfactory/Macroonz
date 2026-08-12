@@ -10,8 +10,8 @@ use super::super::establish::{duplicate_issues, refused};
 use super::{
     CompositionRoot, CompositionRootDeclaration, CompositionRootIssue, DescriptorProvider,
 };
-use crate::plane::DescriptorProviderLimit;
-use threadpak::types::{ConstLimit, NonEmptyBounded};
+use crate::plane::{AuthoringLimitProfile, DescriptorProviderLimit};
+use threadpak::types::{ConstLimit, NonEmptyBounded, PositiveLimit};
 
 impl CompositionRoot {
     /// Declare the complete provider set.
@@ -34,17 +34,21 @@ impl CompositionRoot {
             return Err(refusal);
         }
         let observed = rest.len().saturating_add(1);
-        NonEmptyBounded::admitted_const(first, rest)
-            .map(|providers| Self { providers })
-            .map_err(|_| {
-                CompositionRootDeclaration::established(
-                    CompositionRootIssue::SeatBoundExceeded {
-                        bound: u64::try_from(DescriptorProviderLimit::MAX).unwrap_or(u64::MAX),
-                        observed: u64::try_from(observed).unwrap_or(u64::MAX),
-                    },
-                    Vec::new(),
-                )
-            })
+        NonEmptyBounded::admitted_const(
+            first,
+            rest,
+            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+        )
+        .map(|providers| Self { providers })
+        .map_err(|_| {
+            CompositionRootDeclaration::established(
+                CompositionRootIssue::SeatBoundExceeded {
+                    bound: u64::try_from(DescriptorProviderLimit::MAX).unwrap_or(u64::MAX),
+                    observed: u64::try_from(observed).unwrap_or(u64::MAX),
+                },
+                Vec::new(),
+            )
+        })
     }
 
     /// The guaranteed first declared provider.

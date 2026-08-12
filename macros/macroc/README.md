@@ -256,6 +256,31 @@ tooling-obligation: macroc.a-declared-input-stands-under-four-magnitudes
     magnitude bites first, and the budget is what bounds a producer that reads
     material it discards.
 
+tooling-obligation: macroc.the-authoring-plane-declares-its-own-admitting-ceiling
+  claim: >
+    Every bounded seat in the services reads its bound off a witness admitted
+    under `AuthoringLimitProfile` — this plane's own declared ceiling of
+    1_048_576, sixteen times the widest magnitude the plane declares — and the
+    machine declares no production ceiling for the services to inherit. A family
+    stating a magnitude past that ceiling stops the compiler during const
+    evaluation, and an admission carrying another plane's profile does not
+    typecheck at a seat that named this one.
+  owner: macros/macroc/src/plane/types.rs
+  positive: macros/macroc/src/laws.rs
+  method: compile-refusal
+  activation: cargo test -p threadpak-testpak --test compile_refusals
+  tooling-red: testpak/tests/compile-fail/a-magnitude-past-the-authoring-ceiling.rs
+  nonclaims: >
+    It does not claim the number is right for any seat: a ceiling rules out a
+    bound that bounds nothing, and says nothing about whether a family's own
+    magnitude suits its domain. It does not claim the ceiling is joined to the
+    widest declared family by any check — the sixteen-times relation is stated
+    prose today and drifts silently if a family grows past it, and a check that
+    joined the two is owed to xtask. And the fixture it names is deliberately
+    shared with the machine's own `root.admission-precedes-a-trusted-magnitude`:
+    one program that fails to compile falsifies both readings, and a second copy
+    of it would be a second thing to keep true.
+
 tooling-obligation: macroc.an-unresolvable-handle-refuses-rather-than-resolving
   claim: >
     A span table answers a handle it issued with the position it holds, and

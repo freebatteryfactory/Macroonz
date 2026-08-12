@@ -9,9 +9,9 @@
 //! be written here, and they are not.
 
 use super::{
-    GeneratorIdentity, GeneratorProfileId, GeneratorSchemaVersion, HumanProjection,
-    IdentityProfile, IdentityProfileVersion, IdentitySubject, MACROC_GENERATOR, OwnerFactName,
-    OwnerFactRef, OwnerIdentityRef, PROJECTION_IDENTITY_PROFILE, ProfileVersion,
+    AuthoringLimitProfile, GeneratorIdentity, GeneratorProfileId, GeneratorSchemaVersion,
+    HumanProjection, IdentityProfile, IdentityProfileVersion, IdentitySubject, MACROC_GENERATOR,
+    OwnerFactName, OwnerFactRef, OwnerIdentityRef, PROJECTION_IDENTITY_PROFILE, ProfileVersion,
     ProjectionIdentity, ProjectionProvenance, ProjectionRole, ProjectionTranscript, RefusalReason,
     RenderedRoleSeal, SubjectSeal, TranscriptAnchoring,
 };
@@ -103,8 +103,11 @@ impl<L: ConstLimit> HumanProjection<L> {
     /// family's declared byte maximum. A projection that does not fit refuses
     /// rather than truncating: a silently cut explanation is a false one.
     pub fn projected(text: &str) -> Result<Self, BoundedConstruction> {
-        Bounded::admitted_const(text.as_bytes().to_vec(), &AdmittedLimit::under_ceiling())
-            .map(|text| Self { text })
+        Bounded::admitted_const(
+            text.as_bytes().to_vec(),
+            &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
+        )
+        .map(|text| Self { text })
     }
 
     /// The seam behind [`human_projection!`], which is the only road to it.

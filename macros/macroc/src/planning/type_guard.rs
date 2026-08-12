@@ -17,16 +17,16 @@ use super::{
 };
 use crate::origin_graph::{DecisionTrace, Nonclaim, OriginTrail};
 use crate::plane::{
-    BundleMemberLimit, BundleSubject, GeneratedUnitSubject, InvalidationLimit, MembershipLimit,
-    NonclaimLimit, OwnerIdentityRef, PlanId, ProjectionIdentity, ProjectionProvenance,
-    ProjectionRole, ProjectionTranscript, RenderedRole, SourceDeclarationLimit, encode_bytes,
-    encode_length,
+    AuthoringLimitProfile, BundleMemberLimit, BundleSubject, GeneratedUnitSubject,
+    InvalidationLimit, MembershipLimit, NonclaimLimit, OwnerIdentityRef, PlanId,
+    ProjectionIdentity, ProjectionProvenance, ProjectionRole, ProjectionTranscript, RenderedRole,
+    SourceDeclarationLimit, encode_bytes, encode_length,
 };
 use crate::question::ExplanationQuestion;
 use crate::refusal::{BoundAxis, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue};
 use threadpak::declaration::DeclarationGraph;
 use threadpak::declaration::types::FragmentIdentityDomain;
-use threadpak::types::{Bounded, ConstLimit, NonEmptyBounded};
+use threadpak::types::{Bounded, ConstLimit, NonEmptyBounded, PositiveLimit};
 
 impl ProjectionContext {
     /// Read the machine's own closed-graph commitment into the plane. This is
@@ -56,7 +56,12 @@ impl ProjectionContext {
         rest: Vec<OwnerIdentityRef<FragmentIdentityDomain>>,
     ) -> Result<SourceDeclarations, ProjectionPlanning> {
         let observed = rest.len().saturating_add(1);
-        NonEmptyBounded::admitted_const(first, rest).map_err(|_| {
+        NonEmptyBounded::admitted_const(
+            first,
+            rest,
+            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+        )
+        .map_err(|_| {
             ProjectionPlanning::bound_exceeded(
                 BoundAxis::Declarations,
                 SourceDeclarationLimit::MAX,
@@ -137,7 +142,12 @@ impl<R: RenderedRole> PlannedMembership<R> {
         rest: Vec<PlannedMember<R>>,
     ) -> Result<Self, ProjectionPlanning> {
         let observed = rest.len().saturating_add(1);
-        let members = NonEmptyBounded::admitted_const(first, rest).map_err(|_| {
+        let members = NonEmptyBounded::admitted_const(
+            first,
+            rest,
+            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+        )
+        .map_err(|_| {
             ProjectionPlanning::bound_exceeded(BoundAxis::Outputs, MembershipLimit::MAX, observed)
         })?;
         let declared = Self { members };
@@ -266,7 +276,12 @@ impl InvalidationTrigger {
     /// than there are kinds of trigger means one kind was stated twice.
     pub fn watched(first: Self, rest: Vec<Self>) -> Result<InvalidationSet, ProjectionPlanning> {
         let observed = rest.len().saturating_add(1);
-        NonEmptyBounded::admitted_const(first, rest).map_err(|_| {
+        NonEmptyBounded::admitted_const(
+            first,
+            rest,
+            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+        )
+        .map_err(|_| {
             ProjectionPlanning::bound_exceeded(
                 BoundAxis::Declarations,
                 InvalidationLimit::MAX,
@@ -446,15 +461,15 @@ impl ProjectionBundlePlan {
         rest: Vec<PlanId>,
     ) -> Result<Self, ProjectionPlanning> {
         let observed = rest.len().saturating_add(1);
-        NonEmptyBounded::admitted_const(first, rest)
-            .map(|members| Self { bundle, members })
-            .map_err(|_| {
-                ProjectionPlanning::bound_exceeded(
-                    BoundAxis::Outputs,
-                    BundleMemberLimit::MAX,
-                    observed,
-                )
-            })
+        NonEmptyBounded::admitted_const(
+            first,
+            rest,
+            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+        )
+        .map(|members| Self { bundle, members })
+        .map_err(|_| {
+            ProjectionPlanning::bound_exceeded(BoundAxis::Outputs, BundleMemberLimit::MAX, observed)
+        })
     }
 
     /// The bundle's own identity.

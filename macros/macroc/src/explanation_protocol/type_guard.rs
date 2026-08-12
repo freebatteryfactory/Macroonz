@@ -13,7 +13,7 @@ use super::{
     ExplanationAnswer, ExplanationCoverage, ExplanationCoverageIssue, ProjectionExplanation,
     ProjectionExplanationView,
 };
-use crate::plane::{ExplanationSeatLimit, HumanProjection, HumanTextLimit};
+use crate::plane::{AuthoringLimitProfile, ExplanationSeatLimit, HumanProjection, HumanTextLimit};
 use crate::planning::ProjectionKind;
 use crate::question::ExplanationQuestion;
 use core::marker::PhantomData;
@@ -65,20 +65,23 @@ impl<K: ProjectionKind> ProjectionExplanationView<K> {
             return Err(refusal);
         }
         let observed = answers.len();
-        Bounded::admitted_const(answers, &AdmittedLimit::under_ceiling())
-            .map(|answers| Self {
-                answers,
-                _kind: PhantomData,
-            })
-            .map_err(|_| {
-                ExplanationCoverage::established(
-                    ExplanationCoverageIssue::SeatBoundExceeded {
-                        bound: u64::try_from(ExplanationSeatLimit::MAX).unwrap_or(u64::MAX),
-                        observed: u64::try_from(observed).unwrap_or(u64::MAX),
-                    },
-                    Vec::new(),
-                )
-            })
+        Bounded::admitted_const(
+            answers,
+            &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
+        )
+        .map(|answers| Self {
+            answers,
+            _kind: PhantomData,
+        })
+        .map_err(|_| {
+            ExplanationCoverage::established(
+                ExplanationCoverageIssue::SeatBoundExceeded {
+                    bound: u64::try_from(ExplanationSeatLimit::MAX).unwrap_or(u64::MAX),
+                    observed: u64::try_from(observed).unwrap_or(u64::MAX),
+                },
+                Vec::new(),
+            )
+        })
     }
 
     /// The number of seats filled.

@@ -16,16 +16,17 @@ use super::{
 };
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
-    ClosureId, GeneratedUnitSubject, OutputBytesSubject, PlanId, ProfileVersion,
-    ProjectionIdentity, ProjectionProfileSubject, ProjectionProvenance, ProjectionRole,
-    ProjectionTranscript, RenderedRole, RenderedUnitSubject, encode_bytes, encode_length,
+    AuthoringLimitProfile, ClosureId, GeneratedUnitSubject, OutputBytesSubject, PlanId,
+    ProfileVersion, ProjectionIdentity, ProjectionProfileSubject, ProjectionProvenance,
+    ProjectionRole, ProjectionTranscript, RenderedRole, RenderedUnitSubject, encode_bytes,
+    encode_length,
 };
 use crate::planning::{
     DigestContract, MemberDestination, PlannedMember, PlannedMembership, PlannedOutput,
 };
 use crate::question::EXPLANATION_PROTOCOL_VERSION;
 use crate::token::GeneratedTree;
-use threadpak::types::{AdmittedLimit, Bounded, NonEmptyBounded};
+use threadpak::types::{AdmittedLimit, Bounded, NonEmptyBounded, PositiveLimit};
 
 impl<R: RenderedRole> RenderedUnit<R> {
     /// Materialize one rendered unit from the tree a renderer produced.
@@ -60,8 +61,11 @@ impl<R: RenderedRole> RenderedUnit<R> {
             &raw,
             role.slot(),
         ));
-        let bytes = Bounded::admitted_const(raw, &AdmittedLimit::under_ceiling())
-            .map_err(|_| RenderingRefusal::BytesUnbounded)?;
+        let bytes = Bounded::admitted_const(
+            raw,
+            &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
+        )
+        .map_err(|_| RenderingRefusal::BytesUnbounded)?;
         Ok(Self {
             role,
             identity,
@@ -215,9 +219,13 @@ impl<R: RenderedRole> RenderedProjection<R> {
         first: RenderedUnit<R>,
         rest: Vec<RenderedUnit<R>>,
     ) -> Result<Self, RenderingRefusal> {
-        NonEmptyBounded::admitted_const(first, rest)
-            .map(|units| Self { units })
-            .map_err(|_| RenderingRefusal::UnitsUnbounded)
+        NonEmptyBounded::admitted_const(
+            first,
+            rest,
+            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+        )
+        .map(|units| Self { units })
+        .map_err(|_| RenderingRefusal::UnitsUnbounded)
     }
 
     /// The rendered units, in the order the renderer produced them.

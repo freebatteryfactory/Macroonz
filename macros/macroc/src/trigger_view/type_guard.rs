@@ -11,7 +11,7 @@ use super::super::establish::{disposition_issues, refused};
 use super::{
     TriggerOmission, TriggerSelection, TriggerViewComposition, TriggerViewIssue, WrapperTriggerView,
 };
-use crate::plane::{PlanId, WrapperComponentLimit};
+use crate::plane::{AuthoringLimitProfile, PlanId, WrapperComponentLimit};
 use threadpak::types::{AdmittedLimit, Bounded, ConstLimit};
 
 impl WrapperTriggerView {
@@ -32,11 +32,17 @@ impl WrapperTriggerView {
             return Err(refusal);
         }
         let observed = selections.len().saturating_add(omissions.len());
-        let admitted = Bounded::admitted_const(selections, &AdmittedLimit::under_ceiling())
-            .and_then(|bounded_selections| {
-                Bounded::admitted_const(omissions, &AdmittedLimit::under_ceiling())
-                    .map(|bounded_omissions| (bounded_selections, bounded_omissions))
-            });
+        let admitted = Bounded::admitted_const(
+            selections,
+            &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
+        )
+        .and_then(|bounded_selections| {
+            Bounded::admitted_const(
+                omissions,
+                &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
+            )
+            .map(|bounded_omissions| (bounded_selections, bounded_omissions))
+        });
         admitted
             .map(|(bounded_selections, bounded_omissions)| Self {
                 plan,

@@ -17,11 +17,11 @@ use super::{
     TemplateSeat, VersionedProfile,
 };
 use crate::plane::{
-    LanguageProfileSubject, MetaBoundAxisLimit, MetaProfileSubject, OwnerIdentityRef,
-    TemplateParameterLimit, TemplateSubject,
+    AuthoringLimitProfile, LanguageProfileSubject, MetaBoundAxisLimit, MetaProfileSubject,
+    OwnerIdentityRef, TemplateParameterLimit, TemplateSubject,
 };
 use threadpak::declaration::Stage;
-use threadpak::types::{AdmittedLimit, Bounded, ConstLimit, NonEmptyBounded};
+use threadpak::types::{AdmittedLimit, Bounded, ConstLimit, NonEmptyBounded, PositiveLimit};
 
 impl TemplateBinding {
     /// Bind one argument to one parameter.
@@ -83,15 +83,18 @@ impl ProfileCeiling {
             return Err(refusal);
         }
         let observed = axes.len();
-        Bounded::admitted_const(axes, &AdmittedLimit::under_ceiling())
-            .map(|axes| Self { axes })
-            .map_err(|_| {
-                TemplateConstruction::established(TemplateConstructionIssue::SeatBoundExceeded {
-                    seat: TemplateSeat::AxisCeilings,
-                    bound: u64::try_from(MetaBoundAxisLimit::MAX).unwrap_or(u64::MAX),
-                    observed: u64::try_from(observed).unwrap_or(u64::MAX),
-                })
+        Bounded::admitted_const(
+            axes,
+            &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
+        )
+        .map(|axes| Self { axes })
+        .map_err(|_| {
+            TemplateConstruction::established(TemplateConstructionIssue::SeatBoundExceeded {
+                seat: TemplateSeat::AxisCeilings,
+                bound: u64::try_from(MetaBoundAxisLimit::MAX).unwrap_or(u64::MAX),
+                observed: u64::try_from(observed).unwrap_or(u64::MAX),
             })
+        })
     }
 
     /// Read the declared axis ceilings.
@@ -140,22 +143,26 @@ impl DeclarationTemplate {
             return Err(refusal);
         }
         let observed = rest.len().saturating_add(1);
-        NonEmptyBounded::admitted_const(first, rest)
-            .map(|parameters| Self {
-                identity,
-                parameters,
-                formula,
-                ceiling,
-                meter,
-                stage,
+        NonEmptyBounded::admitted_const(
+            first,
+            rest,
+            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+        )
+        .map(|parameters| Self {
+            identity,
+            parameters,
+            formula,
+            ceiling,
+            meter,
+            stage,
+        })
+        .map_err(|_| {
+            TemplateConstruction::established(TemplateConstructionIssue::SeatBoundExceeded {
+                seat: TemplateSeat::DeclaredParameters,
+                bound: u64::try_from(TemplateParameterLimit::MAX).unwrap_or(u64::MAX),
+                observed: u64::try_from(observed).unwrap_or(u64::MAX),
             })
-            .map_err(|_| {
-                TemplateConstruction::established(TemplateConstructionIssue::SeatBoundExceeded {
-                    seat: TemplateSeat::DeclaredParameters,
-                    bound: u64::try_from(TemplateParameterLimit::MAX).unwrap_or(u64::MAX),
-                    observed: u64::try_from(observed).unwrap_or(u64::MAX),
-                })
-            })
+        })
     }
 
     /// The template's own identity.
@@ -241,21 +248,25 @@ impl TemplateApplication {
                 },
             ));
         };
-        NonEmptyBounded::admitted_const(first, supplied.collect())
-            .map(|bounded_bindings| Self {
-                template: template.identity(),
-                bindings: bounded_bindings,
-                language_profile,
-                meta_profile,
-                distinctness,
+        NonEmptyBounded::admitted_const(
+            first,
+            supplied.collect(),
+            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+        )
+        .map(|bounded_bindings| Self {
+            template: template.identity(),
+            bindings: bounded_bindings,
+            language_profile,
+            meta_profile,
+            distinctness,
+        })
+        .map_err(|_| {
+            TemplateConstruction::established(TemplateConstructionIssue::SeatBoundExceeded {
+                seat: TemplateSeat::SuppliedBindings,
+                bound: u64::try_from(TemplateParameterLimit::MAX).unwrap_or(u64::MAX),
+                observed: u64::try_from(observed).unwrap_or(u64::MAX),
             })
-            .map_err(|_| {
-                TemplateConstruction::established(TemplateConstructionIssue::SeatBoundExceeded {
-                    seat: TemplateSeat::SuppliedBindings,
-                    bound: u64::try_from(TemplateParameterLimit::MAX).unwrap_or(u64::MAX),
-                    observed: u64::try_from(observed).unwrap_or(u64::MAX),
-                })
-            })
+        })
     }
 
     /// The template applied.

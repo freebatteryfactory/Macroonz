@@ -11,8 +11,9 @@
 //! `type_guard.rs`, because building a root is what must stay unreachable.
 
 use super::{CompositionRootDeclaration, CompositionRootIssue, DescriptorProvider};
+use crate::plane::AuthoringLimitProfile;
 use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction};
+use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction, PositiveLimit};
 
 /// Every provider identity declared more than once, reported at its first
 /// occurrence.
@@ -55,7 +56,11 @@ impl CompositionRootDeclaration {
         first: CompositionRootIssue,
         rest: Vec<CompositionRootIssue>,
     ) -> Self {
-        match NonEmptyBounded::admitted_const(first, rest) {
+        match NonEmptyBounded::admitted_const(
+            first,
+            rest,
+            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+        ) {
             Ok(issues) => Self {
                 issues,
                 posture: CompletionPosture::Complete,

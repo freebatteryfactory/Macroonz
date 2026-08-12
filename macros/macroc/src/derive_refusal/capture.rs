@@ -47,7 +47,8 @@ use super::types::{
     SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
 };
 use crate::plane::{
-    CapturedTokenLimit, DeriveCauseLimit, ProjectionIdentity, ProjectionRole, ProjectionTranscript,
+    AuthoringLimitProfile, CapturedTokenLimit, DeriveCauseLimit, ProjectionIdentity,
+    ProjectionRole, ProjectionTranscript,
 };
 use crate::token::{
     CapturedDelimiter, CapturedInput, CapturedTokenTree, SpanHandle, TextCapture, TextReadCause,
@@ -75,8 +76,11 @@ pub fn captured(input: &CapturedInput) -> Result<RefusalDeriveSurface, RefusalDe
     let declared = read_enum(&trees)?;
     let attribute = read_attribute(&trees)?;
     let causes = read_causes(&attribute, &declared)?;
-    let causes = Bounded::admitted_const(causes, &AdmittedLimit::under_ceiling())
-        .map_err(|_| refuse(RefusalDeriveCapture::Unbounded, declared.body_span))?;
+    let causes = Bounded::admitted_const(
+        causes,
+        &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
+    )
+    .map_err(|_| refuse(RefusalDeriveCapture::Unbounded, declared.body_span))?;
     Ok(RefusalDeriveSurface::assembled(
         declared.family_name,
         attribute.family_id,

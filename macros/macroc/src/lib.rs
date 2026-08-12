@@ -169,12 +169,12 @@ pub use origin_graph::{
 };
 pub use pattern_stamp::{ScopeGuardOwnerFacts, ScopeGuardStampAnchors, plan_scope_guard_stamp};
 pub use plane::{
-    ClosedExpansionId, ClosureId, GeneratorIdentity, GeneratorProfileId, GeneratorSchemaVersion,
-    HumanProjection, IdentityProfile, IdentityProfileVersion, IdentitySubject, MACROC_GENERATOR,
-    OwnerFactName, OwnerFactRef, OwnerIdentityRef, PROJECTION_IDENTITY_PROFILE, PlanId,
-    ProfileVersion, ProjectionIdentity, ProjectionProvenance, ProjectionRole, ProjectionTranscript,
-    RenderedRole, RenderedRoleSeal, SoleRenderedUnit, SubjectSeal, TranscriptAnchoring,
-    encode_bytes, encode_length,
+    AuthoringLimitProfile, ClosedExpansionId, ClosureId, GeneratorIdentity, GeneratorProfileId,
+    GeneratorSchemaVersion, HumanProjection, IdentityProfile, IdentityProfileVersion,
+    IdentitySubject, MACROC_GENERATOR, OwnerFactName, OwnerFactRef, OwnerIdentityRef,
+    PROJECTION_IDENTITY_PROFILE, PlanId, ProfileVersion, ProjectionIdentity, ProjectionProvenance,
+    ProjectionRole, ProjectionTranscript, RenderedRole, RenderedRoleSeal, SoleRenderedUnit,
+    SubjectSeal, TranscriptAnchoring, encode_bytes, encode_length,
 };
 pub use planning::{
     BenchmarkDescriptorContent, BenchmarkDescriptorProjection, CauseAnchoring, CodecContent,

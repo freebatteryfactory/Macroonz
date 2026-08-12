@@ -150,7 +150,7 @@ mod root {
     fn bounded_construction_is_a_seam() {
         use crate::types::{
             AdmittedLimit, Bounded, BoundedConstruction, LimitWitness, NonEmptyBounded,
-            NonEmptyBoundedConstruction,
+            NonEmptyBoundedConstruction, PositiveLimit, RootLawsProfile,
         };
         struct SmallDemo;
         impl Limit for SmallDemo {}
@@ -158,11 +158,14 @@ mod root {
             const MAX: usize = 2;
         }
 
-        let ok: Result<Bounded<u8, SmallDemo>, _> =
-            Bounded::admitted_const(vec![1, 2], &AdmittedLimit::under_ceiling());
+        let admitted: AdmittedLimit<SmallDemo, RootLawsProfile> = AdmittedLimit::under_profile();
+        let positive: PositiveLimit<SmallDemo, RootLawsProfile> =
+            PositiveLimit::inhabited_under_profile();
+
+        let ok: Result<Bounded<u8, SmallDemo>, _> = Bounded::admitted_const(vec![1, 2], &admitted);
         assert!(ok.is_ok_and(|bounded| bounded.len() == 2));
         let over: Result<Bounded<u8, SmallDemo>, _> =
-            Bounded::admitted_const(vec![1, 2, 3], &AdmittedLimit::under_ceiling());
+            Bounded::admitted_const(vec![1, 2, 3], &admitted);
         assert!(matches!(over, Err(BoundedConstruction::OverLimit)));
 
         let witness: LimitWitness<SmallDemo> = LimitWitness::declared(1);
@@ -173,10 +176,10 @@ mod root {
         assert!(matches!(over_witness, Err(BoundedConstruction::OverLimit)));
 
         let admitted_one: Result<NonEmptyBounded<u8, SmallDemo>, _> =
-            NonEmptyBounded::admitted_const(9, vec![]);
+            NonEmptyBounded::admitted_const(9, vec![], &positive);
         assert!(admitted_one.is_ok_and(|value| value.len() == 1 && !value.is_empty()));
         let too_many: Result<NonEmptyBounded<u8, SmallDemo>, _> =
-            NonEmptyBounded::admitted_const(9, vec![8, 7]);
+            NonEmptyBounded::admitted_const(9, vec![8, 7], &positive);
         assert!(matches!(
             too_many,
             Err(NonEmptyBoundedConstruction::OverLimit)
@@ -191,24 +194,26 @@ mod root {
     }
 
     /// law: root.admission-precedes-a-trusted-magnitude — a declared magnitude
-    /// becomes a machine fact only through the admission witness: the mint
+    /// becomes a machine fact only through an admission witness: the mint
     /// carries the family's own `MAX`, the witness is family-tagged so one
     /// family's admission cannot authorize another, and the checked const
     /// constructor reads its bound off the witness rather than off the
     /// declaration.
     ///
-    /// The claim ceiling: admission establishes that the magnitude admits an
-    /// item and stands under the declared workspace ceiling. It establishes
-    /// nothing about whether the number is the right one for its domain, and
-    /// the total structural roads — `from_array`, `singleton` — together with
-    /// `NonEmptyBounded::admitted_const` still read `L::MAX` bare; moving them
-    /// behind the same evidence is owed and is not claimed here.
+    /// The claim ceiling: admission establishes that the magnitude stands under
+    /// the ADMITTING PROFILE's ceiling and nothing more. It establishes nothing
+    /// about whether the number is the right one for its domain. It does not
+    /// establish that the family admits an item — that is
+    /// `root.positivity-is-the-stronger-witness`. And the total structural roads
+    /// — `from_array`, `singleton` — read `L::MAX` bare by decision, because
+    /// each proves a LOCAL fact about the call in front of it and claims no
+    /// admission at all.
     ///
-    /// Owed reversal (red twin): a family declaring a magnitude past
-    /// `WORKSPACE_LIMIT_CEILING` must not compile — the fixture is testpak's.
+    /// Red twin: a family declaring a magnitude past the admitting profile's
+    /// ceiling must not compile — the fixture is testpak's.
     #[test]
     fn admission_precedes_a_trusted_magnitude() {
-        use crate::types::{AdmittedLimit, Bounded, WORKSPACE_LIMIT_CEILING};
+        use crate::types::{AdmittedLimit, Bounded, LimitAdmissionProfile, RootLawsProfile};
         struct AdmissibleDemo;
         impl Limit for AdmissibleDemo {}
         impl ConstLimit for AdmissibleDemo {
@@ -220,26 +225,125 @@ mod root {
             const MAX: usize = 4;
         }
 
-        let admitted: AdmittedLimit<AdmissibleDemo> = AdmittedLimit::under_ceiling();
+        let admitted: AdmittedLimit<AdmissibleDemo, RootLawsProfile> =
+            AdmittedLimit::under_profile();
         assert_eq!(admitted.max(), AdmissibleDemo::MAX);
-        assert!(admitted.max() <= WORKSPACE_LIMIT_CEILING);
+        assert!(admitted.max() <= RootLawsProfile::MAX_DECLARED_LIMIT);
 
         // The witness is family-tagged, so an admission of one family is not an
         // admission of another that happens to share a magnitude.
-        let over_other: Option<fn(AdmittedLimit<OtherDemo>)> = Some(drop);
+        let over_other: Option<fn(AdmittedLimit<OtherDemo, RootLawsProfile>)> = Some(drop);
         assert!(over_other.is_some());
 
-        // The road whose whole claim is "no refusal is possible" takes the
-        // evidence by signature; there is no arity here that could refuse.
         // The checked const road reads its bound off the witness rather than off
-        // the declaration, so the number it compares against is one that passed
-        // admission.
+        // the declaration, so the number it compares against is one that stood
+        // under a named profile's ceiling.
         let fits: Result<Bounded<u8, AdmissibleDemo>, _> =
             Bounded::admitted_const(vec![1, 2, 3], &admitted);
         assert!(fits.is_ok_and(|bounded| bounded.len() == 3));
         let over: Result<Bounded<u8, AdmissibleDemo>, _> =
             Bounded::admitted_const(vec![1, 2, 3, 4, 5], &admitted);
         assert!(over.is_err());
+    }
+
+    /// law: root.positivity-is-the-stronger-witness — the base witness proves
+    /// only the upper bound, and the positivity claim is seated one witness up.
+    ///
+    /// Both halves are here, because the split is only honest if both hold. A
+    /// family declaring `MAX = 0` MINTS `AdmittedLimit` and inhabits
+    /// `Bounded::empty`: a zero maximum is a lawful declaration for a seat that
+    /// holds nothing, and refusing it in the base witness would have refused
+    /// that seat with it. The same family cannot mint `PositiveLimit`, which is
+    /// exactly the evidence `NonEmptyBounded::admitted_const` demands, because
+    /// that road promises an inhabitant no zero-maximum family can supply.
+    ///
+    /// The claim ceiling: this says nothing about whether a zero maximum is the
+    /// RIGHT declaration for any particular seat. It says the two facts are
+    /// separately evidenced and separately consumed.
+    ///
+    /// Red twin: a zero-maximum family minting the positive witness must not
+    /// compile — the fixture is testpak's, because a claim about what does not
+    /// compile cannot be made by code that does.
+    #[test]
+    fn positivity_is_the_stronger_witness() {
+        use crate::types::{
+            AdmittedLimit, Bounded, NonEmptyBounded, PositiveLimit, RootLawsProfile,
+        };
+        struct EmptyOnlyDemo;
+        impl Limit for EmptyOnlyDemo {}
+        impl ConstLimit for EmptyOnlyDemo {
+            const MAX: usize = 0;
+        }
+        struct InhabitedDemo;
+        impl Limit for InhabitedDemo {}
+        impl ConstLimit for InhabitedDemo {
+            const MAX: usize = 3;
+        }
+
+        // The weak witness admits the empty-only family, and the family's seat
+        // is a real one.
+        let empty_only: AdmittedLimit<EmptyOnlyDemo, RootLawsProfile> =
+            AdmittedLimit::under_profile();
+        assert_eq!(empty_only.max(), 0);
+        let nothing: Bounded<u8, EmptyOnlyDemo> = Bounded::empty();
+        assert!(nothing.is_empty() && nothing.iter().count() == 0);
+        let one_too_many: Result<Bounded<u8, EmptyOnlyDemo>, _> =
+            Bounded::admitted_const(vec![1], &empty_only);
+        assert!(one_too_many.is_err());
+
+        // The strong witness carries the same ceiling fact plus the inhabitant,
+        // and it is what the non-empty road takes.
+        let positive: PositiveLimit<InhabitedDemo, RootLawsProfile> =
+            PositiveLimit::inhabited_under_profile();
+        assert_eq!(positive.max(), InhabitedDemo::MAX);
+        let held: Result<NonEmptyBounded<u8, InhabitedDemo>, _> =
+            NonEmptyBounded::admitted_const(1, vec![2], &positive);
+        assert!(held.is_ok_and(|value| value.len() == 2 && *value.first() == 1));
+    }
+
+    /// law: root.an-admission-does-not-cross-profiles — a witness names WHICH
+    /// profile admitted the family, so one plane's admission is never another's.
+    ///
+    /// The profile is a type parameter rather than a number carried inside the
+    /// value, which is what makes the separation structural: `AdmittedLimit<L,
+    /// A>` and `AdmittedLimit<L, B>` are different types whatever their
+    /// magnitudes, and no coercion joins them. A family small enough for two
+    /// ceilings is admitted under each SEPARATELY, and holding one of those
+    /// admissions is not holding the other.
+    ///
+    /// The claim ceiling: this says nothing about which profile is right for a
+    /// seat. It says a road that requires one profile's evidence cannot be fed
+    /// another's.
+    ///
+    /// Red twin: substituting one profile's witness where another's is required
+    /// must not compile — the fixture is testpak's.
+    #[test]
+    fn an_admission_does_not_cross_profiles() {
+        use crate::types::{
+            AdmittedLimit, LimitAdmissionProfile, NarrowLawsProfile, RootLawsProfile,
+        };
+        struct TinyDemo;
+        impl Limit for TinyDemo {}
+        impl ConstLimit for TinyDemo {
+            const MAX: usize = 4;
+        }
+
+        // Two profiles, each with its own declared ceiling. The magnitudes are
+        // stated so the law reads against numbers rather than against whichever
+        // pair happened to be declared.
+        assert_eq!(NarrowLawsProfile::MAX_DECLARED_LIMIT, 8);
+        assert_eq!(RootLawsProfile::MAX_DECLARED_LIMIT, 1_024);
+
+        let wide: AdmittedLimit<TinyDemo, RootLawsProfile> = AdmittedLimit::under_profile();
+        let narrow: AdmittedLimit<TinyDemo, NarrowLawsProfile> = AdmittedLimit::under_profile();
+        assert_eq!(wide.max(), narrow.max());
+
+        // Two admissions of one family, and the two values do not unify: each
+        // consumer names the profile it will take, and only that one fits.
+        let takes_wide: fn(AdmittedLimit<TinyDemo, RootLawsProfile>) = drop;
+        let takes_narrow: fn(AdmittedLimit<TinyDemo, NarrowLawsProfile>) = drop;
+        takes_wide(wide);
+        takes_narrow(narrow);
     }
 
     /// law: root.reading-is-not-gaining — reading a bounded collection is an
@@ -260,16 +364,18 @@ mod root {
     /// an `Index` impl, or a slice escape — must not compile.
     #[test]
     fn reading_is_not_gaining() {
-        use crate::types::{AdmittedLimit, Bounded, NonEmptyBounded};
+        use crate::types::{AdmittedLimit, Bounded, NonEmptyBounded, RootLawsProfile};
         struct ReadDemo;
         impl Limit for ReadDemo {}
         impl ConstLimit for ReadDemo {
             const MAX: usize = 4;
         }
 
-        let bounded: Bounded<u8, ReadDemo> =
-            Bounded::admitted_const(vec![1, 2, 3], &AdmittedLimit::under_ceiling())
-                .unwrap_or_else(|_| Bounded::<u8, ReadDemo>::empty());
+        let bounded: Bounded<u8, ReadDemo> = Bounded::admitted_const(
+            vec![1, 2, 3],
+            &AdmittedLimit::<_, RootLawsProfile>::under_profile(),
+        )
+        .unwrap_or_else(|_| Bounded::<u8, ReadDemo>::empty());
         let seen: Vec<u8> = bounded.iter().copied().collect();
         assert_eq!(seen, vec![1, 2, 3]);
         // The collection survives the read unchanged and can be read again.
@@ -1987,7 +2093,7 @@ mod schema {
         SchemaIssueLimit, SchemaSemanticCommitment, SchemaVersion, UnknownMemberPolicy,
         VALIDATION_PIPELINE, ValidationStage, VariantId,
     };
-    use crate::types::{ConstLimit, NonEmptyBounded};
+    use crate::types::{ConstLimit, NonEmptyBounded, PositiveLimit, RootLawsProfile};
 
     /// law: schema.validation-pipeline-is-seven-ordered — untrusted input
     /// first, contextual admission last, seven distinct stages that never
@@ -2131,6 +2237,7 @@ mod schema {
             issues: NonEmptyBounded::admitted_const(
                 RefinementConstructionIssue::NotTotal,
                 vec![RefinementConstructionIssue::HiddenIoOrEffect],
+                &PositiveLimit::<_, RootLawsProfile>::inhabited_under_profile(),
             )
             .unwrap_or_else(|_| unreachable!("two issues fit the bound of eleven")),
             posture: CompletionPosture::Complete,
@@ -2139,6 +2246,7 @@ mod schema {
             issues: NonEmptyBounded::admitted_const(
                 SchemaConstructionIssue::RefinementInvalid(Box::new(nested)),
                 vec![],
+                &PositiveLimit::<_, RootLawsProfile>::inhabited_under_profile(),
             )
             .unwrap_or_else(|_| unreachable!("one issue fits the bound of eighteen")),
             posture: CompletionPosture::Complete,
@@ -2965,6 +3073,7 @@ mod port {
     use crate::schema::SchemaSemanticCommitment;
     use crate::types::{
         AdmittedLimit, Bounded, ConstLimit, EvidenceRef, ReferentAvailability, ReferentIntegrity,
+        RootLawsProfile,
     };
     use core::cmp::Ordering;
 
@@ -3097,7 +3206,7 @@ mod port {
             deadline_allowance: Commitment::raw([14; 32]),
             postconditions: Bounded::admitted_const(
                 vec![PortPostcondition::Durability],
-                &AdmittedLimit::under_ceiling(),
+                &AdmittedLimit::<_, RootLawsProfile>::under_profile(),
             )
             .unwrap_or_else(|_| unreachable!("one fits three")),
             evidence_families: Commitment::raw([15; 32]),

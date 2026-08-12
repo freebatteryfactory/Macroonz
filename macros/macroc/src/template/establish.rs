@@ -17,8 +17,9 @@ use super::{
     AxisCeiling, DeclarationTemplate, META_BOUND_AXES, TemplateBinding, TemplateConstruction,
     TemplateConstructionIssue, TemplateParameter,
 };
+use crate::plane::AuthoringLimitProfile;
 use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction};
+use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction, PositiveLimit};
 
 /// Every parameter identity a hole set declares more than once, reported at its
 /// first occurrence.
@@ -133,7 +134,11 @@ impl TemplateConstruction {
         first: TemplateConstructionIssue,
         rest: Vec<TemplateConstructionIssue>,
     ) -> Self {
-        match NonEmptyBounded::admitted_const(first, rest) {
+        match NonEmptyBounded::admitted_const(
+            first,
+            rest,
+            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+        ) {
             Ok(issues) => Self {
                 issues,
                 posture: CompletionPosture::Complete,

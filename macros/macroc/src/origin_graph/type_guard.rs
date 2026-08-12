@@ -9,9 +9,9 @@
 //! other seam in the crate that can produce either one.
 
 use super::{DecisionTrace, OriginEdge, OriginTrail, TraceEntry};
-use crate::plane::{OriginEdgeLimit, TraceEntryLimit};
+use crate::plane::{AuthoringLimitProfile, OriginEdgeLimit, TraceEntryLimit};
 use crate::refusal::{BoundAxis, ProjectionPlanning};
-use threadpak::types::{ConstLimit, NonEmptyBounded};
+use threadpak::types::{ConstLimit, NonEmptyBounded, PositiveLimit};
 
 impl OriginTrail {
     /// The one-edge trail. Total: a unit with one origin edge always fits.
@@ -31,15 +31,19 @@ impl OriginTrail {
     /// truncating a trail is how an origin silently becomes a span.
     pub fn drawn(first: OriginEdge, rest: Vec<OriginEdge>) -> Result<Self, ProjectionPlanning> {
         let observed = rest.len().saturating_add(1);
-        NonEmptyBounded::admitted_const(first, rest)
-            .map(|edges| Self { edges })
-            .map_err(|_| {
-                ProjectionPlanning::bound_exceeded(
-                    BoundAxis::OriginEdges,
-                    OriginEdgeLimit::MAX,
-                    observed,
-                )
-            })
+        NonEmptyBounded::admitted_const(
+            first,
+            rest,
+            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+        )
+        .map(|edges| Self { edges })
+        .map_err(|_| {
+            ProjectionPlanning::bound_exceeded(
+                BoundAxis::OriginEdges,
+                OriginEdgeLimit::MAX,
+                observed,
+            )
+        })
     }
 
     /// The guaranteed first edge.
@@ -88,15 +92,19 @@ impl DecisionTrace {
     /// trace outgrows the declared bound.
     pub fn recorded(first: TraceEntry, rest: Vec<TraceEntry>) -> Result<Self, ProjectionPlanning> {
         let observed = rest.len().saturating_add(1);
-        NonEmptyBounded::admitted_const(first, rest)
-            .map(|entries| Self { entries })
-            .map_err(|_| {
-                ProjectionPlanning::bound_exceeded(
-                    BoundAxis::TraceEntries,
-                    TraceEntryLimit::MAX,
-                    observed,
-                )
-            })
+        NonEmptyBounded::admitted_const(
+            first,
+            rest,
+            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+        )
+        .map(|entries| Self { entries })
+        .map_err(|_| {
+            ProjectionPlanning::bound_exceeded(
+                BoundAxis::TraceEntries,
+                TraceEntryLimit::MAX,
+                observed,
+            )
+        })
     }
 
     /// The guaranteed first entry, in selection order.

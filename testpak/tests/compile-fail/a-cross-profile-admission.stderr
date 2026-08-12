@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/compile-fail/a-cross-profile-admission.rs:41:34
+   |
+41 |     seats_an_authoring_admission(&ELSEWHERE);
+   |     ---------------------------- ^^^^^^^^^^ expected `AuthoringLimitProfile`, found `ForeignProfile`
+   |     |
+   |     arguments to this function are incorrect
+   |
+   = note: expected reference `&AdmittedLimit<SmallFamily, AuthoringLimitProfile>`
+              found reference `&AdmittedLimit<SmallFamily, ForeignProfile>`
+note: function defined here
+  --> tests/compile-fail/a-cross-profile-admission.rs:38:4
+   |
+38 | fn seats_an_authoring_admission(_: &AdmittedLimit<SmallFamily, AuthoringLimitProfile>) {}
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ -----------------------------------------------------
