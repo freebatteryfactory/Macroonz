@@ -1,7 +1,7 @@
 //! The root shape calculus: the generic composition shapes every home instantiates,
-//! plus the two axes admitted to root by explicit ruling. Nothing here is a semantic
+//! plus the two axes admitted to root by explicit decision. Nothing here is a semantic
 //! noun beyond those two — a semantic noun lives at root only by an explicit root
-//! admission ruling from the repository owner.
+//! admission decision.
 //!
 //! # The structural spine
 //!
@@ -39,7 +39,7 @@
 //! no other enum grows a `Pending` variant, and a merely owed-but-not-yet-performed
 //! posture spells itself `Outstanding` or `Unresolved`, never `Pending`.
 //!
-//! By explicit ruling, [`Freshness`] and [`ProofDisposition`] are *evidence facts*,
+//! By explicit decision, [`Freshness`] and [`ProofDisposition`] are *evidence facts*,
 //! not knowledge axes: neither can express "not yet", so the three-axis closure
 //! stands unbroken.
 //!
@@ -586,7 +586,7 @@ pub enum Freshness<T, Cut: EvidenceCut> {
 // ---------------------------------------------------------------------------
 
 /// What one verification run established about one claim. Its own axis — never a
-/// terminal variant, never a rank, and (by ruling) not a knowledge axis: no variant
+/// terminal variant, never a rank, and (by decision) not a knowledge axis: no variant
 /// means "not yet".
 #[must_use = "a disposition is what the verification run established; dropping it leaves the \
               run's conclusion unrecorded"]

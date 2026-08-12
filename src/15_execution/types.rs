@@ -49,7 +49,7 @@ use crate::types::{Bounded, ConstLimit, EvidenceRef, Limit, NonEmptyBounded};
 /// `take`, and one spelling never carries two meanings); positioning;
 /// decision; the five derived-data operations (derivation pure, the four
 /// publications effect nodes, never collapsed); and the six owner-specific
-/// publication boundaries. The `group` row is bound by the grouping ruling
+/// publication boundaries. The `group` row is bound by the grouping decision
 /// (one typed key tuple; each item in exactly one group; multi-membership is
 /// `relation_expansion`, never a hidden mode).
 pub const OPERATOR_REGISTER: [&str; 38] = [

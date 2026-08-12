@@ -6,7 +6,7 @@ CommitPoint via it), identity, refusal, and the root calculus. The derived
 plane: never authority, always rebuildable, four core rules (R1–R4) in the
 module docs.
 
-## The settled rulings
+## The settled decisions
 
 - **The two-seat hybrid**: preimage-derived `RowDomainId` (seat 1, gating
   every composition)
@@ -28,7 +28,7 @@ rule) with the six deliberate absences documented on the family;
 structural (form-disagreement vs both-generation-form); `LengthMismatch` may
 carry both lengths canonically while the release law names row counts a
 cardinality disclosure no boundary emits absent contract (the ingress
-ruling's typed-redacted-diagnostic default is the neighboring answer — flag
+decision's typed-redacted-diagnostic default is the neighboring answer — flag
 carried for the release owner at 22); the seven validity conditions never
 collapse into one bit; `MaterializationSourceCuts` is a role-distinct newtype
 over history's carrier (one mechanism, never one meaning — the DRY law makes

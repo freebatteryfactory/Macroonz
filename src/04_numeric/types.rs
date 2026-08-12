@@ -36,7 +36,7 @@
 //!
 //! # Declared incompleteness (owed, not hidden)
 //!
-//! Ranges are schema-declared — this home fixes none (`Percent`'s range is ruled
+//! Ranges are schema-declared — this home fixes none (`Percent`'s range is decided
 //! fully schema-side; 0–100 is not implied by the name). Currency, time-unit, and
 //! unit-domain designation members await the schema home's designation types;
 //! structs carrying them say so on the missing member. Refusal-cause payloads are
@@ -277,7 +277,7 @@ impl Money {
 }
 
 /// Percent: unit fixed by the type — no unit member, no unit cause. Its range is
-/// declared by the admitting schema (ruled fully schema-side); 0–100 is not
+/// declared by the admitting schema (decided fully schema-side); 0–100 is not
 /// implied by the name.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Percent(FixedDecimal);
@@ -1136,7 +1136,7 @@ impl WideExact {
     }
 }
 
-/// The 2026-08-09 ruling, machine-readable: knowledge-axis offer checking
+/// The 2026-08-09 decision, machine-readable: knowledge-axis offer checking
 /// selects its single reported cause in this order.
 pub const KNOWLEDGE_AXIS_SELECTION_ORDER: [&str; 4] = [
     "truth-coverage disagreement",

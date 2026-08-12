@@ -1,4 +1,4 @@
-//! The declaration-template contract: what a ruled typed template declares,
+//! The declaration-template contract: what a typed template declares,
 //! what a binding may fill it with, and what one invocation of it is keyed by.
 //!
 //! # Category-typed holes

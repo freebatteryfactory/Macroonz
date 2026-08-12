@@ -1,7 +1,7 @@
 # 01_logic — three-valued logic in general
 
 Band 01. Imports band 00 only. Owns the canonical truth values, their K3 (strong
-Kleene) connectives, and the decision algebra ruled to live beside them. The six
+Kleene) connectives, and the decision algebra sited beside them. The six
 interval-comparison truth tables stay with the numeric home, which imports `Truth`
 from here: logic owns what truth *is*; owners downstream own what *produces* it.
 

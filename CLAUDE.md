@@ -20,14 +20,14 @@ knows which host is running it.
 - The repository is the specification. There is no separate book, and there will be no
   separate book: the review artifact is ASSEMBLED from the owner surfaces rather than
   authored. `cargo xtask book` is the command that will assemble it; it is owned by
-  xtask and lands with the typed repository model, in the macroc era. It does not
-  exist yet, and nothing may cite it as though it does. No semantic fact is manually
-  restated in two places — cite the owner, never copy.
+  xtask and lands with the typed repository model. It does not exist yet, and nothing
+  may cite it as though it does. No semantic fact is manually restated in two places —
+  cite the owner, never copy.
 - Numbered directories are dependency bands: band N imports only bands lower than N.
   Numbers live on directories only; module names stay clean via `#[path]`.
 - The crate root owns generic composition shapes only. A semantic noun lives at the
-  root solely by an explicit root admission ruling from the repository owner;
-  otherwise it has an owner home. The root is never a shared-noun drawer.
+  root solely by an explicit root admission decision; otherwise it has an owner home.
+  The root is never a shared-noun drawer.
 - A home README is markdown prose plus fenced yaml blocks that tooling parses and
   verifies against derived facts.
 - **The file grammar.** Every semantic home is its numbered folder carrying `README.md`
@@ -163,6 +163,5 @@ The repository is in architecture closure: every home receives its spec files wi
 product-runtime implementation — no machine algorithms, no host behavior. Architecture
 tooling is real code by design: xtask checks, macros, testpak harness and fixtures,
 compile-time laws, and bounded probes are executable and must never sit empty.
-Implementation of the machine opens per home only on the repository owner's explicit
-authorization. Commits are defined by the repository owner — never initiated by an
-agent on its own.
+Implementation of the machine opens per home only by explicit human authorization.
+Commits are decided by a human — never initiated by an agent on its own.

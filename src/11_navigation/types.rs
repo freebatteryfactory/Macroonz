@@ -104,7 +104,7 @@ pub struct Axis {
 
 mod sealed {
     /// The seal: another address role is admitted only when a real operation
-    /// has distinct ownership, laws, and evidence for it — by ruling, in this
+    /// has distinct ownership, laws, and evidence for it — by decision, in this
     /// crate, never by downstream impl.
     #[expect(
         unnameable_types,

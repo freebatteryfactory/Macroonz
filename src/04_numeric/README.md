@@ -4,7 +4,7 @@ Band 04. Imports logic (Truth), refusal (families), and the root calculus. The
 largest foundation home: ten exact families (nine named + the schema-admitted
 extension slot), twelve refusal families, interval decisions, quantization,
 rounding, admitted approximation, and the numeric-honesty layer — including
-`Finality`, ruled to live here with its first caller.
+`Finality`, sited here with its first caller.
 
 ## The ladder
 
@@ -17,7 +17,7 @@ Every numeric constructor family is a closed single-cause enum — no
 
 ## Not here
 
-No changelog of executed rulings lives here: every ruling this home received
+No changelog of executed decisions lives here: every decision this home received
 is restated at the declaration it governs. Change history is the repository
 ledger's, never a section of a specification.
 

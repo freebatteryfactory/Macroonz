@@ -92,7 +92,7 @@ pub enum ValueResidence {
 /// A dumb arena index with a generation — it LOCATES, and that is all;
 /// policy lives in the operators, never in a pointer.
 ///
-/// # The ruled posture for a reference that is persisted or transported
+/// # The settled posture for a reference that is persisted or transported
 ///
 /// A reference that leaves the arena it points into is identity PLUS
 /// generation, and the generation is what makes the crossing back in an

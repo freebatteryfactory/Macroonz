@@ -20,7 +20,7 @@
 //! call taking protected bytes does not typecheck. This is the law behind
 //! the wall's deliberate exclusion of mandatory `Debug` derives. A refusal's
 //! release posture inherits the typed-redacted-diagnostic default (the
-//! ingress ruling's shape), never a second answer per family.
+//! ingress decision's shape), never a second answer per family.
 //!
 //! # Two supply-chain claims, neither substituting
 //!

@@ -10,7 +10,7 @@ data, and the five kernel contract types with their three families.
 
 38 operators, enumerated here because the set has one owner: the four
 boundary forms · fold/unfold (the only bounded-lane traversal) · fourteen
-iteration operations (including `group` under the grouping ruling and
+iteration operations (including `group` under the grouping decision and
 `relation_expansion` as the separate multi-membership operation) · the three
 settled traversal spellings (seek/children/descendants) · `truncate`/`page`
 (the old query TAKE renamed `truncate` — iteration owns lowercase `take`, and

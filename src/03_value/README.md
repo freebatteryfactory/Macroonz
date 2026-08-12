@@ -1,7 +1,7 @@
 # 03_value — the value plane's laws
 
 Band 03. Imports the root calculus only. This home is mostly laws made
-machine-readable; its ore is dense in rules and deliberately thin in types.
+machine-readable; its content is dense in rules and deliberately thin in types.
 
 What is deliberately elsewhere: the seven byte roles live in `07_bytes`; the
 concrete validated-value model (the 21-variant algebra) lands with `08_schema`,
@@ -13,7 +13,7 @@ nonexistence is the design.
 ## The six absence worlds
 
 `ShapeOptional · ValueNull · Unauthorized · Unmaterialized · Pending ·
-OutcomeUnknown` (ore spellings kept by ruling). Every foreign absence is
+OutcomeUnknown` (the original spellings, kept by decision). Every foreign absence is
 classified exactly once, at decode, into its typed axis; after admission,
 unclassified null does not exist. The enum is a classification namespace that
 routes to owning axes — `Pending` routes to the `Truth` knowledge axis,
@@ -38,7 +38,7 @@ Seven, closed, distinct: quantization · redaction · summarization · projectio
 sampling · truncation · selection. Never one generic transform; each owner
 performing one owes its own disclosure row.
 
-## Unicode mechanism — RULED by the repository owner (2026-08-10), in tiers
+## Unicode mechanism — Decision (2026-08-10), in tiers
 
 1. **Contraband refusal is IN-HOUSE owned code, not a mechanism**: bidi
    ordering controls, raw controls, surrogates, and noncharacters refuse

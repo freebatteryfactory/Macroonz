@@ -11,7 +11,7 @@ lifecycles.
 - **The reason-identity seat band 00 has cited all along**: every refusal
   family's `ReasonId` is minted under this home's identity law —
   family-level, never per-issue, derived under the admitted digest mechanism
-  (pending the repository owner's mechanism admission).
+  (pending mechanism admission).
 - **The root supersession recorded deliberately**: the axis SHAPES
   (Freshness, ProofDisposition — all five dispositions asserted —
   Completeness, EvidenceCut) live at root; this home keeps the machinery. The
@@ -20,7 +20,7 @@ lifecycles.
   (Turn = identity, Stitch = transition) — no rename; `TurnReceipt` and the
   two-book model stand. The CLI is `threadpak`.
 
-## Executed renames (AUTHORED, the highest-risk in the chapter)
+## Executed renames (AUTHORED, the highest-risk in this home)
 
 candidate → **proposal** (an immutable proposed realization of one frozen
 semantic target, in an isolated disposable workspace with no authority over

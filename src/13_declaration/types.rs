@@ -275,7 +275,7 @@ pub enum AuthoringRole {
     /// mints no authority: every produced fragment carries the instantiating
     /// site's origin and is judged there. Frontend-neutral: any front door may
     /// offer a template surface, or none, without changing this algebra.
-    /// (Role name pending the repository owner's review.)
+    /// (Role name pending review.)
     Quotation,
 }
 

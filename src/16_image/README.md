@@ -1,10 +1,9 @@
 # 16_image — ProgramImage and admission
 
 Band 16. Imports execution (KernelRequirementSet, the kernel-version pair
-amended there this wave), bytes (ContentRegionId), identity, and the root
-calculus. The self-explaining executable package: identities, the component
-table, packaging, the affine validation ladder, and the sixteen-stage
-admission pipeline.
+amended there), bytes (ContentRegionId), identity, and the root calculus. The
+self-explaining executable package: identities, the component table, packaging,
+the affine validation ladder, and the sixteen-stage admission pipeline.
 
 ## The component table is fixed at the bytes
 
@@ -36,7 +35,7 @@ mutate image identity). Supplying one identity where another is required is a
 compile-time wrong-role refusal; unknown required meaning refuses, never
 silently ignored.
 
-## The ruled default (D-IMG-2, the original doc's own ruling block)
+## The selected default (Decision D-IMG-2)
 
 SelfContained is the selected paved-road default — offline verification,
 regulated/air-gapped deployment, agent handoff, reproducibility. ImmutableBound

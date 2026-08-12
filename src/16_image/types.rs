@@ -224,7 +224,7 @@ pub struct ProgramImageComponent {
 }
 
 /// The three packaging profiles — all lawful, all satisfying the same
-/// dual-form closure and standalone-inspection requirement. RULED (D-IMG-2):
+/// dual-form closure and standalone-inspection requirement. Decision (D-IMG-2):
 /// `SelfContained` is the selected paved-road default — offline verification,
 /// regulated and air-gapped deployment, agent handoff, reproducibility (the
 /// self-explaining-artifact north star). Selecting the default narrows

@@ -90,7 +90,7 @@ use threadpak::types::Bounded;
 /// reachable only off the value this function returns on success.
 #[expect(
     clippy::result_large_err,
-    reason = "the diagnostic is seat-complete by law, and the ruled service signature returns it by value: boxing it here would move a required seat behind a pointer to satisfy a size lint"
+    reason = "the diagnostic is seat-complete by law, and the settled service signature returns it by value: boxing it here would move a required seat behind a pointer to satisfy a size lint"
 )]
 pub fn compile_refusal(
     input: &CapturedInput,
@@ -179,7 +179,7 @@ pub fn compile_refusal_text(
 /// is why neither arm carries a refusal road of its own.
 #[expect(
     clippy::result_large_err,
-    reason = "the same seat-complete diagnostic the ruled service road returns; this helper hands \n              it straight through"
+    reason = "the same seat-complete diagnostic the settled service road returns; this helper hands \n              it straight through"
 )]
 fn render_units(
     draft: &RefusalDerivationDraft,
@@ -198,7 +198,7 @@ fn render_units(
 /// diagnostic that names the exact magnitude and the role that overran it.
 #[expect(
     clippy::result_large_err,
-    reason = "the same seat-complete diagnostic the ruled service road returns; this helper hands \n              it straight through"
+    reason = "the same seat-complete diagnostic the settled service road returns; this helper hands \n              it straight through"
 )]
 fn rendered_unit(
     draft: &RefusalDerivationDraft,

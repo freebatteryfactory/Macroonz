@@ -80,7 +80,7 @@ where nothing about the scope is helping.
 Every scope-guard already written by hand stays written by hand. The stamp is
 proven against one of them, not substituted for them.
 
-## Delegated by ruling
+## Delegated by decision
 
 Text forms (Display/FromStr/prefixes): identity SEMANTICS live here; text
 REPRESENTATION is delegated to 07_bytes and its role-prefixed scheme, whose

@@ -2,7 +2,7 @@
 
 Band 06. Imports identity, logic, refusal, value, and the root calculus. The
 value plane of authority: claims, grants, attenuation, the meet's carriers,
-`KeyScope` (Class F's contract, landed per ruling), protected resolution,
+`KeyScope` (Class F's contract, landed by decision), protected resolution,
 release-contract shapes, and the postcondition matrix. Lifecycle machinery —
 leases (band-forced: they bind the time home's deadline policy), revocation
 distribution, secrets, mechanism standing, firewall enforcement — lives at the

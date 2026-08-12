@@ -41,13 +41,13 @@ suites, because cargo requires executable challenge material to live under
 | 08 | evidence | reserved, unmaterialized |
 
 The five reserved names restore the plane's original nine-seat design; they were
-ruled onto this map, not authored to fill it. **A reserved name fixes the
+placed on this map by decision, not authored to fill it. **A reserved name fixes the
 intended question of a seat. It does not claim that the seat exists, has an
 owner implementation, or has satisfied admission** — name reserved ≠ home
 materialized ≠ implementation admitted ≠ qualification established. No
 directory, placeholder type, or obligation stands for a reserved seat until real
 content lands, and content that does not fit its reserved name comes back for an
-explicit ruling instead of being normalized into the nearest drawer.
+explicit decision instead of being normalized into the nearest drawer.
 
 | Path | What it carries |
 | --- | --- |

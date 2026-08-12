@@ -37,7 +37,7 @@ The repository root is itself the `threadpak` package; its `src/` carries the ma
 `macros/`, `testpak/`, and `xtask/` are unnumbered: first-class, but never on the
 production dependency path. Hosts are unnumbered in the same sense and live one step
 further out — in other repositories, as the spine above says — so this repository has
-no `hosts/` directory, and it gains one only if that is ruled. `macros/` is a plain
+no `hosts/` directory, and it gains one only by an explicit decision. `macros/` is a plain
 subsystem directory rather than a package: it holds the services (`macros/macroc`) and
 the one Rust-facing expansion shell over them (`macros/proc`).
 The metaprogramming edges run one way and inward —

@@ -1418,8 +1418,8 @@ mod numeric {
     }
 
     /// law: numeric.knowledge-axis-selection-order-is-declared — the dated
-    /// ruling's four-step order, machine-readable, truth-coverage first.
-    /// Owed reversal: reordering the ruling must break this law.
+    /// decision's four-step order, machine-readable, truth-coverage first.
+    /// Owed reversal: reordering the decision must break this law.
     #[test]
     fn knowledge_axis_selection_order_is_declared() {
         assert_eq!(KNOWLEDGE_AXIS_SELECTION_ORDER.len(), 4);
@@ -1741,7 +1741,7 @@ mod authority {
     }
 
     /// law: authority.keyscope-is-application-scope — Class F's contract is
-    /// implemented by `KeyScope` (the O-13 ruling landed).
+    /// implemented by `KeyScope` (the O-13 decision landed).
     /// Owed reversal: removing the impl must break this law.
     #[test]
     fn keyscope_is_application_scope() {

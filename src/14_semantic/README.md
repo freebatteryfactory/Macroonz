@@ -23,7 +23,7 @@ construction), `CapabilityRequirements` (requirements, never grants),
 `BoundDimensionRow` (dimension + stated class + maximum — class is a stated
 fact per row, never an inference).
 
-## The grouping ruling (binding on the register row at the execution home)
+## The grouping decision (binding on the register row at the execution home)
 
 Ordinary `group` is a bounded partition by one typed key tuple, and each
 input item contributes to exactly one group. Multi-membership is a SEPARATE

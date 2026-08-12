@@ -15,17 +15,17 @@ re-enters with the language as a second producer of the same fragments (the
 no-secret-second-language law guarantees any producer reaches the same
 Semantic Form through the same normalization, validation, and admission). The
 capsule's value-plane residue lives at 03_value as schema-declared refinement
-vocabulary, per the earlier ruling. The live front door is the
+vocabulary, per the earlier decision. The live front door is the
 Rust-declaration frontend: the macros crate's shell (token capture, hygiene,
 diagnostics) plus its deterministic engine (bounded parsing, validation,
 origin capture, translation into this algebra).
 
-## Executed kills and renames (the repository owner's rulings)
+## Executed kills and renames (recorded decisions)
 
 - The old frontend codenames are dead; the two-front-doors law survives as
   `FrontendRole { RustDeclaration, ApplicationLanguage }` (AUTHORED plain
   names).
-- The third compiler-adjacent phase (construction-era implementation
+- The third compiler-adjacent phase (construction-lifecycle implementation
   generation) is DEAD, discharged by structure: its guarantees — a meta
   function cannot publish files, promote source, change law, or control
   qualification — survive as the staged-meta laws baked here. Two phases

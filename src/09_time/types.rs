@@ -12,7 +12,7 @@
 //! Deterministic replay and virtual time follow for free: time is just another
 //! admitted input.
 //!
-//! ## RULING 2026-08-09 — "tick" is the clock's tick
+//! ## Decision (2026-08-09) — "tick" is the clock's tick
 //!
 //! "Tick" means the clock's tick: a `ClockObservation` entering through
 //! validated admission under T1's discipline — the clock separated from the

@@ -44,8 +44,8 @@
 //! truncation changes the collision claim, so it must change the name. The
 //! day-one family proposal is blake3-256 (hash = plain commitments, keyed hash =
 //! keyed-when-protected under `KeyScope`, derive-key context = the domain-tag
-//! register); admitting it is a mechanism ruling for the repository owner, and
-//! the final roster is selected by security-plane evidence.
+//! register); admitting it is a mechanism decision, and the final roster is
+//! selected by security-plane evidence.
 
 use crate::identity::{ByteIdentity, CreationLaw, IdentityClass, IdentityRole};
 use crate::refusal::{FamilyShape, RefusalFamily};

@@ -1,7 +1,7 @@
 # 09_time — the typed temporal algebra
 
 Band 09. Imports bounds, identity, refusal, value, and the root calculus. Owns
-T1–T4, the tick (the 2026-08-09 ruling, quoted in the module docs), clock
+T1–T4, the tick (the 2026-08-09 decision, quoted in the module docs), clock
 observations, the deadline split, and HLC chronology.
 
 ## The deadline split

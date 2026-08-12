@@ -5,7 +5,7 @@ calculus. The local face (identity model, composition, invocation profiles,
 resources) and the remote face (the one global interaction contract, carrier
 vocabularies, the ingress paved road).
 
-## Executed renames (the repository owner's rulings, this wave)
+## Executed renames (recorded decisions)
 
 - **Serve is dead as a package; the type prefix died with it.** The contract
   types live here under plain names; the participant projections (client,
@@ -21,7 +21,7 @@ vocabularies, the ingress paved road).
   `DeliveryRole {BestEffort, ResumableAtLeastOnce}` collided with the
   runtime home's four-role delivery enum — one spelling, one meaning.
 
-## The standing ingress ruling, baked
+## The standing ingress decision, baked
 
 The progressive ack ladder (only `Admitted` discharges the sender's retry;
 `SingleAck` is admitted-only), the no-default ack profile (symmetric,

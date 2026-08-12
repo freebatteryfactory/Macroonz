@@ -30,7 +30,7 @@ use crate::refusal::{BoundAxis, ProjectionPlanning};
 use threadpak::types::{ConstLimit, NonEmptyBounded};
 
 threadpak::closed_register! {
-    /// The closed roster of origin relations — the ruled categories an edge may
+    /// The closed roster of origin relations — the settled categories an edge may
     /// stand for. Fourteen, and the roster is the vocabulary: an edge that means
     /// something else is a law change, not a new string.
     ///
@@ -80,7 +80,7 @@ threadpak::closed_register! {
 pub struct OriginEdge {
     /// The node the relation starts at.
     pub from: ProjectionIdentity<OriginNodeSubject>,
-    /// The ruled relation this edge stands for.
+    /// The settled relation this edge stands for.
     pub relation: OriginRelation,
     /// The node the relation produces.
     pub to: ProjectionIdentity<OriginNodeSubject>,

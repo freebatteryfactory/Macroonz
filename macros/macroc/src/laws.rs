@@ -804,7 +804,7 @@ mod origin_graph {
         }
     }
 
-    /// law: origin.relations-are-fourteen-and-closed — the ruled relation
+    /// law: origin.relations-are-fourteen-and-closed — the settled relation
     /// categories are a closed roster whose members are pairwise distinct and
     /// declared in one order.
     /// Owed reversal: adding a relation without placing it must break this law.

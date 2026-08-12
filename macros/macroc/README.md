@@ -29,7 +29,7 @@ here rather than discovered by whoever first builds without a C toolchain.
 
 **This admission is the TOOLING PLANE's, and it is not band 07's.** Band 07's
 digest-family law proposes blake3-256 for the machine's commitments, under the
-machine's domain-tag register, and admitting it is a separate mechanism ruling
+machine's domain-tag register, and admitting it is a separate mechanism decision
 with a separate owner. The two admissions share an algorithm and nothing else:
 different preimages, different domain separation, different claims, different
 owners. Neither one licenses the other, and a plane identity is never accepted
@@ -370,7 +370,7 @@ this repository already uses for the toolchain pin, the workspace members, and
 the band map: a declared source-digest constant in the services, verified by an
 `xtask` check that hashes the services' source tree deterministically and refuses
 when the two disagree. It is owed to `xtask` and not written, and it is not
-written yet because it needs a ruling this boundary did not carry — the constant
+written yet because it needs a decision that has not been made — the constant
 would be a member of the tree it commits to, so the check needs a stated
 fixed-point rule and a stated update road before it exists, or every ordinary
 edit to this crate would fail the gate until somebody re-pasted a digest by hand.

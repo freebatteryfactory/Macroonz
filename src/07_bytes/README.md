@@ -25,7 +25,7 @@ from one row, by the macros crate, so wire id, human prefix, and hash domain
 cannot drift. Two layers stay distinct: the logical preimage
 (algorithm-independent) and the digest transcript (algorithm-specific).
 
-## Mechanism admissions (RULED by the repository owner, 2026-08-10)
+## Mechanism admissions — Decision (2026-08-10)
 
 1. **Digest family: blake3-256 — ADMITTED.** Hash / keyed-hash-under-KeyScope
    / derive-key-as-domain-tag map natively onto settled law; the tree

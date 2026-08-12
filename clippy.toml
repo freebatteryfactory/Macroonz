@@ -1,5 +1,5 @@
 # Every threshold below is CHOSEN. A tool default that is never restated is a
-# value nobody decided; restating it here converts inheritance into a ruling.
+# value nobody decided; restating it here converts inheritance into a decision.
 
 # CHOSEN: the toolchain floor the workspace already pins, stated to clippy so
 # its suggestions never reach past the version this machine compiles on.

@@ -297,7 +297,7 @@ pub struct PossessionClaim;
 /// mints semantic truth by announcing that something is "verified". It hands
 /// over a typed reference to the claim it observed; the security and
 /// admission owners interpret that evidence and decide what, if anything,
-/// follows. (Variant names pending the repository owner's review.)
+/// follows. (Variant names pending review.)
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CarrierObservation {
     /// Bytes received.
@@ -535,7 +535,7 @@ pub const NON_SUBSTITUTABLE_PREIMAGES: [&str; 8] = [
 ];
 
 // ---------------------------------------------------------------------------
-// The ingress paved road (the standing ruling, baked).
+// The ingress paved road (the standing decision, baked).
 // ---------------------------------------------------------------------------
 
 /// The eight ingress pipeline stages.
