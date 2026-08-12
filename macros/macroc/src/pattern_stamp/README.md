@@ -32,3 +32,6 @@ arguments would be an account that sometimes says less than it knows — so ther
 is no private field, no invariant nucleus, and no `type_guard.rs`. `plan.rs` is
 the one road: it reads the anchors and returns the plan, or the planning family
 naming the magnitude it could not fit inside.
+
+This home's qualification obligations live in the crate README's tooling-obligation
+blocks.

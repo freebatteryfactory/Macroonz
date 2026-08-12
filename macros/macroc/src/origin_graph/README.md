@@ -33,3 +33,6 @@ is no other seam that can draw a trail or record a trace. `type_contract.rs`
 states the decision roster's own discriminant table. `encode.rs` writes the
 canonical bytes every value here contributes to a transcript, over the public
 walk alone, so an encoding can never see more than a reader can.
+
+This home's qualification obligations live in the crate README's tooling-obligation
+blocks.

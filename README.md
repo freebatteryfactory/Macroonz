@@ -134,7 +134,10 @@ it lawfully — the empty-only bound is a real bound and `Bounded::empty` under 
 is an honest empty collection. `PositiveLimit` proves the same ceiling fact AND
 that the family admits an item, and it is what `NonEmptyBounded::admitted_const`
 demands, because that road promises an inhabitant no zero-maximum family can
-supply.
+supply. It proves the ceiling fact by CONTAINING the base witness rather than by
+restating it: one field, minted by `AdmittedLimit::under_profile`, so the
+comparison and its diagnostic have a single owner and the stronger witness
+cannot quietly stop being the stronger form of the weaker one.
 
 Each construction road states its own claim class, and the classes do not
 substitute for one another:
@@ -148,7 +151,18 @@ substitute for one another:
 | `NonEmptyBounded::singleton` | local positivity | const `L::MAX >= 1`, proven at the call |
 | `NonEmptyBounded::from_array<N>` | local arity and local positivity | const `N < L::MAX`, plus the separate first item |
 | `NonEmptyBounded::admitted_const` | admitted family magnitude, and it must be inhabited | `PositiveLimit<L, P>` |
+| `NonEmptyBounded::admitted_prefix` | admitted family magnitude, reported rather than refused | `PositiveLimit<L, P>` |
 | `NonEmptyBounded::admitted` | schema-minted runtime magnitude | `LimitWitness<L>` |
+
+`admitted_prefix` is the one road that neither refuses nor claims completeness.
+Refusing is right for material that is meaningless in part — a trail, a
+membership, a ceiling — and wrong for a REPORT: the issues an over-bound pass
+established are each true on their own, so refusing the body would leave a
+caller with no findings at all. The road carries the prefix the admitted
+magnitude holds and RETURNS the remainder count, and that count is the seat that
+keeps the truncation from being silent. A caller with nowhere to put it is
+writing a body that cannot say what it left out, and the signature makes that
+visible at the call site.
 
 The const-proven total roads read `L::MAX` bare by decision. `from_array([one,
 two])` proves that two elements fit under a type-level maximum; it cannot prove
@@ -204,6 +218,14 @@ obligations:
     challenge_kind: compile-refusal
     green: laws.rs root::positivity_is_the_stronger_witness
     red: testpak/tests/compile-fail/a-zero-maximum-family-cannot-mint-a-positive-limit.rs
+  - id: root.the-positive-witness-carries-the-admitted-one
+    challenge_kind: compile-refusal
+    green: laws.rs root::the_positive_witness_carries_the_admitted_one
+    red: testpak/tests/compile-fail/a-past-ceiling-family-cannot-mint-a-positive-limit.rs
+  - id: root.a-prefix-road-reports-what-it-did-not-carry
+    challenge_kind: compile-law
+    green: laws.rs root::a_prefix_road_reports_what_it_did_not_carry
+    red: owed-to-testpak
   - id: root.an-admission-does-not-cross-profiles
     challenge_kind: compile-refusal
     green: laws.rs root::an_admission_does_not_cross_profiles

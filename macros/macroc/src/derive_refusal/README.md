@@ -25,7 +25,7 @@ render method, and there is no other public value in this home that carries a
 token tree. The steps below run in order and each one refuses on its own terms:
 
 ```text
-capture → plan → render → close → explain → bind → emit
+capture → plan → render → close → explain → bind
 ```
 
 Delete any one of them and no [`ClosedExpansion`] exists, so nothing is emitted.
@@ -50,3 +50,6 @@ grammar is band 00's; the selection order's *content* is the author's; the local
 keys are the author's; the `RefusalFamily` and `CauseOrderDeclaration` contracts
 are band 00's. This home reads a declaration and writes down what it already
 said.
+
+This home's qualification obligations live in the crate README's tooling-obligation
+blocks.

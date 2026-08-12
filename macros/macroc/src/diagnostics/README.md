@@ -29,3 +29,6 @@ of a diagnostic is public because a diagnostic that hid a seat would be a
 diagnostic that sometimes says less than it knows. `type_contract.rs` states the
 home's one declarative table: how a span table's answer becomes a site posture,
 and how that posture reads back.
+
+This home's qualification obligations live in the crate README's tooling-obligation
+blocks.

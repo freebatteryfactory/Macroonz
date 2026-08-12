@@ -74,8 +74,10 @@ pub struct OriginEdge {
 }
 
 /// The origin trail every generated unit carries: a bounded, structurally
-/// non-empty walk back to the authored material. Emptiness is not refused here
-/// because emptiness cannot be built here.
+/// non-empty, END-TO-END walk back to the authored material. Emptiness is not
+/// refused here because emptiness cannot be built here; discontinuity is refused
+/// where the trail is drawn, because a sequence of edges that does not join is
+/// two walks presented as one and no reader can tell which end is provenance.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct OriginTrail {
     edges: NonEmptyBounded<OriginEdge, OriginEdgeLimit>,

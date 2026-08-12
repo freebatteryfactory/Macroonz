@@ -140,6 +140,10 @@ fn planning_line(issue: &ProjectionPlanningIssue) -> String {
             role_slot,
             observed,
         } => format!("rendered role {role_slot} carries {observed} planned members"),
+        ProjectionPlanningIssue::TrailDiscontinuous { at } => format!(
+            "the origin trail does not join: edge {at} starts at a node the edge before it did \
+             not produce"
+        ),
     }
 }
 
@@ -181,6 +185,9 @@ fn planning_bytes(issue: &ProjectionPlanningIssue) -> Vec<u8> {
             bytes.extend_from_slice(&role_slot.to_be_bytes());
             bytes.extend_from_slice(&observed.to_be_bytes());
         }
+        ProjectionPlanningIssue::TrailDiscontinuous { at } => {
+            bytes.extend_from_slice(&at.to_be_bytes());
+        }
     }
     bytes
 }
@@ -200,7 +207,16 @@ const fn planning_observed(issue: &ProjectionPlanningIssue) -> ObservedClassific
             ObservedClassification::ProfileDisagreement
         }
         ProjectionPlanningIssue::BoundExceeded { .. } => ObservedClassification::BoundExceeded,
-        ProjectionPlanningIssue::OrphanGeneratedNode { .. } => ObservedClassification::OriginAbsent,
+        // A break in a walk is an origin the trail does not establish, which is
+        // the same observation the orphan issue carries at the other extreme —
+        // the classification says the provenance is absent, and the ISSUE says
+        // whether it is missing entirely or missing from a position. The two
+        // arms are joined because they are one observation, not two that happen
+        // to agree today.
+        ProjectionPlanningIssue::OrphanGeneratedNode { .. }
+        | ProjectionPlanningIssue::TrailDiscontinuous { .. } => {
+            ObservedClassification::OriginAbsent
+        }
         ProjectionPlanningIssue::MembershipDoubled { .. } => {
             ObservedClassification::IdentityDisagreement
         }
@@ -482,12 +498,25 @@ fn summary(family: &str, first: &str, further: usize, posture: CompletionPosture
     } else {
         String::new()
     };
-    let stopped = if matches!(posture, CompletionPosture::Complete) {
-        ""
-    } else {
-        " (examination stopped at the declared issue bound)"
+    // The three postures are three different facts and the line says which one
+    // it is carrying. A halted examination knows nothing about the sites past
+    // its bound; a truncated report examined every site and knows exactly how
+    // many findings it has no room for. Projecting both as "stopped" would tell
+    // a reader to re-run a pass that already covered everything.
+    let coverage = match posture {
+        CompletionPosture::Complete => String::new(),
+        CompletionPosture::EarlyStopped { .. } => {
+            String::from(" (examination stopped at the declared issue bound)")
+        }
+        CompletionPosture::ReportTruncated(truncation) => {
+            let omitted = truncation.omitted();
+            format!(
+                " (every site was examined; {omitted} further established issues do not fit the \
+                 declared issue bound)"
+            )
+        }
     };
-    format!("threadpak refusal-family derive: {family}: {first}{more}{stopped}")
+    format!("threadpak refusal-family derive: {family}: {first}{more}{coverage}")
 }
 
 /// One diagnostic over one refusal body's projected material.
@@ -573,9 +602,9 @@ fn related_identity(family: u8, material: &[u8]) -> ProjectionIdentity<RelatedIs
 ///
 /// Where that happens the body's own identity is carried alone — a coarser
 /// commitment to the same refusal, never a shorter commitment to a different one
-/// — and the posture returned beside it states `EarlyStopped` with the count it
-/// dropped. Carrying the coarser set silently is the defect: it has the shape of
-/// a complete answer, and the reader has nothing to compare it against.
+/// — and the posture returned beside it states `ReportTruncated` with the count
+/// it dropped. Carrying the coarser set silently is the defect: it has the shape
+/// of a complete answer, and the reader has nothing to compare it against.
 pub(crate) fn related_set(
     body: ProjectionIdentity<RelatedIssueSubject>,
     per_issue: Vec<ProjectionIdentity<RelatedIssueSubject>>,
@@ -593,7 +622,7 @@ pub(crate) fn related_set(
         Ok(set) => (set, RelatedSetCompletion::Complete),
         Err(BoundedConstruction::OverLimit) => (
             Bounded::from_array([body]),
-            RelatedSetCompletion::EarlyStopped {
+            RelatedSetCompletion::ReportTruncated {
                 stopped_at: StopBound::DeclaredIssueBound,
                 omitted: issues,
             },
@@ -604,16 +633,16 @@ pub(crate) fn related_set(
 /// One composed line, with the related set's own posture written into it.
 ///
 /// A complete set adds nothing: the line already reads as a summary of a
-/// complete body. A set that stopped says so and says by how much, because the
+/// complete body. A truncated set says so and says by how much, because the
 /// typed posture beside it is not something rustc shows, and a reader given only
 /// the body's own identity would otherwise take the coarser commitment for the
 /// full one.
 pub(crate) fn witnessed(composed: &str, completion: RelatedSetCompletion) -> String {
     match completion {
         RelatedSetCompletion::Complete => composed.to_owned(),
-        RelatedSetCompletion::EarlyStopped { omitted, .. } => format!(
-            "{composed} (the related set stopped at the declared issue bound: one identity over \
-             the complete body is carried and {omitted} per-issue identities are not)"
+        RelatedSetCompletion::ReportTruncated { omitted, .. } => format!(
+            "{composed} (the related set was truncated at the declared issue bound: one identity \
+             over the complete body is carried and {omitted} per-issue identities are not)"
         ),
     }
 }

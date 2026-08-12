@@ -307,7 +307,10 @@ pub enum TemplateConstructionIssue {
 pub struct TemplateConstruction {
     /// The established issues — at least one, at most the declared bound.
     pub issues: NonEmptyBounded<TemplateConstructionIssue, TemplateIssueLimit>,
-    /// Whether every applicable check ran.
+    /// Whether the body carries every issue the three passes established, or
+    /// names how many stand outside the declared bound. The passes themselves
+    /// always run their rosters to the end, so this seat never reports a halted
+    /// examination.
     pub posture: CompletionPosture,
 }
 

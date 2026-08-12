@@ -4,14 +4,14 @@
 //! no seam invents a body of its own shape. The one-issue road is total: the
 //! declared bound admits an item by compile-time proof, so refusing never needs
 //! an error road of its own. The co-establishing road is the one that can
-//! overrun, and when it does the body keeps the first issue and reports that
-//! enumeration stopped there — it never silently drops the remainder and never
-//! claims a completeness it does not have.
+//! overrun, and when it does the body carries what the declared bound holds and
+//! names how many established issues stand outside it — it never silently drops
+//! the remainder and never claims a completeness it does not have.
 
 use super::{BoundAxis, ProjectionPlanning, ProjectionPlanningIssue};
 use crate::plane::AuthoringLimitProfile;
 use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction, PositiveLimit};
+use threadpak::types::{NonEmptyBounded, PositiveLimit};
 
 impl ProjectionPlanning {
     /// The one-issue body, for a seam whose checks can establish exactly one
@@ -24,29 +24,26 @@ impl ProjectionPlanning {
         }
     }
 
-    /// The several-issue body, for a pass whose checks co-establish. When the
-    /// supplied issues outrun the declared bound the body keeps the first and
-    /// reports that enumeration stopped there — it never silently drops the
-    /// remainder and never claims completeness it does not have.
+    /// The several-issue body, for a pass whose checks co-establish.
+    ///
+    /// The caller arrives holding every issue its pass established, so the
+    /// posture this road writes is about the REPORT and never about the pass:
+    /// where the issues fit the declared bound the body carries all of them, and
+    /// where they do not the body carries what the bound holds and names how
+    /// many established issues stand outside it. It never silently drops the
+    /// remainder and never claims a completeness it does not have.
     pub fn co_established(
         first: ProjectionPlanningIssue,
         rest: Vec<ProjectionPlanningIssue>,
     ) -> Self {
-        match NonEmptyBounded::admitted_const(
-            first.clone(),
+        let (issues, omitted) = NonEmptyBounded::admitted_prefix(
+            first,
             rest,
             &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
-        ) {
-            Ok(issues) => Self {
-                issues,
-                posture: CompletionPosture::Complete,
-            },
-            Err(NonEmptyBoundedConstruction::OverLimit) => Self {
-                issues: NonEmptyBounded::singleton(first),
-                posture: CompletionPosture::EarlyStopped {
-                    stopped_at: StopBound::DeclaredIssueBound,
-                },
-            },
+        );
+        Self {
+            issues,
+            posture: CompletionPosture::examined_completely(omitted, StopBound::DeclaredIssueBound),
         }
     }
 

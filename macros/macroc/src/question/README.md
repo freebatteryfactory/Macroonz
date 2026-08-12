@@ -28,3 +28,6 @@ absence is exactly as complete as it was.
 because no declaration here has a private field to guard, and no
 `type_contract.rs` because the roster's own table is written by the authoring
 stamp rather than restated. A file exists here only when it has content.
+
+This home's qualification obligations live in the crate README's tooling-obligation
+blocks.

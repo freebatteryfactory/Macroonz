@@ -28,6 +28,7 @@ impl ProjectionPlanningIssue {
             Self::MembershipIncomplete { .. } => 5,
             Self::OrphanGeneratedNode { .. } => 6,
             Self::MembershipDoubled { .. } => 7,
+            Self::TrailDiscontinuous { .. } => 8,
         }
     }
 }

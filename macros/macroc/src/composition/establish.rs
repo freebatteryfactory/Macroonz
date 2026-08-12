@@ -13,7 +13,7 @@
 use super::{CompositionRootDeclaration, CompositionRootIssue, DescriptorProvider};
 use crate::plane::AuthoringLimitProfile;
 use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction, PositiveLimit};
+use threadpak::types::{NonEmptyBounded, PositiveLimit};
 
 /// Every provider identity declared more than once, reported at its first
 /// occurrence.
@@ -49,28 +49,27 @@ pub(super) fn refused(issues: Vec<CompositionRootIssue>) -> Option<CompositionRo
 }
 
 impl CompositionRootDeclaration {
-    /// The body a declaration check refuses with. When the issues outrun the
-    /// declared bound the body keeps the first and reports that examination
-    /// stopped there.
+    /// The body a declaration check refuses with.
+    ///
+    /// The scan above ran the declared set to the end before a body existed, so
+    /// the posture here is never about the scan: it is about the REPORT. Where
+    /// every established issue fits the declared bound the body carries all of
+    /// them and says `Complete`; where it does not, the body carries what the
+    /// bound holds and names how many established issues stand outside it. A
+    /// posture claiming the examination stopped would say nobody looked past the
+    /// bound, and somebody did.
     pub(super) fn established(
         first: CompositionRootIssue,
         rest: Vec<CompositionRootIssue>,
     ) -> Self {
-        match NonEmptyBounded::admitted_const(
+        let (issues, omitted) = NonEmptyBounded::admitted_prefix(
             first,
             rest,
             &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
-        ) {
-            Ok(issues) => Self {
-                issues,
-                posture: CompletionPosture::Complete,
-            },
-            Err(NonEmptyBoundedConstruction::OverLimit) => Self {
-                issues: NonEmptyBounded::singleton(first),
-                posture: CompletionPosture::EarlyStopped {
-                    stopped_at: StopBound::DeclaredIssueBound,
-                },
-            },
+        );
+        Self {
+            issues,
+            posture: CompletionPosture::examined_completely(omitted, StopBound::DeclaredIssueBound),
         }
     }
 }

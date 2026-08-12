@@ -191,25 +191,27 @@ pub struct DiagnosticSite {
 }
 
 /// Whether one diagnostic's related set carries every established issue's own
-/// identity, or stopped at the declared related-issue magnitude.
+/// identity, or was truncated at the declared related-issue magnitude.
 ///
 /// The vocabulary is band 00's, the one every collection-shaped refusal body in
-/// the plane already reports its enumeration with: `EarlyStopped`, naming the
-/// [`StopBound`] that stopped it. What a SET adds to an enumeration is the count
-/// — a reader holding the complete body's identity alone otherwise cannot tell a
-/// one-issue refusal from a sixty-issue one, and a set that carried the body's
-/// identity silently would be a coarser commitment wearing the shape of a
-/// complete one.
+/// the plane reports its coverage with, and it takes band 00's distinction
+/// exactly: nothing here ever HALTS an examination. The body is complete before
+/// the set is built, so what a short set reports is a truncated REPORT and never
+/// an unexamined remainder — which is why the truncation spelling stands here
+/// and `EarlyStopped` does not. What a SET adds is the count: a reader holding
+/// the complete body's identity alone otherwise cannot tell a one-issue refusal
+/// from a sixty-issue one, and a set that carried the body's identity silently
+/// would be a coarser commitment wearing the shape of a complete one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RelatedSetCompletion {
     /// The complete body's identity, then one per established issue, all of
     /// them.
     Complete,
-    /// The set stopped at a declared bound. The complete body's identity is
-    /// carried — it commits to every issue at once — and this many per-issue
+    /// The set was truncated at a declared bound. The complete body's identity
+    /// is carried — it commits to every issue at once — and this many per-issue
     /// identities are not.
-    EarlyStopped {
-        /// The declared bound that stopped the set.
+    ReportTruncated {
+        /// The declared bound the set was truncated at.
         stopped_at: StopBound,
         /// How many per-issue identities the set does not carry.
         omitted: usize,

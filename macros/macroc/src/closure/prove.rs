@@ -16,7 +16,7 @@ use super::{ClosureIssue, ProjectionClosureRefusal, RenderedProjection};
 use crate::plane::{AuthoringLimitProfile, RenderedRole};
 use crate::planning::{PlannedMember, PlannedMembership};
 use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction, PositiveLimit};
+use threadpak::types::{NonEmptyBounded, PositiveLimit};
 
 /// The per-role pass: every issue the two establish at a role, and the members
 /// rebuilt at the roles where they agreed.
@@ -99,25 +99,22 @@ pub(super) fn refused<R: RenderedRole>(
 }
 
 impl<R: RenderedRole> ProjectionClosureRefusal<R> {
-    /// The body a closure check refuses with. When the issues outrun the
-    /// declared bound the body keeps the first and reports that examination
-    /// stopped there — it never silently drops the remainder.
+    /// The body a closure check refuses with.
+    ///
+    /// The per-role pass above walks the kind's whole roster before a body
+    /// exists, so the posture here is about the REPORT rather than the pass.
+    /// Where every established issue fits the declared bound the body carries
+    /// all of them; where it does not, the body carries what the bound holds and
+    /// names how many established issues stand outside it — never a silent drop.
     pub(super) fn established(first: ClosureIssue<R>, rest: Vec<ClosureIssue<R>>) -> Self {
-        match NonEmptyBounded::admitted_const(
+        let (issues, omitted) = NonEmptyBounded::admitted_prefix(
             first,
             rest,
             &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
-        ) {
-            Ok(issues) => Self {
-                issues,
-                posture: CompletionPosture::Complete,
-            },
-            Err(NonEmptyBoundedConstruction::OverLimit) => Self {
-                issues: NonEmptyBounded::singleton(first),
-                posture: CompletionPosture::EarlyStopped {
-                    stopped_at: StopBound::DeclaredIssueBound,
-                },
-            },
+        );
+        Self {
+            issues,
+            posture: CompletionPosture::examined_completely(omitted, StopBound::DeclaredIssueBound),
         }
     }
 }

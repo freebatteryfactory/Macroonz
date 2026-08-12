@@ -41,3 +41,6 @@ a private field, which is what makes the walls above structural.
 `type_contract.rs` states the one declarative roster. `encode.rs` owns the single
 length framing every canonical encoding in the services is written through, and
 `transcript.rs` is the transcript specification as code.
+
+This home's qualification obligations live in the crate README's tooling-obligation
+blocks.

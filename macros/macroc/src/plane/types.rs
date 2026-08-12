@@ -140,6 +140,24 @@ macro_rules! limits {
                 const MAX: usize = $max;
             }
         )+
+
+        /// Every limit family this plane declares, as its Rust spelling and the
+        /// magnitude it declares.
+        ///
+        /// Emitted from the SAME rows as the families themselves, in one
+        /// expansion, so it is not an inventory of the declarations — it is the
+        /// declarations, read a second way. A family the roster gains appears
+        /// here without anybody adding a row, and a row nobody can add is a row
+        /// that cannot go stale. That is what lets the plane's ceiling law
+        /// derive the widest declared magnitude instead of naming a family and
+        /// hoping it stays the widest.
+        ///
+        /// It exists for the proof surface, which is the only reader that has a
+        /// question about the roster as a whole rather than about one family.
+        #[cfg(test)]
+        pub(crate) const DECLARED_LIMITS: &[(&str, usize)] = &[
+            $( (stringify!($name), <$name as ConstLimit>::MAX) ),+
+        ];
     };
 }
 
@@ -275,10 +293,11 @@ limits! {
     BundleMemberLimit = 32,
     /// Issues one planning refusal body may carry: the roster's cardinality once
     /// each multi-seat issue is counted per seat — five single-seat issues, the
-    /// missing-fact issue over its one plan seat, the bound issue over its six
-    /// axes, and the doubled-output issue over the sixteen roles a membership at
-    /// the output magnitude could double.
-    PlanningIssueLimit = 28,
+    /// missing-fact issue over its one plan seat, the discontinuity issue over
+    /// the one break a trail is refused at, the bound issue over its six axes,
+    /// and the doubled-output issue over the sixteen roles a membership at the
+    /// output magnitude could double.
+    PlanningIssueLimit = 29,
     /// Issues one explanation-coverage refusal body may carry: each of the
     /// fourteen questions may be unanswered, answered twice, or answered where
     /// the kind does not admit it, and no two of those hold of one question at
@@ -316,11 +335,17 @@ limits! {
     /// Axis ceilings one profile ceiling carries — the meta bound-axis
     /// roster's own cardinality, since a ceiling names each axis exactly once.
     MetaBoundAxisLimit = 8,
-    /// Issues one template-construction refusal body may carry: at most one
-    /// per declared parameter seat, since no two parameter issues hold of one
-    /// parameter at once, and the ceiling seam's own pass fits inside the same
-    /// magnitude.
-    TemplateIssueLimit = 32,
+    /// Issues one template-construction refusal body may carry, sized by the
+    /// widest of the three passes rather than by the narrowest.
+    ///
+    /// The binding pass is that one, and it asks two independent questions per
+    /// declared hole: how many bindings name it, and whether one of them
+    /// disagrees with its declared category. Both can hold of one hole at once,
+    /// so the pass establishes up to two issues per declared parameter, plus one
+    /// unknown-parameter issue per supplied binding — three times the parameter
+    /// magnitude. The hole pass and the ceiling pass are narrower and fit
+    /// inside it.
+    TemplateIssueLimit = 96,
     /// Owner facts one wrapper-trigger selection or omission may cite.
     SelectionCitationLimit = 8,
     /// Issues one trigger-view refusal body may carry — the wrapper-component

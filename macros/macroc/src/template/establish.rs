@@ -19,7 +19,7 @@ use super::{
 };
 use crate::plane::AuthoringLimitProfile;
 use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction, PositiveLimit};
+use threadpak::types::{NonEmptyBounded, PositiveLimit};
 
 /// Every parameter identity a hole set declares more than once, reported at its
 /// first occurrence.
@@ -67,31 +67,45 @@ pub(super) fn binding_issues(
 ) -> Vec<TemplateConstructionIssue> {
     let mut issues: Vec<TemplateConstructionIssue> = Vec::new();
     for declared in template.parameters() {
-        let mut supplied = bindings
+        let supplied: Vec<&TemplateBinding> = bindings
             .iter()
-            .filter(|binding| binding.parameter().parameter == declared.parameter);
-        // The dispatch answers one question — what issue, if any, does this
-        // declared parameter establish — and every arm answers it. An arm
-        // that pushes a side effect at its own depth says nothing about the
-        // arms beside it; an arm that yields the answer is comparable with
-        // them, and the exhaustive shape is what proves nothing was missed.
-        let established_issue = match (supplied.next(), supplied.next()) {
-            (None, _) => Some(TemplateConstructionIssue::MissingBinding {
+            .filter(|binding| binding.parameter().parameter == declared.parameter)
+            .collect();
+        // Two independent questions about one declared hole, and they are asked
+        // separately because they co-establish. "How many bindings name this
+        // hole" and "does a binding that names it disagree with its declared
+        // category" are true or false of each other in every combination, and
+        // the pass used to ask the second only in the arm where the first
+        // answered exactly one — so a hole bound twice, one of them under the
+        // wrong category, reported the doubling and swallowed the disagreement.
+        // A caller repairing the duplicate would then have been told about the
+        // category on the next attempt, which is the one-defect-per-attempt
+        // road this whole home exists to close.
+        let arity_issue = match supplied.len() {
+            0 => Some(TemplateConstructionIssue::MissingBinding {
                 parameter: declared.parameter,
             }),
-            (Some(bound), None) if bound.category() != declared.category => {
-                Some(TemplateConstructionIssue::DeclaredCategoryDisagreement {
-                    parameter: declared.parameter,
-                    declared: declared.category,
-                    bound: bound.category(),
-                })
-            }
-            (Some(_), None) => None,
-            (Some(_), Some(_)) => Some(TemplateConstructionIssue::DuplicateBinding {
+            1 => None,
+            _ => Some(TemplateConstructionIssue::DuplicateBinding {
                 parameter: declared.parameter,
             }),
         };
-        issues.extend(established_issue);
+        // The disagreement is reported at the FIRST binding that disagrees, and
+        // the category it carries is that binding's own. Naming a category off
+        // some other binding would be a finding about a value the caller did
+        // not write.
+        let category_issue = supplied
+            .iter()
+            .find(|binding| binding.category() != declared.category)
+            .map(
+                |binding| TemplateConstructionIssue::DeclaredCategoryDisagreement {
+                    parameter: declared.parameter,
+                    declared: declared.category,
+                    bound: binding.category(),
+                },
+            );
+        issues.extend(arity_issue);
+        issues.extend(category_issue);
     }
     for binding in bindings {
         let known = template
@@ -127,28 +141,26 @@ impl TemplateConstruction {
         }
     }
 
-    /// The several-issue body. When the supplied issues outrun the declared
-    /// bound the body keeps the first and reports that enumeration stopped
-    /// there — never a silent drop, never an unearned claim of completeness.
+    /// The several-issue body.
+    ///
+    /// The three passes above run their rosters to the end before a body exists,
+    /// so the posture here is about the REPORT and never about the passes. Where
+    /// every established issue fits the declared bound the body carries all of
+    /// them; where it does not, the body carries what the bound holds and names
+    /// how many established issues stand outside it — never a silent drop, never
+    /// an unearned claim of completeness, and never a claim that nobody looked.
     pub fn co_established(
         first: TemplateConstructionIssue,
         rest: Vec<TemplateConstructionIssue>,
     ) -> Self {
-        match NonEmptyBounded::admitted_const(
+        let (issues, omitted) = NonEmptyBounded::admitted_prefix(
             first,
             rest,
             &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
-        ) {
-            Ok(issues) => Self {
-                issues,
-                posture: CompletionPosture::Complete,
-            },
-            Err(NonEmptyBoundedConstruction::OverLimit) => Self {
-                issues: NonEmptyBounded::singleton(first),
-                posture: CompletionPosture::EarlyStopped {
-                    stopped_at: StopBound::DeclaredIssueBound,
-                },
-            },
+        );
+        Self {
+            issues,
+            posture: CompletionPosture::examined_completely(omitted, StopBound::DeclaredIssueBound),
         }
     }
 }

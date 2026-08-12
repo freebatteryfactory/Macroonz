@@ -127,6 +127,23 @@ pub enum ProjectionPlanningIssue {
         /// How many members stood under it.
         observed: u32,
     },
+    /// An origin trail's edges do not join: the edge at this position starts at
+    /// a node the edge before it did not produce.
+    ///
+    /// A trail is a WALK back to authored material, and a walk with a gap in it
+    /// is not a shorter walk — it is two walks presented as one, and whichever
+    /// end a reader trusts, the other end is provenance nobody established. The
+    /// position is carried because "the trail is broken" without a position is a
+    /// finding an author cannot repair.
+    ///
+    /// Last in the roster on purpose: the declared order is what a canonical
+    /// encoding writes down as a slot, so a new issue joins at the end and moves
+    /// nobody else's byte.
+    TrailDiscontinuous {
+        /// The position of the edge that does not join its predecessor, counted
+        /// from the trail's first edge.
+        at: u32,
+    },
 }
 
 /// The planning refusal family body.
@@ -139,6 +156,7 @@ pub enum ProjectionPlanningIssue {
 pub struct ProjectionPlanning {
     /// The established issues — at least one, at most the declared bound.
     pub issues: NonEmptyBounded<ProjectionPlanningIssue, PlanningIssueLimit>,
-    /// Whether every applicable check ran.
+    /// Whether the body carries every issue its seam established, or names how
+    /// many stand outside the declared bound.
     pub posture: CompletionPosture,
 }

@@ -41,3 +41,6 @@ the duplicate scan did not run over. `type_contract.rs` states the refusal
 family's declared shape. `establish.rs` is the duplicate scan itself and the body
 the established issues amount to — a pure pass, reading providers through the
 same answers any caller gets.
+
+This home's qualification obligations live in the crate README's tooling-obligation
+blocks.

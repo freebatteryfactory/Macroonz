@@ -37,4 +37,4 @@ pub use types::{
 pub(crate) use types::{human_projection, static_bytes};
 
 #[cfg(test)]
-pub(crate) use types::{SUBJECT_NAMES, for_laws};
+pub(crate) use types::{DECLARED_LIMITS, SUBJECT_NAMES, for_laws};

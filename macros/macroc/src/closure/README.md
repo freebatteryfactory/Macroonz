@@ -50,3 +50,6 @@ join, and builds the proof, which is what keeps every one of those roads
 unreachable from anywhere else. `prove.rs` is the per-role pass the proof
 consumes, and `type_contract.rs` states the refusal family and the issue roster's
 own table.
+
+This home's qualification obligations live in the crate README's tooling-obligation
+blocks.
