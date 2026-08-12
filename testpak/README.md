@@ -31,19 +31,23 @@ suites, because cargo requires executable challenge material to live under
 | Seat | Name | Occupancy |
 | ---- | ---- | --------- |
 | 00 | plan | **seated as `src/00_plan/`** — the denominators a verdict is stated over |
-| 01 | — | reserved, unnamed, empty |
-| 02 | — | reserved, unnamed, empty |
+| 01 | corpus | reserved, unmaterialized |
+| 02 | arena | reserved, unmaterialized |
 | 03 | judge | **seated as `src/03_judge/`** — the readers that state a verdict over a rendered artifact |
-| 04 | — | reserved, unnamed, empty |
-| 05 | — | reserved, unnamed, empty |
+| 04 | simulation | reserved, unmaterialized |
+| 05 | fault | reserved, unmaterialized |
 | 06 | muterprater | **seated as `tests/planted_defect.rs`** — the mutation seat; today one planted defective expansion and the proof the checker notices |
 | 07 | conformance | **seated as `tests/compile_refusals.rs` + `tests/compile-fail/`** — the compile-refusal seat, run through trybuild |
-| 08 | — | reserved, unnamed, empty |
+| 08 | evidence | reserved, unmaterialized |
 
-The five reserved seats carry no names here on purpose. Numbering a seat is
-cheap; naming one commits the plane to a meaning, and a name authored to fill a
-row in a table is exactly the kind of hand-maintained inventory this repository
-refuses. They are named when their content lands.
+The five reserved names restore the plane's original nine-seat design; they were
+ruled onto this map, not authored to fill it. **A reserved name fixes the
+intended question of a seat. It does not claim that the seat exists, has an
+owner implementation, or has satisfied admission** — name reserved ≠ home
+materialized ≠ implementation admitted ≠ qualification established. No
+directory, placeholder type, or obligation stands for a reserved seat until real
+content lands, and content that does not fit its reserved name comes back for an
+explicit ruling instead of being normalized into the nearest drawer.
 
 | Path | What it carries |
 | --- | --- |
