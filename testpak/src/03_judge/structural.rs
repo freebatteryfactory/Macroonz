@@ -29,6 +29,29 @@
 //! challenged understanding; agreement with a parser nobody here wrote is not
 //! correlated with the renderer at all.
 //!
+//! # Everything inside an implementation is read, and nothing is stepped over
+//!
+//! A reader that recovers three named constants and ignores whatever else the
+//! implementation carries has a blind spot exactly the size of "everything the
+//! declaration did not name". A method, an associated type, a macro invocation,
+//! a second copy of a constant it already read, a `cfg` deciding whether the
+//! implementation exists at all — every one of those changes what the artifact
+//! declares, and every one of them used to pass this lane silently. So each is a
+//! finding of its own now:
+//!
+//! - a member that is not one of the expected constants is
+//!   [`StructuralDisagreement::UnexpectedImplMember`];
+//! - a constant read twice is [`StructuralDisagreement::DuplicateMember`], never
+//!   an overwrite of the earlier reading;
+//! - the exact path a cause row is CONSTRUCTED through is read and compared, so
+//!   rows carrying the declared values through some other constructor are
+//!   [`StructuralDisagreement::ConstructorPath`];
+//! - how the implementation is written — `unsafe`, negative, `default`, generic
+//!   — is [`StructuralDisagreement::ImplPosture`];
+//! - any attribute that is not a doc comment is
+//!   [`StructuralDisagreement::MeaningBearingAttribute`], because a doc comment
+//!   decides nothing and a `cfg` decides everything.
+//!
 //! # What this lane does NOT claim
 //!
 //! It reads syntax, and syntax is not meaning. This lane never claims that the
@@ -45,14 +68,45 @@
 //! [`StructuralVerdict::Deviates`]. A caller that folded it into `Conforms`
 //! would be asserting over a reading that never happened.
 
-/// One cause row, as the artifact declares it: the stable identity minted for
-/// the cause, and the spelling that cause is projected under.
+/// One cause row, as the artifact declares it: the two constructor paths it is
+/// built through, the stable identity minted for the cause, and the spelling
+/// that cause is projected under.
+///
+/// The constructors are columns of the row and not decoration. A row spelling
+/// the declared identity and the declared spelling through some other pair of
+/// constructors declares something else entirely, and a reader that kept only
+/// the two strings would have called it conforming.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CauseRow {
+    /// The path the row itself is constructed through.
+    pub row_constructor: String,
+    /// The path the row's stable identity is minted through.
+    pub identity_constructor: String,
     /// The stable identity the row states.
     pub identity: String,
     /// The spelling the row states.
     pub spelling: String,
+}
+
+/// One way an implementation may be WRITTEN beyond the plain form.
+///
+/// An implementation carries no visibility in Rust — there is no seat for one on
+/// the item — so the postures a reader can be lied to about are these four, and
+/// each of them changes what the artifact declares. A lawful rendering carries
+/// none of them, which is why the declaration states an empty roster and any
+/// posture at all is a finding.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ImplPosture {
+    /// `unsafe impl` — a contract with an obligation attached.
+    Unsafely,
+    /// `impl !Trait for Type` — the opposite of the contract the declaration
+    /// named.
+    Negative,
+    /// `default impl` — a realization other implementations may replace.
+    Defaulted,
+    /// Generic parameters or a `where` clause: a family of implementations
+    /// rather than the one the declaration named.
+    Generic,
 }
 
 /// One trait implementation the artifact declares, as this lane read it.
@@ -63,15 +117,30 @@ pub struct ImplementationStructure {
     /// The trait path the implementation realizes, spelled with its leading
     /// `::` when it carries one.
     pub trait_path: String,
+    /// The postures the implementation is written under, in roster order.
+    pub postures: Vec<ImplPosture>,
+    /// The attributes the implementation and its members carry that decide
+    /// something — every attribute that is not a doc comment, by path.
+    pub meaning_bearing_attributes: Vec<String>,
     /// The body-shape word the member constant `SHAPE` states, where this
     /// implementation states one.
     pub shape: Option<String>,
     /// The spellings the member constant `SELECTION_ORDER` states, in order,
     /// where this implementation states it.
     pub selection_order: Option<Vec<String>>,
+    /// The path the member constant `DECLARED_ORDER` is constructed through,
+    /// where this implementation states it.
+    pub order_constructor: Option<String>,
     /// The cause rows the member constant `DECLARED_ORDER` states, in order,
     /// where this implementation states it.
     pub cause_rows: Option<Vec<CauseRow>>,
+    /// The members that are not one of the three expected constants, described
+    /// by what each one is.
+    pub unexpected_members: Vec<String>,
+    /// The expected constants this implementation states more than once, by
+    /// name. The second reading is recorded here and never written over the
+    /// first.
+    pub duplicated_members: Vec<String>,
 }
 
 /// Everything this lane recovered from one rendered artifact.
@@ -98,6 +167,12 @@ pub struct DeclaredStructure<'a> {
     pub target: &'a str,
     /// The trait paths the artifact declares, in the order it declares them.
     pub traits: &'a [&'a str],
+    /// The postures every declared implementation is written under.
+    pub postures: &'a [ImplPosture],
+    /// The attributes the declaration admits on an implementation or on one of
+    /// its members, by path. Doc comments are not attributes for this purpose
+    /// and never appear here.
+    pub attributes: &'a [&'a str],
     /// The body-shape word exactly one implementation states.
     pub shape: &'a str,
     /// The cause spellings, in declared order. Both the selection order and the
@@ -106,12 +181,18 @@ pub struct DeclaredStructure<'a> {
     pub spellings: &'a [&'a str],
     /// The stable cause identities, in declared order.
     pub identities: &'a [&'a str],
+    /// The path the declared order is constructed through.
+    pub order_constructor: &'a str,
+    /// The path every cause row is constructed through.
+    pub row_constructor: &'a str,
+    /// The path every row's stable identity is minted through.
+    pub identity_constructor: &'a str,
 }
 
 /// Which structural fact the artifact and the declaration disagree about.
 ///
 /// One finding, named. A verdict that only said "no" would leave every caller
-/// guessing which of seven questions came back wrong.
+/// guessing which of a dozen questions came back wrong.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StructuralDisagreement {
     /// The artifact declares an item that is not a trait implementation of a
@@ -127,11 +208,25 @@ pub enum StructuralDisagreement {
     /// An implementation realizes a trait path the declaration did not name, or
     /// names them in another order.
     TraitPath,
+    /// An implementation is written `unsafe`, negative, `default`, or generic
+    /// where the declaration names none of those.
+    ImplPosture,
+    /// An implementation or one of its members carries an attribute that
+    /// decides something and that the declaration did not name.
+    MeaningBearingAttribute,
+    /// An implementation carries a member that is not one of the expected
+    /// associated constants.
+    UnexpectedImplMember,
+    /// An implementation states one of the expected constants more than once.
+    DuplicateMember,
     /// The stated body-shape word is not the declared one, or is stated by no
     /// implementation or by more than one.
     FamilyShape,
     /// The stated selection order is not the declared roster, in order.
     SelectionOrder,
+    /// A declared value is carried through a constructor path the declaration
+    /// did not name.
+    ConstructorPath,
     /// The stated cause rows are not the declared identities and spellings, in
     /// order.
     CauseRows,
@@ -186,7 +281,8 @@ pub fn structure_of(rendered: &str) -> Option<ArtifactStructure> {
 ///
 /// **The claim this function supports** is lane B's and only lane B's: the
 /// artifact DECLARES these implementations, of these traits, for this target,
-/// carrying these members. It says nothing about whether any of it compiles.
+/// written this way, carrying these members and no others. It says nothing about
+/// whether any of it compiles.
 #[must_use]
 pub fn judge_structure(rendered: &str, declared: &DeclaredStructure<'_>) -> StructuralVerdict {
     let Some(structure) = structure_of(rendered) else {
@@ -202,7 +298,10 @@ pub fn judge_structure(rendered: &str, declared: &DeclaredStructure<'_>) -> Stru
 ///
 /// The order is deliberate and coarse-to-fine: an artifact carrying an item
 /// nobody planned is reported as that, not as whichever member constant the
-/// extra item happened to disturb.
+/// extra item happened to disturb. Inside an implementation the same principle
+/// holds — how the implementation is written, and whether it exists at all under
+/// some `cfg`, are read before what its members say, because a member's value is
+/// only interesting once the item carrying it is the declared item.
 fn disagreement(
     structure: &ArtifactStructure,
     declared: &DeclaredStructure<'_>,
@@ -231,6 +330,35 @@ fn disagreement(
     {
         return Some(StructuralDisagreement::TraitPath);
     }
+    if structure
+        .implementations
+        .iter()
+        .any(|found| found.postures.as_slice() != declared.postures)
+    {
+        return Some(StructuralDisagreement::ImplPosture);
+    }
+    if structure.implementations.iter().any(|found| {
+        found
+            .meaning_bearing_attributes
+            .iter()
+            .any(|carried| !declared.attributes.contains(&carried.as_str()))
+    }) {
+        return Some(StructuralDisagreement::MeaningBearingAttribute);
+    }
+    if structure
+        .implementations
+        .iter()
+        .any(|found| !found.unexpected_members.is_empty())
+    {
+        return Some(StructuralDisagreement::UnexpectedImplMember);
+    }
+    if structure
+        .implementations
+        .iter()
+        .any(|found| !found.duplicated_members.is_empty())
+    {
+        return Some(StructuralDisagreement::DuplicateMember);
+    }
     member_disagreement(structure, declared)
 }
 
@@ -257,12 +385,30 @@ fn member_disagreement(
         return Some(StructuralDisagreement::SelectionOrder);
     }
 
+    let constructors: Vec<&String> = structure
+        .implementations
+        .iter()
+        .filter_map(|found| found.order_constructor.as_ref())
+        .collect();
+    if sole(&constructors).is_none_or(|called| called.as_str() != declared.order_constructor) {
+        return Some(StructuralDisagreement::ConstructorPath);
+    }
+
     let rosters: Vec<&Vec<CauseRow>> = structure
         .implementations
         .iter()
         .filter_map(|found| found.cause_rows.as_ref())
         .collect();
-    if sole(&rosters).is_none_or(|rows| !same_rows(rows, declared)) {
+    let Some(rows) = sole(&rosters) else {
+        return Some(StructuralDisagreement::CauseRows);
+    };
+    if rows.iter().any(|row| {
+        row.row_constructor != declared.row_constructor
+            || row.identity_constructor != declared.identity_constructor
+    }) {
+        return Some(StructuralDisagreement::ConstructorPath);
+    }
+    if !same_rows(rows, declared) {
         return Some(StructuralDisagreement::CauseRows);
     }
     None
@@ -317,6 +463,28 @@ fn same_rows(read: &[CauseRow], declared: &DeclaredStructure<'_>) -> bool {
             })
 }
 
+/// Which expected associated constant one member name spells, where it spells
+/// one at all.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ExpectedConstant {
+    /// `SHAPE`.
+    Shape,
+    /// `SELECTION_ORDER`.
+    SelectionOrder,
+    /// `DECLARED_ORDER`.
+    DeclaredOrder,
+}
+
+/// The expected constant one member name spells.
+fn expected_constant(name: &str) -> Option<ExpectedConstant> {
+    match name {
+        "SHAPE" => Some(ExpectedConstant::Shape),
+        "SELECTION_ORDER" => Some(ExpectedConstant::SelectionOrder),
+        "DECLARED_ORDER" => Some(ExpectedConstant::DeclaredOrder),
+        _ => None,
+    }
+}
+
 /// One trait implementation, read out of the tree, or `None` where the item is
 /// an implementation of something this lane cannot name — an inherent impl, or
 /// one whose target is not a plain path.
@@ -325,25 +493,114 @@ fn implementation_structure(declared: &syn::ItemImpl) -> Option<ImplementationSt
     let target = type_path(&declared.self_ty)?;
     let mut shape = None;
     let mut selection_order = None;
+    let mut order_constructor = None;
     let mut cause_rows = None;
+    let mut read: Vec<String> = Vec::new();
+    let mut unexpected_members: Vec<String> = Vec::new();
+    let mut duplicated_members: Vec<String> = Vec::new();
+    let mut meaning_bearing_attributes = meaning_bearing(&declared.attrs);
     for member in &declared.items {
-        let syn::ImplItem::Const(constant) = member else {
-            continue;
+        let (attributes, reading) = member_reading(member);
+        meaning_bearing_attributes.extend(meaning_bearing(attributes));
+        let constant = match reading {
+            ImplMember::Constant(constant) => constant,
+            ImplMember::Other(kind) => {
+                unexpected_members.push(kind.to_owned());
+                continue;
+            }
         };
-        match constant.ident.to_string().as_str() {
-            "SHAPE" => shape = last_segment(&constant.expr),
-            "SELECTION_ORDER" => selection_order = string_list(&constant.expr),
-            "DECLARED_ORDER" => cause_rows = cause_row_list(&constant.expr),
-            _ => {}
+        let name = constant.ident.to_string();
+        match expected_constant(&name) {
+            None => unexpected_members.push(format!("the associated constant `{name}`")),
+            Some(_) if read.contains(&name) => duplicated_members.push(name),
+            Some(ExpectedConstant::Shape) => {
+                read.push(name);
+                shape = last_segment(&constant.expr);
+            }
+            Some(ExpectedConstant::SelectionOrder) => {
+                read.push(name);
+                selection_order = string_list(&constant.expr);
+            }
+            Some(ExpectedConstant::DeclaredOrder) => {
+                read.push(name);
+                order_constructor = called_path(&constant.expr);
+                cause_rows = cause_row_list(&constant.expr);
+            }
         }
     }
     Some(ImplementationStructure {
         target,
         trait_path: path_spelling(path),
+        postures: postures_of(declared),
+        meaning_bearing_attributes,
         shape,
         selection_order,
+        order_constructor,
         cause_rows,
+        unexpected_members,
+        duplicated_members,
     })
+}
+
+/// The postures one implementation is written under, in roster order.
+fn postures_of(declared: &syn::ItemImpl) -> Vec<ImplPosture> {
+    let mut carried = Vec::new();
+    if declared.unsafety.is_some() {
+        carried.push(ImplPosture::Unsafely);
+    }
+    if declared.modifiers.polarity.is_some() {
+        carried.push(ImplPosture::Negative);
+    }
+    if declared.modifiers.defaultness.is_some() {
+        carried.push(ImplPosture::Defaulted);
+    }
+    if !declared.generics.params.is_empty() || declared.generics.where_clause.is_some() {
+        carried.push(ImplPosture::Generic);
+    }
+    carried
+}
+
+/// What one implementation member is, for the two questions this lane asks of
+/// members.
+enum ImplMember<'a> {
+    /// An associated constant, whose name and value are both read.
+    Constant(&'a syn::ImplItemConst),
+    /// Anything else, described by what it is. Nothing lawful renders one, so
+    /// the description is what the finding carries.
+    Other(&'static str),
+}
+
+/// One member's attributes, and what the member is.
+#[expect(
+    clippy::wildcard_enum_match_arm,
+    reason = "`syn::ImplItem` is non_exhaustive, so no crate outside syn can enumerate its variants; a wildcard is the only arm that closes this match, and every member it catches is by definition not one of the expected associated constants"
+)]
+fn member_reading(member: &syn::ImplItem) -> (&[syn::Attribute], ImplMember<'_>) {
+    match member {
+        syn::ImplItem::Const(constant) => (&constant.attrs, ImplMember::Constant(constant)),
+        syn::ImplItem::Fn(method) => (&method.attrs, ImplMember::Other("an associated function")),
+        syn::ImplItem::Type(associated) => {
+            (&associated.attrs, ImplMember::Other("an associated type"))
+        }
+        syn::ImplItem::Macro(invocation) => (
+            &invocation.attrs,
+            ImplMember::Other("a macro invocation in member position"),
+        ),
+        _ => (&[], ImplMember::Other("a member this lane cannot name")),
+    }
+}
+
+/// Every attribute that decides something, by path.
+///
+/// A doc comment reaches the tree as `#[doc = "…"]` and decides nothing, so it
+/// is not carried. Everything else is: `cfg` decides whether the implementation
+/// exists at all, and an attribute nobody planned is a finding whatever it does.
+fn meaning_bearing(attributes: &[syn::Attribute]) -> Vec<String> {
+    attributes
+        .iter()
+        .map(|attribute| path_spelling(attribute.path()))
+        .filter(|spelled| spelled != "doc")
+        .collect()
 }
 
 /// One path, spelled back with its segments and its leading `::`.
@@ -386,6 +643,17 @@ fn last_segment(expression: &syn::Expr) -> Option<String> {
         .map(|segment| segment.ident.to_string())
 }
 
+/// The path a call expression calls, where the callee is a plain path.
+fn called_path(expression: &syn::Expr) -> Option<String> {
+    let syn::Expr::Call(call) = expression else {
+        return None;
+    };
+    let syn::Expr::Path(spelled) = call.func.as_ref() else {
+        return None;
+    };
+    Some(path_spelling(&spelled.path))
+}
+
 /// The string literals of a `&[…]` expression, in order.
 fn string_list(expression: &syn::Expr) -> Option<Vec<String>> {
     array_elements(expression)?.map(string_literal).collect()
@@ -410,19 +678,24 @@ fn array_elements(expression: &syn::Expr) -> Option<syn::punctuated::Iter<'_, sy
     Some(array.elems.iter())
 }
 
-/// One `Row::declared(Identity::declared("…"), "…")` element, as its two
-/// columns.
+/// One `Row::declared(Identity::declared("…"), "…")` element, as its four
+/// columns: the two constructors it is built through, and the two values it
+/// carries.
 fn cause_row(expression: &syn::Expr) -> Option<CauseRow> {
     let syn::Expr::Call(call) = expression else {
         return None;
     };
+    let row_constructor = called_path(expression)?;
     let mut arguments = call.args.iter();
     let minted = arguments.next()?;
     let spelling = string_literal(arguments.next()?)?;
+    let identity_constructor = called_path(minted)?;
     let syn::Expr::Call(identity) = minted else {
         return None;
     };
     Some(CauseRow {
+        row_constructor,
+        identity_constructor,
         identity: string_literal(identity.args.first()?)?,
         spelling,
     })

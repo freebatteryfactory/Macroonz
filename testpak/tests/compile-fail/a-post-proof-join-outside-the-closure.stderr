@@ -1,0 +1,10 @@
+error[E0624]: method `joined_tree` is private
+  --> tests/compile-fail/a-post-proof-join-outside-the-closure.rs:24:26
+   |
+24 |         let _ = rendered.joined_tree();
+   |                          ^^^^^^^^^^^ private method
+   |
+  ::: $WORKSPACE/macros/macroc/src/closure.rs
+   |
+   |     pub(crate) fn joined_tree(&self) -> Result<GeneratedTree, RenderingRefusal> {
+   |     --------------------------------------------------------------------------- private method defined here

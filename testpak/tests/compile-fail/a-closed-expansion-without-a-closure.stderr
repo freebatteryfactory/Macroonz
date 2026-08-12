@@ -1,0 +1,16 @@
+error[E0624]: associated function `bound` is private
+  --> tests/compile-fail/a-closed-expansion-without-a-closure.rs:21:30
+   |
+21 |       let _ = ClosedExpansion::bound;
+   |                                ^^^^^ private associated function
+   |
+  ::: $WORKSPACE/macros/macroc/src/derive_refusal/types.rs
+   |
+   | /     pub(crate) fn bound(
+   | |         surface: RefusalDeriveSurface,
+   | |         plan: ProjectionPlan<DeriveImplProjection>,
+   | |         closure: ProjectionClosure<RenderedImplementation>,
+   | |         explanation: ProjectionExplanationView<DeriveImplProjection>,
+   | |         cause_order: ProjectionDisposition,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

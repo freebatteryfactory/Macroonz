@@ -142,7 +142,11 @@ tooling-obligation: macroc.the-receipt-rich-road-is-the-only-road
   positive: macros/macroc/src/laws.rs
   method: executable-law
   activation: cargo test -p threadpak-macroc
-  tooling-red: owed-to-testpak — a controlled mutant deleting each seat in turn
+  tooling-red: testpak/tests/compile-fail/ — one fixture per unwritable road: a
+    receipt bound without a closure, a rendering taken off the membership-only
+    draft, a closure minted without proving. Deleting the plan, the origin graph,
+    the trace, the invalidation set, or the explanation dies at the same private
+    constructor as deleting the closure, and one fixture proves that gate.
   nonclaims: >
     It does not claim the rendering is correct Rust; that is lane C's claim, and
     it is made by the consumer fixtures.
@@ -204,7 +208,9 @@ tooling-obligation: macroc.a-failed-required-seat-is-a-typed-refusal
   positive: macros/macroc/src/laws.rs
   method: executable-law
   activation: cargo test -p threadpak-macroc failure_path_closure
-  tooling-red: owed-to-testpak — a controlled mutant restoring each killed repair in turn
+  tooling-red: testpak/tests/failed_seat_refusals.rs — the plane restores each
+    killed repair itself, out of the values a lawful compilation hands back, and
+    shows the repaired value is about another subject while the seam refuses
   nonclaims: >
     It does not claim every seat in the services is required; a declared default,
     such as the crate binding a consumer did not rename, is a stated posture and
@@ -222,7 +228,9 @@ tooling-obligation: macroc.the-emitted-tree-is-inside-the-closure-proof
   positive: macros/macroc/src/laws.rs
   method: executable-law
   activation: cargo test -p threadpak-macroc failure_path_closure
-  tooling-red: owed-to-testpak — a mutant re-opening a public post-proof join
+  tooling-red: testpak/tests/compile-fail/a-post-proof-join-outside-the-closure.rs
+    — a mutant re-opening a public post-proof join has to make the join
+    reachable, and while it is not, the fixture does not compile
   nonclaims: >
     It does not claim the joined tree is correct Rust; that is lane C's claim and
     the consumer fixtures make it.
@@ -239,7 +247,9 @@ tooling-obligation: macroc.a-declared-input-stands-under-four-magnitudes
   positive: macros/macroc/src/laws.rs
   method: executable-law
   activation: cargo test -p threadpak-macroc failure_path_closure
-  tooling-red: owed-to-testpak — a mutant restoring a saturating depth coordinate
+  tooling-red: testpak/tests/declared_magnitudes.rs — the plane implements the
+    killed depth-and-index coordinate itself and shows two distinct tokens
+    colliding under it, and drives every magnitude both directions
   nonclaims: >
     It does not claim the budget binds before the whole-tree magnitude for
     today's two producers; both keep every token they examine, so the tree

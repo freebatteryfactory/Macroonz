@@ -1,0 +1,7 @@
+// MATERIALIZED — the LAWFUL rendering, byte for byte, of the declaration
+// stated in `../compiled_behaviour.rs`, as the receipt-rich road produced and
+// closed over it. It is included into that test crate so `rustc` compiles it and
+// the trait constants read back as VALUES: this is lane C's positive control.
+// The provenance is re-derived on every run, so this file cannot go quietly
+// stale — when the renderer legitimately changes shape, that test says so.
+impl :: threadpak :: refusal :: RefusalFamily for DemoFamily { const SHAPE : :: threadpak :: refusal :: FamilyShape = :: threadpak :: refusal :: FamilyShape :: SingleCause ; const SELECTION_ORDER : & 'static [ & 'static str ] = & [ "NotCanonical" , "NotAdmitted" , "Unbounded" ] ; } impl :: threadpak :: refusal :: CauseOrderDeclaration for DemoFamily { const DECLARED_ORDER : :: threadpak :: refusal :: DeclaredCauseOrder = :: threadpak :: refusal :: DeclaredCauseOrder :: declared ( & [ :: threadpak :: refusal :: DeclaredCause :: declared ( :: threadpak :: refusal :: CauseId :: declared ( "testpak.demo.not-canonical" ) , "NotCanonical" ) , :: threadpak :: refusal :: DeclaredCause :: declared ( :: threadpak :: refusal :: CauseId :: declared ( "testpak.demo.not-admitted" ) , "NotAdmitted" ) , :: threadpak :: refusal :: DeclaredCause :: declared ( :: threadpak :: refusal :: CauseId :: declared ( "testpak.demo.unbounded" ) , "Unbounded" ) , ] ) ; }

@@ -1,0 +1,5 @@
+error[E0599]: no method named `rendered` found for reference `&RefusalDerivationDraft` in the current scope
+  --> tests/compile-fail/a-rendering-taken-off-the-membership-only-draft.rs:21:23
+   |
+21 |         let _ = draft.rendered();
+   |                       ^^^^^^^^ method not found in `&RefusalDerivationDraft`

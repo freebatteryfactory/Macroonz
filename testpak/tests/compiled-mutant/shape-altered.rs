@@ -1,0 +1,7 @@
+// MATERIALIZED MUTANT — the lawful rendering with one word changed: this
+// plane's own `mutated(lawful, ShapeAltered)` over the declaration stated in
+// `../compiled_behaviour.rs`. It COMPILES, and declares a body shape the
+// declaration did not name, which is why lane C is the seat of the claim: the
+// disagreement is a value, and only a compiler hands back values.
+// The provenance is re-derived on every run, so this file cannot go quietly stale.
+impl :: threadpak :: refusal :: RefusalFamily for DemoFamily { const SHAPE : :: threadpak :: refusal :: FamilyShape = :: threadpak :: refusal :: FamilyShape :: IssueCollection ; const SELECTION_ORDER : & 'static [ & 'static str ] = & [ "NotCanonical" , "NotAdmitted" , "Unbounded" ] ; } impl :: threadpak :: refusal :: CauseOrderDeclaration for DemoFamily { const DECLARED_ORDER : :: threadpak :: refusal :: DeclaredCauseOrder = :: threadpak :: refusal :: DeclaredCauseOrder :: declared ( & [ :: threadpak :: refusal :: DeclaredCause :: declared ( :: threadpak :: refusal :: CauseId :: declared ( "testpak.demo.not-canonical" ) , "NotCanonical" ) , :: threadpak :: refusal :: DeclaredCause :: declared ( :: threadpak :: refusal :: CauseId :: declared ( "testpak.demo.not-admitted" ) , "NotAdmitted" ) , :: threadpak :: refusal :: DeclaredCause :: declared ( :: threadpak :: refusal :: CauseId :: declared ( "testpak.demo.unbounded" ) , "Unbounded" ) , ] ) ; }

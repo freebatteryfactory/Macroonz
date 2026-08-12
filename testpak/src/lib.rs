@@ -15,9 +15,9 @@
 //! and which are reserved and empty.
 //!
 //! Two seats are open here as source homes — `00_plan` and `03_judge`. Two more
-//! are occupied by test suites rather than source (`tests/planted_defect.rs`
-//! and `tests/compile_refusals.rs` with its fixtures), because their material
-//! is genuinely all executable challenge and cargo requires it to live under
+//! are occupied by test suites rather than source (the mutation seat, and
+//! `tests/compile_refusals.rs` with its fixtures), because their material is
+//! genuinely all executable challenge and cargo requires it to live under
 //! `tests/`. They are seated where their content is, not where a symmetrical
 //! tree would look tidier.
 //!
@@ -36,7 +36,7 @@ pub mod judge;
 
 pub use judge::{
     ARTIFACT_MUTATIONS, ArtifactMutation, ArtifactStructure, CauseRow, DeclaredStructure,
-    ImplementationStructure, LaneOwnership, RenderVerdict, StructuralDisagreement,
+    ImplPosture, ImplementationStructure, LaneOwnership, RenderVerdict, StructuralDisagreement,
     StructuralVerdict, cause_identities_in, judge_declared_order, judge_structure, mutated,
     selection_order_in, structure_of,
 };

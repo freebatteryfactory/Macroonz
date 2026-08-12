@@ -36,7 +36,7 @@ suites, because cargo requires executable challenge material to live under
 | 03 | judge | **seated as `src/03_judge/`** — the readers that state a verdict over a rendered artifact |
 | 04 | simulation | reserved, unmaterialized |
 | 05 | fault | reserved, unmaterialized |
-| 06 | muterprater | **seated as `tests/planted_defect.rs`** — the mutation seat; today one planted defective expansion and the proof the checker notices |
+| 06 | muterprater | **seated as `tests/planted_defect.rs`, `tests/failed_seat_refusals.rs`, `tests/declared_magnitudes.rs`, and `tests/compiled_behaviour.rs`** — the mutation seat: the damaged artifacts and the proof each lane notices what it owns, the killed repairs restored one at a time, the declared magnitudes driven both directions, and the two mutants that need a compiler |
 | 07 | conformance | **seated as `tests/compile_refusals.rs` + `tests/compile-fail/`** — the compile-refusal suite, run through trybuild — and as `tests/independent_identity_transcript.rs`, the independent transcript lane |
 | 08 | evidence | reserved, unmaterialized |
 
@@ -55,6 +55,10 @@ explicit ruling instead of being normalized into the nearest drawer.
 | `src/03_judge/` | `RenderVerdict` and the readers that produce it; `structural.rs` carries lane B |
 | `src/laws.rs` | the plane's own compile-time proof surface, sectioned by seat |
 | `tests/planted_defect.rs` | the planted defective expansion, the proof the checker notices, and the rehearsed false alarm |
+| `tests/failed_seat_refusals.rs` | each repair the failure-path law killed, restored by this plane and shown to be about another subject |
+| `tests/declared_magnitudes.rs` | the four magnitudes a captured input stands under, both directions each, and the killed depth-and-index coordinate restored |
+| `tests/compiled_behaviour.rs` | lane C's mutant seats: the materialized artifacts, their verified provenance, and the constants read back as values |
+| `tests/compiled-mutant/` | the materialized artifacts lane C compiles — checked in, provenance stated and verified |
 | `tests/compile_refusals.rs` | the trybuild runner over the compile-fail fixtures |
 | `tests/compile-fail/` | one fixture per discharged red twin |
 | `tests/independent_identity_transcript.rs` | the independent transcript lane: a second encoder, written from the published specification, re-deriving the services' own identities |
@@ -115,6 +119,11 @@ the universal one. Each fixture here discharges a red twin some green law names:
 | `cross-scope-comparison-on-a-stamped-guard.rs` | two stamped scope guards over different scopes are different types; comparing them does not compile |
 | `a-stamped-representation-cannot-be-laundered.rs` | two stamped guards over ONE scope: taking role A's position out and re-entering it under role B does not compile, in either direction |
 | `a-malformed-refusal-declaration-refuses.rs` | a shape word outside the machine's roster reaches the compiler as a refusal, not as a silent empty expansion |
+| `a-closed-expansion-without-a-closure.rs` | the only constructor of a receipt is crate-internal, so the plan, the origin graph, the trace, the invalidation set, the explanation, and the closure are all seats a caller cannot omit — they are arguments to a function nobody outside can call |
+| `a-rendering-taken-off-the-membership-only-draft.rs` | the frontage road is closed: the membership-only draft carries no rendering method at all |
+| `a-closure-minted-without-proving.rs` | every field of the proof is private and `proved` is the only road to one, so a closure assembled field by field does not compile |
+| `a-post-proof-join-outside-the-closure.rs` | joining the rendered units is crate-internal with one caller — the proof — so there is no public road to a joined tree outside it |
+| `a-materialized-malformed-mutant.rs` | lane C's `MalformedRust` seat: the mutated artifact text, checked in with its provenance stated, does not compile |
 
 ## Owed, and counted out loud
 
@@ -169,9 +178,11 @@ tooling-obligation: testpak.the-anchor-alarm-is-rehearsed
 tooling-obligation: testpak.lane-b-structural-reader
   claim: >
     An independent parse of the rendered artifact recovers what it DECLARES —
-    implementation target, trait path, body shape, cause rows in order, output
+    implementation target, trait path, how the implementation is written, the
+    attributes it carries, every member it carries, the constructor paths its
+    values are built through, body shape, cause rows in order, output
     cardinality, duplicate items, unplanned items — and catches every one of the
-    four mutations the ownership ledger records as structural, while the lawful
+    nine mutations the ownership ledger records as structural, while the lawful
     artifact conforms.
   owner: testpak/src/03_judge/structural.rs
   positive: testpak/tests/planted_defect.rs
@@ -183,6 +194,25 @@ tooling-obligation: testpak.lane-b-structural-reader
     that its paths resolve, not that the trait it names exists, not that any
     constant evaluates to the value its spelling suggests. A wrong trait path
     reads as a different path than the one declared, never as no such contract.
+
+tooling-obligation: testpak.lane-c-compiles-the-mutants-it-owns
+  claim: >
+    Both mutations the ownership ledger records as compiled behaviour have a
+    compiled seat: the malformed artifact is handed to `rustc` and fails to
+    compile, the shape-altered artifact compiles and its trait constants read
+    back as VALUES disagreeing with the shape this plane declares, and the
+    lawful artifact compiled the same way reads back as declared. Every
+    materialized artifact's provenance is re-derived on every run.
+  owner: testpak/src/03_judge/mutation.rs
+  positive: testpak/tests/compiled_behaviour.rs
+  method: compiled-behaviour
+  activation: cargo test -p threadpak-testpak --test compiled_behaviour
+  tooling-red: testpak/tests/compiled_behaviour.rs
+  nonclaims: >
+    It does not claim the LAWFUL artifact composes for an outside consumer; that
+    is the consumer fixtures' claim, made from outside both participants, and a
+    materialized text compiled inside the judge does not stand in for it. It does
+    not claim the mutants are the only ones `rustc` would catch.
 ```
 
 ## The three lanes, and what each one may claim
@@ -195,17 +225,25 @@ to a compiler, and it costs a string search.
 
 **Lane B — the structural read** (`src/03_judge/structural.rs`). Its claim is
 exactly *the artifact DECLARES these implementations, of these traits, for this
-target, carrying these members* — what item is this, what does it target, which
-contract does it realize, are the cause rows the declared ones, did an item
-nobody planned come along, was one emitted twice. It answers those by parsing the
-text with a parser nobody here wrote, and it claims nothing about whether any of
-it compiles.
+target, written this way, carrying these members and no others* — what item is
+this, what does it target, which contract does it realize, is it written
+`unsafe`, negative, `default`, or generic, does it exist at all under some `cfg`,
+are the cause rows the declared ones and are they built through the declared
+constructors, did a member nobody planned come along, was one stated twice, did
+an item nobody planned come along, was one emitted twice. It answers those by
+parsing the text with a parser nobody here wrote, and it claims nothing about
+whether any of it compiles.
 
 **Lane C — compiled behaviour** (`xtask/fixtures/macro-consumer`,
-`xtask/fixtures/renamed-consumer`). `rustc` compiles the derived artifact and the
-tests read its trait constants as VALUES, comparing them against hand-written
-twins. The renamed-consumer fixture reaches the machine only under `tp`, so a
-renderer hardcoding the default binding would fail to compile there.
+`xtask/fixtures/renamed-consumer`, `tests/compiled_behaviour.rs`). `rustc`
+compiles the artifact and the tests read its trait constants as VALUES. The
+LAWFUL artifact's seat is the consumer fixtures, and it has to be: they compare
+the derived implementation against hand-written twins from outside both
+participants, and the renamed-consumer fixture reaches the machine only under
+`tp`, so a renderer hardcoding the default binding would fail to compile there.
+The MUTANTS' seats are this package's, because a mutant is this plane's own
+damage and no participant is grading itself when the judge hands its own damaged
+text to a compiler.
 
 **Why the dumb reader stays dumb.** A cleverer reader has to decide what the text
 MEANS, and the only way to decide that is to implement the same understanding the
@@ -290,7 +328,7 @@ one declared* and never as *no such contract*. All of that is lane C's, where
 `Unparsable` is a failure class of its own, exactly as lane A's `Unreadable` is:
 never a skip, never a softer `Deviates`.
 
-**The planted mutations it must catch**, all four recorded as structural in
+**The planted mutations it must catch**, all nine recorded as structural in
 `src/03_judge/mutation.rs`, each landing on a different structural fact:
 
 | Mutation | What lane B reports |
@@ -299,6 +337,11 @@ never a skip, never a softer `Deviates`.
 | `TraitPathWrong` | the implementation realizes a trait path the declaration did not name |
 | `UnplannedOutputAdded` | the artifact declares more implementations than the declaration names |
 | `DecoyInComment` | the selection order the artifact DECLARES is not the declared roster — the comment carrying the anchored bytes is not in the tree at all |
+| `ImplMemberDuplicated` | one expected constant is stated twice, and the second reading is recorded rather than written over the first |
+| `ImplMemberUnexpected` | the implementation carries a member the declaration did not name, described by what it is |
+| `ConstructorPathAltered` | a cause row carries the declared values through a constructor the declaration did not name |
+| `ImplPostureAltered` | the implementation is written `unsafe`, where the declaration names none of the four postures |
+| `MeaningBearingAttributeAdded` | the implementation carries an attribute that decides something — a doc comment decides nothing and is not one |
 
 The decoy is the pair that makes the split visible in one line: lane A reports
 `Conforms` on it and lane B reports the reversed order, and both are right, in
@@ -308,8 +351,13 @@ their own methods, about different questions.
 
 The services no longer carry a road that renders a deliberately defective
 artifact. A generator writing its own exam is rehearsed only against the defects
-it already imagined. `src/03_judge/mutation.rs` declares ten mutations, damages
-lawful artifacts itself, and records per mutation WHICH LANE owns catching it.
-Ownership is the seat of the CLAIM rather than a boast of exclusivity: lane B
-notices a permuted order too and says nothing about it, because that verdict is
-stated over lane A's method and belongs to lane A's row.
+it already imagined. `src/03_judge/mutation.rs` declares fifteen mutations,
+damages lawful artifacts itself, and records per mutation WHICH LANE owns
+catching it. Ownership is the seat of the CLAIM rather than a boast of
+exclusivity: lane B notices a permuted order too and says nothing about it,
+because that verdict is stated over lane A's method and belongs to lane A's row.
+
+Every recorded ownership now has evidence under it. Lane A and lane B are held to
+exactly their own rows in `tests/planted_defect.rs`; lane C's two rows are held
+in `tests/compiled_behaviour.rs`, and the test that enumerates them fails if a
+third mutation is ever recorded as compiled behaviour without a compiled seat.

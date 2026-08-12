@@ -12,8 +12,9 @@
 
 use threadpak_macroc::compile_refusal_text;
 use threadpak_testpak::{
-    ARTIFACT_MUTATIONS, ArtifactMutation, DeclaredStructure, LaneOwnership, RenderVerdict,
-    StructuralDisagreement, StructuralVerdict, judge_declared_order, judge_structure, mutated,
+    ARTIFACT_MUTATIONS, ArtifactMutation, DeclaredStructure, ImplPosture, LaneOwnership,
+    RenderVerdict, StructuralDisagreement, StructuralVerdict, judge_declared_order,
+    judge_structure, mutated, structure_of,
 };
 
 /// The declaration handed to the services. The order clause deliberately does
@@ -42,15 +43,40 @@ const DECLARED_TRAITS: [&str; 2] = [
     "::threadpak::refusal::CauseOrderDeclaration",
 ];
 
+/// The constructor the declared order is built through, stated here rather than
+/// read off the artifact. A roster carrying the declared identities and
+/// spellings through some other constructor declares something else.
+const DECLARED_ORDER_CONSTRUCTOR: &str = "::threadpak::refusal::DeclaredCauseOrder::declared";
+
+/// The constructor every cause row is built through.
+const DECLARED_ROW_CONSTRUCTOR: &str = "::threadpak::refusal::DeclaredCause::declared";
+
+/// The constructor every row's stable identity is minted through.
+const DECLARED_IDENTITY_CONSTRUCTOR: &str = "::threadpak::refusal::CauseId::declared";
+
+/// The attributes the declaration admits on an implementation or a member: none
+/// at all. A doc comment is not one of these — it decides nothing — and a `cfg`
+/// decides whether the implementation exists.
+const DECLARED_ATTRIBUTES: [&str; 0] = [];
+
+/// The postures the declaration admits on an implementation: none at all. Every
+/// declared implementation is written plainly.
+const DECLARED_POSTURES: [ImplPosture; 0] = [];
+
 /// The whole structural declaration lane B is held to. Every roster in it is
 /// authored beside [`DECLARATION`], by the same hand that wrote the declaration
 /// and by nothing downstream of it.
 const DECLARED_STRUCTURE: DeclaredStructure<'static> = DeclaredStructure {
     target: "DemoFamily",
     traits: &DECLARED_TRAITS,
+    postures: &DECLARED_POSTURES,
+    attributes: &DECLARED_ATTRIBUTES,
     shape: "SingleCause",
     spellings: &DECLARED_SPELLINGS,
     identities: &DECLARED_IDENTITIES,
+    order_constructor: DECLARED_ORDER_CONSTRUCTOR,
+    row_constructor: DECLARED_ROW_CONSTRUCTOR,
+    identity_constructor: DECLARED_IDENTITY_CONSTRUCTOR,
 };
 
 /// The lawful artifact, as the receipt-rich road produced and closed over it.
@@ -195,12 +221,12 @@ fn lane_b_catches_every_mutation_lane_b_owns() {
     }
 }
 
-/// Lane B names the structural fact it disagreed about, and the four it owns
+/// Lane B names the structural fact it disagreed about, and the ones it owns
 /// each land on a different one.
 ///
 /// A lane that answered "no" to everything for one reason would pass the test
-/// above while measuring one thing four times. These four questions are
-/// genuinely different questions, and the answers say so.
+/// above while measuring one thing nine times. These are genuinely different
+/// questions, and the answers say so.
 ///
 /// The decoy is the pair that makes the two lanes' split visible in one line.
 /// Lane A reports `Conforms` on it — the anchored bytes are present, in a
@@ -240,6 +266,138 @@ fn lane_b_names_the_structural_fact_it_found() {
         found(ArtifactMutation::OutputDuplicated),
         StructuralVerdict::Deviates(StructuralDisagreement::DuplicateImplementation)
     );
+    assert_eq!(
+        found(ArtifactMutation::ImplMemberDuplicated),
+        StructuralVerdict::Deviates(StructuralDisagreement::DuplicateMember)
+    );
+    assert_eq!(
+        found(ArtifactMutation::ImplMemberUnexpected),
+        StructuralVerdict::Deviates(StructuralDisagreement::UnexpectedImplMember)
+    );
+    assert_eq!(
+        found(ArtifactMutation::ConstructorPathAltered),
+        StructuralVerdict::Deviates(StructuralDisagreement::ConstructorPath)
+    );
+    assert_eq!(
+        found(ArtifactMutation::ImplPostureAltered),
+        StructuralVerdict::Deviates(StructuralDisagreement::ImplPosture)
+    );
+    assert_eq!(
+        found(ArtifactMutation::MeaningBearingAttributeAdded),
+        StructuralVerdict::Deviates(StructuralDisagreement::MeaningBearingAttribute)
+    );
+}
+
+/// A duplicate member constant is READ twice and never written over once.
+///
+/// The finding above says the artifact deviates; this says why the reader can
+/// tell. The seat that stood here filed each named constant into one `Option`,
+/// so the second reading replaced the first and a byte-identical copy of a
+/// lawful constant disappeared without trace. The reading now carries both the
+/// value it kept and the name it saw twice.
+#[test]
+fn a_duplicated_member_is_recorded_rather_than_overwritten() {
+    let text = lawful().unwrap_or_default();
+    assert!(
+        !text.is_empty(),
+        "the lawful artifact did not compile through the receipt-rich road"
+    );
+    let damaged = mutated(&text, ArtifactMutation::ImplMemberDuplicated).unwrap_or_default();
+    let read = structure_of(&damaged);
+    assert!(read.is_some_and(|structure| {
+        structure.implementations.iter().any(|found| {
+            found.duplicated_members == vec![String::from("SHAPE")]
+                && found.shape.as_deref() == Some("SingleCause")
+        })
+    }));
+    // The lawful artifact carries no duplicate at all, which is what makes the
+    // reading above a finding rather than the reader's normal state.
+    let lawful_read = structure_of(&text);
+    assert!(lawful_read.is_some_and(|structure| {
+        structure
+            .implementations
+            .iter()
+            .all(|found| found.duplicated_members.is_empty())
+    }));
+}
+
+/// A member nobody planned is named by what it is, and the lawful artifact
+/// carries none.
+///
+/// The reader used to step over every member that was not one of the three
+/// constants it was looking for, which made a method, an associated type, and a
+/// macro invocation in member position all invisible.
+#[test]
+fn an_unexpected_member_is_named_by_what_it_is() {
+    let text = lawful().unwrap_or_default();
+    assert!(
+        !text.is_empty(),
+        "the lawful artifact did not compile through the receipt-rich road"
+    );
+    let damaged = mutated(&text, ArtifactMutation::ImplMemberUnexpected).unwrap_or_default();
+    let read = structure_of(&damaged);
+    assert!(read.is_some_and(|structure| {
+        structure
+            .implementations
+            .iter()
+            .any(|found| found.unexpected_members == vec![String::from("an associated function")])
+    }));
+    let lawful_read = structure_of(&text);
+    assert!(lawful_read.is_some_and(|structure| {
+        structure
+            .implementations
+            .iter()
+            .all(|found| found.unexpected_members.is_empty())
+    }));
+}
+
+/// A non-impl item anywhere in the artifact is caught, wherever it sits.
+///
+/// `UnplannedOutputAdded` appends a trait implementation, which the cardinality
+/// check answers. This is the other half: an item that is not an implementation
+/// at all — before the declared ones, after them, and of two different kinds —
+/// is `UnexpectedItem` and never a member disagreement.
+#[test]
+fn a_stray_item_before_or_after_the_implementations_is_caught() {
+    let text = lawful().unwrap_or_default();
+    assert!(
+        !text.is_empty(),
+        "the lawful artifact did not compile through the receipt-rich road"
+    );
+    let strays = [
+        format!("fn nobody_planned_this() {{}} {text}"),
+        format!("{text} fn nobody_planned_this() {{}}"),
+        format!("mod nobody_planned_this {{}} {text}"),
+        format!("{text} struct NobodyPlannedThis;"),
+    ];
+    for stray in strays {
+        assert_eq!(
+            judge_structure(&stray, &DECLARED_STRUCTURE),
+            StructuralVerdict::Deviates(StructuralDisagreement::UnexpectedItem)
+        );
+    }
+}
+
+/// The lawful artifact carries no meaning-bearing attribute and is written in
+/// none of the four postures.
+///
+/// Stated as its own reading rather than inferred from the verdict: the two
+/// checks above it are only findings because the lawful reading is empty here.
+#[test]
+fn the_lawful_implementations_are_plainly_written_and_unattributed() {
+    let text = lawful().unwrap_or_default();
+    assert!(
+        !text.is_empty(),
+        "the lawful artifact did not compile through the receipt-rich road"
+    );
+    let read = structure_of(&text);
+    assert!(read.is_some_and(|structure| {
+        structure.implementations.len() == 2
+            && structure.other_items == 0
+            && structure.implementations.iter().all(|found| {
+                found.postures.is_empty() && found.meaning_bearing_attributes.is_empty()
+            })
+    }));
 }
 
 /// Lane B says so when there was nothing to read, rather than passing by

@@ -24,11 +24,18 @@
 //! nothing.
 //!
 //! So [`ArtifactMutation::owned_by`] states, per mutation, which lane the
-//! catching claim belongs to. Two of the three lanes are seated in this package
-//! — the byte scan in [`crate::judge`] and the structural read in
+//! catching claim belongs to. Two of the three lanes read text and are seated in
+//! this package — the byte scan in [`crate::judge`] and the structural read in
 //! [`crate::judge::structural`] — and each is held, in
 //! `tests/planted_defect.rs`, to exactly the mutations recorded against it and
 //! to no others.
+//!
+//! The third lane needs a compiler, so its evidence is a compiled seat rather
+//! than a reader: `tests/compiled_behaviour.rs` materializes the two mutations
+//! recorded against it, hands them to `rustc`, and reads back a refusal to
+//! compile and a disagreeing VALUE. That file also enumerates this roster's
+//! compiled-behaviour rows, so a mutation recorded here without a compiled seat
+//! fails rather than sitting in the ledger looking like coverage.
 
 /// Which lane's claim covers catching one mutation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -72,12 +79,24 @@ pub enum ArtifactMutation {
     /// A decoy carrying the anchored bytes is planted inside a comment while the
     /// real constant is damaged.
     DecoyInComment,
+    /// One planned member constant is emitted twice inside one implementation.
+    ImplMemberDuplicated,
+    /// A member nobody planned is added inside one implementation.
+    ImplMemberUnexpected,
+    /// A declared value is carried through a constructor the declaration did
+    /// not name.
+    ConstructorPathAltered,
+    /// The implementation is written under a posture the declaration did not
+    /// name.
+    ImplPostureAltered,
+    /// An attribute that decides something is added to an implementation.
+    MeaningBearingAttributeAdded,
     /// The artifact stops being well-formed Rust.
     MalformedRust,
 }
 
 /// The declared mutation roster, in the order this seat states it.
-pub const ARTIFACT_MUTATIONS: [ArtifactMutation; 10] = [
+pub const ARTIFACT_MUTATIONS: [ArtifactMutation; 15] = [
     ArtifactMutation::OrderPermuted,
     ArtifactMutation::IdentityRecycled,
     ArtifactMutation::PlannedOutputOmitted,
@@ -87,6 +106,11 @@ pub const ARTIFACT_MUTATIONS: [ArtifactMutation; 10] = [
     ArtifactMutation::OutputDuplicated,
     ArtifactMutation::TraitPathWrong,
     ArtifactMutation::DecoyInComment,
+    ArtifactMutation::ImplMemberDuplicated,
+    ArtifactMutation::ImplMemberUnexpected,
+    ArtifactMutation::ConstructorPathAltered,
+    ArtifactMutation::ImplPostureAltered,
+    ArtifactMutation::MeaningBearingAttributeAdded,
     ArtifactMutation::MalformedRust,
 ];
 
@@ -94,7 +118,7 @@ impl ArtifactMutation {
     /// Which lane's claim covers catching this mutation.
     ///
     /// Read this as a ledger of what is CLAIMED, not of what is comfortable. The
-    /// four that name [`LaneOwnership::Structural`] and the two that name
+    /// nine that name [`LaneOwnership::Structural`] and the two that name
     /// [`LaneOwnership::CompiledBehaviour`] are not caught by the byte scan and
     /// are not recorded as though they were.
     ///
@@ -114,12 +138,18 @@ impl ArtifactMutation {
             | Self::PlannedOutputOmitted
             | Self::OutputDuplicated => LaneOwnership::ByteProfile,
             // What item is this, what does it target, which trait does it
-            // realize, and is that constant a member of it — none of those is a
-            // question about bytes.
+            // realize, how is it written, does it exist at all under some `cfg`,
+            // and is that constant a member of it once or twice — none of those
+            // is a question about bytes.
             Self::ImplTargetAltered
             | Self::TraitPathWrong
             | Self::UnplannedOutputAdded
-            | Self::DecoyInComment => LaneOwnership::Structural,
+            | Self::DecoyInComment
+            | Self::ImplMemberDuplicated
+            | Self::ImplMemberUnexpected
+            | Self::ConstructorPathAltered
+            | Self::ImplPostureAltered
+            | Self::MeaningBearingAttributeAdded => LaneOwnership::Structural,
             // A changed shape word and a malformed artifact are both caught
             // where the artifact is compiled and read back as values.
             Self::ShapeAltered | Self::MalformedRust => LaneOwnership::CompiledBehaviour,
@@ -139,6 +169,11 @@ impl ArtifactMutation {
             Self::OutputDuplicated => "a planned output is emitted twice",
             Self::TraitPathWrong => "the trait path names a different contract",
             Self::DecoyInComment => "the anchored bytes are planted in a comment",
+            Self::ImplMemberDuplicated => "one member constant is emitted twice",
+            Self::ImplMemberUnexpected => "a member nobody planned joins the implementation",
+            Self::ConstructorPathAltered => "a row is built through another constructor",
+            Self::ImplPostureAltered => "the implementation is written under another posture",
+            Self::MeaningBearingAttributeAdded => "an attribute that decides something is added",
             Self::MalformedRust => "the artifact stops being well-formed Rust",
         }
     }
@@ -181,8 +216,44 @@ pub fn mutated(lawful: &str, mutation: ArtifactMutation) -> Option<String> {
             "refusal :: SomethingElse",
         ),
         ArtifactMutation::DecoyInComment => decoy_in_comment(lawful),
+        ArtifactMutation::ImplMemberDuplicated => duplicated_member(lawful),
+        ArtifactMutation::ImplMemberUnexpected => replaced_once(
+            lawful,
+            "; } impl",
+            "; fn nobody_planned_this ( ) { } } impl",
+        ),
+        ArtifactMutation::ConstructorPathAltered => replaced_once(
+            lawful,
+            "DeclaredCause :: declared",
+            "DeclaredCause :: adopted",
+        ),
+        ArtifactMutation::ImplPostureAltered => {
+            replaced_once(lawful, "impl :: threadpak", "unsafe impl :: threadpak")
+        }
+        ArtifactMutation::MeaningBearingAttributeAdded => Some(format!(
+            "#[cfg(feature = \"nobody-declared-this\")] {lawful}"
+        )),
         ArtifactMutation::MalformedRust => replaced_once(lawful, "{", "{{{"),
     }
+}
+
+/// Emit the first member constant a second time, immediately after itself.
+///
+/// The copy is byte-identical, which is the point: a reader that filed each
+/// named constant into one seat would write the second reading over the first
+/// and report nothing at all.
+fn duplicated_member(lawful: &str) -> Option<String> {
+    const OPENING: &str = "const SHAPE";
+    let at = lawful.find(OPENING)?;
+    let end = lawful
+        .get(at..)?
+        .find(';')?
+        .checked_add(at)?
+        .checked_add(1)?;
+    let member = lawful.get(at..end)?;
+    let head = lawful.get(..end)?;
+    let tail = lawful.get(end..)?;
+    Some(format!("{head} {member}{tail}"))
 }
 
 /// Reverse the quoted items of the first bracketed list.

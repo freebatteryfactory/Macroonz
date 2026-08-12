@@ -35,14 +35,19 @@
 //! package's README, which states what the lane reads, what it refuses to claim,
 //! and which producer components it shares nothing with.
 //!
-//! **Lane C — the compiled behaviour.** `rustc` compiles the rendered artifact
-//! and the test reads its trait constants AS VALUES. There the compiler is the
+//! **Lane C — the compiled behaviour.** `rustc` compiles the artifact and the
+//! test reads its trait constants AS VALUES. There the compiler is the
 //! independent decoder: it parses by its own rules, with no anchor of ours in
-//! the path, and hands back typed values rather than substrings. That lane is
-//! the consumer-fixture parity tests at `xtask/fixtures/macro-consumer` and
-//! `xtask/fixtures/renamed-consumer`, which apply the shell's derive in crates
-//! owning neither participant and compare the derived `SHAPE`,
-//! `SELECTION_ORDER`, and `DECLARED_ORDER` against hand-written twins.
+//! the path, and hands back typed values rather than substrings.
+//!
+//! The LAWFUL artifact's seat is the consumer-fixture parity tests at
+//! `xtask/fixtures/macro-consumer` and `xtask/fixtures/renamed-consumer`, which
+//! apply the shell's derive in crates owning neither participant and compare the
+//! derived `SHAPE`, `SELECTION_ORDER`, and `DECLARED_ORDER` against hand-written
+//! twins. The MUTANTS' seats are this package's `tests/compiled_behaviour.rs`: a
+//! mutant is this plane's own damage, so no participant is grading itself when
+//! the judge hands its own damaged text to a compiler and reads back a refusal
+//! to compile and a disagreeing value.
 //!
 //! No lane subsumes another and none is a weaker version of another. **A verdict
 //! is method-specific**, exactly as the machine's evidence law requires:
@@ -69,7 +74,7 @@ pub mod types;
 
 pub use mutation::{ARTIFACT_MUTATIONS, ArtifactMutation, LaneOwnership, mutated};
 pub use structural::{
-    ArtifactStructure, CauseRow, DeclaredStructure, ImplementationStructure,
+    ArtifactStructure, CauseRow, DeclaredStructure, ImplPosture, ImplementationStructure,
     StructuralDisagreement, StructuralVerdict, judge_structure, structure_of,
 };
 pub use types::RenderVerdict;
