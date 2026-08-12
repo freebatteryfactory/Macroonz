@@ -181,14 +181,15 @@ impl WrapperTriggerView {
             ));
         }
         let observed = selections.len().saturating_add(omissions.len());
-        let admitted = Bounded::admitted_const(selections).and_then(|selections| {
-            Bounded::admitted_const(omissions).map(|omissions| (selections, omissions))
+        let admitted = Bounded::admitted_const(selections).and_then(|bounded_selections| {
+            Bounded::admitted_const(omissions)
+                .map(|bounded_omissions| (bounded_selections, bounded_omissions))
         });
         admitted
-            .map(|(selections, omissions)| Self {
+            .map(|(bounded_selections, bounded_omissions)| Self {
                 plan,
-                selections,
-                omissions,
+                selections: bounded_selections,
+                omissions: bounded_omissions,
             })
             .map_err(|_| {
                 TriggerViewComposition::established(

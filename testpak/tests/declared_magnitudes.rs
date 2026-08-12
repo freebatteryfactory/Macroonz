@@ -276,8 +276,8 @@ fn a_level_past_the_declared_magnitude_refuses() {
     let admitted: Vec<CapturedTokenTree> = (0..DECLARED_LEVEL_TOKENS)
         .map(|position| tree(u32::try_from(position).unwrap_or(u32::MAX)))
         .collect();
-    let counted = admitted.len();
-    let lawful = CapturedInput::taken(admitted, u32::try_from(counted).unwrap_or(u32::MAX));
+    let admitted_count = admitted.len();
+    let lawful = CapturedInput::taken(admitted, u32::try_from(admitted_count).unwrap_or(u32::MAX));
     assert!(lawful.is_ok_and(|input| input.len() == DECLARED_LEVEL_TOKENS));
 
     let mut over: Vec<CapturedTokenTree> = (0..DECLARED_LEVEL_TOKENS)
@@ -286,9 +286,9 @@ fn a_level_past_the_declared_magnitude_refuses() {
     over.push(tree(
         u32::try_from(DECLARED_LEVEL_TOKENS).unwrap_or(u32::MAX),
     ));
-    let counted = u32::try_from(over.len()).unwrap_or(u32::MAX);
+    let over_count = u32::try_from(over.len()).unwrap_or(u32::MAX);
     assert_eq!(
-        CapturedInput::taken(over, counted).err(),
+        CapturedInput::taken(over, over_count).err(),
         Some(CaptureBound::LevelUnbounded)
     );
 }

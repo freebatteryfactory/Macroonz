@@ -170,9 +170,9 @@ mod root {
             Bounded::admitted(vec![1, 2], &witness);
         assert!(matches!(over_witness, Err(BoundedConstruction::OverLimit)));
 
-        let one: Result<NonEmptyBounded<u8, SmallDemo>, _> =
+        let admitted_one: Result<NonEmptyBounded<u8, SmallDemo>, _> =
             NonEmptyBounded::admitted_const(9, vec![]);
-        assert!(one.is_ok_and(|value| value.len() == 1 && !value.is_empty()));
+        assert!(admitted_one.is_ok_and(|value| value.len() == 1 && !value.is_empty()));
         let too_many: Result<NonEmptyBounded<u8, SmallDemo>, _> =
             NonEmptyBounded::admitted_const(9, vec![8, 7]);
         assert!(matches!(
@@ -182,8 +182,10 @@ mod root {
 
         let empty: Bounded<u8, SmallDemo> = Bounded::empty();
         assert!(empty.is_empty());
-        let one: NonEmptyBounded<u8, SmallDemo> = NonEmptyBounded::singleton(5);
-        assert!(!one.is_empty() && one.len() == 1 && *one.first() == 5);
+        let singleton_one: NonEmptyBounded<u8, SmallDemo> = NonEmptyBounded::singleton(5);
+        assert!(
+            !singleton_one.is_empty() && singleton_one.len() == 1 && *singleton_one.first() == 5
+        );
     }
 
     /// law: root.reading-is-not-gaining — reading a bounded collection is an
@@ -235,29 +237,39 @@ mod root {
     fn closure_bar_is_implementable() {
         struct Demo;
         struct DemoRefusal;
+
+        /// The two states, named. A `bool` carrying a comment that says which
+        /// end is terminal is a state machine the compiler cannot read; the
+        /// enum states it, and dispatch below becomes a closed match over the
+        /// roster rather than a branch over a flag.
+        #[derive(Debug, PartialEq, Eq)]
+        enum DemoState {
+            Start,
+            Terminal,
+        }
+
         impl TransitionSystem for Demo {
-            type State = bool; // false = start, true = terminal
+            type State = DemoState;
             type Input = ();
             type Effect = ();
             type Refusal = DemoRefusal;
 
             fn initial() -> Self::State {
-                false
+                DemoState::Start
             }
 
             fn is_terminal(state: &Self::State) -> bool {
-                *state
+                matches!(*state, DemoState::Terminal)
             }
 
             fn dispatch(
                 state: &Self::State,
                 (): &Self::Input,
             ) -> Dispatch<(Self::State, Self::Effect), Self::Refusal> {
-                if *state {
+                match *state {
                     // Obligation: no transition leaves a terminal.
-                    Dispatch::Refused(DemoRefusal)
-                } else {
-                    Dispatch::One((true, ()))
+                    DemoState::Terminal => Dispatch::Refused(DemoRefusal),
+                    DemoState::Start => Dispatch::One((DemoState::Terminal, ())),
                 }
             }
         }
@@ -266,10 +278,10 @@ mod root {
         assert!(!Demo::is_terminal(&start));
         assert!(matches!(
             Demo::dispatch(&start, &()),
-            Dispatch::One((true, ()))
+            Dispatch::One((DemoState::Terminal, ()))
         ));
         assert!(matches!(
-            Demo::dispatch(&true, &()),
+            Demo::dispatch(&DemoState::Terminal, &()),
             Dispatch::Refused(DemoRefusal)
         ));
     }
@@ -1118,7 +1130,7 @@ mod numeric {
             source_uncertainty: ErrorEvidence::ErrorBound(half),
             target_profile: crate::numeric::DecimalProfileId::default_for_laws(),
             target_scale: DecimalScale::raw(2),
-            rounding: crate::numeric::RoundingMode::HalfEven,
+            rounding: RoundingMode::HalfEven,
             discarded_remainder: DiscardedRemainder::Discarded(crate::numeric::ExactRatio::raw(
                 ExactCoefficient::raw(1),
                 ExactCoefficient::raw(3),
@@ -1137,7 +1149,7 @@ mod numeric {
         let observed = ApproxObservation {
             format: FloatFormatId::registered(64),
             raw_bits: FloatBitPattern::raw(0x4000_0000_0000_0000),
-            class: crate::numeric::FloatClass::Finite,
+            class: FloatClass::Finite,
             profile: ApproximationProfileId::registered(1),
             error: ErrorEvidence::ErrorBound(half),
             taint: ApproximationTaint::DirectlyObserved,

@@ -551,8 +551,7 @@ fn examined<R: RenderedRole>(
 ) -> (Vec<ClosureIssue<R>>, Vec<PlannedMember<R>>) {
     let mut issues: Vec<ClosureIssue<R>> = Vec::new();
     let mut rebuilt: Vec<PlannedMember<R>> = Vec::new();
-    for role in R::ROLES {
-        let role = *role;
+    for role in R::ROLES.iter().copied() {
         // What the PLAN declared under the role is checked in its own right, and
         // before anything is compared. Today every role a plan declares is
         // declared exactly once, so a planned count of two is a defect in the

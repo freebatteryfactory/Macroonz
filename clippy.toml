@@ -1,0 +1,23 @@
+# Every threshold below is CHOSEN. A tool default that is never restated is a
+# value nobody decided; restating it here converts inheritance into a ruling.
+
+# CHOSEN: the toolchain floor the workspace already pins, stated to clippy so
+# its suggestions never reach past the version this machine compiles on.
+msrv = "1.97"
+
+# CHOSEN: a function longer than a hundred lines has stopped being one operation.
+# This restates clippy's default AS a decision, so raising it is a visible act.
+too-many-lines-threshold = 100
+
+# CHOSEN: four levels of nesting is the depth at which control flow stops being
+# readable as a shape. Past it, the honest repair is a type that already knows
+# its state, a stage split, or closed dispatch — never a deeper block.
+excessive-nesting-threshold = 4
+
+# CHOSEN: zero. A bool field is an unnamed two-state machine; the machine's
+# states are named enums, so a struct never carries one.
+max-struct-bools = 0
+
+# CHOSEN: zero. A bool parameter is unreadable at the call site; the caller must
+# pass a named state, not a bare true.
+max-fn-params-bools = 0

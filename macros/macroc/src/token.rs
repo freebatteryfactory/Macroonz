@@ -744,16 +744,18 @@ impl TextReader {
                 let _consumed = characters.next();
                 continue;
             }
-            if matches!(character, ')' | ']' | '}') {
-                let expected = closing.map(|(close, _)| close);
-                if expected == Some(character) {
+            match group_boundary(character, closing) {
+                GroupBoundary::Interior => {}
+                GroupBoundary::Closes => {
                     let _consumed = characters.next();
                     return Ok(trees);
                 }
-                return Err(TextReadRefusal {
-                    cause: TextReadCause::NotOpened,
-                    at,
-                });
+                GroupBoundary::NotOpened => {
+                    return Err(TextReadRefusal {
+                        cause: TextReadCause::NotOpened,
+                        at,
+                    });
+                }
             }
             self.walk.examined().map_err(|bound| TextReadRefusal {
                 cause: TextReadCause::Unbounded(bound),
@@ -800,15 +802,7 @@ impl TextReader {
         }
         if character.is_alphabetic() || character == '_' {
             let span = self.issue(at);
-            let mut word = String::new();
-            while let Some(&(_, next)) = characters.peek() {
-                if next.is_alphanumeric() || next == '_' {
-                    word.push(next);
-                    let _consumed = characters.next();
-                } else {
-                    break;
-                }
-            }
+            let word = read_run(characters, |next| next.is_alphanumeric() || next == '_');
             return Ok(CapturedTokenTree::captured(
                 CapturedPayload::Word(word),
                 path,
@@ -817,15 +811,9 @@ impl TextReader {
         }
         if character.is_ascii_digit() {
             let span = self.issue(at);
-            let mut number = String::new();
-            while let Some(&(_, next)) = characters.peek() {
-                if next.is_alphanumeric() || next == '_' || next == '.' {
-                    number.push(next);
-                    let _consumed = characters.next();
-                } else {
-                    break;
-                }
-            }
+            let number = read_run(characters, |next| {
+                next.is_alphanumeric() || next == '_' || next == '.'
+            });
             return Ok(CapturedTokenTree::captured(
                 CapturedPayload::Number(number),
                 path,
@@ -835,25 +823,7 @@ impl TextReader {
         if character == '"' {
             let span = self.issue(at);
             let _consumed = characters.next();
-            let mut text = String::new();
-            loop {
-                let Some((_, next)) = characters.next() else {
-                    return Err(TextReadRefusal {
-                        cause: TextReadCause::NotTerminated,
-                        at,
-                    });
-                };
-                if next == '"' {
-                    break;
-                }
-                if next == '\\' {
-                    return Err(TextReadRefusal {
-                        cause: TextReadCause::NotEscapeFree,
-                        at,
-                    });
-                }
-                text.push(next);
-            }
+            let text = read_quoted(characters, at)?;
             return Ok(CapturedTokenTree::captured(
                 CapturedPayload::Text(text),
                 path,
@@ -867,6 +837,80 @@ impl TextReader {
             path,
             span,
         ))
+    }
+}
+
+/// What one character is to the group currently being read.
+///
+/// The reader's question at a closing character is not two nested yes-or-nos.
+/// It is one question with three answers, and naming the three is what makes the
+/// unmatched closer a stated outcome rather than the fall-through of a branch.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GroupBoundary {
+    /// Not a closing character: it belongs to a token inside the group.
+    Interior,
+    /// The closing character this group was opened with. The group ends here.
+    Closes,
+    /// A closing character no open group asked for.
+    NotOpened,
+}
+
+/// The boundary answer for one character, given the closer the group expects.
+fn group_boundary(character: char, closing: Option<(char, u64)>) -> GroupBoundary {
+    if !matches!(character, ')' | ']' | '}') {
+        return GroupBoundary::Interior;
+    }
+    if closing.map(|(close, _)| close) == Some(character) {
+        return GroupBoundary::Closes;
+    }
+    GroupBoundary::NotOpened
+}
+
+/// The run of characters one atom is spelled with, consumed from the stream.
+///
+/// A word and a number are one operation over two admitted alphabets: take
+/// characters while the alphabet admits them, stop at the first it does not.
+/// Spelled out twice, the two runs can drift apart while both still look right;
+/// spelled once, the only thing that differs between them is the alphabet, which
+/// is the only thing that actually differs.
+fn read_run(characters: &mut Characters<'_>, admits: fn(char) -> bool) -> String {
+    let mut spelled = String::new();
+    while let Some(&(_, next)) = characters.peek() {
+        if !admits(next) {
+            break;
+        }
+        spelled.push(next);
+        let _consumed = characters.next();
+    }
+    spelled
+}
+
+/// The body of one quoted text, with the opening quote already consumed.
+///
+/// This stage owns both refusals a quoted text can establish — running off the
+/// end of the source, and carrying an escape this reader does not interpret —
+/// and it is the only place either is decided. The caller supplies the offset
+/// the text opened at so a refusal points at the quote, not at the byte the
+/// reader happened to reach.
+fn read_quoted(characters: &mut Characters<'_>, at: u64) -> Result<String, TextReadRefusal> {
+    let mut text = String::new();
+    loop {
+        let Some((_, next)) = characters.next() else {
+            return Err(TextReadRefusal {
+                cause: TextReadCause::NotTerminated,
+                at,
+            });
+        };
+        if next == '"' {
+            return Ok(text);
+        }
+        if next == '\\' {
+            return Err(TextReadRefusal {
+                cause: TextReadCause::NotEscapeFree,
+                at,
+            });
+        }
+        text.push(next);
     }
 }
 

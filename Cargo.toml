@@ -24,6 +24,16 @@ version = "0.0.0"
 edition = "2024"
 rust-version = "1.97"
 
+[profile.release]
+# Release arithmetic traps instead of wrapping; defense in depth behind the
+# source-level arithmetic lints, never permission for bare arithmetic.
+overflow-checks = true
+
+[profile.bench]
+# Release arithmetic traps instead of wrapping; defense in depth behind the
+# source-level arithmetic lints, never permission for bare arithmetic.
+overflow-checks = true
+
 # The lint wall is declared here once and inherited by every member; no member
 # weakens it. `#[allow]` is refused outright, so the single escape hatch is
 # `#[expect]`, and it is disciplined: an expectation names the exact lint,
@@ -35,12 +45,50 @@ rust-version = "1.97"
 # expectation that outlives its cause fails the build, which is why the wall
 # admits this hatch and refuses the silent one. Generated code never emits an
 # expectation: an expansion that needs one is an expansion whose plan is wrong.
+#
+# REFUSED ON THE RECORD. A wall this dense is only honest if the lints it
+# declines are named, because an unnamed absence reads as an oversight.
+#   - `exhaustive_structs` and `exhaustive_enums` demand `#[non_exhaustive]`,
+#     and this machine's rosters are closed BY LAW. Adding a variant must break
+#     every match that handles the roster; `#[non_exhaustive]` exists to stop
+#     exactly that break, so adopting these lints would convert the machine's
+#     strongest structural alarm into silence.
+#   - `tests_outside_test_module` refuses integration tests under `tests/`,
+#     which is cargo's own model for out-of-crate test targets. A lint may not
+#     overrule the build system's layout.
+#   - `min_ident_chars` cannot tell a meaningless name from a conventional one.
+#     Lifetime and closure-parameter brevity is idiom, not sloppiness, and the
+#     lint has no way to separate them.
+#   - Blanket `missing_copy_implementations` and `missing_debug_implementations`
+#     force trait surface onto every type regardless of whether the type wants
+#     it. `Copy` is a semantic promise about duplication and `Debug` is an
+#     output surface; both are decided per type, and identity-bearing types
+#     deliberately decline the first.
+#   - Blanket `absolute_paths` penalizes the fully-qualified form exactly where
+#     it is clearest — disambiguating a one-off reference — while saying nothing
+#     about the import hygiene it is reached for.
+#   - `missing_docs_in_private_items` is refused as a blanket gate. Private
+#     fields earn their documentation when the restructure gives them their home
+#     in `type_guard.rs` beside the invariant they carry; a blanket gate would
+#     buy that documentation now at the price of writing it twice.
+#   - `variant_size_differences` is a physical-layout signal, not a semantic
+#     one. It is adopted only alongside measurement of a real layout cost;
+#     switched on blind it forces boxing that trades a cache line for an
+#     allocation with nothing observed either way.
+# ADOPTED IN PRINCIPLE, NOT YET LANDED: `map_err_ignore`. Discarding the source
+# error is a real defect and the lint names it correctly. It lands once its 65
+# sites are classified and repaired so each preserves its source, and that
+# repair arrives with the laws-drain boundary rather than as a mechanical sweep.
 [workspace.lints.rust]
 warnings = { level = "deny", priority = -1 }
 unsafe_code = "forbid"
-missing_docs = "deny"
 let_underscore_drop = "deny"
+meta_variable_misuse = "deny"
+missing_docs = "deny"
 non_ascii_idents = "deny"
+unnameable_types = "deny"
+unreachable_pub = "deny"
+unused_qualifications = "deny"
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
@@ -59,6 +107,8 @@ let_underscore_must_use = "deny"
 mem_forget = "deny"
 panic = "deny"
 rest_pat_in_fully_bound_structs = "deny"
+shadow_same = "deny"
+shadow_unrelated = "deny"
 todo = "deny"
 unimplemented = "deny"
 unwrap_used = "deny"

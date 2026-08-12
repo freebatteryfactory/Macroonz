@@ -700,23 +700,28 @@ impl TemplateApplication {
             let mut supplied = bindings
                 .iter()
                 .filter(|binding| binding.parameter().parameter == declared.parameter);
-            match (supplied.next(), supplied.next()) {
-                (None, _) => issues.push(TemplateConstructionIssue::MissingBinding {
+            // The dispatch answers one question — what issue, if any, does this
+            // declared parameter establish — and every arm answers it. An arm
+            // that pushes a side effect at its own depth says nothing about the
+            // arms beside it; an arm that yields the answer is comparable with
+            // them, and the exhaustive shape is what proves nothing was missed.
+            let established_issue = match (supplied.next(), supplied.next()) {
+                (None, _) => Some(TemplateConstructionIssue::MissingBinding {
                     parameter: declared.parameter,
                 }),
-                (Some(bound), None) => {
-                    if bound.category() != declared.category {
-                        issues.push(TemplateConstructionIssue::DeclaredCategoryDisagreement {
-                            parameter: declared.parameter,
-                            declared: declared.category,
-                            bound: bound.category(),
-                        });
-                    }
+                (Some(bound), None) if bound.category() != declared.category => {
+                    Some(TemplateConstructionIssue::DeclaredCategoryDisagreement {
+                        parameter: declared.parameter,
+                        declared: declared.category,
+                        bound: bound.category(),
+                    })
                 }
-                (Some(_), Some(_)) => issues.push(TemplateConstructionIssue::DuplicateBinding {
+                (Some(_), None) => None,
+                (Some(_), Some(_)) => Some(TemplateConstructionIssue::DuplicateBinding {
                     parameter: declared.parameter,
                 }),
-            }
+            };
+            issues.extend(established_issue);
         }
         for binding in &bindings {
             let known = template
@@ -747,9 +752,9 @@ impl TemplateApplication {
             ));
         };
         NonEmptyBounded::admitted_const(first, supplied.collect())
-            .map(|bindings| Self {
+            .map(|bounded_bindings| Self {
                 template: template.identity(),
-                bindings,
+                bindings: bounded_bindings,
                 language_profile,
                 meta_profile,
                 distinctness,

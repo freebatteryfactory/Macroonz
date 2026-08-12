@@ -49,6 +49,13 @@ pub use types::{
 /// read the position back out — the one operation a Class-C guard supports is
 /// the comparison below, and it reads the field from inside.
 ///
+/// Both operations carry the caller's own `$vis`, so the road in and the
+/// comparison are reachable exactly as far as the role they serve and never one
+/// step further. A guard stamped privately gets private operations, which is
+/// what the hand-written twin in `laws.rs` has always written; a guard stamped
+/// `pub` exports both. The stamp does not decide a surface the caller did not
+/// ask for.
+///
 /// # Where the stamp lives
 ///
 /// This home owns the Class-C shape and its guard law, so this home stamps it.
@@ -85,7 +92,7 @@ macro_rules! scope_guard_version {
             /// could leave this role could be re-entered under another one, and
             /// the role would have stopped being a wall.
             #[must_use]
-            pub fn positioned(
+            $vis fn positioned(
                 position: $crate::identity::AuthorityPosition<$scope>,
             ) -> Self {
                 Self(position)
@@ -99,7 +106,7 @@ macro_rules! scope_guard_version {
             ///
             /// Returns the `OrderComparison` family body when the two positions
             /// do not share one scope.
-            pub fn try_cmp_same_scope(
+            $vis fn try_cmp_same_scope(
                 &self,
                 other: &Self,
             ) -> ::core::result::Result<

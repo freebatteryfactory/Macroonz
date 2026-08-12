@@ -2039,47 +2039,40 @@ mod template {
     /// Owed reversal (red twin): a boolean distinctness flag must break this
     /// law.
     #[test]
-    fn deliberate_distinctness_is_identity_bearing() {
-        let holes = template(parameter(SpliceCategory::Fragment, 40), Vec::new());
-        assert!(holes.is_ok_and(|template| {
-            let binding = TemplateBinding::bound(
-                parameter(SpliceCategory::Fragment, 40),
-                argument(SpliceCategory::Fragment, 41),
-            );
-            let pair = binding.map_err(|_| ()).and_then(|binding| {
-                let applicative = TemplateApplication::applied(
-                    &template,
-                    vec![binding],
-                    language(),
-                    meta(),
-                    ApplicativeDistinctness::Applicative,
-                );
-                let twin = TemplateApplication::applied(
-                    &template,
-                    vec![binding],
-                    language(),
-                    meta(),
-                    ApplicativeDistinctness::Applicative,
-                );
-                let distinct = TemplateApplication::applied(
-                    &template,
-                    vec![binding],
-                    language(),
-                    meta(),
-                    ApplicativeDistinctness::DeliberatelyDistinct(OwnerIdentityRef::decoded(
-                        [42; 32],
-                    )),
-                );
-                applicative
-                    .and_then(|applicative| {
-                        twin.and_then(|twin| distinct.map(|distinct| (applicative, twin, distinct)))
-                    })
-                    .map_err(|_| ())
-            });
-            pair.is_ok_and(|(applicative, twin, distinct)| {
-                applicative == twin && applicative != distinct
-            })
-        }));
+    fn deliberate_distinctness_is_identity_bearing() -> Result<(), ()> {
+        let holes =
+            template(parameter(SpliceCategory::Fragment, 40), Vec::new()).map_err(|_| ())?;
+        let binding = TemplateBinding::bound(
+            parameter(SpliceCategory::Fragment, 40),
+            argument(SpliceCategory::Fragment, 41),
+        )
+        .map_err(|_| ())?;
+        let applicative = TemplateApplication::applied(
+            &holes,
+            vec![binding],
+            language(),
+            meta(),
+            ApplicativeDistinctness::Applicative,
+        )
+        .map_err(|_| ())?;
+        let twin = TemplateApplication::applied(
+            &holes,
+            vec![binding],
+            language(),
+            meta(),
+            ApplicativeDistinctness::Applicative,
+        )
+        .map_err(|_| ())?;
+        let distinct = TemplateApplication::applied(
+            &holes,
+            vec![binding],
+            language(),
+            meta(),
+            ApplicativeDistinctness::DeliberatelyDistinct(OwnerIdentityRef::decoded([42; 32])),
+        )
+        .map_err(|_| ())?;
+        assert!(applicative == twin && applicative != distinct);
+        Ok(())
     }
 
     /// law: template.the-invocation-key-names-seven-lawful-inputs — the key
@@ -2816,22 +2809,21 @@ mod derive_refusal {
     /// token would send every reader to the same wrong place.
     /// Owed reversal (red twin): reporting at `token[0]` must break this law.
     #[test]
-    fn a_refusal_names_the_offending_token() {
+    fn a_refusal_names_the_offending_token() -> Result<(), ()> {
         let source = "#[refusal(family = \"demo.example\", shape = tri_state)] enum Demo { A, }";
-        let read = TextCapture::read(source).map_err(|_| ());
+        let table = TextCapture::read(source)
+            .map(|capture| capture.spans().clone())
+            .map_err(|_| ())?;
         let refused = captured_text(source).map(|_| ());
-        assert!(read.is_ok());
         assert!(refused.is_err_and(|refusal| {
-            let table = TextCapture::read(source).map(|read| read.spans().clone());
-            table.is_ok_and(|table| {
-                table
-                    .coordinate_of(refusal.token())
-                    .is_ok_and(|coordinate| {
-                        coordinate.role == CoordinateRole::Byte && coordinate.position > 0
-                    })
-                    && refusal.cause() == RefusalDeriveCapture::NotAnAdmittedShape
-            })
+            table
+                .coordinate_of(refusal.token())
+                .is_ok_and(|coordinate| {
+                    coordinate.role == CoordinateRole::Byte && coordinate.position > 0
+                })
+                && refusal.cause() == RefusalDeriveCapture::NotAnAdmittedShape
         }));
+        Ok(())
     }
 
     /// law: derive.the-standing-of-the-cause-order-is-typed — a shape that
@@ -2916,19 +2908,16 @@ mod derive_refusal {
     /// closure identity, and a different declaration produces different ones.
     /// Owed reversal: an identity carrying anything ambient must break this law.
     #[test]
-    fn the_plan_is_a_function_of_the_declaration() {
-        let once = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
-        let twice = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
-        let other = compile_refusal_text(ISSUE_COLLECTION).map_err(|_| ());
-        assert!(once.is_ok_and(|(_, first)| {
-            twice.is_ok_and(|(_, second)| {
-                other.is_ok_and(|(_, third)| {
-                    first.closure().identity() == second.closure().identity()
-                        && first.surface().identity() == second.surface().identity()
-                        && first.closure().identity() != third.closure().identity()
-                })
-            })
-        }));
+    fn the_plan_is_a_function_of_the_declaration() -> Result<(), ()> {
+        let (_, first) = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ())?;
+        let (_, second) = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ())?;
+        let (_, third) = compile_refusal_text(ISSUE_COLLECTION).map_err(|_| ())?;
+        assert!(
+            first.closure().identity() == second.closure().identity()
+                && first.surface().identity() == second.surface().identity()
+                && first.closure().identity() != third.closure().identity()
+        );
+        Ok(())
     }
 
     /// law: derive.a-membership-only-draft-renders-nothing — the draft states
@@ -2954,23 +2943,22 @@ mod derive_refusal {
     /// over bytes that exist, never with a value the plan invented.
     /// Owed reversal (red twin): a plan-supplied digest must break this law.
     #[test]
-    fn the_explanation_carries_the_proved_digest() {
-        let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
-        assert!(compiled.is_ok_and(|(_, closed)| {
-            let family = closed
-                .rendered()
-                .under(RenderedImplementation::RenderedFamilyImpl);
-            family.is_some_and(|unit| {
-                let planned = closed
-                    .plan()
-                    .membership()
-                    .under(RenderedImplementation::RenderedFamilyImpl);
-                planned.is_some_and(|member| {
-                    unit.digest_under(member.output.digest_contract) == unit.digest()
-                        && unit.semantic_key() == member.output.semantic_key
-                })
-            })
-        }));
+    fn the_explanation_carries_the_proved_digest() -> Result<(), ()> {
+        let (_, closed) = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ())?;
+        let unit = closed
+            .rendered()
+            .under(RenderedImplementation::RenderedFamilyImpl)
+            .ok_or(())?;
+        let member = closed
+            .plan()
+            .membership()
+            .under(RenderedImplementation::RenderedFamilyImpl)
+            .ok_or(())?;
+        assert!(
+            unit.digest_under(member.output.digest_contract) == unit.digest()
+                && unit.semantic_key() == member.output.semantic_key
+        );
+        Ok(())
     }
 
     /// law: derive.a-diagnostic-from-an-expansion-says-it-is-unanchored — the
@@ -2979,23 +2967,23 @@ mod derive_refusal {
     /// Owed reversal (red twin): a plane-minted machine identity must break this
     /// law.
     #[test]
-    fn a_diagnostic_from_an_expansion_says_it_is_unanchored() {
+    fn a_diagnostic_from_an_expansion_says_it_is_unanchored() -> Result<(), ()> {
         let malformed = "#[refusal(family = \"demo.example\", shape = tri_state)] enum Demo { A, }";
-        let read = TextCapture::read(malformed).map_err(|_| ());
-        assert!(read.is_ok_and(|read| {
-            let context = crate::derive_refusal::RefusalCompileContext {
-                spans: read.spans().clone(),
-                machine: MachineAnchoring::UnmintedAtThisSeam,
-                owner_facts: crate::derive_refusal::RefusalOwnerFacts::declared(),
-                nonclaims: threadpak::types::Bounded::empty(),
-            };
-            compile_refusal(read.input(), &context).is_err_and(|diagnostic| {
-                matches!(diagnostic.machine, MachineAnchoring::UnmintedAtThisSeam)
-                    && matches!(diagnostic.phase, MacrocPhase::Capture)
-                    && !diagnostic.summary.is_empty()
-                    && diagnostic.repairs.len() == 1
-            })
+        let read = TextCapture::read(malformed).map_err(|_| ())?;
+        let context = crate::derive_refusal::RefusalCompileContext {
+            spans: read.spans().clone(),
+            machine: MachineAnchoring::UnmintedAtThisSeam,
+            owner_facts: crate::derive_refusal::RefusalOwnerFacts::declared(),
+            nonclaims: threadpak::types::Bounded::empty(),
+        };
+        let compiled = compile_refusal(read.input(), &context);
+        assert!(compiled.is_err_and(|diagnostic| {
+            matches!(diagnostic.machine, MachineAnchoring::UnmintedAtThisSeam)
+                && matches!(diagnostic.phase, MacrocPhase::Capture)
+                && !diagnostic.summary.is_empty()
+                && diagnostic.repairs.len() == 1
         }));
+        Ok(())
     }
 
     /// law: derive.a-closure-refuses-a-rendering-that-drops-a-planned-role — the
@@ -3004,28 +2992,26 @@ mod derive_refusal {
     /// Owed reversal (red twin): a closure that compared counts must break this
     /// law.
     #[test]
-    fn a_closure_refuses_a_rendering_that_drops_a_planned_role() {
-        let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
-        assert!(compiled.is_ok_and(|(_, closed)| {
-            let family = closed
-                .rendered()
-                .under(RenderedImplementation::RenderedFamilyImpl)
-                .cloned();
-            family.is_some_and(|unit| {
-                let partial = crate::closure::RenderedProjection::of_one(unit);
-                crate::closure::ProjectionClosure::proved(
-                    closed.plan().identity(),
-                    closed.plan().membership(),
-                    partial,
-                )
-                .is_err_and(|refusal| {
-                    *refusal.issues.first()
-                        == ClosureIssue::MemberMissing {
-                            role: RenderedImplementation::RenderedCauseOrderImpl,
-                        }
-                })
-            })
+    fn a_closure_refuses_a_rendering_that_drops_a_planned_role() -> Result<(), ()> {
+        let (_, closed) = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ())?;
+        let unit = closed
+            .rendered()
+            .under(RenderedImplementation::RenderedFamilyImpl)
+            .cloned()
+            .ok_or(())?;
+        let partial = crate::closure::RenderedProjection::of_one(unit);
+        let proved = crate::closure::ProjectionClosure::proved(
+            closed.plan().identity(),
+            closed.plan().membership(),
+            partial,
+        );
+        assert!(proved.is_err_and(|refusal| {
+            *refusal.issues.first()
+                == ClosureIssue::MemberMissing {
+                    role: RenderedImplementation::RenderedCauseOrderImpl,
+                }
         }));
+        Ok(())
     }
 
     /// law: derive.the-callable-route-needs-no-proc-macro — the whole road runs
@@ -3117,25 +3103,23 @@ mod failure_path_closure {
     /// Owed reversal (red twin): a membership admitting a doubled role must
     /// break this law.
     #[test]
-    fn a_doubled_planned_role_refuses() {
-        let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
-        assert!(compiled.is_ok_and(|(_, closed)| {
-            let family = closed
-                .plan()
-                .membership()
-                .under(RenderedImplementation::RenderedFamilyImpl)
-                .cloned();
-            family.is_some_and(|member| {
-                let doubled = PlannedMembership::declared(member.clone(), vec![member]);
-                doubled.is_err_and(|refusal| {
-                    *refusal.issues.first()
-                        == ProjectionPlanningIssue::MembershipDoubled {
-                            role_slot: RenderedImplementation::RenderedFamilyImpl.slot(),
-                            observed: 2,
-                        }
-                })
-            })
+    fn a_doubled_planned_role_refuses() -> Result<(), ()> {
+        let (_, closed) = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ())?;
+        let member = closed
+            .plan()
+            .membership()
+            .under(RenderedImplementation::RenderedFamilyImpl)
+            .cloned()
+            .ok_or(())?;
+        let doubled = PlannedMembership::declared(member.clone(), vec![member]);
+        assert!(doubled.is_err_and(|refusal| {
+            *refusal.issues.first()
+                == ProjectionPlanningIssue::MembershipDoubled {
+                    role_slot: RenderedImplementation::RenderedFamilyImpl.slot(),
+                    observed: 2,
+                }
         }));
+        Ok(())
     }
 
     /// law: closure.the-proof-reads-the-plans-own-count — the closure checks how
@@ -3145,36 +3129,33 @@ mod failure_path_closure {
     /// Owed reversal (red twin): a proof that read only `under` must break this
     /// law.
     #[test]
-    fn the_proof_reads_the_plans_own_count() {
-        let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
-        assert!(compiled.is_ok_and(|(_, closed)| {
-            let family = closed
-                .plan()
-                .membership()
-                .under(RenderedImplementation::RenderedFamilyImpl)
-                .cloned();
-            let rendered = closed
-                .rendered()
-                .under(RenderedImplementation::RenderedFamilyImpl)
-                .cloned();
-            family.is_some_and(|member| {
-                rendered.is_some_and(|unit| {
-                    let doubled = PlannedMembership::complete(member.clone(), [member]);
-                    ProjectionClosure::proved(
-                        closed.plan().identity(),
-                        &doubled,
-                        RenderedProjection::of_one(unit),
-                    )
-                    .is_err_and(|refusal| {
-                        *refusal.issues.first()
-                            == ClosureIssue::MemberPlannedTwice {
-                                role: RenderedImplementation::RenderedFamilyImpl,
-                                observed: 2,
-                            }
-                    })
-                })
-            })
+    fn the_proof_reads_the_plans_own_count() -> Result<(), ()> {
+        let (_, closed) = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ())?;
+        let member = closed
+            .plan()
+            .membership()
+            .under(RenderedImplementation::RenderedFamilyImpl)
+            .cloned()
+            .ok_or(())?;
+        let unit = closed
+            .rendered()
+            .under(RenderedImplementation::RenderedFamilyImpl)
+            .cloned()
+            .ok_or(())?;
+        let doubled = PlannedMembership::complete(member.clone(), [member]);
+        let proved = ProjectionClosure::proved(
+            closed.plan().identity(),
+            &doubled,
+            RenderedProjection::of_one(unit),
+        );
+        assert!(proved.is_err_and(|refusal| {
+            *refusal.issues.first()
+                == ClosureIssue::MemberPlannedTwice {
+                    role: RenderedImplementation::RenderedFamilyImpl,
+                    observed: 2,
+                }
         }));
+        Ok(())
     }
 
     /// law: closure.the-rebuild-is-compared-as-a-set — the closure's last act is
@@ -3337,29 +3318,27 @@ mod failure_path_closure {
     /// Owed reversal (red twin): a role-free closure diagnostic must break this
     /// law.
     #[test]
-    fn a_closure_refusal_names_its_role() {
-        let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
-        assert!(compiled.is_ok_and(|(_, closed)| {
-            let family = closed
-                .rendered()
-                .under(RenderedImplementation::RenderedFamilyImpl)
-                .cloned();
-            family.is_some_and(|unit| {
-                ProjectionClosure::proved(
-                    closed.plan().identity(),
-                    closed.plan().membership(),
-                    RenderedProjection::of_one(unit),
-                )
-                .is_err_and(|refusal| {
-                    let projected = diagnose::closure_refused(&refusal);
-                    projected
-                        .summary
-                        .shown()
-                        .contains(RenderedImplementation::RenderedCauseOrderImpl.described())
-                        && projected.related.len() == 2
-                })
-            })
+    fn a_closure_refusal_names_its_role() -> Result<(), ()> {
+        let (_, closed) = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ())?;
+        let unit = closed
+            .rendered()
+            .under(RenderedImplementation::RenderedFamilyImpl)
+            .cloned()
+            .ok_or(())?;
+        let proved = ProjectionClosure::proved(
+            closed.plan().identity(),
+            closed.plan().membership(),
+            RenderedProjection::of_one(unit),
+        );
+        assert!(proved.is_err_and(|refusal| {
+            let projected = diagnose::closure_refused(&refusal);
+            projected
+                .summary
+                .shown()
+                .contains(RenderedImplementation::RenderedCauseOrderImpl.described())
+                && projected.related.len() == 2
         }));
+        Ok(())
     }
 
     /// law: closure.a-rendered-roster-names-every-variant-once — each admitted
@@ -3614,32 +3593,32 @@ mod failure_path_closure {
     /// plans two, and both are built through the total road.
     /// Owed reversal: a roster-shaped membership road must break this law.
     #[test]
-    fn a_planned_member_carries_no_invented_role() {
+    fn a_planned_member_carries_no_invented_role() -> Result<(), ()> {
         let collection = "#[refusal(family = \"demo.example\", shape = issue_collection)] \
             enum DemoIssues { NotBound, NotCovered, }";
-        let one = compile_refusal_text(collection).map_err(|_| ());
-        assert!(one.is_ok_and(|(_, closed)| {
-            let membership = closed.plan().membership();
-            membership.len() == 1
-                && membership.count_under(RenderedImplementation::RenderedFamilyImpl) == 1
-                && membership.count_under(RenderedImplementation::RenderedCauseOrderImpl) == 0
-        }));
+        let (_, closed) = compile_refusal_text(collection).map_err(|_| ())?;
+        let planned = closed.plan().membership();
+        assert!(
+            planned.len() == 1
+                && planned.count_under(RenderedImplementation::RenderedFamilyImpl) == 1
+                && planned.count_under(RenderedImplementation::RenderedCauseOrderImpl) == 0
+        );
 
         // The same theorem stated over the planning road directly: the profile,
         // destination, and digest contract of every member come from the role.
-        let read = TextCapture::read(SINGLE_CAUSE).map_err(|_| ());
-        assert!(read.is_ok_and(|read| {
-            crate::derive_refusal::captured(read.input()).is_ok_and(|surface| {
-                let draft = surface.planned();
-                let membership = derive_plan::membership(&draft);
-                membership.len() == 2
-                    && membership.iter().all(|member: &PlannedMember<_>| {
-                        matches!(
-                            member.output.destination,
-                            MemberDestination::AtDeclarationSite
-                        )
-                    })
-            })
-        }));
+        let read = TextCapture::read(SINGLE_CAUSE).map_err(|_| ())?;
+        let surface = crate::derive_refusal::captured(read.input()).map_err(|_| ())?;
+        let draft = surface.planned();
+        let membership = derive_plan::membership(&draft);
+        assert!(
+            membership.len() == 2
+                && membership.iter().all(|member: &PlannedMember<_>| {
+                    matches!(
+                        member.output.destination,
+                        MemberDestination::AtDeclarationSite
+                    )
+                })
+        );
+        Ok(())
     }
 }

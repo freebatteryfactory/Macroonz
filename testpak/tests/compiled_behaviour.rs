@@ -70,9 +70,11 @@ const DECLARED_IDENTITIES: [&str; 3] = [
 /// The enum is the declaration's own; everything after it is materialized text,
 /// compiled by `rustc` as ordinary items.
 mod lawful_artifact {
-    /// The declared family.
+    /// The declared family. Visible to the whole test binary and no further:
+    /// the seat is a compilation site for one materialized artifact, not an
+    /// export.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub enum DemoFamily {
+    pub(crate) enum DemoFamily {
         /// A cause outside the machine's roster.
         NotAdmitted,
         /// A declared magnitude was exceeded.
@@ -91,8 +93,10 @@ mod lawful_artifact {
 /// word: the disagreement is a VALUE, and only a compiler hands back values.
 mod shape_altered_artifact {
     /// The declared family, unchanged — the mutation is in the artifact.
+    /// Visible to the whole test binary and no further, exactly as the lawful
+    /// seat's is.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub enum DemoFamily {
+    pub(crate) enum DemoFamily {
         /// A cause outside the machine's roster.
         NotAdmitted,
         /// A declared magnitude was exceeded.

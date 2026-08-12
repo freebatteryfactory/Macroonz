@@ -139,44 +139,40 @@ fn a_shortened_complete_set_proves_a_smaller_claim() {
 /// road cannot reach it: a rendering missing the family role never closes, so
 /// the closure refuses one seat earlier. Both halves are asserted.
 #[test]
-fn a_neighbouring_digest_answers_about_another_value() {
-    assert!(lawful().is_ok_and(|closed| {
-        let family = closed
-            .rendered()
-            .under(RenderedImplementation::RenderedFamilyImpl)
-            .cloned();
-        let neighbour = closed
-            .rendered()
-            .under(RenderedImplementation::RenderedCauseOrderImpl)
-            .cloned();
-        family.is_some_and(|family| {
-            neighbour.is_some_and(|neighbour| {
-                let reordered =
-                    RenderedProjection::materialized(neighbour.clone(), vec![family.clone()]);
-                let repaired = reordered.is_ok_and(|reordered| {
-                    reordered
-                        .units()
-                        .next()
-                        .is_some_and(|first| first.digest() != family.digest())
-                });
-                // The live road refuses one seat earlier: with no unit under the
-                // family role there is nothing to close over, so the explanation
-                // is never asked its question.
-                let closed_earlier = ProjectionClosure::proved(
-                    closed.plan().identity(),
-                    closed.plan().membership(),
-                    RenderedProjection::of_one(neighbour),
-                )
-                .is_err_and(|refusal| {
-                    *refusal.issues.first()
-                        == ClosureIssue::MemberMissing {
-                            role: RenderedImplementation::RenderedFamilyImpl,
-                        }
-                });
-                repaired && closed_earlier
-            })
-        })
+fn a_neighbouring_digest_answers_about_another_value() -> Result<(), ()> {
+    let closed = lawful()?;
+    let family = closed
+        .rendered()
+        .under(RenderedImplementation::RenderedFamilyImpl)
+        .cloned()
+        .ok_or(())?;
+    let neighbour = closed
+        .rendered()
+        .under(RenderedImplementation::RenderedCauseOrderImpl)
+        .cloned()
+        .ok_or(())?;
+    let reordered = RenderedProjection::materialized(neighbour.clone(), vec![family.clone()]);
+    assert!(reordered.is_ok_and(|reordered| {
+        reordered
+            .units()
+            .next()
+            .is_some_and(|first| first.digest() != family.digest())
     }));
+    // The live road refuses one seat earlier: with no unit under the family role
+    // there is nothing to close over, so the explanation is never asked its
+    // question.
+    let closed_earlier = ProjectionClosure::proved(
+        closed.plan().identity(),
+        closed.plan().membership(),
+        RenderedProjection::of_one(neighbour),
+    );
+    assert!(closed_earlier.is_err_and(|refusal| {
+        *refusal.issues.first()
+            == ClosureIssue::MemberMissing {
+                role: RenderedImplementation::RenderedFamilyImpl,
+            }
+    }));
+    Ok(())
 }
 
 /// Every explanation seat that can fail to bind names itself, and the three name
@@ -235,58 +231,54 @@ fn each_explanation_seat_refuses_under_its_own_name() {
 /// families would have handed a caller one sentence under one classification for
 /// two different repairs.
 #[test]
-fn a_doubled_role_refuses_at_the_declaration_and_at_the_closure() {
-    assert!(lawful().is_ok_and(|closed| {
-        let member = closed
-            .plan()
-            .membership()
-            .under(RenderedImplementation::RenderedFamilyImpl)
-            .cloned();
-        let unit = closed
-            .rendered()
-            .under(RenderedImplementation::RenderedFamilyImpl)
-            .cloned();
-        member.is_some_and(|member| {
-            unit.is_some_and(|unit| {
-                let at_declaration =
-                    PlannedMembership::declared(member.clone(), vec![member.clone()]).err();
-                let doubled = PlannedMembership::complete(member.clone(), [member]);
-                let at_closure = ProjectionClosure::proved(
-                    closed.plan().identity(),
-                    &doubled,
-                    RenderedProjection::of_one(unit),
-                )
-                .err();
-                at_declaration.is_some_and(|planning| {
-                    at_closure.is_some_and(|closure| {
-                        let named = *planning.issues.first()
-                            == ProjectionPlanningIssue::MembershipDoubled {
-                                role_slot: RenderedImplementation::RenderedFamilyImpl.slot(),
-                                observed: 2,
-                            }
-                            && *closure.issues.first()
-                                == ClosureIssue::MemberPlannedTwice {
-                                    role: RenderedImplementation::RenderedFamilyImpl,
-                                    observed: 2,
-                                };
-                        let first = diagnose::planning_refused(&planning);
-                        let second = diagnose::closure_refused(&closure);
-                        named
-                            && matches!(
-                                first.observed,
-                                ObservedClassification::IdentityDisagreement
-                            )
-                            && matches!(
-                                second.observed,
-                                ObservedClassification::IdentityDisagreement
-                            )
-                            && first.summary != second.summary
-                            && related(&first) != related(&second)
-                    })
-                })
-            })
-        })
-    }));
+fn a_doubled_role_refuses_at_the_declaration_and_at_the_closure() -> Result<(), ()> {
+    let closed = lawful()?;
+    let member = closed
+        .plan()
+        .membership()
+        .under(RenderedImplementation::RenderedFamilyImpl)
+        .cloned()
+        .ok_or(())?;
+    let unit = closed
+        .rendered()
+        .under(RenderedImplementation::RenderedFamilyImpl)
+        .cloned()
+        .ok_or(())?;
+    let doubled = PlannedMembership::complete(member.clone(), [member.clone()]);
+    let planning = PlannedMembership::declared(member.clone(), vec![member])
+        .err()
+        .ok_or(())?;
+    let closure = ProjectionClosure::proved(
+        closed.plan().identity(),
+        &doubled,
+        RenderedProjection::of_one(unit),
+    )
+    .err()
+    .ok_or(())?;
+    assert!(
+        *planning.issues.first()
+            == ProjectionPlanningIssue::MembershipDoubled {
+                role_slot: RenderedImplementation::RenderedFamilyImpl.slot(),
+                observed: 2,
+            }
+            && *closure.issues.first()
+                == ClosureIssue::MemberPlannedTwice {
+                    role: RenderedImplementation::RenderedFamilyImpl,
+                    observed: 2,
+                }
+    );
+    let first = diagnose::planning_refused(&planning);
+    let second = diagnose::closure_refused(&closure);
+    assert!(
+        matches!(first.observed, ObservedClassification::IdentityDisagreement)
+            && matches!(
+                second.observed,
+                ObservedClassification::IdentityDisagreement
+            )
+            && first.summary != second.summary
+            && related(&first) != related(&second)
+    );
+    Ok(())
 }
 
 /// Two refusal families reaching the diagnostic keep their distinctions, even

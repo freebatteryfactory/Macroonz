@@ -330,13 +330,13 @@ fn refusal_attribute_body<'trees>(
         let bracketed: Vec<&CapturedTokenTree> = inner.iter().collect();
         let named = bracketed
             .first()
-            .and_then(|tree| tree.word())
+            .and_then(|head| head.word())
             .is_some_and(|word| word == "refusal");
         if !named {
             continue;
         }
         if let Some((CapturedDelimiter::Parenthesis, body)) =
-            bracketed.get(1).and_then(|tree| tree.group())
+            bracketed.get(1).and_then(|after_name| after_name.group())
         {
             return Some(body.iter().collect());
         }

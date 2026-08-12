@@ -106,6 +106,10 @@ mod sealed {
     /// The seal: another address role is admitted only when a real operation
     /// has distinct ownership, laws, and evidence for it — by ruling, in this
     /// crate, never by downstream impl.
+    #[expect(
+        unnameable_types,
+        reason = "the sealed-trait pattern makes the supertrait deliberately unnameable so downstream crates cannot implement the role"
+    )]
     pub trait Sealed {}
 }
 

@@ -586,30 +586,8 @@ fn check_tooling_module_order(root: &Path) -> Result<(), String> {
     }
     let mut modules = Vec::new();
     for name in &order {
-        let flat = src.join(format!("{name}.rs"));
-        let directory = src.join(name);
-        if flat.is_file() {
-            let text = fs::read_to_string(&flat).map_err(|e| format!("{}: {e}", flat.display()))?;
-            modules.push((name.clone(), text, false));
-        } else if directory.is_dir() {
-            let mut collected = String::new();
-            visit_files(&directory, &mut |path| {
-                if path.extension().is_some_and(|extension| extension == "rs") {
-                    let text =
-                        fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
-                    collected.push_str(&text);
-                    collected.push('\n');
-                }
-                Ok(())
-            })?;
-            modules.push((name.clone(), collected, true));
-        } else {
-            return Err(format!(
-                "{name} is declared and is neither {} nor {}/",
-                flat.display(),
-                directory.display()
-            ));
-        }
+        let (text, layout) = module_source(&src, name)?;
+        modules.push((name.clone(), text, layout));
     }
     let violations = module_order_violations(&order, &modules);
     if violations.is_empty() {
@@ -617,6 +595,53 @@ fn check_tooling_module_order(root: &Path) -> Result<(), String> {
     } else {
         Err(violations.join("; "))
     }
+}
+
+/// How a declared module is laid out on disk.
+///
+/// The layout is not a formatting detail: it decides which crate-root openings
+/// can be an edge. In a directory module, a submodule saying `super::` is naming
+/// its own parent, which is not a forward reference at all; in a flat module,
+/// `super::` and `crate::` name the same place, so both are read.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ModuleLayout {
+    /// `name.rs` — one file, whose only parent is the crate root.
+    Flat,
+    /// `name/` — a directory whose submodules can say `super::` about it.
+    Directory,
+}
+
+/// The source text one declared module contributes, and the layout it is in.
+///
+/// This is the stage that turns a declared NAME into the text an order is read
+/// off. `name.rs` is its own text; `name/` is every `.rs` file under it joined
+/// together, because a submodule reaching forward is its parent reaching
+/// forward. The check and the law that judges the real tree both read a module
+/// through here, so neither can be judging a different tree than the other.
+fn module_source(src: &Path, name: &str) -> Result<(String, ModuleLayout), String> {
+    let flat = src.join(format!("{name}.rs"));
+    if flat.is_file() {
+        let text = fs::read_to_string(&flat).map_err(|e| format!("{}: {e}", flat.display()))?;
+        return Ok((text, ModuleLayout::Flat));
+    }
+    let directory = src.join(name);
+    if !directory.is_dir() {
+        return Err(format!(
+            "{name} is declared and is neither {} nor {}/",
+            flat.display(),
+            directory.display()
+        ));
+    }
+    let mut collected = String::new();
+    visit_files(&directory, &mut |path| {
+        if path.extension().is_some_and(|extension| extension == "rs") {
+            let text = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+            collected.push_str(&text);
+            collected.push('\n');
+        }
+        Ok(())
+    })?;
+    Ok((collected, ModuleLayout::Directory))
 }
 
 /// The module names one `lib.rs` declares, in declaration order.
@@ -664,11 +689,14 @@ fn declared_module_order(lib_text: &str) -> Vec<String> {
 /// `super` is never mistaken for the crate root. A grouped use expands: every
 /// segment head inside `{ … }` is read, at any nesting, so wrapping three
 /// imports in one `use` hides none of them.
-fn crate_references(module_text: &str, nested: bool) -> Vec<String> {
-    let openings: &[&str] = if nested {
-        &["crate::"]
-    } else {
-        &["crate::", "super::"]
+///
+/// Which openings are read is decided by the module's [`ModuleLayout`], which
+/// the caller already holds — the layout was established when the module's text
+/// was read, and is carried rather than guessed again here.
+fn crate_references(module_text: &str, layout: ModuleLayout) -> Vec<String> {
+    let openings: &[&str] = match layout {
+        ModuleLayout::Directory => &["crate::"],
+        ModuleLayout::Flat => &["crate::", "super::"],
     };
     let mut found = Vec::new();
     for opening in openings.iter().copied() {
@@ -763,15 +791,18 @@ fn referenced_heads(tail: &str) -> Vec<String> {
 /// A reference to a module declared at the same position (a module naming
 /// itself, or a submodule naming its own parent through `super::`) is not an
 /// edge.
-fn module_order_violations(order: &[String], modules: &[(String, String, bool)]) -> Vec<String> {
+fn module_order_violations(
+    order: &[String],
+    modules: &[(String, String, ModuleLayout)],
+) -> Vec<String> {
     let position = |name: &str| order.iter().position(|declared| declared == name);
     let mut violations = Vec::new();
-    for (name, text, nested) in modules {
+    for (name, text, layout) in modules {
         let Some(here) = position(name) else {
             continue;
         };
         let mut reported: Vec<String> = Vec::new();
-        for referenced in crate_references(text, *nested) {
+        for referenced in crate_references(text, *layout) {
             if reported.contains(&referenced) {
                 continue;
             }
@@ -1545,14 +1576,14 @@ fn readme_yaml_block(root: &Path) -> Result<Vec<String>, String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        BANNED_VOCABULARY_ALLOWLIST, SERVICES_MANIFEST, TOOLING_MODULE_ROOT,
+        BANNED_VOCABULARY_ALLOWLIST, ModuleLayout, SERVICES_MANIFEST, TOOLING_MODULE_ROOT,
         banned_vocabulary_offences, banned_words_in, check_agents_claude_parity, check_band_map,
         check_lf_and_no_symlinks, check_lint_wall, check_no_python, check_toolchain_pin,
         check_underscore_fields_are_phantom, check_workspace_members, claimed_green_laws,
         core_tooling_edge_violations, declared_module_order, double_claimed_offences, home_readmes,
-        module_order_violations, red_twin_ledger, red_twin_rows, relative_slash_path, repo_root,
-        services_frontend_edge_violations, stale_allowlist_offences, testpak_reversals,
-        tooling_red_rows,
+        module_order_violations, module_source, red_twin_ledger, red_twin_rows,
+        relative_slash_path, repo_root, services_frontend_edge_violations,
+        stale_allowlist_offences, testpak_reversals, tooling_red_rows,
     };
     use std::fs;
     use std::path::{Path, PathBuf};
@@ -1682,8 +1713,8 @@ mod tests {
     /// reads and which are not violations.
     #[test]
     fn the_real_root_manifest_carries_no_tooling_edge() {
-        let root = repo_root().unwrap_or_else(|_| std::path::PathBuf::from("."));
-        let manifest = std::fs::read_to_string(root.join("Cargo.toml")).unwrap_or_default();
+        let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
+        let manifest = fs::read_to_string(root.join("Cargo.toml")).unwrap_or_default();
         assert!(!manifest.is_empty(), "root Cargo.toml is unreadable");
         let found = core_tooling_edge_violations(&manifest);
         assert!(found.is_empty(), "{found:?}");
@@ -1737,8 +1768,8 @@ mod tests {
     /// Part two judges the real services manifest, and it holds.
     #[test]
     fn the_real_services_manifest_carries_no_frontend_edge() {
-        let root = repo_root().unwrap_or_else(|_| std::path::PathBuf::from("."));
-        let manifest = std::fs::read_to_string(root.join(SERVICES_MANIFEST)).unwrap_or_default();
+        let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
+        let manifest = fs::read_to_string(root.join(SERVICES_MANIFEST)).unwrap_or_default();
         assert!(!manifest.is_empty(), "services Cargo.toml is unreadable");
         let found = services_frontend_edge_violations(&manifest);
         assert!(found.is_empty(), "{found:?}");
@@ -1748,11 +1779,13 @@ mod tests {
     // tooling-module-order
     // -----------------------------------------------------------------------
 
-    /// One synthetic module set, as `(name, source text)` pairs.
-    fn sources(pairs: &[(&str, &str)]) -> Vec<(String, String, bool)> {
+    /// One synthetic module set, as `(name, source text)` pairs. Every synthetic
+    /// module is flat: the directory layout is exercised against the real tree,
+    /// where the directory exists.
+    fn sources(pairs: &[(&str, &str)]) -> Vec<(String, String, ModuleLayout)> {
         pairs
             .iter()
-            .map(|(name, text)| ((*name).to_string(), (*text).to_string(), false))
+            .map(|(name, text)| ((*name).to_string(), (*text).to_string(), ModuleLayout::Flat))
             .collect()
     }
 
@@ -1862,38 +1895,24 @@ mod tests {
 
     /// The real services tree holds: declaration order IS its dependency order.
     #[test]
-    fn the_real_services_modules_are_in_dependency_order() {
-        let root = repo_root().unwrap_or_else(|_| std::path::PathBuf::from("."));
+    fn the_real_services_modules_are_in_dependency_order() -> Result<(), String> {
+        let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
         let mut src = root;
         for segment in TOOLING_MODULE_ROOT {
             src.push(segment);
         }
-        let lib = std::fs::read_to_string(src.join("lib.rs")).unwrap_or_default();
+        let lib = fs::read_to_string(src.join("lib.rs")).unwrap_or_default();
         let order = declared_module_order(&lib);
         assert!(order.len() > 1, "services lib.rs declares {order:?}");
-        let modules: Vec<(String, String, bool)> = order
-            .iter()
-            .map(|name| {
-                let flat = src.join(format!("{name}.rs"));
-                if flat.is_file() {
-                    let text = std::fs::read_to_string(&flat).unwrap_or_default();
-                    assert!(!text.is_empty(), "{name}.rs is unreadable");
-                    return (name.clone(), text, false);
-                }
-                let mut collected = String::new();
-                let directory = src.join(name);
-                if let Ok(entries) = std::fs::read_dir(&directory) {
-                    for entry in entries.flatten() {
-                        collected
-                            .push_str(&std::fs::read_to_string(entry.path()).unwrap_or_default());
-                    }
-                }
-                assert!(!collected.is_empty(), "{name}/ is unreadable");
-                (name.clone(), collected, true)
-            })
-            .collect();
+        let mut modules = Vec::new();
+        for name in &order {
+            let (text, layout) = module_source(&src, name)?;
+            assert!(!text.is_empty(), "{name} is unreadable");
+            modules.push((name.clone(), text, layout));
+        }
         let found = module_order_violations(&order, &modules);
         assert!(found.is_empty(), "{found:?}");
+        Ok(())
     }
 
     // -----------------------------------------------------------------------
@@ -1976,21 +1995,14 @@ mod tests {
     /// that exists, and the denominator is real rather than empty.
     #[test]
     fn the_real_red_ledger_names_only_reversals_that_exist() {
-        let root = repo_root().unwrap_or_else(|_| std::path::PathBuf::from("."));
+        let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
         let reversals = testpak_reversals(&root).unwrap_or_default();
         assert!(!reversals.is_empty(), "testpak carries no reversal files");
         let mut collected = Vec::new();
-        let mut readmes = vec![root.join("README.md")];
-        if let Ok(entries) = std::fs::read_dir(root.join("src")) {
-            for entry in entries.flatten() {
-                let candidate = entry.path().join("README.md");
-                if candidate.is_file() {
-                    readmes.push(candidate);
-                }
-            }
-        }
+        let readmes = home_readmes(&root).unwrap_or_default();
+        assert!(!readmes.is_empty(), "no home READMEs found");
         for readme in &readmes {
-            let text = std::fs::read_to_string(readme).unwrap_or_default();
+            let text = fs::read_to_string(readme).unwrap_or_default();
             let name = readme.display().to_string();
             for value in red_twin_rows(&text) {
                 collected.push((value, name.clone()));
@@ -2046,11 +2058,11 @@ mod tests {
     /// naming a reversal resolves to one that exists.
     #[test]
     fn the_real_tooling_ledger_names_only_reversals_that_exist() {
-        let root = repo_root().unwrap_or_else(|_| std::path::PathBuf::from("."));
+        let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
         let reversals = testpak_reversals(&root).unwrap_or_default();
         let mut collected = Vec::new();
         for readme in ["macros/macroc/README.md", "testpak/README.md"] {
-            let text = std::fs::read_to_string(root.join(readme)).unwrap_or_default();
+            let text = fs::read_to_string(root.join(readme)).unwrap_or_default();
             for row in tooling_red_rows(&text) {
                 collected.push((row, String::from(readme)));
             }
