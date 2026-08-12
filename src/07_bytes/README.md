@@ -71,7 +71,7 @@ obligations:
     red: owed-to-testpak
   - id: bytes.width-conventions-are-eight
     challenge_kind: compile-law
-    green: laws.rs bytes::decode_maxima_are_sixteen
+    green: laws.rs bytes::width_conventions_are_eight
     red: owed-to-testpak
   - id: bytes.content-region-declares-two-columns
     challenge_kind: compile-law

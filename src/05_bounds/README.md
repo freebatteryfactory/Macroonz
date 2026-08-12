@@ -50,7 +50,7 @@ obligations:
     red: owed-to-testpak
   - id: bounds.budget-is-affine
     challenge_kind: compile-refusal
-    green: laws.rs bounds::charge_shrinks_or_refuses
+    green: laws.rs bounds::budget_is_affine
     red: owed-to-testpak — cloning or copying a Budget must not compile
   - id: bounds.charge-shrinks-or-refuses
     challenge_kind: compile-law

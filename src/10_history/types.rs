@@ -712,9 +712,18 @@ pub struct DurabilityProfile {
     pub claims: Bounded<DurabilityClaimAxis, DurabilityProfileLimit>,
 }
 
-/// A read-only storage root: exposes no writer method — it cannot mint a
-/// writer, append lifecycle facts, advance mutable authority, or perform an
-/// ambient-route side effect. Lifecycle is typestate, not a flag.
+/// A read-only storage root: it exposes no writer method, and the absence is
+/// the point — nothing on this type mints a writer, appends a lifecycle fact,
+/// advances mutable authority, or performs an ambient-route side effect.
+///
+/// That absence stands today and is not owed: what makes it hold is that
+/// [`OpenReadOnly`] and [`OpenWritable`] are two types rather than one type with
+/// a flag, so a read-only root cannot be passed where a writable one is
+/// required. What IS owed is everything that would populate the pair — the open
+/// road that mints either root, and the writer roster on the second — and it
+/// lands with the storage adapter contract when implementation opens for this
+/// home on explicit authorization. Until then neither root is inhabitable, so
+/// the separation is proven by shape and exercised by nothing.
 #[derive(Debug)]
 pub struct OpenReadOnly {
     lineage: StoreLineageId,
@@ -728,15 +737,20 @@ impl OpenReadOnly {
     }
 }
 
-/// A writable storage root: proves live write authority; failure to establish
-/// or close it is reported, never hidden by construction. An injected adapter
-/// is the ONLY physical route for the operation using it — no ambient host
-/// call compiles into a port operation. (The port trait's method roster —
-/// create/open, bounded reads/writes, append, content durability handoff,
-/// namespace durability handoff, atomic publication, enumeration,
+/// A writable storage root: declared to prove live write authority, with
+/// failure to establish or close it reported rather than hidden by
+/// construction, and with an injected adapter as the ONLY physical route for the
+/// operation using it — no ambient host call compiles into a port operation.
+///
+/// Every one of those claims is about a road that is owed. The port trait's
+/// method roster — create/open, bounded reads/writes, append, content durability
+/// handoff, namespace durability handoff, atomic publication, enumeration,
 /// single-writer exclusion, crash/reload, compaction,
 /// snapshot/fork/import/export/restore, lineage validation — and its
-/// postcondition rows land with the storage adapter contract in host space.)
+/// postcondition rows land with the storage adapter contract in host space, when
+/// implementation opens for this home on explicit authorization. What this type
+/// carries today is the lineage it serves and its distinctness from
+/// [`OpenReadOnly`].
 #[derive(Debug)]
 pub struct OpenWritable {
     lineage: StoreLineageId,

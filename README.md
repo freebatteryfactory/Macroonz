@@ -23,20 +23,24 @@ knows which host is running it.
 
 ## Workspace
 
-| Crate                           | Role                                                              |
-| ------------------------------- | ----------------------------------------------------------------- |
-| `threadpak`                     | the machine — root package at the repository root                 |
-| `macros/macroc`                 | the metaprogramming services — package `threadpak-macroc`         |
-| `macros/proc`                   | the Rust-facing expansion shell — package `threadpak-macros`      |
-| `testpak`                       | the qualification plane — package `threadpak-testpak`             |
-| `xtask`                         | repository law checks and tooling — `cargo xtask check`           |
-| `xtask/fixtures/macro-consumer` | the outside consumer fixture — package `threadpak-macro-consumer` |
+| Crate                             | Role                                                                          |
+| --------------------------------- | ----------------------------------------------------------------------------- |
+| `threadpak`                       | the machine — root package at the repository root                             |
+| `macros/macroc`                   | the metaprogramming services — package `threadpak-macroc`                     |
+| `macros/proc`                     | the Rust-facing expansion shell — package `threadpak-macros`                  |
+| `testpak`                         | the qualification plane — package `threadpak-testpak`                         |
+| `xtask`                           | repository law checks and tooling — `cargo xtask check`                       |
+| `xtask/fixtures/macro-consumer`   | the outside consumer fixture — package `threadpak-macro-consumer`             |
+| `xtask/fixtures/renamed-consumer` | the renamed-dependency consumer fixture — `threadpak-renamed-consumer`        |
 
 The repository root is itself the `threadpak` package; its `src/` carries the machine.
-`macros/`, `testpak/`, `xtask/`, and `hosts/` are unnumbered: first-class, but never on
-the production dependency path. `macros/` is a plain subsystem directory rather than a
-package: it holds the services (`macros/macroc`) and the one Rust-facing expansion shell
-over them (`macros/proc`). The metaprogramming edges run one way and inward —
+`macros/`, `testpak/`, and `xtask/` are unnumbered: first-class, but never on the
+production dependency path. Hosts are unnumbered in the same sense and live one step
+further out — in other repositories, as the spine above says — so this repository has
+no `hosts/` directory, and it gains one only if that is ruled. `macros/` is a plain
+subsystem directory rather than a package: it holds the services (`macros/macroc`) and
+the one Rust-facing expansion shell over them (`macros/proc`).
+The metaprogramming edges run one way and inward —
 `macros/proc` → `macros/macroc` → `threadpak` — and the machine depends on neither, an
 absence the `no-core-tooling-edge` check enforces across every Cargo edge kind.
 

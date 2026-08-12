@@ -797,23 +797,6 @@ fn module_order_violations(order: &[String], modules: &[(String, String, bool)])
     violations
 }
 
-/// The obligations join, in three legs.
-///
-/// **Green, both ways.** Every README obligation naming a `laws.rs` green law
-/// points at a law that exists, and every law in `laws.rs` is claimed by some
-/// obligation — the READMEs and the laws never drift apart.
-///
-/// **Red, and counted out loud.** Every obligation also declares a `red:` row.
-/// A row spelled `owed-to-…` is a lawful debt: the reversal is named and not yet
-/// written, and saying so is the honest state. Any other row NAMES a reversal
-/// that is supposed to exist, and it must resolve to a real testpak test file or
-/// compile-fail fixture — a row pointing at a reversal nobody wrote is worse
-/// than an owed row, because it reads as discharged.
-///
-/// The leg prints its denominator on every run, discharged over owed. The
-/// number is meant to be uncomfortable and is meant to be watched: a repository
-/// that quietly loses red twins would otherwise keep passing this check while
-/// the accounting shrank.
 /// Every home README the join reads: the root one, and one per numbered band.
 fn home_readmes(root: &Path) -> Result<Vec<PathBuf>, String> {
     let mut readmes = vec![root.join("README.md")];
@@ -854,6 +837,65 @@ fn claimed_green_laws(readmes: &[PathBuf]) -> Result<Vec<(String, String, PathBu
     Ok(claimed)
 }
 
+/// Every law claimed by more than one obligation, one offence per law.
+///
+/// Two obligations pointing at one law is two claims answered by one proof, and
+/// the proof answers at most one of them. Either the pair states one claim, in
+/// which case it is one obligation, or it states two, in which case the second
+/// one's green half does not exist and the row is saying it does. The join
+/// already refuses a law claimed by NOBODY; refusing a law claimed twice closes
+/// the same door from the other side.
+///
+/// Pure over its inputs — `(module, law, declaring README)` triples — so the law
+/// is proven against fixture rows rather than against the tree it guards.
+fn double_claimed_offences(claimed: &[(String, String, String)]) -> Vec<String> {
+    let mut offences = Vec::new();
+    let mut reported: Vec<(String, String)> = Vec::new();
+    for (module, law, _) in claimed {
+        let key = (module.clone(), law.clone());
+        if reported.contains(&key) {
+            continue;
+        }
+        let claimants: Vec<&str> = claimed
+            .iter()
+            .filter(|(m, l, _)| m == module && l == law)
+            .map(|(_, _, readme)| readme.as_str())
+            .collect();
+        if claimants.len() > 1 {
+            reported.push(key);
+            offences.push(format!(
+                "laws.rs {module}::{law} is claimed by {} obligations ({}): one law proves one \
+                 claim",
+                claimants.len(),
+                claimants.join(", ")
+            ));
+        }
+    }
+    offences
+}
+
+/// The obligations join, in four legs.
+///
+/// **Green, both ways.** Every README obligation naming a `laws.rs` green law
+/// points at a law that exists, and every law in `laws.rs` is claimed by some
+/// obligation — the READMEs and the laws never drift apart.
+///
+/// **Green, exactly once.** No law is claimed by two obligations. A law claimed
+/// twice is a proof standing in for a claim it does not make, and it reads as
+/// discharged from both rows.
+///
+/// **Red, and counted out loud.** Every obligation also declares a `red:` row.
+/// A row spelled `owed-to-…` is a lawful debt: the reversal is named and not yet
+/// written, and saying so is the honest state. Any other row NAMES a reversal
+/// that is supposed to exist, and it must resolve to a real testpak test file or
+/// compile-fail fixture — a row pointing at a reversal nobody wrote is worse
+/// than an owed row, because it reads as discharged.
+///
+/// **Two denominators, printed apart.** The leg prints core red twins and
+/// tooling reversals on their own lines, discharged over owed, on every run. The
+/// numbers are meant to be uncomfortable and are meant to be watched: a
+/// repository that quietly lost red twins would otherwise keep passing this
+/// check while the accounting shrank.
 fn check_obligations_join(root: &Path) -> Result<(), String> {
     let readmes = home_readmes(root)?;
     let claimed = claimed_green_laws(&readmes)?;
@@ -892,6 +934,17 @@ fn check_obligations_join(root: &Path) -> Result<(), String> {
             ));
         }
     }
+    let attributed: Vec<(String, String, String)> = claimed
+        .iter()
+        .map(|(module, law, readme)| {
+            (
+                module.clone(),
+                law.clone(),
+                relative_slash_path(root, readme),
+            )
+        })
+        .collect();
+    offenders.extend(double_claimed_offences(&attributed));
     let mut rows = Vec::new();
     for readme in &readmes {
         let text = fs::read_to_string(readme).map_err(|e| format!("{}: {e}", readme.display()))?;
@@ -1113,6 +1166,37 @@ const BANNED_VOCABULARY_ALLOWLIST: [(&str, &str, &str); 3] = [
     ),
 ];
 
+/// Every allowlist entry whose named file no longer spells the word it excuses,
+/// one offence per stale entry.
+///
+/// An allowance is a claim about a file: this word survives HERE, for this
+/// reason. When the word leaves the file the claim is no longer about anything,
+/// and what is left is a standing hole nobody is watching — the next edit that
+/// reintroduces the word to that file passes silently, and the reason line still
+/// reads as if somebody had looked. So an entry that matches nothing is refused
+/// exactly as a red row naming a reversal nobody wrote is refused: both read as
+/// discharged and are not.
+///
+/// The scan is the same one the ban uses, so an entry is stale by the check's own
+/// standard rather than by a second, looser reading of the file.
+///
+/// Pure over its inputs — `(repository-relative path, that file's text)` pairs
+/// for every scanned file — so the law is proven against fixture text.
+fn stale_allowlist_offences(scanned: &[(String, String)]) -> Vec<String> {
+    let mut offences = Vec::new();
+    for (file, word, reason) in BANNED_VOCABULARY_ALLOWLIST {
+        let matched = scanned
+            .iter()
+            .any(|(path, text)| path == file && banned_words_in(text).contains(&word));
+        if !matched {
+            offences.push(format!(
+                "stale allowlist entry: {file} no longer spells `{word}` ({reason})"
+            ));
+        }
+    }
+    offences
+}
+
 /// An underscore-prefixed field is lawful only when it is a `PhantomData`
 /// type-level law. Real data behind an underscore is the suppressor idiom —
 /// "ignore this mess" — and the repository refuses it: the only honest `_`
@@ -1183,6 +1267,7 @@ fn check_underscore_fields_are_phantom(root: &Path) -> Result<(), String> {
 /// machine's vocabulary or they speak none.
 fn check_banned_vocabulary(root: &Path) -> Result<(), String> {
     let mut offenders = Vec::new();
+    let mut read: Vec<(String, String)> = Vec::new();
     let mut inspect = |path: &Path| -> Result<(), String> {
         let scanned = path
             .extension()
@@ -1194,12 +1279,16 @@ fn check_banned_vocabulary(root: &Path) -> Result<(), String> {
         let bytes = fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
         let text = String::from_utf8_lossy(&bytes).into_owned();
         offenders.extend(banned_vocabulary_offences(&relative, &text));
+        read.push((relative, text));
         Ok(())
     };
     visit_files(&root.join("src"), &mut inspect)?;
     visit_files(&root.join(TOOLING_DIRECTORY), &mut inspect)?;
     visit_files(&root.join(JUDGE_DIRECTORY), &mut inspect)?;
     inspect(&root.join("README.md"))?;
+    // The allowlist is joined against the same scan: every allowance has to
+    // still be excusing something.
+    offenders.extend(stale_allowlist_offences(&read));
     if offenders.is_empty() {
         Ok(())
     } else {
@@ -1456,11 +1545,18 @@ fn readme_yaml_block(root: &Path) -> Result<Vec<String>, String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        SERVICES_MANIFEST, TOOLING_MODULE_ROOT, banned_vocabulary_offences, banned_words_in,
-        core_tooling_edge_violations, declared_module_order, module_order_violations,
-        red_twin_ledger, red_twin_rows, repo_root, services_frontend_edge_violations,
-        testpak_reversals, tooling_red_rows,
+        BANNED_VOCABULARY_ALLOWLIST, SERVICES_MANIFEST, TOOLING_MODULE_ROOT,
+        banned_vocabulary_offences, banned_words_in, check_agents_claude_parity, check_band_map,
+        check_lf_and_no_symlinks, check_lint_wall, check_no_python, check_toolchain_pin,
+        check_underscore_fields_are_phantom, check_workspace_members, claimed_green_laws,
+        core_tooling_edge_violations, declared_module_order, double_claimed_offences, home_readmes,
+        module_order_violations, red_twin_ledger, red_twin_rows, relative_slash_path, repo_root,
+        services_frontend_edge_violations, stale_allowlist_offences, testpak_reversals,
+        tooling_red_rows,
     };
+    use std::fs;
+    use std::path::{Path, PathBuf};
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
     /// The manifest preamble every core fixture shares: the core package itself.
     const PREAMBLE: &str = "[package]\nname = \"threadpak\"\n\n";
@@ -2044,5 +2140,389 @@ mod tests {
                 .first()
                 .is_some_and(|offence| offence.contains("self-hosting"))
         );
+    }
+
+    /// Planted reversal: an allowlist entry whose named file no longer spells
+    /// the word it excuses. The allowance reads as if somebody had looked at
+    /// that file, and the hole it leaves open is unwatched.
+    #[test]
+    fn a_stale_allowlist_entry_is_a_violation() {
+        // The lawful state: every entry's file still spells the word it excuses.
+        let live: Vec<(String, String)> = BANNED_VOCABULARY_ALLOWLIST
+            .iter()
+            .map(|(file, word, _)| {
+                (
+                    (*file).to_string(),
+                    format!("the dead word {word} is recorded here once"),
+                )
+            })
+            .collect();
+        assert!(stale_allowlist_offences(&live).is_empty());
+
+        // One entry's word gone from its file, the other two still there.
+        let partial: Vec<(String, String)> = live
+            .iter()
+            .filter(|(_, text)| !text.contains("promotion"))
+            .cloned()
+            .collect();
+        let found = stale_allowlist_offences(&partial);
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found.first().is_some_and(|offence| {
+            offence.contains("stale allowlist entry") && offence.contains("promotion")
+        }));
+
+        // The file gone entirely: every entry naming it is stale, and each one
+        // is reported on its own rather than folded into one line.
+        let gone = stale_allowlist_offences(&[]);
+        assert_eq!(gone.len(), BANNED_VOCABULARY_ALLOWLIST.len(), "{gone:?}");
+    }
+
+    /// The real allowlist holds: every entry still excuses a word its named
+    /// file spells, read through the ban's own scan.
+    #[test]
+    fn the_real_allowlist_still_excuses_something() {
+        let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
+        let scanned: Vec<(String, String)> = BANNED_VOCABULARY_ALLOWLIST
+            .iter()
+            .map(|(file, _, _)| {
+                (
+                    (*file).to_string(),
+                    fs::read_to_string(root.join(file)).unwrap_or_default(),
+                )
+            })
+            .collect();
+        let found = stale_allowlist_offences(&scanned);
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    // -----------------------------------------------------------------------
+    // readme-obligations-join: one law proves one claim
+    // -----------------------------------------------------------------------
+
+    /// One synthetic claim row.
+    fn claim(module: &str, law: &str, readme: &str) -> (String, String, String) {
+        (module.to_string(), law.to_string(), readme.to_string())
+    }
+
+    /// Planted reversal: two obligations pointing at one law. The second row's
+    /// green half does not exist, and both rows read as discharged.
+    #[test]
+    fn a_law_claimed_by_two_obligations_is_a_violation() {
+        let doubled = [
+            claim(
+                "bounds",
+                "charge_shrinks_or_refuses",
+                "src/05_bounds/README.md",
+            ),
+            claim(
+                "bounds",
+                "charge_shrinks_or_refuses",
+                "src/05_bounds/README.md",
+            ),
+        ];
+        let found = double_claimed_offences(&doubled);
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found.first().is_some_and(|offence| {
+            offence.contains("charge_shrinks_or_refuses") && offence.contains("2 obligations")
+        }));
+
+        // Two homes claiming one law is the same offence, and it is reported
+        // once rather than once per claimant.
+        let across_homes = [
+            claim(
+                "evidence",
+                "coverage_is_unordered",
+                "src/23_evidence/README.md",
+            ),
+            claim("evidence", "coverage_is_unordered", "README.md"),
+        ];
+        assert_eq!(double_claimed_offences(&across_homes).len(), 1);
+    }
+
+    /// The positive control: distinct laws, and one law NAME reused under two
+    /// different modules, are both lawful. A check that flagged everything would
+    /// satisfy the reversal above and be worthless.
+    #[test]
+    fn distinct_laws_and_a_reused_law_name_are_lawful() {
+        let distinct = [
+            claim(
+                "bounds",
+                "charge_shrinks_or_refuses",
+                "src/05_bounds/README.md",
+            ),
+            claim("bounds", "budget_is_affine", "src/05_bounds/README.md"),
+            claim(
+                "bytes",
+                "decode_maxima_are_sixteen",
+                "src/07_bytes/README.md",
+            ),
+            claim(
+                "bytes",
+                "width_conventions_are_eight",
+                "src/07_bytes/README.md",
+            ),
+        ];
+        assert!(double_claimed_offences(&distinct).is_empty());
+
+        // The join key is module AND law: `bounds::roster_is_closed` and
+        // `bytes::roster_is_closed` are two laws in two sections.
+        let same_name = [
+            claim("bounds", "roster_is_closed", "src/05_bounds/README.md"),
+            claim("bytes", "roster_is_closed", "src/07_bytes/README.md"),
+        ];
+        assert!(double_claimed_offences(&same_name).is_empty());
+    }
+
+    /// The real repository holds: every green law it claims is claimed by
+    /// exactly one obligation.
+    #[test]
+    fn the_real_obligations_claim_each_law_once() {
+        let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
+        let readmes = home_readmes(&root).unwrap_or_default();
+        let claimed = claimed_green_laws(&readmes).unwrap_or_default();
+        assert!(!claimed.is_empty(), "no green obligations found");
+        let attributed: Vec<(String, String, String)> = claimed
+            .iter()
+            .map(|(module, law, readme)| {
+                (
+                    module.clone(),
+                    law.clone(),
+                    relative_slash_path(&root, readme),
+                )
+            })
+            .collect();
+        let found = double_claimed_offences(&attributed);
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    // -----------------------------------------------------------------------
+    // The tree-shaped laws, planted against a scratch root
+    // -----------------------------------------------------------------------
+    //
+    // Eight checks read a directory rather than a text, so a fixture string
+    // cannot reach them: what they judge is what a tree contains. They are
+    // planted against a scratch root under the platform's temp directory
+    // instead. Nothing is written inside the repository — the laws that guard
+    // the tree are never proven by dirtying the tree — and each root is removed
+    // when its fixture drops.
+
+    /// One scratch root outside the repository, and the files planted in it.
+    struct Scratch {
+        root: PathBuf,
+    }
+
+    impl Scratch {
+        /// A fresh scratch root, named for the reversal that built it. The
+        /// process id and a run counter keep two fixtures — and two concurrent
+        /// runs — from sharing one root.
+        fn named(name: &str) -> Self {
+            static NEXT: AtomicUsize = AtomicUsize::new(0);
+            let ordinal = NEXT.fetch_add(1, Ordering::Relaxed);
+            let root = std::env::temp_dir().join(format!(
+                "threadpak-xtask-{}-{ordinal}-{name}",
+                std::process::id()
+            ));
+            let _cleared = fs::remove_dir_all(&root);
+            let _made = fs::create_dir_all(&root);
+            Self { root }
+        }
+
+        /// Plants one file at a root-relative path, creating its parents.
+        fn write(&self, relative: &str, contents: &str) {
+            let path = self.root.join(relative);
+            if let Some(parent) = path.parent() {
+                let _made = fs::create_dir_all(parent);
+            }
+            let _written = fs::write(&path, contents);
+        }
+
+        /// The scratch root, as a check reads it.
+        fn root(&self) -> &Path {
+            &self.root
+        }
+    }
+
+    impl Drop for Scratch {
+        fn drop(&mut self) {
+            let _removed = fs::remove_dir_all(&self.root);
+        }
+    }
+
+    /// A README carrying the fenced yaml block the joins read.
+    const FIXTURE_README: &str = "# Fixture\n\n```yaml\nphase: architecture-closure\n\
+                                  toolchain: \"1.97.1\"\nworkspace_members:\n  - one\n  - two\n\
+                                  ```\n";
+
+    /// Planted reversal: the two working-law files drift apart. One of them
+    /// edited alone is exactly how a working law stops being one law.
+    #[test]
+    fn a_drifted_working_law_pair_is_a_violation() {
+        let scratch = Scratch::named("agents-parity");
+        scratch.write("AGENTS.md", "the working law\n");
+        scratch.write("CLAUDE.md", "the working law\n");
+        assert!(check_agents_claude_parity(scratch.root()).is_ok());
+
+        scratch.write("CLAUDE.md", "the working law, edited on one side only\n");
+        let found = check_agents_claude_parity(scratch.root());
+        assert!(found.is_err_and(|reason| reason.contains("differ")));
+    }
+
+    /// Planted reversal: a file carrying CRLF.
+    ///
+    /// The symlink half of this law is NOT planted. Creating a symlink is a
+    /// privileged operation on one of the supported platforms, so a fixture
+    /// that planted one would pass or fail on who ran it rather than on the
+    /// law. That half stands on the check's own code and on nothing executed
+    /// here, and this doc line is where that is admitted rather than implied.
+    #[test]
+    fn a_crlf_file_is_a_violation() {
+        let scratch = Scratch::named("lf-only");
+        scratch.write("clean.md", "one line\nanother\n");
+        assert!(check_lf_and_no_symlinks(scratch.root()).is_ok());
+
+        scratch.write("drifted.md", "one line\r\nanother\r\n");
+        let found = check_lf_and_no_symlinks(scratch.root());
+        assert!(found.is_err_and(|reason| reason.contains("CRLF") && reason.contains("drifted")));
+    }
+
+    /// Planted reversal: a Python file anywhere in the tree.
+    #[test]
+    fn a_python_file_is_a_violation() {
+        let scratch = Scratch::named("no-python");
+        scratch.write("tool.rs", "fn main() {}\n");
+        scratch.write("notes/readme.md", "prose\n");
+        assert!(check_no_python(scratch.root()).is_ok());
+
+        scratch.write("notes/helper.py", "the file's presence is the offence\n");
+        let found = check_no_python(scratch.root());
+        assert!(found.is_err_and(|reason| reason.contains("helper.py")));
+    }
+
+    /// Planted reversal: the pinned toolchain and the declared one disagree.
+    /// The pin is what builds run under and the README is what a reader
+    /// believes, so a drift makes the document wrong about the build.
+    #[test]
+    fn a_toolchain_pin_that_drifts_from_the_readme_is_a_violation() {
+        let scratch = Scratch::named("toolchain-pin");
+        scratch.write("README.md", FIXTURE_README);
+        scratch.write("rust-toolchain.toml", "[toolchain]\nchannel = \"1.97.1\"\n");
+        assert!(check_toolchain_pin(scratch.root()).is_ok());
+
+        scratch.write("rust-toolchain.toml", "[toolchain]\nchannel = \"1.98.0\"\n");
+        let found = check_toolchain_pin(scratch.root());
+        assert!(found.is_err_and(|reason| reason.contains("1.98.0") && reason.contains("1.97.1")));
+    }
+
+    /// Planted reversal: a workspace member the README does not declare, in
+    /// both directions — a member added to the manifest alone, and one removed
+    /// from the manifest while the README still lists it.
+    #[test]
+    fn a_member_set_that_drifts_from_the_readme_is_a_violation() {
+        let scratch = Scratch::named("workspace-members");
+        scratch.write("README.md", FIXTURE_README);
+        scratch.write("Cargo.toml", "[workspace]\nmembers = [\"one\", \"two\"]\n");
+        assert!(check_workspace_members(scratch.root()).is_ok());
+
+        scratch.write(
+            "Cargo.toml",
+            "[workspace]\nmembers = [\"one\", \"two\", \"three\"]\n",
+        );
+        let added = check_workspace_members(scratch.root());
+        assert!(added.is_err_and(|reason| reason.contains("three")));
+
+        scratch.write("Cargo.toml", "[workspace]\nmembers = [\"one\"]\n");
+        let removed = check_workspace_members(scratch.root());
+        assert!(removed.is_err_and(|reason| reason.contains("two")));
+    }
+
+    /// Planted reversal: a member that does not inherit the lint wall, and
+    /// separately a root that declares no wall at all. The two are different
+    /// failures — one member walking out, and the wall never existing — and the
+    /// check names them apart.
+    #[test]
+    fn a_member_outside_the_lint_wall_is_a_violation() {
+        let scratch = Scratch::named("lint-wall");
+        let inheriting = "[package]\nname = \"member\"\n\n[lints]\nworkspace = true\n";
+        scratch.write(
+            "Cargo.toml",
+            "[workspace]\nmembers = [\"one\", \"two\"]\n\n[workspace.lints.rust]\n\
+             warnings = { level = \"deny\", priority = -1 }\n",
+        );
+        scratch.write("one/Cargo.toml", inheriting);
+        scratch.write("two/Cargo.toml", inheriting);
+        assert!(check_lint_wall(scratch.root()).is_ok());
+
+        scratch.write("two/Cargo.toml", "[package]\nname = \"member\"\n");
+        let escaped = check_lint_wall(scratch.root());
+        assert!(escaped.is_err_and(|reason| reason.contains("two") && !reason.contains("\"one\"")));
+
+        scratch.write("two/Cargo.toml", inheriting);
+        scratch.write("Cargo.toml", "[workspace]\nmembers = [\"one\", \"two\"]\n");
+        let wall_free = check_lint_wall(scratch.root());
+        assert!(wall_free.is_err_and(|reason| reason.contains("no [workspace.lints.rust] wall")));
+    }
+
+    /// Planted reversal: real data behind an underscore — the suppressor idiom
+    /// this law exists to refuse — planted in each of the three trees the scan
+    /// covers, so no tree is scanned in name only.
+    #[test]
+    fn an_underscore_field_carrying_data_is_a_violation() {
+        let scratch = Scratch::named("underscore-fields");
+        let lawful = "struct Demo {\n    _law: PhantomData<*const ()>,\n}\n";
+        scratch.write("src/lawful.rs", lawful);
+        scratch.write("macros/lawful.rs", lawful);
+        scratch.write("testpak/lawful.rs", lawful);
+        assert!(check_underscore_fields_are_phantom(scratch.root()).is_ok());
+
+        for tree in ["src", "macros", "testpak"] {
+            scratch.write(
+                &format!("{tree}/smuggled.rs"),
+                "struct Demo {\n    _hidden: u64,\n}\n",
+            );
+            let found = check_underscore_fields_are_phantom(scratch.root());
+            assert!(
+                found.is_err_and(|reason| reason.contains("smuggled.rs")
+                    && reason.contains("underscore field without PhantomData")),
+                "{tree} tree is not scanned"
+            );
+            let _removed = fs::remove_file(scratch.root().join(tree).join("smuggled.rs"));
+        }
+    }
+
+    /// Planted reversal: an incomplete band, a band `lib.rs` does not declare,
+    /// and declarations out of band order. Three ways the band map and the
+    /// crate drift apart, and the third is the one no file listing would catch.
+    #[test]
+    fn a_band_map_that_drifts_from_lib_is_a_violation() {
+        let scratch = Scratch::named("band-map");
+        let ordered = "#[path = \"00_refusal/mod.rs\"]\npub mod refusal;\n\
+                       #[path = \"01_logic/mod.rs\"]\npub mod logic;\n";
+        for band in ["00_refusal", "01_logic"] {
+            for file in ["README.md", "mod.rs", "types.rs"] {
+                scratch.write(&format!("src/{band}/{file}"), "the home's content\n");
+            }
+        }
+        scratch.write("src/lib.rs", ordered);
+        assert!(check_band_map(scratch.root()).is_ok());
+
+        let _removed = fs::remove_file(scratch.root().join("src/01_logic/types.rs"));
+        let incomplete = check_band_map(scratch.root());
+        assert!(incomplete.is_err_and(|reason| reason.contains("01_logic missing types.rs")));
+        scratch.write("src/01_logic/types.rs", "the home's content\n");
+
+        scratch.write(
+            "src/lib.rs",
+            "#[path = \"00_refusal/mod.rs\"]\npub mod refusal;\n",
+        );
+        let undeclared = check_band_map(scratch.root());
+        assert!(undeclared.is_err_and(|reason| reason.contains("does not declare 01_logic")));
+
+        scratch.write(
+            "src/lib.rs",
+            "#[path = \"01_logic/mod.rs\"]\npub mod logic;\n\
+             #[path = \"00_refusal/mod.rs\"]\npub mod refusal;\n",
+        );
+        let reordered = check_band_map(scratch.root());
+        assert!(reordered.is_err_and(|reason| reason.contains("out of band order")));
     }
 }

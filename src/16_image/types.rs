@@ -296,7 +296,19 @@ pub const PROGRAM_IMAGE_EXTENSION: &str = ".program.tpk";
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ImageStageDomain;
 
-/// Untrusted image bytes — the ladder's only entry.
+// The five rungs below are DECLARED and not yet inhabitable. Each carries a
+// private stage commitment and a reader for it, and no constructor: the ladder
+// transitions that would mint one — each a sealed constructor consuming the
+// weaker rung and returning the stronger one or a typed refusal, which is the
+// affine typestate this home rules — are owed, not written. What stands today is
+// the SHAPE: five distinct types, so no rung substitutes for another, and no
+// road into any of them except the transitions, so a rung cannot be asserted
+// into existence beside them. The transitions land when implementation opens for
+// this home on explicit authorization; until then the honest reading of these
+// types is a declaration of the ladder, not a ladder anything climbs.
+
+/// Untrusted image bytes — the ladder's only entry. Declared; the road that
+/// mints one is owed with the ladder's transitions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UntrustedImageBytes {
     stage: crate::identity::Commitment<ImageStageDomain>,
@@ -310,7 +322,8 @@ impl UntrustedImageBytes {
     }
 }
 
-/// A bounded, canonically decoded image.
+/// A bounded, canonically decoded image. Declared; the transition from
+/// [`UntrustedImageBytes`] is owed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BoundedDecodedImage {
     stage: crate::identity::Commitment<ImageStageDomain>,
@@ -324,7 +337,8 @@ impl BoundedDecodedImage {
     }
 }
 
-/// A semantically validated image.
+/// A semantically validated image. Declared; the transition from
+/// [`BoundedDecodedImage`] is owed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SemanticImage {
     stage: crate::identity::Commitment<ImageStageDomain>,
@@ -338,8 +352,10 @@ impl SemanticImage {
     }
 }
 
-/// An agreement-checked image — minted ONLY by the independent agreement
-/// verifier, never by literal.
+/// An agreement-checked image — declared to be minted ONLY by the independent
+/// agreement verifier, never by literal. The private field holds that rule
+/// today; the verifier that would mint one does not exist yet, so the rung is
+/// currently uninhabited rather than restricted.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AgreementCheckedImage {
     stage: crate::identity::Commitment<ImageStageDomain>,
@@ -353,13 +369,22 @@ impl AgreementCheckedImage {
     }
 }
 
-/// An executable image — minted ONLY by the independent agreement verifier.
-/// Each ladder transition is a sealed constructor consuming `self`, returning
-/// the stronger type or a typed refusal — affine typestate, because these
-/// states are small, stable, and known at the call site. From here onward
-/// states are durable and crash-recoverable and are NOT compile-time
-/// typestate: invocation admission produces a separate authority-bound value;
-/// execution, suspension, and termination are runtime records.
+/// An executable image — declared to be minted ONLY by the independent
+/// agreement verifier.
+///
+/// The ladder's rule, stated once for all five rungs: each transition is a
+/// sealed constructor consuming `self` and returning the stronger type or a
+/// typed refusal — affine typestate, because these states are small, stable, and
+/// known at the call site. That rule is DECLARED here and its four
+/// implementations are owed; they land when implementation opens for this home
+/// on explicit authorization, together with the decoder, the semantic validator,
+/// and the independent agreement verifier they each run.
+///
+/// Where the ladder STOPS is settled and needs no implementation to be true:
+/// from this rung onward states are durable and crash-recoverable and are NOT
+/// compile-time typestate. Invocation admission produces a separate
+/// authority-bound value; execution, suspension, and termination are runtime
+/// records.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ExecutableImage {
     stage: crate::identity::Commitment<ImageStageDomain>,

@@ -507,7 +507,8 @@ mod refusal {
 mod diagnostics {
     use crate::diagnostics::{
         DiagnosticSite, MACROC_PHASES, MachineAnchoring, MachineAnchors, MacrocDiagnostic,
-        MacrocPhase, ObservedClassification, ReleasePosture, RepairAction, ReproductionRoute,
+        MacrocPhase, ObservedClassification, RelatedSetCompletion, ReleasePosture, RepairAction,
+        ReproductionRoute, SiteCoordinate,
     };
     use crate::plane::{HumanProjection, OwnerFactRef, OwnerIdentityRef};
     use crate::token::SpanHandle;
@@ -574,15 +575,16 @@ mod diagnostics {
             phase: MacrocPhase::Planning,
             site: DiagnosticSite {
                 token: SpanHandle::at(4),
-                coordinate: SourceCoordinate {
+                coordinate: SiteCoordinate::Resolved(SourceCoordinate {
                     role: CoordinateRole::SemanticOrigin,
                     position: 17,
-                },
+                }),
             },
             expected: crate::plane::for_laws(47),
             observed: ObservedClassification::SeatAbsent,
             cause: CauseDisposition::UnresolvedCause,
             related: Bounded::empty(),
+            related_completion: RelatedSetCompletion::Complete,
             repairs,
             reproduction: ReproductionRoute::CallableServices {
                 entry: crate::plane::for_laws(48),
@@ -592,7 +594,15 @@ mod diagnostics {
         assert!(built.is_ok_and(|diagnostic| {
             diagnostic.repairs.len() == 1
                 && diagnostic.related.is_empty()
-                && diagnostic.site.coordinate.position == 17
+                && matches!(
+                    diagnostic.related_completion,
+                    RelatedSetCompletion::Complete
+                )
+                && diagnostic
+                    .site
+                    .coordinate
+                    .resolved()
+                    .is_some_and(|coordinate| coordinate.position == 17)
                 && diagnostic.site.token == SpanHandle::at(4)
                 && matches!(diagnostic.machine, MachineAnchoring::Anchored(_))
                 && matches!(diagnostic.cause, CauseDisposition::UnresolvedCause)
@@ -2814,9 +2824,11 @@ mod derive_refusal {
         assert!(refused.is_err_and(|refusal| {
             let table = TextCapture::read(source).map(|read| read.spans().clone());
             table.is_ok_and(|table| {
-                let coordinate = table.coordinate_of(refusal.token());
-                coordinate.role == CoordinateRole::Byte
-                    && coordinate.position > 0
+                table
+                    .coordinate_of(refusal.token())
+                    .is_ok_and(|coordinate| {
+                        coordinate.role == CoordinateRole::Byte && coordinate.position > 0
+                    })
                     && refusal.cause() == RefusalDeriveCapture::NotAnAdmittedShape
             })
         }));
@@ -3060,7 +3072,7 @@ mod failure_path_closure {
     use crate::derive_refusal::{
         ExplanationSeat, compile_refusal_text, diagnose, plan as derive_plan,
     };
-    use crate::diagnostics::ObservedClassification;
+    use crate::diagnostics::{ObservedClassification, RelatedSetCompletion};
     use crate::plane::{
         HumanProjection, HumanTextLimit, RenderedRole, SoleRenderedUnit, human_projection,
     };
@@ -3068,7 +3080,10 @@ mod failure_path_closure {
         MemberDestination, PlannedMember, PlannedMembership, RenderedImplementation,
     };
     use crate::refusal::{BoundAxis, ProjectionPlanning, ProjectionPlanningIssue};
-    use crate::token::{CaptureBound, CaptureWalk, TextCapture, TextReadCause};
+    use crate::token::{
+        CaptureBound, CaptureWalk, SpanHandle, SpanTable, TextCapture, TextReadCause,
+    };
+    use threadpak::declaration::CoordinateRole;
     use threadpak::types::ConstLimit;
 
     /// The lawful single-cause declaration, whose shape fixes a two-role output
@@ -3401,6 +3416,116 @@ mod failure_path_closure {
                 .collect();
             inner.len() == 2 && inner.first() != inner.get(1)
         }));
+    }
+
+    /// law: closure.an-unresolvable-handle-refuses-rather-than-resolving — a
+    /// byte-offset table answers every handle its own read issued with the byte
+    /// that token starts at, and answers a handle it never issued with a refusal
+    /// naming the handle and how far the table reaches. Both directions, because
+    /// a table that refused everything would satisfy the hostile half alone.
+    /// The seam this replaced answered an unreachable handle with a
+    /// semantic-origin coordinate at the handle's own index — a value shaped
+    /// exactly like the honest answer the producer-held posture returns.
+    /// Owed reversal (red twin): a table answering every handle must break this
+    /// law.
+    #[test]
+    fn an_unresolvable_handle_refuses_rather_than_resolving() {
+        let read = TextCapture::read("alpha (beta)").map_err(|_| ());
+        assert!(read.is_ok_and(|read| {
+            let issued = read.input().issued();
+            let table = read.spans();
+            // The lawful direction: every issued handle resolves to a byte.
+            let all_resolve = (0..issued).all(|index| {
+                table
+                    .coordinate_of(SpanHandle::at(index))
+                    .is_ok_and(|coordinate| coordinate.role == CoordinateRole::Byte)
+            });
+            // The hostile direction: the first handle past the table refuses,
+            // and the refusal states the handle and the table's magnitude.
+            let past = table.coordinate_of(SpanHandle::at(issued));
+            let refuses = past.is_err_and(|refusal| {
+                refusal.handle == SpanHandle::at(issued)
+                    && refusal.reaches == issued
+                    && refusal.described().contains(&issued.to_string())
+            });
+            issued > 1 && all_resolve && refuses
+        }));
+
+        // A producer that holds the compiler's spans answers in its own role,
+        // and that answer is the handle's ordinal rather than a source position:
+        // it invents nothing, so it refuses nothing.
+        let held = SpanTable::ProducerHeld
+            .coordinate_of(SpanHandle::at(9))
+            .map_err(|_| ());
+        assert!(held.is_ok_and(|coordinate| {
+            coordinate.role == CoordinateRole::SemanticOrigin && coordinate.position == 9
+        }));
+
+        // And the capture road's own projection says which of the two it is
+        // rather than composing a position out of the handle.
+        let source = "#[refusal(family = \"demo.example\", shape = tri_state)] enum Demo { A, }";
+        let refused = crate::derive_refusal::captured_text(source).map(|_| ());
+        assert!(refused.is_err_and(|refusal| {
+            let empty = SpanTable::ByteOffsets(threadpak::types::Bounded::empty());
+            let line = refusal.compiler_message(&empty);
+            line.contains("does not reach handle") && !line.contains("at token position")
+        }));
+    }
+
+    /// law: closure.an-early-stopped-related-set-says-what-it-dropped — a
+    /// related set that fits carries the complete body's identity and one per
+    /// established issue and reports `Complete`; a set that would overrun the
+    /// declared magnitude carries the body's identity alone and reports
+    /// `EarlyStopped` at the declared issue bound, naming how many per-issue
+    /// identities are not there. The seam this replaced returned the coarser
+    /// set silently, which is a smaller success wearing the shape of a complete
+    /// one.
+    /// Owed reversal (red twin): an overflow road returning the coarser set with
+    /// no posture must break this law.
+    #[test]
+    fn an_early_stopped_related_set_says_what_it_dropped() {
+        use crate::plane::{ProjectionIdentity, ProjectionRole, ProjectionTranscript};
+        use threadpak::refusal::StopBound;
+        use threadpak::types::ConstLimit;
+
+        fn identity(seed: u32) -> ProjectionIdentity<crate::plane::RelatedIssueSubject> {
+            ProjectionIdentity::derived(ProjectionTranscript::rooted(
+                ProjectionRole::ClosedExpansion,
+                &seed.to_be_bytes(),
+                seed,
+            ))
+        }
+
+        let body = identity(0);
+        let fits: Vec<_> = (1..=3).map(identity).collect();
+        let (set, completion) = diagnose::related_set(body, fits);
+        assert_eq!(set.len(), 4);
+        assert!(matches!(completion, RelatedSetCompletion::Complete));
+
+        // The body's own identity rides ahead of the per-issue ones, so a body
+        // AT the declared magnitude overruns the set by exactly one.
+        let magnitude = u32::try_from(crate::plane::RelatedIssueLimit::MAX).unwrap_or(u32::MAX);
+        let over: Vec<_> = (1..=magnitude).map(identity).collect();
+        let (stopped_set, stopped) = diagnose::related_set(body, over);
+        assert_eq!(stopped_set.len(), 1);
+        assert_eq!(stopped_set.iter().next(), Some(&body));
+        assert!(matches!(
+            stopped,
+            RelatedSetCompletion::EarlyStopped {
+                stopped_at: StopBound::DeclaredIssueBound,
+                omitted,
+            } if omitted == crate::plane::RelatedIssueLimit::MAX
+        ));
+
+        // The one line rustc shows carries the same statement, because the
+        // typed posture beside it is not something rustc shows. A complete set
+        // adds nothing to the line; a stopped one names the count it dropped.
+        let plain = diagnose::witnessed("planning refused", RelatedSetCompletion::Complete);
+        assert_eq!(plain, "planning refused");
+        let said = diagnose::witnessed("planning refused", stopped);
+        assert!(said.starts_with("planning refused"));
+        assert!(said.contains("the related set stopped at the declared issue bound"));
+        assert!(said.contains(&crate::plane::RelatedIssueLimit::MAX.to_string()));
     }
 
     /// law: closure.a-capture-refuses-before-a-partial-tree — nesting past the

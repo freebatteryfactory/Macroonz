@@ -9,7 +9,7 @@
 use crate::closure::{ProjectionClosure, RenderedProjection};
 use crate::diagnostics::{
     DiagnosticSite, MachineAnchoring, MacrocDiagnostic, MacrocPhase, ObservedClassification,
-    ReleasePosture, RepairAction, ReproductionRoute,
+    RelatedSetCompletion, ReleasePosture, RepairAction, ReproductionRoute, SiteCoordinate,
 };
 use crate::explanation_protocol::ProjectionExplanationView;
 use crate::origin_graph::Nonclaim;
@@ -437,12 +437,27 @@ impl RefusalDeriveRefusal {
     ///
     /// A projection of the typed value, produced here so that the expansion
     /// shell composes no sentence of its own.
+    ///
+    /// Where the supplied table does not reach the handle, the line says THAT
+    /// rather than a position. The cause is established either way — it is a
+    /// fact about the declaration, not about the table — so the sentence still
+    /// names it, and the reader is told the locating half is missing instead of
+    /// being handed a number that means nothing.
     #[must_use]
     pub fn compiler_message(self, spans: &SpanTable) -> String {
         let described = self.cause.described();
-        let coordinate = spans.coordinate_of(self.token);
-        let position = coordinate.position;
-        format!("threadpak refusal-family derive: {described} (at token position {position})")
+        match spans.coordinate_of(self.token) {
+            Ok(coordinate) => {
+                let position = coordinate.position;
+                format!(
+                    "threadpak refusal-family derive: {described} (at token position {position})"
+                )
+            }
+            Err(refusal) => format!(
+                "threadpak refusal-family derive: {described} ({})",
+                refusal.described()
+            ),
+        }
     }
 
     /// Project this refusal into the services' structured diagnostic.
@@ -465,7 +480,7 @@ impl RefusalDeriveRefusal {
             phase: MacrocPhase::Capture,
             site: DiagnosticSite {
                 token: self.token,
-                coordinate: spans.coordinate_of(self.token),
+                coordinate: SiteCoordinate::answered(spans.coordinate_of(self.token)),
             },
             expected: expected_contract(),
             observed: self.cause.observed(),
@@ -473,7 +488,11 @@ impl RefusalDeriveRefusal {
             // machine's cause posture: narrowing is the machine's progress to
             // report, not the compiler plane's to assert.
             cause: CauseDisposition::UnresolvedCause,
+            // The capture road establishes one cause and enumerates nothing, so
+            // there is no per-issue set to stop short of: zero identities are
+            // carried and zero are omitted.
             related: Bounded::empty(),
+            related_completion: RelatedSetCompletion::Complete,
             repairs,
             reproduction: ReproductionRoute::CallableServices {
                 entry: callable_entry(),

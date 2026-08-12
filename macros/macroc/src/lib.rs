@@ -143,7 +143,8 @@ pub use derive_refusal::{
 };
 pub use diagnostics::{
     DiagnosticSite, MACROC_PHASES, MachineAnchoring, MachineAnchors, MacrocDiagnostic, MacrocPhase,
-    ObservedClassification, ReleasePosture, RepairAction, ReproductionRoute,
+    ObservedClassification, RelatedSetCompletion, ReleasePosture, RepairAction, ReproductionRoute,
+    SiteCoordinate,
 };
 pub use explanation_protocol::{
     ExplanationAnswer, ExplanationCoverage, ExplanationCoverageIssue, ProjectionExplanation,
@@ -187,7 +188,8 @@ pub use template::{
 pub use token::{
     CaptureBound, CaptureWalk, CapturedDelimiter, CapturedInput, CapturedPayload,
     CapturedTokenTree, GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree,
-    SpanHandle, SpanTable, TextCapture, TextReadCause, TextReadRefusal, TokenPath,
+    SpanHandle, SpanResolutionRefusal, SpanTable, TextCapture, TextReadCause, TextReadRefusal,
+    TokenPath,
 };
 pub use trigger_view::{
     TriggerCitations, TriggerOmission, TriggerSelection, TriggerViewComposition, TriggerViewIssue,

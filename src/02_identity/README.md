@@ -103,6 +103,6 @@ obligations:
     red: testpak/tests/compile-fail/cross-scope-comparison-on-a-stamped-guard.rs
   - id: identity.stamped-representation-cannot-be-laundered
     challenge_kind: compile-refusal
-    green: laws.rs identity::a_stamped_scope_guard_matches_its_hand_written_twin
+    green: laws.rs identity::a_stamped_representation_cannot_be_laundered
     red: testpak/tests/compile-fail/a-stamped-representation-cannot-be-laundered.rs
 ```

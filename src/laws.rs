@@ -1,8 +1,10 @@
-//! The single compile-time proof surface, sectioned by home. Green laws only: each
-//! law is named, and its name is the join key across the owning README's obligation
-//! row, this file, and the red twin. Red twins (compile-fail fixtures proving each
-//! law non-vacuous by reversal) land in testpak when it materializes; until then
-//! every law below states its owed reversal in its doc line.
+//! The single compile-time proof surface, sectioned by home, and the sections follow
+//! the band order — the root calculus first, then band 00 upward — so reading this file
+//! from the top reads the machine's dependency line in the order `lib.rs` declares it.
+//! Green laws only: each law is named, and its name is the join key across the owning
+//! README's obligation row, this file, and the red twin. Red twins (compile-fail
+//! fixtures proving each law non-vacuous by reversal) land in testpak when it
+//! materializes; until then every law below states its owed reversal in its doc line.
 //!
 //! A law that cannot fail is not a law: these compile (and trivially run) only
 //! while the shapes hold; reversing the shape breaks the named law.
@@ -733,8 +735,7 @@ mod identity {
     /// named mint over a private position, neither through a public field.
     /// Owed reversal (red twin): comparing two stamped guards over DIFFERENT
     /// scope types must not compile, and neither must `a < b` on one — trybuild
-    /// fixtures in testpak. Taking one role's position out and re-entering it
-    /// under another role must not compile either.
+    /// fixtures in testpak.
     #[test]
     fn a_stamped_scope_guard_matches_its_hand_written_twin() {
         let scope = DemoStampScope(3);
@@ -776,6 +777,48 @@ mod identity {
         ));
         assert_eq!(stamped_earlier, stamped_earlier.clone());
         assert_ne!(stamped_earlier, stamped_later);
+    }
+
+    /// law: identity.stamped-representation-cannot-be-laundered — the stamp
+    /// emits ONE road in and none out, and the twin has exactly the same
+    /// asymmetry. A separate law from the parity law because it is a separate
+    /// claim: parity is about the comparison answers agreeing, this is about the
+    /// surface being one-way, and a stamp could match the twin's answers while
+    /// handing the position back out.
+    /// The green half states the road that exists and its shape — `positioned`
+    /// takes a position under this role and returns the guard, on both the
+    /// stamped guard and the twin, and neither type carries a public field. The
+    /// road that does not exist is an absence, and an absence is stated by a
+    /// compile-fail fixture.
+    /// Owed reversal (red twin):
+    /// `testpak/tests/compile-fail/a-stamped-representation-cannot-be-laundered.rs`
+    /// — taking one role's position out and re-entering it under another role
+    /// must not compile, proven over ONE scope type so nothing about the scope
+    /// is doing the work.
+    #[test]
+    fn a_stamped_representation_cannot_be_laundered() {
+        // The one road in, as a function value: it takes a position and returns
+        // the guard. A road out would be a function of the opposite shape, and
+        // there is none to name here.
+        let stamped_in: fn(AuthorityPosition<DemoStampScope>) -> StampedDemoVersion =
+            StampedDemoVersion::positioned;
+        let twin_in: fn(AuthorityPosition<DemoStampScope>) -> HandWrittenDemoVersion =
+            HandWrittenDemoVersion::positioned;
+
+        let scope = DemoStampScope(11);
+        let stamped = stamped_in(AuthorityPosition::assigned(scope.clone(), 4));
+        let twin = twin_in(AuthorityPosition::assigned(scope, 4));
+
+        // Each guard reads only through the comparison the identity home owns:
+        // the position is in, and nothing here can name it again.
+        assert!(matches!(
+            stamped.try_cmp_same_scope(&stamped),
+            Ok(Ordering::Equal)
+        ));
+        assert!(matches!(
+            twin.try_cmp_same_scope(&twin),
+            Ok(Ordering::Equal)
+        ));
     }
 }
 
@@ -1136,6 +1179,113 @@ mod numeric {
     }
 }
 
+mod bounds {
+    use crate::bounds::{
+        BoundClass, Budget, BudgetCharge, CROSS_DOMAIN_MINIMUM, Dimension, DimensionId,
+    };
+    use crate::refusal::{FamilyShape, RefusalFamily};
+
+    struct WorkDemo;
+    impl Dimension for WorkDemo {}
+    struct EffectDemo;
+    impl Dimension for EffectDemo {}
+
+    /// law: bounds.classes-are-closed-and-seven — seven distinct classes;
+    /// Time is the durable deadline-policy budget, enforced at the time home.
+    /// Owed reversal: an eighth class must break this law.
+    #[test]
+    fn classes_are_closed_and_seven() {
+        let classes = [
+            BoundClass::Work,
+            BoundClass::Memory,
+            BoundClass::Result,
+            BoundClass::Effect,
+            BoundClass::Suspension,
+            BoundClass::Output,
+            BoundClass::Time,
+        ];
+        assert_eq!(classes.len(), 7);
+        assert!(super::pairwise_distinct(&classes));
+        assert!(!CROSS_DOMAIN_MINIMUM.contains(&BoundClass::Time));
+    }
+
+    /// law: bounds.cross-domain-minimum-is-five — exactly the five, Output
+    /// excluded (its dimension level is the execution home's).
+    /// Owed reversal: adding Output to the minimum must break this law.
+    #[test]
+    fn cross_domain_minimum_is_five() {
+        assert_eq!(CROSS_DOMAIN_MINIMUM.len(), 5);
+        assert!(!CROSS_DOMAIN_MINIMUM.contains(&BoundClass::Output));
+        assert!(CROSS_DOMAIN_MINIMUM.contains(&BoundClass::Suspension));
+    }
+
+    /// law: bounds.budget-is-affine — the one operation on a budget takes it BY
+    /// VALUE. The signature is the whole claim: `charge` moves the budget, so
+    /// the caller's handle is gone whether the charge was admitted or refused,
+    /// and there is no second handle for it to spend twice.
+    /// This law and `charge_shrinks_or_refuses` are two claims about one type —
+    /// affinity is about how many times a budget can be spent, the charge law
+    /// about what one spend yields — and each obligation proves its own.
+    /// Owed reversal (red twin): `.clone()` or a copy of a `Budget` must not
+    /// compile; the affinity that cannot be written down here is the absence of
+    /// `Clone` and `Copy`, and only a compile-fail fixture states an absence.
+    #[test]
+    fn budget_is_affine() {
+        // The coercion holds only while `charge` takes `self` by value: a
+        // borrowing signature has a different function type and does not coerce.
+        let consuming: fn(Budget<WorkDemo>, u64) -> Result<Budget<WorkDemo>, BudgetCharge> =
+            Budget::charge;
+        let spent = consuming(Budget::admitted(3), 3);
+        assert!(spent.is_ok_and(|budget| budget.remaining() == 0));
+        // A refused charge consumes the budget exactly as an admitted one does:
+        // the refusal carries no successor, so nothing is refunded.
+        let overcharged = consuming(Budget::admitted(3), 4);
+        assert!(matches!(overcharged, Err(BudgetCharge::BoundExceeded)));
+    }
+
+    /// law: bounds.charge-shrinks-or-refuses — charging consumes the budget and
+    /// yields the strictly smaller successor; exact-to-zero is lawful; an
+    /// overcharge returns the typed refusal; charging zero changes nothing.
+    /// Owed reversal: a charge yielding a larger successor, or a saturating
+    /// overcharge, must break this law.
+    #[test]
+    fn charge_shrinks_or_refuses() {
+        let budget: Budget<WorkDemo> = Budget::admitted(10);
+        let Ok(smaller) = budget.charge(4) else {
+            unreachable!("charge within budget must succeed");
+        };
+        assert_eq!(smaller.remaining(), 6);
+        let Ok(unchanged) = smaller.charge(0) else {
+            unreachable!("zero charge must succeed");
+        };
+        assert_eq!(unchanged.remaining(), 6);
+        let Ok(zero) = unchanged.charge(6) else {
+            unreachable!("exact-to-zero charge must succeed");
+        };
+        assert_eq!(zero.remaining(), 0);
+        assert!(matches!(zero.charge(1), Err(BudgetCharge::BoundExceeded)));
+        assert_eq!(BudgetCharge::SHAPE, FamilyShape::SingleCause);
+        assert_eq!(
+            BudgetCharge::SELECTION_ORDER.first(),
+            Some(&"BoundExceeded")
+        );
+    }
+
+    /// law: bounds.dimensions-do-not-unify — a budget in one dimension is a
+    /// different type than in another, and a dimension id is not a budget.
+    /// Owed reversal (red twin): passing `Budget<Work>` where `Budget<Effect>`
+    /// is required must not compile.
+    #[test]
+    fn dimensions_do_not_unify() {
+        let over_work: Option<fn(Budget<WorkDemo>)> = Some(drop);
+        let over_effect: Option<fn(Budget<EffectDemo>)> = Some(drop);
+        let over_id: Option<fn(DimensionId)> = Some(drop);
+        assert!(over_work.is_some());
+        assert!(over_effect.is_some());
+        assert!(over_id.is_some());
+    }
+}
+
 mod authority {
     use super::pairwise_distinct;
     use crate::authority::{
@@ -1381,15 +1531,28 @@ mod bytes {
         assert!(pairwise_distinct(&projections));
     }
 
-    /// law: bytes.decode-maxima-are-sixteen — the bounded-reader roster and the
-    /// width conventions hold their counts.
-    /// Owed reversal: dropping a maximum or convention must break this law.
+    /// law: bytes.decode-maxima-are-sixteen — the bounded-reader roster holds
+    /// its count, its members are pairwise distinct, and total length is the
+    /// maximum every other one is read under.
+    /// Owed reversal: dropping a maximum, or doubling one, must break this law.
     #[test]
     fn decode_maxima_are_sixteen() {
         assert_eq!(DECODE_MAXIMA.len(), 16);
         assert!(pairwise_distinct(&DECODE_MAXIMA));
-        assert_eq!(WIDTH_CONVENTIONS.len(), 8);
         assert_eq!(DECODE_MAXIMA.first(), Some(&"total-length"));
+    }
+
+    /// law: bytes.width-conventions-are-eight — the width conventions are their
+    /// own roster with its own count, and they are pairwise distinct. A separate
+    /// law because they answer a separate question: the maxima bound what a
+    /// reader will accept, the conventions fix how a width is written down, and
+    /// changing either roster tells a reader nothing about the other.
+    /// Owed reversal: dropping a convention, or doubling one, must break this
+    /// law.
+    #[test]
+    fn width_conventions_are_eight() {
+        assert_eq!(WIDTH_CONVENTIONS.len(), 8);
+        assert!(pairwise_distinct(&WIDTH_CONVENTIONS));
     }
 
     /// law: bytes.content-region-declares-two-columns — the identity IS the
@@ -4855,10 +5018,10 @@ mod evidence {
     }
 
     /// law: evidence.verification-is-a-tuple-not-a-ladder — a complete tuple
-    /// constructs with every axis its own typed value; the proof axis holds
-    /// all five root dispositions; coverage is unordered by construction.
-    /// Owed reversal (red twin): deriving Ord on Coverage must not compile;
-    /// a flattened status enum must not exist.
+    /// constructs with every axis its own typed value, and each axis holds its
+    /// own closed roster: four bases, sixteen methods, ten claims, five proof
+    /// dispositions, three enforcement postures. No axis is a rank of another.
+    /// Owed reversal (red twin): a flattened status enum must not exist.
     #[test]
     fn verification_is_a_tuple_not_a_ladder() {
         let result = VerificationResult {
@@ -4917,13 +5080,6 @@ mod evidence {
         ];
         assert_eq!(claims.len(), 10);
         assert!(pairwise_distinct(&claims));
-        let coverage = [
-            Coverage::Sampled,
-            Coverage::Bounded,
-            Coverage::ExhaustiveWithinDeclaredModel,
-            Coverage::ObservedHistory,
-        ];
-        assert_eq!(coverage.len(), 4);
         let dispositions = [
             ProofDisposition::Established,
             ProofDisposition::Falsified,
@@ -4945,6 +5101,33 @@ mod evidence {
         ];
         assert_eq!(lanes.len(), 2);
         assert!(pairwise_distinct(&lanes));
+    }
+
+    /// law: evidence.coverage-is-unordered — the coverage axis is a roster of
+    /// four distinct kinds of reach, related by equality and by nothing else. A
+    /// separate law from the tuple law because it is a separate claim: the tuple
+    /// law says coverage is its own axis rather than a rank of the proof axis,
+    /// and this one says the four values inside that axis are not ranked against
+    /// each other either. Bounded reach is not "more" than observed history;
+    /// they are different reaches, and a comparison operator would invite a
+    /// reader to trade one for the other.
+    /// Owed reversal (red twin): deriving `Ord` on `Coverage` and writing
+    /// `a < b` must not compile — the absence this law's green half cannot
+    /// state, only a compile-fail fixture can.
+    #[test]
+    fn coverage_is_unordered() {
+        let coverage = [
+            Coverage::Sampled,
+            Coverage::Bounded,
+            Coverage::ExhaustiveWithinDeclaredModel,
+            Coverage::ObservedHistory,
+        ];
+        assert_eq!(coverage.len(), 4);
+        assert!(pairwise_distinct(&coverage));
+        // Equality is the whole relation the axis carries: each value is itself
+        // and is no other, and nothing here orders one against another.
+        assert_eq!(Coverage::Bounded, Coverage::Bounded);
+        assert_ne!(Coverage::Bounded, Coverage::ObservedHistory);
     }
 
     /// law: evidence.terminals-are-lifecycle-owned — verification and
@@ -5071,88 +5254,5 @@ mod evidence {
             Completeness::Complete { .. }
         ));
         assert_eq!(EXPLANATION_LADDER.len(), 4);
-    }
-}
-
-mod bounds {
-    use crate::bounds::{
-        BoundClass, Budget, BudgetCharge, CROSS_DOMAIN_MINIMUM, Dimension, DimensionId,
-    };
-    use crate::refusal::{FamilyShape, RefusalFamily};
-
-    struct WorkDemo;
-    impl Dimension for WorkDemo {}
-    struct EffectDemo;
-    impl Dimension for EffectDemo {}
-
-    /// law: bounds.classes-are-closed-and-seven — seven distinct classes;
-    /// Time is the durable deadline-policy budget, enforced at the time home.
-    /// Owed reversal: an eighth class must break this law.
-    #[test]
-    fn classes_are_closed_and_seven() {
-        let classes = [
-            BoundClass::Work,
-            BoundClass::Memory,
-            BoundClass::Result,
-            BoundClass::Effect,
-            BoundClass::Suspension,
-            BoundClass::Output,
-            BoundClass::Time,
-        ];
-        assert_eq!(classes.len(), 7);
-        assert!(super::pairwise_distinct(&classes));
-        assert!(!CROSS_DOMAIN_MINIMUM.contains(&BoundClass::Time));
-    }
-
-    /// law: bounds.cross-domain-minimum-is-five — exactly the five, Output
-    /// excluded (its dimension level is the execution home's).
-    /// Owed reversal: adding Output to the minimum must break this law.
-    #[test]
-    fn cross_domain_minimum_is_five() {
-        assert_eq!(CROSS_DOMAIN_MINIMUM.len(), 5);
-        assert!(!CROSS_DOMAIN_MINIMUM.contains(&BoundClass::Output));
-        assert!(CROSS_DOMAIN_MINIMUM.contains(&BoundClass::Suspension));
-    }
-
-    /// law: bounds.charge-shrinks-or-refuses — charging consumes the budget and
-    /// yields the strictly smaller successor; exact-to-zero is lawful; an
-    /// overcharge returns the typed refusal; charging zero changes nothing.
-    /// Owed reversal (red twin): `.clone()` or copy of a Budget must not
-    /// compile — the affinity is the law.
-    #[test]
-    fn charge_shrinks_or_refuses() {
-        let budget: Budget<WorkDemo> = Budget::admitted(10);
-        let Ok(smaller) = budget.charge(4) else {
-            unreachable!("charge within budget must succeed");
-        };
-        assert_eq!(smaller.remaining(), 6);
-        let Ok(unchanged) = smaller.charge(0) else {
-            unreachable!("zero charge must succeed");
-        };
-        assert_eq!(unchanged.remaining(), 6);
-        let Ok(zero) = unchanged.charge(6) else {
-            unreachable!("exact-to-zero charge must succeed");
-        };
-        assert_eq!(zero.remaining(), 0);
-        assert!(matches!(zero.charge(1), Err(BudgetCharge::BoundExceeded)));
-        assert_eq!(BudgetCharge::SHAPE, FamilyShape::SingleCause);
-        assert_eq!(
-            BudgetCharge::SELECTION_ORDER.first(),
-            Some(&"BoundExceeded")
-        );
-    }
-
-    /// law: bounds.dimensions-do-not-unify — a budget in one dimension is a
-    /// different type than in another, and a dimension id is not a budget.
-    /// Owed reversal (red twin): passing `Budget<Work>` where `Budget<Effect>`
-    /// is required must not compile.
-    #[test]
-    fn dimensions_do_not_unify() {
-        let over_work: Option<fn(Budget<WorkDemo>)> = Some(drop);
-        let over_effect: Option<fn(Budget<EffectDemo>)> = Some(drop);
-        let over_id: Option<fn(DimensionId)> = Some(drop);
-        assert!(over_work.is_some());
-        assert!(over_effect.is_some());
-        assert!(over_id.is_some());
     }
 }

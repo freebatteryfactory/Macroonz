@@ -327,11 +327,21 @@ pub const VALIDATION_PIPELINE: [ValidationStage; 7] = [
 ];
 
 /// A validated borrowed view into bounded input bytes, exposing only
-/// schema-proven meaning. It cannot outlive or detach from the bytes it
-/// validated, and it proves ONLY memory validity and the validation its
-/// constructor represents — not current authority, not freshness, not
-/// generation compatibility, not external durability; those remain runtime
-/// witnesses established elsewhere.
+/// schema-proven meaning.
+///
+/// The borrow discipline stands today: the lifetime parameter is what makes the
+/// view unable to outlive or detach from the bytes it validated, and no method
+/// here hands the extent back out. The SCOPE of the claim is settled too, and is
+/// a statement about what this type will never mean — it proves only memory
+/// validity and the validation its constructor represents, never current
+/// authority, freshness, generation compatibility, or external durability; those
+/// remain runtime witnesses established elsewhere.
+///
+/// The constructor it names is owed. No road mints a [`ValidatedView`] today,
+/// because minting one is the validator running against a schema, and the
+/// validator lands when implementation opens for this home on explicit
+/// authorization. The type is a declaration of what a validated view will prove,
+/// and nothing has proven one yet.
 #[derive(Debug)]
 pub struct ValidatedView<'bytes> {
     extent: &'bytes [u8],
@@ -359,7 +369,9 @@ impl ValidatedView<'_> {
 }
 
 /// A validated owned value: the same meaning without incidental input
-/// representation, materialized only within declared bounds.
+/// representation, materialized only within declared bounds. Declared alongside
+/// [`ValidatedView`] and minted by nothing for the same reason — the
+/// materialization road is the validator's, and it is owed.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ValidatedOwned {
     schema: SchemaSemanticCommitment,

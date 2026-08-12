@@ -23,11 +23,12 @@ use crate::plane::{
     HumanTextLimit, OwnerFactRef, OwnerIdentityRef, ProjectionIdentity, RefusalFamilySubject,
     RefusalReason, RelatedIssueLimit, RelatedIssueSubject, RepairLimit, ServiceEntrySubject,
 };
-use crate::token::SpanHandle;
+use crate::token::{SpanHandle, SpanResolutionRefusal};
 use threadpak::declaration::SourceCoordinate;
 use threadpak::declaration::types::{FragmentIdentityDomain, LinkedGraphDomain, SymbolDomain};
 use threadpak::evidence::CauseDisposition;
 use threadpak::evidence::types::ReleaseArtifactDomain;
+use threadpak::refusal::StopBound;
 use threadpak::types::Bounded;
 
 /// Which act of the services was running when the disagreement was observed.
@@ -169,6 +170,44 @@ pub enum MachineAnchoring {
     UnmintedAtThisSeam,
 }
 
+/// Where one diagnostic's token sits, or why the producer's table could not
+/// say.
+///
+/// Two postures, exactly as [`MachineAnchoring`] carries two, and for the same
+/// reason: a seat that cannot be furnished states the posture rather than being
+/// filled with a stand-in. A coordinate written where a table did not reach
+/// would read exactly like a coordinate the table resolved, and the reader has
+/// no third value to compare it against.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SiteCoordinate {
+    /// The position the producer's table resolved, in the role it speaks.
+    Resolved(SourceCoordinate),
+    /// The producer's table does not reach this handle. The refusal states the
+    /// handle and how far the table reaches, so a reader can tell a mismatched
+    /// table from a truncated one.
+    NotReached(SpanResolutionRefusal),
+}
+
+impl SiteCoordinate {
+    /// The posture one span table's answer takes.
+    #[must_use]
+    pub const fn answered(answer: Result<SourceCoordinate, SpanResolutionRefusal>) -> Self {
+        match answer {
+            Ok(coordinate) => Self::Resolved(coordinate),
+            Err(refusal) => Self::NotReached(refusal),
+        }
+    }
+
+    /// The resolved coordinate, where the table reached the handle.
+    #[must_use]
+    pub const fn resolved(self) -> Option<SourceCoordinate> {
+        match self {
+            Self::Resolved(coordinate) => Some(coordinate),
+            Self::NotReached(_) => None,
+        }
+    }
+}
+
 /// Where one diagnostic points.
 ///
 /// Two seats, and the first is the load-bearing one. The **token handle** names
@@ -177,13 +216,40 @@ pub enum MachineAnchoring {
 /// token of the declaration. The **coordinate** is that position rendered in
 /// whatever coordinate role the producer speaks — a byte offset where the input
 /// was read from text, and the handle's own index where the producer holds the
-/// compiler's spans itself.
+/// compiler's spans itself — or the typed statement that this producer's table
+/// does not reach the handle at all.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DiagnosticSite {
     /// The offending token.
     pub token: SpanHandle,
     /// Where that token sits, in the producer's coordinate role.
-    pub coordinate: SourceCoordinate,
+    pub coordinate: SiteCoordinate,
+}
+
+/// Whether one diagnostic's related set carries every established issue's own
+/// identity, or stopped at the declared related-issue magnitude.
+///
+/// The vocabulary is band 00's, the one every collection-shaped refusal body in
+/// the plane already reports its enumeration with: `EarlyStopped`, naming the
+/// [`StopBound`] that stopped it. What a SET adds to an enumeration is the count
+/// — a reader holding the complete body's identity alone otherwise cannot tell a
+/// one-issue refusal from a sixty-issue one, and a set that carried the body's
+/// identity silently would be a coarser commitment wearing the shape of a
+/// complete one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RelatedSetCompletion {
+    /// The complete body's identity, then one per established issue, all of
+    /// them.
+    Complete,
+    /// The set stopped at a declared bound. The complete body's identity is
+    /// carried — it commits to every issue at once — and this many per-issue
+    /// identities are not.
+    EarlyStopped {
+        /// The declared bound that stopped the set.
+        stopped_at: StopBound,
+        /// How many per-issue identities the set does not carry.
+        omitted: usize,
+    },
 }
 
 /// One diagnostic from the services.
@@ -216,6 +282,9 @@ pub struct MacrocDiagnostic {
     pub cause: CauseDisposition,
     /// Other issues this one points at.
     pub related: Bounded<ProjectionIdentity<RelatedIssueSubject>, RelatedIssueLimit>,
+    /// Whether that set names every established issue, or stopped at a declared
+    /// bound and says how many it does not name.
+    pub related_completion: RelatedSetCompletion,
     /// The owner-declared repairs that apply.
     pub repairs: Bounded<RepairAction, RepairLimit>,
     /// How to reach this observation again.

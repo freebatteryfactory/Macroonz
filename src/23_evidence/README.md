@@ -64,7 +64,7 @@ obligations:
     red: owed-to-testpak — a flattened status enum must not exist
   - id: evidence.coverage-is-unordered
     challenge_kind: compile-refusal
-    green: laws.rs evidence::verification_is_a_tuple_not_a_ladder
+    green: laws.rs evidence::coverage_is_unordered
     red: owed-to-testpak — deriving Ord on Coverage must not compile
   - id: evidence.terminals-are-lifecycle-owned
     challenge_kind: compile-law

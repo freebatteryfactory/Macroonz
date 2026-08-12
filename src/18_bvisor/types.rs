@@ -397,19 +397,38 @@ impl RefusalFamily for AttemptAdmission {
 
 // ---------------------------------------------------------------------------
 // The Attempt lifecycle — affine live handles, persisted state, the report.
+//
+// The ladder has five rungs and four transitions between them: admit, start,
+// suspend-and-resume, and terminate. ONE of the four is written — the terminal
+// rung's `seal`, which consumes the Attempt and mints the report. The other
+// three are declared and owed, and they land when implementation opens for this
+// home on explicit authorization, because each of them is the admission,
+// scheduling, or suspension seam rather than a constructor that could be written
+// ahead of it.
+//
+// What stands today without any of them: the five rungs are five distinct types,
+// so no rung substitutes for another; each live handle is non-`Clone` and
+// execution-context-local by its `PhantomData`, so it cannot be copied or sent;
+// and the persisted `AttemptState` is a separate type from every live handle, so
+// a decoded record cannot re-enter live custody by construction. The two
+// `for_laws` mints below are test-gated precisely so the missing seams stay
+// missing rather than being quietly opened for the proof surface.
 // ---------------------------------------------------------------------------
 
 /// A pre-Attempt value — no Attempt exists yet, no postcondition. Admission
 /// refusal means no Attempt EVER existed: no Attempt-shaped report, no
-/// reservation residue, nothing to reconcile.
+/// reservation residue, nothing to reconcile. The admission transition that
+/// would consume one and mint an [`AdmittedAttempt`] is owed.
 #[derive(Debug)]
 pub struct PlannedInvocation {
     _execution_context_local: PhantomData<*const ()>,
 }
 
 /// The FIRST Attempt state: grants, bounds, generations, capacity closed.
-/// Non-`Clone`, non-serializable — only it can start, drive, or terminate
-/// the Attempt; never a bare identity.
+/// Non-`Clone` and non-serializable, which stands now; declared to be the only
+/// value that can start, drive, or terminate the Attempt, which stands once the
+/// start transition exists — it is owed, so nothing starts an Attempt today. A
+/// bare identity never will.
 #[derive(Debug)]
 pub struct AdmittedAttempt {
     attempt: AttemptId,
@@ -433,7 +452,8 @@ impl AdmittedAttempt {
     }
 }
 
-/// The executor or one admitted host mechanism is advancing.
+/// The executor or one admitted host mechanism is advancing. Declared; the
+/// transition that consumes an [`AdmittedAttempt`] to reach it is owed.
 #[derive(Debug)]
 pub struct RunningAttempt {
     attempt: AttemptId,
@@ -449,8 +469,10 @@ impl RunningAttempt {
 }
 
 /// A bounded one-shot continuation awaits exactly one typed response.
-/// Suspension returns to running only for the same live Attempt and only
-/// once for the expected request.
+/// Suspension is declared to return to running only for the same live Attempt
+/// and only once for the expected request; the suspend and resume transitions
+/// that would enforce the one-shot rule are owed, so the rule is written and not
+/// yet held by anything.
 #[derive(Debug)]
 pub struct LiveSuspendedAttempt {
     attempt: AttemptId,
@@ -466,7 +488,10 @@ impl LiveSuspendedAttempt {
 }
 
 /// The TERMINAL state: no further execution or response is legal; it cannot
-/// return to running.
+/// return to running. That last clause stands structurally — this type carries
+/// no road back to [`RunningAttempt`] and never will. The transition INTO it is
+/// owed with the rest of the lifecycle seams; the transition OUT of it,
+/// [`TerminalAttempt::seal`], is the one ladder transition written today.
 #[derive(Debug)]
 pub struct TerminalAttempt {
     attempt: AttemptId,

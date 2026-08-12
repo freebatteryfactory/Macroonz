@@ -256,6 +256,47 @@ tooling-obligation: macroc.a-declared-input-stands-under-four-magnitudes
     magnitude bites first, and the budget is what bounds a producer that reads
     material it discards.
 
+tooling-obligation: macroc.an-unresolvable-handle-refuses-rather-than-resolving
+  claim: >
+    A span table answers a handle it issued with the position it holds, and
+    answers a handle it does not reach with a typed refusal naming that handle
+    and how far the table reaches. Nothing composes a position out of the handle
+    itself, and every caller carries the posture forward — the diagnostic's site
+    seat states which of the two it holds, and the compiler-facing line says the
+    locating half is missing rather than printing a number that means nothing.
+  owner: macros/macroc/src/token.rs
+  positive: macros/macroc/src/laws.rs
+  method: executable-law
+  activation: cargo test -p threadpak-macroc failure_path_closure
+  tooling-red: owed-to-testpak — a table that answers every handle, restored in
+    the plane, and shown handing back a coordinate indistinguishable from the
+    producer-held posture's honest one
+  nonclaims: >
+    It does not claim the producer-held posture resolves a source position: that
+    posture answers in the semantic-origin role with the handle's own ordinal,
+    which is the fact the handle already carries. It does not claim an expansion
+    shell may not fall back to its call site; a shell that states that posture
+    declares it, and the services never see the fallback.
+
+tooling-obligation: macroc.a-related-set-that-stops-says-what-it-dropped
+  claim: >
+    A diagnostic's related set carries the complete body's identity and one per
+    established issue, and where the set would overrun its declared magnitude it
+    carries the body's identity alone AND reports the posture that says so, with
+    the count of per-issue identities it does not carry. The one line rustc shows
+    carries the same statement.
+  owner: macros/macroc/src/derive_refusal/diagnose.rs
+  positive: macros/macroc/src/laws.rs
+  method: executable-law
+  activation: cargo test -p threadpak-macroc failure_path_closure
+  tooling-red: owed-to-testpak — the coarser set restored without its posture,
+    shown reading exactly like a complete one
+  nonclaims: >
+    It does not claim the dropped identities are recoverable from the diagnostic;
+    the body identity commits to every issue at once and the per-issue ones do
+    not come back. The typed refusal body a caller of the underlying seam holds
+    is where they remain readable.
+
 tooling-obligation: macroc.the-generator-identity-is-a-deliberate-fact
   claim: >
     A plan names the generator that produced it by a declared profile name and a

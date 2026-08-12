@@ -23,7 +23,10 @@
 //! - the **related set** carries one identity per established issue, derived
 //!   over that issue's complete canonical encoding, behind one identity over the
 //!   complete body. Two bodies that differ in any typed member derive different
-//!   identities, so no distinction is lost on the way through;
+//!   identities, so no distinction is lost on the way through. Where a body
+//!   arrives at the set's own declared magnitude the body identity is carried
+//!   alone, and the diagnostic states that posture and the count it dropped
+//!   rather than handing back a coarser set shaped like a complete one;
 //! - the **posture** rides in the summary, so a body that stopped at its own
 //!   declared bound says so rather than reading as complete.
 //!
@@ -45,8 +48,8 @@ use super::render::RenderRefusal;
 use super::types::{callable_entry, expected_contract};
 use crate::closure::{ClosureIssue, ProjectionClosureRefusal, RenderingRefusal};
 use crate::diagnostics::{
-    DiagnosticSite, MacrocDiagnostic, MacrocPhase, ObservedClassification, ReleasePosture,
-    RepairAction, ReproductionRoute,
+    DiagnosticSite, MacrocDiagnostic, MacrocPhase, ObservedClassification, RelatedSetCompletion,
+    ReleasePosture, RepairAction, ReproductionRoute, SiteCoordinate,
 };
 use crate::explanation_protocol::{ExplanationCoverage, ExplanationCoverageIssue};
 use crate::plane::{
@@ -56,7 +59,7 @@ use crate::plane::{
 };
 use crate::refusal::{ProjectionPlanning, ProjectionPlanningIssue};
 use threadpak::evidence::CauseDisposition;
-use threadpak::refusal::CompletionPosture;
+use threadpak::refusal::{CompletionPosture, StopBound};
 use threadpak::types::{Bounded, BoundedConstruction, ConstLimit};
 
 /// The family tag written ahead of every related issue's material, so two
@@ -507,8 +510,11 @@ fn diagnosed(
         .iter()
         .map(|issue| related_identity(family, issue))
         .collect();
+    let (related, related_completion) = related_set(body, per_issue);
     MacrocDiagnostic {
-        summary: shown(composed),
+        // The one line says which of the two sets stands behind it, because the
+        // typed posture beside it is not what rustc shows.
+        summary: shown(&witnessed(composed, related_completion)),
         machine: crate::diagnostics::MachineAnchoring::UnmintedAtThisSeam,
         phase,
         // The declaration's first token. The disagreement is about the
@@ -516,17 +522,21 @@ fn diagnosed(
         // pretending otherwise would send a reader to an arbitrary spot.
         site: DiagnosticSite {
             token: crate::token::SpanHandle::at(0),
-            coordinate: threadpak::declaration::SourceCoordinate {
+            // Composed here rather than resolved: this seat names the
+            // declaration itself, so the semantic-origin role at position zero
+            // IS the claim, not a stand-in for a table that did not reach.
+            coordinate: SiteCoordinate::Resolved(threadpak::declaration::SourceCoordinate {
                 role: threadpak::declaration::CoordinateRole::SemanticOrigin,
                 position: 0,
-            },
+            }),
         },
         expected: expected_contract(),
         observed,
         // The plane classifies what it observed and never elects the machine's
         // cause posture: narrowing is the machine's progress to report.
         cause: CauseDisposition::UnresolvedCause,
-        related: related_set(body, per_issue),
+        related,
+        related_completion,
         repairs: Bounded::from_array([RepairAction {
             declared_by,
             description: repair,
@@ -558,22 +568,55 @@ fn related_identity(family: u8, material: &[u8]) -> ProjectionIdentity<RelatedIs
     ))
 }
 
-/// The related set: the whole body's identity first, then one per issue.
+/// The related set: the whole body's identity first, then one per issue, and
+/// the posture that says whether that is all of them.
 ///
 /// [`RelatedIssueLimit`] is declared at the widest refusal-body magnitude in the
-/// plane, so a body built through the typed seams always fits. Where one arrived
-/// wider anyway, the body's own identity is carried ALONE — a coarser commitment
-/// to the same refusal, never a shorter commitment to a different one, and never
-/// an empty seat.
-fn related_set(
+/// plane, so a body built through the typed seams always fits — but the widest
+/// body and the set are the same width, and the body's own identity sits ahead
+/// of the per-issue ones, so a body AT the magnitude overruns by exactly one.
+///
+/// Where that happens the body's own identity is carried alone — a coarser
+/// commitment to the same refusal, never a shorter commitment to a different one
+/// — and the posture returned beside it states `EarlyStopped` with the count it
+/// dropped. Carrying the coarser set silently is the defect: it has the shape of
+/// a complete answer, and the reader has nothing to compare it against.
+pub(crate) fn related_set(
     body: ProjectionIdentity<RelatedIssueSubject>,
     per_issue: Vec<ProjectionIdentity<RelatedIssueSubject>>,
-) -> Bounded<ProjectionIdentity<RelatedIssueSubject>, RelatedIssueLimit> {
+) -> (
+    Bounded<ProjectionIdentity<RelatedIssueSubject>, RelatedIssueLimit>,
+    RelatedSetCompletion,
+) {
+    let issues = per_issue.len();
     let mut all = vec![body];
     all.extend(per_issue);
     match Bounded::admitted_const(all) {
-        Ok(set) => set,
-        Err(BoundedConstruction::OverLimit) => Bounded::from_array([body]),
+        Ok(set) => (set, RelatedSetCompletion::Complete),
+        Err(BoundedConstruction::OverLimit) => (
+            Bounded::from_array([body]),
+            RelatedSetCompletion::EarlyStopped {
+                stopped_at: StopBound::DeclaredIssueBound,
+                omitted: issues,
+            },
+        ),
+    }
+}
+
+/// One composed line, with the related set's own posture written into it.
+///
+/// A complete set adds nothing: the line already reads as a summary of a
+/// complete body. A set that stopped says so and says by how much, because the
+/// typed posture beside it is not something rustc shows, and a reader given only
+/// the body's own identity would otherwise take the coarser commitment for the
+/// full one.
+pub(crate) fn witnessed(composed: &str, completion: RelatedSetCompletion) -> String {
+    match completion {
+        RelatedSetCompletion::Complete => composed.to_owned(),
+        RelatedSetCompletion::EarlyStopped { omitted, .. } => format!(
+            "{composed} (the related set stopped at the declared issue bound: one identity over \
+             the complete body is carried and {omitted} per-issue identities are not)"
+        ),
     }
 }
 
@@ -584,14 +627,16 @@ fn related_set(
 /// repaired with an empty line and not cut in half: the alternative is a static
 /// line that is TRUE of the same refusal and says where the detail went. The
 /// typed distinctions never depended on this seat — they ride on the observed
-/// classification and on one identity per established issue.
+/// classification, on one identity per established issue, and on the related
+/// set's own posture, which the static line points at rather than pre-empting.
 fn shown(composed: &str) -> HumanProjection<HumanTextLimit> {
     match HumanProjection::<HumanTextLimit>::projected(composed) {
         Ok(projection) => projection,
         Err(BoundedConstruction::OverLimit) => human_projection!(
             HumanTextLimit,
             "threadpak refusal-family derive: the established issues do not fit one line; the \
-             diagnostic's related identities name each of them"
+             diagnostic's related set names them, and its related-set posture says whether every \
+             one of them is named"
         ),
     }
 }
