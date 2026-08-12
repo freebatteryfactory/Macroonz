@@ -12,17 +12,86 @@
 //! Every human rendering below is a static literal proven to fit its limit
 //! family at compile time. There is no road here that swallows an over-long
 //! projection and hands back an empty one.
+//!
+//! # An explanation that cannot bind its subject refuses
+//!
+//! Three seats here are bound to something the plan or the closure must already
+//! hold: the planned member standing under the family role, the digest the
+//! closure proved over that member's bytes, and the first owner fact the plan
+//! declares. Each of the three used to fall back to a NEIGHBOUR — the first
+//! planned member whatever its role, the first rendered unit's digest whatever
+//! it was a digest of, a hardcoded owner fact nobody's plan cited. An
+//! explanation built that way is worse than no explanation: it is a confident,
+//! well-formed, complete-looking answer about a different value. All three are
+//! [`ExplanationBindingRefusal::RequiredOutputAbsent`] now, and the refusal
+//! propagates.
 
 use super::plan::DerivedPlan;
-use crate::closure::ProjectionClosure;
+use crate::closure::{ProjectionClosure, RenderedUnit};
 use crate::explanation_protocol::{
     ExplanationAnswer, ExplanationCoverage, ProjectionExplanation, ProjectionExplanationView,
 };
-use crate::plane::{HumanTextLimit, human_projection};
+use crate::plane::{HumanTextLimit, OwnerFactRef, human_projection};
 use crate::planning::{DeriveImplProjection, RenderedImplementation};
 use threadpak::types::Bounded;
 
 use super::plan::derive_impl_kind;
+
+/// The seat one explanation could not bind its subject to.
+///
+/// Named seats rather than one "something was missing": a caller repairing a
+/// derivation needs to know whether the PLAN failed to declare the member, the
+/// CLOSURE failed to prove its bytes, or the plan cited no owner fact at all,
+/// and those are three different repairs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ExplanationSeat {
+    /// The planned member standing under the family implementation's role.
+    PlannedFamilyMember,
+    /// The digest the closure proved over that member's rendered bytes.
+    ProvedFamilyDigest,
+    /// The first owner fact the plan declares as an assumption.
+    DeclaredAssumption,
+}
+
+impl ExplanationSeat {
+    /// The seat's position in the declared roster.
+    #[must_use]
+    pub const fn slot(self) -> u8 {
+        match self {
+            Self::PlannedFamilyMember => 0,
+            Self::ProvedFamilyDigest => 1,
+            Self::DeclaredAssumption => 2,
+        }
+    }
+
+    /// The seat rendered for a person. A projection: nothing reads it back.
+    #[must_use]
+    pub const fn described(self) -> &'static str {
+        match self {
+            Self::PlannedFamilyMember => "the planned member under the family role",
+            Self::ProvedFamilyDigest => "the digest the closure proved over the family bytes",
+            Self::DeclaredAssumption => "the first owner fact the plan declares",
+        }
+    }
+}
+
+/// How writing one explanation refuses.
+///
+/// Two postures, and they are different observations. A view that could not be
+/// BOUND never reached the coverage check — there was no subject to write nine
+/// seats about. A view that was written and does not cover its kind's questions
+/// reached it and failed it.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ExplanationBindingRefusal {
+    /// A required seat's subject is absent. The explanation refuses rather than
+    /// answering about a neighbouring value.
+    RequiredOutputAbsent {
+        /// Which seat had no subject.
+        seat: ExplanationSeat,
+    },
+    /// The written view does not cover the kind's applicable questions.
+    Coverage(ExplanationCoverage),
+}
 
 /// Answer the explanation protocol over one planned and closed derivation.
 ///
@@ -33,36 +102,37 @@ use super::plan::derive_impl_kind;
 ///
 /// # Errors
 ///
-/// Returns [`ExplanationCoverage`] naming every unanswered, doubled, or
-/// inadmissible seat.
+/// Returns [`ExplanationBindingRefusal::RequiredOutputAbsent`] naming the seat
+/// whose subject is absent, and [`ExplanationBindingRefusal::Coverage`] naming
+/// every unanswered, doubled, or inadmissible seat.
 pub fn explained(
     planned: &DerivedPlan,
     closure: &ProjectionClosure<RenderedImplementation>,
-) -> Result<ProjectionExplanationView<DeriveImplProjection>, ExplanationCoverage> {
+) -> Result<ProjectionExplanationView<DeriveImplProjection>, ExplanationBindingRefusal> {
     let plan = planned.plan();
     let family = plan
         .membership()
         .under(RenderedImplementation::RenderedFamilyImpl)
-        .unwrap_or_else(|| plan.membership().first());
-    let digest = closure.rendered().under(family.role).map_or_else(
-        || {
-            closure
-                .rendered()
-                .units()
-                .next()
-                .map(crate::closure::RenderedUnit::digest)
+        .ok_or(ExplanationBindingRefusal::RequiredOutputAbsent {
+            seat: ExplanationSeat::PlannedFamilyMember,
+        })?;
+    let digest = closure
+        .rendered()
+        .under(family.role)
+        .map(RenderedUnit::digest)
+        .ok_or(ExplanationBindingRefusal::RequiredOutputAbsent {
+            seat: ExplanationSeat::ProvedFamilyDigest,
+        })?;
+    let owner = *plan.content().assumptions.iter().next().ok_or(
+        ExplanationBindingRefusal::RequiredOutputAbsent {
+            seat: ExplanationSeat::DeclaredAssumption,
         },
-        |unit| Some(unit.digest()),
-    );
-    let Some(digest) = digest else {
-        // Unreachable: a rendering is structurally non-empty, so there is always
-        // a unit to read a digest off. Stated as a coverage refusal rather than
-        // as an assumption, because the seat must never be answered with a
-        // value nobody computed.
-        return ProjectionExplanationView::<DeriveImplProjection>::complete(Vec::new());
-    };
+    )?;
 
-    ProjectionExplanationView::<DeriveImplProjection>::complete(seats(planned, family, digest))
+    ProjectionExplanationView::<DeriveImplProjection>::complete(seats(
+        planned, family, digest, owner,
+    ))
+    .map_err(ExplanationBindingRefusal::Coverage)
 }
 
 /// The nine seats this kind owes, in the order the protocol states them.
@@ -70,6 +140,7 @@ fn seats(
     planned: &DerivedPlan,
     family: &crate::planning::PlannedMember<RenderedImplementation>,
     digest: crate::plane::ProjectionIdentity<crate::plane::OutputBytesSubject>,
+    owner: OwnerFactRef,
 ) -> Vec<ProjectionExplanation> {
     let plan = planned.plan();
     vec![
@@ -83,14 +154,7 @@ fn seats(
             ),
         ),
         ProjectionExplanation::answered(
-            ExplanationAnswer::Owner {
-                owner: *plan.content().assumptions.iter().next().unwrap_or(
-                    &crate::plane::OwnerFactRef::named(
-                        "refusal",
-                        "family-shapes-are-three-and-closed",
-                    ),
-                ),
-            },
+            ExplanationAnswer::Owner { owner },
             human_projection!(
                 HumanTextLimit,
                 "the refusal home requires a declared body shape"

@@ -691,6 +691,11 @@ impl RefusalCompileContext {
 /// values [`ClosedExpansion::emitted`] is projected from. There is no parallel
 /// plan built for inspection and no synthetic sibling built for emission, so
 /// "what does it say it did" and "what did it do" cannot drift.
+///
+/// The receipt holds no tree of its own. The emitted tree belongs to the
+/// CLOSURE, which built it as part of proving and committed to its digest inside
+/// its own identity; this value borrows it. A receipt that had been handed a
+/// tree alongside a closure could have been handed one the closure never joined.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClosedExpansion {
     identity: ClosedExpansionId,
@@ -700,7 +705,6 @@ pub struct ClosedExpansion {
     closure: ProjectionClosure<RenderedImplementation>,
     explanation: ProjectionExplanationView<DeriveImplProjection>,
     cause_order: ProjectionDisposition,
-    emitted: GeneratedTree,
 }
 
 impl ClosedExpansion {
@@ -716,18 +720,21 @@ impl ClosedExpansion {
     /// canonical bytes at full length. Those are exactly the three things a
     /// reader of one receipt asks about: what was read, what was decided, and
     /// what was handed to the compiler.
+    ///
+    /// The emitted tree is not a parameter. It is read off the closure, which
+    /// owns it: a receipt that was handed a tree separately could be handed one
+    /// the closure never proved.
     pub(crate) fn bound(
         surface: RefusalDeriveSurface,
         plan: ProjectionPlan<DeriveImplProjection>,
         closure: ProjectionClosure<RenderedImplementation>,
         explanation: ProjectionExplanationView<DeriveImplProjection>,
         cause_order: ProjectionDisposition,
-        emitted: GeneratedTree,
     ) -> Self {
         let mut content = Vec::new();
         encode_bytes(surface.identity().as_bytes(), &mut content);
         encode_bytes(plan.identity().as_bytes(), &mut content);
-        encode_bytes(&emitted.canonical_bytes(), &mut content);
+        encode_bytes(&closure.emitted().canonical_bytes(), &mut content);
         let closure_identity = closure.identity();
         let (identity, provenance) =
             ClosedExpansionId::derived_with_provenance(ProjectionTranscript::under_projection(
@@ -744,7 +751,6 @@ impl ClosedExpansion {
             closure,
             explanation,
             cause_order,
-            emitted,
         }
     }
 
@@ -793,16 +799,20 @@ impl ClosedExpansion {
 
     /// The token tree an expansion emits. The shell's only act is to hand this
     /// to the compiler.
+    ///
+    /// It is the CLOSURE's tree, borrowed rather than copied: the receipt keeps
+    /// no second tree, so what is emitted is what was proved and there is no
+    /// pair of values to drift apart.
     #[must_use]
     pub const fn emitted(&self) -> &GeneratedTree {
-        &self.emitted
+        self.closure.emitted()
     }
 
     /// What one rendered unit looks like as Rust source text — an inspection
     /// projection of the SAME tree that is emitted, never a second rendering.
     #[must_use]
     pub fn inspected(&self) -> String {
-        self.emitted.inspected()
+        self.emitted().inspected()
     }
 
     /// The rendering this expansion closed over.

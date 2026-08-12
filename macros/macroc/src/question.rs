@@ -83,6 +83,58 @@ pub const EXPLANATION_QUESTIONS: [ExplanationQuestion; 14] = [
     ExplanationQuestion::WhatRepairsARefusal,
 ];
 
+impl ExplanationQuestion {
+    /// The question's position in the declared roster — what a canonical
+    /// encoding of a coverage issue carries for it.
+    #[must_use]
+    pub const fn slot(self) -> u8 {
+        match self {
+            Self::WhatAreYou => 0,
+            Self::WhichOwnerRequired => 1,
+            Self::WhichDeclarationCaused => 2,
+            Self::WhichTemplateOrPatternInstance => 3,
+            Self::WhichGraphAndProfile => 4,
+            Self::WhichCapabilitiesSelectedWrappers => 5,
+            Self::WhichAssumptionsAndSpecializations => 6,
+            Self::WhichOutputIdentityAndDigest => 7,
+            Self::WhichTestsChallenge => 8,
+            Self::WhichBenchmarksMeasure => 9,
+            Self::WhichRuntimeTracesCorrespond => 10,
+            Self::WhatInvalidates => 11,
+            Self::WhyWasRelatedProjectionNotGenerated => 12,
+            Self::WhatRepairsARefusal => 13,
+        }
+    }
+
+    /// The question as it is asked, for a person to read. A projection of the
+    /// typed value: nothing reads it back.
+    #[must_use]
+    pub const fn described(self) -> &'static str {
+        match self {
+            Self::WhatAreYou => "what are you",
+            Self::WhichOwnerRequired => "which owner required you",
+            Self::WhichDeclarationCaused => "which declaration caused you",
+            Self::WhichTemplateOrPatternInstance => {
+                "which template or pattern instance produced you"
+            }
+            Self::WhichGraphAndProfile => "which graph and profile were you decided under",
+            Self::WhichCapabilitiesSelectedWrappers => "which capabilities selected your wrappers",
+            Self::WhichAssumptionsAndSpecializations => {
+                "which assumptions and specializations do you rest on"
+            }
+            Self::WhichOutputIdentityAndDigest => "which output identity and digest are you",
+            Self::WhichTestsChallenge => "which tests challenge you",
+            Self::WhichBenchmarksMeasure => "which benchmarks measure you",
+            Self::WhichRuntimeTracesCorrespond => "which runtime traces correspond to you",
+            Self::WhatInvalidates => "what invalidates you",
+            Self::WhyWasRelatedProjectionNotGenerated => {
+                "why was a related projection not generated"
+            }
+            Self::WhatRepairsARefusal => "what repairs a refusal",
+        }
+    }
+}
+
 /// Whether one kind's plans admit one question.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum QuestionApplicability {

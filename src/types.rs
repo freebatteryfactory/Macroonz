@@ -267,6 +267,35 @@ impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
         }
     }
 
+    /// The fixed-arity collection: a *total structural* constructor whose "at
+    /// least one" and "fits the bound" proofs are BOTH discharged at COMPILE
+    /// TIME.
+    ///
+    /// The first item is a separate parameter, so emptiness is unrepresentable
+    /// rather than refused, and the remainder's arity is `N`, a compile-time
+    /// constant, so the `const` block below settles the bound question before
+    /// the program runs. This road has no refusal to return.
+    ///
+    /// Its reason for existing is [`Bounded::from_array`]'s: where a COMPLETE
+    /// set is known statically — a two-member output roster fixed by a declared
+    /// shape, a pair of citations written side by side — a caller has no runtime
+    /// failure to invent a value for, so the place a caller reaches for a
+    /// shortened collection is not on the road at all.
+    #[must_use]
+    pub fn from_array<const N: usize>(first: T, rest: [T; N]) -> Self {
+        const {
+            assert!(
+                N < L::MAX,
+                "a fixed non-empty collection longer than its limit family admits"
+            );
+        }
+        Self {
+            first,
+            rest: Vec::from(rest),
+            _family: PhantomData,
+        }
+    }
+
     /// The one-item collection: a *total structural* constructor whose "at
     /// least one" proof is discharged at COMPILE TIME.
     ///

@@ -15,7 +15,9 @@
 //! whose identities were supplied could be made to agree with any rendering by
 //! supplying different ones.
 
-use super::types::{CauseOrderStanding, RefusalDerivationDraft, RefusalOwnerFacts};
+use super::types::{
+    CauseOrderStanding, DerivedMembership, RefusalDerivationDraft, RefusalOwnerFacts,
+};
 use crate::origin_graph::{
     DecisionTrace, Nonclaim, OriginEdge, OriginRelation, OriginTrail, TraceDecision, TraceEntry,
 };
@@ -182,6 +184,24 @@ pub fn expansion_context(draft: &RefusalDerivationDraft) -> ProjectionContext {
 }
 
 /// The complete logical membership one draft declares.
+///
+/// # Total, because the set is fixed by the shape
+///
+/// [`DerivedMembership`] has exactly two answers and each names a statically
+/// known set of roles, so there is no count to read, nothing to admit, and no
+/// failure to repair. The match below is the whole function: one answer builds a
+/// one-role membership, the other builds a two-role one, and
+/// [`PlannedMembership::complete`] settles the magnitude at compile time.
+///
+/// What this replaced is worth stating, because it is the defect this whole
+/// boundary is about. The roles arrived as a SLICE, the membership was built
+/// through the checked seam, and the impossible refusal was repaired with a
+/// ONE-MEMBER membership built from the first role. A `FamilyAndCauseOrder`
+/// derivation whose complete set failed to declare would have planned the family
+/// implementation alone — and the closure downstream would have proved that
+/// smaller claim, correctly, about a rendering that dropped a contract. The
+/// slice also had an empty case, which nothing can produce and which invented a
+/// family member to fill. Neither shape exists now.
 #[must_use]
 pub fn membership(draft: &RefusalDerivationDraft) -> PlannedMembership<RenderedImplementation> {
     let member = |role: RenderedImplementation| {
@@ -198,16 +218,14 @@ pub fn membership(draft: &RefusalDerivationDraft) -> PlannedMembership<RenderedI
             },
         }
     };
-    match draft.declared_membership().roles() {
-        [first, rest @ ..] => {
-            let rows: Vec<PlannedMember<RenderedImplementation>> =
-                rest.iter().copied().map(member).collect();
-            PlannedMembership::declared(member(*first), rows)
-                .unwrap_or_else(|_| PlannedMembership::from_member(member(*first)))
+    match draft.declared_membership() {
+        DerivedMembership::FamilyOnly => {
+            PlannedMembership::complete(member(RenderedImplementation::RenderedFamilyImpl), [])
         }
-        // Unreachable: `DerivedMembership::roles` is non-empty for both answers,
-        // and `DerivedMembership::is_empty` is a constant `false` proving it.
-        [] => PlannedMembership::from_member(member(RenderedImplementation::RenderedFamilyImpl)),
+        DerivedMembership::FamilyAndCauseOrder => PlannedMembership::complete(
+            member(RenderedImplementation::RenderedFamilyImpl),
+            [member(RenderedImplementation::RenderedCauseOrderImpl)],
+        ),
     }
 }
 

@@ -43,7 +43,12 @@ use threadpak_macroc::{
 const PROFILE_STEM: &str = "threadpak/macroc/projection-identity";
 
 /// The profile version, spelled out rather than imported.
-const PROFILE_VERSION: u32 = 1;
+///
+/// Version 2 is the version this lane judges. It moved when closures began
+/// committing to the joined tree they emit, and the lane restates it here rather
+/// than reading it from the producer — a lane that imported the version would
+/// agree with a producer that silently changed it.
+const PROFILE_VERSION: u32 = 2;
 
 /// The generator's declared name, spelled out rather than imported.
 const GENERATOR_PROFILE: &str = "threadpak-macroc";

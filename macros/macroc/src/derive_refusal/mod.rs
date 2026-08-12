@@ -8,7 +8,8 @@
 //! [`MacrocDiagnostic`]; everything downstream takes typed values. The
 //! Rust-facing shell is one caller of this function; a test is another; a future
 //! language frontend would be a third. A diagnostic from here names
-//! [`ReproductionRoute::CallableServices`] because that route is real, and
+//! [`crate::diagnostics::ReproductionRoute::CallableServices`] because that
+//! route is real, and
 //! [`compile_refusal_text`] is it.
 //!
 //! # There is exactly one road to emitted tokens
@@ -31,6 +32,18 @@
 //! Delete any one of them and no [`ClosedExpansion`] exists, so nothing is
 //! emitted. That is the property, and it is structural rather than reviewed.
 //!
+//! The emit step is not a step on this road any more, and that is the point.
+//! Joining the rendered units into the tree a compiler is handed happens INSIDE
+//! `close`, which keeps the result and commits to its digest — so there is no
+//! act after the proof for a defect to live in.
+//!
+//! # Every step refuses in its own vocabulary, and it survives the crossing
+//!
+//! Each `map_err` below is a projection rather than a collapse. A planning body
+//! reaches the caller naming its axis and magnitude, a closure body naming its
+//! role and the disagreement at it, a coverage body naming every seat, a
+//! rendering refusal naming the exact bound. See [`diagnose`].
+//!
 //! # What this home does not decide
 //!
 //! It decides no meaning. The three body shapes are band 00's; the canonical key
@@ -40,12 +53,14 @@
 //! it already said.
 
 pub mod capture;
+pub mod diagnose;
 pub mod explain;
 pub mod plan;
 pub mod render;
 pub mod types;
 
 pub use capture::{captured, captured_text};
+pub use explain::{ExplanationBindingRefusal, ExplanationSeat};
 pub use plan::DerivedPlan;
 pub use render::RenderRefusal;
 pub use types::{
@@ -56,14 +71,9 @@ pub use types::{
 };
 
 use crate::closure::{ProjectionClosure, RenderedProjection, RenderedUnit};
-use crate::diagnostics::{
-    DiagnosticSite, MacrocDiagnostic, MacrocPhase, ObservedClassification, ReleasePosture,
-    RepairAction, ReproductionRoute,
-};
-use crate::plane::{HumanTextLimit, OwnerFactRef, human_projection};
+use crate::diagnostics::MacrocDiagnostic;
 use crate::planning::{MemberDestination, RenderedImplementation};
-use crate::token::{CapturedInput, SpanHandle, TextCapture};
-use threadpak::evidence::CauseDisposition;
+use crate::token::{CapturedInput, TextCapture};
 use threadpak::types::Bounded;
 
 /// Capture, plan, render, close, and explain one refusal-family declaration —
@@ -90,31 +100,21 @@ pub fn compile_refusal(
     let draft = surface.planned();
 
     let planned = plan::planned(&draft, context.owner_facts, context.nonclaims.clone())
-        .map_err(|_| step_refusal(MacrocPhase::Planning, ObservedClassification::BoundExceeded))?;
+        .map_err(|refusal| diagnose::planning_refused(&refusal))?;
 
     let rendered = render_units(&draft)?;
 
+    // The closure joins the rendered units and keeps the joined tree, so there
+    // is nothing left to assemble on this road after the proof returns.
     let closure = ProjectionClosure::proved(
         planned.plan().identity(),
         planned.plan().membership(),
         rendered,
     )
-    .map_err(|_| {
-        step_refusal(
-            MacrocPhase::Rendering,
-            ObservedClassification::IdentityDisagreement,
-        )
-    })?;
+    .map_err(|refusal| diagnose::closure_refused(&refusal))?;
 
     let explanation = explain::explained(&planned, &closure)
-        .map_err(|_| step_refusal(MacrocPhase::Inspection, ObservedClassification::SeatAbsent))?;
-
-    let emitted = closure.rendered().joined_tree().map_err(|_| {
-        step_refusal(
-            MacrocPhase::Rendering,
-            ObservedClassification::BoundExceeded,
-        )
-    })?;
+        .map_err(|refusal| diagnose::explanation_refused(&refusal))?;
 
     let (plan_value, cause_order) = planned.into_parts();
     Ok(ClosedExpansion::bound(
@@ -123,7 +123,6 @@ pub fn compile_refusal(
         closure,
         explanation,
         cause_order,
-        emitted,
     ))
 }
 
@@ -146,7 +145,7 @@ pub enum TextCompileRefusal {
 
 /// The callable route: read one declaration from TEXT and compile it.
 ///
-/// This is what makes [`ReproductionRoute::CallableServices`] a real road rather
+/// This is what makes the callable-services reproduction route a real road rather
 /// than a promise — no proc-macro anywhere in the path, and the byte offsets the
 /// text read issued resolve every diagnostic's token handle.
 ///
@@ -171,6 +170,11 @@ pub fn compile_refusal_text(
 }
 
 /// Render every planned role into a rendered unit.
+///
+/// The roster is fixed by the shape, so the rendering is built by matching on
+/// the two answers rather than by folding a slice and repairing an empty fold.
+/// [`RenderedProjection::complete`] settles the magnitude at compile time, which
+/// is why neither arm carries a refusal road of its own.
 #[expect(
     clippy::result_large_err,
     reason = "the same seat-complete diagnostic the ruled service road returns; this helper hands \n              it straight through"
@@ -178,89 +182,43 @@ pub fn compile_refusal_text(
 fn render_units(
     draft: &RefusalDerivationDraft,
 ) -> Result<RenderedProjection<RenderedImplementation>, MacrocDiagnostic> {
-    let mut units: Vec<RenderedUnit<RenderedImplementation>> = Vec::new();
-    for role in draft.declared_membership().roles() {
-        let tree = match role {
-            RenderedImplementation::RenderedFamilyImpl => {
-                render::family_implementation(draft.surface())
-            }
-            RenderedImplementation::RenderedCauseOrderImpl => {
-                render::cause_order_implementation(draft.surface())
-            }
+    let family = rendered_unit(draft, RenderedImplementation::RenderedFamilyImpl)?;
+    match draft.declared_membership() {
+        DerivedMembership::FamilyOnly => Ok(RenderedProjection::complete(family, [])),
+        DerivedMembership::FamilyAndCauseOrder => {
+            let cause_order = rendered_unit(draft, RenderedImplementation::RenderedCauseOrderImpl)?;
+            Ok(RenderedProjection::complete(family, [cause_order]))
         }
-        .map_err(|_| {
-            step_refusal(
-                MacrocPhase::Rendering,
-                ObservedClassification::BoundExceeded,
-            )
-        })?;
-        let unit = RenderedUnit::materialized(
-            *role,
-            plan::semantic_key(draft, *role),
-            MemberDestination::AtDeclarationSite,
-            plan::rust_declaration_profile(),
-            plan::rust_declaration_profile_version(),
-            plan::member_origin(draft, *role),
-            tree,
-        )
-        .map_err(|_| {
-            step_refusal(
-                MacrocPhase::Rendering,
-                ObservedClassification::BoundExceeded,
-            )
-        })?;
-        units.push(unit);
     }
-    let mut rows = units.into_iter();
-    let Some(first) = rows.next() else {
-        // Unreachable: a declared membership is non-empty for both answers.
-        return Err(step_refusal(
-            MacrocPhase::Rendering,
-            ObservedClassification::SeatAbsent,
-        ));
-    };
-    RenderedProjection::materialized(first, rows.collect()).map_err(|_| {
-        step_refusal(
-            MacrocPhase::Rendering,
-            ObservedClassification::BoundExceeded,
-        )
-    })
 }
 
-/// The diagnostic one non-capture step refuses with.
-///
-/// It points at the declaration's first token, which is the honest site: the
-/// disagreement is about the declaration as a whole rather than about one token
-/// inside it, and pretending otherwise would send a reader to an arbitrary spot.
-fn step_refusal(phase: MacrocPhase, observed: ObservedClassification) -> MacrocDiagnostic {
-    MacrocDiagnostic {
-        summary: human_projection!(
-            HumanTextLimit,
-            "threadpak refusal-family derive: a declared magnitude was exceeded, or a rendering \n             did not close over the plan it claims to materialize"
-        ),
-        machine: crate::diagnostics::MachineAnchoring::UnmintedAtThisSeam,
-        phase,
-        site: DiagnosticSite {
-            token: SpanHandle::at(0),
-            coordinate: threadpak::declaration::SourceCoordinate {
-                role: threadpak::declaration::CoordinateRole::SemanticOrigin,
-                position: 0,
-            },
-        },
-        expected: types::expected_contract(),
-        observed,
-        cause: CauseDisposition::UnresolvedCause,
-        related: Bounded::empty(),
-        repairs: Bounded::from_array([RepairAction {
-            declared_by: OwnerFactRef::named("refusal", "family-shapes-are-three-and-closed"),
-            description: human_projection!(
-                HumanTextLimit,
-                "a declared magnitude was exceeded, or a rendering did not close over its plan"
-            ),
-        }]),
-        reproduction: ReproductionRoute::CallableServices {
-            entry: types::callable_entry(),
-        },
-        release: ReleasePosture::NoReleasePromise,
+/// Render one role into one materialized unit, projecting either refusal into a
+/// diagnostic that names the exact magnitude and the role that overran it.
+#[expect(
+    clippy::result_large_err,
+    reason = "the same seat-complete diagnostic the ruled service road returns; this helper hands \n              it straight through"
+)]
+fn rendered_unit(
+    draft: &RefusalDerivationDraft,
+    role: RenderedImplementation,
+) -> Result<RenderedUnit<RenderedImplementation>, MacrocDiagnostic> {
+    let tree = match role {
+        RenderedImplementation::RenderedFamilyImpl => {
+            render::family_implementation(draft.surface())
+        }
+        RenderedImplementation::RenderedCauseOrderImpl => {
+            render::cause_order_implementation(draft.surface())
+        }
     }
+    .map_err(|refusal| diagnose::render_refused(refusal, role))?;
+    RenderedUnit::materialized(
+        role,
+        plan::semantic_key(draft, role),
+        MemberDestination::AtDeclarationSite,
+        plan::rust_declaration_profile(),
+        plan::rust_declaration_profile_version(),
+        plan::member_origin(draft, role),
+        tree,
+    )
+    .map_err(|refusal| diagnose::rendering_refused(refusal, role))
 }

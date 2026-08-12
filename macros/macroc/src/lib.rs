@@ -88,8 +88,8 @@
 //!
 //! A module may be a file or a DIRECTORY, and a directory module's edges are the
 //! union of every file under it: `derive_refusal/` reaches what its capture,
-//! plan, render, and explain files reach, and a submodule pointing forward is
-//! its parent pointing forward. Inside a directory, `super::` names the parent
+//! plan, render, explain, and diagnose files reach, and a submodule pointing
+//! forward is its parent pointing forward. Inside a directory, `super::` names the parent
 //! and is not a crate-root route; in a FLAT module `super::` IS the crate root,
 //! and the checker reads it as one.
 //!
@@ -136,10 +136,10 @@ pub use composition::{
 };
 pub use derive_refusal::{
     CapturedCause, CauseOrderStanding, ClosedExpansion, CrateBinding, DEFAULT_CRATE_BINDING,
-    DerivedMembership, DerivedPlan, RefusalCompileContext, RefusalDerivationDraft,
-    RefusalDeriveCapture, RefusalDeriveRefusal, RefusalDeriveSurface, RefusalOwnerFacts,
-    RenderRefusal, TextCompileRefusal, captured, captured_text, compile_refusal,
-    compile_refusal_text,
+    DerivedMembership, DerivedPlan, ExplanationBindingRefusal, ExplanationSeat,
+    RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveCapture, RefusalDeriveRefusal,
+    RefusalDeriveSurface, RefusalOwnerFacts, RenderRefusal, TextCompileRefusal, captured,
+    captured_text, compile_refusal, compile_refusal_text,
 };
 pub use diagnostics::{
     DiagnosticSite, MACROC_PHASES, MachineAnchoring, MachineAnchors, MacrocDiagnostic, MacrocPhase,
@@ -159,8 +159,8 @@ pub use plane::{
     HumanProjection, IdentityProfile, IdentityProfileVersion, IdentitySubject, MACROC_GENERATOR,
     OwnerFactName, OwnerFactRef, OwnerIdentityRef, PROJECTION_IDENTITY_PROFILE, PROJECTION_ROLES,
     PlanId, ProfileVersion, ProjectionIdentity, ProjectionProvenance, ProjectionRole,
-    ProjectionTranscript, RenderedRole, SoleRenderedUnit, TranscriptAnchoring, encode_bytes,
-    encode_length,
+    ProjectionTranscript, RenderedRole, RenderedRoleSeal, SoleRenderedUnit, TranscriptAnchoring,
+    encode_bytes, encode_length,
 };
 pub use planning::{
     BenchmarkDescriptorContent, BenchmarkDescriptorProjection, CauseAnchoring, CodecContent,
@@ -185,9 +185,9 @@ pub use template::{
     TemplateInvocationKey, TemplateParameter, TemplateSeat, VersionedProfile,
 };
 pub use token::{
-    CapturedDelimiter, CapturedInput, CapturedPayload, CapturedTokenTree, GeneratedDelimiter,
-    GeneratedSpacing, GeneratedToken, GeneratedTree, LocalCoordinate, SpanHandle, SpanTable,
-    TextCapture, TextReadCause, TextReadRefusal,
+    CaptureBound, CaptureWalk, CapturedDelimiter, CapturedInput, CapturedPayload,
+    CapturedTokenTree, GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree,
+    SpanHandle, SpanTable, TextCapture, TextReadCause, TextReadRefusal, TokenPath,
 };
 pub use trigger_view::{
     TriggerCitations, TriggerOmission, TriggerSelection, TriggerViewComposition, TriggerViewIssue,

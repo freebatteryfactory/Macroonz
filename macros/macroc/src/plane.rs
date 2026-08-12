@@ -226,9 +226,10 @@ limits! {
     BundleMemberLimit = 32,
     /// Issues one planning refusal body may carry: the roster's cardinality once
     /// each multi-seat issue is counted per seat — five single-seat issues, the
-    /// missing-fact issue over its one plan seat, and the bound issue over its
-    /// six axes.
-    PlanningIssueLimit = 12,
+    /// missing-fact issue over its one plan seat, the bound issue over its six
+    /// axes, and the doubled-output issue over the sixteen roles a membership at
+    /// the output magnitude could double.
+    PlanningIssueLimit = 28,
     /// Issues one explanation-coverage refusal body may carry: each of the
     /// fourteen questions may be unanswered, answered twice, or answered where
     /// the kind does not admit it, and no two of those hold of one question at
@@ -238,8 +239,12 @@ limits! {
     ExplanationSeatLimit = 14,
     /// Bytes one human projection may carry.
     HumanTextLimit = 512,
-    /// Related issues one diagnostic may point at.
-    RelatedIssueLimit = 16,
+    /// Related issues one diagnostic may point at. It is the widest refusal-body
+    /// magnitude in the plane on purpose: a diagnostic projects a refusal body
+    /// issue for issue, so a narrower bound here would make the projection drop
+    /// established issues to fit — which is the defect the projection exists to
+    /// end.
+    RelatedIssueLimit = 64,
     /// Repair actions one diagnostic may carry.
     RepairLimit = 8,
     /// Wrapper components one host-wrapper plan may select.
@@ -289,6 +294,17 @@ limits! {
     /// declared input has a declared magnitude; past this the capture refuses
     /// rather than walking an unbounded tree.
     CapturedTokenLimit = 4096,
+    /// Steps one token path may carry — how deeply a declared input may nest.
+    /// A level bound alone bounds the WIDTH of each level and nothing about the
+    /// depth, so an input nested a million groups deep satisfies it at every
+    /// level while the walk that reads it does not terminate in any useful time.
+    TokenPathDepthLimit = 32,
+    /// Tokens one captured input may carry ACROSS the whole tree. The level
+    /// bound and the depth bound multiply: four thousand tokens at each of
+    /// thirty-two levels is a tree nobody declared and nobody wants captured, so
+    /// the total is bounded in its own right rather than left as the product of
+    /// two other magnitudes.
+    CapturedTreeTokenLimit = 16384,
     /// Bytes one rendered unit may carry. A renderer that would emit past this
     /// refuses rather than materializing part of a unit.
     RenderedByteLimit = 65536,
@@ -296,7 +312,8 @@ limits! {
     GeneratedTokenLimit = 4096,
     /// Issues one closure refusal body may carry: at most one per planned member
     /// seat plus one per unplanned rendered unit, which is twice the membership
-    /// bound.
+    /// bound. Each pass of the check establishes at most one issue per role and
+    /// refuses before the next pass runs, so the passes do not add up.
     ClosureIssueLimit = 64,
 }
 
@@ -507,41 +524,69 @@ impl<L: ConstLimit> HumanProjection<L> {
 
     /// The seam behind [`human_projection!`], which is the only road to it.
     ///
-    /// It takes text whose length the CALLER already proved against `L::MAX` in
-    /// a `const` block, so there is no runtime check here and no refusal to
-    /// return. Reaching it without that proof is the one thing the macro exists
-    /// to prevent, which is why the seam is crate-internal.
+    /// # There is no length to check here, so there is no branch to fall down
+    ///
+    /// The rendering arrives as a fixed-width byte array, and the width is the
+    /// array's own TYPE. So this road carries no runtime count, returns no
+    /// refusal, and has no branch where a rendering that did not fit becomes an
+    /// empty one — the earlier seam had exactly that branch, and an oversized
+    /// explanation silently became a blank one.
+    ///
+    /// The width cannot be chosen independently of the material either: the
+    /// caller does not pass a length, it passes the array, and
+    /// [`human_projection!`] builds that array in a `const` item out of the
+    /// rendering itself. A rendering the width does not cover stops the
+    /// compiler during that const evaluation.
     #[must_use]
-    pub(crate) fn proven(text: &'static str) -> Self {
+    pub(crate) fn proven<const N: usize>(rendered: [u8; N]) -> Self {
         Self {
-            text: Bounded::admitted_const(text.as_bytes().to_vec()).unwrap_or_else(|_| {
-                // Unreachable by the macro's compile-time proof; the total road
-                // is taken rather than a panic, because a projection that
-                // somehow did not fit must still not stop the compiler.
-                Bounded::empty()
-            }),
+            text: Bounded::from_array(rendered),
         }
     }
+}
+
+/// One static rendering's bytes, at the fixed width the caller declared.
+///
+/// Written for the `const` item [`human_projection!`] builds. Evaluated at
+/// compile time, where a width the rendering does not reach is a compile error
+/// rather than a padded or cut projection handed to a reader.
+#[expect(
+    clippy::indexing_slicing,
+    reason = "the walk is a const evaluation over the declared width, so an index past the rendering stops the compiler instead of reading at runtime"
+)]
+#[must_use]
+pub(crate) const fn static_bytes<const N: usize>(text: &str) -> [u8; N] {
+    let source = text.as_bytes();
+    let mut rendered = [0u8; N];
+    let mut at = 0usize;
+    while at < N {
+        rendered[at] = source[at];
+        at = at.saturating_add(1);
+    }
+    rendered
 }
 
 /// Projects one STATIC rendering, proving at COMPILE TIME that it fits the named
 /// limit family.
 ///
-/// This is the total road. `HumanProjection::projected` reads a runtime length
-/// and may refuse, and a caller that swallowed that refusal with an empty
+/// This is the total road, and it is the only road to
+/// [`HumanProjection::proven`]. `HumanProjection::projected` reads a runtime
+/// length and may refuse, and a caller that swallowed that refusal with an empty
 /// fallback would be silently deleting an explanation — which is exactly the
 /// defect this macro exists to make unrepresentable. Where the material is
-/// static, the length is a compile-time fact, so it is proven at compile time
-/// and the refusal road never appears.
+/// static, the length is a compile-time fact: the `const` block below settles
+/// the bound, the `const` item below carries the rendering at its own width, and
+/// no refusal road appears anywhere between them.
 macro_rules! human_projection {
     ($limit:ty, $text:literal) => {{
+        const RENDERED: [u8; $text.len()] = $crate::plane::static_bytes($text);
         const {
             ::core::assert!(
                 $text.len() <= <$limit as ::threadpak::types::ConstLimit>::MAX,
                 "a static human projection longer than its limit family admits",
             );
         }
-        $crate::plane::HumanProjection::<$limit>::proven($text)
+        $crate::plane::HumanProjection::<$limit>::proven(RENDERED)
     }};
 }
 
@@ -701,6 +746,17 @@ impl ProjectionRole {
 /// order it is written in, or what the domain grammar spells is a version bump,
 /// and a bump renames every identity the profile derives — which is exactly what
 /// it is for.
+///
+/// # A mint site's content grammar is inside that rule
+///
+/// The eleven shared members are one half of what a transcript contains; the
+/// other half is the CONTENT each mint site composes, and each mint site
+/// documents its own. A change to either is a change to what a transcript
+/// contains. Version 2 is what closures committing to their emitted joined tree
+/// cost: a reader handed two receipts under one version must be able to assume
+/// both were derived the same way, and leaving the version at 1 across that
+/// change would have broken exactly that assumption while every golden vector
+/// stayed green.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct IdentityProfileVersion(u32);
 
@@ -777,7 +833,7 @@ impl IdentityProfile {
 /// The profile every plane identity in this crate is derived under.
 pub const PROJECTION_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
     "threadpak/macroc/projection-identity",
-    IdentityProfileVersion::declared(1),
+    IdentityProfileVersion::declared(2),
 );
 
 // ---------------------------------------------------------------------------
@@ -1356,6 +1412,26 @@ pub type ClosedExpansionId = ProjectionIdentity<ClosedExpansionSubject>;
 // Rendered roles.
 // ---------------------------------------------------------------------------
 
+/// The seal on the rendered-role roster.
+///
+/// A value of this type is producible only inside the services, so a roster
+/// declared anywhere else cannot satisfy [`RenderedRole`]. It is the same seal
+/// the planning home puts on the projection-kind roster, for the
+/// same reason: the closure check walks `ROLES` and asks what stood under each
+/// one, so a roster that left a variant out would make that variant's rendered
+/// unit invisible to the loop that is supposed to prove it. An outside
+/// implementation could declare exactly that roster; a sealed one cannot exist
+/// at all.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct RenderedRoleSeal(());
+
+impl RenderedRoleSeal {
+    /// The seal, admitted only within the services.
+    pub(crate) const fn admitted() -> Self {
+        Self(())
+    }
+}
+
 /// The closed roster of rendered units one projection kind materializes.
 ///
 /// A kind declares this roster once, and the closure check reads it: a rendered
@@ -1364,7 +1440,20 @@ pub type ClosedExpansionId = ProjectionIdentity<ClosedExpansionSubject>;
 /// entries in an ordered list nobody can tell apart. A rendering that produced
 /// the right number of units in the wrong roles is caught by the role, not by a
 /// count.
+///
+/// Sealed, and the seal is load-bearing rather than decorative. Every proof in
+/// the plane that says "every role was examined" says it by walking [`ROLES`],
+/// so the roster IS the quantifier. An implementation that omitted one variant
+/// would render a unit the closure loop never looks at and never reports, which
+/// is a silent output past the firewall. Each admitted roster carries a law
+/// proving it names every variant exactly once, at the roster position that
+/// variant's slot claims.
+///
+/// [`ROLES`]: RenderedRole::ROLES
 pub trait RenderedRole: Copy + PartialEq + Eq + core::fmt::Debug + Sized + 'static {
+    /// The seal. Only the services can produce a value of this type.
+    const SEAL: RenderedRoleSeal;
+
     /// The complete roster, in the order the kind states it.
     const ROLES: &'static [Self];
 
@@ -1387,6 +1476,7 @@ pub enum SoleRenderedUnit {
 }
 
 impl RenderedRole for SoleRenderedUnit {
+    const SEAL: RenderedRoleSeal = RenderedRoleSeal::admitted();
     const ROLES: &'static [Self] = &[Self::Sole];
 
     fn slot(self) -> u32 {

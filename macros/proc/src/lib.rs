@@ -20,6 +20,12 @@
 //! composed inside the services, where the typed value it projects lives. The
 //! shell does not even build the string it emits: the services hand it tokens.
 //!
+//! That holds for the magnitudes too. The four bounds a capture stands under —
+//! nesting depth, tokens per level, tokens across the whole tree, and the
+//! capture-work budget — are declared in the services and spent by the walk
+//! below, and the sentence a refused capture reaches the compiler with is
+//! `CaptureBound::described`. The shell reports which bound; it declares none.
+//!
 //! # The offending token, not the first one
 //!
 //! The shell keeps a span table while converting, so a diagnostic's
@@ -44,9 +50,9 @@
 
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 use threadpak_macroc::{
-    CapturedDelimiter, CapturedInput, CapturedPayload, CapturedTokenTree, ClosedExpansion,
-    GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree, LocalCoordinate,
-    MacrocDiagnostic, RefusalCompileContext, SpanHandle, compile_refusal,
+    CaptureBound, CaptureWalk, CapturedDelimiter, CapturedInput, CapturedPayload,
+    CapturedTokenTree, ClosedExpansion, GeneratedDelimiter, GeneratedSpacing, GeneratedToken,
+    GeneratedTree, MacrocDiagnostic, RefusalCompileContext, SpanHandle, TokenPath, compile_refusal,
 };
 
 /// Derives a refusal family's declared facts from its declaration.
@@ -83,18 +89,15 @@ use threadpak_macroc::{
 #[proc_macro_derive(RefusalFamily, attributes(refusal))]
 pub fn refusal_family(item: TokenStream) -> TokenStream {
     let mut spans: Vec<Span> = Vec::new();
-    let Ok(trees) = capture_stream(item, 0, &mut spans) else {
-        return refused(
-            "threadpak refusal-family derive: the declared input exceeds a declared magnitude",
-            call_site(&spans),
-        );
+    let mut walk = CaptureWalk::declared();
+    let trees = match capture_stream(item, &TokenPath::root(), &mut walk, &mut spans) {
+        Ok(trees) => trees,
+        Err(bound) => return refused(bound.described(), call_site(&spans)),
     };
     let issued = u32::try_from(spans.len()).unwrap_or(u32::MAX);
-    let Ok(input) = CapturedInput::taken(trees, issued) else {
-        return refused(
-            "threadpak refusal-family derive: the declared input exceeds a declared magnitude",
-            call_site(&spans),
-        );
+    let input = match CapturedInput::taken(trees, issued) {
+        Ok(input) => input,
+        Err(bound) => return refused(bound.described(), call_site(&spans)),
     };
     match compile_refusal(&input, &RefusalCompileContext::expanding()) {
         Ok(closed) => emit(&closed),
@@ -138,53 +141,53 @@ fn emit_token(token: &GeneratedToken) -> TokenTree {
 
 /// Convert one token stream into captured trees, issuing a span handle per
 /// token into the shell's own table.
+///
+/// The route this stream sits at is carried in, and each token's own route is
+/// that route stepped by the token's position — so the shell and the services'
+/// own text reader build routes the same way, spend the same declared walk, and
+/// stand under the same four magnitudes.
 fn capture_stream(
     stream: TokenStream,
-    depth: u32,
+    path: &TokenPath,
+    walk: &mut CaptureWalk,
     spans: &mut Vec<Span>,
-) -> Result<Vec<CapturedTokenTree>, Unbounded> {
+) -> Result<Vec<CapturedTokenTree>, CaptureBound> {
     let mut captured = Vec::new();
     for (index, tree) in stream.into_iter().enumerate() {
-        let coordinate = LocalCoordinate {
-            depth,
-            index: u32::try_from(index).unwrap_or(u32::MAX),
-        };
-        captured.push(capture_tree(&tree, coordinate, depth, spans)?);
+        walk.examined()?;
+        walk.took()?;
+        let index = u32::try_from(index).map_err(|_| CaptureBound::LevelUnbounded)?;
+        let stepped = path.stepped(index)?;
+        captured.push(capture_tree(&tree, stepped, walk, spans)?);
     }
     Ok(captured)
 }
-
-/// The one way converting refuses: a group larger than the declared magnitude.
-/// The shell reports it rather than capturing a truncated group, because a
-/// truncated group is a different declaration.
-struct Unbounded;
 
 /// Convert one token tree, issuing its handle first so the handle order matches
 /// the reading order.
 fn capture_tree(
     tree: &TokenTree,
-    coordinate: LocalCoordinate,
-    depth: u32,
+    path: TokenPath,
+    walk: &mut CaptureWalk,
     spans: &mut Vec<Span>,
-) -> Result<CapturedTokenTree, Unbounded> {
+) -> Result<CapturedTokenTree, CaptureBound> {
     let handle = issue(tree.span(), spans);
     let payload = match tree {
         TokenTree::Ident(ident) => CapturedPayload::Word(ident.to_string()),
         TokenTree::Punct(punct) => CapturedPayload::Punct(punct.as_char()),
         TokenTree::Literal(literal) => literal_payload(&literal.to_string()),
         TokenTree::Group(group) => {
-            let inner = capture_stream(group.stream(), depth.saturating_add(1), spans)?;
+            let inner = capture_stream(group.stream(), &path, walk, spans)?;
             let delimiter = match group.delimiter() {
                 Delimiter::Parenthesis => CapturedDelimiter::Parenthesis,
                 Delimiter::Brace => CapturedDelimiter::Brace,
                 Delimiter::Bracket => CapturedDelimiter::Bracket,
                 Delimiter::None => CapturedDelimiter::Bare,
             };
-            return CapturedTokenTree::group_of(delimiter, inner, coordinate, handle)
-                .map_err(|_| Unbounded);
+            return CapturedTokenTree::group_of(delimiter, inner, path, handle);
         }
     };
-    Ok(CapturedTokenTree::captured(payload, coordinate, handle))
+    Ok(CapturedTokenTree::captured(payload, path, handle))
 }
 
 /// The payload one literal token carries. A quoted text becomes a text payload

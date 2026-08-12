@@ -35,6 +35,36 @@ pub enum BoundAxis {
     Bytes,
 }
 
+impl BoundAxis {
+    /// The axis's position in the declared roster — what a canonical encoding
+    /// of an issue carries for it, and what a diagnostic names it by.
+    #[must_use]
+    pub const fn slot(self) -> u8 {
+        match self {
+            Self::Declarations => 0,
+            Self::Outputs => 1,
+            Self::TraceEntries => 2,
+            Self::Diagnostics => 3,
+            Self::OriginEdges => 4,
+            Self::Bytes => 5,
+        }
+    }
+
+    /// The axis rendered for a person. A projection of the typed value: nothing
+    /// reads it back.
+    #[must_use]
+    pub const fn described(self) -> &'static str {
+        match self {
+            Self::Declarations => "the source declarations one plan may name",
+            Self::Outputs => "the outputs one plan may declare",
+            Self::TraceEntries => "the entries one decision trace may record",
+            Self::Diagnostics => "the diagnostics one pass may carry",
+            Self::OriginEdges => "the edges one origin trail may draw",
+            Self::Bytes => "the bytes one bounded projection may carry",
+        }
+    }
+}
+
 /// The declared bound axes, in the order the plane states them.
 pub const BOUND_AXES: [BoundAxis; 6] = [
     BoundAxis::Declarations,
@@ -54,6 +84,24 @@ pub enum PlanSeat {
     /// The context's target binding, where the kind requires a bound host
     /// contract and the context is target-free.
     TargetBinding,
+}
+
+impl PlanSeat {
+    /// The seat's position in the declared roster.
+    #[must_use]
+    pub const fn slot(self) -> u8 {
+        match self {
+            Self::TargetBinding => 0,
+        }
+    }
+
+    /// The seat rendered for a person.
+    #[must_use]
+    pub const fn described(self) -> &'static str {
+        match self {
+            Self::TargetBinding => "the context's target binding",
+        }
+    }
 }
 
 /// The pair of owner facts a contradiction stands between. Neither side is
@@ -125,6 +173,34 @@ pub enum ProjectionPlanningIssue {
         /// The orphaned node.
         node: ProjectionIdentity<GeneratedUnitSubject>,
     },
+    /// Two planned members stand under one rendered role. A membership is a SET
+    /// over roles: the closure check matches a rendered unit to a planned member
+    /// BY ROLE, so a role carrying two members leaves that match electing one of
+    /// them and proving nothing about the other.
+    MembershipDoubled {
+        /// The doubled role's position in its kind's declared roster.
+        role_slot: u32,
+        /// How many members stood under it.
+        observed: u32,
+    },
+}
+
+impl ProjectionPlanningIssue {
+    /// The issue kind's position in the declared roster, written ahead of the
+    /// issue's own material so two kinds never encode alike.
+    #[must_use]
+    pub const fn slot(&self) -> u8 {
+        match self {
+            Self::MissingOwnerFact { .. } => 0,
+            Self::ContradictoryOwnerFacts { .. } => 1,
+            Self::UnknownProjectionKind { .. } => 2,
+            Self::ProfileUnsupported { .. } => 3,
+            Self::BoundExceeded { .. } => 4,
+            Self::MembershipIncomplete { .. } => 5,
+            Self::OrphanGeneratedNode { .. } => 6,
+            Self::MembershipDoubled { .. } => 7,
+        }
+    }
 }
 
 /// The planning refusal family body.

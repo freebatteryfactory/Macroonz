@@ -34,9 +34,9 @@ use crate::plane::{
     OwnerFactRef, OwnerIdentityRef, PatternArgumentLimit, PatternArgumentSubject,
     PatternInstanceSubject, PatternSubject, PlanId, PortSubject, ProfileVersion,
     ProjectionIdentity, ProjectionProfileSubject, ProjectionProvenance, ProjectionRole,
-    ProjectionTranscript, RenderedRole, SchemaSubject, SoleRenderedUnit, SourceDeclarationLimit,
-    TranscriptAnchoring, WireContractSubject, WorkCurrencySubject, WorkFormulaSubject,
-    WrapperComponentLimit, encode_bytes, encode_length,
+    ProjectionTranscript, RenderedRole, RenderedRoleSeal, SchemaSubject, SoleRenderedUnit,
+    SourceDeclarationLimit, TranscriptAnchoring, WireContractSubject, WorkCurrencySubject,
+    WorkFormulaSubject, WrapperComponentLimit, encode_bytes, encode_length,
 };
 use crate::question::ExplanationQuestion;
 use crate::refusal::{BoundAxis, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue};
@@ -438,26 +438,79 @@ impl<R: RenderedRole> PlannedMembership<R> {
         }
     }
 
+    /// The complete output set of a kind whose roster is fixed by its own shape
+    /// — a *total structural* constructor.
+    ///
+    /// # Why the complete set has a road with no refusal on it
+    ///
+    /// Some kinds decide their membership at runtime and declare it through
+    /// [`PlannedMembership::declared`], which reads a count and may refuse.
+    /// Others do not: a shape that fixes exactly which roles it materializes
+    /// knows the whole set before anything runs, and there is no count to read.
+    ///
+    /// The arity is `N`, a compile-time constant, so the bound is settled by
+    /// const evaluation and this road returns no `Result`. That is the whole
+    /// point. The seam that stood here handed such a caller a `Result` it could
+    /// not fail, and the caller — having no honest value for a case that cannot
+    /// happen — repaired it with a ONE-MEMBER membership. A complete set that
+    /// silently became one member is a plan that declared a smaller output set
+    /// than the shape fixed, and the closure check downstream then proved the
+    /// smaller claim.
+    ///
+    /// # What this road does NOT settle
+    ///
+    /// It settles the magnitude, not the distinctness of the roles: nothing here
+    /// stops a caller passing one role twice. That is deliberate rather than
+    /// overlooked. A caller of this road names its roles literally, so a doubled
+    /// role is visible at the call site, and the closure check reads the PLAN's
+    /// own count per role independently and refuses before anything is emitted.
+    /// The checked road, whose roles arrive at runtime, refuses a doubled role
+    /// itself.
+    #[must_use]
+    pub fn complete<const N: usize>(first: PlannedMember<R>, rest: [PlannedMember<R>; N]) -> Self {
+        Self {
+            members: NonEmptyBounded::from_array(first, rest),
+        }
+    }
+
     /// Declare the complete output set.
     ///
     /// # Errors
     ///
     /// Returns the planning family naming [`BoundAxis::Outputs`] when the set
-    /// outgrows the declared bound.
+    /// outgrows the declared bound, and naming
+    /// [`ProjectionPlanningIssue::MembershipDoubled`] for every role two members
+    /// stand under. The second check is here rather than downstream because a
+    /// doubled role is a defect in the DECLARATION of the set: the closure check
+    /// matches by role, so a membership that reaches it doubled has already made
+    /// that match elect one member and ignore the other.
     pub fn declared(
         first: PlannedMember<R>,
         rest: Vec<PlannedMember<R>>,
     ) -> Result<Self, ProjectionPlanning> {
         let observed = rest.len().saturating_add(1);
-        NonEmptyBounded::admitted_const(first, rest)
-            .map(|members| Self { members })
-            .map_err(|_| {
-                ProjectionPlanning::bound_exceeded(
-                    BoundAxis::Outputs,
-                    MembershipLimit::MAX,
-                    observed,
-                )
-            })
+        let members = NonEmptyBounded::admitted_const(first, rest).map_err(|_| {
+            ProjectionPlanning::bound_exceeded(BoundAxis::Outputs, MembershipLimit::MAX, observed)
+        })?;
+        let declared = Self { members };
+        let mut doubled: Vec<ProjectionPlanningIssue> = Vec::new();
+        for role in R::ROLES {
+            let count = declared.count_under(*role);
+            if count > 1 {
+                doubled.push(ProjectionPlanningIssue::MembershipDoubled {
+                    role_slot: role.slot(),
+                    observed: u32::try_from(count).unwrap_or(u32::MAX),
+                });
+            }
+        }
+        let mut established = doubled.into_iter();
+        match established.next() {
+            Some(issue) => Err(ProjectionPlanning::co_established(
+                issue,
+                established.collect(),
+            )),
+            None => Ok(declared),
+        }
     }
 
     /// The guaranteed first member.
@@ -472,14 +525,32 @@ impl<R: RenderedRole> PlannedMembership<R> {
         self.members.iter().find(|member| member.role == role)
     }
 
-    /// How many members are planned under one role. Two is a defect the closure
-    /// check names; the membership itself never elects one of them.
+    /// How many members are planned under one role. Two is a defect
+    /// [`PlannedMembership::declared`] refuses; the membership itself never
+    /// elects one of them.
     #[must_use]
     pub fn count_under(&self, role: R) -> usize {
+        self.members_under(role).count()
+    }
+
+    /// Every member planned under one role, in declaration order.
+    ///
+    /// The road a COMPLETE-SET comparison walks. Comparing two memberships by
+    /// their first member per role would agree about two sets that differ in
+    /// their second, which is exactly what a doubled role produces.
+    pub fn members_under(&self, role: R) -> impl Iterator<Item = &PlannedMember<R>> {
         self.members
             .iter()
-            .filter(|member| member.role == role)
-            .count()
+            .filter(move |member| member.role == role)
+    }
+
+    /// Whether two memberships name the same members under one role, as sets:
+    /// the same count, member for member.
+    #[must_use]
+    pub fn agrees_under(&self, other: &Self, role: R) -> bool {
+        let mine: Vec<&PlannedMember<R>> = self.members_under(role).collect();
+        let theirs: Vec<&PlannedMember<R>> = other.members_under(role).collect();
+        mine == theirs
     }
 
     /// The number of members declared; structurally at least one.
@@ -931,6 +1002,7 @@ pub enum RenderedImplementation {
 }
 
 impl RenderedRole for RenderedImplementation {
+    const SEAL: RenderedRoleSeal = RenderedRoleSeal::admitted();
     const ROLES: &'static [Self] = &[Self::RenderedFamilyImpl, Self::RenderedCauseOrderImpl];
 
     fn slot(self) -> u32 {

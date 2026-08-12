@@ -55,6 +55,52 @@ deleted, not re-hashed. Hashing a lost-information fold with a strong digest
 would have produced a strong-looking value carrying a weak preimage, which is a
 worse position than the honest nonclaim it started from.
 
+## The working law: a failed required seat is a typed refusal
+
+**A required seat is never repaired with an empty, default, or neighbouring
+value after construction fails — a failed required seat is a typed refusal.**
+
+This is a law about what the services do at the moment something impossible
+happens. A checked seam returns a `Result`; a caller that has no honest value for
+the failing case reaches for the nearest one it can see, and the nearest one is
+always wrong in the same three ways:
+
+- **empty** — a rendering that did not fit becomes a blank explanation;
+- **default** — an owner fact nobody cited stands in for the one the plan
+  declares;
+- **neighbouring** — the first member of a set stands in for the member under a
+  role, the first rendered unit's digest stands in for the digest of the unit
+  this seat is about.
+
+Each of those produces a value that is well-formed, complete-looking, and about
+something else. That is strictly worse than a refusal, because everything
+downstream then proves the wrong claim correctly: a membership shortened to one
+member is closed over, at one member, and the closure is honest about a plan that
+is not.
+
+The law has two halves, and the first is the one that does the work.
+
+**Where the failing case cannot happen, the road must not have it.** A complete
+set fixed by a shape, a static rendering whose length is a compile-time fact, a
+roster with a known arity — none of these has a runtime count to read, so none of
+them returns a `Result`. `PlannedMembership::complete`,
+`RenderedProjection::complete`, `NonEmptyBounded::from_array`, and the seam behind
+`human_projection!` are *total structural* constructors: the bound is settled by
+const evaluation and there is no error branch for a caller to fill. This is the
+half that removes the temptation rather than policing it.
+
+**Where the failing case can happen, the refusal is typed and it propagates.** It
+names the seat (`ExplanationBindingRefusal::RequiredOutputAbsent`), the role
+(`ClosureIssue::MemberPlannedTwice`), the axis and magnitude
+(`ProjectionPlanningIssue::BoundExceeded`), or the bound it overran
+(`CaptureBound`). It reaches a caller as a diagnostic that keeps those
+distinctions — one related identity per established issue, the first issue's own
+classification, and a summary composed from the typed values.
+
+Saturating a numeric conversion to `MAX` while REPORTING a count is not this
+defect and is not touched by the law: it is a rendering of a number too large to
+render, inside a refusal that has already been established.
+
 ## Tooling obligations are their own category
 
 A core semantic obligation is a claim about the MACHINE — what a home's types
@@ -146,6 +192,59 @@ tooling-obligation: macroc.the-transcript-specification-is-complete
   nonclaims: >
     It does not claim BLAKE3 itself is independently implemented; both sides call
     the same admitted digest, because the digest is not what is under judgement.
+
+tooling-obligation: macroc.a-failed-required-seat-is-a-typed-refusal
+  claim: >
+    No required seat in the services is repaired with an empty, default, or
+    neighbouring value after construction fails. Where the failing case cannot
+    happen the road carries no refusal at all; where it can, the refusal is typed,
+    names its seat, and survives into the diagnostic as its own classification and
+    its own related identity.
+  owner: macros/macroc/src/derive_refusal/diagnose.rs
+  positive: macros/macroc/src/laws.rs
+  method: executable-law
+  activation: cargo test -p threadpak-macroc failure_path_closure
+  tooling-red: owed-to-testpak — a controlled mutant restoring each killed repair in turn
+  nonclaims: >
+    It does not claim every seat in the services is required; a declared default,
+    such as the crate binding a consumer did not rename, is a stated posture and
+    not a repair. It does not claim a saturating numeric conversion inside a
+    refusal body is covered: rendering a count too large to render is not
+    answering a seat with a neighbouring value.
+
+tooling-obligation: macroc.the-emitted-tree-is-inside-the-closure-proof
+  claim: >
+    The exact token stream an expansion emits is joined by the closure, owned by
+    it, and named by its identity: the closure transcript commits to the joined
+    tree's digest, and a closed expansion emits the closure's own tree rather than
+    a second concatenation performed after the proof returned.
+  owner: macros/macroc/src/closure.rs
+  positive: macros/macroc/src/laws.rs
+  method: executable-law
+  activation: cargo test -p threadpak-macroc failure_path_closure
+  tooling-red: owed-to-testpak — a mutant re-opening a public post-proof join
+  nonclaims: >
+    It does not claim the joined tree is correct Rust; that is lane C's claim and
+    the consumer fixtures make it.
+
+tooling-obligation: macroc.a-declared-input-stands-under-four-magnitudes
+  claim: >
+    Every producer of captured input — the expansion shell and the callable text
+    reader alike — walks under one declared nesting depth, one per-level token
+    magnitude, one whole-tree token magnitude, and one capture-work budget, and
+    exceeding any of them refuses naming that bound before any partial tree
+    exists. Each captured token carries the index route from the root, which
+    locates exactly one token.
+  owner: macros/macroc/src/token.rs
+  positive: macros/macroc/src/laws.rs
+  method: executable-law
+  activation: cargo test -p threadpak-macroc failure_path_closure
+  tooling-red: owed-to-testpak — a mutant restoring a saturating depth coordinate
+  nonclaims: >
+    It does not claim the budget binds before the whole-tree magnitude for
+    today's two producers; both keep every token they examine, so the tree
+    magnitude bites first, and the budget is what bounds a producer that reads
+    material it discards.
 
 tooling-obligation: macroc.the-generator-identity-is-a-deliberate-fact
   claim: >

@@ -110,7 +110,7 @@ const fn text_refusal(refusal: TextReadRefusal) -> RefusalDeriveRefusal {
             RefusalDeriveCapture::NotKeyed
         }
         TextReadCause::NotBalanced | TextReadCause::NotOpened => RefusalDeriveCapture::NotAnEnum,
-        TextReadCause::Unbounded => RefusalDeriveCapture::Unbounded,
+        TextReadCause::Unbounded(_) => RefusalDeriveCapture::Unbounded,
     };
     RefusalDeriveRefusal::established(cause, SpanHandle::at(0))
 }

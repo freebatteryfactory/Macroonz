@@ -117,17 +117,17 @@ mod identity_profile {
         ProjectionTranscript::rooted(ProjectionRole::Plan, &[], 0)
     }
 
-    /// law: identity-profile.the-declared-version-is-one — the profile's version
-    /// is a typed constant, and every vector below is a fingerprint OF that
-    /// version. Reading the vectors without reading the version they pin would
-    /// make a version bump look like a broken law.
+    /// law: identity-profile.the-declared-version-is-pinned — the profile's
+    /// version is a typed constant, and every vector below is a fingerprint OF
+    /// that version. Reading the vectors without reading the version they pin
+    /// would make a version bump look like a broken law.
     /// Owed reversal: bumping the version without restating the vectors must
     /// break this law.
     #[test]
-    fn the_declared_version_is_one() {
+    fn the_declared_version_is_pinned() {
         assert_eq!(
             PROJECTION_IDENTITY_PROFILE.version(),
-            IdentityProfileVersion::declared(1)
+            IdentityProfileVersion::declared(2)
         );
         assert_eq!(
             PROJECTION_IDENTITY_PROFILE.stem(),
@@ -145,7 +145,7 @@ mod identity_profile {
     fn the_domain_grammar_is_spelled_exactly() {
         assert_eq!(
             PROJECTION_IDENTITY_PROFILE.context_for("generated-unit", ProjectionRole::OutputBytes),
-            "threadpak/macroc/projection-identity/v1/generated-unit/output-bytes"
+            "threadpak/macroc/projection-identity/v2/generated-unit/output-bytes"
         );
     }
 
@@ -197,7 +197,7 @@ mod identity_profile {
     fn the_transcript_is_spelled_exactly() {
         let mut expected = Vec::new();
         encode_bytes(b"threadpak/macroc/projection-identity", &mut expected);
-        expected.extend_from_slice(&1_u32.to_be_bytes());
+        expected.extend_from_slice(&2_u32.to_be_bytes());
         encode_bytes(b"generated-unit", &mut expected);
         encode_bytes(b"generated-unit", &mut expected);
         expected.push(3);
@@ -220,25 +220,25 @@ mod identity_profile {
         assert_eq!(
             *ProjectionIdentity::<GeneratedUnitSubject>::derived(anchored_vector()).as_bytes(),
             [
-                0x22, 0x5b, 0x59, 0x27, 0x6a, 0xd4, 0xb7, 0xa0, 0x78, 0x22, 0x95, 0xc3, 0xc7, 0x61,
-                0xf4, 0x2c, 0x70, 0x3e, 0xdc, 0x8e, 0x03, 0x5c, 0xde, 0xc9, 0xbc, 0x8f, 0x09, 0xc9,
-                0xc3, 0xb0, 0xe1, 0x8a
+                0x96, 0xcc, 0x34, 0x97, 0xff, 0x45, 0xff, 0xe8, 0xe0, 0xa3, 0x91, 0xbd, 0x0d, 0xe4,
+                0x1c, 0xf8, 0xf0, 0xc2, 0xc4, 0x97, 0xbe, 0x9d, 0x6a, 0x8c, 0xf4, 0x6f, 0x93, 0x77,
+                0x57, 0x9a, 0x06, 0x98
             ]
         );
         assert_eq!(
             *ProjectionIdentity::<RenderedUnitSubject>::derived(anchored_vector()).as_bytes(),
             [
-                0xb8, 0x3c, 0xd9, 0xef, 0x48, 0x32, 0x72, 0xc2, 0x2c, 0x41, 0x7c, 0x53, 0x62, 0xd1,
-                0x4d, 0xf3, 0x27, 0x14, 0xb9, 0x08, 0xa7, 0x62, 0xfe, 0xf7, 0x7f, 0x29, 0xe2, 0xc7,
-                0x4d, 0xde, 0xc4, 0xd4
+                0x58, 0x8e, 0xeb, 0xea, 0x96, 0xf7, 0xe8, 0x79, 0xf3, 0x9d, 0xe0, 0x89, 0x1c, 0x74,
+                0x4a, 0xaf, 0x32, 0x7d, 0x71, 0x0d, 0xfd, 0xed, 0x4d, 0xb5, 0x92, 0xa8, 0x68, 0xed,
+                0x31, 0x5c, 0x49, 0x07
             ]
         );
         assert_eq!(
             *ProjectionIdentity::<PlanSubject>::derived(rooted_vector()).as_bytes(),
             [
-                0x3e, 0xb8, 0x1c, 0xf9, 0xb7, 0x39, 0x0b, 0x3e, 0xbd, 0x8f, 0xa4, 0xdd, 0x4b, 0x3f,
-                0x2d, 0xa4, 0x22, 0x30, 0x8b, 0xc6, 0x4d, 0xc5, 0xb8, 0x39, 0x42, 0xe1, 0x5b, 0x64,
-                0x7b, 0x9b, 0xd9, 0xc8
+                0x26, 0x97, 0x00, 0x6a, 0xa8, 0x65, 0xbc, 0xf1, 0xe1, 0x5c, 0xff, 0x73, 0x76, 0xb9,
+                0xe8, 0xe9, 0xbd, 0xc6, 0xad, 0xc9, 0xb2, 0x5a, 0xb1, 0x57, 0x30, 0xf4, 0x4b, 0x19,
+                0x4c, 0xe8, 0x8a, 0xc2
             ]
         );
     }
@@ -380,7 +380,7 @@ mod identity_profile {
         );
         assert_eq!(
             provenance.context(),
-            "threadpak/macroc/projection-identity/v1/generated-unit/generated-unit"
+            "threadpak/macroc/projection-identity/v2/generated-unit/generated-unit"
         );
     }
 }
@@ -1340,6 +1340,7 @@ mod explanation_protocol {
     };
     use crate::plane::{
         HumanProjection, HumanTextLimit, OwnerFactRef, OwnerIdentityRef, ProfileVersion,
+        human_projection,
     };
     use crate::planning::{
         CauseAnchoring, DeriveImplProjection, DigestContract, GraphAnchoring,
@@ -1357,11 +1358,14 @@ mod explanation_protocol {
         }
     }
 
-    /// One rendering, for laws that need a human projection. The empty
-    /// rendering is total, so this helper needs no panic road.
+    /// One rendering, for laws that need a human projection.
+    ///
+    /// Taken through the compile-time-proven road, so the helper carries no
+    /// refusal and no substitute. It used to swallow the checked road's refusal
+    /// with an empty rendering, which is the same defect the proof surface
+    /// exists to catch — a helper is not exempt from the law it helps prove.
     fn human() -> HumanProjection<HumanTextLimit> {
-        HumanProjection::projected("derived from the declared contract")
-            .unwrap_or_else(|_| HumanProjection::empty())
+        human_projection!(HumanTextLimit, "derived from the declared contract")
     }
 
     /// The eight universal answers every kind owes.
@@ -2199,12 +2203,18 @@ mod trigger_view {
         assert_eq!(*selected.because.first(), owner_fact(90));
         assert!(!selected.because.is_empty());
 
-        let paired = TriggerSelection {
-            component: WrapperComponent::Receipt,
-            because: NonEmptyBounded::admitted_const(owner_fact(94), vec![owner_fact(96)])
-                .unwrap_or_else(|_| NonEmptyBounded::singleton(owner_fact(94))),
-        };
-        assert_eq!(paired.because.iter().count(), 2);
+        // The two-citation selection is built through the CHECKED seam and the
+        // law reads the result of that seam. It used to swallow the refusal with
+        // a one-citation selection, which would have passed the count assertion
+        // below only by accident and would have proven nothing about the pair.
+        let paired =
+            NonEmptyBounded::admitted_const(owner_fact(94), vec![owner_fact(96)]).map(|because| {
+                TriggerSelection {
+                    component: WrapperComponent::Receipt,
+                    because,
+                }
+            });
+        assert!(paired.is_ok_and(|selection| selection.because.iter().count() == 2));
 
         let left_out = omission(WrapperComponent::Explanation);
         assert_eq!(left_out.because.len(), 1);
@@ -2862,9 +2872,10 @@ mod derive_refusal {
     }
 
     /// law: derive.inspection-and-emission-read-one-value — the text a caller
-    /// inspects is a projection of the same tree that is emitted, and the plan
-    /// and closure a caller reads are the same values the emission came from.
-    /// There is no parallel plan and no synthetic sibling.
+    /// inspects is a projection of the same tree that is emitted, the tree the
+    /// receipt emits is the CLOSURE's own tree, and the closure's identity
+    /// commits to that tree's digest. There is no parallel plan, no synthetic
+    /// sibling, and no join performed past the proof.
     /// Owed reversal (red twin): a second rendering built for inspection must
     /// break this law.
     #[test]
@@ -2873,14 +2884,18 @@ mod derive_refusal {
         assert!(compiled.is_ok_and(|(_, closed)| {
             let inspected = closed.inspected();
             let emitted = closed.emitted().inspected();
-            let joined = closed
-                .rendered()
-                .joined_tree()
-                .map(|tree| tree.inspected())
-                .unwrap_or_default();
+            let owned = closed.closure().emitted();
             inspected == emitted
-                && inspected == joined
-                && closed.closure().identity() == closed.closure().identity()
+                && closed.emitted() == owned
+                && closed.closure().emitted_digest()
+                    == crate::plane::ProjectionIdentity::derived(
+                        crate::plane::ProjectionTranscript::under_projection(
+                            crate::plane::ProjectionRole::OutputBytes,
+                            &closed.plan().identity(),
+                            &owned.canonical_bytes(),
+                            0,
+                        ),
+                    )
         }));
     }
 
@@ -3011,6 +3026,495 @@ mod derive_refusal {
         let read = TextCapture::read(SINGLE_CAUSE).map_err(|_| ());
         assert!(read.is_ok_and(|read| {
             captured(read.input()).is_ok_and(|surface| surface.family_id() == "demo.example")
+        }));
+    }
+}
+
+/// The failure-path closure's proof surface.
+///
+/// # The working law
+///
+/// **A required seat is never repaired with an empty, default, or neighbouring
+/// value after construction fails — a failed required seat is a typed refusal.**
+///
+/// Every law below stands over one class of repair this plane used to perform,
+/// and each one proves the same thing about its class: the construction that
+/// would have taken the old repair now either cannot be written at all, or
+/// refuses with a cause that names the seat.
+///
+/// The classes, and where each one used to live:
+///
+/// | class | the repair that used to happen |
+/// | ----- | ------------------------------ |
+/// | a shortened complete set | a failed two-role membership became a one-role one |
+/// | an invented member | an impossible empty roster invented a family member |
+/// | an elected duplicate | a role carrying two members had one of them elected |
+/// | a first-per-role comparison | a set check that read one member per role |
+/// | a post-proof concatenation | the emitted tree was joined after the proof returned |
+/// | a blanked explanation | an over-long rendering became an empty one |
+/// | a neighbouring subject | an explanation answered about the value next to its own |
+/// | a generic cause | five typed refusal families became one sentence |
+/// | a saturated coordinate | a depth that stopped counting made two tokens one |
+mod failure_path_closure {
+    use crate::closure::{ClosureIssue, ProjectionClosure, RenderedProjection, RenderedUnit};
+    use crate::derive_refusal::{
+        ExplanationSeat, compile_refusal_text, diagnose, plan as derive_plan,
+    };
+    use crate::diagnostics::ObservedClassification;
+    use crate::plane::{
+        HumanProjection, HumanTextLimit, RenderedRole, SoleRenderedUnit, human_projection,
+    };
+    use crate::planning::{
+        MemberDestination, PlannedMember, PlannedMembership, RenderedImplementation,
+    };
+    use crate::refusal::{BoundAxis, ProjectionPlanning, ProjectionPlanningIssue};
+    use crate::token::{CaptureBound, CaptureWalk, TextCapture, TextReadCause};
+    use threadpak::types::ConstLimit;
+
+    /// The lawful single-cause declaration, whose shape fixes a two-role output
+    /// set.
+    const SINGLE_CAUSE: &str = "#[refusal(family = \"demo.example\", shape = single_cause, \
+        order(NotCanonical = \"not-canonical\", NotAdmitted = \"not-admitted\"))] \
+        enum DemoFamily { NotCanonical, NotAdmitted, }";
+
+    /// law: closure.a-complete-set-is-never-shortened — a shape that fixes two
+    /// rendered roles plans two members, one under each role, and the road that
+    /// builds it carries no refusal to swallow. The old road repaired a failed
+    /// complete set with the first member alone.
+    /// Owed reversal (red twin): a membership road returning a `Result` a caller
+    /// must repair must break this law.
+    #[test]
+    fn a_complete_set_is_never_shortened() {
+        let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
+        assert!(compiled.is_ok_and(|(_, closed)| {
+            let membership = closed.plan().membership();
+            membership.len() == 2
+                && RenderedImplementation::ROLES
+                    .iter()
+                    .all(|role| membership.count_under(*role) == 1)
+        }));
+    }
+
+    /// law: closure.a-doubled-planned-role-refuses — the checked membership road
+    /// refuses a set carrying two members under one role, naming the role slot
+    /// and the count. The old road admitted it and let the closure's role match
+    /// elect one of the two.
+    /// Owed reversal (red twin): a membership admitting a doubled role must
+    /// break this law.
+    #[test]
+    fn a_doubled_planned_role_refuses() {
+        let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
+        assert!(compiled.is_ok_and(|(_, closed)| {
+            let family = closed
+                .plan()
+                .membership()
+                .under(RenderedImplementation::RenderedFamilyImpl)
+                .cloned();
+            family.is_some_and(|member| {
+                let doubled = PlannedMembership::declared(member.clone(), vec![member]);
+                doubled.is_err_and(|refusal| {
+                    *refusal.issues.first()
+                        == ProjectionPlanningIssue::MembershipDoubled {
+                            role_slot: RenderedImplementation::RenderedFamilyImpl.slot(),
+                            observed: 2,
+                        }
+                })
+            })
+        }));
+    }
+
+    /// law: closure.the-proof-reads-the-plans-own-count — the closure checks how
+    /// many members the PLAN declared under each role, independently of what was
+    /// rendered, and refuses a doubled role before comparing anything. Reading
+    /// the plan through its first match per role would have hidden it.
+    /// Owed reversal (red twin): a proof that read only `under` must break this
+    /// law.
+    #[test]
+    fn the_proof_reads_the_plans_own_count() {
+        let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
+        assert!(compiled.is_ok_and(|(_, closed)| {
+            let family = closed
+                .plan()
+                .membership()
+                .under(RenderedImplementation::RenderedFamilyImpl)
+                .cloned();
+            let rendered = closed
+                .rendered()
+                .under(RenderedImplementation::RenderedFamilyImpl)
+                .cloned();
+            family.is_some_and(|member| {
+                rendered.is_some_and(|unit| {
+                    let doubled = PlannedMembership::complete(member.clone(), [member]);
+                    ProjectionClosure::proved(
+                        closed.plan().identity(),
+                        &doubled,
+                        RenderedProjection::of_one(unit),
+                    )
+                    .is_err_and(|refusal| {
+                        *refusal.issues.first()
+                            == ClosureIssue::MemberPlannedTwice {
+                                role: RenderedImplementation::RenderedFamilyImpl,
+                                observed: 2,
+                            }
+                    })
+                })
+            })
+        }));
+    }
+
+    /// law: closure.the-rebuild-is-compared-as-a-set — the closure's last act is
+    /// a role-by-role comparison of two complete memberships, and a rebuild that
+    /// agrees under every role is the same set as the plan's. The seam that
+    /// stood here compared one member per role and would have agreed about two
+    /// sets differing in their second.
+    /// Owed reversal (red twin): a first-per-role comparison must break this
+    /// law.
+    #[test]
+    fn the_rebuild_is_compared_as_a_set() {
+        let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
+        assert!(compiled.is_ok_and(|(_, closed)| {
+            let planned = closed.plan().membership();
+            let rebuilt = closed.closure().reconstructed();
+            let same = RenderedImplementation::ROLES
+                .iter()
+                .all(|role| rebuilt.agrees_under(planned, *role));
+            let family = closed
+                .plan()
+                .membership()
+                .under(RenderedImplementation::RenderedFamilyImpl)
+                .cloned();
+            // A set the plan does not hold disagrees under the role it differs
+            // at, which is what makes the agreement above evidence.
+            let elsewhere = family.is_some_and(|member| {
+                !PlannedMembership::complete(member, [])
+                    .agrees_under(planned, RenderedImplementation::RenderedCauseOrderImpl)
+            });
+            same && rebuilt.len() == planned.len() && elsewhere
+        }));
+    }
+
+    /// law: closure.the-emitted-tree-is-inside-the-proof — the closure joins the
+    /// rendered units itself, keeps the joined tree, and commits to its digest;
+    /// the receipt emits that same tree rather than a second concatenation. The
+    /// old road joined the units after the proof had already returned.
+    /// Owed reversal (red twin): a public post-proof join must break this law.
+    #[test]
+    fn the_emitted_tree_is_inside_the_proof() {
+        let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
+        assert!(compiled.is_ok_and(|(_, closed)| {
+            let owned = closed.closure().emitted();
+            let roster: usize = RenderedImplementation::ROLES
+                .iter()
+                .filter_map(|role| closed.rendered().under(*role))
+                .map(|unit| unit.tree().len())
+                .sum();
+            !owned.is_empty() && owned.len() == roster && closed.emitted() == owned
+        }));
+    }
+
+    /// law: closure.a-static-rendering-is-carried-whole — the proven road builds
+    /// its bytes from the rendering itself, so a projection taken through it has
+    /// exactly the rendering's length and can never be the empty one. The seam
+    /// it replaced turned an over-long rendering into a blank explanation.
+    /// Owed reversal (red twin): a proven road with an empty fallback must break
+    /// this law.
+    #[test]
+    fn a_static_rendering_is_carried_whole() {
+        let rendered = human_projection!(HumanTextLimit, "the owner declared this repair");
+        assert_eq!(rendered.len(), 30);
+        assert!(!rendered.is_empty());
+        assert_eq!(rendered.shown(), "the owner declared this repair");
+        // The checked road still refuses rather than truncating, and the two
+        // roads are not interchangeable: this one reads a runtime length.
+        let oversized = "x".repeat(HumanTextLimit::MAX.saturating_add(1));
+        assert!(HumanProjection::<HumanTextLimit>::projected(&oversized).is_err());
+    }
+
+    /// law: closure.an-explanation-binds-its-own-subject — the output-and-digest
+    /// seat carries the digest of the unit rendered under the FAMILY role, and
+    /// the two rendered units carry different digests, so an answer taken from
+    /// the neighbouring unit would be a different value. The seats an
+    /// explanation can fail to bind are typed and named.
+    /// Owed reversal (red twin): a first-unit digest fallback must break this
+    /// law.
+    #[test]
+    fn an_explanation_binds_its_own_subject() {
+        let seats = [
+            ExplanationSeat::PlannedFamilyMember,
+            ExplanationSeat::ProvedFamilyDigest,
+            ExplanationSeat::DeclaredAssumption,
+        ];
+        let mut slots: Vec<u8> = seats.iter().map(|seat| seat.slot()).collect();
+        slots.sort_unstable();
+        let counted = slots.len();
+        slots.dedup();
+        assert_eq!(slots.len(), counted);
+
+        let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
+        assert!(compiled.is_ok_and(|(_, closed)| {
+            let family = closed
+                .rendered()
+                .under(RenderedImplementation::RenderedFamilyImpl)
+                .map(RenderedUnit::digest);
+            let neighbour = closed
+                .rendered()
+                .under(RenderedImplementation::RenderedCauseOrderImpl)
+                .map(RenderedUnit::digest);
+            family.is_some_and(|family| neighbour.is_some_and(|neighbour| family != neighbour))
+        }));
+    }
+
+    /// law: closure.a-typed-refusal-survives-into-the-diagnostic — a planning
+    /// body's axis, magnitude, and observed count reach the diagnostic's own
+    /// line and its classification, and two different bodies derive different
+    /// related identities. The seam this replaced projected every family through
+    /// one sentence under one classification with an empty related set.
+    /// Owed reversal (red twin): a shared step diagnostic must break this law.
+    #[test]
+    fn a_typed_refusal_survives_into_the_diagnostic() {
+        let outputs = diagnose::planning_refused(&ProjectionPlanning::bound_exceeded(
+            BoundAxis::Outputs,
+            32,
+            33,
+        ));
+        let declarations = diagnose::planning_refused(&ProjectionPlanning::bound_exceeded(
+            BoundAxis::Declarations,
+            64,
+            65,
+        ));
+        assert!(matches!(
+            outputs.observed,
+            ObservedClassification::BoundExceeded
+        ));
+        assert!(outputs.summary.shown().contains("declared 32, observed 33"));
+        assert!(
+            outputs
+                .summary
+                .shown()
+                .contains("the outputs one plan may declare")
+        );
+        // The body's own identity, then one per established issue.
+        assert_eq!(outputs.related.len(), 2);
+        assert_ne!(outputs.summary, declarations.summary);
+        let mine: Vec<&crate::plane::ProjectionIdentity<crate::plane::RelatedIssueSubject>> =
+            outputs.related.iter().collect();
+        let theirs: Vec<&crate::plane::ProjectionIdentity<crate::plane::RelatedIssueSubject>> =
+            declarations.related.iter().collect();
+        assert_ne!(mine, theirs);
+
+        let seat = diagnose::explanation_refused(
+            &crate::derive_refusal::ExplanationBindingRefusal::RequiredOutputAbsent {
+                seat: ExplanationSeat::ProvedFamilyDigest,
+            },
+        );
+        assert!(matches!(seat.observed, ObservedClassification::SeatAbsent));
+        assert!(
+            seat.summary
+                .shown()
+                .contains(ExplanationSeat::ProvedFamilyDigest.described())
+        );
+    }
+
+    /// law: closure.a-closure-refusal-names-its-role — every closure issue that
+    /// is about a role names it, the three that are about the whole
+    /// reconstruction name none, and the diagnostic's line carries the role's
+    /// own description.
+    /// Owed reversal (red twin): a role-free closure diagnostic must break this
+    /// law.
+    #[test]
+    fn a_closure_refusal_names_its_role() {
+        let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
+        assert!(compiled.is_ok_and(|(_, closed)| {
+            let family = closed
+                .rendered()
+                .under(RenderedImplementation::RenderedFamilyImpl)
+                .cloned();
+            family.is_some_and(|unit| {
+                ProjectionClosure::proved(
+                    closed.plan().identity(),
+                    closed.plan().membership(),
+                    RenderedProjection::of_one(unit),
+                )
+                .is_err_and(|refusal| {
+                    let projected = diagnose::closure_refused(&refusal);
+                    projected
+                        .summary
+                        .shown()
+                        .contains(RenderedImplementation::RenderedCauseOrderImpl.described())
+                        && projected.related.len() == 2
+                })
+            })
+        }));
+    }
+
+    /// law: closure.a-rendered-roster-names-every-variant-once — each admitted
+    /// roster is exhaustive over its own enum, every variant sits at exactly one
+    /// roster position, and every slot IS that position. The roster is the
+    /// quantifier every closure proof walks, so a roster missing a variant would
+    /// make that variant's unit invisible to the proof.
+    /// Owed reversal (red twin): a roster omitting a variant must break this
+    /// law.
+    #[test]
+    fn a_rendered_roster_names_every_variant_once() {
+        // Exhaustive matches: adding a variant without adding it to the roster
+        // below stops compiling here.
+        const fn implementation_position(role: RenderedImplementation) -> usize {
+            match role {
+                RenderedImplementation::RenderedFamilyImpl => 0,
+                RenderedImplementation::RenderedCauseOrderImpl => 1,
+            }
+        }
+        const fn sole_position(role: SoleRenderedUnit) -> usize {
+            match role {
+                SoleRenderedUnit::Sole => 0,
+            }
+        }
+        assert_eq!(RenderedImplementation::ROLES.len(), 2);
+        assert_eq!(SoleRenderedUnit::ROLES.len(), 1);
+        for (position, role) in RenderedImplementation::ROLES.iter().enumerate() {
+            assert_eq!(implementation_position(*role), position);
+            assert_eq!(usize::try_from(role.slot()).unwrap_or(usize::MAX), position);
+            assert!(!role.described().is_empty());
+        }
+        for (position, role) in SoleRenderedUnit::ROLES.iter().enumerate() {
+            assert_eq!(sole_position(*role), position);
+            assert_eq!(usize::try_from(role.slot()).unwrap_or(usize::MAX), position);
+        }
+    }
+
+    /// law: closure.a-token-route-locates-exactly-one-token — a route is the
+    /// index path from the root, so two tokens at the same depth and the same
+    /// position inside their own groups carry different routes. The pair this
+    /// replaced gave both of them one value.
+    /// Owed reversal (red twin): a depth-and-index coordinate must break this
+    /// law.
+    #[test]
+    fn a_token_route_locates_exactly_one_token() {
+        let read = TextCapture::read("a (b) (c)").map_err(|_| ());
+        assert!(read.is_ok_and(|read| {
+            let inner: Vec<Vec<u32>> = read
+                .input()
+                .trees()
+                .filter_map(|tree| tree.group())
+                .filter_map(|(_, trees)| trees.iter().next())
+                .map(|tree| tree.path().steps().copied().collect())
+                .collect();
+            inner.len() == 2 && inner.first() != inner.get(1)
+        }));
+    }
+
+    /// law: closure.a-capture-refuses-before-a-partial-tree — nesting past the
+    /// declared depth, a tree past the declared total, and a walk past its
+    /// declared budget each refuse naming the bound they overran, and none of
+    /// them hands back a truncated capture. Only a per-level bound stood here,
+    /// and depth saturated rather than refusing.
+    /// Owed reversal (red twin): a saturating depth must break this law.
+    #[test]
+    fn a_capture_refuses_before_a_partial_tree() {
+        let deep = format!("{}x{}", "(".repeat(64), ")".repeat(64));
+        let read = TextCapture::read(&deep);
+        assert!(read.is_err_and(|refusal| matches!(
+            refusal.cause,
+            TextReadCause::Unbounded(CaptureBound::DepthUnbounded)
+        )));
+
+        let mut walk = CaptureWalk::declared();
+        let mut spent = false;
+        for _ in 0..=CaptureWalk::DECLARED_WORK {
+            if walk.examined().is_err() {
+                spent = true;
+                break;
+            }
+        }
+        assert!(spent);
+        assert_eq!(walk.remaining(), 0);
+
+        let mut counting = CaptureWalk::declared();
+        let mut overran = false;
+        for _ in 0..=u32::try_from(crate::plane::CapturedTreeTokenLimit::MAX).unwrap_or(u32::MAX) {
+            if counting.took().is_err() {
+                overran = true;
+                break;
+            }
+        }
+        assert!(overran);
+        assert_eq!(
+            usize::try_from(counting.taken()).unwrap_or(usize::MAX),
+            crate::plane::CapturedTreeTokenLimit::MAX
+        );
+
+        // Every bound renders itself, so a producer reporting one composes no
+        // sentence of its own.
+        for bound in [
+            CaptureBound::DepthUnbounded,
+            CaptureBound::LevelUnbounded,
+            CaptureBound::TreeUnbounded,
+            CaptureBound::WorkUnbounded,
+        ] {
+            assert!(!bound.described().is_empty());
+        }
+    }
+
+    /// law: closure.a-rendering-refusal-names-its-magnitude — a materialization
+    /// refusal reaches the diagnostic naming the exact declared magnitude, the
+    /// unit it governs, and the role that overran it.
+    /// Owed reversal (red twin): a bound refusal that named no magnitude must
+    /// break this law.
+    #[test]
+    fn a_rendering_refusal_names_its_magnitude() {
+        let bytes = diagnose::rendering_refused(
+            crate::closure::RenderingRefusal::BytesUnbounded,
+            RenderedImplementation::RenderedFamilyImpl,
+        );
+        let shown = bytes.summary.shown();
+        assert!(matches!(
+            bytes.observed,
+            ObservedClassification::BoundExceeded
+        ));
+        assert!(shown.contains("the bytes one rendered unit may carry"));
+        assert!(shown.contains(RenderedImplementation::RenderedFamilyImpl.described()));
+        assert!(shown.contains(&crate::plane::RenderedByteLimit::MAX.to_string()));
+
+        let tree = diagnose::render_refused(
+            crate::derive_refusal::RenderRefusal::Unbounded,
+            RenderedImplementation::RenderedCauseOrderImpl,
+        );
+        assert_ne!(bytes.summary, tree.summary);
+    }
+
+    /// law: closure.a-planned-member-carries-no-invented-role — the membership
+    /// road is a match over the two answers the shape admits, so the member set
+    /// is a function of the shape and nothing invents a role for an empty
+    /// roster. A collection shape plans one member and a single-cause shape
+    /// plans two, and both are built through the total road.
+    /// Owed reversal: a roster-shaped membership road must break this law.
+    #[test]
+    fn a_planned_member_carries_no_invented_role() {
+        let collection = "#[refusal(family = \"demo.example\", shape = issue_collection)] \
+            enum DemoIssues { NotBound, NotCovered, }";
+        let one = compile_refusal_text(collection).map_err(|_| ());
+        assert!(one.is_ok_and(|(_, closed)| {
+            let membership = closed.plan().membership();
+            membership.len() == 1
+                && membership.count_under(RenderedImplementation::RenderedFamilyImpl) == 1
+                && membership.count_under(RenderedImplementation::RenderedCauseOrderImpl) == 0
+        }));
+
+        // The same theorem stated over the planning road directly: the profile,
+        // destination, and digest contract of every member come from the role.
+        let read = TextCapture::read(SINGLE_CAUSE).map_err(|_| ());
+        assert!(read.is_ok_and(|read| {
+            crate::derive_refusal::captured(read.input()).is_ok_and(|surface| {
+                let draft = surface.planned();
+                let membership = derive_plan::membership(&draft);
+                membership.len() == 2
+                    && membership.iter().all(|member: &PlannedMember<_>| {
+                        matches!(
+                            member.output.destination,
+                            MemberDestination::AtDeclarationSite
+                        )
+                    })
+            })
         }));
     }
 }

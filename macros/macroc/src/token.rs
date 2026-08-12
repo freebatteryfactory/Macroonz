@@ -12,10 +12,15 @@
 //! So the seam is typed on both sides.
 //!
 //! **Reading.** [`CapturedTokenTree`] is what one token of a declared input is:
-//! a payload, a **stable local coordinate** naming exactly where it sits in the
+//! a payload, a **stable [`TokenPath`]** naming exactly where it sits in the
 //! tree, and an opaque [`SpanHandle`] indexing the producer's own span table.
 //! Delimited groups stay groups; nothing is re-lexed and no balance is
 //! re-discovered.
+//!
+//! **Every producer walks under the same declared magnitudes.** Depth, level,
+//! whole-tree token count, and a capture-work budget are declared here once and
+//! spent by every producer — the compiler shell and the text reader alike — so
+//! "how big may a declared input be" has one answer rather than one per road.
 //!
 //! **Writing.** [`GeneratedTree`] is what a renderer produces. The human Rust
 //! text is [`GeneratedTree::inspected`] — a PROJECTION of the tree, produced for
@@ -29,9 +34,12 @@
 //! compiler span. That is what puts a `compile_error!` on the offending token
 //! rather than on the first token of the declaration.
 
-use crate::plane::{CapturedTokenLimit, GeneratedTokenLimit, encode_bytes, encode_length};
+use crate::plane::{
+    CapturedTokenLimit, CapturedTreeTokenLimit, GeneratedTokenLimit, TokenPathDepthLimit,
+    encode_bytes, encode_length,
+};
 use threadpak::declaration::{CoordinateRole, SourceCoordinate};
-use threadpak::types::{Bounded, BoundedConstruction};
+use threadpak::types::{Bounded, BoundedConstruction, ConstLimit};
 
 // ---------------------------------------------------------------------------
 // Reading: the captured token tree.
@@ -74,18 +82,203 @@ pub enum CapturedDelimiter {
     Bare,
 }
 
-/// Where one captured token sits, independently of any span.
+/// How one capture refuses on a declared magnitude.
 ///
-/// Stable under everything a span is not stable under: the coordinate is the
-/// same whether the input arrived from a compiler or from text, whether the
-/// file moved, and whether anything was reformatted. Two captures of the same
-/// declaration agree on every coordinate.
+/// Four magnitudes and four causes, because they are four different facts about
+/// a declared input and repairing one of them tells a caller nothing about the
+/// other three. Every one of them refuses BEFORE any partial tree exists: a
+/// truncated capture is a different declaration, and capturing one would put the
+/// whole road downstream to work on material nobody wrote.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct LocalCoordinate {
-    /// How many groups enclose this token. Top level is zero.
-    pub depth: u32,
-    /// This token's position among its enclosing group's own tokens.
-    pub index: u32,
+pub enum CaptureBound {
+    /// The declared input nests deeper than the declared magnitude.
+    DepthUnbounded,
+    /// One nesting level carries more token trees than the declared magnitude.
+    LevelUnbounded,
+    /// The whole tree carries more tokens than the declared magnitude.
+    TreeUnbounded,
+    /// The walk spent the declared capture-work budget.
+    WorkUnbounded,
+}
+
+impl CaptureBound {
+    /// The bound rendered for a person. A projection of the typed value: nothing
+    /// reads it back, and it exists so that a producer reporting a refused
+    /// capture composes no sentence of its own.
+    #[must_use]
+    pub const fn described(self) -> &'static str {
+        match self {
+            Self::DepthUnbounded => {
+                "threadpak refusal-family derive: the declared input nests deeper than the \
+                 declared magnitude"
+            }
+            Self::LevelUnbounded => {
+                "threadpak refusal-family derive: one nesting level of the declared input carries \
+                 more tokens than the declared magnitude"
+            }
+            Self::TreeUnbounded => {
+                "threadpak refusal-family derive: the declared input carries more tokens than the \
+                 declared magnitude"
+            }
+            Self::WorkUnbounded => {
+                "threadpak refusal-family derive: reading the declared input spent the declared \
+                 capture-work budget"
+            }
+        }
+    }
+}
+
+/// Where one captured token sits, as the index route from the root of the
+/// declared input.
+///
+/// # A depth and an index do not locate a token
+///
+/// The pair that stood here named two tokens with one value. The first token of
+/// one group and the first token of its sibling both sit at depth one, index
+/// zero, so a diagnostic, an origin mapping, or an inspection reading that pair
+/// was pointing at whichever of them the reader guessed. The route from the root
+/// is unique by construction: `[3, 0, 5]` is the sixth token of the first token
+/// of the fourth top-level token, and nothing else in the tree spells that.
+///
+/// Stable under everything a span is not stable under: the route is the same
+/// whether the input arrived from a compiler or from text, whether the file
+/// moved, and whether anything was reformatted. Two captures of the same
+/// declaration agree on every route.
+///
+/// Bounded by [`TokenPathDepthLimit`], so a route is never longer than the
+/// nesting a declared input is allowed to reach.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TokenPath {
+    steps: Bounded<u32, TokenPathDepthLimit>,
+}
+
+impl TokenPath {
+    /// The root route: the declared input itself, before any step into it.
+    #[must_use]
+    pub const fn root() -> Self {
+        Self {
+            steps: Bounded::empty(),
+        }
+    }
+
+    /// The route to one token of the group this route names.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CaptureBound::DepthUnbounded`] when the route would run past
+    /// the declared nesting magnitude. The step refuses rather than saturating:
+    /// a saturated depth makes two different tokens share one route, which is
+    /// the defect this type exists to end.
+    pub fn stepped(&self, index: u32) -> Result<Self, CaptureBound> {
+        let mut steps: Vec<u32> = self.steps.iter().copied().collect();
+        steps.push(index);
+        Bounded::admitted_const(steps)
+            .map(|steps| Self { steps })
+            .map_err(|_| CaptureBound::DepthUnbounded)
+    }
+
+    /// The route's steps, from the root inward.
+    pub fn steps(&self) -> impl Iterator<Item = &u32> {
+        self.steps.iter()
+    }
+
+    /// How deep this route runs. The root is zero.
+    #[must_use]
+    pub fn depth(&self) -> usize {
+        self.steps.len()
+    }
+
+    /// Whether this route names the declared input itself.
+    #[must_use]
+    pub fn is_root(&self) -> bool {
+        self.steps.is_empty()
+    }
+}
+
+/// The running state of one capture walk: what the walk has spent, and how much
+/// of the whole-tree magnitude it has taken.
+///
+/// # Why a budget sits beside the three magnitudes
+///
+/// The depth, level, and tree magnitudes bound the RESULT — how deep it nests,
+/// how wide each level is, how many tokens it holds. The budget bounds the WALK,
+/// and the two are charged separately: [`CaptureWalk::examined`] is spent on
+/// every token a producer LOOKS AT, and [`CaptureWalk::took`] counts only the
+/// tokens a producer KEEPS.
+///
+/// Both of today's producers keep every token they look at, so the tree
+/// magnitude is the one that bites for them. That is the honest state and not an
+/// argument for dropping the budget: a producer that reads material it discards
+/// — a frontend skipping trivia, a reader backtracking over an alternative —
+/// spends work the result never shows, and the budget is the only magnitude that
+/// can see it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CaptureWalk {
+    remaining: u32,
+    taken: u32,
+}
+
+impl CaptureWalk {
+    /// The declared capture-work budget, in units of one examined token.
+    ///
+    /// Four times the whole-tree magnitude, because a walk may look at more than
+    /// it keeps. A budget at the tree magnitude exactly would refuse a lawful
+    /// input the moment its producer looked twice at anything.
+    pub const DECLARED_WORK: u32 = 65_536;
+
+    /// A fresh walk, holding the whole declared budget and nothing taken.
+    #[must_use]
+    pub const fn declared() -> Self {
+        Self {
+            remaining: Self::DECLARED_WORK,
+            taken: 0,
+        }
+    }
+
+    /// Spend one unit of the declared budget on looking at one token.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CaptureBound::WorkUnbounded`] when the budget is spent.
+    pub fn examined(&mut self) -> Result<(), CaptureBound> {
+        self.remaining = self
+            .remaining
+            .checked_sub(1)
+            .ok_or(CaptureBound::WorkUnbounded)?;
+        Ok(())
+    }
+
+    /// Count one token against the whole-tree magnitude.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CaptureBound::TreeUnbounded`] when the tree outgrows its
+    /// declared magnitude.
+    pub fn took(&mut self) -> Result<(), CaptureBound> {
+        let taken = self
+            .taken
+            .checked_add(1)
+            .ok_or(CaptureBound::TreeUnbounded)?;
+        let magnitude =
+            u32::try_from(CapturedTreeTokenLimit::MAX).map_err(|_| CaptureBound::TreeUnbounded)?;
+        if taken > magnitude {
+            return Err(CaptureBound::TreeUnbounded);
+        }
+        self.taken = taken;
+        Ok(())
+    }
+
+    /// How many tokens the whole tree has taken so far.
+    #[must_use]
+    pub const fn taken(self) -> u32 {
+        self.taken
+    }
+
+    /// How much of the declared budget is left.
+    #[must_use]
+    pub const fn remaining(self) -> u32 {
+        self.remaining
+    }
 }
 
 /// What one captured token carries.
@@ -113,21 +306,17 @@ pub enum CapturedPayload {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CapturedTokenTree {
     payload: CapturedPayload,
-    coordinate: LocalCoordinate,
+    path: TokenPath,
     span: SpanHandle,
 }
 
 impl CapturedTokenTree {
     /// Capture one token.
     #[must_use]
-    pub const fn captured(
-        payload: CapturedPayload,
-        coordinate: LocalCoordinate,
-        span: SpanHandle,
-    ) -> Self {
+    pub const fn captured(payload: CapturedPayload, path: TokenPath, span: SpanHandle) -> Self {
         Self {
             payload,
-            coordinate,
+            path,
             span,
         }
     }
@@ -138,10 +327,10 @@ impl CapturedTokenTree {
         &self.payload
     }
 
-    /// Where this token sits.
+    /// The route from the root of the declared input to this token.
     #[must_use]
-    pub const fn coordinate(&self) -> LocalCoordinate {
-        self.coordinate
+    pub const fn path(&self) -> &TokenPath {
+        &self.path
     }
 
     /// The handle into the producer's span table.
@@ -190,7 +379,7 @@ impl CapturedTokenTree {
     ///
     /// # Errors
     ///
-    /// Returns [`BoundedConstruction::OverLimit`] when the group carries more
+    /// Returns [`CaptureBound::LevelUnbounded`] when the group carries more
     /// tokens than the declared magnitude admits. A group that does not fit
     /// refuses rather than capturing as an empty one: an empty group is not a
     /// shorter declaration, it is a declaration with no body, and the two must
@@ -198,16 +387,12 @@ impl CapturedTokenTree {
     pub fn group_of(
         delimiter: CapturedDelimiter,
         trees: Vec<Self>,
-        coordinate: LocalCoordinate,
+        path: TokenPath,
         span: SpanHandle,
-    ) -> Result<Self, BoundedConstruction> {
-        Bounded::admitted_const(trees).map(|trees| {
-            Self::captured(
-                CapturedPayload::Group { delimiter, trees },
-                coordinate,
-                span,
-            )
-        })
+    ) -> Result<Self, CaptureBound> {
+        Bounded::admitted_const(trees)
+            .map(|trees| Self::captured(CapturedPayload::Group { delimiter, trees }, path, span))
+            .map_err(|_| CaptureBound::LevelUnbounded)
     }
 
     /// The group this token opens, where it is one.
@@ -241,11 +426,13 @@ impl CapturedInput {
     ///
     /// # Errors
     ///
-    /// Returns [`BoundedConstruction::OverLimit`] when the top level carries
-    /// more trees than the declared magnitude admits. A capture that does not
-    /// fit refuses rather than reading part of a declaration.
-    pub fn taken(trees: Vec<CapturedTokenTree>, issued: u32) -> Result<Self, BoundedConstruction> {
-        Bounded::admitted_const(trees).map(|trees| Self { trees, issued })
+    /// Returns [`CaptureBound::LevelUnbounded`] when the top level carries more
+    /// trees than the declared magnitude admits. A capture that does not fit
+    /// refuses rather than reading part of a declaration.
+    pub fn taken(trees: Vec<CapturedTokenTree>, issued: u32) -> Result<Self, CaptureBound> {
+        Bounded::admitted_const(trees)
+            .map(|trees| Self { trees, issued })
+            .map_err(|_| CaptureBound::LevelUnbounded)
     }
 
     /// The top-level trees, in the order they were written.
@@ -392,8 +579,11 @@ pub enum TextReadCause {
     NotBalanced,
     /// A closing delimiter arrived with no group open.
     NotOpened,
-    /// The read exceeds a declared magnitude.
-    Unbounded,
+    /// The read exceeds a declared magnitude, and this is which one. The bound
+    /// travels rather than collapsing to one word: a reader told only
+    /// "unbounded" cannot tell a tree that nests too deep from one that spends
+    /// the walk's budget, and the two are repaired differently.
+    Unbounded(CaptureBound),
 }
 
 /// One refused text read: the established cause, and the byte it sits at.
@@ -428,16 +618,17 @@ impl TextCapture {
     pub fn read(source: &str) -> Result<Self, TextReadRefusal> {
         let mut reader = TextReader {
             offsets: Vec::new(),
+            walk: CaptureWalk::declared(),
         };
         let mut characters = source.char_indices().peekable();
-        let trees = reader.read_group(&mut characters, None, 0)?;
+        let trees = reader.read_group(&mut characters, None, &TokenPath::root())?;
         let issued = u32::try_from(reader.offsets.len()).unwrap_or(u32::MAX);
         let offsets = Bounded::admitted_const(reader.offsets).map_err(|_| TextReadRefusal {
-            cause: TextReadCause::Unbounded,
+            cause: TextReadCause::Unbounded(CaptureBound::TreeUnbounded),
             at: 0,
         })?;
-        let input = CapturedInput::taken(trees, issued).map_err(|_| TextReadRefusal {
-            cause: TextReadCause::Unbounded,
+        let input = CapturedInput::taken(trees, issued).map_err(|bound| TextReadRefusal {
+            cause: TextReadCause::Unbounded(bound),
             at: 0,
         })?;
         Ok(Self {
@@ -460,9 +651,10 @@ impl TextCapture {
 }
 
 /// The bounded hand-rolled text reader's running state: the byte offset issued
-/// for each handle, in handle order.
+/// for each handle, in handle order, and the declared walk this read spends.
 struct TextReader {
     offsets: Vec<u64>,
+    walk: CaptureWalk,
 }
 
 /// One character stream over source text, with lookahead.
@@ -477,11 +669,15 @@ impl TextReader {
     }
 
     /// Read the tokens of one group, stopping at `closing` where one is given.
+    ///
+    /// The route this group sits at is carried in, and each token's own route is
+    /// that route stepped by the token's position — so a route is built the same
+    /// way at every level and no two tokens can share one.
     fn read_group(
         &mut self,
         characters: &mut Characters<'_>,
         closing: Option<(char, u64)>,
-        depth: u32,
+        path: &TokenPath,
     ) -> Result<Vec<CapturedTokenTree>, TextReadRefusal> {
         let mut trees: Vec<CapturedTokenTree> = Vec::new();
         loop {
@@ -510,9 +706,23 @@ impl TextReader {
                     at,
                 });
             }
-            let index = u32::try_from(trees.len()).unwrap_or(u32::MAX);
-            let coordinate = LocalCoordinate { depth, index };
-            let tree = self.read_token(characters, at, character, coordinate, depth)?;
+            self.walk.examined().map_err(|bound| TextReadRefusal {
+                cause: TextReadCause::Unbounded(bound),
+                at,
+            })?;
+            self.walk.took().map_err(|bound| TextReadRefusal {
+                cause: TextReadCause::Unbounded(bound),
+                at,
+            })?;
+            let index = u32::try_from(trees.len()).map_err(|_| TextReadRefusal {
+                cause: TextReadCause::Unbounded(CaptureBound::LevelUnbounded),
+                at,
+            })?;
+            let stepped = path.stepped(index).map_err(|bound| TextReadRefusal {
+                cause: TextReadCause::Unbounded(bound),
+                at,
+            })?;
+            let tree = self.read_token(characters, at, character, stepped)?;
             trees.push(tree);
         }
     }
@@ -523,24 +733,19 @@ impl TextReader {
         characters: &mut Characters<'_>,
         at: u64,
         character: char,
-        coordinate: LocalCoordinate,
-        depth: u32,
+        path: TokenPath,
     ) -> Result<CapturedTokenTree, TextReadRefusal> {
         if let Some(delimiter) = opening(character) {
             let span = self.issue(at);
             let _consumed = characters.next();
-            let inner = self.read_group(
-                characters,
-                Some((closing_of(delimiter), at)),
-                depth.saturating_add(1),
-            )?;
+            let inner = self.read_group(characters, Some((closing_of(delimiter), at)), &path)?;
             let trees = Bounded::admitted_const(inner).map_err(|_| TextReadRefusal {
-                cause: TextReadCause::Unbounded,
+                cause: TextReadCause::Unbounded(CaptureBound::LevelUnbounded),
                 at,
             })?;
             return Ok(CapturedTokenTree::captured(
                 CapturedPayload::Group { delimiter, trees },
-                coordinate,
+                path,
                 span,
             ));
         }
@@ -557,7 +762,7 @@ impl TextReader {
             }
             return Ok(CapturedTokenTree::captured(
                 CapturedPayload::Word(word),
-                coordinate,
+                path,
                 span,
             ));
         }
@@ -574,7 +779,7 @@ impl TextReader {
             }
             return Ok(CapturedTokenTree::captured(
                 CapturedPayload::Number(number),
-                coordinate,
+                path,
                 span,
             ));
         }
@@ -602,7 +807,7 @@ impl TextReader {
             }
             return Ok(CapturedTokenTree::captured(
                 CapturedPayload::Text(text),
-                coordinate,
+                path,
                 span,
             ));
         }
@@ -610,7 +815,7 @@ impl TextReader {
         let _consumed = characters.next();
         Ok(CapturedTokenTree::captured(
             CapturedPayload::Punct(character),
-            coordinate,
+            path,
             span,
         ))
     }
