@@ -1,21 +1,17 @@
-//! The planning refusal family: how the services say no while planning.
+//! The refusal home's declarations: the bound axes a plan can overrun, the plan
+//! seats a fact can be missing from, the closed planning issue set, and the
+//! family body they travel in.
 //!
-//! Planning issues are independent and co-establishable — a plan may name an
-//! unknown kind *and* exceed a declared bound in one pass — so the family takes
-//! the machine's issue-collection shape: a bounded, non-empty collection over a
-//! closed issue set, carrying its enumeration posture as an instance value. No
-//! primary issue is ever elected, and a zero-issue refusal is unrepresentable.
-//!
-//! Every seam in the plane that can refuse returns this family body. The
-//! universal refusal envelope is the publication form and is minted where
-//! reasons are registered, which is the machine's business, not the plane's.
+//! Declarations only. Nothing here is private: a refusal body whose issues a
+//! caller could not read would be a refusal nobody can act on, so the home has
+//! no invariant nucleus and no `type_guard.rs` beside this file.
 
 use crate::plane::{
     GeneratedUnitSubject, OwnerFactRef, PlanningIssueLimit, ProfileVersion, ProjectionIdentity,
     ProjectionKindSubject, ProjectionProfileSubject,
 };
-use threadpak::refusal::{CompletionPosture, FamilyShape, RefusalFamily, StopBound};
-use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction};
+use threadpak::refusal::CompletionPosture;
+use threadpak::types::NonEmptyBounded;
 
 threadpak::closed_register! {
     /// The plan's declared bound axes. A bound refusal names which magnitude it
@@ -133,24 +129,6 @@ pub enum ProjectionPlanningIssue {
     },
 }
 
-impl ProjectionPlanningIssue {
-    /// The issue kind's position in the declared roster, written ahead of the
-    /// issue's own material so two kinds never encode alike.
-    #[must_use]
-    pub const fn slot(&self) -> u8 {
-        match self {
-            Self::MissingOwnerFact { .. } => 0,
-            Self::ContradictoryOwnerFacts { .. } => 1,
-            Self::UnknownProjectionKind { .. } => 2,
-            Self::ProfileUnsupported { .. } => 3,
-            Self::BoundExceeded { .. } => 4,
-            Self::MembershipIncomplete { .. } => 5,
-            Self::OrphanGeneratedNode { .. } => 6,
-            Self::MembershipDoubled { .. } => 7,
-        }
-    }
-}
-
 /// The planning refusal family body.
 ///
 /// Independent members, no ladder, no primary issue, posture carried as an
@@ -163,53 +141,4 @@ pub struct ProjectionPlanning {
     pub issues: NonEmptyBounded<ProjectionPlanningIssue, PlanningIssueLimit>,
     /// Whether every applicable check ran.
     pub posture: CompletionPosture,
-}
-
-impl RefusalFamily for ProjectionPlanning {
-    const SHAPE: FamilyShape = FamilyShape::IssueCollection;
-    const SELECTION_ORDER: &'static [&'static str] = &[];
-}
-
-impl ProjectionPlanning {
-    /// The one-issue body, for a seam whose checks can establish exactly one
-    /// issue. Total: the declared bound admits an item by compile-time proof, so
-    /// refusing never needs an error road of its own.
-    pub fn established(issue: ProjectionPlanningIssue) -> Self {
-        Self {
-            issues: NonEmptyBounded::singleton(issue),
-            posture: CompletionPosture::Complete,
-        }
-    }
-
-    /// The several-issue body, for a pass whose checks co-establish. When the
-    /// supplied issues outrun the declared bound the body keeps the first and
-    /// reports that enumeration stopped there — it never silently drops the
-    /// remainder and never claims completeness it does not have.
-    pub fn co_established(
-        first: ProjectionPlanningIssue,
-        rest: Vec<ProjectionPlanningIssue>,
-    ) -> Self {
-        match NonEmptyBounded::admitted_const(first.clone(), rest) {
-            Ok(issues) => Self {
-                issues,
-                posture: CompletionPosture::Complete,
-            },
-            Err(NonEmptyBoundedConstruction::OverLimit) => Self {
-                issues: NonEmptyBounded::singleton(first),
-                posture: CompletionPosture::EarlyStopped {
-                    stopped_at: StopBound::DeclaredIssueBound,
-                },
-            },
-        }
-    }
-
-    /// The body a bounded seam refuses with: the axis it overran, the magnitude
-    /// it declared, and the count it observed.
-    pub fn bound_exceeded(axis: BoundAxis, bound: usize, observed: usize) -> Self {
-        Self::established(ProjectionPlanningIssue::BoundExceeded {
-            axis,
-            bound: u64::try_from(bound).unwrap_or(u64::MAX),
-            observed: u64::try_from(observed).unwrap_or(u64::MAX),
-        })
-    }
 }

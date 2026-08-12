@@ -70,17 +70,30 @@ crate, declares a family and states its own shape and selection order. Nothing i
 the type system makes those two agree, so a road that reads either constant and
 acts on it is trusting a pair of declarations nobody joined.
 `AdmittedRefusalFamily` is that join, and it is opaque and constructor-free —
-holding one IS the evidence. The coherence road establishes that the selection
-order is non-empty exactly when the shape is single-cause; the order road
-establishes that and the typed order's projection, and is available only where a
-family declares one. The witness records which road minted it, so the weaker
-admission never passes for the stronger.
+holding one IS the evidence. `admit_shape` establishes that the selection order
+is non-empty exactly when the shape is single-cause; `admit_order` establishes
+that and the typed order's projection, and is available only where a family
+declares one.
 
-The envelope's one mint demands it. Publication is the act that hands a refusal
-to a reader who will act on the family's shape and order without re-reading
-them, so an unjoined declaration does not reach it. The road's reach today is
-this crate's, because `ReasonId` carries no public mint until the evidence home
-registers reasons.
+**Which road ran is a type parameter, not a field.** The witness carries its
+coverage as `ShapeCoherent` or `OrderProjected` under a sealed implication
+hierarchy: every `OrderAdmission` coverage is a `ShapeAdmission` coverage, and
+the reverse does not hold. A consumer states the strength it needs as a bound —
+publication takes any `ShapeAdmission` coverage because it acts on the shape
+alone; `cause_order`, which hands back the order a caller is about to rank causes
+by, hangs off `OrderAdmission`. So the weaker admission passing for the stronger
+is unrepresentable rather than checked, and no runtime read stands between the
+two. `FamilyAdmissionCoverage` survives as that type's inspection
+projection — what a receipt writes down — and is never the axis enforcement
+rides.
+
+The envelope's one mint demands the witness. Publication is the act that hands a
+refusal to a reader who will act on the family's shape and order without
+re-reading them, so an unjoined declaration does not reach it. The coverage the
+witness carried in its type is projected onto the envelope, so a refusal
+published under coherence alone and one published under coherence and projection
+are not the same receipt. The road's reach today is this crate's, because
+`ReasonId` carries no public mint until the evidence home registers reasons.
 
 What admission does NOT establish: whether the declared order is the right
 selector for the family's checks, anything about the family's Rust body, and
@@ -140,10 +153,14 @@ obligations:
     challenge_kind: compile-law
     green: laws.rs refusal::selection_order_projects_the_typed_order
     red: owed-to-testpak
-  - id: refusal.admission-joins-shape-and-order
+  - id: refusal.admission-coverage-is-a-type-parameter
     challenge_kind: compile-refusal
-    green: laws.rs refusal::admission_joins_shape_and_order
+    green: laws.rs refusal::admission_coverage_is_a_type_parameter
     red: testpak/tests/compile-fail/an-admitted-family-minted-bare.rs
+  - id: refusal.order-admission-implies-shape-admission
+    challenge_kind: compile-refusal
+    green: laws.rs refusal::order_admission_implies_shape_admission
+    red: testpak/tests/compile-fail/a-weak-admission-at-a-strong-consumer.rs
   - id: refusal.publication-requires-an-admitted-family
     challenge_kind: compile-law
     green: laws.rs refusal::publication_requires_an_admitted_family

@@ -344,9 +344,9 @@ mod root {
 
 mod refusal {
     use crate::refusal::{
-        AdmittedRefusalFamily, CauseId, CauseOrderDeclaration, CompletionPosture, DeclaredCause,
-        DeclaredCauseOrder, FamilyAdmission, FamilyAdmissionCoverage, FamilyShape, HandlingClass,
-        LocalCauseKey, ReasonId, Refusal, RefusalFamily, RefusalFamilyId, StopBound,
+        CauseId, CauseOrderDeclaration, CompletionPosture, DeclaredCause, DeclaredCauseOrder,
+        FamilyAdmission, FamilyAdmissionCoverage, FamilyShape, HandlingClass, LocalCauseKey,
+        ReasonId, Refusal, RefusalFamily, RefusalFamilyId, StopBound, admit_order, admit_shape,
     };
     use crate::types::{BoundedConstruction, Limit, NonEmptyBounded, NonEmptyBoundedConstruction};
 
@@ -499,13 +499,14 @@ mod refusal {
             )]);
     }
 
-    /// law: refusal.admission-joins-shape-and-order — a family's declaration is
-    /// not a machine fact until its own joins closed: the coherence join refuses
-    /// in BOTH directions (a single-cause family ordering nothing, and a
-    /// collection family ordering something), the projection join refuses a
-    /// typed order the textual order does not project, and the witness records
-    /// which of the two roads minted it so the weaker admission never passes for
-    /// the stronger.
+    /// law: refusal.admission-coverage-is-a-type-parameter — a family's
+    /// declaration is not a machine fact until its own joins closed, and the
+    /// strength of what closed rides in the witness's TYPE. The coherence join
+    /// refuses in BOTH directions (a single-cause family ordering nothing, and a
+    /// collection family ordering something) and the projection join refuses a
+    /// typed order the textual order does not project; the road that ran fixes
+    /// the coverage parameter, and `FamilyAdmissionCoverage` is that parameter's
+    /// inspection projection rather than a field a road could read and mistake.
     ///
     /// The claim ceiling: admission establishes that the declarations agree with
     /// each other. It establishes nothing about whether the declared order is
@@ -516,38 +517,86 @@ mod refusal {
     /// Owed reversal (red twin): constructing the witness without admitting must
     /// not compile — the fixture is testpak's.
     #[test]
-    fn admission_joins_shape_and_order() {
+    fn admission_coverage_is_a_type_parameter() {
         assert!(matches!(
-            AdmittedRefusalFamily::<DemoUnordered>::admitted(),
+            admit_shape::<DemoUnordered>(),
             Err(FamilyAdmission::NotShapeCoherent)
         ));
         assert!(matches!(
-            AdmittedRefusalFamily::<DemoOverOrdered>::admitted(),
+            admit_shape::<DemoOverOrdered>(),
             Err(FamilyAdmission::NotShapeCoherent)
         ));
         assert!(matches!(
-            AdmittedRefusalFamily::<DemoUnprojected>::admitted_with_order(),
+            admit_order::<DemoUnprojected>(),
             Err(FamilyAdmission::NotProjected)
         ));
         assert!(matches!(
-            AdmittedRefusalFamily::<DemoUnprojected>::admitted()
-                .map(|admitted| admitted.coverage()),
+            admit_shape::<DemoUnprojected>().map(|admitted| admitted.coverage()),
             Ok(FamilyAdmissionCoverage::ShapeCoherence)
         ));
         assert!(matches!(
-            AdmittedRefusalFamily::<DemoSingle>::admitted_with_order()
-                .map(|admitted| admitted.coverage()),
+            admit_order::<DemoSingle>().map(|admitted| admitted.coverage()),
             Ok(FamilyAdmissionCoverage::ShapeCoherenceAndOrderProjection)
         ));
         assert!(matches!(
-            AdmittedRefusalFamily::<DemoCollection>::admitted_with_order()
-                .map(|admitted| admitted.coverage()),
+            admit_order::<DemoCollection>().map(|admitted| admitted.coverage()),
             Ok(FamilyAdmissionCoverage::ShapeCoherenceAndOrderProjection)
         ));
         assert_eq!(
             FamilyAdmission::SHAPE,
             FamilyShape::SingleCause,
             "the admission family's own declaration is one of the three shapes"
+        );
+    }
+
+    /// law: refusal.order-admission-implies-shape-admission — the coverage
+    /// hierarchy runs one way and it runs the whole way. An `OrderProjected`
+    /// witness clears BOTH consumer bounds: publication, which takes its
+    /// coverage generically under `ShapeAdmission`, and `cause_order`, which
+    /// hands back the family's typed cause order and hangs off `OrderAdmission`.
+    /// A `ShapeCoherent` witness clears the first and only the first, and the
+    /// coverage each one projects onto its receipt is the one its road earned.
+    ///
+    /// The claim ceiling: this establishes the implication between the two
+    /// coverages and the reach of the two bounds. It establishes nothing further
+    /// about either declaration than the joins behind it already did.
+    ///
+    /// Owed reversal (red twin): the weaker witness at the stronger consumer
+    /// must not compile — the fixture is testpak's.
+    #[test]
+    fn order_admission_implies_shape_admission() {
+        let strong = admit_order::<DemoSingle>()
+            .unwrap_or_else(|_| unreachable!("the demo family's declarations agree"));
+        let published = Refusal::published(
+            ReasonId::for_laws([13; 32]),
+            HandlingClass::Escalate,
+            DemoSingle,
+            &strong,
+        );
+        assert_eq!(
+            published.admission(),
+            FamilyAdmissionCoverage::ShapeCoherenceAndOrderProjection,
+            "the shape-only consumer records the stronger coverage the witness carried"
+        );
+        assert!(
+            strong
+                .cause_order()
+                .projects_to(DemoSingle::SELECTION_ORDER),
+            "the order-sensitive consumer hands back the order the projection join admitted"
+        );
+
+        let weak = admit_shape::<DemoUnprojected>()
+            .unwrap_or_else(|_| unreachable!("the demo family's shape and textual order agree"));
+        let weakly_published = Refusal::published(
+            ReasonId::for_laws([14; 32]),
+            HandlingClass::Reconfigure,
+            DemoUnprojected,
+            &weak,
+        );
+        assert_eq!(
+            weakly_published.admission(),
+            FamilyAdmissionCoverage::ShapeCoherence,
+            "the weaker witness reaches the shape-only consumer and stays weaker on the receipt"
         );
     }
 
@@ -565,7 +614,7 @@ mod refusal {
     /// not compile — the fixture is testpak's.
     #[test]
     fn publication_requires_an_admitted_family() {
-        let admitted = AdmittedRefusalFamily::<DemoSingle>::admitted_with_order()
+        let admitted = admit_order::<DemoSingle>()
             .unwrap_or_else(|_| unreachable!("the demo family's declarations agree"));
         let published = Refusal::published(
             ReasonId::for_laws([11; 32]),
@@ -912,7 +961,9 @@ mod identity {
     /// not compile — the fixture is testpak's.
     #[test]
     fn admission_joins_creation_to_class() {
-        use crate::identity::{AdmittedIdentityRole, DeclaredIdentityRole, IdentityRoleAdmission};
+        use crate::identity::{
+            AdmittedIdentityColumns, AdmittedIdentityRole, IdentityRoleAdmission,
+        };
 
         /// A role declaring Class B's own creation law under Class A's question.
         struct IncoherentRole;
@@ -947,9 +998,9 @@ mod identity {
 
         let admitted = AdmittedIdentityRole::<CoherentRole>::admitted()
             .unwrap_or_else(|_| unreachable!("the demo role's columns agree"));
-        let declared = DeclaredIdentityRole::of(&admitted);
-        assert_eq!(declared.class(), IdentityClass::ByteDigest);
-        assert_eq!(declared.creation(), CreationLaw::DigestOfExactBytes);
+        let columns = AdmittedIdentityColumns::of(&admitted);
+        assert_eq!(columns.class(), IdentityClass::ByteDigest);
+        assert_eq!(columns.creation(), CreationLaw::DigestOfExactBytes);
     }
 
     /// law: identity.scope-mismatch-refuses — comparison is total within one

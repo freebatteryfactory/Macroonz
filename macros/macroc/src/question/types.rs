@@ -1,27 +1,9 @@
-//! The explanation protocol's closed question roster.
+//! The question home's declarations: the protocol version, the closed roster of
+//! fourteen questions, and the typed answer to whether a kind admits one.
 //!
-//! The fourteen questions every generated thing must be able to answer, and the
-//! typed answer to "does this kind admit that question at all". Nothing else
-//! lives here: the roster is a vocabulary, not machinery.
-//!
-//! # Why the roster is its own module
-//!
-//! Both ends of the protocol need the questions. A projection kind declares its
-//! roster while it is being PLANNED, before any explanation exists; the
-//! explanation machinery reads that roster while it is being CHECKED, after the
-//! plan exists. Left in the machinery module, that pair of needs is a cycle —
-//! planning importing explanation, explanation importing planning — and a cycle
-//! is a dependency order nobody can state. Seated here, the roster is a leaf
-//! both sides import, and the order is a straight line again.
-//!
-//! The module names nothing from this crate, and that is the point: a closed
-//! roster of names is the one thing in the plane with no machinery to depend
-//! on. The one thing it takes from the machine is the authoring stamp that
-//! writes a closed roster down. A stamp decides no meaning, carries no
-//! semantic noun, and reaches no band's material, so taking it costs the leaf
-//! nothing it was protecting — what the leaf protects is the absence of an edge
-//! to another module of THIS crate, and that absence is exactly as complete as
-//! it was.
+//! Declarations only, and the home has no other seat. Nothing here has a private
+//! field, so there is no invariant nucleus to guard; nothing here computes, so
+//! there is no role file to compute it.
 
 /// The version of the explanation protocol this roster states.
 ///

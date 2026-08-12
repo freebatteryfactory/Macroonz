@@ -1,22 +1,10 @@
-//! What the services say when something disagrees.
+//! The diagnostics home's declarations: the act that was running, how what was
+//! observed differs from what was expected, where it sits, what repairs it, and
+//! how to reach it again.
 //!
-//! # One value, many faithful projections
-//!
-//! A diagnostic is one typed value. The compiler-facing rendering, the
-//! machine-readable rendering, and the rendering an agent is handed are
-//! projections of that one value — they may differ in shape, ordering, and
-//! verbosity, and they may never differ in what they claim. A projection that
-//! upgrades a narrowed suspect into an established cause, or a suggestion into
-//! an authority, has changed the claim and is not a projection of it.
-//!
-//! # Repairs are owner-declared, never invented
-//!
-//! Every [`RepairAction`] cites the owner fact that declares the repair. The
-//! services do not compose advice: they report which declared repair applies.
-//! And the standing prohibition: no repair ever suggests deleting a declared
-//! capability so that generation compiles. Making the machine smaller until the
-//! services stop complaining is not a repair, it is a silent narrowing of what
-//! the program promised.
+//! Declarations only. No seat here is private — a diagnostic that hid one would
+//! be a diagnostic that sometimes says less than it knows — so this home has no
+//! invariant nucleus and no `type_guard.rs` beside this file.
 
 use crate::plane::{
     ContractSubject, ExpansionSurfaceSubject, FixturePopulationSubject, HumanProjection,
@@ -182,26 +170,6 @@ pub enum SiteCoordinate {
     /// handle and how far the table reaches, so a reader can tell a mismatched
     /// table from a truncated one.
     NotReached(SpanResolutionRefusal),
-}
-
-impl SiteCoordinate {
-    /// The posture one span table's answer takes.
-    #[must_use]
-    pub const fn answered(answer: Result<SourceCoordinate, SpanResolutionRefusal>) -> Self {
-        match answer {
-            Ok(coordinate) => Self::Resolved(coordinate),
-            Err(refusal) => Self::NotReached(refusal),
-        }
-    }
-
-    /// The resolved coordinate, where the table reached the handle.
-    #[must_use]
-    pub const fn resolved(self) -> Option<SourceCoordinate> {
-        match self {
-            Self::Resolved(coordinate) => Some(coordinate),
-            Self::NotReached(_) => None,
-        }
-    }
 }
 
 /// Where one diagnostic points.

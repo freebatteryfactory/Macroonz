@@ -7,5 +7,6 @@ pub mod types;
 pub use types::{
     AdmittedRefusalFamily, CauseId, CauseOrderDeclaration, CauseOrdinal, CompletionPosture,
     DeclaredCause, DeclaredCauseOrder, FamilyAdmission, FamilyAdmissionCoverage, FamilyShape,
-    HandlingClass, LocalCauseKey, ReasonId, Refusal, RefusalFamily, RefusalFamilyId, StopBound,
+    HandlingClass, LocalCauseKey, OrderAdmission, OrderProjected, ReasonId, Refusal, RefusalFamily,
+    RefusalFamilyId, ShapeAdmission, ShapeCoherent, StopBound, admit_order, admit_shape,
 };

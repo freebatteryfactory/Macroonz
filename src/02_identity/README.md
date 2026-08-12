@@ -17,9 +17,13 @@ taste.
 ## A declaration becomes a machine fact by admission
 
 `IdentityRole` stays open and derivable, and nothing in the type system makes a
-declared pair of columns coherent. `AdmittedIdentityRole` is the join, opaque and
-constructor-free, and `DeclaredIdentityRole` — the road that turns the two
-columns into a value that travels — is reachable only from it.
+declared pair of columns coherent. `AdmittedIdentityRole<T>` is the join, opaque
+and constructor-free, and `AdmittedIdentityColumns` — the road that turns the two
+columns into a value that travels — is reachable only from it. The projection is
+what erases the role, so the projection is what the name follows: every value of
+it was read off a witness, and it is named for that rather than for the
+declaration it came from. The witness keeps its own name and its `T`, because a
+witness is exactly a statement about one role.
 
 The join the home's own declarations support is narrow and is stated narrowly:
 four of the seven creation laws name a class in their own declaration
