@@ -515,6 +515,38 @@ pub enum NonEmptyBoundedConstruction {
     OverLimit,
 }
 
+/// How much material one truncating construction road did not carry.
+///
+/// Opaque, with no public constructor and no writable seat.
+/// [`NonEmptyBounded::admitted_prefix`] is the only road that mints one, and it
+/// is the only construction road in the machine that drops anything at all — so
+/// the count travels FROM the act that dropped the items rather than from a
+/// caller's choice. A pass that carried everything cannot write down a number
+/// saying it did not, because the number is not a value it can build.
+///
+/// The count is readable and never writable, and that asymmetry is the whole
+/// shape. A consumer projecting the remainder into a posture, a rendered
+/// sentence, or a receipt reads it off the witness the truncation handed over,
+/// so no seat downstream re-establishes how much was lost and no seat downstream
+/// can disagree with the road that lost it.
+///
+/// Zero is an inhabitant on purpose: the road is total and always hands one back,
+/// so the material-fits case is reachable without a caller inventing a witness or
+/// branching before it has the answer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PrefixRemainder {
+    omitted: usize,
+}
+
+impl PrefixRemainder {
+    /// How many supplied items the prefix does not carry. Zero says the whole
+    /// supplied material fit under the admitted magnitude.
+    #[must_use]
+    pub const fn omitted(self) -> usize {
+        self.omitted
+    }
+}
+
 /// A bounded collection that structurally holds at least one item — a refusal with
 /// zero issues is not a refusal, and this shape makes that unrepresentable.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -571,11 +603,18 @@ impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
     /// a membership, a ceiling. A collection-shaped refusal body is not that: the
     /// issues an over-bound pass established are each true on their own, and
     /// refusing the body would leave a caller with no findings at all. So this
-    /// road carries the prefix the admitted magnitude holds and RETURNS the
-    /// remainder count, which is the seat that keeps the truncation from being
-    /// silent. A caller that has nowhere to put that count is a caller writing a
-    /// body that cannot say what it left out, and the signature makes that
-    /// visible at the call site rather than at review.
+    /// road carries the prefix the admitted magnitude holds and RETURNS a
+    /// [`PrefixRemainder`], which is the seat that keeps the truncation from
+    /// being silent. A caller that has nowhere to put that witness is a caller
+    /// writing a body that cannot say what it left out, and the signature makes
+    /// that visible at the call site rather than at review.
+    ///
+    /// The remainder is a WITNESS rather than a number because the number alone
+    /// carries no provenance. A `usize` handed to a downstream seat is a count
+    /// anybody could have chosen, so a body that dropped nothing could still
+    /// write down that it dropped seven. The witness is minted here, on the road
+    /// that actually truncated, and nowhere else — which is what makes a
+    /// downstream claim about how much was lost a claim about THIS truncation.
     ///
     /// It is total for the same reason [`NonEmptyBounded::singleton`] is: the
     /// witness is [`PositiveLimit`], so the maximum is at least one, so the first
@@ -587,12 +626,12 @@ impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
     /// one that stood under a named plane's ceiling rather than one nobody
     /// validated. The profile rides on the witness and is not stamped onto the
     /// returned value.
-    #[must_use = "the remainder count is what keeps a truncated report from claiming completeness"]
+    #[must_use = "the remainder witness is what keeps a truncated report from claiming completeness"]
     pub fn admitted_prefix<P: LimitAdmissionProfile>(
         first: T,
         rest: Vec<T>,
         admitted: &PositiveLimit<L, P>,
-    ) -> (Self, usize) {
+    ) -> (Self, PrefixRemainder) {
         let carried = admitted.max().saturating_sub(1);
         let omitted = rest.len().saturating_sub(carried);
         let mut prefix = rest;
@@ -603,7 +642,7 @@ impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
                 rest: prefix,
                 _family: PhantomData,
             },
-            omitted,
+            PrefixRemainder { omitted },
         )
     }
 

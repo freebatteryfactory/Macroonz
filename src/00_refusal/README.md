@@ -1,7 +1,11 @@
 # 00_refusal — how the machine says no
 
-Band 00. Imports nothing — this home must stand below everything, because every
-checked constructor in every later band refuses through it.
+Band 00. It stands below every band, because every checked constructor in every
+later band refuses through it, and it imports nothing from any of them. Its one
+edge runs the other way: `PrefixRemainder`, the root calculus's witness to a
+truncating construction, because the posture a truncated report writes is
+selected by that witness rather than by a number a caller chose. The root
+calculus imports nothing at all and is the floor under this home.
 
 Four observables never collapse: **success ≠ refusal ≠ uncertainty ≠ failure**.
 A refusal is a typed, lawful "no" from a check that ran. It is never silent
@@ -40,12 +44,20 @@ is carried, because "some were dropped" is a claim nobody can act on.
 
 The distinction is minted rather than declared. `ReportTruncation` is opaque with
 no public constructor, and `CompletionPosture::examined_completely` is its only
-road: the road takes the number of issues a collection could not carry and
-selects the posture from it, so a body that carried everything cannot claim it
-truncated and a body that dropped issues cannot claim completeness. Neither is a
-discipline a site has to remember, because neither is a value a site can build.
-`NonEmptyBounded::admitted_prefix` is where that count comes from, and it is the
-only construction road in the machine that truncates at all.
+road. That road takes no number. It takes a `PrefixRemainder` — the root
+calculus's witness to a truncation that actually happened — and selects the
+posture from it, so a body that carried everything cannot claim it truncated and
+a body that dropped issues cannot claim completeness. Neither is a discipline a
+site has to remember, because neither is a value a site can build.
+
+The witness is what makes the count belong to the body. A `usize` parameter would
+have made the posture accurate only by convention: a body that dropped nothing
+could still state that seven issues stand outside it, and the type would be
+recording an assertion rather than an act. `NonEmptyBounded::admitted_prefix`
+mints the witness and has no rival — it is the only construction road in the
+machine that truncates at all — so the count a reader acts on is the count that
+truncation performed. Writing a remainder by hand does not compile, and neither
+does handing the posture road a bare number; both reversals are testpak's.
 
 ## The order is typed; the text is its projection
 
@@ -161,9 +173,9 @@ obligations:
     green: laws.rs refusal::posture_is_a_collection_instance_value
     red: owed-to-testpak
   - id: refusal.a-truncated-report-is-not-a-halted-examination
-    challenge_kind: compile-law
+    challenge_kind: compile-refusal
     green: laws.rs refusal::a_truncated_report_is_not_a_halted_examination
-    red: owed-to-testpak
+    red: testpak/tests/compile-fail/a-truncation-count-with-no-truncation-behind-it.rs
   - id: refusal.cause-identity-outlives-its-spelling
     challenge_kind: compile-law
     green: laws.rs refusal::cause_identity_outlives_its_spelling

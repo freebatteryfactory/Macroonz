@@ -534,7 +534,7 @@ fn diagnosed(
         .iter()
         .map(|issue| related_identity(family, issue))
         .collect();
-    let (related, related_completion) = related_set(body, per_issue);
+    let (related, related_completion) = related_set(body, &per_issue);
     MacrocDiagnostic {
         // The one line says which of the two sets stands behind it, because the
         // typed posture beside it is not what rustc shows.
@@ -605,16 +605,21 @@ fn related_identity(family: u8, material: &[u8]) -> ProjectionIdentity<RelatedIs
 /// — and the posture returned beside it states `ReportTruncated` with the count
 /// it dropped. Carrying the coarser set silently is the defect: it has the shape
 /// of a complete answer, and the reader has nothing to compare it against.
+///
+/// The per-issue identities stay in hand across the attempt, because the posture
+/// is taken off the material this road actually drops rather than off a number
+/// it computed earlier. A count computed ahead of the truncation is a count that
+/// can outlive the reason for it.
 pub(crate) fn related_set(
     body: ProjectionIdentity<RelatedIssueSubject>,
-    per_issue: Vec<ProjectionIdentity<RelatedIssueSubject>>,
+    per_issue: &[ProjectionIdentity<RelatedIssueSubject>],
 ) -> (
     Bounded<ProjectionIdentity<RelatedIssueSubject>, RelatedIssueLimit>,
     RelatedSetCompletion,
 ) {
-    let issues = per_issue.len();
-    let mut all = vec![body];
-    all.extend(per_issue);
+    let mut all = Vec::with_capacity(per_issue.len().saturating_add(1));
+    all.push(body);
+    all.extend(per_issue.iter().copied());
     match Bounded::admitted_const(
         all,
         &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
@@ -622,10 +627,7 @@ pub(crate) fn related_set(
         Ok(set) => (set, RelatedSetCompletion::Complete),
         Err(BoundedConstruction::OverLimit) => (
             Bounded::from_array([body]),
-            RelatedSetCompletion::ReportTruncated {
-                stopped_at: StopBound::DeclaredIssueBound,
-                omitted: issues,
-            },
+            RelatedSetCompletion::carrying_all_but(per_issue, StopBound::DeclaredIssueBound),
         ),
     }
 }
@@ -640,10 +642,14 @@ pub(crate) fn related_set(
 pub(crate) fn witnessed(composed: &str, completion: RelatedSetCompletion) -> String {
     match completion {
         RelatedSetCompletion::Complete => composed.to_owned(),
-        RelatedSetCompletion::ReportTruncated { omitted, .. } => format!(
-            "{composed} (the related set was truncated at the declared issue bound: one identity \
-             over the complete body is carried and {omitted} per-issue identities are not)"
-        ),
+        RelatedSetCompletion::ReportTruncated(truncation) => {
+            let omitted = truncation.omitted();
+            format!(
+                "{composed} (the related set was truncated at the declared issue bound: one \
+                 identity over the complete body is carried and {omitted} per-issue identities \
+                 are not)"
+            )
+        }
     }
 }
 

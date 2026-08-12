@@ -3744,6 +3744,12 @@ mod failure_path_closure {
     /// band 00's distinction: the refusal body is complete before the set is
     /// built, so nothing here ever halts an examination and a set that reported
     /// one would be claiming an ignorance it does not have.
+    ///
+    /// The count is read off the identities the road actually dropped, and the
+    /// seat that carries it has no public mint — so a set that carried
+    /// everything cannot report that it dropped anything, and the number a
+    /// reader acts on belongs to this truncation rather than to whoever wrote
+    /// the posture down.
     /// Owed reversal (red twin): an overflow road returning the coarser set with
     /// no posture must break this law.
     #[test]
@@ -3762,7 +3768,7 @@ mod failure_path_closure {
 
         let body = identity(0);
         let fits: Vec<_> = (1..=3).map(identity).collect();
-        let (set, completion) = diagnose::related_set(body, fits);
+        let (set, completion) = diagnose::related_set(body, &fits);
         assert_eq!(set.len(), 4);
         assert!(matches!(completion, RelatedSetCompletion::Complete));
 
@@ -3770,15 +3776,14 @@ mod failure_path_closure {
         // AT the declared magnitude overruns the set by exactly one.
         let magnitude = u32::try_from(crate::plane::RelatedIssueLimit::MAX).unwrap_or(u32::MAX);
         let over: Vec<_> = (1..=magnitude).map(identity).collect();
-        let (truncated_set, truncated) = diagnose::related_set(body, over);
+        let (truncated_set, truncated) = diagnose::related_set(body, &over);
         assert_eq!(truncated_set.len(), 1);
         assert_eq!(truncated_set.iter().next(), Some(&body));
         assert!(matches!(
             truncated,
-            RelatedSetCompletion::ReportTruncated {
-                stopped_at: StopBound::DeclaredIssueBound,
-                omitted,
-            } if omitted == crate::plane::RelatedIssueLimit::MAX
+            RelatedSetCompletion::ReportTruncated(truncation)
+                if truncation.omitted().get() == crate::plane::RelatedIssueLimit::MAX
+                    && matches!(truncation.stopped_at(), StopBound::DeclaredIssueBound)
         ));
 
         // The one line rustc shows carries the same statement, because the

@@ -35,6 +35,7 @@
 //! evidence home, downstream. Location types are carried by owner families, never by
 //! the universal envelope.
 
+use crate::types::PrefixRemainder;
 use core::marker::PhantomData;
 use core::num::NonZeroUsize;
 
@@ -90,11 +91,12 @@ pub enum StopBound {
 /// How much one report left outside its declared bound.
 ///
 /// Opaque, with no public constructor: the only road to one is
-/// [`CompletionPosture::examined_completely`], and that road takes the count off
-/// a collection that was actually truncated. So a body that carried every issue
+/// [`CompletionPosture::examined_completely`], and that road takes no count at
+/// all. It takes a [`PrefixRemainder`], which only the construction road that
+/// actually truncated a collection can mint. So a body that carried every issue
 /// it established cannot write down a truncation posture, and a body that
 /// truncated cannot write down a count it did not truncate by — the two are
-/// minted together or not at all.
+/// minted together or not at all, and neither is a number a caller supplies.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ReportTruncation {
     stopped_at: StopBound,
@@ -156,23 +158,33 @@ pub enum CompletionPosture {
 }
 
 impl CompletionPosture {
-    /// The posture a COMPLETE examination's report amounts to, given how many of
-    /// its established issues the body could not carry.
+    /// The posture a COMPLETE examination's report amounts to, given the
+    /// remainder the construction road that built its body handed back.
     ///
-    /// This is the one mint for [`ReportTruncation`], and the omission count is
-    /// what selects the posture rather than the caller: nothing omitted is
-    /// `Complete`, and anything omitted is a truncation naming the bound and the
-    /// count. A pass that carried every issue therefore cannot claim it
+    /// This is the one mint for [`ReportTruncation`], and the WITNESS is what
+    /// selects the posture rather than the caller: a remainder of nothing is
+    /// `Complete`, and any other remainder is a truncation naming the bound and
+    /// the exact count. A pass that carried every issue therefore cannot claim it
     /// truncated, and a pass that dropped issues cannot claim completeness —
     /// neither is a discipline a site has to remember, because neither is a
     /// value a site can build.
+    ///
+    /// The parameter is a [`PrefixRemainder`] and not a number, and that is the
+    /// difference between a posture that MATCHES a body and one that merely
+    /// describes it. A count is a value anybody can choose, so a road taking one
+    /// would let a body carrying every issue it established mint a posture saying
+    /// seven were dropped, and the type would be recording a caller's assertion
+    /// rather than the construction's own act. The witness is minted by
+    /// [`PrefixRemainder`]'s single road — the one collection road that truncates
+    /// — so the count this posture carries is the count that truncation
+    /// performed, structurally and not by convention.
     ///
     /// A pass whose examination genuinely halted does not come here. It states
     /// [`CompletionPosture::EarlyStopped`] directly, because the fact it is
     /// reporting is about the scan and not about the report.
     #[must_use]
-    pub const fn examined_completely(omitted: usize, at: StopBound) -> Self {
-        match NonZeroUsize::new(omitted) {
+    pub const fn examined_completely(remainder: PrefixRemainder, at: StopBound) -> Self {
+        match NonZeroUsize::new(remainder.omitted()) {
             None => Self::Complete,
             Some(omitted) => Self::ReportTruncated(ReportTruncation {
                 stopped_at: at,

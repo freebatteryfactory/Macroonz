@@ -64,14 +64,17 @@ impl TriggerViewComposition {
     /// all of them; where it does not, the body carries what the bound holds and
     /// names how many established issues stand outside it.
     pub(super) fn established(first: TriggerViewIssue, rest: Vec<TriggerViewIssue>) -> Self {
-        let (issues, omitted) = NonEmptyBounded::admitted_prefix(
+        let (issues, remainder) = NonEmptyBounded::admitted_prefix(
             first,
             rest,
             &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
         );
         Self {
             issues,
-            posture: CompletionPosture::examined_completely(omitted, StopBound::DeclaredIssueBound),
+            posture: CompletionPosture::examined_completely(
+                remainder,
+                StopBound::DeclaredIssueBound,
+            ),
         }
     }
 }

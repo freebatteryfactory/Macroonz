@@ -2,9 +2,16 @@
 //! observed differs from what was expected, where it sits, what repairs it, and
 //! how to reach it again.
 //!
-//! Declarations only. No seat here is private — a diagnostic that hid one would
-//! be a diagnostic that sometimes says less than it knows — so this home has no
-//! invariant nucleus and no `type_guard.rs` beside this file.
+//! Declarations only, and every seat here is READABLE — a diagnostic that hid
+//! one would be a diagnostic that sometimes says less than it knows.
+//!
+//! Exactly one seat is not WRITABLE, and the two are different properties. A
+//! truncated related set's count is a fact about an act the services performed,
+//! so a caller able to write it could state that identities were dropped by a
+//! set that dropped none. `RelatedSetTruncation` is therefore opaque with public
+//! readers and a single crate-internal mint, and that mint is what earns this
+//! home its `type_guard.rs`: the nucleus holds the one road that reaches the
+//! seat, and reaching it is what makes the count belong to the truncation.
 
 use crate::plane::{
     ContractSubject, ExpansionSurfaceSubject, FixturePopulationSubject, HumanProjection,
@@ -12,12 +19,16 @@ use crate::plane::{
     RefusalReason, RelatedIssueLimit, RelatedIssueSubject, RepairLimit, ServiceEntrySubject,
 };
 use crate::token::{SpanHandle, SpanResolutionRefusal};
+use core::num::NonZeroUsize;
 use threadpak::declaration::SourceCoordinate;
 use threadpak::declaration::types::{FragmentIdentityDomain, LinkedGraphDomain, SymbolDomain};
 use threadpak::evidence::CauseDisposition;
 use threadpak::evidence::types::ReleaseArtifactDomain;
 use threadpak::refusal::StopBound;
 use threadpak::types::Bounded;
+
+#[path = "type_guard.rs"]
+mod guard;
 
 threadpak::closed_register! {
     /// Which act of the services was running when the disagreement was
@@ -190,6 +201,25 @@ pub struct DiagnosticSite {
     pub coordinate: SiteCoordinate,
 }
 
+/// How many per-issue identities one truncated related set does not carry.
+///
+/// Opaque, with public readers and no public mint. The count is a fact about an
+/// act — the set-building road ran out of declared magnitude and left identities
+/// behind — and a seat a caller could write would be a count with no act behind
+/// it. The one road that mints this reads the number off the material it
+/// actually dropped, so what a reader acts on is what happened rather than what
+/// somebody asserted.
+///
+/// It takes band 00's shape for the same reason it takes band 00's vocabulary:
+/// `ReportTruncation` there is opaque for exactly this reason, and a tooling
+/// value reporting the same kind of fact under a weaker discipline would be the
+/// weaker statement that keeps passing after the stronger one is gone.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct RelatedSetTruncation {
+    stopped_at: StopBound,
+    omitted: NonZeroUsize,
+}
+
 /// Whether one diagnostic's related set carries every established issue's own
 /// identity, or was truncated at the declared related-issue magnitude.
 ///
@@ -202,20 +232,20 @@ pub struct DiagnosticSite {
 /// the complete body's identity alone otherwise cannot tell a one-issue refusal
 /// from a sixty-issue one, and a set that carried the body's identity silently
 /// would be a coarser commitment wearing the shape of a complete one.
+///
+/// The truncated posture carries an opaque [`RelatedSetTruncation`] rather than
+/// a bound and a number, because the pair written as fields is a pair a caller
+/// can write. A set that carried every identity could then report that sixty
+/// were dropped, and nothing in the type would notice.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RelatedSetCompletion {
     /// The complete body's identity, then one per established issue, all of
     /// them.
     Complete,
     /// The set was truncated at a declared bound. The complete body's identity
-    /// is carried — it commits to every issue at once — and this many per-issue
-    /// identities are not.
-    ReportTruncated {
-        /// The declared bound the set was truncated at.
-        stopped_at: StopBound,
-        /// How many per-issue identities the set does not carry.
-        omitted: usize,
-    },
+    /// is carried — it commits to every issue at once — and the truncation names
+    /// the bound and how many per-issue identities are not there.
+    ReportTruncated(RelatedSetTruncation),
 }
 
 /// One diagnostic from the services.

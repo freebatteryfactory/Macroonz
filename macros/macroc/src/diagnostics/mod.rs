@@ -5,6 +5,6 @@ mod types;
 
 pub use types::{
     DiagnosticSite, MachineAnchoring, MachineAnchors, MacrocDiagnostic, MacrocPhase,
-    ObservedClassification, RelatedSetCompletion, ReleasePosture, RepairAction, ReproductionRoute,
-    SiteCoordinate,
+    ObservedClassification, RelatedSetCompletion, RelatedSetTruncation, ReleasePosture,
+    RepairAction, ReproductionRoute, SiteCoordinate,
 };

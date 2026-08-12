@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+  --> tests/compile-fail/a-truncation-count-with-no-truncation-behind-it.rs:18:52
+   |
+18 |     let _ = CompletionPosture::examined_completely(7, StopBound::DeclaredIssueBound);
+   |             -------------------------------------- ^ expected `PrefixRemainder`, found integer
+   |             |
+   |             arguments to this function are incorrect
+   |
+note: associated function defined here
+  --> $WORKSPACE/src/00_refusal/types.rs
+   |
+   |     pub const fn examined_completely(remainder: PrefixRemainder, at: StopBound) -> Self {
+   |                  ^^^^^^^^^^^^^^^^^^^

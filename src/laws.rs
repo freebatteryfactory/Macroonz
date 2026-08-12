@@ -338,19 +338,25 @@ mod root {
     }
 
     /// law: root.a-prefix-road-reports-what-it-did-not-carry — the one
-    /// construction road that truncates hands back the count it truncated by,
-    /// both directions: material that fits reports nothing omitted, and material
-    /// that does not fit is carried up to the admitted magnitude with the exact
-    /// remainder reported beside it.
+    /// construction road that truncates hands back a witness to the truncation
+    /// it performed, both directions: material that fits mints a remainder
+    /// reading zero, and material that does not fit is carried up to the
+    /// admitted magnitude with a remainder reading the exact count beside it.
+    ///
+    /// The witness is minted HERE and has no other road, so the count a
+    /// downstream seat reads is the count this truncation performed rather than
+    /// one a caller chose. That is what makes the remainder provenance-bearing
+    /// rather than merely informative, and the reversal below is what proves the
+    /// mint is closed.
     ///
     /// The claim ceiling: this is a fact about the ROAD and says nothing about
-    /// what a caller does with the count. What the count makes impossible is a
-    /// body that dropped issues and cannot say so, and that consequence is band
+    /// what a caller does with the witness. What the witness makes impossible is
+    /// a body that dropped issues and cannot say so, and that consequence is band
     /// 00's to state — see `refusal::a_truncated_report_is_not_a_halted_examination`.
     ///
-    /// Owed reversal (red twin): a truncating road that returned the collection
-    /// alone must break this law, because the seat that carries the remainder
-    /// would be gone.
+    /// Red twin: writing a remainder by hand — a struct literal choosing its own
+    /// omission count — must not compile, because the seat is private and the
+    /// road is the only mint.
     #[test]
     fn a_prefix_road_reports_what_it_did_not_carry() {
         use crate::types::{NonEmptyBounded, PositiveLimit, RootLawsProfile};
@@ -362,19 +368,26 @@ mod root {
         let admitted: PositiveLimit<PrefixDemo, RootLawsProfile> =
             PositiveLimit::inhabited_under_profile();
 
-        // Under the magnitude: everything is carried and nothing is reported
-        // missing.
+        // Under the magnitude: everything is carried and the witness reads
+        // nothing omitted.
         let (whole, none_omitted) = NonEmptyBounded::admitted_prefix(1_u8, vec![2, 3], &admitted);
         assert_eq!(whole.len(), 3);
-        assert_eq!(none_omitted, 0);
+        assert_eq!(none_omitted.omitted(), 0);
         assert_eq!(whole.iter().copied().collect::<Vec<u8>>(), vec![1, 2, 3]);
 
         // Past it: the prefix the magnitude holds is carried — never the first
-        // item alone — and the remainder is counted exactly.
-        let (prefix, omitted) = NonEmptyBounded::admitted_prefix(1_u8, vec![2, 3, 4, 5], &admitted);
+        // item alone — and the witness reads the remainder exactly.
+        let (prefix, remainder) =
+            NonEmptyBounded::admitted_prefix(1_u8, vec![2, 3, 4, 5], &admitted);
         assert_eq!(prefix.len(), PrefixDemo::MAX);
-        assert_eq!(omitted, 2);
+        assert_eq!(remainder.omitted(), 2);
         assert_eq!(prefix.iter().copied().collect::<Vec<u8>>(), vec![1, 2, 3]);
+
+        // Two truncations of different magnitude mint different witnesses: the
+        // value tracks the act rather than standing for "some were dropped".
+        let (_, larger) = NonEmptyBounded::admitted_prefix(1_u8, vec![2, 3, 4, 5, 6, 7], &admitted);
+        assert_eq!(larger.omitted(), 4);
+        assert_ne!(larger, remainder);
     }
 
     /// law: root.an-admission-does-not-cross-profiles — a witness names WHICH
@@ -879,12 +892,20 @@ mod refusal {
     }
 
     /// law: refusal.a-truncated-report-is-not-a-halted-examination — the posture
-    /// a complete examination writes is SELECTED by how much its report left
-    /// out, both directions: nothing omitted mints `Complete`, and anything
-    /// omitted mints a truncation naming the declared bound and the exact count.
-    /// A pass that covered every site therefore cannot write `EarlyStopped`,
-    /// because the road that mints a truncation is the only road to one and it
-    /// does not produce that variant at all.
+    /// a complete examination writes is SELECTED by the truncation its body's
+    /// own construction performed, both directions: a road that dropped nothing
+    /// mints `Complete`, and a road that dropped material mints a truncation
+    /// naming the declared bound and the exact count. A pass that covered every
+    /// site therefore cannot write `EarlyStopped`, because the road that mints a
+    /// truncation is the only road to one and it does not produce that variant
+    /// at all.
+    ///
+    /// The posture is taken off a witness rather than off a number, so the
+    /// count is not merely accurate by discipline — it is the count the
+    /// construction below actually truncated by. The body and the posture are
+    /// therefore two readings of one act: substituting one truncation's witness
+    /// for another's would be substituting one body for another, and inventing a
+    /// count with no truncation behind it is not expressible at all.
     ///
     /// The two postures are separately inhabited and are not equal, which is
     /// what makes the distinction load-bearing rather than cosmetic: a reader
@@ -892,28 +913,49 @@ mod refusal {
     /// branching on a truncated report already knows the total.
     ///
     /// The claim ceiling: this says nothing about whether any particular pass
-    /// runs to completion. It says a pass that DID cannot report that it did
-    /// not, and a body that dropped findings cannot report that it did not.
+    /// runs to completion, and nothing about a body assembled by a road other
+    /// than the truncating one. It says a pass that DID run to completion cannot
+    /// report that it did not, a body that dropped findings cannot report that it
+    /// did not, and a caller holding no truncation cannot mint a posture that
+    /// claims one.
     ///
-    /// Owed reversal (red twin): a public constructor for `ReportTruncation`, or
-    /// a mint that took the posture from a caller rather than from a count, must
-    /// break this law.
+    /// Red twin: handing this road a bare count — a number with no truncation
+    /// behind it — must not compile, because the parameter is the witness and
+    /// the witness has no public mint.
     #[test]
     fn a_truncated_report_is_not_a_halted_examination() {
+        use crate::types::{ConstLimit, PositiveLimit, RootLawsProfile};
+        struct PostureDemo;
+        impl Limit for PostureDemo {}
+        impl ConstLimit for PostureDemo {
+            const MAX: usize = 3;
+        }
+        let admitted: PositiveLimit<PostureDemo, RootLawsProfile> =
+            PositiveLimit::inhabited_under_profile();
+
+        // A body whose construction carried everything: the posture it can write
+        // is the complete one, and it is the only one it can write.
+        let (whole, carried) = NonEmptyBounded::admitted_prefix(1_u8, vec![2, 3], &admitted);
         let carried_everything =
-            CompletionPosture::examined_completely(0, StopBound::DeclaredIssueBound);
+            CompletionPosture::examined_completely(carried, StopBound::DeclaredIssueBound);
+        assert_eq!(whole.len(), 3);
         assert_eq!(carried_everything, CompletionPosture::Complete);
 
+        // A body whose construction dropped four: the posture names the bound
+        // and the count the construction itself performed.
+        let (prefix, dropped) =
+            NonEmptyBounded::admitted_prefix(1_u8, vec![2, 3, 4, 5, 6, 7], &admitted);
         let left_some_out =
-            CompletionPosture::examined_completely(7, StopBound::DeclaredIssueBound);
+            CompletionPosture::examined_completely(dropped, StopBound::DeclaredIssueBound);
+        assert_eq!(prefix.len(), 3);
         assert!(matches!(
             left_some_out,
             CompletionPosture::ReportTruncated(truncation)
-                if truncation.omitted().get() == 7
+                if truncation.omitted().get() == 4
                     && matches!(truncation.stopped_at(), StopBound::DeclaredIssueBound)
         ));
 
-        // The halted posture is a different value, and no count produces it.
+        // The halted posture is a different value, and no truncation produces it.
         let halted = CompletionPosture::EarlyStopped {
             stopped_at: StopBound::DeclaredWorkBound,
         };

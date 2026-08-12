@@ -159,10 +159,19 @@ Refusing is right for material that is meaningless in part — a trail, a
 membership, a ceiling — and wrong for a REPORT: the issues an over-bound pass
 established are each true on their own, so refusing the body would leave a
 caller with no findings at all. The road carries the prefix the admitted
-magnitude holds and RETURNS the remainder count, and that count is the seat that
-keeps the truncation from being silent. A caller with nowhere to put it is
+magnitude holds and RETURNS a `PrefixRemainder`, and that witness is the seat
+that keeps the truncation from being silent. A caller with nowhere to put it is
 writing a body that cannot say what it left out, and the signature makes that
 visible at the call site.
+
+The remainder is a witness rather than a `usize` because a number carries no
+provenance. This road is the only construction road in the machine that drops
+anything, so it is the only mint for the witness, and the seat inside it is
+private — which is what makes a downstream claim about how much was lost a claim
+about THIS truncation rather than an assertion anybody could have written.
+Band 00's `CompletionPosture::examined_completely` is the consumer that makes the
+asymmetry pay: it takes the witness and never a count, so a report claiming it
+dropped seven issues is a report whose body actually dropped seven.
 
 The const-proven total roads read `L::MAX` bare by decision. `from_array([one,
 two])` proves that two elements fit under a type-level maximum; it cannot prove
@@ -223,9 +232,9 @@ obligations:
     green: laws.rs root::the_positive_witness_carries_the_admitted_one
     red: testpak/tests/compile-fail/a-past-ceiling-family-cannot-mint-a-positive-limit.rs
   - id: root.a-prefix-road-reports-what-it-did-not-carry
-    challenge_kind: compile-law
+    challenge_kind: compile-refusal
     green: laws.rs root::a_prefix_road_reports_what_it_did_not_carry
-    red: owed-to-testpak
+    red: testpak/tests/compile-fail/a-remainder-written-by-hand.rs
   - id: root.an-admission-does-not-cross-profiles
     challenge_kind: compile-refusal
     green: laws.rs root::an_admission_does_not_cross_profiles

@@ -153,14 +153,17 @@ impl TemplateConstruction {
         first: TemplateConstructionIssue,
         rest: Vec<TemplateConstructionIssue>,
     ) -> Self {
-        let (issues, omitted) = NonEmptyBounded::admitted_prefix(
+        let (issues, remainder) = NonEmptyBounded::admitted_prefix(
             first,
             rest,
             &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
         );
         Self {
             issues,
-            posture: CompletionPosture::examined_completely(omitted, StopBound::DeclaredIssueBound),
+            posture: CompletionPosture::examined_completely(
+                remainder,
+                StopBound::DeclaredIssueBound,
+            ),
         }
     }
 }
