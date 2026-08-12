@@ -72,20 +72,74 @@ pub trait ConstLimit: Limit {
     const MAX: usize;
 }
 
-/// The ceiling every admitted compile-time magnitude stands under.
+/// The ceiling one PLANE admits its declared magnitudes under.
 ///
-/// A number this repository CHOSE, stated here rather than inherited from a
-/// machine width, because an inherited number is a number nobody decided. What
-/// it rules out is a "bound" that bounds nothing: a magnitude no realistic input
-/// could reach makes its checked constructor unfalsifiable, and a constructor
-/// that cannot refuse is not a checked constructor. The widest magnitude the
-/// workspace declares today is a rendered unit's byte ceiling at `65_536`; this
-/// number is sixteen times that, which leaves room for a magnitude nobody has
-/// needed yet and stops well short of a number that has stopped meaning
-/// anything.
-pub const WORKSPACE_LIMIT_CEILING: usize = 1_048_576;
+/// # Root owns the algebra; a profile owns the number
+///
+/// This crate owns the admission-witness algebra — which witnesses exist, what
+/// each one establishes, and which road consumes which. It does not own any
+/// plane's admissible magnitude. There is no single number that is right for
+/// every plane: an authoring plane bounding token material, a qualification
+/// plane rehearsing hostiles, and a host sizing its own buffers are answering
+/// different questions, and one number spanning all of them would be a number
+/// nobody decided — which is the exact defect a declared ceiling exists to end.
+///
+/// So the number is written down where its plane's seats are written down, and
+/// the generic roads below are instantiated with the downstream profile type.
+/// That is why this crate needs no edge to any plane that declares one.
+///
+/// # What this crate may seat, exactly
+///
+/// A profile-independent witness algebra; an absolute bound the REPRESENTATION
+/// imposes; and narrowly named profiles its own laws stand under, behind
+/// `cfg(test)`. Nothing else. In particular there is no production default
+/// profile here, because a default seated for convenience becomes the ceiling
+/// every downstream reaches for without deciding anything.
+pub trait LimitAdmissionProfile {
+    /// The widest declared magnitude this profile admits.
+    ///
+    /// What it rules out is a "bound" that bounds nothing: a magnitude no input
+    /// under this plane could reach makes its checked constructor
+    /// unfalsifiable, and a constructor that cannot refuse is not a checked
+    /// constructor.
+    const MAX_DECLARED_LIMIT: usize;
+}
 
-/// Evidence that one limit family's declared magnitude was admitted.
+/// The profile the ROOT'S OWN LAWS stand under, and nothing else.
+///
+/// Narrowly named and `cfg(test)`-gated on purpose. The proof surface needs
+/// families to admit in order to exercise the witness algebra at all, and the
+/// families it declares are small demonstrations rather than any plane's
+/// vocabulary. Seating a ceiling for them is not seating a production default:
+/// this profile does not exist in a built artifact, and nothing outside the
+/// crate's own proof surface can name it.
+///
+/// The number leaves room above the widest family the laws instantiate, which
+/// is a home's issue bound in the low tens. A law that needed a wider one would
+/// raise this number deliberately rather than inherit a wide one.
+#[cfg(test)]
+pub(crate) struct RootLawsProfile;
+
+#[cfg(test)]
+impl LimitAdmissionProfile for RootLawsProfile {
+    const MAX_DECLARED_LIMIT: usize = 1_024;
+}
+
+/// A second laws-only profile, deliberately narrower than [`RootLawsProfile`].
+///
+/// It exists so the proof surface can show that a witness names WHICH profile
+/// admitted it. One profile alone cannot demonstrate that, because there is
+/// nothing for it to fail to unify with.
+#[cfg(test)]
+pub(crate) struct NarrowLawsProfile;
+
+#[cfg(test)]
+impl LimitAdmissionProfile for NarrowLawsProfile {
+    const MAX_DECLARED_LIMIT: usize = 8;
+}
+
+/// Evidence that one limit family's declared magnitude stands under one
+/// profile's ceiling.
 ///
 /// # Why a declaration is not yet a machine fact
 ///
@@ -96,61 +150,134 @@ pub const WORKSPACE_LIMIT_CEILING: usize = 1_048_576;
 /// declaration must pass through before a road may treat it as a fact, and it is
 /// opaque and constructor-free, so holding one *is* the evidence.
 ///
-/// # What the mint establishes
+/// # What the mint establishes, and what it deliberately does not
 ///
-/// [`under_ceiling`](Self::under_ceiling) establishes exactly two things about
-/// `L`, both at COMPILE TIME, so no artifact carrying an inadmissible family is
-/// ever produced:
+/// [`under_profile`](Self::under_profile) establishes exactly one thing about
+/// `L`, at COMPILE TIME, so no artifact carrying an inadmissible family is ever
+/// produced: `L::MAX` stands under `P::MAX_DECLARED_LIMIT`.
 ///
-/// - the family admits at least one item — a family declaring `MAX = 0` bounds
-///   every seat under it to nothing, which is a dead seat rather than a bound;
-/// - the magnitude stands under [`WORKSPACE_LIMIT_CEILING`].
+/// It does NOT establish that the family admits an item, and that absence is
+/// deliberate. A family declaring `MAX = 0` mints this witness lawfully,
+/// because a zero maximum is an honest declaration for a seat that holds
+/// nothing: [`Bounded::empty`] under such a family is a real empty collection,
+/// and a base witness that refused the declaration would refuse that seat with
+/// it. The positivity claim is seated one witness up, in [`PositiveLimit`],
+/// where exactly the roads promising an inhabitant consume it.
+///
+/// # Both parameters are load-bearing
+///
+/// The family tag stops one family's admission from authorizing another. The
+/// profile tag stops one PLANE's admission from authorizing another: a
+/// magnitude admitted under a wide authoring ceiling is not admitted under a
+/// narrow qualification one, and `AdmittedLimit<L, A>` does not typecheck where
+/// `AdmittedLimit<L, B>` is required.
 ///
 /// # The claim ceiling, exactly
 ///
 /// It establishes nothing about whether the magnitude is the RIGHT one for its
 /// domain. That is the owner's declaration, no road can check it, and this
 /// witness does not pretend to. It establishes nothing about any runtime value.
-/// [`Bounded::admitted_const`] is the one road that reads its bound off this
-/// witness today; the total structural roads and
-/// [`NonEmptyBounded::admitted_const`] still read `L::MAX` bare, and moving them
-/// behind the same evidence is owed. And it says nothing whatever about a
-/// [`Limit`] family that declares no compile-time magnitude: such a family has
-/// no `MAX` to admit, its runtime magnitude is the schema home's
-/// [`LimitWitness`] to mint, and no road here admits it.
+/// And it says nothing whatever about a [`Limit`] family that declares no
+/// compile-time magnitude: such a family has no `MAX` to admit, its runtime
+/// magnitude is the schema home's [`LimitWitness`] to mint, and no road here
+/// admits it.
 #[must_use = "an admitted limit is the evidence a family's declared magnitude passed admission; \
               dropping it discards the only proof a road may act on that declaration"]
-pub struct AdmittedLimit<L: Limit> {
+pub struct AdmittedLimit<L: Limit, P: LimitAdmissionProfile> {
     max: usize,
     _family: PhantomData<L>,
+    _profile: PhantomData<P>,
 }
 
-impl<L: ConstLimit> AdmittedLimit<L> {
-    /// Admit one compile-time magnitude against the declared workspace ceiling.
+impl<L: ConstLimit, P: LimitAdmissionProfile> AdmittedLimit<L, P> {
+    /// Admit one compile-time magnitude against one profile's declared ceiling.
     ///
-    /// The `const` block below settles both questions before the program runs:
-    /// a `const` item refuses under `cargo check`, a function-body call refuses
-    /// at codegen, and there is no road that reaches a running program with an
-    /// inadmissible family. This is why the road has no refusal to return —
-    /// the failing case is not a value a caller has to invent a repair for, it
-    /// is a program that does not exist.
-    pub const fn under_ceiling() -> Self {
+    /// The `const` block below settles the question before the program runs: a
+    /// `const` item refuses under `cargo check`, a function-body call refuses at
+    /// codegen, and there is no road that reaches a running program with a
+    /// family past its profile's ceiling. This is why the road has no refusal to
+    /// return — the failing case is not a value a caller has to invent a repair
+    /// for, it is a program that does not exist.
+    pub const fn under_profile() -> Self {
         const {
-            assert!(L::MAX >= 1, "a limit family admitting no item at all");
             assert!(
-                L::MAX <= WORKSPACE_LIMIT_CEILING,
-                "a declared magnitude past the workspace ceiling bounds nothing"
+                L::MAX <= P::MAX_DECLARED_LIMIT,
+                "a declared magnitude past the admitting profile's ceiling bounds nothing"
             );
         }
         Self {
             max: L::MAX,
             _family: PhantomData,
+            _profile: PhantomData,
         }
     }
 }
 
-impl<L: Limit> AdmittedLimit<L> {
+impl<L: Limit, P: LimitAdmissionProfile> AdmittedLimit<L, P> {
     /// The admitted maximum this witness carries.
+    #[must_use]
+    pub const fn max(&self) -> usize {
+        self.max
+    }
+}
+
+/// Evidence that one limit family is admitted under a profile AND admits at
+/// least one item.
+///
+/// # Why positivity is a separate witness rather than a stronger base
+///
+/// The two facts govern different roads. "Stands under the plane's ceiling" is
+/// what a checked constructor needs in order to compare a runtime count against
+/// a number somebody decided. "Admits at least one item" is what a road
+/// PROMISING AN INHABITANT needs: [`NonEmptyBounded`] carries a first item by
+/// signature, so a family declaring `MAX = 0` is one that road can never
+/// satisfy, whatever the ceiling says.
+///
+/// Folding positivity into [`AdmittedLimit`] would have made a zero maximum
+/// inadmissible everywhere, and a zero maximum is lawful for [`Bounded::empty`]
+/// — the empty-only seat is a real seat rather than a mistake. So the stronger
+/// claim is seated in the stronger witness, and the roads that promise an
+/// inhabitant are the ones that consume it.
+///
+/// # No widening road back
+///
+/// There is no conversion from here to [`AdmittedLimit`]. Dropping a claim
+/// would be lawful, but no seat needs it, and an unearned conversion is surface
+/// nobody asked for.
+#[must_use = "a positive limit is the evidence a family's declared magnitude passed admission and \
+              admits an item; dropping it discards the only proof a road promising an inhabitant \
+              may act on"]
+pub struct PositiveLimit<L: Limit, P: LimitAdmissionProfile> {
+    max: usize,
+    _family: PhantomData<L>,
+    _profile: PhantomData<P>,
+}
+
+impl<L: ConstLimit, P: LimitAdmissionProfile> PositiveLimit<L, P> {
+    /// Admit one compile-time magnitude against one profile's ceiling AND
+    /// establish that the family admits an item.
+    ///
+    /// Both questions are settled by the `const` block before the program runs,
+    /// on [`AdmittedLimit::under_profile`]'s terms, so this road has no refusal
+    /// to return either.
+    pub const fn inhabited_under_profile() -> Self {
+        const {
+            assert!(
+                L::MAX <= P::MAX_DECLARED_LIMIT,
+                "a declared magnitude past the admitting profile's ceiling bounds nothing"
+            );
+            assert!(L::MAX >= 1, "a limit family admitting no item at all");
+        }
+        Self {
+            max: L::MAX,
+            _family: PhantomData,
+            _profile: PhantomData,
+        }
+    }
+}
+
+impl<L: Limit, P: LimitAdmissionProfile> PositiveLimit<L, P> {
+    /// The admitted maximum this witness carries; at least one by construction.
     #[must_use]
     pub const fn max(&self) -> usize {
         self.max
@@ -219,10 +346,17 @@ impl<T, L: ConstLimit> Bounded<T, L> {
     /// when the instantiation is const-evaluated, so no artifact carrying an
     /// over-long fixed collection is ever produced.
     ///
-    /// This road still reads `L::MAX` bare rather than through an
-    /// [`AdmittedLimit`]. The arity question it settles is about `N`, written at
-    /// the call site, and moving the family's magnitude behind admission here is
-    /// owed — see [`Bounded::admitted_const`], where the move is made.
+    /// # The claim class: LOCAL ARITY, and it is not an admission
+    ///
+    /// This road reads `L::MAX` bare, and it stays that way by decision. What it
+    /// proves is that `N` items — a count written at the call site — fit under a
+    /// type-level maximum. It does NOT prove that maximum was a sensible
+    /// declaration, and it must never be read as though it had: proving the
+    /// family's magnitude was admitted requires a profile, and no profile is
+    /// involved here. A road that claims the ADMITTED FAMILY MAGNITUDE consumes
+    /// an admission witness — [`Bounded::admitted_const`] is that road. This one
+    /// proves exactly the local fact it needs and claims nothing wider, which is
+    /// why it can stay total.
     #[must_use]
     pub fn from_array<const N: usize>(items: [T; N]) -> Self {
         const {
@@ -239,28 +373,33 @@ impl<T, L: ConstLimit> Bounded<T, L> {
 
     /// Checked construction against the family's ADMITTED compile-time maximum.
     ///
-    /// # The bound comes from the witness, not from the declaration
+    /// # The claim class: ADMITTED FAMILY MAGNITUDE
     ///
     /// [`Limit`] and [`ConstLimit`] are extension points, so `L::MAX` is
     /// whatever its author wrote and the compiler checks nothing about it. This
     /// road reads its bound off the [`AdmittedLimit`] witness instead, which
-    /// means the number it compares against is one that passed admission rather
-    /// than one nobody validated. That is the whole difference, and it is why
-    /// the witness is a parameter rather than a comment: a caller that has not
-    /// admitted the family has no value to pass.
+    /// means the number it compares against is one that stood under a named
+    /// plane's ceiling rather than one nobody validated. That is the whole
+    /// difference, and it is why the witness is a parameter rather than a
+    /// comment: a caller that has not admitted the family under a profile has no
+    /// value to pass.
+    ///
+    /// The profile rides on the witness and not on the collection: `P` is a
+    /// parameter of this method, so admitting a family under one plane never
+    /// stamps that plane onto the value the road returns.
     ///
     /// The total structural roads beside this one — [`Bounded::from_array`],
-    /// [`NonEmptyBounded::singleton`], [`NonEmptyBounded::from_array`] — still
-    /// read `L::MAX` bare, as does [`NonEmptyBounded::admitted_const`]. Moving
-    /// them behind the same evidence is owed and is not claimed here.
+    /// [`NonEmptyBounded::singleton`], [`NonEmptyBounded::from_array`] — read
+    /// `L::MAX` bare by decision. Each proves a LOCAL fact and claims no
+    /// admission; see each road's own claim class.
     ///
     /// # Errors
     ///
     /// Returns [`BoundedConstruction::OverLimit`] when the items exceed the
     /// admitted maximum.
-    pub fn admitted_const(
+    pub fn admitted_const<P: LimitAdmissionProfile>(
         items: Vec<T>,
-        admitted: &AdmittedLimit<L>,
+        admitted: &AdmittedLimit<L, P>,
     ) -> Result<Self, BoundedConstruction> {
         if items.len() <= admitted.max() {
             Ok(Self {
@@ -284,6 +423,13 @@ impl<T, L: Limit> Bounded<T, L> {
     /// CASE: no limit family admits fewer than zero items, so this road has no
     /// refusal to return, and callers outside this crate get a bounded value
     /// without an impossible error branch to invent a value for.
+    ///
+    /// # The claim class: NO MAGNITUDE EVIDENCE AT ALL
+    ///
+    /// This road never reads `L::MAX`, so it neither claims nor needs one. That
+    /// is why it is bounded by `L: Limit` alone and why a family declaring
+    /// `MAX = 0` inhabits it lawfully: an empty-only seat is a real seat, and
+    /// the empty collection under it is honest rather than degenerate.
     #[must_use]
     pub const fn empty() -> Self {
         Self {
@@ -294,6 +440,14 @@ impl<T, L: Limit> Bounded<T, L> {
 
     /// Checked construction against a schema-minted runtime witness of the same
     /// limit family — a witness for another family does not typecheck.
+    ///
+    /// # The claim class: SCHEMA-MINTED RUNTIME MAGNITUDE
+    ///
+    /// No profile is involved and none could be: the magnitude here was
+    /// established by schema validation at runtime rather than declared at
+    /// compile time, so there is no `L::MAX` to admit. A profile-scoped
+    /// admission is not evidence for this road and this road's witness is not
+    /// evidence for that one.
     ///
     /// # Errors
     ///
@@ -359,16 +513,31 @@ pub struct NonEmptyBounded<T, L: Limit> {
 }
 
 impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
-    /// Checked construction against the family's compile-time maximum. The
-    /// first item is a separate parameter — emptiness is unrepresentable, not
-    /// refused.
+    /// Checked construction against the family's ADMITTED and POSITIVE
+    /// compile-time maximum. The first item is a separate parameter — emptiness
+    /// is unrepresentable, not refused.
+    ///
+    /// # The claim class: ADMITTED FAMILY MAGNITUDE, and it must be inhabited
+    ///
+    /// This road takes the stronger witness, and the reason is its own
+    /// signature. It promises an inhabitant: whatever the runtime count turns
+    /// out to be, the value it returns holds a first item. A family declaring
+    /// `MAX = 0` can never lawfully satisfy that promise, so an
+    /// [`AdmittedLimit`] — which admits zero-maximum families on purpose — is
+    /// not enough evidence here. [`PositiveLimit`] carries both facts, and the
+    /// bound this road compares against is read off it rather than off the
+    /// declaration.
     ///
     /// # Errors
     ///
     /// Returns [`NonEmptyBoundedConstruction::OverLimit`] when the total item
-    /// count exceeds `L::MAX`.
-    pub fn admitted_const(first: T, rest: Vec<T>) -> Result<Self, NonEmptyBoundedConstruction> {
-        if rest.len().saturating_add(1) <= L::MAX {
+    /// count exceeds the admitted maximum.
+    pub fn admitted_const<P: LimitAdmissionProfile>(
+        first: T,
+        rest: Vec<T>,
+        admitted: &PositiveLimit<L, P>,
+    ) -> Result<Self, NonEmptyBoundedConstruction> {
+        if rest.len().saturating_add(1) <= admitted.max() {
             Ok(Self {
                 first,
                 rest,
@@ -393,6 +562,14 @@ impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
     /// shape, a pair of citations written side by side — a caller has no runtime
     /// failure to invent a value for, so the place a caller reaches for a
     /// shortened collection is not on the road at all.
+    ///
+    /// # The claim class: LOCAL ARITY AND LOCAL POSITIVITY
+    ///
+    /// The `const` block proves that `N + 1` items fit under a type-level
+    /// maximum, and the separate first parameter is the inhabitant. Both are
+    /// facts about THIS call, and neither claims the family's magnitude was
+    /// admitted — that claim needs a profile, and no profile is involved here.
+    /// The road that makes it is [`NonEmptyBounded::admitted_const`].
     #[must_use]
     pub fn from_array<const N: usize>(first: T, rest: [T; N]) -> Self {
         const {
@@ -429,8 +606,14 @@ impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
     /// value for, so refusal construction never becomes the place a consumer
     /// reaches for a panic.
     ///
-    /// Owed reversal (red twin): a trybuild fixture instantiating this road
-    /// under a family declaring `MAX = 0` must fail to compile.
+    /// # The claim class: LOCAL POSITIVITY
+    ///
+    /// The `const` block proves `L::MAX >= 1` — the one fact this call needs in
+    /// order to hold its single item — and proves it structurally, off the
+    /// declaration. It claims nothing about whether that declaration was
+    /// admitted under any plane's ceiling, and it must never be read as though
+    /// it did. [`PositiveLimit`] is where the same positivity fact is seated
+    /// TOGETHER WITH admission, for the road that needs both.
     #[must_use]
     pub const fn singleton(value: T) -> Self {
         const { assert!(L::MAX >= 1, "a limit family admitting no item at all") }
@@ -444,6 +627,13 @@ impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
 
 impl<T, L: Limit> NonEmptyBounded<T, L> {
     /// Checked construction against a schema-minted runtime witness.
+    ///
+    /// # The claim class: SCHEMA-MINTED RUNTIME MAGNITUDE
+    ///
+    /// [`Bounded::admitted`]'s exactly, and the inhabitant is supplied by the
+    /// signature rather than by evidence: the first item is a separate
+    /// parameter, so emptiness is unrepresentable here whatever the witnessed
+    /// magnitude turns out to be.
     ///
     /// # Errors
     ///

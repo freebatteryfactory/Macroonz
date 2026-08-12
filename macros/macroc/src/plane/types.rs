@@ -8,7 +8,7 @@
 //! boundary.
 
 use core::marker::PhantomData;
-use threadpak::types::{Bounded, ConstLimit, Limit};
+use threadpak::types::{Bounded, ConstLimit, Limit, LimitAdmissionProfile};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -88,6 +88,43 @@ macro_rules! subjects {
         #[cfg(test)]
         pub(crate) const SUBJECT_NAMES: &[&str] = &[$($declared),+];
     };
+}
+
+/// The AUTHORING plane's admissible ceiling: the widest magnitude any limit
+/// family the services declare may state.
+///
+/// # The number, and whose policy it is
+///
+/// `1_048_576`. It is the AUTHORING plane's policy and nobody else's. The
+/// machine owns the admission algebra — which witnesses exist and what each
+/// establishes — and deliberately declares no production ceiling, because a
+/// number seated there for convenience becomes the ceiling every plane inherits
+/// without deciding anything. This is where the services decide theirs, beside
+/// the families it governs.
+///
+/// It is a number this plane CHOSE rather than one taken from a machine width.
+/// The widest magnitude the services declare today is [`RenderedByteLimit`] at
+/// `65_536`; this is sixteen times that, which leaves room for a magnitude
+/// nobody has needed yet and stops well short of a number that has stopped
+/// meaning anything. What it rules out is a "bound" that bounds nothing: a
+/// magnitude no declared input could reach makes its checked constructor
+/// unfalsifiable, and a constructor that cannot refuse is not a checked
+/// constructor.
+///
+/// It is revisable by decision, and revising it is a decision rather than an
+/// edit: every family below is admitted against it, so moving it moves what the
+/// whole plane will accept.
+///
+/// # What it does not govern
+///
+/// Nothing outside this plane. A family admitted here is not admitted under a
+/// qualification profile or any host's, because the witness carries the profile
+/// as a type parameter and the two do not unify.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct AuthoringLimitProfile;
+
+impl LimitAdmissionProfile for AuthoringLimitProfile {
+    const MAX_DECLARED_LIMIT: usize = 1_048_576;
 }
 
 /// Declares the plane's limit families: each is a `Limit` with a compile-time

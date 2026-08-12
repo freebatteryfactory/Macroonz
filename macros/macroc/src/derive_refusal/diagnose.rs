@@ -53,8 +53,8 @@ use crate::diagnostics::{
 };
 use crate::explanation_protocol::{ExplanationCoverage, ExplanationCoverageIssue};
 use crate::plane::{
-    GeneratedTokenLimit, HumanProjection, HumanTextLimit, MembershipLimit, OwnerFactRef,
-    ProjectionIdentity, ProjectionRole, ProjectionTranscript, RelatedIssueLimit,
+    AuthoringLimitProfile, GeneratedTokenLimit, HumanProjection, HumanTextLimit, MembershipLimit,
+    OwnerFactRef, ProjectionIdentity, ProjectionRole, ProjectionTranscript, RelatedIssueLimit,
     RelatedIssueSubject, RenderedByteLimit, RenderedRole, encode_bytes, human_projection,
 };
 use crate::refusal::{ProjectionPlanning, ProjectionPlanningIssue};
@@ -586,7 +586,10 @@ pub(crate) fn related_set(
     let issues = per_issue.len();
     let mut all = vec![body];
     all.extend(per_issue);
-    match Bounded::admitted_const(all, &AdmittedLimit::under_ceiling()) {
+    match Bounded::admitted_const(
+        all,
+        &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
+    ) {
         Ok(set) => (set, RelatedSetCompletion::Complete),
         Err(BoundedConstruction::OverLimit) => (
             Bounded::from_array([body]),

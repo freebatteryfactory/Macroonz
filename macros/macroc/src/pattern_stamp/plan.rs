@@ -10,7 +10,7 @@ use super::ScopeGuardStampAnchors;
 use crate::origin_graph::{
     DecisionTrace, OriginEdge, OriginRelation, OriginTrail, TraceDecision, TraceEntry,
 };
-use crate::plane::{PatternArgumentLimit, SoleRenderedUnit};
+use crate::plane::{AuthoringLimitProfile, PatternArgumentLimit, SoleRenderedUnit};
 use crate::planning::{
     DigestContract, InvalidationTrigger, MemberDestination, PatternStampContent,
     PatternStampProjection, PlannedMember, PlannedMembership, PlannedOutput, ProjectionPlan,
@@ -37,7 +37,7 @@ pub fn plan_scope_guard_stamp(
 ) -> Result<ProjectionPlan<PatternStampProjection>, ProjectionPlanning> {
     let arguments = Bounded::admitted_const(
         vec![anchors.guard_name, anchors.scope_type],
-        &AdmittedLimit::under_ceiling(),
+        &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
     )
     .map_err(|_| {
         ProjectionPlanning::bound_exceeded(BoundAxis::Declarations, PatternArgumentLimit::MAX, 2)

@@ -13,10 +13,32 @@
 
 mod plane {
     use crate::plane::{
-        HumanProjection, HumanTextLimit, OwnerFactSubject, OwnerHomeSubject, OwnerIdentityRef,
-        ProfileVersion, RefusalReason,
+        AuthoringLimitProfile, HumanProjection, HumanTextLimit, OwnerFactSubject, OwnerHomeSubject,
+        OwnerIdentityRef, ProfileVersion, RefusalReason, RenderedByteLimit,
     };
-    use threadpak::types::{BoundedConstruction, ConstLimit};
+    use threadpak::types::{BoundedConstruction, ConstLimit, LimitAdmissionProfile};
+
+    /// law: plane.the-authoring-ceiling-is-this-plane-s-own — the services admit
+    /// their declared magnitudes under a ceiling this plane wrote down, and the
+    /// relation that justifies the number holds: the ceiling is sixteen times
+    /// the widest magnitude the plane declares.
+    ///
+    /// The claim ceiling: this is the positive control for the AUTHORING plane's
+    /// policy and nothing about the machine's algebra. It reads the number here
+    /// so a silent drift in either the ceiling or the widest family fails at the
+    /// relation rather than at whoever first reads the prose.
+    ///
+    /// Owed reversal (red twin): a family declaring a magnitude past this
+    /// ceiling must not compile — the fixture is testpak's.
+    #[test]
+    fn the_authoring_ceiling_is_this_planes_own() {
+        assert_eq!(AuthoringLimitProfile::MAX_DECLARED_LIMIT, 1_048_576);
+        assert_eq!(RenderedByteLimit::MAX, 65_536);
+        assert_eq!(
+            AuthoringLimitProfile::MAX_DECLARED_LIMIT,
+            RenderedByteLimit::MAX.saturating_mul(16)
+        );
+    }
 
     /// law: plane.subjects-do-not-unify — a reference naming one subject is a
     /// different type than a reference naming another, whatever the bytes.
@@ -518,7 +540,7 @@ mod diagnostics {
         ObservedClassification, RelatedSetCompletion, ReleasePosture, RepairAction,
         ReproductionRoute, SiteCoordinate,
     };
-    use crate::plane::{HumanProjection, OwnerFactRef, OwnerIdentityRef};
+    use crate::plane::{AuthoringLimitProfile, HumanProjection, OwnerFactRef, OwnerIdentityRef};
     use crate::token::SpanHandle;
     use threadpak::declaration::{CoordinateRole, SourceCoordinate};
     use threadpak::evidence::CauseDisposition;
@@ -576,7 +598,7 @@ mod diagnostics {
                     declared_by,
                     description,
                 }],
-                &AdmittedLimit::under_ceiling(),
+                &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
             )
             .map_err(|_| ())
         });
@@ -933,7 +955,9 @@ mod planning {
     use crate::origin_graph::{
         DecisionTrace, Nonclaim, OriginEdge, OriginRelation, OriginTrail, TraceDecision, TraceEntry,
     };
-    use crate::plane::{OwnerFactRef, OwnerIdentityRef, ProfileVersion, SoleRenderedUnit};
+    use crate::plane::{
+        AuthoringLimitProfile, OwnerFactRef, OwnerIdentityRef, ProfileVersion, SoleRenderedUnit,
+    };
     use crate::planning::{
         BenchmarkDescriptorProjection, CauseAnchoring, CodecProjection, DeriveImplContent,
         DeriveImplProjection, DigestContract, DocumentationProjection, GraphAnchoring,
@@ -1068,7 +1092,7 @@ mod planning {
                 unclaimed: crate::plane::for_laws(23),
                 because: owner_fact(),
             }],
-            &AdmittedLimit::under_ceiling(),
+            &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
         )
         .map_err(|_| ());
         let membership = PlannedMembership::declared(
@@ -2192,14 +2216,14 @@ mod template {
 }
 
 mod trigger_view {
-    use crate::plane::{OwnerFactRef, OwnerIdentityRef};
+    use crate::plane::{AuthoringLimitProfile, OwnerFactRef, OwnerIdentityRef};
     use crate::planning::{WRAPPER_COMPONENTS, WrapperComponent};
     use crate::trigger_view::{
         TriggerOmission, TriggerSelection, TriggerViewComposition, TriggerViewIssue,
         WrapperTriggerView,
     };
     use threadpak::refusal::{FamilyShape, RefusalFamily};
-    use threadpak::types::NonEmptyBounded;
+    use threadpak::types::{NonEmptyBounded, PositiveLimit};
 
     /// One owner fact, for laws that need a citation.
     fn owner_fact(tag: u8) -> OwnerFactRef {
@@ -2241,13 +2265,15 @@ mod trigger_view {
         // law reads the result of that seam. It used to swallow the refusal with
         // a one-citation selection, which would have passed the count assertion
         // below only by accident and would have proven nothing about the pair.
-        let paired =
-            NonEmptyBounded::admitted_const(owner_fact(94), vec![owner_fact(96)]).map(|because| {
-                TriggerSelection {
-                    component: WrapperComponent::Receipt,
-                    because,
-                }
-            });
+        let paired = NonEmptyBounded::admitted_const(
+            owner_fact(94),
+            vec![owner_fact(96)],
+            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+        )
+        .map(|because| TriggerSelection {
+            component: WrapperComponent::Receipt,
+            because,
+        });
         assert!(paired.is_ok_and(|selection| selection.because.iter().count() == 2));
 
         let left_out = omission(WrapperComponent::Explanation);

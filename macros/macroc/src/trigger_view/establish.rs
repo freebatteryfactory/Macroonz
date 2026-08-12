@@ -13,9 +13,10 @@
 //! unreachable.
 
 use super::{TriggerOmission, TriggerSelection, TriggerViewComposition, TriggerViewIssue};
+use crate::plane::AuthoringLimitProfile;
 use crate::planning::WRAPPER_COMPONENTS;
 use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction};
+use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction, PositiveLimit};
 
 /// Every component the two lists leave undecided or dispose of twice, in roster
 /// order.
@@ -59,7 +60,11 @@ impl TriggerViewComposition {
     /// declared bound the body keeps the first and reports that examination
     /// stopped there.
     pub(super) fn established(first: TriggerViewIssue, rest: Vec<TriggerViewIssue>) -> Self {
-        match NonEmptyBounded::admitted_const(first, rest) {
+        match NonEmptyBounded::admitted_const(
+            first,
+            rest,
+            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+        ) {
             Ok(issues) => Self {
                 issues,
                 posture: CompletionPosture::Complete,

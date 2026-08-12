@@ -108,22 +108,57 @@ workspace_members:
   - xtask/fixtures/renamed-consumer
 ```
 
-## A declared magnitude becomes a machine fact by admission
+## A declared magnitude becomes a machine fact by admission under a profile
 
 `Limit` and `ConstLimit` stay open: any home, and any frontend outside this
 crate, declares a limit family and states its own magnitude, and the compiler
 checks nothing about the number. `AdmittedLimit` is what a declaration passes
-through before a road treats it as a fact — opaque, family-tagged, and minted by
-a const road that establishes two things at compile time: the family admits at
-least one item, and its magnitude stands under `WORKSPACE_LIMIT_CEILING`, a
-number this repository chose rather than inherited. `Bounded::admitted_const`
-reads its bound off that witness rather than off the declaration, so the number
-it compares against is one that passed admission.
+through before a road treats it as a fact — opaque, family-tagged, profile-tagged,
+and minted by a const road that establishes exactly one thing at compile time:
+the magnitude stands under the ADMITTING PROFILE's ceiling.
+
+**The machine owns the algebra; a profile owns the number.** `LimitAdmissionProfile`
+is a plane's declared ceiling, and the machine declares no production profile of
+its own. There is no single number that is right for every plane, and one seated
+here for convenience would become the ceiling everything downstream inherits
+without deciding anything. The generic roads are instantiated with the
+downstream profile type, so the machine needs no edge to any plane that declares
+one — the authoring plane's `AuthoringLimitProfile` lives in `macros/macroc`,
+and the `no-core-tooling-edge` check is what keeps that direction one-way. Root
+seats only a profile-independent algebra, bounds the representation itself
+imposes, and narrowly named `cfg(test)` profiles its own laws stand under.
+
+**Positivity is a second witness, not a stronger first one.** `AdmittedLimit`
+proves the upper bound and nothing else, so a family declaring `MAX = 0` mints
+it lawfully — the empty-only bound is a real bound and `Bounded::empty` under it
+is an honest empty collection. `PositiveLimit` proves the same ceiling fact AND
+that the family admits an item, and it is what `NonEmptyBounded::admitted_const`
+demands, because that road promises an inhabitant no zero-maximum family can
+supply.
+
+Each construction road states its own claim class, and the classes do not
+substitute for one another:
+
+| Road | Claim class | Evidence consumed |
+| ---- | ----------- | ----------------- |
+| `Bounded::empty` | no magnitude evidence at all | none; `L::MAX` is never read |
+| `Bounded::from_array<N>` | local arity | const `N <= L::MAX`, proven at the call |
+| `Bounded::admitted_const` | admitted family magnitude | `AdmittedLimit<L, P>` |
+| `Bounded::admitted` | schema-minted runtime magnitude | `LimitWitness<L>` |
+| `NonEmptyBounded::singleton` | local positivity | const `L::MAX >= 1`, proven at the call |
+| `NonEmptyBounded::from_array<N>` | local arity and local positivity | const `N < L::MAX`, plus the separate first item |
+| `NonEmptyBounded::admitted_const` | admitted family magnitude, and it must be inhabited | `PositiveLimit<L, P>` |
+| `NonEmptyBounded::admitted` | schema-minted runtime magnitude | `LimitWitness<L>` |
+
+The const-proven total roads read `L::MAX` bare by decision. `from_array([one,
+two])` proves that two elements fit under a type-level maximum; it cannot prove
+that maximum was a sensible declaration, because proving that needs a profile
+and no profile is involved. Each proves exactly the local fact it needs and
+claims no admission, which is why each stays total and has no refusal to return.
 
 The ceiling on the claim: admission says nothing about whether a magnitude is the
-right one for its domain, and the roads beside it — `from_array`, `singleton`,
-`NonEmptyBounded::admitted_const` — still read `L::MAX` bare. Moving them behind
-the same evidence is owed.
+right one for its domain. That is the owner's declaration, no road can check it,
+and no witness pretends to.
 
 ## Root calculus obligations
 
@@ -164,7 +199,15 @@ obligations:
   - id: root.admission-precedes-a-trusted-magnitude
     challenge_kind: compile-refusal
     green: laws.rs root::admission_precedes_a_trusted_magnitude
-    red: testpak/tests/compile-fail/a-magnitude-past-the-workspace-ceiling.rs
+    red: testpak/tests/compile-fail/a-magnitude-past-the-authoring-ceiling.rs
+  - id: root.positivity-is-the-stronger-witness
+    challenge_kind: compile-refusal
+    green: laws.rs root::positivity_is_the_stronger_witness
+    red: testpak/tests/compile-fail/a-zero-maximum-family-cannot-mint-a-positive-limit.rs
+  - id: root.an-admission-does-not-cross-profiles
+    challenge_kind: compile-refusal
+    green: laws.rs root::an_admission_does_not_cross_profiles
+    red: testpak/tests/compile-fail/a-cross-profile-admission.rs
   - id: root.reading-is-not-gaining
     challenge_kind: compile-law
     green: laws.rs root::reading_is_not_gaining

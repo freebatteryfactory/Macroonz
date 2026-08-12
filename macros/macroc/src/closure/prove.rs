@@ -13,10 +13,10 @@
 //! stay unreachable.
 
 use super::{ClosureIssue, ProjectionClosureRefusal, RenderedProjection};
-use crate::plane::RenderedRole;
+use crate::plane::{AuthoringLimitProfile, RenderedRole};
 use crate::planning::{PlannedMember, PlannedMembership};
 use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction};
+use threadpak::types::{NonEmptyBounded, NonEmptyBoundedConstruction, PositiveLimit};
 
 /// The per-role pass: every issue the two establish at a role, and the members
 /// rebuilt at the roles where they agreed.
@@ -103,7 +103,11 @@ impl<R: RenderedRole> ProjectionClosureRefusal<R> {
     /// declared bound the body keeps the first and reports that examination
     /// stopped there — it never silently drops the remainder.
     pub(super) fn established(first: ClosureIssue<R>, rest: Vec<ClosureIssue<R>>) -> Self {
-        match NonEmptyBounded::admitted_const(first, rest) {
+        match NonEmptyBounded::admitted_const(
+            first,
+            rest,
+            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+        ) {
             Ok(issues) => Self {
                 issues,
                 posture: CompletionPosture::Complete,
