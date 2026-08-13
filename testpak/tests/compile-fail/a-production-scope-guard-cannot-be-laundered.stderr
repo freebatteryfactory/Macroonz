@@ -13,9 +13,10 @@ note: constructor is not visible here due to private fields
   ::: $WORKSPACE/src/11_navigation/types.rs
    |
    | / crate::scope_guard_version! {
-   | |     /// One version of a reference frame — Class C, scoped to its frame: versions
-   | |     /// of different frames are incomparable by type, exactly as schema versions
-   | |     /// are.
+   | |     /// One version of a reference frame — Class C, scoped to its frame. The
+   | |     /// frame is a VALUE inside the position rather than a type parameter, so two
+   | |     /// frames' versions are ONE type and the compiler never tells them apart:
+...  |
    | |     pub struct FrameVersion over ReferenceFrameId;
    | | }
    | |_- in this macro invocation

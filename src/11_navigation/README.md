@@ -73,6 +73,10 @@ obligations:
   - id: navigation.frame-version-rides-authority-position
     challenge_kind: compile-refusal
     green: laws.rs navigation::frame_version_rides_authority_position
+    red: testpak/tests/compile-fail/cross-frame-comparison-on-a-production-guard.rs
+  - id: navigation.a-production-guard-cannot-be-laundered
+    challenge_kind: compile-refusal
+    green: structural (the stamp emits one road in and none out; the position is private)
     red: testpak/tests/compile-fail/a-production-scope-guard-cannot-be-laundered.rs
   - id: navigation.axis-capabilities-are-declared
     challenge_kind: compile-refusal
