@@ -19,25 +19,24 @@ use crate::repository::walk::{
 /// `xtask` sits outside the tree it scans; `AGENTS.md` and `CLAUDE.md` state the
 /// ban itself and are likewise outside it.
 ///
-/// **The sentence that authorizes this gate is wider than the gate, and this
-/// says which is which rather than closing the gap in either direction.** The
-/// working law's ban also carries the ordinary noun "law", excepting the
-/// `laws.rs` filename, and this list has never carried it.
+/// **The working law's ban and this list now name the same four words.** The
+/// ban used to reach two vocabularies this list has never carried: the ordinary
+/// noun "law", excepting the `laws.rs` filename, and the acronym for a trusted
+/// computing base. The owner's amendment withdrew both, and neither withdrawal
+/// leaves a hole this file is covering for.
 ///
-/// That inclusion is UNDER ADJUDICATION. The reading brought against it is that
-/// an algebraic one, a semantic one, a refusal one, and the filename are
-/// ordinary computer-science vocabulary; that scanning for the English word buys
-/// euphemism rather than stronger proof; and that the defect worth removing is
-/// proof authority stated in two places, which is a question about where a claim
-/// is seated and not about which noun names it.
+/// The noun was withdrawn because an algebraic one, a semantic one, a refusal
+/// one, and the filename are ordinary computer-science vocabulary, and because
+/// scanning for the English word buys euphemism rather than stronger proof: the
+/// defect worth removing is proof authority stated in two places, a question
+/// about where a claim is SEATED that the strongest-seat drain answers and that
+/// no word list can reach. The acronym was withdrawn on the same reading — an
+/// ambient trust claim is refused by requiring what a trust claim must NAME,
+/// its typed boundary, members, authority, nonclaims, and qualification
+/// evidence, none of which a banned token would have supplied.
 ///
-/// So nothing here is owed by this file, and nothing here is settled either.
-/// This gate does not promise to enforce that word later — a promise of a repair
-/// that may never be made is a claim about the future the next reader would have
-/// to discover was false. Narrowing the working law's own sentence to exactly
-/// the vocabulary enforced here is the repository owner's amendment to write,
-/// and until it is written this comment states the disagreement rather than
-/// covering it.
+/// So the authorizing sentence and the enforced list cover one population, and
+/// this gate owes nothing to a wider one.
 const BANNED_VOCABULARY: [&str; 4] = ["factory", "candidate", "promotion", "self-hosting"];
 
 /// Lawful survivals: `(repository-relative path, word, why it stands)`. A term
@@ -113,10 +112,23 @@ pub(crate) fn check_no_personal_names(root: &Path) -> Result<(), String> {
 ///    `SelfHosting` and `self_hosting` are caught too.
 ///
 /// Both scans report the banned ROOT word, so one allowlist entry covers a
-/// file for either scan. The scanned tree is the machine (`src/`), the root
-/// `README.md`, the metaprogramming subsystem (`macros/`), and the
-/// qualification plane (`testpak/`): the tools and the judge speak the
-/// machine's vocabulary or they speak none.
+/// file for either scan.
+///
+/// **The surface is narrowed twice, and both narrowings are said out loud**,
+/// because the working law reads this gate as enforcing the live-tree
+/// vocabulary surface it DECLARES, and an undeclared narrowing is a claim about
+/// bytes nobody opened. By tree: the machine (`src/`), the metaprogramming
+/// subsystem (`macros/`), the qualification plane (`testpak/`), and the root
+/// `README.md` — the tools and the judge speak the machine's vocabulary or they
+/// speak none. By extension, within that tree: `.rs` and `.md`, nothing else,
+/// so a manifest, a lock file, a workflow, a license, or a fixture of any other
+/// extension is a file this scan never opened and carries no verdict from it.
+///
+/// What falls outside either narrowing is outside the claim rather than shown
+/// clean. `xtask/` is not scanned, because this file has to spell the words it
+/// forbids, and neither are the two working-law files, which state the ban
+/// itself; a banned word could stand in any of them and this gate would not see
+/// it.
 pub(crate) fn check_banned_vocabulary(root: &Path) -> Result<(), String> {
     let mut offenders = Vec::new();
     let mut read: Vec<(String, String)> = Vec::new();

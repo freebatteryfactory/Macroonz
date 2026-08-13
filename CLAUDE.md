@@ -2,13 +2,10 @@
 
 ThreadPak is a host-neutral semantic machine in safe Rust: programs are typed data, not
 text. This file is the binding law for any person, model, or agent working in this
-repository. `AGENTS.md` and `CLAUDE.md` are byte-identical; the parity is
-machine-checked by `cargo xtask check`, one stage of `cargo xtask qualify` — the
-complete entry bar: formatting, the lint wall, the tests, the repository laws, the
-wasm build, the documentation build, and a checkout left exactly as the run found
-it. `qualify` is the whole bar and the only spelling of it, so a hosted run calls
-that one command rather than restating any stage of it and the road never forks
-between a working machine and a clean host.
+repository. `AGENTS.md` and `CLAUDE.md` are byte-identical; parity is machine-checked by
+`cargo xtask check`, one stage of `cargo xtask qualify`. The ordered stage table
+owned by xtask is the only definition of that entry bar; hosted runners call the
+command and never restate its contents.
 
 ## The spine
 
@@ -138,9 +135,21 @@ the debts rather than the achievements.
 - Canonical verbs: define, parse, decode, encode, validate, resolve, compile, lower,
   plan, execute, apply, commit, project, render, inspect, explain, dispose, sample,
   fork, merge, append, acknowledge, checkpoint, resume, pack.
-- Banned in prose and identifiers: construction-lifecycle vocabulary (factory,
-  candidate, promotion, self-hosting); "law" as an ordinary noun (the `laws.rs`
-  filename is the accepted exception); the acronym TCB.
+- **Retired architecture vocabulary.** The construction-lifecycle terms `factory`,
+  `candidate`, `promotion`, and `self-hosting` do not name live ThreadPak types,
+  modules, phases, mechanisms, or claims. They may appear only where a dated
+  decision record names the retired architecture, or inside an external proper
+  noun whose meaning is not ThreadPak's. `cargo xtask check` enforces the live-tree
+  vocabulary surface it declares.
+- **Ordinary computer-science vocabulary remains ordinary.** `law`, `lawful`,
+  `algebraic law`, `semantic law`, and the filename `laws.rs` are permitted. The
+  defect being eliminated is not the noun: it is one claim acquiring two proof
+  authorities, or a weaker proof outliving the owner it was supposed to support.
+  Every claim still drains to its strongest seat under **The strongest seat**.
+- **Trust is owner-scoped, never ambient.** `TCB` is not globally banned as a token,
+  but it may not stand in for an unnamed universal trusted-computing base. A trust
+  claim names its typed boundary, members, authority, nonclaims, and qualification
+  evidence. Shorthand never creates those facts.
 
 ## Hard rules
 
@@ -173,8 +182,13 @@ the debts rather than the achievements.
 - testpak depends inward on core; nothing depends on testpak. Production never depends
   on its judge.
 - Probes (throwaway compiler experiments) never enter this repository.
-- LF line endings everywhere; no symlinks; no `build.rs`; no environment-variable
-  dependence — anything env-dependent is a bug.
+- LF line endings everywhere; no symlinks; no `build.rs`.
+- Semantic compilation, projection, identity construction, and generated meaning are
+  ambient-free: no network, filesystem scan, environment value, clock, entropy, or
+  host address may influence their result unless an owner-declared input carries it.
+  Operational tooling may read explicitly named host inputs needed to locate Cargo,
+  the repository root, or a temporary directory; those inputs are tooling-profile
+  facts and never enter semantic identities or decisions.
 - Frontends plug in from outside through the public declaration path with zero core
   changes. If a frontend needs a core change to exist, the declaration contract is
   wrong.
