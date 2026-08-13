@@ -195,10 +195,39 @@ The ceiling on the claim: admission says nothing about whether a magnitude is th
 right one for its domain. That is the owner's declaration, no road can check it,
 and no witness pretends to.
 
+## The closed-register stamp
+
+`closed_register!` is the root's, and it is the one piece of root material that
+is not a type. One declaration of a closed roster's rows writes the enum, the
+roster constant in declared order, each row's position, each row's declared
+stable name, and the prose a person is shown — five readings of one statement,
+so the hand-kept pair they replace (a roster array beside a `match` returning
+numbers) has no second place left to drift in. Band 13's authoring algebra, the
+services crate's eight rosters, and this crate's own proof surface all stamp
+with it; it declares no type, reaches no band's material, and belongs to no
+band, which is why it sits at the root rather than in one of them. It is seated
+in `lib.rs` — the root calculus's module surface — on the precedent
+`scope_guard_version!` set in band 02's `mod.rs`.
+
+The stamp carries a declared supply of sixty-four positions and pairs each row
+of a declaration with exactly one of them. There is no arithmetic in the
+expansion at all, so nothing there can overflow, saturate, or disagree with a
+number written elsewhere: the ceiling IS the length of the supply. A
+sixty-fifth row finds the supply spent and refuses with the stamp's own
+sentence, and it refuses at the sixty-fifth step whatever the declaration's
+length, so a long roster never dies against the compiler's recursion limit
+instead. **Sixty-four is this stamp implementation's current authoring-profile
+ceiling, not a semantic cap on any vocabulary**; raising it means extending the
+supply, once that is qualified. The claim is proved at the DECLARATION — a
+sixty-four-row roster compiles with exact positions, a sixty-five-row one
+refuses — and the same boundary read through the lifecycle facade arrives with
+the lifecycle specimen, because that facade does not exist yet.
+
 ## Root calculus obligations
 
-The root calculus (`src/types.rs`) is the one home without a numbered
-directory; its obligations live here.
+The root calculus (`src/types.rs` and the `closed_register!` stamp in
+`src/lib.rs`) is the one home without a numbered directory; its obligations live
+here.
 
 ```yaml
 home: root
@@ -259,6 +288,10 @@ obligations:
     challenge_kind: compile-law
     green: laws.rs root::closure_bar_is_implementable
     red: owed-to-testpak
+  - id: root.a-stamped-roster-declares-its-own-ceiling
+    challenge_kind: compile-refusal
+    green: laws.rs root::a_stamped_roster_declares_its_own_ceiling
+    red: testpak/tests/compile-fail/a-roster-past-the-stamp-ceiling.rs
 ```
 
 ## License

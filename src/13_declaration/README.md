@@ -55,23 +55,27 @@ evidence-selected cannot yet hold that seat's value at all: every
 `AdmittedPrefix` mint consumes a compile-time magnitude, so those three become
 buildable when their magnitudes are declared, and not before.
 
-## The closed-roster stamp
+## The closed-roster stamp is the root's; this home consumes it
 
-`closed_register!` is this home's authoring stamp for a closed, fieldless
-roster: one declaration of the rows writes the enum, the roster constant, each
-row's position, each row's declared stable name, and the prose a person is
-shown. It sits here because a closed roster of declared words is an authoring
-shape — not an identity, not a refusal, not a value — and this home owns the
-authoring algebra. It reaches no band's material and declares no type of its
-own; `scope_guard_version!` in band 02 is the precedent for a home stamping its
-own pattern and for macro export landing at the crate root by Rust's rule
-rather than by root admission.
+`closed_register!` was written here and belongs to the ROOT. One declaration of
+the rows writes the enum, the roster constant, each row's position, each row's
+declared stable name, and the prose a person is shown — and that is a
+composition shape the whole repository instantiates rather than an authoring
+concept this home rules. The services crate stamps eight rosters with it and the
+machine's own proof surface stamps another; while it sat here, every one of them
+reached across a band edge for a mechanism this home did not own. It is seated
+in `lib.rs`, the root calculus's module surface, on the precedent
+`scope_guard_version!` set in band 02's `mod.rs`. This home is one consumer.
 
 What it retires is the hand-kept pair: a roster array beside a `match`
 returning numbers. Those are two statements of one fact, and the second drifts
 silently. Under the stamp the position IS the roster's layout, so a roster whose
 fourth row answers `2` is not a defect anybody catches — it is a value nobody
-can write.
+can write. This home's obligation below is that consumption proved: the stamped
+roster beside its writable hand-kept twin, the twin required to fail.
+
+The stamp's own ceiling — sixty-four rows, refused by the stamp's own diagnostic
+at the sixty-fifth — is the root's claim and is proved at the root.
 
 ## Owed upward
 
