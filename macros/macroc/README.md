@@ -347,7 +347,11 @@ tooling-obligation: macroc.a-related-set-that-stops-says-what-it-dropped
     two levels are two SUBJECTS, so a body identity and an issue identity are
     different Rust types and derive under different derive-key contexts: neither
     substitutes for the other before hashing or after it. The one line rustc
-    shows carries the same statement.
+    shows carries the same statement. "Nothing was enumerated" has exactly one
+    representation: the deriving road answers empty material with the canonical
+    empty relation the single-cause road answers with, rather than a whole-body
+    commitment over empty material that would mean the same thing and compare
+    unequal.
   owner: macros/macroc/src/diagnostics/type_guard.rs
   positive: macros/macroc/src/laws.rs
   method: executable-law
@@ -355,9 +359,12 @@ tooling-obligation: macroc.a-related-set-that-stops-says-what-it-dropped
   tooling-red: testpak/tests/related_set_identity_levels.rs — an INDEPENDENT
     encoder rebuilds the body's identity from the published content grammar and
     must match, three rehearsed encoders must disagree, a complete set and a
-    truncated one must not read alike through the public readers, and crafted
+    truncated one must not read alike through the public readers, crafted
     material that derived ONE identity at both levels under the single-subject
-    grammar must derive two. The two unwritable roads are
+    grammar must derive two, every one of the 256 family tags must answer empty
+    material with the one canonical empty relation, and the whole-body commitment
+    over empty material — named by that same independent encoder — must be
+    reachable by no road. The two unwritable roads are
     testpak/tests/compile-fail/a-related-set-married-to-another-completion.rs
     and testpak/tests/compile-fail/a-related-set-assembled-from-two-levels.rs
   nonclaims: >
