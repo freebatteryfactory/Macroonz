@@ -36,6 +36,14 @@ const HARNESS_ATTRIBUTE: &str = "test";
 /// run from executing it.
 const SKIP_ATTRIBUTE: &str = "ignore";
 
+/// The attribute a build reads a condition off, and the one place this reader
+/// looks at a condition at all.
+const CONDITION_ATTRIBUTE: &str = "cfg";
+
+/// The predicate that holds when one of its alternatives holds — and so, over
+/// NO alternatives, holds in no build there is.
+const EMPTY_DISJUNCTION: &str = "any";
+
 /// The obligations join, in four legs.
 ///
 /// **Green, both ways.** Every README obligation naming a `laws.rs` green law
@@ -86,7 +94,9 @@ const SKIP_ATTRIBUTE: &str = "ignore";
 /// compile-fail fixture, arriving one level up, through a population that was
 /// narrowed by where a file SITS rather than by what it declares. A file whose
 /// every test carries `#[ignore]` runs zero tests in exactly the same way, one
-/// attribute deeper, and the parse is where that is read too.
+/// attribute deeper, and a file whose every test is removed from the binary by a
+/// `cfg` that is false in every build runs zero tests one attribute further out
+/// still. The parse is where all of those are read.
 ///
 /// A green route pointing at a file nobody wrote is worse than an unproven
 /// claim, because it reads as proven; a green route pointing at its own red
@@ -310,9 +320,12 @@ fn phantom_green_routes(rows: &[(String, String)], seats: &SeatPopulation) -> Ve
                  route must name a file directly under `testpak/tests/` that DECLARES at least \
                  one `#[test]` a plain harness run EXECUTES, spelled as its exact \
                  repository-relative path. A compile-fail fixture can never be one; neither can a \
-                 top-level file that builds a test binary with no test in it; and neither can one \
+                 top-level file that builds a test binary with no test in it; neither can one \
                  whose every test carries `#[ignore]`, which a plain run reports as ignored while \
-                 it finishes with nothing executed"
+                 it finishes with nothing executed; and neither can one whose every test is \
+                 compiled out of every build there is by a `cfg` that needs no build to decide it \
+                 — `any()` over no alternatives, or the literal `false` — written on the test or \
+                 on a module around it"
             ));
         }
     }
@@ -346,10 +359,10 @@ fn unreadable_green_offences(rows: &[(String, String)]) -> Vec<String> {
         };
         offences.push(format!(
             "{readme}: green row states {spelled}, which is no spelling this repository reads: a \
-             green row states `laws.rs <module>::<name>`, or a repository-relative path to a \
-             `.rs` file, or a declared disposition — `none — …`, `owed — …`, `structural (…)` — \
-             accounting for why no file holds a positive control. A row nobody can read is an \
-             obligation whose positive control nobody looks for"
+             green row states `laws.rs <module>::<name>` and nothing after it, or a \
+             repository-relative path to a `.rs` file, or a declared disposition — `none — …`, \
+             `owed — …`, `structural (…)` — accounting for why no file holds a positive control. \
+             A row nobody can read is an obligation whose positive control nobody looks for"
         ));
     }
     offences
@@ -473,9 +486,11 @@ struct ReversalPopulation(Vec<String>);
 /// only a module declaration, or nothing at all sits exactly where a seat sits
 /// and runs zero tests. Admitted by depth, such a file stood as a positive
 /// control that executes, and nothing executed. A file whose every test is
-/// `#[ignore]`d is the same empty run written one attribute deeper. A seat here
-/// is a file that declares a test the harness RUNS, established from a parse of
-/// it.
+/// `#[ignore]`d is the same empty run written one attribute deeper, and one
+/// whose every test is removed by a `cfg` false in every build — `any()`, the
+/// literal `false` — is that same empty run written one attribute further out
+/// still, on the test or on a module around it. A seat here is a file that
+/// declares a test the harness RUNS, established from a parse of it.
 struct SeatPopulation(Vec<String>);
 
 impl ReversalPopulation {
@@ -608,6 +623,15 @@ fn seat_population(sources: &[(String, String)]) -> (SeatPopulation, Vec<String>
 /// nothing executes. The attribute is a fact about the FUNCTION it sits on, so a
 /// file carrying an ignored test beside a live one is still a seat.
 ///
+/// # A condition false in EVERY build is not a condition
+///
+/// A test the compiler removes from every binary it could ever produce runs
+/// nowhere, and the file holding only such tests builds a binary that runs zero
+/// tests — the empty-binary defect again, one attribute further out. Two
+/// spellings say it without asking anything about the build, and both are read
+/// here, on the test itself or on a module around it, because a module the
+/// compiler removes takes its tests with it.
+///
 /// # Two ceilings, and they fail in OPPOSITE directions
 ///
 /// A `mod name;` reaching a SEPARATE file is not followed, and no macro is
@@ -615,18 +639,27 @@ fn seat_population(sources: &[(String, String)]) -> (SeatPopulation, Vec<String>
 /// That direction fails CLOSED: the route is refused, its author is told exactly
 /// what is missing, and nothing reads as proven that is not.
 ///
-/// The claim's ceiling, and it fails OPEN: `cfg` is not evaluated, on the
-/// precedent the coupling reader states. A `#[cfg(…)] #[test]` compiled OUT of
-/// the binary is still read here as declared, so a route may resolve to a seat
-/// whose only test does not exist in the binary that runs — and a
-/// `#[cfg_attr(…, ignore)]` is not read as a skip for the same reason. That
-/// direction admits what it cannot establish, which is why it is written down
-/// here rather than left to a reader. It is NOT half-closed: evaluating `cfg`
-/// means resolving features, targets and profiles against the build that will
-/// actually run, and a second, weaker evaluator written inside a check is a
-/// reader nobody could trust either.
+/// The claim's ceiling, and it fails OPEN: a CONDITIONAL `cfg` is not evaluated,
+/// on the precedent the coupling reader states. A
+/// `#[cfg(feature = "…")] #[test]` compiled out of the binary is still read here
+/// as declared, so a route may resolve to a seat whose only test does not exist
+/// in the binary that runs — and a `#[cfg_attr(…, ignore)]` is not read as a
+/// skip for the same reason. That direction admits what it cannot establish,
+/// which is why it is written down here rather than left to a reader. It stays
+/// open for a reason that has not changed: evaluating a conditional `cfg` means
+/// resolving features, targets and profiles against the build that will actually
+/// run, and a second, weaker evaluator written inside a check is a reader nobody
+/// could trust either.
 ///
-/// What closes it is a stronger seat than a parse can reach: a green route
+/// What NARROWED is the part that needed no build to decide. `any()` and the
+/// literal `false` resolve nothing — no feature, no target, no profile, no
+/// evaluator — so refusing them is a reading of the attribute rather than a
+/// second opinion about a build, and this reader is not a `cfg` evaluator after
+/// it. Everything the ceiling ever covered that a build DECIDES is still open,
+/// and `the_cfg_ceiling_is_open_and_says_so` is where that is stated with an
+/// assertion on it.
+///
+/// What closes the rest is a stronger seat than a parse can reach: a green route
 /// naming the test FUNCTION it is controlled by, resolved against the roster a
 /// qualification run EXECUTED. That reading answers both ceilings at once — a
 /// test arriving through a separate file or a macro appears in the roster, one
@@ -634,19 +667,83 @@ fn seat_population(sources: &[(String, String)]) -> (SeatPopulation, Vec<String>
 /// needs a row that can name a function and a run that publishes what it ran.
 /// Neither exists today. It is the versioned claim and evidence schema's opening
 /// condition, and it is not built here.
+///
 fn declares_a_runnable_test(items: &[syn::Item]) -> bool {
     items.iter().any(|item| {
         if let syn::Item::Fn(declared) = item {
-            runs_under_the_harness(&declared.attrs)
+            !compiled_out_of_every_build(&declared.attrs) && runs_under_the_harness(&declared.attrs)
         } else if let syn::Item::Mod(module) = item {
-            module
-                .content
-                .as_ref()
-                .is_some_and(|(_, inner)| declares_a_runnable_test(inner))
+            !compiled_out_of_every_build(&module.attrs)
+                && module
+                    .content
+                    .as_ref()
+                    .is_some_and(|(_, inner)| declares_a_runnable_test(inner))
         } else {
             false
         }
     })
+}
+
+/// Whether one item's attributes remove it from every build there is.
+///
+/// Asked of a FUNCTION and of a MODULE, through one reading, because the
+/// compiler removes both the same way and a module removed takes every test
+/// inside it along. Asking it only of the function would seat a file whose whole
+/// test module is compiled out, which is the same empty binary reached one
+/// nesting level up.
+fn compiled_out_of_every_build(attributes: &[syn::Attribute]) -> bool {
+    attributes.iter().any(states_no_build_at_all)
+}
+
+/// Whether one attribute is a `cfg` whose predicate is false in every build.
+///
+/// Two spellings, and the boundary around them is the whole point of this
+/// reader. Both are false by DEFINITION of what is written, so neither asks a
+/// question about the build that will run:
+///
+/// - `any()` is the disjunction over no alternatives. `any` holds when one of
+///   its alternatives holds, so over none of them it holds nowhere; there is no
+///   flag that turns it on, and passing `--cfg any` does not, because `any` is
+///   the operator rather than a name. Measured on this repository's pinned
+///   toolchain: the item is gated out and a build naming it does not resolve.
+/// - `false` is the boolean literal. rustc states its own reading of it —
+///   "makes this predicate evaluate to `false` unconditionally" — and there is
+///   no command line that makes a literal something else.
+///
+/// A file whose only tests carry either one compiles clean under this
+/// repository's exact lint wall and runs `0 tests`, which is the state this
+/// narrowing exists to refuse.
+///
+/// # What is deliberately NOT read, and why
+///
+/// `#[cfg(FALSE)]` is a bare cfg NAME, not a false predicate, and it is measured
+/// rather than assumed: a build passing `--cfg FALSE` compiles the item in.
+/// Reading it as unconditionally false would be this reader claiming a fact
+/// about the build, which is exactly the ceiling above. It is not silence
+/// either — the workspace denies warnings, cargo's own `--check-cfg` reports an
+/// unexpected condition name for it, and the build refuses it before any check
+/// runs. A reversal already owned elsewhere is not one this join re-owns.
+///
+/// Nothing composed is read. `all(any())`, `not(all())` and their relatives are
+/// false too, and reading them is where a reader stops reading an attribute and
+/// starts evaluating a predicate language. The line is drawn at the predicate
+/// written in the attribute, and it stays there.
+fn states_no_build_at_all(attribute: &syn::Attribute) -> bool {
+    if !attribute_is(attribute, CONDITION_ATTRIBUTE) {
+        return false;
+    }
+    let syn::Meta::List(condition) = &attribute.meta else {
+        return false;
+    };
+    let literally_false =
+        syn::parse2::<syn::LitBool>(condition.tokens.clone()).is_ok_and(|stated| !stated.value);
+    literally_false
+        || syn::parse2::<syn::Meta>(condition.tokens.clone()).is_ok_and(|stated| match stated {
+            syn::Meta::List(alternatives) => {
+                alternatives.path.is_ident(EMPTY_DISJUNCTION) && alternatives.tokens.is_empty()
+            }
+            syn::Meta::Path(_) | syn::Meta::NameValue(_) => false,
+        })
 }
 
 /// Whether one function's attributes make it a test the harness EXECUTES.
@@ -694,9 +791,9 @@ fn attribute_is(attribute: &syn::Attribute, word: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        JudgeTree, ReversalPopulation, SeatPopulation, declared_laws, double_claimed_offences,
-        drifted_claim_offences, phantom_green_routes, red_twin_ledger, seat_population,
-        testpak_populations, tooling_rows, unreadable_green_offences,
+        JudgeTree, OWED_PREFIX, ReversalPopulation, SeatPopulation, declared_laws,
+        double_claimed_offences, drifted_claim_offences, phantom_green_routes, red_twin_ledger,
+        seat_population, testpak_populations, tooling_rows, unreadable_green_offences,
     };
     use crate::repository::readme::{
         classify_green_rows, home_readmes, red_twin_rows, tooling_red_rows,
@@ -1286,31 +1383,53 @@ mod tests {
         assert!(found.is_empty(), "{found:?}");
     }
 
-    /// The reader's ceiling, stated as a test because this one fails OPEN.
+    /// The reader's ceiling, stated as a test because this one fails OPEN — and
+    /// stated now on exactly the part of it that is still open.
     ///
-    /// `syn` does not evaluate `cfg`, so a test compiled OUT of the binary is
-    /// read as declared and its file is seated — a route naming it resolves to a
-    /// control that does not exist in the binary that runs. The same silence
-    /// covers `#[cfg_attr(…, ignore)]`: the skip is not read, so a test ignored
-    /// under a condition still seats its file. Both are recorded here rather
-    /// than half-closed, because evaluating `cfg` means resolving features,
-    /// targets and profiles against the build that will actually run, and a
-    /// second, weaker evaluator written inside a check is a reader nobody could
-    /// trust either.
+    /// What CLOSED is the part no build decides. A `cfg` spelled `any()` or
+    /// `false` is false by definition of what is written, so refusing it takes
+    /// no features, no target and no profile, and the reversal that pins it is
+    /// `a_test_compiled_out_of_every_build_is_no_seat`.
+    ///
+    /// What remains open is everything a BUILD decides, and every case below is
+    /// one of those:
+    ///
+    /// - a feature nobody enables here — but somebody's build might, and this
+    ///   reader is not told which build will run;
+    /// - a target predicate, true on one machine and false on the next;
+    /// - `#[cfg(FALSE)]`, which reads like a closed case and is not one. It is a
+    ///   bare cfg NAME, and a build passing `--cfg FALSE` compiles the item in;
+    ///   that is measured rather than assumed. It is also not unwatched: this
+    ///   workspace denies warnings and cargo's own `--check-cfg` reports an
+    ///   unexpected condition name, so the build refuses the spelling before any
+    ///   check reads it;
+    /// - `#[cfg_attr(…, ignore)]`, where the skip itself is conditional, so a
+    ///   test ignored under a condition still seats its file.
     ///
     /// This is written as an assertion rather than left in prose so the ceiling
     /// is where the reader ACTUALLY stands rather than where a comment says it
-    /// does. Closing it is a route resolved against the roster a qualification
-    /// run executed, which the versioned claim and evidence schema opens, and a
-    /// pass that closes it fails this test by name and repairs it in one place.
+    /// does. Closing the rest is a route resolved against the roster a
+    /// qualification run executed, which the versioned claim and evidence schema
+    /// opens, and a pass that closes it fails this test by name and repairs it
+    /// in one place.
     #[test]
     fn the_cfg_ceiling_is_open_and_says_so() {
         let (seats, unparsable) = seat_population(&[
             top_level(
-                "a_test_compiled_out.rs",
+                "a_test_compiled_out_by_a_feature.rs",
                 "#[cfg(feature = \"a-feature-nobody-enables\")]\n\
                  #[test]\n\
                  fn the_behaviour_holds() {}\n",
+            ),
+            top_level(
+                "a_test_compiled_out_by_a_target.rs",
+                "#[cfg(target_os = \"an-os-nobody-builds-for\")]\n\
+                 #[test]\n\
+                 fn the_behaviour_holds() {}\n",
+            ),
+            top_level(
+                "a_test_gated_on_a_bare_name.rs",
+                "#[cfg(FALSE)]\n#[test]\nfn the_behaviour_holds() {}\n",
             ),
             top_level(
                 "a_test_skipped_under_a_condition.rs",
@@ -1322,11 +1441,143 @@ mod tests {
         assert!(unparsable.is_empty(), "{unparsable:?}");
         assert_eq!(
             seats.0.len(),
-            2,
-            "the cfg ceiling has moved: this reader admits what a build decides, and the doc that \
+            4,
+            "the cfg ceiling has moved: this reader admits what a BUILD decides, and the doc that \
              states so must move with it: {:?}",
             seats.0
         );
+    }
+
+    /// Planted reversal: a top-level source whose only test is removed from
+    /// every build there is, written the ways it gets written — the two
+    /// spellings, either attribute order, and the gate on an enclosing module
+    /// rather than on the test.
+    ///
+    /// The empty-binary defect one attribute further out than `#[ignore]`, and
+    /// the more convincing of the two: an ignored test at least appears in the
+    /// run as ignored, while these are not in the binary at all. Each file below
+    /// compiles clean under this repository's exact lint wall and its harness
+    /// reports `0 tests`, so a route naming one read as a positive control that
+    /// executes while the compiled harness contained nothing to execute.
+    ///
+    /// The module cases are why the reading is asked of items rather than of
+    /// functions. A gate on a module removes every test inside it, so a reader
+    /// looking only at the test's own attributes seats a file whose whole test
+    /// module the compiler threw away.
+    #[test]
+    fn a_test_compiled_out_of_every_build_is_no_seat() {
+        let (seats, unparsable) = seat_population(&[
+            top_level(
+                "an_empty_disjunction.rs",
+                "#[cfg(any())]\n#[test]\nfn the_behaviour_holds() {}\n",
+            ),
+            top_level(
+                "a_literal_false.rs",
+                "#[cfg(false)]\n#[test]\nfn the_behaviour_holds() {}\n",
+            ),
+            top_level(
+                "a_condition_written_second.rs",
+                "#[test]\n#[cfg(any())]\nfn the_behaviour_holds() {}\n",
+            ),
+            top_level(
+                "a_module_compiled_out.rs",
+                "#[cfg(any())]\n\
+                 mod behaviour {\n\
+                 \x20   #[test]\n\
+                 \x20   fn the_behaviour_holds() {}\n\
+                 }\n",
+            ),
+            top_level(
+                "a_module_compiled_out_by_a_literal.rs",
+                "#[cfg(false)]\n\
+                 mod behaviour {\n\
+                 \x20   #[test]\n\
+                 \x20   fn the_behaviour_holds() {}\n\
+                 }\n",
+            ),
+        ]);
+        assert!(seats.0.is_empty(), "{:?}", seats.0);
+        assert!(unparsable.is_empty(), "{unparsable:?}");
+
+        let offered = phantom_green_routes(
+            &named(&[
+                "testpak/tests/an_empty_disjunction.rs",
+                "testpak/tests/a_literal_false.rs",
+                "testpak/tests/a_condition_written_second.rs",
+                "testpak/tests/a_module_compiled_out.rs",
+                "testpak/tests/a_module_compiled_out_by_a_literal.rs",
+            ]),
+            &seats,
+        );
+        assert_eq!(offered.len(), 5, "{offered:?}");
+        assert!(
+            offered
+                .iter()
+                .all(|offence| offence.contains("compiled out of every build")),
+            "{offered:?}"
+        );
+    }
+
+    /// The positive control for that narrowing, in both directions it can go
+    /// wrong.
+    ///
+    /// A file carrying a compiled-out test BESIDE a live one is still a seat,
+    /// and so is one whose live test stands inside a module while a compiled-out
+    /// module sits beside it: the condition is a fact about the item it is
+    /// written on, and a file is a seat when the harness runs SOMETHING in it.
+    ///
+    /// The last two are the over-reach this reader must not commit. `all()` is
+    /// the conjunction over no requirements and is therefore vacuously TRUE, and
+    /// `true` is the literal that says so; a reader that saw an empty predicate
+    /// list and refused would throw away tests that run in every build. A reader
+    /// that flagged everything, or that read `all()` as `any()`, would satisfy
+    /// the reversal above and be worse than worthless.
+    #[test]
+    fn a_live_test_beside_a_compiled_out_one_is_still_a_seat() {
+        let (seats, unparsable) = seat_population(&[
+            top_level(
+                "a_mixed_seat.rs",
+                "#[cfg(any())]\n\
+                 #[test]\n\
+                 fn the_road_not_built() {}\n\
+                 \n\
+                 #[test]\n\
+                 fn the_behaviour_holds() {}\n",
+            ),
+            top_level(
+                "a_mixed_seat_across_modules.rs",
+                "#[cfg(false)]\n\
+                 mod not_built {\n\
+                 \x20   #[test]\n\
+                 \x20   fn the_road_not_built() {}\n\
+                 }\n\
+                 \n\
+                 mod behaviour {\n\
+                 \x20   #[test]\n\
+                 \x20   fn the_behaviour_holds() {}\n\
+                 }\n",
+            ),
+            top_level(
+                "an_empty_conjunction_is_true.rs",
+                "#[cfg(all())]\n#[test]\nfn the_behaviour_holds() {}\n",
+            ),
+            top_level(
+                "a_literal_true.rs",
+                "#[cfg(true)]\n#[test]\nfn the_behaviour_holds() {}\n",
+            ),
+        ]);
+        assert_eq!(seats.0.len(), 4, "{:?}", seats.0);
+        assert!(unparsable.is_empty(), "{unparsable:?}");
+        let found = phantom_green_routes(
+            &named(&[
+                "testpak/tests/a_mixed_seat.rs",
+                "testpak/tests/a_mixed_seat_across_modules.rs",
+                "testpak/tests/an_empty_conjunction_is_true.rs",
+                "testpak/tests/a_literal_true.rs",
+            ]),
+            &seats,
+        );
+        assert!(found.is_empty(), "{found:?}");
     }
 
     /// Planted reversal: a top-level source that is not parseable Rust.
@@ -1664,6 +1915,93 @@ mod tests {
                 "{spelled:?}: {found:?}"
             );
         }
+    }
+
+    /// Planted reversal: a seat row carrying a token AFTER its target, read end
+    /// to end — classifier into join leg — because the defect lived in the gap
+    /// between them.
+    ///
+    /// The trailing token used to be discarded. The row then resolved the real
+    /// law, satisfied the drift leg in both directions, and qualified while
+    /// stating something no reader in this repository accounts for — a second
+    /// target somebody meant to add, a note, half of a rename. It arrives now at
+    /// the leg that names it against the README that wrote it, and the law it
+    /// used to claim is left claimed by nobody, which the join refuses from the
+    /// other side. One row spelled wrong is answered twice rather than passing
+    /// twice.
+    #[test]
+    fn a_seat_row_carrying_more_than_its_target_reaches_the_join() {
+        let spelled = "    green: laws.rs root::a_law_somebody_wrote and a word nobody read\n";
+        let claimed = seat_claims(spelled);
+        assert!(
+            claimed.is_empty(),
+            "the trailing token was discarded and the row still claimed a law: {claimed:?}"
+        );
+
+        let unreadable: Vec<(String, String)> = classify_green_rows(spelled)
+            .into_iter()
+            .filter_map(|row| match row {
+                GreenRow::Unreadable(value) => Some((value, String::from("FIXTURE.md"))),
+                GreenRow::CompileTimeSeat { .. } | GreenRow::Disposition | GreenRow::Route(_) => {
+                    None
+                }
+            })
+            .collect();
+        let found = unreadable_green_offences(&unreadable);
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(
+            found
+                .first()
+                .is_some_and(|offence| offence.contains("a word nobody read")),
+            "{found:?}"
+        );
+
+        // The law the discarded token used to leave claimed is now claimed by
+        // nobody, and the drift leg says so rather than letting the README shrink
+        // quietly.
+        let drifted = drifted_claim_offences(&claimed, &declared_laws(ONE_LAW));
+        assert!(
+            drifted
+                .iter()
+                .any(|offence| offence.contains("claimed by no obligation")),
+            "{drifted:?}"
+        );
+    }
+
+    /// The real repository holds: the tooling ledgers' name-then-prose rows all
+    /// resolve, and there are still several of them.
+    ///
+    /// Stated apart from the ledger test above because this is the convention the
+    /// green side deliberately does NOT share. A green compile-time target is one
+    /// token and a second token makes the row unreadable; a red row names its
+    /// reversal and then says what the reversal does. A pass that carried the
+    /// green rule across to the red side would unresolve every row counted here
+    /// and shrink a denominator this repository publishes on every run, so the
+    /// asymmetry is held down by a control rather than left to be tidied up.
+    #[test]
+    fn the_real_tooling_rows_name_a_reversal_before_their_prose() {
+        let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
+        let reversals = real_tree(&root).reversals;
+        let continued: Vec<(String, String)> = tooling_rows(&root)
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|(value, _)| {
+                !value.starts_with(OWED_PREFIX) && value.split_whitespace().count() > 1
+            })
+            .collect();
+        assert!(
+            continued.len() > 1,
+            "the tooling ledgers carry {} row naming a reversal before its prose; the convention \
+             this control pins is gone and the control is guarding nothing",
+            continued.len()
+        );
+        let ledger = red_twin_ledger(&continued, &reversals);
+        assert!(ledger.offenders.is_empty(), "{:?}", ledger.offenders);
+        assert_eq!(
+            ledger.discharged,
+            continued.len(),
+            "a tooling row naming its reversal and then speaking prose stopped resolving"
+        );
     }
 
     /// Planted reversal: the other direction of the same drift — a law standing

@@ -111,8 +111,33 @@ fn classify_green_row(value: &str) -> GreenRow {
 /// answered by the leg that names it against the README that wrote it. Neither
 /// outcome depends on how the row was spaced, and no later reader gets a second
 /// opinion about which characters the target was made of.
+///
+/// # A target is ONE token, and a second one is not prose
+///
+/// The account states the target and stops. A row spelled
+/// `laws.rs root::reading_is_not_gaining extra` used to be read by taking the
+/// FIRST token and dropping the rest, so it resolved the real law and qualified
+/// while carrying a word nobody could account for. That is the whole
+/// [`GreenRow::Unreadable`] failure written one token to the right: whatever the
+/// trailing word was — a second target somebody meant to add, a note, half of a
+/// rename — the row said something this repository does not read, and the reader
+/// answered by discarding it silently. Read here, the row is named against the
+/// README that wrote it, and the author says what they meant.
+///
+/// The RED rows are a DIFFERENT grammar and are deliberately not held to this.
+/// A `red:` or `tooling-red:` row names its reversal and then continues in
+/// prose, across wrapped lines, as this repository's tooling ledgers are
+/// written; that convention is documented where those rows are declared and it
+/// stays. A green compile-time target is not prose with a path in front of it,
+/// and reading the two the same way would either silence this row or break every
+/// one of those.
 fn seat_target(account: &str) -> Option<(&str, &str)> {
-    account.split_whitespace().next()?.split_once("::")
+    let mut stated = account.split_whitespace();
+    let target = stated.next()?;
+    if stated.next().is_some() {
+        return None;
+    }
+    target.split_once("::")
 }
 
 /// Whether a disposition opens its account with `opener` and states something
@@ -150,6 +175,16 @@ fn is_rust_route(named: &str) -> bool {
 /// green side is held to: one population gets one reader. Two readers over these
 /// rows would not merely disagree, they would disagree about a published number,
 /// and the row each of them dropped would be the row nobody looked at.
+///
+/// The whole value is carried, prose and all. A red row NAMES its reversal and
+/// then says what the reversal does, wrapped across as many lines as the
+/// sentence takes — `owed-to-testpak — cloning a Budget must not compile` is the
+/// same grammar as a row naming a fixture and then describing it. The ledger
+/// reads the name off the front and the prose is for the reader. That is
+/// deliberately NOT the green compile-time grammar, where the target is one
+/// token and a second token makes the row unreadable: a green seat is a join key
+/// and a red row is a sentence, and holding either to the other's rule would
+/// break every ledger row this repository has written.
 pub(crate) fn red_twin_rows(readme_text: &str) -> Vec<String> {
     readme_text
         .lines()
@@ -162,10 +197,19 @@ pub(crate) fn red_twin_rows(readme_text: &str) -> Vec<String> {
 /// order.
 ///
 /// Read exactly like a core `red:` row — same prefix discipline, same emptied
-/// row still read — and counted on its own ledger. An `owed-to-…` row is a
-/// lawful debt; any other row NAMES a reversal that must resolve to a real
-/// testpak test or compile-fail fixture, and the check refuses it if it does
-/// not.
+/// row still read, same name-then-prose grammar — and counted on its own ledger.
+/// An `owed-to-…` row is a lawful debt; any other row NAMES a reversal that must
+/// resolve to a real testpak test or compile-fail fixture, and the check refuses
+/// it if it does not.
+///
+/// Several of the tooling ledgers' rows state what their reversal does after
+/// naming it, and one of them names sibling fixtures in that prose. The ledger
+/// resolves the first token and reads none of the rest, which is a stated
+/// ceiling rather than a convention: a row carrying more than one fixture
+/// reference has exactly one of them joined, and the others are prose no check
+/// looks at. Closing that takes typed fixture references in the row itself,
+/// which the versioned claim and evidence schema opens; it is not closed by
+/// splitting a sentence on whitespace.
 pub(crate) fn tooling_red_rows(readme_text: &str) -> Vec<String> {
     readme_text
         .lines()
@@ -296,6 +340,94 @@ mod tests {
                 GreenRow::Unreadable(String::from("laws.rs root:a_seat_that_exists")),
                 GreenRow::Unreadable(String::from("laws.rs a_seat_that_exists")),
             ]
+        );
+    }
+
+    /// Planted reversal: a seat row carrying a token AFTER its target.
+    ///
+    /// The row resolves a real law — `root::reading_is_not_gaining` is written
+    /// in the root README and declared in `laws.rs` — so every join leg downstream
+    /// says yes and the obligation qualifies. What it says beyond the target was
+    /// simply thrown away: the reader took the first token of the account and
+    /// dropped the rest, so a second target somebody meant to add, a stray note,
+    /// or half of a finished rename all read as the ordinary one-token row. A
+    /// green target is ONE token; a row that says more says something this
+    /// repository does not read, and it is named against the README that wrote it
+    /// rather than truncated into a claim it did not make.
+    ///
+    /// The last two are the same defect where the trailing token is itself
+    /// target-shaped, which is the spelling a reader that stopped at the first
+    /// `::` would never notice.
+    #[test]
+    fn a_seat_row_carrying_more_than_its_target_is_unreadable() {
+        let text = "    green: laws.rs root::reading_is_not_gaining extra\n\
+                    \x20   green: laws.rs root::reading_is_not_gaining — and the note nobody read\n\
+                    \x20   green: laws.rs root::reading_is_not_gaining\troot::closure_bar_is_implementable\n\
+                    \x20   green: laws.rs root::reading_is_not_gaining root::closure_bar_is_implementable\n";
+        let read = classify_green_rows(text);
+        assert_eq!(read.len(), 4, "{read:?}");
+        assert!(
+            read.iter()
+                .all(|row| matches!(*row, GreenRow::Unreadable(_))),
+            "a trailing token was discarded and the row still seated: {read:?}"
+        );
+        assert!(
+            read.first().is_some_and(|row| matches!(
+                *row,
+                GreenRow::Unreadable(ref value) if value == "laws.rs root::reading_is_not_gaining extra"
+            )),
+            "{read:?}"
+        );
+    }
+
+    /// The positive control for that narrowing: the target this repository
+    /// actually writes — one token, however the row is spaced — is still a seat.
+    ///
+    /// A reader that refused every account carrying whitespace would satisfy the
+    /// reversal above and would unseat all 183 seat rows in the tree.
+    #[test]
+    fn a_seat_row_stating_exactly_its_target_is_still_a_seat() {
+        let text = "    green: laws.rs root::reading_is_not_gaining\n\
+                    \x20   green:laws.rs root::reading_is_not_gaining\n\
+                    \x20   green: laws.rs\troot::reading_is_not_gaining\n\
+                    \x20   green:  laws.rs   root::reading_is_not_gaining  \n";
+        let read = classify_green_rows(text);
+        assert_eq!(
+            read,
+            vec![
+                seat("root", "reading_is_not_gaining"),
+                seat("root", "reading_is_not_gaining"),
+                seat("root", "reading_is_not_gaining"),
+                seat("root", "reading_is_not_gaining"),
+            ],
+            "{read:?}"
+        );
+    }
+
+    /// The red rows are a DIFFERENT grammar, and this is the test that says so.
+    ///
+    /// A red row names its reversal and then speaks prose about it, which is how
+    /// this repository's tooling ledgers are written and how several rows in
+    /// `macros/macroc/README.md` are written today. The green side's target is now
+    /// exactly one token, and a pass that carried that rule across to the red side
+    /// would silently unresolve every one of those rows and shrink a published
+    /// denominator. Written here so the asymmetry is a decision with a control on
+    /// it rather than an inconsistency somebody tidies up.
+    #[test]
+    fn a_red_row_names_its_reversal_and_then_speaks_prose() {
+        let text = "  tooling-red: testpak/tests/failed_seat_refusals.rs — the plane restores each\n\
+                    \x20 red: owed-to-testpak — cloning a Budget must not compile\n";
+        assert_eq!(
+            tooling_red_rows(text),
+            vec![String::from(
+                "testpak/tests/failed_seat_refusals.rs — the plane restores each"
+            )]
+        );
+        assert_eq!(
+            red_twin_rows(text),
+            vec![String::from(
+                "owed-to-testpak — cloning a Budget must not compile"
+            )]
         );
     }
 
