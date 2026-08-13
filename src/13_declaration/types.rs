@@ -29,9 +29,7 @@
 //! released projection: there is nothing to redact, because the material
 //! never entered.
 
-use crate::identity::{
-    AuthorityPosition, Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence,
-};
+use crate::identity::{Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence};
 use crate::refusal::{AdmittedPrefix, CompletionPosture, FamilyShape, RefusalFamily};
 use crate::types::{Bounded, ConstLimit, EvidenceRef, Limit, NonEmptyBounded};
 use crate::value::BoundedText;
@@ -197,9 +195,10 @@ impl ProjectionProfileId {
     }
 }
 
-/// One version of a projection profile — Class C, scoped to its profile.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ProjectionProfileVersion(pub AuthorityPosition<ProjectionProfileId>);
+crate::scope_guard_version! {
+    /// One version of a projection profile — Class C, scoped to its profile.
+    pub struct ProjectionProfileVersion over ProjectionProfileId;
+}
 
 /// The export alias: the exact target-safe spelling faithfully projecting one
 /// semantic symbol under one projection profile — a PRESENTATION value (no

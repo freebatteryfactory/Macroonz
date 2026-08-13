@@ -81,8 +81,15 @@ be a label rather than a wall, so both directions refuse from outside the
 module the stamp expanded in — and the refusal is proven over ONE scope type,
 where nothing about the scope is helping.
 
-Every scope-guard already written by hand stays written by hand. The stamp is
-proven against one of them, not substituted for them.
+The machine's production scope guards are stamped. Nine of them were tuple
+structs whose position field was `pub`, which is both a public constructor and a
+public accessor — so the road out the stamp refuses to emit was standing open
+beside it, and this home's own guard law was false of the machine while being
+true of the stamp. Writing them through the stamp is what closes that, and it is
+a deletion rather than an addition: twelve hand-written declarations and their
+derive lines are gone, and the shape they all now have is generated from one
+place. The hand-written twin survives only on the proof surface, where the law
+below needs something to compare the stamp against.
 
 ## Delegated by decision
 

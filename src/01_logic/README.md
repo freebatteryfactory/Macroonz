@@ -49,6 +49,8 @@ obligations:
     red: owed-to-testpak
   - id: logic.decision-is-not-truth
     challenge_kind: compile-refusal
-    green: laws.rs logic::decision_is_not_truth
-    red: owed-to-testpak
+    green: structural (Decision and Truth are two enum declarations, so no value
+      of one inhabits the other; the deleted law restated that by matching each
+      against the variant it had just written)
+    red: owed-to-testpak — a From impl in either direction must not compile
 ```

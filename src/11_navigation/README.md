@@ -73,7 +73,7 @@ obligations:
   - id: navigation.frame-version-rides-authority-position
     challenge_kind: compile-refusal
     green: laws.rs navigation::frame_version_rides_authority_position
-    red: owed-to-testpak — cross-frame version compare must not typecheck
+    red: testpak/tests/compile-fail/a-production-scope-guard-cannot-be-laundered.rs
   - id: navigation.axis-capabilities-are-declared
     challenge_kind: compile-refusal
     green: laws.rs navigation::axis_capabilities_are_nine
