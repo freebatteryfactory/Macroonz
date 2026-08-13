@@ -18,14 +18,28 @@
 //! read off the same sources. A family added without the coupled seat is caught
 //! by the derivation rather than by anybody remembering to extend a list.
 //!
+//! Three facts about one body decide the verdict, because a migration that
+//! lands the coupled seat and leaves the old seats standing recreates the exact
+//! pair. The body's own seat must BE the coupled type — a field whose declared
+//! type opens `AdmittedPrefix<`, not a field that merely mentions one somewhere
+//! inside a wrapper — and neither a loose `CompletionPosture` seat nor a loose
+//! `NonEmptyBounded<…>` carry may stand beside it. A hybrid carrying the coupled
+//! seat AND a loose carry is the shape a partial migration leaves behind, and it
+//! is refused rather than counted, because the loose half is exactly what a
+//! holder can read against another body's posture.
+//!
 //! The reader is deliberately dumb, and its narrowness is part of the law it
 //! states. A shape declaration counts only where it sits directly under the
 //! `impl … RefusalFamily for …` line that opens its block, which is how every
 //! family in the repository writes it; a body counts only where `pub struct
-//! <Name>` opens a braced field block. What the reader does not recognize — a
-//! shape declared through a type alias, a body assembled by a macro, a field
-//! whose type is spelled through an alias — is outside this law, and this law
-//! does not pretend otherwise.
+//! <Name>` opens a braced field block. A field's type is the text after its
+//! first colon, so the reader judges the seat exactly as it is spelled: it reads
+//! any `NonEmptyBounded<…>` seat as a loose carry rather than joining the
+//! generic arguments of two seats, and a seat spelled through a path or an alias
+//! reads as neither type. What the reader does not recognize — a shape declared
+//! through a type alias, a body assembled by a macro, a field whose type is
+//! spelled through an alias or a module path, a field declaration broken across
+//! lines — is outside this law, and this law does not pretend otherwise.
 
 use std::fs;
 use std::path::Path;
@@ -51,6 +65,11 @@ const COUPLED_SEAT: &str = "AdmittedPrefix<";
 
 /// The posture seat a two-seat body carried beside its issues.
 const POSTURE_SEAT: &str = "CompletionPosture";
+
+/// The loose carry a two-seat body carried beside its posture — the other half
+/// of the pair, which a migration that added the coupled seat without removing
+/// the old one leaves standing.
+const LOOSE_CARRY: &str = "NonEmptyBounded<";
 
 /// Every collection-shaped family declared anywhere in the machine or the
 /// services carries its issues and its coverage claim in one `AdmittedPrefix`
@@ -110,15 +129,27 @@ fn coupled_body_verdict(sources: &[(String, String)]) -> CouplingVerdict {
             ));
             continue;
         };
-        let coupled = fields.iter().any(|field| field.contains(COUPLED_SEAT));
+        let coupled = fields
+            .iter()
+            .any(|field| field_type(field).is_some_and(|kind| kind.starts_with(COUPLED_SEAT)));
         let loose_posture = fields
             .iter()
             .any(|field| field_type(field).is_some_and(|kind| kind == POSTURE_SEAT));
+        let loose_carry = fields
+            .iter()
+            .any(|field| field_type(field).is_some_and(|kind| kind.starts_with(LOOSE_CARRY)));
         if loose_posture {
             verdict.offenders.push(format!(
                 "{path}: {family} carries a {POSTURE_SEAT} seat beside its issues; a coverage \
                  claim seated apart from its body is a claim that can be read against another \
                  body"
+            ));
+        }
+        if coupled && loose_carry {
+            verdict.offenders.push(format!(
+                "{path}: {family} carries its issues twice — a {COUPLED_SEAT}…> seat and a \
+                 {LOOSE_CARRY}…> seat beside it; the loose carry is half of the pair the coupled \
+                 seat exists to keep together, and it can be read against another body's posture"
             ));
         }
         if !coupled {
@@ -127,7 +158,7 @@ fn coupled_body_verdict(sources: &[(String, String)]) -> CouplingVerdict {
                  seat"
             ));
         }
-        if coupled && !loose_posture {
+        if coupled && !loose_posture && !loose_carry {
             verdict.coupled = verdict.coupled.saturating_add(1);
         }
     }
@@ -325,6 +356,61 @@ mod tests {
                 .offenders
                 .first()
                 .is_some_and(|offence| offence.contains("beside its issues"))
+        );
+    }
+
+    /// Planted reversal: the hybrid a half-finished migration leaves behind —
+    /// the coupled seat landed and the loose carry never removed. The body reads
+    /// as migrated at a glance, and the swappable pair is fully recreated: a
+    /// holder can carry the loose issues away and report them under another
+    /// body's posture, which is the one defect the coupled seat exists to make
+    /// unwritable.
+    #[test]
+    fn a_loose_carry_beside_a_coupled_seat_is_a_violation() {
+        let verdict = coupled_body_verdict(&source(
+            "pub struct DemoRefusal {\n\
+             \x20   report: AdmittedPrefix<DemoIssue, DemoIssueLimit>,\n\
+             \x20   pub issues: NonEmptyBounded<DemoIssue, DemoIssueLimit>,\n\
+             }\n\
+             \n\
+             impl RefusalFamily for DemoRefusal {\n\
+             \x20   const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.coupled, 0);
+        assert_eq!(verdict.offenders.len(), 1, "{:?}", verdict.offenders);
+        assert!(
+            verdict
+                .offenders
+                .first()
+                .is_some_and(|offence| offence.contains("carries its issues twice"))
+        );
+    }
+
+    /// Planted reversal: a coupled type nested inside a wrapper rather than
+    /// seated as the body. The old reader accepted any field whose text merely
+    /// mentioned the package, so a body that never carried one could read as
+    /// coupled.
+    #[test]
+    fn a_nested_coupled_type_is_not_the_body_seat() {
+        let verdict = coupled_body_verdict(&source(
+            "pub struct DemoRefusal {\n\
+             \x20   pub attempts: Vec<AdmittedPrefix<DemoIssue, DemoIssueLimit>>,\n\
+             }\n\
+             \n\
+             impl RefusalFamily for DemoRefusal {\n\
+             \x20   const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.coupled, 0);
+        assert_eq!(verdict.offenders.len(), 1, "{:?}", verdict.offenders);
+        assert!(
+            verdict
+                .offenders
+                .first()
+                .is_some_and(|offence| offence.contains("carries no"))
         );
     }
 

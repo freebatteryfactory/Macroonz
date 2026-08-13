@@ -76,6 +76,13 @@ another pass dropped, with both halves honest and the pair a lie. So a report
 body IS an `AdmittedPrefix`: private seats, no `into_parts`, no owned carry, and
 one construction behind both readings.
 
+The home carries the grammar's guard seat for exactly that marriage: `types.rs`
+declares `AdmittedPrefix` and `ReportTruncation`, and its own child
+`type_guard.rs` owns every road that touches their seats — the two mints, the
+truncation a mint performs, and the two readers that hand the carry and the
+posture back — so the marriage is performed in one file and no seam elsewhere in
+the crate can build either half.
+
 **The claim's exact reach: every collection-shaped refusal family in the machine
 and in the services.** Not this home's bodies and the tooling plane's six — all
 of them, the upper-band declaration families included. A family's body is one
