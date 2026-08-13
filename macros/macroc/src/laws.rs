@@ -3758,43 +3758,104 @@ mod failure_path_closure {
     /// posture down, and one diagnostic's set cannot be shown under another
     /// diagnostic's completion. The road builds the set rather than being handed
     /// one, which is what closes the gap band 00's package closes upstream.
+    ///
+    /// The same road closes the identity level. It takes the issue MATERIAL and
+    /// derives the body's identity and the per-issue identities together, so the
+    /// body's identity is a commitment to exactly the issues standing beside it:
+    /// two different issue sets reach two different bodies, one issue set reaches
+    /// one body every time, and reordering the issues is a different body because
+    /// the framing that feeds it is ordered. A road taking the body and the
+    /// per-issue set as two arguments admitted a pair in which each half was
+    /// honestly derived and the pair named two different refusals, and the
+    /// coarser set a truncation carries would then be a commitment to nothing in
+    /// particular.
     /// Owed reversal (red twin): an overflow road returning the coarser set with
     /// no posture must break this law, and so must a road handing a set and a
-    /// completion back as two values a caller pairs.
+    /// completion back as two values a caller pairs, and so must a road taking a
+    /// body identity and per-issue identities as independent arguments.
     #[test]
     fn a_truncated_related_set_says_what_it_dropped() {
         use crate::diagnostics::RelatedSet;
-        use crate::plane::{ProjectionIdentity, ProjectionRole, ProjectionTranscript};
+        use crate::plane::{ProjectionIdentity, RelatedIssueSubject};
         use threadpak::refusal::StopBound;
         use threadpak::types::ConstLimit;
 
-        fn identity(seed: u32) -> ProjectionIdentity<crate::plane::RelatedIssueSubject> {
-            ProjectionIdentity::derived(ProjectionTranscript::rooted(
-                ProjectionRole::ClosedExpansion,
-                &seed.to_be_bytes(),
-                seed,
-            ))
+        /// One issue's canonical material, distinct per seed.
+        fn material(seed: u32) -> Vec<u8> {
+            seed.to_be_bytes().to_vec()
         }
 
-        let body = identity(0);
-        let fits: Vec<_> = (1..=3).map(identity).collect();
-        let set = RelatedSet::carrying(body, &fits);
+        /// The identity a set commits its whole body under: the one it carries
+        /// ahead of the per-issue identities.
+        fn body(set: &RelatedSet) -> Option<ProjectionIdentity<RelatedIssueSubject>> {
+            set.carried().iter().next().copied()
+        }
+
+        const FAMILY: u8 = 0;
+        const OTHER_FAMILY: u8 = 1;
+
+        let fits: Vec<Vec<u8>> = (1..=3).map(material).collect();
+        let set = RelatedSet::derived_over(FAMILY, &fits);
         assert_eq!(set.carried().len(), 4);
         assert!(matches!(set.completion(), RelatedSetCompletion::Complete));
+        assert!(body(&set).is_some());
+
+        // The body's identity commits to the issues it was built over. Same
+        // material, same body; one issue changed, a different body; the same
+        // issues in another order, a different body again — the framing the body
+        // is derived over is the issues' own material, in the issues' own order.
+        assert_eq!(body(&set), body(&RelatedSet::derived_over(FAMILY, &fits)));
+        let differing: Vec<Vec<u8>> = vec![material(1), material(2), material(9)];
+        assert_ne!(
+            body(&set),
+            body(&RelatedSet::derived_over(FAMILY, &differing))
+        );
+        let reordered: Vec<Vec<u8>> = vec![material(3), material(2), material(1)];
+        assert_ne!(
+            body(&set),
+            body(&RelatedSet::derived_over(FAMILY, &reordered))
+        );
+
+        // The body is its own commitment and never one of the issues restated:
+        // a reader holding the first identity is holding the whole body.
+        assert!(
+            !set.carried()
+                .iter()
+                .skip(1)
+                .any(|carried| Some(*carried) == body(&set))
+        );
+
+        // Two families' issue material never encodes alike, so the same issues
+        // raised under two families are two different bodies.
+        assert_ne!(
+            body(&set),
+            body(&RelatedSet::derived_over(OTHER_FAMILY, &fits))
+        );
 
         // The body's own identity rides ahead of the per-issue ones, so a body
         // AT the declared magnitude overruns the set by exactly one.
         let magnitude = u32::try_from(crate::plane::RelatedIssueLimit::MAX).unwrap_or(u32::MAX);
-        let over: Vec<_> = (1..=magnitude).map(identity).collect();
-        let truncated_set = RelatedSet::carrying(body, &over);
+        let over: Vec<Vec<u8>> = (1..=magnitude).map(material).collect();
+        let truncated_set = RelatedSet::derived_over(FAMILY, &over);
         assert_eq!(truncated_set.carried().len(), 1);
-        assert_eq!(truncated_set.carried().iter().next(), Some(&body));
+        assert!(body(&truncated_set).is_some());
         assert!(matches!(
             truncated_set.completion(),
             RelatedSetCompletion::ReportTruncated(truncation)
                 if truncation.omitted().get() == crate::plane::RelatedIssueLimit::MAX
                     && matches!(truncation.stopped_at(), StopBound::DeclaredIssueBound)
         ));
+
+        // The coarser commitment a truncation carries is still a commitment to
+        // THESE issues: change one of the dropped issues and the identity that
+        // survives changes with it.
+        let mut other = over.clone();
+        other.pop();
+        other.push(material(u32::MAX));
+        assert_ne!(
+            body(&truncated_set),
+            body(&RelatedSet::derived_over(FAMILY, &other))
+        );
 
         // The one line rustc shows carries the same statement, because the
         // typed posture beside it is not something rustc shows. A complete set

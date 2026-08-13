@@ -23,10 +23,12 @@
 //! - the **related set** carries one identity per established issue, derived
 //!   over that issue's complete canonical encoding, behind one identity over the
 //!   complete body. Two bodies that differ in any typed member derive different
-//!   identities, so no distinction is lost on the way through. Where a body
-//!   arrives at the set's own declared magnitude the body identity is carried
-//!   alone, and the diagnostic states that posture and the count it dropped
-//!   rather than handing back a coarser set shaped like a complete one;
+//!   identities, so no distinction is lost on the way through. This module hands
+//!   over the issue MATERIAL and the set derives both levels itself, so no seam
+//!   here ever holds a body identity it could seat over somebody else's issues.
+//!   Where a body arrives at the set's own declared magnitude the body identity
+//!   is carried alone, and the diagnostic states that posture and the count it
+//!   dropped rather than handing back a coarser set shaped like a complete one;
 //! - the **posture** rides in the summary, so a body that stopped at its own
 //!   declared bound says so rather than reading as complete.
 //!
@@ -54,7 +56,6 @@ use crate::diagnostics::{
 use crate::explanation_protocol::{ExplanationCoverage, ExplanationCoverageIssue};
 use crate::plane::{
     GeneratedTokenLimit, HumanProjection, HumanTextLimit, MembershipLimit, OwnerFactRef,
-    ProjectionIdentity, ProjectionRole, ProjectionTranscript, RelatedIssueSubject,
     RenderedByteLimit, RenderedRole, encode_bytes, human_projection,
 };
 use crate::refusal::{ProjectionPlanning, ProjectionPlanningIssue};
@@ -539,12 +540,10 @@ fn diagnosed(
     declared_by: OwnerFactRef,
     repair: HumanProjection<HumanTextLimit>,
 ) -> MacrocDiagnostic {
-    let body = related_identity(family, &joined(material));
-    let per_issue: Vec<ProjectionIdentity<RelatedIssueSubject>> = material
-        .iter()
-        .map(|issue| related_identity(family, issue))
-        .collect();
-    let related = RelatedSet::carrying(body, &per_issue);
+    // The material goes over, and the set derives both identity levels itself.
+    // This seam holds one refusal family's issue material and nothing else, so
+    // there is no body identity here to pair with somebody else's issues.
+    let related = RelatedSet::derived_over(family, material);
     MacrocDiagnostic {
         // The one line says which of the two sets stands behind it, because the
         // typed posture beside it is not what rustc shows.
@@ -579,26 +578,6 @@ fn diagnosed(
         },
         release: ReleasePosture::NoReleasePromise,
     }
-}
-
-/// Every issue's material, length-framed and joined — the complete body.
-fn joined(material: &[Vec<u8>]) -> Vec<u8> {
-    let mut bytes = Vec::new();
-    for issue in material {
-        encode_bytes(issue, &mut bytes);
-    }
-    bytes
-}
-
-/// One related-issue identity over one family's material.
-fn related_identity(family: u8, material: &[u8]) -> ProjectionIdentity<RelatedIssueSubject> {
-    let mut content = vec![family];
-    encode_bytes(material, &mut content);
-    ProjectionIdentity::derived(ProjectionTranscript::rooted(
-        ProjectionRole::ClosedExpansion,
-        &content,
-        u32::from(family),
-    ))
 }
 
 /// One composed line, with the related set's own posture written into it.

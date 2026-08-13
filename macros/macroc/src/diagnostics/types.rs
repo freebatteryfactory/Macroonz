@@ -2,17 +2,12 @@
 //! observed differs from what was expected, where it sits, what repairs it, and
 //! how to reach it again.
 //!
-//! Declarations only, and every seat here is READABLE — a diagnostic that hid
-//! one would be a diagnostic that sometimes says less than it knows.
-//!
-//! Exactly one seat is not WRITABLE, and the two are different properties. A
-//! truncated related set's count is a fact about an act the services performed,
-//! so a caller able to write it could state that identities were dropped by a
-//! set that dropped none. `RelatedSetTruncation` is therefore opaque, `RelatedSet`
-//! carries it married to the identities it is about, and one road builds both,
-//! which is what earns this home its `type_guard.rs`: the nucleus holds the road
-//! that reaches the seat, and reaching it is what makes the count belong to the
-//! truncation and the truncation belong to the set.
+//! Declarations only. The home's README is the one place the readable-but-not-
+//! writable distinction is argued and the one place the guard's ownership is
+//! stated; this file is where that ruling lands, in the two private seats below
+//! and in the child declaration on the last line. Each of those seats carries its
+//! own reason at its own declaration, which is the reason for that seat rather
+//! than a second copy of the home's narrative.
 
 use crate::plane::{
     ContractSubject, ExpansionSurfaceSubject, FixturePopulationSubject, HumanProjection,
@@ -258,6 +253,13 @@ pub enum RelatedSetCompletion {
 /// set of one refusal under the completion of another, with both halves honest
 /// on their own and the pair a lie. So the set-building road is the only road
 /// in, the seats are private, and there is no road back out to a loose pair.
+///
+/// The identities inside take the same rule one level down. The road is handed
+/// the issue MATERIAL and derives the body's identity and the per-issue
+/// identities together, so the body's identity is a commitment to exactly the
+/// issues beside it. Taking the two levels as two arguments would be the same
+/// lie in smaller print: each identity derives honestly, and the pair names one
+/// refusal's body over another refusal's issues.
 ///
 /// It takes the same shape band 00's [`threadpak::refusal::AdmittedPrefix`]
 /// takes, because it reports the same kind of fact about the same kind of act. A
