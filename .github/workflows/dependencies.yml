@@ -112,6 +112,12 @@ jobs:
       # with `exact = true`, and it covers nothing about licences, sources,
       # multiple versions, or wildcards, which stand on the positive invocation
       # above alone.
+      #
+      # The repository law `dependency-gate-carries-its-reversal` counts this
+      # gate's committed parts and refuses when one of them goes. It does not
+      # read this file's steps: deleting THIS STEP while the file remains is
+      # caught by review and by nothing else. The law states that ceiling and
+      # its opening condition itself.
       - name: The planted reversal must refuse
         run: |
           set +e

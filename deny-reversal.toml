@@ -52,12 +52,26 @@
 # applying is the staleness guard the `disallowed-methods` note in `clippy.toml`
 # says it could not build for a lint.
 #
-# This file is not part of any obligation ledger. The red-twin population xtask
-# joins against is testpak's tests and compile-fail fixtures, and a hosted
-# workflow step is neither, so no `red:` or `tooling-red:` row names this and
-# the published denominators do not move. The ledger cannot express a reversal
-# that lives outside the workspace's own test binaries; that gap is real and is
-# recorded here rather than papered over with a row that would not resolve.
+# WHERE THIS FILE IS COUNTED. Not in either obligation ledger: the red-twin
+# population xtask joins against is testpak's tests and compile-fail fixtures,
+# and a configuration beside a hosted workflow is neither, so no `red:` or
+# `tooling-red:` row names this one and neither published denominator moves.
+# It is counted in the OTHER machine-owned roster — the repository laws — by
+# `dependency-gate-carries-its-reversal`, which refuses when this file is
+# deleted, when it is emptied, when `deny.toml` is deleted, when the workflow
+# above it is deleted, or when this file stops departing from the rule it stands
+# against. Delete any one of those and `cargo xtask qualify` fails at its
+# repository-laws stage. That law owns the statement of what it does and does
+# not establish, in `xtask/src/checks/supply_chain.rs`; this file does not
+# restate it.
+#
+# THE ROAD THAT LAW DOES NOT REACH, said here because a reader of this file is
+# exactly the person who needs to know it: the reversal STEP being edited out of
+# the workflow while every file stays where it is. Reading a step means reading
+# YAML, this repository admits no YAML reader, and matching text in a workflow
+# would be the spelling-recognizer it has replaced four times over. Until a
+# hosted run publishes the roster of what it EXECUTED, that road is caught by
+# review and by nothing else.
 
 # The graph this file reads is the graph `deny.toml` reads. A reversal against a
 # different graph would be refusing for a reason nobody planted, and the whole

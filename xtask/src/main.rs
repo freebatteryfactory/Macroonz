@@ -41,6 +41,7 @@ use crate::checks::hygiene::{
 use crate::checks::obligations::check_obligations_join;
 use crate::checks::parity::check_agents_claude_parity;
 use crate::checks::placement::{check_band_map, check_tooling_module_order};
+use crate::checks::supply_chain::check_dependency_gate;
 use crate::checks::toolchain::{check_lint_wall, check_toolchain_pin, check_workspace_members};
 use crate::checks::vocabulary::{check_banned_vocabulary, check_no_personal_names};
 use crate::repository::types::Check;
@@ -60,7 +61,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 /// Runs every repository law, printing one PASS or FAIL line per law.
 fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
-    let checks: [Check; 14] = [
+    let checks: [Check; 15] = [
         ("agents-claude-parity", check_agents_claude_parity),
         ("lf-and-no-symlinks", check_lf_and_no_symlinks),
         ("no-python", check_no_python),
@@ -68,6 +69,10 @@ fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
         ("workspace-members-match-readme", check_workspace_members),
         ("lint-wall-inherited", check_lint_wall),
         ("no-core-tooling-edge", check_no_core_tooling_edge),
+        (
+            "dependency-gate-carries-its-reversal",
+            check_dependency_gate,
+        ),
         (
             "underscore-fields-are-phantom",
             check_underscore_fields_are_phantom,
