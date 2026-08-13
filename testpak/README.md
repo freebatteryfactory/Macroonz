@@ -131,6 +131,7 @@ the universal one. Each fixture here discharges a red twin some green law names:
 | `singleton-under-a-zero-maximum-family.rs` | `NonEmptyBounded::singleton` under a limit family declaring `MAX = 0` does not compile |
 | `cross-scope-comparison-on-a-stamped-guard.rs` | two stamped scope guards over different scopes are different types; comparing them does not compile |
 | `a-stamped-representation-cannot-be-laundered.rs` | two stamped guards over ONE scope: taking role A's position out and re-entering it under role B does not compile, in either direction |
+| `a-production-scope-guard-cannot-be-laundered.rs` | the seal holds on a guard the machine SHIPS, not only on roles a fixture stamps for itself: from outside the crate, `FrameVersion(position)` and `version.0` each refuse on their own |
 | `a-malformed-refusal-declaration-refuses.rs` | a shape word outside the machine's roster reaches the compiler as a refusal, not as a silent empty expansion |
 | `a-closed-expansion-without-a-closure.rs` | the only constructor of a receipt is crate-internal, so the plan, the origin graph, the trace, the invalidation set, the explanation, and the closure are all seats a caller cannot omit — they are arguments to a function nobody outside can call |
 | `a-rendering-taken-off-the-membership-only-draft.rs` | the frontage road is closed: the membership-only draft carries no rendering method at all |

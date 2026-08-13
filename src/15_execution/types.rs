@@ -29,9 +29,7 @@
 //! is UNREPRESENTABLE, not checked-for.
 
 use crate::bounds::DimensionId;
-use crate::identity::{
-    AuthorityPosition, Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence,
-};
+use crate::identity::{Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence};
 use crate::refusal::{AdmittedPrefix, CompletionPosture, FamilyShape, RefusalFamily};
 use crate::semantic::BoundDimensionRow;
 use crate::types::{Bounded, ConstLimit, EvidenceRef, Limit, NonEmptyBounded};
@@ -114,11 +112,12 @@ impl ExecutionFormFamilyId {
     }
 }
 
-/// One Execution-Form version — Class C, scoped to its family. Adding,
-/// removing, or changing an operator advances this version; no version is
-/// bare, and numeric comparison across families is undefined.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ExecutionFormVersion(pub AuthorityPosition<ExecutionFormFamilyId>);
+crate::scope_guard_version! {
+    /// One Execution-Form version — Class C, scoped to its family. Adding,
+    /// removing, or changing an operator advances this version; no version is
+    /// bare, and numeric comparison across families is undefined.
+    pub struct ExecutionFormVersion over ExecutionFormFamilyId;
+}
 
 // ---------------------------------------------------------------------------
 // The per-operator declaration.
@@ -755,10 +754,11 @@ impl SemanticKernelFamilyId {
     }
 }
 
-/// One semantic-kernel version — Class C, ordered ONLY within its family; no
-/// version is bare.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SemanticKernelVersion(pub AuthorityPosition<SemanticKernelFamilyId>);
+crate::scope_guard_version! {
+    /// One semantic-kernel version — Class C, ordered ONLY within its family; no
+    /// version is bare.
+    pub struct SemanticKernelVersion over SemanticKernelFamilyId;
+}
 
 /// Kernel semantic-contract domain marker (the MEANING half).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

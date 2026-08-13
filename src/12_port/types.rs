@@ -26,9 +26,7 @@
 //! its weaker established fact. A mechanism-specific success flag is evidence
 //! input, never automatic proof of the stronger postcondition.
 
-use crate::identity::{
-    AuthorityPosition, Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence,
-};
+use crate::identity::{Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence};
 use crate::refusal::{FamilyShape, RefusalFamily};
 use crate::schema::SchemaSemanticCommitment;
 use crate::types::{Bounded, ConstLimit, EvidenceRef, Limit};
@@ -59,10 +57,11 @@ impl PortFamilyId {
     }
 }
 
-/// One version of a port family — Class C, scoped to its family: versions of
-/// different port families are incomparable by type.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct PortFamilyVersion(pub AuthorityPosition<PortFamilyId>);
+crate::scope_guard_version! {
+    /// One version of a port family — Class C, scoped to its family: versions of
+    /// different port families are incomparable by type.
+    pub struct PortFamilyVersion over PortFamilyId;
+}
 
 // ---------------------------------------------------------------------------
 // The port role inventory.

@@ -37,8 +37,7 @@
 //! rather than merely unlawful.
 
 use crate::identity::{
-    AuthorityPosition, ByteIdentity, Commitment, CreationLaw, IdentityClass, IdentityRole,
-    Occurrence,
+    ByteIdentity, Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence,
 };
 use crate::refusal::{AdmittedPrefix, CompletionPosture, FamilyShape, ReasonId, RefusalFamily};
 use crate::types::{Bounded, ConstLimit, EvidenceRef, Limit, NonEmptyBounded};
@@ -61,11 +60,12 @@ impl IdentityRole for SchemaFamilyId {
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
 }
 
-/// One schema version — Class C, a u64 position scoped to its family with the
-/// scope binding in the value: the first production instantiation of the
-/// scope-guarded order shape. No `Ord` exists; comparison is same-scope only.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SchemaVersion(AuthorityPosition<SchemaFamilyId>);
+crate::scope_guard_version! {
+    /// One schema version — Class C, a u64 position scoped to its family with the
+    /// scope binding in the value: the first production instantiation of the
+    /// scope-guarded order shape. No `Ord` exists; comparison is same-scope only.
+    pub struct SchemaVersion over SchemaFamilyId;
+}
 
 /// The identity role marker for fields.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

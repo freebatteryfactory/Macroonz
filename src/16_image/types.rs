@@ -32,9 +32,7 @@
 
 use crate::bytes::ContentRegionId;
 use crate::execution::KernelRequirementSet;
-use crate::identity::{
-    AuthorityPosition, ByteIdentity, CreationLaw, IdentityClass, IdentityRole, Occurrence,
-};
+use crate::identity::{ByteIdentity, CreationLaw, IdentityClass, IdentityRole, Occurrence};
 use crate::types::{Bounded, EvidenceRef, Limit};
 
 // ---------------------------------------------------------------------------
@@ -96,9 +94,10 @@ impl ImageFamilyId {
     }
 }
 
-/// One image-family format version — Class C, ordered ONLY within its family.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ImageFamilyFormatVersion(pub AuthorityPosition<ImageFamilyId>);
+crate::scope_guard_version! {
+    /// One image-family format version — Class C, ordered ONLY within its family.
+    pub struct ImageFamilyFormatVersion over ImageFamilyId;
+}
 
 /// The identity role marker for image profiles.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -121,13 +120,14 @@ impl ImageProfileId {
     }
 }
 
-/// One image-profile version — Class C, ordered ONLY within its profile.
-/// Each identity carries its own compatibility claim: semantic, execution,
-/// image-bytes, runtime, and release support do not move together; an unknown
-/// operation, version, profile, import, or kernel is refused, never silently
-/// ignored.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ImageProfileVersion(pub AuthorityPosition<ImageProfileId>);
+crate::scope_guard_version! {
+    /// One image-profile version — Class C, ordered ONLY within its profile.
+    /// Each identity carries its own compatibility claim: semantic, execution,
+    /// image-bytes, runtime, and release support do not move together; an unknown
+    /// operation, version, profile, import, or kernel is refused, never silently
+    /// ignored.
+    pub struct ImageProfileVersion over ImageProfileId;
+}
 
 /// The identity role marker for admitted programs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
