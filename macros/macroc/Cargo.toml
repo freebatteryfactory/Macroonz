@@ -11,7 +11,13 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
-threadpak = { path = "../.." }
+# The machine, reached by path inside this checkout and by version anywhere
+# else. This package is publishable, and a registry resolves nothing by path, so
+# a path-only edge here is an edge that works only for the people who already
+# have the tree. The requirement restates `workspace.package.version` because a
+# dependency requirement cannot inherit it; the two move together or the package
+# stops resolving, which is the failure that names itself.
+threadpak = { path = "../..", version = "0.0.0" }
 # The tooling plane's digest, admitted by the note in README.md. What the plane
 # uses of it is exactly `Hasher` and `derive_key`, which is the whole mechanism
 # the identity profile needs; which version, and which features that leaves

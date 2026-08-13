@@ -1,0 +1,108 @@
+# What the resolved dependency graph is allowed to be.
+#
+# The manifests declare what this workspace ASKS FOR. This file settles what the
+# graph actually IS, and the two are different questions: Cargo unifies features
+# across a build, so a crate nobody here named can switch a feature on in a crate
+# everybody here uses, and every manifest still reads exactly as it did. Three
+# paragraphs in this repository claimed a feature cut that only a manifest can
+# request and only a graph can hold; this file is where that claim is settled
+# against the graph, and it settled it by refusing the first time it ran.
+#
+# Adopting this costs a tool the qualification road does not carry. `cargo deny`
+# is not a stage of `cargo xtask qualify`, because qualify's stages compile,
+# test, and read THIS tree with the pinned toolchain and nothing else, and a
+# check that needs a separately installed binary would make the entry bar depend
+# on what a working machine happens to have. It runs beside the bar in the hosted
+# workflow instead, where the host is one nobody configured.
+
+[graph]
+# Dependencies a test brings in are dependencies. cargo-deny leaves them out by
+# default — MEASURED: the default graph here is 21 crates against
+# `cargo metadata`'s 44, and the 23 missing are exactly the subtree under the
+# compile-refusal harness. A licence rule that cannot see half the graph is a
+# licence rule about the half it likes.
+exclude-dev = false
+
+[licenses]
+# The workspace publishes under `MIT OR Apache-2.0`, so a dependency whose terms
+# cannot travel under both cannot travel here. The list is exhaustive by
+# construction: cargo-deny refuses any licence not on it, so a GPL or AGPL
+# arrival anywhere in the graph — including one that appears three levels down
+# in a transitive edge nobody chose — fails rather than warns. Every entry below
+# was MEASURED in the current graph with `cargo deny --workspace list`; nothing
+# is listed in anticipation.
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "CC0-1.0",
+    "MIT",
+    "MIT-0",
+    "Unicode-3.0",
+]
+
+[bans]
+# Two copies of one crate at two versions is two decoders, two hash
+# implementations, or two definitions of one type, and the build says nothing
+# about it. The graph carries none today.
+multiple-versions = "deny"
+# A `*` requirement is a decision deferred to whoever resolves next.
+wildcards = "deny"
+# A path dependency carries no version requirement, and inside one checkout that
+# is exactly right: the path IS the resolution. It stops being right the moment
+# the package is published, because a registry resolves nothing by path — which
+# is why this allowance does not extend to publishable crates, and why the two
+# publishable manifests here now carry a version requirement beside their path.
+allow-wildcard-paths = true
+
+# The decoder both readers read Rust through.
+#
+# MEASURED, and it is the whole reason this file exists: the allowed set is SIX
+# features, not the two the manifests request. `clone-impls`, `derive`,
+# `printing` and `proc-macro` arrive through `serde_derive`, which the
+# compile-refusal harness pulls in as a development dependency. Under resolver 3
+# those four land on a SEPARATE compiled unit — the one `serde_derive` links, on
+# the proc-macro side of the graph — and the unit the repository's own readers
+# link still carries `full` and `parsing` alone. Both statements are true and
+# they answer different questions, so the list below answers the one this file
+# is for: what the graph holds. `exact = true` means any movement at all fails,
+# in either direction, from any source — a reader that stopped needing `full`,
+# and a new dependency that switched on `fold`, `visit`, or `extra-traits`, are
+# the same refusal.
+[[bans.features]]
+crate = "syn"
+allow = ["clone-impls", "derive", "full", "parsing", "printing", "proc-macro"]
+exact = true
+
+# The digest the services and the judge both hash with.
+#
+# The empty set is the claim: no default features, and nothing any other crate
+# in the graph turned on. `std` would buy an `io::Write` adapter and the
+# error-trait impls; `rayon` would stand a thread pool up inside `rustc`;
+# `serde`, `zeroize`, `mmap` and the digest-trait previews buy surfaces neither
+# crate has a seat for. An empty exact set is the strongest form this mechanism
+# has, because every one of those is a refusal rather than an absence nobody
+# checked.
+[[bans.features]]
+crate = "blake3"
+allow = []
+exact = true
+
+[sources]
+# A crate arriving from anywhere but the one registry named below, or from any
+# git remote at all, is a supply chain this repository never decided on.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
+
+[advisories]
+# Deliberately no `ignore` entries and no configuration beyond this note.
+#
+# The advisory check is NOT part of the required gate, and the reason is a
+# property the qualification road states about itself: a result is about the
+# tree alone. The advisory database moves on its own schedule, so a required
+# check that reads it turns red on a morning when nothing in the repository
+# changed, and green again on a morning when nothing changed either. That is a
+# useful alarm and a broken gate, so it runs on a schedule of its own, where
+# turning red means "go look" rather than "this change is bad".

@@ -1,0 +1,97 @@
+# The dependency graph, checked against `deny.toml`.
+#
+# This is NOT the entry bar. `cargo xtask qualify` is the entry bar and the only
+# spelling of it, and every stage of it compiles, tests, or reads this tree with
+# the pinned toolchain and nothing else. cargo-deny is a separately installed
+# binary, so folding it into qualify would make the bar depend on what a machine
+# happens to have installed. It runs here instead, beside the bar, on a host
+# nobody configured.
+#
+# Two jobs, and the split is the point. The graph job reads THIS tree and
+# nothing else, so its result is about the tree alone — the same property qualify
+# states about itself — and it belongs on every pull request. The advisory job
+# reads a database that moves without this repository changing, so it would turn
+# red on a morning when nothing here changed and green again the same way. That
+# is a useful alarm and a broken gate, so it runs on its own schedule, where red
+# means "go look" rather than "this change is bad".
+name: dependencies
+
+on:
+  pull_request:
+  # Weekly, and on demand. The advisory job needs a trigger that is not a change,
+  # because the thing it watches is not in this repository.
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+# One live run per ref, EXCEPT on the trunk. Cancelling a superseded pull-request
+# run costs nothing, because a newer commit on the same branch is the thing to
+# judge. Cancelling the trunk's own run destroys the record of whether a merged
+# commit held, and that record is the only one nobody can reconstruct later.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# The runs read the tree and write nothing back.
+permissions:
+  contents: read
+
+jobs:
+  graph:
+    # Not on the schedule: this job's subject is a change, and a schedule brings
+    # none.
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    # The default is six hours. Nothing here is a six-hour job, so a run that
+    # reaches this number is a run that has stopped making progress, and holding
+    # a runner until lunchtime to find that out helps nobody.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install the pinned toolchain
+        run: |
+          rustup toolchain install
+          rustup show
+
+      # Built from source at an exact version, for the reason every action here
+      # is pinned to a commit: a version range is a decision deferred to whoever
+      # resolves next, and this binary's verdict is one of the repository's
+      # answers about its own supply chain.
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --version 0.19.0 --locked
+
+      # `--workspace` is load-bearing and its absence is silent. MEASURED:
+      # without it cargo-deny takes the root package as the sole graph root and
+      # sees ONE crate; with it, the graph is the whole workspace. A run missing
+      # the flag prints the same "ok" as a run that checked everything.
+      #
+      # `advisories` is deliberately absent from this list — see the schedule
+      # job below, and the note in `deny.toml`.
+      - name: Check the graph
+        run: cargo deny --workspace --locked check bans licenses sources
+
+  advisories:
+    # Only on the schedule and by hand. This job is an alarm, not a gate.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install the pinned toolchain
+        run: |
+          rustup toolchain install
+          rustup show
+
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --version 0.19.0 --locked
+
+      # This step reaches the network for the RustSec database, which is exactly
+      # why it is not on a pull request: its answer depends on when it ran.
+      - name: Check advisories
+        run: cargo deny --workspace --locked check advisories

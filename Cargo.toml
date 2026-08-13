@@ -57,8 +57,12 @@ repository = "https://github.com/freebatteryfactory/ThreadPak"
 # Default features off, cut to the two the readings use: `parsing`, without
 # which there is no text-to-tree road at all, and `full`, without which items
 # and their associated constants are not in the tree. Printing, folding,
-# visiting, derive input, extra traits, and the proc-macro bridge stay off —
-# both readers read and never write, and neither runs inside a macro.
+# visiting, derive input, extra traits, and the proc-macro bridge are not asked
+# for HERE — both readers read and never write, and neither runs inside a macro.
+# What the graph then holds is a separate measured fact, and `deny.toml` is
+# where it is written down, because four of those features do arrive, on a
+# different compiled unit, through a crate the compile-refusal harness brings
+# in.
 syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }
 # The digest. Pinned exact because a projection identity is a value the plane
 # hands out, and a minor version that changed one byte of output would silently
