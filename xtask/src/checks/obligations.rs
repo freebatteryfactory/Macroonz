@@ -13,9 +13,9 @@ use std::fs;
 use std::path::Path;
 
 use crate::repository::readme::{
-    classify_green_rows, home_readmes, red_twin_rows, tooling_red_rows,
+    classify_green_rows, home_readmes, obligation_records, red_twin_rows, tooling_red_rows,
 };
-use crate::repository::types::GreenRow;
+use crate::repository::types::{GreenRow, ObligationRecord};
 use crate::repository::walk::{JUDGE_DIRECTORY, relative_slash_path, visit_files};
 
 /// The READMEs that carry tooling qualification obligations.
@@ -60,7 +60,31 @@ const PRELUDE_EDITIONS: [&str; 5] = ["v1", "rust_2015", "rust_2018", "rust_2021"
 /// see [`is_a_conditional_application`].
 const CONDITIONAL_ATTRIBUTE: &str = "cfg_attr";
 
-/// The obligations join, in four legs.
+/// The attribute a documentation comment arrives as. `///` above an item is
+/// `#[doc = "…"]` ON that item, one attribute per line written, which is what
+/// makes a control marker readable as a fact about a FUNCTION rather than as a
+/// line in a file.
+const DOCUMENTATION_ATTRIBUTE: &str = "doc";
+
+/// The word a control marker opens with, and it is the obligation row's own
+/// word. A test says which claim it controls in the vocabulary the claim is
+/// written in — `green: <the obligation's id>` — so the two ends of the join are
+/// spelled the same way in both files.
+const CONTROL_MARKER: &str = "green:";
+
+/// The obligations join, in five legs.
+///
+/// **Whole records, not loose rows.** Every row this join reads is read through
+/// the obligation RECORD that declared it, and every record states exactly one
+/// `green:` row and exactly one `red:` row. The rows used to be gathered by two
+/// independent scans of the whole file, so nothing bound a row to the obligation
+/// it belonged to and a record could lose one in silence: with its `green:` line
+/// deleted an obligation named no positive control, so none was resolved and the
+/// record qualified on its red row alone; with its `red:` line deleted the
+/// published core denominator shrank by one and no leg had anything to say. A
+/// `laws.rs` claim is exposed from the other side when it vanishes — the law it
+/// named is then claimed by nobody — and a ROUTE has no other side, which is why
+/// nothing caught this. A record carries its rows or the record is refused.
 ///
 /// **Green, both ways.** Every README obligation naming a `laws.rs` green law
 /// points at a law that exists, and every law in `laws.rs` is claimed by some
@@ -125,6 +149,15 @@ const CONDITIONAL_ATTRIBUTE: &str = "cfg_attr";
 /// twin, or at an empty test binary, is worse still, because the evidence it
 /// names establishes nothing at all.
 ///
+/// **Green, at the CONTROL the route names and not merely the file.** A routed
+/// seat must hold a test the harness runs whose own documentation names the
+/// obligation that routed to it. The seat question is an EXISTENTIAL over a file
+/// — at least one test in there runs — so any unrelated test in the file
+/// answered it, and the declared positive control could be renamed or deleted
+/// with the route still qualifying on a neighbour's back. The control marker was
+/// already written; nothing joined it. Now it is one of the two ends of a join,
+/// and neither end can move without the other.
+///
 /// Nothing is counted here — a green side is not a debt ledger, and inventing a
 /// third denominator over a population that states no debts would be a number
 /// nobody can act on.
@@ -150,28 +183,23 @@ pub(crate) fn check_obligations_join(root: &Path) -> Result<(), String> {
     let mut rows = Vec::new();
     let mut routes = Vec::new();
     let mut unreadable = Vec::new();
+    let mut offenders = Vec::new();
     for readme in &readmes {
         let text = fs::read_to_string(readme).map_err(|e| format!("{}: {e}", readme.display()))?;
         let home = relative_slash_path(root, readme);
-        for row in red_twin_rows(&text) {
-            rows.push((row, home.clone()));
-        }
-        for row in classify_green_rows(&text) {
-            match row {
-                GreenRow::CompileTimeSeat { module, law } => {
-                    claimed.push((module, law, home.clone()));
-                }
-                GreenRow::Route(named) => routes.push((named, home.clone())),
-                GreenRow::Unreadable(value) => unreadable.push((value, home.clone())),
-                GreenRow::Disposition => {}
-            }
-        }
+        let declared = home_rows(&text, &home);
+        offenders.extend(declared.offences);
+        claimed.extend(declared.claimed);
+        routes.extend(declared.routes);
+        unreadable.extend(declared.unreadable);
+        rows.extend(declared.red);
     }
-    let mut offenders = drifted_claim_offences(&claimed, &existing);
+    offenders.extend(drifted_claim_offences(&claimed, &existing));
     offenders.extend(double_claimed_offences(&claimed));
     let judge = testpak_populations(root)?;
     let ledger = red_twin_ledger(&rows, &judge.reversals);
     offenders.extend(phantom_green_routes(&routes, &judge.seats));
+    offenders.extend(uncontrolled_green_routes(&routes, &judge.seats));
     offenders.extend(double_routed_offences(&routes));
     offenders.extend(unreadable_green_offences(&unreadable));
     offenders.extend(judge.unparsable);
@@ -203,6 +231,186 @@ pub(crate) fn check_obligations_join(root: &Path) -> Result<(), String> {
     } else {
         Err(offenders.join("; "))
     }
+}
+
+/// Everything one home README declared, read through the obligation records
+/// that declared it.
+///
+/// The home's twin of [`JudgeTree`], and it stands here for the same reason: one
+/// reading of one file produces every population that file contributes, so no
+/// two of them can be about different records. What used to be here was four
+/// accumulators filled from two whole-file scans, and the gap between those
+/// scans is where a record could lose a row without anything noticing.
+struct HomeRows {
+    /// `(module, law, README)` for every compile-time seat the home claims.
+    claimed: Vec<(String, String, String)>,
+    /// Every green route the home declares, carrying its obligation.
+    routes: Vec<GreenRoute>,
+    /// `(value, README)` for every green row no lawful spelling reads.
+    unreadable: Vec<(String, String)>,
+    /// `(value, README)` for every red row, for the published ledger.
+    red: Vec<(String, String)>,
+    /// What the record reading itself refused: a record missing or doubling a
+    /// row, and a row no record owns.
+    offences: Vec<String>,
+}
+
+/// Everything one home README declares, sorted into the populations the join
+/// resolves.
+///
+/// Every row here arrives through the record that wrote it, which is what makes
+/// the two record legs above possible at all: a row's obligation is known
+/// because the row was never separated from it. A green route carries that
+/// obligation onward, because the route leg has to ask a question about the
+/// CONTROL and not merely about the file.
+fn home_rows(text: &str, home: &str) -> HomeRows {
+    let records = obligation_records(text);
+    let mut offences = record_field_offences(&records, home);
+    offences.extend(unowned_row_offences(text, &records, home));
+    let mut declared = HomeRows {
+        claimed: Vec::new(),
+        routes: Vec::new(),
+        unreadable: Vec::new(),
+        red: Vec::new(),
+        offences,
+    };
+    for record in records {
+        let id = record.id;
+        declared
+            .red
+            .extend(record.red.into_iter().map(|row| (row, String::from(home))));
+        for row in record.green {
+            match row {
+                GreenRow::CompileTimeSeat { module, law } => {
+                    declared.claimed.push((module, law, String::from(home)));
+                }
+                GreenRow::Route(named) => declared.routes.push(GreenRoute {
+                    named,
+                    readme: String::from(home),
+                    id: id.clone(),
+                }),
+                GreenRow::Unreadable(value) => {
+                    declared.unreadable.push((value, String::from(home)));
+                }
+                GreenRow::Disposition => (),
+            }
+        }
+    }
+    declared
+}
+
+/// One green route, carried whole: the file the row named, the home that
+/// declared it, and the OBLIGATION whose record owns the row.
+///
+/// The id is here because a route with no obligation attached is a route that
+/// can only be resolved against a file. That is what let the seat check be an
+/// existential — the route asked "does anything in there run", because there was
+/// nothing in the row saying which thing. Carrying the id makes the narrower
+/// question askable, and carrying it in the same value as the path makes asking
+/// the looser one alone a decision somebody has to write rather than the default.
+#[derive(Debug)]
+struct GreenRoute {
+    /// The file the row named, as the row spelled it.
+    named: String,
+    /// The home README that declared the row.
+    readme: String,
+    /// The obligation whose record the row was written in.
+    id: String,
+}
+
+/// Every obligation record that does not state exactly one `green:` row and
+/// exactly one `red:` row, one offence per missing or doubled field.
+///
+/// The leg the row readers could not have. A row-shaped reader answers questions
+/// about the rows it was given, and a deleted row is the one thing it is never
+/// given — so an obligation that lost its `green:` line stated no positive
+/// control, resolved against nothing, and qualified; one that lost its `red:`
+/// line took itself out of a denominator this repository publishes on every run,
+/// and the count simply came back one smaller. The `laws.rs` side never had this
+/// hole, because a claim that vanishes leaves its law claimed by nobody and the
+/// drift leg reports it from the other side. A route has no other side. Nothing
+/// in testpak knows an obligation was supposed to point at it.
+///
+/// Doubled is refused on the same rule and for the reason the doubled-evidence
+/// legs are: two `green:` rows in one record state two positive controls for one
+/// claim, and nothing says which of them the claim rests on. Two `red:` rows put
+/// two entries on the published ledger for one obligation.
+///
+/// The offence names the id AND the README, because an id is unique to a home
+/// rather than to the repository, and the repair is made in the file that wrote
+/// it.
+///
+/// Pure over its records, so the leg is proven against fixture records rather
+/// than by deleting a row from a README the repository stands on.
+fn record_field_offences(records: &[ObligationRecord], readme: &str) -> Vec<String> {
+    let mut offences = Vec::new();
+    for record in records {
+        let id = &record.id;
+        if record.green.len() != 1 {
+            let stated = record.green.len();
+            offences.push(format!(
+                "{readme}: obligation `{id}` states {stated} `green:` rows, and an obligation \
+                 states exactly one. A record with none names no positive control, so none is \
+                 resolved and the obligation qualifies on its red row alone; a record with two \
+                 says nowhere which of them the claim rests on"
+            ));
+        }
+        if record.red.len() != 1 {
+            let stated = record.red.len();
+            offences.push(format!(
+                "{readme}: obligation `{id}` states {stated} `red:` rows, and an obligation states \
+                 exactly one. A record with none leaves the published core denominator with \
+                 nothing saying so; a record with two puts one obligation on that ledger twice"
+            ));
+        }
+    }
+    offences
+}
+
+/// Every `green:` or `red:` row a README writes that no obligation record owns.
+///
+/// The grouping's own failure mode, refused rather than trusted. This join reads
+/// rows THROUGH the records that declared them, so a row standing outside every
+/// record is a row the join no longer joins — which would be the silence the
+/// record reading was built to end, arriving through the repair itself. The rows
+/// are therefore counted twice by the SAME readers, once over the whole file and
+/// once over the records, and a difference is named.
+///
+/// It can only go one way. A record's carried lines are lines of the file, so
+/// the records can never hold a row the file does not; what a difference means
+/// is always that the file wrote a row no record took.
+///
+/// The offence names how many rather than which. A row nobody's record owns has
+/// no id to be named against, and the README plus the count is what sends its
+/// author to the block that lost it.
+///
+/// Pure over the text and the records read from it, so the leg is proven against
+/// a fixture README rather than by moving a row in one the repository stands on.
+fn unowned_row_offences(text: &str, records: &[ObligationRecord], readme: &str) -> Vec<String> {
+    let owned_green = records.iter().fold(0usize, |total, record| {
+        total.saturating_add(record.green.len())
+    });
+    let owned_red = records.iter().fold(0usize, |total, record| {
+        total.saturating_add(record.red.len())
+    });
+    let mut offences = Vec::new();
+    for (stray, field) in [
+        (
+            classify_green_rows(text).len().saturating_sub(owned_green),
+            "green",
+        ),
+        (red_twin_rows(text).len().saturating_sub(owned_red), "red"),
+    ] {
+        if stray > 0 {
+            offences.push(format!(
+                "{readme}: {stray} `{field}:` row(s) stand outside every obligation record. This \
+                 join reads rows through the record that declared them, so a row no record owns \
+                 is joined by nothing and counted by nothing — the repair is to write it inside \
+                 the record it belongs to, indented beneath that record's own `- id:`"
+            ));
+        }
+    }
+    offences
 }
 
 /// Every `#[test]` law `laws.rs` declares, as `(module, law)` in file order.
@@ -352,17 +560,17 @@ fn double_claimed_offences(claimed: &[(String, String, String)]) -> Vec<String> 
 ///
 /// Pure over its rows — `(named seat, declaring README)` pairs — so the law is
 /// proven against fixture rows rather than against the tree it guards.
-fn double_routed_offences(routes: &[(String, String)]) -> Vec<String> {
+fn double_routed_offences(routes: &[GreenRoute]) -> Vec<String> {
     let mut offences = Vec::new();
     let mut reported: Vec<String> = Vec::new();
-    for (named, _) in routes {
+    for GreenRoute { named, .. } in routes {
         if reported.contains(named) {
             continue;
         }
         let declared: Vec<&str> = routes
             .iter()
-            .filter(|(seat, _)| seat == named)
-            .map(|(_, readme)| readme.as_str())
+            .filter(|route| &route.named == named)
+            .map(|route| route.readme.as_str())
             .collect();
         if declared.len() > 1 {
             reported.push(named.clone());
@@ -405,9 +613,9 @@ fn double_routed_offences(routes: &[(String, String)]) -> Vec<String> {
 ///
 /// Pure over its rows, so the leg is proven against fixture rows rather than by
 /// editing the README it guards.
-fn phantom_green_routes(rows: &[(String, String)], seats: &SeatPopulation) -> Vec<String> {
+fn phantom_green_routes(rows: &[GreenRoute], seats: &SeatPopulation) -> Vec<String> {
     let mut offences = Vec::new();
-    for (named, readme) in rows {
+    for GreenRoute { named, readme, .. } in rows {
         if !seats.carries(named) {
             offences.push(format!(
                 "{readme}: green route names `{named}`, which is no executable test seat: a green \
@@ -420,6 +628,61 @@ fn phantom_green_routes(rows: &[(String, String)], seats: &SeatPopulation) -> Ve
                  under a condition — any `cfg` or `cfg_attr`, on the test, on a module around it, \
                  or on the file itself, whatever the predicate says — because a control that \
                  executes only in some builds is not a positive control"
+            ));
+        }
+    }
+    offences
+}
+
+/// Every green route whose seat holds no test naming the obligation that routed
+/// to it, one offence per route.
+///
+/// The leg that turns a route from a claim about a FILE into a claim about the
+/// CONTROL it names. The seat question is an existential — does anything in this
+/// file run — and an existential is answered by whatever happens to be there.
+/// So `root.a-stamped-roster-declares-its-own-ceiling` could have its declared
+/// positive control renamed or deleted and go on qualifying, on the strength of
+/// any unrelated test left in the same file. The marker naming the obligation
+/// was already written in that test's own documentation, and nothing read it.
+///
+/// The two ends are now one join. A route names its seat, the record names the
+/// obligation, and a test in that seat names the obligation back — so the
+/// control cannot be renamed, deleted, or moved to another file without one end
+/// failing to find the other. Nothing here is a search through the file's lines:
+/// the marker is read off the `#[doc]` attribute of a function `syn` handed back
+/// as a test the harness RUNS, so a `green:` written in an ordinary comment, in a
+/// string, in the file's own module documentation, or on an ignored test names
+/// nothing at all. [`documented_control`] is the reading.
+///
+/// A route whose seat does not exist is left to [`phantom_green_routes`]. One
+/// route earns one offence, and the author of a route naming a file nobody wrote
+/// is told the file is missing rather than told what the file it does not have
+/// fails to contain.
+///
+/// # The ceiling, and it fails CLOSED
+///
+/// The marker is prose in a doc comment rather than a field of a schema, so what
+/// this establishes is that the seat DOCUMENTS itself as controlling the
+/// obligation. A test whose marker says one thing and whose assertions do
+/// another is not reachable from here, and no reader of a source is going to
+/// reach it. What closes that is the same thing that closes every other ceiling
+/// in this module: a route naming the test FUNCTION, resolved against the roster
+/// a qualification run EXECUTED, under the versioned claim and evidence schema.
+///
+/// Pure over its rows, so the leg is proven against fixture rows rather than by
+/// editing the seat it guards.
+fn uncontrolled_green_routes(routes: &[GreenRoute], seats: &SeatPopulation) -> Vec<String> {
+    let mut offences = Vec::new();
+    for GreenRoute { named, readme, id } in routes {
+        if seats.carries(named) && !seats.controls(named, id) {
+            offences.push(format!(
+                "{readme}: green route `{named}` is the positive control declared by obligation \
+                 `{id}`, and no test in that file names it. A routed seat must hold a test a \
+                 plain harness run EXECUTES whose own documentation states `{CONTROL_MARKER} \
+                 {id}` — read off the test's documentation attribute, never off the file's lines. \
+                 Seating a file is an existential over it, so without that naming any unrelated \
+                 test in the file stands in for the control this obligation declared, and the \
+                 declared one can be renamed or deleted with the route still qualifying"
             ));
         }
     }
@@ -595,7 +858,34 @@ struct ReversalPopulation(Vec<String>);
 /// attribute further out still: what the binary holds is then decided by a build
 /// the route never named. A seat here is a file that declares a test the harness
 /// RUNS unconditionally, established from a parse of it.
-struct SeatPopulation(Vec<String>);
+///
+/// Each seat also carries what its runnable tests SAY they control, because
+/// seating a file answers an existential and an obligation's route is not an
+/// existential claim. See [`Seat`].
+struct SeatPopulation(Vec<Seat>);
+
+/// One executable seat: where it sits, and every obligation its runnable tests
+/// name as the claim they control.
+///
+/// The second field is the whole of the second repair. A file was a seat, and a
+/// route resolved to a file, so a route's positive control amounted to
+/// "something in there runs" — which any test in the file answers, including one
+/// written for another purpose entirely and one left behind after the declared
+/// control was deleted. Which obligations the file's tests NAME is a different
+/// fact about the same parse, gathered in the same walk, and it is what a route
+/// is resolved against now.
+///
+/// Only tests the harness RUNS contribute. A marker on an ignored test, on a
+/// conditionally compiled one, or on a function that is no test at all names a
+/// control that does not execute, and this reader already knows which functions
+/// execute.
+#[derive(Debug)]
+struct Seat {
+    /// The file, as a repository-relative slash path.
+    path: String,
+    /// The obligations its runnable tests document themselves as controlling.
+    controls: Vec<String>,
+}
 
 impl ReversalPopulation {
     /// Whether this population carries the reversal a red row names, resolved by
@@ -614,7 +904,21 @@ impl SeatPopulation {
     /// to accept a bare file name, a directory, a stale path — it must loosen
     /// alone, where the other side's reading cannot be dragged along with it.
     fn carries(&self, named: &str) -> bool {
-        self.0.iter().any(|path| path.as_str() == named)
+        self.0.iter().any(|seat| seat.path.as_str() == named)
+    }
+
+    /// Whether the seat a green route names holds a runnable test that names
+    /// the obligation back.
+    ///
+    /// Both halves of the identity are exact: the seat is found by its exact
+    /// repository-relative path, and the obligation by its exact id. A marker
+    /// that merely contains the id, or an id that merely contains a marker's
+    /// value, names an obligation nobody declared — which is precisely what a
+    /// half-finished rename leaves behind on one side of this join.
+    fn controls(&self, named: &str, id: &str) -> bool {
+        self.0.iter().any(|seat| {
+            seat.path.as_str() == named && seat.controls.iter().any(|stated| stated == id)
+        })
     }
 }
 
@@ -696,11 +1000,7 @@ fn seat_population(sources: &[(String, String)]) -> (SeatPopulation, Vec<String>
     let mut unparsable = Vec::new();
     for (path, text) in sources {
         match syn::parse_file(text) {
-            Ok(file) => {
-                if !stands_under_a_condition(&file.attrs) && declares_a_runnable_test(&file.items) {
-                    seats.push(path.clone());
-                }
-            }
+            Ok(file) => seats.extend(seat_of(path, &file)),
             Err(error) => unparsable.push(format!(
                 "{path} sits directly under `testpak/tests/` and is not parseable Rust, so whether \
                  it declares a test that RUNS is unknown rather than false: {error}"
@@ -710,7 +1010,44 @@ fn seat_population(sources: &[(String, String)]) -> (SeatPopulation, Vec<String>
     (SeatPopulation(seats), unparsable)
 }
 
-/// Whether one parsed source declares at least one test cargo will RUN.
+/// The seat one parsed top-level source is, or nothing where it is none.
+///
+/// Two refusals and one construction, in the order the reader can afford them: a
+/// file standing under a condition is no seat whatever it declares, a file
+/// declaring no test the harness runs is no seat however it is placed, and what
+/// is left is a seat carrying every obligation its running tests name.
+///
+/// The controls are gathered from the SAME walk that decided the file is a seat,
+/// so a test that seats the file and a test that names an obligation can never
+/// be established by two readings that disagree about which tests run.
+fn seat_of(path: &str, file: &syn::File) -> Option<Seat> {
+    if stands_under_a_condition(&file.attrs) {
+        return None;
+    }
+    let executed = harness_tests(&file.items);
+    if executed.is_empty() {
+        return None;
+    }
+    Some(Seat {
+        path: String::from(path),
+        controls: executed.into_iter().flatten().collect(),
+    })
+}
+
+/// Every test one parsed scope declares that cargo will RUN, each carrying the
+/// obligations its own documentation names as the claims it controls.
+///
+/// One walk, two facts, because they are two readings of the same items and two
+/// walks would be two chances to disagree about which functions the harness
+/// runs. That a scope declares a runnable test at all is this list being
+/// non-empty; which claims those tests control is what the entries carry. A test
+/// naming nothing contributes an empty entry rather than no entry, so a file
+/// full of unnamed tests is still a seat and still controls nothing.
+///
+/// Only tests that RUN are here, which is what makes the marker a fact about
+/// executed evidence. A marker on a skipped test, on a conditionally compiled
+/// one, or on a plain function names a control that never executes, and none of
+/// them reaches this list.
 ///
 /// The question is about ITEMS: that a function is declared, that the test
 /// harness's own attribute sits ON it, that nothing beside that attribute tells
@@ -816,20 +1153,76 @@ fn seat_population(sources: &[(String, String)]) -> (SeatPopulation, Vec<String>
 /// exists today. It is the versioned claim and evidence schema's opening
 /// condition, and it is not built here.
 ///
-fn declares_a_runnable_test(items: &[syn::Item]) -> bool {
-    items.iter().any(|item| {
+/// Half of the "name a function" half of that is reachable from a source, and it
+/// is reached: the tests here carry the obligations their own documentation
+/// names, so a route resolves to a CONTROL rather than to a file. What that does
+/// not become is a roster. It says which claim a test in the source documents
+/// itself as controlling, not which tests a run executed, so every ceiling above
+/// stands exactly where it stood — a macro that deletes the marked test still
+/// leaves the file seated by whatever it hands back, and a marker on a test the
+/// expansion removed is a name nothing withdraws.
+///
+fn harness_tests(items: &[syn::Item]) -> Vec<Vec<String>> {
+    let mut executed = Vec::new();
+    for item in items {
         if let syn::Item::Fn(declared) = item {
-            !stands_under_a_condition(&declared.attrs) && runs_under_the_harness(&declared.attrs)
-        } else if let syn::Item::Mod(module) = item {
-            !stands_under_a_condition(&module.attrs)
-                && module
-                    .content
-                    .as_ref()
-                    .is_some_and(|(_, inner)| declares_a_runnable_test(inner))
-        } else {
-            false
+            if !stands_under_a_condition(&declared.attrs) && runs_under_the_harness(&declared.attrs)
+            {
+                executed.push(documented_controls(&declared.attrs));
+            }
+        } else if let syn::Item::Mod(module) = item
+            && !stands_under_a_condition(&module.attrs)
+            && let Some((_, inner)) = module.content.as_ref()
+        {
+            executed.extend(harness_tests(inner));
         }
-    })
+    }
+    executed
+}
+
+/// Every obligation one item's DOCUMENTATION names as a claim it controls.
+fn documented_controls(attributes: &[syn::Attribute]) -> Vec<String> {
+    attributes.iter().filter_map(documented_control).collect()
+}
+
+/// The obligation one documentation attribute names, or nothing where it names
+/// none.
+///
+/// The marker is read as an ATTRIBUTE and never as a line. `///` above an item
+/// arrives as `#[doc = "…"]` on that item — one attribute per line written — so
+/// `syn` has already decided which item the documentation belongs to and where
+/// each written line begins and ends. Nothing here splits a text into lines,
+/// searches a file, or looks at anything that is not attached to the function
+/// under judgement.
+///
+/// That is the whole difference between this and a scan. A `green:` written in
+/// an ordinary `//` comment is not an attribute and is invisible here; one
+/// inside a string literal is a value rather than an attribute; one in the
+/// file's own `//!` documentation is an attribute on the FILE, which is not a
+/// test; and one above a skipped or conditionally compiled test is never asked
+/// for, because [`harness_tests`] asks only the functions that run.
+///
+/// The marker's own grammar is the obligation row's: the word the row opens
+/// with, then the id, then whatever prose the author wants. The id is the first
+/// token after the word, so the sentence the marker continues into — which is
+/// how the one marker in this repository is written, wrapping across three
+/// documentation lines — costs the reading nothing.
+fn documented_control(attribute: &syn::Attribute) -> Option<String> {
+    if !attribute.path().is_ident(DOCUMENTATION_ATTRIBUTE) {
+        return None;
+    }
+    let syn::Meta::NameValue(stated) = &attribute.meta else {
+        return None;
+    };
+    let syn::Expr::Lit(literal) = &stated.value else {
+        return None;
+    };
+    let syn::Lit::Str(written) = &literal.lit else {
+        return None;
+    };
+    let documented = written.value();
+    let named = documented.trim().strip_prefix(CONTROL_MARKER)?;
+    named.split_whitespace().next().map(str::to_string)
 }
 
 /// Whether one item's attributes make its compilation conditional at all.
@@ -1054,13 +1447,14 @@ fn is_a_build_condition(attribute: &syn::Attribute) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        JudgeTree, OWED_PREFIX, ReversalPopulation, SeatPopulation, declared_laws,
-        double_claimed_offences, double_routed_offences, drifted_claim_offences,
-        phantom_green_routes, red_twin_ledger, seat_population, testpak_populations, tooling_rows,
+        GreenRoute, JudgeTree, OWED_PREFIX, ReversalPopulation, Seat, SeatPopulation,
+        declared_laws, double_claimed_offences, double_routed_offences, drifted_claim_offences,
+        phantom_green_routes, record_field_offences, red_twin_ledger, seat_population,
+        testpak_populations, tooling_rows, uncontrolled_green_routes, unowned_row_offences,
         unreadable_green_offences,
     };
     use crate::repository::readme::{
-        classify_green_rows, home_readmes, red_twin_rows, tooling_red_rows,
+        classify_green_rows, home_readmes, obligation_records, red_twin_rows, tooling_red_rows,
     };
     use crate::repository::types::GreenRow;
     use crate::repository::walk::{relative_slash_path, repo_root};
@@ -1098,13 +1492,40 @@ mod tests {
         claims_in(readme_text, "FIXTURE.md")
     }
 
-    /// Every claim the real repository's home READMEs make, attributed exactly
-    /// as the join attributes them.
+    /// Every green row one README's obligation records declare, each carrying
+    /// the home and the obligation that wrote it.
+    ///
+    /// The record-aware reading, and the one every real-tree control below
+    /// reads through, because it is the reading the join itself uses: a row is
+    /// never separated from the obligation that declared it.
+    fn record_green_rows(readme_text: &str, home: &str) -> Vec<(GreenRow, String, String)> {
+        let mut declared = Vec::new();
+        for record in obligation_records(readme_text) {
+            let id = record.id;
+            declared.extend(
+                record
+                    .green
+                    .into_iter()
+                    .map(|row| (row, String::from(home), id.clone())),
+            );
+        }
+        declared
+    }
+
+    /// Every claim the real repository's home READMEs make, read through the
+    /// obligation records that declared them and attributed exactly as the join
+    /// attributes them.
     fn real_claims(root: &Path) -> Vec<(String, String, String)> {
         let mut claimed = Vec::new();
         for readme in home_readmes(root).unwrap_or_default() {
             let text = fs::read_to_string(&readme).unwrap_or_default();
-            claimed.extend(claims_in(&text, &relative_slash_path(root, &readme)));
+            let home = relative_slash_path(root, &readme);
+            claimed.extend(record_green_rows(&text, &home).into_iter().filter_map(
+                |(row, home, _)| match row {
+                    GreenRow::CompileTimeSeat { module, law } => Some((module, law, home)),
+                    GreenRow::Disposition | GreenRow::Route(_) | GreenRow::Unreadable(_) => None,
+                },
+            ));
         }
         claimed
     }
@@ -1122,9 +1543,41 @@ mod tests {
         ReversalPopulation(paths.iter().map(|path| (*path).to_string()).collect())
     }
 
-    /// One synthetic GREEN population.
+    /// One synthetic GREEN population whose seats name no obligation: the
+    /// population the seat-existence leg is read against.
     fn green_population(paths: &[&str]) -> SeatPopulation {
-        SeatPopulation(paths.iter().map(|path| (*path).to_string()).collect())
+        SeatPopulation(
+            paths
+                .iter()
+                .map(|path| Seat {
+                    path: (*path).to_string(),
+                    controls: Vec::new(),
+                })
+                .collect(),
+        )
+    }
+
+    /// One synthetic GREEN population whose seats name the obligation their
+    /// tests control.
+    fn controlled_population(seats: &[(&str, &str)]) -> SeatPopulation {
+        SeatPopulation(
+            seats
+                .iter()
+                .map(|(path, control)| Seat {
+                    path: (*path).to_string(),
+                    controls: vec![(*control).to_string()],
+                })
+                .collect(),
+        )
+    }
+
+    /// One synthetic green route population, every row attributed to a fixture
+    /// README and to one fixture obligation.
+    fn routed(paths: &[&str]) -> Vec<GreenRoute> {
+        paths
+            .iter()
+            .map(|path| route(path, "FIXTURE.md", "fixture.an-obligation"))
+            .collect()
     }
 
     /// The real judge tree, or empty populations where it could not be read.
@@ -1155,11 +1608,8 @@ mod tests {
         let (seats, unparsable) = seat_population(sources);
         assert!(seats.0.is_empty(), "{:?}", seats.0);
         assert!(unparsable.is_empty(), "{unparsable:?}");
-        let routes: Vec<(String, String)> = sources
-            .iter()
-            .map(|(path, _)| (path.clone(), String::from("FIXTURE.md")))
-            .collect();
-        let offered = phantom_green_routes(&routes, &seats);
+        let paths: Vec<&str> = sources.iter().map(|(path, _)| path.as_str()).collect();
+        let offered = phantom_green_routes(&routed(&paths), &seats);
         assert_eq!(offered.len(), sources.len(), "{offered:?}");
         assert!(
             offered
@@ -1174,18 +1624,24 @@ mod tests {
         (module.to_string(), law.to_string(), readme.to_string())
     }
 
-    /// One synthetic green route, attributed to the home that declared it.
-    fn route(named: &str, readme: &str) -> (String, String) {
-        (named.to_string(), readme.to_string())
+    /// One synthetic green route, attributed to the home that declared it and
+    /// to the obligation whose record wrote it.
+    fn route(named: &str, readme: &str, id: &str) -> GreenRoute {
+        GreenRoute {
+            named: named.to_string(),
+            readme: readme.to_string(),
+            id: id.to_string(),
+        }
     }
 
-    /// The routes one README's green rows name, read the one way the join reads
-    /// them and attributed to the home that wrote them.
-    fn routes_in(readme_text: &str, home: &str) -> Vec<(String, String)> {
-        classify_green_rows(readme_text)
+    /// The routes one README's obligation records name, read the one way the
+    /// join reads them: through the record that declared the row, so the route
+    /// carries the obligation it is the positive control for.
+    fn routes_in(readme_text: &str, home: &str) -> Vec<GreenRoute> {
+        record_green_rows(readme_text, home)
             .into_iter()
-            .filter_map(|row| match row {
-                GreenRow::Route(named) => Some((named, String::from(home))),
+            .filter_map(|(row, home, id)| match row {
+                GreenRow::Route(named) => Some(route(&named, &home, &id)),
                 GreenRow::CompileTimeSeat { .. }
                 | GreenRow::Disposition
                 | GreenRow::Unreadable(_) => None,
@@ -1195,7 +1651,7 @@ mod tests {
 
     /// Every green route the real repository's home READMEs name, attributed
     /// exactly as the join attributes them.
-    fn real_routes(root: &Path) -> Vec<(String, String)> {
+    fn real_routes(root: &Path) -> Vec<GreenRoute> {
         let mut routes = Vec::new();
         for readme in home_readmes(root).unwrap_or_default() {
             let text = fs::read_to_string(&readme).unwrap_or_default();
@@ -1412,8 +1868,10 @@ mod tests {
     #[test]
     fn a_phantom_green_route_is_a_violation() {
         let seats = green_population(&["testpak/tests/stamp_row_ceiling.rs"]);
-        let vanished =
-            phantom_green_routes(&named(&["testpak/tests/nobody-ever-wrote-this.rs"]), &seats);
+        let vanished = phantom_green_routes(
+            &routed(&["testpak/tests/nobody-ever-wrote-this.rs"]),
+            &seats,
+        );
         assert_eq!(vanished.len(), 1, "{vanished:?}");
         assert!(
             vanished
@@ -1422,7 +1880,7 @@ mod tests {
         );
 
         let misspelled =
-            phantom_green_routes(&named(&["testpak/tests/stamp_row_ceilings.rs"]), &seats);
+            phantom_green_routes(&routed(&["testpak/tests/stamp_row_ceilings.rs"]), &seats);
         assert_eq!(misspelled.len(), 1, "{misspelled:?}");
     }
 
@@ -1456,7 +1914,7 @@ mod tests {
 
             // The same real file, offered as a positive control, is refused —
             // and only the narrowed population can refuse it.
-            let offered = phantom_green_routes(&named(&[fixture]), &seats);
+            let offered = phantom_green_routes(&routed(&[fixture]), &seats);
             assert_eq!(
                 offered.len(),
                 1,
@@ -1474,15 +1932,15 @@ mod tests {
     fn a_green_route_spelled_loosely_is_a_violation() {
         let seats = green_population(&["testpak/tests/stamp_row_ceiling.rs"]);
 
-        let stale = phantom_green_routes(&named(&["testpak/old/stamp_row_ceiling.rs"]), &seats);
+        let stale = phantom_green_routes(&routed(&["testpak/old/stamp_row_ceiling.rs"]), &seats);
         assert_eq!(stale.len(), 1, "a stale path stood as a route: {stale:?}");
 
-        let bare = phantom_green_routes(&named(&["stamp_row_ceiling.rs"]), &seats);
+        let bare = phantom_green_routes(&routed(&["stamp_row_ceiling.rs"]), &seats);
         assert_eq!(bare.len(), 1, "a bare name stood as a route: {bare:?}");
 
         // The mirror of the stale case: a real seat whose path CONTAINS the
         // declared spelling. `row_ceiling.rs` names no seat anyone declared.
-        let contained = phantom_green_routes(&named(&["row_ceiling.rs"]), &seats);
+        let contained = phantom_green_routes(&routed(&["row_ceiling.rs"]), &seats);
         assert_eq!(
             contained.len(),
             1,
@@ -1500,7 +1958,7 @@ mod tests {
             "testpak/tests/planted_defect.rs",
         ]);
         let found = phantom_green_routes(
-            &named(&[
+            &routed(&[
                 "testpak/tests/stamp_row_ceiling.rs",
                 "testpak/tests/planted_defect.rs",
             ]),
@@ -1553,7 +2011,7 @@ mod tests {
         assert!(unparsable.is_empty(), "{unparsable:?}");
 
         let offered = phantom_green_routes(
-            &named(&[
+            &routed(&[
                 "testpak/tests/a_helper_only_file.rs",
                 "testpak/tests/an_empty_file.rs",
                 "testpak/tests/a_documented_file.rs",
@@ -1589,7 +2047,7 @@ mod tests {
         assert_eq!(seats.0.len(), 2, "{:?}", seats.0);
         assert!(unparsable.is_empty(), "{unparsable:?}");
         let found = phantom_green_routes(
-            &named(&[
+            &routed(&[
                 "testpak/tests/a_plain_seat.rs",
                 "testpak/tests/a_seat_inside_a_module.rs",
             ]),
@@ -1643,7 +2101,7 @@ mod tests {
         assert!(unparsable.is_empty(), "{unparsable:?}");
 
         let offered = phantom_green_routes(
-            &named(&[
+            &routed(&[
                 "testpak/tests/an_ignored_seat.rs",
                 "testpak/tests/an_ignored_seat_with_a_reason.rs",
                 "testpak/tests/an_ignore_written_first.rs",
@@ -1695,7 +2153,7 @@ mod tests {
         assert_eq!(seats.0.len(), 2, "{:?}", seats.0);
         assert!(unparsable.is_empty(), "{unparsable:?}");
         let found = phantom_green_routes(
-            &named(&[
+            &routed(&[
                 "testpak/tests/a_mixed_seat.rs",
                 "testpak/tests/a_mixed_seat_across_modules.rs",
             ]),
@@ -1956,7 +2414,7 @@ mod tests {
         assert_eq!(seats.0.len(), 4, "{:?}", seats.0);
         assert!(unparsable.is_empty(), "{unparsable:?}");
         let found = phantom_green_routes(
-            &named(&[
+            &routed(&[
                 "testpak/tests/a_mixed_seat.rs",
                 "testpak/tests/a_mixed_seat_across_modules.rs",
                 "testpak/tests/a_live_test_beside_an_applied_skip.rs",
@@ -2009,7 +2467,7 @@ mod tests {
         assert!(unparsable.is_empty(), "{unparsable:?}");
 
         let offered = phantom_green_routes(
-            &named(&[
+            &routed(&[
                 "testpak/tests/a_foreign_test_attribute.rs",
                 "testpak/tests/a_prelude_shaped_foreign_root.rs",
                 "testpak/tests/an_unpublished_prelude_edition.rs",
@@ -2153,7 +2611,7 @@ mod tests {
         assert!(unparsable.is_empty(), "{unparsable:?}");
         assert_eq!(seats.0.len(), 3, "{:?}", seats.0);
         let found = phantom_green_routes(
-            &named(&[
+            &routed(&[
                 "testpak/tests/a_foreign_ignore.rs",
                 "testpak/tests/a_prelude_spelled_ignore.rs",
                 "testpak/tests/a_rooted_ignore.rs",
@@ -2267,7 +2725,7 @@ mod tests {
             seats
                 .0
                 .first()
-                .is_some_and(|seat| seat.ends_with("a_macro_standing_above_a_test.rs")),
+                .is_some_and(|seat| seat.path.ends_with("a_macro_standing_above_a_test.rs")),
             "{:?}",
             seats.0
         );
@@ -2371,7 +2829,9 @@ mod tests {
         let mut unreadable = Vec::new();
         for row in classify_green_rows(text) {
             match row {
-                GreenRow::Route(named) => routes.push((named, String::from("FIXTURE.md"))),
+                GreenRow::Route(named) => {
+                    routes.push(route(&named, "FIXTURE.md", "fixture.an-obligation"));
+                }
                 GreenRow::Unreadable(value) => unreadable.push((value, String::from("FIXTURE.md"))),
                 GreenRow::CompileTimeSeat { .. } | GreenRow::Disposition => {}
             }
@@ -2405,14 +2865,16 @@ mod tests {
     }
 
     /// The real repository holds: every green row a home README declares is
-    /// read as one of the three lawful spellings, every route resolves to an
-    /// EXECUTABLE seat that exists, and nothing is dropped on the way.
+    /// owned by an obligation record, read as one of the three lawful
+    /// spellings, and every route resolves to an EXECUTABLE seat that exists —
+    /// with nothing dropped on the way.
     ///
     /// The last of those is the load-bearing one and it is why the count is
-    /// taken twice. The rows are counted first by the READER, then by the raw
-    /// line prefix the rows are written with, and the two numbers must agree:
-    /// that is the statement that no green row left the population unclassified,
-    /// stated over the real tree rather than over a fixture.
+    /// taken twice. The rows are counted first through the RECORDS that declared
+    /// them, then by the raw line prefix the rows are written with, and the two
+    /// numbers must agree: that is the statement that no green row left the
+    /// population either unclassified or unowned, stated over the real tree
+    /// rather than over a fixture.
     #[test]
     fn the_real_green_rows_are_all_read() {
         let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
@@ -2422,6 +2884,7 @@ mod tests {
         let mut seated = 0usize;
         let mut disposed = 0usize;
         let mut written = 0usize;
+        let mut declared = Vec::new();
         let readmes = home_readmes(&root).unwrap_or_default();
         assert!(!readmes.is_empty(), "no home READMEs found");
         for readme in &readmes {
@@ -2432,13 +2895,14 @@ mod tests {
                     .filter(|line| line.trim().starts_with("green:"))
                     .count(),
             );
-            for row in classify_green_rows(&text) {
-                match row {
-                    GreenRow::Route(named) => routes.push((named, name.clone())),
-                    GreenRow::Unreadable(value) => unreadable.push((value, name.clone())),
-                    GreenRow::CompileTimeSeat { .. } => seated = seated.saturating_add(1),
-                    GreenRow::Disposition => disposed = disposed.saturating_add(1),
-                }
+            declared.extend(record_green_rows(&text, &name));
+        }
+        for (row, name, id) in declared {
+            match row {
+                GreenRow::Route(named) => routes.push(route(&named, &name, &id)),
+                GreenRow::Unreadable(value) => unreadable.push((value, name)),
+                GreenRow::CompileTimeSeat { .. } => seated = seated.saturating_add(1),
+                GreenRow::Disposition => disposed = disposed.saturating_add(1),
             }
         }
         let offences = unreadable_green_offences(&unreadable);
@@ -2492,15 +2956,15 @@ mod tests {
         // Every seat is one directory deep, and the red side carries all of
         // them: the green population is the red one narrowed, never a second
         // reading of the tree that could drift from it.
-        for seat in &seats.0 {
+        for Seat { path, .. } in &seats.0 {
             assert!(
-                reversals.0.contains(seat),
-                "{seat} is an executable seat the reversal population does not carry"
+                reversals.0.contains(path),
+                "{path} is an executable seat the reversal population does not carry"
             );
             assert_eq!(
-                seat.matches('/').count(),
+                path.matches('/').count(),
                 2,
-                "{seat} is not directly under testpak/tests/"
+                "{path} is not directly under testpak/tests/"
             );
         }
         let fixtures: Vec<&str> = reversals
@@ -2513,7 +2977,7 @@ mod tests {
             !fixtures.is_empty(),
             "testpak carries no fixture beneath testpak/tests/; the narrowing guards nothing"
         );
-        let offered = phantom_green_routes(&named(&fixtures), &seats);
+        let offered = phantom_green_routes(&routed(&fixtures), &seats);
         assert_eq!(
             offered.len(),
             fixtures.len(),
@@ -2615,10 +3079,12 @@ mod tests {
             route(
                 "testpak/tests/stamp_row_ceiling.rs",
                 "src/05_bounds/README.md",
+                "bounds.a-stamped-roster-declares-its-own-ceiling",
             ),
             route(
                 "testpak/tests/stamp_row_ceiling.rs",
                 "src/05_bounds/README.md",
+                "bounds.a-second-claim-spending-the-same-file",
             ),
         ];
         let found = double_routed_offences(&doubled);
@@ -2638,8 +3104,13 @@ mod tests {
             route(
                 "testpak/tests/stamp_row_ceiling.rs",
                 "src/23_evidence/README.md",
+                "evidence.a-stamped-roster-declares-its-own-ceiling",
             ),
-            route("testpak/tests/stamp_row_ceiling.rs", "README.md"),
+            route(
+                "testpak/tests/stamp_row_ceiling.rs",
+                "README.md",
+                "root.a-stamped-roster-declares-its-own-ceiling",
+            ),
         ];
         assert_eq!(double_routed_offences(&across_homes).len(), 1);
     }
@@ -2656,9 +3127,18 @@ mod tests {
             route(
                 "testpak/tests/stamp_row_ceiling.rs",
                 "src/05_bounds/README.md",
+                "bounds.a-stamped-roster-declares-its-own-ceiling",
             ),
-            route("testpak/tests/planted_defect.rs", "src/07_bytes/README.md"),
-            route("testpak/tests/stamp_row_ceilings.rs", "README.md"),
+            route(
+                "testpak/tests/planted_defect.rs",
+                "src/07_bytes/README.md",
+                "bytes.a-planted-defect-is-caught",
+            ),
+            route(
+                "testpak/tests/stamp_row_ceilings.rs",
+                "README.md",
+                "root.a-neighbouring-seat",
+            ),
         ];
         assert!(double_routed_offences(&distinct).is_empty());
     }
@@ -2826,6 +3306,456 @@ mod tests {
         assert_eq!(claimed.len(), 1, "{claimed:?}");
         let found = drifted_claim_offences(&claimed, &declared_laws(ONE_LAW));
         assert!(found.is_empty(), "{found:?}");
+    }
+
+    /// One fixture home README carrying two whole obligation records.
+    const TWO_WHOLE_RECORDS: &str = "```yaml\n\
+                                     obligations:\n\
+                                     \x20 - id: bounds.budget-is-affine\n\
+                                     \x20   challenge_kind: compile-refusal\n\
+                                     \x20   green: laws.rs bounds::budget_is_affine\n\
+                                     \x20   red: owed-to-testpak\n\
+                                     \x20 - id: bounds.a-stamped-roster\n\
+                                     \x20   challenge_kind: compile-refusal\n\
+                                     \x20   green: testpak/tests/stamp_row_ceiling.rs\n\
+                                     \x20   red: testpak/tests/compile-fail/a-roster.rs\n\
+                                     ```\n";
+
+    /// Planted reversal: an obligation whose `green:` row was deleted, and one
+    /// whose `red:` row was deleted.
+    ///
+    /// THE defect this leg exists for, and it was silent in both directions. The
+    /// rows were gathered by two independent scans of the whole file, so nothing
+    /// bound a row to the obligation that wrote it and a deleted row was simply
+    /// a row that was not there: the first record below stated no positive
+    /// control, so none was resolved and the obligation qualified on its red row
+    /// alone; the second took itself off the core denominator this repository
+    /// publishes on every run and the number came back one smaller with nothing
+    /// said. A `laws.rs` claim cannot vanish this way — the law it named is left
+    /// claimed by nobody and the drift leg reports it from the other side — and a
+    /// ROUTE has no other side at all. Nothing in testpak knows an obligation was
+    /// supposed to point at it.
+    #[test]
+    fn a_record_that_lost_a_row_is_a_violation() {
+        let text = "```yaml\n\
+                    obligations:\n\
+                    \x20 - id: bounds.no-positive-control\n\
+                    \x20   challenge_kind: compile-law\n\
+                    \x20   red: owed-to-testpak\n\
+                    \x20 - id: bounds.no-reversal\n\
+                    \x20   challenge_kind: compile-law\n\
+                    \x20   green: laws.rs bounds::budget_is_affine\n\
+                    ```\n";
+        let found = record_field_offences(&obligation_records(text), "src/05_bounds/README.md");
+        assert_eq!(found.len(), 2, "{found:?}");
+        assert!(
+            found
+                .iter()
+                .all(|offence| offence.starts_with("src/05_bounds/README.md: obligation `")),
+            "{found:?}"
+        );
+        assert!(
+            found.first().is_some_and(|offence| {
+                offence.contains("`bounds.no-positive-control`") && offence.contains("0 `green:`")
+            }),
+            "{found:?}"
+        );
+        assert!(
+            found.last().is_some_and(|offence| {
+                offence.contains("`bounds.no-reversal`") && offence.contains("0 `red:`")
+            }),
+            "{found:?}"
+        );
+    }
+
+    /// Planted reversal: an obligation stating two `green:` rows, and one
+    /// stating two `red:` rows.
+    ///
+    /// The other half of the same rule. Two positive controls for one claim say
+    /// nowhere which of them the claim rests on, and a reader that took the
+    /// first would be spending evidence the record never chose; two reversals
+    /// put one obligation on a published ledger twice, which moves a number the
+    /// campaign reports without an obligation behind it.
+    #[test]
+    fn a_record_stating_a_row_twice_is_a_violation() {
+        let text = "```yaml\n\
+                    obligations:\n\
+                    \x20 - id: bounds.two-positive-controls\n\
+                    \x20   green: laws.rs bounds::budget_is_affine\n\
+                    \x20   green: testpak/tests/stamp_row_ceiling.rs\n\
+                    \x20   red: owed-to-testpak\n\
+                    \x20 - id: bounds.two-reversals\n\
+                    \x20   green: laws.rs bounds::charge_shrinks_or_refuses\n\
+                    \x20   red: owed-to-testpak\n\
+                    \x20   red: testpak/tests/compile-fail/a-roster.rs\n\
+                    ```\n";
+        let found = record_field_offences(&obligation_records(text), "src/05_bounds/README.md");
+        assert_eq!(found.len(), 2, "{found:?}");
+        assert!(
+            found.first().is_some_and(|offence| {
+                offence.contains("`bounds.two-positive-controls`") && offence.contains("2 `green:`")
+            }),
+            "{found:?}"
+        );
+        assert!(
+            found.last().is_some_and(|offence| {
+                offence.contains("`bounds.two-reversals`") && offence.contains("2 `red:`")
+            }),
+            "{found:?}"
+        );
+    }
+
+    /// The positive control: a record stating exactly one of each row is no
+    /// offence, whichever green spelling it uses.
+    ///
+    /// A leg that flagged everything would satisfy both reversals above and
+    /// would refuse all 195 records in this tree.
+    #[test]
+    fn a_record_stating_one_of_each_row_is_lawful() {
+        let records = obligation_records(TWO_WHOLE_RECORDS);
+        assert_eq!(records.len(), 2, "{}", records.len());
+        let found = record_field_offences(&records, "src/05_bounds/README.md");
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    /// Planted reversal: rows written where no obligation record owns them.
+    ///
+    /// The repair's own failure mode, refused rather than trusted. This join now
+    /// reads rows THROUGH the record that declared them, so a row standing
+    /// outside every record is a row nothing joins — which would be the original
+    /// silence arriving through the repair itself. The counts are taken by the
+    /// same readers over both scopes, and the difference is named against the
+    /// README that wrote it.
+    #[test]
+    fn a_row_no_record_owns_is_a_violation() {
+        let text = "green: laws.rs bounds::a_row_above_every_record\n\
+                    red: owed-to-testpak\n\
+                    \x20 - id: bounds.the-one-real-record\n\
+                    \x20   green: laws.rs bounds::budget_is_affine\n\
+                    \x20   red: owed-to-testpak\n";
+        let records = obligation_records(text);
+        let found = unowned_row_offences(text, &records, "src/05_bounds/README.md");
+        assert_eq!(found.len(), 2, "{found:?}");
+        assert!(
+            found
+                .first()
+                .is_some_and(|offence| offence.contains("1 `green:` row(s) stand outside")),
+            "{found:?}"
+        );
+        assert!(
+            found
+                .last()
+                .is_some_and(|offence| offence.contains("1 `red:` row(s) stand outside")),
+            "{found:?}"
+        );
+    }
+
+    /// The positive control: rows written inside the records that declared them
+    /// are owned, and the leg says nothing.
+    #[test]
+    fn rows_written_inside_their_records_are_owned() {
+        let records = obligation_records(TWO_WHOLE_RECORDS);
+        let found = unowned_row_offences(TWO_WHOLE_RECORDS, &records, "src/05_bounds/README.md");
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    /// The real repository holds: every obligation is a whole record, and every
+    /// row is owned by one.
+    ///
+    /// The denominator is stated as a RELATION rather than as a number. One
+    /// obligation record declares one `red:` row, so the core count this
+    /// repository publishes on every run is exactly the number of records its
+    /// home READMEs carry — and a record that lost its row, or a row that lost
+    /// its record, moves the two sides apart instead of quietly moving the
+    /// published figure.
+    #[test]
+    fn the_real_records_are_whole_and_own_every_row() {
+        let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
+        let readmes = home_readmes(&root).unwrap_or_default();
+        assert!(!readmes.is_empty(), "no home READMEs found");
+        let mut declared = 0usize;
+        let mut ledger_rows = 0usize;
+        let mut offences = Vec::new();
+        for readme in &readmes {
+            let text = fs::read_to_string(readme).unwrap_or_default();
+            let home = relative_slash_path(&root, readme);
+            let records = obligation_records(&text);
+            declared = declared.saturating_add(records.len());
+            ledger_rows = ledger_rows.saturating_add(red_twin_rows(&text).len());
+            offences.extend(record_field_offences(&records, &home));
+            offences.extend(unowned_row_offences(&text, &records, &home));
+        }
+        assert!(offences.is_empty(), "{offences:?}");
+        assert!(
+            declared > 0,
+            "no obligation record found in any home README"
+        );
+        assert_eq!(
+            declared, ledger_rows,
+            "{declared} obligation records declare {ledger_rows} red rows; the published core \
+             denominator is one row per record"
+        );
+    }
+
+    /// Planted reversal: a routed seat that exists, runs tests, and holds no
+    /// test naming the obligation that routed to it.
+    ///
+    /// THE defect the seat check could not see. Seating a file answers an
+    /// EXISTENTIAL — something in there runs — so any test left in the file
+    /// answers it, including one written for another claim entirely and one left
+    /// behind after the declared control was renamed or deleted. Both rows below
+    /// resolve against a real seat and every path-shaped reading says yes; only
+    /// the naming refuses them.
+    #[test]
+    fn a_routed_seat_naming_no_control_is_a_violation() {
+        let seats = controlled_population(&[(
+            "testpak/tests/stamp_row_ceiling.rs",
+            "root.a-stamped-roster-declares-its-own-ceiling",
+        )]);
+
+        // The control was deleted and an unrelated test kept the file seated.
+        let unnamed = green_population(&["testpak/tests/stamp_row_ceiling.rs"]);
+        let deleted = uncontrolled_green_routes(
+            &[route(
+                "testpak/tests/stamp_row_ceiling.rs",
+                "README.md",
+                "root.a-stamped-roster-declares-its-own-ceiling",
+            )],
+            &unnamed,
+        );
+        assert_eq!(deleted.len(), 1, "{deleted:?}");
+        assert!(
+            deleted.first().is_some_and(|offence| {
+                offence.contains("root.a-stamped-roster-declares-its-own-ceiling")
+                    && offence.contains("no test in that file names it")
+            }),
+            "{deleted:?}"
+        );
+
+        // The seat's tests name a DIFFERENT obligation: half of a rename.
+        let renamed = uncontrolled_green_routes(
+            &[route(
+                "testpak/tests/stamp_row_ceiling.rs",
+                "README.md",
+                "root.a-stamped-roster-declares-its-ceiling",
+            )],
+            &seats,
+        );
+        assert_eq!(renamed.len(), 1, "{renamed:?}");
+
+        // The seat exists, so the phantom leg is silent: only this leg refuses
+        // either of them, and a resolver fix never reaches it.
+        assert!(
+            phantom_green_routes(&routed(&["testpak/tests/stamp_row_ceiling.rs"]), &seats)
+                .is_empty()
+        );
+    }
+
+    /// The positive control: a route whose seat holds a test naming that exact
+    /// obligation is lawful, and a route naming a seat nobody wrote is left to
+    /// the phantom leg rather than answered twice.
+    #[test]
+    fn a_routed_seat_that_names_its_obligation_is_lawful() {
+        let seats = controlled_population(&[(
+            "testpak/tests/stamp_row_ceiling.rs",
+            "root.a-stamped-roster-declares-its-own-ceiling",
+        )]);
+        let lawful = route(
+            "testpak/tests/stamp_row_ceiling.rs",
+            "README.md",
+            "root.a-stamped-roster-declares-its-own-ceiling",
+        );
+        assert!(uncontrolled_green_routes(&[lawful], &seats).is_empty());
+
+        let missing = route(
+            "testpak/tests/nobody-ever-wrote-this.rs",
+            "README.md",
+            "root.a-stamped-roster-declares-its-own-ceiling",
+        );
+        assert!(
+            uncontrolled_green_routes(&[missing], &seats).is_empty(),
+            "a route naming a file nobody wrote earned a second offence"
+        );
+    }
+
+    /// The marker is read off the test's DOCUMENTATION and never off the file's
+    /// lines, and this is the test that says so.
+    ///
+    /// Each source below spells the marker in its bytes and none of them
+    /// documents a running test with it: an ordinary comment is no attribute, a
+    /// string literal is a value rather than an attribute, the file's own `//!`
+    /// documentation is an attribute on the FILE, and a doc comment on a helper
+    /// is an attribute on a function the harness never runs. A line scan seats
+    /// every one of them as controlled — the same class of reader this module
+    /// has already replaced for `#[test]` itself — and the parse names none of
+    /// them.
+    ///
+    /// All four are seats: each declares a test that runs. What they do not do
+    /// is control the obligation their bytes mention, which is the whole
+    /// distinction between reading a file and reading its items.
+    #[test]
+    fn a_marker_outside_a_running_tests_documentation_controls_nothing() {
+        let claimed = "root.a-claim-nobody-controls";
+        let sources = [
+            top_level(
+                "a_marker_in_an_ordinary_comment.rs",
+                "// green: root.a-claim-nobody-controls\n\
+                 #[test]\n\
+                 fn the_behaviour_holds() {}\n",
+            ),
+            top_level(
+                "a_marker_inside_a_string.rs",
+                "const SPELLED: &str = \"green: root.a-claim-nobody-controls\";\n\
+                 #[test]\n\
+                 fn the_behaviour_holds() {\n\
+                 \x20   assert!(!SPELLED.is_empty());\n\
+                 }\n",
+            ),
+            top_level(
+                "a_marker_in_the_files_own_documentation.rs",
+                "//! green: root.a-claim-nobody-controls\n\
+                 \n\
+                 #[test]\n\
+                 fn the_behaviour_holds() {}\n",
+            ),
+            top_level(
+                "a_marker_on_a_function_that_is_no_test.rs",
+                "/// green: root.a-claim-nobody-controls\n\
+                 fn a_helper() {}\n\
+                 \n\
+                 #[test]\n\
+                 fn the_behaviour_holds() {}\n",
+            ),
+        ];
+        let (seats, unparsable) = seat_population(&sources);
+        assert!(unparsable.is_empty(), "{unparsable:?}");
+        assert_eq!(seats.0.len(), sources.len(), "{:?}", seats.0);
+        for (path, _) in &sources {
+            assert!(seats.carries(path), "{path} stopped being a seat");
+            assert!(
+                !seats.controls(path, claimed),
+                "{path} controlled an obligation its documentation never names"
+            );
+        }
+    }
+
+    /// The positive control for that reading: a marker written the way this
+    /// repository writes one — a documentation line on the test itself, opening
+    /// with the obligation row's own word and running on into prose — names the
+    /// obligation, and the route that declared it resolves.
+    ///
+    /// A reader that named nothing would satisfy the reversal above and would
+    /// unresolve the only green route in the tree.
+    #[test]
+    fn a_marker_documenting_a_running_test_names_its_obligation() {
+        let (seats, unparsable) = seat_population(&[top_level(
+            "a_documented_control.rs",
+            "/// green: root.a-stamped-roster-declares-its-own-ceiling — the stamp admits a\n\
+             /// declaration that spends its declared supply of positions.\n\
+             #[test]\n\
+             fn a_stamped_roster_declares_its_own_ceiling() {}\n",
+        )]);
+        assert!(unparsable.is_empty(), "{unparsable:?}");
+        assert!(
+            seats.controls(
+                "testpak/tests/a_documented_control.rs",
+                "root.a-stamped-roster-declares-its-own-ceiling"
+            ),
+            "{:?}",
+            seats.0
+        );
+        let found = uncontrolled_green_routes(
+            &[route(
+                "testpak/tests/a_documented_control.rs",
+                "README.md",
+                "root.a-stamped-roster-declares-its-own-ceiling",
+            )],
+            &seats,
+        );
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    /// Planted reversal: the declared control is marked, and it is a test the
+    /// harness never RUNS — skipped in one file, compiled out in the other —
+    /// while an unrelated test keeps each file seated.
+    ///
+    /// The exact shape of the defect one attribute deeper. Both files are
+    /// genuinely seats, both spell the marker on the function it belongs to, and
+    /// in neither does the marked control execute. A marker gathered from every
+    /// documented function would call both controlled; gathered only from the
+    /// tests this reader already knows the harness runs, neither is.
+    #[test]
+    fn a_marker_on_a_test_that_never_runs_controls_nothing() {
+        let claimed = "root.a-stamped-roster-declares-its-own-ceiling";
+        let sources = [
+            top_level(
+                "a_skipped_control.rs",
+                "/// green: root.a-stamped-roster-declares-its-own-ceiling — owed until the\n\
+                 /// roster lands.\n\
+                 #[test]\n\
+                 #[ignore = \"owed until the roster lands\"]\n\
+                 fn a_stamped_roster_declares_its_own_ceiling() {}\n\
+                 \n\
+                 #[test]\n\
+                 fn something_else_entirely() {}\n",
+            ),
+            top_level(
+                "a_conditional_control.rs",
+                "/// green: root.a-stamped-roster-declares-its-own-ceiling — under a build\n\
+                 /// nobody named.\n\
+                 #[cfg(feature = \"a-feature-nobody-enables\")]\n\
+                 #[test]\n\
+                 fn a_stamped_roster_declares_its_own_ceiling() {}\n\
+                 \n\
+                 #[test]\n\
+                 fn something_else_entirely() {}\n",
+            ),
+        ];
+        let (seats, unparsable) = seat_population(&sources);
+        assert!(unparsable.is_empty(), "{unparsable:?}");
+        assert_eq!(seats.0.len(), sources.len(), "{:?}", seats.0);
+        for (path, _) in &sources {
+            assert!(seats.carries(path), "{path} stopped being a seat");
+            assert!(
+                !seats.controls(path, claimed),
+                "{path} controlled an obligation through a test nothing executes"
+            );
+        }
+    }
+
+    /// The real repository holds: every green route resolves to the CONTROL it
+    /// names, and the one route this tree writes is the one this leg was built
+    /// for.
+    ///
+    /// The route, the obligation, and the marker are all named here rather than
+    /// counted, because there is exactly one of each and the point of the leg is
+    /// that the three are one identity. A rename at either end fails this test
+    /// by name.
+    #[test]
+    fn the_real_route_resolves_to_the_control_it_names() {
+        let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
+        let seats = real_tree(&root).seats;
+        let routes = real_routes(&root);
+        assert!(
+            !routes.is_empty(),
+            "no green route found; the leg would be guarding nothing"
+        );
+        let found = uncontrolled_green_routes(&routes, &seats);
+        assert!(found.is_empty(), "{found:?}");
+        assert!(
+            routes.iter().any(|route| {
+                route.named == "testpak/tests/stamp_row_ceiling.rs"
+                    && route.id == "root.a-stamped-roster-declares-its-own-ceiling"
+            }),
+            "the tree's one green route is not the one this control names: {routes:?}"
+        );
+        assert!(
+            seats.controls(
+                "testpak/tests/stamp_row_ceiling.rs",
+                "root.a-stamped-roster-declares-its-own-ceiling"
+            ),
+            "the routed seat no longer documents the obligation it controls"
+        );
     }
 
     /// The real repository holds: the seats its READMEs write and the laws

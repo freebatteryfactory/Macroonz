@@ -25,6 +25,33 @@ pub(crate) enum ModuleLayout {
     Directory,
 }
 
+/// One obligation RECORD, and the rows its own block declared.
+///
+/// The unit an obligation is written in, carried as the unit it is written in.
+/// A record opens at `- id:` and states its fields beneath itself, and the rows
+/// here are exactly the ones that block carried — not every row the file
+/// happens to contain.
+///
+/// It exists because the rows used to be gathered by two independent scans of
+/// the WHOLE file, with nothing binding a row to the record it belongs to. A
+/// record whose `green:` line was deleted therefore stated no route, resolved
+/// against nothing, and qualified on its `red:` row alone; one whose `red:` line
+/// was deleted shrank a denominator this repository publishes with no error
+/// anywhere. Neither is reachable through a value that cannot be built without
+/// the rows it owns: a record carries its own rows or it carries none, and
+/// carrying none is a fact the join can see.
+///
+/// The rows keep their own readers and their own types. This is a grouping of
+/// what those readers produced, never a second reading of the same lines.
+pub(crate) struct ObligationRecord {
+    /// The identity the record opened with, as `- id:` stated it.
+    pub(crate) id: String,
+    /// Every `green:` row this record's own block declared, classified.
+    pub(crate) green: Vec<GreenRow>,
+    /// Every `red:` row this record's own block declared, whole.
+    pub(crate) red: Vec<String>,
+}
+
 /// The spelling one `green:` obligation row states its positive control in.
 ///
 /// A green row is written one of three ways, and this is all three plus the
