@@ -1,0 +1,119 @@
+error[E0277]: the trait bound `UntrustedImageBytes: Copy` is not satisfied
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:45:35
+   |
+45 |     duplicated_at_the_call_site::<threadpak::image::UntrustedImageBytes>();
+   |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `UntrustedImageBytes`
+   |
+note: required by a bound in `duplicated_at_the_call_site`
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:40:38
+   |
+40 | fn duplicated_at_the_call_site<Rung: Copy>() {}
+   |                                      ^^^^ required by this bound in `duplicated_at_the_call_site`
+
+error[E0277]: the trait bound `UntrustedImageBytes: Clone` is not satisfied
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:46:29
+   |
+46 |     duplicated_on_request::<threadpak::image::UntrustedImageBytes>();
+   |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `UntrustedImageBytes`
+   |
+note: required by a bound in `duplicated_on_request`
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:42:32
+   |
+42 | fn duplicated_on_request<Rung: Clone>() {}
+   |                                ^^^^^ required by this bound in `duplicated_on_request`
+
+error[E0277]: the trait bound `BoundedDecodedImage: Copy` is not satisfied
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:48:35
+   |
+48 |     duplicated_at_the_call_site::<threadpak::image::BoundedDecodedImage>();
+   |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `BoundedDecodedImage`
+   |
+note: required by a bound in `duplicated_at_the_call_site`
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:40:38
+   |
+40 | fn duplicated_at_the_call_site<Rung: Copy>() {}
+   |                                      ^^^^ required by this bound in `duplicated_at_the_call_site`
+
+error[E0277]: the trait bound `BoundedDecodedImage: Clone` is not satisfied
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:49:29
+   |
+49 |     duplicated_on_request::<threadpak::image::BoundedDecodedImage>();
+   |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `BoundedDecodedImage`
+   |
+note: required by a bound in `duplicated_on_request`
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:42:32
+   |
+42 | fn duplicated_on_request<Rung: Clone>() {}
+   |                                ^^^^^ required by this bound in `duplicated_on_request`
+
+error[E0277]: the trait bound `SemanticImage: Copy` is not satisfied
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:51:35
+   |
+51 |     duplicated_at_the_call_site::<threadpak::image::SemanticImage>();
+   |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `SemanticImage`
+   |
+note: required by a bound in `duplicated_at_the_call_site`
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:40:38
+   |
+40 | fn duplicated_at_the_call_site<Rung: Copy>() {}
+   |                                      ^^^^ required by this bound in `duplicated_at_the_call_site`
+
+error[E0277]: the trait bound `SemanticImage: Clone` is not satisfied
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:52:29
+   |
+52 |     duplicated_on_request::<threadpak::image::SemanticImage>();
+   |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `SemanticImage`
+   |
+note: required by a bound in `duplicated_on_request`
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:42:32
+   |
+42 | fn duplicated_on_request<Rung: Clone>() {}
+   |                                ^^^^^ required by this bound in `duplicated_on_request`
+
+error[E0277]: the trait bound `AgreementCheckedImage: Copy` is not satisfied
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:54:35
+   |
+54 |     duplicated_at_the_call_site::<threadpak::image::AgreementCheckedImage>();
+   |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `AgreementCheckedImage`
+   |
+note: required by a bound in `duplicated_at_the_call_site`
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:40:38
+   |
+40 | fn duplicated_at_the_call_site<Rung: Copy>() {}
+   |                                      ^^^^ required by this bound in `duplicated_at_the_call_site`
+
+error[E0277]: the trait bound `AgreementCheckedImage: Clone` is not satisfied
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:55:29
+   |
+55 |     duplicated_on_request::<threadpak::image::AgreementCheckedImage>();
+   |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `AgreementCheckedImage`
+   |
+note: required by a bound in `duplicated_on_request`
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:42:32
+   |
+42 | fn duplicated_on_request<Rung: Clone>() {}
+   |                                ^^^^^ required by this bound in `duplicated_on_request`
+
+error[E0277]: the trait bound `ExecutableImage: Copy` is not satisfied
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:57:35
+   |
+57 |     duplicated_at_the_call_site::<threadpak::image::ExecutableImage>();
+   |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Copy` is not implemented for `ExecutableImage`
+   |
+note: required by a bound in `duplicated_at_the_call_site`
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:40:38
+   |
+40 | fn duplicated_at_the_call_site<Rung: Copy>() {}
+   |                                      ^^^^ required by this bound in `duplicated_at_the_call_site`
+
+error[E0277]: the trait bound `ExecutableImage: Clone` is not satisfied
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:58:29
+   |
+58 |     duplicated_on_request::<threadpak::image::ExecutableImage>();
+   |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `Clone` is not implemented for `ExecutableImage`
+   |
+note: required by a bound in `duplicated_on_request`
+  --> tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs:42:32
+   |
+42 | fn duplicated_on_request<Rung: Clone>() {}
+   |                                ^^^^^ required by this bound in `duplicated_on_request`
