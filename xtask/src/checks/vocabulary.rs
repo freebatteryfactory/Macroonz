@@ -13,15 +13,57 @@ use crate::repository::walk::{
     JUDGE_DIRECTORY, TOOLING_DIRECTORY, relative_slash_path, visit_files,
 };
 
-/// The construction-lifecycle vocabulary the working law bans in prose and in
-/// identifiers. This checker spells the words plainly because `xtask` sits
-/// outside the tree it scans; `AGENTS.md` and `CLAUDE.md` state the ban itself
-/// and are likewise outside it.
+/// The construction-lifecycle vocabulary this gate enforces, in prose and in
+/// identifiers. That vocabulary is the whole of what this list is, and the whole
+/// of what this gate claims. This checker spells the words plainly because
+/// `xtask` sits outside the tree it scans; `AGENTS.md` and `CLAUDE.md` state the
+/// ban itself and are likewise outside it.
+///
+/// **The working law's ban and this list now name the same four words.** The
+/// ban used to reach two vocabularies this list has never carried: the ordinary
+/// noun "law", excepting the `laws.rs` filename, and the acronym for a trusted
+/// computing base. The owner's amendment withdrew both, and neither withdrawal
+/// leaves a hole this file is covering for.
+///
+/// The noun was withdrawn because an algebraic one, a semantic one, a refusal
+/// one, and the filename are ordinary computer-science vocabulary, and because
+/// scanning for the English word buys euphemism rather than stronger proof: the
+/// defect worth removing is proof authority stated in two places, a question
+/// about where a claim is SEATED that the strongest-seat drain answers and that
+/// no word list can reach. The acronym was withdrawn on the same reading — an
+/// ambient trust claim is refused by requiring what a trust claim must NAME,
+/// its typed boundary, members, authority, nonclaims, and qualification
+/// evidence, none of which a banned token would have supplied.
+///
+/// So the authorizing sentence and the enforced list cover one population, and
+/// this gate owes nothing to a wider one.
 const BANNED_VOCABULARY: [&str; 4] = ["factory", "candidate", "promotion", "self-hosting"];
 
 /// Lawful survivals: `(repository-relative path, word, why it stands)`. A term
 /// stands only where it is named to FORBID it, to record a kill, or to
 /// document a rename — never as live vocabulary.
+///
+/// # The ceiling: an allowance is FILE-wide, and the working law is not
+///
+/// The working law admits a retired term only where a DATED DECISION RECORD
+/// names the retired architecture. That is a claim about a section. An entry
+/// here is a path and a word, so what it actually admits is the whole file: the
+/// record `src/23_evidence/README.md` carries is dated, and the allowance that
+/// record earns would equally excuse the same word written anywhere else in that
+/// file — in its obligations block, in its prose, or in a section added later
+/// that records nothing and dates nothing. The two statements are not the same
+/// statement, and this one is the weaker.
+///
+/// The gap is named rather than closed. Closing it means knowing where a section
+/// begins and ends, and the honest way to know that is the typed repository
+/// model that owns derived facts about these documents — the same owner the
+/// working law already names for the assembled review artifact. A fourth reader
+/// cutting markdown on `##` inside this file would be a second, weaker opinion
+/// about a document's shape, seated beside a checker instead of in the model
+/// that owns it, and a reader recognizing a structure by a convenient spelling
+/// is the exact defect this campaign has now paid for four times. So the honest
+/// state is what is written: one allowance per file per word, admitted to cover
+/// the file, with section scoping owed to the model that can express it.
 const BANNED_VOCABULARY_ALLOWLIST: [(&str, &str, &str); 3] = [
     (
         "src/23_evidence/README.md",
@@ -92,10 +134,23 @@ pub(crate) fn check_no_personal_names(root: &Path) -> Result<(), String> {
 ///    `SelfHosting` and `self_hosting` are caught too.
 ///
 /// Both scans report the banned ROOT word, so one allowlist entry covers a
-/// file for either scan. The scanned tree is the machine (`src/`), the root
-/// `README.md`, the metaprogramming subsystem (`macros/`), and the
-/// qualification plane (`testpak/`): the tools and the judge speak the
-/// machine's vocabulary or they speak none.
+/// file for either scan.
+///
+/// **The surface is narrowed twice, and both narrowings are said out loud**,
+/// because the working law reads this gate as enforcing the live-tree
+/// vocabulary surface it DECLARES, and an undeclared narrowing is a claim about
+/// bytes nobody opened. By tree: the machine (`src/`), the metaprogramming
+/// subsystem (`macros/`), the qualification plane (`testpak/`), and the root
+/// `README.md` — the tools and the judge speak the machine's vocabulary or they
+/// speak none. By extension, within that tree: `.rs` and `.md`, nothing else,
+/// so a manifest, a lock file, a workflow, a license, or a fixture of any other
+/// extension is a file this scan never opened and carries no verdict from it.
+///
+/// What falls outside either narrowing is outside the claim rather than shown
+/// clean. `xtask/` is not scanned, because this file has to spell the words it
+/// forbids, and neither are the two working-law files, which state the ban
+/// itself; a banned word could stand in any of them and this gate would not see
+/// it.
 pub(crate) fn check_banned_vocabulary(root: &Path) -> Result<(), String> {
     let mut offenders = Vec::new();
     let mut read: Vec<(String, String)> = Vec::new();

@@ -75,6 +75,7 @@ discover it.
 | `tests/compile_refusals.rs` | the trybuild runner over the compile-fail fixtures |
 | `tests/compile-fail/` | one fixture per discharged red twin |
 | `tests/independent_identity_transcript.rs` | the independent transcript lane: a second encoder, written from the published specification, re-deriving the services' own identities |
+| `tests/stamp_row_ceiling.rs` | the closed-register stamp's row ceiling, spent to its last position through the public export — the positive control whose reversal is the fixture beside it |
 
 ## `Unreadable` is a failure class with its own alarm
 
