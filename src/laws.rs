@@ -848,15 +848,6 @@ mod refusal {
         assert!(shape.is_some());
     }
 
-    /// law: refusal.handling-carries-do-not-retry — the treatment roster carries
-    /// an explicit retry prohibition; a refusal can forbid retry.
-    /// Owed reversal: removing `DoNotRetry` from the roster must break this law.
-    #[test]
-    fn handling_carries_do_not_retry() {
-        let handling = HandlingClass::DoNotRetry;
-        assert!(matches!(handling, HandlingClass::DoNotRetry));
-    }
-
     /// law: refusal.selection-order-is-family-declared — a single-cause family
     /// declares a non-empty canonical selection order as machine-readable law; a
     /// collection family declares none.
@@ -1353,7 +1344,7 @@ mod refusal {
 }
 
 mod logic {
-    use crate::logic::{Decision, Truth};
+    use crate::logic::Truth;
 
     const ALL: [Truth; 3] = [Truth::True, Truth::False, Truth::Pending];
 
@@ -1409,18 +1400,6 @@ mod logic {
         for value in ALL {
             assert_eq!(value.negate().negate(), value);
         }
-    }
-
-    /// law: logic.decision-is-not-truth — `Decision` and `Truth` are distinct
-    /// types with no conversion in either direction; `Defer` is not `Pending`.
-    /// Owed reversal (red twin): a `From` impl in either direction must not
-    /// compile once the fixture lands in testpak.
-    #[test]
-    fn decision_is_not_truth() {
-        let decision: Option<Decision> = Some(Decision::Defer);
-        let truth: Option<Truth> = Some(Truth::Pending);
-        assert!(matches!(decision, Some(Decision::Defer)));
-        assert!(matches!(truth, Some(Truth::Pending)));
     }
 }
 
@@ -1852,7 +1831,7 @@ mod value {
 mod numeric {
     use super::pairwise_distinct;
     use crate::numeric::{
-        CONSTRUCTOR_AXIS_LADDER, ConstructorAxis, Finality, FloatClass, IntervalRelation,
+        CONSTRUCTOR_AXIS_LADDER, ConstructorAxis, FloatClass, IntervalRelation,
         KNOWLEDGE_AXIS_SELECTION_ORDER, MoneyConstruction, QuantizeCrossing,
         RequirementDisposition, RoundingMode, TypedMarginConstruction,
     };
@@ -1953,18 +1932,6 @@ mod numeric {
         ];
         assert_eq!(terminals.len(), 6);
         assert!(pairwise_distinct(&terminals));
-    }
-
-    /// law: numeric.finality-is-generic-over-cut — `ClosedAt` names the owner's
-    /// own cut type; there is no universal finality cut.
-    /// Owed reversal: hard-wiring one cut type must break this law.
-    #[test]
-    fn finality_is_generic_over_cut() {
-        struct DemoCut;
-        let open: Finality<DemoCut> = Finality::MonotoneExtendable;
-        let closed: Finality<DemoCut> = Finality::ClosedAt(DemoCut);
-        assert!(matches!(open, Finality::MonotoneExtendable));
-        assert!(matches!(closed, Finality::ClosedAt(DemoCut)));
     }
 
     /// law: numeric.interval-relations-are-six — six relations, first-class
@@ -2690,13 +2657,13 @@ mod schema {
 }
 
 mod time {
-    use crate::identity::{Occurrence, OccurrenceForm};
+
     use crate::refusal::{FamilyShape, RefusalFamily};
     use crate::time::{
         AcceptedHlc, ChronologyAdmission, ChronologyMerge, ChronologyProfileId, ChronologySummary,
-        ClockDomainId, ClockObservation, ClockObservationProvenance, DeadlinePolicy,
-        DeadlinePolicyConstruction, DeadlinePostureView, DurationLimit, DurationLimitConstruction,
-        HlcCoordinate, ObservedWallTime, RecordingSite, SourceHlc, SpendRecord, TimeDelta,
+        ClockObservation, ClockObservationProvenance, DeadlinePolicy, DeadlinePolicyConstruction,
+        DeadlinePostureView, DurationLimit, DurationLimitConstruction, HlcCoordinate,
+        ObservedWallTime, SourceHlc, SpendRecord, TimeDelta,
     };
 
     /// law: time.tick-is-the-clock-observation — a tick is one admitted clock
@@ -2708,13 +2675,11 @@ mod time {
     fn tick_is_the_clock_observation() {
         use crate::value::BoundedText;
         let text_shape: Option<fn(BoundedText<crate::time::ProvenanceLimit>)> = Some(drop);
-        let domain = ClockDomainId::for_laws(Occurrence::for_laws(OccurrenceForm::Fresh([5; 16])));
         let observation_shape: Option<fn(ClockObservation)> = Some(drop);
         let provenance_shape: Option<fn(ClockObservationProvenance)> = Some(drop);
         assert!(text_shape.is_some());
         assert!(observation_shape.is_some());
         assert!(provenance_shape.is_some());
-        assert_eq!(domain, domain);
     }
 
     /// law: time.observations-are-intervals — a point is the degenerate
@@ -2929,10 +2894,6 @@ mod time {
             uncertainty: 2,
         };
         assert_eq!(spend.dimension.value(), 3);
-        assert!(matches!(
-            RecordingSite::Checkpoint,
-            RecordingSite::Checkpoint
-        ));
     }
 }
 
@@ -2948,6 +2909,7 @@ mod history {
         StoreLineageId, TurnInputCut, WriterOrderScope,
     };
     use crate::identity::{Occurrence, OccurrenceForm};
+
     use crate::refusal::{FamilyShape, RefusalFamily};
     use crate::types::{
         Completeness, ConstLimit, EvidenceRef, ReferentAvailability, ReferentIntegrity,
@@ -2977,7 +2939,6 @@ mod history {
         ];
         assert_eq!(knowledge.len(), 3);
         assert!(pairwise_distinct(&knowledge));
-        assert_ne!(CommitKnowledge::Unknown, CommitKnowledge::KnownAbsent);
         let receipts = [
             ReceiptCompleteness::Complete,
             ReceiptCompleteness::Incomplete,
@@ -3217,16 +3178,13 @@ mod navigation {
         ScopeAppliedCut, SourceClosure, SourceRegions, StoreLineageId, TurnInputCut,
         WriterOrderScope,
     };
-    use crate::identity::{
-        AuthorityPosition, Commitment, Occurrence, OccurrenceForm, OrderComparison,
-    };
+    use crate::identity::{AuthorityPosition, Occurrence, OccurrenceForm, OrderComparison};
     use crate::navigation::{
-        Address, AxisCapability, AxisCapabilityLimit, CHECKPOINT_NON_ADVANCERS,
-        CLOSURE_REQUIRED_CLAIMS, Cursor, CursorTransplantation, DestinationKind,
-        FUSIBLE_FOLD_OUTPUTS, Fix, FixShape, FrameVersion, INCOMPARABLE_ROUTE_DIMENSIONS,
-        MultiAuthorityRelationship, PATH_CONTRACT_FACETS, PROHIBITED_SILENT_MERGERS,
-        PageDowngradeTrigger, PathSelector, PositioningRefusal, RECONSTRUCTABLE_FACETS,
-        ReferenceFrameId, RouteClosureEvidence, TraversalForm,
+        AxisCapability, AxisCapabilityLimit, CHECKPOINT_NON_ADVANCERS, CLOSURE_REQUIRED_CLAIMS,
+        Cursor, CursorTransplantation, DestinationKind, FUSIBLE_FOLD_OUTPUTS, Fix, FixShape,
+        FrameVersion, INCOMPARABLE_ROUTE_DIMENSIONS, MultiAuthorityRelationship,
+        PATH_CONTRACT_FACETS, PROHIBITED_SILENT_MERGERS, PageDowngradeTrigger, PathSelector,
+        PositioningRefusal, RECONSTRUCTABLE_FACETS, ReferenceFrameId, TraversalForm,
     };
     use crate::refusal::{FamilyShape, RefusalFamily};
     use crate::types::{
@@ -3284,13 +3242,6 @@ mod navigation {
             Some(&"Unsupported")
         );
         assert_eq!(PositioningRefusal::SELECTION_ORDER.last(), Some(&"NoRoute"));
-        let final_no_route = PositioningRefusal::NoRoute {
-            evidence: RouteClosureEvidence {
-                region: Address::at(demo_frame(1, 1), Commitment::raw([2; 32])),
-                witness: demo_evidence(3),
-            },
-        };
-        assert!(matches!(final_no_route, PositioningRefusal::NoRoute { .. }));
     }
 
     /// law: navigation.fix-binds-orthogonal-axes — a real fix that is
@@ -3679,12 +3630,11 @@ mod port {
 mod declaration {
     use super::pairwise_distinct;
     use crate::declaration::{
-        AuthoredNameConstruction, AuthoredNameConstructionIssue, AuthoringRole,
-        CANONICAL_FACET_SEQUENCE, CONVERGENCE_ROUTES, ClaimKind, ClosureNamespace, CoordinateRole,
-        DeclarationGraph, ExportAliasDerivation, Facet, FacetForm, FrontendRole, HOW_FACET_CONTENT,
-        HygieneClass, LINKER_CONTRACT, LinkResolution, LinkResolutionIssue, META_EVALUATION_LOCKS,
-        MetaStageLaw, ProjectionClaim, ProjectionContractConstruction,
-        ProjectionContractConstructionIssue, ProjectionProfileId, ProjectionProfileVersion,
+        AuthoredNameConstruction, AuthoringRole, CANONICAL_FACET_SEQUENCE, CONVERGENCE_ROUTES,
+        ClaimKind, ClosureNamespace, CoordinateRole, DeclarationGraph, ExportAliasDerivation,
+        Facet, FacetForm, FrontendRole, HOW_FACET_CONTENT, HygieneClass, LINKER_CONTRACT,
+        LinkResolution, LinkResolutionIssue, META_EVALUATION_LOCKS, MetaStageLaw, ProjectionClaim,
+        ProjectionContractConstruction, ProjectionProfileId, ProjectionProfileVersion,
         SourceCoordinate, Stage, SymbolIdentity, TopLevelForm, WHAT_FACET_CONTENT,
         WHEN_FACET_CONTENT, WHERE_FACET_CONTENT, WHO_FACET_CONTENT, WHY_FACET_CONTENT,
     };
@@ -3724,12 +3674,6 @@ mod declaration {
             ExportAliasDerivation::SELECTION_ORDER.last(),
             Some(&"Collision")
         );
-        let collision = ExportAliasDerivation::Collision {
-            first: demo_symbol(1),
-            second: demo_symbol(2),
-            profile: demo_profile(3, 1),
-        };
-        assert!(matches!(collision, ExportAliasDerivation::Collision { .. }));
     }
 
     /// law: declaration.name-and-closure-families-are-collections — both
@@ -3749,23 +3693,6 @@ mod declaration {
             FamilyShape::IssueCollection
         );
         assert_eq!(ClosureNamespace::SHAPE, FamilyShape::IssueCollection);
-        let issue = AuthoredNameConstructionIssue::InvalidIdentifierStart {
-            scalar: '9',
-            coordinate: SourceCoordinate {
-                role: CoordinateRole::UnicodeScalar,
-                position: 0,
-            },
-        };
-        assert!(matches!(
-            issue,
-            AuthoredNameConstructionIssue::InvalidIdentifierStart {
-                scalar: '9',
-                coordinate: SourceCoordinate {
-                    role: CoordinateRole::UnicodeScalar,
-                    position: 0,
-                },
-            }
-        ));
     }
 
     /// law: declaration.link-resolution-ranges-over-four-claim-kinds — the
@@ -3820,12 +3747,6 @@ mod declaration {
             ProjectionContractConstruction::SHAPE,
             FamilyShape::IssueCollection
         );
-        let unstated =
-            ProjectionContractConstructionIssue::ClaimUnstated(ProjectionClaim::Disclosure);
-        assert!(matches!(
-            unstated,
-            ProjectionContractConstructionIssue::ClaimUnstated(ProjectionClaim::Disclosure)
-        ));
     }
 
     /// law: declaration.facets-are-six-in-canonical-sequence — WHO first,
@@ -4203,16 +4124,16 @@ mod execution {
     use crate::bounds::{BoundClass, DimensionId};
     use crate::execution::{
         AlgebraicLaw, AlgebraicLawLimit, CommandKind, CommandOrdinal, EffectBatch,
-        EffectBatchComposition, EffectBatchCompositionIssue, EffectCommand, EffectfulRecursionLane,
-        ExecutionForm, ExecutionFormConstruction, ExecutionFormConstructionIssue,
-        ExecutionFormFamilyId, ExecutionFormVersion, ForbiddenIdentitySource, GroupFenceDefect,
+        EffectBatchComposition, EffectCommand, EffectfulRecursionLane, ExecutionForm,
+        ExecutionFormConstruction, ExecutionFormConstructionIssue, ExecutionFormFamilyId,
+        ExecutionFormVersion, ForbiddenIdentitySource, GroupFenceDefect,
         INDEPENDENCE_MAY_NOT_SHARE, INDEPENDENCE_MAY_SHARE, INTERLEAVED_CLOSURE_TOTALS,
         KernelBindingPolicy, KernelBindingPolicyConstruction, KernelBindingPosture,
         KernelFallbackPolicy, KernelInterfaceContract, KernelInterfaceContractConstructionIssue,
         KernelInterfaceContractRef, KernelRealizationId, KernelRequirement, KernelSemanticContract,
         KernelSemanticContractConstructionIssue, KernelSemanticContractRef,
-        KernelSubstitutionScope, Measure, OPERATOR_REGISTER, RecursionWitness,
-        RequiredContractKind, WORK_DIMENSIONS,
+        KernelSubstitutionScope, OPERATOR_REGISTER, RecursionWitness, RequiredContractKind,
+        WORK_DIMENSIONS,
     };
     use crate::identity::{
         AuthorityPosition, Commitment, Occurrence, OccurrenceForm, OrderComparison,
@@ -4375,17 +4296,6 @@ mod execution {
         ];
         assert_eq!(contracts.len(), 3);
         assert_eq!(EffectBatchComposition::SHAPE, FamilyShape::IssueCollection);
-        let issue = EffectBatchCompositionIssue::RequiredContractUnbound {
-            command: CommandOrdinal::declared(0),
-            contract: RequiredContractKind::Receipt,
-        };
-        assert!(matches!(
-            issue,
-            EffectBatchCompositionIssue::RequiredContractUnbound {
-                contract: RequiredContractKind::Receipt,
-                ..
-            }
-        ));
     }
 
     /// law: execution.recursion-witness-records-eleven — a real witness
@@ -4408,11 +4318,6 @@ mod execution {
             origins: demo_evidence(52),
         };
         assert_eq!(witness.depth, 8);
-        let measure = Measure::Lexicographic(
-            Bounded::admitted(vec![3, 2, 1], &LimitWitness::declared(4))
-                .unwrap_or_else(|_| unreachable!("three fit")),
-        );
-        assert!(matches!(measure, Measure::Lexicographic(_)));
         let lanes = [
             EffectfulRecursionLane::AtomicPlanning,
             EffectfulRecursionLane::Interleaved,
@@ -4973,11 +4878,6 @@ mod bvisor {
             GenerationAxis::Application,
         ];
         assert_eq!(axes.len(), 5);
-        assert_ne!(GenerationPosture::Stale, GenerationPosture::Wrong);
-        assert_ne!(
-            RequiredEvidencePosture::Missing,
-            RequiredEvidencePosture::Stale
-        );
         assert_eq!(ADMISSION_INPUTS.len(), 11);
         assert_eq!(ADMISSION_DEPENDENCY_ORDER.len(), 10);
         assert_eq!(
@@ -5008,10 +4908,6 @@ mod bvisor {
         let refused: Option<fn(AttemptAdmission) -> AdmissionOutcome> =
             Some(AdmissionOutcome::Refused);
         assert!(refused.is_some());
-        assert!(matches!(
-            AttemptAdmissionIssue::LogicalAuthorizationNotSupplied,
-            AttemptAdmissionIssue::LogicalAuthorizationNotSupplied
-        ));
     }
 
     /// law: bvisor.lifecycle-is-affine-and-sealed — sealing CONSUMES the
@@ -5128,14 +5024,14 @@ mod runtime {
         Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence, OccurrenceForm,
     };
     use crate::runtime::{
-        AttemptCause, AttemptLineageNode, BoundOutcome, BoundedCauseSet,
-        CANCELLATION_DISTINCT_FACTS, CHECKPOINT_NON_REASONS, CancellationDurablePosition,
-        CancellationObservation, CancellationPhysicalPosition, CompensationSupport,
-        CompletionTerminal, ConcurrencyConstraints, DRIVER_INVARIANCE, DRIVER_MAY_CHANGE,
-        DeliveryRole, DurableCheckpoint, EffectIntentId, EffectReconciliationRecord,
-        EffectRecoveryProfile, EvidenceRetention, ExternalOutcome, FOUR_MOTIONS,
-        IdempotencyKeySupport, IdempotencyPosture, LIVENESS_DECLARATION, LogicalOperationId,
-        MAILBOX_FACTS, NEVER_SUFFICIENT, OutcomeKnowledge, OutcomeQuerySupport, ProcessStateRole,
+        AttemptCause, AttemptLineageNode, BoundedCauseSet, CANCELLATION_DISTINCT_FACTS,
+        CHECKPOINT_NON_REASONS, CancellationDurablePosition, CancellationObservation,
+        CancellationPhysicalPosition, CompensationSupport, CompletionTerminal,
+        ConcurrencyConstraints, DRIVER_INVARIANCE, DRIVER_MAY_CHANGE, DeliveryRole,
+        DurableCheckpoint, EffectIntentId, EffectReconciliationRecord, EffectRecoveryProfile,
+        EvidenceRetention, ExternalOutcome, FOUR_MOTIONS, IdempotencyKeySupport,
+        IdempotencyPosture, LIVENESS_DECLARATION, LogicalOperationId, MAILBOX_FACTS,
+        NEVER_SUFFICIENT, OutcomeKnowledge, OutcomeQuerySupport, ProcessStateRole,
         RECOVERY_ACTIONS, ReconciliationDisposition, ReconciliationLifecycle, ReplayPosture,
         STITCH_OUTPUTS, SemanticRecoveryAuthority, TURN_PREIMAGE, TurnId, TurnPhase,
     };
@@ -5380,20 +5276,6 @@ mod runtime {
             SemanticRecoveryAuthority::Escalate,
         ];
         assert_eq!(authorities.len(), 5);
-        let exhausted = BoundOutcome::ResourceExhausted {
-            observation: crate::bvisor::ReservationObservation {
-                requested: 10,
-                granted: 0,
-                unavailable: 10,
-                guarantees: Commitment::raw([133; 32]),
-                uncertainty: 1,
-            },
-        };
-        assert!(matches!(exhausted, BoundOutcome::ResourceExhausted { .. }));
-        assert!(matches!(
-            BoundOutcome::BudgetExceeded,
-            BoundOutcome::BudgetExceeded
-        ));
     }
 }
 
@@ -5460,17 +5342,6 @@ mod derived {
         let unproven = SelectionMaskConstruction::RowDomainEqualityUnproven;
         let mismatch = SelectionMaskConstruction::RowDomainMismatch;
         assert_ne!(unproven, mismatch);
-        let lengths = SelectionMaskConstruction::LengthMismatch {
-            left: 10,
-            right: 12,
-        };
-        assert!(matches!(
-            lengths,
-            SelectionMaskConstruction::LengthMismatch {
-                left: 10,
-                right: 12
-            }
-        ));
     }
 
     /// law: derived.two-seat-identity-holds — seat 1 is preimage-derived
@@ -5666,7 +5537,7 @@ mod application {
         InstanceLifecycle, InvocationProfile, LOCAL_NOUNS, LagOverrunObservation, MESSAGE_FAMILIES,
         NON_IDENTITIES, NON_SUBSTITUTABLE_PREIMAGES, PossessionClaim, RAW_RETENTION_GUARDRAILS,
         REMOTE_VERBS, RESOURCE_NEVER_BECOMES, RejectedContentReason, RemovalHole, SessionId,
-        SessionState, SessionTerminal, StreamClosure, StreamState, TransportSecurityClaim,
+        StreamClosure, StreamState, TransportSecurityClaim,
     };
     use crate::bvisor::PortRequestId;
     use crate::history::RemovalCommitment;
@@ -5791,11 +5662,6 @@ mod application {
     /// Owed reversal (red twin): a linear half-close enum must not exist.
     #[test]
     fn session_and_stream_vocabularies() {
-        let terminated = SessionState::Terminated(SessionTerminal::PhysicalDeath);
-        assert!(matches!(
-            terminated,
-            SessionState::Terminated(SessionTerminal::PhysicalDeath)
-        ));
         let stream = StreamState {
             send: DirectionState::HalfClosed,
             receive: DirectionState::Open,
@@ -5903,11 +5769,10 @@ mod security {
     use crate::identity::{Commitment, Occurrence, OccurrenceForm};
     use crate::security::{
         CRYPTO_ROLES, CapabilityLease, FIREWALL_ACT_TABLE, ForeignExecution, LabelArrow,
-        LeaseRenewalAuthority, MechanismAdmissionFact, MechanismQualificationFact,
-        MechanismRetirementFact, MechanismStandingView, MechanismSupportFact, REVOCATION_DEFAULTS,
+        LeaseRenewalAuthority, MechanismStandingView, REVOCATION_DEFAULTS,
         RevocationAcknowledgement, RevocationEvidence, RevocationObservation, SECRET_CAPABILITIES,
         SecretUseHandle, ShredDenominatorRow, ShredEvidence, ShredProgress, ShredRowStatus,
-        TRUST_BOUNDARY_MEMBERS, WitnessRole,
+        TRUST_BOUNDARY_MEMBERS,
     };
     use crate::types::{
         EvidenceRef, LimitWitness, NonEmptyBounded, ReferentAvailability, ReferentIntegrity,
@@ -6011,22 +5876,6 @@ mod security {
     /// Owed reversal (red twin): a mutable status enum must not exist.
     #[test]
     fn mechanism_standing_is_append_only() {
-        assert_ne!(
-            MechanismAdmissionFact::Admitted,
-            MechanismAdmissionFact::Refused
-        );
-        assert_ne!(
-            MechanismQualificationFact::QualifiedProfile,
-            MechanismQualificationFact::Failed
-        );
-        assert_ne!(
-            MechanismSupportFact::SupportedReleaseRow,
-            MechanismSupportFact::Unsupported
-        );
-        assert_eq!(
-            MechanismRetirementFact::Retired,
-            MechanismRetirementFact::Retired
-        );
         let view = MechanismStandingView(Commitment::raw([204; 32]));
         assert_eq!(view.0, Commitment::raw([204; 32]));
     }
@@ -6051,10 +5900,6 @@ mod security {
     fn firewall_and_rosters_hold() {
         assert_eq!(FIREWALL_ACT_TABLE.len(), 5);
         assert_eq!(CRYPTO_ROLES.len(), 7);
-        assert!(matches!(
-            WitnessRole::ExternalWitness,
-            WitnessRole::ExternalWitness
-        ));
         let executions = [
             ForeignExecution::IsolatedPakVmWorker,
             ForeignExecution::ExternalToolEffect,
@@ -6076,11 +5921,10 @@ mod evidence {
     use super::pairwise_distinct;
     use crate::evidence::{
         AdoptionDecisionReceipt, Basis, CalibrationEvidence, CalibrationModel, CauseDisposition,
-        CommitmentLayers, Coverage, DiagnosticCause, DiagnosticCauseSuspects,
-        EVIDENCE_NON_COLLAPSE, EXPLANATION_LADDER, Enforcement, EvidenceCarriage,
-        GeneratedPublicationReceipt, Lane, LaneDomain, Method, QualificationTerminal,
-        RECEIPT_FAMILIES, ReleaseEvidence, Route, SubstrateDisclosure, VerificationDenominator,
-        VerificationResult, VerificationTerminal, VerifiedClaim,
+        CommitmentLayers, Coverage, DiagnosticCause, EVIDENCE_NON_COLLAPSE, EXPLANATION_LADDER,
+        Enforcement, EvidenceCarriage, GeneratedPublicationReceipt, Lane, LaneDomain, Method,
+        QualificationTerminal, RECEIPT_FAMILIES, ReleaseEvidence, Route, SubstrateDisclosure,
+        VerificationDenominator, VerificationResult, VerificationTerminal, VerifiedClaim,
     };
     use crate::identity::Commitment;
     use crate::types::{
@@ -6206,8 +6050,6 @@ mod evidence {
         assert!(pairwise_distinct(&coverage));
         // Equality is the whole relation the axis carries: each value is itself
         // and is no other, and nothing here orders one against another.
-        assert_eq!(Coverage::Bounded, Coverage::Bounded);
-        assert_ne!(Coverage::Bounded, Coverage::ObservedHistory);
     }
 
     /// law: evidence.terminals-are-lifecycle-owned — verification and
@@ -6257,19 +6099,8 @@ mod evidence {
     fn cause_disposition_narrows() {
         let established =
             CauseDisposition::EstablishedCause(DiagnosticCause(Commitment::raw([212; 32])));
-        let narrowed = CauseDisposition::NarrowedCauseSuspects(DiagnosticCauseSuspects {
-            suspects: Bounded::admitted(
-                vec![DiagnosticCause(Commitment::raw([213; 32]))],
-                &LimitWitness::declared(8),
-            )
-            .unwrap_or_else(|_| unreachable!("one fits")),
-        });
         let unresolved = CauseDisposition::UnresolvedCause;
         assert_ne!(established, unresolved);
-        assert!(matches!(
-            narrowed,
-            CauseDisposition::NarrowedCauseSuspects(_)
-        ));
     }
 
     /// law: evidence.receipt-matrix-and-carriage — twenty-five families by

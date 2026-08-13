@@ -69,14 +69,6 @@ impl IdentityRole for ClockDomainId {
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
 }
 
-impl ClockDomainId {
-    /// In-crate mint for laws. Test-gated until admission minting exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<ClockDomainRole>) -> Self {
-        Self(occurrence)
-    }
-}
-
 /// An observed wall reading — an interval with the uncertainty INSIDE (one
 /// fact, one home: a second uncertainty member beside the reading would store
 /// the same fact twice, and two copies of one fact can disagree). A point value

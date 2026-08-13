@@ -56,8 +56,10 @@ obligations:
     red: owed-to-testpak
   - id: numeric.finality-is-generic-over-cut
     challenge_kind: compile-law
-    green: laws.rs numeric::finality_is_generic_over_cut
-    red: owed-to-testpak
+    green: structural (Finality<Cut> takes the owner's cut as a type parameter
+      and names no cut of its own, so a universal finality cut has nowhere to be
+      written)
+    red: owed-to-testpak — hard-wiring one cut type must break the signature
   - id: numeric.interval-relations-are-six
     challenge_kind: compile-law
     green: laws.rs numeric::interval_relations_are_six
