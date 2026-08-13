@@ -438,7 +438,7 @@ impl Limit for IssueTextLimit {}
 /// because there is nothing wrong to detect at either end. That is exactly the
 /// defect band 00's coupled seat exists to make unwritable, and it is the same
 /// rule the seven construction-refusal families in this home already follow:
-/// each holds one [`AdmittedPrefix`](crate::refusal::AdmittedPrefix) in which the
+/// each holds one [`AdmittedPrefix`] in which the
 /// coverage claim and the material it is about were produced by a single act, and
 /// reads it back through `issues()` and `posture()`. When the validation pass
 /// that produces these rows is written, it reaches a caller the same way.
