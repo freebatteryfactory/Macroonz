@@ -17,9 +17,7 @@
 
 use crate::bounds::SemanticWork;
 use crate::history::{CommitPoint, FederationCutVector, HistoryCut, SourceClosure, StoreLineageId};
-use crate::identity::{
-    AuthorityPosition, Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence,
-};
+use crate::identity::{Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence};
 use crate::refusal::{FamilyShape, RefusalFamily};
 use crate::types::{Bounded, ConstLimit, EvidenceRef, Freshness, Limit};
 use crate::value::BoundedText;
@@ -50,11 +48,12 @@ impl ReferenceFrameId {
     }
 }
 
-/// One version of a reference frame — Class C, scoped to its frame: versions
-/// of different frames are incomparable by type, exactly as schema versions
-/// are.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct FrameVersion(pub AuthorityPosition<ReferenceFrameId>);
+crate::scope_guard_version! {
+    /// One version of a reference frame — Class C, scoped to its frame: versions
+    /// of different frames are incomparable by type, exactly as schema versions
+    /// are.
+    pub struct FrameVersion over ReferenceFrameId;
+}
 
 /// Compile-time bound for an axis's declared capabilities.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

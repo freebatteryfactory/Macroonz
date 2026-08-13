@@ -7,9 +7,20 @@
 //! ceiling is declared HERE, after every axis was accounted for exactly once, so
 //! a ceiling that leaves one magnitude unbounded while the others look governed
 //! does not exist. A template and an application are built HERE for the same
-//! reason. There is no other seam in the crate that can produce any of them.
+//! reason, and so is the refusal BODY: its seat is private, so this file is the
+//! only module in the workspace that can spell the literal. There is no other
+//! seam in the crate that can produce any of them.
+//!
+//! # What a private seat does and does not exclude
+//!
+//! It excludes every SIBLING: `establish.rs` beside it, anywhere else in the
+//! services, and any crate downstream cannot write the literal, and the compiler
+//! says so with `E0451`. It does not exclude DESCENDANTS — a module declared
+//! inside this one would construct as freely as these roads do, so a
+//! `#[cfg(test)] mod` under the guard would reopen exactly what the guard closes,
+//! and the reversals for this seat are testpak's compile-fail fixtures instead.
 
-use super::super::establish::{binding_issues, ceiling_issues, parameter_issues, refused};
+use super::super::establish::{binding_issues, ceiling_issues, parameter_issues};
 use super::{
     ApplicativeDistinctness, AxisCeiling, CheckedMeterPosture, DeclarationTemplate, ProfileCeiling,
     SpliceCategory, SymbolicBoundFormula, TemplateApplication, TemplateArgument, TemplateBinding,
@@ -18,10 +29,65 @@ use super::{
 };
 use crate::plane::{
     AuthoringLimitProfile, LanguageProfileSubject, MetaBoundAxisLimit, MetaProfileSubject,
-    OwnerIdentityRef, TemplateParameterLimit, TemplateSubject,
+    OwnerIdentityRef, TemplateIssueLimit, TemplateParameterLimit, TemplateSubject,
 };
 use threadpak::declaration::Stage;
+use threadpak::refusal::{AdmittedPrefix, StopBound};
 use threadpak::types::{AdmittedLimit, Bounded, ConstLimit, NonEmptyBounded, PositiveLimit};
+
+/// The refusal one established issue list amounts to, or nothing where the list
+/// is empty.
+fn refused(issues: Vec<TemplateConstructionIssue>) -> Option<TemplateConstruction> {
+    let mut established = issues.into_iter();
+    let first = established.next()?;
+    Some(TemplateConstruction::co_established(
+        first,
+        established.collect(),
+    ))
+}
+
+impl TemplateConstruction {
+    /// The one-issue body. Total: the declared bound admits an item by
+    /// compile-time proof, so refusing never needs an error road of its own.
+    pub fn established(issue: TemplateConstructionIssue) -> Self {
+        Self {
+            body: AdmittedPrefix::carrying_one(issue),
+        }
+    }
+
+    /// The several-issue body.
+    ///
+    /// The three passes in `establish.rs` run their rosters to the end before a
+    /// body exists, so the posture here is about the REPORT and never about the
+    /// passes. Where every established issue fits the declared bound the body
+    /// carries all of them; where it does not, the body carries what the bound
+    /// holds and names how many established issues stand outside it — never a
+    /// silent drop, never an unearned claim of completeness, and never a claim
+    /// that nobody looked.
+    pub fn co_established(
+        first: TemplateConstructionIssue,
+        rest: Vec<TemplateConstructionIssue>,
+    ) -> Self {
+        Self {
+            body: AdmittedPrefix::examined_completely(
+                first,
+                rest,
+                &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+                StopBound::DeclaredIssueBound,
+            ),
+        }
+    }
+
+    /// The established issues and what this refusal says about its own coverage
+    /// of them.
+    ///
+    /// Borrowed and never owned, for the reason band 00 borrows its carry: an
+    /// owned body is a value a caller can seat under another refusal, which is
+    /// the pairing the coupled seat exists to end.
+    pub const fn body(&self) -> &AdmittedPrefix<TemplateConstructionIssue, TemplateIssueLimit> {
+        &self.body
+    }
+}
 
 impl TemplateBinding {
     /// Bind one argument to one parameter.

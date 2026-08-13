@@ -2,10 +2,10 @@
 //! rendering and its plan can disagree, and the proof that they do not.
 //!
 //! Declarations only. Every road that reaches a private field — a rendered
-//! unit's digest and bytes, a rendering's units, the proof's own seats — lives
-//! in `type_guard.rs`, this file's own child. That is what makes "tokens are
-//! emitted only from a closure" structural: there is no seam anywhere else that
-//! can build one.
+//! unit's digest and bytes, a rendering's units, the proof's own seats, and the
+//! refusal body's one seat — lives in `type_guard.rs`, this file's own child.
+//! That is what makes "tokens are emitted only from a closure" structural: there
+//! is no seam anywhere else that can build one.
 
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
@@ -170,7 +170,13 @@ pub struct ProjectionClosureRefusal<R: RenderedRole> {
     /// swapped for another body's. The pass itself always covers every
     /// applicable role, so the completion here never reports a halted
     /// examination.
-    pub report: AdmittedPrefix<ClosureIssue<R>, ClosureIssueLimit>,
+    ///
+    /// Private, and that is the second half of the same claim. The coupled seat
+    /// keeps a carry and its posture together; a PUBLIC seat on a one-field
+    /// record hands the whole record back as a literal, so any holder of a body
+    /// built for one pass could write it into another pass's refusal. Read back
+    /// through [`ProjectionClosureRefusal::body`].
+    body: AdmittedPrefix<ClosureIssue<R>, ClosureIssueLimit>,
 }
 
 /// The proof that what was rendered is what was planned.

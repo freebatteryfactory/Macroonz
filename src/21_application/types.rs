@@ -25,8 +25,7 @@
 
 use crate::history::RemovalCommitment;
 use crate::identity::{
-    AuthorityPosition, ByteIdentity, Commitment, CreationLaw, IdentityClass, IdentityRole,
-    Occurrence,
+    ByteIdentity, Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence,
 };
 use crate::types::EvidenceRef;
 
@@ -101,12 +100,13 @@ impl InstanceId {
     }
 }
 
-/// One activation generation — Class C, scoped to its instance, carrying
-/// scope and order ONLY (no image identity in the scope bytes): an image
-/// upgrade is one reason the generation order advances, and generations stay
-/// ordered across it.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ActivationGeneration(pub AuthorityPosition<InstanceId>);
+crate::scope_guard_version! {
+    /// One activation generation — Class C, scoped to its instance, carrying
+    /// scope and order ONLY (no image identity in the scope bytes): an image
+    /// upgrade is one reason the generation order advances, and generations stay
+    /// ordered across it.
+    pub struct ActivationGeneration over InstanceId;
+}
 
 /// Which image a generation activated — an auxiliary fact riding a typed
 /// relation, never the ordinal's bytes.

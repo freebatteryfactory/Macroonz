@@ -8,16 +8,29 @@
 //! over the joined tree this file builds and keeps, so the exact token stream a
 //! caller emits is inside what was proved rather than assembled afterwards.
 //! There is no other seam anywhere in the crate that can produce either value.
+//! The refusal BODY is built here for the same reason and by the same
+//! permission: its seat is private, so this file is the only module in the
+//! workspace that can spell the literal, and every refusal that exists came off
+//! the per-role pass.
+//!
+//! # What a private seat does and does not exclude
+//!
+//! It excludes every SIBLING: `prove.rs` beside it, anywhere else in the
+//! services, and any crate downstream cannot write the literal, and the compiler
+//! says so with `E0451`. It does not exclude DESCENDANTS — a module declared
+//! inside this one would construct as freely as these roads do, so a
+//! `#[cfg(test)] mod` under the guard would reopen exactly what the guard closes,
+//! and the reversals for this seat are testpak's compile-fail fixtures instead.
 
-use super::super::prove::{examined, refused};
+use super::super::prove::examined;
 use super::{
     ClosureIssue, ProjectionClosure, ProjectionClosureRefusal, RenderedProjection, RenderedUnit,
     RenderingRefusal,
 };
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
-    AuthoringLimitProfile, ClosureId, GeneratedUnitSubject, OutputBytesSubject, PlanId,
-    ProfileVersion, ProjectionIdentity, ProjectionProfileSubject, ProjectionProvenance,
+    AuthoringLimitProfile, ClosureId, ClosureIssueLimit, GeneratedUnitSubject, OutputBytesSubject,
+    PlanId, ProfileVersion, ProjectionIdentity, ProjectionProfileSubject, ProjectionProvenance,
     ProjectionRole, ProjectionTranscript, RenderedRole, RenderedUnitSubject, encode_bytes,
     encode_length,
 };
@@ -26,7 +39,52 @@ use crate::planning::{
 };
 use crate::question::EXPLANATION_PROTOCOL_VERSION;
 use crate::token::GeneratedTree;
+use threadpak::refusal::{AdmittedPrefix, StopBound};
 use threadpak::types::{AdmittedLimit, Bounded, NonEmptyBounded, PositiveLimit};
+
+/// The refusal one established issue list amounts to, or nothing where the list
+/// is empty.
+///
+/// One road for every pass in [`ProjectionClosure::proved`], so no pass can
+/// establish issues and then walk on past them.
+fn refused<R: RenderedRole>(issues: Vec<ClosureIssue<R>>) -> Option<ProjectionClosureRefusal<R>> {
+    let mut established = issues.into_iter();
+    let first = established.next()?;
+    Some(ProjectionClosureRefusal::established(
+        first,
+        established.collect(),
+    ))
+}
+
+impl<R: RenderedRole> ProjectionClosureRefusal<R> {
+    /// The body a closure check refuses with.
+    ///
+    /// The per-role pass walks the kind's whole roster before a body exists, so
+    /// the posture here is about the REPORT rather than the pass. Where every
+    /// established issue fits the declared bound the body carries all of them;
+    /// where it does not, the body carries what the bound holds and names how
+    /// many established issues stand outside it — never a silent drop.
+    fn established(first: ClosureIssue<R>, rest: Vec<ClosureIssue<R>>) -> Self {
+        Self {
+            body: AdmittedPrefix::examined_completely(
+                first,
+                rest,
+                &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+                StopBound::DeclaredIssueBound,
+            ),
+        }
+    }
+
+    /// The established issues and what this refusal says about its own coverage
+    /// of them.
+    ///
+    /// Borrowed and never owned, for the reason band 00 borrows its carry: an
+    /// owned body is a value a caller can seat under another refusal, which is
+    /// the pairing the coupled seat exists to end.
+    pub const fn body(&self) -> &AdmittedPrefix<ClosureIssue<R>, ClosureIssueLimit> {
+        &self.body
+    }
+}
 
 impl<R: RenderedRole> RenderedUnit<R> {
     /// Materialize one rendered unit from the tree a renderer produced.

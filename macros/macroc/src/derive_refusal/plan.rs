@@ -29,9 +29,8 @@ use crate::plane::{
 };
 use crate::planning::{
     CauseAnchoring, DeriveImplContent, DeriveImplProjection, DigestContract, GraphAnchoring,
-    InvalidationTrigger, MemberDestination, PlannedMember, PlannedMembership, PlannedOutput,
-    ProjectionContext, ProjectionDisposition, ProjectionPlan, RenderedImplementation,
-    TargetBinding,
+    MemberDestination, PlannedMember, PlannedMembership, PlannedOutput, ProjectionContext,
+    ProjectionDisposition, ProjectionPlan, RenderedImplementation, TargetBinding,
 };
 use crate::refusal::ProjectionPlanning;
 use threadpak::types::Bounded;
@@ -59,7 +58,8 @@ pub const fn rust_declaration_profile_version() -> ProfileVersion {
 /// its schema version — and nothing else. The package version is deliberately
 /// absent: it sat here before, spelled `threadpak-macroc@0.0.0`, and at `0.0.0`
 /// before the first release it never moved, so a plan watching
-/// [`InvalidationTrigger::GeneratorVersionChanged`] was watching a value that
+/// [`GeneratorVersionChanged`](crate::planning::InvalidationTrigger::GeneratorVersionChanged)
+/// was watching a value that
 /// could not change. The schema version is the fact
 /// that moves when the rendered shape moves, so it is the fact this identity
 /// turns on.
@@ -272,17 +272,13 @@ pub fn planned(
         ],
     )?;
 
-    let invalidation = InvalidationTrigger::watched(
-        context.cause_trigger(),
-        vec![
-            InvalidationTrigger::ProjectionProfileChanged {
-                watched: context.profile,
-            },
-            InvalidationTrigger::GeneratorVersionChanged {
-                watched: context.generator,
-            },
-        ],
-    )?;
+    // Derived from the context rather than listed here. The roster this
+    // replaced named three triggers and skipped the graph one, because an
+    // expansion-time context is decided against the same capture that caused it
+    // and listing both would have stated one kind twice — knowledge held at this
+    // call site about a value declared elsewhere. The derivation holds it, and
+    // the set it returns is the same three.
+    let invalidation = context.watch_set()?;
 
     let derived_type: ProjectionIdentity<DerivedTypeSubject> =
         ProjectionIdentity::derived(ProjectionTranscript::under_projection(

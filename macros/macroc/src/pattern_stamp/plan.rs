@@ -8,26 +8,39 @@
 //!
 //! # What the watch set covers, exactly
 //!
-//! It covers the SHARED CONTEXT completely: the cause set, the graph the plan
-//! was decided against, the projection profile the member expects to be rendered
-//! by, and the version of the services that produced the plan. Every identity
-//! [`ProjectionContext`](crate::planning::ProjectionContext) carries has a
-//! trigger, and a law states that.
+//! The shared half is not written here at all. It is
+//! [`ProjectionContext::watch_set`](crate::planning::ProjectionContext::watch_set),
+//! derived from the context's own seats — so the roster that used to stand at
+//! this call site, and go stale against a context declared elsewhere, is gone.
+//! One consequence lands immediately: the target binding is watched now. The
+//! hand-written roster named the cause set, the graph, the profile and the
+//! generator and stopped, so a plan bound to a host contract carried no trigger
+//! for the contract it was bound to, while the roster's
+//! [`InvalidationTrigger::TargetContractChanged`] seat sat unused. No context in
+//! the tree is target-bound today, which is exactly why nobody met it.
 //!
-//! It does NOT cover the anchors a caller supplies beside the context — the
-//! authored pattern, this instantiation of it, the two typed arguments, the
-//! origin nodes, the stamped unit, the traced subject, and the cited owner
+//! The watch set does NOT cover the anchors a caller supplies beside the context
+//! — the authored pattern, this instantiation of it, the two typed arguments,
+//! the origin nodes, the stamped unit, the traced subject, and the cited owner
 //! facts. Those define the plan as surely as the context does, and a stamp
-//! planned against different ones is a different account. The reason is not a
-//! judgment that they do not matter: [`InvalidationTrigger`]'s roster declares
-//! no seat any of them could be watched through, and minting seats for them is a
-//! roster decision this file has no standing to take. Stated here rather than
-//! left for a reader to discover, because an unwatched anchor nobody wrote down
-//! is the shape of a plan that goes stale silently.
+//! planned against different ones is a different account.
 //!
-//! The derivation home has no such gap and needs no such statement: everything
-//! its plan is made of is derived from the captured declaration, so watching the
-//! capture watches the whole plan.
+//! That gap is now COUNTED rather than remembered. The road below destructures
+//! [`ScopeGuardStampAnchors`] exhaustively, so every anchor is accounted for by
+//! the compiler and an anchor added later stops the build until somebody decides
+//! what it means for invalidation. Each binding says where its anchor reaches
+//! the plan. The reason the remaining ones carry no trigger is not a judgment
+//! that they do not matter: [`InvalidationTrigger`]'s roster declares no seat any
+//! of them could be watched through, every seat it does declare is one
+//! thirty-two-byte identity of a declared kind, and the set's magnitude IS that
+//! roster's cardinality — so minting a seat per anchor would rebuild the
+//! hand-maintained roster one level down and push the set past its own bound.
+//! That is a declared-limit decision with its own controls, and it is not one
+//! this file may take.
+//!
+//! The derivation home has no such gap: everything its plan is made of is
+//! derived from the captured declaration, so watching the capture watches the
+//! whole plan.
 
 use super::ScopeGuardStampAnchors;
 use crate::origin_graph::{
@@ -35,8 +48,8 @@ use crate::origin_graph::{
 };
 use crate::plane::{AuthoringLimitProfile, PatternArgumentLimit, SoleRenderedUnit};
 use crate::planning::{
-    DigestContract, InvalidationTrigger, MemberDestination, PatternStampContent,
-    PatternStampProjection, PlannedMember, PlannedMembership, PlannedOutput, ProjectionPlan,
+    DigestContract, MemberDestination, PatternStampContent, PatternStampProjection, PlannedMember,
+    PlannedMembership, PlannedOutput, ProjectionPlan,
 };
 use crate::refusal::{BoundAxis, ProjectionPlanning};
 use threadpak::types::{AdmittedLimit, Bounded, ConstLimit};
@@ -58,8 +71,43 @@ use threadpak::types::{AdmittedLimit, Bounded, ConstLimit};
 pub fn plan_scope_guard_stamp(
     anchors: &ScopeGuardStampAnchors,
 ) -> Result<ProjectionPlan<PatternStampProjection>, ProjectionPlanning> {
+    // Exhaustive, and that is the mechanism rather than a style. The watch set
+    // used to be a roster written beside these anchors, so an anchor added later
+    // joined the plan and joined nothing else, silently. Destructured, every
+    // anchor is accounted for HERE: each binding below says where its anchor
+    // reaches the plan, and one added tomorrow stops the build until somebody
+    // says the same about it.
+    let ScopeGuardStampAnchors {
+        // The shared dependency keys. The only seat whose triggers are derived,
+        // because it is the only seat the roster has kinds for.
+        context,
+        // Reaches the plan through the kind's own content, which the plan
+        // transcript deliberately does not commit to — the boundary
+        // `PlanDerivation` states. No trigger seat.
+        pattern,
+        instance,
+        // The two typed arguments, likewise inside the kind's content. No
+        // trigger seat.
+        guard_name,
+        scope_type,
+        // Reach the plan through the origin trail, and through the member's own
+        // copy of it. No trigger seat.
+        authored_node,
+        instantiated_node,
+        rendered_node,
+        // Reaches the plan through the membership: it is the member's semantic
+        // key and the anchor its digest contract binds to. No trigger seat.
+        stamped_unit,
+        // Reaches the plan through the decision trace, as the subject both
+        // decisions are recorded about. No trigger seat.
+        traced,
+        // Reach the plan through the decision trace, as the facts the two
+        // decisions cite. No trigger seat.
+        owner_facts,
+    } = anchors;
+
     let arguments = Bounded::admitted_const(
-        vec![anchors.guard_name, anchors.scope_type],
+        vec![*guard_name, *scope_type],
         &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
     )
     .map_err(|_| {
@@ -67,70 +115,46 @@ pub fn plan_scope_guard_stamp(
     })?;
     let origin = OriginTrail::drawn(
         OriginEdge {
-            from: anchors.authored_node,
+            from: *authored_node,
             relation: OriginRelation::PatternInstantiation,
-            to: anchors.instantiated_node,
+            to: *instantiated_node,
         },
         vec![OriginEdge {
-            from: anchors.instantiated_node,
+            from: *instantiated_node,
             relation: OriginRelation::Rendering,
-            to: anchors.rendered_node,
+            to: *rendered_node,
         }],
     )?;
     let trace = DecisionTrace::recorded(
         TraceEntry {
-            subject: anchors.traced,
-            decision: TraceDecision::SelectedBecause(
-                anchors.owner_facts.class_c_carries_no_ordering,
-            ),
+            subject: *traced,
+            decision: TraceDecision::SelectedBecause(owner_facts.class_c_carries_no_ordering),
         },
         vec![TraceEntry {
-            subject: anchors.traced,
-            decision: TraceDecision::SelectedBecause(
-                anchors.owner_facts.comparison_is_scope_guarded,
-            ),
+            subject: *traced,
+            decision: TraceDecision::SelectedBecause(owner_facts.comparison_is_scope_guarded),
         }],
     )?;
     let membership = PlannedMembership::from_member(PlannedMember {
         role: SoleRenderedUnit::Sole,
         output: PlannedOutput {
-            semantic_key: anchors.stamped_unit,
+            semantic_key: *stamped_unit,
             destination: MemberDestination::AtDeclarationSite,
             origin: origin.clone(),
-            expected_profile: anchors.context.profile,
-            expected_profile_version: anchors.context.profile_version,
-            digest_contract: DigestContract::over(anchors.stamped_unit),
+            expected_profile: context.profile,
+            expected_profile_version: context.profile_version,
+            digest_contract: DigestContract::over(*stamped_unit),
         },
     });
-    // Every identity the shared context carries is watched, and the profile is
-    // the one that used to be missing. The plan's member declares the profile
-    // and version it EXPECTS to be rendered by, so a profile that moved leaves a
-    // plan whose expectation nobody re-decided — a stale account that still
-    // reads as current. The remaining anchors are named as unwatched in the
-    // module's own account below, because the trigger roster has no seat for
-    // them and inventing one here would be a decision this file has no standing
-    // to make.
-    let invalidation = InvalidationTrigger::watched(
-        anchors.context.cause_trigger(),
-        vec![
-            anchors.context.graph_trigger(),
-            InvalidationTrigger::ProjectionProfileChanged {
-                watched: anchors.context.profile,
-            },
-            InvalidationTrigger::GeneratorVersionChanged {
-                watched: anchors.context.generator,
-            },
-        ],
-    )?;
     ProjectionPlan::<PatternStampProjection>::planned(
-        anchors.context.clone(),
+        context.clone(),
         PatternStampContent {
-            pattern: anchors.pattern,
-            instance: anchors.instance,
+            pattern: *pattern,
+            instance: *instance,
             arguments,
         },
         membership,
-        invalidation,
+        context.watch_set()?,
         trace,
         origin,
         Bounded::empty(),

@@ -213,7 +213,9 @@ obligations:
     red: owed-to-testpak
   - id: refusal.handling-carries-do-not-retry
     challenge_kind: compile-law
-    green: laws.rs refusal::handling_carries_do_not_retry
+    green: structural (DoNotRetry is a declared row of HandlingClass, and
+      laws.rs refusal::publication_requires_an_admitted_family reads it back off
+      a published cause rather than off a literal beside itself)
     red: owed-to-testpak
   - id: refusal.selection-order-is-family-declared
     challenge_kind: repository-structure

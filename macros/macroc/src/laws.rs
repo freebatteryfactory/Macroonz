@@ -523,13 +523,13 @@ mod refusal {
         let refusal = ProjectionPlanning::established(ProjectionPlanningIssue::MissingOwnerFact {
             seat: PlanSeat::TargetBinding,
         });
-        assert_eq!(refusal.report.carried().len(), 1);
+        assert_eq!(refusal.body().carried().len(), 1);
         assert!(matches!(
-            refusal.report.completion(),
+            refusal.body().completion(),
             CompletionPosture::Complete
         ));
         assert!(matches!(
-            refusal.report.carried().first(),
+            refusal.body().carried().first(),
             ProjectionPlanningIssue::MissingOwnerFact {
                 seat: PlanSeat::TargetBinding
             }
@@ -558,9 +558,9 @@ mod refusal {
             ProjectionPlanningIssue::OrphanGeneratedNode { node },
             vec![ProjectionPlanningIssue::MembershipIncomplete { absent: node }],
         );
-        assert_eq!(whole.report.carried().len(), 2);
+        assert_eq!(whole.body().carried().len(), 2);
         assert!(matches!(
-            whole.report.completion(),
+            whole.body().completion(),
             CompletionPosture::Complete
         ));
 
@@ -576,9 +576,9 @@ mod refusal {
             ProjectionPlanningIssue::MembershipIncomplete { absent: node },
             overrun,
         );
-        assert_eq!(truncated.report.carried().len(), PlanningIssueLimit::MAX);
+        assert_eq!(truncated.body().carried().len(), PlanningIssueLimit::MAX);
         assert!(matches!(
-            truncated.report.completion(),
+            truncated.body().completion(),
             CompletionPosture::ReportTruncated(truncation)
                 if truncation.omitted().get() == 1
                     && matches!(truncation.stopped_at(), StopBound::DeclaredIssueBound)
@@ -586,7 +586,7 @@ mod refusal {
         // The first issue survives at the front: a report that reordered its
         // findings under pressure would be a different report.
         assert!(matches!(
-            truncated.report.carried().first(),
+            truncated.body().carried().first(),
             ProjectionPlanningIssue::MembershipIncomplete { .. }
         ));
     }
@@ -598,7 +598,7 @@ mod refusal {
     fn bound_refusals_name_their_magnitude() {
         let refusal = ProjectionPlanning::bound_exceeded(BoundAxis::Outputs, 32, 33);
         assert!(matches!(
-            refusal.report.carried().first(),
+            refusal.body().carried().first(),
             ProjectionPlanningIssue::BoundExceeded {
                 axis: BoundAxis::Outputs,
                 bound: 32,
@@ -978,7 +978,7 @@ mod origin_graph {
         let (first, overrun) = walk(OriginEdgeLimit::MAX.saturating_add(1));
         let refused = OriginTrail::drawn(first, overrun);
         assert!(refused.is_err_and(|planning| matches!(
-            planning.report.carried().first(),
+            planning.body().carried().first(),
             ProjectionPlanningIssue::BoundExceeded {
                 axis: BoundAxis::OriginEdges,
                 ..
@@ -1019,7 +1019,7 @@ mod origin_graph {
         }
         let broken = OriginTrail::drawn(head, tail);
         assert!(broken.is_err_and(|planning| matches!(
-            planning.report.carried().first(),
+            planning.body().carried().first(),
             ProjectionPlanningIssue::TrailDiscontinuous { at: 2 }
         )));
     }
@@ -1068,7 +1068,7 @@ mod origin_graph {
         let overrun: Vec<TraceEntry> = core::iter::repeat_n(second, TraceEntryLimit::MAX).collect();
         let refused = DecisionTrace::recorded(first, overrun);
         assert!(refused.is_err_and(|planning| matches!(
-            planning.report.carried().first(),
+            planning.body().carried().first(),
             ProjectionPlanningIssue::BoundExceeded {
                 axis: BoundAxis::TraceEntries,
                 ..
@@ -1323,7 +1323,7 @@ mod planning {
             Bounded::empty(),
         );
         assert!(refused.is_err_and(|planning| matches!(
-            planning.report.carried().first(),
+            planning.body().carried().first(),
             ProjectionPlanningIssue::MissingOwnerFact {
                 seat: PlanSeat::TargetBinding
             }
@@ -1701,9 +1701,9 @@ mod explanation_protocol {
     fn an_incomplete_view_names_every_missing_seat() {
         let refused = ProjectionExplanationView::<HostWrapperProjection>::complete(Vec::new());
         assert!(refused.is_err_and(|coverage| {
-            coverage.report.carried().len() == 10
+            coverage.body().carried().len() == 10
                 && matches!(
-                    coverage.report.carried().first(),
+                    coverage.body().carried().first(),
                     ExplanationCoverageIssue::QuestionUnanswered(ExplanationQuestion::WhatAreYou)
                 )
         }));
@@ -1726,7 +1726,7 @@ mod explanation_protocol {
         }));
         let refused = ProjectionExplanationView::<DeriveImplProjection>::complete(doubled);
         assert!(refused.is_err_and(|coverage| matches!(
-            coverage.report.carried().first(),
+            coverage.body().carried().first(),
             ExplanationCoverageIssue::QuestionAnsweredTwice(
                 ExplanationQuestion::WhichOwnerRequired
             )
@@ -1748,7 +1748,7 @@ mod explanation_protocol {
         ));
         let rejected = ProjectionExplanationView::<DeriveImplProjection>::complete(foreign);
         assert!(rejected.is_err_and(|coverage| matches!(
-            coverage.report.carried().first(),
+            coverage.body().carried().first(),
             ExplanationCoverageIssue::QuestionNotApplicableToKind(
                 ExplanationQuestion::WhichCapabilitiesSelectedWrappers
             )
@@ -2044,7 +2044,7 @@ mod template {
                 .collect(),
         );
         assert!(short.is_err_and(|refusal| matches!(
-            refusal.report.carried().first(),
+            refusal.body().carried().first(),
             TemplateConstructionIssue::CeilingAxisAbsent {
                 axis: MetaBoundAxis::Memory
             }
@@ -2063,7 +2063,7 @@ mod template {
                 .collect(),
         );
         assert!(doubled.is_err_and(|refusal| matches!(
-            refusal.report.carried().first(),
+            refusal.body().carried().first(),
             TemplateConstructionIssue::CeilingAxisDoubled {
                 axis: MetaBoundAxis::Work
             }
@@ -2099,7 +2099,7 @@ mod template {
             vec![parameter(SpliceCategory::Expression, 10)],
         );
         assert!(doubled.is_err_and(|refusal| matches!(
-            refusal.report.carried().first(),
+            refusal.body().carried().first(),
             TemplateConstructionIssue::DuplicateParameter { .. }
         )));
     }
@@ -2170,7 +2170,7 @@ mod template {
 
         let unbound = apply(bindings(&[(SpliceCategory::Type, 20, 30)]));
         assert!(unbound.is_err_and(|refusal| matches!(
-            refusal.report.carried().first(),
+            refusal.body().carried().first(),
             TemplateConstructionIssue::MissingBinding { .. }
         )));
 
@@ -2180,7 +2180,7 @@ mod template {
             (SpliceCategory::Expression, 21, 31),
         ]));
         assert!(doubled.is_err_and(|refusal| matches!(
-            refusal.report.carried().first(),
+            refusal.body().carried().first(),
             TemplateConstructionIssue::DuplicateBinding { .. }
         )));
     }
@@ -2200,7 +2200,7 @@ mod template {
             (SpliceCategory::Pattern, 99, 98),
         ]));
         assert!(stranger.is_err_and(|refusal| matches!(
-            refusal.report.carried().first(),
+            refusal.body().carried().first(),
             TemplateConstructionIssue::UnknownParameter { .. }
         )));
 
@@ -2209,7 +2209,7 @@ mod template {
             (SpliceCategory::Expression, 21, 31),
         ]));
         assert!(recategorized.is_err_and(|refusal| matches!(
-            refusal.report.carried().first(),
+            refusal.body().carried().first(),
             TemplateConstructionIssue::DeclaredCategoryDisagreement {
                 declared: SpliceCategory::Type,
                 bound: SpliceCategory::Pattern,
@@ -2246,7 +2246,7 @@ mod template {
         ]));
         assert!(both.is_err_and(|refusal| {
             let established: Vec<&TemplateConstructionIssue> =
-                refusal.report.carried().iter().collect();
+                refusal.body().carried().iter().collect();
             established.len() == 2
                 && established.iter().any(|issue| {
                     matches!(issue, TemplateConstructionIssue::DuplicateBinding { .. })
@@ -2269,9 +2269,9 @@ mod template {
             (SpliceCategory::Expression, 21, 31),
         ]));
         assert!(doubling_alone.is_err_and(|refusal| {
-            refusal.report.carried().len() == 1
+            refusal.body().carried().len() == 1
                 && matches!(
-                    refusal.report.carried().first(),
+                    refusal.body().carried().first(),
                     TemplateConstructionIssue::DuplicateBinding { .. }
                 )
         }));
@@ -2395,7 +2395,7 @@ mod template {
             .collect();
         let refused = template(parameter(SpliceCategory::Expression, 99), overrun);
         assert!(refused.is_err_and(|refusal| matches!(
-            refusal.report.carried().first(),
+            refusal.body().carried().first(),
             TemplateConstructionIssue::SeatBoundExceeded {
                 seat: TemplateSeat::DeclaredParameters,
                 bound: 32,
@@ -2514,7 +2514,7 @@ mod trigger_view {
             .collect();
         let refused = WrapperTriggerView::composed(plan, undecided, Vec::new());
         assert!(refused.is_err_and(|composition| matches!(
-            composition.report.carried().first(),
+            composition.body().carried().first(),
             TriggerViewIssue::MissingComponentDisposition {
                 component: WrapperComponent::Cancellation
             }
@@ -2528,7 +2528,7 @@ mod trigger_view {
             vec![omission(WrapperComponent::Observation)],
         );
         assert!(twice.is_err_and(|composition| matches!(
-            composition.report.carried().first(),
+            composition.body().carried().first(),
             TriggerViewIssue::DoubledComponent {
                 component: WrapperComponent::Observation
             }
@@ -2553,7 +2553,7 @@ mod trigger_view {
             vec![selection(WrapperComponent::Admission)],
             Vec::new(),
         );
-        assert!(refused.is_err_and(|composition| composition.report.carried().len() == 7));
+        assert!(refused.is_err_and(|composition| composition.body().carried().len() == 7));
     }
 }
 
@@ -2650,7 +2650,7 @@ mod composition {
             vec![provider(DescriptorKind::BenchmarkDescriptor, 3)],
         );
         assert!(doubled.is_err_and(|refusal| matches!(
-            refusal.report.carried().first(),
+            refusal.body().carried().first(),
             CompositionRootIssue::DuplicateProvider { .. }
         )));
 
@@ -2665,7 +2665,7 @@ mod composition {
         let refused =
             CompositionRoot::declared(provider(DescriptorKind::RemoteSurfaceEntry, 4), overrun);
         assert!(refused.is_err_and(|refusal| matches!(
-            refusal.report.carried().first(),
+            refusal.body().carried().first(),
             CompositionRootIssue::SeatBoundExceeded {
                 bound: 64,
                 observed: 71
@@ -2694,7 +2694,7 @@ mod composition {
                 provider(DescriptorKind::ApiInventoryRow, 6),
             ],
         );
-        assert!(refused.is_err_and(|refusal| refusal.report.carried().len() == 2));
+        assert!(refused.is_err_and(|refusal| refusal.body().carried().len() == 2));
     }
 }
 
@@ -2774,41 +2774,125 @@ mod pattern_stamp {
         }));
     }
 
-    /// law: pattern-stamp.the-watch-set-covers-every-context-anchor — every
-    /// identity the shared plan context carries is watched by a trigger of its
-    /// own: the cause set, the graph, the projection profile, and the generator
-    /// version. Four seats, four triggers, none of them the same kind twice.
+    /// law: pattern-stamp.the-watch-set-is-derived-from-the-context — the
+    /// stamp's watch set is not written at the stamp's plan site. It IS
+    /// `ProjectionContext::watch_set`, derived from the seats the context
+    /// declares, so there is no second roster at the call site to fall behind
+    /// the value it is about.
     ///
-    /// The profile was the missing one. A stamp's planned member declares the
-    /// profile and version it EXPECTS to render under, so a profile that moved
-    /// left a plan whose expectation nobody re-decided — stale, and still
-    /// reading as current.
+    /// Where the strength actually lives: the derivation destructures
+    /// `ProjectionContext` exhaustively, and the plan site destructures
+    /// `ScopeGuardStampAnchors` exhaustively. A seat added to either stops the
+    /// build until somebody decides what it means for invalidation. That is a
+    /// compiler-carried completeness claim, and this law is the positive control
+    /// beside it rather than the claim itself.
     ///
-    /// The claim ceiling, stated because it is the honest boundary: this covers
-    /// the CONTEXT and not the anchors supplied beside it. The pattern, the
-    /// instantiation, the two typed arguments, the origin nodes, the stamped
-    /// unit, the traced subject, and the cited owner facts define the plan too,
-    /// and the trigger roster declares no seat any of them could be watched
-    /// through. The gap is named in `pattern_stamp/plan.rs` rather than papered
-    /// over here.
+    /// The claim ceiling, stated because it is the honest boundary: the derived
+    /// set covers the CONTEXT and not the anchors supplied beside it. The
+    /// pattern, the instantiation, the two typed arguments, the origin nodes,
+    /// the stamped unit, the traced subject and the cited owner facts define the
+    /// plan too, and the trigger roster declares no seat any of them could be
+    /// watched through — every seat it declares is one thirty-two-byte identity
+    /// of a declared kind, and the set's magnitude IS that roster's cardinality.
+    /// Those anchors are now COUNTED by the plan site's destructure rather than
+    /// remembered by its prose.
     ///
-    /// Owed reversal (red twin): dropping any context trigger from the watch set
-    /// must break this law.
+    /// Reversal: dropping any context seat from the derivation breaks this law,
+    /// and adding a seat to either struct breaks the build.
     #[test]
-    fn the_watch_set_covers_every_context_anchor() {
+    fn the_watch_set_is_derived_from_the_context() {
         let anchors = anchors();
+        let derived = anchors.context.watch_set();
         let planned = plan_scope_guard_stamp(&anchors);
         assert!(planned.is_ok_and(|plan| {
-            let watched: Vec<InvalidationTrigger> = plan.invalidation().iter().copied().collect();
+            derived.is_ok_and(|derived| {
+                let from_plan: Vec<InvalidationTrigger> =
+                    plan.invalidation().iter().copied().collect();
+                let from_context: Vec<InvalidationTrigger> = derived.iter().copied().collect();
+                from_plan == from_context
+            })
+        }));
+    }
+
+    /// law: pattern-stamp.every-context-identity-is-watched — every identity the
+    /// shared plan context carries has a trigger of its own: the cause set, the
+    /// graph, the projection profile, the generator version, and — where the
+    /// context is bound to one — the host contract.
+    ///
+    /// The target binding was the missing one, and it was missing in a way no
+    /// existing control could see: the hand-written roster stopped at four, the
+    /// roster's `TargetContractChanged` seat sat unused, and every context in
+    /// the tree is target-FREE, so the gap only opens for the first plan bound
+    /// to a host contract. The control below binds one deliberately.
+    ///
+    /// The two postures are asked separately because they are different claims.
+    /// A target-free context contributes no trigger — a posture is not an
+    /// identity and there is nothing to name — and a bound one contributes
+    /// exactly one, naming the contract.
+    #[test]
+    fn every_context_identity_is_watched() {
+        let free = anchors();
+        assert!(free.context.watch_set().is_ok_and(|set| {
+            let watched: Vec<InvalidationTrigger> = set.iter().copied().collect();
             watched.len() == 4
-                && watched.contains(&anchors.context.cause_trigger())
-                && watched.contains(&anchors.context.graph_trigger())
+                && watched.contains(&free.context.cause_trigger())
+                && watched.contains(&free.context.graph_trigger())
                 && watched.contains(&InvalidationTrigger::ProjectionProfileChanged {
-                    watched: anchors.context.profile,
+                    watched: free.context.profile,
                 })
                 && watched.contains(&InvalidationTrigger::GeneratorVersionChanged {
-                    watched: anchors.context.generator,
+                    watched: free.context.generator,
                 })
+                // A posture is not an identity: target-free names nothing.
+                && !watched.iter().any(|trigger| {
+                    matches!(trigger, InvalidationTrigger::TargetContractChanged { .. })
+                })
+        }));
+
+        // The same context bound to a host contract watches the contract too.
+        let contract = OwnerIdentityRef::decoded([117; 32]);
+        let mut bound = anchors();
+        bound.context.target = TargetBinding::HostContract(contract);
+        assert!(bound.context.watch_set().is_ok_and(|set| {
+            let watched: Vec<InvalidationTrigger> = set.iter().copied().collect();
+            watched.len() == 5
+                && watched
+                    .contains(&InvalidationTrigger::TargetContractChanged { watched: contract })
+        }));
+    }
+
+    /// law: pattern-stamp.the-watch-set-never-states-one-kind-twice — the
+    /// derived set is a SET.
+    ///
+    /// An expansion-time context is decided against one captured declaration and
+    /// CAUSED by that same capture, so its cause trigger and its graph trigger
+    /// are the same trigger. Listed, that is one kind stated twice — which is
+    /// what the invalidation magnitude is declared to exclude, since its value IS
+    /// the trigger roster's cardinality. The derivation deduplicates, so the
+    /// set does not depend on a call site remembering to skip the repeat, and
+    /// the plan transcript's set encoding writes one member rather than two.
+    #[test]
+    fn the_watch_set_never_states_one_kind_twice() {
+        let captured = crate::plane::for_laws(120);
+        let mut shared = anchors();
+        shared.context.graph = GraphAnchoring::CapturedDeclarationOnly(captured);
+        shared.context.sources = CauseAnchoring::CapturedDeclaration(captured);
+
+        // The two seats really do resolve to one trigger — the premise the
+        // deduplication is about, asserted rather than assumed.
+        assert_eq!(
+            shared.context.cause_trigger(),
+            shared.context.graph_trigger()
+        );
+
+        assert!(shared.context.watch_set().is_ok_and(|set| {
+            let watched: Vec<InvalidationTrigger> = set.iter().copied().collect();
+            watched.len() == 3
+                && watched
+                    .iter()
+                    .filter(|trigger| **trigger == shared.context.cause_trigger())
+                    .count()
+                    == 1
         }));
     }
 
@@ -3293,7 +3377,7 @@ mod derive_refusal {
             partial,
         );
         assert!(proved.is_err_and(|refusal| {
-            *refusal.report.carried().first()
+            *refusal.body().carried().first()
                 == ClosureIssue::MemberMissing {
                     role: RenderedImplementation::RenderedCauseOrderImpl,
                 }
@@ -3400,7 +3484,7 @@ mod failure_path_closure {
             .ok_or(())?;
         let doubled = PlannedMembership::declared(member.clone(), vec![member]);
         assert!(doubled.is_err_and(|refusal| {
-            *refusal.report.carried().first()
+            *refusal.body().carried().first()
                 == ProjectionPlanningIssue::MembershipDoubled {
                     role_slot: RenderedImplementation::RenderedFamilyImpl.slot(),
                     observed: 2,
@@ -3436,7 +3520,7 @@ mod failure_path_closure {
             RenderedProjection::of_one(unit),
         );
         assert!(proved.is_err_and(|refusal| {
-            *refusal.report.carried().first()
+            *refusal.body().carried().first()
                 == ClosureIssue::MemberPlannedTwice {
                     role: RenderedImplementation::RenderedFamilyImpl,
                     observed: 2,

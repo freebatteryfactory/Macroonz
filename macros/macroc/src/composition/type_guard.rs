@@ -4,14 +4,70 @@
 //! Declared inside `types.rs` as its own child, which is what makes this home's
 //! end of the bidirectional join structural. A root is built HERE, after the
 //! duplicate scan agreed, so a root carrying one provider identity twice is a
-//! value nobody can hold rather than a state a later check has to notice.
+//! value nobody can hold rather than a state a later check has to notice. The
+//! refusal BODY is built here for the same reason and by the same permission:
+//! its seat is private, so this file is the only module in the workspace that
+//! can spell the literal, and every refusal that exists came off the scan.
+//!
+//! # What a private seat does and does not exclude
+//!
+//! It excludes every SIBLING: `establish.rs` beside it, anywhere else in the
+//! services, and any crate downstream cannot write the literal, and the compiler
+//! says so with `E0451`. It does not exclude DESCENDANTS — a module declared
+//! inside this one would construct as freely as these roads do, so a
+//! `#[cfg(test)] mod` under the guard would reopen exactly what the guard closes,
+//! and the reversals for this seat are testpak's compile-fail fixtures instead.
 
-use super::super::establish::{duplicate_issues, refused};
+use super::super::establish::duplicate_issues;
 use super::{
     CompositionRoot, CompositionRootDeclaration, CompositionRootIssue, DescriptorProvider,
 };
-use crate::plane::{AuthoringLimitProfile, DescriptorProviderLimit};
+use crate::plane::{AuthoringLimitProfile, CompositionIssueLimit, DescriptorProviderLimit};
+use threadpak::refusal::{AdmittedPrefix, StopBound};
 use threadpak::types::{ConstLimit, NonEmptyBounded, PositiveLimit};
+
+/// The refusal one established issue list amounts to, or nothing where the list
+/// is empty.
+fn refused(issues: Vec<CompositionRootIssue>) -> Option<CompositionRootDeclaration> {
+    let mut established = issues.into_iter();
+    let first = established.next()?;
+    Some(CompositionRootDeclaration::established(
+        first,
+        established.collect(),
+    ))
+}
+
+impl CompositionRootDeclaration {
+    /// The body a declaration check refuses with.
+    ///
+    /// The duplicate scan runs the declared set to the end before a body exists,
+    /// so the posture here is never about the scan: it is about the REPORT. Where
+    /// every established issue fits the declared bound the body carries all of
+    /// them and says `Complete`; where it does not, the body carries what the
+    /// bound holds and names how many established issues stand outside it. A
+    /// posture claiming the examination stopped would say nobody looked past the
+    /// bound, and somebody did.
+    fn established(first: CompositionRootIssue, rest: Vec<CompositionRootIssue>) -> Self {
+        Self {
+            body: AdmittedPrefix::examined_completely(
+                first,
+                rest,
+                &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+                StopBound::DeclaredIssueBound,
+            ),
+        }
+    }
+
+    /// The established issues and what this refusal says about its own coverage
+    /// of them.
+    ///
+    /// Borrowed and never owned, for the reason band 00 borrows its carry: an
+    /// owned body is a value a caller can seat under another refusal, which is
+    /// the pairing the coupled seat exists to end.
+    pub const fn body(&self) -> &AdmittedPrefix<CompositionRootIssue, CompositionIssueLimit> {
+        &self.body
+    }
+}
 
 impl CompositionRoot {
     /// Declare the complete provider set.

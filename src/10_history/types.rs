@@ -26,9 +26,7 @@
 //! acknowledgement was lost in transit. Recovery ends at a committed prefix,
 //! lawful rollback, or typed refusal — no fourth ending.
 
-use crate::identity::{
-    AuthorityPosition, Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence,
-};
+use crate::identity::{Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence};
 use crate::refusal::{AdmittedPrefix, CompletionPosture, FamilyShape, RefusalFamily};
 use crate::schema::SchemaSemanticCommitment;
 use crate::types::{Bounded, Completeness, EvidenceCut, EvidenceRef, Freshness, Limit};
@@ -80,18 +78,19 @@ impl StoreLineageId {
     }
 }
 
-/// One authority generation — Class C, scoped to its lineage. The ordering
-/// contract is fixed per generation: any change that would make old and new
-/// sequence values incomparable mints a new generation, so the generation a
-/// value carries names its ordering contract.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct AuthorityGeneration(AuthorityPosition<StoreLineageId>);
+crate::scope_guard_version! {
+    /// One authority generation — Class C, scoped to its lineage. The ordering
+    /// contract is fixed per generation: any change that would make old and new
+    /// sequence values incomparable mints a new generation, so the generation a
+    /// value carries names its ordering contract.
+    pub struct AuthorityGeneration over StoreLineageId;
+}
 
 impl AuthorityGeneration {
     /// In-crate mint for laws. Test-gated until admission minting exists.
     #[cfg(test)]
     pub(crate) fn for_laws(seed: u8) -> Self {
-        Self(AuthorityPosition::assigned(
+        Self(crate::identity::AuthorityPosition::assigned(
             StoreLineageId::for_laws(Occurrence::for_laws(
                 crate::identity::OccurrenceForm::Fresh([seed; 16]),
             )),
@@ -116,10 +115,11 @@ impl IdentityRole for PartitionId {
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
 }
 
-/// One write-authority epoch — Class C, scoped to its partition. No state
-/// admits both epochs accepting writes.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct WriteAuthorityEpoch(AuthorityPosition<PartitionId>);
+crate::scope_guard_version! {
+    /// One write-authority epoch — Class C, scoped to its partition. No state
+    /// admits both epochs accepting writes.
+    pub struct WriteAuthorityEpoch over PartitionId;
+}
 
 /// The identity role marker for events. `EventId` deliberately declares NO
 /// fixed creation law: the register's one delegated row — the creation law is
