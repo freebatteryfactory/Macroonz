@@ -8,7 +8,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::repository::types::GreenRow;
+use crate::repository::types::{GreenRow, ObligationRecord};
 
 /// The lines inside the README's fenced yaml block.
 ///
@@ -394,9 +394,123 @@ pub(crate) fn tooling_red_rows(readme_text: &str) -> Vec<String> {
         .collect()
 }
 
+/// The line an obligation record opens with, as every home README writes one.
+const RECORD_OPENER: &str = "- id:";
+
+/// A record being read: what it opened as, how deep it opened, and the lines it
+/// has carried so far.
+///
+/// It never leaves this reader. What the rest of the repository is handed is an
+/// [`ObligationRecord`], whose rows are already read.
+struct OpenRecord {
+    /// The identity the opening line stated.
+    id: String,
+    /// The indentation the opening line stood at. Its fields stand deeper.
+    depth: usize,
+    /// The lines this record has carried, as they were written.
+    carried: String,
+}
+
+/// Every obligation RECORD one README declares, in file order, each carrying the
+/// rows its own block wrote.
+///
+/// A record opens at `- id:` and carries every following line indented DEEPER
+/// than the line that opened it; the next opener, or any line back at or above
+/// that indentation, closes it. That is the shape these blocks are written in,
+/// and it is the whole of the structure this reader knows.
+///
+/// The rows are read by the readers that already read rows. This function's
+/// entire job is to decide WHICH lines each record owns and then hand those
+/// lines to [`classify_green_rows`] and [`red_twin_rows`] — the same two
+/// functions, over a narrower text. Nothing here matches a prefix, splits a
+/// value, or decides what a row means: a second reading of a row is the defect
+/// this file's whole history is made of, and grouping is not reading.
+///
+/// # What the grouping closed
+///
+/// The join used to gather `green:` and `red:` rows by two independent scans of
+/// the whole file, with nothing binding a row to the obligation that declared
+/// it. Delete an obligation's `green:` line and the record stated no positive
+/// control at all: no route existed, so no route was resolved, and the
+/// obligation qualified on its `red:` row alone. Delete its `red:` line and the
+/// published core denominator shrank by one with nothing saying so. Neither
+/// deletion could be seen by a reader whose subject was a ROW, because the
+/// missing row is exactly the thing a row-shaped reader has nothing to say
+/// about — unlike a `laws.rs` claim, which an orphaned law exposes from the
+/// other side.
+///
+/// # The ceiling, and which way it falls
+///
+/// This reads a record by its declared FIELD STRUCTURE — an opener and the
+/// indentation beneath it — and not by parsing the fenced block as the yaml
+/// document it is written as. So a `- id:` line written in prose opens a record
+/// that is not one, and a record whose fields are not indented deeper than their
+/// opener carries none of them.
+///
+/// Both fail LOUDLY. An invented record carries no rows and is refused for
+/// carrying none; a record whose fields escaped it leaves those rows owned by
+/// nobody, and the join names them against the README that wrote them. There is
+/// no direction in which a mis-grouped record reads as whole. What it costs is a
+/// writer who wanted to DESCRIBE a record without declaring one, and the tree
+/// pays that today rather than suffering from it.
+///
+/// What it does NOT establish is that two records state two different ids: an id
+/// is a join key only where the record routes, and nothing here refuses a
+/// repeated one. The permanent seat for all of it is the same one
+/// [`classify_green_rows`] and [`readme_yaml_block`] are waiting on — one
+/// Markdown parser, typed fenced blocks selected by SCHEMA rather than by
+/// position, and one versioned claim and evidence schema read out of them, where
+/// a record is a value with named fields rather than a shape a reader infers.
+pub(crate) fn obligation_records(readme_text: &str) -> Vec<ObligationRecord> {
+    let mut closed: Vec<OpenRecord> = Vec::new();
+    let mut open: Option<OpenRecord> = None;
+    for line in readme_text.lines() {
+        let trimmed = line.trim();
+        if let Some(stated) = trimmed.strip_prefix(RECORD_OPENER) {
+            closed.extend(open.replace(OpenRecord {
+                id: stated.trim().to_string(),
+                depth: indentation(line),
+                carried: String::new(),
+            }));
+        } else if trimmed.is_empty() {
+            // A blank line states nothing, so it neither carries a row nor
+            // decides where a record ends.
+        } else if open
+            .as_ref()
+            .is_some_and(|record| indentation(line) > record.depth)
+        {
+            if let Some(record) = open.as_mut() {
+                record.carried.push_str(line);
+                record.carried.push('\n');
+            }
+        } else {
+            closed.extend(open.take());
+        }
+    }
+    closed.extend(open);
+    closed
+        .into_iter()
+        .map(|record| ObligationRecord {
+            id: record.id,
+            green: classify_green_rows(&record.carried),
+            red: red_twin_rows(&record.carried),
+        })
+        .collect()
+}
+
+/// How deep one line stands: the width of the whitespace it opens with, as
+/// written.
+///
+/// Compared against another line's, never against a number. What decides a
+/// record's extent is that its fields stand deeper than its opener, and that
+/// relation holds however wide the file's indentation happens to be.
+fn indentation(line: &str) -> usize {
+    line.len().saturating_sub(line.trim_start().len())
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{classify_green_rows, red_twin_rows, tooling_red_rows};
+    use super::{classify_green_rows, obligation_records, red_twin_rows, tooling_red_rows};
     use crate::repository::types::GreenRow;
 
     /// A row is read off the trimmed line, so an ordinary word ending in `red`
@@ -770,6 +884,128 @@ mod tests {
                 GreenRow::Unreadable(String::from("laws.rs")),
             ]
         );
+    }
+
+    /// One README block declaring three obligation records, the third of which
+    /// is the only one carrying a route.
+    const THREE_RECORDS: &str = "```yaml\n\
+                                 home: bounds\n\
+                                 obligations:\n\
+                                 \x20 - id: bounds.classes-are-closed-and-seven\n\
+                                 \x20   challenge_kind: compile-law\n\
+                                 \x20   green: laws.rs bounds::classes_are_closed_and_seven\n\
+                                 \x20   red: owed-to-testpak\n\
+                                 \x20 - id: bounds.budget-is-affine\n\
+                                 \x20   challenge_kind: compile-refusal\n\
+                                 \x20   green: laws.rs bounds::budget_is_affine\n\
+                                 \x20   red: owed-to-testpak — cloning a Budget must not compile\n\
+                                 \x20 - id: bounds.a-stamped-roster\n\
+                                 \x20   challenge_kind: compile-refusal\n\
+                                 \x20   green: testpak/tests/stamp_row_ceiling.rs\n\
+                                 \x20   red: testpak/tests/compile-fail/a-roster.rs\n\
+                                 ```\n";
+
+    /// The positive control for the grouping: every row lands in the record
+    /// whose own block wrote it, read by the readers that already read rows.
+    ///
+    /// The third record is the load-bearing one — its green row is a ROUTE, and
+    /// the route now has to be joined to the obligation that named it, which is
+    /// impossible while a route is a loose row nobody's record owns.
+    #[test]
+    fn every_row_lands_in_the_record_that_wrote_it() {
+        let records = obligation_records(THREE_RECORDS);
+        assert_eq!(records.len(), 3, "{:?}", records.len());
+        assert!(
+            records
+                .iter()
+                .all(|record| record.green.len() == 1 && record.red.len() == 1),
+            "a record lost or gained a row"
+        );
+        let ids: Vec<&str> = records.iter().map(|record| record.id.as_str()).collect();
+        assert_eq!(
+            ids,
+            vec![
+                "bounds.classes-are-closed-and-seven",
+                "bounds.budget-is-affine",
+                "bounds.a-stamped-roster",
+            ]
+        );
+        assert!(
+            records.last().is_some_and(|record| record.green.first()
+                == Some(&GreenRow::Route(String::from(
+                    "testpak/tests/stamp_row_ceiling.rs"
+                )))),
+            "the route did not land in the record that named it"
+        );
+        assert!(
+            records
+                .first()
+                .is_some_and(|record| record.red == vec![String::from("owed-to-testpak")]),
+            "the red row did not land in the record that declared it"
+        );
+    }
+
+    /// Planted reversal: an obligation whose `green:` row was deleted, and one
+    /// whose `red:` row was deleted.
+    ///
+    /// Read as loose rows, neither deletion is visible at all: the whole-file
+    /// scans simply return one row fewer, and no reader in this repository has
+    /// an opinion about a row that is not there. Read as records, the record
+    /// that lost a row is the record that carries none, and the emptiness is
+    /// something a reader downstream can name.
+    #[test]
+    fn a_record_that_lost_a_row_carries_none() {
+        let text = "```yaml\n\
+                    obligations:\n\
+                    \x20 - id: bounds.no-route-at-all\n\
+                    \x20   challenge_kind: compile-law\n\
+                    \x20   red: owed-to-testpak\n\
+                    \x20 - id: bounds.no-reversal-at-all\n\
+                    \x20   challenge_kind: compile-law\n\
+                    \x20   green: laws.rs bounds::budget_is_affine\n\
+                    ```\n";
+        let records = obligation_records(text);
+        assert_eq!(records.len(), 2, "{:?}", records.len());
+        assert!(
+            records
+                .first()
+                .is_some_and(|record| record.green.is_empty() && record.red.len() == 1),
+            "the record that lost its green row is not the record carrying none"
+        );
+        assert!(
+            records
+                .last()
+                .is_some_and(|record| record.green.len() == 1 && record.red.is_empty()),
+            "the record that lost its red row is not the record carrying none"
+        );
+    }
+
+    /// Planted reversal: rows written where no record owns them — one above
+    /// every opener, and one standing back at the opener's own indentation.
+    ///
+    /// The grouping's own failure mode, and it is why the join counts what it
+    /// grouped against what the file wrote. A row no record carries is a row the
+    /// record reading never joins, so the grouping must not be able to lose one
+    /// quietly: here the whole-file readers see three green rows and the records
+    /// carry one, and that difference is the whole of what downstream needs.
+    #[test]
+    fn a_row_no_record_owns_is_carried_by_no_record() {
+        let text = "green: laws.rs bounds::a_row_above_every_record\n\
+                    red: owed-to-testpak\n\
+                    \x20 - id: bounds.the-one-real-record\n\
+                    \x20   green: laws.rs bounds::budget_is_affine\n\
+                    \x20   red: owed-to-testpak\n\
+                    \x20 green: laws.rs bounds::a_row_at_the_openers_own_depth\n";
+        let records = obligation_records(text);
+        assert_eq!(records.len(), 1, "{:?}", records.len());
+        assert!(
+            records
+                .first()
+                .is_some_and(|record| record.green.len() == 1 && record.red.len() == 1),
+            "a stray row was carried by a record that did not write it"
+        );
+        assert_eq!(classify_green_rows(text).len(), 3);
+        assert_eq!(red_twin_rows(text).len(), 2);
     }
 
     /// Planted reversal: a disposition that states the absence and withholds
