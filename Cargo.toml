@@ -24,7 +24,14 @@ members = [
 [workspace.package]
 version = "0.0.0"
 edition = "2024"
-rust-version = "1.97"
+# The floor is the pin. `rust-version = "1.97"` means 1.97.0, and nothing has
+# ever been built on 1.97.0 here: `rust-toolchain.toml` pins 1.97.1, every
+# hosted run installs 1.97.1, and every working machine resolves 1.97.1. A floor
+# nobody stands on is a claim nobody tested, so the floor is stated as the
+# version that is actually underneath the build. `one-toolchain-floor` joins
+# this line to the pin, to the README, and to `clippy.toml`, which is why the
+# disagreement is now unrepresentable rather than merely absent.
+rust-version = "1.97.1"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/freebatteryfactory/ThreadPak"
 

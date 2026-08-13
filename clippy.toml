@@ -2,8 +2,11 @@
 # value nobody decided; restating it here converts inheritance into a decision.
 
 # CHOSEN: the toolchain floor the workspace already pins, stated to clippy so
-# its suggestions never reach past the version this machine compiles on.
-msrv = "1.97"
+# its suggestions never reach past the version this machine compiles on. The
+# same three digits as `rust-toolchain.toml`, the root manifest's
+# `rust-version`, and the README's yaml block — `one-toolchain-floor` joins all
+# four, so the four cannot drift apart the way the first two already had.
+msrv = "1.97.1"
 
 # CHOSEN: a function longer than a hundred lines has stopped being one operation.
 # This restates clippy's default AS a decision, so raising it is a visible act.

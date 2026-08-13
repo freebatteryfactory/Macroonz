@@ -61,7 +61,7 @@ fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
         ("agents-claude-parity", check_agents_claude_parity),
         ("lf-and-no-symlinks", check_lf_and_no_symlinks),
         ("no-python", check_no_python),
-        ("toolchain-pin-matches-readme", check_toolchain_pin),
+        ("one-toolchain-floor", check_toolchain_pin),
         ("workspace-members-match-readme", check_workspace_members),
         ("lint-wall-inherited", check_lint_wall),
         ("no-core-tooling-edge", check_no_core_tooling_edge),
