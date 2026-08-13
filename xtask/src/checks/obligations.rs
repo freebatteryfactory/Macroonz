@@ -29,6 +29,13 @@ const TOOLING_READMES: [&str; 2] = ["macros/macroc/README.md", "testpak/README.m
 /// `owed-to-xtask-and-testpak`, and any other named creditor.
 const OWED_PREFIX: &str = "owed-to";
 
+/// The attribute the test harness collects a function by.
+const HARNESS_ATTRIBUTE: &str = "test";
+
+/// The attribute that leaves a collected test in the binary and stops a plain
+/// run from executing it.
+const SKIP_ATTRIBUTE: &str = "ignore";
+
 /// The obligations join, in four legs.
 ///
 /// **Green, both ways.** Every README obligation naming a `laws.rs` green law
@@ -64,8 +71,9 @@ const OWED_PREFIX: &str = "owed-to";
 /// a testpak seat rather than a `laws.rs` one, because a behavioral claim's
 /// strongest seat is the plane that drives it from outside. Such a row is a
 /// ROUTE, and it must resolve to an EXECUTABLE seat — a file directly under
-/// `testpak/tests/` that DECLARES at least one `#[test]`, which is to say a test
-/// that runs. A route is deliberately NOT read on the terms a named red twin is:
+/// `testpak/tests/` that DECLARES at least one `#[test]` a plain harness run
+/// EXECUTES, which is to say a test that is written and is not skipped. A route
+/// is deliberately NOT read on the terms a named red twin is:
 /// a red twin may lawfully be a compile-fail fixture, and a fixture whose whole
 /// content is that it must not compile can never stand as a positive control.
 ///
@@ -76,7 +84,9 @@ const OWED_PREFIX: &str = "owed-to";
 /// by depth alone the file was a seat, so a route naming it read as a positive
 /// control that executes while nothing executed — the same defect as offering a
 /// compile-fail fixture, arriving one level up, through a population that was
-/// narrowed by where a file SITS rather than by what it declares.
+/// narrowed by where a file SITS rather than by what it declares. A file whose
+/// every test carries `#[ignore]` runs zero tests in exactly the same way, one
+/// attribute deeper, and the parse is where that is read too.
 ///
 /// A green route pointing at a file nobody wrote is worse than an unproven
 /// claim, because it reads as proven; a green route pointing at its own red
@@ -298,9 +308,11 @@ fn phantom_green_routes(rows: &[(String, String)], seats: &SeatPopulation) -> Ve
             offences.push(format!(
                 "{readme}: green route names `{named}`, which is no executable test seat: a green \
                  route must name a file directly under `testpak/tests/` that DECLARES at least \
-                 one `#[test]`, spelled as its exact repository-relative path. A compile-fail \
-                 fixture can never be one, and neither can a top-level file that builds a test \
-                 binary with no test in it"
+                 one `#[test]` a plain harness run EXECUTES, spelled as its exact \
+                 repository-relative path. A compile-fail fixture can never be one; neither can a \
+                 top-level file that builds a test binary with no test in it; and neither can one \
+                 whose every test carries `#[ignore]`, which a plain run reports as ignored while \
+                 it finishes with nothing executed"
             ));
         }
     }
@@ -460,8 +472,10 @@ struct ReversalPopulation(Vec<String>);
 /// whether or not a test is written in it, so a file holding only helpers,
 /// only a module declaration, or nothing at all sits exactly where a seat sits
 /// and runs zero tests. Admitted by depth, such a file stood as a positive
-/// control that executes, and nothing executed. A seat here is a file that
-/// declares a test, established from a parse of it.
+/// control that executes, and nothing executed. A file whose every test is
+/// `#[ignore]`d is the same empty run written one attribute deeper. A seat here
+/// is a file that declares a test the harness RUNS, established from a parse of
+/// it.
 struct SeatPopulation(Vec<String>);
 
 impl ReversalPopulation {
@@ -570,8 +584,9 @@ fn seat_population(sources: &[(String, String)]) -> (SeatPopulation, Vec<String>
 
 /// Whether one parsed source declares at least one test cargo will RUN.
 ///
-/// The question is about ITEMS: that a function is declared, and that the test
-/// harness's own attribute sits ON it. A text search for `#[test]` answers a
+/// The question is about ITEMS: that a function is declared, that the test
+/// harness's own attribute sits ON it, and that nothing beside that attribute
+/// tells the harness to skip it. A text search for `#[test]` answers a
 /// different question and answers it wrongly in both directions — it says yes to
 /// the attribute written inside a doc comment, a string literal, or a
 /// commented-out block, each of which is a file with no test in it, and it is
@@ -579,18 +594,50 @@ fn seat_population(sources: &[(String, String)]) -> (SeatPopulation, Vec<String>
 /// reading, and it is the parse.
 ///
 /// An inline module is entered, because cargo's harness collects a test wherever
-/// it is declared inside the binary. `cfg` is not evaluated, on the precedent
-/// the coupling reader states: a test written under one is read as declared.
+/// it is declared inside the binary.
 ///
-/// The claim's ceiling: a `mod name;` reaching a SEPARATE file is not followed,
-/// and no macro is expanded, so a seat whose only tests arrive that way is not
-/// admitted here. That direction is the safe one — such a route is refused and
-/// its author is told exactly what is missing — and it is stated rather than
-/// left for a reader to discover.
+/// # An ignored test is not a test that runs
+///
+/// `#[ignore]` is not a comment on a test; it is an instruction to the harness.
+/// A plain `cargo test` collects the function, reports it as ignored, and
+/// finishes having executed it zero times — reaching it takes `--ignored` or
+/// `--include-ignored`, and no stage of this repository's entry bar passes
+/// either. A file whose every test carries the attribute therefore builds a
+/// binary that runs nothing, which is the empty-binary defect one attribute
+/// deeper: the route naming it reads as a positive control that executes while
+/// nothing executes. The attribute is a fact about the FUNCTION it sits on, so a
+/// file carrying an ignored test beside a live one is still a seat.
+///
+/// # Two ceilings, and they fail in OPPOSITE directions
+///
+/// A `mod name;` reaching a SEPARATE file is not followed, and no macro is
+/// expanded, so a seat whose only tests arrive that way is not admitted here.
+/// That direction fails CLOSED: the route is refused, its author is told exactly
+/// what is missing, and nothing reads as proven that is not.
+///
+/// The claim's ceiling, and it fails OPEN: `cfg` is not evaluated, on the
+/// precedent the coupling reader states. A `#[cfg(…)] #[test]` compiled OUT of
+/// the binary is still read here as declared, so a route may resolve to a seat
+/// whose only test does not exist in the binary that runs — and a
+/// `#[cfg_attr(…, ignore)]` is not read as a skip for the same reason. That
+/// direction admits what it cannot establish, which is why it is written down
+/// here rather than left to a reader. It is NOT half-closed: evaluating `cfg`
+/// means resolving features, targets and profiles against the build that will
+/// actually run, and a second, weaker evaluator written inside a check is a
+/// reader nobody could trust either.
+///
+/// What closes it is a stronger seat than a parse can reach: a green route
+/// naming the test FUNCTION it is controlled by, resolved against the roster a
+/// qualification run EXECUTED. That reading answers both ceilings at once — a
+/// test arriving through a separate file or a macro appears in the roster, one
+/// compiled out does not, and an ignored one is reported as ignored — and it
+/// needs a row that can name a function and a run that publishes what it ran.
+/// Neither exists today. It is the versioned claim and evidence schema's opening
+/// condition, and it is not built here.
 fn declares_a_runnable_test(items: &[syn::Item]) -> bool {
     items.iter().any(|item| {
         if let syn::Item::Fn(declared) = item {
-            declared.attrs.iter().any(is_test_attribute)
+            runs_under_the_harness(&declared.attrs)
         } else if let syn::Item::Mod(module) = item {
             module
                 .content
@@ -602,17 +649,40 @@ fn declares_a_runnable_test(items: &[syn::Item]) -> bool {
     })
 }
 
-/// Whether one attribute is the test harness's own.
+/// Whether one function's attributes make it a test the harness EXECUTES.
+///
+/// Two facts about one function, and the second is not the negation of the
+/// first: the harness's own attribute puts the function in the binary, and the
+/// skip leaves it there and stops it running. A reading that took only the first
+/// counts a function nothing executes.
+fn runs_under_the_harness(attributes: &[syn::Attribute]) -> bool {
+    attributes
+        .iter()
+        .any(|attribute| attribute_is(attribute, HARNESS_ATTRIBUTE))
+        && !attributes
+            .iter()
+            .any(|attribute| attribute_is(attribute, SKIP_ATTRIBUTE))
+}
+
+/// Whether one attribute is the named one.
 ///
 /// Read by the path's LAST SEGMENT, on the precedent the coupling reader sets:
 /// `#[test]` and `#[core::prelude::v1::test]` are one attribute, and a longer
-/// name ending in the word is not.
-fn is_test_attribute(attribute: &syn::Attribute) -> bool {
+/// name ending in the word is not. ONE reading serves the harness's attribute
+/// and the harness's skip rather than two readers spelled alike: the pair is
+/// only meaningful read on the same terms, and a second reader is where the two
+/// would drift apart.
+///
+/// The attribute's VALUE is never looked at, and that is what makes `#[ignore]`
+/// and `#[ignore = "reason"]` one attribute here — syn hands the first as a bare
+/// path and the second as that same path carrying a value, so a reason string
+/// hides nothing.
+fn attribute_is(attribute: &syn::Attribute, word: &str) -> bool {
     attribute
         .path()
         .segments
         .last()
-        .is_some_and(|last| last.ident == "test")
+        .is_some_and(|last| last.ident == word)
 }
 
 /// Planted reversals for the join, and the real repository judged by it.
@@ -1108,6 +1178,155 @@ mod tests {
             &seats,
         );
         assert!(found.is_empty(), "{found:?}");
+    }
+
+    /// Planted reversal: a top-level source whose only test is `#[ignore]`d,
+    /// written the ways an author writes it — bare, with a reason, with the two
+    /// attributes in either order, and inside a module the file declares.
+    ///
+    /// The empty-binary defect one attribute deeper, and the one a reader
+    /// counting `#[test]` cannot see: cargo collects every function below,
+    /// reports it as ignored, and finishes having executed nothing. Reaching any
+    /// of them takes `--ignored` or `--include-ignored`, which no stage of this
+    /// repository's entry bar passes, so a route naming one of these files reads
+    /// as a positive control that executes while nothing executes.
+    ///
+    /// The reason string is the half a value-reading reader would miss. `syn`
+    /// hands `#[ignore]` as a bare path and `#[ignore = "…"]` as that path
+    /// carrying a value, and only a reading that ignores the value sees one
+    /// attribute in both.
+    #[test]
+    fn a_top_level_file_whose_every_test_is_ignored_is_no_seat() {
+        let (seats, unparsable) = seat_population(&[
+            top_level(
+                "an_ignored_seat.rs",
+                "#[test]\n#[ignore]\nfn the_behaviour_holds() {}\n",
+            ),
+            top_level(
+                "an_ignored_seat_with_a_reason.rs",
+                "#[test]\n\
+                 #[ignore = \"owed until the roster lands\"]\n\
+                 fn the_behaviour_holds() {}\n",
+            ),
+            top_level(
+                "an_ignore_written_first.rs",
+                "#[ignore]\n#[test]\nfn the_behaviour_holds() {}\n",
+            ),
+            top_level(
+                "an_ignored_seat_inside_a_module.rs",
+                "mod behaviour {\n\
+                 \x20   #[test]\n\
+                 \x20   #[ignore = \"owed until the roster lands\"]\n\
+                 \x20   fn the_behaviour_holds() {}\n\
+                 }\n",
+            ),
+        ]);
+        assert!(seats.0.is_empty(), "{:?}", seats.0);
+        assert!(unparsable.is_empty(), "{unparsable:?}");
+
+        let offered = phantom_green_routes(
+            &named(&[
+                "testpak/tests/an_ignored_seat.rs",
+                "testpak/tests/an_ignored_seat_with_a_reason.rs",
+                "testpak/tests/an_ignore_written_first.rs",
+                "testpak/tests/an_ignored_seat_inside_a_module.rs",
+            ]),
+            &seats,
+        );
+        assert_eq!(offered.len(), 4, "{offered:?}");
+        assert!(
+            offered
+                .iter()
+                .all(|offence| offence.contains("carries `#[ignore]`")),
+            "{offered:?}"
+        );
+    }
+
+    /// The positive control for that narrowing: a file carrying an ignored test
+    /// BESIDE a live one is still a seat, and so is one whose live test stands
+    /// in a module while the ignored one does not.
+    ///
+    /// A reader that refused a file for containing the skip anywhere would
+    /// satisfy the reversal above and would throw away real seats. The attribute
+    /// is a fact about the FUNCTION it sits on, and a file is a seat when the
+    /// harness runs SOMETHING in it.
+    #[test]
+    fn a_live_test_beside_an_ignored_one_is_still_a_seat() {
+        let (seats, unparsable) = seat_population(&[
+            top_level(
+                "a_mixed_seat.rs",
+                "#[test]\n\
+                 #[ignore = \"owed until the roster lands\"]\n\
+                 fn the_slow_road() {}\n\
+                 \n\
+                 #[test]\n\
+                 fn the_behaviour_holds() {}\n",
+            ),
+            top_level(
+                "a_mixed_seat_across_modules.rs",
+                "#[test]\n\
+                 #[ignore]\n\
+                 fn the_slow_road() {}\n\
+                 \n\
+                 mod behaviour {\n\
+                 \x20   #[test]\n\
+                 \x20   fn the_behaviour_holds() {}\n\
+                 }\n",
+            ),
+        ]);
+        assert_eq!(seats.0.len(), 2, "{:?}", seats.0);
+        assert!(unparsable.is_empty(), "{unparsable:?}");
+        let found = phantom_green_routes(
+            &named(&[
+                "testpak/tests/a_mixed_seat.rs",
+                "testpak/tests/a_mixed_seat_across_modules.rs",
+            ]),
+            &seats,
+        );
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    /// The reader's ceiling, stated as a test because this one fails OPEN.
+    ///
+    /// `syn` does not evaluate `cfg`, so a test compiled OUT of the binary is
+    /// read as declared and its file is seated — a route naming it resolves to a
+    /// control that does not exist in the binary that runs. The same silence
+    /// covers `#[cfg_attr(…, ignore)]`: the skip is not read, so a test ignored
+    /// under a condition still seats its file. Both are recorded here rather
+    /// than half-closed, because evaluating `cfg` means resolving features,
+    /// targets and profiles against the build that will actually run, and a
+    /// second, weaker evaluator written inside a check is a reader nobody could
+    /// trust either.
+    ///
+    /// This is written as an assertion rather than left in prose so the ceiling
+    /// is where the reader ACTUALLY stands rather than where a comment says it
+    /// does. Closing it is a route resolved against the roster a qualification
+    /// run executed, which the versioned claim and evidence schema opens, and a
+    /// pass that closes it fails this test by name and repairs it in one place.
+    #[test]
+    fn the_cfg_ceiling_is_open_and_says_so() {
+        let (seats, unparsable) = seat_population(&[
+            top_level(
+                "a_test_compiled_out.rs",
+                "#[cfg(feature = \"a-feature-nobody-enables\")]\n\
+                 #[test]\n\
+                 fn the_behaviour_holds() {}\n",
+            ),
+            top_level(
+                "a_test_skipped_under_a_condition.rs",
+                "#[test]\n\
+                 #[cfg_attr(windows, ignore)]\n\
+                 fn the_behaviour_holds() {}\n",
+            ),
+        ]);
+        assert!(unparsable.is_empty(), "{unparsable:?}");
+        assert_eq!(
+            seats.0.len(),
+            2,
+            "the cfg ceiling has moved: this reader admits what a build decides, and the doc that \
+             states so must move with it: {:?}",
+            seats.0
+        );
     }
 
     /// Planted reversal: a top-level source that is not parseable Rust.
