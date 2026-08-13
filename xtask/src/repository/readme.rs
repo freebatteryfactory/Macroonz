@@ -11,6 +11,25 @@ use std::path::{Path, PathBuf};
 use crate::repository::types::GreenRow;
 
 /// The lines inside the README's fenced yaml block.
+///
+/// # It is the FIRST such block, and that is a named ceiling
+///
+/// The block is chosen by POSITION: this opens at the first fence line carrying
+/// the yaml language tag and closes at the next bare fence. The root README
+/// writes two yaml blocks — the phase and workspace declaration this reader
+/// wants, and the root calculus's own obligation rows — and this reader gets the
+/// right one because the right one happens to be written first. That is a fact
+/// about the file's current order rather than about the reader, so it fails OPEN
+/// the day the order changes: a block inserted above would be read as the
+/// toolchain and member declaration and joined against the manifest as though it
+/// were one.
+///
+/// It is the same missing reading [`classify_green_rows`] states its own ceiling
+/// on, and it opens on the same condition — a Markdown parser and typed fenced
+/// blocks selected by SCHEMA rather than by position. Teaching this one to count
+/// fences would close the position case and leave the schema case standing, in a
+/// second reader that would then have to agree with the first about what a block
+/// is.
 pub(crate) fn readme_yaml_block(root: &Path) -> Result<Vec<String>, String> {
     let readme =
         fs::read_to_string(root.join("README.md")).map_err(|e| format!("README.md: {e}"))?;
@@ -99,6 +118,43 @@ enum Grammar {
 /// wrote. There is no second reader now: the seat carries its target, so the
 /// spacing a row happens to be written with cannot decide whether its claim is
 /// joined.
+///
+/// # The scan is the WHOLE file, and that is a named ceiling
+///
+/// A row is found by reading every line of the README, so a line beginning
+/// `green:` outside an obligation block — in prose, in a `text` fence, in a
+/// worked example showing what a row looks like — is read as an obligation row
+/// and joined like one. Nothing about a fence, a heading, or a block is looked
+/// at here, because nothing in this file reads Markdown structure at all.
+///
+/// It fails LOUDLY rather than open, and that is why it is a ceiling rather than
+/// a defect being carried quietly. An invented row is classified like every
+/// other and then answered: unreadable where no grammar reads it, resolved
+/// against `laws.rs` and testpak where one does, and named against the README
+/// that wrote it wherever it does not resolve. Nothing reads as proven that is
+/// not. What the ceiling costs is a writer who wanted to DESCRIBE a row without
+/// declaring one — and the tree pays that price today rather than suffering
+/// from it: no line beginning `green:` is written outside an obligation block
+/// anywhere in the homes this reader is given.
+///
+/// It is not closed here, and the reason is the SHAPE of the repair rather than
+/// its size. Restricting the scan to the obligation blocks means knowing where
+/// those blocks are, which means reading Markdown structure — and this file
+/// already carries that same missing reading a second time, in
+/// [`readme_yaml_block`], which takes the first fenced block and calls it the
+/// one it wanted. A fence-tracking line scan here would be one more ad-hoc
+/// reader in a file whose entire defect history is ad-hoc readers, and it would
+/// have to be written twice or shared between two readers that want different
+/// blocks. The opening condition is the typed repository model: one Markdown
+/// parser, typed fenced data blocks selected by SCHEMA rather than by position,
+/// and one versioned obligation schema read out of them. Both readings close
+/// there, together, and neither closes here.
+///
+/// The exposure is stated above and deliberately NOT asserted. A control over it
+/// would have to find the obligation blocks to know which rows are outside one,
+/// which is exactly the reading this ceiling is waiting for — a test that built
+/// the thing it is waiting for would be that thing, arriving through the test
+/// file instead of through the reader.
 pub(crate) fn classify_green_rows(readme_text: &str) -> Vec<GreenRow> {
     readme_text
         .lines()
