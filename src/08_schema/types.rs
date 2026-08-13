@@ -40,7 +40,7 @@ use crate::identity::{
     AuthorityPosition, ByteIdentity, Commitment, CreationLaw, IdentityClass, IdentityRole,
     Occurrence,
 };
-use crate::refusal::{CompletionPosture, FamilyShape, ReasonId, RefusalFamily};
+use crate::refusal::{AdmittedPrefix, CompletionPosture, FamilyShape, ReasonId, RefusalFamily};
 use crate::types::{Bounded, ConstLimit, EvidenceRef, Limit, NonEmptyBounded};
 use crate::value::BoundedText;
 
@@ -704,10 +704,21 @@ impl ConstLimit for ContractIssueLimit {
 #[must_use = "a construction refusal carries every established issue with the declaration"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ContractConstruction {
-    /// The established issues.
-    pub issues: NonEmptyBounded<ContractConstructionIssue, ContractIssueLimit>,
-    /// The enumeration posture.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<ContractConstructionIssue, ContractIssueLimit>,
+}
+
+impl ContractConstruction {
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(&self) -> &NonEmptyBounded<ContractConstructionIssue, ContractIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for ContractConstruction {
@@ -758,10 +769,34 @@ impl ConstLimit for RefinementIssueLimit {
 #[must_use = "a construction refusal carries every established issue with the declaration"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RefinementConstruction {
-    /// The established issues.
-    pub issues: NonEmptyBounded<RefinementConstructionIssue, RefinementIssueLimit>,
-    /// The enumeration posture — always Complete for this family.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<RefinementConstructionIssue, RefinementIssueLimit>,
+}
+
+impl RefinementConstruction {
+    /// In-crate mint for laws. Test-gated until this home's enumerating pass
+    /// exists — the gate comes off when a lawful minter does, never before.
+    #[cfg(test)]
+    pub(crate) const fn for_laws(
+        body: AdmittedPrefix<RefinementConstructionIssue, RefinementIssueLimit>,
+    ) -> Self {
+        Self { body }
+    }
+
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(
+        &self,
+    ) -> &NonEmptyBounded<RefinementConstructionIssue, RefinementIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage — always `Complete` for this
+    /// family, because one object with no site structure has no bound to stop
+    /// at.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for RefinementConstruction {
@@ -823,10 +858,23 @@ impl ConstLimit for MigrationIssueLimit {
 #[must_use = "a construction refusal carries every established issue with the declaration"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MigrationConstruction {
-    /// The established issues.
-    pub issues: NonEmptyBounded<MigrationConstructionIssue, MigrationIssueLimit>,
-    /// The enumeration posture.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<MigrationConstructionIssue, MigrationIssueLimit>,
+}
+
+impl MigrationConstruction {
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(
+        &self,
+    ) -> &NonEmptyBounded<MigrationConstructionIssue, MigrationIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for MigrationConstruction {
@@ -881,10 +929,23 @@ impl ConstLimit for CompatibilityIssueLimit {
 #[must_use = "a construction refusal carries every established issue with the declaration"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CompatibilityEdgeConstruction {
-    /// The established issues.
-    pub issues: NonEmptyBounded<CompatibilityEdgeConstructionIssue, CompatibilityIssueLimit>,
-    /// The enumeration posture.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<CompatibilityEdgeConstructionIssue, CompatibilityIssueLimit>,
+}
+
+impl CompatibilityEdgeConstruction {
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(
+        &self,
+    ) -> &NonEmptyBounded<CompatibilityEdgeConstructionIssue, CompatibilityIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for CompatibilityEdgeConstruction {
@@ -951,10 +1012,30 @@ impl ConstLimit for SchemaIssueLimit {
 #[must_use = "a construction refusal carries every established issue with the declaration"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SchemaConstruction {
-    /// The established issues.
-    pub issues: NonEmptyBounded<SchemaConstructionIssue, SchemaIssueLimit>,
-    /// The enumeration posture.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<SchemaConstructionIssue, SchemaIssueLimit>,
+}
+
+impl SchemaConstruction {
+    /// In-crate mint for laws. Test-gated until this home's enumerating pass
+    /// exists — the gate comes off when a lawful minter does, never before.
+    #[cfg(test)]
+    pub(crate) const fn for_laws(
+        body: AdmittedPrefix<SchemaConstructionIssue, SchemaIssueLimit>,
+    ) -> Self {
+        Self { body }
+    }
+
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(&self) -> &NonEmptyBounded<SchemaConstructionIssue, SchemaIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for SchemaConstruction {
@@ -1013,10 +1094,21 @@ impl ConstLimit for LayoutIssueLimit {
 #[must_use = "a construction refusal carries every established issue with the declaration"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LayoutConstruction {
-    /// The established issues.
-    pub issues: NonEmptyBounded<LayoutConstructionIssue, LayoutIssueLimit>,
-    /// The enumeration posture.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<LayoutConstructionIssue, LayoutIssueLimit>,
+}
+
+impl LayoutConstruction {
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(&self) -> &NonEmptyBounded<LayoutConstructionIssue, LayoutIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for LayoutConstruction {
@@ -1081,10 +1173,21 @@ impl ConstLimit for CodecIssueLimit {
 #[must_use = "a construction refusal carries every established issue with the declaration"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CodecConstruction {
-    /// The established issues.
-    pub issues: NonEmptyBounded<CodecConstructionIssue, CodecIssueLimit>,
-    /// The enumeration posture.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<CodecConstructionIssue, CodecIssueLimit>,
+}
+
+impl CodecConstruction {
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(&self) -> &NonEmptyBounded<CodecConstructionIssue, CodecIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for CodecConstruction {

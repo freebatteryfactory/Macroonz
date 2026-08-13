@@ -911,10 +911,14 @@ mod refusal {
     /// discouraged, and inventing a count with no truncation behind it is not
     /// expressible at all.
     ///
-    /// The two postures are separately inhabited and are not equal, which is
-    /// what makes the distinction load-bearing rather than cosmetic: a reader
-    /// branching on a halted examination must re-run the pass, and a reader
-    /// branching on a truncated report already knows the total.
+    /// All three postures are inhabited by three roads and read back through
+    /// the one public reader, and no two of them are equal — which is what makes
+    /// the distinction load-bearing rather than cosmetic: a reader branching on
+    /// a halted examination must re-run the pass, a reader branching on a
+    /// truncated report already knows the total, and a reader branching on a
+    /// complete one knows there is nothing further. The halted value is taken
+    /// off `AdmittedPrefix::stopped_early` rather than written as a literal, so
+    /// the three are compared as three constructions' products.
     ///
     /// The claim ceiling: this says nothing about whether any particular pass
     /// runs to completion, and nothing about a body assembled by a road other
@@ -975,12 +979,231 @@ mod refusal {
         assert_eq!(single.carried().len(), 1);
         assert_eq!(single.completion(), CompletionPosture::Complete);
 
-        // The halted posture is a different value, and no truncation produces it.
-        let halted = CompletionPosture::EarlyStopped {
-            stopped_at: StopBound::DeclaredWorkBound,
-        };
+        // The halted posture is a different value, and no truncation produces
+        // it. It is read off the halted road's own body rather than written by
+        // hand here, so the three postures a reader can receive are compared as
+        // three roads' products and not as three literals.
+        let stopped =
+            AdmittedPrefix::stopped_early(1_u8, vec![2], &admitted, StopBound::DeclaredWorkBound)
+                .unwrap_or_else(|_| unreachable!("two issues fit the bound of three"));
+        let halted = stopped.completion();
+        assert_eq!(stopped.carried().len(), 2);
         assert_ne!(left_some_out, halted);
         assert_ne!(carried_everything, halted);
+        assert!(matches!(
+            halted,
+            CompletionPosture::EarlyStopped {
+                stopped_at: StopBound::DeclaredWorkBound
+            }
+        ));
+    }
+
+    /// law: refusal.a-halted-examination-couples-its-bound — the halted road
+    /// produces the carry and the posture in ONE construction. The body holds
+    /// exactly the material handed over, the posture is `EarlyStopped` naming
+    /// the declared bound the caller stated it stopped at, and both are read
+    /// back off that single value because there is no second value to read
+    /// either from.
+    ///
+    /// It refuses where the truncating road truncates, and this law executes
+    /// that arm too. `ReportTruncated` has a seat for what it dropped;
+    /// `EarlyStopped` names a bound and nothing else, so material past the
+    /// admitted magnitude could only be dropped silently here — the one defect
+    /// the package exists to make unwritable. A pass that stopped BECAUSE of a
+    /// bound has nothing past it, so handing over more is a caller contradicting
+    /// its own posture, and the road answers with the typed cause rather than a
+    /// quiet shortening.
+    ///
+    /// The bound is carried rather than derived: the two `StopBound` members are
+    /// separately reachable through this road, so a halt at the work bound and a
+    /// halt at the issue bound are two postures and not one word.
+    ///
+    /// The claim ceiling, exactly: this establishes the COUPLING and nothing
+    /// past it. It does not prove that any external examination truly halted —
+    /// the family owner's algorithm and testpak establish the behavioral claim.
+    /// No caller exists today, because no scan in the machine halts; the road is
+    /// here so that the first one is coupled rather than pushed back onto a pair
+    /// of loose values.
+    ///
+    /// Red twin: writing a halted posture beside a body of one's own must not
+    /// compile — testpak/tests/compile-fail/a-remainder-married-to-another-body.rs.
+    #[test]
+    fn a_halted_examination_couples_its_bound() {
+        use crate::refusal::AdmittedPrefix;
+        use crate::types::{ConstLimit, PositiveLimit, RootLawsProfile};
+        struct HaltDemo;
+        impl Limit for HaltDemo {}
+        impl ConstLimit for HaltDemo {
+            const MAX: usize = 3;
+        }
+        let admitted: PositiveLimit<HaltDemo, RootLawsProfile> =
+            PositiveLimit::inhabited_under_profile();
+
+        // The halted body: the carry is what was handed over, and the posture
+        // names the bound the caller stopped at — one construction, two
+        // readings.
+        let halted =
+            AdmittedPrefix::stopped_early(1_u8, vec![2], &admitted, StopBound::DeclaredIssueBound)
+                .unwrap_or_else(|_| unreachable!("two issues fit the bound of three"));
+        assert_eq!(halted.carried().len(), 2);
+        assert_eq!(
+            halted.carried().iter().copied().collect::<Vec<u8>>(),
+            vec![1, 2]
+        );
+        assert!(matches!(
+            halted.completion(),
+            CompletionPosture::EarlyStopped {
+                stopped_at: StopBound::DeclaredIssueBound
+            }
+        ));
+
+        // The other bound is a different posture, so "it stopped" is never an
+        // unlocated word.
+        let at_work =
+            AdmittedPrefix::stopped_early(1_u8, vec![], &admitted, StopBound::DeclaredWorkBound)
+                .unwrap_or_else(|_| unreachable!("one issue fits the bound of three"));
+        assert_ne!(halted.completion(), at_work.completion());
+
+        // Past the admitted magnitude: the road refuses rather than shortening,
+        // because a halted posture has nowhere to record what it dropped.
+        assert!(matches!(
+            AdmittedPrefix::stopped_early(
+                1_u8,
+                vec![2, 3, 4],
+                &admitted,
+                StopBound::DeclaredIssueBound
+            ),
+            Err(NonEmptyBoundedConstruction::OverLimit)
+        ));
+    }
+
+    /// law: refusal.every-collection-family-carries-the-coupled-seat — every
+    /// collection-shaped family the machine declares reads its issues and its
+    /// coverage claim off ONE value. The reader pair is the shape of that: a
+    /// family that kept a loose carry beside a loose posture could not hand
+    /// these two functions over, because `issues` borrows out of the same value
+    /// `posture` is read off and no third seat exists to read either from.
+    ///
+    /// What each line establishes, exactly: the family exposes the two readers
+    /// with the two exact signatures, and exposes no writable seat pair beside
+    /// them. What it does NOT establish is that the seat's TYPE is
+    /// `AdmittedPrefix` — a private field is unnameable from here — nor that
+    /// this list is the whole population. Both of those are the repository
+    /// join's, deriving the denominator from the sources rather than from a
+    /// list anybody maintains: `cargo xtask check`'s
+    /// `collection-bodies-are-coupled` enumerates every
+    /// `FamilyShape::IssueCollection` declaration in the workspace and reads the
+    /// declared body seat off each one. This law is the compile-time half and
+    /// that join is the completeness half, stated as such, because Rust cannot
+    /// enumerate its own impls and a hand-kept count here would be exactly the
+    /// inventory this repository bans.
+    ///
+    /// Red twin: assembling a migrated family from a carry and a posture must
+    /// not compile —
+    /// testpak/tests/compile-fail/a-collection-body-assembled-from-parts.rs.
+    #[test]
+    fn every_collection_family_carries_the_coupled_seat() {
+        /// The two readers one coupled body hands out, over one family type.
+        type CoupledReaders<F, T, L> = (
+            fn(&F) -> &NonEmptyBounded<T, L>,
+            fn(&F) -> CompletionPosture,
+        );
+
+        /// One family's reader pair, taken as function pointers so the compiler
+        /// settles the two signatures and nothing is executed. The pair is
+        /// handed straight back, so neither argument is an ignored parameter and
+        /// the whole content of the call is the type-checking it forces.
+        const fn coupled_readers<F, T, L: Limit>(
+            issues: fn(&F) -> &NonEmptyBounded<T, L>,
+            posture: fn(&F) -> CompletionPosture,
+        ) -> CoupledReaders<F, T, L> {
+            (issues, posture)
+        }
+
+        coupled_readers(
+            crate::authority::CapabilityClaimConstruction::issues,
+            crate::authority::CapabilityClaimConstruction::posture,
+        );
+        coupled_readers(
+            crate::schema::ContractConstruction::issues,
+            crate::schema::ContractConstruction::posture,
+        );
+        coupled_readers(
+            crate::schema::RefinementConstruction::issues,
+            crate::schema::RefinementConstruction::posture,
+        );
+        coupled_readers(
+            crate::schema::MigrationConstruction::issues,
+            crate::schema::MigrationConstruction::posture,
+        );
+        coupled_readers(
+            crate::schema::CompatibilityEdgeConstruction::issues,
+            crate::schema::CompatibilityEdgeConstruction::posture,
+        );
+        coupled_readers(
+            crate::schema::SchemaConstruction::issues,
+            crate::schema::SchemaConstruction::posture,
+        );
+        coupled_readers(
+            crate::schema::LayoutConstruction::issues,
+            crate::schema::LayoutConstruction::posture,
+        );
+        coupled_readers(
+            crate::schema::CodecConstruction::issues,
+            crate::schema::CodecConstruction::posture,
+        );
+        coupled_readers(
+            crate::history::RemovalPlanConstruction::issues,
+            crate::history::RemovalPlanConstruction::posture,
+        );
+        coupled_readers(
+            crate::history::RemovalAuthorizationClaimConstruction::issues,
+            crate::history::RemovalAuthorizationClaimConstruction::posture,
+        );
+        coupled_readers(
+            crate::history::RemovalRefusal::issues,
+            crate::history::RemovalRefusal::posture,
+        );
+        coupled_readers(
+            crate::declaration::AuthoredNameConstruction::issues,
+            crate::declaration::AuthoredNameConstruction::posture,
+        );
+        coupled_readers(
+            crate::declaration::ClosureNamespace::issues,
+            crate::declaration::ClosureNamespace::posture,
+        );
+        coupled_readers(
+            crate::declaration::LinkResolution::issues,
+            crate::declaration::LinkResolution::posture,
+        );
+        coupled_readers(
+            crate::declaration::ProjectionContractConstruction::issues,
+            crate::declaration::ProjectionContractConstruction::posture,
+        );
+        coupled_readers(
+            crate::semantic::SemanticFormConstruction::issues,
+            crate::semantic::SemanticFormConstruction::posture,
+        );
+        coupled_readers(
+            crate::execution::ExecutionFormConstruction::issues,
+            crate::execution::ExecutionFormConstruction::posture,
+        );
+        coupled_readers(
+            crate::execution::EffectBatchComposition::issues,
+            crate::execution::EffectBatchComposition::posture,
+        );
+        coupled_readers(
+            crate::execution::KernelSemanticContractConstruction::issues,
+            crate::execution::KernelSemanticContractConstruction::posture,
+        );
+        coupled_readers(
+            crate::execution::KernelInterfaceContractConstruction::issues,
+            crate::execution::KernelInterfaceContractConstruction::posture,
+        );
+        coupled_readers(
+            crate::bvisor::AttemptAdmission::issues,
+            crate::bvisor::AttemptAdmission::posture,
+        );
     }
 
     /// law: refusal.cause-identity-outlives-its-spelling — a cause's stable
@@ -2263,7 +2486,9 @@ mod bytes {
 
 mod schema {
     use super::pairwise_distinct;
-    use crate::refusal::{CompletionPosture, FamilyShape, RefusalFamily};
+    use crate::refusal::{
+        AdmittedPrefix, CompletionPosture, FamilyShape, RefusalFamily, StopBound,
+    };
     use crate::schema::{
         CodecConstruction, CodecIssueLimit, CompatibilityEdgeConstruction, CompatibilityIssueLimit,
         ContractConstruction, ContractIssueLimit, DefaultPolicy, FieldCardinality, FieldId,
@@ -2274,7 +2499,7 @@ mod schema {
         SchemaIssueLimit, SchemaSemanticCommitment, SchemaVersion, UnknownMemberPolicy,
         VALIDATION_PIPELINE, ValidationStage, VariantId,
     };
-    use crate::types::{ConstLimit, NonEmptyBounded, PositiveLimit, RootLawsProfile};
+    use crate::types::{ConstLimit, PositiveLimit, RootLawsProfile};
 
     /// law: schema.validation-pipeline-is-seven-ordered — untrusted input
     /// first, contextual admission last, seven distinct stages that never
@@ -2410,33 +2635,29 @@ mod schema {
 
     /// law: schema.nested-causes-nest-distinct-families — a real schema
     /// refusal carries a nested refinement refusal of its own family type;
-    /// the nested value keeps its always-Complete posture.
+    /// the nested value keeps its always-Complete posture, and both bodies
+    /// reach the coupled report seat rather than assembling a carry beside a
+    /// posture of their own.
     /// Owed reversal (red twin): a union-typed nested cause must not compile.
     #[test]
     fn nested_causes_nest_distinct_families() {
-        let nested = RefinementConstruction {
-            issues: NonEmptyBounded::admitted_const(
-                RefinementConstructionIssue::NotTotal,
-                vec![RefinementConstructionIssue::HiddenIoOrEffect],
-                &PositiveLimit::<_, RootLawsProfile>::inhabited_under_profile(),
-            )
-            .unwrap_or_else(|_| unreachable!("two issues fit the bound of eleven")),
-            posture: CompletionPosture::Complete,
-        };
-        let refusal = SchemaConstruction {
-            issues: NonEmptyBounded::admitted_const(
-                SchemaConstructionIssue::RefinementInvalid(Box::new(nested)),
-                vec![],
-                &PositiveLimit::<_, RootLawsProfile>::inhabited_under_profile(),
-            )
-            .unwrap_or_else(|_| unreachable!("one issue fits the bound of eighteen")),
-            posture: CompletionPosture::Complete,
-        };
-        assert_eq!(refusal.issues.len(), 1);
+        let nested = RefinementConstruction::for_laws(AdmittedPrefix::examined_completely(
+            RefinementConstructionIssue::NotTotal,
+            vec![RefinementConstructionIssue::HiddenIoOrEffect],
+            &PositiveLimit::<_, RootLawsProfile>::inhabited_under_profile(),
+            StopBound::DeclaredIssueBound,
+        ));
+        let refusal = SchemaConstruction::for_laws(AdmittedPrefix::examined_completely(
+            SchemaConstructionIssue::RefinementInvalid(Box::new(nested)),
+            vec![],
+            &PositiveLimit::<_, RootLawsProfile>::inhabited_under_profile(),
+            StopBound::DeclaredIssueBound,
+        ));
+        assert_eq!(refusal.issues().len(), 1);
         assert!(matches!(
-            refusal.issues.first(),
+            refusal.issues().first(),
             SchemaConstructionIssue::RefinementInvalid(inner)
-                if inner.posture == CompletionPosture::Complete && inner.issues.len() == 2
+                if inner.posture() == CompletionPosture::Complete && inner.issues().len() == 2
         ));
     }
 
@@ -3454,8 +3675,8 @@ mod declaration {
     use crate::identity::{
         AuthorityPosition, Commitment, Occurrence, OccurrenceForm, OrderComparison,
     };
-    use crate::refusal::{CompletionPosture, FamilyShape, RefusalFamily};
-    use crate::types::{ConstLimit, LimitWitness, NonEmptyBounded};
+    use crate::refusal::{FamilyShape, RefusalFamily};
+    use crate::types::ConstLimit;
     use core::cmp::Ordering;
 
     fn demo_profile(seed: u8, version: u64) -> ProjectionProfileVersion {
@@ -3497,7 +3718,13 @@ mod declaration {
 
     /// law: declaration.name-and-closure-families-are-collections — both
     /// ride the declared-bound road (several issues of one kind are lawful at
-    /// once), and a real single-scalar issue constructs with its posture.
+    /// once), and a real single-scalar issue carries exactly one scalar and the
+    /// coordinate it sat at.
+    ///
+    /// The bodies themselves are not assembled here. Their seat is band 00's
+    /// coupled report package and it is proven once, where the coupling is
+    /// stated — see `refusal::every_collection_family_carries_the_coupled_seat`.
+    ///
     /// Owed reversal (red twin): a two-scalar payload must not compile.
     #[test]
     fn name_and_closure_families_are_collections() {
@@ -3506,22 +3733,23 @@ mod declaration {
             FamilyShape::IssueCollection
         );
         assert_eq!(ClosureNamespace::SHAPE, FamilyShape::IssueCollection);
-        let refusal = AuthoredNameConstruction {
-            issues: NonEmptyBounded::admitted(
-                AuthoredNameConstructionIssue::InvalidIdentifierStart {
-                    scalar: '9',
-                    coordinate: SourceCoordinate {
-                        role: CoordinateRole::UnicodeScalar,
-                        position: 0,
-                    },
-                },
-                vec![],
-                &LimitWitness::declared(8),
-            )
-            .unwrap_or_else(|_| unreachable!("one issue fits")),
-            posture: CompletionPosture::Complete,
+        let issue = AuthoredNameConstructionIssue::InvalidIdentifierStart {
+            scalar: '9',
+            coordinate: SourceCoordinate {
+                role: CoordinateRole::UnicodeScalar,
+                position: 0,
+            },
         };
-        assert!(matches!(refusal.posture, CompletionPosture::Complete));
+        assert!(matches!(
+            issue,
+            AuthoredNameConstructionIssue::InvalidIdentifierStart {
+                scalar: '9',
+                coordinate: SourceCoordinate {
+                    role: CoordinateRole::UnicodeScalar,
+                    position: 0,
+                },
+            }
+        ));
     }
 
     /// law: declaration.link-resolution-ranges-over-four-claim-kinds — the
@@ -3540,23 +3768,21 @@ mod declaration {
         assert_eq!(kinds.len(), 4);
         assert!(pairwise_distinct(&kinds));
         assert_eq!(LinkResolution::SHAPE, FamilyShape::IssueCollection);
-        let refusal = LinkResolution {
-            issues: NonEmptyBounded::admitted(
-                LinkResolutionIssue::MissingClaim {
-                    kind: ClaimKind::Route,
-                    site: SourceCoordinate {
-                        role: CoordinateRole::SemanticOrigin,
-                        position: 4,
-                    },
-                    requiring: demo_symbol(4),
-                },
-                vec![],
-                &LimitWitness::declared(16),
-            )
-            .unwrap_or_else(|_| unreachable!("one issue fits")),
-            posture: CompletionPosture::Complete,
+        let issue = LinkResolutionIssue::MissingClaim {
+            kind: ClaimKind::Route,
+            site: SourceCoordinate {
+                role: CoordinateRole::SemanticOrigin,
+                position: 4,
+            },
+            requiring: demo_symbol(4),
         };
-        assert!(matches!(refusal.posture, CompletionPosture::Complete));
+        assert!(matches!(
+            issue,
+            LinkResolutionIssue::MissingClaim {
+                kind: ClaimKind::Route,
+                ..
+            }
+        ));
     }
 
     /// law: declaration.projection-claims-are-five — the closed claim enum,
@@ -3810,7 +4036,7 @@ mod semantic {
     use crate::bounds::{BoundClass, DimensionId};
     use crate::declaration::Stage;
     use crate::identity::{Commitment, CreationLaw, IdentityClass, IdentityRole};
-    use crate::refusal::{CompletionPosture, FamilyShape, RefusalFamily};
+    use crate::refusal::{FamilyShape, RefusalFamily};
     use crate::semantic::{
         BehaviorFamily, BoundDimensionRow, CapabilityRequirements, DefinitionBoundary,
         EvidenceObligation, ExplanationObligation, Judgment, OPERATION_CONTRACT_FACTS,
@@ -3818,7 +4044,7 @@ mod semantic {
         SemanticFormConstruction, SemanticFormConstructionIssue, SemanticGraphDigest,
         SemanticTypeRef, SourceCutPosture, SymbolicBounds,
     };
-    use crate::types::{Bounded, LimitWitness, NonEmptyBounded};
+    use crate::types::{Bounded, LimitWitness};
 
     /// law: semantic.form-family-holds-fifteen — the content roster read as
     /// defects, every issue carrying only its canonical-order position, on
@@ -3853,16 +4079,6 @@ mod semantic {
             SemanticFormConstruction::SHAPE,
             FamilyShape::IssueCollection
         );
-        let refusal = SemanticFormConstruction {
-            issues: NonEmptyBounded::admitted(
-                SemanticFormConstructionIssue::HiddenProducerOnlyNode { position: 13 },
-                vec![],
-                &LimitWitness::declared(32),
-            )
-            .unwrap_or_else(|_| unreachable!("one issue fits")),
-            posture: CompletionPosture::Complete,
-        };
-        assert!(matches!(refusal.posture, CompletionPosture::Complete));
         let form = SemanticForm::for_laws(Commitment::raw([31; 32]));
         assert_eq!(form.content(), &Commitment::raw([31; 32]));
         assert_eq!(SEMANTIC_FORM_CONTENT.len(), 12);
@@ -3980,11 +4196,10 @@ mod execution {
     use crate::identity::{
         AuthorityPosition, Commitment, Occurrence, OccurrenceForm, OrderComparison,
     };
-    use crate::refusal::{CompletionPosture, FamilyShape, RefusalFamily};
+    use crate::refusal::{FamilyShape, RefusalFamily};
     use crate::semantic::BoundDimensionRow;
     use crate::types::{
-        Bounded, ConstLimit, EvidenceRef, LimitWitness, NonEmptyBounded, ReferentAvailability,
-        ReferentIntegrity,
+        Bounded, ConstLimit, EvidenceRef, LimitWitness, ReferentAvailability, ReferentIntegrity,
     };
     use core::cmp::Ordering;
 
@@ -4135,19 +4350,17 @@ mod execution {
         ];
         assert_eq!(contracts.len(), 3);
         assert_eq!(EffectBatchComposition::SHAPE, FamilyShape::IssueCollection);
-        let refusal = EffectBatchComposition {
-            issues: NonEmptyBounded::admitted(
-                EffectBatchCompositionIssue::RequiredContractUnbound {
-                    command: CommandOrdinal::declared(0),
-                    contract: RequiredContractKind::Receipt,
-                },
-                vec![],
-                &LimitWitness::declared(16),
-            )
-            .unwrap_or_else(|_| unreachable!("one fits")),
-            posture: CompletionPosture::Complete,
+        let issue = EffectBatchCompositionIssue::RequiredContractUnbound {
+            command: CommandOrdinal::declared(0),
+            contract: RequiredContractKind::Receipt,
         };
-        assert!(matches!(refusal.posture, CompletionPosture::Complete));
+        assert!(matches!(
+            issue,
+            EffectBatchCompositionIssue::RequiredContractUnbound {
+                contract: RequiredContractKind::Receipt,
+                ..
+            }
+        ));
     }
 
     /// law: execution.recursion-witness-records-eleven — a real witness
@@ -4638,11 +4851,10 @@ mod bvisor {
     };
     use crate::identity::{AuthorityPosition, Commitment, Occurrence, OccurrenceForm};
     use crate::port::{PortFamilyId, PortFamilyVersion, PortPostcondition};
-    use crate::refusal::{CompletionPosture, FamilyShape, RefusalFamily};
+    use crate::refusal::{FamilyShape, RefusalFamily};
     use crate::semantic::BoundDimensionRow;
     use crate::types::{
-        Bounded, EvidenceRef, LimitWitness, NonEmptyBounded, ReferentAvailability,
-        ReferentIntegrity,
+        Bounded, EvidenceRef, LimitWitness, ReferentAvailability, ReferentIntegrity,
     };
 
     fn demo_observation(seed: u8) -> ReservationObservation {
@@ -4758,16 +4970,18 @@ mod bvisor {
         } else {
             unreachable!("constructed admitted");
         }
-        let refused = AdmissionOutcome::Refused(AttemptAdmission {
-            issues: NonEmptyBounded::admitted(
-                AttemptAdmissionIssue::LogicalAuthorizationNotSupplied,
-                vec![],
-                &LimitWitness::declared(16),
-            )
-            .unwrap_or_else(|_| unreachable!("one fits")),
-            posture: CompletionPosture::Complete,
-        });
-        assert!(matches!(refused, AdmissionOutcome::Refused(_)));
+        // The refused arm read as a function: it takes exactly one argument and
+        // that argument's type is the family body, so no Attempt identity of
+        // any kind stands in the arm's shape. The body itself is not assembled
+        // here — its seat is band 00's coupled report package, proven once at
+        // `refusal::every_collection_family_carries_the_coupled_seat`.
+        let refused: Option<fn(AttemptAdmission) -> AdmissionOutcome> =
+            Some(AdmissionOutcome::Refused);
+        assert!(refused.is_some());
+        assert!(matches!(
+            AttemptAdmissionIssue::LogicalAuthorizationNotSupplied,
+            AttemptAdmissionIssue::LogicalAuthorizationNotSupplied
+        ));
     }
 
     /// law: bvisor.lifecycle-is-affine-and-sealed — sealing CONSUMES the

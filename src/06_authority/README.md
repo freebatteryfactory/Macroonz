@@ -23,7 +23,9 @@ are fresh objects; only untrusted → validated and open → sealed are typestat
 
 `CapabilityClaimConstruction`: ten flat issues (flat by recorded decision — a
 parameterized member shape would re-admit four killed causes), independent, no
-ladder, family-level reason, no primary issue, posture as instance value, and a
+ladder, family-level reason, no primary issue, one body seat carrying the issues
+and the coverage claim together (band 00's `AdmittedPrefix`, read back through
+`issues()` and `posture()`), and a
 **compile-time** issue bound of ten (the roster's own cardinality). Nine
 absences decoded-route-only; `DelegationChainMalformed` is the one authored-route
 issue. The four exclusions are law: revocation posture (paved default), context

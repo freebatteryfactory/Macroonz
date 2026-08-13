@@ -51,6 +51,18 @@ carried everything cannot claim it truncated and a body that dropped issues
 cannot claim completeness. Neither is a discipline a site has to remember,
 because neither is a value a site can build.
 
+The halted posture has its own road, `AdmittedPrefix::stopped_early`, which
+couples the carry a halted pass handed over to the bound it stated it stopped at
+in one construction. Its honesty ceiling is stated where it lives: the
+constructor structurally couples the body to the posture, and it does not prove
+that an external examination truly halted — the family owner's algorithm and
+testpak establish the behavioral claim. It refuses where the truncating road
+truncates, because `ReportTruncated` has a seat to record what it dropped and
+`EarlyStopped` has none, so material past the declared bound could only be
+dropped silently. No caller exists today, because no scan in the machine halts;
+the road exists so the first honestly halting family is coupled rather than
+pushed back onto a loose body beside a loose posture.
+
 Performing the act is what makes the count belong to the body. A `usize`
 parameter would have made the posture accurate only by convention: a body that
 dropped nothing could still state that seven issues stand outside it, and the
@@ -62,14 +74,34 @@ truncation really performed — but two values handed to a caller are two values
 caller may pair, so the body one pass truncated could be reported under the count
 another pass dropped, with both halves honest and the pair a lie. So a report
 body IS an `AdmittedPrefix`: private seats, no `into_parts`, no owned carry, and
-one construction behind both readings. The claim's exact reach: this home's
-report bodies and the tooling plane's six carry the one coupled seat. The
-declaration-phase families in the upper bands that still spell an issue seat
-beside a posture seat predate the coupling and have no construction roads yet;
-their conversion to the coupled seat is a decided follow-up, and until it lands
-the coupling claim is theirs to gain, not already owned. Writing a truncation
-posture by hand does not compile, and neither does marrying one report's carry
-to another report's completion; both reversals are testpak's.
+one construction behind both readings.
+
+**The claim's exact reach: every collection-shaped refusal family in the machine
+and in the services.** Not this home's bodies and the tooling plane's six — all
+of them, the upper-band declaration families included. A family's body is one
+`AdmittedPrefix` seat read back through `issues()` and `posture()`, and the two
+seats those families used to spell are gone rather than deprecated. The
+population is DERIVED: `cargo xtask check`'s `collection-bodies-are-coupled`
+reads every `FamilyShape::IssueCollection` declaration off the sources and reads
+the seat each one declares, so a family added without the coupled seat is caught
+by the derivation rather than by anybody remembering a list. `laws.rs`
+`refusal::every_collection_family_carries_the_coupled_seat` is that claim's
+compile-time half, proving each family's reader pair.
+
+What the reach does NOT include: a construction road for any upper-band family.
+No migrated family carries a public constructor, because none of them has an
+enumerating pass to build one from; two carry a test-gated in-crate mint that
+takes the coupled body and nothing else, for the laws that read a nested refusal.
+Nine of them stand one step further back still: their limit families declare no
+compile-time magnitude, and every `AdmittedPrefix` mint consumes one, so those
+nine cannot produce the value their own seat holds until a magnitude is declared
+or a runtime-witnessed prefix road exists. Coupled seats with no road to them is
+the honest state of a declaration nobody has written a pass for; it is not a
+coupling the road would fail.
+
+Writing a truncation posture by hand does not compile; neither does marrying one
+report's carry to another report's completion; and neither does assembling a
+migrated family out of a carry and a posture. All three reversals are testpak's.
 
 ## The order is typed; the text is its projection
 
@@ -188,6 +220,14 @@ obligations:
     challenge_kind: compile-refusal
     green: laws.rs refusal::a_truncated_report_is_not_a_halted_examination
     red: testpak/tests/compile-fail/a-truncation-count-with-no-truncation-behind-it.rs
+  - id: refusal.a-halted-examination-couples-its-bound
+    challenge_kind: compile-law
+    green: laws.rs refusal::a_halted_examination_couples_its_bound
+    red: testpak/tests/compile-fail/a-remainder-married-to-another-body.rs
+  - id: refusal.every-collection-family-carries-the-coupled-seat
+    challenge_kind: repository-structure
+    green: laws.rs refusal::every_collection_family_carries_the_coupled_seat
+    red: testpak/tests/compile-fail/a-collection-body-assembled-from-parts.rs
   - id: refusal.cause-identity-outlives-its-spelling
     challenge_kind: compile-law
     green: laws.rs refusal::cause_identity_outlives_its_spelling

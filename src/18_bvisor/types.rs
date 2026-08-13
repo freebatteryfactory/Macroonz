@@ -35,7 +35,7 @@ use crate::authority::ConstraintSourcePair;
 use crate::bounds::DimensionId;
 use crate::identity::{Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence};
 use crate::port::{PortFamilyVersion, PortPostcondition};
-use crate::refusal::{CompletionPosture, FamilyShape, RefusalFamily};
+use crate::refusal::{AdmittedPrefix, CompletionPosture, FamilyShape, RefusalFamily};
 use crate::semantic::BoundDimensionRow;
 use crate::types::{Bounded, EvidenceRef, Limit, NonEmptyBounded};
 use core::marker::PhantomData;
@@ -385,10 +385,24 @@ impl Limit for AdmissionIssueLimit {}
 #[must_use = "an admission refusal carries every established reason no Attempt was created"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AttemptAdmission {
-    /// The established issues, in the vocabulary's canonical order.
-    pub issues: NonEmptyBounded<AttemptAdmissionIssue, AdmissionIssueLimit>,
-    /// The enumeration posture.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<AttemptAdmissionIssue, AdmissionIssueLimit>,
+}
+
+impl AttemptAdmission {
+    /// The established issues, in the vocabulary's canonical order — at least
+    /// one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(&self) -> &NonEmptyBounded<AttemptAdmissionIssue, AdmissionIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage. `EarlyStopped` is this
+    /// family's normal posture, because the dependency-order halt is its stated
+    /// reason.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for AttemptAdmission {

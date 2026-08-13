@@ -19,9 +19,9 @@
 //! in [`repository`]; the ordered battery `qualify` runs lives in
 //! [`qualification`], which is handed the law table's runner rather than
 //! reaching back for it. Keeping the table alone here is what makes the
-//! registered set readable in one screen: adding a law is one line beside twelve
-//! others, so a law added without a name, or a name registered twice, is visible
-//! at a glance rather than buried among the checks themselves.
+//! registered set readable in one screen: adding a law is one line beside
+//! thirteen others, so a law added without a name, or a name registered twice,
+//! is visible at a glance rather than buried among the checks themselves.
 
 mod checks;
 mod repository;
@@ -30,6 +30,7 @@ mod qualification;
 use std::error::Error;
 use std::path::Path;
 
+use crate::checks::coupling::check_collection_bodies_are_coupled;
 use crate::checks::dependency::check_no_core_tooling_edge;
 use crate::checks::hygiene::{
     check_lf_and_no_symlinks, check_no_python, check_underscore_fields_are_phantom,
@@ -56,7 +57,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 /// Runs every repository law, printing one PASS or FAIL line per law.
 fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
-    let checks: [Check; 13] = [
+    let checks: [Check; 14] = [
         ("agents-claude-parity", check_agents_claude_parity),
         ("lf-and-no-symlinks", check_lf_and_no_symlinks),
         ("no-python", check_no_python),
@@ -71,6 +72,10 @@ fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
         ("band-map-matches-lib", check_band_map),
         ("tooling-module-order", check_tooling_module_order),
         ("readme-obligations-join", check_obligations_join),
+        (
+            "collection-bodies-are-coupled",
+            check_collection_bodies_are_coupled,
+        ),
         ("no-personal-names", check_no_personal_names),
         ("banned-vocabulary", check_banned_vocabulary),
     ];

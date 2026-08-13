@@ -34,7 +34,7 @@
 
 use crate::identity::{ApplicationScope, CreationLaw, IdentityClass, IdentityRole, Occurrence};
 use crate::logic::Decision;
-use crate::refusal::{CompletionPosture, FamilyShape, RefusalFamily};
+use crate::refusal::{AdmittedPrefix, CompletionPosture, FamilyShape, RefusalFamily};
 use crate::types::{Bounded, ConstLimit, EvidenceRef, Limit, NonEmptyBounded};
 use crate::value::BoundedText;
 use core::marker::PhantomData;
@@ -329,13 +329,30 @@ pub enum CapabilityClaimConstructionIssue {
 /// It reads only the facts the claim itself carries; success mints nothing on
 /// the authority path; no authority-algebra refusal is expressible here; a
 /// broad claim is not malformed (over-grant is an admission finding).
+///
+/// The body is ONE seat: [`AdmittedPrefix`] carries the issues and the coverage
+/// claim the same construction amounts to, so neither can be read against the
+/// other's material.
 #[must_use = "a construction refusal carries every established issue with the claim"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CapabilityClaimConstruction {
+    body: AdmittedPrefix<CapabilityClaimConstructionIssue, ClaimIssueLimit>,
+}
+
+impl CapabilityClaimConstruction {
     /// The established issues — at least one, at most the roster.
-    pub issues: NonEmptyBounded<CapabilityClaimConstructionIssue, ClaimIssueLimit>,
-    /// Whether every applicable check ran.
-    pub posture: CompletionPosture,
+    #[must_use]
+    pub const fn issues(
+        &self,
+    ) -> &NonEmptyBounded<CapabilityClaimConstructionIssue, ClaimIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for CapabilityClaimConstruction {

@@ -48,6 +48,13 @@ plain `Limit` families whose bound values are evidence-selected. The
 projection-contract family alone is derivable (5 member kinds + 5 unstatable
 claims = 10) and carries the compile-time cap.
 
+All four bodies carry the one coupled seat — band 00's `AdmittedPrefix`, holding
+the issues and the coverage claim the same construction amounts to, read back
+through `issues()` and `posture()`. The three whose bound values are still
+evidence-selected cannot yet hold that seat's value at all: every
+`AdmittedPrefix` mint consumes a compile-time magnitude, so those three become
+buildable when their magnitudes are declared, and not before.
+
 ## The closed-roster stamp
 
 `closed_register!` is this home's authoring stamp for a closed, fieldless

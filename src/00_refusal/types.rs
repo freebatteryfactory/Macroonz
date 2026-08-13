@@ -37,7 +37,10 @@
 //! evidence home, downstream. Location types are carried by owner families, never by
 //! the universal envelope.
 
-use crate::types::{ConstLimit, Limit, LimitAdmissionProfile, NonEmptyBounded, PositiveLimit};
+use crate::types::{
+    ConstLimit, Limit, LimitAdmissionProfile, NonEmptyBounded, NonEmptyBoundedConstruction,
+    PositiveLimit,
+};
 use core::marker::PhantomData;
 use core::num::NonZeroUsize;
 
@@ -184,14 +187,16 @@ pub enum CompletionPosture {
 /// a read and not a seat: a rendered sentence is not a body, and no body has a
 /// posture seat to re-house it in.
 ///
-/// The mints here produce `Complete` and `ReportTruncated` — the two postures a
-/// completed examination can honestly hold. A genuinely HALTED examination
-/// (`EarlyStopped`) has no road into this value today, because no scan in the
-/// machine halts: every current pass runs its roster to the end and truncates
-/// only its report. The guarded early-stop mint arrives with the first scan
-/// that honestly stops early, carrying its own positive control and reversal;
-/// until then a halted posture cannot be housed here, and that absence is this
-/// type's claim ceiling rather than an oversight.
+/// All three postures have a road here, and each road IS the act it names.
+/// [`AdmittedPrefix::examined_completely`] performs the truncation and lets what
+/// it dropped select between `Complete` and `ReportTruncated`;
+/// [`AdmittedPrefix::stopped_early`] couples a halted examination's carry to
+/// `EarlyStopped` in one construction. No pass in the machine halts today, so
+/// the halted road has no caller. It exists so that the first family whose
+/// examination honestly stops early meets the same coupled seat every other
+/// family meets, instead of being pushed back onto a loose body beside a loose
+/// posture for want of a road. That absent caller is this type's claim ceiling,
+/// and it is stated rather than hidden.
 #[must_use = "a report body carries the issues it established and what it says about its own coverage"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AdmittedPrefix<T, L: Limit> {
@@ -228,9 +233,10 @@ impl<T, L: ConstLimit> AdmittedPrefix<T, L> {
     /// [`PositiveLimit`], so the maximum is at least one, so the prefix is never
     /// empty and there is no failing case to return.
     ///
-    /// A pass whose examination genuinely halted does not come here. It states
-    /// [`CompletionPosture::EarlyStopped`] directly, because the fact it is
-    /// reporting is about the scan and not about the report.
+    /// A pass whose examination genuinely halted does not come here. Its road
+    /// is [`AdmittedPrefix::stopped_early`], because the fact it reports is
+    /// about the scan rather than about the report, and no truncation this road
+    /// performs could witness it.
     pub fn examined_completely<P: LimitAdmissionProfile>(
         first: T,
         rest: Vec<T>,
@@ -249,6 +255,54 @@ impl<T, L: ConstLimit> AdmittedPrefix<T, L> {
             carried,
             completion,
         }
+    }
+
+    /// The report a HALTED examination amounts to: the issues the halted pass
+    /// handed over, married to the posture naming the declared bound it stopped
+    /// at, in one construction.
+    ///
+    /// `EarlyStopped` is a claim about the EXAMINATION and not about the report,
+    /// which is why it is a road of its own rather than an outcome
+    /// [`AdmittedPrefix::examined_completely`] could select. A truncation is
+    /// something a construction performs, so a construction can witness it; a
+    /// halt happened before any construction was reached, and no arrangement of
+    /// seats observes it.
+    ///
+    /// # The honesty ceiling
+    ///
+    /// This constructor structurally couples the body to the posture. It does
+    /// not prove that an external examination truly halted — the family owner's
+    /// algorithm and testpak establish the behavioral claim.
+    ///
+    /// # It refuses where the other road truncates
+    ///
+    /// [`AdmittedPrefix::examined_completely`] is total because a truncation has
+    /// a seat to record itself in. `EarlyStopped` has no such seat: it names the
+    /// bound and nothing else, so material past the declared bound could only be
+    /// dropped silently here — the one defect this package exists to make
+    /// unwritable. A pass that stopped BECAUSE of a bound has by definition
+    /// nothing past it, so handing over more than the admitted magnitude holds
+    /// is a caller contradicting its own posture, and the road answers with the
+    /// same typed cause every checked non-empty construction answers with.
+    ///
+    /// No caller exists today, because no scan in the machine halts. The first
+    /// one arrives with the first honestly halting examination, and it arrives
+    /// at the coupled seat rather than at a pair of loose values.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`NonEmptyBoundedConstruction::OverLimit`] when the handed
+    /// material exceeds what the admitted magnitude holds.
+    pub fn stopped_early<P: LimitAdmissionProfile>(
+        first: T,
+        rest: Vec<T>,
+        admitted: &PositiveLimit<L, P>,
+        stopped_at: StopBound,
+    ) -> Result<Self, NonEmptyBoundedConstruction> {
+        NonEmptyBounded::admitted_const(first, rest, admitted).map(|carried| Self {
+            carried,
+            completion: CompletionPosture::EarlyStopped { stopped_at },
+        })
     }
 
     /// The report a seam that can establish exactly one issue amounts to.
@@ -640,7 +694,7 @@ impl CauseOrderDeclaration for crate::types::BoundedConstruction {
         )]);
 }
 
-impl RefusalFamily for crate::types::NonEmptyBoundedConstruction {
+impl RefusalFamily for NonEmptyBoundedConstruction {
     const SHAPE: FamilyShape = FamilyShape::SingleCause;
     const SELECTION_ORDER: &'static [&'static str] = &["OverLimit"];
 }
@@ -649,7 +703,7 @@ impl RefusalFamily for crate::types::NonEmptyBoundedConstruction {
 /// *local key*, and share no cause *identity*: a shared word is shared
 /// vocabulary, never shared ownership, and the family seat of a stable identity
 /// says so where neither the spelling nor the local key can.
-impl CauseOrderDeclaration for crate::types::NonEmptyBoundedConstruction {
+impl CauseOrderDeclaration for NonEmptyBoundedConstruction {
     const DECLARED_ORDER: DeclaredCauseOrder =
         DeclaredCauseOrder::declared(&[DeclaredCause::declared(
             CauseId::declared(

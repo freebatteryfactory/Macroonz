@@ -29,7 +29,7 @@
 use crate::identity::{
     AuthorityPosition, Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence,
 };
-use crate::refusal::{CompletionPosture, FamilyShape, RefusalFamily};
+use crate::refusal::{AdmittedPrefix, CompletionPosture, FamilyShape, RefusalFamily};
 use crate::schema::SchemaSemanticCommitment;
 use crate::types::{Bounded, Completeness, EvidenceCut, EvidenceRef, Freshness, Limit};
 use crate::value::BoundedText;
@@ -1100,10 +1100,24 @@ impl crate::types::ConstLimit for RemovalPlanIssueLimit {
 #[must_use = "a construction refusal carries every established issue with the plan"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RemovalPlanConstruction {
-    /// The established issues.
-    pub issues: crate::types::NonEmptyBounded<RemovalPlanConstructionIssue, RemovalPlanIssueLimit>,
-    /// The enumeration posture — invariantly complete for this family.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<RemovalPlanConstructionIssue, RemovalPlanIssueLimit>,
+}
+
+impl RemovalPlanConstruction {
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(
+        &self,
+    ) -> &crate::types::NonEmptyBounded<RemovalPlanConstructionIssue, RemovalPlanIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage — invariantly complete for
+    /// this family.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for RemovalPlanConstruction {
@@ -1134,13 +1148,26 @@ impl crate::types::ConstLimit for RemovalClaimIssueLimit {
 #[must_use = "a construction refusal carries every established issue with the claim"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RemovalAuthorizationClaimConstruction {
-    /// The established issues.
-    pub issues: crate::types::NonEmptyBounded<
+    body: AdmittedPrefix<RemovalAuthorizationClaimConstructionIssue, RemovalClaimIssueLimit>,
+}
+
+impl RemovalAuthorizationClaimConstruction {
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(
+        &self,
+    ) -> &crate::types::NonEmptyBounded<
         RemovalAuthorizationClaimConstructionIssue,
         RemovalClaimIssueLimit,
-    >,
-    /// The enumeration posture — invariantly complete.
-    pub posture: CompletionPosture,
+    > {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage — invariantly complete.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for RemovalAuthorizationClaimConstruction {
@@ -1176,10 +1203,23 @@ impl crate::types::ConstLimit for RemovalRefusalIssueLimit {
 #[must_use = "a removal refusal carries every established reason the removal did not proceed"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RemovalRefusal {
-    /// The established issues.
-    pub issues: crate::types::NonEmptyBounded<RemovalRefusalIssue, RemovalRefusalIssueLimit>,
-    /// The enumeration posture.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<RemovalRefusalIssue, RemovalRefusalIssueLimit>,
+}
+
+impl RemovalRefusal {
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(
+        &self,
+    ) -> &crate::types::NonEmptyBounded<RemovalRefusalIssue, RemovalRefusalIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for RemovalRefusal {
