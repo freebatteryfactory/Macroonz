@@ -13,8 +13,9 @@ use std::fs;
 use std::path::Path;
 
 use crate::repository::readme::{
-    claimed_green_laws, claimed_green_routes, home_readmes, red_twin_rows, tooling_red_rows,
+    claimed_green_laws, classify_green_rows, home_readmes, red_twin_rows, tooling_red_rows,
 };
+use crate::repository::types::GreenRow;
 use crate::repository::walk::{JUDGE_DIRECTORY, relative_slash_path, visit_files};
 
 /// The READMEs that carry tooling qualification obligations.
@@ -38,16 +39,26 @@ const OWED_PREFIX: &str = "owed-to";
 /// twice is a proof standing in for a claim it does not make, and it reads as
 /// discharged from both rows.
 ///
+/// **Green, every row read.** A green row states its positive control in one of
+/// three spellings — a `laws.rs` target, a path to a file, or a declared
+/// disposition accounting for why no file holds one — and every row is
+/// classified as one of them or reported. Reading only the spellings a leg can
+/// use is how a row that lost its suffix, or its value, leaves the population
+/// without anything refusing it: the obligation then qualifies while the
+/// positive control it names is never looked for, which is the failure this
+/// whole boundary exists to prevent, one level up in the reader.
+///
 /// **Green, wherever the positive control actually sits.** A green row may name
-/// a testpak seat instead of a law, because a behavioral claim's strongest seat
-/// is the plane that drives it from outside. Such a row is a ROUTE, and it must
-/// resolve to an EXECUTABLE seat — a test file directly under `testpak/tests/`,
-/// which is to say a test that runs. A route is deliberately NOT read on the
-/// terms a named red twin is: a red twin may lawfully be a compile-fail fixture,
-/// and a fixture whose whole content is that it must not compile can never stand
-/// as a positive control. A green route pointing at a file nobody wrote is worse
-/// than an unproven claim, because it reads as proven; a green route pointing at
-/// its own red twin is worse still, because the evidence it names refutes it.
+/// a testpak seat rather than a `laws.rs` one, because a behavioral claim's
+/// strongest seat is the plane that drives it from outside. Such a row is a
+/// ROUTE, and it must resolve to an EXECUTABLE seat — a test file directly under
+/// `testpak/tests/`, which is to say a test that runs. A route is deliberately
+/// NOT read on the terms a named red twin is: a red twin may lawfully be a
+/// compile-fail fixture, and a fixture whose whole content is that it must not
+/// compile can never stand as a positive control. A green route pointing at a
+/// file nobody wrote is worse than an unproven claim, because it reads as
+/// proven; a green route pointing at its own red twin is worse still, because
+/// the evidence it names refutes it.
 /// Nothing is counted here — a green side is not a debt ledger, and inventing a
 /// third denominator over a population that states no debts would be a number
 /// nobody can act on.
@@ -115,18 +126,26 @@ pub(crate) fn check_obligations_join(root: &Path) -> Result<(), String> {
     offenders.extend(double_claimed_offences(&attributed));
     let mut rows = Vec::new();
     let mut routes = Vec::new();
+    let mut unreadable = Vec::new();
     for readme in &readmes {
         let text = fs::read_to_string(readme).map_err(|e| format!("{}: {e}", readme.display()))?;
         for row in red_twin_rows(&text) {
             rows.push((row, relative_slash_path(root, readme)));
         }
-        for route in claimed_green_routes(&text) {
-            routes.push((route, relative_slash_path(root, readme)));
+        for row in classify_green_rows(&text) {
+            match row {
+                GreenRow::Route(named) => routes.push((named, relative_slash_path(root, readme))),
+                GreenRow::Unreadable(value) => {
+                    unreadable.push((value, relative_slash_path(root, readme)));
+                }
+                GreenRow::CompileTimeSeat | GreenRow::Disposition => {}
+            }
         }
     }
     let (reversals, seats) = testpak_populations(root)?;
     let ledger = red_twin_ledger(&rows, &reversals);
     offenders.extend(phantom_green_routes(&routes, &seats));
+    offenders.extend(unreadable_green_offences(&unreadable));
 
     let tooling_rows = tooling_rows(root)?;
     let tooling = red_twin_ledger(&tooling_rows, &reversals);
@@ -203,7 +222,7 @@ fn double_claimed_offences(claimed: &[(String, String, String)]) -> Vec<String> 
 /// ledger while proving nothing.
 ///
 /// The two sides resolve against DIFFERENT populations, and that separation is
-/// the law here rather than an optimization. A red row names something that
+/// the rule here rather than an optimization. A red row names something that
 /// demonstrates a REFUSAL, so it may lawfully be a compile-fail fixture. A green
 /// route names an executable CONTROL, which has to actually run to control
 /// anything. A fixture that by construction does not compile can never be a
@@ -234,14 +253,60 @@ fn phantom_green_routes(rows: &[(String, String)], seats: &SeatPopulation) -> Ve
     offences
 }
 
+/// Every green row no lawful spelling reads, one offence per row.
+///
+/// The leg that stops a malformed row from leaving the population quietly. A
+/// route that lost a letter off its suffix, a bare word that is neither a path
+/// nor a declared disposition, a value somebody emptied — each of these used to
+/// be filtered out one level up, before [`phantom_green_routes`] ever saw it, so
+/// the obligation qualified with its named positive control unexamined and
+/// nothing said a word. That is the same defect the phantom-route leg refuses,
+/// arriving through the reader instead of through the join, and it is worse for
+/// it: the phantom leg at least reports the row it cannot resolve.
+///
+/// The offence names the row AND the README that declared it, because the row's
+/// value is not enough to find it — the same spelling can be written in any
+/// home, and the repair is made in the file that wrote it.
+///
+/// Pure over its rows, so the leg is proven against fixture rows rather than by
+/// malforming a README the repository stands on.
+fn unreadable_green_offences(rows: &[(String, String)]) -> Vec<String> {
+    let mut offences = Vec::new();
+    for (value, readme) in rows {
+        let spelled = if value.is_empty() {
+            String::from("no value at all")
+        } else {
+            format!("`{value}`")
+        };
+        offences.push(format!(
+            "{readme}: green row states {spelled}, which is no spelling this repository reads: a \
+             green row states `laws.rs <module>::<name>`, or a repository-relative path to a \
+             `.rs` file, or a declared disposition — `none — …`, `owed — …`, `structural (…)` — \
+             accounting for why no file holds a positive control. A row nobody can read is an \
+             obligation whose positive control nobody looks for"
+        ));
+    }
+    offences
+}
+
 /// Every `tooling-red:` row the tooling READMEs declare, attributed to the file
 /// that declared it.
+///
+/// A declared README that is not there REFUSES rather than being stepped over.
+/// [`TOOLING_READMES`] is a statement that these files carry the tooling
+/// denominator, so one of them going missing takes its rows out of the published
+/// count with nothing said — and the emptiness guard downstream cannot see it,
+/// because the other file's rows keep the population non-empty. A ledger that
+/// shrinks quietly is the failure this whole join exists to refuse.
 fn tooling_rows(root: &Path) -> Result<Vec<(String, String)>, String> {
     let mut rows = Vec::new();
     for readme in TOOLING_READMES {
         let path = root.join(readme);
         if !path.is_file() {
-            continue;
+            return Err(format!(
+                "{readme} is declared as a tooling obligation ledger and is not there: its rows \
+                 would leave the tooling denominator with nothing saying so"
+            ));
         }
         let text = fs::read_to_string(&path).map_err(|e| format!("{}: {e}", path.display()))?;
         for row in tooling_red_rows(&text) {
@@ -260,7 +325,7 @@ fn tooling_rows(root: &Path) -> Result<Vec<(String, String)>, String> {
 /// the other.
 ///
 /// It never leaves this module: the tally is what the red leg carries between
-/// its own steps, and no other law counts in this currency.
+/// its own steps, and nothing else counts in this currency.
 struct RedTwinTally {
     /// Rows naming a reversal that exists.
     discharged: usize,
@@ -282,7 +347,13 @@ fn red_twin_ledger(rows: &[(String, String)], reversals: &ReversalPopulation) ->
             ledger.owed = ledger.owed.saturating_add(1);
             continue;
         }
-        let named = value.split_whitespace().next().unwrap_or(value);
+        let Some(named) = value.split_whitespace().next() else {
+            ledger.offenders.push(format!(
+                "{readme}: red row states no value at all: a row either declares its debt as \
+                 `owed-to-…` with the creditor named, or names the reversal that exists"
+            ));
+            continue;
+        };
         if reversals.carries(named) {
             ledger.discharged = ledger.discharged.saturating_add(1);
         } else {
@@ -344,7 +415,7 @@ impl SeatPopulation {
     /// Deliberately restated rather than shared with [`ReversalPopulation`]: the
     /// two readings agree today, and the moment one side is tempted to loosen —
     /// to accept a bare file name, a directory, a stale path — it must loosen
-    /// alone, where the other side's law cannot be dragged along with it.
+    /// alone, where the other side's reading cannot be dragged along with it.
     fn carries(&self, named: &str) -> bool {
         self.0.iter().any(|path| path.as_str() == named)
     }
@@ -386,11 +457,12 @@ fn testpak_populations(root: &Path) -> Result<(ReversalPopulation, SeatPopulatio
 mod tests {
     use super::{
         ReversalPopulation, SeatPopulation, double_claimed_offences, phantom_green_routes,
-        red_twin_ledger, testpak_populations,
+        red_twin_ledger, testpak_populations, tooling_rows, unreadable_green_offences,
     };
     use crate::repository::readme::{
-        claimed_green_laws, claimed_green_routes, home_readmes, red_twin_rows, tooling_red_rows,
+        claimed_green_laws, classify_green_rows, home_readmes, red_twin_rows, tooling_red_rows,
     };
+    use crate::repository::types::GreenRow;
     use crate::repository::walk::{relative_slash_path, repo_root};
     use std::fs;
     use std::path::PathBuf;
@@ -585,6 +657,27 @@ mod tests {
         assert_eq!(ledger.offenders.len(), 1, "{:?}", ledger.offenders);
     }
 
+    /// Planted reversal: a declared tooling ledger that is not there. Stepped
+    /// over, its rows leave the published tooling denominator and the emptiness
+    /// guard never fires, because the other declared ledger keeps the population
+    /// non-empty.
+    ///
+    /// Read against a directory that is not the repository, which is every
+    /// declared ledger missing at once — the same reading the first missing one
+    /// gets, since the leg refuses on the first.
+    #[test]
+    fn a_missing_tooling_ledger_is_a_violation() {
+        let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
+        let elsewhere = root.join("xtask").join("src");
+        let found = tooling_rows(&elsewhere);
+        assert!(found.is_err(), "{found:?}");
+        assert!(
+            found
+                .err()
+                .is_some_and(|offence| offence.contains("tooling obligation ledger")),
+        );
+    }
+
     /// The real tooling READMEs declare a non-empty denominator, and every row
     /// naming a reversal resolves to one that exists.
     #[test]
@@ -711,28 +804,146 @@ mod tests {
         assert!(found.is_empty(), "{found:?}");
     }
 
-    /// The real repository holds: every green route a home README declares
-    /// resolves to an EXECUTABLE seat that exists, and the population is real
-    /// rather than empty.
+    /// Planted reversal: a green row no lawful spelling reads, in each of the
+    /// four ways a row goes unreadable.
+    ///
+    /// Every one of these was dropped by a reader that filtered to the rows it
+    /// could use, so none of them ever reached the phantom-route leg. The offence
+    /// names the row and the README that declared it, because the repair is made
+    /// in the file that wrote it.
     #[test]
-    fn the_real_green_routes_name_only_seats_that_exist() {
+    fn an_unreadable_green_row_is_an_offence_against_its_readme() {
+        let found = unreadable_green_offences(&named(&[
+            "testpak/tests/stamp_row_ceiling.r",
+            "testpak/tests/stamp_row_ceiling.txt",
+            "sometimes",
+            "",
+        ]));
+        assert_eq!(found.len(), 4, "{found:?}");
+        assert!(
+            found
+                .iter()
+                .all(|offence| offence.starts_with("FIXTURE.md:")),
+            "{found:?}"
+        );
+        assert!(
+            found
+                .first()
+                .is_some_and(|offence| offence.contains("stamp_row_ceiling.r`")),
+            "{found:?}"
+        );
+        // An emptied row has no spelling to quote, so it is reported by what it
+        // is rather than by an empty pair of backticks nobody can search for.
+        assert!(
+            found
+                .last()
+                .is_some_and(|offence| offence.contains("no value at all")),
+            "{found:?}"
+        );
+    }
+
+    /// The positive control: a reader that classified every row as unreadable
+    /// would satisfy the reversal above and be worthless, so the lawful
+    /// spellings are read through the same leg and produce nothing.
+    #[test]
+    fn the_lawful_green_spellings_are_no_offence() {
+        let text = "    green: laws.rs root::a_seat_that_exists\n\
+                    \x20   green: none — the type's nonexistence is what refuses\n\
+                    \x20   green: owed — executable when the roster lands\n\
+                    \x20   green: structural (a phantom makes the handle !Send)\n\
+                    \x20   green: testpak/tests/stamp_row_ceiling.rs\n";
+        let mut routes = Vec::new();
+        let mut unreadable = Vec::new();
+        for row in classify_green_rows(text) {
+            match row {
+                GreenRow::Route(named) => routes.push((named, String::from("FIXTURE.md"))),
+                GreenRow::Unreadable(value) => unreadable.push((value, String::from("FIXTURE.md"))),
+                GreenRow::CompileTimeSeat | GreenRow::Disposition => {}
+            }
+        }
+        assert_eq!(routes.len(), 1, "{routes:?}");
+        assert!(unreadable_green_offences(&unreadable).is_empty());
+        let seats = green_population(&["testpak/tests/stamp_row_ceiling.rs"]);
+        assert!(phantom_green_routes(&routes, &seats).is_empty());
+    }
+
+    /// Planted reversal: a red row whose value was emptied. It is refused rather
+    /// than counted, and rather than dropped — a row that stops being read
+    /// shrinks a denominator this repository publishes on every run.
+    #[test]
+    fn an_emptied_red_row_is_refused_not_counted() {
+        let ledger = red_twin_ledger(
+            &rows("    red:\n    red: owed-to-testpak\n"),
+            &red_population(&["testpak/tests/planted_defect.rs"]),
+        );
+        assert_eq!(ledger.owed, 1);
+        assert_eq!(ledger.discharged, 0);
+        assert_eq!(ledger.offenders.len(), 1, "{:?}", ledger.offenders);
+        assert!(
+            ledger
+                .offenders
+                .first()
+                .is_some_and(|offence| offence.contains("no value at all")),
+            "{:?}",
+            ledger.offenders
+        );
+    }
+
+    /// The real repository holds: every green row a home README declares is
+    /// read as one of the three lawful spellings, every route resolves to an
+    /// EXECUTABLE seat that exists, and nothing is dropped on the way.
+    ///
+    /// The last of those is the load-bearing one and it is why the count is
+    /// taken twice. The rows are counted first by the READER, then by the raw
+    /// line prefix the rows are written with, and the two numbers must agree:
+    /// that is the statement that no green row left the population unclassified,
+    /// stated over the real tree rather than over a fixture.
+    #[test]
+    fn the_real_green_rows_are_all_read() {
         let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
         let (_, seats) = testpak_populations(&root)
             .unwrap_or_else(|_| (red_population(&[]), green_population(&[])));
-        let mut collected = Vec::new();
+        let mut routes = Vec::new();
+        let mut unreadable = Vec::new();
+        let mut seated = 0usize;
+        let mut disposed = 0usize;
+        let mut written = 0usize;
         let readmes = home_readmes(&root).unwrap_or_default();
+        assert!(!readmes.is_empty(), "no home READMEs found");
         for readme in &readmes {
             let text = fs::read_to_string(readme).unwrap_or_default();
             let name = relative_slash_path(&root, readme);
-            for route in claimed_green_routes(&text) {
-                collected.push((route, name.clone()));
+            written = written.saturating_add(
+                text.lines()
+                    .filter(|line| line.trim().starts_with("green:"))
+                    .count(),
+            );
+            for row in classify_green_rows(&text) {
+                match row {
+                    GreenRow::Route(named) => routes.push((named, name.clone())),
+                    GreenRow::Unreadable(value) => unreadable.push((value, name.clone())),
+                    GreenRow::CompileTimeSeat => seated = seated.saturating_add(1),
+                    GreenRow::Disposition => disposed = disposed.saturating_add(1),
+                }
             }
         }
+        let offences = unreadable_green_offences(&unreadable);
+        assert!(offences.is_empty(), "{offences:?}");
         assert!(
-            !collected.is_empty(),
-            "no green route found; this leg would be guarding nothing"
+            !routes.is_empty(),
+            "no green route found; the route leg would be guarding nothing"
         );
-        let found = phantom_green_routes(&collected, &seats);
+        // All three spellings are actually written here. A classifier is only
+        // worth something over a population that exercises it.
+        assert!(seated > 0, "no green row names a compile-time seat");
+        assert!(disposed > 0, "no green row declares a disposition");
+        let read = routes
+            .len()
+            .saturating_add(unreadable.len())
+            .saturating_add(seated)
+            .saturating_add(disposed);
+        assert_eq!(read, written, "a green row was written and not read");
+        let found = phantom_green_routes(&routes, &seats);
         assert!(found.is_empty(), "{found:?}");
     }
 
@@ -741,8 +952,8 @@ mod tests {
     /// The separation is only worth something if the tree actually carries
     /// fixtures the green side must refuse. If testpak ever flattened — every
     /// reversal sitting directly under `testpak/tests/` — the narrowing would
-    /// still be law but nothing would exercise it, and this test says so out
-    /// loud rather than passing quietly.
+    /// still be enforced but nothing would exercise it, and this test says so
+    /// out loud rather than passing quietly.
     #[test]
     fn the_real_populations_are_named_apart() {
         let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));

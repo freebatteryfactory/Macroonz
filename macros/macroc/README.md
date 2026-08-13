@@ -28,7 +28,7 @@ that have them; that is a property of the admitted dependency and is disclosed
 here rather than discovered by whoever first builds without a C toolchain.
 
 **This admission is the TOOLING PLANE's, and it is not band 07's.** Band 07's
-digest-family law proposes blake3-256 for the machine's commitments, under the
+digest-family rule proposes blake3-256 for the machine's commitments, under the
 machine's domain-tag register, and admitting it is a separate mechanism decision
 with a separate owner. The two admissions share an algorithm and nothing else:
 different preimages, different domain separation, different claims, different
@@ -55,12 +55,12 @@ deleted, not re-hashed. Hashing a lost-information fold with a strong digest
 would have produced a strong-looking value carrying a weak preimage, which is a
 worse position than the honest nonclaim it started from.
 
-## The working law: a failed required seat is a typed refusal
+## The working rule: a failed required seat is a typed refusal
 
 **A required seat is never repaired with an empty, default, or neighbouring
 value after construction fails — a failed required seat is a typed refusal.**
 
-This is a law about what the services do at the moment something impossible
+This is a rule about what the services do at the moment something impossible
 happens. A checked seam returns a `Result`; a caller that has no honest value for
 the failing case reaches for the nearest one it can see, and the nearest one is
 always wrong in the same three ways:
@@ -78,7 +78,7 @@ downstream then proves the wrong claim correctly: a membership shortened to one
 member is closed over, at one member, and the closure is honest about a plan that
 is not.
 
-The law has two halves, and the first is the one that does the work.
+The rule has two halves, and the first is the one that does the work.
 
 **Where the failing case cannot happen, the road must not have it.** A complete
 set fixed by a shape, a static rendering whose length is a compile-time fact, a
@@ -98,14 +98,14 @@ distinctions — one related identity per established issue, the first issue's o
 classification, and a summary composed from the typed values.
 
 Saturating a numeric conversion to `MAX` while REPORTING a count is not this
-defect and is not touched by the law: it is a rendering of a number too large to
+defect and is not touched by the rule: it is a rendering of a number too large to
 render, inside a refusal that has already been established.
 
 ## Tooling obligations are their own category
 
 A core semantic obligation is a claim about the MACHINE — what a home's types
-make unrepresentable, what a law proves, what a reversal breaks. Its denominator
-is the red-twin ledger.
+make unrepresentable, what `laws.rs` proves, what a reversal breaks. Its
+denominator is the red-twin ledger.
 
 A **tooling qualification obligation** is a claim about a TOOL — what a service
 refuses, what a check catches, what a judge is rehearsed against. It has its own

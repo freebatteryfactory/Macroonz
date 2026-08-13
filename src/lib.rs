@@ -30,8 +30,8 @@ pub mod types;
 
 // ---------------------------------------------------------------------------
 // The closed-register stamp: the root's own composition mechanism. Instantiated
-// by band 13's authoring algebra, by the services crate's eight rosters, and by
-// this crate's proof surface, on identical terms.
+// by band 13's authoring algebra, by the services crate's rosters, and by this
+// crate's proof surface, on identical terms.
 // ---------------------------------------------------------------------------
 
 /// Stamps one closed, fieldless roster from a single declaration of its rows.
@@ -53,7 +53,7 @@ pub mod types;
 /// form of this pattern is a roster array beside a `match` returning numbers,
 /// and those two are two things to keep true.
 ///
-/// The consequence runs the other way too, and it is a law on the caller. A
+/// The consequence runs the other way too, and it binds the caller. A
 /// row's slot IS its place in the declaration, so reordering rows renumbers
 /// every slot from the first move onward — and where a slot is written into
 /// canonical bytes, that renumbering renames every identity ever derived under
@@ -129,10 +129,10 @@ pub mod types;
 ///
 /// The root owns it. A closed roster of declared words is a composition shape
 /// the whole repository instantiates rather than any one band's material: band
-/// 13's authoring algebra reaches for it, the services crate stamps eight
-/// rosters with it, and this crate's proof surface stamps its own. Seating it in
-/// a band made every other consumer reach across a band edge for a mechanism
-/// that band did not own.
+/// 13's authoring algebra reaches for it, the services crate stamps its rosters
+/// with it, and this crate's proof surface stamps its own. Seating it in a band
+/// made every other consumer reach across a band edge for a mechanism that band
+/// did not own.
 ///
 /// It sits in `lib.rs` rather than in `types.rs` because that is where the
 /// precedent puts it. [`scope_guard_version!`] sits in band 02's `mod.rs` — the

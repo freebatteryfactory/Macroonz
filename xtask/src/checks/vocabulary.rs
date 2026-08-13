@@ -17,6 +17,22 @@ use crate::repository::walk::{
 /// identifiers. This checker spells the words plainly because `xtask` sits
 /// outside the tree it scans; `AGENTS.md` and `CLAUDE.md` state the ban itself
 /// and are likewise outside it.
+///
+/// **One banned word is absent from this list on purpose, and the absence is a
+/// DECLARED DEBT rather than an oversight.** The working law also bans "law" as
+/// an ordinary noun, excepting the `laws.rs` filename, and this list has never
+/// carried it — so that half of the ban has never been enforced by anything.
+/// Adding the word here is not the repair. The specification tree spells it
+/// wherever prose describes what `laws.rs` holds, so switching it on turns this
+/// gate red at every one of those sites at once, which buys a red gate rather
+/// than reworded prose.
+///
+/// Owed to a dedicated vocabulary boundary that reads every site, rewords it,
+/// and adds the word here in the same commit that empties the sites. The opening
+/// condition is the laws-drain phase: the drain retires the seats most of those
+/// sentences are about, so a sweep run before it would reword prose that is
+/// about to be deleted. The debt is declared here, in the list it is missing
+/// from, because that is where the next reader of this list will look.
 const BANNED_VOCABULARY: [&str; 4] = ["factory", "candidate", "promotion", "self-hosting"];
 
 /// Lawful survivals: `(repository-relative path, word, why it stands)`. A term

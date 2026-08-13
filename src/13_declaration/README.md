@@ -61,7 +61,7 @@ buildable when their magnitudes are declared, and not before.
 the rows writes the enum, the roster constant, each row's position, each row's
 declared stable name, and the prose a person is shown — and that is a
 composition shape the whole repository instantiates rather than an authoring
-concept this home rules. The services crate stamps eight rosters with it and the
+concept this home rules. The services crate stamps its rosters with it and the
 machine's own proof surface stamps another; while it sat here, every one of them
 reached across a band edge for a mechanism this home did not own. It is seated
 in `lib.rs`, the root calculus's module surface, on the precedent

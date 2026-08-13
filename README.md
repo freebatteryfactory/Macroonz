@@ -203,9 +203,9 @@ roster constant in declared order, each row's position, each row's declared
 stable name, and the prose a person is shown — five readings of one statement,
 so the hand-kept pair they replace (a roster array beside a `match` returning
 numbers) has no second place left to drift in. Band 13's authoring algebra, the
-services crate's eight rosters, and this crate's own proof surface all stamp
-with it; it declares no type, reaches no band's material, and belongs to no
-band, which is why it sits at the root rather than in one of them. It is seated
+services crate's rosters, and this crate's own proof surface all stamp with it;
+it declares no type, reaches no band's material, and belongs to no band, which
+is why it sits at the root rather than in one of them. It is seated
 in `lib.rs` — the root calculus's module surface — on the precedent
 `scope_guard_version!` set in band 02's `mod.rs`.
 

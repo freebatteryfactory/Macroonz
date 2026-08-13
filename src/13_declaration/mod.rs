@@ -5,7 +5,7 @@
 //!
 //! [`closed_register!`](crate::closed_register) was written here and is the
 //! ROOT's. A closed roster of declared words is a composition shape the whole
-//! repository instantiates — the services crate stamps eight rosters with it and
+//! repository instantiates — the services crate stamps its rosters with it and
 //! this crate's own proof surface stamps another — rather than an authoring
 //! concept this home rules, so seating it here made every other consumer reach
 //! across a band edge for a mechanism that is nobody's material. This home is
