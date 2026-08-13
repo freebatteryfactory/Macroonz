@@ -33,8 +33,7 @@
 use crate::bytes::ContentRegionId;
 use crate::history::FederationCutEntries;
 use crate::identity::{
-    AuthorityPosition, ByteIdentity, Commitment, CreationLaw, IdentityClass, IdentityRole,
-    Occurrence,
+    ByteIdentity, Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence,
 };
 use crate::refusal::{FamilyShape, RefusalFamily};
 use crate::types::{Completeness, EvidenceRef};
@@ -75,10 +74,11 @@ impl MaterializationId {
     }
 }
 
-/// One materialization generation — Class C, scoped to its materialization;
-/// CHANGES on rematerialization.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct MaterializationGeneration(pub AuthorityPosition<MaterializationId>);
+crate::scope_guard_version! {
+    /// One materialization generation — Class C, scoped to its materialization;
+    /// CHANGES on rematerialization.
+    pub struct MaterializationGeneration over MaterializationId;
+}
 
 /// Row-domain preimage domain marker.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

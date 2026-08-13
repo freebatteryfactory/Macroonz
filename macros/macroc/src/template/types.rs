@@ -2,10 +2,11 @@
 //! template and its application, and the semantic invocation key.
 //!
 //! Declarations only. Every road that reaches a private field — a binding's two
-//! ends, a ceiling's axes, a template's holes, an application's bindings — lives
-//! in `type_guard.rs`, this file's own child. That is what makes each of this
-//! home's proofs structural: a cross-category binding, a ceiling missing an
-//! axis, and an application with an unbound hole are values nobody can build.
+//! ends, a ceiling's axes, a template's holes, an application's bindings, and the
+//! refusal body's one seat — lives in `type_guard.rs`, this file's own child.
+//! That is what makes each of this home's proofs structural: a cross-category
+//! binding, a ceiling missing an axis, and an application with an unbound hole
+//! are values nobody can build.
 
 use crate::origin_graph::Nonclaim;
 use crate::plane::{
@@ -312,7 +313,13 @@ pub struct TemplateConstruction {
     /// can be swapped for another body's. The passes themselves always run their
     /// rosters to the end, so the completion here never reports a halted
     /// examination.
-    pub report: AdmittedPrefix<TemplateConstructionIssue, TemplateIssueLimit>,
+    ///
+    /// Private, and that is the second half of the same claim. The coupled seat
+    /// keeps a carry and its posture together; a PUBLIC seat on a one-field
+    /// record hands the whole record back as a literal, so any holder of a body
+    /// built for one pass could write it into another pass's refusal. Read back
+    /// through [`TemplateConstruction::body`].
+    body: AdmittedPrefix<TemplateConstructionIssue, TemplateIssueLimit>,
 }
 
 /// One authored declaration template: its identity, its typed holes, the three

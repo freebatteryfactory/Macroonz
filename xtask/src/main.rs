@@ -7,11 +7,12 @@
 //! written rule gains something to enforce — the repository never carries a rule
 //! that nothing checks.
 //!
-//! `cargo xtask qualify` runs the complete entry bar: formatting, the lint wall,
-//! the tests, those same repository laws, the wasm build, the documentation
-//! build, and a closing read of the checkout that refuses a worktree the run
-//! itself dirtied. It is the whole bar and the only spelling of it, so the road a
-//! hosted runner takes and the road a working machine takes cannot differ.
+//! `cargo xtask qualify` runs the complete entry bar, and the ordered stage
+//! table in [`qualification`] is the only definition of what that bar is —
+//! naming its stages a second time here would be the same battery written
+//! twice, drifting the first time either copy was edited alone. It is the whole
+//! bar and the only spelling of it, so the road a hosted runner takes and the
+//! road a working machine takes cannot differ.
 //!
 //! This file is the shell and nothing else. It resolves the command, holds the
 //! one table that names every law beside the function that checks it, and runs

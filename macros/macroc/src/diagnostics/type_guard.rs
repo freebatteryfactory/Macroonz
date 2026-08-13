@@ -156,8 +156,34 @@ impl RelatedSet {
     /// The posture is spelled for truncation rather than for an early stop, on
     /// band 00's distinction: the refusal body is complete before the set is
     /// built, so nothing here ever halts an examination.
+    ///
+    /// # Empty material is the canonical empty relation and nothing else
+    ///
+    /// Handed no issues, this road answers with
+    /// [`RelatedSet::nothing_enumerated`] — the same value the single-cause road
+    /// answers with, not a second value that means the same thing.
+    ///
+    /// Deriving instead would carry a Body identity over empty material and call
+    /// the result `Complete`, and "nothing was enumerated" would then have two
+    /// distinguishable representations: one carrying a commitment to no issues,
+    /// one carrying no identities at all. Two representations of one state is the
+    /// defect, whichever of them a reader is handed — a reader comparing two
+    /// diagnostics that enumerated nothing would find them unequal, and a reader
+    /// holding the derived one would be holding a whole-body commitment whose
+    /// preimage is the empty framing, which is a name for every empty set at that
+    /// family rather than a name for this refusal.
+    ///
+    /// It routes rather than refuses, and that is deliberate. A refusal here
+    /// would hand every caller an error branch: the one seam that reaches this
+    /// road holds a [`threadpak::types::NonEmptyBounded`] carry and cannot
+    /// produce the case at all, so it would have no honest value to repair the
+    /// branch with — and a caller with no honest value writes the nearest one,
+    /// which is how a road grows a second representation in the first place.
     #[must_use]
     pub fn derived_over(family: u8, issues: &[Vec<u8>]) -> Self {
+        if issues.is_empty() {
+            return Self::nothing_enumerated();
+        }
         let mut body_material = Vec::new();
         let mut per_issue = Vec::with_capacity(issues.len());
         for issue in issues {
@@ -192,12 +218,26 @@ impl RelatedSet {
         }
     }
 
-    /// The set a road that enumerated nothing amounts to.
+    /// The canonical empty relation: the set a road that enumerated nothing
+    /// amounts to, and the only value in the plane that means it.
     ///
     /// A single-cause road establishes one cause and enumerates nothing, so
     /// there is no per-issue set to stop short of: zero identities are carried
     /// and zero are omitted. Total, and `Complete` by shape — there is no
     /// material it could have dropped.
+    ///
+    /// A lawful empty relation rather than a missing one. Emptiness here is a
+    /// stated posture about an act that ran: the road looked, and there was
+    /// nothing to enumerate. It is not an absent set, not a set that failed to
+    /// build, and not a truncation that dropped everything — a truncation names
+    /// a bound and a non-zero count, and this names neither because neither
+    /// happened.
+    ///
+    /// Every road into "nothing was enumerated" ends here.
+    /// [`RelatedSet::derived_over`] routes empty material to this value rather
+    /// than deriving a second one, so a reader comparing two diagnostics that
+    /// enumerated nothing finds them equal, and there is no second shape for a
+    /// reader to have to recognize.
     #[must_use]
     pub fn nothing_enumerated() -> Self {
         Self {

@@ -1,5 +1,4 @@
-//! The three construction passes, and the refusal an established issue list
-//! amounts to.
+//! The three construction passes.
 //!
 //! Each pass has a roster for its quantifier — the declared holes, the meta
 //! bound axes, the template's own parameters — so "every one was examined" is a
@@ -11,15 +10,13 @@
 //! Nothing here reaches a private field: every pass reads supplied material, or
 //! reads a template through the same public answers any caller gets. The roads
 //! that consume these passes live in `type_guard.rs`, because building a
-//! template, a ceiling, or an application is what must stay unreachable.
+//! template, a ceiling, an application, or the refusal body itself is what must
+//! stay unreachable.
 
 use super::{
-    AxisCeiling, DeclarationTemplate, META_BOUND_AXES, TemplateBinding, TemplateConstruction,
-    TemplateConstructionIssue, TemplateParameter,
+    AxisCeiling, DeclarationTemplate, META_BOUND_AXES, TemplateBinding, TemplateConstructionIssue,
+    TemplateParameter,
 };
-use crate::plane::AuthoringLimitProfile;
-use threadpak::refusal::{AdmittedPrefix, StopBound};
-use threadpak::types::PositiveLimit;
 
 /// Every parameter identity a hole set declares more than once, reported at its
 /// first occurrence.
@@ -118,47 +115,4 @@ pub(super) fn binding_issues(
         }
     }
     issues
-}
-
-/// The refusal one established issue list amounts to, or nothing where the list
-/// is empty.
-pub(super) fn refused(issues: Vec<TemplateConstructionIssue>) -> Option<TemplateConstruction> {
-    let mut established = issues.into_iter();
-    let first = established.next()?;
-    Some(TemplateConstruction::co_established(
-        first,
-        established.collect(),
-    ))
-}
-
-impl TemplateConstruction {
-    /// The one-issue body. Total: the declared bound admits an item by
-    /// compile-time proof, so refusing never needs an error road of its own.
-    pub fn established(issue: TemplateConstructionIssue) -> Self {
-        Self {
-            report: AdmittedPrefix::carrying_one(issue),
-        }
-    }
-
-    /// The several-issue body.
-    ///
-    /// The three passes above run their rosters to the end before a body exists,
-    /// so the posture here is about the REPORT and never about the passes. Where
-    /// every established issue fits the declared bound the body carries all of
-    /// them; where it does not, the body carries what the bound holds and names
-    /// how many established issues stand outside it — never a silent drop, never
-    /// an unearned claim of completeness, and never a claim that nobody looked.
-    pub fn co_established(
-        first: TemplateConstructionIssue,
-        rest: Vec<TemplateConstructionIssue>,
-    ) -> Self {
-        Self {
-            report: AdmittedPrefix::examined_completely(
-                first,
-                rest,
-                &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
-                StopBound::DeclaredIssueBound,
-            ),
-        }
-    }
 }

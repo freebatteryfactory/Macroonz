@@ -85,9 +85,9 @@ const RENDERING_FAMILY: u8 = 3;
 /// Every issue's axis, declared magnitude, observed count, seat, and doubled
 /// role survive: the first one in the summary, all of them in the related set.
 pub fn planning_refused(refusal: &ProjectionPlanning) -> MacrocDiagnostic {
-    let first = refusal.report.carried().first();
+    let first = refusal.body().carried().first();
     let material: Vec<Vec<u8>> = refusal
-        .report
+        .body()
         .carried()
         .iter()
         .map(planning_bytes)
@@ -98,8 +98,8 @@ pub fn planning_refused(refusal: &ProjectionPlanning) -> MacrocDiagnostic {
         &summary(
             "planning refused",
             &planning_line(first),
-            refusal.report.carried().len().saturating_sub(1),
-            refusal.report.completion(),
+            refusal.body().carried().len().saturating_sub(1),
+            refusal.body().completion(),
         ),
         PLANNING_FAMILY,
         &material,
@@ -237,16 +237,16 @@ const fn planning_observed(issue: &ProjectionPlanningIssue) -> ObservedClassific
 ///
 /// Every issue's role and its kind of disagreement survive, role by role.
 pub fn closure_refused<R: RenderedRole>(refusal: &ProjectionClosureRefusal<R>) -> MacrocDiagnostic {
-    let first = refusal.report.carried().first();
-    let material: Vec<Vec<u8>> = refusal.report.carried().iter().map(closure_bytes).collect();
+    let first = refusal.body().carried().first();
+    let material: Vec<Vec<u8>> = refusal.body().carried().iter().map(closure_bytes).collect();
     diagnosed(
         MacrocPhase::Rendering,
         closure_observed(first),
         &summary(
             "the rendering does not close over the plan it claims to materialize",
             &closure_line(first),
-            refusal.report.carried().len().saturating_sub(1),
-            refusal.report.completion(),
+            refusal.body().carried().len().saturating_sub(1),
+            refusal.body().completion(),
         ),
         CLOSURE_FAMILY,
         &material,
@@ -358,9 +358,9 @@ fn coverage_refused(
     owner: OwnerFactRef,
     repair: HumanProjection<HumanTextLimit>,
 ) -> MacrocDiagnostic {
-    let first = coverage.report.carried().first();
+    let first = coverage.body().carried().first();
     let material: Vec<Vec<u8>> = coverage
-        .report
+        .body()
         .carried()
         .iter()
         .map(coverage_bytes)
@@ -371,8 +371,8 @@ fn coverage_refused(
         &summary(
             "the explanation does not cover its kind's questions",
             &coverage_line(first),
-            coverage.report.carried().len().saturating_sub(1),
-            coverage.report.completion(),
+            coverage.body().carried().len().saturating_sub(1),
+            coverage.body().completion(),
         ),
         COVERAGE_FAMILY,
         &material,

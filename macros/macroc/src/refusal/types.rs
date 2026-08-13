@@ -2,15 +2,21 @@
 //! seats a fact can be missing from, the closed planning issue set, and the
 //! family body they travel in.
 //!
-//! Declarations only. Nothing here is private: a refusal body whose issues a
-//! caller could not read would be a refusal nobody can act on, so the home has
-//! no invariant nucleus and no `type_guard.rs` beside this file.
+//! Declarations only. The body's one seat is private and its roads live in
+//! `type_guard.rs`, this file's own child. Readable is not the same as writable:
+//! a refusal body whose issues a caller could not read would be a refusal nobody
+//! can act on, so the seat is read back through a borrow — and a refusal a caller
+//! could WRITE would be a seam minting the plane's own answer, so there is no
+//! literal anybody outside the nucleus can spell.
 
 use crate::plane::{
     GeneratedUnitSubject, OwnerFactRef, PlanningIssueLimit, ProfileVersion, ProjectionIdentity,
     ProjectionKindSubject, ProjectionProfileSubject,
 };
 use threadpak::refusal::AdmittedPrefix;
+
+#[path = "type_guard.rs"]
+mod guard;
 
 threadpak::closed_register! {
     /// The plan's declared bound axes. A bound refusal names which magnitude it
@@ -158,5 +164,11 @@ pub struct ProjectionPlanning {
     /// or names how many stand outside that bound. One seat rather than two,
     /// because a coverage claim seated beside its body is a claim that can be
     /// swapped for another body's.
-    pub report: AdmittedPrefix<ProjectionPlanningIssue, PlanningIssueLimit>,
+    ///
+    /// Private, and that is the second half of the same claim. The coupled seat
+    /// keeps a carry and its posture together; a PUBLIC seat on a one-field
+    /// record hands the whole record back as a literal, so any holder of a body
+    /// built for one seam could write it into another seam's refusal. Read back
+    /// through [`ProjectionPlanning::body`].
+    body: AdmittedPrefix<ProjectionPlanningIssue, PlanningIssueLimit>,
 }

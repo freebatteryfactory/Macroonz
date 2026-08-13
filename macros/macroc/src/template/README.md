@@ -58,13 +58,13 @@ it.
 them, the three locks, the template, the application, and the invocation key. Its
 own child `type_guard.rs` holds every road that reaches a private field — the
 binding's two ends, the ceiling's axes, the template's holes, the application's
-bindings — which is what makes the category proof, the complete ceiling, and the
-complete application structural: a cross-category binding, a ceiling missing an
-axis, and an application with an unbound hole are values nobody can build.
+bindings, and the refusal body's one seat — which is what makes the category
+proof, the complete ceiling, and the complete application structural: a
+cross-category binding, a ceiling missing an axis, and an application with an
+unbound hole are values nobody can build.
 `type_contract.rs` states the two refusal families' declared shapes.
 `establish.rs` is the pure passes those roads consume — what a hole set, a
-ceiling, and a binding set each establish — and the body the established issues
-amount to.
+ceiling, and a binding set each establish — reaching no private seat.
 
 This home's qualification obligations live in the crate README's tooling-obligation
 blocks.

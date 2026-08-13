@@ -34,13 +34,14 @@ the join is not deferring it: the shape above is the check, written down.
 
 ## The seats
 
-`types.rs` declares. Its own child `type_guard.rs` holds the road that reaches
-the root's private provider set, which is what makes the duplicate-free claim
-structural: there is no second seam that can build a root, so no root exists that
-the duplicate scan did not run over. `type_contract.rs` states the refusal
-family's declared shape. `establish.rs` is the duplicate scan itself and the body
-the established issues amount to — a pure pass, reading providers through the
-same answers any caller gets.
+`types.rs` declares. Its own child `type_guard.rs` holds every road that reaches
+a private seat — the root's provider set and the refusal body's one seat — which
+is what makes the duplicate-free claim structural: there is no second seam that
+can build a root, so no root exists that the duplicate scan did not run over, and
+no refusal body exists that the scan did not produce. `type_contract.rs` states
+the refusal family's declared shape. `establish.rs` is the duplicate scan itself —
+a pure pass, reading providers through the same answers any caller gets, reaching
+no private seat.
 
 This home's qualification obligations live in the crate README's tooling-obligation
 blocks.

@@ -2,8 +2,9 @@
 //! carry, how a disposition fails, and the complete view itself.
 //!
 //! Declarations only. Every road that reaches a private field — the view's plan,
-//! its selections, its omissions — lives in `type_guard.rs`, this file's own
-//! child, which is what makes exhaustive disposition structural.
+//! its selections, its omissions, and the refusal body's one seat — lives in
+//! `type_guard.rs`, this file's own child, which is what makes exhaustive
+//! disposition structural.
 
 use crate::plane::{
     OwnerFactRef, PlanId, SelectionCitationLimit, TriggerViewIssueLimit, WrapperComponentLimit,
@@ -88,7 +89,13 @@ pub struct TriggerViewComposition {
     /// than two, because a coverage claim seated beside its body is a claim that
     /// can be swapped for another body's. The pass itself always covers every
     /// component, so the completion here never reports a halted examination.
-    pub report: AdmittedPrefix<TriggerViewIssue, TriggerViewIssueLimit>,
+    ///
+    /// Private, and that is the second half of the same claim. The coupled seat
+    /// keeps a carry and its posture together; a PUBLIC seat on a one-field
+    /// record hands the whole record back as a literal, so any holder of a body
+    /// built for one pass could write it into another pass's refusal. Read back
+    /// through [`TriggerViewComposition::body`].
+    body: AdmittedPrefix<TriggerViewIssue, TriggerViewIssueLimit>,
 }
 
 /// The complete wrapper-trigger view over one plan.

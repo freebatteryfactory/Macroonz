@@ -29,13 +29,13 @@ trigger would be exactly the second truth table this view exists to refuse.
 ## The seats
 
 `types.rs` declares. Its own child `type_guard.rs` holds every road that reaches
-the view's private seats, which is what makes exhaustive disposition structural:
-a view exists only where the disposition pass agreed, so there is no partial view
-for a reader to mistake for a complete one. `type_contract.rs` states the refusal
-family's declared shape. `establish.rs` is the per-component disposition pass and
-the body the established issues amount to — the component roster is the
-quantifier, so "every component was examined" is a fact about the loop rather
-than a claim about it.
+a private seat — the view's own, and the refusal body's — which is what makes
+exhaustive disposition structural: a view exists only where the disposition pass
+agreed, so there is no partial view for a reader to mistake for a complete one,
+and no refusal body exists that the pass did not produce. `type_contract.rs`
+states the refusal family's declared shape. `establish.rs` is the per-component
+disposition pass — the component roster is the quantifier, so "every component
+was examined" is a fact about the loop rather than a claim about it.
 
 This home's qualification obligations live in the crate README's tooling-obligation
 blocks.

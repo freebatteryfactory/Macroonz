@@ -32,8 +32,10 @@ silence is what the disposition exists to abolish.
 of each kind's declaration. Its own child `type_guard.rs` holds the output
 firewall and every other road that reaches a private field. `type_contract.rs`
 states the rendered-role roster an implementation projection materializes,
-`anchor.rs` reads a plan's footing and the triggers that follow from it, and
-`encode.rs` writes the bytes a plan's transcript is taken over.
+`anchor.rs` reads a plan's footing and DERIVES the shared watch set that follows
+from it — one road, reading the context's own seats, rather than a roster each
+plan site keeps in step by hand — and `encode.rs` writes the bytes a plan's
+transcript is taken over.
 
 This home's qualification obligations live in the crate README's tooling-obligation
 blocks.

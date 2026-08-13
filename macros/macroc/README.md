@@ -39,7 +39,7 @@ what the graph resolved. So this paragraph is not a claim about what the service
 compile with; it is the reason behind a rule that already proves it.
 
 **This admission is the TOOLING PLANE's, and it is not band 07's.** Band 07's
-digest-family law proposes blake3-256 for the machine's commitments, under the
+digest-family rule proposes blake3-256 for the machine's commitments, under the
 machine's domain-tag register, and admitting it is a separate mechanism decision
 with a separate owner. The two admissions share an algorithm and nothing else:
 different preimages, different domain separation, different claims, different
@@ -66,12 +66,12 @@ deleted, not re-hashed. Hashing a lost-information fold with a strong digest
 would have produced a strong-looking value carrying a weak preimage, which is a
 worse position than the honest nonclaim it started from.
 
-## The working law: a failed required seat is a typed refusal
+## The working rule: a failed required seat is a typed refusal
 
 **A required seat is never repaired with an empty, default, or neighbouring
 value after construction fails — a failed required seat is a typed refusal.**
 
-This is a law about what the services do at the moment something impossible
+This is a rule about what the services do at the moment something impossible
 happens. A checked seam returns a `Result`; a caller that has no honest value for
 the failing case reaches for the nearest one it can see, and the nearest one is
 always wrong in the same three ways:
@@ -89,7 +89,7 @@ downstream then proves the wrong claim correctly: a membership shortened to one
 member is closed over, at one member, and the closure is honest about a plan that
 is not.
 
-The law has two halves, and the first is the one that does the work.
+The rule has two halves, and the first is the one that does the work.
 
 **Where the failing case cannot happen, the road must not have it.** A complete
 set fixed by a shape, a static rendering whose length is a compile-time fact, a
@@ -109,14 +109,14 @@ distinctions — one related identity per established issue, the first issue's o
 classification, and a summary composed from the typed values.
 
 Saturating a numeric conversion to `MAX` while REPORTING a count is not this
-defect and is not touched by the law: it is a rendering of a number too large to
+defect and is not touched by the rule: it is a rendering of a number too large to
 render, inside a refusal that has already been established.
 
 ## Tooling obligations are their own category
 
 A core semantic obligation is a claim about the MACHINE — what a home's types
-make unrepresentable, what a law proves, what a reversal breaks. Its denominator
-is the red-twin ledger.
+make unrepresentable, what `laws.rs` proves, what a reversal breaks. Its
+denominator is the red-twin ledger.
 
 A **tooling qualification obligation** is a claim about a TOOL — what a service
 refuses, what a check catches, what a judge is rehearsed against. It has its own
@@ -153,11 +153,16 @@ tooling-obligation: macroc.the-receipt-rich-road-is-the-only-road
   positive: macros/macroc/src/laws.rs
   method: executable-law
   activation: cargo test -p threadpak-macroc
-  tooling-red: testpak/tests/compile-fail/ — one fixture per unwritable road: a
-    receipt bound without a closure, a rendering taken off the membership-only
-    draft, a closure minted without proving. Deleting the plan, the origin graph,
-    the trace, the invalidation set, or the explanation dies at the same private
-    constructor as deleting the closure, and one fixture proves that gate.
+  tooling-red: testpak/tests/compile-fail/a-closed-expansion-without-a-closure.rs
+    — one fixture per unwritable road, and this row names the first of them: a
+    receipt bound without a closure. Its siblings stand beside it, one for a
+    rendering taken off the membership-only draft
+    (testpak/tests/compile-fail/a-rendering-taken-off-the-membership-only-draft.rs)
+    and one for a closure minted without proving
+    (testpak/tests/compile-fail/a-closure-minted-without-proving.rs). Deleting
+    the plan, the origin graph, the trace, the invalidation set, or the
+    explanation dies at the same private constructor as deleting the closure, and
+    one fixture proves that gate.
   nonclaims: >
     It does not claim the rendering is correct Rust; that is lane C's claim, and
     it is made by the consumer fixtures.
@@ -228,6 +233,31 @@ tooling-obligation: macroc.a-failed-required-seat-is-a-typed-refusal
     not a repair. It does not claim a saturating numeric conversion inside a
     refusal body is covered: rendering a count too large to render is not
     answering a seat with a neighbouring value.
+
+tooling-obligation: macroc.a-refusal-body-is-minted-by-the-pass-that-established-it
+  claim: >
+    Every refusal family body in the services carries band 00's coupled seat under
+    the name core gives it, `body`, and that seat is PRIVATE. The coupled seat
+    keeps a carry and its posture together; the private seat keeps the body and
+    the pass that established it together, because a one-field record whose one
+    field is public is a record any holder can write. Each body is minted only in
+    the `type_guard.rs` that is its `types.rs`'s own child, and read back through
+    one borrowed reader.
+  owner: macros/macroc/src/refusal/type_guard.rs
+  positive: macros/macroc/src/laws.rs
+  method: compile-refusal
+  activation: cargo test -p threadpak-testpak --test compile_refusals
+  tooling-red: testpak/tests/compile-fail/a-services-refusal-body-reseated-by-literal.rs
+    — a body built through the public guarded road, written into a second refusal
+    by literal from outside the crate, refusing with E0451
+  nonclaims: >
+    It does not claim total exclusion inside the services crate. A private field
+    stops every SIBLING module and every downstream crate; it does not stop a
+    module declared INSIDE the guard, which would construct as freely as the mint
+    does. No `#[cfg(test)]` module stands under any of these guards, and the
+    reversal is owned outside the crate for exactly that reason. It does not claim
+    the body a mint produces is the right body: that the issues are the ones the
+    pass established is the coupled seat's claim and band 00's, not this one's.
 
 tooling-obligation: macroc.the-emitted-tree-is-inside-the-closure-proof
   claim: >
@@ -333,7 +363,11 @@ tooling-obligation: macroc.a-related-set-that-stops-says-what-it-dropped
     two levels are two SUBJECTS, so a body identity and an issue identity are
     different Rust types and derive under different derive-key contexts: neither
     substitutes for the other before hashing or after it. The one line rustc
-    shows carries the same statement.
+    shows carries the same statement. "Nothing was enumerated" has exactly one
+    representation: the deriving road answers empty material with the canonical
+    empty relation the single-cause road answers with, rather than a whole-body
+    commitment over empty material that would mean the same thing and compare
+    unequal.
   owner: macros/macroc/src/diagnostics/type_guard.rs
   positive: macros/macroc/src/laws.rs
   method: executable-law
@@ -341,9 +375,12 @@ tooling-obligation: macroc.a-related-set-that-stops-says-what-it-dropped
   tooling-red: testpak/tests/related_set_identity_levels.rs — an INDEPENDENT
     encoder rebuilds the body's identity from the published content grammar and
     must match, three rehearsed encoders must disagree, a complete set and a
-    truncated one must not read alike through the public readers, and crafted
+    truncated one must not read alike through the public readers, crafted
     material that derived ONE identity at both levels under the single-subject
-    grammar must derive two. The two unwritable roads are
+    grammar must derive two, every one of the 256 family tags must answer empty
+    material with the one canonical empty relation, and the whole-body commitment
+    over empty material — named by that same independent encoder — must be
+    reachable by no road. The two unwritable roads are
     testpak/tests/compile-fail/a-related-set-married-to-another-completion.rs
     and testpak/tests/compile-fail/a-related-set-assembled-from-two-levels.rs
   nonclaims: >
