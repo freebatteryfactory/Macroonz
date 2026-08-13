@@ -1,4 +1,4 @@
-error: closed_register!: this roster declares more rows than the stamp's declared supply of positions. The supply's length is this implementation's current authoring-profile ceiling, projected as `threadpak::CLOSED_REGISTER_ROW_CEILING`, and it is not a semantic cap on the vocabulary: raising it means extending the stamp's declared supply and requalifying it.
+error: closed_register!: this roster declares more rows than the stamp's declared supply of positions. The supply's length is this implementation's current authoring-profile ceiling, exported as `CLOSED_REGISTER_ROW_CEILING`, and it is not a semantic cap on the vocabulary: raising it means extending the stamp's declared supply and requalifying it.
   --> tests/compile-fail/a-roster-past-the-stamp-ceiling.rs:29:1
    |
 29 | / threadpak::closed_register! {

@@ -293,6 +293,12 @@ macro_rules! closed_register {
 
     // Rows remain and the supply is spent: the stamp's own refusal, reached
     // before any recursion limit is, whatever the declaration's length.
+    //
+    // The sentence names the exported constant and no crate path. The expansion
+    // reaches the constant through `$crate` and always resolves; a SENTENCE
+    // cannot, because a consumer may rename this dependency and a compiler
+    // message has no way to learn the name it was renamed to. Spelling one would
+    // send that reader to a path their crate does not have.
     (
         @position $subject:expr,
         ($($arms:tt)*),
@@ -302,9 +308,9 @@ macro_rules! closed_register {
         ::core::compile_error!(
             "closed_register!: this roster declares more rows than the stamp's declared supply \
              of positions. The supply's length is this implementation's current \
-             authoring-profile ceiling, projected as `threadpak::CLOSED_REGISTER_ROW_CEILING`, \
-             and it is not a semantic cap on the vocabulary: raising it means extending the \
-             stamp's declared supply and requalifying it."
+             authoring-profile ceiling, exported as `CLOSED_REGISTER_ROW_CEILING`, and it is \
+             not a semantic cap on the vocabulary: raising it means extending the stamp's \
+             declared supply and requalifying it."
         )
     };
 
