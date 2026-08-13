@@ -28,17 +28,14 @@ workspace = true
 # inside a repository check, from the same understanding the sources were written
 # with — two readings of one understanding agree because they share it.
 #
-# `syn`, pinned exact at `=3.0.3` — the version the lockfile already carries for
-# the judge's structural lane, so this crate and that one read Rust by the same
-# decoder at the same version rather than by two. Default features off, and cut
-# to the two the reading uses: `parsing`, without which there is no text-to-tree
-# road at all, and `full`, without which items and their associated constants are
-# not in the tree. Printing, folding, visiting, derive input, extra traits, and
-# the proc-macro bridge are all off — this crate reads and never writes, and
-# never runs inside a macro.
+# `syn` is the admitted mechanism. Which version, and which features, is one
+# decision the workspace makes for every reader at once, and it is written in
+# the root manifest's `[workspace.dependencies]` table; this crate inherits it
+# rather than restating it, so the judge's structural lane and this law cannot
+# drift into reading Rust by two decoders.
 #
 # What the admission does NOT buy: nothing is compiled, nothing is resolved, no
 # `cfg` is evaluated, and no macro is expanded. The law that reads through it
 # states those limits itself, in `src/checks/coupling.rs`, where the reading is.
 [dependencies]
-syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }
+syn = { workspace = true }

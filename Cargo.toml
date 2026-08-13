@@ -28,6 +28,53 @@ rust-version = "1.97"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/freebatteryfactory/ThreadPak"
 
+# Every third-party version and feature cut this workspace decides, decided
+# once. Two members that spelled the same exact pin were never agreement — they
+# were two places a later edit could disagree, and nothing would have caught the
+# disagreement, because either spelling on its own still compiles. What moved
+# here is only the FACT: which version, and which features. WHY a member reaches
+# for a mechanism at all stays at that member, beside the reading it buys, since
+# that reason differs at every home even when the pin is identical.
+#
+# Members inherit with `{ workspace = true }`, never the dotted
+# `name.workspace = true`. The two are one declaration to Cargo, and the inline
+# form is the one the topology law can read: a reader that splits an entry at
+# its first `=` sees the key `threadpak-macroc` in the inline form and the key
+# `threadpak-macroc.workspace` in the dotted one, and that second name matches
+# no package, so a banned edge written the dotted way would pass. The spelling
+# is load-bearing until that law reads a resolved graph instead of manifest
+# text.
+#
+# What this table declares is what the workspace ASKS FOR. What the resolved
+# graph actually enables is a different question, because Cargo unifies features
+# across a build and any dependency may turn one on. `deny.toml` is where that
+# second question is answered against the graph itself; the two are not a copy
+# of one fact, they are a request and its settlement, and the whole reason both
+# exist is that they can disagree.
+[workspace.dependencies]
+# The Rust decoder, so the judge's structural lane and the repository's coupling
+# law read Rust through one decoder at one version rather than through two.
+# Default features off, cut to the two the readings use: `parsing`, without
+# which there is no text-to-tree road at all, and `full`, without which items
+# and their associated constants are not in the tree. Printing, folding,
+# visiting, derive input, extra traits, and the proc-macro bridge stay off —
+# both readers read and never write, and neither runs inside a macro.
+syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }
+# The digest. Pinned exact because a projection identity is a value the plane
+# hands out, and a minor version that changed one byte of output would silently
+# rename every identity in the tree. Default features off: `std` buys the
+# `io::Write` adapter and the error-trait impls and neither crate names them;
+# `rayon` must never stand a thread pool up inside `rustc` to hash a few
+# kilobytes; `serde`, `zeroize`, `mmap`, and the digest-trait previews buy
+# surfaces neither crate has a seat for. What is left is `Hasher` and
+# `derive_key`.
+blake3 = { version = "=1.8.6", default-features = false }
+# The compile-refusal harness, exact for the reason every other decision here is
+# exact: a refusal fixture compares a diagnostic byte for byte against a file in
+# the tree, so a harness free to move under a caret requirement could rewrite
+# what that comparison means without any change landing in the repository.
+trybuild = "=1.0.120"
+
 [profile.release]
 # Release arithmetic traps instead of wrapping; defense in depth behind the
 # source-level arithmetic lints, never permission for bare arithmetic.
