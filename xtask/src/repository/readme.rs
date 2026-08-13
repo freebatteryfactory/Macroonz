@@ -55,6 +55,35 @@ const DISPOSITION_DASH: char = '—';
 /// The opener a `structural` disposition states its account inside.
 const DISPOSITION_PAREN: char = '(';
 
+/// The grammar one green row is written in, chosen by the word the row opens
+/// with.
+///
+/// Three grammars, and being none of them is the absence of one. This exists so
+/// that the ceiling on an account — what a row may state, and where it must stop
+/// — is asked of the ROW's grammar in one place, instead of being remembered
+/// inside whichever branch happens to build the row. Three branches each
+/// carrying their own ceiling is three chances to forget one, and the history of
+/// this reader is exactly that: the rule was written for the seat branch, the
+/// route branch went on taking its first token and discarding the rest, and the
+/// defect regrew one branch to the right. A rule applied per site regrows one
+/// site over; a rule applied to the class does not.
+///
+/// Private to this reader. It is not vocabulary two families share — nothing
+/// outside these few functions has an opinion about how a green row is spelled —
+/// so it is not in `types.rs`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Grammar {
+    /// `laws.rs module::law`: the account is the target, and a target is one
+    /// token.
+    Seat,
+    /// `path/to/file.rs`: the opening word IS the claim, so the account is
+    /// silent — nothing at all follows the path.
+    Route,
+    /// `none — …`, `owed — …`, `structural (…)`: the account is a SENTENCE,
+    /// opened by this character, and it runs for as long as the sentence takes.
+    Disposition(char),
+}
+
 /// Every `green:` obligation row in one README, classified, in file order.
 ///
 /// THE prefix discipline for green rows, and the only one: this reader is the
@@ -80,26 +109,102 @@ pub(crate) fn classify_green_rows(readme_text: &str) -> Vec<GreenRow> {
 
 /// One green row's value, classified. Nothing is dropped: a value no lawful
 /// spelling reads comes back as [`GreenRow::Unreadable`] carrying itself.
+///
+/// The row's grammar is decided first, its account is held to that grammar's
+/// ceiling second, and only then is a row built. The ceiling is applied HERE, to
+/// every grammar at once, rather than inside the arms below: an arm can only
+/// interpret an account this function has already agreed is the whole of what
+/// the row stated, so there is no arm left that could read past its own account.
 fn classify_green_row(value: &str) -> GreenRow {
-    let Some(first) = value.split_whitespace().next() else {
+    let Some(opening) = value.split_whitespace().next() else {
         return GreenRow::Unreadable(value.to_string());
     };
-    let account = value.strip_prefix(first).unwrap_or_default().trim();
-    let read = if first == COMPILE_TIME_SEAT {
-        seat_target(account).map(|(module, law)| GreenRow::CompileTimeSeat {
-            module: module.to_string(),
-            law: law.to_string(),
-        })
-    } else if first == "none" || first == "owed" {
-        accounts_after(account, DISPOSITION_DASH).then_some(GreenRow::Disposition)
-    } else if first == "structural" {
-        accounts_after(account, DISPOSITION_PAREN).then_some(GreenRow::Disposition)
-    } else if is_rust_route(first) {
-        Some(GreenRow::Route(first.to_string()))
+    let account = value.strip_prefix(opening).unwrap_or_default().trim();
+    let read = green_grammar(opening)
+        .filter(|&grammar| states_only_its_account(grammar, account))
+        .and_then(|grammar| match grammar {
+            Grammar::Seat => seat_target(account).map(|(module, law)| GreenRow::CompileTimeSeat {
+                module: module.to_string(),
+                law: law.to_string(),
+            }),
+            Grammar::Route => Some(GreenRow::Route(opening.to_string())),
+            Grammar::Disposition(opener) => {
+                accounts_after(account, opener).then_some(GreenRow::Disposition)
+            }
+        });
+    read.unwrap_or_else(|| GreenRow::Unreadable(value.to_string()))
+}
+
+/// Which grammar a green row's opening word puts it in, or none where the word
+/// opens no grammar this repository reads.
+///
+/// The seat is asked about BEFORE the route, and the order is load-bearing:
+/// `laws.rs` is itself a path to a Rust file, so a reader that asked the route
+/// question first would read every one of this repository's seat rows as a route
+/// naming a file at the repository root and demand a test binary of it. The
+/// opening word alone decides the grammar; nothing after it is looked at here,
+/// because what a row may say after its opening word is the next question and
+/// has one answer for the whole class.
+fn green_grammar(opening: &str) -> Option<Grammar> {
+    if opening == COMPILE_TIME_SEAT {
+        Some(Grammar::Seat)
+    } else if opening == "none" || opening == "owed" {
+        Some(Grammar::Disposition(DISPOSITION_DASH))
+    } else if opening == "structural" {
+        Some(Grammar::Disposition(DISPOSITION_PAREN))
+    } else if is_rust_route(opening) {
+        Some(Grammar::Route)
     } else {
         None
+    }
+}
+
+/// Whether a green row states the account its grammar defines and NOTHING after
+/// it.
+///
+/// THE ceiling on a green account, and the only one. Whatever kind of green row
+/// it is, the account is exactly the tokens that row's grammar defines, and a
+/// token past them makes the row [`GreenRow::Unreadable`]. One statement, over
+/// the class — because it has been stated per branch, and per branch it only
+/// ever held for the branch written last. A seat row carrying a word after its
+/// target was closed inside the seat reader, and a route row carrying a word
+/// after its path went on resolving the real file and qualifying while the rest
+/// of what it stated was thrown away. The defect did not survive that repair; it
+/// moved one branch over.
+///
+/// What a row said beyond its account is never the point. A second target
+/// somebody meant to add, a note, half of a finished rename, a path that was
+/// supposed to replace the one in front of it — the row said something this
+/// repository does not read, and a reader that truncates it silently converts it
+/// into a claim its author did not make. Named against the README that wrote it,
+/// the author says what they meant instead.
+///
+/// # The disposition grammar has no ceiling, and that is a decision
+///
+/// A `none`, `owed`, or `structural` row accounts for why NO file holds a
+/// positive control, and an account of that kind is prose: eight to twelve words
+/// in every such row this repository has written, some of them running on across
+/// a wrapped line. Prose legitimately has many tokens, so there is no number to
+/// hold it to and this rule admits it without one — deliberately, and stated
+/// here rather than left as the case nobody got to.
+///
+/// It is the same asymmetry the `red:` rows are read under, for the same reason.
+/// A seat target and a route path are JOIN KEYS: they are resolved against
+/// `laws.rs` and against testpak, and a key that names two things resolves
+/// neither. A disposition's account joins nothing and is read by a person.
+/// Holding the sentences to the keys' rule would unread every disposition row in
+/// this tree; holding the keys to the sentences' rule is the defect this
+/// function refuses.
+fn states_only_its_account(grammar: Grammar, account: &str) -> bool {
+    let stated: usize = match grammar {
+        // The file IS the claim: the row names it and stops.
+        Grammar::Route => 0,
+        // The target IS the claim, and a target is one token.
+        Grammar::Seat => 1,
+        // A sentence runs as long as it takes; see above.
+        Grammar::Disposition(_) => return true,
     };
-    read.unwrap_or_else(|| GreenRow::Unreadable(value.to_string()))
+    account.split_whitespace().count() <= stated
 }
 
 /// The `module::name` target a `laws.rs` row states, split where it splits.
@@ -112,32 +217,47 @@ fn classify_green_row(value: &str) -> GreenRow {
 /// outcome depends on how the row was spaced, and no later reader gets a second
 /// opinion about which characters the target was made of.
 ///
-/// # A target is ONE token, and a second one is not prose
+/// The account arrives already held to one token by
+/// [`states_only_its_account`], so a target is never truncated out of a longer
+/// account here — this function reads what the row stated, whole.
 ///
-/// The account states the target and stops. A row spelled
-/// `laws.rs root::reading_is_not_gaining extra` used to be read by taking the
-/// FIRST token and dropping the rest, so it resolved the real law and qualified
-/// while carrying a word nobody could account for. That is the whole
-/// [`GreenRow::Unreadable`] failure written one token to the right: whatever the
-/// trailing word was — a second target somebody meant to add, a note, half of a
-/// rename — the row said something this repository does not read, and the reader
-/// answered by discarding it silently. Read here, the row is named against the
-/// README that wrote it, and the author says what they meant.
+/// # A target is EXACTLY `module::law`
 ///
-/// The RED rows are a DIFFERENT grammar and are deliberately not held to this.
-/// A `red:` or `tooling-red:` row names its reversal and then continues in
+/// One separator, and neither half empty. `root::a_law::extra` is not a deeper
+/// target, it is two separators; `::a_law` names no module and `root::` names no
+/// law, and each of those halves is a name the join resolves against. Split
+/// looser — on the FIRST `::`, with nothing said about the rest — all three
+/// became seats: `root::a_law::extra` seated the module `root` with a law called
+/// `a_law::extra`, and `::a_law` seated a law under a module whose name is the
+/// empty string.
+///
+/// That last one is not merely a wrong-looking pair. `laws.rs` is read by
+/// tracking the module last opened at the crate root, which begins as no module
+/// at all, so a `#[test]` written above the first `mod` would be declared under
+/// exactly that empty name — and a row spelled `laws.rs ::that_law` would then
+/// resolve to it and qualify. Today no such law is written and all three
+/// spellings are refused downstream instead, by the leg that reports a claim on
+/// a law `laws.rs` does not have: a real refusal, on the wrong subject, sending
+/// the author to `laws.rs` when the repair is in the README's own row. Read
+/// here, the row is named against the README that wrote it, which is how every
+/// other unreadable row in this repository is answered, and the door the empty
+/// module left open is shut before anything walks through it.
+///
+/// The RED rows are a DIFFERENT grammar and are deliberately not held to any of
+/// this. A `red:` or `tooling-red:` row names its reversal and then continues in
 /// prose, across wrapped lines, as this repository's tooling ledgers are
 /// written; that convention is documented where those rows are declared and it
 /// stays. A green compile-time target is not prose with a path in front of it,
 /// and reading the two the same way would either silence this row or break every
 /// one of those.
 fn seat_target(account: &str) -> Option<(&str, &str)> {
-    let mut stated = account.split_whitespace();
-    let target = stated.next()?;
-    if stated.next().is_some() {
+    let mut halves = account.split("::");
+    let module = halves.next()?;
+    let law = halves.next()?;
+    if halves.next().is_some() || module.is_empty() || law.is_empty() {
         return None;
     }
-    target.split_once("::")
+    Some((module, law))
 }
 
 /// Whether a disposition opens its account with `opener` and states something
@@ -355,6 +475,10 @@ mod tests {
     /// repository does not read, and it is named against the README that wrote it
     /// rather than truncated into a claim it did not make.
     ///
+    /// The rule this now stands on is the class's, not the seat branch's. It is
+    /// the same rule the route row two tests below is refused by, which is the
+    /// whole point: stated per branch it held here and nowhere else.
+    ///
     /// The last two are the same defect where the trailing token is itself
     /// target-shaped, which is the spelling a reader that stopped at the first
     /// `::` would never notice.
@@ -399,6 +523,144 @@ mod tests {
                 seat("root", "reading_is_not_gaining"),
                 seat("root", "reading_is_not_gaining"),
                 seat("root", "reading_is_not_gaining"),
+            ],
+            "{read:?}"
+        );
+    }
+
+    /// Planted reversal: a route row carrying a token AFTER its path.
+    ///
+    /// The same defect as the seat row above, one branch to the right, and it
+    /// survived the round that closed the seat branch because that round wrote
+    /// its rule inside the seat reader. The route branch went on reading the
+    /// FIRST token and discarding the account: a row spelled
+    /// `testpak/tests/stamp_row_ceiling.rs missing-control.rs` resolved the real
+    /// seat, satisfied the phantom-route leg, and qualified while the second path
+    /// it stated was never looked for — which is precisely the failure the route
+    /// leg exists to refuse, arriving through the reader that feeds it.
+    ///
+    /// The last row is the spelling that makes the silence worst: the trailing
+    /// token is itself a real, executable seat, so the row states two positive
+    /// controls and exactly one of them is ever examined.
+    #[test]
+    fn a_route_row_carrying_more_than_its_path_is_unreadable() {
+        let text = "    green: testpak/tests/stamp_row_ceiling.rs missing-control.rs\n\
+                    \x20   green: testpak/tests/stamp_row_ceiling.rs — and the note nobody read\n\
+                    \x20   green: testpak/tests/stamp_row_ceiling.rs\tmissing-control.rs\n\
+                    \x20   green: testpak/tests/stamp_row_ceiling.rs testpak/tests/stamp_row_ceiling.rs\n";
+        let read = classify_green_rows(text);
+        assert_eq!(read.len(), 4, "{read:?}");
+        assert!(
+            read.iter()
+                .all(|row| matches!(*row, GreenRow::Unreadable(_))),
+            "a token after the path was discarded and the row still routed: {read:?}"
+        );
+        assert!(
+            read.first().is_some_and(|row| matches!(
+                *row,
+                GreenRow::Unreadable(ref value)
+                    if value == "testpak/tests/stamp_row_ceiling.rs missing-control.rs"
+            )),
+            "{read:?}"
+        );
+    }
+
+    /// The positive control for that narrowing: the one route row this
+    /// repository actually writes, in every spacing the reader admits, is still
+    /// a route carrying its exact path.
+    ///
+    /// A reader that refused a route whose value carried any whitespace at all
+    /// would satisfy the reversal above and would unroute the only green route in
+    /// the tree — and an unrouted row is an unreadable row, so the whole check
+    /// would fail loudly rather than silently. Which is why the control names the
+    /// real path rather than a fixture one.
+    #[test]
+    fn a_route_row_stating_exactly_its_path_is_still_a_route() {
+        let text = "    green: testpak/tests/stamp_row_ceiling.rs\n\
+                    \x20   green:testpak/tests/stamp_row_ceiling.rs\n\
+                    \x20   green:  testpak/tests/stamp_row_ceiling.rs  \n\
+                    \x20   green:\ttestpak/tests/stamp_row_ceiling.rs\n";
+        let read = classify_green_rows(text);
+        assert_eq!(
+            read,
+            vec![
+                GreenRow::Route(String::from("testpak/tests/stamp_row_ceiling.rs")),
+                GreenRow::Route(String::from("testpak/tests/stamp_row_ceiling.rs")),
+                GreenRow::Route(String::from("testpak/tests/stamp_row_ceiling.rs")),
+                GreenRow::Route(String::from("testpak/tests/stamp_row_ceiling.rs")),
+            ],
+            "{read:?}"
+        );
+    }
+
+    /// Planted reversal: a target that is not exactly `module::law`, in all four
+    /// of its malformed spellings.
+    ///
+    /// Split on the FIRST `::` and asked nothing further, the first three were
+    /// seats. `root::reading_is_not_gaining::extra` seated the module `root` with
+    /// a law named `reading_is_not_gaining::extra`; `root::` seated a law whose
+    /// name is empty; `::reading_is_not_gaining` seated a law under a module
+    /// whose name is empty — and the empty module name is one `laws.rs` can
+    /// actually produce, because that file is read by tracking the module last
+    /// opened at the crate root and it starts as no module at all. A `#[test]`
+    /// written above the first `mod` is declared under exactly that name, and
+    /// this row would then resolve to it and qualify.
+    ///
+    /// Today none of the three resolves, so each was refused downstream by the
+    /// leg reporting a claim on a law `laws.rs` does not have: the right verdict
+    /// with the wrong subject, sending the author to `laws.rs` when the repair is
+    /// in the row. The fourth, a bare word with no separator at all, was already
+    /// read here. All four are now one answer.
+    #[test]
+    fn a_seat_target_that_is_not_exactly_module_law_is_unreadable() {
+        let text = "    green: laws.rs root::reading_is_not_gaining::extra\n\
+                    \x20   green: laws.rs ::reading_is_not_gaining\n\
+                    \x20   green: laws.rs root::\n\
+                    \x20   green: laws.rs root\n";
+        let read = classify_green_rows(text);
+        assert_eq!(read.len(), 4, "{read:?}");
+        assert!(
+            read.iter()
+                .all(|row| matches!(*row, GreenRow::Unreadable(_))),
+            "a malformed target was seated: {read:?}"
+        );
+        assert!(
+            read.first().is_some_and(|row| matches!(
+                *row,
+                GreenRow::Unreadable(ref value)
+                    if value == "laws.rs root::reading_is_not_gaining::extra"
+            )),
+            "{read:?}"
+        );
+    }
+
+    /// The disposition account is PROSE, and it is held to no token ceiling.
+    ///
+    /// Stated as its own test so the asymmetry is a decision with a control on it
+    /// rather than the case a pass over the green class forgot. A disposition
+    /// accounts for why no file holds a positive control, and that account is a
+    /// sentence a person reads — it joins nothing, so there is no key for a
+    /// second token to make ambiguous. Every such row in this tree runs eight to
+    /// twelve words, and some run on across a wrapped line; a pass that carried
+    /// the seat and route ceiling across to them would unread all eleven at once.
+    ///
+    /// The reversal that matters here is the opposite one, and it is the test
+    /// below: prose having no CEILING is not prose having no FORM. The opener and
+    /// a word after it are still required.
+    #[test]
+    fn a_disposition_account_is_prose_and_carries_no_token_ceiling() {
+        let text = "    green: none — no family payload can carry a spelling, skeleton, or scalar\n\
+                    \x20   green: owed — the P1–P10 campaigns land with testpak (the heartbeat's\n\
+                    \x20   green: structural (raw-pointer phantom makes the handle !Send and !Sync)\n\
+                    \x20   green: none — one\n";
+        let read = classify_green_rows(text);
+        assert_eq!(
+            read,
+            vec![
+                GreenRow::Disposition,
+                GreenRow::Disposition,
+                GreenRow::Disposition,
+                GreenRow::Disposition,
             ],
             "{read:?}"
         );

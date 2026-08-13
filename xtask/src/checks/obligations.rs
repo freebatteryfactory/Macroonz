@@ -343,6 +343,13 @@ fn phantom_green_routes(rows: &[(String, String)], seats: &SeatPopulation) -> Ve
 /// arriving through the reader instead of through the join, and it is worse for
 /// it: the phantom leg at least reports the row it cannot resolve.
 ///
+/// This is also where a row that states MORE than its account now lands — a
+/// route with a token after its path, a target with a second separator in it.
+/// Those used to be truncated into the claim their first token made and joined
+/// as if the rest were not written. The reader holds every green grammar to its
+/// own account and nothing after it, and what that refuses arrives here, named
+/// against the README that wrote it rather than silently trimmed.
+///
 /// The offence names the row AND the README that declared it, because the row's
 /// value is not enough to find it — the same spelling can be written in any
 /// home, and the repair is made in the file that wrote it.
@@ -358,11 +365,14 @@ fn unreadable_green_offences(rows: &[(String, String)]) -> Vec<String> {
             format!("`{value}`")
         };
         offences.push(format!(
-            "{readme}: green row states {spelled}, which is no spelling this repository reads: a \
-             green row states `laws.rs <module>::<name>` and nothing after it, or a \
-             repository-relative path to a `.rs` file, or a declared disposition — `none — …`, \
-             `owed — …`, `structural (…)` — accounting for why no file holds a positive control. \
-             A row nobody can read is an obligation whose positive control nobody looks for"
+            "{readme}: green row states {spelled}, which is no spelling this repository reads. \
+             Every green row states its account and NOTHING after it: `laws.rs \
+             <module>::<name>`, exactly one `::` and neither half empty; or a \
+             repository-relative path to a `.rs` file, with nothing following the path; or a \
+             declared disposition — `none — …`, `owed — …`, `structural (…)` — whose account is \
+             the prose accounting for why no file holds a positive control, and is the one \
+             account that runs as long as it needs to. A row nobody can read is an obligation \
+             whose positive control nobody looks for"
         ));
     }
     offences
