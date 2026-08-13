@@ -230,6 +230,18 @@ subjects! {
     ContractSubject = "contract",
     /// One related issue a diagnostic points at.
     RelatedIssueSubject = "related-issue",
+    /// The whole refusal body one diagnostic's related set commits to, as
+    /// opposed to any single issue inside it.
+    ///
+    /// A separate subject from [`RelatedIssueSubject`] because the two are
+    /// separate semantic LEVELS over one material, and one namespace holding two
+    /// levels collides by construction: a body's preimage is the framing of its
+    /// issues, so an issue whose own material happened to be that framing derived
+    /// the same identity as the body it aliased. Two subjects give the two levels
+    /// two derive-key contexts, so identical preimage bytes at different levels
+    /// are unrelated values rather than neighbouring ones — separation by
+    /// context, which is how this plane separates everything else.
+    RelatedBodySubject = "related-body",
     /// One callable services entry point.
     ServiceEntrySubject = "service-entry",
     /// One expansion surface of the Rust-facing shell.

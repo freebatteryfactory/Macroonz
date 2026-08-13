@@ -12,7 +12,8 @@
 use crate::plane::{
     ContractSubject, ExpansionSurfaceSubject, FixturePopulationSubject, HumanProjection,
     HumanTextLimit, OwnerFactRef, OwnerIdentityRef, ProjectionIdentity, RefusalFamilySubject,
-    RefusalReason, RelatedIssueLimit, RelatedIssueSubject, RepairLimit, ServiceEntrySubject,
+    RefusalReason, RelatedBodySubject, RelatedIssueLimit, RelatedIssueSubject, RepairLimit,
+    ServiceEntrySubject,
 };
 use crate::token::{SpanHandle, SpanResolutionRefusal};
 use core::num::NonZeroUsize;
@@ -244,6 +245,35 @@ pub enum RelatedSetCompletion {
     ReportTruncated(RelatedSetTruncation),
 }
 
+/// One identity a related set carries, at the level it is about.
+///
+/// # Two levels, and why they are two types rather than two positions
+///
+/// A related set commits at two levels over one material: the WHOLE BODY, which
+/// is a commitment to every established issue at once, and each ESTABLISHED
+/// ISSUE on its own. The two used to be one subject distinguished by position —
+/// the body rode first and the issues followed — and position is not a fact a
+/// reader can check. Worse, one subject over two levels collides by
+/// construction: the body's preimage is the framing of its issues, so an issue
+/// whose own material happened to BE that framing derived the byte-for-byte
+/// identity of the body it aliased, and nothing in the type or in the digest
+/// noticed.
+///
+/// Split, the two levels cannot substitute twice over. A body identity is a
+/// different Rust type than an issue identity, so seating one where the other
+/// belongs does not compile; and the two subjects declare different segments of
+/// the derive-key context, so the same preimage bytes at the two levels derive
+/// unrelated identities rather than one. The compile-time half makes the wrong
+/// move unwritable, and the runtime half makes it unreachable even for material
+/// nobody wrote by hand.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RelatedIdentity {
+    /// The whole refusal body, as one commitment to every issue it established.
+    Body(ProjectionIdentity<RelatedBodySubject>),
+    /// One established issue, on its own.
+    Issue(ProjectionIdentity<RelatedIssueSubject>),
+}
+
 /// One diagnostic's related set: the identities it carries, married to whether
 /// that is all of them.
 ///
@@ -261,13 +291,18 @@ pub enum RelatedSetCompletion {
 /// lie in smaller print: each identity derives honestly, and the pair names one
 /// refusal's body over another refusal's issues.
 ///
+/// The two levels are carried as [`RelatedIdentity`], which names which level
+/// each one is. The body rides first, as it always did, but the reader no longer
+/// depends on that: an identity states its own level, so a set read out of order
+/// still says which commitment is which.
+///
 /// It takes the same shape band 00's [`threadpak::refusal::AdmittedPrefix`]
 /// takes, because it reports the same kind of fact about the same kind of act. A
 /// tooling value reporting a truncation under a weaker discipline would be the
 /// weaker statement that keeps passing after the stronger one is gone.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RelatedSet {
-    carried: Bounded<ProjectionIdentity<RelatedIssueSubject>, RelatedIssueLimit>,
+    carried: Bounded<RelatedIdentity, RelatedIssueLimit>,
     completion: RelatedSetCompletion,
 }
 

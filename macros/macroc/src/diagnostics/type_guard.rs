@@ -19,29 +19,54 @@
 //! a caller to hold, and therefore no way to seat one refusal's coarse
 //! commitment over another refusal's issues.
 
-use super::{RelatedSet, RelatedSetCompletion, RelatedSetTruncation};
+use super::{RelatedIdentity, RelatedSet, RelatedSetCompletion, RelatedSetTruncation};
 use crate::plane::{
     AuthoringLimitProfile, ProjectionIdentity, ProjectionRole, ProjectionTranscript,
-    RelatedIssueLimit, RelatedIssueSubject, encode_bytes,
+    RelatedBodySubject, RelatedIssueLimit, RelatedIssueSubject, encode_bytes,
 };
 use core::num::NonZeroUsize;
 use threadpak::refusal::StopBound;
 use threadpak::types::{AdmittedLimit, Bounded, BoundedConstruction};
 
-/// One related-issue identity over one refusal family's material.
+/// The content one related identity is derived over, at either level.
+///
+/// The family tag separates two families' spaces so the same bytes raised under
+/// two families never encode alike, and the material is length-framed behind it
+/// so no two materials share a preimage. It is composed here and used at both
+/// levels deliberately: what separates the two levels is the SUBJECT, which is a
+/// segment of the derive-key context, not a discriminant somebody could forget
+/// to write into a preimage.
+fn related_content(family: u8, material: &[u8]) -> Vec<u8> {
+    let mut content = vec![family];
+    encode_bytes(material, &mut content);
+    content
+}
+
+/// One related-ISSUE identity over one established issue's material.
 ///
 /// The single derivation for this subject, and it is private on purpose: an
 /// identity of this subject exists only as part of a set this file built. The
-/// family tag separates two families' issue spaces so the same bytes raised under
-/// two families never encode alike, the material is length-framed behind it so no
-/// two materials share a preimage, and the role is the closed expansion the
-/// services were producing when the disagreement was observed.
-fn related_identity(family: u8, material: &[u8]) -> ProjectionIdentity<RelatedIssueSubject> {
-    let mut content = vec![family];
-    encode_bytes(material, &mut content);
+/// role is the closed expansion the services were producing when the
+/// disagreement was observed.
+fn related_issue_identity(family: u8, material: &[u8]) -> ProjectionIdentity<RelatedIssueSubject> {
     ProjectionIdentity::derived(ProjectionTranscript::rooted(
         ProjectionRole::ClosedExpansion,
-        &content,
+        &related_content(family, material),
+        u32::from(family),
+    ))
+}
+
+/// One related-BODY identity over the framing of a whole body's issues.
+///
+/// The same private discipline and the same role, under the OTHER subject. That
+/// is the whole of the level separation and it is deliberately not a byte inside
+/// the preimage: the subject rides in the derive-key context AND in the
+/// transcript, so two levels over identical content are separated before a byte
+/// of that content is read and disagree inside it as well.
+fn related_body_identity(family: u8, material: &[u8]) -> ProjectionIdentity<RelatedBodySubject> {
+    ProjectionIdentity::derived(ProjectionTranscript::rooted(
+        ProjectionRole::ClosedExpansion,
+        &related_content(family, material),
         u32::from(family),
     ))
 }
@@ -85,6 +110,29 @@ impl RelatedSet {
     /// carried alone under truncation a commitment to THESE issues rather than a
     /// word about issues in general.
     ///
+    /// # The two levels are two subjects, and the content grammar is published
+    ///
+    /// Because the body's preimage is the framing of its issues, one namespace
+    /// over both levels collided by construction: an issue whose own material
+    /// happened to be that framing derived the body's exact identity. The levels
+    /// are therefore two subjects — `related-body` and `related-issue` — so the
+    /// same content at the two levels derives under two derive-key contexts and
+    /// is two unrelated values.
+    ///
+    /// This is a mint site, so its CONTENT grammar is stated here in full, the
+    /// way [`crate::plane::ProjectionTranscript`] requires of every mint site. Both
+    /// levels derive at role `closed-expansion`, rooted, at roster position
+    /// `family`, over
+    ///
+    /// ```text
+    /// content = family_byte || u64be(material.len()) || material
+    /// ```
+    ///
+    /// where the material of an ISSUE is that issue's own canonical bytes, and
+    /// the material of the BODY is `u64be(issue.len()) || issue` for every issue
+    /// in order, concatenated. An independent reader holding the issues and this
+    /// paragraph re-derives both levels and needs nothing else.
+    ///
     /// # The magnitude, the posture, and the count
     ///
     /// [`RelatedIssueLimit`] is declared at the widest refusal-body magnitude in
@@ -113,10 +161,12 @@ impl RelatedSet {
         let mut body_material = Vec::new();
         let mut per_issue = Vec::with_capacity(issues.len());
         for issue in issues {
-            per_issue.push(related_identity(family, issue));
+            per_issue.push(RelatedIdentity::Issue(related_issue_identity(
+                family, issue,
+            )));
             encode_bytes(issue, &mut body_material);
         }
-        let body = related_identity(family, &body_material);
+        let body = RelatedIdentity::Body(related_body_identity(family, &body_material));
 
         let mut all = Vec::with_capacity(per_issue.len().saturating_add(1));
         all.push(body);
@@ -162,9 +212,7 @@ impl RelatedSet {
     /// exists to keep together, and a caller holding it could seat it under
     /// another diagnostic's completion.
     #[must_use]
-    pub const fn carried(
-        &self,
-    ) -> &Bounded<ProjectionIdentity<RelatedIssueSubject>, RelatedIssueLimit> {
+    pub const fn carried(&self) -> &Bounded<RelatedIdentity, RelatedIssueLimit> {
         &self.carried
     }
 

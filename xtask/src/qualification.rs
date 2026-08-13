@@ -17,8 +17,8 @@
 //! consequences. Stopping names it once, on the last line of the log.
 //!
 //! Inside a stage the opposite rule holds: the repository laws report every
-//! offence at once. Those thirteen are independent of one another, so reporting
-//! them one at a time would cost thirteen round trips to learn what one run
+//! offence at once. Those fourteen are independent of one another, so reporting
+//! them one at a time would cost fourteen round trips to learn what one run
 //! already knows. Fail fast across stages that share a cause; report everything
 //! within a stage whose findings do not.
 //!

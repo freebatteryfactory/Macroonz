@@ -3579,9 +3579,9 @@ mod failure_path_closure {
         // The body's own identity, then one per established issue.
         assert_eq!(outputs.related.carried().len(), 2);
         assert_ne!(outputs.summary, declarations.summary);
-        let mine: Vec<&crate::plane::ProjectionIdentity<crate::plane::RelatedIssueSubject>> =
+        let mine: Vec<&crate::diagnostics::RelatedIdentity> =
             outputs.related.carried().iter().collect();
-        let theirs: Vec<&crate::plane::ProjectionIdentity<crate::plane::RelatedIssueSubject>> =
+        let theirs: Vec<&crate::diagnostics::RelatedIdentity> =
             declarations.related.carried().iter().collect();
         assert_ne!(mine, theirs);
 
@@ -3769,14 +3769,29 @@ mod failure_path_closure {
     /// honestly derived and the pair named two different refusals, and the
     /// coarser set a truncation carries would then be a commitment to nothing in
     /// particular.
-    /// Owed reversal (red twin): an overflow road returning the coarser set with
-    /// no posture must break this law, and so must a road handing a set and a
-    /// completion back as two values a caller pairs, and so must a road taking a
-    /// body identity and per-issue identities as independent arguments.
+    ///
+    /// The two levels are two SUBJECTS, which is what closes the last road
+    /// between them. Under one subject the body and the issues shared a preimage
+    /// grammar, and the body's preimage is the framing of its issues — so an
+    /// issue whose own material happened to be that framing derived the body's
+    /// exact identity, and the crafted collision below proves the old grammar
+    /// admitted it. Two subjects give the two levels two derive-key contexts, so
+    /// the same content at the two levels is two unrelated values, and the Rust
+    /// types no longer substitute either.
+    ///
+    /// Reversal: `testpak/tests/related_set_identity_levels.rs` rebuilds the
+    /// body's identity from the published content grammar with its own encoder
+    /// and requires the produced one to match, and
+    /// `testpak/tests/compile-fail/a-related-set-assembled-from-two-levels.rs`
+    /// and `…/a-related-set-married-to-another-completion.rs` are the two roads
+    /// out of the guard that must not compile.
     #[test]
     fn a_truncated_related_set_says_what_it_dropped() {
-        use crate::diagnostics::RelatedSet;
-        use crate::plane::{ProjectionIdentity, RelatedIssueSubject};
+        use crate::diagnostics::{RelatedIdentity, RelatedSet};
+        use crate::plane::{
+            ProjectionIdentity, ProjectionRole, ProjectionTranscript, RelatedIssueSubject,
+            encode_bytes,
+        };
         use threadpak::refusal::StopBound;
         use threadpak::types::ConstLimit;
 
@@ -3786,9 +3801,13 @@ mod failure_path_closure {
         }
 
         /// The identity a set commits its whole body under: the one it carries
-        /// ahead of the per-issue identities.
-        fn body(set: &RelatedSet) -> Option<ProjectionIdentity<RelatedIssueSubject>> {
-            set.carried().iter().next().copied()
+        /// ahead of the per-issue identities, read by the LEVEL it states rather
+        /// than by the position it sits at.
+        fn body(set: &RelatedSet) -> Option<[u8; 32]> {
+            set.carried().iter().find_map(|carried| match *carried {
+                RelatedIdentity::Body(identity) => Some(*identity.as_bytes()),
+                RelatedIdentity::Issue(_) => None,
+            })
         }
 
         const FAMILY: u8 = 0;
@@ -3817,13 +3836,13 @@ mod failure_path_closure {
         );
 
         // The body is its own commitment and never one of the issues restated:
-        // a reader holding the first identity is holding the whole body.
-        assert!(
-            !set.carried()
-                .iter()
-                .skip(1)
-                .any(|carried| Some(*carried) == body(&set))
-        );
+        // a reader holding it is holding the whole body. Compared as BYTES,
+        // because the types alone already make the two levels distinct and a
+        // comparison the types decided would prove nothing about the digest.
+        assert!(!set.carried().iter().any(|carried| match *carried {
+            RelatedIdentity::Body(_) => false,
+            RelatedIdentity::Issue(identity) => Some(*identity.as_bytes()) == body(&set),
+        }));
 
         // Two families' issue material never encodes alike, so the same issues
         // raised under two families are two different bodies.
@@ -3856,6 +3875,55 @@ mod failure_path_closure {
             body(&truncated_set),
             body(&RelatedSet::derived_over(FAMILY, &other))
         );
+
+        // The crafted collision, constructed rather than asserted. Under one
+        // subject the two levels shared a preimage grammar, and a body's
+        // preimage IS the framing of its issues — so a ONE-issue set whose
+        // single issue's material happens to be another set's framing derived
+        // that other set's body identity, byte for byte, under a name space
+        // where the two were the same kind of value.
+        let inner: Vec<Vec<u8>> = vec![material(1), material(2)];
+        let inner_set = RelatedSet::derived_over(FAMILY, &inner);
+        let mut framing = Vec::new();
+        for issue in &inner {
+            encode_bytes(issue, &mut framing);
+        }
+        let aliasing = RelatedSet::derived_over(FAMILY, &[framing.clone()]);
+        let aliasing_issue = aliasing
+            .carried()
+            .iter()
+            .find_map(|carried| match *carried {
+                RelatedIdentity::Issue(identity) => Some(*identity.as_bytes()),
+                RelatedIdentity::Body(_) => None,
+            });
+
+        // Both contents composed by the published grammar, one by the BODY rule
+        // over `inner` and one by the ISSUE rule over the aliasing material.
+        // They are the same bytes, which is the collision stated exactly.
+        let mut body_content = vec![FAMILY];
+        encode_bytes(&framing, &mut body_content);
+        let mut issue_content = vec![FAMILY];
+        encode_bytes(&framing, &mut issue_content);
+        assert_eq!(body_content, issue_content);
+
+        // One subject over that content is one identity — the defect.
+        let under_one_subject = |content: &[u8]| {
+            *ProjectionIdentity::<RelatedIssueSubject>::derived(ProjectionTranscript::rooted(
+                ProjectionRole::ClosedExpansion,
+                content,
+                u32::from(FAMILY),
+            ))
+            .as_bytes()
+        };
+        assert_eq!(
+            under_one_subject(&body_content),
+            under_one_subject(&issue_content)
+        );
+
+        // Two subjects over that same content are two identities — the repair,
+        // proven on the values the services actually mint.
+        assert!(aliasing_issue.is_some());
+        assert_ne!(body(&inner_set), aliasing_issue);
 
         // The one line rustc shows carries the same statement, because the
         // typed posture beside it is not something rustc shows. A complete set

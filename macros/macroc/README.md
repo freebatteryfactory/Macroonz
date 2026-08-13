@@ -319,20 +319,30 @@ tooling-obligation: macroc.a-related-set-that-stops-says-what-it-dropped
     both identity levels itself, so the body's identity is a commitment to
     exactly the issues beside it: two different issue sets reach two different
     bodies, and no caller holds a half it could pair with somebody else's. The
-    one line rustc shows carries the same statement.
+    two levels are two SUBJECTS, so a body identity and an issue identity are
+    different Rust types and derive under different derive-key contexts: neither
+    substitutes for the other before hashing or after it. The one line rustc
+    shows carries the same statement.
   owner: macros/macroc/src/diagnostics/type_guard.rs
   positive: macros/macroc/src/laws.rs
   method: executable-law
   activation: cargo test -p threadpak-macroc failure_path_closure
-  tooling-red: owed-to-testpak — the coarser set restored without its posture,
-    shown reading exactly like a complete one, a road handing the set and the
-    posture back as two values a caller pairs, and a mint taking a body identity
-    and per-issue identities as independent arguments
+  tooling-red: testpak/tests/related_set_identity_levels.rs — an INDEPENDENT
+    encoder rebuilds the body's identity from the published content grammar and
+    must match, three rehearsed encoders must disagree, a complete set and a
+    truncated one must not read alike through the public readers, and crafted
+    material that derived ONE identity at both levels under the single-subject
+    grammar must derive two. The two unwritable roads are
+    testpak/tests/compile-fail/a-related-set-married-to-another-completion.rs
+    and testpak/tests/compile-fail/a-related-set-assembled-from-two-levels.rs
   nonclaims: >
     It does not claim the dropped identities are recoverable from the diagnostic;
     the body identity commits to every issue at once and the per-issue ones do
     not come back. The typed refusal body a caller of the underlying seam holds
-    is where they remain readable.
+    is where they remain readable. It does not claim collision resistance beyond
+    BLAKE3's over the transcript as specified: the level split closes an aliasing
+    the CONTENT grammar admitted by construction, and says nothing about the
+    digest.
 
 tooling-obligation: macroc.the-subject-roster-is-sealed
   claim: >

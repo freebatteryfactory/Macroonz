@@ -157,8 +157,8 @@ pub use derive_refusal::{
 };
 pub use diagnostics::{
     DiagnosticSite, MachineAnchoring, MachineAnchors, MacrocDiagnostic, MacrocPhase,
-    ObservedClassification, RelatedSet, RelatedSetCompletion, RelatedSetTruncation, ReleasePosture,
-    RepairAction, ReproductionRoute, SiteCoordinate,
+    ObservedClassification, RelatedIdentity, RelatedSet, RelatedSetCompletion,
+    RelatedSetTruncation, ReleasePosture, RepairAction, ReproductionRoute, SiteCoordinate,
 };
 pub use explanation_protocol::{
     ExplanationAnswer, ExplanationCoverage, ExplanationCoverageIssue, ProjectionExplanation,

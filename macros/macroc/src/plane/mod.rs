@@ -25,14 +25,14 @@ pub use types::{
     PatternArgumentLimit, PatternArgumentSubject, PatternInstanceSubject, PatternSubject, PlanId,
     PlanSubject, PlanningIssueLimit, PortSubject, ProfileVersion, ProjectionIdentity,
     ProjectionKindSubject, ProjectionProfileSubject, ProjectionProvenance, ProjectionRole,
-    ProjectionTranscript, RefusalFamilySubject, RefusalReason, RelatedIssueLimit,
-    RelatedIssueSubject, RenderedByteLimit, RenderedRole, RenderedRoleSeal, RenderedUnitSubject,
-    RepairLimit, RuntimeTraceSubject, SchemaSubject, SelectionCitationLimit, ServiceEntrySubject,
-    SoleRenderedUnit, SourceDeclarationLimit, SourceSnapshotSubject, SubjectSeal,
-    TemplateArgumentSubject, TemplateIssueLimit, TemplateParameterLimit, TemplateParameterSubject,
-    TemplateSubject, TokenPathDepthLimit, TraceEntryLimit, TracedSubject, TranscriptAnchoring,
-    TriggerViewIssueLimit, WireContractSubject, WorkCurrencySubject, WorkFormulaSubject,
-    WrapperComponentLimit,
+    ProjectionTranscript, RefusalFamilySubject, RefusalReason, RelatedBodySubject,
+    RelatedIssueLimit, RelatedIssueSubject, RenderedByteLimit, RenderedRole, RenderedRoleSeal,
+    RenderedUnitSubject, RepairLimit, RuntimeTraceSubject, SchemaSubject, SelectionCitationLimit,
+    ServiceEntrySubject, SoleRenderedUnit, SourceDeclarationLimit, SourceSnapshotSubject,
+    SubjectSeal, TemplateArgumentSubject, TemplateIssueLimit, TemplateParameterLimit,
+    TemplateParameterSubject, TemplateSubject, TokenPathDepthLimit, TraceEntryLimit, TracedSubject,
+    TranscriptAnchoring, TriggerViewIssueLimit, WireContractSubject, WorkCurrencySubject,
+    WorkFormulaSubject, WrapperComponentLimit,
 };
 pub(crate) use types::{human_projection, static_bytes};
 

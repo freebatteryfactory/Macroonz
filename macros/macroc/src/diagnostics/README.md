@@ -38,6 +38,16 @@ reaches them, and the road takes the issue MATERIAL and derives the body's
 identity and the per-issue identities together — there is no half to mispair
 because there is no half a caller ever holds.
 
+The two identity levels are two SUBJECTS, and that is not decoration. A body's
+preimage is the framing of its issues, so under one subject an issue whose own
+material happened to be that framing derived the body's identity byte for byte —
+a collision the content grammar admitted by construction rather than one an
+attacker had to find. Split, the levels cannot substitute twice over: a body
+identity is a different Rust type than an issue identity, and the two subjects
+declare different segments of the derive-key context, so the same bytes at the
+two levels are unrelated values. [`RelatedIdentity`] is where a reader sees which
+level it holds, which is why a set no longer commits anything to position.
+
 `type_contract.rs` states the home's one declarative table: how a span table's
 answer becomes a site posture, and how that posture reads back.
 

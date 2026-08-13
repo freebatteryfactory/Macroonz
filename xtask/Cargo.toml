@@ -9,3 +9,36 @@ publish = false
 
 [lints]
 workspace = true
+
+# THE ADMITTED MECHANISM, and what earned it.
+#
+# The coupling law derives its own population: every collection-shaped refusal
+# family declared anywhere in the machine or the services, and the body seat each
+# one carries. That is a question about ITEMS — is this a trait implementation,
+# is the trait it implements the family contract, which type is it for, is
+# `SHAPE` a member of it wherever the author put it, and is a field's declared
+# type that type rather than a substring of another one. A line scanner cannot
+# answer any of them, and the one that stood here proved it: it recognized a
+# family only where the shape constant sat on the line immediately below the
+# implementation line, so a doc comment, a blank line, an attribute, or a second
+# associated constant in between removed that family from the numerator AND the
+# denominator at once. The printed count stayed whole while the guarded
+# population shrank, which is the single failure a derived denominator exists to
+# prevent. Teaching the scanner otherwise means writing a Rust parser by hand
+# inside a repository check, from the same understanding the sources were written
+# with — two readings of one understanding agree because they share it.
+#
+# `syn`, pinned exact at `=3.0.3` — the version the lockfile already carries for
+# the judge's structural lane, so this crate and that one read Rust by the same
+# decoder at the same version rather than by two. Default features off, and cut
+# to the two the reading uses: `parsing`, without which there is no text-to-tree
+# road at all, and `full`, without which items and their associated constants are
+# not in the tree. Printing, folding, visiting, derive input, extra traits, and
+# the proc-macro bridge are all off — this crate reads and never writes, and
+# never runs inside a macro.
+#
+# What the admission does NOT buy: nothing is compiled, nothing is resolved, no
+# `cfg` is evaluated, and no macro is expanded. The law that reads through it
+# states those limits itself, in `src/checks/coupling.rs`, where the reading is.
+[dependencies]
+syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }

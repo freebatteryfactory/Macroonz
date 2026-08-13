@@ -29,12 +29,12 @@
 
 use threadpak::types::ConstLimit;
 use threadpak_macroc::derive_refusal::diagnose;
-use threadpak_macroc::plane::{HumanTextLimit, RelatedIssueSubject};
+use threadpak_macroc::plane::HumanTextLimit;
 use threadpak_macroc::{
     ClosureIssue, ExplanationBindingRefusal, ExplanationSeat, HumanProjection, MacrocPhase,
-    ObservedClassification, PlannedMembership, ProjectionClosure, ProjectionIdentity,
-    ProjectionPlanningIssue, RenderedImplementation, RenderedProjection, RenderedRole,
-    RenderedUnit, ReproductionRoute, TextCompileRefusal, compile_refusal_text,
+    ObservedClassification, PlannedMembership, ProjectionClosure, ProjectionPlanningIssue,
+    RelatedIdentity, RenderedImplementation, RenderedProjection, RenderedRole, RenderedUnit,
+    ReproductionRoute, TextCompileRefusal, compile_refusal_text,
 };
 
 /// The declaration handed to the services: a single-cause family, whose shape
@@ -64,10 +64,18 @@ fn lawful() -> Result<threadpak_macroc::ClosedExpansion, ()> {
 }
 
 /// The identities one diagnostic's related set carries, in order.
-fn related(
-    diagnostic: &threadpak_macroc::MacrocDiagnostic,
-) -> Vec<ProjectionIdentity<RelatedIssueSubject>> {
+fn related(diagnostic: &threadpak_macroc::MacrocDiagnostic) -> Vec<RelatedIdentity> {
     diagnostic.related.carried().iter().copied().collect()
+}
+
+/// One related identity as the level it states and the bytes it is, so two of
+/// them sort and compare without this plane deciding that a body and an issue
+/// sharing bytes are one value.
+fn level_and_bytes(identity: RelatedIdentity) -> (u8, [u8; 32]) {
+    match identity {
+        RelatedIdentity::Body(body) => (0, *body.as_bytes()),
+        RelatedIdentity::Issue(issue) => (1, *issue.as_bytes()),
+    }
 }
 
 /// The lawful road binds every required seat and closes over what it rendered.
@@ -192,7 +200,7 @@ fn each_explanation_seat_refuses_under_its_own_name() {
         ExplanationSeat::ProvedFamilyDigest,
         ExplanationSeat::DeclaredAssumption,
     ];
-    let mut identities: Vec<ProjectionIdentity<RelatedIssueSubject>> = Vec::new();
+    let mut identities: Vec<RelatedIdentity> = Vec::new();
     for seat in seats {
         let diagnostic =
             diagnose::explanation_refused(&ExplanationBindingRefusal::RequiredOutputAbsent {
@@ -208,7 +216,7 @@ fn each_explanation_seat_refuses_under_its_own_name() {
         identities.extend(related(&diagnostic));
     }
     let counted = identities.len();
-    identities.sort_unstable_by_key(|identity| *identity.as_bytes());
+    identities.sort_unstable_by_key(|identity| level_and_bytes(*identity));
     identities.dedup();
     assert_eq!(
         identities.len(),
