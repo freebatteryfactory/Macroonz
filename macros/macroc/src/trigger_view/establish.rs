@@ -8,15 +8,12 @@
 //! two.
 //!
 //! Nothing here reaches a private field: the pass reads supplied selections and
-//! omissions before any view exists. The road that consumes this pass lives in
-//! `type_guard.rs`, because building a complete view is what must stay
-//! unreachable.
+//! omissions before any view exists. The roads that consume this pass live in
+//! `type_guard.rs`, because building a complete view and building the refusal
+//! body are both what must stay unreachable.
 
-use super::{TriggerOmission, TriggerSelection, TriggerViewComposition, TriggerViewIssue};
-use crate::plane::AuthoringLimitProfile;
+use super::{TriggerOmission, TriggerSelection, TriggerViewIssue};
 use crate::planning::WRAPPER_COMPONENTS;
-use threadpak::refusal::{AdmittedPrefix, StopBound};
-use threadpak::types::PositiveLimit;
 
 /// Every component the two lists leave undecided or dispose of twice, in roster
 /// order.
@@ -42,35 +39,4 @@ pub(super) fn disposition_issues(
         }
     }
     issues
-}
-
-/// The refusal one established issue list amounts to, or nothing where the list
-/// is empty.
-pub(super) fn refused(issues: Vec<TriggerViewIssue>) -> Option<TriggerViewComposition> {
-    let mut established = issues.into_iter();
-    let first = established.next()?;
-    Some(TriggerViewComposition::established(
-        first,
-        established.collect(),
-    ))
-}
-
-impl TriggerViewComposition {
-    /// The body a composition check refuses with.
-    ///
-    /// The disposition pass above walks the whole component roster before a body
-    /// exists, so the posture here is about the REPORT rather than the pass.
-    /// Where every established issue fits the declared bound the body carries
-    /// all of them; where it does not, the body carries what the bound holds and
-    /// names how many established issues stand outside it.
-    pub(super) fn established(first: TriggerViewIssue, rest: Vec<TriggerViewIssue>) -> Self {
-        Self {
-            report: AdmittedPrefix::examined_completely(
-                first,
-                rest,
-                &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
-                StopBound::DeclaredIssueBound,
-            ),
-        }
-    }
 }

@@ -29,15 +29,16 @@ agreement. Nothing reads the rendering back.
 ## The seats
 
 `types.rs` declares. Its own child `type_guard.rs` holds every road that reaches
-a private field — an explanation's question and answer, and the view's own seats
+a private field — an explanation's question and answer, the view's own seats, and
+the refusal body's one seat
 — which is what makes "the question comes from the answer" structural: there is
 no seam anywhere that files a true answer under a question somebody supplied.
 `project.rs` renders one answer for a person, exhaustively and from static
 literals proven at compile time, which is the same claim for the sentence.
 `type_contract.rs` states the refusal family's shape and the closed table that
-maps an answer to its question. `establish.rs` is the coverage pass, the
-admission answer a caller asks for one kind, and the body the established issues
-amount to.
+maps an answer to its question. `establish.rs` is the coverage pass and the
+admission answer a caller asks for one kind — reaching no private seat, because
+the body the established issues amount to is built beside the seat it fills.
 
 This home's qualification obligations live in the crate README's tooling-obligation
 blocks.

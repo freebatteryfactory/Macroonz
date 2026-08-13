@@ -7,13 +7,11 @@
 //! not get told about it twice.
 //!
 //! Nothing here reaches a private field: the scan reads a supplied provider list
-//! before any root exists. The road that consumes this pass lives in
-//! `type_guard.rs`, because building a root is what must stay unreachable.
+//! before any root exists. The roads that consume this pass live in
+//! `type_guard.rs`, because building a root and building the refusal body are
+//! both what must stay unreachable.
 
-use super::{CompositionRootDeclaration, CompositionRootIssue, DescriptorProvider};
-use crate::plane::AuthoringLimitProfile;
-use threadpak::refusal::{AdmittedPrefix, StopBound};
-use threadpak::types::PositiveLimit;
+use super::{CompositionRootIssue, DescriptorProvider};
 
 /// Every provider identity declared more than once, reported at its first
 /// occurrence.
@@ -35,40 +33,4 @@ pub(super) fn duplicate_issues(declared: &[DescriptorProvider]) -> Vec<Compositi
         }
     }
     issues
-}
-
-/// The refusal one established issue list amounts to, or nothing where the list
-/// is empty.
-pub(super) fn refused(issues: Vec<CompositionRootIssue>) -> Option<CompositionRootDeclaration> {
-    let mut established = issues.into_iter();
-    let first = established.next()?;
-    Some(CompositionRootDeclaration::established(
-        first,
-        established.collect(),
-    ))
-}
-
-impl CompositionRootDeclaration {
-    /// The body a declaration check refuses with.
-    ///
-    /// The scan above ran the declared set to the end before a body existed, so
-    /// the posture here is never about the scan: it is about the REPORT. Where
-    /// every established issue fits the declared bound the body carries all of
-    /// them and says `Complete`; where it does not, the body carries what the
-    /// bound holds and names how many established issues stand outside it. A
-    /// posture claiming the examination stopped would say nobody looked past the
-    /// bound, and somebody did.
-    pub(super) fn established(
-        first: CompositionRootIssue,
-        rest: Vec<CompositionRootIssue>,
-    ) -> Self {
-        Self {
-            report: AdmittedPrefix::examined_completely(
-                first,
-                rest,
-                &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
-                StopBound::DeclaredIssueBound,
-            ),
-        }
-    }
 }

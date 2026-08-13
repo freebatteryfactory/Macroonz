@@ -2,9 +2,10 @@
 //! answered question, how a view fails to be complete, and the complete view.
 //!
 //! Declarations only. Every road that reaches a private field — an explanation's
-//! question, answer, and human projection, and the view's own seats — lives in
-//! `type_guard.rs`, this file's own child. That is what makes "the question is
-//! derived from the answer" structural rather than reviewed.
+//! question, answer, and human projection, the view's own seats, and the refusal
+//! body's one seat — lives in `type_guard.rs`, this file's own child. That is
+//! what makes "the question is derived from the answer" structural rather than
+//! reviewed.
 
 use crate::diagnostics::RepairAction;
 use crate::origin_graph::DecisionTrace;
@@ -169,7 +170,13 @@ pub struct ExplanationCoverage {
     /// can be swapped for another body's. The pass itself always covers every
     /// applicable question, so the completion here never reports a halted
     /// examination.
-    pub report: AdmittedPrefix<ExplanationCoverageIssue, ExplanationIssueLimit>,
+    ///
+    /// Private, and that is the second half of the same claim. The coupled seat
+    /// keeps a carry and its posture together; a PUBLIC seat on a one-field
+    /// record hands the whole record back as a literal, so any holder of a body
+    /// built for one pass could write it into another pass's refusal. Read back
+    /// through [`ExplanationCoverage::body`].
+    body: AdmittedPrefix<ExplanationCoverageIssue, ExplanationIssueLimit>,
 }
 
 /// A complete explanation view over one kind's plans.

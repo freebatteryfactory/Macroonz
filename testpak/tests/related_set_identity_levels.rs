@@ -349,10 +349,80 @@ fn crafted_aliasing_material_derives_two_identities_now() {
 /// Stated here because the truncation posture and the empty set are the two ways
 /// a set can carry fewer identities than a reader might expect, and only one of
 /// them means anything was dropped.
+///
+/// Load-bearing for the two tests below: they claim the derived road REACHES
+/// this value, which says nothing unless this value is itself what the
+/// specification describes.
 #[test]
 fn a_road_that_enumerated_nothing_reports_no_truncation() {
     let set = RelatedSet::nothing_enumerated();
     assert!(set.carried().is_empty());
     assert!(produced_body(&set).is_none());
     assert!(matches!(set.completion(), RelatedSetCompletion::Complete));
+}
+
+/// "Nothing was enumerated" has exactly ONE representation, over the whole
+/// family-tag domain.
+///
+/// The population is the domain rather than a sample: the family tag is a `u8`,
+/// so every value it can take is asked, and a routing that held for the family
+/// this file happens to use and not for another would be caught here rather than
+/// by whoever met the other family first.
+///
+/// Two representations of one state is the defect, whichever a reader is handed.
+/// A set carrying a whole-body commitment over empty material and a set carrying
+/// no identity at all both mean "the road enumerated nothing", so two
+/// diagnostics that enumerated nothing would compare UNEQUAL — and a reader who
+/// learned to recognize one shape would not recognize the other.
+#[test]
+fn every_family_tag_reaches_one_empty_relation() {
+    let none: [Vec<u8>; 0] = [];
+    let canonical = RelatedSet::nothing_enumerated();
+    for family in u8::MIN..=u8::MAX {
+        assert_eq!(
+            RelatedSet::derived_over(family, &none),
+            canonical,
+            "family {family} answers empty material with a second representation"
+        );
+    }
+}
+
+/// The rehearsed reversal for the routing: the identity a DERIVING road would
+/// have carried is a real value this lane can name, and no road in the services
+/// hands it out.
+///
+/// Named rather than described. The un-routed road framed no issues, so its body
+/// material was empty, and by the published content rule its whole-body
+/// commitment is the derivation over `family_byte || u64be(0)` — which this file
+/// composes with its own encoder below. That value is perfectly well-formed and
+/// that is the point: it is not a corrupt identity a check could notice, it is an
+/// honest commitment to no issues, and a reader handed one has no way to tell it
+/// from a commitment to the issues of any other empty set at that family.
+///
+/// If the routing were removed this test fails at the first assertion, because
+/// the derived road produces exactly `over_empty`.
+#[test]
+fn the_body_identity_over_empty_material_is_reachable_by_no_road() {
+    let none: [Vec<u8>; 0] = [];
+    let over_empty = judge_identity(BODY_SUBJECT, &judge_content(&judge_body_material(&none)));
+
+    let derived = RelatedSet::derived_over(FAMILY, &none);
+    assert_ne!(
+        produced_body(&derived),
+        Some(over_empty),
+        "the derived road still carries a whole-body commitment over empty material"
+    );
+    assert!(produced_body(&derived).is_none());
+    assert!(produced_issues(&derived).is_empty());
+    assert!(RelatedSet::nothing_enumerated().carried().is_empty());
+
+    // The value is not unreachable because it is unbuildable — this lane just
+    // built it. A one-issue set whose single issue IS the empty framing derives
+    // that same content at the ISSUE level, and the subject split is what keeps
+    // those two apart. So the routing removes a representation, and it does not
+    // remove a name from the space.
+    let framing_of_nothing = judge_body_material(&none);
+    let aliasing = RelatedSet::derived_over(FAMILY, &[framing_of_nothing]);
+    assert_eq!(produced_issues(&aliasing).len(), 1);
+    assert_ne!(produced_issues(&aliasing).first(), Some(&over_empty));
 }

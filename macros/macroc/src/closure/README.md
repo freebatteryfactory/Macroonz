@@ -46,10 +46,10 @@ proof; there is no partial closure and no closure with a warning attached.
 ## The seats
 
 `types.rs` declares; its own child `type_guard.rs` takes the digests, owns the
-join, and builds the proof, which is what keeps every one of those roads
-unreachable from anywhere else. `prove.rs` is the per-role pass the proof
-consumes, and `type_contract.rs` states the refusal family and the issue roster's
-own table.
+join, builds the proof, and builds the refusal body, which is what keeps every
+one of those roads unreachable from anywhere else. `prove.rs` is the per-role
+pass those roads consume, reaching no private seat, and `type_contract.rs` states
+the refusal family and the issue roster's own table.
 
 This home's qualification obligations live in the crate README's tooling-obligation
 blocks.

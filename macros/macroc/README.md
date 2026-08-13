@@ -223,6 +223,31 @@ tooling-obligation: macroc.a-failed-required-seat-is-a-typed-refusal
     refusal body is covered: rendering a count too large to render is not
     answering a seat with a neighbouring value.
 
+tooling-obligation: macroc.a-refusal-body-is-minted-by-the-pass-that-established-it
+  claim: >
+    Every refusal family body in the services carries band 00's coupled seat under
+    the name core gives it, `body`, and that seat is PRIVATE. The coupled seat
+    keeps a carry and its posture together; the private seat keeps the body and
+    the pass that established it together, because a one-field record whose one
+    field is public is a record any holder can write. Each body is minted only in
+    the `type_guard.rs` that is its `types.rs`'s own child, and read back through
+    one borrowed reader.
+  owner: macros/macroc/src/refusal/type_guard.rs
+  positive: macros/macroc/src/laws.rs
+  method: compile-refusal
+  activation: cargo test -p threadpak-testpak --test compile_refusals
+  tooling-red: testpak/tests/compile-fail/a-services-refusal-body-reseated-by-literal.rs
+    — a body built through the public guarded road, written into a second refusal
+    by literal from outside the crate, refusing with E0451
+  nonclaims: >
+    It does not claim total exclusion inside the services crate. A private field
+    stops every SIBLING module and every downstream crate; it does not stop a
+    module declared INSIDE the guard, which would construct as freely as the mint
+    does. No `#[cfg(test)]` module stands under any of these guards, and the
+    reversal is owned outside the crate for exactly that reason. It does not claim
+    the body a mint produces is the right body: that the issues are the ones the
+    pass established is the coupled seat's claim and band 00's, not this one's.
+
 tooling-obligation: macroc.the-emitted-tree-is-inside-the-closure-proof
   claim: >
     The exact token stream an expansion emits is joined by the closure, owned by
@@ -327,7 +352,11 @@ tooling-obligation: macroc.a-related-set-that-stops-says-what-it-dropped
     two levels are two SUBJECTS, so a body identity and an issue identity are
     different Rust types and derive under different derive-key contexts: neither
     substitutes for the other before hashing or after it. The one line rustc
-    shows carries the same statement.
+    shows carries the same statement. "Nothing was enumerated" has exactly one
+    representation: the deriving road answers empty material with the canonical
+    empty relation the single-cause road answers with, rather than a whole-body
+    commitment over empty material that would mean the same thing and compare
+    unequal.
   owner: macros/macroc/src/diagnostics/type_guard.rs
   positive: macros/macroc/src/laws.rs
   method: executable-law
@@ -335,9 +364,12 @@ tooling-obligation: macroc.a-related-set-that-stops-says-what-it-dropped
   tooling-red: testpak/tests/related_set_identity_levels.rs — an INDEPENDENT
     encoder rebuilds the body's identity from the published content grammar and
     must match, three rehearsed encoders must disagree, a complete set and a
-    truncated one must not read alike through the public readers, and crafted
+    truncated one must not read alike through the public readers, crafted
     material that derived ONE identity at both levels under the single-subject
-    grammar must derive two. The two unwritable roads are
+    grammar must derive two, every one of the 256 family tags must answer empty
+    material with the one canonical empty relation, and the whole-body commitment
+    over empty material — named by that same independent encoder — must be
+    reachable by no road. The two unwritable roads are
     testpak/tests/compile-fail/a-related-set-married-to-another-completion.rs
     and testpak/tests/compile-fail/a-related-set-assembled-from-two-levels.rs
   nonclaims: >

@@ -2,9 +2,10 @@
 //! compose, the declared providers themselves, how a root fails to be
 //! declarable, and the root.
 //!
-//! Declarations only. The road that reaches the root's private provider set
-//! lives in `type_guard.rs`, this file's own child, which is what makes the
-//! duplicate-free claim structural rather than reviewed.
+//! Declarations only. The roads that reach a private seat — the root's provider
+//! set and the refusal body's one seat — live in `type_guard.rs`, this file's own
+//! child, which is what makes the duplicate-free claim structural rather than
+//! reviewed.
 
 use crate::plane::{
     CompositionIssueLimit, DescriptorProviderLimit, DescriptorProviderSubject, OwnerFactRef,
@@ -94,7 +95,13 @@ pub struct CompositionRootDeclaration {
     /// because a coverage claim seated beside its body is a claim that can be
     /// swapped for another body's. The scan itself always covers every declared
     /// provider, so the completion here never reports a halted examination.
-    pub report: AdmittedPrefix<CompositionRootIssue, CompositionIssueLimit>,
+    ///
+    /// Private, and that is the second half of the same claim. The coupled seat
+    /// keeps a carry and its posture together; a PUBLIC seat on a one-field
+    /// record hands the whole record back as a literal, so any holder of a body
+    /// built for one scan could write it into another scan's refusal. Read back
+    /// through [`CompositionRootDeclaration::body`].
+    body: AdmittedPrefix<CompositionRootIssue, CompositionIssueLimit>,
 }
 
 /// The one composition root: every provider that participates, named once.
