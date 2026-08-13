@@ -423,6 +423,25 @@ impl Limit for IssueTextLimit {}
 /// bounded (hostile input allocates no unbounded error tree; stopping reports
 /// incomplete enumeration), and localized narration is a projection that
 /// neither defines stable issue identity nor participates in commitments.
+///
+/// # A row does not know whether the scan finished
+///
+/// This row carries no completion posture, and the omission is the point. "Did
+/// the examination finish or stop at a declared bound" is a fact about the PASS,
+/// and the pass is the collection — the thing that actually scanned. A row is
+/// one finding the pass established; it was true wherever enumeration stopped,
+/// and it has nothing to say about sites nobody looked at.
+///
+/// A posture seated on the row is also a posture a caller can write. Two rows
+/// from one pass could then disagree about whether that pass completed, and both
+/// would be individually well-formed — the kind of lie no runtime check catches,
+/// because there is nothing wrong to detect at either end. That is exactly the
+/// defect band 00's coupled seat exists to make unwritable, and it is the same
+/// rule the seven construction-refusal families in this home already follow:
+/// each holds one [`AdmittedPrefix`](crate::refusal::AdmittedPrefix) in which the
+/// coverage claim and the material it is about were produced by a single act, and
+/// reads it back through `issues()` and `posture()`. When the validation pass
+/// that produces these rows is written, it reaches a caller the same way.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ValidationIssue {
     /// The schema family.
@@ -437,8 +456,6 @@ pub struct ValidationIssue {
     pub observed: BoundedText<IssueTextLimit>,
     /// The stable reason identity.
     pub reason: ReasonId,
-    /// Whether validation completed or stopped at a declared bound.
-    pub posture: CompletionPosture,
 }
 
 // ---------------------------------------------------------------------------

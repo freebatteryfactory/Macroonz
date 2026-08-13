@@ -12,6 +12,14 @@ claim the same construction amounts to — and reads it back through `issues()`
 and `posture()`; none of them has a posture seat a caller could write beside its
 carry.
 
+`ValidationIssue` follows the same rule and used to break it. It is a ROW, and it
+carried a `CompletionPosture` field of its own — so one finding claimed to know
+whether the pass that found it had finished, and two rows from one pass could
+have disagreed about that while both stayed well-formed. The posture belongs to
+the collection, because the collection is what scanned. The field is gone; when
+the validation pass is written, its rows reach a caller through the coupled
+report package every other family in this home already uses.
+
 ## Variant-spelling law (verbatim, mechanical)
 
 Negated adjective (`Unresolved`, `Contradictory`,
