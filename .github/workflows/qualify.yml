@@ -12,14 +12,31 @@ name: qualify
 on:
   # Every pull request, whatever it targets.
   pull_request:
-  # And direct pushes to the trunk, which are still possible because branch
-  # protection is not yet in place. A change that arrives as a pull request and
-  # is then merged runs TWICE under this policy: once on the request, once on the
-  # resulting push. That duplication is the cost of the cover, and the cover is
-  # what matters while a direct push to the trunk can still bypass the request
-  # entirely. This trigger is bootstrap-era belt-and-suspenders, and it comes out
-  # the day branch protection forbids the direct push it exists to catch — which
-  # is a setting on the repository, not an edit to this file.
+  # And direct pushes to the trunk.
+  #
+  # Branch protection IS in place on `main`. READ from the repository's settings:
+  # administrators are included in the enforcement, force pushes are refused, and
+  # `qualify (ubuntu-latest)`, `qualify (windows-latest)`, and `graph` are all
+  # required to pass before a merge. By that reading this trigger is redundant,
+  # because the direct push it exists to catch cannot happen.
+  #
+  # It stays anyway, because a READ is not a RUN. Nobody has ever pushed at this
+  # trunk and watched the refusal happen. Everywhere else this repository refuses
+  # to believe a gate it has not seen refuse — the planted reversal in
+  # `.github/workflows/dependencies.yml` exists for that reason and no other —
+  # and a settings page is a claim about what WOULD happen, made in the same
+  # configuration that can be edited by anyone who can edit it. So the direct-push
+  # refusal is the one live gate here standing on a read alone, and this trigger
+  # is the cover held over it until it stops being one. A change that arrives as a
+  # pull request and is then merged therefore still runs TWICE: once on the
+  # request, once on the resulting push. That duplication is the price of not
+  # believing a setting.
+  #
+  # THE OPENING CONDITION, EXACTLY: someone attempts a direct push to `main` and
+  # records that it was refused. On that day this trigger comes out, and the
+  # matching one in `.github/workflows/dependencies.yml` comes out with it — they
+  # cover the same unexecuted refusal, and retiring one alone would leave the
+  # trunk covered on one side and bare on the other.
   push:
     branches: [main]
   # Weekly, on the trunk as it stands.

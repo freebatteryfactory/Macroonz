@@ -9,19 +9,33 @@
 #
 # Two jobs, and the split is the point. The graph job reads THIS tree and
 # nothing else, so its result is about the tree alone — the same property qualify
-# states about itself — and it belongs on every pull request. It runs cargo-deny
-# twice: once against `deny.toml`, which must pass, and once against
-# `deny-reversal.toml`, which must REFUSE. A gate that has only ever been seen
-# to pass is a gate whose refusal nobody has watched, so the second run is the
-# one that makes the first one mean something. The advisory job
-# reads a database that moves without this repository changing, so it would turn
-# red on a morning when nothing here changed and green again the same way. That
-# is a useful alarm and a broken gate, so it runs on its own schedule, where red
-# means "go look" rather than "this change is bad".
+# states about itself — and it belongs on every pull request, and on every direct
+# push to the trunk for as long as a direct push to the trunk is possible at all.
+# It runs cargo-deny twice: once against `deny.toml`, which must pass, and once
+# against `deny-reversal.toml`, which must REFUSE. A gate that has only ever been
+# seen to pass is a gate whose refusal nobody has watched, so the second run is
+# the one that makes the first one mean something. The advisory job reads a
+# database that moves without this repository changing, so it would turn red on a
+# morning when nothing here changed and green again the same way. That is a
+# useful alarm and a broken gate, so it runs on its own schedule, where red means
+# "go look" rather than "this change is bad".
 name: dependencies
 
 on:
   pull_request:
+  # And direct pushes to the trunk: the same trigger that
+  # `.github/workflows/qualify.yml` carries, for the same reason and under the
+  # same opening condition — which is written out once, there, rather than twice
+  # here.
+  #
+  # The asymmetry was the defect. Two workflows guard this trunk and `graph` is
+  # required to pass before a merge exactly as `qualify` is, but only one of the
+  # two carried the bootstrap cover, and nothing anywhere stated a reason for the
+  # difference. A gate that a direct push walks past is not a gate, whatever it
+  # reports on the pull requests it does see. The two triggers were added for one
+  # unexecuted refusal and they retire together.
+  push:
+    branches: [main]
   # Weekly, and on demand. The advisory job needs a trigger that is not a change,
   # because the thing it watches is not in this repository.
   schedule:
@@ -43,7 +57,8 @@ permissions:
 jobs:
   graph:
     # Not on the schedule: this job's subject is a change, and a schedule brings
-    # none.
+    # none. A pull request brings one and so does a direct push, which is why the
+    # push trigger above needed nothing added here to reach this job.
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     # The default is six hours. Nothing here is a six-hour job, so a run that
@@ -118,8 +133,18 @@ jobs:
           echo "the planted reversal refused: exit 2, exact-features-mismatch"
 
   advisories:
-    # Only on the schedule and by hand. This job is an alarm, not a gate.
-    if: github.event_name != 'pull_request'
+    # Only on the schedule and by hand. This job is an alarm, not a gate: its
+    # subject is a database outside this repository, so a red here means "go
+    # look" and never "this change is bad" — and a red standing beside a trunk
+    # commit would be read as the second when it can only ever be the first.
+    #
+    # Named by what it RUNS ON rather than by what it skips, and that is the
+    # whole of the change here. The skip-list form this condition used to have —
+    # everything that is not a pull request — would have handed this job the push
+    # trigger above the moment that trigger was added, silently, and the next
+    # trigger added would have done it again. A job whose triggers are listed
+    # positively gains none it was not given.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
