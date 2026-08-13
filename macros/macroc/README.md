@@ -142,11 +142,16 @@ tooling-obligation: macroc.the-receipt-rich-road-is-the-only-road
   positive: macros/macroc/src/laws.rs
   method: executable-law
   activation: cargo test -p threadpak-macroc
-  tooling-red: testpak/tests/compile-fail/ — one fixture per unwritable road: a
-    receipt bound without a closure, a rendering taken off the membership-only
-    draft, a closure minted without proving. Deleting the plan, the origin graph,
-    the trace, the invalidation set, or the explanation dies at the same private
-    constructor as deleting the closure, and one fixture proves that gate.
+  tooling-red: testpak/tests/compile-fail/a-closed-expansion-without-a-closure.rs
+    — one fixture per unwritable road, and this row names the first of them: a
+    receipt bound without a closure. Its siblings stand beside it, one for a
+    rendering taken off the membership-only draft
+    (testpak/tests/compile-fail/a-rendering-taken-off-the-membership-only-draft.rs)
+    and one for a closure minted without proving
+    (testpak/tests/compile-fail/a-closure-minted-without-proving.rs). Deleting
+    the plan, the origin graph, the trace, the invalidation set, or the
+    explanation dies at the same private constructor as deleting the closure, and
+    one fixture proves that gate.
   nonclaims: >
     It does not claim the rendering is correct Rust; that is lane C's claim, and
     it is made by the consumer fixtures.
