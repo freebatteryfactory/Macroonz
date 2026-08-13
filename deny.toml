@@ -8,6 +8,25 @@
 # request and only a graph can hold; this file is where that claim is settled
 # against the graph, and it settled it by refusing the first time it ran.
 #
+# THE CEILING ON EVERY FEATURE CLAIM BELOW. Three facts collapse into one
+# sentence the moment nobody keeps them apart, and only the middle one is settled
+# here:
+#
+#     manifest request            what a member's dependency entry asks for
+#     resolved graph union        what the resolver enables for a package across
+#                                 the whole build — what this file settles
+#     compiled-unit feature set   what one rustc invocation is actually handed
+#
+# A `[[bans.features]]` rule reads the resolved graph. It therefore proves the
+# second and does NOT prove the third: a graph holding a feature does not say
+# which compiled unit carries it, and nothing in this repository executes a check
+# that reads the unit graph. The distinction collapses in exactly one case — an
+# EMPTY exact set — because a unit's features are a subset of what the graph
+# resolved, and a subset of nothing is nothing. That is why the `blake3` rule
+# below is stronger in KIND than the `syn` rule and not merely stricter, and why
+# no prose in this tree may read the `syn` rule as a statement about the unit any
+# particular reader links.
+#
 # Adopting this costs a tool the qualification road does not carry. `cargo deny`
 # is not a stage of `cargo xtask qualify`, because qualify's stages compile,
 # test, and read THIS tree with the pinned toolchain and nothing else, and a
@@ -60,15 +79,15 @@ allow-wildcard-paths = true
 # MEASURED, and it is the whole reason this file exists: the allowed set is SIX
 # features, not the two the manifests request. `clone-impls`, `derive`,
 # `printing` and `proc-macro` arrive through `serde_derive`, which the
-# compile-refusal harness pulls in as a development dependency. Under resolver 3
-# those four land on a SEPARATE compiled unit — the one `serde_derive` links, on
-# the proc-macro side of the graph — and the unit the repository's own readers
-# link still carries `full` and `parsing` alone. Both statements are true and
-# they answer different questions, so the list below answers the one this file
-# is for: what the graph holds. `exact = true` means any movement at all fails,
-# in either direction, from any source — a reader that stopped needing `full`,
-# and a new dependency that switched on `fold`, `visit`, or `extra-traits`, are
-# the same refusal.
+# compile-refusal harness pulls in as a development dependency. `cargo tree`
+# shows those four resolving on the proc-macro side of the graph, away from the
+# entry the repository's own readers inherit — but that is an OBSERVATION made by
+# hand at one moment, which no gate re-runs and which this file does not carry.
+# The list below answers the question this file is for and stops there: what the
+# graph holds. `exact = true` means any movement at all fails, in either
+# direction, from any source — a reader that stopped needing `full`, and a new
+# dependency that switched on `fold`, `visit`, or `extra-traits`, are the same
+# refusal.
 [[bans.features]]
 crate = "syn"
 allow = ["clone-impls", "derive", "full", "parsing", "printing", "proc-macro"]
@@ -82,7 +101,9 @@ exact = true
 # `serde`, `zeroize`, `mmap` and the digest-trait previews buy surfaces neither
 # crate has a seat for. An empty exact set is the strongest form this mechanism
 # has, because every one of those is a refusal rather than an absence nobody
-# checked.
+# checked. It is also the one rule in this file that reaches past the graph to
+# the compiled unit, for the subset reason stated at the top: no unit can be
+# handed a feature the graph never resolved.
 [[bans.features]]
 crate = "blake3"
 allow = []

@@ -309,12 +309,22 @@ one understanding agree because they share it. So the claim is not reachable by
 making lane A cleverer; it is reachable only by handing the text to a decoder
 that owes this repository nothing.
 
-**The dependency.** `syn`, pinned exact at `=3.0.3` — the version the lockfile
-already carries — with `default-features = false` and exactly two features:
+**The dependency.** `syn`. The exact version and the feature cut are decided once
+in the workspace dependency table and inherited here; what this home owes is the
+reason, not a second copy of the decision. Two features carry the reading:
 `parsing`, without which there is no text-to-tree road at all, and `full`,
-without which items and their associated constants are not in the tree. Printing,
-folding, visiting, derive input, extra traits, and the proc-macro bridge are all
-off: the lane reads and never writes, and never runs inside a macro.
+without which items and their associated constants are not in the tree. The lane
+asks for nothing beyond those two, because it reads and never writes and never
+runs inside a macro.
+
+**And that reason settles less than it sounds like.** What a manifest ASKS FOR,
+what the resolved graph HOLDS, and what one compiled unit is HANDED are three
+different facts. This paragraph states the first. `deny.toml` settles the second
+against the graph itself, and the set it settles there is wider than the two
+named above, because the compile-refusal harness brings in a crate that asks for
+more. The third has no seat anywhere in this tree, so no sentence here says the
+unit this lane links carries those two and nothing else — the lane's claim is
+about what it reads Rust with, never about what its unit was compiled with.
 
 **What it reads out of the tree.** Per item: whether the item is a trait
 implementation at all, the trait path (segments and leading `::`), the target

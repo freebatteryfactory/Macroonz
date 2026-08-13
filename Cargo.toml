@@ -66,10 +66,11 @@ repository = "https://github.com/freebatteryfactory/ThreadPak"
 # and their associated constants are not in the tree. Printing, folding,
 # visiting, derive input, extra traits, and the proc-macro bridge are not asked
 # for HERE — both readers read and never write, and neither runs inside a macro.
-# What the graph then holds is a separate measured fact, and `deny.toml` is
-# where it is written down, because four of those features do arrive, on a
-# different compiled unit, through a crate the compile-refusal harness brings
-# in.
+# What the graph then holds is a separate measured fact, and `deny.toml` is where
+# it is written down, because four of those features do arrive through a crate
+# the compile-refusal harness brings in. It is also where the CEILING on that
+# settlement is stated: a graph rule reads the graph, so a third fact — what any
+# one compiled unit is handed — is settled by neither file.
 syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }
 # The digest. Pinned exact because a projection identity is a value the plane
 # hands out, and a minor version that changed one byte of output would silently
@@ -138,9 +139,12 @@ overflow-checks = true
 #     switched on blind it forces boxing that trades a cache line for an
 #     allocation with nothing observed either way.
 # ADOPTED IN PRINCIPLE, NOT YET LANDED: `map_err_ignore`. Discarding the source
-# error is a real defect and the lint names it correctly. It lands once its 65
-# sites are classified and repaired so each preserves its source, and that
-# repair arrives with the laws-drain boundary rather than as a mechanical sweep.
+# error is a real defect and the lint names it correctly. It lands once its sites
+# are classified and repaired so each preserves its source, and that repair
+# arrives with the laws-drain boundary rather than as a mechanical sweep. No
+# count stands here: the number this comment used to carry was authored before
+# the lint was ever run over the tree, and a debt figure nobody re-measured is a
+# figure that decides nothing. It is measured at adoption, by running the lint.
 [workspace.lints.rust]
 warnings = { level = "deny", priority = -1 }
 unsafe_code = "forbid"

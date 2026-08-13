@@ -16,16 +16,27 @@ are handed out. A receipt that names a plan is only as good as the name, so the
 derivation is a **BLAKE3 identity profile**, versioned and domain-separated, over
 complete transcripts.
 
-**The dependency.** `blake3`, pinned exact at `=1.8.6`, with
-`default-features = false`. The default `std` feature buys an `io::Write` adapter
-and error-trait impls the services name nowhere. `rayon` is not a default feature
-and is never named: an expansion running inside `rustc` must not stand up a
-thread pool to hash a few kilobytes. `serde`, `zeroize`, `mmap`, and the
-digest-trait previews buy surfaces the plane has no seat for. What is left is
-`Hasher` and `derive_key`, which is the whole mechanism the profile uses. The
-crate carries its own build script and C/assembly fast paths on the platforms
-that have them; that is a property of the admitted dependency and is disclosed
-here rather than discovered by whoever first builds without a C toolchain.
+**The dependency.** `blake3`, at the exact version the workspace dependency table
+decides once for every member that names it, with `default-features = false`.
+That table carries the pin; this home carries why the services reach for the
+mechanism at all, and why the cut is the one it is. The default `std` feature
+buys an `io::Write` adapter and error-trait impls the services name nowhere.
+`rayon` is not a default feature and is never named: an expansion running inside
+`rustc` must not stand up a thread pool to hash a few kilobytes. `serde`,
+`zeroize`, `mmap`, and the digest-trait previews buy surfaces the plane has no
+seat for. What is left is `Hasher` and `derive_key`, which is the whole mechanism
+the profile uses. The crate carries its own build script and C/assembly fast
+paths on the platforms that have them; that is a property of the admitted
+dependency and is disclosed here rather than discovered by whoever first builds
+without a C toolchain.
+
+**And unusually, that cut is settled and not merely requested.** A manifest asks;
+a resolved graph holds; a compiled unit is handed. `deny.toml` settles the middle
+one, and for `blake3` it settles it as EMPTY and exact — MEASURED, no crate
+anywhere in this graph turns a `blake3` feature on. An empty graph set is the one
+case that reaches the third fact too, because a unit's features are a subset of
+what the graph resolved. So this paragraph is not a claim about what the services
+compile with; it is the reason behind a rule that already proves it.
 
 **This admission is the TOOLING PLANE's, and it is not band 07's.** Band 07's
 digest-family law proposes blake3-256 for the machine's commitments, under the
