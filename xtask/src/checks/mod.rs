@@ -20,6 +20,8 @@ pub(crate) mod placement;
 
 pub(crate) mod obligations;
 
+pub(crate) mod coupling;
+
 pub(crate) mod vocabulary;
 
 #[cfg(test)]

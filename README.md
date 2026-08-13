@@ -151,18 +151,39 @@ substitute for one another:
 | `NonEmptyBounded::singleton` | local positivity | const `L::MAX >= 1`, proven at the call |
 | `NonEmptyBounded::from_array<N>` | local arity and local positivity | const `N < L::MAX`, plus the separate first item |
 | `NonEmptyBounded::admitted_const` | admitted family magnitude, and it must be inhabited | `PositiveLimit<L, P>` |
-| `NonEmptyBounded::admitted_prefix` | admitted family magnitude, reported rather than refused | `PositiveLimit<L, P>` |
+| `AdmittedPrefix::examined_completely` | admitted family magnitude, reported rather than refused | `PositiveLimit<L, P>` |
+| `AdmittedPrefix::stopped_early` | admitted family magnitude, and it must be inhabited | `PositiveLimit<L, P>` |
 | `NonEmptyBounded::admitted` | schema-minted runtime magnitude | `LimitWitness<L>` |
 
-`admitted_prefix` is the one road that neither refuses nor claims completeness.
-Refusing is right for material that is meaningless in part — a trail, a
-membership, a ceiling — and wrong for a REPORT: the issues an over-bound pass
-established are each true on their own, so refusing the body would leave a
+`examined_completely` is the one road that neither refuses nor claims
+completeness. Refusing is right for material that is meaningless in part — a
+trail, a membership, a ceiling — and wrong for a REPORT: the issues an over-bound
+pass established are each true on their own, so refusing the body would leave a
 caller with no findings at all. The road carries the prefix the admitted
-magnitude holds and RETURNS the remainder count, and that count is the seat that
-keeps the truncation from being silent. A caller with nowhere to put it is
-writing a body that cannot say what it left out, and the signature makes that
-visible at the call site.
+magnitude holds and states, in the same value, how much it did not carry. It is
+band 00's, because what it hands back is a refusal body and the posture that body
+reports its own coverage with; the truncating mechanics stay here in the root
+calculus as a crate-internal seam with that one consumer.
+
+`stopped_early` is the halted road beside it, and it refuses where the other one
+reports: `ReportTruncated` carries a seat for what it dropped and `EarlyStopped`
+carries none, so a halted body handed more than its magnitude holds could only
+drop the remainder silently. It has no caller today, because no scan in the
+machine halts; it exists so that the first family whose examination honestly
+stops early meets the same coupled seat every other family meets. Its honesty
+ceiling is written at the road: the constructor couples the body to the posture
+and does not prove that any external examination truly halted.
+
+The two halves are one value because the pair is where the lie lives. A road
+handing back a carry and a count hands a caller two things it may pair freely, so
+the body one pass truncated could be reported under the count another pass
+dropped — both halves individually honest, the pair false, and nothing in the
+types noticing. `AdmittedPrefix` has private seats, no `into_parts`, and no owned
+carry, so a report claiming it dropped seven issues is a report whose own body
+dropped seven. Every collection-shaped refusal family in the machine and in the
+services carries that one seat and reads it back through `issues()` and
+`posture()`; `cargo xtask check`'s `collection-bodies-are-coupled` derives that
+population from the sources rather than from a list anybody maintains.
 
 The const-proven total roads read `L::MAX` bare by decision. `from_array([one,
 two])` proves that two elements fit under a type-level maximum; it cannot prove
@@ -223,9 +244,9 @@ obligations:
     green: laws.rs root::the_positive_witness_carries_the_admitted_one
     red: testpak/tests/compile-fail/a-past-ceiling-family-cannot-mint-a-positive-limit.rs
   - id: root.a-prefix-road-reports-what-it-did-not-carry
-    challenge_kind: compile-law
+    challenge_kind: compile-refusal
     green: laws.rs root::a_prefix_road_reports_what_it_did_not_carry
-    red: owed-to-testpak
+    red: testpak/tests/compile-fail/a-remainder-married-to-another-body.rs
   - id: root.an-admission-does-not-cross-profiles
     challenge_kind: compile-refusal
     green: laws.rs root::an_admission_does_not_cross_profiles

@@ -1,7 +1,11 @@
 # 00_refusal — how the machine says no
 
-Band 00. Imports nothing — this home must stand below everything, because every
-checked constructor in every later band refuses through it.
+Band 00. It stands below every band, because every checked constructor in every
+later band refuses through it, and it imports nothing from any of them. Its one
+edge runs the other way, into the root calculus: a collection-shaped refusal body
+is a `NonEmptyBounded` and this home owns the posture that body reports its own
+coverage with, so this home is where the two are married and `AdmittedPrefix`
+lives. The root calculus imports nothing at all and is the floor under this home.
 
 Four observables never collapse: **success ≠ refusal ≠ uncertainty ≠ failure**.
 A refusal is a typed, lawful "no" from a check that ran. It is never silent
@@ -23,10 +27,11 @@ selector is structural — how the checks relate — never taste:
 
 Single-cause families declare a canonical **selection order** — a selector over
 established conditions, never an execution schedule — as a machine-readable
-constant on the family. Issue collections ride `NonEmptyBounded` under a declared
-limit family and carry `CompletionPosture` as an **instance value** (single-cause
-families carry no posture at all). Pairs have exactly two seats; separable
-questions must separate.
+constant on the family. Issue collections ride `AdmittedPrefix`, which is a
+`NonEmptyBounded` under a declared limit family married to the
+`CompletionPosture` its own construction selected, carried as an **instance
+value** (single-cause families carry no posture at all). Pairs have exactly two
+seats; separable questions must separate.
 
 ## A halted examination and a truncated report are different facts
 
@@ -39,13 +44,71 @@ does not have room for everything it established — the count is known exactly 
 is carried, because "some were dropped" is a claim nobody can act on.
 
 The distinction is minted rather than declared. `ReportTruncation` is opaque with
-no public constructor, and `CompletionPosture::examined_completely` is its only
-road: the road takes the number of issues a collection could not carry and
-selects the posture from it, so a body that carried everything cannot claim it
-truncated and a body that dropped issues cannot claim completeness. Neither is a
-discipline a site has to remember, because neither is a value a site can build.
-`NonEmptyBounded::admitted_prefix` is where that count comes from, and it is the
-only construction road in the machine that truncates at all.
+no public constructor, and `AdmittedPrefix::examined_completely` is its only
+road. That road takes no number. It takes the material and performs the
+truncation, so the count it writes down is the count it just dropped: a body that
+carried everything cannot claim it truncated and a body that dropped issues
+cannot claim completeness. Neither is a discipline a site has to remember,
+because neither is a value a site can build.
+
+The halted posture has its own road, `AdmittedPrefix::stopped_early`, which
+couples the carry a halted pass handed over to the bound it stated it stopped at
+in one construction. Its honesty ceiling is stated where it lives: the
+constructor structurally couples the body to the posture, and it does not prove
+that an external examination truly halted — the family owner's algorithm and
+testpak establish the behavioral claim. It refuses where the truncating road
+truncates, because `ReportTruncated` has a seat to record what it dropped and
+`EarlyStopped` has none, so material past the declared bound could only be
+dropped silently. No caller exists today, because no scan in the machine halts;
+the road exists so the first honestly halting family is coupled rather than
+pushed back onto a loose body beside a loose posture.
+
+Performing the act is what makes the count belong to the body. A `usize`
+parameter would have made the posture accurate only by convention: a body that
+dropped nothing could still state that seven issues stand outside it, and the
+type would be recording an assertion rather than an act.
+
+And the count leaves that road married to the carry, because provenance alone is
+not enough. A count minted by the one road that truncates is a count some
+truncation really performed — but two values handed to a caller are two values a
+caller may pair, so the body one pass truncated could be reported under the count
+another pass dropped, with both halves honest and the pair a lie. So a report
+body IS an `AdmittedPrefix`: private seats, no `into_parts`, no owned carry, and
+one construction behind both readings.
+
+The home carries the grammar's guard seat for exactly that marriage: `types.rs`
+declares `AdmittedPrefix` and `ReportTruncation`, and its own child
+`type_guard.rs` owns every road that touches their seats — the two mints, the
+truncation a mint performs, and the two readers that hand the carry and the
+posture back — so the marriage is performed in one file and no seam elsewhere in
+the crate can build either half.
+
+**The claim's exact reach: every collection-shaped refusal family in the machine
+and in the services.** Not this home's bodies and the tooling plane's six — all
+of them, the upper-band declaration families included. A family's body is one
+`AdmittedPrefix` seat read back through `issues()` and `posture()`, and the two
+seats those families used to spell are gone rather than deprecated. The
+population is DERIVED: `cargo xtask check`'s `collection-bodies-are-coupled`
+reads every `FamilyShape::IssueCollection` declaration off the sources and reads
+the seat each one declares, so a family added without the coupled seat is caught
+by the derivation rather than by anybody remembering a list. `laws.rs`
+`refusal::every_collection_family_carries_the_coupled_seat` is that claim's
+compile-time half, proving each family's reader pair.
+
+What the reach does NOT include: a construction road for any upper-band family.
+No migrated family carries a public constructor, because none of them has an
+enumerating pass to build one from; two carry a test-gated in-crate mint that
+takes the coupled body and nothing else, for the laws that read a nested refusal.
+Nine of them stand one step further back still: their limit families declare no
+compile-time magnitude, and every `AdmittedPrefix` mint consumes one, so those
+nine cannot produce the value their own seat holds until a magnitude is declared
+or a runtime-witnessed prefix road exists. Coupled seats with no road to them is
+the honest state of a declaration nobody has written a pass for; it is not a
+coupling the road would fail.
+
+Writing a truncation posture by hand does not compile; neither does marrying one
+report's carry to another report's completion; and neither does assembling a
+migrated family out of a carry and a posture. All three reversals are testpak's.
 
 ## The order is typed; the text is its projection
 
@@ -161,9 +224,17 @@ obligations:
     green: laws.rs refusal::posture_is_a_collection_instance_value
     red: owed-to-testpak
   - id: refusal.a-truncated-report-is-not-a-halted-examination
-    challenge_kind: compile-law
+    challenge_kind: compile-refusal
     green: laws.rs refusal::a_truncated_report_is_not_a_halted_examination
-    red: owed-to-testpak
+    red: testpak/tests/compile-fail/a-truncation-count-with-no-truncation-behind-it.rs
+  - id: refusal.a-halted-examination-couples-its-bound
+    challenge_kind: compile-law
+    green: laws.rs refusal::a_halted_examination_couples_its_bound
+    red: testpak/tests/compile-fail/a-remainder-married-to-another-body.rs
+  - id: refusal.every-collection-family-carries-the-coupled-seat
+    challenge_kind: repository-structure
+    green: laws.rs refusal::every_collection_family_carries_the_coupled_seat
+    red: testpak/tests/compile-fail/a-collection-body-assembled-from-parts.rs
   - id: refusal.cause-identity-outlives-its-spelling
     challenge_kind: compile-law
     green: laws.rs refusal::cause_identity_outlives_its_spelling

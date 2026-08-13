@@ -12,8 +12,8 @@
 
 use super::{CompositionRootDeclaration, CompositionRootIssue, DescriptorProvider};
 use crate::plane::AuthoringLimitProfile;
-use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{NonEmptyBounded, PositiveLimit};
+use threadpak::refusal::{AdmittedPrefix, StopBound};
+use threadpak::types::PositiveLimit;
 
 /// Every provider identity declared more than once, reported at its first
 /// occurrence.
@@ -62,14 +62,13 @@ impl CompositionRootDeclaration {
         first: CompositionRootIssue,
         rest: Vec<CompositionRootIssue>,
     ) -> Self {
-        let (issues, omitted) = NonEmptyBounded::admitted_prefix(
-            first,
-            rest,
-            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
-        );
         Self {
-            issues,
-            posture: CompletionPosture::examined_completely(omitted, StopBound::DeclaredIssueBound),
+            report: AdmittedPrefix::examined_completely(
+                first,
+                rest,
+                &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+                StopBound::DeclaredIssueBound,
+            ),
         }
     }
 }

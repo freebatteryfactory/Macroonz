@@ -2,22 +2,30 @@
 //! observed differs from what was expected, where it sits, what repairs it, and
 //! how to reach it again.
 //!
-//! Declarations only. No seat here is private — a diagnostic that hid one would
-//! be a diagnostic that sometimes says less than it knows — so this home has no
-//! invariant nucleus and no `type_guard.rs` beside this file.
+//! Declarations only. The home's README is the one place the readable-but-not-
+//! writable distinction is argued and the one place the guard's ownership is
+//! stated; this file is where that ruling lands, in the two private seats below
+//! and in the child declaration on the last line. Each of those seats carries its
+//! own reason at its own declaration, which is the reason for that seat rather
+//! than a second copy of the home's narrative.
 
 use crate::plane::{
     ContractSubject, ExpansionSurfaceSubject, FixturePopulationSubject, HumanProjection,
     HumanTextLimit, OwnerFactRef, OwnerIdentityRef, ProjectionIdentity, RefusalFamilySubject,
-    RefusalReason, RelatedIssueLimit, RelatedIssueSubject, RepairLimit, ServiceEntrySubject,
+    RefusalReason, RelatedBodySubject, RelatedIssueLimit, RelatedIssueSubject, RepairLimit,
+    ServiceEntrySubject,
 };
 use crate::token::{SpanHandle, SpanResolutionRefusal};
+use core::num::NonZeroUsize;
 use threadpak::declaration::SourceCoordinate;
 use threadpak::declaration::types::{FragmentIdentityDomain, LinkedGraphDomain, SymbolDomain};
 use threadpak::evidence::CauseDisposition;
 use threadpak::evidence::types::ReleaseArtifactDomain;
 use threadpak::refusal::StopBound;
 use threadpak::types::Bounded;
+
+#[path = "type_guard.rs"]
+mod guard;
 
 threadpak::closed_register! {
     /// Which act of the services was running when the disagreement was
@@ -190,6 +198,25 @@ pub struct DiagnosticSite {
     pub coordinate: SiteCoordinate,
 }
 
+/// How many per-issue identities one truncated related set does not carry.
+///
+/// Opaque, with public readers and no public mint. The count is a fact about an
+/// act — the set-building road ran out of declared magnitude and left identities
+/// behind — and a seat a caller could write would be a count with no act behind
+/// it. The one road that mints this reads the number off the material it
+/// actually dropped, so what a reader acts on is what happened rather than what
+/// somebody asserted.
+///
+/// It takes band 00's shape for the same reason it takes band 00's vocabulary:
+/// `ReportTruncation` there is opaque for exactly this reason, and a tooling
+/// value reporting the same kind of fact under a weaker discipline would be the
+/// weaker statement that keeps passing after the stronger one is gone.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct RelatedSetTruncation {
+    stopped_at: StopBound,
+    omitted: NonZeroUsize,
+}
+
 /// Whether one diagnostic's related set carries every established issue's own
 /// identity, or was truncated at the declared related-issue magnitude.
 ///
@@ -202,20 +229,81 @@ pub struct DiagnosticSite {
 /// the complete body's identity alone otherwise cannot tell a one-issue refusal
 /// from a sixty-issue one, and a set that carried the body's identity silently
 /// would be a coarser commitment wearing the shape of a complete one.
+///
+/// The truncated posture carries an opaque [`RelatedSetTruncation`] rather than
+/// a bound and a number, because the pair written as fields is a pair a caller
+/// can write. A set that carried every identity could then report that sixty
+/// were dropped, and nothing in the type would notice.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RelatedSetCompletion {
     /// The complete body's identity, then one per established issue, all of
     /// them.
     Complete,
     /// The set was truncated at a declared bound. The complete body's identity
-    /// is carried — it commits to every issue at once — and this many per-issue
-    /// identities are not.
-    ReportTruncated {
-        /// The declared bound the set was truncated at.
-        stopped_at: StopBound,
-        /// How many per-issue identities the set does not carry.
-        omitted: usize,
-    },
+    /// is carried — it commits to every issue at once — and the truncation names
+    /// the bound and how many per-issue identities are not there.
+    ReportTruncated(RelatedSetTruncation),
+}
+
+/// One identity a related set carries, at the level it is about.
+///
+/// # Two levels, and why they are two types rather than two positions
+///
+/// A related set commits at two levels over one material: the WHOLE BODY, which
+/// is a commitment to every established issue at once, and each ESTABLISHED
+/// ISSUE on its own. The two used to be one subject distinguished by position —
+/// the body rode first and the issues followed — and position is not a fact a
+/// reader can check. Worse, one subject over two levels collides by
+/// construction: the body's preimage is the framing of its issues, so an issue
+/// whose own material happened to BE that framing derived the byte-for-byte
+/// identity of the body it aliased, and nothing in the type or in the digest
+/// noticed.
+///
+/// Split, the two levels cannot substitute twice over. A body identity is a
+/// different Rust type than an issue identity, so seating one where the other
+/// belongs does not compile; and the two subjects declare different segments of
+/// the derive-key context, so the same preimage bytes at the two levels derive
+/// unrelated identities rather than one. The compile-time half makes the wrong
+/// move unwritable, and the runtime half makes it unreachable even for material
+/// nobody wrote by hand.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RelatedIdentity {
+    /// The whole refusal body, as one commitment to every issue it established.
+    Body(ProjectionIdentity<RelatedBodySubject>),
+    /// One established issue, on its own.
+    Issue(ProjectionIdentity<RelatedIssueSubject>),
+}
+
+/// One diagnostic's related set: the identities it carries, married to whether
+/// that is all of them.
+///
+/// The two are one value for band 00's reason. A completion is a claim ABOUT a
+/// set, and a claim about a set that can be carried away from it is a claim that
+/// can be told about a different one — a diagnostic could then wear the coarser
+/// set of one refusal under the completion of another, with both halves honest
+/// on their own and the pair a lie. So the set-building road is the only road
+/// in, the seats are private, and there is no road back out to a loose pair.
+///
+/// The identities inside take the same rule one level down. The road is handed
+/// the issue MATERIAL and derives the body's identity and the per-issue
+/// identities together, so the body's identity is a commitment to exactly the
+/// issues beside it. Taking the two levels as two arguments would be the same
+/// lie in smaller print: each identity derives honestly, and the pair names one
+/// refusal's body over another refusal's issues.
+///
+/// The two levels are carried as [`RelatedIdentity`], which names which level
+/// each one is. The body rides first, as it always did, but the reader no longer
+/// depends on that: an identity states its own level, so a set read out of order
+/// still says which commitment is which.
+///
+/// It takes the same shape band 00's [`threadpak::refusal::AdmittedPrefix`]
+/// takes, because it reports the same kind of fact about the same kind of act. A
+/// tooling value reporting a truncation under a weaker discipline would be the
+/// weaker statement that keeps passing after the stronger one is gone.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RelatedSet {
+    carried: Bounded<RelatedIdentity, RelatedIssueLimit>,
+    completion: RelatedSetCompletion,
 }
 
 /// One diagnostic from the services.
@@ -247,11 +335,11 @@ pub struct MacrocDiagnostic {
     /// The machine's cause posture: an established cause, narrowed suspects, or
     /// unresolved. Narrowing is progress, never a forced verdict.
     pub cause: CauseDisposition,
-    /// Other issues this one points at.
-    pub related: Bounded<ProjectionIdentity<RelatedIssueSubject>, RelatedIssueLimit>,
-    /// Whether that set names every established issue, or stopped at a declared
-    /// bound and says how many it does not name.
-    pub related_completion: RelatedSetCompletion,
+    /// Other issues this one points at, and whether that set names every
+    /// established issue or stopped at a declared bound and says how many it
+    /// does not name. One seat rather than two: the completion belongs to the
+    /// set it was built beside and to no other.
+    pub related: RelatedSet,
     /// The owner-declared repairs that apply.
     pub repairs: Bounded<RepairAction, RepairLimit>,
     /// How to reach this observation again.

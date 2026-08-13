@@ -16,9 +16,14 @@ reading-order note, same class as the SourceClosure seat.
 
 ## The fourteen-issue family's nuances (all carried in the code)
 
-The inversion rule fixes the collection shape; `EarlyStopped` is the NORMAL
+The inversion rule fixes the collection shape; the body is one seat carrying the
+issues and the coverage claim together (band 00's `AdmittedPrefix`, read back
+through `issues()` and `posture()`); `EarlyStopped` is the NORMAL
 posture (the dependency-order halt is the stated reason, so the collection is
-a singleton whenever the order stopped at a single-subject station); members
+a singleton whenever the order stopped at a single-subject station), and
+`AdmittedPrefix::stopped_early` is the road that couples it — this family is the
+one the road was written for, and it gains its first caller when the admission
+pass itself lands; members
 hold the issue vocabulary's canonical order, never evaluation order — the
 evaluation order is security-sensitive and rendering it would republish it;
 the canonical refusal is not the released refusal (constant-cardinality

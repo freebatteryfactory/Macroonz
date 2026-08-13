@@ -32,7 +32,7 @@
 use crate::identity::{
     AuthorityPosition, Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence,
 };
-use crate::refusal::{CompletionPosture, FamilyShape, RefusalFamily};
+use crate::refusal::{AdmittedPrefix, CompletionPosture, FamilyShape, RefusalFamily};
 use crate::types::{Bounded, ConstLimit, EvidenceRef, Limit, NonEmptyBounded};
 use crate::value::BoundedText;
 
@@ -706,10 +706,23 @@ impl Limit for AuthoredNameIssueLimit {}
 #[must_use = "a construction refusal carries every established issue with the name"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AuthoredNameConstruction {
-    /// The established issues.
-    pub issues: NonEmptyBounded<AuthoredNameConstructionIssue, AuthoredNameIssueLimit>,
-    /// The enumeration posture.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<AuthoredNameConstructionIssue, AuthoredNameIssueLimit>,
+}
+
+impl AuthoredNameConstruction {
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(
+        &self,
+    ) -> &NonEmptyBounded<AuthoredNameConstructionIssue, AuthoredNameIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for AuthoredNameConstruction {
@@ -818,10 +831,23 @@ impl Limit for ClosureNamespaceIssueLimit {}
 #[must_use = "a namespace refusal carries every established issue with the closure"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ClosureNamespace {
-    /// The established issues.
-    pub issues: NonEmptyBounded<ClosureNamespaceIssue, ClosureNamespaceIssueLimit>,
-    /// The enumeration posture.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<ClosureNamespaceIssue, ClosureNamespaceIssueLimit>,
+}
+
+impl ClosureNamespace {
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(
+        &self,
+    ) -> &NonEmptyBounded<ClosureNamespaceIssue, ClosureNamespaceIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for ClosureNamespace {
@@ -928,10 +954,21 @@ impl Limit for LinkResolutionIssueLimit {}
 #[must_use = "a resolution refusal carries every established issue with the link"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LinkResolution {
-    /// The established issues.
-    pub issues: NonEmptyBounded<LinkResolutionIssue, LinkResolutionIssueLimit>,
-    /// The enumeration posture.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<LinkResolutionIssue, LinkResolutionIssueLimit>,
+}
+
+impl LinkResolution {
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(&self) -> &NonEmptyBounded<LinkResolutionIssue, LinkResolutionIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for LinkResolution {
@@ -1040,10 +1077,23 @@ impl ConstLimit for ProjectionIssueLimit {
 #[must_use = "a construction refusal carries every established issue with the contract"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProjectionContractConstruction {
-    /// The established issues.
-    pub issues: NonEmptyBounded<ProjectionContractConstructionIssue, ProjectionIssueLimit>,
-    /// The enumeration posture.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<ProjectionContractConstructionIssue, ProjectionIssueLimit>,
+}
+
+impl ProjectionContractConstruction {
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(
+        &self,
+    ) -> &NonEmptyBounded<ProjectionContractConstructionIssue, ProjectionIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for ProjectionContractConstruction {

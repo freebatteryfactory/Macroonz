@@ -22,8 +22,8 @@ use super::{
 };
 use crate::closure::{ProjectionClosure, RenderedProjection};
 use crate::diagnostics::{
-    DiagnosticSite, MachineAnchoring, MacrocDiagnostic, MacrocPhase, RelatedSetCompletion,
-    ReleasePosture, RepairAction, ReproductionRoute, SiteCoordinate,
+    DiagnosticSite, MachineAnchoring, MacrocDiagnostic, MacrocPhase, RelatedSet, ReleasePosture,
+    RepairAction, ReproductionRoute, SiteCoordinate,
 };
 use crate::explanation_protocol::ProjectionExplanationView;
 use crate::plane::{
@@ -239,8 +239,7 @@ impl RefusalDeriveRefusal {
             // The capture road establishes one cause and enumerates nothing, so
             // there is no per-issue set to stop short of: zero identities are
             // carried and zero are omitted.
-            related: Bounded::empty(),
-            related_completion: RelatedSetCompletion::Complete,
+            related: RelatedSet::nothing_enumerated(),
             repairs,
             reproduction: ReproductionRoute::CallableServices {
                 entry: callable_entry(),

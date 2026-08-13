@@ -39,7 +39,7 @@
 use crate::bounds::{BoundClass, DimensionId};
 use crate::declaration::Stage;
 use crate::identity::{Commitment, CreationLaw, IdentityClass, IdentityRole};
-use crate::refusal::{CompletionPosture, FamilyShape, RefusalFamily};
+use crate::refusal::{AdmittedPrefix, CompletionPosture, FamilyShape, RefusalFamily};
 use crate::types::{Bounded, Limit, NonEmptyBounded};
 
 // ---------------------------------------------------------------------------
@@ -218,10 +218,23 @@ impl Limit for SemanticFormIssueLimit {}
 #[must_use = "a construction refusal carries every established issue with the form"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SemanticFormConstruction {
-    /// The established issues.
-    pub issues: NonEmptyBounded<SemanticFormConstructionIssue, SemanticFormIssueLimit>,
-    /// The enumeration posture.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<SemanticFormConstructionIssue, SemanticFormIssueLimit>,
+}
+
+impl SemanticFormConstruction {
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(
+        &self,
+    ) -> &NonEmptyBounded<SemanticFormConstructionIssue, SemanticFormIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for SemanticFormConstruction {

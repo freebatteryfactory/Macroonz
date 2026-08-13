@@ -15,7 +15,7 @@ use crate::plane::{
 };
 use crate::planning::{MemberDestination, PlannedMembership};
 use crate::token::GeneratedTree;
-use threadpak::refusal::CompletionPosture;
+use threadpak::refusal::AdmittedPrefix;
 use threadpak::types::{Bounded, NonEmptyBounded};
 
 #[path = "type_guard.rs"]
@@ -163,12 +163,14 @@ pub enum ClosureIssue<R: RenderedRole> {
 #[must_use = "a refusal family body carries every way the rendering and the plan disagree"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProjectionClosureRefusal<R: RenderedRole> {
-    /// The established issues — at least one, at most the declared bound.
-    pub issues: NonEmptyBounded<ClosureIssue<R>, ClosureIssueLimit>,
-    /// Whether the body carries every issue the pass established, or names how
-    /// many stand outside the declared bound. The pass itself always covers
-    /// every applicable role, so this seat never reports a halted examination.
-    pub posture: CompletionPosture,
+    /// The established issues — at least one, at most the declared bound —
+    /// together with whether the body carries every issue the pass established
+    /// or names how many stand outside that bound. One seat rather than two,
+    /// because a coverage claim seated beside its body is a claim that can be
+    /// swapped for another body's. The pass itself always covers every
+    /// applicable role, so the completion here never reports a halted
+    /// examination.
+    pub report: AdmittedPrefix<ClosureIssue<R>, ClosureIssueLimit>,
 }
 
 /// The proof that what was rendered is what was planned.

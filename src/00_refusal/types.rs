@@ -16,7 +16,9 @@
 //!    claiming unexecuted checks unrepresentable.
 //! 2. **Issue collection** — independent, co-establishable facts: a bounded,
 //!    non-empty collection ([`crate::types::NonEmptyBounded`]) over a closed issue
-//!    set. The shape makes both a zero-issue refusal and a dropped co-true defect
+//!    set, carried inside an [`AdmittedPrefix`] so the body and what it says about
+//!    its own coverage are one value. The shape makes a zero-issue refusal, a
+//!    dropped co-true defect, and a coverage claim about somebody else's body all
 //!    unrepresentable.
 //! 3. **Inseparable pair** — exactly two questions neither of which means anything
 //!    alone: a composite record with exactly two seats. If the questions can be
@@ -28,6 +30,16 @@
 //! (`NotCanonical`), a `Not`-prefix on the failed requirement, the prohibited act
 //! itself, or one of exactly two bounds spellings. New spellings are a law change.
 //!
+//! # The report package's roads live in this file's child
+//!
+//! [`AdmittedPrefix`] and [`ReportTruncation`] declare their seats here and are
+//! reached nowhere else: every road that touches those seats — the mints, the
+//! truncation the mint performs, and the two readers that hand the carry and the
+//! posture back — lives in `type_guard.rs`, this file's own child. That is what
+//! makes "a coverage claim and the body it is about are one value" structural
+//! rather than a rule somebody follows: the marriage is performed in one file,
+//! and there is no seam elsewhere in the crate that can build either half.
+//!
 //! # What this home does not own
 //!
 //! Failure (infrastructure breakage) and uncertainty (the knowledge axes) are other
@@ -35,8 +47,12 @@
 //! evidence home, downstream. Location types are carried by owner families, never by
 //! the universal envelope.
 
+use crate::types::{Limit, NonEmptyBounded, NonEmptyBoundedConstruction};
 use core::marker::PhantomData;
 use core::num::NonZeroUsize;
+
+#[path = "type_guard.rs"]
+mod guard;
 
 /// The stable identity of one registered refusal reason. A registered reason is a
 /// semantic commitment: new meaning mints a new id, never recycled. Opaque; equality
@@ -90,31 +106,17 @@ pub enum StopBound {
 /// How much one report left outside its declared bound.
 ///
 /// Opaque, with no public constructor: the only road to one is
-/// [`CompletionPosture::examined_completely`], and that road takes the count off
-/// a collection that was actually truncated. So a body that carried every issue
-/// it established cannot write down a truncation posture, and a body that
-/// truncated cannot write down a count it did not truncate by — the two are
-/// minted together or not at all.
+/// [`AdmittedPrefix::examined_completely`], and that road takes no count at all.
+/// It takes the material itself and performs the truncation, so the count it
+/// writes down is the count it just dropped. A body that carried every issue it
+/// established cannot write down a truncation posture, and a body that truncated
+/// cannot write down a count it did not truncate by — the posture and the carry
+/// leave that road married inside one [`AdmittedPrefix`] and have no road back
+/// apart.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ReportTruncation {
     stopped_at: StopBound,
     omitted: NonZeroUsize,
-}
-
-impl ReportTruncation {
-    /// The declared bound the report stopped at.
-    #[must_use]
-    pub const fn stopped_at(self) -> StopBound {
-        self.stopped_at
-    }
-
-    /// How many established issues the body does not carry; at least one, by
-    /// shape — a truncation that omitted nothing is [`CompletionPosture::Complete`]
-    /// and is unrepresentable here.
-    #[must_use]
-    pub const fn omitted(self) -> NonZeroUsize {
-        self.omitted
-    }
 }
 
 /// What one collection-shaped refusal body says about its own coverage. Carried
@@ -155,31 +157,45 @@ pub enum CompletionPosture {
     ReportTruncated(ReportTruncation),
 }
 
-impl CompletionPosture {
-    /// The posture a COMPLETE examination's report amounts to, given how many of
-    /// its established issues the body could not carry.
-    ///
-    /// This is the one mint for [`ReportTruncation`], and the omission count is
-    /// what selects the posture rather than the caller: nothing omitted is
-    /// `Complete`, and anything omitted is a truncation naming the bound and the
-    /// count. A pass that carried every issue therefore cannot claim it
-    /// truncated, and a pass that dropped issues cannot claim completeness —
-    /// neither is a discipline a site has to remember, because neither is a
-    /// value a site can build.
-    ///
-    /// A pass whose examination genuinely halted does not come here. It states
-    /// [`CompletionPosture::EarlyStopped`] directly, because the fact it is
-    /// reporting is about the scan and not about the report.
-    #[must_use]
-    pub const fn examined_completely(omitted: usize, at: StopBound) -> Self {
-        match NonZeroUsize::new(omitted) {
-            None => Self::Complete,
-            Some(omitted) => Self::ReportTruncated(ReportTruncation {
-                stopped_at: at,
-                omitted,
-            }),
-        }
-    }
+/// One collection-shaped refusal body: the issues the declared bound held,
+/// married to the posture the same construction amounts to.
+///
+/// # Why the two travel as one value
+///
+/// A posture is a claim ABOUT a body, and a claim about a body that can be
+/// carried away from it is a claim that can be told about a different one. Two
+/// passes truncating under the same limit family produce two carries and two
+/// postures; hand a caller four loose values and nothing in the types stops the
+/// carry of one from being reported under the posture of the other. Both halves
+/// stay individually honest and the pair is a lie — the kind no runtime check
+/// catches, because there is nothing wrong to detect at either end.
+///
+/// So the mint is the only road in, the seats are private, and there is no road
+/// back out to a loose pair: no `into_parts`, no owned carry, no seat a caller
+/// can write. What a consumer holds is one value in which the coverage claim and
+/// the material it is about were produced by a single act. A body that needs the
+/// issues and the posture as separate FIELDS extracts them inside its own
+/// guarded constructor, off this value, and never off two values it was handed.
+///
+/// [`AdmittedPrefix::completion`] hands the posture out for RENDERING, which is
+/// a read and not a seat: a rendered sentence is not a body, and no body has a
+/// posture seat to re-house it in.
+///
+/// All three postures have a road here, and each road IS the act it names.
+/// [`AdmittedPrefix::examined_completely`] performs the truncation and lets what
+/// it dropped select between `Complete` and `ReportTruncated`;
+/// [`AdmittedPrefix::stopped_early`] couples a halted examination's carry to
+/// `EarlyStopped` in one construction. No pass in the machine halts today, so
+/// the halted road has no caller. It exists so that the first family whose
+/// examination honestly stops early meets the same coupled seat every other
+/// family meets, instead of being pushed back onto a loose body beside a loose
+/// posture for want of a road. That absent caller is this type's claim ceiling,
+/// and it is stated rather than hidden.
+#[must_use = "a report body carries the issues it established and what it says about its own coverage"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct AdmittedPrefix<T, L: Limit> {
+    carried: NonEmptyBounded<T, L>,
+    completion: CompletionPosture,
 }
 
 /// Which of the three lawful body shapes a family takes. The selector is
@@ -538,7 +554,7 @@ impl CauseOrderDeclaration for crate::types::BoundedConstruction {
         )]);
 }
 
-impl RefusalFamily for crate::types::NonEmptyBoundedConstruction {
+impl RefusalFamily for NonEmptyBoundedConstruction {
     const SHAPE: FamilyShape = FamilyShape::SingleCause;
     const SELECTION_ORDER: &'static [&'static str] = &["OverLimit"];
 }
@@ -547,7 +563,7 @@ impl RefusalFamily for crate::types::NonEmptyBoundedConstruction {
 /// *local key*, and share no cause *identity*: a shared word is shared
 /// vocabulary, never shared ownership, and the family seat of a stable identity
 /// says so where neither the spelling nor the local key can.
-impl CauseOrderDeclaration for crate::types::NonEmptyBoundedConstruction {
+impl CauseOrderDeclaration for NonEmptyBoundedConstruction {
     const DECLARED_ORDER: DeclaredCauseOrder =
         DeclaredCauseOrder::declared(&[DeclaredCause::declared(
             CauseId::declared(

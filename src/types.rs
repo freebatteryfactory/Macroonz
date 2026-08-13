@@ -571,11 +571,21 @@ impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
     /// a membership, a ceiling. A collection-shaped refusal body is not that: the
     /// issues an over-bound pass established are each true on their own, and
     /// refusing the body would leave a caller with no findings at all. So this
-    /// road carries the prefix the admitted magnitude holds and RETURNS the
-    /// remainder count, which is the seat that keeps the truncation from being
-    /// silent. A caller that has nowhere to put that count is a caller writing a
-    /// body that cannot say what it left out, and the signature makes that
-    /// visible at the call site rather than at review.
+    /// road carries the prefix the admitted magnitude holds and reports the count
+    /// it dropped beside it, which is what keeps the truncation from being
+    /// silent.
+    ///
+    /// # Why this road is crate-internal
+    ///
+    /// The two values it produces are a carry and a count, and a road that hands
+    /// both to a caller hands out two things the caller may pair with anything.
+    /// A body truncated by one pass could then wear the count another pass
+    /// dropped, and both values would still be honest on their own while the
+    /// pair was a lie. So this road is the crate's own seam and has exactly one
+    /// consumer: [`crate::refusal::AdmittedPrefix`], band 00's package, which
+    /// takes the carry and the count in the one construction that produced them
+    /// and never lets them apart again. The public road to a truncated
+    /// collection is that package and nothing else.
     ///
     /// It is total for the same reason [`NonEmptyBounded::singleton`] is: the
     /// witness is [`PositiveLimit`], so the maximum is at least one, so the first
@@ -587,8 +597,8 @@ impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
     /// one that stood under a named plane's ceiling rather than one nobody
     /// validated. The profile rides on the witness and is not stamped onto the
     /// returned value.
-    #[must_use = "the remainder count is what keeps a truncated report from claiming completeness"]
-    pub fn admitted_prefix<P: LimitAdmissionProfile>(
+    #[must_use = "the dropped count is what keeps a truncated report from claiming completeness"]
+    pub(crate) fn admitted_prefix<P: LimitAdmissionProfile>(
         first: T,
         rest: Vec<T>,
         admitted: &PositiveLimit<L, P>,

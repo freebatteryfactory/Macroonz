@@ -9,7 +9,7 @@ use crate::plane::{
     OwnerFactRef, PlanId, SelectionCitationLimit, TriggerViewIssueLimit, WrapperComponentLimit,
 };
 use crate::planning::WrapperComponent;
-use threadpak::refusal::CompletionPosture;
+use threadpak::refusal::AdmittedPrefix;
 use threadpak::types::{Bounded, NonEmptyBounded};
 
 #[path = "type_guard.rs"]
@@ -82,13 +82,13 @@ pub enum TriggerViewIssue {
 #[must_use = "a refusal family body carries every undisposed or doubled component"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TriggerViewComposition {
-    /// The established issues — at least one, at most the declared bound.
-    pub issues: NonEmptyBounded<TriggerViewIssue, TriggerViewIssueLimit>,
-    /// Whether the body carries every issue the disposition pass established,
-    /// or names how many stand outside the declared bound. The pass itself
-    /// always covers every component, so this seat never reports a halted
-    /// examination.
-    pub posture: CompletionPosture,
+    /// The established issues — at least one, at most the declared bound —
+    /// together with whether the body carries every issue the disposition pass
+    /// established or names how many stand outside that bound. One seat rather
+    /// than two, because a coverage claim seated beside its body is a claim that
+    /// can be swapped for another body's. The pass itself always covers every
+    /// component, so the completion here never reports a halted examination.
+    pub report: AdmittedPrefix<TriggerViewIssue, TriggerViewIssueLimit>,
 }
 
 /// The complete wrapper-trigger view over one plan.

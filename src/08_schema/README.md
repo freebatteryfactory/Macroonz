@@ -6,7 +6,11 @@ four value-shape axes, nine refinement kinds, the seven-stage pipeline,
 migration's twelve boundaries, compatibility, codec profiles (seated here by
 band math — a codec binds a schema relationship, and bytes cannot import
 schema), and the seven collection-shaped construction-refusal families with
-their complete rosters and compile-time bounds.
+their complete rosters and compile-time bounds. Each of the seven carries one
+body seat — band 00's `AdmittedPrefix`, holding the issues and the coverage
+claim the same construction amounts to — and reads it back through `issues()`
+and `posture()`; none of them has a posture seat a caller could write beside its
+carry.
 
 ## Variant-spelling law (verbatim, mechanical)
 

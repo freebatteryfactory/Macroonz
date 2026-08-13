@@ -23,10 +23,12 @@
 //! - the **related set** carries one identity per established issue, derived
 //!   over that issue's complete canonical encoding, behind one identity over the
 //!   complete body. Two bodies that differ in any typed member derive different
-//!   identities, so no distinction is lost on the way through. Where a body
-//!   arrives at the set's own declared magnitude the body identity is carried
-//!   alone, and the diagnostic states that posture and the count it dropped
-//!   rather than handing back a coarser set shaped like a complete one;
+//!   identities, so no distinction is lost on the way through. This module hands
+//!   over the issue MATERIAL and the set derives both levels itself, so no seam
+//!   here ever holds a body identity it could seat over somebody else's issues.
+//!   Where a body arrives at the set's own declared magnitude the body identity
+//!   is carried alone, and the diagnostic states that posture and the count it
+//!   dropped rather than handing back a coarser set shaped like a complete one;
 //! - the **posture** rides in the summary, so a body that stopped at its own
 //!   declared bound says so rather than reading as complete.
 //!
@@ -48,19 +50,18 @@ use super::render::RenderRefusal;
 use super::types::{callable_entry, expected_contract};
 use crate::closure::{ClosureIssue, ProjectionClosureRefusal, RenderingRefusal};
 use crate::diagnostics::{
-    DiagnosticSite, MacrocDiagnostic, MacrocPhase, ObservedClassification, RelatedSetCompletion,
-    ReleasePosture, RepairAction, ReproductionRoute, SiteCoordinate,
+    DiagnosticSite, MacrocDiagnostic, MacrocPhase, ObservedClassification, RelatedSet,
+    RelatedSetCompletion, ReleasePosture, RepairAction, ReproductionRoute, SiteCoordinate,
 };
 use crate::explanation_protocol::{ExplanationCoverage, ExplanationCoverageIssue};
 use crate::plane::{
-    AuthoringLimitProfile, GeneratedTokenLimit, HumanProjection, HumanTextLimit, MembershipLimit,
-    OwnerFactRef, ProjectionIdentity, ProjectionRole, ProjectionTranscript, RelatedIssueLimit,
-    RelatedIssueSubject, RenderedByteLimit, RenderedRole, encode_bytes, human_projection,
+    GeneratedTokenLimit, HumanProjection, HumanTextLimit, MembershipLimit, OwnerFactRef,
+    RenderedByteLimit, RenderedRole, encode_bytes, human_projection,
 };
 use crate::refusal::{ProjectionPlanning, ProjectionPlanningIssue};
 use threadpak::evidence::CauseDisposition;
-use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{AdmittedLimit, Bounded, BoundedConstruction, ConstLimit};
+use threadpak::refusal::CompletionPosture;
+use threadpak::types::{Bounded, BoundedConstruction, ConstLimit};
 
 /// The family tag written ahead of every related issue's material, so two
 /// families' issues never encode alike.
@@ -84,16 +85,21 @@ const RENDERING_FAMILY: u8 = 3;
 /// Every issue's axis, declared magnitude, observed count, seat, and doubled
 /// role survive: the first one in the summary, all of them in the related set.
 pub fn planning_refused(refusal: &ProjectionPlanning) -> MacrocDiagnostic {
-    let first = refusal.issues.first();
-    let material: Vec<Vec<u8>> = refusal.issues.iter().map(planning_bytes).collect();
+    let first = refusal.report.carried().first();
+    let material: Vec<Vec<u8>> = refusal
+        .report
+        .carried()
+        .iter()
+        .map(planning_bytes)
+        .collect();
     diagnosed(
         MacrocPhase::Planning,
         planning_observed(first),
         &summary(
             "planning refused",
             &planning_line(first),
-            refusal.issues.len().saturating_sub(1),
-            refusal.posture,
+            refusal.report.carried().len().saturating_sub(1),
+            refusal.report.completion(),
         ),
         PLANNING_FAMILY,
         &material,
@@ -231,16 +237,16 @@ const fn planning_observed(issue: &ProjectionPlanningIssue) -> ObservedClassific
 ///
 /// Every issue's role and its kind of disagreement survive, role by role.
 pub fn closure_refused<R: RenderedRole>(refusal: &ProjectionClosureRefusal<R>) -> MacrocDiagnostic {
-    let first = refusal.issues.first();
-    let material: Vec<Vec<u8>> = refusal.issues.iter().map(closure_bytes).collect();
+    let first = refusal.report.carried().first();
+    let material: Vec<Vec<u8>> = refusal.report.carried().iter().map(closure_bytes).collect();
     diagnosed(
         MacrocPhase::Rendering,
         closure_observed(first),
         &summary(
             "the rendering does not close over the plan it claims to materialize",
             &closure_line(first),
-            refusal.issues.len().saturating_sub(1),
-            refusal.posture,
+            refusal.report.carried().len().saturating_sub(1),
+            refusal.report.completion(),
         ),
         CLOSURE_FAMILY,
         &material,
@@ -352,16 +358,21 @@ fn coverage_refused(
     owner: OwnerFactRef,
     repair: HumanProjection<HumanTextLimit>,
 ) -> MacrocDiagnostic {
-    let first = coverage.issues.first();
-    let material: Vec<Vec<u8>> = coverage.issues.iter().map(coverage_bytes).collect();
+    let first = coverage.report.carried().first();
+    let material: Vec<Vec<u8>> = coverage
+        .report
+        .carried()
+        .iter()
+        .map(coverage_bytes)
+        .collect();
     diagnosed(
         MacrocPhase::Inspection,
         coverage_observed(first),
         &summary(
             "the explanation does not cover its kind's questions",
             &coverage_line(first),
-            coverage.issues.len().saturating_sub(1),
-            coverage.posture,
+            coverage.report.carried().len().saturating_sub(1),
+            coverage.report.completion(),
         ),
         COVERAGE_FAMILY,
         &material,
@@ -529,16 +540,14 @@ fn diagnosed(
     declared_by: OwnerFactRef,
     repair: HumanProjection<HumanTextLimit>,
 ) -> MacrocDiagnostic {
-    let body = related_identity(family, &joined(material));
-    let per_issue: Vec<ProjectionIdentity<RelatedIssueSubject>> = material
-        .iter()
-        .map(|issue| related_identity(family, issue))
-        .collect();
-    let (related, related_completion) = related_set(body, per_issue);
+    // The material goes over, and the set derives both identity levels itself.
+    // This seam holds one refusal family's issue material and nothing else, so
+    // there is no body identity here to pair with somebody else's issues.
+    let related = RelatedSet::derived_over(family, material);
     MacrocDiagnostic {
         // The one line says which of the two sets stands behind it, because the
         // typed posture beside it is not what rustc shows.
-        summary: shown(&witnessed(composed, related_completion)),
+        summary: shown(&witnessed(composed, related.completion())),
         machine: crate::diagnostics::MachineAnchoring::UnmintedAtThisSeam,
         phase,
         // The declaration's first token. The disagreement is about the
@@ -560,7 +569,6 @@ fn diagnosed(
         // cause posture: narrowing is the machine's progress to report.
         cause: CauseDisposition::UnresolvedCause,
         related,
-        related_completion,
         repairs: Bounded::from_array([RepairAction {
             declared_by,
             description: repair,
@@ -569,64 +577,6 @@ fn diagnosed(
             entry: callable_entry(),
         },
         release: ReleasePosture::NoReleasePromise,
-    }
-}
-
-/// Every issue's material, length-framed and joined — the complete body.
-fn joined(material: &[Vec<u8>]) -> Vec<u8> {
-    let mut bytes = Vec::new();
-    for issue in material {
-        encode_bytes(issue, &mut bytes);
-    }
-    bytes
-}
-
-/// One related-issue identity over one family's material.
-fn related_identity(family: u8, material: &[u8]) -> ProjectionIdentity<RelatedIssueSubject> {
-    let mut content = vec![family];
-    encode_bytes(material, &mut content);
-    ProjectionIdentity::derived(ProjectionTranscript::rooted(
-        ProjectionRole::ClosedExpansion,
-        &content,
-        u32::from(family),
-    ))
-}
-
-/// The related set: the whole body's identity first, then one per issue, and
-/// the posture that says whether that is all of them.
-///
-/// [`RelatedIssueLimit`] is declared at the widest refusal-body magnitude in the
-/// plane, so a body built through the typed seams always fits — but the widest
-/// body and the set are the same width, and the body's own identity sits ahead
-/// of the per-issue ones, so a body AT the magnitude overruns by exactly one.
-///
-/// Where that happens the body's own identity is carried alone — a coarser
-/// commitment to the same refusal, never a shorter commitment to a different one
-/// — and the posture returned beside it states `ReportTruncated` with the count
-/// it dropped. Carrying the coarser set silently is the defect: it has the shape
-/// of a complete answer, and the reader has nothing to compare it against.
-pub(crate) fn related_set(
-    body: ProjectionIdentity<RelatedIssueSubject>,
-    per_issue: Vec<ProjectionIdentity<RelatedIssueSubject>>,
-) -> (
-    Bounded<ProjectionIdentity<RelatedIssueSubject>, RelatedIssueLimit>,
-    RelatedSetCompletion,
-) {
-    let issues = per_issue.len();
-    let mut all = vec![body];
-    all.extend(per_issue);
-    match Bounded::admitted_const(
-        all,
-        &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
-    ) {
-        Ok(set) => (set, RelatedSetCompletion::Complete),
-        Err(BoundedConstruction::OverLimit) => (
-            Bounded::from_array([body]),
-            RelatedSetCompletion::ReportTruncated {
-                stopped_at: StopBound::DeclaredIssueBound,
-                omitted: issues,
-            },
-        ),
     }
 }
 
@@ -640,10 +590,14 @@ pub(crate) fn related_set(
 pub(crate) fn witnessed(composed: &str, completion: RelatedSetCompletion) -> String {
     match completion {
         RelatedSetCompletion::Complete => composed.to_owned(),
-        RelatedSetCompletion::ReportTruncated { omitted, .. } => format!(
-            "{composed} (the related set was truncated at the declared issue bound: one identity \
-             over the complete body is carried and {omitted} per-issue identities are not)"
-        ),
+        RelatedSetCompletion::ReportTruncated(truncation) => {
+            let omitted = truncation.omitted();
+            format!(
+                "{composed} (the related set was truncated at the declared issue bound: one \
+                 identity over the complete body is carried and {omitted} per-issue identities \
+                 are not)"
+            )
+        }
     }
 }
 

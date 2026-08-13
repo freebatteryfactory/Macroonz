@@ -16,8 +16,8 @@ use super::{ExplanationCoverage, ExplanationCoverageIssue, ProjectionExplanation
 use crate::plane::AuthoringLimitProfile;
 use crate::planning::{ProjectionKind, ProjectionPlan};
 use crate::question::{ExplanationQuestion, QuestionApplicability};
-use threadpak::refusal::{CompletionPosture, StopBound};
-use threadpak::types::{NonEmptyBounded, PositiveLimit};
+use threadpak::refusal::{AdmittedPrefix, StopBound};
+use threadpak::types::PositiveLimit;
 
 /// Whether one kind admits one question.
 #[must_use]
@@ -86,14 +86,13 @@ impl ExplanationCoverage {
         first: ExplanationCoverageIssue,
         rest: Vec<ExplanationCoverageIssue>,
     ) -> Self {
-        let (issues, omitted) = NonEmptyBounded::admitted_prefix(
-            first,
-            rest,
-            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
-        );
         Self {
-            issues,
-            posture: CompletionPosture::examined_completely(omitted, StopBound::DeclaredIssueBound),
+            report: AdmittedPrefix::examined_completely(
+                first,
+                rest,
+                &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+                StopBound::DeclaredIssueBound,
+            ),
         }
     }
 }

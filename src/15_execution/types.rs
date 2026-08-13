@@ -32,7 +32,7 @@ use crate::bounds::DimensionId;
 use crate::identity::{
     AuthorityPosition, Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence,
 };
-use crate::refusal::{CompletionPosture, FamilyShape, RefusalFamily};
+use crate::refusal::{AdmittedPrefix, CompletionPosture, FamilyShape, RefusalFamily};
 use crate::semantic::BoundDimensionRow;
 use crate::types::{Bounded, ConstLimit, EvidenceRef, Limit, NonEmptyBounded};
 
@@ -339,10 +339,23 @@ impl Limit for ExecutionFormIssueLimit {}
 #[must_use = "a construction refusal carries every established issue with the form"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ExecutionFormConstruction {
-    /// The established issues.
-    pub issues: NonEmptyBounded<ExecutionFormConstructionIssue, ExecutionFormIssueLimit>,
-    /// The enumeration posture.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<ExecutionFormConstructionIssue, ExecutionFormIssueLimit>,
+}
+
+impl ExecutionFormConstruction {
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(
+        &self,
+    ) -> &NonEmptyBounded<ExecutionFormConstructionIssue, ExecutionFormIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for ExecutionFormConstruction {
@@ -693,10 +706,23 @@ impl Limit for EffectBatchIssueLimit {}
 #[must_use = "a composition refusal carries every established issue with the batch"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct EffectBatchComposition {
-    /// The established issues.
-    pub issues: NonEmptyBounded<EffectBatchCompositionIssue, EffectBatchIssueLimit>,
-    /// The enumeration posture.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<EffectBatchCompositionIssue, EffectBatchIssueLimit>,
+}
+
+impl EffectBatchComposition {
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(
+        &self,
+    ) -> &NonEmptyBounded<EffectBatchCompositionIssue, EffectBatchIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for EffectBatchComposition {
@@ -950,10 +976,23 @@ impl Limit for KernelSemanticIssueLimit {}
 #[must_use = "a construction refusal carries every established issue with the contract"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct KernelSemanticContractConstruction {
-    /// The established issues.
-    pub issues: NonEmptyBounded<KernelSemanticContractConstructionIssue, KernelSemanticIssueLimit>,
-    /// The enumeration posture.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<KernelSemanticContractConstructionIssue, KernelSemanticIssueLimit>,
+}
+
+impl KernelSemanticContractConstruction {
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(
+        &self,
+    ) -> &NonEmptyBounded<KernelSemanticContractConstructionIssue, KernelSemanticIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for KernelSemanticContractConstruction {
@@ -1015,11 +1054,23 @@ impl Limit for KernelInterfaceIssueLimit {}
 #[must_use = "a construction refusal carries every established issue with the contract"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct KernelInterfaceContractConstruction {
-    /// The established issues.
-    pub issues:
-        NonEmptyBounded<KernelInterfaceContractConstructionIssue, KernelInterfaceIssueLimit>,
-    /// The enumeration posture.
-    pub posture: CompletionPosture,
+    body: AdmittedPrefix<KernelInterfaceContractConstructionIssue, KernelInterfaceIssueLimit>,
+}
+
+impl KernelInterfaceContractConstruction {
+    /// The established issues — at least one, at most the declared bound.
+    #[must_use]
+    pub const fn issues(
+        &self,
+    ) -> &NonEmptyBounded<KernelInterfaceContractConstructionIssue, KernelInterfaceIssueLimit> {
+        self.body.carried()
+    }
+
+    /// What this body says about its own coverage.
+    #[must_use]
+    pub const fn posture(&self) -> CompletionPosture {
+        self.body.completion()
+    }
 }
 
 impl RefusalFamily for KernelInterfaceContractConstruction {

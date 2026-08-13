@@ -17,7 +17,7 @@ use crate::plane::{
 };
 use threadpak::declaration::Stage;
 use threadpak::declaration::types::{FragmentIdentityDomain, ProjectionConfigurationDomain};
-use threadpak::refusal::CompletionPosture;
+use threadpak::refusal::AdmittedPrefix;
 use threadpak::types::{Bounded, NonEmptyBounded};
 
 #[path = "type_guard.rs"]
@@ -305,13 +305,14 @@ pub enum TemplateConstructionIssue {
 #[must_use = "a refusal family body carries every established issue with the template"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TemplateConstruction {
-    /// The established issues — at least one, at most the declared bound.
-    pub issues: NonEmptyBounded<TemplateConstructionIssue, TemplateIssueLimit>,
-    /// Whether the body carries every issue the three passes established, or
-    /// names how many stand outside the declared bound. The passes themselves
-    /// always run their rosters to the end, so this seat never reports a halted
+    /// The established issues — at least one, at most the declared bound —
+    /// together with whether the body carries every issue the three passes
+    /// established or names how many stand outside that bound. One seat rather
+    /// than two, because a coverage claim seated beside its body is a claim that
+    /// can be swapped for another body's. The passes themselves always run their
+    /// rosters to the end, so the completion here never reports a halted
     /// examination.
-    pub posture: CompletionPosture,
+    pub report: AdmittedPrefix<TemplateConstructionIssue, TemplateIssueLimit>,
 }
 
 /// One authored declaration template: its identity, its typed holes, the three
