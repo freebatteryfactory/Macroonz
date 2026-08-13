@@ -24,3 +24,56 @@ max-struct-bools = 0
 # CHOSEN: zero. A bool parameter is unreadable at the call site; the caller must
 # pass a named state, not a bare true.
 max-fn-params-bools = 0
+
+# NOT ADOPTED, ON THE RECORD: `disallowed-methods`. The table does not exist
+# here, and an unnamed absence reads as an oversight, so this is why — with the
+# numbers, all of them measured by running clippy over the whole workspace with
+# every candidate path configured at once.
+#
+# THE SILENT-SKIP CLASS IS TOO POPULATED TO ADOPT IN ONE MOVE. Forty sites, and
+# thirty-seven of them are the class this repository keeps paying for:
+#   21  Result::unwrap_or_default        xtask 11, testpak 10
+#    8  Option::unwrap_or_default        testpak 8
+#    5  String::from_utf8_lossy          xtask 4, macros 1
+#    3  Result::ok                       one each in the machine, macros, testpak
+# This repository has deliberately eliminated gradual lint adoption, so this is
+# one batch or it is nothing, and the batch is a repair to three crates rather
+# than a configuration change. It is named here so the next reader inherits the
+# count instead of re-measuring it.
+#
+# THE ENVIRONMENT CLASS REDUCES TO EUPHEMISM. `std::env::var`, `vars`,
+# `vars_os`, `args_os` and `current_dir` have zero sites — but `var_os` has one
+# and `args` has one, both in the operational road that reads which cargo
+# started it and which subcommand was asked for, and both are lawful reads that
+# never enter a semantic identity. `disallowed-methods` cannot be scoped to a
+# crate, so banning `var` while `var_os` stays open bans a spelling rather than
+# a behaviour. `set_var` and `remove_var` need no entry at all: MEASURED, they
+# are `unsafe fn` on this toolchain, and the wall forbids `unsafe_code`
+# outright, so an entry would be a weaker seat restating a stronger one.
+#
+# THE CLOCK IS THE ONLY HONEST CANDIDATE LEFT, and it has no reversal.
+# `SystemTime::now` and `Instant::now` have zero sites and real content, because
+# an expansion is a function of its declared input alone. What stops them is
+# that a configured lint has nowhere in this repository to be proven live:
+#   - MEASURED, `cargo build` does not fire a clippy lint at all;
+#   - MEASURED, a `compile_fail` doctest over a denied call reports "Test
+#     compiled successfully, but it's marked `compile_fail`" — doctests are
+#     compiled by rustc, so they cannot execute a clippy lint, and neither can
+#     trybuild, which shells out to the same compiler;
+#   - the one stage that DOES execute clippy is the lint wall, and its whole job
+#     is to pass.
+# A rule whose reversal cannot be planted is a rule that can stop firing in
+# silence, which is the exact defect class this repository exists to refuse.
+#
+# AND THE ROT HAS NO GUARD. MEASURED on this tree, with the wall inherited and
+# `build.warnings = "deny"` set: a `disallowed-methods` entry naming a path that
+# no longer resolves prints `… does not refer to a reachable function`, is
+# counted in the tally line, and the run still exits 0. The warning carries no
+# lint name, so nothing can promote it. An entry that goes stale therefore stops
+# guarding and keeps printing PASS.
+#
+# THE OPENING CONDITION. This becomes adoptable the moment a seat exists that
+# runs clippy over a fixture and requires it to REFUSE — the same shape trybuild
+# gives compile refusals, pointed at the lint driver instead of the compiler.
+# With that seat, one fixture is both the reversal and the staleness guard: a
+# path that stops resolving stops refusing, and the fixture goes red.
