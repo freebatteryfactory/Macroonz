@@ -183,6 +183,15 @@ pub enum CompletionPosture {
 /// [`AdmittedPrefix::completion`] hands the posture out for RENDERING, which is
 /// a read and not a seat: a rendered sentence is not a body, and no body has a
 /// posture seat to re-house it in.
+///
+/// The mints here produce `Complete` and `ReportTruncated` — the two postures a
+/// completed examination can honestly hold. A genuinely HALTED examination
+/// (`EarlyStopped`) has no road into this value today, because no scan in the
+/// machine halts: every current pass runs its roster to the end and truncates
+/// only its report. The guarded early-stop mint arrives with the first scan
+/// that honestly stops early, carrying its own positive control and reversal;
+/// until then a halted posture cannot be housed here, and that absence is this
+/// type's claim ceiling rather than an oversight.
 #[must_use = "a report body carries the issues it established and what it says about its own coverage"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AdmittedPrefix<T, L: Limit> {

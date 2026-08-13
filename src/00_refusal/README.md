@@ -62,10 +62,14 @@ truncation really performed — but two values handed to a caller are two values
 caller may pair, so the body one pass truncated could be reported under the count
 another pass dropped, with both halves honest and the pair a lie. So a report
 body IS an `AdmittedPrefix`: private seats, no `into_parts`, no owned carry, and
-one construction behind both readings. A collection-shaped family carries that
-one seat rather than an issue seat and a posture seat beside it. Writing a
-truncation posture by hand does not compile, and neither does marrying one
-report's carry to another report's completion; both reversals are testpak's.
+one construction behind both readings. The claim's exact reach: this home's
+report bodies and the tooling plane's six carry the one coupled seat. The
+declaration-phase families in the upper bands that still spell an issue seat
+beside a posture seat predate the coupling and have no construction roads yet;
+their conversion to the coupled seat is a decided follow-up, and until it lands
+the coupling claim is theirs to gain, not already owned. Writing a truncation
+posture by hand does not compile, and neither does marrying one report's carry
+to another report's completion; both reversals are testpak's.
 
 ## The order is typed; the text is its projection
 
