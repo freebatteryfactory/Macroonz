@@ -1,12 +1,12 @@
-error: closed_register!: this roster declares more rows than the stamp's declared supply of sixty-four positions. Sixty-four is the current authoring-profile ceiling of this stamp implementation, not a semantic cap on the vocabulary: raising it means extending the supply of positions the stamp declares.
-  --> tests/compile-fail/a-roster-past-the-stamp-ceiling.rs:22:1
+error: closed_register!: this roster declares more rows than the stamp's declared supply of positions. The supply's length is this implementation's current authoring-profile ceiling, projected as `threadpak::CLOSED_REGISTER_ROW_CEILING`, and it is not a semantic cap on the vocabulary: raising it means extending the stamp's declared supply and requalifying it.
+  --> tests/compile-fail/a-roster-past-the-stamp-ceiling.rs:29:1
    |
-22 | / threadpak::closed_register! {
-23 | |     /// Sixty-five rows: the declared supply, and one row past it.
-24 | |     pub enum PastTheCeiling {
-25 | |         Row00 = "row-00", "row 00";
+29 | / threadpak::closed_register! {
+30 | |     /// The declared supply spent to its last position, and one row past it.
+31 | |     pub enum PastTheCeiling {
+32 | |         Row00 = "row-00", "row 00";
 ...  |
-91 | | }
+98 | | }
    | |_^
    |
    = note: this error originates in the macro `$crate::closed_register` which comes from the expansion of the macro `threadpak::closed_register` (in Nightly builds, run with -Z macro-backtrace for more info)

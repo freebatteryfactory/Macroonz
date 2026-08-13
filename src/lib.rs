@@ -22,7 +22,9 @@
 //! shape calculus every home instantiates. [`closed_register!`] is the composition
 //! mechanism every home, the services crate, and this crate's own proof surface
 //! stamp their closed rosters with; it declares no type, reaches no band's
-//! material, and belongs to no band.
+//! material, and belongs to no band. [`CLOSED_REGISTER_ROW_CEILING`] is the one
+//! value that mechanism projects, and it sits beside the stamp because it is read
+//! out of the stamp's own expansion.
 
 pub mod types;
 
@@ -72,36 +74,43 @@ pub mod types;
 /// vary them would make the stamped pattern negotiable, which is the property
 /// the stamp is for.
 ///
-/// # The row ceiling is sixty-four, and the stamp is what says so
+/// # The row ceiling is the supply's length, and the stamp is what says so
 ///
-/// The stamp carries a DECLARED SUPPLY of sixty-four positions, written out as
-/// sixty-four literals, and the walk over a declaration's rows pairs each row
-/// with exactly one of them. A sixty-fifth row finds the supply spent, and the
-/// rule that matches that state is a `compile_error!` naming the ceiling and
-/// this mechanism. Nothing is counted and nothing is added: the ceiling IS the
+/// The stamp carries a DECLARED SUPPLY of positions, written out as literals in
+/// ONE arm of the expansion, and the walk over a declaration's rows pairs each
+/// row with exactly one of them. A row past the last of them finds the supply
+/// spent, and the rule that matches that state is a `compile_error!` naming the
+/// mechanism. Nothing is counted and nothing is added: the ceiling IS the
 /// length of the supply, so there is no arithmetic anywhere in the expansion to
 /// overflow, to saturate, or to disagree with a number written down elsewhere.
 ///
-/// The supply is also what bounds the recursion, and that is why the refusal is
-/// reachable at all. The walk stops at the sixty-fifth step whatever the
-/// declaration's length, so a two-hundred-row roster refuses with the same one
-/// sentence a sixty-five-row roster does rather than dying against the
-/// compiler's recursion limit with a diagnostic about the stamp's internals.
-/// The position type is a `u8` and the widest lawful slot is 63, so the byte a
-/// roster's position is written as has room the ceiling can never spend.
+/// [`CLOSED_REGISTER_ROW_CEILING`] is that same supply read out as a value,
+/// from the same arm the pairing walk spends, so the ceiling has one source and
+/// two readings rather than a length and a number that agree. This
+/// documentation names that constant and never the number, because a sentence
+/// stating the number is a second place the ceiling would have to be moved.
 ///
-/// **Sixty-four is the current authoring-profile ceiling of this stamp
-/// implementation, not a semantic cap on any vocabulary.** No roster in the
-/// machine is closed because sixty-four is meaningful; each is closed because
-/// its vocabulary is closed. A future mechanism, or a wider declared profile,
-/// may raise this ceiling once it is qualified — raising it means extending the
-/// supply, and the number moves in exactly one place.
+/// The supply is also what bounds the recursion, and that is why the refusal is
+/// reachable at all. The exhausted-supply rule MATCHES the rows that remain
+/// without recursing over them, so expansion stops at the first row past the
+/// supply whatever the declaration's length — rather than walking on until the
+/// compiler's recursion limit ends it with a diagnostic about the stamp's own
+/// internals at a boundary nobody declared.
+///
+/// **The ceiling is this stamp implementation's current authoring profile, not
+/// a semantic cap on any vocabulary.** No roster in the machine is closed
+/// because the supply is the length it is; each is closed because its
+/// vocabulary is closed. A future mechanism, or a wider declared profile, may
+/// raise the ceiling once it is qualified — raising it means extending the
+/// supply, and what a longer supply costs is stated at
+/// [`CLOSED_REGISTER_ROW_CEILING`].
 ///
 /// The proven altitude of that claim is the DECLARATION.
-/// `laws.rs root::a_stamped_roster_declares_its_own_ceiling` compiles a
-/// sixty-four-row roster and reads exact positions off it, and
-/// `testpak/tests/compile-fail/a-roster-past-the-stamp-ceiling.rs` is the
-/// sixty-fifth row refusing with the sentence above. The same boundary read
+/// `testpak/tests/stamp_row_ceiling.rs` stamps a roster that spends the supply
+/// to its last position and reads exact positions off it — through the public
+/// export, from a crate that is an ordinary consumer of this one — and
+/// `testpak/tests/compile-fail/a-roster-past-the-stamp-ceiling.rs` is the row
+/// past the supply refusing with the sentence above. The same boundary read
 /// through the lifecycle facade is neither proven nor claimed here: that facade
 /// does not exist, and its validation arrives with the lifecycle specimen.
 ///
@@ -137,8 +146,9 @@ pub mod types;
 /// admission of a semantic noun; it simply no longer has any explaining to do,
 /// because the seat and the export now agree.
 ///
-/// The `@`-prefixed rules below are the stamp's own walk over its rows and are
-/// not an invocation form.
+/// The `@`-prefixed rules below are the stamp's own internals — the declared
+/// supply of positions, the two readings taken off it, and the walk that pairs
+/// rows with it. None of them is an invocation form.
 ///
 /// # The invocation
 ///
@@ -199,21 +209,7 @@ macro_rules! closed_register {
             /// the ceiling a longer roster refuses against.
             #[must_use]
             $vis const fn slot(self) -> u8 {
-                $crate::closed_register!(
-                    @position self,
-                    (),
-                    [
-                        0u8  1u8  2u8  3u8  4u8  5u8  6u8  7u8
-                        8u8  9u8  10u8 11u8 12u8 13u8 14u8 15u8
-                        16u8 17u8 18u8 19u8 20u8 21u8 22u8 23u8
-                        24u8 25u8 26u8 27u8 28u8 29u8 30u8 31u8
-                        32u8 33u8 34u8 35u8 36u8 37u8 38u8 39u8
-                        40u8 41u8 42u8 43u8 44u8 45u8 46u8 47u8
-                        48u8 49u8 50u8 51u8 52u8 53u8 54u8 55u8
-                        56u8 57u8 58u8 59u8 60u8 61u8 62u8 63u8
-                    ],
-                    $($variant)+
-                )
+                $crate::closed_register!(@supply pairing self, $($variant)+)
             }
 
             /// This row's declared stable name.
@@ -239,6 +235,44 @@ macro_rules! closed_register {
                 }
             }
         }
+    };
+
+    // THE DECLARED SUPPLY OF POSITIONS. It is written out here and nowhere
+    // else in this repository: everything that needs the supply, or needs how
+    // long it is, arrives through this arm and continues into the rule it named.
+    // The ceiling therefore cannot be raised in one reading and left standing in
+    // the other, which is the drift this whole stamp exists to remove.
+    (@supply $($continuation:tt)*) => {
+        $crate::closed_register!(
+            @supplied
+            [
+                0u8  1u8  2u8  3u8  4u8  5u8  6u8  7u8
+                8u8  9u8  10u8 11u8 12u8 13u8 14u8 15u8
+                16u8 17u8 18u8 19u8 20u8 21u8 22u8 23u8
+                24u8 25u8 26u8 27u8 28u8 29u8 30u8 31u8
+                32u8 33u8 34u8 35u8 36u8 37u8 38u8 39u8
+                40u8 41u8 42u8 43u8 44u8 45u8 46u8 47u8
+                48u8 49u8 50u8 51u8 52u8 53u8 54u8 55u8
+                56u8 57u8 58u8 59u8 60u8 61u8 62u8 63u8
+            ]
+            $($continuation)*
+        )
+    };
+
+    // The supply's LENGTH, as a value. Const-evaluable, and the array is a
+    // temporary the compiler measures rather than material anything keeps.
+    (@supplied [$($position:literal)*] length) => {
+        [$($position),*].len()
+    };
+
+    // The supply, HANDED TO THE PAIRING WALK below.
+    (@supplied [$($position:literal)*] pairing $subject:expr, $($variant:ident)+) => {
+        $crate::closed_register!(
+            @position $subject,
+            (),
+            [$($position)*],
+            $($variant)+
+        )
     };
 
     // One row, one position off the declared supply. Neither side is counted:
@@ -267,9 +301,10 @@ macro_rules! closed_register {
     ) => {
         ::core::compile_error!(
             "closed_register!: this roster declares more rows than the stamp's declared supply \
-             of sixty-four positions. Sixty-four is the current authoring-profile ceiling of \
-             this stamp implementation, not a semantic cap on the vocabulary: raising it means \
-             extending the supply of positions the stamp declares."
+             of positions. The supply's length is this implementation's current \
+             authoring-profile ceiling, projected as `threadpak::CLOSED_REGISTER_ROW_CEILING`, \
+             and it is not a semantic cap on the vocabulary: raising it means extending the \
+             stamp's declared supply and requalifying it."
         )
     };
 
@@ -284,6 +319,71 @@ macro_rules! closed_register {
         }
     };
 }
+
+/// How many rows one [`closed_register!`] roster may declare: the length of the
+/// stamp's own declared supply of positions, read out as a value.
+///
+/// # It is the supply, not a number kept beside it
+///
+/// The stamp writes its supply of positions out in one arm. The pairing walk
+/// that answers `slot` and this constant are two readings of that ONE list, so
+/// a supply that is extended moves this value with it and cannot leave it
+/// standing. That is the same anti-drift shape the stamp applies to its
+/// callers, applied to the stamp itself: the hand-kept form of this pattern is
+/// a supply of literals beside a number stating how many there are, and those
+/// are two things to keep true.
+///
+/// # The one place this profile's value is written down
+///
+/// The example below is that place, and it is deliberate rather than
+/// decorative. It records what the supply is TODAY, so extending the supply
+/// fails here and nowhere else in this repository's prose. That failure is the
+/// requalification trigger: repairing it means restating the recorded value on
+/// purpose, once, where a reader of the diff can see the profile move.
+///
+/// ```
+/// assert_eq!(threadpak::CLOSED_REGISTER_ROW_CEILING, 64);
+/// ```
+///
+/// # What it is a ceiling ON
+///
+/// This is the current authoring profile of this stamp implementation, and
+/// nothing else. No roster in the machine is closed because the supply is the
+/// length it is; each is closed because its own vocabulary is closed. A
+/// vocabulary that genuinely holds more rows than the supply is a reason to
+/// extend the supply, never a reason to read a meaning into this number.
+///
+/// # Extending the supply, and the width that decides what it costs
+///
+/// A row's position is answered as a `u8`, and that width is what tells two
+/// different acts apart.
+///
+/// A supply extended WITHIN what a `u8` represents is an append and nothing
+/// more. Every position already answered keeps the value it answered, no
+/// existing row's slot moves, and no identity ever derived under a slot is
+/// renamed — the same terms a roster's own rows stand under, where a row is
+/// appended and never inserted or moved.
+///
+/// A supply extended PAST what a `u8` represents is not a longer supply at all.
+/// It is a new versioned encoding profile for positions and for the identities
+/// written under them, and it arrives as one: its own version, its own
+/// migration of anything already written, and its own qualification. The
+/// measured decision to answer positions as a `u8` rather than a wider integer
+/// is stated here because this is the value that would have to move first, and
+/// a reader who is about to move it is the reader who needs to know which of
+/// the two acts they are performing.
+///
+/// # Where it is seated, and why
+///
+/// It is a projection of the stamp's own expansion, so it cannot be written
+/// anywhere the stamp is not in scope. The stamp is seated in `lib.rs` — the
+/// root calculus's module surface — on the precedent [`scope_guard_version!`]
+/// set in band 02's `mod.rs`, and this constant seats beside it on exactly that
+/// precedent. `types.rs` holds the root's shapes; a value read out of a
+/// mechanism that file does not carry has nothing to do there.
+///
+/// [`scope_guard_version!`]: crate::scope_guard_version
+pub const CLOSED_REGISTER_ROW_CEILING: usize = crate::closed_register!(@supply length);
 
 #[path = "00_refusal/mod.rs"]
 pub mod refusal;

@@ -69,6 +69,38 @@ pub(crate) fn claimed_green_laws(
     Ok(claimed)
 }
 
+/// The value of every `green:` obligation row in one README that states a
+/// ROUTE — a path to a file — rather than a law or a sentence, in file order.
+///
+/// A green row is written one of a few ways. `laws.rs module::law` names a
+/// compile-time law and is joined against `laws.rs` itself; `none — …`,
+/// `owed — …`, and `structural (…)` are sentences stating that no executable
+/// green exists and why. Anything whose first word ends in `.rs` is a file the
+/// row says holds the positive control, and this reader is what hands those to
+/// the join so the file can be required to exist. `laws.rs` is excluded because
+/// the other leg already reads it, and reading it here as well would answer one
+/// claim twice.
+pub(crate) fn claimed_green_routes(readme_text: &str) -> Vec<String> {
+    readme_text
+        .lines()
+        .filter_map(|line| line.trim().strip_prefix("green: "))
+        .filter_map(|value| value.split_whitespace().next())
+        .filter(|named| is_rust_route(named) && *named != "laws.rs")
+        .map(String::from)
+        .collect()
+}
+
+/// Whether one green row's first word is a path to a Rust file.
+///
+/// Read through `Path` rather than off the end of the string: a row states a
+/// repository-relative path with forward slashes, and asking the path type for
+/// its extension is the reading that stays right on either platform.
+fn is_rust_route(named: &str) -> bool {
+    Path::new(named)
+        .extension()
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("rs"))
+}
+
 /// The value of every `red:` obligation row in one README, in file order.
 ///
 /// The prefix is matched on the TRIMMED line, so a word merely ending in `red`
@@ -98,7 +130,7 @@ pub(crate) fn tooling_red_rows(readme_text: &str) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::red_twin_rows;
+    use super::{claimed_green_routes, red_twin_rows};
 
     /// A row is read off the trimmed line, so an ordinary word ending in `red`
     /// followed by a colon is never mistaken for one.
@@ -109,5 +141,24 @@ mod tests {
                     ## The connectives (authored: a heading, not a row)\n\
                     \x20   red: owed-to-testpak\n";
         assert_eq!(red_twin_rows(text), vec![String::from("owed-to-testpak")]);
+    }
+
+    /// A green ROUTE is read apart from every other spelling a green row takes.
+    ///
+    /// The positive control for the reader the green leg stands on: a reader
+    /// that also returned the `laws.rs` rows would make the join answer one
+    /// claim twice, and one that swallowed the prose forms would demand a file
+    /// from a row whose whole content is that no file exists.
+    #[test]
+    fn only_a_path_shaped_green_row_is_a_route() {
+        let text = "    green: laws.rs root::a_law_that_exists\n\
+                    \x20   green: none — the type's nonexistence is the law\n\
+                    \x20   green: owed — executable when the roster lands\n\
+                    \x20   green: structural (a phantom makes the handle !Send)\n\
+                    \x20   green: testpak/tests/stamp_row_ceiling.rs\n";
+        assert_eq!(
+            claimed_green_routes(text),
+            vec![String::from("testpak/tests/stamp_row_ceiling.rs")]
+        );
     }
 }

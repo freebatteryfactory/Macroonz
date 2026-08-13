@@ -74,8 +74,10 @@ fourth row answers `2` is not a defect anybody catches — it is a value nobody
 can write. This home's obligation below is that consumption proved: the stamped
 roster beside its writable hand-kept twin, the twin required to fail.
 
-The stamp's own ceiling — sixty-four rows, refused by the stamp's own diagnostic
-at the sixty-fifth — is the root's claim and is proved at the root.
+The stamp's own ceiling — the length of its declared supply of positions, read
+as `CLOSED_REGISTER_ROW_CEILING` and refused by the stamp's own diagnostic at
+the first row past it — is the root's claim, and it is proved through the public
+export from outside the crate rather than here.
 
 ## Owed upward
 

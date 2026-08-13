@@ -2,25 +2,32 @@
 //! the stamp's declared supply of positions refuses with the STAMP'S OWN
 //! sentence.
 //!
-//! The stamp carries sixty-four positions written out as literals and pairs each
-//! row of a declaration with exactly one of them. That supply is what makes the
-//! ceiling a statement rather than an accident: the walk over the rows stops at
-//! the sixty-fifth step whatever the declaration's length, so the refusal below
-//! is reached before any recursion limit is, and it is reached identically by a
-//! sixty-five-row roster and by a two-hundred-row one.
+//! The stamp writes its supply of positions out as literals in one arm and
+//! pairs each row of a declaration with exactly one of them. That supply is
+//! what makes the ceiling a statement rather than an accident, and its length
+//! is read as `threadpak::CLOSED_REGISTER_ROW_CEILING`.
 //!
 //! What this file rules out is the older failure it replaces. A muncher that
 //! counted its way along the rows ran until the compiler's recursion limit
 //! stopped it, and what an author saw was a diagnostic about the stamp's own
-//! internals at a boundary nobody had declared. The sixty-fifth row below must
-//! produce the stamp's sentence, naming the ceiling and the mechanism the
-//! ceiling is the length of.
+//! internals at a boundary nobody had declared. The row past the supply below
+//! must produce the stamp's sentence, naming the mechanism the ceiling is the
+//! length of. The rule that matches the spent supply MATCHES the rows that
+//! remain without recursing over them, so expansion stops at the first row past
+//! the supply whatever the declaration's length.
 //!
-//! Sixty-four is this stamp implementation's authoring profile, not a semantic
+//! This roster is one row longer than the supply this authoring profile
+//! carries, and that makes it a tripwire as well as a reversal: extend the
+//! supply and this file COMPILES, which trybuild reports as a fixture that no
+//! longer refuses. Its length is this file's own shape and states nothing about
+//! the profile — the profile's recorded value lives in exactly one place, on
+//! the constant.
+//!
+//! The ceiling is this stamp implementation's authoring profile, not a semantic
 //! cap on any vocabulary.
 
 threadpak::closed_register! {
-    /// Sixty-five rows: the declared supply, and one row past it.
+    /// The declared supply spent to its last position, and one row past it.
     pub enum PastTheCeiling {
         Row00 = "row-00", "row 00";
         Row01 = "row-01", "row 01";

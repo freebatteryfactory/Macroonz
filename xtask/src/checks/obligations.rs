@@ -13,7 +13,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::repository::readme::{
-    claimed_green_laws, home_readmes, red_twin_rows, tooling_red_rows,
+    claimed_green_laws, claimed_green_routes, home_readmes, red_twin_rows, tooling_red_rows,
 };
 use crate::repository::walk::{JUDGE_DIRECTORY, relative_slash_path, visit_files};
 
@@ -37,6 +37,15 @@ const OWED_PREFIX: &str = "owed-to";
 /// **Green, exactly once.** No law is claimed by two obligations. A law claimed
 /// twice is a proof standing in for a claim it does not make, and it reads as
 /// discharged from both rows.
+///
+/// **Green, wherever the positive control actually sits.** A green row may name
+/// a testpak seat instead of a law, because a behavioral claim's strongest seat
+/// is the plane that drives it from outside. Such a row is a ROUTE, and it is
+/// verified to resolve to a real testpak file on exactly the terms a named red
+/// twin is: a green route pointing at a file nobody wrote is worse than an
+/// unproven claim, because it reads as proven. Nothing is counted here — a
+/// green side is not a debt ledger, and inventing a third denominator over a
+/// population that states no debts would be a number nobody can act on.
 ///
 /// **Red, and counted out loud.** Every obligation also declares a `red:` row.
 /// A row spelled `owed-to-…` is a lawful debt: the reversal is named and not yet
@@ -100,14 +109,19 @@ pub(crate) fn check_obligations_join(root: &Path) -> Result<(), String> {
         .collect();
     offenders.extend(double_claimed_offences(&attributed));
     let mut rows = Vec::new();
+    let mut routes = Vec::new();
     for readme in &readmes {
         let text = fs::read_to_string(readme).map_err(|e| format!("{}: {e}", readme.display()))?;
         for row in red_twin_rows(&text) {
             rows.push((row, relative_slash_path(root, readme)));
         }
+        for route in claimed_green_routes(&text) {
+            routes.push((route, relative_slash_path(root, readme)));
+        }
     }
     let reversals = testpak_reversals(root)?;
     let ledger = red_twin_ledger(&rows, &reversals);
+    offenders.extend(phantom_green_routes(&routes, &reversals));
 
     let tooling_rows = tooling_rows(root)?;
     let tooling = red_twin_ledger(&tooling_rows, &reversals);
@@ -169,6 +183,30 @@ fn double_claimed_offences(claimed: &[(String, String, String)]) -> Vec<String> 
                  claim",
                 claimants.len(),
                 claimants.join(", ")
+            ));
+        }
+    }
+    offences
+}
+
+/// Every green route naming a testpak seat that no testpak file answers, one
+/// offence per route.
+///
+/// The green side's twin of the red leg's phantom-fixture refusal, and it exists
+/// for the same reason: a row that NAMES its positive control is claiming the
+/// control is written, and a name nobody wrote reads as discharged from the
+/// ledger while proving nothing. The two sides resolve a name identically —
+/// `names_reversal` is shared rather than restated — so a route and a twin
+/// pointing at the same file are answered by the same reading of it.
+///
+/// Pure over its rows, so the leg is proven against fixture rows rather than by
+/// editing the README it guards.
+fn phantom_green_routes(rows: &[(String, String)], reversals: &[String]) -> Vec<String> {
+    let mut offences = Vec::new();
+    for (named, readme) in rows {
+        if !reversals.iter().any(|path| names_reversal(path, named)) {
+            offences.push(format!(
+                "{readme}: green route names `{named}`, which is no testpak test or fixture"
             ));
         }
     }
@@ -268,9 +306,11 @@ fn testpak_reversals(root: &Path) -> Result<Vec<String>, String> {
 /// found rather than what they hoped for.
 #[cfg(test)]
 mod tests {
-    use super::{double_claimed_offences, red_twin_ledger, testpak_reversals};
+    use super::{
+        double_claimed_offences, phantom_green_routes, red_twin_ledger, testpak_reversals,
+    };
     use crate::repository::readme::{
-        claimed_green_laws, home_readmes, red_twin_rows, tooling_red_rows,
+        claimed_green_laws, claimed_green_routes, home_readmes, red_twin_rows, tooling_red_rows,
     };
     use crate::repository::walk::{relative_slash_path, repo_root};
     use std::fs;
@@ -422,6 +462,93 @@ mod tests {
         let ledger = red_twin_ledger(&collected, &reversals);
         assert!(ledger.offenders.is_empty(), "{:?}", ledger.offenders);
         assert!(ledger.owed > 0, "the tooling ledger claims no debt at all");
+    }
+
+    /// Planted reversal: a green route naming a positive control nobody wrote,
+    /// and one whose name is a letter off.
+    ///
+    /// This is the failure the green leg exists for. Both rows read as proven
+    /// from the ledger, and neither is: the first names a file that was never
+    /// written, the second names one that was written under another spelling —
+    /// which is what a rename or a move leaves behind.
+    #[test]
+    fn a_phantom_green_route_is_a_violation() {
+        let reversals = [String::from("testpak/tests/stamp_row_ceiling.rs")];
+        let vanished = phantom_green_routes(
+            &[(
+                String::from("testpak/tests/nobody-ever-wrote-this.rs"),
+                String::from("FIXTURE.md"),
+            )],
+            &reversals,
+        );
+        assert_eq!(vanished.len(), 1, "{vanished:?}");
+        assert!(
+            vanished
+                .first()
+                .is_some_and(|offence| offence.contains("nobody-ever-wrote-this.rs"))
+        );
+
+        let misspelled = phantom_green_routes(
+            &[(
+                String::from("testpak/tests/stamp_row_ceilings.rs"),
+                String::from("FIXTURE.md"),
+            )],
+            &reversals,
+        );
+        assert_eq!(misspelled.len(), 1, "{misspelled:?}");
+    }
+
+    /// The positive control: a green route naming a real testpak seat is
+    /// lawful, whether it states the repository-relative path or only the file
+    /// name. A leg that flagged everything would satisfy the reversal above and
+    /// be worthless.
+    #[test]
+    fn a_green_route_that_exists_is_lawful() {
+        let reversals = [
+            String::from("testpak/tests/stamp_row_ceiling.rs"),
+            String::from("testpak/tests/planted_defect.rs"),
+        ];
+        let by_path = phantom_green_routes(
+            &[(
+                String::from("testpak/tests/stamp_row_ceiling.rs"),
+                String::from("FIXTURE.md"),
+            )],
+            &reversals,
+        );
+        assert!(by_path.is_empty(), "{by_path:?}");
+
+        let by_name = phantom_green_routes(
+            &[(
+                String::from("stamp_row_ceiling.rs"),
+                String::from("FIXTURE.md"),
+            )],
+            &reversals,
+        );
+        assert!(by_name.is_empty(), "{by_name:?}");
+    }
+
+    /// The real repository holds: every green route a home README declares
+    /// resolves to a testpak seat that exists, and the population is real
+    /// rather than empty.
+    #[test]
+    fn the_real_green_routes_name_only_seats_that_exist() {
+        let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
+        let reversals = testpak_reversals(&root).unwrap_or_default();
+        let mut collected = Vec::new();
+        let readmes = home_readmes(&root).unwrap_or_default();
+        for readme in &readmes {
+            let text = fs::read_to_string(readme).unwrap_or_default();
+            let name = relative_slash_path(&root, readme);
+            for route in claimed_green_routes(&text) {
+                collected.push((route, name.clone()));
+            }
+        }
+        assert!(
+            !collected.is_empty(),
+            "no green route found; this leg would be guarding nothing"
+        );
+        let found = phantom_green_routes(&collected, &reversals);
+        assert!(found.is_empty(), "{found:?}");
     }
 
     /// Planted reversal: two obligations pointing at one law. The second row's

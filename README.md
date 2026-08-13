@@ -209,19 +209,27 @@ band, which is why it sits at the root rather than in one of them. It is seated
 in `lib.rs` — the root calculus's module surface — on the precedent
 `scope_guard_version!` set in band 02's `mod.rs`.
 
-The stamp carries a declared supply of sixty-four positions and pairs each row
-of a declaration with exactly one of them. There is no arithmetic in the
-expansion at all, so nothing there can overflow, saturate, or disagree with a
-number written elsewhere: the ceiling IS the length of the supply. A
-sixty-fifth row finds the supply spent and refuses with the stamp's own
-sentence, and it refuses at the sixty-fifth step whatever the declaration's
-length, so a long roster never dies against the compiler's recursion limit
-instead. **Sixty-four is this stamp implementation's current authoring-profile
-ceiling, not a semantic cap on any vocabulary**; raising it means extending the
-supply, once that is qualified. The claim is proved at the DECLARATION — a
-sixty-four-row roster compiles with exact positions, a sixty-five-row one
-refuses — and the same boundary read through the lifecycle facade arrives with
-the lifecycle specimen, because that facade does not exist yet.
+The stamp carries a declared supply of positions and pairs each row of a
+declaration with exactly one of them. There is no arithmetic in the expansion at
+all, so nothing there can overflow, saturate, or disagree with a number written
+elsewhere: the ceiling IS the length of the supply, and
+`CLOSED_REGISTER_ROW_CEILING` is that same supply read out as a value, from the
+arm the pairing walk spends. The supply is written in one place and the number
+is written in none, which is why this paragraph names the constant rather than
+the count. A row past the last position finds the supply spent and refuses with
+the stamp's own sentence; the rule that matches that state matches the remaining
+rows without recursing over them, so expansion stops at the first row past the
+supply whatever the declaration's length and a long roster never dies against
+the compiler's recursion limit instead. **The ceiling is this stamp
+implementation's current authoring-profile ceiling, not a semantic cap on any
+vocabulary**; raising it means extending the supply, once that is qualified, and
+what a longer supply costs — an append within the `u8` a position is answered
+as, or a new versioned encoding profile past it — is stated at the constant. The
+claim is proved at the DECLARATION, from outside the crate that exports the
+stamp: a roster spending the supply to its last position compiles with exact
+positions, and one row past it refuses. The same boundary read through the
+lifecycle facade arrives with the lifecycle specimen, because that facade does
+not exist yet.
 
 ## Root calculus obligations
 
@@ -290,7 +298,7 @@ obligations:
     red: owed-to-testpak
   - id: root.a-stamped-roster-declares-its-own-ceiling
     challenge_kind: compile-refusal
-    green: laws.rs root::a_stamped_roster_declares_its_own_ceiling
+    green: testpak/tests/stamp_row_ceiling.rs
     red: testpak/tests/compile-fail/a-roster-past-the-stamp-ceiling.rs
 ```
 
