@@ -130,10 +130,11 @@ fn highest_position() -> u8 {
 /// first assertion, which is what makes an extended supply visible here instead
 /// of silently accepted.
 ///
-/// The declared name and the prose are read back on the last row as well. A
-/// roster is authored once and read five ways, and a consumer that exercised
-/// only the roster and its positions would leave two of those readings
-/// unreached at the one seat that reaches them from outside.
+/// The declared name and the prose are read back on the last row as well: a
+/// consumer that exercised only the roster and its positions would leave both
+/// unreached at the one seat that reaches them from outside. What the stamp
+/// generates in full is stated at the stamp's own documentation, and is neither
+/// restated nor counted here.
 #[test]
 fn a_stamped_roster_declares_its_own_ceiling() {
     assert_eq!(

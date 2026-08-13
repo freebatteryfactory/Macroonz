@@ -63,14 +63,26 @@ const OWED_PREFIX: &str = "owed-to";
 /// **Green, wherever the positive control actually sits.** A green row may name
 /// a testpak seat rather than a `laws.rs` one, because a behavioral claim's
 /// strongest seat is the plane that drives it from outside. Such a row is a
-/// ROUTE, and it must resolve to an EXECUTABLE seat — a test file directly under
-/// `testpak/tests/`, which is to say a test that runs. A route is deliberately
-/// NOT read on the terms a named red twin is: a red twin may lawfully be a
-/// compile-fail fixture, and a fixture whose whole content is that it must not
-/// compile can never stand as a positive control. A green route pointing at a
-/// file nobody wrote is worse than an unproven claim, because it reads as
-/// proven; a green route pointing at its own red twin is worse still, because
-/// the evidence it names refutes it.
+/// ROUTE, and it must resolve to an EXECUTABLE seat — a file directly under
+/// `testpak/tests/` that DECLARES at least one `#[test]`, which is to say a test
+/// that runs. A route is deliberately NOT read on the terms a named red twin is:
+/// a red twin may lawfully be a compile-fail fixture, and a fixture whose whole
+/// content is that it must not compile can never stand as a positive control.
+///
+/// Depth alone could not say that, and the gap it left is why the seat
+/// population is read out of a PARSE. A `.rs` file at the top of
+/// `testpak/tests/` with no test function in it is built by cargo into a test
+/// binary exactly as its neighbours are; that binary runs zero tests. Narrowed
+/// by depth alone the file was a seat, so a route naming it read as a positive
+/// control that executes while nothing executed — the same defect as offering a
+/// compile-fail fixture, arriving one level up, through a population that was
+/// narrowed by where a file SITS rather than by what it declares.
+///
+/// A green route pointing at a file nobody wrote is worse than an unproven
+/// claim, because it reads as proven; a green route pointing at its own red
+/// twin, or at an empty test binary, is worse still, because the evidence it
+/// names establishes nothing at all.
+///
 /// Nothing is counted here — a green side is not a debt ledger, and inventing a
 /// third denominator over a population that states no debts would be a number
 /// nobody can act on.
@@ -115,13 +127,14 @@ pub(crate) fn check_obligations_join(root: &Path) -> Result<(), String> {
     }
     let mut offenders = drifted_claim_offences(&claimed, &existing);
     offenders.extend(double_claimed_offences(&claimed));
-    let (reversals, seats) = testpak_populations(root)?;
-    let ledger = red_twin_ledger(&rows, &reversals);
-    offenders.extend(phantom_green_routes(&routes, &seats));
+    let judge = testpak_populations(root)?;
+    let ledger = red_twin_ledger(&rows, &judge.reversals);
+    offenders.extend(phantom_green_routes(&routes, &judge.seats));
     offenders.extend(unreadable_green_offences(&unreadable));
+    offenders.extend(judge.unparsable);
 
     let tooling_rows = tooling_rows(root)?;
-    let tooling = red_twin_ledger(&tooling_rows, &reversals);
+    let tooling = red_twin_ledger(&tooling_rows, &judge.reversals);
 
     // TWO denominators, printed apart, always. The populations are challenged by
     // different methods and owned by different homes; one number over both would
@@ -262,11 +275,13 @@ fn double_claimed_offences(claimed: &[(String, String, String)]) -> Vec<String> 
 /// the rule here rather than an optimization. A red row names something that
 /// demonstrates a REFUSAL, so it may lawfully be a compile-fail fixture. A green
 /// route names an executable CONTROL, which has to actually run to control
-/// anything. A fixture that by construction does not compile can never be a
-/// positive control, so the green side's population is strictly narrower: the
-/// seats directly under `testpak/tests/`, never the fixtures beneath them.
-/// Resolving both sides against one population would let an obligation offer its
-/// own red twin as its green evidence, and the join would take it.
+/// anything. So the green side's population is strictly narrower, and it is
+/// narrowed twice: a file beneath `testpak/tests/` is a fixture rather than a
+/// seat, and a file AT the top that declares no test is a test binary with
+/// nothing in it. Resolving both sides against one population would let an
+/// obligation offer its own red twin as its green evidence, and the join would
+/// take it; resolving the green side by depth alone let it offer an empty
+/// binary, and the join took that.
 ///
 /// Resolution is by exact repository-relative path, here and on the red side. A
 /// route is answered by the file it names and by no other: a spelling that
@@ -281,9 +296,11 @@ fn phantom_green_routes(rows: &[(String, String)], seats: &SeatPopulation) -> Ve
     for (named, readme) in rows {
         if !seats.carries(named) {
             offences.push(format!(
-                "{readme}: green route names `{named}`, which is no executable test seat directly \
-                 under `testpak/tests/`: a green route must name a test that RUNS, spelled as its \
-                 exact repository-relative path, and a compile-fail fixture can never be one"
+                "{readme}: green route names `{named}`, which is no executable test seat: a green \
+                 route must name a file directly under `testpak/tests/` that DECLARES at least \
+                 one `#[test]`, spelled as its exact repository-relative path. A compile-fail \
+                 fixture can never be one, and neither can a top-level file that builds a test \
+                 binary with no test in it"
             ));
         }
     }
@@ -428,13 +445,23 @@ fn is_rust_file(path: &Path) -> bool {
 struct ReversalPopulation(Vec<String>);
 
 /// Every executable test seat testpak carries: the `.rs` files sitting DIRECTLY
-/// under `testpak/tests/`, which cargo builds and runs as test binaries.
+/// under `testpak/tests/` that DECLARE at least one `#[test]`.
 ///
-/// The GREEN side's population, and strictly the narrower of the two. A file one
-/// level down — `compile-fail/…`, `compiled-mutant/…` — is a fixture the judge
-/// feeds to a compiler on purpose, not a test cargo runs, and several of them do
-/// not compile by design. Naming one as a positive control would offer a
-/// negative as proof of a positive.
+/// The GREEN side's population, and strictly the narrower of the two, narrowed
+/// on two different facts because one of them was never enough.
+///
+/// Placement is the first. A file one level down — `compile-fail/…`,
+/// `compiled-mutant/…` — is a fixture the judge feeds to a compiler on purpose,
+/// not a test cargo runs, and several of them do not compile by design. Naming
+/// one as a positive control would offer a negative as proof of a positive.
+///
+/// What the file DECLARES is the second, and it is the one placement could not
+/// answer. Cargo builds every `.rs` at the top of `tests/` into a test binary
+/// whether or not a test is written in it, so a file holding only helpers,
+/// only a module declaration, or nothing at all sits exactly where a seat sits
+/// and runs zero tests. Admitted by depth, such a file stood as a positive
+/// control that executes, and nothing executed. A seat here is a file that
+/// declares a test, established from a parse of it.
 struct SeatPopulation(Vec<String>);
 
 impl ReversalPopulation {
@@ -458,30 +485,134 @@ impl SeatPopulation {
     }
 }
 
+/// Everything one walk of `testpak/tests/` established: both populations, and
+/// every top-level source the seat reading could not read.
+struct JudgeTree {
+    /// The RED side's population: every reversal the tree carries.
+    reversals: ReversalPopulation,
+    /// The GREEN side's population: every top-level source that declares a
+    /// test.
+    seats: SeatPopulation,
+    /// Top-level sources that are not parseable Rust, one offence each. Never a
+    /// skip: whether such a file declares a test is UNKNOWN rather than false,
+    /// and a hole in the green population reported as nothing is the silence
+    /// this whole boundary exists to end.
+    unparsable: Vec<String>,
+}
+
 /// Both populations, drawn from ONE walk of `testpak/tests/`.
 ///
 /// One walk rather than two, so the red side and the green side can never be
 /// judging different trees — the same rule the repository's walker exists to
-/// enforce. The green population is the red one narrowed by depth, and that
-/// containment is a fact of this function rather than a hope about two of them.
-fn testpak_populations(root: &Path) -> Result<(ReversalPopulation, SeatPopulation), String> {
+/// enforce. The green population is the red one narrowed, and that containment
+/// is a fact of this function rather than a hope about two of them.
+///
+/// Only the top-level sources are read as text, because the seat question is
+/// asked of them alone. A fixture beneath them is answered by its placement and
+/// its contents are none of this reader's business — several of them do not
+/// parse, and do not compile, by design.
+fn testpak_populations(root: &Path) -> Result<JudgeTree, String> {
     let tests = root.join(JUDGE_DIRECTORY).join("tests");
     if !tests.is_dir() {
-        return Ok((ReversalPopulation(Vec::new()), SeatPopulation(Vec::new())));
+        return Ok(JudgeTree {
+            reversals: ReversalPopulation(Vec::new()),
+            seats: SeatPopulation(Vec::new()),
+            unparsable: Vec::new(),
+        });
     }
     let mut reversals = Vec::new();
-    let mut seats = Vec::new();
+    let mut top_level = Vec::new();
     visit_files(&tests, &mut |path| {
         if is_rust_file(path) {
             let spelled = relative_slash_path(root, path);
             if path.parent() == Some(tests.as_path()) {
-                seats.push(spelled.clone());
+                let text =
+                    fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+                top_level.push((spelled.clone(), text));
             }
             reversals.push(spelled);
         }
         Ok(())
     })?;
-    Ok((ReversalPopulation(reversals), SeatPopulation(seats)))
+    let (seats, unparsable) = seat_population(&top_level);
+    Ok(JudgeTree {
+        reversals: ReversalPopulation(reversals),
+        seats,
+        unparsable,
+    })
+}
+
+/// The seats among the top-level sources, and the ones whose seat question could
+/// not be answered.
+///
+/// Pure over `(repository-relative path, source text)` pairs, so the reversal
+/// for the narrowing is a source held in memory: the leg that decides what
+/// counts as a positive control is never proven by writing an empty test file
+/// into the judge.
+fn seat_population(sources: &[(String, String)]) -> (SeatPopulation, Vec<String>) {
+    let mut seats = Vec::new();
+    let mut unparsable = Vec::new();
+    for (path, text) in sources {
+        match syn::parse_file(text) {
+            Ok(file) => {
+                if declares_a_runnable_test(&file.items) {
+                    seats.push(path.clone());
+                }
+            }
+            Err(error) => unparsable.push(format!(
+                "{path} sits directly under `testpak/tests/` and is not parseable Rust, so whether \
+                 it declares a test that RUNS is unknown rather than false: {error}"
+            )),
+        }
+    }
+    (SeatPopulation(seats), unparsable)
+}
+
+/// Whether one parsed source declares at least one test cargo will RUN.
+///
+/// The question is about ITEMS: that a function is declared, and that the test
+/// harness's own attribute sits ON it. A text search for `#[test]` answers a
+/// different question and answers it wrongly in both directions — it says yes to
+/// the attribute written inside a doc comment, a string literal, or a
+/// commented-out block, each of which is a file with no test in it, and it is
+/// the class of reader this repository has already replaced twice. There is one
+/// reading, and it is the parse.
+///
+/// An inline module is entered, because cargo's harness collects a test wherever
+/// it is declared inside the binary. `cfg` is not evaluated, on the precedent
+/// the coupling reader states: a test written under one is read as declared.
+///
+/// The claim's ceiling: a `mod name;` reaching a SEPARATE file is not followed,
+/// and no macro is expanded, so a seat whose only tests arrive that way is not
+/// admitted here. That direction is the safe one — such a route is refused and
+/// its author is told exactly what is missing — and it is stated rather than
+/// left for a reader to discover.
+fn declares_a_runnable_test(items: &[syn::Item]) -> bool {
+    items.iter().any(|item| {
+        if let syn::Item::Fn(declared) = item {
+            declared.attrs.iter().any(is_test_attribute)
+        } else if let syn::Item::Mod(module) = item {
+            module
+                .content
+                .as_ref()
+                .is_some_and(|(_, inner)| declares_a_runnable_test(inner))
+        } else {
+            false
+        }
+    })
+}
+
+/// Whether one attribute is the test harness's own.
+///
+/// Read by the path's LAST SEGMENT, on the precedent the coupling reader sets:
+/// `#[test]` and `#[core::prelude::v1::test]` are one attribute, and a longer
+/// name ending in the word is not.
+fn is_test_attribute(attribute: &syn::Attribute) -> bool {
+    attribute
+        .path()
+        .segments
+        .last()
+        .is_some_and(|last| last.ident == "test")
 }
 
 /// Planted reversals for the join, and the real repository judged by it.
@@ -493,9 +624,9 @@ fn testpak_populations(root: &Path) -> Result<(ReversalPopulation, SeatPopulatio
 #[cfg(test)]
 mod tests {
     use super::{
-        ReversalPopulation, SeatPopulation, declared_laws, double_claimed_offences,
-        drifted_claim_offences, phantom_green_routes, red_twin_ledger, testpak_populations,
-        tooling_rows, unreadable_green_offences,
+        JudgeTree, ReversalPopulation, SeatPopulation, declared_laws, double_claimed_offences,
+        drifted_claim_offences, phantom_green_routes, red_twin_ledger, seat_population,
+        testpak_populations, tooling_rows, unreadable_green_offences,
     };
     use crate::repository::readme::{
         classify_green_rows, home_readmes, red_twin_rows, tooling_red_rows,
@@ -563,6 +694,21 @@ mod tests {
     /// One synthetic GREEN population.
     fn green_population(paths: &[&str]) -> SeatPopulation {
         SeatPopulation(paths.iter().map(|path| (*path).to_string()).collect())
+    }
+
+    /// The real judge tree, or empty populations where it could not be read.
+    fn real_tree(root: &Path) -> JudgeTree {
+        testpak_populations(root).unwrap_or_else(|_| JudgeTree {
+            reversals: red_population(&[]),
+            seats: green_population(&[]),
+            unparsable: Vec::new(),
+        })
+    }
+
+    /// One synthetic top-level source, at a path directly under
+    /// `testpak/tests/`.
+    fn top_level(name: &str, text: &str) -> (String, String) {
+        (format!("testpak/tests/{name}"), text.to_string())
     }
 
     /// One synthetic claim row.
@@ -673,8 +819,7 @@ mod tests {
     #[test]
     fn the_real_red_ledger_names_only_reversals_that_exist() {
         let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
-        let (reversals, _) = testpak_populations(&root)
-            .unwrap_or_else(|_| (red_population(&[]), green_population(&[])));
+        let reversals = real_tree(&root).reversals;
         assert!(!reversals.0.is_empty(), "testpak carries no reversal files");
         let mut collected = Vec::new();
         let readmes = home_readmes(&root).unwrap_or_default();
@@ -755,8 +900,7 @@ mod tests {
     #[test]
     fn the_real_tooling_ledger_names_only_reversals_that_exist() {
         let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
-        let (reversals, _) = testpak_populations(&root)
-            .unwrap_or_else(|_| (red_population(&[]), green_population(&[])));
+        let reversals = real_tree(&root).reversals;
         let mut collected = Vec::new();
         for readme in ["macros/macroc/README.md", "testpak/README.md"] {
             let text = fs::read_to_string(root.join(readme)).unwrap_or_default();
@@ -806,8 +950,9 @@ mod tests {
     #[test]
     fn a_green_route_naming_a_fixture_is_a_violation() {
         let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
-        let (reversals, seats) = testpak_populations(&root)
-            .unwrap_or_else(|_| (red_population(&[]), green_population(&[])));
+        let JudgeTree {
+            reversals, seats, ..
+        } = real_tree(&root);
 
         for fixture in [
             "testpak/tests/compile-fail/a-discarded-refusal.rs",
@@ -874,6 +1019,117 @@ mod tests {
             &seats,
         );
         assert!(found.is_empty(), "{found:?}");
+    }
+
+    /// Planted reversal: top-level sources that declare NO test, offered as
+    /// green routes.
+    ///
+    /// The defect a depth reading cannot see, and the one a path resolver never
+    /// reaches. Each file sits exactly where a seat sits, is spelled exactly as
+    /// a seat is spelled, and is built by cargo into a test binary of its own —
+    /// a binary that runs zero tests. Narrowed by depth alone, all four stood as
+    /// positive controls, so the obligations naming them read as controlled by
+    /// something that executes while nothing executed.
+    ///
+    /// The third and fourth are why the reading is a PARSE. Both spell the
+    /// harness attribute in their bytes and neither declares a test: one inside
+    /// a doc comment, one inside a string literal. Any substring search for
+    /// `#[test]` seats both of them, which is the same class of reader the
+    /// coupling law replaced and the same class this repository has now paid for
+    /// twice.
+    #[test]
+    fn a_top_level_file_declaring_no_test_is_no_seat() {
+        let (seats, unparsable) = seat_population(&[
+            top_level(
+                "a_helper_only_file.rs",
+                "fn shared_helper() -> u8 {\n    7\n}\n",
+            ),
+            top_level("an_empty_file.rs", ""),
+            top_level(
+                "a_documented_file.rs",
+                "/// Sketching what a seat here would look like:\n\
+                 ///\n\
+                 /// ```text\n\
+                 /// #[test]\n\
+                 /// fn one_day() {}\n\
+                 /// ```\n\
+                 pub fn nothing_runs() {}\n",
+            ),
+            top_level(
+                "a_quoting_file.rs",
+                "const SPELLED: &str = \"#[test]\\nfn one_day() {}\";\n\
+                 fn quoted() -> &'static str {\n    SPELLED\n}\n",
+            ),
+        ]);
+        assert!(seats.0.is_empty(), "{:?}", seats.0);
+        assert!(unparsable.is_empty(), "{unparsable:?}");
+
+        let offered = phantom_green_routes(
+            &named(&[
+                "testpak/tests/a_helper_only_file.rs",
+                "testpak/tests/an_empty_file.rs",
+                "testpak/tests/a_documented_file.rs",
+                "testpak/tests/a_quoting_file.rs",
+            ]),
+            &seats,
+        );
+        assert_eq!(offered.len(), 4, "{offered:?}");
+        assert!(
+            offered
+                .iter()
+                .all(|offence| offence.contains("no test in it")),
+            "{offered:?}"
+        );
+    }
+
+    /// The positive control: a top-level source that declares a test IS a seat,
+    /// whether the declaration stands at the top of the file or inside a module
+    /// the file writes, and a route naming it is lawful. A reading that seated
+    /// nothing would satisfy the reversal above and be worthless.
+    #[test]
+    fn a_top_level_file_declaring_a_test_is_a_seat() {
+        let (seats, unparsable) = seat_population(&[
+            top_level("a_plain_seat.rs", "#[test]\nfn the_behaviour_holds() {}\n"),
+            top_level(
+                "a_seat_inside_a_module.rs",
+                "mod behaviour {\n\
+                 \x20   #[test]\n\
+                 \x20   fn the_behaviour_holds() {}\n\
+                 }\n",
+            ),
+        ]);
+        assert_eq!(seats.0.len(), 2, "{:?}", seats.0);
+        assert!(unparsable.is_empty(), "{unparsable:?}");
+        let found = phantom_green_routes(
+            &named(&[
+                "testpak/tests/a_plain_seat.rs",
+                "testpak/tests/a_seat_inside_a_module.rs",
+            ]),
+            &seats,
+        );
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    /// Planted reversal: a top-level source that is not parseable Rust.
+    ///
+    /// Whether it declares a test is UNKNOWN, and the two honest halves are both
+    /// taken: it is not seated, and the hole is named. Reading it as "no test
+    /// here" and saying nothing would put the reader's own failure into the
+    /// green population as a silent verdict about the file.
+    #[test]
+    fn an_unparsable_top_level_source_is_named_not_assumed() {
+        let (seats, unparsable) = seat_population(&[top_level(
+            "a_broken_seat.rs",
+            "#[test]\nfn the_behaviour_holds( {\n",
+        )]);
+        assert!(seats.0.is_empty(), "{:?}", seats.0);
+        assert_eq!(unparsable.len(), 1, "{unparsable:?}");
+        assert!(
+            unparsable
+                .first()
+                .is_some_and(|offence| offence.contains("unknown rather than false")),
+            "{unparsable:?}"
+        );
     }
 
     /// Planted reversal: a green row no lawful spelling reads, in each of the
@@ -973,8 +1229,7 @@ mod tests {
     #[test]
     fn the_real_green_rows_are_all_read() {
         let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
-        let (_, seats) = testpak_populations(&root)
-            .unwrap_or_else(|_| (red_population(&[]), green_population(&[])));
+        let seats = real_tree(&root).seats;
         let mut routes = Vec::new();
         let mut unreadable = Vec::new();
         let mut seated = 0usize;
@@ -1026,11 +1281,20 @@ mod tests {
     /// reversal sitting directly under `testpak/tests/` — the narrowing would
     /// still be enforced but nothing would exercise it, and this test says so
     /// out loud rather than passing quietly.
+    ///
+    /// Every top-level source is also READ, and read successfully. A file the
+    /// parser could not open is not a file with no test in it; it is a seat
+    /// question nobody answered, and it is reported rather than counted either
+    /// way.
     #[test]
     fn the_real_populations_are_named_apart() {
         let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
-        let (reversals, seats) = testpak_populations(&root)
-            .unwrap_or_else(|_| (red_population(&[]), green_population(&[])));
+        let JudgeTree {
+            reversals,
+            seats,
+            unparsable,
+        } = real_tree(&root);
+        assert!(unparsable.is_empty(), "{unparsable:?}");
         assert!(!seats.0.is_empty(), "testpak carries no executable seat");
         assert!(
             seats.0.len() < reversals.0.len(),

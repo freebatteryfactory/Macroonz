@@ -198,16 +198,19 @@ and no witness pretends to.
 ## The closed-register stamp
 
 `closed_register!` is the root's, and it is the one piece of root material that
-is not a type. One declaration of a closed roster's rows writes the enum, the
-roster constant in declared order, each row's position, each row's declared
-stable name, and the prose a person is shown — five readings of one statement,
-so the hand-kept pair they replace (a roster array beside a `match` returning
-numbers) has no second place left to drift in. Band 13's authoring algebra, the
-services crate's rosters, and this crate's own proof surface all stamp with it;
-it declares no type, reaches no band's material, and belongs to no band, which
-is why it sits at the root rather than in one of them. It is seated
-in `lib.rs` — the root calculus's module surface — on the precedent
-`scope_guard_version!` set in band 02's `mod.rs`.
+is not a type. A roster's rows are declared once and every reading of them is
+generated out of that one statement, so the hand-kept pair it replaces (a roster
+array beside a `match` returning numbers) has no second place left to drift in.
+WHAT it generates is documented at the stamp itself, in `src/lib.rs`, and is
+deliberately not restated here: a list of a macro's outputs kept beside the macro
+is a second inventory of the macro's own surface, and it reads as complete from
+the moment the stamp grows a reading it does not carry.
+
+Band 13's authoring algebra, the services crate's rosters, and this crate's own
+proof surface all stamp with it; it declares no type, reaches no band's
+material, and belongs to no band, which is why it sits at the root rather than
+in one of them. It is seated in `lib.rs` — the root calculus's module surface —
+on the precedent `scope_guard_version!` set in band 02's `mod.rs`.
 
 The stamp carries a declared supply of positions and pairs each row of a
 declaration with exactly one of them. There is no arithmetic in the expansion at

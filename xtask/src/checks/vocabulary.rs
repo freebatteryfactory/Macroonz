@@ -13,26 +13,31 @@ use crate::repository::walk::{
     JUDGE_DIRECTORY, TOOLING_DIRECTORY, relative_slash_path, visit_files,
 };
 
-/// The construction-lifecycle vocabulary the working law bans in prose and in
-/// identifiers. This checker spells the words plainly because `xtask` sits
-/// outside the tree it scans; `AGENTS.md` and `CLAUDE.md` state the ban itself
-/// and are likewise outside it.
+/// The construction-lifecycle vocabulary this gate enforces, in prose and in
+/// identifiers. That vocabulary is the whole of what this list is, and the whole
+/// of what this gate claims. This checker spells the words plainly because
+/// `xtask` sits outside the tree it scans; `AGENTS.md` and `CLAUDE.md` state the
+/// ban itself and are likewise outside it.
 ///
-/// **One banned word is absent from this list on purpose, and the absence is a
-/// DECLARED DEBT rather than an oversight.** The working law also bans "law" as
-/// an ordinary noun, excepting the `laws.rs` filename, and this list has never
-/// carried it — so that half of the ban has never been enforced by anything.
-/// Adding the word here is not the repair. The specification tree spells it
-/// wherever prose describes what `laws.rs` holds, so switching it on turns this
-/// gate red at every one of those sites at once, which buys a red gate rather
-/// than reworded prose.
+/// **The sentence that authorizes this gate is wider than the gate, and this
+/// says which is which rather than closing the gap in either direction.** The
+/// working law's ban also carries the ordinary noun "law", excepting the
+/// `laws.rs` filename, and this list has never carried it.
 ///
-/// Owed to a dedicated vocabulary boundary that reads every site, rewords it,
-/// and adds the word here in the same commit that empties the sites. The opening
-/// condition is the laws-drain phase: the drain retires the seats most of those
-/// sentences are about, so a sweep run before it would reword prose that is
-/// about to be deleted. The debt is declared here, in the list it is missing
-/// from, because that is where the next reader of this list will look.
+/// That inclusion is UNDER ADJUDICATION. The reading brought against it is that
+/// an algebraic one, a semantic one, a refusal one, and the filename are
+/// ordinary computer-science vocabulary; that scanning for the English word buys
+/// euphemism rather than stronger proof; and that the defect worth removing is
+/// proof authority stated in two places, which is a question about where a claim
+/// is seated and not about which noun names it.
+///
+/// So nothing here is owed by this file, and nothing here is settled either.
+/// This gate does not promise to enforce that word later — a promise of a repair
+/// that may never be made is a claim about the future the next reader would have
+/// to discover was false. Narrowing the working law's own sentence to exactly
+/// the vocabulary enforced here is the repository owner's amendment to write,
+/// and until it is written this comment states the disagreement rather than
+/// covering it.
 const BANNED_VOCABULARY: [&str; 4] = ["factory", "candidate", "promotion", "self-hosting"];
 
 /// Lawful survivals: `(repository-relative path, word, why it stands)`. A term

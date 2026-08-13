@@ -58,9 +58,9 @@ buildable when their magnitudes are declared, and not before.
 ## The closed-roster stamp is the root's; this home consumes it
 
 `closed_register!` was written here and belongs to the ROOT. One declaration of
-the rows writes the enum, the roster constant, each row's position, each row's
-declared stable name, and the prose a person is shown — and that is a
-composition shape the whole repository instantiates rather than an authoring
+the rows generates every reading of them — what those readings are is documented
+at the stamp itself, in `src/lib.rs`, and no home restates the list — and that is
+a composition shape the whole repository instantiates rather than an authoring
 concept this home rules. The services crate stamps its rosters with it and the
 machine's own proof surface stamps another; while it sat here, every one of them
 reached across a band edge for a mechanism this home did not own. It is seated
