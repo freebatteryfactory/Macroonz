@@ -20,7 +20,7 @@ lifecycles.
   (Turn = identity, Stitch = transition) — no rename; `TurnReceipt` and the
   two-book model stand. The CLI is `threadpak`.
 
-## Executed renames (AUTHORED, the highest-risk in this home)
+## Executed renames, recorded 2026-08-10 (AUTHORED, the highest-risk in this home)
 
 candidate → **proposal** (an immutable proposed realization of one frozen
 semantic target, in an isolated disposable workspace with no authority over
