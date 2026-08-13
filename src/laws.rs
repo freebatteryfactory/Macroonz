@@ -4329,11 +4329,14 @@ mod execution {
     /// law: execution.kernels-partition-not-duplicate — the five
     /// role-distinct types, the authored binding routes running with the
     /// posture view, the decode-only family's ladder, and the two collection
-    /// families' rosters (8 and 13).
+    /// families' issue registers, whose compile-time bounds are the registers'
+    /// own cardinalities.
     /// Owed reversal (red twin): literal construction of a binding arm must
     /// not compile.
     #[test]
     fn kernels_partition_not_duplicate() {
+        use crate::execution::types::{KernelInterfaceIssueLimit, KernelSemanticIssueLimit};
+        use crate::types::{PositiveLimit, RootLawsProfile};
         let over_semantic: Option<fn(KernelSemanticContract)> = Some(drop);
         let over_interface: Option<fn(KernelInterfaceContract)> = Some(drop);
         assert!(over_semantic.is_some());
@@ -4372,35 +4375,24 @@ mod execution {
             fallback: KernelFallbackPolicy(Commitment::raw([58; 32])),
         };
         assert_eq!(requirement.semantic.version, 1);
-        let semantic_issues = [
-            KernelSemanticContractConstructionIssue::OperationOwnerIdentityOrVersionMissing,
-            KernelSemanticContractConstructionIssue::OperandOrResultSortMissing,
-            KernelSemanticContractConstructionIssue::OperandOrResultSortUnclosed,
-            KernelSemanticContractConstructionIssue::LawDeclarationMissing,
-            KernelSemanticContractConstructionIssue::WorkFormulaMissing,
-            KernelSemanticContractConstructionIssue::WorkFormulaInKernelPrivateBoundLanguage,
-            KernelSemanticContractConstructionIssue::PurityOrEffectPostureMissing,
-            KernelSemanticContractConstructionIssue::DefinitionBoundaryUnfixedOrAmbiguous,
-        ];
-        assert_eq!(semantic_issues.len(), 8);
-        assert!(pairwise_distinct(&semantic_issues));
-        let interface_issues = [
-            KernelInterfaceContractConstructionIssue::BoundOperationReferenceMissing,
-            KernelInterfaceContractConstructionIssue::OperandOrResultCarriageMissing,
-            KernelInterfaceContractConstructionIssue::CapabilitySourceOrAuthorityRequirementMissing,
-            KernelInterfaceContractConstructionIssue::BoundsMissing,
-            KernelInterfaceContractConstructionIssue::RefusalRouteMissing,
-            KernelInterfaceContractConstructionIssue::IndependentEvidenceRouteMissing,
-            KernelInterfaceContractConstructionIssue::PublicConstructionRouteMissing,
-            KernelInterfaceContractConstructionIssue::InspectionRouteMissing,
-            KernelInterfaceContractConstructionIssue::AmbientCallbackInInterface,
-            KernelInterfaceContractConstructionIssue::AuthorityBearingInterfaceSurface,
-            KernelInterfaceContractConstructionIssue::HostObjectInInterface,
-            KernelInterfaceContractConstructionIssue::UnmeteredWorkSurface,
-            KernelInterfaceContractConstructionIssue::UndeclaredEffectSurface,
-        ];
-        assert_eq!(interface_issues.len(), 13);
-        assert!(pairwise_distinct(&interface_issues));
+        // The two issue rosters are stamped registers, so their membership and
+        // their cardinality come out of one declaration and no array here can
+        // restate either. What the register bought is the road below: both
+        // families declared `Limit` alone until their magnitude could be read off
+        // `ALL`, and a family with no `ConstLimit` cannot mint an admission
+        // witness at all — the two lines were unwritable before the register.
+        let semantic: PositiveLimit<KernelSemanticIssueLimit, RootLawsProfile> =
+            PositiveLimit::inhabited_under_profile();
+        let interface: PositiveLimit<KernelInterfaceIssueLimit, RootLawsProfile> =
+            PositiveLimit::inhabited_under_profile();
+        assert_eq!(
+            semantic.max(),
+            KernelSemanticContractConstructionIssue::ALL.len()
+        );
+        assert_eq!(
+            interface.max(),
+            KernelInterfaceContractConstructionIssue::ALL.len()
+        );
     }
 
     /// law: execution.agreement-seam-lists-hold — six shareable, eleven

@@ -930,42 +930,64 @@ pub struct KernelRequirementSet {
     pub requirements: Bounded<KernelRequirement, KernelSetLimit>,
 }
 
-/// The kernel semantic-contract construction issues (the MEANING half) —
-/// eight, each naming the inventory fact by that fact's identity and nothing
-/// else. `OperandOrResultSortUnclosed` refuses a sort admitting an inhabitant
-/// the closed value algebra excludes — the same prohibition read at the
-/// boundary is the INTERFACE contract's, a distinct defect with a distinct
-/// repair. `LawDeclarationMissing` is a DECLARATION defect: the contract is
-/// never asked to prove the laws it names, only to name them.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum KernelSemanticContractConstructionIssue {
-    /// The operation owner, identity, or version is missing — owner is a
-    /// stated fact BESIDE identity and version, not a synonym for either.
-    OperationOwnerIdentityOrVersionMissing,
-    /// An operand or result sort is missing.
-    OperandOrResultSortMissing,
-    /// An operand or result sort is unclosed.
-    OperandOrResultSortUnclosed,
-    /// The law declaration is missing.
-    LawDeclarationMissing,
-    /// The work formula is missing.
-    WorkFormulaMissing,
-    /// The work formula is in a kernel-private bound language — the shared
-    /// bound-dimension register is the only lawful work vocabulary, and this
-    /// contract is where that prohibition binds because the work formula is a
-    /// meaning fact.
-    WorkFormulaInKernelPrivateBoundLanguage,
-    /// The purity or effect posture is missing.
-    PurityOrEffectPostureMissing,
-    /// The contract leaves an operation two of — or none of — primitive
-    /// operator, definition over smaller operators, qualified opaque kernel.
-    DefinitionBoundaryUnfixedOrAmbiguous,
+crate::closed_register! {
+    /// The kernel semantic-contract construction issues (the MEANING half),
+    /// each naming the inventory fact by that fact's identity and nothing
+    /// else. `OperandOrResultSortUnclosed` refuses a sort admitting an inhabitant
+    /// the closed value algebra excludes — the same prohibition read at the
+    /// boundary is the INTERFACE contract's, a distinct defect with a distinct
+    /// repair. `LawDeclarationMissing` is a DECLARATION defect: the contract is
+    /// never asked to prove the laws it names, only to name them.
+    pub enum KernelSemanticContractConstructionIssue {
+        /// The operation owner, identity, or version is missing — owner is a
+        /// stated fact BESIDE identity and version, not a synonym for either.
+        OperationOwnerIdentityOrVersionMissing =
+            "operation-owner-identity-or-version-missing",
+            "the operation owner, identity, or version is missing";
+        /// An operand or result sort is missing.
+        OperandOrResultSortMissing = "operand-or-result-sort-missing",
+            "an operand or result sort is missing";
+        /// An operand or result sort is unclosed.
+        OperandOrResultSortUnclosed = "operand-or-result-sort-unclosed",
+            "an operand or result sort is unclosed";
+        /// The law declaration is missing.
+        LawDeclarationMissing = "law-declaration-missing",
+            "the law declaration is missing";
+        /// The work formula is missing.
+        WorkFormulaMissing = "work-formula-missing", "the work formula is missing";
+        /// The work formula is in a kernel-private bound language — the shared
+        /// bound-dimension register is the only lawful work vocabulary, and this
+        /// contract is where that prohibition binds because the work formula is a
+        /// meaning fact.
+        WorkFormulaInKernelPrivateBoundLanguage =
+            "work-formula-in-kernel-private-bound-language",
+            "the work formula is written in a bound language only the kernel knows";
+        /// The purity or effect posture is missing.
+        PurityOrEffectPostureMissing = "purity-or-effect-posture-missing",
+            "the purity or effect posture is missing";
+        /// The contract leaves an operation two of — or none of — primitive
+        /// operator, definition over smaller operators, qualified opaque kernel.
+        DefinitionBoundaryUnfixedOrAmbiguous =
+            "definition-boundary-unfixed-or-ambiguous",
+            "the operation is left with two definition boundaries, or with none";
+    }
 }
 
 /// Limit family for semantic-contract issues.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct KernelSemanticIssueLimit;
 impl Limit for KernelSemanticIssueLimit {}
+impl ConstLimit for KernelSemanticIssueLimit {
+    /// The register's own cardinality, read off the register.
+    ///
+    /// Each issue is a distinct established fact about one contract, so a body
+    /// carrying one of each is the widest honest report — and that number is not
+    /// a magnitude anybody decided, it is the roster's length. `ALL` and the enum
+    /// come out of a single declaration, so a row added to the register moves
+    /// this bound in the same edit; there is no second place where the count is
+    /// written and therefore no second place for it to be wrong.
+    const MAX: usize = KernelSemanticContractConstructionIssue::ALL.len();
+}
 
 /// Kernel semantic-contract construction. `Complete` is the paved default
 /// here — an authored first-party declaration whose issues are independent
@@ -1000,51 +1022,70 @@ impl RefusalFamily for KernelSemanticContractConstruction {
     const SELECTION_ORDER: &'static [&'static str] = &[];
 }
 
-/// The kernel interface-contract construction issues (the BOUNDARY half) —
-/// thirteen. Causes 9–13 are the five smuggling prohibitions read as
-/// construction defects: a declared surface admitting an ambient callback,
-/// live authority, a host object, unmetered work, or an undeclared effect is
-/// refused at construction — BEFORE any realization is qualified. One
-/// declaration can admit several at once, which is why this family's
-/// collection is its strongest case. An evidence route that reuses the
-/// producer's verdict logic is a MISSING independent route, not a present
-/// one.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum KernelInterfaceContractConstructionIssue {
-    /// The bound-operation reference is missing or unresolvable — refused
-    /// before any boundary fact is read.
-    BoundOperationReferenceMissing,
-    /// The operand or result carriage is missing — carriage is the
-    /// boundary's own fact, never a second spelling of the sorts.
-    OperandOrResultCarriageMissing,
-    /// A capability, source, or authority requirement is missing.
-    CapabilitySourceOrAuthorityRequirementMissing,
-    /// The bounds are missing.
-    BoundsMissing,
-    /// The refusal route is missing.
-    RefusalRouteMissing,
-    /// The independent evidence route is missing.
-    IndependentEvidenceRouteMissing,
-    /// The public construction route is missing.
-    PublicConstructionRouteMissing,
-    /// The inspection route is missing.
-    InspectionRouteMissing,
-    /// An ambient callback in the interface.
-    AmbientCallbackInInterface,
-    /// An authority-bearing interface surface.
-    AuthorityBearingInterfaceSurface,
-    /// A host object in the interface.
-    HostObjectInInterface,
-    /// An unmetered work surface.
-    UnmeteredWorkSurface,
-    /// An undeclared effect surface.
-    UndeclaredEffectSurface,
+crate::closed_register! {
+    /// The kernel interface-contract construction issues (the BOUNDARY half).
+    /// The last five rows are the five smuggling prohibitions read as
+    /// construction defects: a declared surface admitting an ambient callback,
+    /// live authority, a host object, unmetered work, or an undeclared effect is
+    /// refused at construction — BEFORE any realization is qualified. One
+    /// declaration can admit several at once, which is why this family's
+    /// collection is its strongest case. An evidence route that reuses the
+    /// producer's verdict logic is a MISSING independent route, not a present
+    /// one.
+    pub enum KernelInterfaceContractConstructionIssue {
+        /// The bound-operation reference is missing or unresolvable — refused
+        /// before any boundary fact is read.
+        BoundOperationReferenceMissing = "bound-operation-reference-missing",
+            "the bound-operation reference is missing or cannot be resolved";
+        /// The operand or result carriage is missing — carriage is the
+        /// boundary's own fact, never a second spelling of the sorts.
+        OperandOrResultCarriageMissing = "operand-or-result-carriage-missing",
+            "the operand or result carriage is missing";
+        /// A capability, source, or authority requirement is missing.
+        CapabilitySourceOrAuthorityRequirementMissing =
+            "capability-source-or-authority-requirement-missing",
+            "a capability, source, or authority requirement is missing";
+        /// The bounds are missing.
+        BoundsMissing = "bounds-missing", "the bounds are missing";
+        /// The refusal route is missing.
+        RefusalRouteMissing = "refusal-route-missing", "the refusal route is missing";
+        /// The independent evidence route is missing.
+        IndependentEvidenceRouteMissing = "independent-evidence-route-missing",
+            "the independent evidence route is missing";
+        /// The public construction route is missing.
+        PublicConstructionRouteMissing = "public-construction-route-missing",
+            "the public construction route is missing";
+        /// The inspection route is missing.
+        InspectionRouteMissing = "inspection-route-missing",
+            "the inspection route is missing";
+        /// An ambient callback in the interface.
+        AmbientCallbackInInterface = "ambient-callback-in-interface",
+            "the interface carries an ambient callback";
+        /// An authority-bearing interface surface.
+        AuthorityBearingInterfaceSurface = "authority-bearing-interface-surface",
+            "the interface carries a surface that bears authority";
+        /// A host object in the interface.
+        HostObjectInInterface = "host-object-in-interface",
+            "the interface carries a host object";
+        /// An unmetered work surface.
+        UnmeteredWorkSurface = "unmetered-work-surface",
+            "the interface carries a work surface nothing meters";
+        /// An undeclared effect surface.
+        UndeclaredEffectSurface = "undeclared-effect-surface",
+            "the interface carries an effect surface nothing declared";
+    }
 }
 
 /// Limit family for interface-contract issues.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct KernelInterfaceIssueLimit;
 impl Limit for KernelInterfaceIssueLimit {}
+impl ConstLimit for KernelInterfaceIssueLimit {
+    /// The register's own cardinality, read off the register — see
+    /// [`KernelSemanticIssueLimit::MAX`] for why a bound that is the roster's
+    /// length is not a magnitude anybody decided.
+    const MAX: usize = KernelInterfaceContractConstructionIssue::ALL.len();
+}
 
 /// Kernel interface-contract construction. Non-claims: no meaning facts; no
 /// agreement with the semantic contract; no freedom from smuggling IN THE
