@@ -13,7 +13,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::repository::readme::{
-    claimed_green_laws, classify_green_rows, home_readmes, red_twin_rows, tooling_red_rows,
+    classify_green_rows, home_readmes, red_twin_rows, tooling_red_rows,
 };
 use crate::repository::types::GreenRow;
 use crate::repository::walk::{JUDGE_DIRECTORY, relative_slash_path, visit_files};
@@ -39,14 +39,26 @@ const OWED_PREFIX: &str = "owed-to";
 /// twice is a proof standing in for a claim it does not make, and it reads as
 /// discharged from both rows.
 ///
-/// **Green, every row read.** A green row states its positive control in one of
-/// three spellings — a `laws.rs` target, a path to a file, or a declared
-/// disposition accounting for why no file holds one — and every row is
-/// classified as one of them or reported. Reading only the spellings a leg can
-/// use is how a row that lost its suffix, or its value, leaves the population
-/// without anything refusing it: the obligation then qualifies while the
-/// positive control it names is never looked for, which is the failure this
+/// **Green, every row read, by ONE reader.** A green row states its positive
+/// control in one of three spellings — a `laws.rs` target, a path to a file, or
+/// a declared disposition accounting for why no file holds one — and every row
+/// is classified as one of them or reported. Reading only the spellings a leg
+/// can use is how a row that lost its suffix, or its value, leaves the
+/// population without anything refusing it: the obligation then qualifies while
+/// the positive control it names is never looked for, which is the failure this
 /// whole boundary exists to prevent, one level up in the reader.
+///
+/// Every README is read ONCE and classified once, and the claims this join
+/// resolves are the seats that reading produced — not a second pass with a
+/// prefix of its own. Two readers over one population is the same defect
+/// arriving through the door the classifier was built to shut: the strict reader
+/// this join used to call matched `"green: laws.rs "` literally, so a row
+/// spelled `green:laws.rs …`, or with a tab, or with two spaces, was seated by
+/// the classifier and claimed by nobody. It answered no leg, it failed no count
+/// — the classifier had already counted it as read — and the obligation
+/// qualified while naming a law that does not exist. One read rather than two,
+/// so the seat and the claim can never be about different rows: a fact of this
+/// function rather than a hope about two of them.
 ///
 /// **Green, wherever the positive control actually sits.** A green row may name
 /// a testpak seat rather than a `laws.rs` one, because a behavioral claim's
@@ -77,71 +89,32 @@ const OWED_PREFIX: &str = "owed-to";
 /// check while the accounting shrank.
 pub(crate) fn check_obligations_join(root: &Path) -> Result<(), String> {
     let readmes = home_readmes(root)?;
-    let claimed = claimed_green_laws(&readmes)?;
     let laws_path = root.join("src").join("laws.rs");
     let laws = fs::read_to_string(&laws_path).map_err(|e| format!("laws.rs: {e}"))?;
-    let mut existing = Vec::new();
-    let mut current_module = String::new();
-    let mut previous_was_test = false;
-    for line in laws.lines() {
-        if let Some(rest) = line.strip_prefix("mod ")
-            && let Some(module) = rest.strip_suffix(" {")
-        {
-            current_module = module.to_string();
-        }
-        if previous_was_test
-            && let Some(rest) = line.trim().strip_prefix("fn ")
-            && let Some(law) = rest.split('(').next()
-        {
-            existing.push((current_module.clone(), law.to_string()));
-        }
-        previous_was_test = line.trim() == "#[test]";
-    }
-    let mut offenders = Vec::new();
-    for (module, law, readme) in &claimed {
-        if !existing.iter().any(|(m, l)| m == module && l == law) {
-            offenders.push(format!(
-                "{} claims {module}::{law} but laws.rs has no such law",
-                readme.display()
-            ));
-        }
-    }
-    for (module, law) in &existing {
-        if !claimed.iter().any(|(m, l, _)| m == module && l == law) {
-            offenders.push(format!(
-                "laws.rs {module}::{law} is claimed by no obligation"
-            ));
-        }
-    }
-    let attributed: Vec<(String, String, String)> = claimed
-        .iter()
-        .map(|(module, law, readme)| {
-            (
-                module.clone(),
-                law.clone(),
-                relative_slash_path(root, readme),
-            )
-        })
-        .collect();
-    offenders.extend(double_claimed_offences(&attributed));
+    let existing = declared_laws(&laws);
+    let mut claimed = Vec::new();
     let mut rows = Vec::new();
     let mut routes = Vec::new();
     let mut unreadable = Vec::new();
     for readme in &readmes {
         let text = fs::read_to_string(readme).map_err(|e| format!("{}: {e}", readme.display()))?;
+        let home = relative_slash_path(root, readme);
         for row in red_twin_rows(&text) {
-            rows.push((row, relative_slash_path(root, readme)));
+            rows.push((row, home.clone()));
         }
         for row in classify_green_rows(&text) {
             match row {
-                GreenRow::Route(named) => routes.push((named, relative_slash_path(root, readme))),
-                GreenRow::Unreadable(value) => {
-                    unreadable.push((value, relative_slash_path(root, readme)));
+                GreenRow::CompileTimeSeat { module, law } => {
+                    claimed.push((module, law, home.clone()));
                 }
-                GreenRow::CompileTimeSeat | GreenRow::Disposition => {}
+                GreenRow::Route(named) => routes.push((named, home.clone())),
+                GreenRow::Unreadable(value) => unreadable.push((value, home.clone())),
+                GreenRow::Disposition => {}
             }
         }
     }
+    let mut offenders = drifted_claim_offences(&claimed, &existing);
+    offenders.extend(double_claimed_offences(&claimed));
     let (reversals, seats) = testpak_populations(root)?;
     let ledger = red_twin_ledger(&rows, &reversals);
     offenders.extend(phantom_green_routes(&routes, &seats));
@@ -174,6 +147,70 @@ pub(crate) fn check_obligations_join(root: &Path) -> Result<(), String> {
     } else {
         Err(offenders.join("; "))
     }
+}
+
+/// Every `#[test]` law `laws.rs` declares, as `(module, law)` in file order.
+///
+/// A law is a `#[test]` function inside a `mod`, so the reading is the pair: the
+/// module last opened at the crate root, and the function the attribute sits
+/// on. Read as text rather than parsed, because what the join needs is the two
+/// names, and a reader that needed a syntax tree to learn them would be a second
+/// opinion about the same file.
+fn declared_laws(laws_text: &str) -> Vec<(String, String)> {
+    let mut declared = Vec::new();
+    let mut current_module = String::new();
+    let mut previous_was_test = false;
+    for line in laws_text.lines() {
+        if let Some(rest) = line.strip_prefix("mod ")
+            && let Some(module) = rest.strip_suffix(" {")
+        {
+            current_module = module.to_string();
+        }
+        if previous_was_test
+            && let Some(rest) = line.trim().strip_prefix("fn ")
+            && let Some(law) = rest.split('(').next()
+        {
+            declared.push((current_module.clone(), law.to_string()));
+        }
+        previous_was_test = line.trim() == "#[test]";
+    }
+    declared
+}
+
+/// Where the READMEs and `laws.rs` have drifted apart, in both directions: a
+/// claim naming a law that does not exist, and a law no obligation claims.
+///
+/// Both halves or neither. A claim nobody can resolve reads as proven and is
+/// not; a law nobody claims is a proof standing in the tree with no obligation
+/// admitting it exists, which is how a law survives the removal of the thing it
+/// was written for. Refusing only the first would let the READMEs shrink
+/// quietly, and refusing only the second would let them claim anything.
+///
+/// The offence names the README as this repository spells paths — relative, with
+/// forward slashes — so a run on any machine names the same file.
+///
+/// Pure over its inputs, so the leg is proven against fixture rows rather than
+/// by editing a README the repository stands on.
+fn drifted_claim_offences(
+    claimed: &[(String, String, String)],
+    existing: &[(String, String)],
+) -> Vec<String> {
+    let mut offences = Vec::new();
+    for (module, law, readme) in claimed {
+        if !existing.iter().any(|(m, l)| m == module && l == law) {
+            offences.push(format!(
+                "{readme} claims {module}::{law} but laws.rs has no such law"
+            ));
+        }
+    }
+    for (module, law) in existing {
+        if !claimed.iter().any(|(m, l, _)| m == module && l == law) {
+            offences.push(format!(
+                "laws.rs {module}::{law} is claimed by no obligation"
+            ));
+        }
+    }
+    offences
 }
 
 /// Every law claimed by more than one obligation, one offence per law.
@@ -456,16 +493,20 @@ fn testpak_populations(root: &Path) -> Result<(ReversalPopulation, SeatPopulatio
 #[cfg(test)]
 mod tests {
     use super::{
-        ReversalPopulation, SeatPopulation, double_claimed_offences, phantom_green_routes,
-        red_twin_ledger, testpak_populations, tooling_rows, unreadable_green_offences,
+        ReversalPopulation, SeatPopulation, declared_laws, double_claimed_offences,
+        drifted_claim_offences, phantom_green_routes, red_twin_ledger, testpak_populations,
+        tooling_rows, unreadable_green_offences,
     };
     use crate::repository::readme::{
-        claimed_green_laws, classify_green_rows, home_readmes, red_twin_rows, tooling_red_rows,
+        classify_green_rows, home_readmes, red_twin_rows, tooling_red_rows,
     };
     use crate::repository::types::GreenRow;
     use crate::repository::walk::{relative_slash_path, repo_root};
     use std::fs;
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
+
+    /// One synthetic `laws.rs` declaring exactly one law.
+    const ONE_LAW: &str = "mod root {\n    #[test]\n    fn a_law_somebody_wrote() {}\n}\n";
 
     /// One synthetic README's rows, attributed to a fixture file name.
     fn rows(readme_text: &str) -> Vec<(String, String)> {
@@ -473,6 +514,37 @@ mod tests {
             .into_iter()
             .map(|value| (value, String::from("FIXTURE.md")))
             .collect()
+    }
+
+    /// The claims one README's green rows make, read the one way the join reads
+    /// them and attributed to the home that wrote them.
+    fn claims_in(readme_text: &str, home: &str) -> Vec<(String, String, String)> {
+        classify_green_rows(readme_text)
+            .into_iter()
+            .filter_map(|row| match row {
+                GreenRow::CompileTimeSeat { module, law } => {
+                    Some((module, law, String::from(home)))
+                }
+                GreenRow::Disposition | GreenRow::Route(_) | GreenRow::Unreadable(_) => None,
+            })
+            .collect()
+    }
+
+    /// The claims one synthetic README's green rows make, attributed to a
+    /// fixture file name.
+    fn seat_claims(readme_text: &str) -> Vec<(String, String, String)> {
+        claims_in(readme_text, "FIXTURE.md")
+    }
+
+    /// Every claim the real repository's home READMEs make, attributed exactly
+    /// as the join attributes them.
+    fn real_claims(root: &Path) -> Vec<(String, String, String)> {
+        let mut claimed = Vec::new();
+        for readme in home_readmes(root).unwrap_or_default() {
+            let text = fs::read_to_string(&readme).unwrap_or_default();
+            claimed.extend(claims_in(&text, &relative_slash_path(root, &readme)));
+        }
+        claimed
     }
 
     /// One synthetic row naming a route or reversal, attributed to a fixture.
@@ -858,7 +930,7 @@ mod tests {
             match row {
                 GreenRow::Route(named) => routes.push((named, String::from("FIXTURE.md"))),
                 GreenRow::Unreadable(value) => unreadable.push((value, String::from("FIXTURE.md"))),
-                GreenRow::CompileTimeSeat | GreenRow::Disposition => {}
+                GreenRow::CompileTimeSeat { .. } | GreenRow::Disposition => {}
             }
         }
         assert_eq!(routes.len(), 1, "{routes:?}");
@@ -922,7 +994,7 @@ mod tests {
                 match row {
                     GreenRow::Route(named) => routes.push((named, name.clone())),
                     GreenRow::Unreadable(value) => unreadable.push((value, name.clone())),
-                    GreenRow::CompileTimeSeat => seated = seated.saturating_add(1),
+                    GreenRow::CompileTimeSeat { .. } => seated = seated.saturating_add(1),
                     GreenRow::Disposition => disposed = disposed.saturating_add(1),
                 }
             }
@@ -1072,20 +1144,97 @@ mod tests {
     #[test]
     fn the_real_obligations_claim_each_law_once() {
         let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
-        let readmes = home_readmes(&root).unwrap_or_default();
-        let claimed = claimed_green_laws(&readmes).unwrap_or_default();
+        let claimed = real_claims(&root);
         assert!(!claimed.is_empty(), "no green obligations found");
-        let attributed: Vec<(String, String, String)> = claimed
-            .iter()
-            .map(|(module, law, readme)| {
-                (
-                    module.clone(),
-                    law.clone(),
-                    relative_slash_path(&root, readme),
-                )
-            })
-            .collect();
-        let found = double_claimed_offences(&attributed);
+        let found = double_claimed_offences(&claimed);
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    /// Planted reversal: an obligation claiming a law nobody wrote, spelled the
+    /// four ways a SECOND reader matching `"green: laws.rs "` could not see —
+    /// no space after the colon, two spaces, a tab before `laws.rs`, and a tab
+    /// between `laws.rs` and its target.
+    ///
+    /// Read end to end, classifier into join leg, because the defect lived in
+    /// the gap between them and nowhere else. Each row was dropped by the strict
+    /// reader before the join, and seated by the classifier at the same time, so
+    /// the obligation qualified while naming a law that does not exist and the
+    /// count of rows read still matched the count of rows written. There is one
+    /// reader now, and each of these arrives at the leg that refuses it.
+    #[test]
+    fn a_seat_the_strict_reader_dropped_still_reaches_the_join() {
+        let existing = declared_laws(ONE_LAW);
+        assert_eq!(existing.len(), 1, "{existing:?}");
+        for spelled in [
+            "    green:laws.rs root::a_law_nobody_wrote\n",
+            "    green:  laws.rs root::a_law_nobody_wrote\n",
+            "    green:\tlaws.rs root::a_law_nobody_wrote\n",
+            "    green: laws.rs\troot::a_law_nobody_wrote\n",
+        ] {
+            let claimed = seat_claims(spelled);
+            assert_eq!(claimed.len(), 1, "{spelled:?} was not seated: {claimed:?}");
+            let found = drifted_claim_offences(&claimed, &existing);
+            assert!(
+                found
+                    .iter()
+                    .any(|offence| offence.contains("claims root::a_law_nobody_wrote")),
+                "{spelled:?}: {found:?}"
+            );
+        }
+    }
+
+    /// Planted reversal: the other direction of the same drift — a law standing
+    /// in `laws.rs` that no obligation claims, which is a proof outliving the
+    /// claim it was written for.
+    #[test]
+    fn a_law_no_obligation_claims_is_a_violation() {
+        let found = drifted_claim_offences(&[], &declared_laws(ONE_LAW));
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(
+            found
+                .first()
+                .is_some_and(|offence| offence.contains("claimed by no obligation")),
+            "{found:?}"
+        );
+    }
+
+    /// The positive control: a claim and the law that answers it are no offence
+    /// in either direction. A leg that flagged everything would satisfy both
+    /// reversals above and be worthless.
+    #[test]
+    fn a_claim_and_the_law_answering_it_are_lawful() {
+        let claimed = seat_claims("    green: laws.rs root::a_law_somebody_wrote\n");
+        assert_eq!(claimed.len(), 1, "{claimed:?}");
+        let found = drifted_claim_offences(&claimed, &declared_laws(ONE_LAW));
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    /// The real repository holds: the seats its READMEs write and the laws
+    /// `laws.rs` declares are ONE population, counted through the one reader the
+    /// join uses.
+    ///
+    /// The number that used to be a coincidence, stated out loud. Two readers
+    /// with two prefixes agreed on their counts only because every row in this
+    /// tree happens to be spelled with exactly one space in each place; the
+    /// first row spelled otherwise would have left the strict reader's
+    /// population with nothing saying so. There is one reader now, so this
+    /// states what it found against the file it is joined to, and a seat that
+    /// stops resolving moves the number rather than hiding behind it.
+    #[test]
+    fn the_real_seats_are_the_real_laws() {
+        let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
+        let claimed = real_claims(&root);
+        let laws = fs::read_to_string(root.join("src").join("laws.rs")).unwrap_or_default();
+        let existing = declared_laws(&laws);
+        assert!(!existing.is_empty(), "laws.rs declares no law");
+        assert_eq!(
+            claimed.len(),
+            existing.len(),
+            "{} seats claimed, {} laws declared",
+            claimed.len(),
+            existing.len()
+        );
+        let found = drifted_claim_offences(&claimed, &existing);
         assert!(found.is_empty(), "{found:?}");
     }
 }

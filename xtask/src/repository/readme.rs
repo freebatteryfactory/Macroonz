@@ -44,33 +44,6 @@ pub(crate) fn home_readmes(root: &Path) -> Result<Vec<PathBuf>, String> {
     Ok(readmes)
 }
 
-/// Every green law one README claims, as `(module, law, declaring README)`.
-pub(crate) fn claimed_green_laws(
-    readmes: &[PathBuf],
-) -> Result<Vec<(String, String, PathBuf)>, String> {
-    let mut claimed = Vec::new();
-    for readme in readmes {
-        let text = fs::read_to_string(readme).map_err(|e| format!("{}: {e}", readme.display()))?;
-        for line in text.lines() {
-            let Some(rest) = line.trim().strip_prefix("green: laws.rs ") else {
-                continue;
-            };
-            let target: String = rest
-                .chars()
-                .take_while(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == ':')
-                .collect();
-            let Some((module, law)) = target.split_once("::") else {
-                return Err(format!(
-                    "{}: green target `{target}` is not module::law",
-                    readme.display()
-                ));
-            };
-            claimed.push((module.to_string(), law.to_string(), readme.clone()));
-        }
-    }
-    Ok(claimed)
-}
-
 /// The spelling a green row opens with when its positive control is a
 /// compile-time seat.
 const COMPILE_TIME_SEAT: &str = "laws.rs";
@@ -84,9 +57,19 @@ const DISPOSITION_PAREN: char = '(';
 
 /// Every `green:` obligation row in one README, classified, in file order.
 ///
+/// THE prefix discipline for green rows, and the only one: this reader is the
+/// whole population, so nothing downstream matches a prefix of its own.
+///
 /// The prefix is matched WITHOUT its trailing space and the value is trimmed
 /// after, so a row whose value was emptied is read as a row with an empty value
-/// rather than vanishing from the population.
+/// rather than vanishing from the population — and, for the same reason, a row
+/// spelled `green:laws.rs …`, or with a tab, or with two spaces, is read as the
+/// row it plainly is. A second reader matching `"green: laws.rs "` dropped every
+/// one of those while this one seated them, and a row seated by one reader and
+/// claimed by neither is an obligation that qualifies while naming a law nobody
+/// wrote. There is no second reader now: the seat carries its target, so the
+/// spacing a row happens to be written with cannot decide whether its claim is
+/// joined.
 pub(crate) fn classify_green_rows(readme_text: &str) -> Vec<GreenRow> {
     readme_text
         .lines()
@@ -103,7 +86,10 @@ fn classify_green_row(value: &str) -> GreenRow {
     };
     let account = value.strip_prefix(first).unwrap_or_default().trim();
     let read = if first == COMPILE_TIME_SEAT {
-        names_a_target(account).then_some(GreenRow::CompileTimeSeat)
+        seat_target(account).map(|(module, law)| GreenRow::CompileTimeSeat {
+            module: module.to_string(),
+            law: law.to_string(),
+        })
     } else if first == "none" || first == "owed" {
         accounts_after(account, DISPOSITION_DASH).then_some(GreenRow::Disposition)
     } else if first == "structural" {
@@ -116,16 +102,17 @@ fn classify_green_row(value: &str) -> GreenRow {
     read.unwrap_or_else(|| GreenRow::Unreadable(value.to_string()))
 }
 
-/// Whether what follows `laws.rs` on a row names a `module::name` target.
+/// The `module::name` target a `laws.rs` row states, split where it splits.
 ///
-/// The target itself is resolved by [`claimed_green_laws`] against `laws.rs`.
-/// All that is read here is whether the row named one at all, because a row that
-/// names none is answered by neither leg.
-fn names_a_target(account: &str) -> bool {
-    account
-        .split_whitespace()
-        .next()
-        .is_some_and(|target| target.contains("::"))
+/// The one place a green target is read. The split happens here rather than
+/// downstream so that a seat and its claim are the same act: every row this
+/// function splits becomes a seat carrying that exact pair, and every row it
+/// cannot split names no target at all and leaves as [`GreenRow::Unreadable`],
+/// answered by the leg that names it against the README that wrote it. Neither
+/// outcome depends on how the row was spaced, and no later reader gets a second
+/// opinion about which characters the target was made of.
+fn seat_target(account: &str) -> Option<(&str, &str)> {
+    account.split_whitespace().next()?.split_once("::")
 }
 
 /// Whether a disposition opens its account with `opener` and states something
@@ -158,6 +145,11 @@ fn is_rust_route(named: &str) -> bool {
 /// It is matched WITHOUT its trailing space for the reason the green side is: a
 /// row whose value was emptied is still a row, and a reader that stopped seeing
 /// it would quietly shrink the denominator this repository publishes.
+///
+/// THE prefix discipline for red rows, and the only one, on the same rule the
+/// green side is held to: one population gets one reader. Two readers over these
+/// rows would not merely disagree, they would disagree about a published number,
+/// and the row each of them dropped would be the row nobody looked at.
 pub(crate) fn red_twin_rows(readme_text: &str) -> Vec<String> {
     readme_text
         .lines()
@@ -218,13 +210,22 @@ mod tests {
         assert_eq!(tooling_red_rows(text), vec![String::new()]);
     }
 
+    /// One seat carrying the target it named.
+    fn seat(module: &str, law: &str) -> GreenRow {
+        GreenRow::CompileTimeSeat {
+            module: String::from(module),
+            law: String::from(law),
+        }
+    }
+
     /// The positive control: every spelling this repository actually writes is
     /// read as the spelling it is, and the route population is exactly the rows
     /// naming a file.
     ///
-    /// A reader that also returned the `laws.rs` rows would make the join answer
-    /// one claim twice, and one that swallowed the prose dispositions would
-    /// demand a file from a row whose whole content is that no file exists.
+    /// A reader that also returned the `laws.rs` rows as routes would demand a
+    /// test FILE from a row whose control is a compile-time seat, and one that
+    /// swallowed the prose dispositions would demand a file from a row whose
+    /// whole content is that no file exists.
     #[test]
     fn every_lawful_green_spelling_is_read_as_itself() {
         let text = "    green: laws.rs root::a_seat_that_exists\n\
@@ -235,11 +236,65 @@ mod tests {
         assert_eq!(
             classify_green_rows(text),
             vec![
-                GreenRow::CompileTimeSeat,
+                seat("root", "a_seat_that_exists"),
                 GreenRow::Disposition,
                 GreenRow::Disposition,
                 GreenRow::Disposition,
                 GreenRow::Route(String::from("testpak/tests/stamp_row_ceiling.rs")),
+            ]
+        );
+    }
+
+    /// Planted reversal: four seat rows whose only fault is how they were
+    /// spaced. A SECOND reader matching the literal `"green: laws.rs "` dropped
+    /// every one of them — no space after the colon, two spaces, a tab, a tab
+    /// between `laws.rs` and its target — while this reader seated all four.
+    ///
+    /// That gap is the whole defect, and it was silent by construction: the
+    /// dropped rows never reached the join, so the leg that refuses a claim on a
+    /// law nobody wrote never saw them, and the count of rows READ still agreed
+    /// with the count of rows WRITTEN because the classifier had counted them.
+    /// An obligation could therefore qualify while naming a law that does not
+    /// exist, on nothing but a keystroke of whitespace. Every one of these now
+    /// carries the same target as the row spelled the ordinary way, so the join
+    /// resolves them all.
+    #[test]
+    fn a_seat_row_is_read_however_it_is_spaced() {
+        let text = "    green:laws.rs root::a_seat_that_exists\n\
+                    \x20   green:  laws.rs root::a_seat_that_exists\n\
+                    \x20   green:\tlaws.rs root::a_seat_that_exists\n\
+                    \x20   green: laws.rs\troot::a_seat_that_exists\n";
+        let read = classify_green_rows(text);
+        assert_eq!(
+            read,
+            vec![
+                seat("root", "a_seat_that_exists"),
+                seat("root", "a_seat_that_exists"),
+                seat("root", "a_seat_that_exists"),
+                seat("root", "a_seat_that_exists"),
+            ],
+            "{read:?}"
+        );
+    }
+
+    /// Planted reversal: a seat row whose target is not `module::law`, in the
+    /// two ways it goes wrong — one colon, and a name with no module in front
+    /// of it.
+    ///
+    /// Both used to be read by a second reader that answered a MALFORMED target
+    /// by failing the whole join with a message about the target alone. Read
+    /// here, the row is named against the README that wrote it and the rest of
+    /// the population is still judged, which is how every other unreadable row
+    /// in this repository is answered.
+    #[test]
+    fn a_seat_without_a_module_law_target_is_unreadable() {
+        let text = "    green: laws.rs root:a_seat_that_exists\n\
+                    \x20   green: laws.rs a_seat_that_exists\n";
+        assert_eq!(
+            classify_green_rows(text),
+            vec![
+                GreenRow::Unreadable(String::from("laws.rs root:a_seat_that_exists")),
+                GreenRow::Unreadable(String::from("laws.rs a_seat_that_exists")),
             ]
         );
     }

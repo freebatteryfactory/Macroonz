@@ -41,11 +41,25 @@ pub(crate) enum ModuleLayout {
 /// reader classified, and one that no spelling reads leaves it named.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum GreenRow {
-    /// `laws.rs module::name`: the positive control is a compile-time seat, read
-    /// and joined by the green leg that owns `laws.rs`. Carried here as a
-    /// spelling and nothing else — reading it a second time would answer one
-    /// claim twice.
-    CompileTimeSeat,
+    /// `laws.rs module::name`: the positive control is a compile-time seat, and
+    /// this is the target the row named, split where the row split it.
+    ///
+    /// The target is CARRIED rather than left to a reader of its own. It was
+    /// once dropped here, on the argument that reading it twice would answer one
+    /// claim twice — but nothing was ever read twice. One reader classified the
+    /// row and a SECOND one resolved its target off a stricter prefix, and the
+    /// two were never compared: a row the strict prefix did not match was seated
+    /// by the first and claimed by neither, so the obligation qualified while
+    /// naming a law nobody wrote. Carrying the target is what makes that
+    /// unrepresentable rather than merely unlikely — a seat cannot be
+    /// constructed without the claim it makes, so there is no second reader left
+    /// to disagree with.
+    CompileTimeSeat {
+        /// The `laws.rs` module the row named, before the `::`.
+        module: String,
+        /// The law within that module, after the `::`.
+        law: String,
+    },
     /// `none — …`, `owed — …`, or `structural (…)`: the row states that no file
     /// holds a positive control, and accounts for why. The account is part of
     /// the form, because a bare word states the absence and withholds the
