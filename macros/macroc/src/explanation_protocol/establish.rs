@@ -8,16 +8,13 @@
 //! repairing a view one question per attempt.
 //!
 //! Nothing here reaches a private field: the pass reads each explanation's
-//! question through the same answer any caller gets. The road that consumes this
-//! pass lives in `type_guard.rs`, because completing a view is what must stay
-//! unreachable.
+//! question through the same answer any caller gets. The roads that consume this
+//! pass live in `type_guard.rs`, because completing a view and building the
+//! refusal body are both what must stay unreachable.
 
-use super::{ExplanationCoverage, ExplanationCoverageIssue, ProjectionExplanation};
-use crate::plane::AuthoringLimitProfile;
+use super::{ExplanationCoverageIssue, ProjectionExplanation};
 use crate::planning::{ProjectionKind, ProjectionPlan};
 use crate::question::{ExplanationQuestion, QuestionApplicability};
-use threadpak::refusal::{AdmittedPrefix, StopBound};
-use threadpak::types::PositiveLimit;
 
 /// Whether one kind admits one question.
 #[must_use]
@@ -56,43 +53,4 @@ pub(super) fn coverage_issues<K: ProjectionKind>(
         }
     }
     issues
-}
-
-/// The refusal one established issue list amounts to, or nothing where the list
-/// is empty.
-///
-/// One road for every pass in
-/// [`ProjectionExplanationView::complete`](super::ProjectionExplanationView::complete),
-/// so no pass can establish issues and then walk on past them.
-pub(super) fn refused(issues: Vec<ExplanationCoverageIssue>) -> Option<ExplanationCoverage> {
-    let mut established = issues.into_iter();
-    let first = established.next()?;
-    Some(ExplanationCoverage::established(
-        first,
-        established.collect(),
-    ))
-}
-
-impl ExplanationCoverage {
-    /// The body a coverage check refuses with.
-    ///
-    /// The coverage pass above walks the kind's whole applicable roster and then
-    /// every supplied answer before a body exists, so the posture here is about
-    /// the REPORT rather than the pass. Where every established issue fits the
-    /// declared bound the body carries all of them; where it does not, the body
-    /// carries what the bound holds and names how many established issues stand
-    /// outside it.
-    pub(super) fn established(
-        first: ExplanationCoverageIssue,
-        rest: Vec<ExplanationCoverageIssue>,
-    ) -> Self {
-        Self {
-            report: AdmittedPrefix::examined_completely(
-                first,
-                rest,
-                &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
-                StopBound::DeclaredIssueBound,
-            ),
-        }
-    }
 }

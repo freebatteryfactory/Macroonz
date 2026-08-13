@@ -123,7 +123,7 @@ fn a_shortened_complete_set_proves_a_smaller_claim() {
                 closed.closure().rendered().clone(),
             )
             .is_err_and(|refusal| {
-                *refusal.report.carried().first()
+                *refusal.body().carried().first()
                     == ClosureIssue::MemberUnplanned {
                         role: RenderedImplementation::RenderedCauseOrderImpl,
                     }
@@ -175,7 +175,7 @@ fn a_neighbouring_digest_answers_about_another_value() -> Result<(), ()> {
         RenderedProjection::of_one(neighbour),
     );
     assert!(closed_earlier.is_err_and(|refusal| {
-        *refusal.report.carried().first()
+        *refusal.body().carried().first()
             == ClosureIssue::MemberMissing {
                 role: RenderedImplementation::RenderedFamilyImpl,
             }
@@ -264,12 +264,12 @@ fn a_doubled_role_refuses_at_the_declaration_and_at_the_closure() -> Result<(), 
     .err()
     .ok_or(())?;
     assert!(
-        *planning.report.carried().first()
+        *planning.body().carried().first()
             == ProjectionPlanningIssue::MembershipDoubled {
                 role_slot: RenderedImplementation::RenderedFamilyImpl.slot(),
                 observed: 2,
             }
-            && *closure.report.carried().first()
+            && *closure.body().carried().first()
                 == ClosureIssue::MemberPlannedTwice {
                     role: RenderedImplementation::RenderedFamilyImpl,
                     observed: 2,

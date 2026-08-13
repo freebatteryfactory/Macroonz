@@ -218,6 +218,31 @@ tooling-obligation: macroc.a-failed-required-seat-is-a-typed-refusal
     refusal body is covered: rendering a count too large to render is not
     answering a seat with a neighbouring value.
 
+tooling-obligation: macroc.a-refusal-body-is-minted-by-the-pass-that-established-it
+  claim: >
+    Every refusal family body in the services carries band 00's coupled seat under
+    the name core gives it, `body`, and that seat is PRIVATE. The coupled seat
+    keeps a carry and its posture together; the private seat keeps the body and
+    the pass that established it together, because a one-field record whose one
+    field is public is a record any holder can write. Each body is minted only in
+    the `type_guard.rs` that is its `types.rs`'s own child, and read back through
+    one borrowed reader.
+  owner: macros/macroc/src/refusal/type_guard.rs
+  positive: macros/macroc/src/laws.rs
+  method: compile-refusal
+  activation: cargo test -p threadpak-testpak --test compile_refusals
+  tooling-red: testpak/tests/compile-fail/a-services-refusal-body-reseated-by-literal.rs
+    — a body built through the public guarded road, written into a second refusal
+    by literal from outside the crate, refusing with E0451
+  nonclaims: >
+    It does not claim total exclusion inside the services crate. A private field
+    stops every SIBLING module and every downstream crate; it does not stop a
+    module declared INSIDE the guard, which would construct as freely as the mint
+    does. No `#[cfg(test)]` module stands under any of these guards, and the
+    reversal is owned outside the crate for exactly that reason. It does not claim
+    the body a mint produces is the right body: that the issues are the ones the
+    pass established is the coupled seat's claim and band 00's, not this one's.
+
 tooling-obligation: macroc.the-emitted-tree-is-inside-the-closure-proof
   claim: >
     The exact token stream an expansion emits is joined by the closure, owned by
