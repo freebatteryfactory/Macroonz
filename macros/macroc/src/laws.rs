@@ -2774,41 +2774,125 @@ mod pattern_stamp {
         }));
     }
 
-    /// law: pattern-stamp.the-watch-set-covers-every-context-anchor — every
-    /// identity the shared plan context carries is watched by a trigger of its
-    /// own: the cause set, the graph, the projection profile, and the generator
-    /// version. Four seats, four triggers, none of them the same kind twice.
+    /// law: pattern-stamp.the-watch-set-is-derived-from-the-context — the
+    /// stamp's watch set is not written at the stamp's plan site. It IS
+    /// `ProjectionContext::watch_set`, derived from the seats the context
+    /// declares, so there is no second roster at the call site to fall behind
+    /// the value it is about.
     ///
-    /// The profile was the missing one. A stamp's planned member declares the
-    /// profile and version it EXPECTS to render under, so a profile that moved
-    /// left a plan whose expectation nobody re-decided — stale, and still
-    /// reading as current.
+    /// Where the strength actually lives: the derivation destructures
+    /// `ProjectionContext` exhaustively, and the plan site destructures
+    /// `ScopeGuardStampAnchors` exhaustively. A seat added to either stops the
+    /// build until somebody decides what it means for invalidation. That is a
+    /// compiler-carried completeness claim, and this law is the positive control
+    /// beside it rather than the claim itself.
     ///
-    /// The claim ceiling, stated because it is the honest boundary: this covers
-    /// the CONTEXT and not the anchors supplied beside it. The pattern, the
-    /// instantiation, the two typed arguments, the origin nodes, the stamped
-    /// unit, the traced subject, and the cited owner facts define the plan too,
-    /// and the trigger roster declares no seat any of them could be watched
-    /// through. The gap is named in `pattern_stamp/plan.rs` rather than papered
-    /// over here.
+    /// The claim ceiling, stated because it is the honest boundary: the derived
+    /// set covers the CONTEXT and not the anchors supplied beside it. The
+    /// pattern, the instantiation, the two typed arguments, the origin nodes,
+    /// the stamped unit, the traced subject and the cited owner facts define the
+    /// plan too, and the trigger roster declares no seat any of them could be
+    /// watched through — every seat it declares is one thirty-two-byte identity
+    /// of a declared kind, and the set's magnitude IS that roster's cardinality.
+    /// Those anchors are now COUNTED by the plan site's destructure rather than
+    /// remembered by its prose.
     ///
-    /// Owed reversal (red twin): dropping any context trigger from the watch set
-    /// must break this law.
+    /// Reversal: dropping any context seat from the derivation breaks this law,
+    /// and adding a seat to either struct breaks the build.
     #[test]
-    fn the_watch_set_covers_every_context_anchor() {
+    fn the_watch_set_is_derived_from_the_context() {
         let anchors = anchors();
+        let derived = anchors.context.watch_set();
         let planned = plan_scope_guard_stamp(&anchors);
         assert!(planned.is_ok_and(|plan| {
-            let watched: Vec<InvalidationTrigger> = plan.invalidation().iter().copied().collect();
+            derived.is_ok_and(|derived| {
+                let from_plan: Vec<InvalidationTrigger> =
+                    plan.invalidation().iter().copied().collect();
+                let from_context: Vec<InvalidationTrigger> = derived.iter().copied().collect();
+                from_plan == from_context
+            })
+        }));
+    }
+
+    /// law: pattern-stamp.every-context-identity-is-watched — every identity the
+    /// shared plan context carries has a trigger of its own: the cause set, the
+    /// graph, the projection profile, the generator version, and — where the
+    /// context is bound to one — the host contract.
+    ///
+    /// The target binding was the missing one, and it was missing in a way no
+    /// existing control could see: the hand-written roster stopped at four, the
+    /// roster's `TargetContractChanged` seat sat unused, and every context in
+    /// the tree is target-FREE, so the gap only opens for the first plan bound
+    /// to a host contract. The control below binds one deliberately.
+    ///
+    /// The two postures are asked separately because they are different claims.
+    /// A target-free context contributes no trigger — a posture is not an
+    /// identity and there is nothing to name — and a bound one contributes
+    /// exactly one, naming the contract.
+    #[test]
+    fn every_context_identity_is_watched() {
+        let free = anchors();
+        assert!(free.context.watch_set().is_ok_and(|set| {
+            let watched: Vec<InvalidationTrigger> = set.iter().copied().collect();
             watched.len() == 4
-                && watched.contains(&anchors.context.cause_trigger())
-                && watched.contains(&anchors.context.graph_trigger())
+                && watched.contains(&free.context.cause_trigger())
+                && watched.contains(&free.context.graph_trigger())
                 && watched.contains(&InvalidationTrigger::ProjectionProfileChanged {
-                    watched: anchors.context.profile,
+                    watched: free.context.profile,
                 })
                 && watched.contains(&InvalidationTrigger::GeneratorVersionChanged {
-                    watched: anchors.context.generator,
+                    watched: free.context.generator,
                 })
+                // A posture is not an identity: target-free names nothing.
+                && !watched.iter().any(|trigger| {
+                    matches!(trigger, InvalidationTrigger::TargetContractChanged { .. })
+                })
+        }));
+
+        // The same context bound to a host contract watches the contract too.
+        let contract = OwnerIdentityRef::decoded([117; 32]);
+        let mut bound = anchors();
+        bound.context.target = TargetBinding::HostContract(contract);
+        assert!(bound.context.watch_set().is_ok_and(|set| {
+            let watched: Vec<InvalidationTrigger> = set.iter().copied().collect();
+            watched.len() == 5
+                && watched
+                    .contains(&InvalidationTrigger::TargetContractChanged { watched: contract })
+        }));
+    }
+
+    /// law: pattern-stamp.the-watch-set-never-states-one-kind-twice — the
+    /// derived set is a SET.
+    ///
+    /// An expansion-time context is decided against one captured declaration and
+    /// CAUSED by that same capture, so its cause trigger and its graph trigger
+    /// are the same trigger. Listed, that is one kind stated twice — which is
+    /// what the invalidation magnitude is declared to exclude, since its value IS
+    /// the trigger roster's cardinality. The derivation deduplicates, so the
+    /// set does not depend on a call site remembering to skip the repeat, and
+    /// the plan transcript's set encoding writes one member rather than two.
+    #[test]
+    fn the_watch_set_never_states_one_kind_twice() {
+        let captured = crate::plane::for_laws(120);
+        let mut shared = anchors();
+        shared.context.graph = GraphAnchoring::CapturedDeclarationOnly(captured);
+        shared.context.sources = CauseAnchoring::CapturedDeclaration(captured);
+
+        // The two seats really do resolve to one trigger — the premise the
+        // deduplication is about, asserted rather than assumed.
+        assert_eq!(
+            shared.context.cause_trigger(),
+            shared.context.graph_trigger()
+        );
+
+        assert!(shared.context.watch_set().is_ok_and(|set| {
+            let watched: Vec<InvalidationTrigger> = set.iter().copied().collect();
+            watched.len() == 3
+                && watched
+                    .iter()
+                    .filter(|trigger| **trigger == shared.context.cause_trigger())
+                    .count()
+                    == 1
         }));
     }
 
