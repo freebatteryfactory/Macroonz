@@ -19,9 +19,11 @@
 //! in [`repository`]; the ordered battery `qualify` runs lives in
 //! [`qualification`], which is handed the law table's runner rather than
 //! reaching back for it. Keeping the table alone here is what makes the
-//! registered set readable in one screen: adding a law is one line beside
-//! thirteen others, so a law added without a name, or a name registered twice,
-//! is visible at a glance rather than buried among the checks themselves.
+//! registered set readable in one screen: the array below is the roster, its
+//! length is the only statement of how many laws there are, and adding a law
+//! is one more line in it — so a law added without a name, or a name
+//! registered twice, is visible at a glance rather than buried among the
+//! checks themselves.
 
 mod checks;
 mod repository;
