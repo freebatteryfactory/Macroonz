@@ -42,6 +42,28 @@ const BANNED_VOCABULARY: [&str; 4] = ["factory", "candidate", "promotion", "self
 /// Lawful survivals: `(repository-relative path, word, why it stands)`. A term
 /// stands only where it is named to FORBID it, to record a kill, or to
 /// document a rename — never as live vocabulary.
+///
+/// # The ceiling: an allowance is FILE-wide, and the working law is not
+///
+/// The working law admits a retired term only where a DATED DECISION RECORD
+/// names the retired architecture. That is a claim about a section. An entry
+/// here is a path and a word, so what it actually admits is the whole file: the
+/// record `src/23_evidence/README.md` carries is dated, and the allowance that
+/// record earns would equally excuse the same word written anywhere else in that
+/// file — in its obligations block, in its prose, or in a section added later
+/// that records nothing and dates nothing. The two statements are not the same
+/// statement, and this one is the weaker.
+///
+/// The gap is named rather than closed. Closing it means knowing where a section
+/// begins and ends, and the honest way to know that is the typed repository
+/// model that owns derived facts about these documents — the same owner the
+/// working law already names for the assembled review artifact. A fourth reader
+/// cutting markdown on `##` inside this file would be a second, weaker opinion
+/// about a document's shape, seated beside a checker instead of in the model
+/// that owns it, and a reader recognizing a structure by a convenient spelling
+/// is the exact defect this campaign has now paid for four times. So the honest
+/// state is what is written: one allowance per file per word, admitted to cover
+/// the file, with section scoping owed to the model that can express it.
 const BANNED_VOCABULARY_ALLOWLIST: [(&str, &str, &str); 3] = [
     (
         "src/23_evidence/README.md",
