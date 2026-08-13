@@ -33,13 +33,27 @@
 # check that needs a separately installed binary would make the entry bar depend
 # on what a working machine happens to have. It runs beside the bar in the hosted
 # workflow instead, where the host is one nobody configured.
+#
+# A run of this file reports `ok`, and an `ok` is not evidence that anything here
+# still refuses. `deny-reversal.toml` sits beside this file carrying one
+# deliberately wrong rule; the same hosted workflow runs cargo-deny against it
+# and fails the job if cargo-deny succeeds. That reversal covers the `syn`
+# exact-feature rule below and NOTHING else in this file — which rules are left
+# standing on a positive run alone is stated in the reversal itself, where a
+# reader deciding whether to trust a green log will be looking.
 
 [graph]
 # Dependencies a test brings in are dependencies. cargo-deny leaves them out by
-# default — MEASURED: the default graph here is 21 crates against
-# `cargo metadata`'s 44, and the 23 missing are exactly the subtree under the
-# compile-refusal harness. A licence rule that cannot see half the graph is a
-# licence rule about the half it likes.
+# default, and what its default drops here is the subtree under the
+# compile-refusal harness. A licence rule that cannot see that part of the graph
+# is a licence rule about the part it likes.
+#
+# HOW MUCH of the graph that is, is deliberately not written down. A crate total
+# is a fact about a resolved graph, so it moves with every dependency edit, and
+# a total recorded in a comment goes stale while cargo-deny stays exactly as
+# correct as it was. Anyone who needs the number obtains it: `cargo deny
+# --workspace list` under this line and again with `exclude-dev = true` prints
+# both sets, and `cargo metadata` prints the resolution Cargo itself performs.
 exclude-dev = false
 
 [licenses]
@@ -76,8 +90,8 @@ allow-wildcard-paths = true
 
 # The decoder both readers read Rust through.
 #
-# MEASURED, and it is the whole reason this file exists: the allowed set is SIX
-# features, not the two the manifests request. `clone-impls`, `derive`,
+# MEASURED, and it is the whole reason this file exists: the graph holds
+# features the manifests never asked for. `clone-impls`, `derive`,
 # `printing` and `proc-macro` arrive through `serde_derive`, which the
 # compile-refusal harness pulls in as a development dependency. `cargo tree`
 # shows those four resolving on the proc-macro side of the graph, away from the

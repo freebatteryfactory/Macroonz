@@ -9,7 +9,11 @@
 #
 # Two jobs, and the split is the point. The graph job reads THIS tree and
 # nothing else, so its result is about the tree alone — the same property qualify
-# states about itself — and it belongs on every pull request. The advisory job
+# states about itself — and it belongs on every pull request. It runs cargo-deny
+# twice: once against `deny.toml`, which must pass, and once against
+# `deny-reversal.toml`, which must REFUSE. A gate that has only ever been seen
+# to pass is a gate whose refusal nobody has watched, so the second run is the
+# one that makes the first one mean something. The advisory job
 # reads a database that moves without this repository changing, so it would turn
 # red on a morning when nothing here changed and green again the same way. That
 # is a useful alarm and a broken gate, so it runs on its own schedule, where red
@@ -72,6 +76,46 @@ jobs:
       # job below, and the note in `deny.toml`.
       - name: Check the graph
         run: cargo deny --workspace --locked check bans licenses sources
+
+      # THE PLANTED REVERSAL. The step above establishes that the graph is
+      # lawful today; it cannot establish that the rules still bite, because a
+      # rule that quietly stopped matching prints the same `ok` as a rule that
+      # checked everything. `deny-reversal.toml` is a deliberately wrong
+      # configuration, and this step fails the job when cargo-deny SUCCEEDS
+      # against it.
+      #
+      # BOTH the exit code and the diagnostic are required, because neither is
+      # enough on its own. MEASURED: a usage error — a flag in the wrong
+      # position, a subcommand cargo-deny stopped accepting — also exits 2, so
+      # the code alone would accept a run that never read the configuration at
+      # all. And a refusal for some other reason would arrive under a different
+      # diagnostic. `exact-features-mismatch` at exit 2 is the one pair that
+      # means the rule refused for the reason that was planted.
+      #
+      # WHAT THIS COVERS AND WHAT IT DOES NOT is written in
+      # `deny-reversal.toml`, beside the defect: it covers `[[bans.features]]`
+      # with `exact = true`, and it covers nothing about licences, sources,
+      # multiple versions, or wildcards, which stand on the positive invocation
+      # above alone.
+      - name: The planted reversal must refuse
+        run: |
+          set +e
+          transcript=$(cargo deny --workspace --locked check --config deny-reversal.toml bans 2>&1)
+          code=$?
+          set -e
+          printf '%s\n' "$transcript"
+          if [ "$code" -ne 2 ]; then
+            echo "::error::cargo-deny exited ${code} against the planted reversal; a reversal that does not refuse is a gate nobody has watched work" >&2
+            exit 1
+          fi
+          case "$transcript" in
+            *exact-features-mismatch*) ;;
+            *)
+              echo "::error::cargo-deny refused without reporting exact-features-mismatch; the refusal is not the one that was planted" >&2
+              exit 1
+              ;;
+          esac
+          echo "the planted reversal refused: exit 2, exact-features-mismatch"
 
   advisories:
     # Only on the schedule and by hand. This job is an alarm, not a gate.

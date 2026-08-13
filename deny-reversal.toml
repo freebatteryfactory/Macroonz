@@ -1,0 +1,78 @@
+# The planted reversal for `deny.toml`, and the only configuration in this
+# repository that is deliberately wrong.
+#
+# `deny.toml` settles what the resolved graph is allowed to be, and the hosted
+# dependency workflow runs cargo-deny against it and prints `ok`. That run
+# establishes one thing: the graph is lawful TODAY. It establishes nothing about
+# whether the rules still BITE. A configuration key a later cargo-deny stopped
+# reading, a rule that quietly matched nothing, a check name dropped from the
+# invocation — every one of those leaves the same `ok` on the same log as a run
+# that checked everything. A gate whose refusal has never been executed is a
+# gate nobody has watched work, and this repository does not admit one.
+#
+# So this file runs beside the lawful one, and the workflow fails the job when
+# cargo-deny SUCCEEDS here. What it changes is one thing: `syn`'s exact
+# allow-list names a feature the graph does not hold, and omits every feature
+# the graph does hold. That is the mismatch in both directions at once — a list
+# reaching past the graph, and a graph reaching past the list — which is the
+# entire content of `exact = true`. cargo-deny reports it as
+# `exact-features-mismatch` and exits 2, and the workflow requires both.
+#
+# WHY THIS RULE AND NOT ANOTHER. The exact-feature rule is the one that refused
+# the first time it ran against this workspace, against prose here that had
+# claimed a feature cut the graph did not hold. It is the only rule in
+# `deny.toml` with a record of catching a false claim in our own manifests, so
+# it is the one whose continued biting is worth a committed reversal.
+#
+# WHAT THIS REVERSAL DOES NOT COVER, stated plainly because one planted reversal
+# is not five, and reading it as five would be the exact defect it exists to
+# close. It proves that `[[bans.features]]` with `exact = true` still refuses.
+# It proves NOTHING about:
+#
+#     licences            the `[licenses] allow` list
+#     sources             `unknown-registry`, `unknown-git`, `allow-registry`
+#     multiple versions   `[bans] multiple-versions`
+#     wildcards           `[bans] wildcards`
+#
+# Each of those could stop enforcing tomorrow and both the lawful run and this
+# one would read exactly as they read now. Those four stand on a positive
+# invocation alone. That is a debt this file NAMES rather than discharges, and
+# the reversals that would discharge it are the same shape as this one: a second
+# wrong configuration per rule, each requiring its own exit code and its own
+# diagnostic. They were executed by hand once and committed nowhere, which is
+# why the debt is written here instead of remembered.
+#
+# THE ONE WAY THIS REVERSAL CAN STOP BEING ABOUT ANYTHING is `syn` leaving the
+# graph. MEASURED: a `[[bans.features]]` rule naming a crate the graph does not
+# carry emits no diagnostic at all — not an error, not a warning, nothing to
+# promote — and cargo-deny exits 0. That does not go silent here, because the
+# workflow requires a REFUSAL rather than tolerating one: the day `syn` leaves,
+# this file stops refusing, the step's condition is not met, and the job turns
+# red rather than green. A reversal that fails loudly on the day it stops
+# applying is the staleness guard the `disallowed-methods` note in `clippy.toml`
+# says it could not build for a lint.
+#
+# This file is not part of any obligation ledger. The red-twin population xtask
+# joins against is testpak's tests and compile-fail fixtures, and a hosted
+# workflow step is neither, so no `red:` or `tooling-red:` row names this and
+# the published denominators do not move. The ledger cannot express a reversal
+# that lives outside the workspace's own test binaries; that gap is real and is
+# recorded here rather than papered over with a row that would not resolve.
+
+# The graph this file reads is the graph `deny.toml` reads. A reversal against a
+# different graph would be refusing for a reason nobody planted, and the whole
+# value of a planted reversal is that its cause is known.
+[graph]
+exclude-dev = false
+
+# THE PLANTED DEFECT, and the only difference from the rule it stands for.
+#
+# `fold` is a `syn` feature this workspace deliberately does not enable — it is
+# named in `deny.toml` as one of the arrivals `exact = true` exists to refuse —
+# so it is allowed here and absent from the graph. The features the graph does
+# hold are absent from this list. Both halves of `exact = true` therefore have
+# something to catch, and the diagnostic reports both.
+[[bans.features]]
+crate = "syn"
+allow = ["fold"]
+exact = true

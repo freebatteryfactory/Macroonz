@@ -26,38 +26,45 @@ max-struct-bools = 0
 max-fn-params-bools = 0
 
 # NOT ADOPTED, ON THE RECORD: `disallowed-methods`. The table does not exist
-# here, and an unnamed absence reads as an oversight, so this is why — with the
-# numbers, all of them measured by running clippy over the whole workspace with
-# every candidate path configured at once.
+# here, and an unnamed absence reads as an oversight, so this is why.
 #
 # THE FALLBACK POPULATION IS UNCLASSIFIED, AND THAT IS THE REASON, NOT ITS SIZE.
-# Forty sites:
-#   21  Result::unwrap_or_default        xtask 11, testpak 10
-#    8  Option::unwrap_or_default        testpak 8
-#    5  String::from_utf8_lossy          xtask 4, macros 1
-#    3  Result::ok                       one each in the machine, macros, testpak
-# What that number is NOT is forty defects. It is forty calls of at least four
-# different kinds, and a list installed before anyone separates them would refuse
-# the lawful ones alongside the rest. This repository has deliberately eliminated
-# gradual lint adoption, so this is one batch or it is nothing, and the batch is
-# a repair to three crates rather than a configuration change. The count is named
-# here so the next reader inherits the measurement instead of re-running it — and
-# inherits with it that the measurement is a population, not a verdict.
+# The methods are `Result::unwrap_or_default`, `Option::unwrap_or_default`,
+# `String::from_utf8_lossy` and `Result::ok`, and their sites are spread across
+# the machine, the tooling, and the judge.
+#
+# HOW MANY there are is not recorded here, and the omission is the point. A site
+# total is a fact about a tree that moves under it, so a number written into
+# this comment would be wrong on the first refactor and nothing would say so —
+# this repository has already deleted one authored count of exactly that kind.
+# The population is MEASURED ON THE DAY THE TABLE IS ADOPTED, by configuring
+# every path at once and running clippy over the whole workspace: the run that
+# would install the list is the same run that reports what the list would
+# refuse, so the measurement is taken by the act it informs rather than
+# inherited from a comment.
+#
+# What such a total would NOT be is a count of defects. The calls are of at
+# least four different kinds, and a list installed before anyone separates them
+# would refuse the lawful ones alongside the rest. This repository has
+# deliberately eliminated gradual lint adoption, so this is one batch or it is
+# nothing, and the batch is a repair at the homes that hold the first class
+# rather than a configuration change.
 #
 # THE ENVIRONMENT CLASS REDUCES TO EUPHEMISM. `std::env::var`, `vars`,
-# `vars_os`, `args_os` and `current_dir` have zero sites — but `var_os` has one
-# and `args` has one, both in the operational road that reads which cargo
-# started it and which subcommand was asked for, and both are lawful reads that
-# never enter a semantic identity. `disallowed-methods` cannot be scoped to a
-# crate, so banning `var` while `var_os` stays open bans a spelling rather than
+# `vars_os`, `args_os` and `current_dir` are not reached for here at all, while
+# `var_os` and `args` are both live in the operational road that reads which
+# cargo started it and which subcommand was asked for, and both are lawful reads
+# that never enter a semantic identity. `disallowed-methods` cannot be scoped to
+# a crate, so banning `var` while `var_os` stays open bans a spelling rather than
 # a behaviour. `set_var` and `remove_var` need no entry at all: MEASURED, they
 # are `unsafe fn` on this toolchain, and the wall forbids `unsafe_code`
 # outright, so an entry would be a weaker seat restating a stronger one.
 #
-# THE CLOCK IS THE ONLY HONEST CANDIDATE LEFT, and it has no reversal.
-# `SystemTime::now` and `Instant::now` have zero sites and real content, because
-# an expansion is a function of its declared input alone. What stops them is
-# that a configured lint has nowhere in this repository to be proven live:
+# THE CLOCK IS THE ONLY HONEST ENTRY LEFT, and it has no reversal.
+# `SystemTime::now` and `Instant::now` are reached for nowhere in this tree, and
+# an entry naming them would carry real content, because an expansion is a
+# function of its declared input alone. What stops them is that a configured
+# lint has nowhere in this repository to be proven live:
 #   - MEASURED, `cargo build` does not fire a clippy lint at all;
 #   - MEASURED, a `compile_fail` doctest over a denied call reports "Test
 #     compiled successfully, but it's marked `compile_fail`" — doctests are
@@ -77,9 +84,9 @@ max-fn-params-bools = 0
 #
 # THE OPENING CONDITION, AND IT IS TWO CONDITIONS IN ORDER.
 #
-# FIRST, THE POPULATION IS CLASSIFIED RATHER THAN COUNTED. Every one of the forty
-# sites is exactly one of four things, and only the first is a defect this
-# mechanism should ever speak about:
+# FIRST, THE POPULATION IS CLASSIFIED RATHER THAN COUNTED. Every site is exactly
+# one of the kinds below, and only the first is a defect this mechanism should
+# ever speak about:
 #   - SEMANTIC SILENT FALLBACK — a missing or malformed input becomes a value the
 #     machine then treats as though an owner supplied it;
 #   - DIAGNOSTIC RENDERING FALLBACK — the substituted value reaches human text
