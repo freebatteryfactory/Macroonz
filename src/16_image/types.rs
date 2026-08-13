@@ -306,10 +306,20 @@ pub struct ImageStageDomain;
 // into existence beside them. The transitions land when implementation opens for
 // this home on explicit authorization; until then the honest reading of these
 // types is a declaration of the ladder, not a ladder anything climbs.
+//
+// The affinity is a property of the types and not a promise about the missing
+// transitions. None of the five is `Copy` or `Clone`, on band 05's terms for its
+// budget: a handle a caller still holds after handing it over has not been
+// consumed, so a `Copy` rung would make "each transition consumes `self`" a
+// sentence the ladder contradicts at its own declaration — the caller would pass
+// the weaker rung into the transition and keep it, and the two rungs would stand
+// side by side. `ImageValidation` below is `Copy` and stays so, because it is the
+// DURABLE RECORD of a reached phase rather than a live handle, and a record is
+// meant to be read twice.
 
 /// Untrusted image bytes — the ladder's only entry. Declared; the road that
 /// mints one is owed with the ladder's transitions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct UntrustedImageBytes {
     stage: crate::identity::Commitment<ImageStageDomain>,
 }
@@ -324,7 +334,7 @@ impl UntrustedImageBytes {
 
 /// A bounded, canonically decoded image. Declared; the transition from
 /// [`UntrustedImageBytes`] is owed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct BoundedDecodedImage {
     stage: crate::identity::Commitment<ImageStageDomain>,
 }
@@ -339,7 +349,7 @@ impl BoundedDecodedImage {
 
 /// A semantically validated image. Declared; the transition from
 /// [`BoundedDecodedImage`] is owed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct SemanticImage {
     stage: crate::identity::Commitment<ImageStageDomain>,
 }
@@ -356,7 +366,7 @@ impl SemanticImage {
 /// agreement verifier, never by literal. The private field holds that rule
 /// today; the verifier that would mint one does not exist yet, so the rung is
 /// currently uninhabited rather than restricted.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct AgreementCheckedImage {
     stage: crate::identity::Commitment<ImageStageDomain>,
 }
@@ -385,7 +395,7 @@ impl AgreementCheckedImage {
 /// compile-time typestate. Invocation admission produces a separate
 /// authority-bound value; execution, suspension, and termination are runtime
 /// records.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub struct ExecutableImage {
     stage: crate::identity::Commitment<ImageStageDomain>,
 }

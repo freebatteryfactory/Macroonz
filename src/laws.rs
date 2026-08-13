@@ -3506,10 +3506,12 @@ mod port {
     /// law: port.family-version-rides-authority-position — versions of one
     /// family compare; versions of different families refuse with the
     /// scope-guard family body (the fourth production use).
-    /// Reversal (red twin), discharged by the stamp: cross-scope comparison is a
-    /// category error (`cross-scope-comparison-on-a-stamped-guard.rs`) and the
-    /// position is sealed in both directions
-    /// (`a-production-scope-guard-cannot-be-laundered.rs`).
+    /// Reversal (red twin), discharged by the stamp this guard is now written
+    /// by, on the stamp's own fixtures: cross-scope comparison is a category error
+    /// (`cross-scope-comparison-on-a-stamped-guard.rs`) and the position has no
+    /// road out and none back in (`a-stamped-representation-cannot-be-laundered.rs`).
+    /// Both prove a property of the generated shape, which is what makes them
+    /// this guard's reversal rather than another home's.
     #[test]
     fn family_version_rides_authority_position() {
         let family = demo_family(1);
@@ -3862,10 +3864,12 @@ mod declaration {
 
     /// law: declaration.projection-profile-version-rides-authority-position —
     /// the fifth production scope-guard use.
-    /// Reversal (red twin), discharged by the stamp: cross-scope comparison is a
-    /// category error (`cross-scope-comparison-on-a-stamped-guard.rs`) and the
-    /// position is sealed in both directions
-    /// (`a-production-scope-guard-cannot-be-laundered.rs`).
+    /// Reversal (red twin), discharged by the stamp this guard is now written
+    /// by, on the stamp's own fixtures: cross-scope comparison is a category error
+    /// (`cross-scope-comparison-on-a-stamped-guard.rs`) and the position has no
+    /// road out and none back in (`a-stamped-representation-cannot-be-laundered.rs`).
+    /// Both prove a property of the generated shape, which is what makes them
+    /// this guard's reversal rather than another home's.
     #[test]
     fn projection_profile_version_rides_authority_position() {
         let profile =
@@ -4233,10 +4237,12 @@ mod execution {
     /// register holds thirty-eight distinct rows, and changing the set
     /// advances the scope-guarded Execution-Form version (the sixth
     /// production use).
-    /// Reversal (red twin), discharged by the stamp: cross-scope comparison is a
-    /// category error (`cross-scope-comparison-on-a-stamped-guard.rs`) and the
-    /// position is sealed in both directions
-    /// (`a-production-scope-guard-cannot-be-laundered.rs`).
+    /// Reversal (red twin), discharged by the stamp this guard is now written
+    /// by, on the stamp's own fixtures: cross-scope comparison is a category error
+    /// (`cross-scope-comparison-on-a-stamped-guard.rs`) and the position has no
+    /// road out and none back in (`a-stamped-representation-cannot-be-laundered.rs`).
+    /// Both prove a property of the generated shape, which is what makes them
+    /// this guard's reversal rather than another home's.
     #[test]
     fn operator_register_holds_and_versions() {
         assert_eq!(OPERATOR_REGISTER.len(), 38);
@@ -4526,10 +4532,12 @@ mod image {
     /// kernel versions are the seventh, eighth, and ninth scope-guard
     /// instantiations; the image digest is a byte identity, never a meaning
     /// digest.
-    /// Reversal (red twin), discharged by the stamp: cross-scope comparison is a
-    /// category error (`cross-scope-comparison-on-a-stamped-guard.rs`) and the
-    /// position is sealed in both directions
-    /// (`a-production-scope-guard-cannot-be-laundered.rs`).
+    /// Reversal (red twin), discharged by the stamp this guard is now written
+    /// by, on the stamp's own fixtures: cross-scope comparison is a category error
+    /// (`cross-scope-comparison-on-a-stamped-guard.rs`) and the position has no
+    /// road out and none back in (`a-stamped-representation-cannot-be-laundered.rs`).
+    /// Both prove a property of the generated shape, which is what makes them
+    /// this guard's reversal rather than another home's.
     #[test]
     fn identities_ride_scope_guards() {
         let family = ImageFamilyId::for_laws(Occurrence::for_laws(OccurrenceForm::Fresh([61; 16])));
@@ -5682,10 +5690,12 @@ mod application {
     /// scope-guard: generations of one instance compare, cross-instance
     /// refuses, and the activated image rides a typed relation, never the
     /// ordinal's bytes.
-    /// Reversal (red twin), discharged by the stamp: cross-scope comparison is a
-    /// category error (`cross-scope-comparison-on-a-stamped-guard.rs`) and the
-    /// position is sealed in both directions
-    /// (`a-production-scope-guard-cannot-be-laundered.rs`).
+    /// Reversal (red twin), discharged by the stamp this guard is now written
+    /// by, on the stamp's own fixtures: cross-scope comparison is a category error
+    /// (`cross-scope-comparison-on-a-stamped-guard.rs`) and the position has no
+    /// road out and none back in (`a-stamped-representation-cannot-be-laundered.rs`).
+    /// Both prove a property of the generated shape, which is what makes them
+    /// this guard's reversal rather than another home's.
     #[test]
     fn activation_generation_rides_scope() {
         let instance = InstanceId::for_laws(Occurrence::for_laws(OccurrenceForm::Fresh([170; 16])));
