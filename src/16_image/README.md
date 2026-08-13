@@ -76,6 +76,11 @@ obligations:
     green: laws.rs image::validation_ladder_is_five_and_minted
     red: owed-to-testpak — literal construction of the two verifier-minted
       rungs must not compile
+  - id: image.the-ladder-is-affine
+    challenge_kind: compile-refusal
+    green: structural (no rung derives Copy or Clone, so every road that takes a
+      rung by value consumes it)
+    red: testpak/tests/compile-fail/a-consumed-image-rung-cannot-be-reused.rs
   - id: image.admission-pipeline-is-sixteen
     challenge_kind: compile-law
     green: laws.rs image::admission_pipeline_is_sixteen
