@@ -41,12 +41,29 @@
 //!
 //! That is a question about ITEM KINDS and IDENTIFIERS, and this reader asks
 //! nothing else. It resolves no type, follows no alias, expands no macro, and
-//! reads no visibility. `impl Foo` belongs to a `seat` module declaring `Foo`
-//! because the two identifiers are spelled the same; whether some other `Foo` is
-//! in scope is a question this law never asks, because the answer cannot change
-//! the verdict — the seat module declares exactly one record, and an inherent
-//! implementation written inside it can only be for something declared or
-//! imported there.
+//! reads no visibility.
+//!
+//! `impl Foo` belongs to a `seat` module declaring `Foo` because the two
+//! identifiers are spelled the same, and because Rust will not let them mean two
+//! different things: a module that declares `struct Foo` cannot also import
+//! another `Foo` into its type namespace — `rustc` refuses that pair outright —
+//! so an UNQUALIFIED, single-segment `Foo` written inside such a module names
+//! that module's own record and can name nothing else. Nothing is resolved to
+//! read that; it follows from what the module declares.
+//!
+//! A QUALIFIED subject breaks the argument at its root, and is refused for that
+//! reason rather than read. Rust admits an inherent implementation in a module
+//! other than the one its type was declared in, as long as both sit in one
+//! crate, so `impl crate::other::Foo` written here puts a block for somebody
+//! else's record INSIDE this seat's privacy wall — free to read the local
+//! record's private field, write its literal, and hand the record back — while
+//! spelling a name this module never declared. The admitted spelling is
+//! therefore the one whose meaning is settled by the declaration beside it: no
+//! `qself`, no leading `::`, exactly one segment, that segment the record's own
+//! identifier, with generic arguments permitted on it. Everything else refuses,
+//! and none of it is resolved. This is a NARROWING of what the reader admits, not
+//! a resurrection of the deleted readers that tried to follow a path to its
+//! owner.
 //!
 //! # Its stated ceiling, said out loud
 //!
@@ -67,6 +84,24 @@
 //! reader judges the module where it is written; a `mod seat;` whose body lives
 //! in another file would have its contents judged nowhere at all, and unknown
 //! must not read as nothing to say.
+//!
+//! **Where a `seat` module may be WRITTEN is not restricted, so every place one
+//! can be written is entered.** A module at a file's own level, one nested
+//! inside another module, and one declared inside a body — a free road's, an
+//! implementation's method, a trait's default — are the same wall around the
+//! same record, so the walk enters all of them. What it does not enter is an
+//! item written inside an EXPRESSION: a block used as a value, a closure body, a
+//! match arm. `syn::Expr` is `#[non_exhaustive]`, so a reader that completed
+//! itself by listing that enum's variants would be complete only until the
+//! decoder gained one more — the set with no last member this repository has
+//! already deleted readers for. The gap is named here rather than papered over,
+//! and it closes when the one reading gains a visitor owning the whole grammar,
+//! not when this law is taught one more shape.
+//!
+//! **A `seat` module a macro would write is outside the population.** This
+//! reader expands nothing, so a module produced by an expansion is not a module
+//! it can see. Inside a seat module that fails closed — a macro invocation there
+//! is refused by kind — and outside one it is the stated gap above.
 
 use crate::repository::snapshot::{MACHINE_DIRECTORY, RepositorySnapshot, TOOLING_DIRECTORY};
 use crate::repository::types::CanonicalPath;
@@ -139,11 +174,21 @@ fn seat_verdict(sources: &[(&CanonicalPath, &syn::File)]) -> SeatVerdict {
     verdict
 }
 
-/// Walks one module's items, judging every `seat` module it declares and
-/// descending into every other module to find the ones nested deeper.
-fn walk(path: &str, items: &[syn::Item], verdict: &mut SeatVerdict) {
+/// Walks one item list, judging every `seat` module it declares and descending
+/// into every other item that carries one — a module's body, and the bodies a
+/// road, a method, or a trait default carries.
+///
+/// No item kind reaches a silent `continue`: an item either declares a module
+/// this law judges or is entered for the items IT carries, and an item carrying
+/// none contributes an empty list rather than an exemption.
+fn walk<'items>(
+    path: &str,
+    items: impl IntoIterator<Item = &'items syn::Item>,
+    verdict: &mut SeatVerdict,
+) {
     for item in items {
         let syn::Item::Mod(module) = item else {
+            walk(path, beneath(item), verdict);
             continue;
         };
         let named_seat = module.ident == SEAT_MODULE;
@@ -164,6 +209,55 @@ fn walk(path: &str, items: &[syn::Item], verdict: &mut SeatVerdict) {
         }
         walk(path, inner, verdict);
     }
+}
+
+/// The items one item carries in a body of its own.
+///
+/// A module can be declared inside a body, and a body is one of exactly three
+/// things: a free road's block, an implementation method's block, or a trait
+/// method's default block. Each is entered, because a `seat` module written in
+/// one is the same wall around the same record as one written at a file's own
+/// level. An item carrying no body carries no items, which is a fact rather than
+/// a skip.
+fn beneath(item: &syn::Item) -> Vec<&syn::Item> {
+    if let syn::Item::Fn(declared) = item {
+        return declared_items(&declared.block.stmts);
+    }
+    if let syn::Item::Impl(declared) = item {
+        let mut found = Vec::new();
+        for member in &declared.items {
+            if let syn::ImplItem::Fn(road) = member {
+                found.extend(declared_items(&road.block.stmts));
+            }
+        }
+        return found;
+    }
+    if let syn::Item::Trait(declared) = item {
+        let mut found = Vec::new();
+        for member in &declared.items {
+            if let syn::TraitItem::Fn(road) = member
+                && let Some(body) = road.default.as_ref()
+            {
+                found.extend(declared_items(&body.stmts));
+            }
+        }
+        return found;
+    }
+    Vec::new()
+}
+
+/// The items one block's statements declare.
+fn declared_items(statements: &[syn::Stmt]) -> Vec<&syn::Item> {
+    statements
+        .iter()
+        .filter_map(|statement| {
+            if let syn::Stmt::Item(declared) = statement {
+                Some(declared)
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 /// Judges the items of one `seat` module.
@@ -232,21 +326,85 @@ fn judge_implementation(
         ));
         return;
     }
-    let Some(subject) = head_of(&declared.self_ty) else {
-        verdict.offenders.push(format!(
+    match subject_of(&declared.self_ty) {
+        ImplementationSubject::Declared(subject) => {
+            if !records.contains(&subject) {
+                verdict.offenders.push(format!(
+                    "{path}: a `{SEAT_MODULE}` module carries an implementation of `{subject}`, \
+                     which is not the record it declares; a seat module is the wall around ONE \
+                     record and an implementation of anything else is other code standing inside it"
+                ));
+            }
+        }
+        ImplementationSubject::Qualified(spelled) => verdict.offenders.push(format!(
+            "{path}: a `{SEAT_MODULE}` module carries an implementation of `{spelled}`, a \
+             QUALIFIED path. Rust admits an inherent implementation in a module other than the one \
+             its type was declared in, so this block sits inside the seat's privacy wall — able to \
+             read the record's private field, write its literal, and hand the record back — while \
+             naming a type declared somewhere else; a seat module's implementations name its one \
+             record unqualified and in one segment, because that is the only spelling settled by \
+             the declaration beside it"
+        )),
+        ImplementationSubject::Unnamed => verdict.offenders.push(format!(
             "{path}: a `{SEAT_MODULE}` module carries an implementation whose subject is not a \
              plain name, so whether it is an implementation of this module's record is unknown \
              rather than yes"
-        ));
-        return;
-    };
-    if !records.contains(&subject) {
-        verdict.offenders.push(format!(
-            "{path}: a `{SEAT_MODULE}` module carries an implementation of `{subject}`, which is \
-             not the record it declares; a seat module is the wall around ONE record and an \
-             implementation of anything else is other code standing inside it"
-        ));
+        )),
     }
+}
+
+/// What one implementation inside a `seat` module names as its subject.
+///
+/// Three states, and only the first can be this module's record. The second is
+/// the one this reader used to collapse into the first by keeping a path's last
+/// segment: `impl crate::other::Foo` inside a module declaring `Foo` reduced to
+/// `Foo` and was admitted as a road to the local record, while it was a road to
+/// somebody else's record standing inside the local record's wall.
+#[derive(Debug)]
+enum ImplementationSubject {
+    /// An unqualified, single-segment path. A module declaring `struct Foo`
+    /// cannot import another `Foo` into its type namespace, so inside such a
+    /// module this spelling names that module's own declaration.
+    Declared(String),
+    /// A path reaching out of the module — a qualified self type, a leading
+    /// `::`, or more than one segment — carried as spelled, for the refusal.
+    Qualified(String),
+    /// Not a path at all.
+    Unnamed,
+}
+
+/// What one implementation's self type names, classified.
+fn subject_of(declared: &syn::Type) -> ImplementationSubject {
+    let syn::Type::Path(typed) = declared else {
+        return ImplementationSubject::Unnamed;
+    };
+    if typed.qself.is_some() || typed.path.leading_colon.is_some() {
+        return ImplementationSubject::Qualified(spelling_of(&typed.path));
+    }
+    let mut segments = typed.path.segments.iter();
+    match (segments.next(), segments.next()) {
+        (Some(only), None) => ImplementationSubject::Declared(only.ident.to_string()),
+        (Some(_) | None, _) => ImplementationSubject::Qualified(spelling_of(&typed.path)),
+    }
+}
+
+/// How one path is spelled, for a refusal that has to name what it read.
+///
+/// Segment identifiers joined by `::`, with the leading `::` kept where the path
+/// carries one. Generic arguments are left out: what the refusal is about is the
+/// route, and a route is its segments.
+fn spelling_of(path: &syn::Path) -> String {
+    let mut spelled = String::new();
+    if path.leading_colon.is_some() {
+        spelled.push_str("::");
+    }
+    for (position, segment) in path.segments.iter().enumerate() {
+        if position > 0 {
+            spelled.push_str("::");
+        }
+        spelled.push_str(&segment.ident.to_string());
+    }
+    spelled
 }
 
 /// What one refused item is, in the words its own declaration uses.
@@ -295,20 +453,6 @@ fn described(item: &syn::Item) -> &'static str {
         return "a foreign block";
     }
     "an item this reader has no name for"
-}
-
-/// The last path segment of one type, or `None` where the type is not a plain
-/// path.
-fn head_of(declared: &syn::Type) -> Option<String> {
-    if let syn::Type::Path(typed) = declared {
-        typed
-            .path
-            .segments
-            .last()
-            .map(|last| last.ident.to_string())
-    } else {
-        None
-    }
 }
 
 /// Every parsed source the population is derived from: the machine's own
@@ -489,6 +633,95 @@ mod tests {
         )));
         assert_eq!(verdict.closed, 0);
         assert!(says(&verdict, "`DemoIssue`"), "{:?}", verdict.offenders);
+    }
+
+    /// Planted reversal: the privacy-wall bypass a last-segment reading
+    /// admitted.
+    ///
+    /// Rust permits an inherent implementation in a module other than the one
+    /// its type was declared in, provided both are in one crate. So each of
+    /// these blocks really does sit inside the local record's wall — it can read
+    /// the private field, write the literal, and hand the record out — while its
+    /// subject was declared somewhere else entirely. A reader keeping the last
+    /// path segment saw `DemoRefusal` in every one of them and passed.
+    ///
+    /// Four spellings, because the qualification hides in four places: a
+    /// crate-rooted path, a `super`-rooted one, a bare leading `::`, and a
+    /// qualified self type. None of them is resolved — each is refused for being
+    /// a spelling whose meaning the declaration beside it does not settle.
+    #[test]
+    fn an_implementation_of_a_qualified_subject_is_a_violation() {
+        for spelling in [
+            "crate::other::DemoRefusal",
+            "super::super::other::DemoRefusal",
+            "::demo::DemoRefusal",
+            "<DemoIssue as Carrier>::DemoRefusal",
+        ] {
+            let verdict = seat_verdict(&seat(&format!(
+                "{LAWFUL_BODY}\n\
+                 \x20   impl {spelling} {{\n\
+                 \x20       pub fn road(&self, local: &DemoRefusal) -> DemoRefusal {{\n\
+                 \x20           DemoRefusal {{ body: local.body.clone() }}\n\
+                 \x20       }}\n\
+                 \x20   }}\n"
+            )));
+            assert_eq!(verdict.declared, 1, "{spelling}");
+            assert_eq!(verdict.closed, 0, "{spelling}: {:?}", verdict.offenders);
+            assert!(
+                says(&verdict, "a QUALIFIED path"),
+                "{spelling}: {:?}",
+                verdict.offenders
+            );
+        }
+    }
+
+    /// The narrowing refuses the qualification and nothing else: the record's
+    /// own generic arguments stay lawful on the one segment that carries them.
+    #[test]
+    fn generic_arguments_on_the_records_own_name_stay_lawful() {
+        let verdict = seat_verdict(&seat(
+            "    use threadpak::refusal::AdmittedPrefix;\n\
+             \x20   pub struct DemoRefusal<F> {\n\
+             \x20       body: AdmittedPrefix<F, DemoIssueLimit>,\n\
+             \x20   }\n\
+             \n\
+             \x20   impl<F> DemoRefusal<F> {\n\
+             \x20       pub(super) fn established(body: AdmittedPrefix<F, DemoIssueLimit>) -> Self {\n\
+             \x20           Self { body }\n\
+             \x20       }\n\
+             \x20   }\n",
+        ));
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.closed, 1, "{:?}", verdict.offenders);
+    }
+
+    /// A seat module written inside a BODY is still in the population.
+    ///
+    /// Planted reversal in the three places a body can be: a free road, an
+    /// implementation's method, and a trait's default. The walk used to enter
+    /// item-level modules only, so a wall built inside any of these stood
+    /// outside the law that guards walls.
+    #[test]
+    fn a_seat_module_written_inside_a_body_is_still_in_the_population() {
+        let offending = "mod seat {\n    pub struct Held { body: u64 }\n    fn reach() {}\n}\n";
+        for surrounding in [
+            format!("pub fn road() {{\n{offending}}}\n"),
+            format!(
+                "struct Subject;\nimpl Subject {{\n    fn road(&self) {{\n{offending}    }}\n}}\n"
+            ),
+            format!("trait Contract {{\n    fn road(&self) {{\n{offending}    }}\n}}\n"),
+        ] {
+            let verdict = seat_verdict(&[(
+                String::from("macros/macroc/src/home/type_guard.rs"),
+                surrounding.clone(),
+            )]);
+            assert_eq!(verdict.declared, 1, "{surrounding}");
+            assert!(
+                says(&verdict, "a free function"),
+                "{surrounding} -> {:?}",
+                verdict.offenders
+            );
+        }
     }
 
     /// A seat module declaring two records puts each inside the other's wall.

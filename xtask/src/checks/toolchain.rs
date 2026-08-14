@@ -18,7 +18,7 @@ use crate::repository::cargo::{
 };
 use crate::repository::markdown::phase_declaration;
 use crate::repository::snapshot::RepositorySnapshot;
-use crate::repository::types::CanonicalPath;
+use crate::repository::types::{CanonicalPath, Read};
 
 /// The file that pins the channel every build runs under.
 const TOOLCHAIN_PIN: &str = "rust-toolchain.toml";
@@ -28,6 +28,11 @@ const LINT_CONFIGURATION: &str = "clippy.toml";
 
 /// The document a reader is told the floor by.
 const ROOT_README: &str = "README.md";
+
+/// How the root package's own home is named in a refusal. It is a workspace
+/// member Cargo never asks anybody to list, so it has no spelling in the members
+/// array and needs one here.
+const ROOT_PACKAGE_HOME: &str = ".";
 
 /// Every statement of the toolchain floor names the same version.
 ///
@@ -104,11 +109,36 @@ pub(crate) fn check_workspace_members(snapshot: &RepositorySnapshot) -> Result<(
     }
 }
 
-/// The root manifest declares the one lint wall and every member inherits it.
+/// The root manifest declares the one lint wall and every package inherits it.
 ///
 /// Inheritance is a DECLARATION — `[lints] workspace = true` — so it is asked of
 /// the decoded document rather than matched as text. A member carrying those
 /// bytes inside a comment declares nothing, and used to pass.
+///
+/// # Why the population is the TREE and not the members array
+///
+/// The `[workspace] members` array is not the set of workspace packages, and
+/// reading it as though it were left a hole exactly where the wall matters most.
+/// Cargo's workspace holds the root package itself — which is never written in
+/// that array and is the package the machine ships from — plus every path
+/// dependency residing inside the workspace directory, listed or not. A law
+/// iterating the array therefore said nothing about the root package: deleting
+/// the root's own `[lints] workspace = true` took the machine crate out from
+/// under the one wall this workspace declares, and this check printed PASS.
+///
+/// So the population is DERIVED from the reading: every `Cargo.toml` in the tree
+/// that declares a `[package]` table is a package of this repository, and every
+/// one of them inherits the wall. A manifest declaring no package declares no
+/// lints to inherit and is not in the population. A directory the workspace
+/// `exclude`s stands outside the workspace by Cargo's own statement, so it
+/// stands outside the wall too, and it is the ONLY exemption — read off that
+/// declaration rather than off a list kept here.
+///
+/// The members array is still read, for the one claim only it can make: a
+/// listed member has to BE one of those packages. A member naming a directory
+/// carrying no package manifest is a workspace that does not resolve, and a
+/// derived population would report clean about it, because what is not there
+/// declares nothing.
 pub(crate) fn check_lint_wall(snapshot: &RepositorySnapshot) -> Result<(), String> {
     let manifest = snapshot
         .cargo()
@@ -120,19 +150,73 @@ pub(crate) fn check_lint_wall(snapshot: &RepositorySnapshot) -> Result<(), Strin
             "root {MANIFEST_FILE} has no [workspace.lints.rust] wall"
         ));
     }
-    let members = strings_at(manifest, &["workspace", "members"]).taken("the workspace members")?;
-    let mut missing = Vec::new();
-    for member in members {
-        let path = format!("{member}/{MANIFEST_FILE}");
-        let document = snapshot.cargo().document(&path).taken(&path)?;
+    let outside = excluded_directories(manifest)?;
+    let mut packages = Vec::new();
+    let mut offenders = Vec::new();
+    for (path, _) in snapshot.files().iter() {
+        if path.file_name() != MANIFEST_FILE {
+            continue;
+        }
+        let document = snapshot
+            .cargo()
+            .document(path.as_str())
+            .taken(path.as_str())?;
+        if declares_table(document, &["package"]).known() != Some(&Declaration::Yes) {
+            continue;
+        }
+        let home = package_home(path.as_str());
+        if outside.contains(&home) {
+            continue;
+        }
+        packages.push(home);
         if declares_yes(document, &["lints", "workspace"]).known() != Some(&Declaration::Yes) {
-            missing.push(member);
+            offenders.push(format!("{path} does not inherit the lint wall"));
         }
     }
-    if missing.is_empty() {
+    if packages.is_empty() {
+        return Err(String::from(
+            "no package manifest was found: this denominator cannot be empty while the workspace \
+             declares a wall for its members to inherit, so the reader is looking at the wrong tree",
+        ));
+    }
+    for member in strings_at(manifest, &["workspace", "members"]).taken("the workspace members")? {
+        if !packages.contains(&member) {
+            offenders.push(format!(
+                "the members array lists `{member}`, which declares no package manifest this \
+                 reading found"
+            ));
+        }
+    }
+    if offenders.is_empty() {
         Ok(())
     } else {
-        Err(format!("members not inheriting the lint wall: {missing:?}"))
+        Err(offenders.join("; "))
+    }
+}
+
+/// The directory one package manifest stands in, as this repository spells a
+/// member: the root package's home is the root, spelled the way the members
+/// array would spell it if it named one.
+fn package_home(manifest: &str) -> String {
+    match manifest.rsplit_once('/') {
+        Some((directory, _)) => directory.to_owned(),
+        None => String::from(ROOT_PACKAGE_HOME),
+    }
+}
+
+/// The directories the workspace declares OUTSIDE itself.
+///
+/// A workspace stating no `exclude` excludes nothing, and that is Cargo's own
+/// declaration rather than a reading that failed — the two are separated here,
+/// and only the second refuses. Nothing is defaulted: an absent key is a
+/// statement, and a key nobody could read is not.
+fn excluded_directories(manifest: &toml::Table) -> Result<Vec<String>, String> {
+    match strings_at(manifest, &["workspace", "exclude"]) {
+        Read::Known(listed) => Ok(listed),
+        Read::DeclaredAbsent(_) => Ok(Vec::new()),
+        Read::Unreadable(failure) => Err(format!(
+            "the workspace exclude list could not be read: {failure}"
+        )),
     }
 }
 
@@ -240,6 +324,90 @@ mod tests {
         scratch.write("Cargo.toml", "[workspace]\nmembers = [\"one\", \"two\"]\n");
         let wall_free = check_lint_wall(&scratch.read()?);
         assert!(wall_free.is_err_and(|reason| reason.contains("no [workspace.lints.rust] wall")));
+        Ok(())
+    }
+
+    /// Planted reversal: the ROOT package outside the wall it declares.
+    ///
+    /// The root package is a workspace member and is never written in the
+    /// members array, so a law iterating that array said nothing about it. This
+    /// is the machine's own crate: stripping its `[lints] workspace = true`
+    /// builds `threadpak` itself with no wall at all, and the check printed PASS
+    /// over it because the array it read still listed six members that inherit.
+    #[test]
+    fn a_root_package_outside_the_lint_wall_is_a_violation() -> Result<(), String> {
+        let scratch = Scratch::named("lint-wall-root");
+        let inheriting = "[package]\nname = \"member\"\n\n[lints]\nworkspace = true\n";
+        let root = "[package]\nname = \"machine\"\n\n[lints]\nworkspace = true\n\n\
+                    [workspace]\nmembers = [\"one\"]\n\n[workspace.lints.rust]\n\
+                    warnings = { level = \"deny\", priority = -1 }\n";
+        scratch.write("Cargo.toml", root);
+        scratch.write("one/Cargo.toml", inheriting);
+        assert!(check_lint_wall(&scratch.read()?).is_ok());
+
+        scratch.write(
+            "Cargo.toml",
+            "[package]\nname = \"machine\"\n\n[workspace]\nmembers = [\"one\"]\n\n\
+             [workspace.lints.rust]\nwarnings = { level = \"deny\", priority = -1 }\n",
+        );
+        let stripped = check_lint_wall(&scratch.read()?);
+        assert!(
+            stripped.is_err_and(|reason| reason.contains("Cargo.toml does not inherit")
+                && !reason.contains("one/Cargo.toml")),
+            "the root package's own inheritance is not read"
+        );
+        Ok(())
+    }
+
+    /// A package the members array never lists is still a package, and the wall
+    /// is still its wall.
+    ///
+    /// Cargo makes a path dependency residing inside the workspace directory a
+    /// member whether or not anybody wrote it down, so a population read off the
+    /// array is a population with a door in it. The population is the tree, and
+    /// the one exemption is the workspace's own `exclude` — read off that
+    /// declaration rather than off a list kept in this file.
+    #[test]
+    fn a_package_the_array_never_lists_is_still_in_the_population() -> Result<(), String> {
+        let scratch = Scratch::named("lint-wall-unlisted");
+        scratch.write(
+            "Cargo.toml",
+            "[workspace]\nmembers = [\"one\"]\nexclude = [\"outside\"]\n\n\
+             [workspace.lints.rust]\nwarnings = { level = \"deny\", priority = -1 }\n",
+        );
+        scratch.write(
+            "one/Cargo.toml",
+            "[package]\nname = \"member\"\n\n[lints]\nworkspace = true\n",
+        );
+        scratch.write("outside/Cargo.toml", "[package]\nname = \"excluded\"\n");
+        assert!(check_lint_wall(&scratch.read()?).is_ok());
+
+        scratch.write("helpers/Cargo.toml", "[package]\nname = \"unlisted\"\n");
+        let unlisted = check_lint_wall(&scratch.read()?);
+        assert!(
+            unlisted.is_err_and(|reason| reason.contains("helpers/Cargo.toml")
+                && !reason.contains("outside/Cargo.toml")),
+            "an unlisted package escaped the wall, or an excluded one was dragged under it"
+        );
+        Ok(())
+    }
+
+    /// A member the array lists and the tree does not carry is a workspace that
+    /// does not resolve, and a derived population would report clean about it.
+    #[test]
+    fn a_member_the_tree_does_not_carry_is_a_violation() -> Result<(), String> {
+        let scratch = Scratch::named("lint-wall-ghost");
+        scratch.write(
+            "Cargo.toml",
+            "[workspace]\nmembers = [\"one\", \"ghost\"]\n\n[workspace.lints.rust]\n\
+             warnings = { level = \"deny\", priority = -1 }\n",
+        );
+        scratch.write(
+            "one/Cargo.toml",
+            "[package]\nname = \"member\"\n\n[lints]\nworkspace = true\n",
+        );
+        let found = check_lint_wall(&scratch.read()?);
+        assert!(found.is_err_and(|reason| reason.contains("`ghost`")));
         Ok(())
     }
 
