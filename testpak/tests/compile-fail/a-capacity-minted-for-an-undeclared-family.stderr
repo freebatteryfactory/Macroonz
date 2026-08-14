@@ -1,13 +1,13 @@
 error[E0277]: the trait bound `UndeclaredFamily: EvidenceSelectedLimit` is not satisfied
-  --> tests/compile-fail/a-capacity-minted-for-an-undeclared-family.rs:54:5
+  --> tests/compile-fail/a-capacity-minted-for-an-undeclared-family.rs:59:5
    |
-54 |     PositiveLimitWitness::inhabited;
+59 |     PositiveLimitWitness::inhabited;
    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
    |
 help: the trait `EvidenceSelectedLimit` is not implemented for `UndeclaredFamily`
-  --> tests/compile-fail/a-capacity-minted-for-an-undeclared-family.rs:38:1
+  --> tests/compile-fail/a-capacity-minted-for-an-undeclared-family.rs:41:1
    |
-38 | struct UndeclaredFamily;
+41 | struct UndeclaredFamily;
    | ^^^^^^^^^^^^^^^^^^^^^^^
    = help: the following other types implement trait `EvidenceSelectedLimit`:
              AdmissionIssueLimit

@@ -34,7 +34,7 @@
 
 use crate::authority::CapabilityGrantId;
 use crate::identity::Commitment;
-use crate::types::{EvidenceRef, Limit, NonEmptyBounded};
+use crate::types::{EvidenceRef, EvidenceSelectedMagnitude, Limit, NonEmptyBounded};
 
 // ---------------------------------------------------------------------------
 // The lease — the band-forced seat from the authority home, collected.
@@ -278,7 +278,9 @@ pub struct ResultingResolutionDomain;
 /// that ladder whose seat is not a refusal body.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ShredParticipantLimit;
-impl Limit for ShredParticipantLimit {}
+impl Limit for ShredParticipantLimit {
+    type Authority = EvidenceSelectedMagnitude;
+}
 impl crate::types::EvidenceSelectedLimit for ShredParticipantLimit {}
 
 /// Shred is acknowledged only after every required backend has durably

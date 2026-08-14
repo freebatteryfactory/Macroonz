@@ -47,7 +47,7 @@
 use crate::bounds::{Dimension, DimensionId};
 use crate::identity::{CreationLaw, IdentityClass, IdentityRole, Occurrence};
 use crate::refusal::{FamilyShape, RefusalFamily};
-use crate::types::{Bounded, EvidenceRef, Limit};
+use crate::types::{Bounded, EvidenceRef, Limit, UnstatedMagnitude};
 use crate::value::BoundedText;
 use core::marker::PhantomData;
 
@@ -98,7 +98,9 @@ pub struct TimeDelta {
 /// Limit family for provenance text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ProvenanceLimit;
-impl Limit for ProvenanceLimit {}
+impl Limit for ProvenanceLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// Where a reading came from: source, route, admission context. Lost
 /// provenance defaults to refusal.
@@ -123,7 +125,9 @@ pub struct ClockObservation {
 /// Limit family for clock-source policies.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ClockPolicyLimit;
-impl Limit for ClockPolicyLimit {}
+impl Limit for ClockPolicyLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// Admitted clock domains and their admission requirements — policy, never a
 /// live clock.
@@ -394,7 +398,9 @@ pub struct SpendRecord {
 /// Limit family for spend collections.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SpendLimit;
-impl Limit for SpendLimit {}
+impl Limit for SpendLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// The claim marker for the durable coordinate a spend was recorded at.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

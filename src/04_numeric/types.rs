@@ -46,7 +46,7 @@
 
 use crate::identity::Commitment;
 use crate::logic::Truth;
-use crate::types::{EvidenceRef, Limit};
+use crate::types::{EvidenceRef, Limit, UnstatedMagnitude};
 use crate::value::BoundedText;
 
 /// The four constructor axes — the value-shape axes of exact construction. A
@@ -122,7 +122,9 @@ impl DecimalScale {
 /// designations). Magnitude is schema-witnessed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DesignationLimit;
-impl Limit for DesignationLimit {}
+impl Limit for DesignationLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// A currency designation as supplied and schema-admitted. Seated here (not at
 /// the schema home) because the band graph demands it: `Money` at band 04

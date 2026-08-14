@@ -1,7 +1,7 @@
 error[E0308]: mismatched types
-  --> tests/compile-fail/a-capacity-witness-from-another-family.rs:44:22
+  --> tests/compile-fail/a-capacity-witness-from-another-family.rs:50:22
    |
-44 |     admits_the_first(capacity);
+50 |     admits_the_first(capacity);
    |     ---------------- ^^^^^^^^ expected `&PositiveLimitWitness<FirstFamily>`, found `&PositiveLimitWitness<SecondFamily>`
    |     |
    |     arguments to this function are incorrect
@@ -9,7 +9,7 @@ error[E0308]: mismatched types
    = note: expected reference `&PositiveLimitWitness<FirstFamily>`
               found reference `&PositiveLimitWitness<SecondFamily>`
 note: function defined here
-  --> tests/compile-fail/a-capacity-witness-from-another-family.rs:34:4
+  --> tests/compile-fail/a-capacity-witness-from-another-family.rs:40:4
    |
-34 | fn admits_the_first(_capacity: &PositiveLimitWitness<FirstFamily>) {}
+40 | fn admits_the_first(_capacity: &PositiveLimitWitness<FirstFamily>) {}
    |    ^^^^^^^^^^^^^^^^ ---------------------------------------------

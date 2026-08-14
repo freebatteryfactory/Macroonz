@@ -83,11 +83,39 @@
 //! magnitude for it is a behavioural fact no parse reaches, and the machine
 //! carries no runtime yet.
 //!
-//! **It does not judge a family declaring BOTH ladders.** Such a family states
-//! two authorities for one capacity, `crate::types` names it as a declaration
-//! defect no bound can see, and it is outside this population by construction —
-//! the denominator here is families with no compile-time magnitude. Widening the
-//! claim to cover it is a separate law with its own name.
+//! **It no longer judges a family declaring BOTH ladders, and no longer needs
+//! to.** Such a family stated two authorities for one capacity; `crate::types`
+//! once named it a declaration defect no bound could see, and this leg carried
+//! the matching nonclaim. `Limit::Authority` is what sees it now — one
+//! associated type resolves to one type, `ConstLimit` and `EvidenceSelectedLimit`
+//! name theirs exactly, and the second declaration is a type mismatch. A parse
+//! that re-derived the same refusal would be the weaker restatement this
+//! repository drains, so what stands here is only the population question
+//! `rustc` cannot answer.
+//!
+//! # Two homes may not spell one family the same, and that is REFUSED
+//!
+//! A family is keyed by its TERMINAL name, and it has to be: a seat names its
+//! bound as `NonEmptyBounded<Issue, IssueLimit>`, with no home in the spelling
+//! and no resolver here to supply one. So a name declared by two homes has one
+//! record on the family side and an unattributable bound on the seat side, and
+//! merging them would fold one home's ladders onto the other home's seats —
+//! silently, and in the direction that makes the offence disappear. That is the
+//! alias-collision defect this repository has already paid for once, and
+//! reproducing it inside the law that replaced part of that machinery is not a
+//! trade worth making.
+//!
+//! So a terminal name declared at more than one site REFUSES. It is not
+//! qualified and not disambiguated: the seat side carries no owner to qualify
+//! against, so the honest move is the loud one until a generated declaration
+//! contract supplies a stable owner-qualified identity that BOTH sides carry. A
+//! refused name is also out of the printed population, because a name with two
+//! declarations names no family whose ladder could be counted; the refusal is
+//! what stands in its place.
+//!
+//! A site is a file plus the inline module chain the declaration sits in, so two
+//! declarations in one file's separate `mod` blocks are two sites and are
+//! refused exactly as two files would be.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -112,7 +140,9 @@ const RUNTIME_LADDER: &str = "EvidenceSelectedLimit";
 const INHABITANT_PROMISING_SEATS: [&str; 2] = ["NonEmptyBounded", "AdmittedPrefix"];
 
 /// Every limit family bounding an inhabitant-promising seat in the machine, with
-/// no compile-time magnitude declared for it, declares the runtime ladder.
+/// no compile-time magnitude declared for it, declares the runtime ladder — and
+/// no two homes spell one family the same, because a population that cannot say
+/// which family a seat named has no denominator to count.
 ///
 /// # Errors
 ///
@@ -162,13 +192,19 @@ struct PositivityVerdict {
 ///
 /// The ladders are carried as the SET OF CONTRACTS a source declares for the
 /// family rather than as two flags, which is what `clippy.toml`'s
-/// `max-struct-bools = 0` asks for and is also the honest shape: a family
-/// declaring both ladders is representable here, and a pair of booleans would
-/// have read as a state machine nobody named.
+/// `max-struct-bools = 0` asks for and is also the honest shape: a pair of
+/// booleans would have read as a state machine nobody named. A source claiming
+/// both ladders is still representable in this READING even though it no longer
+/// compiles, and that is deliberate — a reader whose shape could not hold what a
+/// fixture can write would be judging a tree it had already decided about.
 #[derive(Debug, Default)]
 struct FamilyFacts {
-    /// Where `impl … Limit for F` was read, where a source declares it.
-    declared_at: Option<String>,
+    /// EVERY site where `impl … Limit for F` was read, not the first.
+    ///
+    /// A set rather than one site, because one terminal name read at two sites
+    /// is the collision this leg refuses, and a reader that kept only the first
+    /// would have thrown the evidence away before the question was asked.
+    declared_at: BTreeSet<String>,
     /// Every ladder contract a source declares for it, by name.
     ladders: BTreeSet<String>,
 }
@@ -178,8 +214,8 @@ struct FamilyFacts {
 struct Reading {
     /// Every limit family the machine declares, by name.
     families: BTreeMap<String, FamilyFacts>,
-    /// Every family bounding an inhabitant-promising seat, and the first
-    /// declaration that seats it.
+    /// Every family bounding an inhabitant-promising seat, and the first site
+    /// that seats it.
     seated: BTreeMap<String, String>,
 }
 
@@ -198,11 +234,28 @@ fn positivity_verdict(sources: &[(&CanonicalPath, &syn::File)]) -> PositivityVer
         offenders: Vec::new(),
     };
     for (family, facts) in &reading.families {
+        // Two homes spelling one family the same. The seat side carries the
+        // terminal name alone, so there is nothing here to tell the two apart
+        // and no honest way to attribute a bound to either: the name is refused
+        // and left out of the population rather than merged into one record.
+        if facts.declared_at.len() > 1 {
+            let sites: Vec<&str> = facts.declared_at.iter().map(String::as_str).collect();
+            verdict.offenders.push(format!(
+                "`{family}` is declared as a limit family at {} sites — {} — and a seat names its \
+                 bound by that terminal name alone, so no reading here can tell which family a \
+                 `NonEmptyBounded<_, {family}>` is bounded by; one of them takes a name of its \
+                 own, because merging two families under one name is the silent failure this \
+                 population exists to prevent",
+                sites.len(),
+                sites.join(" and ")
+            ));
+            continue;
+        }
         // No `impl … Limit for F` was read, so nothing here established that
         // this name is a limit family at all. Unreachable in code that
         // compiles — both ladders have `Limit` as their supertrait — and
         // stated rather than assumed, because a fixture can write it.
-        let Some(declared_at) = &facts.declared_at else {
+        let Some(declared_at) = facts.declared_at.first() else {
             continue;
         };
         if facts.ladders.contains(DECLARED_LADDER) {
@@ -237,6 +290,12 @@ fn read_sources(sources: &[(&CanonicalPath, &syn::File)]) -> Reading {
 
 /// Reads one module's items, then every inline module inside it.
 ///
+/// The `path` a declaration is recorded at is its SITE: the file, and the inline
+/// module chain the declaration sits in, appended one `::` segment per descent.
+/// That is what makes two declarations of one terminal name in one file's
+/// separate `mod` blocks two sites and therefore a refused collision, rather
+/// than one record that quietly absorbed the second.
+///
 /// Written as an `if let` chain rather than a match because `syn::Item` is
 /// `non_exhaustive`: the items this reading has a question about are named, and
 /// every other item is passed over without a wildcard arm standing in for a set
@@ -270,7 +329,7 @@ fn read_items(path: &str, items: &[syn::Item], reading: &mut Reading) {
         } else if let syn::Item::Mod(module) = item
             && let Some((_, inner)) = &module.content
         {
-            read_items(path, inner, reading);
+            read_items(&format!("{path}::{}", module.ident), inner, reading);
         }
     }
 }
@@ -305,8 +364,8 @@ fn record_ladder(path: &str, contract: &str, family: &str, reading: &mut Reading
         return;
     }
     let facts = reading.families.entry(family.to_owned()).or_default();
-    if contract == LIMIT_CONTRACT && facts.declared_at.is_none() {
-        facts.declared_at = Some(path.to_owned());
+    if contract == LIMIT_CONTRACT {
+        facts.declared_at.insert(path.to_owned());
     }
     facts.ladders.insert(contract.to_owned());
 }
@@ -529,7 +588,9 @@ mod tests {
     /// inhabitant.
     const WITNESSED: &str = "\
     pub struct DemoIssueLimit;\n\
-    impl Limit for DemoIssueLimit {}\n\
+    impl Limit for DemoIssueLimit {\n\
+    \x20   type Authority = EvidenceSelectedMagnitude;\n\
+    }\n\
     impl crate::types::EvidenceSelectedLimit for DemoIssueLimit {}\n\
     pub struct DemoRefusal {\n\
     \x20   body: AdmittedPrefix<DemoIssue, DemoIssueLimit>,\n\
@@ -539,7 +600,9 @@ mod tests {
     /// promises an inhabitant and nothing can establish the promise.
     const OFF_THE_LADDER: &str = "\
     pub struct DemoIssueLimit;\n\
-    impl Limit for DemoIssueLimit {}\n\
+    impl Limit for DemoIssueLimit {\n\
+    \x20   type Authority = UnstatedMagnitude;\n\
+    }\n\
     pub struct DemoRefusal {\n\
     \x20   body: AdmittedPrefix<DemoIssue, DemoIssueLimit>,\n\
     }\n";
@@ -598,7 +661,9 @@ mod tests {
     fn a_family_with_a_declared_magnitude_is_not_this_laws_subject() {
         let verdict = positivity_verdict(&source(
             "pub struct DemoIssueLimit;\n\
-             impl Limit for DemoIssueLimit {}\n\
+             impl Limit for DemoIssueLimit {\n\
+             \x20   type Authority = DeclaredMagnitude;\n\
+             }\n\
              impl ConstLimit for DemoIssueLimit {\n\
              \x20   const MAX: usize = 32;\n\
              }\n\
@@ -707,6 +772,116 @@ mod tests {
         assert_eq!(verdict.declared, 1);
         assert_eq!(verdict.witnessed, 0);
         assert_eq!(verdict.offenders.len(), 1, "{:?}", verdict.offenders);
+    }
+
+    /// Planted reversal: two homes declaring one terminal name. The seat side
+    /// names its bound by that name alone, so a reading that merged them would
+    /// fold one home's ladder onto the other home's seat — and would do it in
+    /// the direction that makes the offence vanish.
+    ///
+    /// The fixture is built exactly that way: the home WITHOUT the runtime
+    /// ladder carries the inhabitant-promising seat, and the home WITH it
+    /// carries none. Merged, the record would read as declared-and-witnessed and
+    /// this leg would pass while guarding nothing. Refused, the collision is
+    /// what the run reports.
+    #[test]
+    fn one_terminal_name_declared_by_two_homes_is_refused() {
+        let verdict = positivity_verdict(&[
+            (
+                String::from("src/08_home/types.rs"),
+                String::from(
+                    "pub struct IssueLimit;\n\
+                     impl Limit for IssueLimit {\n    type Authority = UnstatedMagnitude;\n}\n\
+                     pub struct EightRefusal {\n    body: AdmittedPrefix<Issue, IssueLimit>,\n}\n",
+                ),
+            ),
+            (
+                String::from("src/13_home/types.rs"),
+                String::from(
+                    "pub struct IssueLimit;\n\
+                     impl Limit for IssueLimit {\n    type Authority = EvidenceSelectedMagnitude;\n}\n\
+                     impl crate::types::EvidenceSelectedLimit for IssueLimit {}\n",
+                ),
+            ),
+        ]);
+        assert_eq!(verdict.offenders.len(), 1, "{:?}", verdict.offenders);
+        assert!(
+            verdict
+                .offenders
+                .first()
+                .is_some_and(|offence| offence.contains("src/08_home/types.rs")
+                    && offence.contains("src/13_home/types.rs")
+                    && offence.contains("takes a name of its own")),
+            "{:?}",
+            verdict.offenders
+        );
+        assert_eq!(
+            verdict.declared, 0,
+            "a refused name must leave the population rather than be counted under one of its \
+             two declarations"
+        );
+        assert_eq!(verdict.witnessed, 0);
+    }
+
+    /// The same refusal inside ONE file. A site is the file plus the inline
+    /// module chain, so two `mod` blocks spelling one family alike collide
+    /// exactly as two files do — and a reader keyed on the file alone would
+    /// have merged this pair without a word.
+    #[test]
+    fn one_terminal_name_in_two_inline_modules_is_refused() {
+        let verdict = positivity_verdict(&source(
+            "pub mod first {\n\
+             \x20   pub struct IssueLimit;\n\
+             \x20   impl Limit for IssueLimit {\n\
+             \x20       type Authority = UnstatedMagnitude;\n\
+             \x20   }\n\
+             }\n\
+             pub mod second {\n\
+             \x20   pub struct IssueLimit;\n\
+             \x20   impl Limit for IssueLimit {\n\
+             \x20       type Authority = UnstatedMagnitude;\n\
+             \x20   }\n\
+             }\n",
+        ));
+        assert_eq!(verdict.offenders.len(), 1, "{:?}", verdict.offenders);
+        assert!(
+            verdict
+                .offenders
+                .first()
+                .is_some_and(|offence| offence.contains("types.rs::first")
+                    && offence.contains("types.rs::second")),
+            "{:?}",
+            verdict.offenders
+        );
+    }
+
+    /// The positive control for the collision refusal: one family declared once
+    /// and mentioned many times is not a collision. The ladder impl, the seat,
+    /// and the record all name it, and a reader that counted MENTIONS rather
+    /// than declaration SITES would refuse every family in the machine.
+    #[test]
+    fn one_family_named_many_times_at_one_site_is_not_a_collision() {
+        let verdict = positivity_verdict(&source(WITNESSED));
+        assert!(verdict.offenders.is_empty(), "{:?}", verdict.offenders);
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.witnessed, 1);
+    }
+
+    /// The real machine, measured: no terminal name is declared twice. Stated as
+    /// a test rather than as a sentence in a report, because a sentence would
+    /// have been true on the day it was written and unchecked every day after.
+    #[test]
+    fn the_real_machine_declares_no_family_name_twice() -> Result<(), String> {
+        let snapshot = repository_snapshot()?;
+        let sources = positivity_sources(snapshot)?;
+        let verdict = verdict_of_trees(&sources);
+        let collisions: Vec<&String> = verdict
+            .offenders
+            .iter()
+            .filter(|offence| offence.contains("takes a name of its own"))
+            .collect();
+        assert!(collisions.is_empty(), "{collisions:?}");
+        Ok(())
     }
 
     /// A source this reader cannot parse is a hole in the population, and it is
