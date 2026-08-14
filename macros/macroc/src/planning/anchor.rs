@@ -40,17 +40,36 @@
 //! hand-maintained roster one level down and push the set past the cardinality
 //! that bounds it.
 //!
-//! Two seats inside the context are named boundaries for the same reason and
-//! are stated at their bindings below: a cause set names up to sixty-four
-//! declarations and the roster can watch one, and a profile VERSION is not an
-//! identity and no seat watches it.
+//! One seat inside the context is a named boundary for the same reason and is
+//! stated at its binding below: a profile VERSION is not an identity, and every
+//! roster seat watches one.
+//!
+//! # A cause set the roster cannot watch is refused, not partially watched
+//!
+//! A cause set names up to the declared source magnitude and one roster seat
+//! carries one identity. That gap used to be written down as a named boundary
+//! too, and a boundary is the wrong shape for it. The other boundaries cost a
+//! reader nothing: a profile version nobody watches leaves a plan that is
+//! honestly silent about profile versions. This one cost a reader the answer —
+//! a set watching the FIRST declaration and no other is byte-for-byte the shape
+//! of a complete watch set, so a plan committed to three declarations, watching
+//! one, reads as CURRENT after the other two changed. Partial invalidation is
+//! not a narrower claim than the roster supports; it is a false one.
+//!
+//! So the derivation fails closed. A multi-declaration cause set refuses with
+//! the planning family naming
+//! [`ProjectionPlanningIssue::CauseSetUnwatchable`](crate::refusal::ProjectionPlanningIssue::CauseSetUnwatchable),
+//! carrying both counts, and no plan stands over a context this profile cannot
+//! represent. The complete dependency-key watch set is a wider roster with its
+//! own declared magnitude, and it is owed; refusing is what the plane does until
+//! it exists, rather than issuing a freshness claim it cannot support.
 
 use super::{
     CauseAnchoring, GraphAnchoring, InvalidationSet, InvalidationTrigger, ProjectionContext,
     TargetBinding,
 };
 use crate::plane::TranscriptAnchoring;
-use crate::refusal::ProjectionPlanning;
+use crate::refusal::{ProjectionPlanning, ProjectionPlanningIssue};
 
 impl CauseAnchoring {
     /// What a transcript derived under this cause is anchored to.
@@ -60,6 +79,15 @@ impl CauseAnchoring {
     /// machine's own identities. The remaining fragments are inside the
     /// transcript's content rather than at its anchor, because an anchor names
     /// one thing.
+    ///
+    /// The first fragment here is a POSITION and never a stand-in, and the
+    /// difference is what keeps this road out of the defect the watch set had.
+    /// [`CauseAnchoring::encode_into`](super::CauseAnchoring::encode_into)
+    /// writes the set's length and every declaration it names into the content
+    /// the identity is derived over, so two plans caused by different sets reach
+    /// different identities whatever they anchor at. An anchor naming one member
+    /// of a committed set is a spelling rule; a WATCH naming one member of a
+    /// committed set is a claim about the others.
     #[must_use]
     pub fn anchoring(&self) -> TranscriptAnchoring {
         match self {
@@ -73,14 +101,46 @@ impl CauseAnchoring {
     }
 }
 
+/// How many source declarations one trigger roster seat can watch.
+///
+/// One, and it is read off the roster rather than chosen here:
+/// [`InvalidationTrigger::SourceDeclarationChanged`] declares a single `watched`
+/// seat carrying one thirty-two-byte identity, so a seat watches one declaration
+/// and a cause set naming more has no representation in the roster at all.
+const WATCHABLE_SOURCE_DECLARATIONS: usize = 1;
+
 /// The trigger that watches whatever a context was caused by.
-fn caused_by(sources: &CauseAnchoring) -> InvalidationTrigger {
+///
+/// # Errors
+///
+/// Returns the planning family naming
+/// [`ProjectionPlanningIssue::CauseSetUnwatchable`] when the cause set names
+/// more declarations than the roster can watch. It refuses rather than watching
+/// the first, because a set that watches one of three declarations is not a
+/// smaller watch set — it is one that reads as current after two of the three
+/// changed.
+fn caused_by(sources: &CauseAnchoring) -> Result<InvalidationTrigger, ProjectionPlanning> {
     match sources {
-        CauseAnchoring::Declarations(declared) => InvalidationTrigger::SourceDeclarationChanged {
-            watched: *declared.first(),
-        },
+        CauseAnchoring::Declarations(declared) => {
+            let named = declared.len();
+            if named > WATCHABLE_SOURCE_DECLARATIONS {
+                return Err(ProjectionPlanning::established(
+                    ProjectionPlanningIssue::CauseSetUnwatchable {
+                        named: u32::try_from(named).unwrap_or(u32::MAX),
+                        watchable: u32::try_from(WATCHABLE_SOURCE_DECLARATIONS).unwrap_or(u32::MAX),
+                    },
+                ));
+            }
+            // Past the refusal the set holds exactly one declaration, so the
+            // first IS the set. That is the difference between reading a head
+            // and electing a member: the same call was a stand-in one line ago
+            // and is a total read here.
+            Ok(InvalidationTrigger::SourceDeclarationChanged {
+                watched: *declared.first(),
+            })
+        }
         CauseAnchoring::CapturedDeclaration(captured) => {
-            InvalidationTrigger::CapturedDeclarationChanged { watched: *captured }
+            Ok(InvalidationTrigger::CapturedDeclarationChanged { watched: *captured })
         }
     }
 }
@@ -115,8 +175,17 @@ impl ProjectionContext {
     /// The invalidation trigger that watches whatever this context was caused
     /// by — the fragment where a caller holds one, and the captured declaration
     /// where the cause IS the capture.
-    #[must_use]
-    pub fn cause_trigger(&self) -> InvalidationTrigger {
+    ///
+    /// # Errors
+    ///
+    /// Returns the planning family naming
+    /// [`ProjectionPlanningIssue::CauseSetUnwatchable`] when the cause set names
+    /// more declarations than the roster can watch. The refusal is on this road
+    /// and not only on [`ProjectionContext::watch_set`]: a caller reading one
+    /// seat is asking the same question the whole set asks, and a road that
+    /// answered it with the first declaration would be the partial claim
+    /// surviving beside the road that refuses it.
+    pub fn cause_trigger(&self) -> Result<InvalidationTrigger, ProjectionPlanning> {
         caused_by(&self.sources)
     }
 
@@ -147,21 +216,31 @@ impl ProjectionContext {
     /// plan identities depending only on whether a call site remembered to skip
     /// the repeat.
     ///
-    /// # Why this road can refuse at all
+    /// # The two roads this can refuse on, and they are different facts
     ///
     /// It admits the set under the authoring profile, which is the claim that
     /// the declared magnitude was admitted rather than merely that these items
-    /// fit it. The derivation itself cannot overrun — it yields at most one
-    /// trigger per kind and reaches five of the nine kinds — so the refusal is
-    /// the admission road's, not a case this derivation produces. Both plan
-    /// sites already carry that road and propagate it; nothing here invents a
-    /// branch a caller has to find a value for.
+    /// fit it. That admission cannot overrun here — the derivation yields at
+    /// most one trigger per kind and reaches five of the nine kinds — so the
+    /// magnitude half of the refusal is the admission road's rather than a case
+    /// this derivation produces.
+    ///
+    /// The other half IS this derivation's. A cause set naming more
+    /// declarations than the roster can watch has no representable set at all,
+    /// and the derivation says so rather than emitting one that covers the
+    /// first. The two are not the same refusal wearing two payloads: the first
+    /// says a derived set outgrew a declared magnitude, and the second says the
+    /// watch PROFILE cannot represent this context. Both plan sites already
+    /// carry the road and propagate it; nothing here invents a branch a caller
+    /// has to find a value for.
     ///
     /// # Errors
     ///
     /// Returns the planning family naming
     /// [`BoundAxis::Declarations`](crate::refusal::BoundAxis::Declarations) when
-    /// the admitted magnitude does not hold the derived set.
+    /// the admitted magnitude does not hold the derived set, and naming
+    /// [`ProjectionPlanningIssue::CauseSetUnwatchable`] when the context's cause
+    /// set names more declarations than the roster can watch.
     pub fn watch_set(&self) -> Result<InvalidationSet, ProjectionPlanning> {
         // Exhaustive on purpose, and that is the mechanism rather than a
         // style: a seat added to the context stops compiling HERE until
@@ -176,18 +255,19 @@ impl ProjectionContext {
             // than an oversight, and it closes when a seat exists that can
             // carry something other than thirty-two bytes.
             profile_version: _,
-            // A cause set names up to sixty-four declarations and the roster
-            // seat names one, so the second and later declarations of a
-            // multi-cause plan are unwatched. Also a named boundary: watching
-            // them needs a magnitude wider than the roster's cardinality, which
-            // is a declared-limit decision with its own controls and not one
-            // this derivation may take on its own.
+            // A cause set names up to the declared source magnitude and the
+            // roster seat names one. That gap is REFUSED rather than watched
+            // partially: watching the second and later declarations needs a
+            // wider roster with its own declared magnitude, which is a
+            // declared-limit decision with its own controls and not one this
+            // derivation may take on its own — and until it is taken, a set
+            // watching the first alone would read exactly like a complete one.
             sources,
             generator,
             target,
         } = self;
 
-        let first = caused_by(sources);
+        let first = caused_by(sources)?;
         let others = [
             decided_against(graph),
             InvalidationTrigger::ProjectionProfileChanged { watched: *profile },

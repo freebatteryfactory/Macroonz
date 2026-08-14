@@ -150,6 +150,10 @@ fn planning_line(issue: &ProjectionPlanningIssue) -> String {
             "the origin trail does not join: edge {at} starts at a node the edge before it did \
              not produce"
         ),
+        ProjectionPlanningIssue::CauseSetUnwatchable { named, watchable } => format!(
+            "the cause set names {named} source declarations and the trigger roster watches \
+             {watchable}, so no watch set represents this context"
+        ),
     }
 }
 
@@ -194,6 +198,10 @@ fn planning_bytes(issue: &ProjectionPlanningIssue) -> Vec<u8> {
         ProjectionPlanningIssue::TrailDiscontinuous { at } => {
             bytes.extend_from_slice(&at.to_be_bytes());
         }
+        ProjectionPlanningIssue::CauseSetUnwatchable { named, watchable } => {
+            bytes.extend_from_slice(&named.to_be_bytes());
+            bytes.extend_from_slice(&watchable.to_be_bytes());
+        }
     }
     bytes
 }
@@ -209,7 +217,13 @@ const fn planning_observed(issue: &ProjectionPlanningIssue) -> ObservedClassific
         | ProjectionPlanningIssue::UnknownProjectionKind { .. } => {
             ObservedClassification::ContractDisagreement
         }
-        ProjectionPlanningIssue::ProfileUnsupported { .. } => {
+        // A cause set the roster cannot watch is a context this PROFILE does not
+        // admit, which is the same observation the unsupported-profile issue
+        // carries: the plan is well formed, and the profile it was asked for
+        // cannot represent it. The two arms are joined because they are one
+        // observation, not two that happen to agree today.
+        ProjectionPlanningIssue::ProfileUnsupported { .. }
+        | ProjectionPlanningIssue::CauseSetUnwatchable { .. } => {
             ObservedClassification::ProfileDisagreement
         }
         ProjectionPlanningIssue::BoundExceeded { .. } => ObservedClassification::BoundExceeded,

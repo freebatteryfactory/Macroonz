@@ -284,6 +284,41 @@ tooling-obligation: macroc.a-refusal-body-is-minted-only-inside-the-plane
     crate-scoped mint is reachable by every module in the services, and the
     module order `lib.rs` declares is what enumerates the seams that use it.
 
+tooling-obligation: macroc.a-plan-watches-every-identity-it-hangs-off-or-refuses
+  claim: >
+    A plan's shared watch set is derived from its context's own seats, and where
+    this watch profile cannot represent a seat the derivation REFUSES rather than
+    covering part of it. A cause set names up to the declared source magnitude and
+    one trigger roster seat carries one identity, so a plan committed to three
+    declarations while watching one would read as current after the other two
+    changed — byte-for-byte the shape of a complete watch set, and false. Both
+    public roads refuse: the whole-set derivation and the single-seat cause
+    trigger, because a seat road that still answered would be the partial claim
+    surviving beside the road that refuses it.
+  owner: macros/macroc/src/planning/anchor.rs
+  positive: macros/macroc/src/laws.rs
+  method: executable-law
+  activation: cargo test -p threadpak-macroc pattern_stamp
+  tooling-red: testpak/tests/compile-fail/a-watch-set-read-as-a-fact.rs — the
+    cause trigger taken as a fact from outside the crate, refusing with E0308;
+    restoring the unconditional first-declaration answer makes the road total,
+    the fixture compiles, and trybuild reports a case expected to fail that
+    succeeded
+  nonclaims: >
+    It does not claim the complete dependency-key watch set exists. The roster
+    watches five of its nine kinds and covers the SHARED context alone; the
+    anchors a kind supplies beside its context carry no trigger, and that is
+    stated at the plan sites where the compiler counts them. It does not claim a
+    profile VERSION is watched — a version is not an identity and no roster seat
+    carries one. The committed reversal covers the SHAPE and not the behaviour:
+    that a two-declaration context refuses and a one-declaration context does not
+    is asserted on the services' proof surface, because the judge cannot build a
+    multi-source cause set at all — `OwnerIdentityRef::decoded` is crate-internal
+    and `Commitment::raw` is test-gated inside the machine, so no road outside
+    the services hands a caller a fragment identity. That half opens to a
+    committed testpak lane the day a public decode road for an owner identity
+    reference exists.
+
 tooling-obligation: macroc.the-emitted-tree-is-inside-the-closure-proof
   claim: >
     The exact token stream an expansion emits is joined by the closure, owned by

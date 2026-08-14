@@ -37,5 +37,25 @@ from it — one road, reading the context's own seats, rather than a roster each
 plan site keeps in step by hand — and `encode.rs` writes the bytes a plan's
 transcript is taken over.
 
+## A watch set covers its context or there is no plan
+
+The derivation fails closed. Where a context carries a seat this watch profile
+cannot represent — a cause set naming more source declarations than the trigger
+roster can watch — the road refuses with a typed planning issue naming both
+counts, rather than emitting a set that covers the first declaration. Partial
+invalidation is not a narrower claim than the roster supports: a set watching one
+of three declarations is byte-for-byte the shape of a complete one, so the plan
+over it reads as CURRENT after the other two changed, and nothing downstream can
+tell the two apart because there is nothing wrong with the value. The complete
+dependency-key watch set is a wider roster with its own declared magnitude and it
+is owed; refusing is what the plane does until it exists.
+
+The plan's ANCHOR is a different question and keeps naming one declaration. The
+transcript content commits to the whole cause set — its length and every
+declaration in it — so two plans caused by different sets reach different
+identities whatever they anchor at. An anchor naming one member of a committed
+set is a spelling rule; a watch naming one member of a committed set is a claim
+about the others.
+
 This home's qualification obligations live in the crate README's tooling-obligation
 blocks.
