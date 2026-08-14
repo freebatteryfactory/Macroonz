@@ -15,20 +15,18 @@ workspace = true
 threadpak = { path = ".." }
 threadpak-macroc = { path = "../macros/macroc" }
 threadpak-macros = { path = "../macros/proc" }
-# The structural lane's parser, admitted by the note in README.md. Pinned exact
-# to the version the lockfile already carries, and cut to the two features the
-# lane uses: `parsing` to read text into an AST at all, `full` because items and
-# their associated constants are only in the AST under it. Printing, folding,
-# visiting, derive input, and the proc-macro bridge are all off: the lane reads
-# and never writes, and never runs inside a macro.
-syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }
+# The structural lane's parser, admitted by the note in README.md. Which version
+# and which features is the workspace's one decision, inherited from the root
+# manifest's `[workspace.dependencies]` table rather than restated here.
+syn = { workspace = true }
 
 [dev-dependencies]
-trybuild = "1"
+# The compile-refusal harness, inherited exact from the workspace table.
+trybuild = { workspace = true }
 # The independent transcript lane's digest, admitted by the note in README.md.
 # The judge hashes with the same admitted mechanism the services do — a lane
 # that reimplemented BLAKE3 would be testing an arithmetic exercise rather than
-# a specification. Pinned exact to the services' own version, and cut to the
-# same minimal feature set, so the two crates differ in what they ENCODE and in
-# nothing else.
-blake3 = { version = "=1.8.6", default-features = false }
+# a specification. Inheriting the workspace decision is what makes "the same
+# mechanism" a fact rather than two manifests that currently agree: the two
+# crates differ in what they ENCODE and in nothing else.
+blake3 = { workspace = true }
