@@ -17,8 +17,28 @@
 //! declarations with `str::find` on an attribute spelled exactly one way — so a
 //! module declared across two lines was invisible to it, and an attribute
 //! written with different spacing was a band `lib.rs` "did not declare".
+//!
+//! # Both populations are TOTAL over their directory
+//!
+//! Each law is about a directory, so each classifies every direct child of that
+//! directory into exactly one named state and refuses the state that means
+//! "nothing here recognized this". Both readings used to RECOGNIZE their subject
+//! — a directory opening with two digits and an underscore, a `mod` declaration
+//! carrying no build condition — and let everything else fall through a silent
+//! `continue`. That is not a narrow claim, it is an unstated one: a misspelled
+//! architectural directory and a source no declaration accounts for each left
+//! the population with nothing said anywhere, and both checks went on printing
+//! PASS while guarding less than the sentence above them says.
+//!
+//! Neither law admits a conditionally-compiled production module, and the reason
+//! is the same in both crates. These readings establish ONE order. A module
+//! compiled in some builds and not others stands in as many orders as there are
+//! build populations, and this reading can establish none of them — so the one
+//! condition either law admits is the proof surface's exact `#[cfg(test)]`, and
+//! every other conditioned declaration refuses rather than quietly leaving the
+//! order.
 
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 use std::str::FromStr;
 
 use proc_macro2::{Delimiter, TokenStream, TokenTree};
@@ -36,6 +56,18 @@ const MACHINE_ROOT: &str = "src/lib.rs";
 /// its dependency order the way numbered directories carry the machine's.
 const TOOLING_SOURCE: &str = "macros/macroc/src";
 
+/// The file cargo compiles a crate from. It declares the order rather than
+/// standing in it, in both crates.
+const CRATE_ROOT_FILE: &str = "lib.rs";
+
+/// The extension a Rust source carries.
+const SOURCE_SUFFIX: &str = ".rs";
+
+/// The files the machine's crate root reserves beside it: the root's own public
+/// types, and the residue proof surface. Neither is a semantic home, and neither
+/// is an accident — the working law seats both at the root by name.
+const RESERVED_ROOT_FILES: [&str; 2] = ["laws.rs", "types.rs"];
+
 /// The attribute a band declaration carries.
 const PATH_ATTRIBUTE: &str = "path";
 
@@ -43,12 +75,45 @@ const PATH_ATTRIBUTE: &str = "path";
 /// stand in.
 const CONDITION_ATTRIBUTE: &str = "cfg";
 
+/// The attribute that would attach a build condition to a declaration
+/// indirectly, and which therefore conditions it just as surely.
+const CONDITIONED_ATTRIBUTE: &str = "cfg_attr";
+
+/// The one build condition either order admits: the proof surface's own.
+const PROOF_SURFACE_CONDITION: &str = "test";
+
 /// Every numbered band directory is complete (README.md, mod.rs, types.rs) and
 /// `lib.rs` declares every band via its `#[path]` attribute in ascending band
 /// order — the band map and the crate never drift apart.
+///
+/// # Why every child of `src/` is classified rather than only the numbered ones
+///
+/// A band was once RECOGNIZED — a direct child whose first component opened with
+/// two digits and an underscore — and everything the recognizer did not match
+/// fell through a silent `continue`. That is not a narrow population, it is an
+/// unstated one: `src/O5_bounds/`, `src/5_bounds/`, `src/bounds/` and
+/// `src/notes.md` each leave the band map without a word said anywhere, and the
+/// check that reports on the band map keeps printing PASS. So the classification
+/// is TOTAL. Every direct child of `src/` is exactly one of four things — a
+/// numbered semantic home, the crate root, a file the root grammar reserves, or
+/// an invalid entry — and the fourth is a refusal naming what it found.
 pub(crate) fn check_band_map(snapshot: &RepositorySnapshot) -> Result<(), String> {
-    let bands = band_directories(snapshot);
     let mut offenders = Vec::new();
+    let mut bands = Vec::new();
+    for child in machine_source_children(snapshot).values() {
+        match *child {
+            MachineSourceChild::NumberedHome(ref named) => bands.push(named.clone()),
+            MachineSourceChild::CrateRoot | MachineSourceChild::ReservedRootFile => (),
+            MachineSourceChild::Invalid(ref reason) => offenders.push(reason.clone()),
+        }
+    }
+    if bands.is_empty() {
+        return Err(String::from(
+            "no numbered band directory was found: this denominator cannot be empty while the \
+             machine states its dependency bands with numbered directories, so the reader is \
+             looking at the wrong tree",
+        ));
+    }
     for band in &bands {
         for file in HOME_FILES {
             if snapshot
@@ -64,7 +129,7 @@ pub(crate) fn check_band_map(snapshot: &RepositorySnapshot) -> Result<(), String
         .rust()
         .source(&CanonicalPath::spelled(MACHINE_ROOT))
         .taken(MACHINE_ROOT)?;
-    let declared = band_declarations(root);
+    let declared = band_declarations(root, &mut offenders);
     let mut positions = Vec::new();
     for band in &bands {
         match declared.iter().position(|stated| stated == band) {
@@ -86,53 +151,183 @@ pub(crate) fn check_band_map(snapshot: &RepositorySnapshot) -> Result<(), String
     }
 }
 
-/// Every numbered band directory the machine's tree carries, in ascending band
-/// order.
+/// What one direct child of the machine's source directory is.
 ///
-/// A band is a directory whose name opens with two digits and an underscore.
-/// The set is derived from the reading rather than from a list anybody
-/// maintains.
-fn band_directories(snapshot: &RepositorySnapshot) -> Vec<String> {
-    let mut bands = BTreeSet::new();
+/// Four states, total over the tree: nothing under `src/` is outside them, which
+/// is exactly what naming them buys. An entry that matches none of the first
+/// three is the fourth and says so, rather than leaving the population by a
+/// route nobody reads.
+#[derive(Debug, PartialEq, Eq)]
+enum MachineSourceChild {
+    /// `NN_name/` — a numbered semantic home, carrying the band's own files.
+    NumberedHome(String),
+    /// `lib.rs` — the crate root, the one file cargo compiles the machine from.
+    CrateRoot,
+    /// A file the crate root's own grammar reserves beside it.
+    ReservedRootFile,
+    /// Anything else, carried with the words the refusal is written in.
+    Invalid(String),
+}
+
+/// Every direct child of the machine's source directory, classified, keyed by
+/// the child's own name so the bands come back in ascending band order.
+///
+/// Derived from the one reading: the children are the distinct first components
+/// of the paths beneath `src/`, and a path this reader cannot cut into one is
+/// itself an entry rather than a skip.
+fn machine_source_children(snapshot: &RepositorySnapshot) -> BTreeMap<String, MachineSourceChild> {
+    let mut children = BTreeMap::new();
     for (path, _) in snapshot.files().under(MACHINE_DIRECTORY) {
         let Some(tail) = path
             .as_str()
             .get(MACHINE_DIRECTORY.len().saturating_add(1)..)
         else {
+            children.insert(
+                path.to_string(),
+                MachineSourceChild::Invalid(format!(
+                    "`{path}` sits beneath {MACHINE_DIRECTORY}/ and this reader cannot cut it into \
+                     a direct child, so what it is under the machine's source directory is unknown \
+                     rather than nothing"
+                )),
+            );
             continue;
         };
-        let Some((head, _)) = tail.split_once('/') else {
-            continue;
-        };
-        let Some((number, _)) = head.split_once('_') else {
-            continue;
-        };
-        if number.len() == 2 && number.chars().all(|digit| digit.is_ascii_digit()) {
-            bands.insert(head.to_owned());
+        match tail.split_once('/') {
+            Some((head, _)) => {
+                children.insert(head.to_owned(), classified_directory(head));
+            }
+            None => {
+                children.insert(tail.to_owned(), classified_root_file(tail));
+            }
         }
     }
-    bands.into_iter().collect()
+    children
 }
 
-/// The band directories one crate root declares, in declaration order.
+/// What one directory sitting directly in `src/` is.
+fn classified_directory(named: &str) -> MachineSourceChild {
+    let Some((number, rest)) = named.split_once('_') else {
+        return MachineSourceChild::Invalid(format!(
+            "`{MACHINE_DIRECTORY}/{named}/` carries no band number: a semantic home is `NN_name/`, \
+             and a directory that is not one states no band at all, so the band order says nothing \
+             about what it may import"
+        ));
+    };
+    if number.len() != 2 || !number.chars().all(|digit| digit.is_ascii_digit()) {
+        return MachineSourceChild::Invalid(format!(
+            "`{MACHINE_DIRECTORY}/{named}/` opens with `{number}` where a semantic home's two-digit \
+             band number belongs, so it names no band and stands in no order"
+        ));
+    }
+    if rest.is_empty() {
+        return MachineSourceChild::Invalid(format!(
+            "`{MACHINE_DIRECTORY}/{named}/` carries a band number and no name, so the coordinate it \
+             occupies is about nothing"
+        ));
+    }
+    MachineSourceChild::NumberedHome(named.to_owned())
+}
+
+/// What one file sitting directly in `src/` is.
+fn classified_root_file(named: &str) -> MachineSourceChild {
+    if named == CRATE_ROOT_FILE {
+        return MachineSourceChild::CrateRoot;
+    }
+    if RESERVED_ROOT_FILES.contains(&named) {
+        return MachineSourceChild::ReservedRootFile;
+    }
+    MachineSourceChild::Invalid(format!(
+        "`{MACHINE_DIRECTORY}/{named}` sits directly in the machine's source directory and is \
+         neither the crate root nor one of the files the root reserves beside it ({}); a semantic \
+         noun lives in its numbered home, and the root is never a shared-noun drawer",
+        RESERVED_ROOT_FILES.join(", ")
+    ))
+}
+
+/// The band directories one crate root declares, in declaration order, with
+/// every conditionally-declared band refused into the offences instead.
 ///
 /// Read off the `#[path = "…"]` attribute of each declared module, which is
 /// what a band declaration IS. The directory is the path's own leading segment,
 /// so the reading never has to be told how a band's `mod.rs` is spelled.
-fn band_declarations(root: &syn::File) -> Vec<String> {
-    root.items.iter().filter_map(declared_band).collect()
+fn band_declarations(root: &syn::File, offenders: &mut Vec<String>) -> Vec<String> {
+    let mut declared = Vec::new();
+    for item in &root.items {
+        match band_declaration(item) {
+            Some(BandDeclaration::Unconditional(directory)) => declared.push(directory),
+            Some(BandDeclaration::Conditional(directory)) => offenders.push(format!(
+                "lib.rs declares `{directory}` under a build condition: the band map states ONE \
+                 order, and a band compiled in some builds and not others stands in as many orders \
+                 as there are build populations — none of which this reading can establish"
+            )),
+            None => (),
+        }
+    }
+    declared
+}
+
+/// How one band declaration stands in the order.
+///
+/// Two states rather than a flag on the directory, because `clippy.toml` sets
+/// `max-struct-bools = 0` and because a bare `true` says nothing about which way
+/// the question was asked.
+#[derive(Debug, PartialEq, Eq)]
+enum BandDeclaration {
+    /// Declared unconditionally: the band stands in one order in every build.
+    Unconditional(String),
+    /// Declared under a build condition, so WHICH order it stands in depends on
+    /// which build is being asked about.
+    Conditional(String),
 }
 
 /// The band directory one declared item names, where it names one.
-fn declared_band(item: &syn::Item) -> Option<String> {
+fn band_declaration(item: &syn::Item) -> Option<BandDeclaration> {
     let syn::Item::Mod(module) = item else {
         return None;
     };
-    module.attrs.iter().find_map(|attribute| {
+    let directory = module.attrs.iter().find_map(|attribute| {
         let stated = string_attribute(attribute, PATH_ATTRIBUTE)?;
         let (directory, _) = stated.split_once('/')?;
         Some(directory.to_owned())
-    })
+    })?;
+    if module.attrs.iter().any(is_conditional) {
+        Some(BandDeclaration::Conditional(directory))
+    } else {
+        Some(BandDeclaration::Unconditional(directory))
+    }
+}
+
+/// Whether one attribute conditions the declaration it sits on.
+///
+/// `cfg_attr` counts. It attaches an attribute — any attribute, `cfg` among them
+/// — under a condition, so a declaration carrying one is conditioned just as
+/// surely as one carrying `cfg` directly, and by a route this reader cannot
+/// settle without deciding which build is meant.
+fn is_conditional(attribute: &syn::Attribute) -> bool {
+    attribute.path().is_ident(CONDITION_ATTRIBUTE)
+        || attribute.path().is_ident(CONDITIONED_ATTRIBUTE)
+}
+
+/// Whether one attribute is exactly the proof surface's own condition,
+/// `#[cfg(test)]`.
+///
+/// Exactly: the attribute is `cfg`, its body is one token, and that token is the
+/// identifier `test`. `#[cfg(all(test, …))]`, `#[cfg(not(test))]` and
+/// `#[cfg_attr(test, …)]` are none of them this, and each is refused for the
+/// reason the whole rule exists — a module compiled in some builds and not
+/// others stands in no single order.
+fn is_the_proof_surface_condition(attribute: &syn::Attribute) -> bool {
+    let syn::Meta::List(ref stated) = attribute.meta else {
+        return false;
+    };
+    if !stated.path.is_ident(CONDITION_ATTRIBUTE) {
+        return false;
+    }
+    let mut body = stated.tokens.clone().into_iter();
+    match (body.next(), body.next()) {
+        (Some(TokenTree::Ident(ref word)), None) => word == PROOF_SURFACE_CONDITION,
+        (Some(_) | None, _) => false,
+    }
 }
 
 /// The string one named attribute states, where it states one.
@@ -195,25 +390,50 @@ fn string_attribute(attribute: &syn::Attribute, named: &str) -> Option<String> {
 /// third crate. Those are outside this check, and this check does not pretend
 /// otherwise.
 ///
-/// Test-only declarations are excluded: the proof surface (`laws`) is declared
-/// `#[cfg(test)] mod laws;` precisely so it can look in every direction without
-/// standing in the order it proves.
+/// Exactly one build condition is admitted, and it is the proof surface's:
+/// `#[cfg(test)] mod laws;` is declared that way precisely so it can look in
+/// every direction without standing in the order it proves. Every OTHER
+/// conditional declaration refuses. The reason is the law's own subject: this
+/// reading establishes ONE declaration order, and a module compiled in some
+/// builds and not others stands in as many orders as there are build
+/// populations — `#[cfg(unix)] mod production_home;` would reach forward on one
+/// platform and not on another, and neither answer is the order. A production
+/// module belongs in the order unconditionally; the alternative is
+/// unrepresentable rather than merely discouraged, because the reader refuses
+/// the declaration rather than passing over it.
+///
+/// Every direct child of the source directory is classified for the same reason
+/// the machine's is: a module the crate root never declares stands in no order
+/// at all, and a reader that only followed declarations would say nothing about
+/// it.
 pub(crate) fn check_tooling_module_order(snapshot: &RepositorySnapshot) -> Result<(), String> {
-    let root_path = format!("{TOOLING_SOURCE}/lib.rs");
+    let root_path = format!("{TOOLING_SOURCE}/{CRATE_ROOT_FILE}");
     let root = snapshot
         .rust()
         .source(&CanonicalPath::spelled(&root_path))
         .taken(&root_path)?;
-    let order = declared_module_order(root);
+    let DeclaredModules {
+        order,
+        proof_surface,
+        offences,
+    } = declared_modules(root);
+    let mut violations = offences;
+    for child in tooling_source_children(snapshot, &order, &proof_surface).values() {
+        if let ToolingSourceChild::Undeclared(ref reason) = *child {
+            violations.push(reason.clone());
+        }
+    }
     if order.is_empty() {
-        return Err(format!("{root_path} declares no modules"));
+        violations.push(format!(
+            "{root_path} declares no module standing in the order"
+        ));
     }
     let mut modules = Vec::new();
     for name in &order {
         let (references, layout) = module_references(snapshot, name)?;
         modules.push((name.clone(), references, layout));
     }
-    let violations = module_order_violations(&order, &modules);
+    violations.extend(module_order_violations(&order, &modules));
     if violations.is_empty() {
         Ok(())
     } else {
@@ -221,28 +441,135 @@ pub(crate) fn check_tooling_module_order(snapshot: &RepositorySnapshot) -> Resul
     }
 }
 
-/// The module names one crate root declares, in declaration order.
+/// What one crate root's module declarations state.
 ///
-/// Both `mod name;` and `pub mod name;` count — a private module participates
-/// in the order exactly as a public one does. A declaration carrying a build
-/// CONDITION does not: the proof surface is outside the order by construction.
-fn declared_module_order(root: &syn::File) -> Vec<String> {
-    root.items
-        .iter()
-        .filter_map(|item| {
-            let syn::Item::Mod(module) = item else {
-                return None;
-            };
-            if module
-                .attrs
-                .iter()
-                .any(|attribute| attribute.path().is_ident(CONDITION_ATTRIBUTE))
-            {
-                return None;
-            }
-            Some(module.ident.to_string())
-        })
-        .collect()
+/// Three lists rather than one, because a declaration is one of three things and
+/// the reader that stood here collapsed two of them: it kept the unconditional
+/// declarations and dropped every conditioned one into the same silence,
+/// so `#[cfg(test)] mod laws;` and `#[cfg(unix)] mod production_home;` were
+/// treated alike — the first correctly, the second by accident.
+#[derive(Debug)]
+struct DeclaredModules {
+    /// The names standing in the dependency order, in declaration order.
+    order: Vec<String>,
+    /// The names declared under the proof surface's own condition. Outside the
+    /// order by construction, and still declared sources.
+    proof_surface: Vec<String>,
+    /// Every declaration this law refuses outright, one line each.
+    offences: Vec<String>,
+}
+
+/// What one crate root declares, classified.
+///
+/// Both `mod name;` and `pub mod name;` count — a private module participates in
+/// the order exactly as a public one does.
+fn declared_modules(root: &syn::File) -> DeclaredModules {
+    let mut declared = DeclaredModules {
+        order: Vec::new(),
+        proof_surface: Vec::new(),
+        offences: Vec::new(),
+    };
+    for item in &root.items {
+        let syn::Item::Mod(module) = item else {
+            continue;
+        };
+        let named = module.ident.to_string();
+        let conditions: Vec<&syn::Attribute> = module
+            .attrs
+            .iter()
+            .filter(|held| is_conditional(held))
+            .collect();
+        match *conditions.as_slice() {
+            [] => declared.order.push(named),
+            [only] if is_the_proof_surface_condition(only) => declared.proof_surface.push(named),
+            _ => declared.offences.push(format!(
+                "`{named}` is declared under a build condition other than the proof surface's \
+                 `#[cfg({PROOF_SURFACE_CONDITION})]`: this law reads ONE declaration order, and a \
+                 module compiled in some builds and not others stands in as many orders as there \
+                 are build populations, none of which this reading can establish. A production \
+                 module stands in the order unconditionally."
+            )),
+        }
+    }
+    declared
+}
+
+/// What one direct child of the services' source directory is.
+///
+/// Total over that directory for the reason the machine's classification is
+/// total: declaration order IS this crate's dependency order, so a source the
+/// crate root never declares stands in no order, and a reader following
+/// declarations alone would never say so.
+#[derive(Debug, PartialEq, Eq)]
+enum ToolingSourceChild {
+    /// `lib.rs` — the crate root, which declares the order rather than standing
+    /// in it.
+    CrateRoot,
+    /// A module the crate root declares, written as `name.rs` or as `name/`.
+    DeclaredModule,
+    /// A module the crate root declares under the proof surface's condition.
+    ProofSurface,
+    /// A source no declaration accounts for, carried with the words the refusal
+    /// is written in.
+    Undeclared(String),
+}
+
+/// Every direct child of the services' source directory, classified, keyed by
+/// the child's own name.
+fn tooling_source_children(
+    snapshot: &RepositorySnapshot,
+    order: &[String],
+    proof_surface: &[String],
+) -> BTreeMap<String, ToolingSourceChild> {
+    let mut children = BTreeMap::new();
+    for (path, _) in snapshot.files().under(TOOLING_SOURCE) {
+        let Some(tail) = path.as_str().get(TOOLING_SOURCE.len().saturating_add(1)..) else {
+            children.insert(
+                path.to_string(),
+                ToolingSourceChild::Undeclared(format!(
+                    "`{path}` sits beneath {TOOLING_SOURCE}/ and this reader cannot cut it into a \
+                     direct child, so which declared module owns it is unknown rather than nothing"
+                )),
+            );
+            continue;
+        };
+        let child = match tail.split_once('/') {
+            Some((head, _)) => head,
+            None => tail,
+        };
+        children.insert(
+            child.to_owned(),
+            classified_tooling_child(child, order, proof_surface),
+        );
+    }
+    children
+}
+
+/// What one direct child of the services' source directory is, by name.
+fn classified_tooling_child(
+    child: &str,
+    order: &[String],
+    proof_surface: &[String],
+) -> ToolingSourceChild {
+    if child == CRATE_ROOT_FILE {
+        return ToolingSourceChild::CrateRoot;
+    }
+    let named = match child.strip_suffix(SOURCE_SUFFIX) {
+        Some(stem) => stem,
+        None => child,
+    };
+    if order.iter().any(|declared| declared == named) {
+        return ToolingSourceChild::DeclaredModule;
+    }
+    if proof_surface.iter().any(|declared| declared == named) {
+        return ToolingSourceChild::ProofSurface;
+    }
+    ToolingSourceChild::Undeclared(format!(
+        "`{TOOLING_SOURCE}/{child}` is a source no `mod` declaration in \
+         {TOOLING_SOURCE}/{CRATE_ROOT_FILE} accounts for: declaration order IS this crate's \
+         dependency order, so a module the crate root never declares stands in no order and this \
+         law reads nothing about what it imports"
+    ))
 }
 
 /// Every crate-root name one declared module reaches, and the layout it is in.
@@ -255,28 +582,38 @@ fn module_references(
     snapshot: &RepositorySnapshot,
     name: &str,
 ) -> Result<(Vec<String>, ModuleLayout), String> {
-    let flat = format!("{TOOLING_SOURCE}/{name}.rs");
-    if snapshot.files().get(&flat).is_some() {
-        let text = snapshot.files().text(&flat).taken(&flat)?;
-        return Ok((references_of(text, ModuleLayout::Flat)?, ModuleLayout::Flat));
-    }
+    let flat = format!("{TOOLING_SOURCE}/{name}{SOURCE_SUFFIX}");
     let directory = format!("{TOOLING_SOURCE}/{name}");
-    let mut found = Vec::new();
-    let mut carried = false;
-    for (path, _) in snapshot.files().under(&directory) {
-        if !path.extension_is("rs") {
-            continue;
+    let carried: Vec<&CanonicalPath> = snapshot
+        .files()
+        .under(&directory)
+        .map(|(path, _)| path)
+        .filter(|path| path.extension_is("rs"))
+        .collect();
+    match (snapshot.files().get(&flat), carried.as_slice()) {
+        (Some(_), []) => {
+            let text = snapshot.files().text(&flat).taken(&flat)?;
+            Ok((references_of(text, ModuleLayout::Flat)?, ModuleLayout::Flat))
         }
-        carried = true;
-        let text = snapshot.files().text(path.as_str()).taken(path.as_str())?;
-        found.extend(references_of(text, ModuleLayout::Directory)?);
-    }
-    if carried {
-        Ok((found, ModuleLayout::Directory))
-    } else {
-        Err(format!(
+        (None, [_, ..]) => {
+            let mut found = Vec::new();
+            for path in carried {
+                let text = snapshot.files().text(path.as_str()).taken(path.as_str())?;
+                found.extend(references_of(text, ModuleLayout::Directory)?);
+            }
+            Ok((found, ModuleLayout::Directory))
+        }
+        // Both, which is one declaration written twice. The reader that stood
+        // here took the file and left every source under the directory unread,
+        // so a submodule reaching forward was invisible while the check kept
+        // reporting on the module it belongs to.
+        (Some(_), [_, ..]) => Err(format!(
+            "{name} is declared once and written twice — as {flat} and as {directory}/ — so which \
+             sources carry its edges is a question two answers fit, and this law reads one"
+        )),
+        (None, []) => Err(format!(
             "{name} is declared and is neither {flat} nor {directory}/"
-        ))
+        )),
     }
 }
 
@@ -511,8 +848,8 @@ fn module_order_violations(
 #[cfg(test)]
 mod tests {
     use super::{
-        check_band_map, check_tooling_module_order, declared_module_order, module_order_violations,
-        references_of,
+        HOME_FILES, RESERVED_ROOT_FILES, check_band_map, check_tooling_module_order,
+        declared_modules, module_order_violations, references_of,
     };
     use crate::checks::scratch::Scratch;
     use crate::repository::snapshot::repository_snapshot;
@@ -548,8 +885,9 @@ mod tests {
     fn the_declaration_order_is_item_order_without_the_proof_surface() -> Result<(), String> {
         let lib = "//! doc\n\npub mod plane;\n\n/// note\npub mod refusal;\n\nmod helper;\n\n\
                    #[cfg(test)]\nmod laws;\n\nmod\n    wrapped;\n";
+        let declared = declared_modules(&root(lib)?);
         assert_eq!(
-            declared_module_order(&root(lib)?),
+            declared.order,
             vec![
                 String::from("plane"),
                 String::from("refusal"),
@@ -557,6 +895,47 @@ mod tests {
                 String::from("wrapped"),
             ]
         );
+        assert_eq!(declared.proof_surface, vec![String::from("laws")]);
+        assert!(declared.offences.is_empty(), "{:?}", declared.offences);
+        Ok(())
+    }
+
+    /// Planted reversal: a module declared under a build condition that is NOT
+    /// the proof surface's.
+    ///
+    /// The exclusion was written for `#[cfg(test)] mod laws;` and stated as "a
+    /// declaration carrying a build condition", so it also let
+    /// `#[cfg(unix)] mod production_home;` out of the order entirely: that module
+    /// could reach forward on one platform and the law would report nothing,
+    /// because it had never been in the population. The exclusion is now the
+    /// exact condition it was written for, and every other conditioned
+    /// declaration refuses — including the ones that CONTAIN the proof surface's
+    /// condition without being it, and the one that attaches a condition
+    /// indirectly.
+    #[test]
+    fn a_module_conditioned_on_anything_but_the_proof_surface_is_a_violation() -> Result<(), String>
+    {
+        for condition in [
+            "#[cfg(unix)]",
+            "#[cfg(all(test, feature = \"extra\"))]",
+            "#[cfg(not(test))]",
+            "#[cfg_attr(test, path = \"elsewhere.rs\")]",
+            "#[cfg(test)]\n#[cfg(unix)]",
+        ] {
+            let lib = format!("pub mod plane;\n\n{condition}\nmod production_home;\n");
+            let declared = declared_modules(&root(&lib)?);
+            assert_eq!(declared.order, vec![String::from("plane")], "{condition}");
+            assert!(declared.proof_surface.is_empty(), "{condition}");
+            assert!(
+                declared
+                    .offences
+                    .iter()
+                    .any(|offence| offence.contains("production_home")
+                        && offence.contains("build populations")),
+                "{condition} -> {:?}",
+                declared.offences
+            );
+        }
         Ok(())
     }
 
@@ -735,6 +1114,126 @@ mod tests {
         );
         let found = check_band_map(&scratch.read()?);
         assert!(found.is_ok(), "{found:?}");
+        Ok(())
+    }
+
+    /// Planted reversal: an entry under `src/` that is no semantic home.
+    ///
+    /// Four spellings, and the reader that stood here passed silently over every
+    /// one of them, because it RECOGNIZED a band and let everything else fall
+    /// through a `continue`. A misspelled architectural directory left the band
+    /// population with nothing said anywhere, and the check that reports on the
+    /// band map kept printing PASS about a tree with an unclassified directory
+    /// in it.
+    #[test]
+    fn an_entry_under_src_that_is_no_home_is_a_violation() -> Result<(), String> {
+        let scratch = Scratch::named("src-population");
+        scratch.write(
+            "src/lib.rs",
+            "#[path = \"00_refusal/mod.rs\"]\npub mod refusal;\n",
+        );
+        for file in HOME_FILES {
+            scratch.write(&format!("src/00_refusal/{file}"), "the home's content\n");
+        }
+        for reserved in RESERVED_ROOT_FILES {
+            scratch.write(&format!("src/{reserved}"), "the root's own file\n");
+        }
+        assert!(check_band_map(&scratch.read()?).is_ok());
+
+        for (planted, said) in [
+            ("src/bounds/mod.rs", "carries no band number"),
+            ("src/5_bounds/mod.rs", "opens with `5`"),
+            ("src/05_/mod.rs", "band number and no name"),
+            ("src/notes.md", "sits directly in"),
+        ] {
+            scratch.write(planted, "an entry the population never classified\n");
+            let found = check_band_map(&scratch.read()?);
+            assert!(
+                found.is_err_and(|reason| reason.contains(said)),
+                "{planted} left the population in silence"
+            );
+            scratch.remove(planted);
+            assert!(check_band_map(&scratch.read()?).is_ok(), "{planted}");
+        }
+        Ok(())
+    }
+
+    /// Planted reversal: a band declared under a build CONDITION.
+    ///
+    /// The band map states one order. A band compiled in some builds and not
+    /// others stands in as many orders as there are build populations, and the
+    /// reader that read `#[path]` alone accepted the declaration as though it
+    /// stood in all of them.
+    #[test]
+    fn a_conditionally_declared_band_is_a_violation() -> Result<(), String> {
+        let scratch = Scratch::named("band-map-condition");
+        for file in HOME_FILES {
+            scratch.write(&format!("src/00_refusal/{file}"), "the home's content\n");
+        }
+        scratch.write(
+            "src/lib.rs",
+            "#[cfg(unix)]\n#[path = \"00_refusal/mod.rs\"]\npub mod refusal;\n",
+        );
+        let found = check_band_map(&scratch.read()?);
+        assert!(
+            found.is_err_and(|reason| reason.contains("under a build condition")),
+            "a band declared for one platform passed as a band declared for the crate"
+        );
+        Ok(())
+    }
+
+    /// Planted reversal: a source in the services' own directory that no `mod`
+    /// declaration accounts for.
+    ///
+    /// Declaration order IS this crate's dependency order, so a module the crate
+    /// root never declares stands in no order at all — and a reader that walked
+    /// the declarations never had a word to say about it.
+    #[test]
+    fn a_services_source_no_declaration_accounts_for_is_a_violation() -> Result<(), String> {
+        let scratch = Scratch::named("tooling-population");
+        scratch.write(
+            "macros/macroc/src/lib.rs",
+            "pub mod plane;\n\n#[cfg(test)]\nmod laws;\n",
+        );
+        scratch.write("macros/macroc/src/plane.rs", "//! no edges at all\n");
+        scratch.write("macros/macroc/src/laws.rs", "//! the proof surface\n");
+        assert!(check_tooling_module_order(&scratch.read()?).is_ok());
+
+        scratch.write("macros/macroc/src/orphan.rs", "//! nobody declares this\n");
+        let found = check_tooling_module_order(&scratch.read()?);
+        assert!(
+            found.is_err_and(|reason| reason.contains("orphan.rs")),
+            "a source outside every declaration stood outside the law as well"
+        );
+        Ok(())
+    }
+
+    /// Planted reversal: one declared module written BOTH as a file and as a
+    /// directory.
+    ///
+    /// The reader took the file and returned, leaving every source under the
+    /// directory unread — so a submodule reaching forward was invisible while
+    /// the check went on reporting about the module that owns it.
+    #[test]
+    fn a_module_written_as_both_a_file_and_a_directory_is_a_violation() -> Result<(), String> {
+        let scratch = Scratch::named("tooling-layout");
+        scratch.write(
+            "macros/macroc/src/lib.rs",
+            "pub mod plane;\npub mod token;\n",
+        );
+        scratch.write("macros/macroc/src/plane.rs", "//! no edges at all\n");
+        scratch.write("macros/macroc/src/token.rs", "use crate::plane::Own;\n");
+        assert!(check_tooling_module_order(&scratch.read()?).is_ok());
+
+        scratch.write(
+            "macros/macroc/src/plane/inner.rs",
+            "use crate::token::Reaching;\n",
+        );
+        let found = check_tooling_module_order(&scratch.read()?);
+        assert!(
+            found.is_err_and(|reason| reason.contains("written twice")),
+            "one declaration written two ways was read one way and passed"
+        );
         Ok(())
     }
 }

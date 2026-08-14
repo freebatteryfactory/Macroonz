@@ -85,12 +85,33 @@ pub(crate) fn check_no_python(snapshot: &RepositorySnapshot) -> Result<(), Strin
 /// anything inside a string or a doc comment that happened to be shaped that
 /// way, while a field written across two lines escaped it entirely.
 ///
-/// Two things a parse cannot reach, both failing CLOSED: a field written inside
+/// The question asked of the type is whether the field's OUTER declared type is
+/// the marker, and not whether the marker appears somewhere inside it. The
+/// difference is the whole claim: `_hidden: (u64, PhantomData<Token>)` mentions
+/// the marker at depth and carries a readable `u64` beside it, which is the
+/// suppressor idiom wearing the exemption's clothes. A field is lawful when what
+/// it declares IS `PhantomData<…>` — under any spelling of the path that reaches
+/// it, since `core::marker::PhantomData<T>` and `PhantomData<T>` are one type —
+/// and a tuple, wrapper, reference, array, slice, or container merely holding
+/// one is not.
+///
+/// Three things a parse cannot reach, all failing CLOSED: a field written inside
 /// a `macro_rules!` transcriber is not a field until it is expanded, and this
-/// reader does not expand; and a type alias that resolves TO `PhantomData` is
-/// not recognized, because resolving an alias is the compiler's question rather
-/// than a parse's. Each costs a lawful field a refusal it has to spell
-/// differently, and neither admits a field carrying data.
+/// reader does not expand; a type alias that resolves TO `PhantomData` is not
+/// recognized, because resolving an alias is the compiler's question rather than
+/// a parse's; and a record declared inside an EXPRESSION — a block used as a
+/// value, a closure body, a match arm — is not reached, because `syn::Expr` is
+/// `#[non_exhaustive]` and a reader completing itself by listing that enum's
+/// variants is complete only until the decoder gains one more. The first two
+/// cost a lawful field a refusal it has to spell differently. The third is a
+/// stated gap in the population rather than a refusal, and it closes when the
+/// one reading gains a visitor that owns the whole grammar — not when this law
+/// is taught one more shape.
+///
+/// Everywhere a record CAN be declared as an item is entered: a module's body,
+/// a free road's body, an implementation method's body, and a trait method's
+/// default body. The walk once entered free roads alone, so a record declared
+/// inside a method stood outside a population this law states repository-wide.
 ///
 /// # The one exclusion, and it is the judge's own
 ///
@@ -154,6 +175,40 @@ fn suppressed_fields<'items>(items: impl IntoIterator<Item = &'items syn::Item>)
             found.extend(suppressed_fields(inner));
         } else if let syn::Item::Fn(declared) = item {
             found.extend(suppressed_fields(nested_items(&declared.block.stmts)));
+        } else if let syn::Item::Impl(declared) = item {
+            found.extend(suppressed_fields(method_items(&declared.items)));
+        } else if let syn::Item::Trait(declared) = item {
+            found.extend(suppressed_fields(default_items(&declared.items)));
+        }
+    }
+    found
+}
+
+/// The items every method body of one implementation block declares.
+///
+/// A record declared inside a method is a record, and its fields are read there
+/// exactly as they are read at a module's own level.
+fn method_items(members: &[syn::ImplItem]) -> Vec<&syn::Item> {
+    let mut found = Vec::new();
+    for member in members {
+        if let syn::ImplItem::Fn(road) = member {
+            found.extend(nested_items(&road.block.stmts));
+        }
+    }
+    found
+}
+
+/// The items every DEFAULT body of one trait declares.
+///
+/// A trait method without a default carries no body and therefore no items,
+/// which is a fact about the declaration rather than a member this reader skips.
+fn default_items(members: &[syn::TraitItem]) -> Vec<&syn::Item> {
+    let mut found = Vec::new();
+    for member in members {
+        if let syn::TraitItem::Fn(road) = member
+            && let Some(body) = road.default.as_ref()
+        {
+            found.extend(nested_items(&body.stmts));
         }
     }
     found
@@ -187,53 +242,46 @@ fn consider(field: &syn::Field, into: &mut Vec<String>) {
     if !spelled.starts_with('_') {
         return;
     }
-    if !mentions_marker(&field.ty) {
+    if !is_the_marker(&field.ty) {
         into.push(spelled);
     }
 }
 
-/// Whether one declared type mentions the type-level marker, at any depth.
+/// Whether one declared type IS the type-level marker.
 ///
-/// A type this reader does not open contributes nothing, which is the
-/// conservative direction here: it can refuse a lawful field, and it can never
-/// admit one carrying data.
-fn mentions_marker(declared: &syn::Type) -> bool {
+/// The question is asked of the OUTER declaration, because that is what the law
+/// claims: an underscore field carries nothing readable. A predicate asking
+/// whether the marker appears at any DEPTH answered a different question and
+/// admitted `(u64, PhantomData<Token>)` — a tuple whose first member is as
+/// readable as any field in the tree — on the strength of its second.
+///
+/// The path is read for its last segment and for the parameter it takes, so
+/// `PhantomData<T>`, `core::marker::PhantomData<T>`, `std::marker::PhantomData<T>`
+/// and `marker::PhantomData<T>` are one type written four ways. What the earlier
+/// segments SPELL is not judged, because judging it means resolving an import,
+/// and resolving is the compiler's question. The one direction that costs is
+/// stated where the other ceilings are: a local type named `PhantomData` would
+/// be admitted, and separating it from the marker is name resolution.
+///
+/// Parentheses and an invisible group are unwrapped because neither is a type —
+/// `(T)` is `T`, and a group is a delimiter an expansion left behind. Every
+/// other shape refuses, including a reference, a pointer, a tuple, an array, and
+/// a slice, each of which is a type that CARRIES the marker rather than being it.
+fn is_the_marker(declared: &syn::Type) -> bool {
     if let syn::Type::Path(typed) = declared {
-        typed.path.segments.iter().any(|segment| {
-            segment.ident == TYPE_LEVEL_MARKER || marker_in_arguments(&segment.arguments)
-        })
-    } else if let syn::Type::Reference(borrowed) = declared {
-        mentions_marker(&borrowed.elem)
-    } else if let syn::Type::Ptr(pointer) = declared {
-        mentions_marker(&pointer.elem)
-    } else if let syn::Type::Paren(parenthesized) = declared {
-        mentions_marker(&parenthesized.elem)
-    } else if let syn::Type::Group(grouped) = declared {
-        mentions_marker(&grouped.elem)
-    } else if let syn::Type::Tuple(tuple) = declared {
-        tuple.elems.iter().any(mentions_marker)
-    } else if let syn::Type::Array(array) = declared {
-        mentions_marker(&array.elem)
-    } else if let syn::Type::Slice(sliced) = declared {
-        mentions_marker(&sliced.elem)
-    } else {
-        false
+        return typed.qself.is_none()
+            && typed.path.segments.last().is_some_and(|last| {
+                last.ident == TYPE_LEVEL_MARKER
+                    && matches!(last.arguments, syn::PathArguments::AngleBracketed(_))
+            });
     }
-}
-
-/// Whether one segment's arguments mention the type-level marker.
-fn marker_in_arguments(arguments: &syn::PathArguments) -> bool {
-    if let syn::PathArguments::AngleBracketed(angled) = arguments {
-        angled.args.iter().any(|argument| {
-            if let syn::GenericArgument::Type(inner) = argument {
-                mentions_marker(inner)
-            } else {
-                false
-            }
-        })
-    } else {
-        false
+    if let syn::Type::Paren(parenthesized) = declared {
+        return is_the_marker(&parenthesized.elem);
     }
+    if let syn::Type::Group(grouped) = declared {
+        return is_the_marker(&grouped.elem);
+    }
+    false
 }
 
 /// Planted reversals for the laws whose subject is a tree rather than a text.
@@ -360,5 +408,82 @@ mod tests {
             nested.is_ok_and(|found| found == vec![String::from("_smuggled")]),
             "a record declared inside a road escaped the reader"
         );
+    }
+
+    /// Planted reversal: the same record declared inside a METHOD body, and
+    /// inside a trait method's DEFAULT body.
+    ///
+    /// The walk entered free roads and stopped there, so either of these placed
+    /// a real underscore field outside a population this law states over the
+    /// whole repository — and the whole-source scan it replaced had covered
+    /// both. Each spelling is planted on its own, because each is a separate
+    /// place the walk did not enter.
+    #[test]
+    fn a_record_declared_inside_a_method_is_still_read() {
+        let bodies = [
+            "struct Subject;\nimpl Subject {\n    fn road(&self) {\n\
+             \x20       struct Hidden { _smuggled: u64 }\n    }\n}\n",
+            "trait Contract {\n    fn road(&self) {\n\
+             \x20       struct Hidden { _smuggled: u64 }\n    }\n}\n",
+        ];
+        for body in bodies {
+            let found = syn::parse_file(body).map(|file| suppressed_fields(&file.items));
+            assert!(
+                found.is_ok_and(|named| named == vec![String::from("_smuggled")]),
+                "a record declared inside a method body escaped the reader: {body}"
+            );
+        }
+    }
+
+    /// Planted reversal: a type that CONTAINS the marker is not the marker.
+    ///
+    /// Every spelling below carries something readable beside a `PhantomData`,
+    /// which flatly contradicts the claim the underscore is admitted under —
+    /// that the field carries nothing to read. The predicate this replaced asked
+    /// whether the marker appeared at any depth and passed all six.
+    #[test]
+    fn a_type_merely_containing_the_marker_is_not_the_marker() {
+        for smuggled in [
+            "(u64, PhantomData<Token>)",
+            "[PhantomData<Token>; 4]",
+            "&'static PhantomData<Token>",
+            "Option<PhantomData<Token>>",
+            "*const PhantomData<Token>",
+            "Wrapper<PhantomData<Token>>",
+        ] {
+            let found = syn::parse_file(&format!(
+                "pub struct Demo {{\n    _hidden: {smuggled},\n}}\n"
+            ))
+            .map(|file| suppressed_fields(&file.items));
+            assert!(
+                found.is_ok_and(|named| named == vec![String::from("_hidden")]),
+                "`{smuggled}` passed as the type-level marker"
+            );
+        }
+    }
+
+    /// The positive control for the same narrowing: the marker itself stays
+    /// lawful under every path a source reaches it by, and under the parentheses
+    /// that are a spelling rather than a type.
+    ///
+    /// A check that refused everything would satisfy the reversal above and
+    /// refuse every lawful field in the tree with it.
+    #[test]
+    fn the_marker_itself_stays_lawful_under_every_spelling() {
+        for lawful in [
+            "PhantomData<Token>",
+            "core::marker::PhantomData<Token>",
+            "std::marker::PhantomData<Token>",
+            "::core::marker::PhantomData<*const ()>",
+            "marker::PhantomData<Token>",
+            "(PhantomData<Token>)",
+        ] {
+            let found = syn::parse_file(&format!("pub struct Demo {{\n    _law: {lawful},\n}}\n"))
+                .map(|file| suppressed_fields(&file.items));
+            assert!(
+                found.is_ok_and(|named| named.is_empty()),
+                "`{lawful}` was refused, and it is the marker"
+            );
+        }
     }
 }
