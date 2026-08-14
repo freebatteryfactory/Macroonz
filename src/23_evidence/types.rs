@@ -36,7 +36,7 @@
 //! imply successful verification.
 
 use crate::identity::Commitment;
-use crate::types::{Bounded, Completeness, EvidenceRef, Limit};
+use crate::types::{Bounded, Completeness, EvidenceRef, Limit, UnstatedMagnitude};
 
 // ---------------------------------------------------------------------------
 // The non-collapse law and the receipt-family matrix.
@@ -118,7 +118,9 @@ pub struct CommitmentLayerDomain;
 /// Limit family for commitment layers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CommitmentLayerLimit;
-impl Limit for CommitmentLayerLimit {}
+impl Limit for CommitmentLayerLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// Commitment layers COEXIST — a digest AND a signature AND a freshness
 /// witness prove different claims, so a pick-one enum is the refusal. Each
@@ -388,7 +390,9 @@ pub struct DiagnosticCause(pub Commitment<DiagnosticCauseDomain>);
 /// Limit family for narrowed suspect sets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CauseSuspectLimit;
-impl Limit for CauseSuspectLimit {}
+impl Limit for CauseSuspectLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// The bounded narrowed-suspect set — its public meaning is "narrowed
 /// suspects", never a raw bounded vector and never a bare universal cause.

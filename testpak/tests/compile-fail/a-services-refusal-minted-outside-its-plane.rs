@@ -19,12 +19,20 @@
 //!
 //! It is not the universal statement, and it never could be: a list names the
 //! roads that exist, so a family added tomorrow with a public mint leaves this
-//! file compiling exactly as it does now. The universal half is
-//! `cargo xtask check`'s `refusal-mints-are-inside-the-plane`, which derives the
-//! population rather than naming it — every services record whose every seat is
-//! private and that some road refuses with, joined against every road that hands
-//! one back — and refuses a reachable mint by naming both. Its denominators are
-//! printed on every run.
+//! file compiling exactly as it does now. A repository law used to try to close
+//! that gap by deriving the population — every closed record some road refuses
+//! with, joined against every road handing one back — and it was wrong
+//! repeatedly, because answering it means resolving types, following aliases,
+//! deciding what a receiver stands for, and inferring reachability. It is
+//! deleted.
+//!
+//! What stands in its place is structural. Each body is DECLARED in a `seat`
+//! module inside its home's `type_guard.rs`, and `cargo xtask check`'s
+//! `seat-modules-carry-nothing-else` holds that module to carrying the record
+//! and inherent implementations of it and nothing else — a question about item
+//! kinds, resolving nothing. So the set of code that can reach a private seat is
+//! a module read in one screen rather than a file of dozens of types, and every
+//! road outside it is `E0451` or `E0616` from the compiler.
 //!
 //! The paths are REFERENCED rather than called on purpose. Privacy is settled at
 //! resolution, so a reference establishes the claim without constructing

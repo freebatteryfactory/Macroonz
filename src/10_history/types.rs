@@ -29,7 +29,10 @@
 use crate::identity::{Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence};
 use crate::refusal::{AdmittedPrefix, CompletionPosture, FamilyShape, RefusalFamily};
 use crate::schema::SchemaSemanticCommitment;
-use crate::types::{Bounded, Completeness, EvidenceCut, EvidenceRef, Freshness, Limit};
+use crate::types::{
+    Bounded, Completeness, DeclaredMagnitude, EvidenceCut, EvidenceRef, Freshness, Limit,
+    UnstatedMagnitude,
+};
 use crate::value::BoundedText;
 
 // ---------------------------------------------------------------------------
@@ -83,14 +86,18 @@ crate::scope_guard_version! {
     /// contract is fixed per generation: any change that would make old and new
     /// sequence values incomparable mints a new generation, so the generation a
     /// value carries names its ordering contract.
-    pub struct AuthorityGeneration over StoreLineageId;
+    pub struct AuthorityGeneration over StoreLineageId, seated in mod authority_generation;
 }
 
 impl AuthorityGeneration {
     /// In-crate mint for laws. Test-gated until admission minting exists.
+    ///
+    /// It goes through the stamp's own road in rather than through the tuple
+    /// form, because the tuple form is not reachable from here: the stamp seats
+    /// the position inside a module of its own and this file is outside it.
     #[cfg(test)]
     pub(crate) fn for_laws(seed: u8) -> Self {
-        Self(crate::identity::AuthorityPosition::assigned(
+        Self::positioned(crate::identity::AuthorityPosition::assigned(
             StoreLineageId::for_laws(Occurrence::for_laws(
                 crate::identity::OccurrenceForm::Fresh([seed; 16]),
             )),
@@ -118,7 +125,7 @@ impl IdentityRole for PartitionId {
 crate::scope_guard_version! {
     /// One write-authority epoch — Class C, scoped to its partition. No state
     /// admits both epochs accepting writes.
-    pub struct WriteAuthorityEpoch over PartitionId;
+    pub struct WriteAuthorityEpoch over PartitionId, seated in mod write_authority_epoch;
 }
 
 /// The identity role marker for events. `EventId` deliberately declares NO
@@ -398,7 +405,9 @@ pub enum HandoffState {
 /// Limit family for successor sets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SuccessorLimit;
-impl Limit for SuccessorLimit {}
+impl Limit for SuccessorLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// The split/merge coverage witness, proving as its own claims: successors
 /// pairwise disjoint; their union equals the sealed predecessor coverage; each
@@ -470,7 +479,9 @@ pub struct CutTranslationWitness {
 /// Limit family for federation entry sets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FederationLimit;
-impl Limit for FederationLimit {}
+impl Limit for FederationLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// Federation composition refusal: checked composition of already-established
 /// cuts — explicit authority entries, closed source-set membership,
@@ -600,7 +611,9 @@ impl CausationEdgeKindId {
 /// Limit family for causation fan-in (bound value evidence-selected).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FanInLimit;
-impl Limit for FanInLimit {}
+impl Limit for FanInLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// One bounded typed multi-parent causation edge. Correlation is grouping;
 /// chronology is ordering evidence; store adjacency is integrity structure;
@@ -640,7 +653,9 @@ pub struct AcceptedEventRecord {
 /// Limit family for publication batches.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BatchLimit;
-impl Limit for BatchLimit {}
+impl Limit for BatchLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// Stage 3 — the batch crossing: which accepted records crossed the local
 /// durability boundary — membership and order of the batch, not a cut. A
@@ -730,7 +745,9 @@ pub enum DurabilityClaimAxis {
 /// Limit family for durability profiles.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DurabilityProfileLimit;
-impl Limit for DurabilityProfileLimit {}
+impl Limit for DurabilityProfileLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// One durability profile: the claims it makes. An operation requests exactly
 /// one admitted profile; an adapter proves it or refuses it — no weaker
@@ -894,7 +911,9 @@ pub struct ExternallyWitnessedFreshness {
 /// Limit family for source-region sets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RegionLimit;
-impl Limit for RegionLimit {}
+impl Limit for RegionLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// The declared source regions a closure claim covers.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -987,12 +1006,16 @@ pub struct HistoryReading<T> {
 /// Limit family for removal-plan collections.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RemovalPlanLimit;
-impl Limit for RemovalPlanLimit {}
+impl Limit for RemovalPlanLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// Limit family for removal text members.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RemovalTextLimit;
-impl Limit for RemovalTextLimit {}
+impl Limit for RemovalTextLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// The claim marker for removal evidence references.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -1087,7 +1110,9 @@ pub enum RemovalPlanConstructionIssue {
 /// Compile-time bound for plan-construction issues.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RemovalPlanIssueLimit;
-impl Limit for RemovalPlanIssueLimit {}
+impl Limit for RemovalPlanIssueLimit {
+    type Authority = DeclaredMagnitude;
+}
 impl crate::types::ConstLimit for RemovalPlanIssueLimit {
     const MAX: usize = 12;
 }
@@ -1138,7 +1163,9 @@ pub enum RemovalAuthorizationClaimConstructionIssue {
 /// Compile-time bound for claim-construction issues.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RemovalClaimIssueLimit;
-impl Limit for RemovalClaimIssueLimit {}
+impl Limit for RemovalClaimIssueLimit {
+    type Authority = DeclaredMagnitude;
+}
 impl crate::types::ConstLimit for RemovalClaimIssueLimit {
     const MAX: usize = 2;
 }
@@ -1193,7 +1220,9 @@ pub enum RemovalRefusalIssue {
 /// Compile-time bound for removal-refusal issues.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RemovalRefusalIssueLimit;
-impl Limit for RemovalRefusalIssueLimit {}
+impl Limit for RemovalRefusalIssueLimit {
+    type Authority = DeclaredMagnitude;
+}
 impl crate::types::ConstLimit for RemovalRefusalIssueLimit {
     const MAX: usize = 3;
 }

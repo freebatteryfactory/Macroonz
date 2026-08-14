@@ -34,7 +34,7 @@
 
 use crate::authority::CapabilityGrantId;
 use crate::identity::Commitment;
-use crate::types::{EvidenceRef, Limit, NonEmptyBounded};
+use crate::types::{EvidenceRef, EvidenceSelectedMagnitude, Limit, NonEmptyBounded};
 
 // ---------------------------------------------------------------------------
 // The lease — the band-forced seat from the authority home, collected.
@@ -271,10 +271,17 @@ pub struct IndexInvalidationClaim;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ResultingResolutionDomain;
 
-/// Limit family for shred participants.
+/// Limit family for shred participants. A denominator's participant set is as
+/// wide as the generation it is about, so the magnitude is selected by the
+/// owner's evidence rather than declared here — see
+/// [`crate::types::EvidenceSelectedLimit`]. The only family in this crate on
+/// that ladder whose seat is not a refusal body.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ShredParticipantLimit;
-impl Limit for ShredParticipantLimit {}
+impl Limit for ShredParticipantLimit {
+    type Authority = EvidenceSelectedMagnitude;
+}
+impl crate::types::EvidenceSelectedLimit for ShredParticipantLimit {}
 
 /// Shred is acknowledged only after every required backend has durably
 /// destroyed the relevant key authority and produced THIS evidence. Shred

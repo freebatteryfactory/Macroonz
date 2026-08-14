@@ -34,7 +34,7 @@
 use crate::identity::Commitment;
 use crate::semantic::BoundDimensionRow;
 use crate::time::ConsumedBudgetEvidence;
-use crate::types::{Bounded, EvidenceRef, Limit};
+use crate::types::{Bounded, EvidenceRef, Limit, UnstatedMagnitude};
 use core::marker::PhantomData;
 
 // ---------------------------------------------------------------------------
@@ -182,7 +182,9 @@ pub struct CaptureOriginClaim;
 /// Limit family for capture environments.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CaptureLimit;
-impl Limit for CaptureLimit {}
+impl Limit for CaptureLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// Every portable function or lambda lowers into a closed semantic
 /// definition plus this bounded typed capture record — the minimal semantic
@@ -297,7 +299,9 @@ pub struct ContinuationPostureDomain;
 /// Limit family for a continuation's remaining bounds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ContinuationBoundLimit;
-impl Limit for ContinuationBoundLimit {}
+impl Limit for ContinuationBoundLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// The explicit typed one-shot continuation record — suspension lowers into
 /// THIS, never a retained Rust closure, native stack, host callback, task,

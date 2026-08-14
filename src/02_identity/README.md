@@ -73,13 +73,32 @@ machinery this home already owns. Rust exports `macro_rules!` at the crate root;
 that is Rust's macro namespacing rule and not a root admission of a semantic
 noun, because the stamp declares no type of its own.
 
-The stamped position is private, exactly as a hand-written guard's always was,
-and the stamp emits one road in and none out: `positioned` reads a position the
-caller already holds under this role, and no accessor hands it back. A role
-whose representation could be taken out and re-entered under another role would
-be a label rather than a wall, so both directions refuse from outside the
-module the stamp expanded in — and the refusal is proven over ONE scope type,
-where nothing about the scope is helping.
+The stamped position is private, and the stamp emits one road in and none out:
+`positioned` reads a position the caller already holds under this role, and no
+accessor hands it back. A role whose representation could be taken out and
+re-entered under another role would be a label rather than a wall, so both
+directions refuse — and the refusal is proven over ONE scope type, where nothing
+about the scope is helping.
+
+**The stamp writes into a module of its own, and that is what makes "none out" a
+fact rather than an audit.** Rust's privacy is module-scoped: a `macro_rules!`
+expansion lands in the invoking module, so a stamp that wrote the newtype
+straight into a home's `types.rs` put the seat within reach of every other type
+and implementation in that file. The invocation now names the module — `pub
+struct FrameVersion over ReferenceFrameId, seated in mod frame_version;` — and
+the stamp emits the guard into it and re-exports the type out. The module's
+entire content is the transcriber's output, because nothing hand-written can be
+added to a module that exists only inside an expansion. So the complete set of
+roads out of a stamped guard is the set the stamp writes, and `rustc` is what
+establishes it: from the invoking module `version.0` is `E0616` and
+`FrameVersion(position)` is `E0423`.
+
+The module name is the caller's argument because `macro_rules!` cannot build an
+identifier from another identifier on stable and this repository carries no
+dependency that can. It is `snake_case` because a module named after its type
+trips `non_snake_case`, which the lint wall denies — no attribute suppresses
+anything, and two stamps naming one module in one file collide as a duplicate
+definition.
 
 The machine's production scope guards are stamped. Nine of them were tuple
 structs whose position field was `pub`, which is both a public constructor and a
@@ -91,23 +110,22 @@ derive lines are gone, and the shape they all now have is generated from one
 place. The hand-written twin survives only on the proof surface, where the law
 below needs something to compare the stamp against.
 
-**The absence of a road out is derived, because no reversal can state it.** The
-two laundering fixtures attempt the roads a caller has today — reading the seat
-as `version.0`, re-entering it as `FrameVersion(position)` — and both go on
-refusing, byte for byte, after a public `position()` is added to the stamp: the
-field is still private and the tuple constructor is still unreachable, so the
-recorded diagnostic never moves while the sealed value walks out through a road
-with a name. A fixture can only attempt roads somebody thought of, and *no road
-out exists* is not a sentence Rust can be asked to refuse. So `cargo xtask
-check`'s `stamped-guards-seal-their-position` reads it instead: the population is
-every type this stamp is invoked for, derived off the sources, and the seat is
-read out of the stamp's own transcriber rather than named in the check — a stamp
-reseated over another inner type is judged over the type it actually seals. Both
-places a road out can be written are read: the transcriber, where one accessor
-would unseal every guard at once, and any implementation beside a guard, which
-reaches the private seat because a `macro_rules!` expansion is expanded in the
-invoking module. A return, a `Deref` target, and a conversion standing for the
-position are all the same road under three spellings.
+**The absence of a road out is now the compiler's statement, and no check makes
+it.** A repository law used to read every stamped guard and every implementation
+beside it, asking whether any of them handed the position back. It failed
+repeatedly, and each failure was a Rust shape the reader had not been taught: a
+receiver of a different type, a `Box`, a `Vec`, a tuple, an opaque iterator, a
+type alias, a nested `Result`, a free function, an implementation for a
+reference. The question was *did a person write a leak anywhere in a file
+containing dozens of other types*, and it is not answerable without being a
+compiler.
+
+Seating the guard in its own module answers it structurally. The set of roads is
+the expansion, and nothing else is inside the wall — so `stamped-guards-seal-
+their-position` is deleted rather than repaired, and the claim it used to make
+is `E0616`, `E0423` and `E0603` on the two laundering fixtures. That is the
+drain running downward: a type that makes the wrong move unrepresentable retires
+the law that asserted the move was wrong, and the law goes.
 
 ## Delegated by decision
 

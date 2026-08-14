@@ -27,7 +27,7 @@ use crate::plane::{
 use crate::planning::{
     DeriveImplProjection, ProjectionDisposition, ProjectionPlan, RenderedImplementation,
 };
-use crate::token::{SpanHandle, SpanTable};
+use crate::token::SpanTable;
 use threadpak::refusal::{
     CauseId, CauseOrderDeclaration, DeclaredCause, DeclaredCauseOrder, FamilyShape, LocalCauseKey,
     RefusalFamily, RefusalFamilyId,
@@ -291,17 +291,14 @@ capture_causes! {
         "the declared input exceeds a declared magnitude";
 }
 
-/// One capture refusal: the established cause, and the token it sits at.
+/// One capture refusal, published from this file and DECLARED in
+/// `type_guard.rs`'s `seat` module, beside the only roads that reach its two
+/// seats.
 ///
-/// Both seats are required. A refusal that could omit its token would send the
-/// caller looking, and a refusal that could omit its cause would be a complaint
-/// rather than an answer.
-#[must_use = "a capture refusal carries the established cause and the offending token"]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct RefusalDeriveRefusal {
-    cause: RefusalDeriveCapture,
-    token: SpanHandle,
-}
+/// The declaration is not here because Rust's privacy is MODULE-scoped: a
+/// private field is private to the module the declaration lands in, and this
+/// file declares much else that would have been inside that wall.
+pub use guard::RefusalDeriveRefusal;
 
 // ---------------------------------------------------------------------------
 // The declared output set.

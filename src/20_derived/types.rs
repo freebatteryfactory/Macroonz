@@ -77,7 +77,7 @@ impl MaterializationId {
 crate::scope_guard_version! {
     /// One materialization generation — Class C, scoped to its materialization;
     /// CHANGES on rematerialization.
-    pub struct MaterializationGeneration over MaterializationId;
+    pub struct MaterializationGeneration over MaterializationId, seated in mod materialization_generation;
 }
 
 /// Row-domain preimage domain marker.

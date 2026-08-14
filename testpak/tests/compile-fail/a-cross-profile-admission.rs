@@ -11,7 +11,9 @@
 //! is small enough for both planes; what refuses is not the number but the
 //! claim, and the claim is the whole content of the witness.
 
-use threadpak::types::{AdmittedLimit, ConstLimit, Limit, LimitAdmissionProfile};
+use threadpak::types::{
+    AdmittedLimit, ConstLimit, DeclaredMagnitude, Limit, LimitAdmissionProfile,
+};
 use threadpak_macroc::AuthoringLimitProfile;
 
 /// A second plane's ceiling, declared here because this file is the plane
@@ -25,7 +27,9 @@ impl LimitAdmissionProfile for ForeignProfile {
 /// A family well inside both ceilings.
 struct SmallFamily;
 
-impl Limit for SmallFamily {}
+impl Limit for SmallFamily {
+    type Authority = DeclaredMagnitude;
+}
 
 impl ConstLimit for SmallFamily {
     const MAX: usize = 8;

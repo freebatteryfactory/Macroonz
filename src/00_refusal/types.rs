@@ -574,6 +574,25 @@ impl CauseOrderDeclaration for NonEmptyBoundedConstruction {
         )]);
 }
 
+impl RefusalFamily for crate::types::CapacityAdmission {
+    const SHAPE: FamilyShape = FamilyShape::SingleCause;
+    const SELECTION_ORDER: &'static [&'static str] = &["NotInhabited"];
+}
+
+/// The third root construction family, and the one whose single cause is a
+/// requirement rather than a bound: `NotInhabited` spells a failed requirement
+/// with the `Not` prefix, where its two neighbours spell a bounds condition.
+impl CauseOrderDeclaration for crate::types::CapacityAdmission {
+    const DECLARED_ORDER: DeclaredCauseOrder =
+        DeclaredCauseOrder::declared(&[DeclaredCause::declared(
+            CauseId::declared(
+                RefusalFamilyId::declared("root.capacity-admission"),
+                LocalCauseKey::declared("not-inhabited"),
+            ),
+            "NotInhabited",
+        )]);
+}
+
 /// How admitting one refusal family's declaration refuses.
 ///
 /// Single cause, because the checks are dependent: there is no order to project

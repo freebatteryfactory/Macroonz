@@ -105,7 +105,7 @@ crate::scope_guard_version! {
     /// scope and order ONLY (no image identity in the scope bytes): an image
     /// upgrade is one reason the generation order advances, and generations stay
     /// ordered across it.
-    pub struct ActivationGeneration over InstanceId;
+    pub struct ActivationGeneration over InstanceId, seated in mod activation_generation;
 }
 
 /// Which image a generation activated — an auxiliary fact riding a typed

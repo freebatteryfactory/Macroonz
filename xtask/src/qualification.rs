@@ -55,9 +55,10 @@
 //! and cost a rebuild.
 
 use std::error::Error;
-use std::ffi::OsString;
 use std::path::Path;
 use std::process::{Command, Stdio};
+
+use crate::repository::snapshot::cargo_binary;
 
 /// One qualification stage: what the log calls it, and the work it is.
 struct Stage {
@@ -289,17 +290,6 @@ fn run_worktree_clean(root: &Path) -> Result<(), String> {
 /// tested by dirtying one would be proving itself false to run.
 fn dirty_entries(listing: &str) -> Vec<&str> {
     listing.lines().filter(|line| !line.is_empty()).collect()
-}
-
-/// The cargo binary a stage is spawned with.
-///
-/// Cargo sets `CARGO` for every process it starts, so a nested invocation
-/// reaches the exact binary that started this one — the pinned toolchain's
-/// cargo, not whatever a machine's search path resolves today. The fallback
-/// covers the case where the xtask binary is run directly, where no pin has
-/// been resolved and the search path is all there is.
-fn cargo_binary() -> OsString {
-    std::env::var_os("CARGO").unwrap_or_else(|| OsString::from("cargo"))
 }
 
 /// Planted reversals for the closing stage's verdict.

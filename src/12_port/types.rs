@@ -29,7 +29,7 @@
 use crate::identity::{Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence};
 use crate::refusal::{FamilyShape, RefusalFamily};
 use crate::schema::SchemaSemanticCommitment;
-use crate::types::{Bounded, ConstLimit, EvidenceRef, Limit};
+use crate::types::{Bounded, ConstLimit, DeclaredMagnitude, EvidenceRef, Limit};
 
 // ---------------------------------------------------------------------------
 // Port family identity.
@@ -60,7 +60,7 @@ impl PortFamilyId {
 crate::scope_guard_version! {
     /// One version of a port family — Class C, scoped to its family: versions of
     /// different port families are incomparable by type.
-    pub struct PortFamilyVersion over PortFamilyId;
+    pub struct PortFamilyVersion over PortFamilyId, seated in mod port_family_version;
 }
 
 // ---------------------------------------------------------------------------
@@ -133,7 +133,9 @@ pub enum PortPostcondition {
 /// Compile-time bound for declared postcondition sets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PortPostconditionLimit;
-impl Limit for PortPostconditionLimit {}
+impl Limit for PortPostconditionLimit {
+    type Authority = DeclaredMagnitude;
+}
 impl ConstLimit for PortPostconditionLimit {
     const MAX: usize = 3;
 }

@@ -69,10 +69,8 @@
 //! or a body assembled by one is outside this law — and this law does not pretend
 //! otherwise.
 
-use std::fs;
-use std::path::Path;
-
-use crate::repository::walk::{TOOLING_DIRECTORY, relative_slash_path, visit_files};
+use crate::repository::snapshot::{MACHINE_DIRECTORY, RepositorySnapshot, TOOLING_DIRECTORY};
+use crate::repository::types::CanonicalPath;
 
 /// The proof surfaces, excluded from the population by name.
 ///
@@ -111,8 +109,10 @@ const LOOSE_CARRY: &str = "NonEmptyBounded";
 /// Returns the offences one line at a time, and returns a read failure as
 /// itself: a gate that cannot read its subject says so rather than reporting an
 /// empty population.
-pub(crate) fn check_collection_bodies_are_coupled(root: &Path) -> Result<(), String> {
-    let sources = coupling_sources(root)?;
+pub(crate) fn check_collection_bodies_are_coupled(
+    snapshot: &RepositorySnapshot,
+) -> Result<(), String> {
+    let sources = coupling_sources(snapshot)?;
     let verdict = coupled_body_verdict(&sources);
 
     // The denominator is DERIVED and printed on every run, because a population
@@ -175,24 +175,22 @@ struct Reading {
     families: Vec<DeclaredFamily>,
     /// Every public body, in every module the pass entered.
     bodies: Vec<DeclaredBody>,
-    /// Sources that are not parseable Rust, one offence each. Never a skip: a
-    /// file this reader could not read is a hole in the population, and a hole
-    /// reported as nothing is the defect this whole leg is about.
-    unparsable: Vec<String>,
 }
 
-/// Reads the declarations and the bodies out of source text and judges each
+/// Reads the declarations and the bodies out of parsed trees and judges each
 /// family.
 ///
-/// Pure over its inputs — `(repository-relative path, source text)` pairs — so
-/// the reversals below are planted in memory and the law that guards the tree is
-/// never proven by editing one.
-fn coupled_body_verdict(sources: &[(String, String)]) -> CouplingVerdict {
+/// Pure over its inputs — `(canonical path, parsed tree)` pairs handed over by
+/// the snapshot — so the reversals below are planted in memory and the law that
+/// guards the tree is never proven by editing one. A source that did not parse
+/// never reaches here: the snapshot carries it as unread, and the caller refuses
+/// the whole reading rather than deriving a population one file short.
+fn coupled_body_verdict(sources: &[(&CanonicalPath, &syn::File)]) -> CouplingVerdict {
     let reading = read_sources(sources);
     let mut verdict = CouplingVerdict {
         declared: 0,
         coupled: 0,
-        offenders: reading.unparsable,
+        offenders: Vec::new(),
     };
     for declared in &reading.families {
         verdict.declared = verdict.declared.saturating_add(1);
@@ -258,22 +256,15 @@ fn declares(seats: &[Option<String>], named: &str) -> bool {
         .any(|seat| seat.as_deref().is_some_and(|head| head == named))
 }
 
-/// Parses every source and reads the declarations, the bodies, and the failures
-/// out of the trees.
-fn read_sources(sources: &[(String, String)]) -> Reading {
+/// Reads the declarations and the bodies out of the parsed trees.
+fn read_sources(sources: &[(&CanonicalPath, &syn::File)]) -> Reading {
     let mut reading = Reading {
         families: Vec::new(),
         bodies: Vec::new(),
-        unparsable: Vec::new(),
     };
-    for (path, text) in sources {
-        match syn::parse_file(text) {
-            Ok(file) => read_module(path, &declaring_home(path), &file.items, &mut reading),
-            Err(error) => reading.unparsable.push(format!(
-                "{path}: this file is not parseable Rust, so the population derived from it is \
-                 unknown rather than empty: {error}"
-            )),
-        }
+    for (path, file) in sources {
+        let spelled = path.as_str();
+        read_module(spelled, &declaring_home(spelled), &file.items, &mut reading);
     }
     reading
 }
@@ -297,38 +288,111 @@ fn declaring_home(path: &str) -> String {
 ///
 /// An inline `mod` is its own resolution scope, keyed by the file that writes it
 /// so two files' identically named inline modules never resolve into each other.
-#[expect(
-    clippy::wildcard_enum_match_arm,
-    reason = "`syn::Item` is non_exhaustive, so no crate outside syn can enumerate its variants; a wildcard is the only arm that closes this match, and every item it catches is one this reading has no question about"
-)]
+/// Written as an `if let` chain rather than a match because `syn::Item` is
+/// `non_exhaustive`: the items this reading has a question about are named, and
+/// every other item is passed over without a wildcard arm standing in for a set
+/// no crate outside `syn` can enumerate. The expectation that used to sit here —
+/// naming the lint and the reason — was a real refusal of a real hatch, and it
+/// is gone because the shape that needed it is gone.
 fn read_module(path: &str, home: &str, items: &[syn::Item], reading: &mut Reading) {
     for item in items {
-        match item {
-            syn::Item::Impl(declared) => {
-                if let Some(family) = collection_family(declared) {
-                    reading.families.push(DeclaredFamily {
-                        path: path.to_string(),
-                        home: home.to_string(),
-                        family,
-                    });
-                }
+        if let syn::Item::Impl(declared) = item {
+            if let Some(family) = collection_family(declared) {
+                reading.families.push(DeclaredFamily {
+                    path: path.to_string(),
+                    home: home.to_string(),
+                    family,
+                });
             }
-            syn::Item::Struct(declared) => {
-                if matches!(declared.vis, syn::Visibility::Public(_)) {
-                    reading.bodies.push(DeclaredBody {
-                        home: home.to_string(),
-                        name: declared.ident.to_string(),
-                        seats: body_seats(&declared.fields),
-                    });
-                }
+        } else if let syn::Item::Struct(declared) = item {
+            if matches!(declared.vis, syn::Visibility::Public(_)) {
+                reading.bodies.push(DeclaredBody {
+                    home: home.to_string(),
+                    name: declared.ident.to_string(),
+                    seats: body_seats(&declared.fields),
+                });
             }
-            syn::Item::Mod(module) => {
-                if let Some((_, inner)) = &module.content {
-                    let inside = format!("{path}::{}", module.ident);
-                    read_module(path, &inside, inner, reading);
-                }
+        } else if let syn::Item::Mod(module) = item {
+            read_inline_module(path, home, module, items, reading);
+        }
+    }
+}
+
+/// Reads one inline module, and then the bodies the enclosing module re-exports
+/// out of it.
+///
+/// A name the enclosing module RE-EXPORTS is a name in the enclosing scope, so
+/// the body behind it is read there too. Without this leg, a record moved into a
+/// child module — which is how a private seat is walled off from the file around
+/// it — would stop resolving against the family implementation written beside
+/// it, and this law would refuse the very shape that narrows the wall.
+fn read_inline_module(
+    path: &str,
+    home: &str,
+    module: &syn::ItemMod,
+    siblings: &[syn::Item],
+    reading: &mut Reading,
+) {
+    let Some((_, inner)) = &module.content else {
+        return;
+    };
+    let inside = format!("{path}::{}", module.ident);
+    read_module(path, &inside, inner, reading);
+    for name in reexported_from(&module.ident, siblings) {
+        read_reexported_body(home, &name, inner, reading);
+    }
+}
+
+/// Every name one module re-exports out of the named child module.
+///
+/// A glob contributes nothing: what stands behind one is a set this reader would
+/// have to resolve, and a body left in the inner scope produces a refusal
+/// somebody can argue with rather than a silence nobody can see.
+fn reexported_from(child: &syn::Ident, items: &[syn::Item]) -> Vec<String> {
+    let mut names = Vec::new();
+    for item in items {
+        if let syn::Item::Use(declared) = item
+            && let syn::UseTree::Path(rooted) = &declared.tree
+            && rooted.ident == *child
+        {
+            reexported_names(&rooted.tree, &mut names);
+        }
+    }
+    names
+}
+
+/// Every name one `use` tree brings in, under the spelling the enclosing module
+/// then knows it by.
+fn reexported_names(tree: &syn::UseTree, into: &mut Vec<String>) {
+    match *tree {
+        syn::UseTree::Name(ref named) => into.push(named.ident.to_string()),
+        syn::UseTree::Rename(ref renamed) => into.push(renamed.rename.to_string()),
+        syn::UseTree::Group(ref group) => {
+            for inner in &group.items {
+                reexported_names(inner, into);
             }
-            _ => {}
+        }
+        syn::UseTree::Path(ref deeper) => reexported_names(&deeper.tree, into),
+        syn::UseTree::Glob(_) => {}
+    }
+}
+
+/// Reads one re-exported record into the scope that re-exports it.
+///
+/// Only a top-level declaration of the child module answers: a name re-exported
+/// out of a module that does not itself declare it stands for something this
+/// reader would have to follow further, and it declines to guess.
+fn read_reexported_body(home: &str, name: &str, items: &[syn::Item], reading: &mut Reading) {
+    for item in items {
+        if let syn::Item::Struct(declared) = item
+            && matches!(declared.vis, syn::Visibility::Public(_))
+            && declared.ident == name
+        {
+            reading.bodies.push(DeclaredBody {
+                home: home.to_string(),
+                name: name.to_string(),
+                seats: body_seats(&declared.fields),
+            });
         }
     }
 }
@@ -402,29 +466,22 @@ fn last_segment(path: &syn::Path) -> Option<String> {
     path.segments.last().map(|last| last.ident.to_string())
 }
 
-/// Every source file the population is derived from: the machine's own sources
-/// and the services', minus the two proof surfaces.
-fn coupling_sources(root: &Path) -> Result<Vec<(String, String)>, String> {
-    let mut sources = Vec::new();
-    for directory in ["src", TOOLING_DIRECTORY] {
-        let base = root.join(directory);
-        if !base.is_dir() {
-            continue;
-        }
-        visit_files(&base, &mut |path| {
-            if path.extension().is_none_or(|extension| extension != "rs") {
-                return Ok(());
-            }
-            let relative = relative_slash_path(root, path);
-            if PROOF_SURFACES.contains(&relative.as_str()) {
-                return Ok(());
-            }
-            let text = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
-            sources.push((relative, text));
-            Ok(())
-        })?;
-    }
-    Ok(sources)
+/// Every parsed source the population is derived from: the machine's own
+/// sources and the services', minus the two proof surfaces.
+///
+/// Taken from the one reading. A source the snapshot could not parse refuses
+/// the whole law rather than leaving the population one file short — a
+/// denominator that shrank in silence is the single failure a derived
+/// denominator exists to prevent.
+fn coupling_sources(
+    snapshot: &RepositorySnapshot,
+) -> Result<Vec<(&CanonicalPath, &syn::File)>, String> {
+    Ok(snapshot
+        .rust()
+        .parsed_under(&[MACHINE_DIRECTORY, TOOLING_DIRECTORY])?
+        .into_iter()
+        .filter(|(path, _)| !PROOF_SURFACES.contains(&path.as_str()))
+        .collect())
 }
 
 /// Planted reversals for the join, and the real repository judged by it.
@@ -435,8 +492,9 @@ fn coupling_sources(root: &Path) -> Result<Vec<(String, String)>, String> {
 /// states what it found rather than what it hoped for.
 #[cfg(test)]
 mod tests {
-    use super::{coupled_body_verdict, coupling_sources};
-    use crate::repository::walk::repo_root;
+    use super::{CouplingVerdict, coupled_body_verdict as verdict_of_trees, coupling_sources};
+    use crate::repository::snapshot::repository_snapshot;
+    use crate::repository::types::CanonicalPath;
 
     /// One synthetic source file.
     fn source(text: &str) -> Vec<(String, String)> {
@@ -446,6 +504,32 @@ mod tests {
     /// One synthetic source file at a named path.
     fn source_at(path: &str, text: &str) -> (String, String) {
         (path.to_string(), text.to_string())
+    }
+
+    /// The verdict over fixture source TEXT.
+    ///
+    /// The law itself is handed trees the snapshot already parsed, so a source
+    /// it could not read never reaches it. A fixture is text, so this adapter
+    /// parses one and reports a fixture that does not parse exactly as the
+    /// reading reports a source it could not read — which keeps the reversal
+    /// below about a hole in the population rather than about who parses.
+    fn coupled_body_verdict(sources: &[(String, String)]) -> CouplingVerdict {
+        let mut parsed = Vec::new();
+        let mut unparsable = Vec::new();
+        for (path, text) in sources {
+            match syn::parse_file(text) {
+                Ok(file) => parsed.push((CanonicalPath::spelled(path), file)),
+                Err(error) => unparsable.push(format!(
+                    "{path}: this file is not parseable Rust, so the population derived from it \
+                     is unknown rather than empty: {error}"
+                )),
+            }
+        }
+        let trees: Vec<(&CanonicalPath, &syn::File)> =
+            parsed.iter().map(|(path, file)| (path, file)).collect();
+        let mut verdict = verdict_of_trees(&trees);
+        verdict.offenders.splice(0..0, unparsable);
+        verdict
     }
 
     /// The positive control: a family whose body is the one coupled seat. A
@@ -466,6 +550,56 @@ mod tests {
         assert_eq!(verdict.declared, 1);
         assert_eq!(verdict.coupled, 1);
         assert!(verdict.offenders.is_empty(), "{:?}", verdict.offenders);
+    }
+
+    /// A body declared inside a child module and RE-EXPORTED by the module the
+    /// implementation is written in resolves in the enclosing scope, because a
+    /// re-export is what puts the name there.
+    ///
+    /// This is the shape a sealed record takes: the seat module walls the
+    /// private field off from the file around it, and the family implementation
+    /// stays outside because it does not need the seat. A reader that stopped at
+    /// the module boundary would report the body missing and refuse the exact
+    /// move that narrows the wall.
+    #[test]
+    fn a_re_exported_body_resolves_in_the_module_that_publishes_it() {
+        let verdict = coupled_body_verdict(&source(
+            "pub use seat::DemoRefusal;\n\
+             \n\
+             mod seat {\n\
+             \x20   pub struct DemoRefusal {\n\
+             \x20       body: AdmittedPrefix<DemoIssue, DemoIssueLimit>,\n\
+             \x20   }\n\
+             }\n\
+             \n\
+             impl RefusalFamily for DemoRefusal {\n\
+             \x20   const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.coupled, 1, "{:?}", verdict.offenders);
+        assert!(verdict.offenders.is_empty(), "{:?}", verdict.offenders);
+    }
+
+    /// A body a child module declares and nobody re-exports stays in the child's
+    /// own scope, so a family implementation outside it does not resolve against
+    /// it. The lift follows a written re-export and never a name collision.
+    #[test]
+    fn a_body_nobody_re_exports_stays_inside_its_own_module() {
+        let verdict = coupled_body_verdict(&source(
+            "mod seat {\n\
+             \x20   pub struct DemoRefusal {\n\
+             \x20       body: AdmittedPrefix<DemoIssue, DemoIssueLimit>,\n\
+             \x20   }\n\
+             }\n\
+             \n\
+             impl RefusalFamily for DemoRefusal {\n\
+             \x20   const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.coupled, 0);
+        assert!(!verdict.offenders.is_empty());
     }
 
     /// Planted reversal: the two-seat body this law exists to end. Both halves
@@ -874,27 +1008,19 @@ mod tests {
     /// never opened, and the real error — the one naming the path and the
     /// operating system's reason — would be gone.
     #[test]
-    fn the_real_tree_couples_every_collection_body() {
-        let read = repo_root()
-            .map_err(|error| format!("the repository root could not be found: {error}"))
-            .and_then(|root| coupling_sources(&root))
-            .map(|sources| coupled_body_verdict(&sources));
+    fn the_real_tree_couples_every_collection_body() -> Result<(), String> {
+        let snapshot = repository_snapshot()?;
+        let sources = coupling_sources(snapshot)?;
+        let verdict = verdict_of_trees(&sources);
+        assert!(verdict.offenders.is_empty(), "{verdict:?}");
         assert!(
-            read.is_ok(),
-            "the coupling gate could not read its subject: {read:?}"
+            verdict.declared > 0,
+            "no collection-shaped family found in the real tree: {verdict:?}"
         );
-        assert!(
-            read.as_ref()
-                .is_ok_and(|verdict| verdict.offenders.is_empty()),
-            "{read:?}"
-        );
-        assert!(
-            read.as_ref().is_ok_and(|verdict| verdict.declared > 0),
-            "no collection-shaped family found in the real tree: {read:?}"
-        );
-        assert!(
-            read.is_ok_and(|verdict| verdict.coupled == verdict.declared),
+        assert_eq!(
+            verdict.coupled, verdict.declared,
             "the real tree declares a collection-shaped family whose body is not the coupled seat"
         );
+        Ok(())
     }
 }

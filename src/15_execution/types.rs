@@ -32,7 +32,10 @@ use crate::bounds::DimensionId;
 use crate::identity::{Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence};
 use crate::refusal::{AdmittedPrefix, CompletionPosture, FamilyShape, RefusalFamily};
 use crate::semantic::BoundDimensionRow;
-use crate::types::{Bounded, ConstLimit, EvidenceRef, Limit, NonEmptyBounded};
+use crate::types::{
+    Bounded, ConstLimit, DeclaredMagnitude, EvidenceRef, EvidenceSelectedMagnitude, Limit,
+    NonEmptyBounded, UnstatedMagnitude,
+};
 
 // ---------------------------------------------------------------------------
 // The authored operator register (v1) and Execution-Form identity.
@@ -116,7 +119,7 @@ crate::scope_guard_version! {
     /// One Execution-Form version — Class C, scoped to its family. Adding,
     /// removing, or changing an operator advances this version; no version is
     /// bare, and numeric comparison across families is undefined.
-    pub struct ExecutionFormVersion over ExecutionFormFamilyId;
+    pub struct ExecutionFormVersion over ExecutionFormFamilyId, seated in mod execution_form_version;
 }
 
 // ---------------------------------------------------------------------------
@@ -144,7 +147,9 @@ pub enum AlgebraicLaw {
 /// Compile-time bound for declared algebraic laws.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AlgebraicLawLimit;
-impl Limit for AlgebraicLawLimit {}
+impl Limit for AlgebraicLawLimit {
+    type Authority = DeclaredMagnitude;
+}
 impl ConstLimit for AlgebraicLawLimit {
     const MAX: usize = 5;
 }
@@ -171,7 +176,9 @@ pub struct OriginEdgeDomain;
 /// Limit family for an operator's work-charge rows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct WorkChargeLimit;
-impl Limit for WorkChargeLimit {}
+impl Limit for WorkChargeLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// One operator's declaration — the seven facts every operator states.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -322,11 +329,15 @@ pub enum ExecutionFormConstructionIssue {
     },
 }
 
-/// Limit family for Execution Form issues — a declared finite bound,
-/// evidence-selected.
+/// Limit family for Execution Form issues. Its magnitude is selected by the
+/// owner's evidence rather than declared here — see
+/// [`crate::types::EvidenceSelectedLimit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ExecutionFormIssueLimit;
-impl Limit for ExecutionFormIssueLimit {}
+impl Limit for ExecutionFormIssueLimit {
+    type Authority = EvidenceSelectedMagnitude;
+}
+impl crate::types::EvidenceSelectedLimit for ExecutionFormIssueLimit {}
 
 /// Execution Form construction. Posture addition over the Semantic Form
 /// family: the independent reference lowerer posts `EarlyStopped` at its
@@ -396,7 +407,9 @@ pub const INDEPENDENCE_MAY_NOT_SHARE: [&str; 11] = [
 /// Limit family for lexicographic measure tuples.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LexicographicLimit;
-impl Limit for LexicographicLimit {}
+impl Limit for LexicographicLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// The closed, independently executable measure algebra: bounded naturals and
 /// lexicographic tuples of them, under an admitted well-founded order — never
@@ -558,12 +571,16 @@ pub struct EffectCommand {
 /// Limit family for a batch's commands.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BatchCommandLimit;
-impl Limit for BatchCommandLimit {}
+impl Limit for BatchCommandLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// Limit family for a batch's declared bounds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BatchBoundLimit;
-impl Limit for BatchBoundLimit {}
+impl Limit for BatchBoundLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// Boundary-requirement domain marker.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -688,10 +705,15 @@ pub enum EffectBatchCompositionIssue {
     },
 }
 
-/// Limit family for composition issues — a declared finite bound.
+/// Limit family for composition issues. Its magnitude is selected by the
+/// owner's evidence rather than declared here — see
+/// [`crate::types::EvidenceSelectedLimit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EffectBatchIssueLimit;
-impl Limit for EffectBatchIssueLimit {}
+impl Limit for EffectBatchIssueLimit {
+    type Authority = EvidenceSelectedMagnitude;
+}
+impl crate::types::EvidenceSelectedLimit for EffectBatchIssueLimit {}
 
 /// Effect-batch composition. Posture: `Complete` when every applicable check
 /// ran; `EarlyStopped` only when (a) an established issue makes remaining
@@ -757,7 +779,7 @@ impl SemanticKernelFamilyId {
 crate::scope_guard_version! {
     /// One semantic-kernel version — Class C, ordered ONLY within its family; no
     /// version is bare.
-    pub struct SemanticKernelVersion over SemanticKernelFamilyId;
+    pub struct SemanticKernelVersion over SemanticKernelFamilyId, seated in mod semantic_kernel_version;
 }
 
 /// Kernel semantic-contract domain marker (the MEANING half).
@@ -920,7 +942,9 @@ pub struct KernelRequirement {
 /// Limit family for kernel requirement sets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct KernelSetLimit;
-impl Limit for KernelSetLimit {}
+impl Limit for KernelSetLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// The bounded canonical kernel-requirement set — duplicates and
 /// contradictions refuse.
@@ -976,7 +1000,9 @@ crate::closed_register! {
 /// Limit family for semantic-contract issues.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct KernelSemanticIssueLimit;
-impl Limit for KernelSemanticIssueLimit {}
+impl Limit for KernelSemanticIssueLimit {
+    type Authority = DeclaredMagnitude;
+}
 impl ConstLimit for KernelSemanticIssueLimit {
     /// The register's own cardinality, read off the register.
     ///
@@ -1079,7 +1105,9 @@ crate::closed_register! {
 /// Limit family for interface-contract issues.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct KernelInterfaceIssueLimit;
-impl Limit for KernelInterfaceIssueLimit {}
+impl Limit for KernelInterfaceIssueLimit {
+    type Authority = DeclaredMagnitude;
+}
 impl ConstLimit for KernelInterfaceIssueLimit {
     /// The register's own cardinality, read off the register — see
     /// [`KernelSemanticIssueLimit::MAX`] for why a bound that is the roster's

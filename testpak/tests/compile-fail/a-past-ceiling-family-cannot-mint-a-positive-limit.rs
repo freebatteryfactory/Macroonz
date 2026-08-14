@@ -13,7 +13,9 @@
 //! failing to compile — and would say nothing about whether the two roads still
 //! agree, which is the defect the composition closes.
 
-use threadpak::types::{ConstLimit, Limit, LimitAdmissionProfile, PositiveLimit};
+use threadpak::types::{
+    ConstLimit, DeclaredMagnitude, Limit, LimitAdmissionProfile, PositiveLimit,
+};
 
 /// The qualification plane's own admitting ceiling, declared here because this
 /// is the plane doing the admitting.
@@ -27,7 +29,9 @@ impl LimitAdmissionProfile for QualificationProfile {
 /// the only fact left to fail — and declares a magnitude past the ceiling.
 struct PastTheCeiling;
 
-impl Limit for PastTheCeiling {}
+impl Limit for PastTheCeiling {
+    type Authority = DeclaredMagnitude;
+}
 
 impl ConstLimit for PastTheCeiling {
     const MAX: usize = 65;

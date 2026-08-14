@@ -40,7 +40,9 @@ use crate::identity::{
     ByteIdentity, Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence,
 };
 use crate::refusal::{AdmittedPrefix, CompletionPosture, FamilyShape, ReasonId, RefusalFamily};
-use crate::types::{Bounded, ConstLimit, EvidenceRef, Limit, NonEmptyBounded};
+use crate::types::{
+    Bounded, ConstLimit, DeclaredMagnitude, EvidenceRef, Limit, NonEmptyBounded, UnstatedMagnitude,
+};
 use crate::value::BoundedText;
 
 // ---------------------------------------------------------------------------
@@ -64,7 +66,7 @@ crate::scope_guard_version! {
     /// One schema version — Class C, a u64 position scoped to its family with the
     /// scope binding in the value: the first production instantiation of the
     /// scope-guarded order shape. No `Ord` exists; comparison is same-scope only.
-    pub struct SchemaVersion over SchemaFamilyId;
+    pub struct SchemaVersion over SchemaFamilyId, seated in mod schema_version;
 }
 
 /// The identity role marker for fields.
@@ -163,7 +165,9 @@ pub enum ContractAxis {
 /// Limit family for a contract's declared-axis set.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ContractAxisLimit;
-impl Limit for ContractAxisLimit {}
+impl Limit for ContractAxisLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// An authored checked contract declaration (authored v1 core: the declared
 /// axes; per-axis content rides the declaration surfaces).
@@ -392,7 +396,9 @@ impl ValidatedOwned {
 /// Limit family for field paths.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FieldPathLimit;
-impl Limit for FieldPathLimit {}
+impl Limit for FieldPathLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// One segment of a stable issue path.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -417,7 +423,9 @@ pub struct FieldPath {
 /// Limit family for issue text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct IssueTextLimit;
-impl Limit for IssueTextLimit {}
+impl Limit for IssueTextLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// One structured validation issue — evidence, not prose. Aggregation is
 /// bounded (hostile input allocates no unbounded error tree; stopping reports
@@ -533,7 +541,9 @@ pub struct DynamicValue {
 /// Limit family for edge text members.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EdgeLimit;
-impl Limit for EdgeLimit {}
+impl Limit for EdgeLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// The claim marker for compatibility evidence references.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -710,7 +720,9 @@ pub enum ContractConstructionIssue {
 /// Compile-time bound for contract issues.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ContractIssueLimit;
-impl Limit for ContractIssueLimit {}
+impl Limit for ContractIssueLimit {
+    type Authority = DeclaredMagnitude;
+}
 impl ConstLimit for ContractIssueLimit {
     const MAX: usize = 6;
 }
@@ -776,7 +788,9 @@ pub enum RefinementConstructionIssue {
 /// Compile-time bound for refinement issues.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RefinementIssueLimit;
-impl Limit for RefinementIssueLimit {}
+impl Limit for RefinementIssueLimit {
+    type Authority = DeclaredMagnitude;
+}
 impl ConstLimit for RefinementIssueLimit {
     const MAX: usize = 11;
 }
@@ -862,7 +876,9 @@ pub enum MigrationConstructionIssue {
 /// Compile-time bound for migration issues.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MigrationIssueLimit;
-impl Limit for MigrationIssueLimit {}
+impl Limit for MigrationIssueLimit {
+    type Authority = DeclaredMagnitude;
+}
 impl ConstLimit for MigrationIssueLimit {
     const MAX: usize = 11;
 }
@@ -936,7 +952,9 @@ pub enum CompatibilityEdgeConstructionIssue {
 /// Compile-time bound for compatibility-edge issues.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CompatibilityIssueLimit;
-impl Limit for CompatibilityIssueLimit {}
+impl Limit for CompatibilityIssueLimit {
+    type Authority = DeclaredMagnitude;
+}
 impl ConstLimit for CompatibilityIssueLimit {
     const MAX: usize = 11;
 }
@@ -1018,7 +1036,9 @@ pub enum SchemaConstructionIssue {
 /// Compile-time bound for schema issues.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SchemaIssueLimit;
-impl Limit for SchemaIssueLimit {}
+impl Limit for SchemaIssueLimit {
+    type Authority = DeclaredMagnitude;
+}
 impl ConstLimit for SchemaIssueLimit {
     const MAX: usize = 18;
 }
@@ -1101,7 +1121,9 @@ pub enum LayoutConstructionIssue {
 /// Compile-time bound for layout issues.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LayoutIssueLimit;
-impl Limit for LayoutIssueLimit {}
+impl Limit for LayoutIssueLimit {
+    type Authority = DeclaredMagnitude;
+}
 impl ConstLimit for LayoutIssueLimit {
     const MAX: usize = 14;
 }
@@ -1179,7 +1201,9 @@ pub enum CodecConstructionIssue {
 /// Compile-time bound for codec issues.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CodecIssueLimit;
-impl Limit for CodecIssueLimit {}
+impl Limit for CodecIssueLimit {
+    type Authority = DeclaredMagnitude;
+}
 impl ConstLimit for CodecIssueLimit {
     const MAX: usize = 17;
 }

@@ -43,17 +43,23 @@ trait, no conversion.
 ## Bound structure (first production use of the distinction)
 
 These collections are bounded by a DECLARED finite issue bound, not roster
-cardinality — several issues of one kind are lawful at once — so they ride
-plain `Limit` families whose bound values are evidence-selected. The
-projection-contract family alone is derivable (5 member kinds + 5 unstatable
-claims = 10) and carries the compile-time cap.
+cardinality — several issues of one kind are lawful at once — so their
+magnitudes are selected by the owner's evidence rather than written in the
+source. Those three families say so at the type level by declaring
+`EvidenceSelectedLimit`, which is the bound on `PositiveLimitWitness`'s mint: the
+sentence that used to sit in a doc comment beside each of them is now a fact a
+road can read, and a family that never made the declaration has no road to a
+runtime capacity. The projection-contract family alone is derivable (5 member
+kinds + 5 unstatable claims = 10) and carries the compile-time cap instead.
 
 All four bodies carry the one coupled seat — band 00's `AdmittedPrefix`, holding
 the issues and the coverage claim the same construction amounts to, read back
-through `issues()` and `posture()`. The three whose bound values are still
-evidence-selected cannot yet hold that seat's value at all: every
-`AdmittedPrefix` mint consumes a compile-time magnitude, so those three become
-buildable when their magnitudes are declared, and not before.
+through `issues()` and `posture()`. The three on the evidence-selected ladder
+cannot yet hold that seat's value at all, and the reason is now narrower than it
+was: every `AdmittedPrefix` mint is bounded on `ConstLimit`, so the coupled
+package has no runtime-witness road even though the witness it would consume
+exists. Those three become buildable when `AdmittedPrefix` gains that road, and
+not before; the gap is stated here rather than closed by a road with no caller.
 
 ## The closed-roster stamp is the root's; this home consumes it
 

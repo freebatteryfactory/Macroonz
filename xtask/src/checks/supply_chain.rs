@@ -121,8 +121,8 @@
 //! as uncovered. Those stand on a positive invocation alone, the reversal says
 //! so, and counting the reversal does not discharge them.
 
-use std::fs;
-use std::path::{Path, PathBuf};
+use crate::repository::snapshot::RepositorySnapshot;
+use crate::repository::types::Read;
 
 /// The hosted workflow the dependency gate runs in, in path segments so the
 /// join spells no separator of its own.
@@ -143,38 +143,38 @@ const PLANTED_REVERSAL: &str = "deny-reversal.toml";
 /// Every offence is a statement about a committed file, because a committed file
 /// is the whole of what this reading opens. What a hosted run does with these
 /// files is named where it is conditional and claimed nowhere.
-pub(crate) fn check_dependency_gate_artifacts(root: &Path) -> Result<(), String> {
+pub(crate) fn check_dependency_gate_artifacts(snapshot: &RepositorySnapshot) -> Result<(), String> {
     let mut offences = Vec::new();
-    if !gate_workflow(root).is_file() {
+    let workflow = spelled_workflow();
+    if snapshot.files().get(&workflow).is_none() {
         offences.push(format!(
-            "the dependency gate's hosted seat is not committed: `{}` is not there, so no file in \
-             this repository names a run that would read `{RULE_SET}` or the reversal beside it, \
-             and what the resolved graph is allowed to be is settled by nobody",
-            spelled_workflow()
+            "the dependency gate's hosted seat is not committed: `{workflow}` is not there, so no \
+             file in this repository names a run that would read `{RULE_SET}` or the reversal \
+             beside it, and what the resolved graph is allowed to be is settled by nobody"
         ));
     }
-    let rule_set = committed_bytes(root, RULE_SET)?;
+    let rule_set = committed_bytes(snapshot, RULE_SET)?;
     if rule_set.is_none() {
         offences.push(format!(
             "`{RULE_SET}` is not there: it is the rule set the committed reversal stands against, \
              and a reversal standing against a rule set nobody wrote departs from nothing"
         ));
     }
-    match committed_bytes(root, PLANTED_REVERSAL)? {
+    match committed_bytes(snapshot, PLANTED_REVERSAL)? {
         None => offences.push(format!(
             "`{PLANTED_REVERSAL}` is not there: it is this gate's planted reversal, the one \
              committed artifact by which the rule's REFUSAL can be watched at all, and nothing in \
              the tree now carries a deliberately wrong configuration"
         )),
         Some(reversal) => {
-            if !states_something(&reversal) {
+            if !states_something(reversal) {
                 offences.push(format!(
                     "`{PLANTED_REVERSAL}` states nothing at all: a configuration carrying no rule \
                      cannot be wrong, so cargo-deny succeeds against it wherever it is run, and \
                      the artifact has stopped being a reversal"
                 ));
             }
-            if rule_set.as_deref() == Some(reversal.as_slice()) {
+            if rule_set == Some(reversal) {
                 offences.push(format!(
                     "`{PLANTED_REVERSAL}` is byte-for-byte `{RULE_SET}`: the planted reversal is a \
                      copy of the rule it stands against, so it is no longer distinct from it and \
@@ -190,15 +190,6 @@ pub(crate) fn check_dependency_gate_artifacts(root: &Path) -> Result<(), String>
     }
 }
 
-/// Where the gate's hosted seat sits under one root.
-fn gate_workflow(root: &Path) -> PathBuf {
-    let mut path = root.to_path_buf();
-    for segment in GATE_WORKFLOW {
-        path.push(segment);
-    }
-    path
-}
-
 /// The workflow as this repository spells paths — relative, forward slashes —
 /// so a run on any machine names the same file.
 fn spelled_workflow() -> String {
@@ -209,15 +200,18 @@ fn spelled_workflow() -> String {
 ///
 /// A part that is ABSENT is an offence this law reports; a part that is present
 /// and unreadable is a failure of the run itself, because whether it departs
-/// from anything is then unknown rather than false.
-fn committed_bytes(root: &Path, relative: &str) -> Result<Option<Vec<u8>>, String> {
-    let path = root.join(relative);
-    if !path.is_file() {
-        return Ok(None);
+/// from anything is then unknown rather than false. The three states are the
+/// reading's own three states, so neither collapses into the other on its way
+/// here.
+fn committed_bytes<'snapshot>(
+    snapshot: &'snapshot RepositorySnapshot,
+    relative: &str,
+) -> Result<Option<&'snapshot [u8]>, String> {
+    match snapshot.files().bytes(relative) {
+        Read::Known(bytes) => Ok(Some(bytes)),
+        Read::DeclaredAbsent(_) => Ok(None),
+        Read::Unreadable(failure) => Err(format!("{relative} could not be read: {failure}")),
     }
-    fs::read(&path)
-        .map(Some)
-        .map_err(|e| format!("{}: {e}", path.display()))
 }
 
 /// Whether a committed part states anything at all: one byte that is not
@@ -240,9 +234,7 @@ fn states_something(bytes: &[u8]) -> bool {
 mod tests {
     use super::{GATE_WORKFLOW, PLANTED_REVERSAL, RULE_SET, check_dependency_gate_artifacts};
     use crate::checks::scratch::Scratch;
-    use crate::repository::walk::repo_root;
-    use std::fs;
-    use std::path::PathBuf;
+    use crate::repository::snapshot::repository_snapshot;
 
     /// A fixture rule set, standing for `deny.toml`.
     const RULE_SET_FIXTURE: &str = "[bans]\nmultiple-versions = \"deny\"\n";
@@ -269,70 +261,71 @@ mod tests {
     /// against, is lawful. A law that refused everything would satisfy every
     /// reversal below and be worthless.
     #[test]
-    fn present_and_distinct_artifacts_are_lawful() {
+    fn present_and_distinct_artifacts_are_lawful() -> Result<(), String> {
         let scratch = planted("gate-whole");
-        let found = check_dependency_gate_artifacts(scratch.root());
+        let found = check_dependency_gate_artifacts(&scratch.read()?);
         assert!(found.is_ok(), "{found:?}");
+        Ok(())
     }
 
     /// Planted reversal: the reversal artifact deleted. This is the failure the
     /// law exists for — the one committed thing by which the rule's refusal can
     /// be watched is gone, and nothing else in the tree notices.
     #[test]
-    fn a_deleted_reversal_is_a_violation() {
+    fn a_deleted_reversal_is_a_violation() -> Result<(), String> {
         let scratch = planted("gate-reversal-deleted");
-        let _removed = fs::remove_file(scratch.root().join(PLANTED_REVERSAL));
-        let found = check_dependency_gate_artifacts(scratch.root());
+        scratch.remove(PLANTED_REVERSAL);
+        let found = check_dependency_gate_artifacts(&scratch.read()?);
         assert!(
             found.is_err_and(
                 |reason| reason.contains(PLANTED_REVERSAL) && reason.contains("is not there")
             ),
             "a deleted reversal passed the law that counts it"
         );
+        Ok(())
     }
 
     /// Planted reversal: the whole hosted workflow deleted. The gate's two
     /// configurations survive and no committed file names a run that reads them.
     #[test]
-    fn a_deleted_workflow_is_a_violation() {
+    fn a_deleted_workflow_is_a_violation() -> Result<(), String> {
         let scratch = planted("gate-workflow-deleted");
-        let mut workflow = scratch.root().to_path_buf();
-        for segment in GATE_WORKFLOW {
-            workflow.push(segment);
-        }
-        let _removed = fs::remove_file(&workflow);
-        let found = check_dependency_gate_artifacts(scratch.root());
+        scratch.remove(&GATE_WORKFLOW.join("/"));
+        let found = check_dependency_gate_artifacts(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains("hosted seat is not committed")),
             "a deleted workflow passed the law that counts the gate's artifacts"
         );
+        Ok(())
     }
 
     /// Planted reversal: the rule set deleted, leaving a reversal standing
     /// against nothing.
     #[test]
-    fn a_deleted_rule_set_is_a_violation() {
+    fn a_deleted_rule_set_is_a_violation() -> Result<(), String> {
         let scratch = planted("gate-rule-set-deleted");
-        let _removed = fs::remove_file(scratch.root().join(RULE_SET));
-        let found = check_dependency_gate_artifacts(scratch.root());
+        scratch.remove(RULE_SET);
+        let found = check_dependency_gate_artifacts(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains(RULE_SET) && reason.contains("is not there")),
             "a deleted rule set passed"
         );
+        Ok(())
     }
 
     /// Planted reversal: the reversal emptied rather than deleted — the same
     /// disappearance written one edit shallower, and the one a file listing
     /// would report as present.
     #[test]
-    fn an_emptied_reversal_is_a_violation() {
+    fn an_emptied_reversal_is_a_violation() -> Result<(), String> {
         let scratch = planted("gate-reversal-emptied");
         scratch.write(PLANTED_REVERSAL, "\n   \n");
-        let found = check_dependency_gate_artifacts(scratch.root());
+        let found = check_dependency_gate_artifacts(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains("states nothing at all")),
             "an emptied reversal passed"
         );
+        Ok(())
     }
 
     /// Planted reversal: the reversal synchronized with the rule set until it
@@ -344,14 +337,15 @@ mod tests {
     /// one thing the file was committed to be — a configuration that is wrong on
     /// purpose — has quietly stopped being true of it.
     #[test]
-    fn a_reversal_that_stopped_departing_is_a_violation() {
+    fn a_reversal_that_stopped_departing_is_a_violation() -> Result<(), String> {
         let scratch = planted("gate-reversal-synchronized");
         scratch.write(PLANTED_REVERSAL, RULE_SET_FIXTURE);
-        let found = check_dependency_gate_artifacts(scratch.root());
+        let found = check_dependency_gate_artifacts(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains("byte-for-byte")),
             "a reversal that is a copy of its rule set passed"
         );
+        Ok(())
     }
 
     /// The ceiling, executed rather than only written down: a workflow that
@@ -366,26 +360,27 @@ mod tests {
     /// that deletion is the line of the diff where the claim is allowed to grow
     /// back.
     #[test]
-    fn a_workflow_that_invokes_nothing_still_passes() {
+    fn a_workflow_that_invokes_nothing_still_passes() -> Result<(), String> {
         let scratch = planted("gate-workflow-invokes-nothing");
         scratch.write(
             &GATE_WORKFLOW.join("/"),
             "name: dependencies\non:\n  pull_request:\njobs: {}\n",
         );
-        let found = check_dependency_gate_artifacts(scratch.root());
+        let found = check_dependency_gate_artifacts(&scratch.read()?);
         assert!(
             found.is_ok(),
             "this law reads files and not steps; a verdict here would mean it had started reading \
              steps without its name saying so: {found:?}"
         );
+        Ok(())
     }
 
     /// The real repository holds: the gate's three artifacts are committed, and
     /// the reversal states something that is not the rule set.
     #[test]
-    fn the_real_gate_artifacts_are_present_and_distinct() {
-        let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
-        let found = check_dependency_gate_artifacts(&root);
+    fn the_real_gate_artifacts_are_present_and_distinct() -> Result<(), String> {
+        let found = check_dependency_gate_artifacts(repository_snapshot()?);
         assert!(found.is_ok(), "{found:?}");
+        Ok(())
     }
 }

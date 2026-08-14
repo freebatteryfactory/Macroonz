@@ -139,6 +139,94 @@ restating it: one field, minted by `AdmittedLimit::under_profile`, so the
 comparison and its diagnostic have a single owner and the stronger witness
 cannot quietly stop being the stronger form of the weaker one.
 
+**The same ladder stands twice, once per road a magnitude arrives by.** A
+magnitude declared in the source is admitted by `AdmittedLimit` and proven
+inhabited by `PositiveLimit`, both before the program runs. A magnitude the
+owner's evidence SELECTS while the machine runs has no `L::MAX` for a `const`
+block to read and no ceiling it could be compared against at the time such a
+comparison would have to be settled, so its two facts are carried by values
+instead: `LimitWitness` is what schema validation selected, and
+`PositiveLimitWitness` is that selection proven to admit an item. A family says
+which ladder its magnitude travels by declaring `EvidenceSelectedLimit`, and
+that declaration is the mint's bound — a family that never made it has no road
+to a runtime capacity at all. Several families in the machine said
+"evidence-selected" in a doc comment beside their declaration and said it nowhere
+a road could read; that sentence is now a fact the compiler carries.
+
+**One family, one capacity authority, by type identity.** Nothing stopped a
+family from declaring BOTH ladders — two authorities over one fact, which is the
+two-independently-supplied-halves shape in its purest form — and `crate::types`
+said so in a doc comment while the type system permitted it. `Limit` now carries
+`type Authority`, one of `DeclaredMagnitude`, `EvidenceSelectedMagnitude`, or
+`UnstatedMagnitude`, and each ladder names the authority it requires exactly:
+`ConstLimit: Limit<Authority = DeclaredMagnitude>` and
+`EvidenceSelectedLimit: Limit<Authority = EvidenceSelectedMagnitude>`. An
+associated type resolves to one type, so the second ladder is a type mismatch at
+the declaration rather than a defect a reader has to notice — the exclusion is
+the arity of an associated type and not a bound, a law, or a sentence.
+`testpak/tests/compile-fail/a-family-declaring-both-capacity-authorities.rs` is
+the executed reversal, and its recorded diagnostic names
+`<TwoAuthorities as Limit>::Authority` as the projection that cannot be two
+types.
+
+`UnstatedMagnitude` is the third state and the largest population in the crate:
+a family bounding only a `Bounded` seat needs no magnitude, because
+`Bounded::empty` reads none. It also makes a residue visible rather than absent —
+families whose prose says "schema-witnessed" while their declaration says nothing
+a road can read now say *that* in the type system, and moving one onto a ladder
+is a change to one line at its own declaration.
+
+**What the algebra does not yet reach, stated where it is read.** `LimitWitness`
+has only a crate-internal `#[cfg(test)]` mint, so production schema validation
+can neither mint nor consume a runtime capacity: what stands is the algebra and
+the declaration-side population guard, not a production road, and the opening
+condition is the schema home carrying a validation path that selects a
+magnitude. Beside it, the collection-shaped refusal mints on `AdmittedPrefix` are
+bounded on `L: ConstLimit`, so a family on the runtime ladder — whose authority
+is `EvidenceSelectedMagnitude` and therefore never `DeclaredMagnitude` — cannot
+reach that package at all. Every collection-shaped body in the machine seats an
+`AdmittedPrefix`, so `PositiveLimitWitness` is today a witness nothing among them
+takes. Both absences are named at the types themselves; neither is closed here.
+
+With that rung in place, EVERY constructor of the inhabitant-promising shape
+consumes evidence that its family admits an item: the two `const` roads prove it
+off the declaration, `admitted_const` and `admitted_prefix` take `PositiveLimit`,
+and `admitted` takes `PositiveLimitWitness`. The claim is total rather than
+sampled because the shape's seats are private — no road into it can exist outside
+`src/types.rs` and its guarded child. The other direction — "every limit family
+whose seat promises an inhabitant declares its ladder" — is a POPULATION
+question, which no law inside the crate can state because Rust cannot enumerate
+the types implementing a trait. It is derived instead:
+`cargo xtask check`'s `inhabitant-promising-limits-are-witnessed` reads the
+machine's sources, takes every family that bounds a `NonEmptyBounded` or an
+`AdmittedPrefix` seat while declaring no `ConstLimit`, and prints how many of
+them are on the ladder over how many there are. A family that gains such a seat
+without declaring `EvidenceSelectedLimit` is caught by that derivation rather
+than by anybody remembering a list.
+
+That derivation keys a family by its TERMINAL name, and it has to: a seat spells
+its bound `NonEmptyBounded<Issue, IssueLimit>`, with no home in the spelling and
+no resolver in the reader to supply one. Two homes declaring one ordinary name
+would therefore collapse into one record, folding one home's ladder onto the
+other home's seat — the alias collision that already cost this repository a
+module, reproduced inside the law that replaced part of it. So a terminal name
+declared at more than one site now REFUSES and leaves the population, rather
+than being merged or quietly qualified: the seat side carries no owner to
+qualify against, and refusing loud is the honest move until a generated
+declaration contract supplies an owner-qualified identity both sides carry. A
+site is the file plus its inline module chain, so two `mod` blocks in one file
+collide exactly as two files do. Measured on this tree, no collision exists
+today, and that measurement is a test rather than a sentence.
+
+A drift detector stands over the other side
+of the same fact — `rustc` answers an unsatisfied bound by listing the types
+that satisfy it, so the recorded diagnostic in
+`testpak/tests/compile-fail/a-capacity-minted-for-an-undeclared-family.stderr`
+carries the ladder's roster derived from the impls, and a family joining or
+leaving it fails that fixture. What the derivation does not reach is stated
+where it is read: the services declare their families through a transcriber no
+syntax reader expands, so the population is the machine's own.
+
 Each construction road states its own claim class, and the classes do not
 substitute for one another:
 
@@ -153,7 +241,7 @@ substitute for one another:
 | `NonEmptyBounded::admitted_const` | admitted family magnitude, and it must be inhabited | `PositiveLimit<L, P>` |
 | `AdmittedPrefix::examined_completely` | admitted family magnitude, reported rather than refused | `PositiveLimit<L, P>` |
 | `AdmittedPrefix::stopped_early` | admitted family magnitude, and it must be inhabited | `PositiveLimit<L, P>` |
-| `NonEmptyBounded::admitted` | schema-minted runtime magnitude | `LimitWitness<L>` |
+| `NonEmptyBounded::admitted` | schema-minted runtime magnitude, and it must be inhabited | `PositiveLimitWitness<L>` |
 
 `examined_completely` is the one road that neither refuses nor claims
 completeness. Refusing is right for material that is meaningless in part — a
@@ -279,6 +367,26 @@ obligations:
     challenge_kind: compile-refusal
     green: laws.rs root::positivity_is_the_stronger_witness
     red: testpak/tests/compile-fail/a-zero-maximum-family-cannot-mint-a-positive-limit.rs
+  - id: root.a-runtime-capacity-is-witnessed-positive
+    challenge_kind: compile-law
+    green: laws.rs root::a_runtime_capacity_is_witnessed_positive
+    red: owed-to-testpak — a zero capacity refuses rather than failing to
+      compile, so the reversal is a behavioral hostile and not a fixture; it is
+      executed on the refusing arm of the green law meanwhile, and driving it
+      from OUTSIDE the crate stays owed while `LimitWitness` has only its
+      `cfg(test)` mint
+  - id: root.a-capacity-witness-does-not-cross-families
+    challenge_kind: compile-refusal
+    green: laws.rs root::a_capacity_witness_does_not_cross_families
+    red: testpak/tests/compile-fail/a-capacity-witness-from-another-family.rs
+  - id: root.the-runtime-ladder-is-declared-by-its-family
+    challenge_kind: compile-refusal
+    green: laws.rs root::the_runtime_ladder_is_declared_by_its_family
+    red: testpak/tests/compile-fail/a-capacity-minted-for-an-undeclared-family.rs
+  - id: root.a-family-declares-one-capacity-authority
+    challenge_kind: compile-refusal
+    green: laws.rs root::a_family_declares_one_capacity_authority
+    red: testpak/tests/compile-fail/a-family-declaring-both-capacity-authorities.rs
   - id: root.the-positive-witness-carries-the-admitted-one
     challenge_kind: compile-refusal
     green: laws.rs root::the_positive_witness_carries_the_admitted_one

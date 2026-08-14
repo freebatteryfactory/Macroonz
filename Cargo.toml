@@ -12,17 +12,14 @@ workspace = true
 
 [workspace]
 resolver = "3"
-# One line, and it is not a formatting preference. `no-core-tooling-edge` reads
-# manifests a line at a time, so a value that does not close on the line that
-# opens it hands the reader somebody else's data to read as structure — and a
-# multi-line string, a multi-line list, or a multi-line inline table in a
-# dependency table was measured hiding a prohibited edge from it on cargo
-# 1.97.1. The law refuses that shape on sight rather than deciding case by case
-# whether a particular body is dangerous, which is what deciding would cost:
-# entering the value it has just said it cannot enter. This list is the one
-# lawful casualty of that bluntness in the whole repository, and it pays it
-# here rather than buying an exemption nobody could bound.
-members = ["macros/macroc", "macros/proc", "testpak", "xtask", "xtask/fixtures/macro-consumer", "xtask/fixtures/renamed-consumer"]
+members = [
+    "macros/macroc",
+    "macros/proc",
+    "testpak",
+    "xtask",
+    "xtask/fixtures/macro-consumer",
+    "xtask/fixtures/renamed-consumer",
+]
 
 [workspace.package]
 version = "0.0.0"
@@ -55,7 +52,8 @@ repository = "https://github.com/freebatteryfactory/ThreadPak"
 # through under a key matching no package. That rule is deleted rather than
 # reworded: it asked every future author to protect a law from its own reader,
 # and a "never" in a comment is advice, not an invariant. The invariant is in
-# `xtask/src/repository/manifest.rs`, with one planted reversal per spelling.
+# `xtask/src/repository/cargo.rs`, where the decoder that owns TOML resolves the
+# document and nine spellings of one declaration are proven to resolve alike.
 #
 # What this table declares is what the workspace ASKS FOR. What the resolved
 # graph actually enables is a different question, because Cargo unifies features
@@ -77,14 +75,14 @@ repository = "https://github.com/freebatteryfactory/ThreadPak"
 # settlement is stated: a graph rule reads the graph, so a third fact — what any
 # one compiled unit is handed — is settled by neither file.
 syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }
-# The token model `syn` parses FROM, named here because one law reads a
-# `macro_rules!` transcriber — tokens that are not Rust until their
-# metavariables have values. Giving them values means building a token stream,
-# and a token stream has a type. Nothing new arrives in the graph: `syn` already
-# holds this exact version, and `multiple-versions = "deny"` in `deny.toml` is
-# what keeps that true. Exact for the same reason every pin here is exact.
-# Default features off: the `proc-macro` bridge is the compiler's own token
-# types, and no reader here runs inside a macro.
+# The token model `syn` parses FROM, named here because one reading needs Rust's
+# LEXICAL grammar rather than its item grammar: a crate-root reference is a path
+# in a token stream, so `crate` has to be an identifier rather than a substring
+# before a law can say whether a source reaches the root. Nothing new arrives in
+# the graph — `syn` already holds this exact version, and `multiple-versions =
+# "deny"` in `deny.toml` is what keeps that true. Exact for the same reason every
+# pin here is exact. Default features off: the `proc-macro` bridge is the
+# compiler's own token types, and no reader here runs inside a macro.
 proc-macro2 = { version = "=1.0.107", default-features = false }
 # The digest. Pinned exact because a projection identity is a value the plane
 # hands out, and a minor version that changed one byte of output would silently
@@ -100,6 +98,31 @@ blake3 = { version = "=1.8.6", default-features = false }
 # the tree, so a harness free to move under a caret requirement could rewrite
 # what that comparison means without any change landing in the repository.
 trybuild = "=1.0.120"
+# The TOML decoder, so the repository model reads Cargo's own syntax through the
+# decoder that owns it rather than through a line reader that re-derives it.
+# Eleven spellings escaped the hand reader this replaces — dotted keys, quoted
+# keys, bracketed-string headers, escaped keys, literal-string values,
+# multi-line strings, four-quote terminators, unicode escapes, inline tables, a
+# quoted key carrying `=`, and a comment after a table header — and each repair
+# revealed the next, because a spelling recognized one at a time is a set with no
+# last member. Default features off, cut to the three the reading uses: `parse`,
+# without which there is no text-to-document road; `serde`, which is how a
+# document is obtained at all; and `std`. `display` is not asked for — this
+# reader never writes TOML.
+toml = { version = "=1.1.4", default-features = false, features = ["std", "serde", "parse"] }
+# The Markdown decoder, so a fenced data block is selected by what the document
+# STRUCTURALLY declares rather than by which fence happens to be written first.
+# Default features off: `html` and `getopts` build a renderer and a command line,
+# and this reader neither renders nor takes arguments.
+pulldown-cmark = { version = "=0.13.4", default-features = false }
+# The JSON decoder and the derive it deserializes through, for one input:
+# `cargo metadata --format-version 1`. Everything Cargo RESOLVES — package
+# identities, edge kinds, renames, target-conditioned edges — is answered by
+# Cargo rather than re-derived from manifest text. The format version is pinned
+# in the invocation because it is the machine-readable contract; the crates are
+# pinned exact for the reason every pin here is exact.
+serde = { version = "=1.0.229", default-features = false, features = ["std", "derive"] }
+serde_json = { version = "=1.0.151", default-features = false, features = ["std"] }
 
 [profile.release]
 # Release arithmetic traps instead of wrapping; defense in depth behind the

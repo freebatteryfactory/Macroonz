@@ -33,10 +33,13 @@ on:
   # believing a setting.
   #
   # THE OPENING CONDITION, EXACTLY: someone attempts a direct push to `main` and
-  # records that it was refused. On that day this trigger comes out, and the
-  # matching one in `.github/workflows/dependencies.yml` comes out with it — they
-  # cover the same unexecuted refusal, and retiring one alone would leave the
-  # trunk covered on one side and bare on the other.
+  # records that it was refused. On that day this trigger comes out, and every
+  # matching trigger in the other workflows that carry one comes out with it —
+  # they cover the same unexecuted refusal, and retiring one alone would leave
+  # the trunk covered on one side and bare on the other. HOW MANY of them there
+  # are is deliberately not written here: a workflow that gains this cover would
+  # make a number in this comment wrong and nothing would say so. They are found
+  # by looking for the trigger, in `.github/workflows/`, where they live.
   push:
     branches: [main]
   # Weekly, on the trunk as it stands.

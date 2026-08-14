@@ -6,12 +6,14 @@
 //! that instantiation. Post-monomorphization refusal IS compile-time refusal —
 //! no artifact carrying this road under a zero-maximum family is ever produced.
 
-use threadpak::types::{ConstLimit, Limit, NonEmptyBounded};
+use threadpak::types::{ConstLimit, DeclaredMagnitude, Limit, NonEmptyBounded};
 
 /// A limit family admitting no item at all.
 struct NoItemAtAll;
 
-impl Limit for NoItemAtAll {}
+impl Limit for NoItemAtAll {
+    type Authority = DeclaredMagnitude;
+}
 
 impl ConstLimit for NoItemAtAll {
     const MAX: usize = 0;
