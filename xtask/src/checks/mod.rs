@@ -16,6 +16,8 @@ pub(crate) mod toolchain;
 
 pub(crate) mod dependency;
 
+pub(crate) mod supply_chain;
+
 pub(crate) mod placement;
 
 pub(crate) mod obligations;
