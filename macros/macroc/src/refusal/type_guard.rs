@@ -21,6 +21,27 @@
 //! `#[cfg(test)] mod` under the guard would reopen exactly what the guard closes
 //! — which is why the reversals for this seat are compile-fail fixtures owned by
 //! testpak, outside the crate, where the exclusion is total.
+//!
+//! # A private seat with a public mint is a fence with a loading dock
+//!
+//! The seat closes the LITERAL. It does not, by itself, close the MINT: a road
+//! that takes an issue and hands back a refusal lets any holder of an issue
+//! produce a body no pass established, and lets a holder clone the issues out of
+//! [`ProjectionPlanning::body`] and reseat them through that road. The record it
+//! produces is indistinguishable from one a seam returned, which is the whole
+//! defect the private seat was supposed to end. So the roads below are
+//! `pub(crate)` and the reader stays `pub`: writable and readable are different
+//! permissions and this home still grants one of them, now at both halves.
+//!
+//! `pub(crate)` is this family's strongest reachable scope and not a compromise
+//! taken for convenience. The other five services families are each raised by a
+//! pass living in the same `type_guard.rs`, so each of their mints is
+//! module-private. This one is the plane's SHARED planning family — every seam
+//! that refuses while planning returns it — so its establishing passes live in
+//! `planning`, `origin_graph`, `pattern_stamp` and this home at once, and the
+//! narrowest scope that reaches all of them is the crate. What remains open is
+//! stated rather than implied: inside the services, any module can still mint,
+//! and the module order `lib.rs` declares is what enumerates the seams that do.
 
 use super::{BoundAxis, ProjectionPlanning, ProjectionPlanningIssue};
 use crate::plane::{AuthoringLimitProfile, PlanningIssueLimit};
@@ -31,7 +52,10 @@ impl ProjectionPlanning {
     /// The one-issue body, for a seam whose checks can establish exactly one
     /// issue. Total: the declared bound admits an item by compile-time proof, so
     /// refusing never needs an error road of its own.
-    pub fn established(issue: ProjectionPlanningIssue) -> Self {
+    ///
+    /// Crate-internal: a body exists only where a planning seam established the
+    /// issue it carries.
+    pub(crate) fn established(issue: ProjectionPlanningIssue) -> Self {
         Self {
             body: AdmittedPrefix::carrying_one(issue),
         }
@@ -45,7 +69,9 @@ impl ProjectionPlanning {
     /// where they do not the body carries what the bound holds and names how
     /// many established issues stand outside it. It never silently drops the
     /// remainder and never claims a completeness it does not have.
-    pub fn co_established(
+    ///
+    /// Crate-internal, on the same terms as the one-issue road.
+    pub(crate) fn co_established(
         first: ProjectionPlanningIssue,
         rest: Vec<ProjectionPlanningIssue>,
     ) -> Self {
@@ -71,7 +97,10 @@ impl ProjectionPlanning {
 
     /// The body a bounded seam refuses with: the axis it overran, the magnitude
     /// it declared, and the count it observed.
-    pub fn bound_exceeded(axis: BoundAxis, bound: usize, observed: usize) -> Self {
+    ///
+    /// Crate-internal: it is the one-issue road under a spelling, and a spelling
+    /// of a closed road is not an opening of it.
+    pub(crate) fn bound_exceeded(axis: BoundAxis, bound: usize, observed: usize) -> Self {
         Self::established(ProjectionPlanningIssue::BoundExceeded {
             axis,
             bound: u64::try_from(bound).unwrap_or(u64::MAX),

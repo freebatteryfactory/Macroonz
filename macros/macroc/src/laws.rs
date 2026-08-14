@@ -2707,6 +2707,7 @@ mod pattern_stamp {
     use crate::planning::{
         CauseAnchoring, GraphAnchoring, InvalidationTrigger, ProjectionContext, TargetBinding,
     };
+    use crate::refusal::ProjectionPlanningIssue;
 
     /// One owner fact, distinguished by its fact identity.
     fn owner_fact(fact: u8) -> OwnerFactRef {
@@ -2832,10 +2833,11 @@ mod pattern_stamp {
     #[test]
     fn every_context_identity_is_watched() {
         let free = anchors();
+        let cause = free.context.cause_trigger();
         assert!(free.context.watch_set().is_ok_and(|set| {
             let watched: Vec<InvalidationTrigger> = set.iter().copied().collect();
             watched.len() == 4
-                && watched.contains(&free.context.cause_trigger())
+                && cause.as_ref().is_ok_and(|cause| watched.contains(cause))
                 && watched.contains(&free.context.graph_trigger())
                 && watched.contains(&InvalidationTrigger::ProjectionProfileChanged {
                     watched: free.context.profile,
@@ -2880,19 +2882,80 @@ mod pattern_stamp {
 
         // The two seats really do resolve to one trigger — the premise the
         // deduplication is about, asserted rather than assumed.
-        assert_eq!(
-            shared.context.cause_trigger(),
-            shared.context.graph_trigger()
+        let cause = shared.context.cause_trigger();
+        assert!(
+            cause
+                .as_ref()
+                .is_ok_and(|cause| *cause == shared.context.graph_trigger())
         );
 
         assert!(shared.context.watch_set().is_ok_and(|set| {
             let watched: Vec<InvalidationTrigger> = set.iter().copied().collect();
             watched.len() == 3
-                && watched
-                    .iter()
-                    .filter(|trigger| **trigger == shared.context.cause_trigger())
-                    .count()
-                    == 1
+                && cause.is_ok_and(|cause| {
+                    watched.iter().filter(|trigger| **trigger == cause).count() == 1
+                })
+        }));
+    }
+
+    /// law: pattern-stamp.a-cause-set-this-profile-cannot-watch-refuses — a
+    /// context whose cause set names more source declarations than the trigger
+    /// roster can watch produces no watch set at all, and therefore no plan.
+    ///
+    /// # Why a refusal and not a narrower set
+    ///
+    /// The roster's `SourceDeclarationChanged` seat carries one identity and a
+    /// cause set names up to its declared magnitude. Watching the FIRST
+    /// declaration produced a value byte-for-byte the shape of a complete watch
+    /// set, so a plan committed to three declarations while watching one read as
+    /// CURRENT after the other two changed — and nothing downstream could tell
+    /// the two apart, because there is nothing wrong with the value. That is
+    /// false freshness rather than a smaller claim, and the plane fails closed
+    /// until a wider roster exists.
+    ///
+    /// The control asserts both directions and the payload. The one-declaration
+    /// context still derives its four triggers, so this is not a road that
+    /// refuses everything; the two-declaration context refuses with the typed
+    /// issue naming both counts; and both public roads refuse, because a
+    /// `cause_trigger` that still answered would be the partial claim surviving
+    /// beside the road that refuses it.
+    ///
+    /// Reversal: restoring `declared.first()` as the unconditional answer makes
+    /// the two-declaration half of this law fail — the derivation hands back a
+    /// set, `is_err` is false, and the issue nobody establishes cannot be
+    /// matched.
+    #[test]
+    fn a_cause_set_this_profile_cannot_watch_refuses() {
+        // One declaration is representable and stays so: the refusal is about
+        // the profile's reach, not about cause sets.
+        let single = anchors();
+        assert!(single.context.watch_set().is_ok());
+        assert!(single.context.cause_trigger().is_ok());
+
+        let declared = ProjectionContext::declared_sources(
+            OwnerIdentityRef::decoded([103; 32]),
+            vec![
+                OwnerIdentityRef::decoded([118; 32]),
+                OwnerIdentityRef::decoded([119; 32]),
+            ],
+        );
+        assert!(declared.is_ok_and(|sources| {
+            let mut several = anchors();
+            several.context.sources = CauseAnchoring::Declarations(sources);
+            let unwatchable = ProjectionPlanningIssue::CauseSetUnwatchable {
+                named: 3,
+                watchable: 1,
+            };
+            several.context.cause_trigger().is_err_and(|refusal| {
+                refusal.body().carried().len() == 1
+                    && *refusal.body().carried().first() == unwatchable
+            }) && several
+                .context
+                .watch_set()
+                .is_err_and(|refusal| *refusal.body().carried().first() == unwatchable)
+                // And no plan stands over it: the stamp's plan site propagates
+                // the derivation's refusal rather than planning around it.
+                && plan_scope_guard_stamp(&several).is_err()
         }));
     }
 
