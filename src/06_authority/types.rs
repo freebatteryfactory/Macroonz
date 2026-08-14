@@ -35,7 +35,9 @@
 use crate::identity::{ApplicationScope, CreationLaw, IdentityClass, IdentityRole, Occurrence};
 use crate::logic::Decision;
 use crate::refusal::{AdmittedPrefix, CompletionPosture, FamilyShape, RefusalFamily};
-use crate::types::{Bounded, ConstLimit, EvidenceRef, Limit, NonEmptyBounded};
+use crate::types::{
+    Bounded, ConstLimit, DeclaredMagnitude, EvidenceRef, Limit, NonEmptyBounded, UnstatedMagnitude,
+};
 use crate::value::BoundedText;
 use core::marker::PhantomData;
 
@@ -81,12 +83,16 @@ pub enum TrustPosture {
 /// Limit family for threat-profile rows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ThreatProfileLimit;
-impl Limit for ThreatProfileLimit {}
+impl Limit for ThreatProfileLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// Limit family for threat-subject designations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ThreatSubjectLimit;
-impl Limit for ThreatSubjectLimit {}
+impl Limit for ThreatSubjectLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// One row of a threat profile: a named subject bound to its posture (AUTHORED
 /// v1 shape; the profile axes roster is carried in this home's README).
@@ -118,7 +124,9 @@ pub trait AuthMethod {}
 /// Limit family for credential bytes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CredentialLimit;
-impl Limit for CredentialLimit {}
+impl Limit for CredentialLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// An opaque credential supporting one authentication method. Not identity, not
 /// possession, not a grant.
@@ -178,12 +186,16 @@ impl<M: AuthMethod> ProofOfPossession<M> {
 /// Limit family for claim member text and bytes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ClaimMemberLimit;
-impl Limit for ClaimMemberLimit {}
+impl Limit for ClaimMemberLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// Limit family for delegation chains (bounded depth by law).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DelegationLimit;
-impl Limit for DelegationLimit {}
+impl Limit for DelegationLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// One link of a delegation chain: names its parent and carries its generation.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -281,7 +293,9 @@ impl CapabilityClaim {
 /// roster's own cardinality — one issue per issue kind, ten at most.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ClaimIssueLimit;
-impl Limit for ClaimIssueLimit {}
+impl Limit for ClaimIssueLimit {
+    type Authority = DeclaredMagnitude;
+}
 impl ConstLimit for ClaimIssueLimit {
     const MAX: usize = 10;
 }
@@ -433,7 +447,9 @@ pub enum AttenuationAxis {
 /// Limit family for attenuation axis sets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AttenuationLimit;
-impl Limit for AttenuationLimit {}
+impl Limit for AttenuationLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// One attenuation operand: which axes it narrows (authored v1 shape; each
 /// axis's narrowing content rides the normal form).
@@ -479,7 +495,9 @@ impl<Source> ConstraintSourcePair<Source> {
 /// Limit family for key-scope components.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct KeyScopeLimit;
-impl Limit for KeyScopeLimit {}
+impl Limit for KeyScopeLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// One application-declared scope component (tenant, subject, purpose, case,
 /// record family, application-defined domain).

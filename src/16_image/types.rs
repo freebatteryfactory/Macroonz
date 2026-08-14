@@ -33,7 +33,7 @@
 use crate::bytes::ContentRegionId;
 use crate::execution::KernelRequirementSet;
 use crate::identity::{ByteIdentity, CreationLaw, IdentityClass, IdentityRole, Occurrence};
-use crate::types::{Bounded, EvidenceRef, Limit};
+use crate::types::{Bounded, EvidenceRef, Limit, UnstatedMagnitude};
 
 // ---------------------------------------------------------------------------
 // The image identities.
@@ -242,7 +242,9 @@ pub enum PackagingProfile {
 /// Limit family for an image's components.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ComponentLimit;
-impl Limit for ComponentLimit {}
+impl Limit for ComponentLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// One directly executable program's package: a root binding a set of typed
 /// components plus its import/immutable-resource/required-kernel closure.

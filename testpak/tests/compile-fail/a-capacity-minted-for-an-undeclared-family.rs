@@ -23,13 +23,16 @@
 //! from the sources is still owed.
 
 use threadpak::types::{
-    CapacityAdmission, EvidenceSelectedLimit, Limit, LimitWitness, PositiveLimitWitness,
+    CapacityAdmission, EvidenceSelectedLimit, EvidenceSelectedMagnitude, Limit, LimitWitness,
+    PositiveLimitWitness, UnstatedMagnitude,
 };
 
 /// A family whose owner declared the magnitude evidence-selected.
 struct DeclaredFamily;
 
-impl Limit for DeclaredFamily {}
+impl Limit for DeclaredFamily {
+    type Authority = EvidenceSelectedMagnitude;
+}
 
 impl EvidenceSelectedLimit for DeclaredFamily {}
 
@@ -37,7 +40,9 @@ impl EvidenceSelectedLimit for DeclaredFamily {}
 /// like any other; what it has not done is admit the runtime ladder.
 struct UndeclaredFamily;
 
-impl Limit for UndeclaredFamily {}
+impl Limit for UndeclaredFamily {
+    type Authority = UnstatedMagnitude;
+}
 
 /// The lawful half, and it must stay lawful: the declared family reaches the
 /// mint.

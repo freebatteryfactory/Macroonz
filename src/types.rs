@@ -58,16 +58,117 @@ use core::marker::PhantomData;
 // supplied either at compile time (`ConstLimit`) or by a schema-minted witness.
 // ---------------------------------------------------------------------------
 
+/// Which authority supplies one limit family's capacity.
+///
+/// A capacity arrives by exactly one road, and which road is a fact about the
+/// FAMILY rather than about any call site. [`DeclaredMagnitude`] is a number
+/// written in the source; [`EvidenceSelectedMagnitude`] is a number the owner's
+/// evidence selects while the machine runs; [`UnstatedMagnitude`] is a family
+/// that has named neither.
+///
+/// Every marker implementing this is uninhabited. Nothing constructs one,
+/// nothing carries one, and none of them is a value: the whole of what a marker
+/// does is be the type one family's [`Limit::Authority`] resolves to, so that
+/// two ladders demanding different types cannot both be satisfied by one
+/// family.
+///
+/// # It is not sealed, and what that does and does not admit
+///
+/// [`Limit`] is an extension point by decision — any home, and any frontend
+/// outside this crate, declares a family — so the authority set is open in the
+/// same way. What a marker declared outside can do is exactly nothing:
+/// [`ConstLimit`] and [`EvidenceSelectedLimit`] name their authority type
+/// EXACTLY, so a family whose authority is a fourth marker satisfies neither
+/// ladder and reaches no mint. An open set therefore admits no capacity road
+/// this crate did not declare; it admits only a family saying, in a vocabulary
+/// of its own, that it takes none of the roads seated here.
+pub trait CapacityAuthority {}
+
+/// The authority of a magnitude written in the SOURCE.
+///
+/// [`ConstLimit`] is the declaration that supplies the number, and the two
+/// compile-time roads — [`AdmittedLimit`] and [`PositiveLimit`] — are what stand
+/// it under a plane's ceiling and prove it admits an item, both before the
+/// program runs.
+pub enum DeclaredMagnitude {}
+
+impl CapacityAuthority for DeclaredMagnitude {}
+
+/// The authority of a magnitude the owner's EVIDENCE selects while the machine
+/// runs.
+///
+/// [`EvidenceSelectedLimit`] is the declaration that admits this road, and the
+/// two runtime roads — [`LimitWitness`] and [`PositiveLimitWitness`] — are what
+/// carry the selection and the promise that it admits an item, because no
+/// `const` block can see a number that does not exist yet.
+pub enum EvidenceSelectedMagnitude {}
+
+impl CapacityAuthority for EvidenceSelectedMagnitude {}
+
+/// The authority of a family that has named NEITHER road.
+///
+/// It is a real state and the largest one in this crate today: a family
+/// bounding a [`Bounded`] seat needs no magnitude to exist, because
+/// [`Bounded::empty`] reads none and an empty collection under such a family is
+/// honest rather than degenerate.
+///
+/// # What declaring it claims, exactly
+///
+/// That the family has supplied no capacity authority the type system carries.
+/// It does NOT claim the owner has no view about where the magnitude should
+/// come from: several families in this crate say "schema-witnessed" in the prose
+/// beside their declaration and say it nowhere a road can read, and this marker
+/// is what makes that gap a fact rather than an absence — the family is on no
+/// ladder, no mint takes it, and moving it onto one is a change to this line at
+/// the declaration rather than a bound somebody remembers to add.
+pub enum UnstatedMagnitude {}
+
+impl CapacityAuthority for UnstatedMagnitude {}
+
 /// A limit family marker. The type names *which* limit governs a bounded value, so
 /// two different limits never unify: `Bounded<T, DecodeMax>` and
 /// `Bounded<T, ArenaMax>` are distinct types regardless of their magnitudes.
 ///
 /// Owner homes declare their limit families; the schema home is the only authority
 /// that mints runtime magnitudes (as [`LimitWitness`] values).
-pub trait Limit {}
+pub trait Limit {
+    /// Which authority supplies this family's capacity.
+    ///
+    /// # One family, one capacity authority, by type identity
+    ///
+    /// A family declares this once, at its own declaration, and the two ladder
+    /// traits name the authority they require EXACTLY:
+    /// [`ConstLimit`] requires [`DeclaredMagnitude`] and
+    /// [`EvidenceSelectedLimit`] requires [`EvidenceSelectedMagnitude`]. An
+    /// associated type resolves to one type, so a family declaring both ladders
+    /// is asking one projection to be two types at once and does not compile.
+    ///
+    /// That is the whole of the mechanism, and it is why nothing below has to
+    /// remember it: the exclusion is not a bound a road carries, a law that
+    /// asserts it, or a sentence in a doc comment — it is the arity of an
+    /// associated type. Two authorities for one capacity is the shape where two
+    /// independently supplied halves of one fact drift apart, and here the
+    /// second half cannot be supplied.
+    ///
+    /// # What it does not decide
+    ///
+    /// It does not supply a magnitude, and it does not check one. Declaring
+    /// [`DeclaredMagnitude`] without implementing [`ConstLimit`] leaves a family
+    /// with no `MAX` and therefore no road to [`AdmittedLimit`]; declaring
+    /// [`EvidenceSelectedMagnitude`] without implementing
+    /// [`EvidenceSelectedLimit`] leaves it with no road to
+    /// [`PositiveLimitWitness`]. Both are inert rather than wrong: the family
+    /// names a road and never walks it, and the ladder traits stay the one place
+    /// a capacity is actually reachable from.
+    type Authority: CapacityAuthority;
+}
 
 /// A limit family whose magnitude is known at compile time.
-pub trait ConstLimit: Limit {
+///
+/// The supertrait bound names the authority exactly, so implementing this for a
+/// family whose [`Limit::Authority`] is anything else is a type mismatch at the
+/// declaration — see [`Limit::Authority`] for what that forecloses.
+pub trait ConstLimit: Limit<Authority = DeclaredMagnitude> {
     /// The maximum item count this family admits.
     const MAX: usize;
 }
@@ -100,11 +201,19 @@ pub trait ConstLimit: Limit {
 /// owner admits the second ladder for it. It claims nothing about what that
 /// magnitude will be and nothing about whether the number the evidence selects
 /// is the right one for the family's domain — the owner profile and the evidence
-/// select that, no road can check it, and no witness below pretends to. It also
-/// does not claim the family declares no compile-time magnitude: a family
-/// implementing both this and [`ConstLimit`] would be stating two authorities
-/// for one capacity, and that is a declaration defect no bound here can see.
-pub trait EvidenceSelectedLimit: Limit {}
+/// select that, no road can check it, and no witness below pretends to.
+///
+/// # A family cannot declare both ladders
+///
+/// It once said here that a family implementing both this and [`ConstLimit`]
+/// would be stating two authorities for one capacity, and that no bound could
+/// see it. The supertrait bounds are what see it now: this trait requires
+/// [`EvidenceSelectedMagnitude`] and [`ConstLimit`] requires
+/// [`DeclaredMagnitude`], one associated type resolves to one type, and the
+/// second implementation is a type mismatch at the declaration rather than a
+/// defect a reader has to notice. [`Limit::Authority`] carries the whole
+/// statement; nothing here restates it.
+pub trait EvidenceSelectedLimit: Limit<Authority = EvidenceSelectedMagnitude> {}
 
 /// The ceiling one PLANE admits its declared magnitudes under.
 ///
@@ -347,6 +456,22 @@ impl<L: Limit, P: LimitAdmissionProfile> PositiveLimit<L, P> {
 /// selection would refuse that seat with it. The positivity claim is seated one
 /// witness up, in [`PositiveLimitWitness`], where exactly the runtime roads
 /// promising an inhabitant consume it.
+///
+/// # No production road mints one, and that is stated rather than implied
+///
+/// `LimitWitness::declared` is the only mint, it is `#[cfg(test)]`, and it is
+/// crate-internal. So production schema validation can neither mint a runtime
+/// magnitude for any family today nor consume one, and nothing downstream can
+/// either. What stands is the ALGEBRA — which witnesses exist, what each one
+/// establishes, which road takes which, and the declaration-side guard that
+/// keeps a family off a ladder it never admitted. A production road is a
+/// separate opening whose exact condition is the schema home carrying a
+/// validation path that selects a magnitude; until then every claim about this
+/// witness is a claim about the shape, and none is a claim about a running
+/// machine.
+///
+/// The mint is named in backticks above rather than linked, because a
+/// documentation build does not contain it.
 #[must_use = "a limit witness is the magnitude schema validation established; dropping it \
               discards the only admitted bound for its family"]
 pub struct LimitWitness<L: Limit> {
@@ -434,6 +559,25 @@ pub enum CapacityAdmission {
 /// between two numbers somebody has to keep in step. Containment is not a
 /// conversion: the contained witness is private, no accessor hands it out, and
 /// there is no road from here back to a bare [`LimitWitness`].
+///
+/// # Nothing consumes one yet, and that is two absences rather than one
+///
+/// [`NonEmptyBounded::admitted`] is the one road that takes this witness, and
+/// both ends of it are still shut.
+///
+/// Upstream, no value of it can be built: [`LimitWitness`] has only its
+/// `#[cfg(test)]` mint, so there is no production road to the selection this
+/// witness is the stronger form of.
+///
+/// Downstream, the collection-shaped refusal bodies cannot reach it at all. The
+/// mints on [`crate::refusal::AdmittedPrefix`] are bounded on [`ConstLimit`],
+/// so a family on the runtime ladder — whose authority is
+/// [`EvidenceSelectedMagnitude`] and therefore never [`DeclaredMagnitude`] —
+/// has no road into that package whatever witness it holds. Every
+/// collection-shaped body in the machine seats an `AdmittedPrefix`, so a
+/// runtime capacity is presently a witness with no consumer among them. The
+/// exact opening condition is a prefix road that takes this witness; naming it
+/// is not building it, and this paragraph claims only that the gap is known.
 #[must_use = "a positive limit witness is the evidence a family's evidence-selected magnitude \
               admits an item; dropping it discards the only proof a runtime road promising an \
               inhabitant may act on"]

@@ -37,7 +37,9 @@ use crate::identity::{Commitment, CreationLaw, IdentityClass, IdentityRole, Occu
 use crate::port::{PortFamilyVersion, PortPostcondition};
 use crate::refusal::{AdmittedPrefix, CompletionPosture, FamilyShape, RefusalFamily};
 use crate::semantic::BoundDimensionRow;
-use crate::types::{Bounded, EvidenceRef, Limit, NonEmptyBounded};
+use crate::types::{
+    Bounded, EvidenceRef, EvidenceSelectedMagnitude, Limit, NonEmptyBounded, UnstatedMagnitude,
+};
 use core::marker::PhantomData;
 
 // ---------------------------------------------------------------------------
@@ -368,7 +370,9 @@ pub enum AttemptAdmissionIssue {
 /// [`crate::types::EvidenceSelectedLimit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AdmissionIssueLimit;
-impl Limit for AdmissionIssueLimit {}
+impl Limit for AdmissionIssueLimit {
+    type Authority = EvidenceSelectedMagnitude;
+}
 impl crate::types::EvidenceSelectedLimit for AdmissionIssueLimit {}
 
 /// The admission refusal family. The INVERSION RULE fixes its shape: a
@@ -797,7 +801,9 @@ pub struct PortRequestPayloadDomain;
 /// Limit family for a request's bound rows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PortRequestBoundLimit;
-impl Limit for PortRequestBoundLimit {}
+impl Limit for PortRequestBoundLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// A typed claim made by ONE live Attempt. The port receives least authority
 /// and only the data that request needs — no ambient access to the runtime,

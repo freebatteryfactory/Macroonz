@@ -39,7 +39,7 @@
 use crate::bvisor::{AttemptId, ReservationObservation};
 use crate::history::CommitKnowledge;
 use crate::identity::{Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence};
-use crate::types::{Bounded, EvidenceRef, Limit};
+use crate::types::{Bounded, EvidenceRef, Limit, UnstatedMagnitude};
 
 // ---------------------------------------------------------------------------
 // The Stitch contract and driver invariance.
@@ -247,7 +247,9 @@ pub enum AttemptCause {
 /// Limit family for cause sets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CauseSetLimit;
-impl Limit for CauseSetLimit {}
+impl Limit for CauseSetLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// A SET under a declared bound: membership is what it states — the same
 /// causes in a different order are the same value. Storage order may be made
@@ -367,7 +369,9 @@ pub struct IdempotencyScopeDomain;
 /// Limit family for supported-key sets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct KeySupportLimit;
-impl Limit for KeySupportLimit {}
+impl Limit for KeySupportLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// What the effect contract supports — `None` is the explicit weaker posture
 /// recorded UP FRONT, never missing data (how a stable key is established is

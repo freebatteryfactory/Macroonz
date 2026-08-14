@@ -13,7 +13,8 @@
 //! failed too and the empty-only seat would have been refused with it.
 
 use threadpak::types::{
-    AdmittedLimit, Bounded, ConstLimit, Limit, LimitAdmissionProfile, PositiveLimit,
+    AdmittedLimit, Bounded, ConstLimit, DeclaredMagnitude, Limit, LimitAdmissionProfile,
+    PositiveLimit,
 };
 
 /// The qualification plane's own admitting ceiling, declared here because this
@@ -29,7 +30,9 @@ impl LimitAdmissionProfile for QualificationProfile {
 /// A limit family admitting no item at all.
 struct NoItemAtAll;
 
-impl Limit for NoItemAtAll {}
+impl Limit for NoItemAtAll {
+    type Authority = DeclaredMagnitude;
+}
 
 impl ConstLimit for NoItemAtAll {
     const MAX: usize = 0;

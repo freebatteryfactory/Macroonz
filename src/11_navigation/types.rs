@@ -19,7 +19,9 @@ use crate::bounds::SemanticWork;
 use crate::history::{CommitPoint, FederationCutVector, HistoryCut, SourceClosure, StoreLineageId};
 use crate::identity::{Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence};
 use crate::refusal::{FamilyShape, RefusalFamily};
-use crate::types::{Bounded, ConstLimit, EvidenceRef, Freshness, Limit};
+use crate::types::{
+    Bounded, ConstLimit, DeclaredMagnitude, EvidenceRef, Freshness, Limit, UnstatedMagnitude,
+};
 use crate::value::BoundedText;
 use core::marker::PhantomData;
 
@@ -63,7 +65,9 @@ crate::scope_guard_version! {
 /// Compile-time bound for an axis's declared capabilities.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AxisCapabilityLimit;
-impl Limit for AxisCapabilityLimit {}
+impl Limit for AxisCapabilityLimit {
+    type Authority = DeclaredMagnitude;
+}
 impl ConstLimit for AxisCapabilityLimit {
     const MAX: usize = 9;
 }
@@ -197,7 +201,9 @@ pub struct JournalView<'a, Role: AddressRole> {
 /// Limit family for navigation text members.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct NavigationTextLimit;
-impl Limit for NavigationTextLimit {}
+impl Limit for NavigationTextLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// Whether a transformation covers its whole source domain.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -403,7 +409,9 @@ pub struct CoordinationProfileDomain;
 /// Limit family for lawful-alternative sets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AlternativeLimit;
-impl Limit for AlternativeLimit {}
+impl Limit for AlternativeLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// Claim markers for the fix's evidence members.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

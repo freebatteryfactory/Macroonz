@@ -22,8 +22,9 @@ fn pairwise_distinct<T: PartialEq>(items: &[T]) -> bool {
 
 mod root {
     use crate::types::{
-        Bounded, Completeness, ConstLimit, Dispatch, EvidenceCut, Freshness, Limit, LimitWitness,
-        Never, TransitionSystem,
+        Bounded, Completeness, ConstLimit, DeclaredMagnitude, Dispatch, EvidenceCut,
+        EvidenceSelectedMagnitude, Freshness, Limit, LimitWitness, Never, TransitionSystem,
+        UnstatedMagnitude,
     };
 
     /// law: root.cut-families-are-caller-supplied — any owner can bind `Freshness`
@@ -70,12 +71,16 @@ mod root {
     #[test]
     fn limit_families_do_not_unify() {
         struct DecodeDemo;
-        impl Limit for DecodeDemo {}
+        impl Limit for DecodeDemo {
+            type Authority = DeclaredMagnitude;
+        }
         impl ConstLimit for DecodeDemo {
             const MAX: usize = 8;
         }
         struct ArenaDemo;
-        impl Limit for ArenaDemo {}
+        impl Limit for ArenaDemo {
+            type Authority = UnstatedMagnitude;
+        }
 
         let decode_bounded: Option<fn(Bounded<u8, DecodeDemo>)> = Some(drop);
         let arena_bounded: Option<fn(Bounded<u8, ArenaDemo>)> = Some(drop);
@@ -153,7 +158,9 @@ mod root {
             NonEmptyBoundedConstruction, PositiveLimit, RootLawsProfile,
         };
         struct SmallDemo;
-        impl Limit for SmallDemo {}
+        impl Limit for SmallDemo {
+            type Authority = DeclaredMagnitude;
+        }
         impl ConstLimit for SmallDemo {
             const MAX: usize = 2;
         }
@@ -215,12 +222,16 @@ mod root {
     fn admission_precedes_a_trusted_magnitude() {
         use crate::types::{AdmittedLimit, Bounded, LimitAdmissionProfile, RootLawsProfile};
         struct AdmissibleDemo;
-        impl Limit for AdmissibleDemo {}
+        impl Limit for AdmissibleDemo {
+            type Authority = DeclaredMagnitude;
+        }
         impl ConstLimit for AdmissibleDemo {
             const MAX: usize = 4;
         }
         struct OtherDemo;
-        impl Limit for OtherDemo {}
+        impl Limit for OtherDemo {
+            type Authority = DeclaredMagnitude;
+        }
         impl ConstLimit for OtherDemo {
             const MAX: usize = 4;
         }
@@ -270,12 +281,16 @@ mod root {
             AdmittedLimit, Bounded, NonEmptyBounded, PositiveLimit, RootLawsProfile,
         };
         struct EmptyOnlyDemo;
-        impl Limit for EmptyOnlyDemo {}
+        impl Limit for EmptyOnlyDemo {
+            type Authority = DeclaredMagnitude;
+        }
         impl ConstLimit for EmptyOnlyDemo {
             const MAX: usize = 0;
         }
         struct InhabitedDemo;
-        impl Limit for InhabitedDemo {}
+        impl Limit for InhabitedDemo {
+            type Authority = DeclaredMagnitude;
+        }
         impl ConstLimit for InhabitedDemo {
             const MAX: usize = 3;
         }
@@ -326,7 +341,9 @@ mod root {
     fn the_positive_witness_carries_the_admitted_one() {
         use crate::types::{AdmittedLimit, PositiveLimit, RootLawsProfile};
         struct ContainedDemo;
-        impl Limit for ContainedDemo {}
+        impl Limit for ContainedDemo {
+            type Authority = DeclaredMagnitude;
+        }
         impl ConstLimit for ContainedDemo {
             const MAX: usize = 5;
         }
@@ -388,7 +405,9 @@ mod root {
             NonEmptyBoundedConstruction, PositiveLimitWitness,
         };
         struct SelectedDemo;
-        impl Limit for SelectedDemo {}
+        impl Limit for SelectedDemo {
+            type Authority = EvidenceSelectedMagnitude;
+        }
         impl EvidenceSelectedLimit for SelectedDemo {}
 
         // The weak witness admits a zero selection, and the seat under it is a
@@ -439,10 +458,14 @@ mod root {
     fn a_capacity_witness_does_not_cross_families() {
         use crate::types::{EvidenceSelectedLimit, PositiveLimitWitness};
         struct FirstDemo;
-        impl Limit for FirstDemo {}
+        impl Limit for FirstDemo {
+            type Authority = EvidenceSelectedMagnitude;
+        }
         impl EvidenceSelectedLimit for FirstDemo {}
         struct SecondDemo;
-        impl Limit for SecondDemo {}
+        impl Limit for SecondDemo {
+            type Authority = EvidenceSelectedMagnitude;
+        }
         impl EvidenceSelectedLimit for SecondDemo {}
 
         let first = PositiveLimitWitness::inhabited(LimitWitness::<FirstDemo>::declared(4))
@@ -470,16 +493,21 @@ mod root {
     /// pointer with nothing executed. The half that matters is the red one,
     /// because a bound nothing fails is a bound nobody needed.
     ///
-    /// The claim ceiling, in two parts. The declaration says the magnitude
-    /// arrives at runtime; it does NOT say the family declares no compile-time
-    /// magnitude, and a family stating both would be stating two authorities for
-    /// one capacity — a declaration defect no bound here can see. And it does
-    /// not say that every family in this crate whose seat promises an inhabitant
-    /// has made the declaration: that is a POPULATION question, it is answered
-    /// by deriving the population from the sources rather than from a list
-    /// anybody maintains, and no list of families is written here, because such
-    /// a list would be exactly the hand-maintained inventory this repository
-    /// bans.
+    /// The claim ceiling. This declaration says the magnitude arrives at
+    /// runtime, and it says nothing about the population: that every family in
+    /// this crate whose seat promises an inhabitant has made the declaration is
+    /// a POPULATION question, it is answered by deriving the population from the
+    /// sources rather than from a list anybody maintains, and no list of
+    /// families is written here, because such a list would be exactly the
+    /// hand-maintained inventory this repository bans.
+    ///
+    /// It used to carry a second ceiling — that a family stating BOTH ladders
+    /// would be stating two authorities for one capacity, and that no bound here
+    /// could see it. That ceiling is gone rather than moved: `Limit::Authority`
+    /// resolves to one type, the two ladders name theirs exactly, and the second
+    /// declaration is a type mismatch. See
+    /// `root::a_family_declares_one_capacity_authority` for the positive control
+    /// and its reversal.
     ///
     /// What answers half of that question today is the red twin's own recorded
     /// diagnostic. `rustc` reports an unsatisfied bound by listing the types
@@ -489,8 +517,12 @@ mod root {
     /// fixture. It is a DRIFT DETECTOR over one side of the join, not a count:
     /// it sees families that are on the ladder and cannot see a seat that
     /// promises an inhabitant while its family stays off it. That second side
-    /// is a repository join over the sources and remains owed; no
-    /// `cargo xtask check` law derives it.
+    /// is a repository join over the sources, and
+    /// `cargo xtask check`'s `inhabitant-promising-limits-are-witnessed` is
+    /// where it is derived — the run prints the numerator over the denominator,
+    /// and the same reading refuses a terminal name two homes declare, because a
+    /// population that cannot say which family a seat named has no denominator
+    /// to count.
     ///
     /// Red twin: minting a capacity for a family that never declared its
     /// magnitude evidence-selected must not compile —
@@ -499,7 +531,9 @@ mod root {
     fn the_runtime_ladder_is_declared_by_its_family() {
         use crate::types::{CapacityAdmission, EvidenceSelectedLimit, PositiveLimitWitness};
         struct DeclaredDemo;
-        impl Limit for DeclaredDemo {}
+        impl Limit for DeclaredDemo {
+            type Authority = EvidenceSelectedMagnitude;
+        }
         impl EvidenceSelectedLimit for DeclaredDemo {}
 
         let mint: fn(
@@ -507,6 +541,73 @@ mod root {
         ) -> Result<PositiveLimitWitness<DeclaredDemo>, CapacityAdmission> =
             PositiveLimitWitness::inhabited;
         assert!(mint(LimitWitness::declared(2)).is_ok_and(|held| held.max() == 2));
+    }
+
+    /// law: root.a-family-declares-one-capacity-authority — the two ladders are
+    /// reachable, one family at a time, and the authority a family declares is
+    /// what decides which one it reaches.
+    ///
+    /// # This law is the POSITIVE CONTROL and nothing else
+    ///
+    /// The exclusion itself is not asserted here and could not be: a family
+    /// declaring both authorities does not compile, so there is no expression in
+    /// this file that could hold it. `rustc` owns that half, the reversal is
+    /// named below, and restating the exclusion at this weaker seat would leave
+    /// a sentence that keeps passing after the supertrait bounds are gone.
+    ///
+    /// What remains here is the half `rustc` cannot volunteer: that the two
+    /// bounds are SATISFIABLE. A pair of ladders nothing could implement would
+    /// refuse every reversal ever written against it and guard nothing, so the
+    /// two families below are the evidence that the refusal is a refusal of one
+    /// case rather than of all of them. Each declares one authority, and each
+    /// reaches exactly the mint that authority admits.
+    ///
+    /// Red twin:
+    /// `testpak/tests/compile-fail/a-family-declaring-both-capacity-authorities.rs`
+    /// — the same declaration plus the other ladder, refused at the declaration
+    /// with a type mismatch on `<F as Limit>::Authority`.
+    #[test]
+    fn a_family_declares_one_capacity_authority() {
+        use crate::types::{
+            AdmittedLimit, CapacityAdmission, EvidenceSelectedLimit, PositiveLimitWitness,
+            RootLawsProfile,
+        };
+        struct DeclaredAuthorityDemo;
+        impl Limit for DeclaredAuthorityDemo {
+            type Authority = DeclaredMagnitude;
+        }
+        impl ConstLimit for DeclaredAuthorityDemo {
+            const MAX: usize = 6;
+        }
+
+        struct SelectedAuthorityDemo;
+        impl Limit for SelectedAuthorityDemo {
+            type Authority = EvidenceSelectedMagnitude;
+        }
+        impl EvidenceSelectedLimit for SelectedAuthorityDemo {}
+
+        // The third state is a real one, and the largest population in the
+        // crate: a family that declared neither authority. A law that could not
+        // name it would be describing a two-state world the tree does not have.
+        struct UnstatedAuthorityDemo;
+        impl Limit for UnstatedAuthorityDemo {
+            type Authority = UnstatedMagnitude;
+        }
+
+        // The declared authority reaches the compile-time road, and only it.
+        let admitted: AdmittedLimit<DeclaredAuthorityDemo, RootLawsProfile> =
+            AdmittedLimit::under_profile();
+        assert_eq!(admitted.max(), DeclaredAuthorityDemo::MAX);
+
+        // The evidence-selected authority reaches the runtime road, and only it.
+        let capacity: Result<PositiveLimitWitness<SelectedAuthorityDemo>, CapacityAdmission> =
+            PositiveLimitWitness::inhabited(LimitWitness::declared(6));
+        assert!(capacity.is_ok_and(|held| held.max() == 6));
+
+        // The unstated authority reaches neither mint, and its bounded seat
+        // still exists: a family needs no magnitude to hold an empty collection.
+        let seat: Bounded<u8, UnstatedAuthorityDemo> = Bounded::empty();
+        assert!(seat.is_empty());
     }
 
     /// law: root.a-prefix-road-reports-what-it-did-not-carry — the one
@@ -536,7 +637,9 @@ mod root {
     fn a_prefix_road_reports_what_it_did_not_carry() {
         use crate::types::{NonEmptyBounded, PositiveLimit, RootLawsProfile};
         struct PrefixDemo;
-        impl Limit for PrefixDemo {}
+        impl Limit for PrefixDemo {
+            type Authority = DeclaredMagnitude;
+        }
         impl ConstLimit for PrefixDemo {
             const MAX: usize = 3;
         }
@@ -586,7 +689,9 @@ mod root {
             AdmittedLimit, LimitAdmissionProfile, NarrowLawsProfile, RootLawsProfile,
         };
         struct TinyDemo;
-        impl Limit for TinyDemo {}
+        impl Limit for TinyDemo {
+            type Authority = DeclaredMagnitude;
+        }
         impl ConstLimit for TinyDemo {
             const MAX: usize = 4;
         }
@@ -629,7 +734,9 @@ mod root {
     fn reading_is_not_gaining() {
         use crate::types::{AdmittedLimit, Bounded, NonEmptyBounded, RootLawsProfile};
         struct ReadDemo;
-        impl Limit for ReadDemo {}
+        impl Limit for ReadDemo {
+            type Authority = DeclaredMagnitude;
+        }
         impl ConstLimit for ReadDemo {
             const MAX: usize = 4;
         }
@@ -717,7 +824,10 @@ mod refusal {
         FamilyAdmission, FamilyAdmissionCoverage, FamilyShape, HandlingClass, LocalCauseKey,
         ReasonId, Refusal, RefusalFamily, RefusalFamilyId, StopBound, admit_order, admit_shape,
     };
-    use crate::types::{BoundedConstruction, Limit, NonEmptyBounded, NonEmptyBoundedConstruction};
+    use crate::types::{
+        BoundedConstruction, DeclaredMagnitude, Limit, NonEmptyBounded,
+        NonEmptyBoundedConstruction, UnstatedMagnitude,
+    };
 
     struct DemoSingle;
     impl RefusalFamily for DemoSingle {
@@ -1015,7 +1125,9 @@ mod refusal {
     fn issue_collections_are_nonempty_bounded() {
         struct DemoIssue;
         struct IssueLimit;
-        impl Limit for IssueLimit {}
+        impl Limit for IssueLimit {
+            type Authority = UnstatedMagnitude;
+        }
         let shape: Option<fn(NonEmptyBounded<DemoIssue, IssueLimit>)> = Some(drop);
         assert!(shape.is_some());
     }
@@ -1099,7 +1211,9 @@ mod refusal {
         use crate::refusal::AdmittedPrefix;
         use crate::types::{ConstLimit, PositiveLimit, RootLawsProfile};
         struct PostureDemo;
-        impl Limit for PostureDemo {}
+        impl Limit for PostureDemo {
+            type Authority = DeclaredMagnitude;
+        }
         impl ConstLimit for PostureDemo {
             const MAX: usize = 3;
         }
@@ -1195,7 +1309,9 @@ mod refusal {
         use crate::refusal::AdmittedPrefix;
         use crate::types::{ConstLimit, PositiveLimit, RootLawsProfile};
         struct HaltDemo;
-        impl Limit for HaltDemo {}
+        impl Limit for HaltDemo {
+            type Authority = DeclaredMagnitude;
+        }
         impl ConstLimit for HaltDemo {
             const MAX: usize = 3;
         }
@@ -1883,7 +1999,7 @@ mod identity {
 
 mod value {
     use super::pairwise_distinct;
-    use crate::types::Limit;
+    use crate::types::{Limit, UnstatedMagnitude};
     use crate::value::{
         Absence, BoundedText, CANONICAL_INBOUND_PATH, InboundStage, LossyOperation,
         PRE_AUTHORITY_LADDER, PreAuthorityCheck,
@@ -2000,9 +2116,13 @@ mod value {
     #[test]
     fn bounded_text_carries_its_limit_family() {
         struct PathLimit;
-        impl Limit for PathLimit {}
+        impl Limit for PathLimit {
+            type Authority = UnstatedMagnitude;
+        }
         struct LabelLimit;
-        impl Limit for LabelLimit {}
+        impl Limit for LabelLimit {
+            type Authority = UnstatedMagnitude;
+        }
         let over_path: Option<fn(BoundedText<PathLimit>)> = Some(drop);
         let over_label: Option<fn(BoundedText<LabelLimit>)> = Some(drop);
         assert!(over_path.is_some());

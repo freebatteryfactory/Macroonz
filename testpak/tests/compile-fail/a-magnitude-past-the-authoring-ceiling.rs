@@ -9,12 +9,16 @@
 //! declaring a magnitude past the AUTHORING profile's ceiling stops the compiler
 //! during const evaluation, so no artifact carrying it is ever produced.
 
-use threadpak::types::{AdmittedLimit, ConstLimit, Limit, LimitAdmissionProfile};
+use threadpak::types::{
+    AdmittedLimit, ConstLimit, DeclaredMagnitude, Limit, LimitAdmissionProfile,
+};
 use threadpak_macroc::AuthoringLimitProfile;
 
 struct PastTheCeiling;
 
-impl Limit for PastTheCeiling {}
+impl Limit for PastTheCeiling {
+    type Authority = DeclaredMagnitude;
+}
 
 impl ConstLimit for PastTheCeiling {
     const MAX: usize = AuthoringLimitProfile::MAX_DECLARED_LIMIT + 1;

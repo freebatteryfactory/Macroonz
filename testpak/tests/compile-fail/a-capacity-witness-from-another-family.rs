@@ -14,19 +14,25 @@
 //! no public mint until the schema home carries the real declaration path — and
 //! this fixture is written to need none.
 
-use threadpak::types::{EvidenceSelectedLimit, Limit, PositiveLimitWitness};
+use threadpak::types::{
+    EvidenceSelectedLimit, EvidenceSelectedMagnitude, Limit, PositiveLimitWitness,
+};
 
 /// One family whose magnitude the owner's evidence selects.
 struct FirstFamily;
 
-impl Limit for FirstFamily {}
+impl Limit for FirstFamily {
+    type Authority = EvidenceSelectedMagnitude;
+}
 
 impl EvidenceSelectedLimit for FirstFamily {}
 
 /// A second family on the same ladder, so the declaration is not the difference.
 struct SecondFamily;
 
-impl Limit for SecondFamily {}
+impl Limit for SecondFamily {
+    type Authority = EvidenceSelectedMagnitude;
+}
 
 impl EvidenceSelectedLimit for SecondFamily {}
 

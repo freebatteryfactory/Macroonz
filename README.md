@@ -153,6 +153,41 @@ to a runtime capacity at all. Several families in the machine said
 "evidence-selected" in a doc comment beside their declaration and said it nowhere
 a road could read; that sentence is now a fact the compiler carries.
 
+**One family, one capacity authority, by type identity.** Nothing stopped a
+family from declaring BOTH ladders — two authorities over one fact, which is the
+two-independently-supplied-halves shape in its purest form — and `crate::types`
+said so in a doc comment while the type system permitted it. `Limit` now carries
+`type Authority`, one of `DeclaredMagnitude`, `EvidenceSelectedMagnitude`, or
+`UnstatedMagnitude`, and each ladder names the authority it requires exactly:
+`ConstLimit: Limit<Authority = DeclaredMagnitude>` and
+`EvidenceSelectedLimit: Limit<Authority = EvidenceSelectedMagnitude>`. An
+associated type resolves to one type, so the second ladder is a type mismatch at
+the declaration rather than a defect a reader has to notice — the exclusion is
+the arity of an associated type and not a bound, a law, or a sentence.
+`testpak/tests/compile-fail/a-family-declaring-both-capacity-authorities.rs` is
+the executed reversal, and its recorded diagnostic names
+`<TwoAuthorities as Limit>::Authority` as the projection that cannot be two
+types.
+
+`UnstatedMagnitude` is the third state and the largest population in the crate:
+a family bounding only a `Bounded` seat needs no magnitude, because
+`Bounded::empty` reads none. It also makes a residue visible rather than absent —
+families whose prose says "schema-witnessed" while their declaration says nothing
+a road can read now say *that* in the type system, and moving one onto a ladder
+is a change to one line at its own declaration.
+
+**What the algebra does not yet reach, stated where it is read.** `LimitWitness`
+has only a crate-internal `#[cfg(test)]` mint, so production schema validation
+can neither mint nor consume a runtime capacity: what stands is the algebra and
+the declaration-side population guard, not a production road, and the opening
+condition is the schema home carrying a validation path that selects a
+magnitude. Beside it, the collection-shaped refusal mints on `AdmittedPrefix` are
+bounded on `L: ConstLimit`, so a family on the runtime ladder — whose authority
+is `EvidenceSelectedMagnitude` and therefore never `DeclaredMagnitude` — cannot
+reach that package at all. Every collection-shaped body in the machine seats an
+`AdmittedPrefix`, so `PositiveLimitWitness` is today a witness nothing among them
+takes. Both absences are named at the types themselves; neither is closed here.
+
 With that rung in place, EVERY constructor of the inhabitant-promising shape
 consumes evidence that its family admits an item: the two `const` roads prove it
 off the declaration, `admitted_const` and `admitted_prefix` take `PositiveLimit`,
@@ -167,7 +202,23 @@ machine's sources, takes every family that bounds a `NonEmptyBounded` or an
 `AdmittedPrefix` seat while declaring no `ConstLimit`, and prints how many of
 them are on the ladder over how many there are. A family that gains such a seat
 without declaring `EvidenceSelectedLimit` is caught by that derivation rather
-than by anybody remembering a list. A drift detector stands over the other side
+than by anybody remembering a list.
+
+That derivation keys a family by its TERMINAL name, and it has to: a seat spells
+its bound `NonEmptyBounded<Issue, IssueLimit>`, with no home in the spelling and
+no resolver in the reader to supply one. Two homes declaring one ordinary name
+would therefore collapse into one record, folding one home's ladder onto the
+other home's seat — the alias collision that already cost this repository a
+module, reproduced inside the law that replaced part of it. So a terminal name
+declared at more than one site now REFUSES and leaves the population, rather
+than being merged or quietly qualified: the seat side carries no owner to
+qualify against, and refusing loud is the honest move until a generated
+declaration contract supplies an owner-qualified identity both sides carry. A
+site is the file plus its inline module chain, so two `mod` blocks in one file
+collide exactly as two files do. Measured on this tree, no collision exists
+today, and that measurement is a test rather than a sentence.
+
+A drift detector stands over the other side
 of the same fact — `rustc` answers an unsatisfied bound by listing the types
 that satisfy it, so the recorded diagnostic in
 `testpak/tests/compile-fail/a-capacity-minted-for-an-undeclared-family.stderr`
@@ -332,6 +383,10 @@ obligations:
     challenge_kind: compile-refusal
     green: laws.rs root::the_runtime_ladder_is_declared_by_its_family
     red: testpak/tests/compile-fail/a-capacity-minted-for-an-undeclared-family.rs
+  - id: root.a-family-declares-one-capacity-authority
+    challenge_kind: compile-refusal
+    green: laws.rs root::a_family_declares_one_capacity_authority
+    red: testpak/tests/compile-fail/a-family-declaring-both-capacity-authorities.rs
   - id: root.the-positive-witness-carries-the-admitted-one
     challenge_kind: compile-refusal
     green: laws.rs root::the_positive_witness_carries_the_admitted_one

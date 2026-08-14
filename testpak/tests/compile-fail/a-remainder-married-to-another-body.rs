@@ -36,7 +36,9 @@
 //! which is exactly what this package does not have.
 
 use threadpak::refusal::{AdmittedPrefix, StopBound};
-use threadpak::types::{ConstLimit, Limit, LimitAdmissionProfile, PositiveLimit};
+use threadpak::types::{
+    ConstLimit, DeclaredMagnitude, Limit, LimitAdmissionProfile, PositiveLimit,
+};
 
 /// This file's own plane, declared here because this file is the plane
 /// declaring it.
@@ -52,7 +54,9 @@ impl LimitAdmissionProfile for FixtureProfile {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct IssueFamily;
 
-impl Limit for IssueFamily {}
+impl Limit for IssueFamily {
+    type Authority = DeclaredMagnitude;
+}
 
 impl ConstLimit for IssueFamily {
     const MAX: usize = 3;

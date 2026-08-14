@@ -8,7 +8,7 @@
 //! boundary.
 
 use core::marker::PhantomData;
-use threadpak::types::{Bounded, ConstLimit, Limit, LimitAdmissionProfile};
+use threadpak::types::{Bounded, ConstLimit, DeclaredMagnitude, Limit, LimitAdmissionProfile};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -127,15 +127,24 @@ impl LimitAdmissionProfile for AuthoringLimitProfile {
     const MAX_DECLARED_LIMIT: usize = 1_048_576;
 }
 
-/// Declares the plane's limit families: each is a `Limit` with a compile-time
-/// maximum, so every bounded seat in the plane names which bound governs it.
+/// Declares the plane's limit families: each is a `Limit` whose capacity
+/// authority is a magnitude written here, so every bounded seat in the plane
+/// names which bound governs it and no family in the plane can acquire a second
+/// authority for the same capacity.
+///
+/// The authority and the magnitude are emitted from ONE row, in one expansion,
+/// so a family cannot be declared here on the compile-time ladder while wearing
+/// another road's authority: the transcriber writes `DeclaredMagnitude` and
+/// `ConstLimit` together or writes neither.
 macro_rules! limits {
     ($( $(#[$note:meta])* $name:ident = $max:expr ),+ $(,)?) => {
         $(
             $(#[$note])*
             #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
             pub struct $name;
-            impl Limit for $name {}
+            impl Limit for $name {
+                type Authority = DeclaredMagnitude;
+            }
             impl ConstLimit for $name {
                 const MAX: usize = $max;
             }

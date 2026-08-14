@@ -31,7 +31,10 @@
 
 use crate::identity::{Commitment, CreationLaw, IdentityClass, IdentityRole, Occurrence};
 use crate::refusal::{AdmittedPrefix, CompletionPosture, FamilyShape, RefusalFamily};
-use crate::types::{Bounded, ConstLimit, EvidenceRef, Limit, NonEmptyBounded};
+use crate::types::{
+    Bounded, ConstLimit, DeclaredMagnitude, EvidenceRef, EvidenceSelectedMagnitude, Limit,
+    NonEmptyBounded, UnstatedMagnitude,
+};
 use crate::value::BoundedText;
 
 // ---------------------------------------------------------------------------
@@ -153,7 +156,9 @@ pub struct OriginGraph {
 /// Limit family for name text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct NameTextLimit;
-impl Limit for NameTextLimit {}
+impl Limit for NameTextLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// The authored name: strict versioned Unicode source and display spelling.
 /// NOT required to be NFC — resolution compares the validated NFC form while
@@ -698,7 +703,9 @@ pub enum AuthoredNameConstructionIssue {
 /// [`crate::types::ConstLimit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AuthoredNameIssueLimit;
-impl Limit for AuthoredNameIssueLimit {}
+impl Limit for AuthoredNameIssueLimit {
+    type Authority = EvidenceSelectedMagnitude;
+}
 impl crate::types::EvidenceSelectedLimit for AuthoredNameIssueLimit {}
 
 /// Authored-name construction: a non-empty bounded canonical issue
@@ -822,7 +829,9 @@ pub enum ClosureNamespaceIssue {
 /// [`crate::types::EvidenceSelectedLimit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ClosureNamespaceIssueLimit;
-impl Limit for ClosureNamespaceIssueLimit {}
+impl Limit for ClosureNamespaceIssueLimit {
+    type Authority = EvidenceSelectedMagnitude;
+}
 impl crate::types::EvidenceSelectedLimit for ClosureNamespaceIssueLimit {}
 
 /// Closure-namespace refusal: the namespace is closed as a whole and checked
@@ -880,7 +889,9 @@ pub enum ClaimKind {
 /// Limit family for duplicate-claim site sets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DuplicateSiteLimit;
-impl Limit for DuplicateSiteLimit {}
+impl Limit for DuplicateSiteLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// The link-resolution issues — five, closed. An export alias derived under
 /// one projection profile or version and presented against another is a LINK
@@ -950,7 +961,9 @@ pub enum LinkResolutionIssue {
 /// [`crate::types::EvidenceSelectedLimit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LinkResolutionIssueLimit;
-impl Limit for LinkResolutionIssueLimit {}
+impl Limit for LinkResolutionIssueLimit {
+    type Authority = EvidenceSelectedMagnitude;
+}
 impl crate::types::EvidenceSelectedLimit for LinkResolutionIssueLimit {}
 
 /// Link-resolution refusal: the linker closes one complete graph in one pass
@@ -1018,7 +1031,9 @@ pub enum ProjectionClaim {
 /// Compile-time bound for a contract's stated claims.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ProjectionClaimLimit;
-impl Limit for ProjectionClaimLimit {}
+impl Limit for ProjectionClaimLimit {
+    type Authority = DeclaredMagnitude;
+}
 impl ConstLimit for ProjectionClaimLimit {
     const MAX: usize = 5;
 }
@@ -1072,7 +1087,9 @@ pub enum ProjectionContractConstructionIssue {
 /// at most five unstated claims.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ProjectionIssueLimit;
-impl Limit for ProjectionIssueLimit {}
+impl Limit for ProjectionIssueLimit {
+    type Authority = DeclaredMagnitude;
+}
 impl ConstLimit for ProjectionIssueLimit {
     const MAX: usize = 10;
 }

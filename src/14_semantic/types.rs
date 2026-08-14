@@ -40,7 +40,7 @@ use crate::bounds::{BoundClass, DimensionId};
 use crate::declaration::Stage;
 use crate::identity::{Commitment, CreationLaw, IdentityClass, IdentityRole};
 use crate::refusal::{AdmittedPrefix, CompletionPosture, FamilyShape, RefusalFamily};
-use crate::types::{Bounded, Limit, NonEmptyBounded};
+use crate::types::{Bounded, EvidenceSelectedMagnitude, Limit, NonEmptyBounded, UnstatedMagnitude};
 
 // ---------------------------------------------------------------------------
 // The phase root and its identity.
@@ -203,7 +203,9 @@ pub enum SemanticFormConstructionIssue {
 /// declared here — see [`crate::types::EvidenceSelectedLimit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SemanticFormIssueLimit;
-impl Limit for SemanticFormIssueLimit {}
+impl Limit for SemanticFormIssueLimit {
+    type Authority = EvidenceSelectedMagnitude;
+}
 impl crate::types::EvidenceSelectedLimit for SemanticFormIssueLimit {}
 
 /// Semantic Form construction. Completion posture rule: complete diagnosis
@@ -263,7 +265,9 @@ pub struct RefusalFamilyRefDomain;
 /// Limit family for a judgment's refusal set.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RefusalSetLimit;
-impl Limit for RefusalSetLimit {}
+impl Limit for RefusalSetLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// The typed refusal families a judgment declares — AUTHORED thin carrier.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -279,7 +283,9 @@ pub struct EffectRegionDomain;
 /// Limit family for a judgment's effect regions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EffectRegionLimit;
-impl Limit for EffectRegionLimit {}
+impl Limit for EffectRegionLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// The declared effects PLUS their first-observable ordering — the order is
 /// the collection's own order, carried by construction. AUTHORED thin
@@ -297,7 +303,9 @@ pub struct CapabilityRequirementDomain;
 /// Limit family for a judgment's capability requirements.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CapabilityRequirementLimit;
-impl Limit for CapabilityRequirementLimit {}
+impl Limit for CapabilityRequirementLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// Capability REQUIREMENTS — never grants; composition unions requirements
 /// and can never union grants. AUTHORED thin carrier.
@@ -331,7 +339,9 @@ pub struct BoundDimensionRow {
 /// Limit family for a judgment's symbolic bounds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SymbolicBoundLimit;
-impl Limit for SymbolicBoundLimit {}
+impl Limit for SymbolicBoundLimit {
+    type Authority = UnstatedMagnitude;
+}
 
 /// The bounded canonical collection of the dimensions that ACTUALLY APPLY to
 /// one judgment — never a padded universal struct.
