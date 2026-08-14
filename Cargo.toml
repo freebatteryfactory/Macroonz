@@ -43,14 +43,16 @@ repository = "https://github.com/freebatteryfactory/ThreadPak"
 # for a mechanism at all stays at that member, beside the reading it buys, since
 # that reason differs at every home even when the pin is identical.
 #
-# Members inherit with `{ workspace = true }`, never the dotted
-# `name.workspace = true`. The two are one declaration to Cargo, and the inline
-# form is the one the topology law can read: a reader that splits an entry at
-# its first `=` sees the key `threadpak-macroc` in the inline form and the key
-# `threadpak-macroc.workspace` in the dotted one, and that second name matches
-# no package, so a banned edge written the dotted way would pass. The spelling
-# is load-bearing until that law reads a resolved graph instead of manifest
-# text.
+# Members inherit with whichever spelling reads best where they write it.
+# `{ workspace = true }` and the dotted `name.workspace = true` are one
+# declaration to Cargo and are now one declaration to the topology law as well,
+# which reads the key path Cargo resolves rather than the text before a line's
+# first `=`. A rule stood here telling authors never to write the dotted form,
+# because the reader that could not resolve it would have let a banned edge
+# through under a key matching no package. That rule is deleted rather than
+# reworded: it asked every future author to protect a law from its own reader,
+# and a "never" in a comment is advice, not an invariant. The invariant is in
+# `xtask/src/repository/manifest.rs`, with one planted reversal per spelling.
 #
 # What this table declares is what the workspace ASKS FOR. What the resolved
 # graph actually enables is a different question, because Cargo unifies features
