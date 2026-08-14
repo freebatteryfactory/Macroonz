@@ -284,16 +284,19 @@ tooling-obligation: macroc.a-refusal-body-is-minted-only-inside-the-plane
     refusing with E0624; restoring `pub` on any one of the ten roads makes that
     line resolve and fails the fixture
   nonclaims: >
-    It does not claim the population is CLOSED. The fixture is universal over the
-    seven families that exist, derived by reading every private refusal body in the
-    services and every road that produces one — but a family added later with a
-    public mint leaves it passing, because nothing in the tree joins "carries a
-    private body" against "declares a public mint". That leg is owed to xtask, on
-    the shape `collection-bodies-are-coupled` already uses, and it opens when a
-    seat-visibility read exists beside the seat-type read that check already
-    performs. It does not claim exclusion inside each mint's own scope: a
-    crate-scoped mint is reachable by every module in the services, and the
-    module order `lib.rs` declares is what enumerates the seams that use it.
+    The FIXTURE is not the universal statement and never could be: it names the ten
+    roads that exist today, so a family added later with a public mint would leave
+    it compiling and passing. What closes the population is a repository law
+    instead — `cargo xtask check`'s `refusal-mints-are-inside-the-plane`, which
+    DERIVES the population rather than naming it: every services record whose every
+    seat is private and that some road refuses with, joined against every road that
+    hands one back, with both denominators printed on every run. What that law does
+    not resolve is stated where it is written — it expands no macro, evaluates no
+    `cfg`, reads a type by its last path segment, and reads `pub` as reachable,
+    which is exact for an inherent road and strict for a free one. It does not
+    claim exclusion inside each mint's own scope: a crate-scoped mint is reachable
+    by every module in the services, and the module order `lib.rs` declares is what
+    enumerates the seams that use it.
 
 tooling-obligation: macroc.a-plan-watches-every-identity-it-hangs-off-or-refuses
   claim: >

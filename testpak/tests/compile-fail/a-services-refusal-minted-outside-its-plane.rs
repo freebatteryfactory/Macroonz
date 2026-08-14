@@ -7,24 +7,24 @@
 //! borrowed body clones its issues out and reseats them through the same road.
 //! The record either produces is indistinguishable from one a seam returned.
 //!
-//! # This fixture is UNIVERSAL over the population, and that is the point
+//! # This fixture names the roads; the LAW holds the population
 //!
-//! The claim it guards is about every services refusal family, not about one of
-//! them. So it names every mint the population declares, and it was derived
-//! rather than remembered: every type in the services carrying a private refusal
-//! body, and every associated road that produces one. Seven mints across seven
-//! families —
+//! What is written below is every mint the seven families declare today — three
+//! for `ProjectionPlanning`, two for `TemplateConstruction`, one each for
+//! `ProjectionClosureRefusal`, `ExplanationCoverage`, `TriggerViewComposition`,
+//! `CompositionRootDeclaration` and `RefusalDeriveRefusal`. Ten roads, and
+//! restoring `pub` on ANY one of them makes that line resolve, changes this
+//! file's diagnostics, and fails the fixture. That is a real refusal and it is
+//! what a compile-fail fixture is for.
 //!
-//! * `ProjectionPlanning` — the shared planning family, three roads;
-//! * `TemplateConstruction` — two roads;
-//! * `ProjectionClosureRefusal`, `ExplanationCoverage`, `TriggerViewComposition`
-//!   and `CompositionRootDeclaration` — one road each;
-//! * `RefusalDeriveRefusal` — the capture pair, one road.
-//!
-//! Restoring `pub` on ANY one of them makes that line resolve, changes this
-//! file's diagnostics, and fails the fixture. A one-family fixture beside a
-//! whole-population sentence would leave six of the seven uncontrolled, which is
-//! the shape this repository has already had to repair twice.
+//! It is not the universal statement, and it never could be: a list names the
+//! roads that exist, so a family added tomorrow with a public mint leaves this
+//! file compiling exactly as it does now. The universal half is
+//! `cargo xtask check`'s `refusal-mints-are-inside-the-plane`, which derives the
+//! population rather than naming it — every services record whose every seat is
+//! private and that some road refuses with, joined against every road that hands
+//! one back — and refuses a reachable mint by naming both. Its denominators are
+//! printed on every run.
 //!
 //! The paths are REFERENCED rather than called on purpose. Privacy is settled at
 //! resolution, so a reference establishes the claim without constructing

@@ -63,6 +63,14 @@
 //! represent. The complete dependency-key watch set is a wider roster with its
 //! own declared magnitude, and it is owed; refusing is what the plane does until
 //! it exists, rather than issuing a freshness claim it cannot support.
+//!
+//! HOW MANY a seat watches is the roster's own fact and is declared beside the
+//! roster:
+//! [`InvalidationTrigger::WATCHED_SOURCE_DECLARATIONS`](crate::planning::InvalidationTrigger::WATCHED_SOURCE_DECLARATIONS),
+//! next to the road that consumes exactly that many identities and destructures
+//! them into the seat. This file reads the capacity and holds no second copy of
+//! it, which is the difference between a threshold that moves with the variant
+//! and one that quietly stays behind while the variant grows.
 
 use super::{
     CauseAnchoring, GraphAnchoring, InvalidationSet, InvalidationTrigger, ProjectionContext,
@@ -101,14 +109,6 @@ impl CauseAnchoring {
     }
 }
 
-/// How many source declarations one trigger roster seat can watch.
-///
-/// One, and it is read off the roster rather than chosen here:
-/// [`InvalidationTrigger::SourceDeclarationChanged`] declares a single `watched`
-/// seat carrying one thirty-two-byte identity, so a seat watches one declaration
-/// and a cause set naming more has no representation in the roster at all.
-const WATCHABLE_SOURCE_DECLARATIONS: usize = 1;
-
 /// The trigger that watches whatever a context was caused by.
 ///
 /// # Errors
@@ -123,21 +123,24 @@ fn caused_by(sources: &CauseAnchoring) -> Result<InvalidationTrigger, Projection
     match sources {
         CauseAnchoring::Declarations(declared) => {
             let named = declared.len();
-            if named > WATCHABLE_SOURCE_DECLARATIONS {
+            let watchable = InvalidationTrigger::WATCHED_SOURCE_DECLARATIONS;
+            if named > watchable {
                 return Err(ProjectionPlanning::established(
                     ProjectionPlanningIssue::CauseSetUnwatchable {
                         named: u32::try_from(named).unwrap_or(u32::MAX),
-                        watchable: u32::try_from(WATCHABLE_SOURCE_DECLARATIONS).unwrap_or(u32::MAX),
+                        watchable: u32::try_from(watchable).unwrap_or(u32::MAX),
                     },
                 ));
             }
-            // Past the refusal the set holds exactly one declaration, so the
-            // first IS the set. That is the difference between reading a head
-            // and electing a member: the same call was a stand-in one line ago
-            // and is a total read here.
-            Ok(InvalidationTrigger::SourceDeclarationChanged {
-                watched: *declared.first(),
-            })
+            // Past the refusal the set holds exactly as many declarations as the
+            // seat watches, so the array below is the whole set rather than a
+            // member elected out of it: the same call was a stand-in one line ago
+            // and is a total read here. Its arity is the seat's own, so a roster
+            // that began watching two would stop this line compiling rather than
+            // leaving it quietly reporting one.
+            Ok(InvalidationTrigger::watching_source_declarations([
+                *declared.first(),
+            ]))
         }
         CauseAnchoring::CapturedDeclaration(captured) => {
             Ok(InvalidationTrigger::CapturedDeclarationChanged { watched: *captured })
