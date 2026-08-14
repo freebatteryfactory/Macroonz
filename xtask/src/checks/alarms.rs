@@ -70,10 +70,11 @@
 //! FILE is caught here.
 //!
 //! **It does not claim the departure is the PLANTED one.** That the `reversal`
-//! profile differs from `default` is established here; that it differs by the
-//! one-second kill threshold against a seventeen-second test it was written for
-//! is established by the harness job's own requirement of exit 100 AND a timed-out
-//! test, and that requirement stands exactly as long as that step does.
+//! profile differs from `default` is established here; that it differs by a
+//! one-second kill threshold against a test written to sleep past it is
+//! established by the harness job's own requirement of exit 100, a timed-out
+//! test, AND that test's name in the transcript, and that requirement stands
+//! exactly as long as that step does.
 //!
 //! **It does not claim either tool is installed anywhere.** Both are separately
 //! installed binaries, which is why they stand beside the bar rather than in it,
@@ -241,12 +242,18 @@ fn spelled(segments: &[&str]) -> String {
     segments.join("/")
 }
 
-/// Planted reversals for a law whose subject is the tree.
+/// Planted reversals for a law whose subject is the tree, and the second
+/// harness's own planted subject.
 ///
 /// The alarms are a set of files, so their reversals are planted against a
 /// scratch root outside the repository: the law that counts the artifacts is
-/// never proven by deleting them. The last two tests read the ceiling and the
-/// real tree, and each states what it found.
+/// never proven by deleting them. Two tests read the ceiling and the real tree,
+/// and each states what it found.
+///
+/// The last test is a different kind of thing and sits here because this is the
+/// module the alarms are counted in: it is the SUBJECT of the second harness's
+/// planted reversal rather than a control for the law above, and it runs under
+/// exactly one profile in one hosted step.
 #[cfg(test)]
 mod tests {
     use super::{
@@ -263,7 +270,7 @@ mod tests {
                                    fail-fast = false\n\
                                    retries = 0\n\n\
                                    [profile.reversal]\n\
-                                   default-filter = 'binary(compile_refusals)'\n";
+                                   default-filter = 'test(the_nextest_timeout_reversal)'\n";
 
     /// A fixture mutation configuration, standing for the scope a run examines.
     const MUTATION_FIXTURE: &str = "examine_globs = [\"xtask/**/*.rs\"]\ncap_lints = true\n";
@@ -467,5 +474,46 @@ mod tests {
         let found = check_alarm_artifacts(repository_snapshot()?);
         assert!(found.is_ok(), "{found:?}");
         Ok(())
+    }
+
+    /// Seconds the second harness's planted subject sleeps: thirty times the
+    /// one-second kill threshold `.config/nextest.toml`'s `reversal` profile
+    /// sets against it. Nothing about the number is compiled, resolved, or
+    /// cached, so it is the same margin on every host.
+    const SLEEP_SECONDS: u64 = 30;
+
+    /// The SUBJECT of the second harness's planted reversal: a test whose entire
+    /// body is an instruction to sleep past the threshold that profile kills it
+    /// at.
+    ///
+    /// It runs under that one profile and nowhere else. `#[ignore]` is what
+    /// keeps it out of every other population — `cargo test`, the entry bar's
+    /// `tests` stage, the second harness's own positive run, and every mutation
+    /// rebuild report it skipped and pay nothing for it — and the reversal step
+    /// lifts the skip with `--run-ignored only` while the profile's
+    /// `default-filter` names this function. So the attribute here is not a test
+    /// nobody runs: it is a test exactly one run selects, and that run is the one
+    /// that requires it to be killed.
+    ///
+    /// WHY A DEDICATED TEST RATHER THAN THE SLOWEST REAL ONE. The plant this
+    /// replaces set the same one-second threshold against `compile_refusals`, on
+    /// the argument that a seventeen-second test cannot finish inside a second.
+    /// Those seventeen seconds are rustc's, and the positive run in the same job
+    /// pays for every compilation product they buy: on the hosted runner the
+    /// reversal run then finished inside the second, exited 0, and the step that
+    /// requires a refusal went red. A sleep has no cache. This body takes the
+    /// same time cold, warm, and busy, so the refusal it produces is a fact about
+    /// this configuration being READ rather than about how much work the host had
+    /// already done.
+    ///
+    /// It asserts nothing, on purpose. Reaching the end of this body is the
+    /// outcome the harness job reads as a failure — the run exits 0 and the step
+    /// goes red — so an assertion here would be a second thing to keep true and
+    /// the first thing to drift.
+    #[test]
+    #[ignore = "the subject of the second harness's planted reversal: selected by \
+                `.config/nextest.toml`'s `reversal` profile, which kills it after one second"]
+    fn the_nextest_timeout_reversal() {
+        std::thread::sleep(std::time::Duration::from_secs(SLEEP_SECONDS));
     }
 }

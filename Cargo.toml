@@ -12,17 +12,14 @@ workspace = true
 
 [workspace]
 resolver = "3"
-# One line, and it is not a formatting preference. `no-core-tooling-edge` reads
-# manifests a line at a time, so a value that does not close on the line that
-# opens it hands the reader somebody else's data to read as structure — and a
-# multi-line string, a multi-line list, or a multi-line inline table in a
-# dependency table was measured hiding a prohibited edge from it on cargo
-# 1.97.1. The law refuses that shape on sight rather than deciding case by case
-# whether a particular body is dangerous, which is what deciding would cost:
-# entering the value it has just said it cannot enter. This list is the one
-# lawful casualty of that bluntness in the whole repository, and it pays it
-# here rather than buying an exemption nobody could bound.
-members = ["macros/macroc", "macros/proc", "testpak", "xtask", "xtask/fixtures/macro-consumer", "xtask/fixtures/renamed-consumer"]
+members = [
+    "macros/macroc",
+    "macros/proc",
+    "testpak",
+    "xtask",
+    "xtask/fixtures/macro-consumer",
+    "xtask/fixtures/renamed-consumer",
+]
 
 [workspace.package]
 version = "0.0.0"
