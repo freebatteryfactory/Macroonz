@@ -55,24 +55,26 @@
 # about the entry bar, which is `cargo xtask qualify` and is defined by the
 # ordered stage table in `xtask/src/qualification.rs` alone.
 #
-# WHERE THIS FILE IS COUNTED: NOWHERE YET, and that is the one admission
-# requirement this surface arrives without. It is in neither published
-# denominator, for the reason `deny-reversal.toml` gives about itself — the
-# red-twin populations xtask joins against are testpak's tests and its
-# compile-fail fixtures, and a configuration beside a hosted workflow is neither
-# — and it is not yet in the other machine-owned roster either. The dependency
-# gate IS: `dependency-gate-artifacts-are-present-and-distinct` reads that gate's
-# committed files and refuses when one is deleted or when its reversal stops
-# departing from the rule it stands against. Nothing reads THESE files.
+# WHERE THIS FILE IS COUNTED: in the roster `xtask/src/main.rs` holds, which
+# that file states is the only statement of how many repository laws there are.
+# `alarm-artifacts-are-present-and-distinct` reads this file,
+# `.cargo/mutants.toml`, and the two workflows that call them, and refuses when
+# one is deleted, when one is emptied, or when the `reversal` profile below
+# stops departing from `default`. It is still in neither RED-TWIN denominator,
+# for the reason `deny-reversal.toml` gives about itself — the red populations
+# xtask joins against are testpak's tests and its compile-fail fixtures, and a
+# configuration beside a hosted workflow is neither — and the roster is the seat
+# the dependency gate's own artifacts took for exactly that reason.
 #
-# THE OPENING CONDITION, EXACTLY: a repository law of that same shape, reading
-# this file, `.cargo/mutants.toml`, and the two workflows that call them, and
-# refusing when one is deleted, when one is emptied, or when the `reversal`
-# profile below stops departing from `default`. Until it exists, deleting any of
-# them fails no stage of `cargo xtask qualify` and is caught by review alone —
-# and even with it, what such a law establishes is that the FILES are there, not
-# that any hosted step still runs them. That second half is the same road the
-# dependency gate names and does not reach.
+# The opening condition written here has therefore been discharged, and it was
+# the one admission requirement this surface arrived without. What the law
+# establishes is that the FILES are there, and deliberately not that any hosted
+# step still runs them: a step somebody edits out of `harness.yml` leaves every
+# file exactly where it is, and that removal is caught by review alone. That
+# second half is the same road the dependency gate names and does not reach — a
+# hosted run publishing the roster of what it EXECUTED — and
+# `xtask/src/checks/alarms.rs` carries the ceiling as an executed test rather
+# than as this sentence.
 
 # CHOSEN: the exact version, and it is a staleness guard rather than
 # housekeeping. A key this file writes that a nextest no longer reads would

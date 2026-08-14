@@ -6,11 +6,8 @@
 //! plural, a `camelCase` seam — and both have to say so out loud, because a
 //! word-scan that only reads prose is a word-scan somebody will route around.
 
-use std::fs;
-use std::path::Path;
-
-use crate::repository::walk::{
-    JUDGE_DIRECTORY, TOOLING_DIRECTORY, relative_slash_path, visit_files,
+use crate::repository::snapshot::{
+    JUDGE_DIRECTORY, MACHINE_DIRECTORY, RepositorySnapshot, TOOLING_DIRECTORY,
 };
 
 /// The construction-lifecycle vocabulary this gate enforces, in prose and in
@@ -86,7 +83,7 @@ const BANNED_VOCABULARY_ALLOWLIST: [(&str, &str, &str); 3] = [
 /// No personal name appears in any repository file — role terms only. The
 /// banned spellings are assembled from bytes so this checker never contains
 /// what it forbids.
-pub(crate) fn check_no_personal_names(root: &Path) -> Result<(), String> {
+pub(crate) fn check_no_personal_names(snapshot: &RepositorySnapshot) -> Result<(), String> {
     let banned: [Vec<u8>; 2] = [
         vec![0x65, 0x61, 0x73, 0x73, 0x61],
         vec![0x61, 0x79, 0x6f, 0x75, 0x62],
@@ -96,17 +93,12 @@ pub(crate) fn check_no_personal_names(root: &Path) -> Result<(), String> {
         .map(|bytes| String::from_utf8_lossy(bytes).into_owned())
         .collect();
     let mut offenders = Vec::new();
-    visit_files(root, &mut |path| {
-        let bytes = fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
-        let text = String::from_utf8_lossy(&bytes).to_lowercase();
-        for name in &banned {
-            if text.contains(name.as_str()) {
-                offenders.push(path.display().to_string());
-                break;
-            }
+    for (path, fact) in snapshot.files().iter() {
+        let text = fact.text().required(path.as_str())?.to_lowercase();
+        if banned.iter().any(|name| text.contains(name.as_str())) {
+            offenders.push(path.to_string());
         }
-        Ok(())
-    })?;
+    }
     if offenders.is_empty() {
         Ok(())
     } else {
@@ -151,27 +143,33 @@ pub(crate) fn check_no_personal_names(root: &Path) -> Result<(), String> {
 /// forbids, and neither are the two working-law files, which state the ban
 /// itself; a banned word could stand in any of them and this gate would not see
 /// it.
-pub(crate) fn check_banned_vocabulary(root: &Path) -> Result<(), String> {
+pub(crate) fn check_banned_vocabulary(snapshot: &RepositorySnapshot) -> Result<(), String> {
     let mut offenders = Vec::new();
     let mut read: Vec<(String, String)> = Vec::new();
-    let mut inspect = |path: &Path| -> Result<(), String> {
-        let scanned = path
-            .extension()
-            .is_some_and(|extension| extension == "rs" || extension == "md");
-        if !scanned {
-            return Ok(());
+    let mut scanned: Vec<(String, String)> = Vec::new();
+    for tree in [MACHINE_DIRECTORY, TOOLING_DIRECTORY, JUDGE_DIRECTORY] {
+        for (path, fact) in snapshot.files().under(tree) {
+            if !path.extension_is("rs") && !path.extension_is("md") {
+                continue;
+            }
+            scanned.push((
+                path.to_string(),
+                fact.text().required(path.as_str())?.to_owned(),
+            ));
         }
-        let relative = relative_slash_path(root, path);
-        let bytes = fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
-        let text = String::from_utf8_lossy(&bytes).into_owned();
+    }
+    scanned.push((
+        String::from(ROOT_README),
+        snapshot
+            .files()
+            .text(ROOT_README)
+            .taken(ROOT_README)?
+            .to_owned(),
+    ));
+    for (relative, text) in scanned {
         offenders.extend(banned_vocabulary_offences(&relative, &text));
         read.push((relative, text));
-        Ok(())
-    };
-    visit_files(&root.join("src"), &mut inspect)?;
-    visit_files(&root.join(TOOLING_DIRECTORY), &mut inspect)?;
-    visit_files(&root.join(JUDGE_DIRECTORY), &mut inspect)?;
-    inspect(&root.join("README.md"))?;
+    }
     // The allowlist is joined against the same scan: every allowance has to
     // still be excusing something.
     offenders.extend(stale_allowlist_offences(&read));
@@ -184,6 +182,9 @@ pub(crate) fn check_banned_vocabulary(root: &Path) -> Result<(), String> {
         ))
     }
 }
+
+/// The one document outside the three trees that this gate scans.
+const ROOT_README: &str = "README.md";
 
 /// Every allowlist entry whose named file no longer spells the word it excuses,
 /// one offence per stale entry.
@@ -370,9 +371,7 @@ mod tests {
         BANNED_VOCABULARY_ALLOWLIST, banned_vocabulary_offences, banned_words_in,
         stale_allowlist_offences,
     };
-    use crate::repository::walk::repo_root;
-    use std::fs;
-    use std::path::PathBuf;
+    use crate::repository::snapshot::repository_snapshot;
 
     /// Planted reversal: the term smuggled into a `camelCase` identifier, where
     /// no whole-word scan of the text would ever find it.
@@ -485,18 +484,17 @@ mod tests {
     /// The real allowlist holds: every entry still excuses a word its named
     /// file spells, read through the ban's own scan.
     #[test]
-    fn the_real_allowlist_still_excuses_something() {
-        let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
-        let scanned: Vec<(String, String)> = BANNED_VOCABULARY_ALLOWLIST
-            .iter()
-            .map(|(file, _, _)| {
-                (
-                    (*file).to_string(),
-                    fs::read_to_string(root.join(file)).unwrap_or_default(),
-                )
-            })
-            .collect();
+    fn the_real_allowlist_still_excuses_something() -> Result<(), String> {
+        let snapshot = repository_snapshot()?;
+        let mut scanned: Vec<(String, String)> = Vec::new();
+        for (file, _, _) in BANNED_VOCABULARY_ALLOWLIST {
+            scanned.push((
+                String::from(file),
+                snapshot.files().text(file).taken(file)?.to_owned(),
+            ));
+        }
         let found = stale_allowlist_offences(&scanned);
         assert!(found.is_empty(), "{found:?}");
+        Ok(())
     }
 }

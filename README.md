@@ -158,15 +158,23 @@ consumes evidence that its family admits an item: the two `const` roads prove it
 off the declaration, `admitted_const` and `admitted_prefix` take `PositiveLimit`,
 and `admitted` takes `PositiveLimitWitness`. The claim is total rather than
 sampled because the shape's seats are private — no road into it can exist outside
-`src/types.rs` and its guarded child. The other direction is NOT claimed here:
-"every limit family whose seat promises an inhabitant declares its ladder" is a
-population question, and no repository join derives that population from the
-sources. One side of it drifts loudly meanwhile — `rustc` answers an unsatisfied
-bound by listing the types that satisfy it, so the recorded diagnostic in
+`src/types.rs` and its guarded child. The other direction — "every limit family
+whose seat promises an inhabitant declares its ladder" — is a POPULATION
+question, which no law inside the crate can state because Rust cannot enumerate
+the types implementing a trait. It is derived instead:
+`cargo xtask check`'s `inhabitant-promising-limits-are-witnessed` reads the
+machine's sources, takes every family that bounds a `NonEmptyBounded` or an
+`AdmittedPrefix` seat while declaring no `ConstLimit`, and prints how many of
+them are on the ladder over how many there are. A family that gains such a seat
+without declaring `EvidenceSelectedLimit` is caught by that derivation rather
+than by anybody remembering a list. A drift detector stands over the other side
+of the same fact — `rustc` answers an unsatisfied bound by listing the types
+that satisfy it, so the recorded diagnostic in
 `testpak/tests/compile-fail/a-capacity-minted-for-an-undeclared-family.stderr`
 carries the ladder's roster derived from the impls, and a family joining or
-leaving it fails that fixture. That is a drift detector over one side, not a
-denominator over both.
+leaving it fails that fixture. What the derivation does not reach is stated
+where it is read: the services declare their families through a transcriber no
+syntax reader expands, so the population is the machine's own.
 
 Each construction road states its own claim class, and the classes do not
 substitute for one another:

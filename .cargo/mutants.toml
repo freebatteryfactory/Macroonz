@@ -43,15 +43,14 @@
 # gap: it is a question the run never got to ask, and reading a low survivor
 # count off a high unviable count would be reading coverage out of silence.
 #
-# WHERE THIS FILE IS COUNTED: NOWHERE YET, and it is the one admission
-# requirement this surface arrives without. Its report has a denominator — the
-# run derives it, every mutant examined, split into caught, survived, timed out
-# and did-not-build, and the job prints it — but that denominator is published by
-# a run rather than joined by a law, so nothing refuses when this file goes. The
-# opening condition is written once, in `.config/nextest.toml`, and covers both
-# surfaces: a repository law of the shape
-# `dependency-gate-artifacts-are-present-and-distinct` reading these two configs
-# and the two workflows that call them.
+# WHERE THIS FILE IS COUNTED: in the roster `xtask/src/main.rs` holds.
+# `alarm-artifacts-are-present-and-distinct` reads this file and refuses when it
+# is deleted or emptied, which is the opening condition `.config/nextest.toml`
+# wrote once for both surfaces, now discharged. Its own report still has a
+# denominator of a different kind — the run derives it, every mutant examined,
+# split into caught, survived, timed out and did-not-build, and the job prints
+# it — and that one is published by a run rather than joined by a law, so what
+# refuses when this file goes is the roster entry and not the report.
 
 # The scope, and the whole of it. Mutants are generated from these sources
 # alone; the tests that judge them are the mutated package's own, which for

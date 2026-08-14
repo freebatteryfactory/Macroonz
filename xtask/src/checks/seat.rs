@@ -68,10 +68,8 @@
 //! in another file would have its contents judged nowhere at all, and unknown
 //! must not read as nothing to say.
 
-use std::fs;
-use std::path::Path;
-
-use crate::repository::walk::{TOOLING_DIRECTORY, relative_slash_path, visit_files};
+use crate::repository::snapshot::{MACHINE_DIRECTORY, RepositorySnapshot, TOOLING_DIRECTORY};
+use crate::repository::types::CanonicalPath;
 
 /// The module name a sealed record is declared in.
 const SEAT_MODULE: &str = "seat";
@@ -85,8 +83,10 @@ const SEAT_MODULE: &str = "seat";
 /// Returns the offences one line at a time, and returns a read failure as
 /// itself: a gate that cannot read its subject says so rather than reporting an
 /// empty population.
-pub(crate) fn check_seat_modules_carry_nothing_else(root: &Path) -> Result<(), String> {
-    let sources = seat_sources(root)?;
+pub(crate) fn check_seat_modules_carry_nothing_else(
+    snapshot: &RepositorySnapshot,
+) -> Result<(), String> {
+    let sources = seat_sources(snapshot)?;
     let verdict = seat_verdict(&sources);
 
     // The denominator is DERIVED and printed on every run, because a population
@@ -120,25 +120,21 @@ struct SeatVerdict {
     offenders: Vec<String>,
 }
 
-/// Reads every `seat` module out of source text and judges each one.
+/// Reads every `seat` module out of parsed trees and judges each one.
 ///
-/// Pure over its inputs — `(repository-relative path, source text)` pairs — so
-/// the reversals below are planted in memory and the law that guards the seats
-/// is never proven by opening one.
-fn seat_verdict(sources: &[(String, String)]) -> SeatVerdict {
+/// Pure over its inputs — `(canonical path, parsed tree)` pairs handed over by
+/// the snapshot — so the reversals below are planted in memory and the law that
+/// guards the seats is never proven by opening one. A source that did not parse
+/// never reaches here: the snapshot carries it as unread, and the caller refuses
+/// the whole reading rather than deriving a population one file short.
+fn seat_verdict(sources: &[(&CanonicalPath, &syn::File)]) -> SeatVerdict {
     let mut verdict = SeatVerdict {
         declared: 0,
         closed: 0,
         offenders: Vec::new(),
     };
-    for (path, text) in sources {
-        match syn::parse_file(text) {
-            Ok(file) => walk(path, &file.items, &mut verdict),
-            Err(error) => verdict.offenders.push(format!(
-                "{path}: this file is not parseable Rust, so the population derived from it is \
-                 unknown rather than empty: {error}"
-            )),
-        }
+    for (path, file) in sources {
+        walk(path.as_str(), &file.items, &mut verdict);
     }
     verdict
 }
@@ -315,30 +311,24 @@ fn head_of(declared: &syn::Type) -> Option<String> {
     }
 }
 
-/// Every source file the population is derived from: the machine's own sources
-/// and the services'.
+/// Every parsed source the population is derived from: the machine's own
+/// sources and the services'.
+///
+/// Taken from the one reading. A source the snapshot could not parse refuses
+/// the whole law rather than leaving the population one file short — a
+/// denominator that shrank in silence is the single failure a derived
+/// denominator exists to prevent.
 ///
 /// No proof surface is excluded. A `seat` module on a proof surface is a seat
 /// module, and it is judged: this law reads item kinds rather than semantic
 /// roles, so a demonstration seat costs the denominator one honest entry rather
 /// than inflating it with a role nothing ships.
-fn seat_sources(root: &Path) -> Result<Vec<(String, String)>, String> {
-    let mut sources = Vec::new();
-    for directory in ["src", TOOLING_DIRECTORY] {
-        let base = root.join(directory);
-        if !base.is_dir() {
-            continue;
-        }
-        visit_files(&base, &mut |path| {
-            if path.extension().is_none_or(|extension| extension != "rs") {
-                return Ok(());
-            }
-            let text = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
-            sources.push((relative_slash_path(root, path), text));
-            Ok(())
-        })?;
-    }
-    Ok(sources)
+fn seat_sources(
+    snapshot: &RepositorySnapshot,
+) -> Result<Vec<(&CanonicalPath, &syn::File)>, String> {
+    snapshot
+        .rust()
+        .parsed_under(&[MACHINE_DIRECTORY, TOOLING_DIRECTORY])
 }
 
 /// Planted reversals for the seat law, and the real tree judged by it.
@@ -349,8 +339,9 @@ fn seat_sources(root: &Path) -> Result<Vec<(String, String)>, String> {
 /// rather than what it hoped for.
 #[cfg(test)]
 mod tests {
-    use super::{SeatVerdict, seat_sources, seat_verdict};
-    use crate::repository::walk::repo_root;
+    use super::{SeatVerdict, seat_sources, seat_verdict as verdict_of_trees};
+    use crate::repository::snapshot::repository_snapshot;
+    use crate::repository::types::CanonicalPath;
 
     /// One synthetic source carrying one `seat` module with the given body.
     fn seat(body: &str) -> Vec<(String, String)> {
@@ -358,6 +349,32 @@ mod tests {
             String::from("macros/macroc/src/home/type_guard.rs"),
             format!("pub use seat::DemoRefusal;\n\nmod seat {{\n{body}}}\n"),
         )]
+    }
+
+    /// The verdict over fixture source TEXT.
+    ///
+    /// The law itself is handed trees the snapshot already parsed, so a source
+    /// it could not read never reaches it. A fixture is text, so this adapter
+    /// parses one and reports a fixture that does not parse exactly as the
+    /// reading reports a source it could not read — which keeps the reversal
+    /// below about a hole in the population rather than about who parses.
+    fn seat_verdict(sources: &[(String, String)]) -> SeatVerdict {
+        let mut parsed = Vec::new();
+        let mut unparsable = Vec::new();
+        for (path, text) in sources {
+            match syn::parse_file(text) {
+                Ok(file) => parsed.push((CanonicalPath::spelled(path), file)),
+                Err(error) => unparsable.push(format!(
+                    "{path}: this file is not parseable Rust, so the population derived from it \
+                     is unknown rather than empty: {error}"
+                )),
+            }
+        }
+        let trees: Vec<(&CanonicalPath, &syn::File)> =
+            parsed.iter().map(|(path, file)| (path, file)).collect();
+        let mut verdict = verdict_of_trees(&trees);
+        verdict.offenders.splice(0..0, unparsable);
+        verdict
     }
 
     /// The record and its one crate-internal mint: the shape every seat module
@@ -560,27 +577,19 @@ mod tests {
     /// one file over; the run prints the numbers, and the relation is what has
     /// to hold.
     #[test]
-    fn the_real_tree_carries_nothing_else_in_a_seat_module() {
-        let read = repo_root()
-            .map_err(|error| format!("the repository root could not be found: {error}"))
-            .and_then(|root| seat_sources(&root))
-            .map(|sources| seat_verdict(&sources));
+    fn the_real_tree_carries_nothing_else_in_a_seat_module() -> Result<(), String> {
+        let snapshot = repository_snapshot()?;
+        let sources = seat_sources(snapshot)?;
+        let verdict = verdict_of_trees(&sources);
+        assert!(verdict.offenders.is_empty(), "{verdict:?}");
         assert!(
-            read.is_ok(),
-            "the seat gate could not read its subject: {read:?}"
+            verdict.declared > 0,
+            "no `seat` module found in the real tree: {verdict:?}"
         );
-        assert!(
-            read.as_ref()
-                .is_ok_and(|verdict| verdict.offenders.is_empty()),
-            "{read:?}"
-        );
-        assert!(
-            read.as_ref().is_ok_and(|verdict| verdict.declared > 0),
-            "no `seat` module found in the real tree: {read:?}"
-        );
-        assert!(
-            read.is_ok_and(|verdict| verdict.closed == verdict.declared),
+        assert_eq!(
+            verdict.closed, verdict.declared,
             "the real tree carries a `seat` module with something else in it"
         );
+        Ok(())
     }
 }

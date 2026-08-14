@@ -8,58 +8,73 @@
 //! order. A services home may be a file or a directory, and the check reads both
 //! the same way. In both crates the map and the crate are derived from each
 //! other rather than maintained by hand, which is why neither can quietly drift.
+//!
+//! Both readings go through the decoders that own what they are reading. A
+//! declared module is an ITEM, so `syn` is asked which items a crate root
+//! declares and in what order; a reference is a PATH in the token stream, so
+//! `proc-macro2` is asked to lex it. The line reader this replaced discovered
+//! modules by matching `mod ` at the head of a trimmed line and found the band
+//! declarations with `str::find` on an attribute spelled exactly one way — so a
+//! module declared across two lines was invisible to it, and an attribute
+//! written with different spacing was a band `lib.rs` "did not declare".
 
-use std::fs;
-use std::path::Path;
+use std::collections::BTreeSet;
+use std::str::FromStr;
 
-use crate::repository::types::ModuleLayout;
-use crate::repository::walk::module_source;
+use proc_macro2::{Delimiter, TokenStream, TokenTree};
+
+use crate::repository::snapshot::{MACHINE_DIRECTORY, RepositorySnapshot};
+use crate::repository::types::{CanonicalPath, ModuleLayout};
+
+/// The files a numbered band home carries.
+const HOME_FILES: [&str; 3] = ["README.md", "mod.rs", "types.rs"];
+
+/// The crate root of the machine.
+const MACHINE_ROOT: &str = "src/lib.rs";
+
+/// The services crate's source directory, whose unnumbered module list carries
+/// its dependency order the way numbered directories carry the machine's.
+const TOOLING_SOURCE: &str = "macros/macroc/src";
+
+/// The attribute a band declaration carries.
+const PATH_ATTRIBUTE: &str = "path";
+
+/// The attribute that takes a declaration out of the order it would otherwise
+/// stand in.
+const CONDITION_ATTRIBUTE: &str = "cfg";
 
 /// Every numbered band directory is complete (README.md, mod.rs, types.rs) and
 /// `lib.rs` declares every band via its `#[path]` attribute in ascending band
 /// order — the band map and the crate never drift apart.
-pub(crate) fn check_band_map(root: &Path) -> Result<(), String> {
-    let src = root.join("src");
-    let mut bands = Vec::new();
-    let entries = fs::read_dir(&src).map_err(|e| format!("{}: {e}", src.display()))?;
-    for entry in entries {
-        let entry = entry.map_err(|e| format!("{}: {e}", src.display()))?;
-        if !entry
-            .file_type()
-            .map_err(|e| format!("{}: {e}", src.display()))?
-            .is_dir()
-        {
-            continue;
-        }
-        let name = entry.file_name().to_string_lossy().into_owned();
-        let Some((number, _)) = name.split_once('_') else {
-            continue;
-        };
-        if number.len() == 2 && number.chars().all(|c| c.is_ascii_digit()) {
-            bands.push(name);
-        }
-    }
-    bands.sort();
+pub(crate) fn check_band_map(snapshot: &RepositorySnapshot) -> Result<(), String> {
+    let bands = band_directories(snapshot);
     let mut offenders = Vec::new();
     for band in &bands {
-        for file in ["README.md", "mod.rs", "types.rs"] {
-            if !src.join(band).join(file).is_file() {
+        for file in HOME_FILES {
+            if snapshot
+                .files()
+                .get(&format!("{MACHINE_DIRECTORY}/{band}/{file}"))
+                .is_none()
+            {
                 offenders.push(format!("{band} missing {file}"));
             }
         }
     }
-    let lib = fs::read_to_string(src.join("lib.rs")).map_err(|e| format!("lib.rs: {e}"))?;
-    let mut declared_positions = Vec::new();
+    let root = snapshot
+        .rust()
+        .source(&CanonicalPath::spelled(MACHINE_ROOT))
+        .taken(MACHINE_ROOT)?;
+    let declared = band_declarations(root);
+    let mut positions = Vec::new();
     for band in &bands {
-        let needle = format!("#[path = \"{band}/mod.rs\"]");
-        match lib.find(&needle) {
-            Some(position) => declared_positions.push((position, band.clone())),
+        match declared.iter().position(|stated| stated == band) {
+            Some(position) => positions.push((position, band.clone())),
             None => offenders.push(format!("lib.rs does not declare {band}")),
         }
     }
-    let mut sorted = declared_positions.clone();
-    sorted.sort();
-    if sorted != declared_positions {
+    let mut ascending = positions.clone();
+    ascending.sort();
+    if ascending != positions {
         offenders.push(String::from(
             "lib.rs band declarations are out of band order",
         ));
@@ -71,9 +86,71 @@ pub(crate) fn check_band_map(root: &Path) -> Result<(), String> {
     }
 }
 
-/// The services crate's source directory, whose unnumbered module list carries
-/// its dependency order the way numbered directories carry the machine's.
-const TOOLING_MODULE_ROOT: [&str; 3] = ["macros", "macroc", "src"];
+/// Every numbered band directory the machine's tree carries, in ascending band
+/// order.
+///
+/// A band is a directory whose name opens with two digits and an underscore.
+/// The set is derived from the reading rather than from a list anybody
+/// maintains.
+fn band_directories(snapshot: &RepositorySnapshot) -> Vec<String> {
+    let mut bands = BTreeSet::new();
+    for (path, _) in snapshot.files().under(MACHINE_DIRECTORY) {
+        let Some(tail) = path
+            .as_str()
+            .get(MACHINE_DIRECTORY.len().saturating_add(1)..)
+        else {
+            continue;
+        };
+        let Some((head, _)) = tail.split_once('/') else {
+            continue;
+        };
+        let Some((number, _)) = head.split_once('_') else {
+            continue;
+        };
+        if number.len() == 2 && number.chars().all(|digit| digit.is_ascii_digit()) {
+            bands.insert(head.to_owned());
+        }
+    }
+    bands.into_iter().collect()
+}
+
+/// The band directories one crate root declares, in declaration order.
+///
+/// Read off the `#[path = "…"]` attribute of each declared module, which is
+/// what a band declaration IS. The directory is the path's own leading segment,
+/// so the reading never has to be told how a band's `mod.rs` is spelled.
+fn band_declarations(root: &syn::File) -> Vec<String> {
+    root.items.iter().filter_map(declared_band).collect()
+}
+
+/// The band directory one declared item names, where it names one.
+fn declared_band(item: &syn::Item) -> Option<String> {
+    let syn::Item::Mod(module) = item else {
+        return None;
+    };
+    module.attrs.iter().find_map(|attribute| {
+        let stated = string_attribute(attribute, PATH_ATTRIBUTE)?;
+        let (directory, _) = stated.split_once('/')?;
+        Some(directory.to_owned())
+    })
+}
+
+/// The string one named attribute states, where it states one.
+fn string_attribute(attribute: &syn::Attribute, named: &str) -> Option<String> {
+    if !attribute.path().is_ident(named) {
+        return None;
+    }
+    let syn::Meta::NameValue(stated) = &attribute.meta else {
+        return None;
+    };
+    let syn::Expr::Lit(literal) = &stated.value else {
+        return None;
+    };
+    let syn::Lit::Str(written) = &literal.lit else {
+        return None;
+    };
+    Some(written.value())
+}
 
 /// Declaration order IS the dependency order.
 ///
@@ -90,13 +167,14 @@ const TOOLING_MODULE_ROOT: [&str; 3] = ["macros", "macroc", "src"];
 ///
 /// # The dependency spellings this check recognizes
 ///
-/// The reader is deliberately dumb, and its narrowness is part of the law it
+/// The reading is deliberately narrow, and its narrowness is part of the law it
 /// states. It recognizes exactly these routes, and nothing else:
 ///
-/// 1. `crate::name` — a plain path, in a `use` line, an inline expression, or a
-///    rustdoc link. All three break when the named module moves.
+/// 1. `crate::name` — a plain path, in a `use` item or in an expression. Both
+///    break when the named module moves.
 /// 2. `crate::{a::…, b::…}` — a GROUPED use. Every segment head inside the
-///    braces is read, so wrapping three imports in one `use` hides none of them.
+///    braces is read, at any nesting, so wrapping three imports in one `use`
+///    hides none of them.
 /// 3. `use crate::name as alias;` — an ALIASED import. The edge is read off the
 ///    `crate::` path, so renaming the binding hides nothing.
 /// 4. `super::name` inside a SINGLE-FILE module — which is the crate root under
@@ -105,6 +183,8 @@ const TOOLING_MODULE_ROOT: [&str; 3] = ["macros", "macroc", "src"];
 ///    RE-EXPORT route. Reaching a sibling's content through the crate root
 ///    launders the edge: the reference names no owner, so nothing about the
 ///    declaration order can be read off it. Owner paths only.
+/// 6. A rustdoc intra-doc link naming `crate::…`, read out of the documentation
+///    string the lexer hands back on the item it documents.
 ///
 /// A module is `name.rs` or the directory `name/`, and a directory module's
 /// edges are the union of every `.rs` file under it — a submodule reaching
@@ -118,21 +198,20 @@ const TOOLING_MODULE_ROOT: [&str; 3] = ["macros", "macroc", "src"];
 /// Test-only declarations are excluded: the proof surface (`laws`) is declared
 /// `#[cfg(test)] mod laws;` precisely so it can look in every direction without
 /// standing in the order it proves.
-pub(crate) fn check_tooling_module_order(root: &Path) -> Result<(), String> {
-    let mut src = root.to_path_buf();
-    for segment in TOOLING_MODULE_ROOT {
-        src.push(segment);
-    }
-    let lib_path = src.join("lib.rs");
-    let lib = fs::read_to_string(&lib_path).map_err(|e| format!("{}: {e}", lib_path.display()))?;
-    let order = declared_module_order(&lib);
+pub(crate) fn check_tooling_module_order(snapshot: &RepositorySnapshot) -> Result<(), String> {
+    let root_path = format!("{TOOLING_SOURCE}/lib.rs");
+    let root = snapshot
+        .rust()
+        .source(&CanonicalPath::spelled(&root_path))
+        .taken(&root_path)?;
+    let order = declared_module_order(root);
     if order.is_empty() {
-        return Err(format!("{} declares no modules", lib_path.display()));
+        return Err(format!("{root_path} declares no modules"));
     }
     let mut modules = Vec::new();
     for name in &order {
-        let (text, layout) = module_source(&src, name)?;
-        modules.push((name.clone(), text, layout));
+        let (references, layout) = module_references(snapshot, name)?;
+        modules.push((name.clone(), references, layout));
     }
     let violations = module_order_violations(&order, &modules);
     if violations.is_empty() {
@@ -142,72 +221,220 @@ pub(crate) fn check_tooling_module_order(root: &Path) -> Result<(), String> {
     }
 }
 
-/// The module names one `lib.rs` declares, in declaration order.
+/// The module names one crate root declares, in declaration order.
 ///
 /// Both `mod name;` and `pub mod name;` count — a private module participates
-/// in the order exactly as a public one does. A declaration carrying
-/// `#[cfg(test)]` on the line before it does not: the proof surface is outside
-/// the order by construction.
-fn declared_module_order(lib_text: &str) -> Vec<String> {
-    let mut order = Vec::new();
-    let mut test_only = false;
-    for raw in lib_text.lines() {
-        let line = raw.trim();
-        if line.is_empty() || line.starts_with("//") {
-            continue;
-        }
-        if line == "#[cfg(test)]" {
-            test_only = true;
-            continue;
-        }
-        let declaration = line.strip_prefix("pub ").unwrap_or(line);
-        if let Some(rest) = declaration.strip_prefix("mod ")
-            && let Some(name) = rest.strip_suffix(';')
-            && !name.contains(' ')
-        {
-            if !test_only {
-                order.push(name.to_string());
+/// in the order exactly as a public one does. A declaration carrying a build
+/// CONDITION does not: the proof surface is outside the order by construction.
+fn declared_module_order(root: &syn::File) -> Vec<String> {
+    root.items
+        .iter()
+        .filter_map(|item| {
+            let syn::Item::Mod(module) = item else {
+                return None;
+            };
+            if module
+                .attrs
+                .iter()
+                .any(|attribute| attribute.path().is_ident(CONDITION_ATTRIBUTE))
+            {
+                return None;
             }
-            test_only = false;
-            continue;
-        }
-        test_only = false;
-    }
-    order
+            Some(module.ident.to_string())
+        })
+        .collect()
 }
 
-/// Every name one module's text reaches through a crate-root path, in the order
-/// the text spells them, duplicates included.
+/// Every crate-root name one declared module reaches, and the layout it is in.
 ///
-/// Both openings are read: `crate::` and `super::`. In a single-file module the
-/// two mean the same place, so a module reaching a sibling through `super::` has
-/// taken exactly the edge `crate::` would have taken.
-///
-/// The keyword is matched whole, so a longer identifier ending in `crate` or
-/// `super` is never mistaken for the crate root. A grouped use expands: every
-/// segment head inside `{ … }` is read, at any nesting, so wrapping three
-/// imports in one `use` hides none of them.
-///
-/// Which openings are read is decided by the module's [`ModuleLayout`], which
-/// the caller already holds — the layout was established when the module's text
-/// was read, and is carried rather than guessed again here.
-fn crate_references(module_text: &str, layout: ModuleLayout) -> Vec<String> {
-    let openings: &[&str] = match layout {
-        ModuleLayout::Directory => &["crate::"],
-        ModuleLayout::Flat => &["crate::", "super::"],
-    };
+/// This is the stage that turns a declared NAME into the edges an order is read
+/// off. `name.rs` is its own source; `name/` is every `.rs` file under it, read
+/// separately and unioned, because a submodule reaching forward is its parent
+/// reaching forward.
+fn module_references(
+    snapshot: &RepositorySnapshot,
+    name: &str,
+) -> Result<(Vec<String>, ModuleLayout), String> {
+    let flat = format!("{TOOLING_SOURCE}/{name}.rs");
+    if snapshot.files().get(&flat).is_some() {
+        let text = snapshot.files().text(&flat).taken(&flat)?;
+        return Ok((references_of(text, ModuleLayout::Flat)?, ModuleLayout::Flat));
+    }
+    let directory = format!("{TOOLING_SOURCE}/{name}");
     let mut found = Vec::new();
-    for opening in openings.iter().copied() {
+    let mut carried = false;
+    for (path, _) in snapshot.files().under(&directory) {
+        if !path.extension_is("rs") {
+            continue;
+        }
+        carried = true;
+        let text = snapshot.files().text(path.as_str()).taken(path.as_str())?;
+        found.extend(references_of(text, ModuleLayout::Directory)?);
+    }
+    if carried {
+        Ok((found, ModuleLayout::Directory))
+    } else {
+        Err(format!(
+            "{name} is declared and is neither {flat} nor {directory}/"
+        ))
+    }
+}
+
+/// Every crate-root name one source reaches.
+///
+/// The source is LEXED rather than searched. `proc-macro2` owns Rust's token
+/// grammar, so `crate` is an identifier here rather than a substring: a longer
+/// name ending in `crate`, the word inside an ordinary comment, and the word
+/// inside a string literal are all what they are, and none of them is a
+/// reference. A documentation comment arrives as the string literal of a `doc`
+/// attribute, which is where an intra-doc link lives, so those are read as text
+/// on purpose — a rustdoc link IS prose naming a path.
+fn references_of(text: &str, layout: ModuleLayout) -> Result<Vec<String>, String> {
+    let tokens = TokenStream::from_str(text)
+        .map_err(|error| format!("the source does not lex as Rust: {error}"))?;
+    let mut found = Vec::new();
+    read_references(tokens, layout, &mut found);
+    Ok(found)
+}
+
+/// Whether one opening word names the crate root under this layout.
+///
+/// In a directory module, a submodule saying `super::` is naming its own
+/// parent, which is not a forward reference at all; in a flat module, `super::`
+/// and `crate::` name the same place, so both are read.
+fn opens_the_crate_root(word: &str, layout: ModuleLayout) -> bool {
+    match layout {
+        ModuleLayout::Directory => word == "crate",
+        ModuleLayout::Flat => word == "crate" || word == "super",
+    }
+}
+
+/// Walks one token stream, collecting every crate-root reference it spells.
+///
+/// A string LITERAL is a value rather than a path, so one is never read as a
+/// reference — with exactly one exception, stated here and nowhere else: the
+/// literal inside a `doc` attribute, which is where a rustdoc intra-doc link
+/// lives. That is why documentation is reached at the attribute rather than by
+/// scanning every literal the source happens to carry: a path written inside an
+/// ordinary string is a string.
+fn read_references(tokens: TokenStream, layout: ModuleLayout, into: &mut Vec<String>) {
+    let trees: Vec<TokenTree> = tokens.into_iter().collect();
+    for (index, tree) in trees.iter().enumerate() {
+        match *tree {
+            TokenTree::Ident(ref word) => {
+                if opens_the_crate_root(&word.to_string(), layout)
+                    && let Some(tail) = separator_follows(&trees, index)
+                {
+                    into.extend(referenced_heads(tail));
+                }
+            }
+            TokenTree::Group(ref group) => {
+                if group.delimiter() == Delimiter::Bracket && opens_documentation(group.stream()) {
+                    into.extend(documentation_references(group.stream(), layout));
+                    continue;
+                }
+                read_references(group.stream(), layout, into);
+            }
+            TokenTree::Literal(_) | TokenTree::Punct(_) => (),
+        }
+    }
+}
+
+/// Whether one attribute's body is a `doc` attribute — which is what a
+/// documentation comment arrives as.
+fn opens_documentation(tokens: TokenStream) -> bool {
+    matches!(tokens.into_iter().next(), Some(TokenTree::Ident(ref word)) if word == "doc")
+}
+
+/// Every crate-root name one documentation attribute's own literals name.
+fn documentation_references(tokens: TokenStream, layout: ModuleLayout) -> Vec<String> {
+    tokens
+        .into_iter()
+        .filter_map(|written| match written {
+            TokenTree::Literal(documented) => Some(documented.to_string()),
+            TokenTree::Group(_) | TokenTree::Ident(_) | TokenTree::Punct(_) => None,
+        })
+        .flat_map(|documented| documented_references(&documented, layout))
+        .collect()
+}
+
+/// The tree after a `::` separator following the token at `index`, where one
+/// follows.
+fn separator_follows(trees: &[TokenTree], index: usize) -> Option<&TokenTree> {
+    let first = trees.get(index.saturating_add(1))?;
+    let second = trees.get(index.saturating_add(2))?;
+    let TokenTree::Punct(ref opening) = *first else {
+        return None;
+    };
+    let TokenTree::Punct(ref closing) = *second else {
+        return None;
+    };
+    if opening.as_char() != ':' || closing.as_char() != ':' {
+        return None;
+    }
+    trees.get(index.saturating_add(3))
+}
+
+/// The segment heads one crate-root path reaches: the single name of a plain
+/// path, or every head inside a grouped use, at any nesting.
+fn referenced_heads(tail: &TokenTree) -> Vec<String> {
+    match *tail {
+        TokenTree::Ident(ref named) => vec![named.to_string()],
+        TokenTree::Group(ref group) if group.delimiter() == Delimiter::Brace => {
+            grouped_heads(group.stream())
+        }
+        TokenTree::Group(_) | TokenTree::Punct(_) | TokenTree::Literal(_) => Vec::new(),
+    }
+}
+
+/// Every head inside one grouped use, at any nesting.
+fn grouped_heads(tokens: TokenStream) -> Vec<String> {
+    let mut heads = Vec::new();
+    let mut at_head = true;
+    for tree in tokens {
+        match tree {
+            TokenTree::Punct(ref mark) if mark.as_char() == ',' => at_head = true,
+            TokenTree::Ident(ref named) => {
+                if at_head {
+                    heads.push(named.to_string());
+                    at_head = false;
+                }
+            }
+            TokenTree::Group(ref group) if group.delimiter() == Delimiter::Brace => {
+                heads.extend(grouped_heads(group.stream()));
+                at_head = false;
+            }
+            TokenTree::Group(_) | TokenTree::Literal(_) | TokenTree::Punct(_) => (),
+        }
+    }
+    heads
+}
+
+/// Every crate-root name one documentation string names.
+///
+/// A rustdoc intra-doc link is prose carrying a path, which is why this half is
+/// read as text — and it is the ONE half that is, stated here rather than left
+/// as the case somebody notices later.
+fn documented_references(written: &str, layout: ModuleLayout) -> Vec<String> {
+    let mut found = Vec::new();
+    for opening in ["crate", "super"] {
+        if !opens_the_crate_root(opening, layout) {
+            continue;
+        }
+        let needle = format!("{opening}::");
         let mut from = 0usize;
-        while let Some(offset) = module_text.get(from..).and_then(|rest| rest.find(opening)) {
+        while let Some(offset) = written.get(from..).and_then(|rest| rest.find(&needle)) {
             let start = from.saturating_add(offset);
-            let end = start.saturating_add(opening.len());
-            let before_is_word = module_text
+            let end = start.saturating_add(needle.len());
+            let before_is_word = written
                 .get(..start)
                 .and_then(|head| head.chars().next_back())
                 .is_some_and(|c| c.is_ascii_alphanumeric() || c == '_');
-            if !before_is_word && let Some(tail) = module_text.get(end..) {
-                found.extend(referenced_heads(tail));
+            if !before_is_word
+                && let Some(tail) = written.get(end..)
+                && let Some(name) = leading_name(tail)
+            {
+                found.push(name);
             }
             from = end;
         }
@@ -215,64 +442,13 @@ fn crate_references(module_text: &str, layout: ModuleLayout) -> Vec<String> {
     found
 }
 
-/// The segment heads one crate-root path reaches: the single name of a plain
-/// path, or every head inside a grouped use.
-fn referenced_heads(tail: &str) -> Vec<String> {
-    let trimmed = tail.trim_start();
-    if !trimmed.starts_with('{') {
-        let name: String = trimmed
-            .chars()
-            .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
-            .collect();
-        return if name.is_empty() {
-            Vec::new()
-        } else {
-            vec![name]
-        };
-    }
-    let mut heads = Vec::new();
-    let mut depth = 0usize;
-    let mut current = String::new();
-    let mut at_head = false;
-    for character in trimmed.chars() {
-        match character {
-            '{' => {
-                depth = depth.saturating_add(1);
-                at_head = true;
-                current.clear();
-            }
-            '}' => {
-                if !current.is_empty() {
-                    heads.push(std::mem::take(&mut current));
-                }
-                depth = depth.saturating_sub(1);
-                if depth == 0 {
-                    break;
-                }
-            }
-            ',' => {
-                if !current.is_empty() {
-                    heads.push(std::mem::take(&mut current));
-                }
-                at_head = true;
-            }
-            ':' => {
-                if !current.is_empty() {
-                    heads.push(std::mem::take(&mut current));
-                }
-                at_head = false;
-            }
-            _ if character.is_whitespace() => {}
-            _ if at_head && (character.is_ascii_alphanumeric() || character == '_') => {
-                current.push(character);
-            }
-            _ => {
-                current.clear();
-                at_head = false;
-            }
-        }
-    }
-    heads
+/// The identifier one text opens with, where it opens with one.
+fn leading_name(tail: &str) -> Option<String> {
+    let name: String = tail
+        .chars()
+        .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+        .collect();
+    if name.is_empty() { None } else { Some(name) }
 }
 
 /// Every unlawful edge in one module set, one description per edge.
@@ -291,20 +467,20 @@ fn referenced_heads(tail: &str) -> Vec<String> {
 /// edge.
 fn module_order_violations(
     order: &[String],
-    modules: &[(String, String, ModuleLayout)],
+    modules: &[(String, Vec<String>, ModuleLayout)],
 ) -> Vec<String> {
     let position = |name: &str| order.iter().position(|declared| declared == name);
     let mut violations = Vec::new();
-    for (name, text, layout) in modules {
+    for (name, references, _) in modules {
         let Some(here) = position(name) else {
             continue;
         };
         let mut reported: Vec<String> = Vec::new();
-        for referenced in crate_references(text, *layout) {
-            if reported.contains(&referenced) {
+        for referenced in references {
+            if reported.contains(referenced) {
                 continue;
             }
-            match position(&referenced) {
+            match position(referenced) {
                 Some(there) if there > here => {
                     reported.push(referenced.clone());
                     violations.push(format!(
@@ -328,69 +504,85 @@ fn module_order_violations(
 
 /// Planted reversals for both orders.
 ///
-/// The module-order law is pure over `(order, module sources)`, so its
+/// The module-order law is pure over `(order, module references)`, so its
 /// reversals are synthetic module sets held in memory. The band map reads a
-/// directory, so its reversal is planted against a scratch root outside the
+/// tree, so its reversal is planted against a scratch root outside the
 /// repository. Neither writes inside the tree it guards.
 #[cfg(test)]
 mod tests {
     use super::{
-        TOOLING_MODULE_ROOT, check_band_map, declared_module_order, module_order_violations,
+        check_band_map, check_tooling_module_order, declared_module_order, module_order_violations,
+        references_of,
     };
     use crate::checks::scratch::Scratch;
+    use crate::repository::snapshot::repository_snapshot;
     use crate::repository::types::ModuleLayout;
-    use crate::repository::walk::{module_source, repo_root};
-    use std::fs;
-    use std::path::PathBuf;
 
     /// One synthetic module set, as `(name, source text)` pairs. Every synthetic
     /// module is flat: the directory layout is exercised against the real tree,
     /// where the directory exists.
-    fn sources(pairs: &[(&str, &str)]) -> Vec<(String, String, ModuleLayout)> {
-        pairs
-            .iter()
-            .map(|(name, text)| ((*name).to_string(), (*text).to_string(), ModuleLayout::Flat))
-            .collect()
+    fn sources(pairs: &[(&str, &str)]) -> Result<Vec<(String, Vec<String>, ModuleLayout)>, String> {
+        let mut read = Vec::new();
+        for (name, text) in pairs {
+            read.push((
+                (*name).to_owned(),
+                references_of(text, ModuleLayout::Flat)?,
+                ModuleLayout::Flat,
+            ));
+        }
+        Ok(read)
     }
 
-    /// The declaration order is read out of the file in file order, not sorted,
-    /// and the test-only proof surface is excluded from it.
+    /// One crate root, parsed.
+    fn root(text: &str) -> Result<syn::File, String> {
+        syn::parse_file(text).map_err(|error| error.to_string())
+    }
+
+    /// The declaration order is read out of the ITEMS in file order, not
+    /// sorted, and the test-only proof surface is excluded from it.
+    ///
+    /// Planted reversal for the line reader this replaced: the last declaration
+    /// here is written across two lines, which no reader whose subject is a
+    /// trimmed line can see.
     #[test]
-    fn the_declaration_order_is_file_order_without_the_proof_surface() {
+    fn the_declaration_order_is_item_order_without_the_proof_surface() -> Result<(), String> {
         let lib = "//! doc\n\npub mod plane;\n\n/// note\npub mod refusal;\n\nmod helper;\n\n\
-                   #[cfg(test)]\nmod laws;\n";
+                   #[cfg(test)]\nmod laws;\n\nmod\n    wrapped;\n";
         assert_eq!(
-            declared_module_order(lib),
+            declared_module_order(&root(lib)?),
             vec![
                 String::from("plane"),
                 String::from("refusal"),
-                String::from("helper")
+                String::from("helper"),
+                String::from("wrapped"),
             ]
         );
+        Ok(())
     }
 
     /// Planted reversal: a module reaching FORWARD to a module declared after
     /// it — the shape every cycle contains at least one of.
     #[test]
-    fn a_forward_reference_is_a_violation() {
+    fn a_forward_reference_is_a_violation() -> Result<(), String> {
         let order = vec![String::from("plane"), String::from("planning")];
         let found = module_order_violations(
             &order,
             &sources(&[
                 ("plane", "use crate::planning::ProjectionPlan;\n"),
                 ("planning", "use crate::plane::ExactIdentity;\n"),
-            ]),
+            ])?,
         );
         assert_eq!(found.len(), 1, "{found:?}");
         assert!(found.iter().any(|v| v.contains("declared later")));
         assert!(found.iter().any(|v| v.contains("`plane`")));
+        Ok(())
     }
 
     /// Planted reversal: the exact cycle this discipline was written to kill —
     /// two modules importing each other. Whichever way the pair is declared,
     /// one of the two edges points forward.
     #[test]
-    fn a_two_module_cycle_is_a_violation() {
+    fn a_two_module_cycle_is_a_violation() -> Result<(), String> {
         let order = vec![
             String::from("planning"),
             String::from("explanation_protocol"),
@@ -406,33 +598,41 @@ mod tests {
                     "explanation_protocol",
                     "use crate::planning::ProjectionPlan;\n",
                 ),
-            ]),
+            ])?,
         );
         assert_eq!(found.len(), 1, "{found:?}");
         assert!(found.iter().any(|v| v.contains("`planning`")));
+        Ok(())
     }
 
     /// Planted reversal: the forward reference spelled inline rather than in a
-    /// `use` line, which no scan of import lines alone would see.
+    /// `use` line, inside a grouped use, and inside a rustdoc link — three
+    /// places no scan of import lines alone would see.
     #[test]
-    fn an_inline_forward_path_is_a_violation() {
+    fn a_forward_reference_hides_in_none_of_its_spellings() -> Result<(), String> {
         let order = vec![String::from("plane"), String::from("diagnostics")];
-        let found = module_order_violations(
-            &order,
-            &sources(&[(
-                "plane",
-                "fn f() { let _ = crate::diagnostics::MacrocPhase::Capture; }\n",
-            )]),
-        );
-        assert_eq!(found.len(), 1, "{found:?}");
+        for spelling in [
+            "fn f() { let _ = crate::diagnostics::MacrocPhase::Capture; }\n",
+            "use crate::{plane::Own, diagnostics::MacrocPhase};\n",
+            "/// See [`crate::diagnostics::MacrocPhase`] for the phases.\npub fn f() {}\n",
+            "use crate::diagnostics::MacrocPhase as Phase;\n",
+        ] {
+            let found = module_order_violations(&order, &sources(&[("plane", spelling)])?);
+            assert_eq!(found.len(), 1, "{spelling} -> {found:?}");
+        }
+        Ok(())
     }
 
     /// The positive control: a clean set passes. Backward references, repeated
     /// references, a module naming itself, and a longer identifier merely
     /// ENDING in `crate` are all lawful, so the check reports something real
     /// rather than everything.
+    ///
+    /// The lexer is what makes the last three of these free: `othercrate` is one
+    /// identifier, a comment is not a token at all, and a path inside a string
+    /// literal is a string.
     #[test]
-    fn a_clean_module_set_passes() {
+    fn a_clean_module_set_passes() -> Result<(), String> {
         let order = vec![
             String::from("plane"),
             String::from("refusal"),
@@ -449,33 +649,31 @@ mod tests {
                 (
                     "planning",
                     "use crate::plane::OwnerFactRef;\nuse crate::refusal::PlanSeat;\n\
-                     // othercrate::planning is not this crate\n\
-                     fn f() { crate::planning::own(); }\n",
+                     use othercrate::planning::Nothing;\n\
+                     // crate::diagnostics in a comment is not an edge\n\
+                     fn f() -> &'static str { \"crate::diagnostics\" }\n\
+                     fn g() { crate::planning::own(); }\n",
                 ),
-            ]),
+            ])?,
         );
         assert!(found.is_empty(), "{found:?}");
+        Ok(())
     }
 
     /// The real services tree holds: declaration order IS its dependency order.
     #[test]
     fn the_real_services_modules_are_in_dependency_order() -> Result<(), String> {
-        let root = repo_root().unwrap_or_else(|_| PathBuf::from("."));
-        let mut src = root;
-        for segment in TOOLING_MODULE_ROOT {
-            src.push(segment);
-        }
-        let lib = fs::read_to_string(src.join("lib.rs")).unwrap_or_default();
-        let order = declared_module_order(&lib);
-        assert!(order.len() > 1, "services lib.rs declares {order:?}");
-        let mut modules = Vec::new();
-        for name in &order {
-            let (text, layout) = module_source(&src, name)?;
-            assert!(!text.is_empty(), "{name} is unreadable");
-            modules.push((name.clone(), text, layout));
-        }
-        let found = module_order_violations(&order, &modules);
-        assert!(found.is_empty(), "{found:?}");
+        let found = check_tooling_module_order(repository_snapshot()?);
+        assert!(found.is_ok(), "{found:?}");
+        Ok(())
+    }
+
+    /// The real machine tree holds: every band is complete and declared in band
+    /// order.
+    #[test]
+    fn the_real_band_map_matches_lib() -> Result<(), String> {
+        let found = check_band_map(repository_snapshot()?);
+        assert!(found.is_ok(), "{found:?}");
         Ok(())
     }
 
@@ -483,7 +681,7 @@ mod tests {
     /// and declarations out of band order. Three ways the band map and the
     /// crate drift apart, and the third is the one no file listing would catch.
     #[test]
-    fn a_band_map_that_drifts_from_lib_is_a_violation() {
+    fn a_band_map_that_drifts_from_lib_is_a_violation() -> Result<(), String> {
         let scratch = Scratch::named("band-map");
         let ordered = "#[path = \"00_refusal/mod.rs\"]\npub mod refusal;\n\
                        #[path = \"01_logic/mod.rs\"]\npub mod logic;\n";
@@ -493,10 +691,10 @@ mod tests {
             }
         }
         scratch.write("src/lib.rs", ordered);
-        assert!(check_band_map(scratch.root()).is_ok());
+        assert!(check_band_map(&scratch.read()?).is_ok());
 
-        let _removed = fs::remove_file(scratch.root().join("src/01_logic/types.rs"));
-        let incomplete = check_band_map(scratch.root());
+        scratch.remove("src/01_logic/types.rs");
+        let incomplete = check_band_map(&scratch.read()?);
         assert!(incomplete.is_err_and(|reason| reason.contains("01_logic missing types.rs")));
         scratch.write("src/01_logic/types.rs", "the home's content\n");
 
@@ -504,7 +702,7 @@ mod tests {
             "src/lib.rs",
             "#[path = \"00_refusal/mod.rs\"]\npub mod refusal;\n",
         );
-        let undeclared = check_band_map(scratch.root());
+        let undeclared = check_band_map(&scratch.read()?);
         assert!(undeclared.is_err_and(|reason| reason.contains("does not declare 01_logic")));
 
         scratch.write(
@@ -512,7 +710,31 @@ mod tests {
             "#[path = \"01_logic/mod.rs\"]\npub mod logic;\n\
              #[path = \"00_refusal/mod.rs\"]\npub mod refusal;\n",
         );
-        let reordered = check_band_map(scratch.root());
+        let reordered = check_band_map(&scratch.read()?);
         assert!(reordered.is_err_and(|reason| reason.contains("out of band order")));
+        Ok(())
+    }
+
+    /// The band declaration is read off the ATTRIBUTE rather than off a
+    /// literal spelling of it.
+    ///
+    /// Planted reversal for the substring reader this replaced, which looked for
+    /// `#[path = "00_refusal/mod.rs"]` exactly. Written with different spacing
+    /// the attribute states the same declaration and that reader reported a band
+    /// `lib.rs` "does not declare" — a law refusing a lawful crate over
+    /// whitespace.
+    #[test]
+    fn a_band_declaration_is_read_however_it_is_spaced() -> Result<(), String> {
+        let scratch = Scratch::named("band-map-spacing");
+        for file in ["README.md", "mod.rs", "types.rs"] {
+            scratch.write(&format!("src/00_refusal/{file}"), "the home's content\n");
+        }
+        scratch.write(
+            "src/lib.rs",
+            "#[path=\"00_refusal/mod.rs\"]\npub mod refusal;\n",
+        );
+        let found = check_band_map(&scratch.read()?);
+        assert!(found.is_ok(), "{found:?}");
+        Ok(())
     }
 }

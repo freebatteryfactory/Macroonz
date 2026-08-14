@@ -18,6 +18,8 @@ pub(crate) mod dependency;
 
 pub(crate) mod supply_chain;
 
+pub(crate) mod alarms;
+
 pub(crate) mod placement;
 
 pub(crate) mod obligations;
@@ -25,6 +27,8 @@ pub(crate) mod obligations;
 pub(crate) mod coupling;
 
 pub(crate) mod seat;
+
+pub(crate) mod positivity;
 
 pub(crate) mod vocabulary;
 
