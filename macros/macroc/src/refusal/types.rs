@@ -7,7 +7,8 @@
 //! a refusal body whose issues a caller could not read would be a refusal nobody
 //! can act on, so the seat is read back through a borrow — and a refusal a caller
 //! could WRITE would be a seam minting the plane's own answer, so there is no
-//! literal anybody outside the nucleus can spell.
+//! literal anybody outside the nucleus can spell and no mint anybody outside the
+//! crate can call.
 
 use crate::plane::{
     GeneratedUnitSubject, OwnerFactRef, PlanningIssueLimit, ProfileVersion, ProjectionIdentity,
@@ -170,5 +171,12 @@ pub struct ProjectionPlanning {
     /// record hands the whole record back as a literal, so any holder of a body
     /// built for one seam could write it into another seam's refusal. Read back
     /// through [`ProjectionPlanning::body`].
+    ///
+    /// The seat closes the literal and the mints close the road beside it. A
+    /// private seat reached by a public generic constructor is a fence with a
+    /// loading dock behind it: a caller holding an issue mints a refusal no pass
+    /// raised, and a caller holding this borrow clones the issues out and seats
+    /// them under a fresh one. Both roads are crate-internal for that reason,
+    /// and the reason is stated where they are declared.
     body: AdmittedPrefix<ProjectionPlanningIssue, PlanningIssueLimit>,
 }

@@ -19,6 +19,12 @@
 //! inside this one would construct as freely as these roads do, so a
 //! `#[cfg(test)] mod` under the guard would reopen exactly what the guard closes,
 //! and the reversals for this seat are testpak's compile-fail fixtures instead.
+//!
+//! And it excludes the literal only. The refusal body's two mints are
+//! module-private for the other half of the same claim: a private seat reached
+//! by a public generic constructor lets any holder of an issue produce a body no
+//! pass established, and lets a holder of the borrowed body clone its issues out
+//! and reseat them. Both roads sit beside the three passes that raise them.
 
 use super::super::establish::{binding_issues, ceiling_issues, parameter_issues};
 use super::{
@@ -49,7 +55,14 @@ fn refused(issues: Vec<TemplateConstructionIssue>) -> Option<TemplateConstructio
 impl TemplateConstruction {
     /// The one-issue body. Total: the declared bound admits an item by
     /// compile-time proof, so refusing never needs an error road of its own.
-    pub fn established(issue: TemplateConstructionIssue) -> Self {
+    ///
+    /// Module-private, like every other road in this file: the three passes that
+    /// establish these issues are the three checked constructors below, and a
+    /// body exists only where one of them ran. A public road here would let any
+    /// holder of an issue mint a refusal no pass raised, which is the same
+    /// opening a public SEAT would be — the seat and the mint are two halves of
+    /// one claim, and closing one of them closes neither.
+    fn established(issue: TemplateConstructionIssue) -> Self {
         Self {
             body: AdmittedPrefix::carrying_one(issue),
         }
@@ -64,7 +77,9 @@ impl TemplateConstruction {
     /// holds and names how many established issues stand outside it — never a
     /// silent drop, never an unearned claim of completeness, and never a claim
     /// that nobody looked.
-    pub fn co_established(
+    ///
+    /// Module-private, on the same terms as the one-issue road.
+    fn co_established(
         first: TemplateConstructionIssue,
         rest: Vec<TemplateConstructionIssue>,
     ) -> Self {
