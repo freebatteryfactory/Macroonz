@@ -17,10 +17,10 @@
 //! consequences. Stopping names it once, on the last line of the log.
 //!
 //! Inside a stage the opposite rule holds: the repository laws report every
-//! offence at once. Those fourteen are independent of one another, so reporting
-//! them one at a time would cost fourteen round trips to learn what one run
-//! already knows. Fail fast across stages that share a cause; report everything
-//! within a stage whose findings do not.
+//! offence at once. They are independent of one another, so reporting them one
+//! at a time would cost a round trip per law to learn what one run already
+//! knows. Fail fast across stages that share a cause; report everything within
+//! a stage whose findings do not.
 //!
 //! # Why every resolving stage is `--locked`
 //!
