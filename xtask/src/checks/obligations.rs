@@ -4077,7 +4077,7 @@ fn a_law_nobody_declared() {}
     ///
     /// # The denominator is PINNED, because a reader was replaced
     ///
-    /// ONE HUNDRED AND EIGHTY-THREE laws, and the number is written here rather
+    /// ONE HUNDRED AND EIGHTY-FOUR laws, and the number is written here rather
     /// than merely compared against the claims. The line reader this join used
     /// to call could not see a law carrying a second attribute, a documentation
     /// comment, or a nested module, and could read a law out of a string literal
@@ -4086,6 +4086,14 @@ fn a_law_nobody_declared() {}
     /// across the replacement: 183 before, 183 after, every pair identical. The
     /// reader changed and the tree did not, which is the only way a reader
     /// replacement is allowed to settle.
+    ///
+    /// THE NUMBER HAS MOVED ONCE SINCE, BY ONE, AND THE LAW IS NAMED. Joining
+    /// the capacity-authority boundary added `root::a_family_declares_one_
+    /// capacity_authority`, so this population is 184. That is what a pinned
+    /// denominator is for: two boundaries settled apart, one of them grew the
+    /// proof surface, and the number refused the join until somebody said which
+    /// law arrived. A count that moved silently here would have been the same
+    /// defect the reader replacement was written to end.
     #[test]
     fn the_real_seats_are_the_real_laws() -> Result<(), String> {
         let snapshot = repository_snapshot()?;
@@ -4097,7 +4105,7 @@ fn a_law_nobody_declared() {}
         let existing = declared_laws(&laws);
         assert_eq!(
             existing.len(),
-            183,
+            184,
             "laws.rs declares {} laws",
             existing.len()
         );
