@@ -234,30 +234,118 @@ tooling-obligation: macroc.a-failed-required-seat-is-a-typed-refusal
     refusal body is covered: rendering a count too large to render is not
     answering a seat with a neighbouring value.
 
-tooling-obligation: macroc.a-refusal-body-is-minted-by-the-pass-that-established-it
+tooling-obligation: macroc.a-refusal-body-seat-cannot-be-written-from-outside
   claim: >
     Every refusal family body in the services carries band 00's coupled seat under
     the name core gives it, `body`, and that seat is PRIVATE. The coupled seat
-    keeps a carry and its posture together; the private seat keeps the body and
-    the pass that established it together, because a one-field record whose one
-    field is public is a record any holder can write. Each body is minted only in
-    the `type_guard.rs` that is its `types.rs`'s own child, and read back through
-    one borrowed reader.
-  owner: macros/macroc/src/refusal/type_guard.rs
+    keeps a carry and its posture together; the private seat stops the record
+    being written as a LITERAL, because a one-field record whose one field is
+    public is a record any holder can spell. Each body is read back through one
+    borrowed reader and through nothing else.
+  owner: macros/macroc/src/refusal/types.rs
   positive: macros/macroc/src/laws.rs
   method: compile-refusal
   activation: cargo test -p threadpak-testpak --test compile_refusals
   tooling-red: testpak/tests/compile-fail/a-services-refusal-body-reseated-by-literal.rs
-    — a body built through the public guarded road, written into a second refusal
-    by literal from outside the crate, refusing with E0451
+    — a well-formed body built over the plane's issue type through band 00's own
+    public report package, written into a refusal by literal from outside the
+    crate, refusing with E0451
   nonclaims: >
     It does not claim total exclusion inside the services crate. A private field
     stops every SIBLING module and every downstream crate; it does not stop a
     module declared INSIDE the guard, which would construct as freely as the mint
     does. No `#[cfg(test)]` module stands under any of these guards, and the
     reversal is owned outside the crate for exactly that reason. It does not claim
-    the body a mint produces is the right body: that the issues are the ones the
-    pass established is the coupled seat's claim and band 00's, not this one's.
+    the MINT is closed — a private seat reached by a public generic constructor is
+    a fence with a loading dock behind it, and that half is
+    `macroc.a-refusal-body-is-minted-only-inside-the-plane`. It does not claim the
+    body a mint produces is the right body: that the issues are the ones the pass
+    established is the coupled seat's claim and band 00's, not this one's.
+
+tooling-obligation: macroc.a-refusal-body-is-minted-only-inside-the-plane
+  claim: >
+    No road that produces a services refusal family body is reachable from outside
+    the plane that raises it. The seat closes the literal and this closes the road
+    beside it: a public generic mint lets any holder of an issue produce a body no
+    pass established, and lets any holder of the borrowed body clone its issues out
+    and reseat them under a fresh record indistinguishable from one a seam
+    returned. Each mint sits at the narrowest scope its own establishing passes
+    reach — module-private in `template`, `closure`, `explanation_protocol`,
+    `trigger_view` and `composition`, whose passes live in the same
+    `type_guard.rs`; home-scoped in `derive_refusal`, whose capture pass is a
+    sibling; and crate-scoped for the shared planning family, whose passes live in
+    four homes at once.
+  owner: macros/macroc/src/refusal/type_guard.rs
+  positive: macros/macroc/src/laws.rs
+  method: compile-refusal
+  activation: cargo test -p threadpak-testpak --test compile_refusals
+  tooling-red: testpak/tests/compile-fail/a-services-refusal-minted-outside-its-plane.rs
+    — every mint the population declares, named from outside the crate, each
+    refusing with E0624; restoring `pub` on any one of the ten roads makes that
+    line resolve and fails the fixture
+  nonclaims: >
+    The FIXTURE is not the universal statement and never could be: it names the ten
+    roads that exist today, so a family added later with a public mint would leave
+    it compiling and passing. What closes the population is a repository law
+    instead — `cargo xtask check`'s `refusal-mints-are-inside-the-plane`, which
+    DERIVES the population rather than naming it: every services record whose every
+    seat is private and that some road refuses with, joined against every road that
+    hands one back, with both denominators printed on every run. That law asks one
+    question — does this road hand a caller OWNERSHIP of a closed body — and it
+    RESOLVES it rather than matching a spelling: it walks the whole return type, so
+    a body inside a `Box`, a tuple, a collection or an opaque iterator is a body; it
+    resolves a type alias to what it stands for; it treats a borrow as access to a
+    body that already exists rather than a new one; and it excludes the error
+    position of a `Result` by decision, because a caller receiving the refusal a
+    seam raised is what the type is FOR. A road is a copy rather than a mint only
+    where its receiver IS the body it hands back. A return shape it cannot resolve
+    is REFUSED, never passed over.
+    What it does not establish is narrowed to exactly this. It reaches no module
+    chain: a road's reach is read off the declaration that states it — its own `pub`
+    for an inherent road, the implemented contract's for a trait road — so a `pub`
+    item in a module nobody re-exports reads as reachable. That direction refuses
+    loudly rather than passing silently, and the repair is one word. It expands no
+    macro, so a record or a road a macro assembles is outside it altogether, and it
+    evaluates no `cfg`. It reads a type by its last path segment, so two homes
+    declaring one name are one subject. And it does not claim exclusion inside each
+    mint's own scope: a crate-scoped mint is reachable by every module in the
+    services, and the module order `lib.rs` declares is what enumerates the seams
+    that use it.
+
+tooling-obligation: macroc.a-plan-watches-every-identity-it-hangs-off-or-refuses
+  claim: >
+    A plan's shared watch set is derived from its context's own seats, and where
+    this watch profile cannot represent a seat the derivation REFUSES rather than
+    covering part of it. A cause set names up to the declared source magnitude and
+    one trigger roster seat carries one identity, so a plan committed to three
+    declarations while watching one would read as current after the other two
+    changed — byte-for-byte the shape of a complete watch set, and false. Both
+    public roads refuse: the whole-set derivation and the single-seat cause
+    trigger, because a seat road that still answered would be the partial claim
+    surviving beside the road that refuses it.
+  owner: macros/macroc/src/planning/anchor.rs
+  positive: macros/macroc/src/laws.rs
+  method: executable-law
+  activation: cargo test -p threadpak-macroc pattern_stamp
+  tooling-red: testpak/tests/compile-fail/a-watch-set-read-as-a-fact.rs — the
+    cause trigger taken as a fact from outside the crate, refusing with E0308;
+    restoring the unconditional first-declaration answer makes the road total,
+    the fixture compiles, and trybuild reports a case expected to fail that
+    succeeded
+  nonclaims: >
+    It does not claim the complete dependency-key watch set exists. The roster
+    watches five of its nine kinds and covers the SHARED context alone; the
+    anchors a kind supplies beside its context carry no trigger, and that is
+    stated at the plan sites where the compiler counts them. It does not claim a
+    profile VERSION is watched — a version is not an identity and no roster seat
+    carries one. The committed reversal covers the SHAPE and not the behaviour:
+    that a two-declaration context refuses and a one-declaration context does not
+    is asserted on the services' proof surface, because the judge cannot build a
+    multi-source cause set at all — `OwnerIdentityRef::decoded` is crate-internal
+    and `Commitment::raw` is test-gated inside the machine, so no road outside
+    the services hands a caller a fragment identity. That half opens to a
+    committed testpak lane the day a public decode road for an owner identity
+    reference exists.
 
 tooling-obligation: macroc.the-emitted-tree-is-inside-the-closure-proof
   claim: >

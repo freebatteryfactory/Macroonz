@@ -25,5 +25,15 @@ refusal a caller can WRITE is a seam minting the plane's answer without running
 the pass that establishes it. `type_contract.rs` states the family's declared
 shape and the issue roster's own slot table.
 
+Both halves of "writable" are closed, because closing one of them is closing
+neither. The private seat closes the literal; the three mints are crate-internal
+so that no caller outside the services can hand an issue to a road and receive a
+refusal no pass raised, and no holder of the borrow can clone the issues out and
+seat them under a fresh body. `pub(crate)` is this family's strongest reachable
+scope: it is the plane's shared planning family, so the passes that establish its
+issues live in four homes rather than in one `type_guard.rs`, and the crate is
+the narrowest boundary that contains them all. What stays open is stated at the
+declaration — inside the services, any module can still mint.
+
 This home's qualification obligations live in the crate README's tooling-obligation
 blocks.

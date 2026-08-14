@@ -1,0 +1,118 @@
+error[E0624]: associated function `established` is private
+  --> tests/compile-fail/a-services-refusal-minted-outside-its-plane.rs:40:45
+   |
+40 |     let _planning_one = ProjectionPlanning::established;
+   |                                             ^^^^^^^^^^^ private associated function
+   |
+  ::: $WORKSPACE/macros/macroc/src/refusal/type_guard.rs
+   |
+   |     pub(crate) fn established(issue: ProjectionPlanningIssue) -> Self {
+   |     ----------------------------------------------------------------- private associated function defined here
+
+error[E0624]: associated function `co_established` is private
+  --> tests/compile-fail/a-services-refusal-minted-outside-its-plane.rs:41:46
+   |
+41 |       let _planning_many = ProjectionPlanning::co_established;
+   |                                                ^^^^^^^^^^^^^^ private associated function
+   |
+  ::: $WORKSPACE/macros/macroc/src/refusal/type_guard.rs
+   |
+   | /     pub(crate) fn co_established(
+   | |         first: ProjectionPlanningIssue,
+   | |         rest: Vec<ProjectionPlanningIssue>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0624]: associated function `bound_exceeded` is private
+  --> tests/compile-fail/a-services-refusal-minted-outside-its-plane.rs:42:47
+   |
+42 |     let _planning_bound = ProjectionPlanning::bound_exceeded;
+   |                                               ^^^^^^^^^^^^^^ private associated function
+   |
+  ::: $WORKSPACE/macros/macroc/src/refusal/type_guard.rs
+   |
+   |     pub(crate) fn bound_exceeded(axis: BoundAxis, bound: usize, observed: usize) -> Self {
+   |     ------------------------------------------------------------------------------------ private associated function defined here
+
+error[E0624]: associated function `established` is private
+  --> tests/compile-fail/a-services-refusal-minted-outside-its-plane.rs:43:47
+   |
+43 |     let _template_one = TemplateConstruction::established;
+   |                                               ^^^^^^^^^^^ private associated function
+   |
+  ::: $WORKSPACE/macros/macroc/src/template/type_guard.rs
+   |
+   |     fn established(issue: TemplateConstructionIssue) -> Self {
+   |     -------------------------------------------------------- private associated function defined here
+
+error[E0624]: associated function `co_established` is private
+  --> tests/compile-fail/a-services-refusal-minted-outside-its-plane.rs:44:48
+   |
+44 |       let _template_many = TemplateConstruction::co_established;
+   |                                                  ^^^^^^^^^^^^^^ private associated function
+   |
+  ::: $WORKSPACE/macros/macroc/src/template/type_guard.rs
+   |
+   | /     fn co_established(
+   | |         first: TemplateConstructionIssue,
+   | |         rest: Vec<TemplateConstructionIssue>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0624]: associated function `established` is private
+  --> tests/compile-fail/a-services-refusal-minted-outside-its-plane.rs:45:72
+   |
+45 |     let _closure = ProjectionClosureRefusal::<RenderedImplementation>::established;
+   |                                                                        ^^^^^^^^^^^ private associated function
+   |
+  ::: $WORKSPACE/macros/macroc/src/closure/type_guard.rs
+   |
+   |     fn established(first: ClosureIssue<R>, rest: Vec<ClosureIssue<R>>) -> Self {
+   |     -------------------------------------------------------------------------- private associated function defined here
+
+error[E0624]: associated function `established` is private
+  --> tests/compile-fail/a-services-refusal-minted-outside-its-plane.rs:46:42
+   |
+46 |     let _coverage = ExplanationCoverage::established;
+   |                                          ^^^^^^^^^^^ private associated function
+   |
+  ::: $WORKSPACE/macros/macroc/src/explanation_protocol/type_guard.rs
+   |
+   |     fn established(first: ExplanationCoverageIssue, rest: Vec<ExplanationCoverageIssue>) -> Self {
+   |     -------------------------------------------------------------------------------------------- private associated function defined here
+
+error[E0624]: associated function `established` is private
+  --> tests/compile-fail/a-services-refusal-minted-outside-its-plane.rs:47:49
+   |
+47 |     let _trigger_view = TriggerViewComposition::established;
+   |                                                 ^^^^^^^^^^^ private associated function
+   |
+  ::: $WORKSPACE/macros/macroc/src/trigger_view/type_guard.rs
+   |
+   |     fn established(first: TriggerViewIssue, rest: Vec<TriggerViewIssue>) -> Self {
+   |     ---------------------------------------------------------------------------- private associated function defined here
+
+error[E0624]: associated function `established` is private
+  --> tests/compile-fail/a-services-refusal-minted-outside-its-plane.rs:48:52
+   |
+48 |     let _composition = CompositionRootDeclaration::established;
+   |                                                    ^^^^^^^^^^^ private associated function
+   |
+  ::: $WORKSPACE/macros/macroc/src/composition/type_guard.rs
+   |
+   |     fn established(first: CompositionRootIssue, rest: Vec<CompositionRootIssue>) -> Self {
+   |     ------------------------------------------------------------------------------------ private associated function defined here
+
+error[E0624]: associated function `established` is private
+  --> tests/compile-fail/a-services-refusal-minted-outside-its-plane.rs:49:42
+   |
+49 |       let _capture = RefusalDeriveRefusal::established;
+   |                                            ^^^^^^^^^^^ private associated function
+   |
+  ::: $WORKSPACE/macros/macroc/src/derive_refusal/type_guard.rs
+   |
+   | /     pub(in crate::derive_refusal) const fn established(
+   | |         cause: RefusalDeriveCapture,
+   | |         token: SpanHandle,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

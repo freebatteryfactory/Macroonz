@@ -38,6 +38,7 @@ use crate::checks::dependency::check_no_core_tooling_edge;
 use crate::checks::hygiene::{
     check_lf_and_no_symlinks, check_no_python, check_underscore_fields_are_phantom,
 };
+use crate::checks::mint::check_refusal_mints_are_inside_the_plane;
 use crate::checks::obligations::check_obligations_join;
 use crate::checks::parity::check_agents_claude_parity;
 use crate::checks::placement::{check_band_map, check_tooling_module_order};
@@ -88,6 +89,8 @@ fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
         (
             "stamped-guards-seal-their-position",
             check_stamped_guards_seal_their_position,
+            "refusal-mints-are-inside-the-plane",
+            check_refusal_mints_are_inside_the_plane,
         ),
         ("no-personal-names", check_no_personal_names),
         ("banned-vocabulary", check_banned_vocabulary),
