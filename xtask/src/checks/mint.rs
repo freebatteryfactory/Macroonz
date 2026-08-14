@@ -141,10 +141,8 @@
 //! this law — and a return type a macro produces is refused rather than passed
 //! over, because that one this reader can see.
 
-use std::fs;
-use std::path::Path;
-
-use crate::repository::walk::{TOOLING_DIRECTORY, relative_slash_path, visit_files};
+use crate::repository::snapshot::{RepositorySnapshot, TOOLING_DIRECTORY};
+use crate::repository::types::CanonicalPath;
 
 /// The proof surface, excluded from the population by name.
 ///
@@ -178,8 +176,10 @@ const RESOLUTION_DEPTH: usize = 16;
 /// Returns the offences one line at a time, and returns a read failure as
 /// itself: a gate that cannot read its subject says so rather than reporting an
 /// empty population.
-pub(crate) fn check_refusal_mints_are_inside_the_plane(root: &Path) -> Result<(), String> {
-    let sources = services_sources(root)?;
+pub(crate) fn check_refusal_mints_are_inside_the_plane(
+    snapshot: &RepositorySnapshot,
+) -> Result<(), String> {
+    let sources = services_sources(snapshot)?;
     let verdict = mint_verdict(&sources);
 
     // The denominators are DERIVED and printed on every run, because a
@@ -302,30 +302,23 @@ struct Reading {
     unresolvable: Vec<String>,
 }
 
-/// Reads the records, the refusals and the roads out of source text and judges
+/// Reads the records, the refusals and the roads out of parsed trees and judges
 /// each body.
 ///
-/// Pure over its inputs — `(repository-relative path, source text)` pairs — so
-/// the reversals below are planted in memory and the law that guards the tree is
-/// never proven by opening a seat in one.
-fn mint_verdict(sources: &[(String, String)]) -> MintVerdict {
+/// Pure over its inputs — `(canonical path, parsed tree)` pairs handed over by
+/// the snapshot — so the reversals below are planted in memory and the law that
+/// guards the tree is never proven by opening a seat in one. A source that did
+/// not parse never reaches here: the snapshot carries it as unread, and the
+/// caller refuses the whole reading rather than deriving a population one file
+/// short.
+fn mint_verdict(parsed: &[(&CanonicalPath, &syn::File)]) -> MintVerdict {
     let mut offenders = Vec::new();
-    let mut parsed = Vec::new();
-    for (path, text) in sources {
-        match syn::parse_file(text) {
-            Ok(file) => parsed.push((path.clone(), file)),
-            Err(error) => offenders.push(format!(
-                "{path}: this file is not parseable Rust, so the population derived from it is \
-                 unknown rather than empty: {error}"
-            )),
-        }
-    }
-    let declarations = read_declarations(&parsed);
+    let declarations = read_declarations(parsed);
     let Reading {
         refused,
         roads,
         unresolvable,
-    } = read_roads(&parsed, &declarations);
+    } = read_roads(parsed, &declarations);
     offenders.extend(unresolvable);
     let mut verdict = MintVerdict {
         bodies: 0,
@@ -392,14 +385,14 @@ impl Road {
 }
 
 /// Every declaration the subsystem makes that a road is resolved against.
-fn read_declarations(parsed: &[(String, syn::File)]) -> Declarations<'_> {
+fn read_declarations<'a>(parsed: &[(&CanonicalPath, &'a syn::File)]) -> Declarations<'a> {
     let mut declarations = Declarations {
         closed: Vec::new(),
         aliases: Vec::new(),
         contracts: Vec::new(),
     };
     for (path, file) in parsed {
-        read_declared_items(path, &file.items, &mut declarations);
+        read_declared_items(path.as_str(), &file.items, &mut declarations);
     }
     declarations
 }
@@ -440,14 +433,17 @@ fn read_declared_items<'a>(
 }
 
 /// Every road the subsystem declares, judged against what it declares.
-fn read_roads<'a>(parsed: &'a [(String, syn::File)], declarations: &Declarations<'a>) -> Reading {
+fn read_roads<'a>(
+    parsed: &[(&CanonicalPath, &'a syn::File)],
+    declarations: &Declarations<'a>,
+) -> Reading {
     let mut reading = Reading {
         refused: Vec::new(),
         roads: Vec::new(),
         unresolvable: Vec::new(),
     };
     for (path, file) in parsed {
-        read_module(path, &file.items, declarations, &mut reading);
+        read_module(path.as_str(), &file.items, declarations, &mut reading);
     }
     reading
 }
@@ -880,29 +876,27 @@ fn last_segment(path: &syn::Path) -> Option<String> {
     path.segments.last().map(|last| last.ident.to_string())
 }
 
-/// Every source file the population is derived from: the metaprogramming
+/// Every parsed source the population is derived from: the metaprogramming
 /// subsystem's own sources, minus the proof surface.
-fn services_sources(root: &Path) -> Result<Vec<(String, String)>, String> {
-    let base = root.join(TOOLING_DIRECTORY);
-    if !base.is_dir() {
+///
+/// Taken from the one reading. A subsystem with no sources at all is an empty
+/// population and says so downstream, and a source the snapshot could not parse
+/// refuses the whole law rather than leaving the population one file short.
+fn services_sources(
+    snapshot: &RepositorySnapshot,
+) -> Result<Vec<(&CanonicalPath, &syn::File)>, String> {
+    let sources: Vec<(&CanonicalPath, &syn::File)> = snapshot
+        .rust()
+        .parsed_under(&[TOOLING_DIRECTORY])?
+        .into_iter()
+        .filter(|(path, _)| path.as_str() != PROOF_SURFACE)
+        .collect();
+    if sources.is_empty() {
         return Err(format!(
-            "{TOOLING_DIRECTORY}/ is not there: the subsystem this law is about cannot be read, \
-             which is not the same as its having no refusal bodies"
+            "{TOOLING_DIRECTORY}/ carries no Rust source: the subsystem this law is about cannot \
+             be read, which is not the same as its having no refusal bodies"
         ));
     }
-    let mut sources = Vec::new();
-    visit_files(&base, &mut |path| {
-        if path.extension().is_none_or(|extension| extension != "rs") {
-            return Ok(());
-        }
-        let relative = relative_slash_path(root, path);
-        if relative == PROOF_SURFACE {
-            return Ok(());
-        }
-        let text = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
-        sources.push((relative, text));
-        Ok(())
-    })?;
     Ok(sources)
 }
 
@@ -914,8 +908,34 @@ fn services_sources(root: &Path) -> Result<Vec<(String, String)>, String> {
 /// it found rather than what it hoped for.
 #[cfg(test)]
 mod tests {
-    use super::{mint_verdict, services_sources};
-    use crate::repository::walk::repo_root;
+    use super::{MintVerdict, mint_verdict as verdict_of_trees, services_sources};
+    use crate::repository::snapshot::repository_snapshot;
+    use crate::repository::types::CanonicalPath;
+
+    /// The verdict over fixture source TEXT.
+    ///
+    /// The law itself is handed trees the snapshot already parsed, so a source
+    /// it could not read never reaches it. A fixture is text, so this adapter
+    /// parses one and reports a fixture that does not parse exactly as the
+    /// reading reports a source it could not read.
+    fn mint_verdict(sources: &[(String, String)]) -> MintVerdict {
+        let mut parsed = Vec::new();
+        let mut unparsable = Vec::new();
+        for (path, text) in sources {
+            match syn::parse_file(text) {
+                Ok(file) => parsed.push((CanonicalPath::spelled(path), file)),
+                Err(error) => unparsable.push(format!(
+                    "{path}: this file is not parseable Rust, so the population derived from it \
+                     is unknown rather than empty: {error}"
+                )),
+            }
+        }
+        let trees: Vec<(&CanonicalPath, &syn::File)> =
+            parsed.iter().map(|(path, file)| (path, file)).collect();
+        let mut verdict = verdict_of_trees(&trees);
+        verdict.offenders.splice(0..0, unparsable);
+        verdict
+    }
 
     /// The seam that puts a name into the refused population, which is what
     /// makes a closed record a refusal body.
@@ -1366,27 +1386,19 @@ mod tests {
     /// to retire, moved one file over; the run prints the numbers, and the
     /// relation is what has to hold.
     #[test]
-    fn the_real_subsystem_mints_every_body_from_inside() {
-        let read = repo_root()
-            .map_err(|error| format!("the repository root could not be found: {error}"))
-            .and_then(|root| services_sources(&root))
-            .map(|sources| mint_verdict(&sources));
+    fn the_real_subsystem_mints_every_body_from_inside() -> Result<(), String> {
+        let snapshot = repository_snapshot()?;
+        let sources = services_sources(snapshot)?;
+        let verdict = verdict_of_trees(&sources);
+        assert!(verdict.offenders.is_empty(), "{verdict:?}");
         assert!(
-            read.is_ok(),
-            "the mint gate could not read its subject: {read:?}"
+            verdict.bodies > 0,
+            "no closed refusal body found in the real subsystem: {verdict:?}"
         );
         assert!(
-            read.as_ref()
-                .is_ok_and(|verdict| verdict.offenders.is_empty()),
-            "{read:?}"
-        );
-        assert!(
-            read.as_ref().is_ok_and(|verdict| verdict.bodies > 0),
-            "no closed refusal body found in the real subsystem: {read:?}"
-        );
-        assert!(
-            read.is_ok_and(|verdict| verdict.roads >= verdict.bodies),
+            verdict.roads >= verdict.bodies,
             "a closed refusal body in the real subsystem is produced by no road at all"
         );
+        Ok(())
     }
 }

@@ -70,12 +70,10 @@
 //! out. And a stamped guard reached only through a macro that composes the
 //! stamp's name from fragments is outside it as well.
 
-use std::fs;
-use std::path::Path;
-
 use proc_macro2::{Delimiter, Group, Ident, Span, TokenStream, TokenTree};
 
-use crate::repository::walk::{TOOLING_DIRECTORY, relative_slash_path, visit_files};
+use crate::repository::snapshot::{MACHINE_DIRECTORY, RepositorySnapshot, TOOLING_DIRECTORY};
+use crate::repository::types::CanonicalPath;
 
 /// The proof surfaces, excluded from the population by name.
 ///
@@ -104,8 +102,10 @@ const MARKER_SEAT: &str = "PhantomData";
 /// Returns the offences one line at a time, and returns a read failure as
 /// itself: a gate that cannot read its subject says so rather than reporting an
 /// empty population.
-pub(crate) fn check_stamped_guards_seal_their_position(root: &Path) -> Result<(), String> {
-    let sources = seal_sources(root)?;
+pub(crate) fn check_stamped_guards_seal_their_position(
+    snapshot: &RepositorySnapshot,
+) -> Result<(), String> {
+    let sources = seal_sources(snapshot)?;
     let verdict = seal_verdict(&sources);
 
     // The denominator is DERIVED and printed on every run, because a population
@@ -201,13 +201,15 @@ struct Reading {
     unparsable: Vec<String>,
 }
 
-/// Reads the stamp, its invocations, and every implementation out of source
-/// text, and judges each stamped guard.
+/// Reads the stamp, its invocations, and every implementation out of parsed
+/// trees, and judges each stamped guard.
 ///
-/// Pure over its inputs — `(repository-relative path, source text)` pairs — so
-/// the reversals below are planted in memory and the law that guards the tree is
-/// never proven by editing one.
-fn seal_verdict(sources: &[(String, String)]) -> SealVerdict {
+/// Pure over its inputs — `(canonical path, parsed tree)` pairs handed over by
+/// the snapshot — so the reversals below are planted in memory and the law that
+/// guards the tree is never proven by editing one. A source that did not parse
+/// never reaches here: the snapshot carries it as unread, and the caller refuses
+/// the whole reading rather than deriving a population one file short.
+fn seal_verdict(sources: &[(&CanonicalPath, &syn::File)]) -> SealVerdict {
     let reading = read_sources(sources);
     let mut verdict = SealVerdict {
         stamped: reading.stamped.len(),
@@ -385,18 +387,12 @@ fn empty_reading() -> Reading {
     }
 }
 
-/// Parses every source and reads the stamp, its invocations, and the
-/// implementations out of the trees.
-fn read_sources(sources: &[(String, String)]) -> Reading {
+/// Reads the stamp, its invocations, and the implementations out of the parsed
+/// trees.
+fn read_sources(sources: &[(&CanonicalPath, &syn::File)]) -> Reading {
     let mut reading = empty_reading();
-    for (path, text) in sources {
-        match syn::parse_file(text) {
-            Ok(file) => read_module(path, &file.items, &mut reading),
-            Err(error) => reading.unparsable.push(format!(
-                "{path}: this file is not parseable Rust, so the population derived from it is \
-                 unknown rather than empty: {error}"
-            )),
-        }
+    for (path, file) in sources {
+        read_module(path.as_str(), &file.items, &mut reading);
     }
     reading
 }
@@ -758,29 +754,20 @@ fn stand_in(name: &str) -> String {
     }
 }
 
-/// Every source file the population is derived from: the machine's own sources
-/// and the services', minus the two proof surfaces.
-fn seal_sources(root: &Path) -> Result<Vec<(String, String)>, String> {
-    let mut sources = Vec::new();
-    for directory in ["src", TOOLING_DIRECTORY] {
-        let base = root.join(directory);
-        if !base.is_dir() {
-            continue;
-        }
-        visit_files(&base, &mut |path| {
-            if path.extension().is_none_or(|extension| extension != "rs") {
-                return Ok(());
-            }
-            let relative = relative_slash_path(root, path);
-            if PROOF_SURFACES.contains(&relative.as_str()) {
-                return Ok(());
-            }
-            let text = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
-            sources.push((relative, text));
-            Ok(())
-        })?;
-    }
-    Ok(sources)
+/// Every parsed source the population is derived from: the machine's own
+/// sources and the services', minus the two proof surfaces.
+///
+/// Taken from the one reading. A source the snapshot could not parse refuses
+/// the whole law rather than leaving the population one file short.
+fn seal_sources(
+    snapshot: &RepositorySnapshot,
+) -> Result<Vec<(&CanonicalPath, &syn::File)>, String> {
+    Ok(snapshot
+        .rust()
+        .parsed_under(&[MACHINE_DIRECTORY, TOOLING_DIRECTORY])?
+        .into_iter()
+        .filter(|(path, _)| !PROOF_SURFACES.contains(&path.as_str()))
+        .collect())
 }
 
 /// Planted reversals for the seal, and the real repository judged by it.
@@ -791,8 +778,34 @@ fn seal_sources(root: &Path) -> Result<Vec<(String, String)>, String> {
 /// states what it found rather than what it hoped for.
 #[cfg(test)]
 mod tests {
-    use super::{SealVerdict, seal_sources, seal_verdict};
-    use crate::repository::walk::repo_root;
+    use super::{SealVerdict, seal_sources, seal_verdict as verdict_of_trees};
+    use crate::repository::snapshot::repository_snapshot;
+    use crate::repository::types::CanonicalPath;
+
+    /// The verdict over fixture source TEXT.
+    ///
+    /// The law itself is handed trees the snapshot already parsed, so a source
+    /// it could not read never reaches it. A fixture is text, so this adapter
+    /// parses one and reports a fixture that does not parse exactly as the
+    /// reading reports a source it could not read.
+    fn seal_verdict(sources: &[(String, String)]) -> SealVerdict {
+        let mut parsed = Vec::new();
+        let mut unparsable = Vec::new();
+        for (path, text) in sources {
+            match syn::parse_file(text) {
+                Ok(file) => parsed.push((CanonicalPath::spelled(path), file)),
+                Err(error) => unparsable.push(format!(
+                    "{path}: this file is not parseable Rust, so the population derived from it \
+                     is unknown rather than empty: {error}"
+                )),
+            }
+        }
+        let trees: Vec<(&CanonicalPath, &syn::File)> =
+            parsed.iter().map(|(path, file)| (path, file)).collect();
+        let mut verdict = verdict_of_trees(&trees);
+        verdict.offenders.splice(0..0, unparsable);
+        verdict
+    }
 
     /// The stamp as the machine writes it: one road in, one comparison that
     /// reads the seat from inside, and no road out.
@@ -1109,27 +1122,19 @@ crate::scope_guard_version! {
     ///
     /// A gate that cannot READ its subject says it could not read its subject.
     #[test]
-    fn the_real_tree_seals_every_stamped_guard() {
-        let read = repo_root()
-            .map_err(|error| format!("the repository root could not be found: {error}"))
-            .and_then(|root| seal_sources(&root))
-            .map(|sources| seal_verdict(&sources));
+    fn the_real_tree_seals_every_stamped_guard() -> Result<(), String> {
+        let snapshot = repository_snapshot()?;
+        let sources = seal_sources(snapshot)?;
+        let verdict = verdict_of_trees(&sources);
+        assert!(verdict.offenders.is_empty(), "{verdict:?}");
         assert!(
-            read.is_ok(),
-            "the seal gate could not read its subject: {read:?}"
+            verdict.stamped > 0,
+            "no stamped scope guard found in the real tree: {verdict:?}"
         );
-        assert!(
-            read.as_ref()
-                .is_ok_and(|verdict| verdict.offenders.is_empty()),
-            "{read:?}"
-        );
-        assert!(
-            read.as_ref().is_ok_and(|verdict| verdict.stamped > 0),
-            "no stamped scope guard found in the real tree: {read:?}"
-        );
-        assert!(
-            read.is_ok_and(|verdict| verdict.sealed == verdict.stamped),
+        assert_eq!(
+            verdict.sealed, verdict.stamped,
             "the real tree stamps a guard whose position has a road out"
         );
+        Ok(())
     }
 }

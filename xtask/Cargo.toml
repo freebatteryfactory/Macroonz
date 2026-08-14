@@ -46,6 +46,46 @@ workspace = true
 # the type one is. The alternative was text surgery on a macro body, which is
 # the line-scanner shape this crate replaced once already and would be reaching
 # for again one level down.
+#
+# THE SAME ADMISSION, ONE CLASS WIDER, and what earned it.
+#
+# `syn` was admitted because a line scanner cannot answer a question about Rust
+# ITEMS. That argument was never about Rust. It is about a reader weaker than the
+# one that already owns the language answering questions in it, and this crate
+# was doing exactly that in three more languages at once: Cargo's syntax, read by
+# cutting a line at its first `=`; Markdown, read by counting fences; and the
+# resolved dependency graph, read by matching manifest text. Eleven TOML
+# spellings escaped the line reader over one campaign, each repair revealing the
+# next, and the printed denominators stayed whole the entire time — which is the
+# single failure a derived denominator exists to prevent, arriving through the
+# reader that feeds it.
+#
+# So the same rule now holds for every language this crate reads: the decoder
+# that OWNS a language answers questions in it, and no reader here re-derives
+# what one of them already establishes.
+#
+#   - `toml` answers Cargo's syntax. What a manifest DECLARES.
+#   - `serde_json` + `serde` answer `cargo metadata --format-version 1`. What
+#     Cargo RESOLVES — which is a different question from what a manifest
+#     declares, and cargo is its only honest oracle.
+#   - `pulldown-cmark` answers Markdown structure. WHICH fenced block a reading
+#     is about, so a data block is selected by what the document declares rather
+#     than by its position among the fences.
+#
+# Which version, and which features, is the workspace's one decision, written in
+# the root manifest's `[workspace.dependencies]` table and inherited here.
+#
+# What the admission does NOT buy, in each case: nothing is compiled, no feature
+# is resolved by this crate itself, no Markdown is rendered, and no TOML is
+# written. The schema of a fenced DATA block — this repository's own obligation
+# ledger — is owned here rather than by a decoder, and `src/repository/markdown.rs`
+# states the measurement behind that: the ledger blocks this repository commits
+# are yaml-SHAPED and are not YAML documents, and every YAML decoder available
+# breaks `multiple-versions = "deny"`.
 [dependencies]
 proc-macro2 = { workspace = true }
+pulldown-cmark = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 syn = { workspace = true }
+toml = { workspace = true }

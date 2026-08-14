@@ -97,6 +97,31 @@ blake3 = { version = "=1.8.6", default-features = false }
 # the tree, so a harness free to move under a caret requirement could rewrite
 # what that comparison means without any change landing in the repository.
 trybuild = "=1.0.120"
+# The TOML decoder, so the repository model reads Cargo's own syntax through the
+# decoder that owns it rather than through a line reader that re-derives it.
+# Eleven spellings escaped the hand reader this replaces — dotted keys, quoted
+# keys, bracketed-string headers, escaped keys, literal-string values,
+# multi-line strings, four-quote terminators, unicode escapes, inline tables, a
+# quoted key carrying `=`, and a comment after a table header — and each repair
+# revealed the next, because a spelling recognized one at a time is a set with no
+# last member. Default features off, cut to the three the reading uses: `parse`,
+# without which there is no text-to-document road; `serde`, which is how a
+# document is obtained at all; and `std`. `display` is not asked for — this
+# reader never writes TOML.
+toml = { version = "=1.1.4", default-features = false, features = ["std", "serde", "parse"] }
+# The Markdown decoder, so a fenced data block is selected by what the document
+# STRUCTURALLY declares rather than by which fence happens to be written first.
+# Default features off: `html` and `getopts` build a renderer and a command line,
+# and this reader neither renders nor takes arguments.
+pulldown-cmark = { version = "=0.13.4", default-features = false }
+# The JSON decoder and the derive it deserializes through, for one input:
+# `cargo metadata --format-version 1`. Everything Cargo RESOLVES — package
+# identities, edge kinds, renames, target-conditioned edges — is answered by
+# Cargo rather than re-derived from manifest text. The format version is pinned
+# in the invocation because it is the machine-readable contract; the crates are
+# pinned exact for the reason every pin here is exact.
+serde = { version = "=1.0.229", default-features = false, features = ["std", "derive"] }
+serde_json = { version = "=1.0.151", default-features = false, features = ["std"] }
 
 [profile.release]
 # Release arithmetic traps instead of wrapping; defense in depth behind the
