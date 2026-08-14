@@ -34,6 +34,19 @@
 # on what a working machine happens to have. It runs beside the bar in the hosted
 # workflow instead, where the host is one nobody configured.
 #
+# WHAT THIS FILE DOES NOT REACH, said out loud because the number of things in
+# that position grew. This file settles the graph THIS WORKSPACE resolves. It
+# says nothing about the graph a `cargo install` resolves, and three hosted jobs
+# now install a tool that way — cargo-deny itself, cargo-nextest, and
+# cargo-mutants. Each is pinned to an exact version with `--locked`, so what
+# those builds resolve is decided rather than drifting, and each tool's own
+# reason for existing is written beside its configuration. But no licence rule,
+# no source rule, and no feature rule here is applied to any of them: they are
+# build-time tools on a disposable runner, they ship in nothing, and this file's
+# subject is what the machine is made of. That is a boundary NAMED rather than
+# closed, and closing it would mean a second graph check over a second lock file
+# that no runner writes down today.
+#
 # A run of this file reports `ok`, and an `ok` is not evidence that anything here
 # still refuses. `deny-reversal.toml` sits beside this file carrying one
 # deliberately wrong rule; the same hosted workflow runs cargo-deny against it

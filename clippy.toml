@@ -114,3 +114,84 @@ max-fn-params-bools = 0
 # not a printed line, when a configured path rots. That one fixture is then both
 # the reversal and the staleness guard: a path that stops resolving stops
 # refusing, and the fixture goes red.
+#
+# ────────────────────────────────────────────────────────────────────────────
+#
+# THE FIRST CONDITION IS DISCHARGED. The population was classified — every call
+# of the four methods read at its own site, in the machine, the tooling and the
+# judge — and what that found is below. The second condition is untouched by it,
+# so the table is still not here.
+#
+# THE PLACING IS DECIDABLE RATHER THAN A MATTER OF TASTE, because the four kinds
+# are TOTAL over the population and a site is placed by ELIMINATION:
+#   - it is not LAWFUL TOTAL if the call CAN fail in a way the fallback hides,
+#     however lawful the site reads — and a fallback whose value is exposed by an
+#     assertion on the next line hides nothing, which is what most of this
+#     population turns out to be;
+#   - it is not OPERATIONAL TOOLING unless the read is a host fact the tooling
+#     profile admits BY NAME. A repository file's CONTENT is not one. Where cargo
+#     is, where the root is, where a temporary directory is — those are the
+#     admitted facts, and a file's bytes are the SUBJECT a law judges rather than
+#     a fact about the host it judges from;
+#   - it is not DIAGNOSTIC RENDERING unless the substituted value reaches human
+#     text and stops there.
+# What survives all three is SEMANTIC SILENT FALLBACK, and that is the only
+# defect. Nothing is placed by how it looks.
+#
+# NO TOTAL IS WRITTEN HERE, per kind or over the population, and the omission is
+# the same one the paragraphs above make for the same reason. What IS written is
+# the first kind's sites, BY NAME, and a name is not a count: a reader checks a
+# named site by opening the file it names, and there is nothing anybody can open
+# to check a number. A named site that was repaired reads as wrong to the first
+# person who looks; a stale total reads as fine forever.
+#
+# THE FIRST KIND, NAMED. Three sites, and each one is repaired at its own home
+# by its own owner, because each repair is a type or a refusal and none of them
+# is a lint:
+#
+#   - `src/00_refusal/types.rs`, `DeclaredCauseOrder::ordinal_of`. A position
+#     past what `CauseOrdinal` represents becomes `None`, and `None` on that road
+#     MEANS "this order declares no such cause" — so an over-magnitude
+#     declaration answers a question about a cause it does declare with the word
+#     for absent. `declared` takes a bare static slice and proves nothing about
+#     its length, so the fit that type's own documentation calls provable is
+#     proven nowhere. Latent rather than live: no order in this tree is near the
+#     bound. The repair is an order that carries its admitted magnitude, so the
+#     conversion cannot fail at all.
+#
+#   - `xtask/src/checks/vocabulary.rs`, `check_no_personal_names`. The file's
+#     bytes are decoded lossily and the decoding is what the law searches, so a
+#     file this reader cannot decode is judged as a rendering of itself and
+#     passes. What that entails, read off the substitution rather than executed:
+#     a forbidden spelling written in an encoding this decoder does not read
+#     survives as something else and is not found, and the law reports PASS over
+#     it. Nothing in this tree is such a file today, which is why the entailment
+#     is stated and not measured — measuring it means committing one.
+#
+#   - `xtask/src/checks/vocabulary.rs`, `check_banned_vocabulary`. The same call
+#     in the same shape over the scanned tree, with the same consequence for the
+#     same reason.
+#
+# The repair for the two scanning laws is a standard this repository already
+# applies one module over: the obligations join refuses a source it cannot parse
+# because whether that source declares a test is UNKNOWN rather than false. A
+# file that cannot be decoded is unknown in exactly that sense, and the honest
+# answer is to name it, not to judge a substitute for it.
+#
+# THE THIRD KIND IS EMPTY, and that is a finding rather than an absence nobody
+# looked for. Not one operational host read in this tree is spelled with any of
+# the four methods — the ones that exist are `unwrap_or_else` with a named
+# fallback beside them — so a `disallowed-methods` table would refuse nothing in
+# that class. The environment paragraph above reduced the class to euphemism;
+# this reduces it to nobody.
+#
+# WHY THE SECOND CONDITION IS STILL NOT MET, MEASURED rather than assumed. All
+# four methods have lawful uses left after the three sites above are set aside,
+# and most of the population is one shape: a fallback standing immediately
+# beneath an assertion that refuses the fallback's own value, in the judge and in
+# the laws' own controls. `disallowed-methods` has no crate scope and this
+# repository refuses a production `#[expect]`, so a table installed now would
+# refuse every one of those lawful sites with no lawful way to say so. The table
+# stays out until the three are repaired at their homes and each method has zero
+# lawful uses left — which is the condition already written above, unchanged by
+# this pass.

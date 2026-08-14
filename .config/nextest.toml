@@ -1,0 +1,181 @@
+# The second harness. It is not the entry bar and it does not become one.
+#
+# `cargo xtask qualify` is the entry bar and the only spelling of it. Its
+# `tests` stage runs `cargo test --locked --workspace` with the pinned
+# toolchain and nothing else, and that stage is untouched by this file. nextest
+# is a separately installed binary, so folding it into qualify would make the
+# bar depend on what a working machine happens to have — the reason cargo-deny
+# runs beside the bar rather than inside it, written once in `deny.toml` and not
+# restated here. This file configures a SECOND reading of the population that
+# stage already runs, and `.github/workflows/harness.yml` is where it runs.
+#
+# WHY A SECOND READING IS WORTH HAVING AT ALL. The hosted qualify job runs two
+# hosts because the road claims to be one road and two hosts can disagree. Two
+# harnesses stand on that same argument one level in. `cargo test` runs every
+# test of a binary as a thread inside ONE process; nextest runs each test in a
+# process of its own. The two can therefore only disagree where a result depends
+# on something a process shares — a static, an environment variable, a working
+# directory, a file another test wrote. The repository laws walk real trees and
+# write scratch directories, so that is not a theoretical class here.
+#
+# MEASURED, on the tree this file lands with, on the pinned toolchain:
+#   - `cargo test --locked --workspace` executes 532 harness tests and 3
+#     doctests, and passes;
+#   - `cargo nextest run --locked --workspace` executes 532, and passes;
+#   - the two executed sets are EQUAL name for name — the difference is empty in
+#     both directions, so no test changed hands and none was quietly dropped.
+# The second harness found nothing the first one did not. That is the honest
+# result of the first reading, and it is why this is an alarm standing beside
+# the bar rather than a bar of its own.
+#
+# WHAT NEXTEST DOES NOT EXECUTE, and it is the first thing to know rather than a
+# footnote: DOCTESTS. `cargo nextest run` neither builds nor runs them, and this
+# repository's three doctests are load-bearing. `CLOSED_REGISTER_ROW_CEILING`'s
+# example in `src/lib.rs` is the ONE place the stamp's current authoring profile
+# is written down, and its whole job is to fail when the supply is extended;
+# `closed_register`'s example and band 02's `scope_guard_version` example are
+# the other two. Replacing `cargo test` with nextest and saying nothing would
+# delete three executed controls and print the same green — the exact defect
+# class this repository exists to refuse.
+#
+# That is why nextest SUPPLEMENTS the `tests` stage and does not replace it. The
+# stage is untouched, it still executes all 535 on both hosts, and the doctests
+# lose nothing. What follows is that this configuration's population is a strict
+# SUBSET of the bar's — 532 of 535 — and the harness job deliberately runs no
+# doctest leg of its own, because a third execution of a control the bar already
+# runs twice would be one claim seated twice. A reader comparing the two summary
+# lines is meant to find them different, and the difference is exactly those
+# three.
+#
+# WHAT THIS FILE CLAIMS: that the workspace's harness tests pass under
+# process-per-test isolation, and that the configuration below is the one a run
+# used. WHAT IT DOES NOT CLAIM: anything about doctests; anything about a test a
+# macro generated or deleted, because nextest lists what the compiled binaries
+# report and this repository's readers already state that ceiling; and anything
+# about the entry bar, which is `cargo xtask qualify` and is defined by the
+# ordered stage table in `xtask/src/qualification.rs` alone.
+#
+# WHERE THIS FILE IS COUNTED: NOWHERE YET, and that is the one admission
+# requirement this surface arrives without. It is in neither published
+# denominator, for the reason `deny-reversal.toml` gives about itself — the
+# red-twin populations xtask joins against are testpak's tests and its
+# compile-fail fixtures, and a configuration beside a hosted workflow is neither
+# — and it is not yet in the other machine-owned roster either. The dependency
+# gate IS: `dependency-gate-artifacts-are-present-and-distinct` reads that gate's
+# committed files and refuses when one is deleted or when its reversal stops
+# departing from the rule it stands against. Nothing reads THESE files.
+#
+# THE OPENING CONDITION, EXACTLY: a repository law of that same shape, reading
+# this file, `.cargo/mutants.toml`, and the two workflows that call them, and
+# refusing when one is deleted, when one is emptied, or when the `reversal`
+# profile below stops departing from `default`. Until it exists, deleting any of
+# them fails no stage of `cargo xtask qualify` and is caught by review alone —
+# and even with it, what such a law establishes is that the FILES are there, not
+# that any hosted step still runs them. That second half is the same road the
+# dependency gate names and does not reach.
+
+# CHOSEN: the exact version, and it is a staleness guard rather than
+# housekeeping. A key this file writes that a nextest no longer reads would
+# otherwise be a decision that stopped applying in silence — the failure mode
+# `clippy.toml` says it could not build a guard for. nextest refuses to run at
+# all when the binary is older than the version its configuration requires, which
+# is the tool's documented behaviour and NOT measured here: proving it needs an
+# older nextest and there is none on any machine this has run on. What IS
+# measured is that 0.9.132 accepts every key below. Raising the pin is a visible
+# act either way.
+nextest-version = "0.9.132"
+
+[profile.default]
+# CHOSEN: report every failure. nextest's own default stops the run at the first
+# one. The qualification road already settles this question and settles it the
+# other way for a population like this: fail fast ACROSS stages that share a
+# cause, report everything WITHIN a stage whose findings do not. Tests are
+# independent of one another, so a run that stopped at the first red would cost
+# a round trip per failure to learn what one run already knew.
+fail-fast = false
+
+# CHOSEN: zero, restating nextest's default AS a decision, because this is the
+# one setting whose wrong value would be invisible. A retried test that passes
+# on the second attempt is reported as a pass, and a flaky test converted into a
+# green one is precisely the silence this repository refuses. A test that does
+# not hold every time is a test whose claim is false; the repair is at the test.
+retries = 0
+
+# CHOSEN: name a test that runs long, and never kill one. `period` makes nextest
+# print a SLOW line for anything past it, which is a signal; `terminate-after`
+# would convert that signal into a failure.
+#
+# NOT ADOPTED, ON THE RECORD: `terminate-after`. `compile_refusals` shells out to
+# rustc once per compile-fail fixture and MEASURED takes 17 seconds on a warm
+# working machine — a cold hosted runner with no cache, which is what this
+# repository deliberately runs, is slower by a factor nobody here has measured.
+# A kill threshold set against an unmeasured worst case is a gate that fails on
+# how busy a runner was, and a gate that reds for a reason unrelated to the tree
+# teaches its readers to ignore it. It is adopted the day a hosted run publishes
+# per-test durations to set it against, and not before.
+slow-timeout = { period = "60s" }
+
+# CHOSEN: print a failing test's output where it happened AND again at the end.
+# A hosted log is read from the bottom, and a run with `fail-fast = false` can
+# put a thousand lines between a failure and the summary.
+failure-output = "immediate-final"
+
+# THE PLANTED REVERSAL: a profile that is deliberately wrong, kept on purpose.
+#
+# The lawful profile above establishes one thing when it passes: the tests hold
+# today. It establishes nothing about whether this configuration is READ. A key
+# nextest stopped honouring, a file moved out from under the tool's search, a
+# profile name that stopped resolving — every one of those leaves the same green
+# summary as a run that used every line above. A gate whose refusal has never
+# been executed is a gate nobody has watched work, and this repository does not
+# admit one; `deny-reversal.toml` exists for that reason and this profile exists
+# for the same one.
+#
+# WHY A PROFILE HERE RATHER THAN A SEPARATE FILE, which is where the dependency
+# gate puts its reversal. A second file would replace this configuration
+# wholesale, so a refusal it produced would prove that nextest refuses and
+# nothing about whether THIS file is live. A reversal profile is read out of the
+# same file the lawful profile is read out of: the day this file stops being
+# found, the reversal stops refusing and the step that requires a refusal turns
+# red. One artifact, both facts.
+#
+# WHAT IS PLANTED, and it is deliberately NOT a timing race. The profile selects
+# the one test in this repository that is known to be slow — `compile_refusals`
+# shells out to rustc once per compile-fail fixture and MEASURED takes 17 seconds
+# on a warm working machine — and then sets a kill threshold of one second
+# against it. The margin is a factor of seventeen on the fastest host anybody has
+# run this on, and a cold hosted runner only widens it. Both halves are stated
+# HERE rather than in the step that runs them, so the reversal is one artifact
+# and a run of it needs no arguments to be the reversal.
+#
+# MEASURED, on the pinned toolchain: `cargo nextest run --locked --workspace
+# --profile reversal` reports `1 timed out`, prints `TIMEOUT` against the test,
+# and exits 100. The step requires BOTH, for the reason the dependency gate's
+# reversal step requires both: nextest exits non-zero for a usage error and for
+# a configuration it could not read as well, so an exit code alone would accept
+# a run that never reached a test. Exit 100 with `timed out` is the one pair
+# that means it refused for the reason that was planted.
+#
+# THE ONE WAY THIS REVERSAL CAN STOP BEING ABOUT ANYTHING is `compile_refusals`
+# becoming fast, or leaving. It does not go silent when that happens: the step
+# requires a REFUSAL, so a run that suddenly passes turns the job red rather than
+# green, and the day the compile-refusal harness is retired is a day this profile
+# is rewritten on purpose.
+#
+# WHAT THIS REVERSAL COVERS: that this file is read, that a profile in it is
+# resolved and applied, that a filterset written here decides what runs, and that
+# nextest's refusal path exits non-zero and says why. What it does NOT cover:
+# `fail-fast`, `retries`, and `failure-output` above — one test is selected here,
+# so nothing about how a run behaves after a second failure is exercised, and any
+# of the three could stop being honoured tomorrow leaving both this run and the
+# lawful one reading exactly as they read now. Those three stand on a positive
+# invocation alone. That is a debt NAMED here rather than discharged, and the
+# shape that would discharge it is one more deliberately wrong profile per
+# setting, each requiring its own exit code and its own diagnostic.
+#
+# Only the two keys that ARE the plant are written below. A profile inherits
+# every other setting from `default`, so restating one here would be a second
+# place the lawful value lives and the first thing to drift.
+[profile.reversal]
+default-filter = 'binary(compile_refusals)'
+slow-timeout = { period = "1s", terminate-after = 1 }
