@@ -23,8 +23,8 @@
 
 use super::{
     CapturedCause, CauseOrderStanding, ClosedExpansion, CrateBinding, DEFAULT_CRATE_BINDING,
-    DerivedMembership, RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveRefusal,
-    RefusalDeriveSurface, RefusalOwnerFacts,
+    DerivedMembership, RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveSurface,
+    RefusalOwnerFacts,
 };
 use crate::closure::{ProjectionClosure, RenderedProjection};
 use crate::diagnostics::{
@@ -40,12 +40,10 @@ use crate::plane::{
 use crate::planning::{
     DeriveImplProjection, ProjectionDisposition, ProjectionPlan, RenderedImplementation,
 };
-use crate::token::{GeneratedTree, SpanHandle, SpanTable};
+use crate::token::{GeneratedTree, SpanTable};
 use threadpak::evidence::CauseDisposition;
 use threadpak::refusal::FamilyShape;
 use threadpak::types::Bounded;
-
-use super::RefusalDeriveCapture;
 
 impl CrateBinding {
     /// The default binding: the machine under its own package name.
@@ -169,34 +167,55 @@ impl RefusalDeriveSurface {
     }
 }
 
-impl RefusalDeriveRefusal {
-    /// The established refusal at one token of the declared input.
+pub use seat::RefusalDeriveRefusal;
+
+mod seat {
+    use super::super::RefusalDeriveCapture;
+    use crate::token::SpanHandle;
+
+    /// One capture refusal: the established cause, and the token it sits at.
     ///
-    /// Reachable only from inside this home, which is where the capture pass
-    /// lives. Both seats are private, so no caller can write the literal; this
-    /// road is what a caller would reach for instead, and a cause word plus a
-    /// span handle are both values anybody can spell — so a public road here
-    /// would hand any holder of those two a refusal the capture pass never
-    /// established, at a token it never read.
-    pub(in crate::derive_refusal) const fn established(
+    /// Both seats are required. A refusal that could omit its token would send
+    /// the caller looking, and a refusal that could omit its cause would be a
+    /// complaint rather than an answer.
+    #[must_use = "a capture refusal carries the established cause and the offending token"]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct RefusalDeriveRefusal {
         cause: RefusalDeriveCapture,
         token: SpanHandle,
-    ) -> Self {
-        Self { cause, token }
     }
 
-    /// The established cause.
-    pub const fn cause(self) -> RefusalDeriveCapture {
-        self.cause
-    }
+    impl RefusalDeriveRefusal {
+        /// The established refusal at one token of the declared input.
+        ///
+        /// Reachable only from inside this home, which is where the capture pass
+        /// lives. Both seats are private, so no caller can write the literal;
+        /// this road is what a caller would reach for instead, and a cause word
+        /// plus a span handle are both values anybody can spell — so a public
+        /// road here would hand any holder of those two a refusal the capture
+        /// pass never established, at a token it never read.
+        pub(in crate::derive_refusal) const fn established(
+            cause: RefusalDeriveCapture,
+            token: SpanHandle,
+        ) -> Self {
+            Self { cause, token }
+        }
 
-    /// The token the observation sits at. The producer resolves it to the exact
-    /// compiler span; the services never do.
-    #[must_use]
-    pub const fn token(self) -> SpanHandle {
-        self.token
-    }
+        /// The established cause.
+        pub const fn cause(self) -> RefusalDeriveCapture {
+            self.cause
+        }
 
+        /// The token the observation sits at. The producer resolves it to the
+        /// exact compiler span; the services never do.
+        #[must_use]
+        pub const fn token(self) -> SpanHandle {
+            self.token
+        }
+    }
+}
+
+impl RefusalDeriveRefusal {
     /// The compiler-facing rendering: one line naming the cause and where it
     /// was established, in whatever coordinate role the producer speaks.
     ///
@@ -210,8 +229,8 @@ impl RefusalDeriveRefusal {
     /// being handed a number that means nothing.
     #[must_use]
     pub fn compiler_message(self, spans: &SpanTable) -> String {
-        let described = self.cause.described();
-        match spans.coordinate_of(self.token) {
+        let described = self.cause().described();
+        match spans.coordinate_of(self.token()) {
             Ok(coordinate) => {
                 let position = coordinate.position;
                 format!(
@@ -231,23 +250,23 @@ impl RefusalDeriveRefusal {
     /// identities it supplies them, and where none exists at this seam the
     /// diagnostic says so. This module mints none of them, because none of them
     /// is its to mint — the services classify what they OBSERVED
-    /// ([`RefusalDeriveCapture::observed`]) and never mint the machine's cause
-    /// commitment.
+    /// ([`RefusalDeriveCapture::observed`](super::RefusalDeriveCapture::observed))
+    /// and never mint the machine's cause commitment.
     pub fn diagnosed(self, spans: &SpanTable, machine: MachineAnchoring) -> MacrocDiagnostic {
         let repairs = Bounded::from_array([RepairAction {
             declared_by: OwnerFactRef::named("refusal", "family-shapes-are-three-and-closed"),
-            description: self.cause.description(),
+            description: self.cause().description(),
         }]);
         MacrocDiagnostic {
             machine,
-            summary: self.cause.description(),
+            summary: self.cause().description(),
             phase: MacrocPhase::Capture,
             site: DiagnosticSite {
-                token: self.token,
-                coordinate: SiteCoordinate::answered(spans.coordinate_of(self.token)),
+                token: self.token(),
+                coordinate: SiteCoordinate::answered(spans.coordinate_of(self.token())),
             },
             expected: expected_contract(),
-            observed: self.cause.observed(),
+            observed: self.cause().observed(),
             // The plane classifies what it observed and never elects the
             // machine's cause posture: narrowing is the machine's progress to
             // report, not the compiler plane's to assert.

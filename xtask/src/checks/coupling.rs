@@ -322,13 +322,87 @@ fn read_module(path: &str, home: &str, items: &[syn::Item], reading: &mut Readin
                     });
                 }
             }
-            syn::Item::Mod(module) => {
-                if let Some((_, inner)) = &module.content {
-                    let inside = format!("{path}::{}", module.ident);
-                    read_module(path, &inside, inner, reading);
-                }
-            }
+            syn::Item::Mod(module) => read_inline_module(path, home, module, items, reading),
             _ => {}
+        }
+    }
+}
+
+/// Reads one inline module, and then the bodies the enclosing module re-exports
+/// out of it.
+///
+/// A name the enclosing module RE-EXPORTS is a name in the enclosing scope, so
+/// the body behind it is read there too. Without this leg, a record moved into a
+/// child module — which is how a private seat is walled off from the file around
+/// it — would stop resolving against the family implementation written beside
+/// it, and this law would refuse the very shape that narrows the wall.
+fn read_inline_module(
+    path: &str,
+    home: &str,
+    module: &syn::ItemMod,
+    siblings: &[syn::Item],
+    reading: &mut Reading,
+) {
+    let Some((_, inner)) = &module.content else {
+        return;
+    };
+    let inside = format!("{path}::{}", module.ident);
+    read_module(path, &inside, inner, reading);
+    for name in reexported_from(&module.ident, siblings) {
+        read_reexported_body(home, &name, inner, reading);
+    }
+}
+
+/// Every name one module re-exports out of the named child module.
+///
+/// A glob contributes nothing: what stands behind one is a set this reader would
+/// have to resolve, and a body left in the inner scope produces a refusal
+/// somebody can argue with rather than a silence nobody can see.
+fn reexported_from(child: &syn::Ident, items: &[syn::Item]) -> Vec<String> {
+    let mut names = Vec::new();
+    for item in items {
+        if let syn::Item::Use(declared) = item
+            && let syn::UseTree::Path(rooted) = &declared.tree
+            && rooted.ident == *child
+        {
+            reexported_names(&rooted.tree, &mut names);
+        }
+    }
+    names
+}
+
+/// Every name one `use` tree brings in, under the spelling the enclosing module
+/// then knows it by.
+fn reexported_names(tree: &syn::UseTree, into: &mut Vec<String>) {
+    match *tree {
+        syn::UseTree::Name(ref named) => into.push(named.ident.to_string()),
+        syn::UseTree::Rename(ref renamed) => into.push(renamed.rename.to_string()),
+        syn::UseTree::Group(ref group) => {
+            for inner in &group.items {
+                reexported_names(inner, into);
+            }
+        }
+        syn::UseTree::Path(ref deeper) => reexported_names(&deeper.tree, into),
+        syn::UseTree::Glob(_) => {}
+    }
+}
+
+/// Reads one re-exported record into the scope that re-exports it.
+///
+/// Only a top-level declaration of the child module answers: a name re-exported
+/// out of a module that does not itself declare it stands for something this
+/// reader would have to follow further, and it declines to guess.
+fn read_reexported_body(home: &str, name: &str, items: &[syn::Item], reading: &mut Reading) {
+    for item in items {
+        if let syn::Item::Struct(declared) = item
+            && matches!(declared.vis, syn::Visibility::Public(_))
+            && declared.ident == name
+        {
+            reading.bodies.push(DeclaredBody {
+                home: home.to_string(),
+                name: name.to_string(),
+                seats: body_seats(&declared.fields),
+            });
         }
     }
 }
@@ -466,6 +540,56 @@ mod tests {
         assert_eq!(verdict.declared, 1);
         assert_eq!(verdict.coupled, 1);
         assert!(verdict.offenders.is_empty(), "{:?}", verdict.offenders);
+    }
+
+    /// A body declared inside a child module and RE-EXPORTED by the module the
+    /// implementation is written in resolves in the enclosing scope, because a
+    /// re-export is what puts the name there.
+    ///
+    /// This is the shape a sealed record takes: the seat module walls the
+    /// private field off from the file around it, and the family implementation
+    /// stays outside because it does not need the seat. A reader that stopped at
+    /// the module boundary would report the body missing and refuse the exact
+    /// move that narrows the wall.
+    #[test]
+    fn a_re_exported_body_resolves_in_the_module_that_publishes_it() {
+        let verdict = coupled_body_verdict(&source(
+            "pub use seat::DemoRefusal;\n\
+             \n\
+             mod seat {\n\
+             \x20   pub struct DemoRefusal {\n\
+             \x20       body: AdmittedPrefix<DemoIssue, DemoIssueLimit>,\n\
+             \x20   }\n\
+             }\n\
+             \n\
+             impl RefusalFamily for DemoRefusal {\n\
+             \x20   const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.coupled, 1, "{:?}", verdict.offenders);
+        assert!(verdict.offenders.is_empty(), "{:?}", verdict.offenders);
+    }
+
+    /// A body a child module declares and nobody re-exports stays in the child's
+    /// own scope, so a family implementation outside it does not resolve against
+    /// it. The lift follows a written re-export and never a name collision.
+    #[test]
+    fn a_body_nobody_re_exports_stays_inside_its_own_module() {
+        let verdict = coupled_body_verdict(&source(
+            "mod seat {\n\
+             \x20   pub struct DemoRefusal {\n\
+             \x20       body: AdmittedPrefix<DemoIssue, DemoIssueLimit>,\n\
+             \x20   }\n\
+             }\n\
+             \n\
+             impl RefusalFamily for DemoRefusal {\n\
+             \x20   const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.coupled, 0);
+        assert!(!verdict.offenders.is_empty());
     }
 
     /// Planted reversal: the two-seat body this law exists to end. Both halves

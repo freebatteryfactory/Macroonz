@@ -1565,13 +1565,23 @@ mod identity {
     }
 
     /// The scope this home's demo stamp is instantiated over.
+    ///
+    /// `pub(crate)` for the reason the guard below is: the stamped guard's road
+    /// in names this type in its signature, so the scope reaches exactly as far
+    /// as the guard it scopes and never one step less.
     #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-    struct DemoStampScope(u8);
+    pub(crate) struct DemoStampScope(u8);
 
     crate::scope_guard_version! {
         /// The stamped demo scope-guard version — written by the declarative
         /// stamp from one explicit typed invocation, not by hand.
-        struct StampedDemoVersion over DemoStampScope;
+        ///
+        /// Stamped `pub(crate)` rather than bare: the stamp seats the newtype in
+        /// a module of its own, so a guard with no visibility at all would be
+        /// sealed inside a module this surface cannot name. `pub(crate)` inside
+        /// this proof surface's private, test-gated module is the reach a bare
+        /// private guard already had, spelled where the seat now sits.
+        pub(crate) struct StampedDemoVersion over DemoStampScope, seated in mod stamped_demo_version;
     }
 
     /// The hand-written twin of what the stamp writes, authored the way every

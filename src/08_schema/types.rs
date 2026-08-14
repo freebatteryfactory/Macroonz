@@ -64,7 +64,7 @@ crate::scope_guard_version! {
     /// One schema version — Class C, a u64 position scoped to its family with the
     /// scope binding in the value: the first production instantiation of the
     /// scope-guarded order shape. No `Ord` exists; comparison is same-scope only.
-    pub struct SchemaVersion over SchemaFamilyId;
+    pub struct SchemaVersion over SchemaFamilyId, seated in mod schema_version;
 }
 
 /// The identity role marker for fields.

@@ -116,7 +116,7 @@ crate::scope_guard_version! {
     /// One Execution-Form version — Class C, scoped to its family. Adding,
     /// removing, or changing an operator advances this version; no version is
     /// bare, and numeric comparison across families is undefined.
-    pub struct ExecutionFormVersion over ExecutionFormFamilyId;
+    pub struct ExecutionFormVersion over ExecutionFormFamilyId, seated in mod execution_form_version;
 }
 
 // ---------------------------------------------------------------------------
@@ -757,7 +757,7 @@ impl SemanticKernelFamilyId {
 crate::scope_guard_version! {
     /// One semantic-kernel version — Class C, ordered ONLY within its family; no
     /// version is bare.
-    pub struct SemanticKernelVersion over SemanticKernelFamilyId;
+    pub struct SemanticKernelVersion over SemanticKernelFamilyId, seated in mod semantic_kernel_version;
 }
 
 /// Kernel semantic-contract domain marker (the MEANING half).

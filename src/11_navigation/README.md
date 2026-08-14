@@ -76,9 +76,9 @@ obligations:
     red: testpak/tests/compile-fail/cross-frame-comparison-on-a-production-guard.rs
   - id: navigation.a-production-guard-cannot-be-laundered
     challenge_kind: compile-refusal
-    green: structural (the position is a private seat of a stamped guard, and the
-      absence of any road out is derived rather than attempted — see band 02, and
-      cargo xtask check's stamped-guards-seal-their-position)
+    green: structural (the position is a private seat of a stamped guard seated
+      in a module the stamp writes whole, so the complete set of roads out is the
+      expansion and rustc refuses every other one — see band 02)
     red: testpak/tests/compile-fail/a-production-scope-guard-cannot-be-laundered.rs
   - id: navigation.axis-capabilities-are-declared
     challenge_kind: compile-refusal

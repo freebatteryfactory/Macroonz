@@ -197,7 +197,7 @@ impl ProjectionProfileId {
 
 crate::scope_guard_version! {
     /// One version of a projection profile — Class C, scoped to its profile.
-    pub struct ProjectionProfileVersion over ProjectionProfileId;
+    pub struct ProjectionProfileVersion over ProjectionProfileId, seated in mod projection_profile_version;
 }
 
 /// The export alias: the exact target-safe spelling faithfully projecting one

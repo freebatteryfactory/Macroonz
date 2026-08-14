@@ -28,11 +28,13 @@
 //! green, and the whole compile-refusal suite with it.
 //!
 //! *No road out exists* is not a sentence Rust can be asked to refuse, so it is
-//! not asked here. `cargo xtask check`'s `stamped-guards-seal-their-position`
-//! derives it — over every type the stamp is invoked for, and over the stamp's
-//! own transcriber, where one accessor would unseal all of them at once. The
-//! count that gate prints is the population; no number stands in this file,
-//! because a count kept beside a derivation is a second thing to keep true.
+//! not asked here. It is not asked of a repository law either, any more: the
+//! stamp seats each guard in a module of its own — `seated in mod
+//! frame_version` — and emits the newtype, its road in, and its one comparison
+//! into it. Nothing hand-written can be added to a module that exists only
+//! inside an expansion, so the complete set of roads out of a stamped guard IS
+//! the transcriber, and every other road is a compiler refusal rather than a
+//! finding.
 //!
 //! No value is constructed and none could be: `AuthorityPosition::assigned` is
 //! the authority-side mint and `ReferenceFrameId` has no outside road either, so

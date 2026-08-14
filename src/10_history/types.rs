@@ -83,14 +83,18 @@ crate::scope_guard_version! {
     /// contract is fixed per generation: any change that would make old and new
     /// sequence values incomparable mints a new generation, so the generation a
     /// value carries names its ordering contract.
-    pub struct AuthorityGeneration over StoreLineageId;
+    pub struct AuthorityGeneration over StoreLineageId, seated in mod authority_generation;
 }
 
 impl AuthorityGeneration {
     /// In-crate mint for laws. Test-gated until admission minting exists.
+    ///
+    /// It goes through the stamp's own road in rather than through the tuple
+    /// form, because the tuple form is not reachable from here: the stamp seats
+    /// the position inside a module of its own and this file is outside it.
     #[cfg(test)]
     pub(crate) fn for_laws(seed: u8) -> Self {
-        Self(crate::identity::AuthorityPosition::assigned(
+        Self::positioned(crate::identity::AuthorityPosition::assigned(
             StoreLineageId::for_laws(Occurrence::for_laws(
                 crate::identity::OccurrenceForm::Fresh([seed; 16]),
             )),
@@ -118,7 +122,7 @@ impl IdentityRole for PartitionId {
 crate::scope_guard_version! {
     /// One write-authority epoch — Class C, scoped to its partition. No state
     /// admits both epochs accepting writes.
-    pub struct WriteAuthorityEpoch over PartitionId;
+    pub struct WriteAuthorityEpoch over PartitionId, seated in mod write_authority_epoch;
 }
 
 /// The identity role marker for events. `EventId` deliberately declares NO

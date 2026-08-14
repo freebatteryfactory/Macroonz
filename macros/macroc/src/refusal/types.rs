@@ -2,19 +2,20 @@
 //! seats a fact can be missing from, the closed planning issue set, and the
 //! family body they travel in.
 //!
-//! Declarations only. The body's one seat is private and its roads live in
-//! `type_guard.rs`, this file's own child. Readable is not the same as writable:
-//! a refusal body whose issues a caller could not read would be a refusal nobody
-//! can act on, so the seat is read back through a borrow — and a refusal a caller
-//! could WRITE would be a seam minting the plane's own answer, so there is no
-//! literal anybody outside the nucleus can spell and no mint anybody outside the
-//! crate can call.
+//! Declarations only. The body itself is DECLARED in `type_guard.rs`'s `seat`
+//! module — this file's own grandchild — and published from here, because Rust's
+//! privacy is module-scoped and a seat declared in this file would be inside the
+//! wall with every other item this file declares. Readable is not the same as
+//! writable: a refusal body whose issues a caller could not read would be a
+//! refusal nobody can act on, so the seat is read back through a borrow — and a
+//! refusal a caller could WRITE would be a seam minting the plane's own answer,
+//! so there is no literal anybody outside the seat module can spell and no mint
+//! anybody outside the crate can call.
 
 use crate::plane::{
-    GeneratedUnitSubject, OwnerFactRef, PlanningIssueLimit, ProfileVersion, ProjectionIdentity,
-    ProjectionKindSubject, ProjectionProfileSubject,
+    GeneratedUnitSubject, OwnerFactRef, ProfileVersion, ProjectionIdentity, ProjectionKindSubject,
+    ProjectionProfileSubject,
 };
-use threadpak::refusal::AdmittedPrefix;
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -173,31 +174,12 @@ pub enum ProjectionPlanningIssue {
     },
 }
 
-/// The planning refusal family body.
+/// The planning refusal family body, published from this file and DECLARED in
+/// `type_guard.rs`'s `seat` module, beside the only roads that reach its seat.
 ///
-/// Independent members, no ladder, no primary issue, posture carried as an
-/// instance value. A body that stopped at its declared bound says so rather
-/// than implying no further defects exist.
-#[must_use = "a refusal family body carries every planning issue the pass established"]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ProjectionPlanning {
-    /// The established issues — at least one, at most the declared bound —
-    /// together with whether the body carries every issue its seam established
-    /// or names how many stand outside that bound. One seat rather than two,
-    /// because a coverage claim seated beside its body is a claim that can be
-    /// swapped for another body's.
-    ///
-    /// Private, and that is the second half of the same claim. The coupled seat
-    /// keeps a carry and its posture together; a PUBLIC seat on a one-field
-    /// record hands the whole record back as a literal, so any holder of a body
-    /// built for one seam could write it into another seam's refusal. Read back
-    /// through [`ProjectionPlanning::body`].
-    ///
-    /// The seat closes the literal and the mints close the road beside it. A
-    /// private seat reached by a public generic constructor is a fence with a
-    /// loading dock behind it: a caller holding an issue mints a refusal no pass
-    /// raised, and a caller holding this borrow clones the issues out and seats
-    /// them under a fresh one. Both roads are crate-internal for that reason,
-    /// and the reason is stated where they are declared.
-    body: AdmittedPrefix<ProjectionPlanningIssue, PlanningIssueLimit>,
-}
+/// The declaration is not here because Rust's privacy is MODULE-scoped: a
+/// private field is private to the module the declaration lands in, and this
+/// file declares dozens of other items that would each have been inside that
+/// wall. The complete set of roads to the seat has to be readable, and a file is
+/// too big a unit to read it off.
+pub use guard::ProjectionPlanning;
