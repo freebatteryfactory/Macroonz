@@ -24,6 +24,8 @@ pub(crate) mod obligations;
 
 pub(crate) mod coupling;
 
+pub(crate) mod mint;
+
 pub(crate) mod seal;
 
 pub(crate) mod vocabulary;
