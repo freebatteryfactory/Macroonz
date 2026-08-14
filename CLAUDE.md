@@ -146,10 +146,9 @@ the debts rather than the achievements.
   defect being eliminated is not the noun: it is one claim acquiring two proof
   authorities, or a weaker proof outliving the owner it was supposed to support.
   Every claim still drains to its strongest seat under **The strongest seat**.
-- **Trust is owner-scoped, never ambient.** `TCB` is not globally banned as a token,
-  but it may not stand in for an unnamed universal trusted-computing base. A trust
-  claim names its typed boundary, members, authority, nonclaims, and qualification
-  evidence. Shorthand never creates those facts.
+- **Trust is owner-scoped, never ambient.** A trust claim names its typed boundary,
+  members, authority, nonclaims, and qualification evidence. Shorthand never creates
+  those facts.
 
 ## Hard rules
 
