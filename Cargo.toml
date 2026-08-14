@@ -74,6 +74,15 @@ repository = "https://github.com/freebatteryfactory/ThreadPak"
 # settlement is stated: a graph rule reads the graph, so a third fact — what any
 # one compiled unit is handed — is settled by neither file.
 syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }
+# The token model `syn` parses FROM, named here because one law reads a
+# `macro_rules!` transcriber — tokens that are not Rust until their
+# metavariables have values. Giving them values means building a token stream,
+# and a token stream has a type. Nothing new arrives in the graph: `syn` already
+# holds this exact version, and `multiple-versions = "deny"` in `deny.toml` is
+# what keeps that true. Exact for the same reason every pin here is exact.
+# Default features off: the `proc-macro` bridge is the compiler's own token
+# types, and no reader here runs inside a macro.
+proc-macro2 = { version = "=1.0.107", default-features = false }
 # The digest. Pinned exact because a projection identity is a value the plane
 # hands out, and a minor version that changed one byte of output would silently
 # rename every identity in the tree. Default features off: `std` buys the

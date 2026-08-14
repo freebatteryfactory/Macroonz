@@ -42,6 +42,7 @@ use crate::checks::mint::check_refusal_mints_are_inside_the_plane;
 use crate::checks::obligations::check_obligations_join;
 use crate::checks::parity::check_agents_claude_parity;
 use crate::checks::placement::{check_band_map, check_tooling_module_order};
+use crate::checks::seal::check_stamped_guards_seal_their_position;
 use crate::checks::supply_chain::check_dependency_gate_artifacts;
 use crate::checks::toolchain::{check_lint_wall, check_toolchain_pin, check_workspace_members};
 use crate::checks::vocabulary::{check_banned_vocabulary, check_no_personal_names};
@@ -62,7 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 /// Runs every repository law, printing one PASS or FAIL line per law.
 fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
-    let checks: [Check; 16] = [
+    let checks: [Check; 17] = [
         ("agents-claude-parity", check_agents_claude_parity),
         ("lf-and-no-symlinks", check_lf_and_no_symlinks),
         ("no-python", check_no_python),
@@ -88,6 +89,10 @@ fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
         (
             "refusal-mints-are-inside-the-plane",
             check_refusal_mints_are_inside_the_plane,
+        ),
+        (
+            "stamped-guards-seal-their-position",
+            check_stamped_guards_seal_their_position,
         ),
         ("no-personal-names", check_no_personal_names),
         ("banned-vocabulary", check_banned_vocabulary),

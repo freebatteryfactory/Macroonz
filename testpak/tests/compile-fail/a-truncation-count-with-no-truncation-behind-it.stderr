@@ -1,9 +1,9 @@
 error[E0451]: fields `stopped_at` and `omitted` of struct `ReportTruncation` are private
-  --> tests/compile-fail/a-truncation-count-with-no-truncation-behind-it.rs:21:9
+  --> tests/compile-fail/a-truncation-count-with-no-truncation-behind-it.rs:33:9
    |
-20 |     let fabricated = ReportTruncation {
+32 |     let fabricated = ReportTruncation {
    |                      ---------------- in this type
-21 |         stopped_at: StopBound::DeclaredIssueBound,
+33 |         stopped_at: StopBound::DeclaredIssueBound,
    |         ^^^^^^^^^^ private field
-22 |         omitted: NonZeroUsize::MIN,
+34 |         omitted: NonZeroUsize::MIN,
    |         ^^^^^^^ private field

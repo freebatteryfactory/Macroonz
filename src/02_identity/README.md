@@ -91,6 +91,24 @@ derive lines are gone, and the shape they all now have is generated from one
 place. The hand-written twin survives only on the proof surface, where the law
 below needs something to compare the stamp against.
 
+**The absence of a road out is derived, because no reversal can state it.** The
+two laundering fixtures attempt the roads a caller has today — reading the seat
+as `version.0`, re-entering it as `FrameVersion(position)` — and both go on
+refusing, byte for byte, after a public `position()` is added to the stamp: the
+field is still private and the tuple constructor is still unreachable, so the
+recorded diagnostic never moves while the sealed value walks out through a road
+with a name. A fixture can only attempt roads somebody thought of, and *no road
+out exists* is not a sentence Rust can be asked to refuse. So `cargo xtask
+check`'s `stamped-guards-seal-their-position` reads it instead: the population is
+every type this stamp is invoked for, derived off the sources, and the seat is
+read out of the stamp's own transcriber rather than named in the check — a stamp
+reseated over another inner type is judged over the type it actually seals. Both
+places a road out can be written are read: the transcriber, where one accessor
+would unseal every guard at once, and any implementation beside a guard, which
+reaches the private seat because a `macro_rules!` expansion is expanded in the
+invoking module. A return, a `Deref` target, and a conversion standing for the
+position are all the same road under three spellings.
+
 ## Delegated by decision
 
 Text forms (Display/FromStr/prefixes): identity SEMANTICS live here; text
