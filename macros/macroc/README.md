@@ -290,13 +290,27 @@ tooling-obligation: macroc.a-refusal-body-is-minted-only-inside-the-plane
     instead — `cargo xtask check`'s `refusal-mints-are-inside-the-plane`, which
     DERIVES the population rather than naming it: every services record whose every
     seat is private and that some road refuses with, joined against every road that
-    hands one back, with both denominators printed on every run. What that law does
-    not resolve is stated where it is written — it expands no macro, evaluates no
-    `cfg`, reads a type by its last path segment, and reads `pub` as reachable,
-    which is exact for an inherent road and strict for a free one. It does not
-    claim exclusion inside each mint's own scope: a crate-scoped mint is reachable
-    by every module in the services, and the module order `lib.rs` declares is what
-    enumerates the seams that use it.
+    hands one back, with both denominators printed on every run. That law asks one
+    question — does this road hand a caller OWNERSHIP of a closed body — and it
+    RESOLVES it rather than matching a spelling: it walks the whole return type, so
+    a body inside a `Box`, a tuple, a collection or an opaque iterator is a body; it
+    resolves a type alias to what it stands for; it treats a borrow as access to a
+    body that already exists rather than a new one; and it excludes the error
+    position of a `Result` by decision, because a caller receiving the refusal a
+    seam raised is what the type is FOR. A road is a copy rather than a mint only
+    where its receiver IS the body it hands back. A return shape it cannot resolve
+    is REFUSED, never passed over.
+    What it does not establish is narrowed to exactly this. It reaches no module
+    chain: a road's reach is read off the declaration that states it — its own `pub`
+    for an inherent road, the implemented contract's for a trait road — so a `pub`
+    item in a module nobody re-exports reads as reachable. That direction refuses
+    loudly rather than passing silently, and the repair is one word. It expands no
+    macro, so a record or a road a macro assembles is outside it altogether, and it
+    evaluates no `cfg`. It reads a type by its last path segment, so two homes
+    declaring one name are one subject. And it does not claim exclusion inside each
+    mint's own scope: a crate-scoped mint is reachable by every module in the
+    services, and the module order `lib.rs` declares is what enumerates the seams
+    that use it.
 
 tooling-obligation: macroc.a-plan-watches-every-identity-it-hangs-off-or-refuses
   claim: >
