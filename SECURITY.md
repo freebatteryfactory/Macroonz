@@ -42,16 +42,22 @@ qualification road rather than a running machine:
 - the metaprogramming services and the expansion shell — an expansion is
   supposed to be a function of its declared input alone, and a way to make one
   read the network, the filesystem, the environment, a clock, or entropy is a
-  report.
+  report;
+- resource exhaustion driven by an attacker-controlled declaration — an input
+  this repository accepts that can be made to exhaust CPU, memory, stack, or
+  I/O in practice. It is a report whether or not a bound has already been
+  declared for the road it takes. Bounds are being established home by home, so
+  the likeliest place for a finding to land is a road nobody has bounded yet —
+  and a gap in our own coverage is the reason to tell us, never a reason to
+  turn the report away. What a declared bound decides is triage and repair: a
+  crossed bound is a refusal that failed to hold, an absent one is a refusal
+  nobody wrote yet, and the two want different fixes. Neither decides whether
+  the finding belongs here.
 
 ## What is not in scope, and why
 
 - **Anything requiring `unsafe`.** The lint wall forbids it outright, so a
   report that begins by adding it is a report about a different repository.
-- **Resource exhaustion from a deliberately hostile declaration**, unless it
-  crosses a bound the repository has actually declared. Bounds are being
-  established home by home; where one does not exist yet, its absence is
-  recorded work rather than a vulnerability.
 - **Findings from a scanner, unaccompanied.** A rule identifier and a file path
   are not a report. What is needed is the road: what an attacker controls, what
   they reach, and what they get.
@@ -65,3 +71,6 @@ The exact commit, the exact toolchain, the exact command, and the smallest
 input that shows the behaviour. If the finding is a refusal that should have
 happened and did not, say which refusal — this repository is built out of
 refusals with names, and naming the one that stayed quiet is most of the work.
+Where no refusal covers the road you found, say that instead: a road with no
+refusal on it is a report we want, and finding the name it should have had is
+our job rather than yours.

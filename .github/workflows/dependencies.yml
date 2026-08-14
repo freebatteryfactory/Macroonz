@@ -113,11 +113,12 @@ jobs:
       # multiple versions, or wildcards, which stand on the positive invocation
       # above alone.
       #
-      # The repository law `dependency-gate-carries-its-reversal` counts this
-      # gate's committed parts and refuses when one of them goes. It does not
-      # read this file's steps: deleting THIS STEP while the file remains is
-      # caught by review and by nothing else. The law states that ceiling and
-      # its opening condition itself.
+      # The repository law `dependency-gate-artifacts-are-present-and-distinct`
+      # counts this gate's committed artifacts and refuses when one of them goes
+      # or when the reversal stops differing from `deny.toml`. It does not read
+      # this file's steps, and its name no longer suggests it does: deleting
+      # THIS STEP while the file remains is caught by review and by nothing
+      # else. The law states that ceiling and its opening condition itself.
       - name: The planted reversal must refuse
         run: |
           set +e

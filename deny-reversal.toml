@@ -57,13 +57,15 @@
 # and a configuration beside a hosted workflow is neither, so no `red:` or
 # `tooling-red:` row names this one and neither published denominator moves.
 # It is counted in the OTHER machine-owned roster — the repository laws — by
-# `dependency-gate-carries-its-reversal`, which refuses when this file is
-# deleted, when it is emptied, when `deny.toml` is deleted, when the workflow
-# above it is deleted, or when this file stops departing from the rule it stands
-# against. Delete any one of those and `cargo xtask qualify` fails at its
-# repository-laws stage. That law owns the statement of what it does and does
-# not establish, in `xtask/src/checks/supply_chain.rs`; this file does not
-# restate it.
+# `dependency-gate-artifacts-are-present-and-distinct`, which reads this gate's
+# committed files and nothing else: it refuses when this file is deleted, when
+# it is emptied, when `deny.toml` is deleted, when the workflow above it is
+# deleted, or when this file stops departing from the rule it stands against.
+# Delete any one of those and `cargo xtask qualify` fails at its
+# repository-laws stage. What that law does NOT establish is that any of these
+# files is still RUN — its name used to say otherwise and no longer does. That
+# law owns the statement of what it does and does not establish, in
+# `xtask/src/checks/supply_chain.rs`; this file does not restate it.
 #
 # THE ROAD THAT LAW DOES NOT REACH, said here because a reader of this file is
 # exactly the person who needs to know it: the reversal STEP being edited out of

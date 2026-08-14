@@ -41,7 +41,7 @@ use crate::checks::hygiene::{
 use crate::checks::obligations::check_obligations_join;
 use crate::checks::parity::check_agents_claude_parity;
 use crate::checks::placement::{check_band_map, check_tooling_module_order};
-use crate::checks::supply_chain::check_dependency_gate;
+use crate::checks::supply_chain::check_dependency_gate_artifacts;
 use crate::checks::toolchain::{check_lint_wall, check_toolchain_pin, check_workspace_members};
 use crate::checks::vocabulary::{check_banned_vocabulary, check_no_personal_names};
 use crate::repository::types::Check;
@@ -70,8 +70,8 @@ fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
         ("lint-wall-inherited", check_lint_wall),
         ("no-core-tooling-edge", check_no_core_tooling_edge),
         (
-            "dependency-gate-carries-its-reversal",
-            check_dependency_gate,
+            "dependency-gate-artifacts-are-present-and-distinct",
+            check_dependency_gate_artifacts,
         ),
         (
             "underscore-fields-are-phantom",
