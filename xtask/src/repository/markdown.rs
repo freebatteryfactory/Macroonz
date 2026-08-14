@@ -149,53 +149,80 @@ impl MarkdownDocument {
     /// A document declaring the schema TWICE is a failure rather than a choice:
     /// two blocks answering one reading is the duplicate authority this whole
     /// model exists to remove, and picking one of them by position is exactly the
-    /// first-fence rule this replaced.
+    /// first-fence rule this replaced. One block declaring TWO schemas is refused
+    /// on the same rule from the other side — see [`read_block`].
     pub(crate) fn block(&self, schema: BlockSchema) -> Read<&DataBlock> {
-        let mut declaring = self.blocks.iter().filter(|block| block.schema == schema);
-        let Some(found) = declaring.next() else {
-            return Read::DeclaredAbsent(AbsenceReason::NoBlockDeclaresThisSchema);
-        };
-        if declaring.next().is_some() {
+        let mut declaring: Vec<&DataBlock> = Vec::new();
+        for block in &self.blocks {
+            match block.reading {
+                BlockReading::ManySchemas(ref many) if many.contains(&schema) => {
+                    return Read::Unreadable(ReadFailure::new(
+                        schema.spelling(),
+                        &declares_many(many),
+                    ));
+                }
+                BlockReading::One(one) if one == schema => declaring.push(block),
+                BlockReading::One(_)
+                | BlockReading::ManySchemas(_)
+                | BlockReading::NoSchema
+                | BlockReading::NotData => (),
+            }
+        }
+        if declaring.len() > 1 {
             return Read::Unreadable(ReadFailure::new(
                 schema.spelling(),
                 "two data blocks in one document declare this schema, so which one a reading is \
                  about is decided by position rather than by the document",
             ));
         }
-        Read::Known(found)
+        match declaring.first().copied() {
+            Some(block) => Read::Known(block),
+            None => Read::DeclaredAbsent(AbsenceReason::NoBlockDeclaresThisSchema),
+        }
     }
 
-    /// Every data-language block whose schema this repository does not
-    /// recognize.
+    /// Every data-language block no reading can be about, one offence each.
     ///
-    /// Reported rather than skipped. A block written in the data language that
-    /// declares no schema is a block no reading is about, and a ledger that
-    /// silently stopped being read is the exact failure this model was built to
-    /// end.
-    pub(crate) fn unrecognized_data_blocks(&self) -> usize {
-        self.blocks
-            .iter()
-            .filter(|block| block.schema == BlockSchema::UnrecognizedData)
-            .count()
+    /// Reported rather than skipped, and BOTH ways a block can be unjoinable are
+    /// here. A block declaring no schema this repository reads is a block no
+    /// reading is about; a block declaring two is a block that answers to
+    /// whichever reader asks first. A ledger that silently stopped being read is
+    /// the exact failure this model was built to end, and it does not matter
+    /// which of the two ways it stopped.
+    pub(crate) fn unjoinable_data_blocks(&self) -> Vec<String> {
+        let mut offences = Vec::new();
+        for block in &self.blocks {
+            match block.reading {
+                BlockReading::NoSchema => offences.push(String::from(
+                    "a fenced data block declares no schema this repository reads, so whatever it \
+                     carries is joined by nothing and counted by nothing",
+                )),
+                BlockReading::ManySchemas(ref many) => offences.push(format!(
+                    "a block declares exactly one schema: {}",
+                    declares_many(many)
+                )),
+                BlockReading::One(_) | BlockReading::NotData => (),
+            }
+        }
+        offences
     }
 }
 
-/// Closes the block the parser just ended, carrying its declared schema with
-/// it.
+/// Closes the block the parser just ended, carrying what its own keys say it is.
 fn close(open: &mut Option<String>, body: &mut String, into: &mut Vec<DataBlock>) {
     let Some(language) = open.take() else {
         return;
     };
     let carried = std::mem::take(body);
     into.push(DataBlock {
-        schema: BlockSchema::declared_by(&language, &carried),
+        reading: read_block(&language, &carried),
         body: carried,
     });
 }
 
-/// Which schema one fenced block declares.
+/// One schema this repository reads.
 ///
-/// Identity is taken from the keys the block writes at its own document level,
+/// Identity is taken from the keys a block writes at its own document level,
 /// never from where the block sits among the fences. That is the whole repair:
 /// the reading this replaced took the FIRST fenced block carrying the data
 /// language and called it the one it wanted, which was a fact about the current
@@ -210,32 +237,28 @@ pub(crate) enum BlockSchema {
     ToolingObligationLedger,
     /// `seat` and `state`: a reserved architectural coordinate.
     SeatReservation,
-    /// A data-language block declaring no schema this repository reads.
-    UnrecognizedData,
-    /// A fenced block that is not written in the data language at all — a
-    /// diagram, a shell transcript, a Rust example.
-    NotData,
 }
 
+/// Every schema this repository reads, and the whole of that population.
+///
+/// The array is what makes "exactly one" askable at all: a reading that decides
+/// a block's schema by asking questions in an order can only ever answer with
+/// the first question that says yes.
+const EVERY_SCHEMA: [BlockSchema; 4] = [
+    BlockSchema::PhaseDeclaration,
+    BlockSchema::ObligationLedger,
+    BlockSchema::ToolingObligationLedger,
+    BlockSchema::SeatReservation,
+];
+
 impl BlockSchema {
-    /// The schema a block declares, read off the keys it writes at its own
-    /// document level.
-    fn declared_by(language: &str, body: &str) -> Self {
-        if language != DATA_LANGUAGE {
-            return BlockSchema::NotData;
-        }
-        let keys = document_keys(body);
-        let declares = |key: &str| keys.iter().any(|written| written == key);
-        if declares("obligations") {
-            BlockSchema::ObligationLedger
-        } else if declares("tooling-obligation") {
-            BlockSchema::ToolingObligationLedger
-        } else if declares("phase") {
-            BlockSchema::PhaseDeclaration
-        } else if declares("seat") && declares("state") {
-            BlockSchema::SeatReservation
-        } else {
-            BlockSchema::UnrecognizedData
+    /// The document-level keys a block must write to declare this schema.
+    const fn identifying_keys(self) -> &'static [&'static str] {
+        match self {
+            BlockSchema::PhaseDeclaration => &["phase"],
+            BlockSchema::ObligationLedger => &["obligations"],
+            BlockSchema::ToolingObligationLedger => &["tooling-obligation"],
+            BlockSchema::SeatReservation => &["seat", "state"],
         }
     }
 
@@ -246,10 +269,80 @@ impl BlockSchema {
             BlockSchema::ObligationLedger => "the obligation ledger block",
             BlockSchema::ToolingObligationLedger => "the tooling obligation ledger block",
             BlockSchema::SeatReservation => "the seat reservation block",
-            BlockSchema::UnrecognizedData => "a data block declaring no known schema",
-            BlockSchema::NotData => "a block that is not data",
         }
     }
+}
+
+/// What one fenced block's own keys say it is.
+///
+/// Four states, and the middle two are the reason this is not a schema. "Which
+/// schema" and "whether there is exactly one" are different questions, and
+/// mixing them into one enum is what let the answer to the second be a matter of
+/// declaration order.
+enum BlockReading {
+    /// The block declares exactly one schema.
+    One(BlockSchema),
+    /// The block is written in the data language and declares no schema this
+    /// repository reads.
+    NoSchema,
+    /// The block declares more than one, and every one it declared is carried,
+    /// because a refusal that cannot name them tells nobody what to delete.
+    ManySchemas(Vec<BlockSchema>),
+    /// A fenced block that is not written in the data language at all — a
+    /// diagram, a shell transcript, a Rust example.
+    NotData,
+}
+
+/// What one block's keys declare it to be.
+///
+/// EVERY schema is calculated and exactly one is required. The reading this
+/// replaced asked its four questions in order and returned the first that said
+/// yes, so a block writing both `obligations:` and `phase:` was an obligation
+/// ledger — not because the document said so, but because that arm was written
+/// first. A reader further down the file asking for the phase declaration then
+/// found nothing, and the block it was looking at answered to somebody else. Two
+/// matches is an offence rather than a race won by declaration order, and moving
+/// the arms around can no longer change what a document means.
+fn read_block(language: &str, body: &str) -> BlockReading {
+    if language != DATA_LANGUAGE {
+        return BlockReading::NotData;
+    }
+    let keys = document_keys(body);
+    let declared: Vec<BlockSchema> = EVERY_SCHEMA
+        .into_iter()
+        .filter(|schema| {
+            schema
+                .identifying_keys()
+                .iter()
+                .all(|key| keys.iter().any(|written| written == key))
+        })
+        .collect();
+    if declared.len() > 1 {
+        return BlockReading::ManySchemas(declared);
+    }
+    match declared.first() {
+        Some(&one) => BlockReading::One(one),
+        None => BlockReading::NoSchema,
+    }
+}
+
+/// What a block declaring more than one schema is refused with, naming every
+/// schema it declared.
+///
+/// The schemas are NAMED rather than counted, because a refusal that cannot say
+/// which ones tells nobody which key to delete. They are named in the order
+/// [`EVERY_SCHEMA`] declares them, so the refusal reads the same on every run.
+fn declares_many(schemas: &[BlockSchema]) -> String {
+    format!(
+        "one data block declares {} schemas at once ({}), so which reading it is about would be \
+         decided by the order a reader asks in rather than by the document",
+        schemas.len(),
+        schemas
+            .iter()
+            .map(|schema| schema.spelling())
+            .collect::<Vec<&str>>()
+            .join(", ")
+    )
 }
 
 /// The keys one block writes at its own document level, in the order written.
@@ -265,10 +358,10 @@ fn document_keys(body: &str) -> Vec<String> {
         .collect()
 }
 
-/// One data block: the schema it declares and the text it carries.
+/// One data block: what its own keys declare it to be, and the text it carries.
 pub(crate) struct DataBlock {
     /// What the block declares itself to be.
-    schema: BlockSchema,
+    reading: BlockReading,
     /// The block's own text, as the parser handed it back.
     body: String,
 }
@@ -921,15 +1014,91 @@ mod tests {
         );
     }
 
-    /// A data block declaring no schema this repository reads is COUNTED rather
-    /// than skipped, so a ledger that quietly stopped being recognized is
+    /// A data block declaring no schema this repository reads is REPORTED
+    /// rather than skipped, so a ledger that quietly stopped being recognized is
     /// something a law can refuse.
     #[test]
-    fn a_data_block_declaring_no_schema_is_counted() {
+    fn a_data_block_declaring_no_schema_is_reported() {
         let document = MarkdownDocument::parse("```yaml\nsomething: else\nentirely: true\n```\n");
-        assert_eq!(document.unrecognized_data_blocks(), 1);
+        let unjoinable = document.unjoinable_data_blocks();
+        assert_eq!(unjoinable.len(), 1, "{unjoinable:?}");
+        assert!(
+            unjoinable
+                .first()
+                .is_some_and(|offence| offence.contains("declares no schema")),
+            "{unjoinable:?}"
+        );
         assert!(matches!(
             document.block(BlockSchema::ObligationLedger),
+            Read::DeclaredAbsent(_)
+        ));
+    }
+
+    /// Planted reversal: one data block declaring TWO schemas.
+    ///
+    /// The reading this replaced asked its four questions in declaration order
+    /// and returned the first that said yes, so this block was an obligation
+    /// ledger — not because the document said so, but because that arm was
+    /// written above the phase arm. The phase reader further down the file then
+    /// found nothing, and the block it was looking at was already answering to
+    /// somebody else. Every schema is calculated now, exactly one is required,
+    /// and BOTH readers are refused by name rather than one of them winning.
+    #[test]
+    fn one_block_declaring_two_schemas_is_refused_by_both_readers() {
+        let document = MarkdownDocument::parse(
+            "```yaml\n\
+             phase: architecture-closure\n\
+             toolchain: \"1.97.1\"\n\
+             obligations:\n\
+             \x20 - id: bounds.a-record\n\
+             ```\n",
+        );
+        assert!(
+            matches!(
+                document.block(BlockSchema::ObligationLedger),
+                Read::Unreadable(_)
+            ),
+            "the block was won by the reader declared first"
+        );
+        assert!(
+            matches!(
+                document.block(BlockSchema::PhaseDeclaration),
+                Read::Unreadable(_)
+            ),
+            "the reader that lost the race was told the schema is simply absent"
+        );
+        let unjoinable = document.unjoinable_data_blocks();
+        assert_eq!(unjoinable.len(), 1, "{unjoinable:?}");
+        assert!(
+            unjoinable.first().is_some_and(|offence| {
+                offence.contains("2 schemas at once")
+                    && offence.contains("the phase declaration block")
+                    && offence.contains("the obligation ledger block")
+            }),
+            "a refusal that cannot name the schemas tells nobody what to delete: {unjoinable:?}"
+        );
+    }
+
+    /// The positive control: a block writing one schema's keys declares that
+    /// schema and no other, and a key another schema also happens to want is
+    /// not enough on its own.
+    ///
+    /// `seat` and `state` TOGETHER identify a reservation. A block writing only
+    /// one of them declares no schema rather than half of one, which is what
+    /// keeps the two-schema refusal from firing on every document that happens
+    /// to write a common word.
+    #[test]
+    fn a_schema_is_declared_by_all_of_its_keys_and_by_no_fewer() {
+        let whole = MarkdownDocument::parse("```yaml\nseat: 09_port\nstate: reserved\n```\n");
+        assert!(whole.unjoinable_data_blocks().is_empty());
+        assert!(matches!(
+            whole.block(BlockSchema::SeatReservation),
+            Read::Known(_)
+        ));
+        let half = MarkdownDocument::parse("```yaml\nseat: 09_port\n```\n");
+        assert_eq!(half.unjoinable_data_blocks().len(), 1);
+        assert!(matches!(
+            half.block(BlockSchema::SeatReservation),
             Read::DeclaredAbsent(_)
         ));
     }
