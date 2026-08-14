@@ -1,2 +1,58 @@
 [alias]
 xtask = "run --locked --package xtask --"
+
+# A warning that survives to the end of a build is a failure, whoever emitted it.
+#
+# This is not a second statement of the lint wall. The wall in `Cargo.toml`
+# decides WHICH lints warn and is inherited by each member that asks; this
+# decides that a surviving warning is fatal whether or not the unit that emitted
+# it asked for anything. That matters because the check proving inheritance
+# matches manifest text rather than manifest structure, so a member could carry
+# the right bytes in a comment and still build outside the wall. This closes the
+# consequence of that weakness without pretending to fix the check.
+#
+# MEASURED on cargo 1.97.1, in a scratch workspace built for the purpose:
+#   - it denies rustc warnings under `cargo build` and `cargo test`;
+#   - it denies clippy warnings under `cargo clippy`;
+#   - it denies rustdoc warnings under `cargo doc`;
+#   - it denies them in a member that inherits NO `[lints]` table at all, which
+#     is the case the lint-wall check exists to catch and the one this covers
+#     independently;
+#   - it denies them in a path dependency that is not a workspace member.
+#
+# MEASURED not to cover, and each of these is a real ceiling rather than a
+# quibble:
+#   - Cargo's OWN warnings. An unused manifest key prints `warning: … unused
+#     manifest key` and the build still exits 0. A misspelled manifest key is
+#     therefore still silent, which is exactly the failure mode that dependency
+#     inheritance introduces.
+#   - Registry dependencies, which cargo builds with `--cap-lints allow` and
+#     which therefore emit nothing to deny. Measured on this tree: of the three
+#     rustc invocations that build the services, the two that compile a registry
+#     crate carry that flag and the one that compiles a workspace crate does
+#     not. This is why installing a tool from the registry cannot be broken by
+#     this setting.
+#   - A stale `clippy.toml` entry. Clippy's complaint that a configured path no
+#     longer resolves is counted in the tally line and does NOT fail the build:
+#     measured alone, with this setting on, the run exits 0.
+#
+# And one difference in KIND, not coverage: `-D warnings` makes a warning a
+# compile error, so rustc produces no artifact. This counts warnings and fails
+# afterwards, so the artifact exists and dependent units may already have been
+# built against it. It is a gate, not a compiler setting.
+#
+# WHY THE DOCUMENTATION STAGE STILL SETS `RUSTDOCFLAGS`, and why removing it is
+# not a repair. The claim that `[lints]` now reaches rustdoc, so the stage's
+# explicit `RUSTDOCFLAGS = "-D warnings"` could go and close an
+# environment-dependence violation, was tested and is backwards. `[lints]` does
+# reach rustdoc — measured: with the wall inherited and no `RUSTDOCFLAGS` set, a
+# broken intra-doc link fails `cargo doc` with rustdoc printing `-D
+# rustdoc::broken-intra-doc-links` implied by `-D warnings`, and with the wall
+# removed the same source only warns and exits 0. But an AMBIENT `RUSTDOCFLAGS`
+# defeats the wall entirely: measured, `--cap-lints allow` and `-A warnings`
+# each turn that same failing build into an exit 0. Setting the variable for the
+# child is what makes the stage immune to whatever the host has exported; it is
+# a shield, not a dependence, and deleting it would introduce the very
+# environment-dependence it was said to remove.
+[build]
+warnings = "deny"

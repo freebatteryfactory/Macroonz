@@ -14,4 +14,10 @@ proc-macro = true
 workspace = true
 
 [dependencies]
-threadpak-macroc = { path = "../macroc" }
+# The services, reached by path inside this checkout and by version anywhere
+# else. This package is publishable, and a registry resolves nothing by path, so
+# a path-only edge here is an edge that works only for the people who already
+# have the tree. The requirement restates `workspace.package.version` because a
+# dependency requirement cannot inherit it; the two move together or the package
+# stops resolving, which is the failure that names itself.
+threadpak-macroc = { path = "../macroc", version = "0.0.0" }

@@ -1,33 +1,66 @@
 # The hosted runner is a caller. The battery is `cargo xtask qualify`.
 #
-# Every stage of the entry bar — formatting, the lint wall, the tests, the
-# repository laws, the wasm build, the documentation build, and the worktree
-# check — lives in xtask, so a contributor runs on a working machine the exact
-# road a change runs here. What a hosted run supplies is the one thing a working
-# machine cannot: a host nobody configured, and a refusal standing between a
-# change and the branch. Changing what qualification MEANS is a change to xtask
-# and never a change to this file; a stage restated here would be a second
-# definition, and the two would drift the first time either was edited alone.
+# The entry bar lives in xtask, so a contributor runs on a working machine the
+# exact road a change runs here, and this file names no stage of it. What a
+# hosted run supplies is the one thing a working machine cannot: a host nobody
+# configured, and a refusal standing between a change and the branch. Changing
+# what qualification MEANS is a change to xtask and never a change to this file;
+# a stage restated here would be a second definition, and the two would drift the
+# first time either was edited alone.
 name: qualify
 
 on:
   # Every pull request, whatever it targets.
   pull_request:
-  # And direct pushes to the trunk, which are still possible because branch
-  # protection is not yet in place. A change that arrives as a pull request and
-  # is then merged runs TWICE under this policy: once on the request, once on the
-  # resulting push. That duplication is the cost of the cover, and the cover is
-  # what matters while a direct push to the trunk can still bypass the request
-  # entirely. This trigger is bootstrap-era belt-and-suspenders, and it comes out
-  # the day branch protection forbids the direct push it exists to catch.
+  # And direct pushes to the trunk.
+  #
+  # Branch protection IS in place on `main`. READ from the repository's settings:
+  # administrators are included in the enforcement, force pushes are refused, and
+  # `qualify (ubuntu-latest)`, `qualify (windows-latest)`, and `graph` are all
+  # required to pass before a merge. By that reading this trigger is redundant,
+  # because the direct push it exists to catch cannot happen.
+  #
+  # It stays anyway, because a READ is not a RUN. Nobody has ever pushed at this
+  # trunk and watched the refusal happen. Everywhere else this repository refuses
+  # to believe a gate it has not seen refuse — the planted reversal in
+  # `.github/workflows/dependencies.yml` exists for that reason and no other —
+  # and a settings page is a claim about what WOULD happen, made in the same
+  # configuration that can be edited by anyone who can edit it. So the direct-push
+  # refusal is the one live gate here standing on a read alone, and this trigger
+  # is the cover held over it until it stops being one. A change that arrives as a
+  # pull request and is then merged therefore still runs TWICE: once on the
+  # request, once on the resulting push. That duplication is the price of not
+  # believing a setting.
+  #
+  # THE OPENING CONDITION, EXACTLY: someone attempts a direct push to `main` and
+  # records that it was refused. On that day this trigger comes out, and the
+  # matching one in `.github/workflows/dependencies.yml` comes out with it — they
+  # cover the same unexecuted refusal, and retiring one alone would leave the
+  # trunk covered on one side and bare on the other.
   push:
     branches: [main]
+  # Weekly, on the trunk as it stands.
+  #
+  # The claim this supports, exactly: the qualification road's verdict is about
+  # the tree alone. A weekly run of a tree that has not changed can only change
+  # its answer if something OUTSIDE the tree changed — a toolchain component that
+  # stopped installing, a target that stopped being available, a registry that
+  # stopped serving a pinned version. That has already happened here once, and a
+  # green commit going quietly stale is a failure nobody is looking at. It claims
+  # nothing about code that has not been written and nothing about revalidating a
+  # review.
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
 
-# One live run per ref. A push that supersedes another has nothing to learn from
-# finishing the older one.
+# One live run per ref, EXCEPT on the trunk. Cancelling a superseded pull-request
+# run costs nothing, because the newer commit on that branch is the thing to
+# judge. Cancelling the trunk's own run destroys the only record of whether a
+# merged commit held — nobody re-pushes a merge to get it back — so a run whose
+# ref is not a pull request finishes.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # The run reads the tree and writes nothing back.
 permissions:
@@ -35,7 +68,28 @@ permissions:
 
 jobs:
   qualify:
-    runs-on: ubuntu-latest
+    strategy:
+      # Both legs report. A road that stopped on the first red would tell us
+      # which host failed and nothing about the other, and the whole reason two
+      # hosts run is that they can disagree.
+      fail-fast: false
+      matrix:
+        # Two hosts, because the road claims to be one road. Its spawning stages
+        # pass an explicit argument list and an explicit working directory, so
+        # no shell parses them and no path separator is ever spelled — and until
+        # this leg existed, that claim had never been executed anywhere but a
+        # working machine. The Windows leg is also the
+        # only one that exercises the interaction between `.gitattributes`, a
+        # checkout on a platform whose git converts line endings by default, and
+        # a closing stage that refuses any difference from what is committed.
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    # The default is six hours. Nothing here is a six-hour job, so a run that
+    # reaches this number is a run that stopped making progress, and holding a
+    # runner until lunchtime to learn that helps nobody. The number is generous
+    # against a cold, uncached compile of the whole workspace on the slower of
+    # the two hosts, not tuned to the current runtime.
+    timeout-minutes: 45
     steps:
       # Pinned to the exact commit `v4` named when this line was written. A tag
       # is a movable label: whoever can move it can change what a hosted run
