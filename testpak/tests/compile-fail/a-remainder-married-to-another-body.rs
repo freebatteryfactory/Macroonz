@@ -9,15 +9,31 @@
 //! lie, which is the kind no runtime check catches: there is nothing wrong to
 //! detect at either end.
 //!
-//! So the two leave the road married inside one `AdmittedPrefix`, the seats are
-//! private, and there is no road back out to a loose pair — no public two-value
-//! constructor, no `into_parts`, and no owned carry. What is left to a caller
-//! wanting the cross-wire is the struct literal below, and writing the seats is
-//! not the caller's to do.
+//! So the two leave the road married inside one `AdmittedPrefix` and the seats
+//! are private. What is left to a caller wanting the cross-wire is the struct
+//! literal below, and writing the seats is not the caller's to do.
 //!
 //! The fixture stays on that one shape on purpose. Privacy is checked after type
 //! checking, so a second attempt failing earlier would swallow this error and
 //! leave the record attesting something else.
+//!
+//! # What this file establishes, exactly
+//!
+//! REPRESENTATION PRIVACY: the two seats are not a caller's to write, so the
+//! cross-wired pair is not a value that can be assembled. It does NOT establish
+//! that no road back out to a loose pair exists. An `into_parts` handing both
+//! halves over, or a second mint taking a carry and a posture, would leave this
+//! error exactly where it is — the seats stay private either way — and the
+//! sentence this header used to carry would have gone on reading as discharged.
+//!
+//! That absence is not derived anywhere, and the reason is stated rather than
+//! left as an omission. Nothing in the tree separates a package sealed by
+//! intent from a declaration record beside it that is transparent by intent:
+//! `CauseId` also has two private seats, and it hands both back on purpose,
+//! through `family()` and `local()`, beside a public mint that takes them. A
+//! reader that condemned one would condemn the other. The stamped scope guards
+//! escape that because the stamp is a DECLARATION of the seal, machine-readable,
+//! which is exactly what this package does not have.
 
 use threadpak::refusal::{AdmittedPrefix, StopBound};
 use threadpak::types::{ConstLimit, Limit, LimitAdmissionProfile, PositiveLimit};

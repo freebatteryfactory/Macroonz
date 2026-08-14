@@ -37,5 +37,15 @@ workspace = true
 # What the admission does NOT buy: nothing is compiled, nothing is resolved, no
 # `cfg` is evaluated, and no macro is expanded. The law that reads through it
 # states those limits itself, in `src/checks/coupling.rs`, where the reading is.
+#
+# `proc-macro2` arrives with the seal law, which judges what band 02's
+# `scope_guard_version!` stamp EMITS. A transcriber is not Rust: `$vis struct
+# $name(…)` parses as nothing until its metavariables have values. So the law
+# gives them values and hands the result to the same `syn` every other reading
+# here goes through — which means building a token stream, which means naming
+# the type one is. The alternative was text surgery on a macro body, which is
+# the line-scanner shape this crate replaced once already and would be reaching
+# for again one level down.
 [dependencies]
+proc-macro2 = { workspace = true }
 syn = { workspace = true }

@@ -1,9 +1,9 @@
 error[E0451]: fields `carried` and `completion` of struct `AdmittedPrefix` are private
-  --> tests/compile-fail/a-remainder-married-to-another-body.rs:63:9
+  --> tests/compile-fail/a-remainder-married-to-another-body.rs:79:9
    |
-62 |     let _crossed = AdmittedPrefix {
+78 |     let _crossed = AdmittedPrefix {
    |                    -------------- in this type
-63 |         carried: dropped_none.carried().clone(),
+79 |         carried: dropped_none.carried().clone(),
    |         ^^^^^^^ private field
-64 |         completion: dropped_four.completion(),
+80 |         completion: dropped_four.completion(),
    |         ^^^^^^^^^^ private field
