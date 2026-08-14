@@ -31,7 +31,6 @@ mod repository;
 mod qualification;
 
 use std::error::Error;
-use std::fmt;
 use std::path::Path;
 
 use crate::checks::alarms::check_alarm_artifacts;
@@ -49,7 +48,7 @@ use crate::checks::supply_chain::check_dependency_gate_artifacts;
 use crate::checks::toolchain::{check_lint_wall, check_toolchain_pin, check_workspace_members};
 use crate::checks::vocabulary::{check_banned_vocabulary, check_no_personal_names};
 use crate::repository::snapshot::{RepositorySnapshot, repo_root};
-use crate::repository::types::{Check, Read};
+use crate::repository::types::Check;
 
 /// The command a bare `cargo xtask` means.
 const DEFAULT_COMMAND: &str = "check";
@@ -73,17 +72,23 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// The reading comes first and is shared, which is the whole of the typed
 /// repository model: no law walks the tree, opens a file, or starts a process,
 /// so two laws cannot be judging two different trees. The run opens by naming
-/// what it read — how many files, and the commit those files were committed at —
+/// what it read — how many files, and WHETHER those files are a committed tree —
 /// because a verdict that cannot be attached to a tree is a verdict about
 /// nothing in particular, and this campaign has already produced one false green
 /// from a restore that preserved a modification time.
+///
+/// The opening line no longer names a commit it has not established. It used to:
+/// the reading walked the disk and then asked git what `HEAD` was, and printed
+/// the two side by side as though one were about the other, so every run on a
+/// dirty checkout stated a commit-bound result it had never bound. The binding
+/// is established around the read now, and where there is none the sentence says
+/// so instead of naming a commit anyway.
 fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
     let snapshot = RepositorySnapshot::read(root)?;
     println!(
-        "read {} files at commit {} (committed tree {})",
+        "read {} files {}",
         snapshot.files().count(),
-        spelled(snapshot.commit()),
-        spelled(snapshot.tree())
+        snapshot.binding()
     );
     // EIGHTEEN, and the number is decided here rather than counted from the
     // lines below, because this array's length is the only statement of how many
@@ -150,17 +155,5 @@ fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
         Ok(())
     } else {
         Err(format!("{} repository law(s) broken", failures.len()).into())
-    }
-}
-
-/// How one read fact is spelled in the line a run opens with.
-///
-/// An unknown says it is unknown. A run that printed a blank where a commit
-/// belongs would be a run claiming to have judged something it cannot name.
-fn spelled<T: fmt::Display>(read: &Read<T>) -> String {
-    match *read {
-        Read::Known(ref fact) => fact.to_string(),
-        Read::DeclaredAbsent(reason) => format!("unknown ({reason})"),
-        Read::Unreadable(ref failure) => format!("unknown ({failure})"),
     }
 }

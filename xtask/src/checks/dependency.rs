@@ -12,17 +12,25 @@
 //! spelling arrives as one declaration, because the decoder resolved the
 //! document before this law saw it.
 //!
-//! **What cargo RESOLVES** is a different question, and the manifests cannot
-//! answer it: an edge can arrive through workspace inheritance, and a package
-//! identity is something only the resolver settles. `cargo metadata` is asked
-//! directly.
+//! **What cargo NORMALIZES those manifests to** is a different question, and the
+//! documents cannot answer it: an edge can arrive through workspace
+//! inheritance, and a package identity is something only cargo settles.
+//! `cargo metadata` is asked directly.
 //!
-//! Neither is a fallback for the other and neither is optional. If cargo could
-//! not be asked, this law REFUSES: an absence nobody established is not an
-//! absence, and "the core reaches no tooling" reported about a resolution that
-//! never happened is the exact silence this repository is eliminating.
+//! The subject on that side is `packages[].dependencies` — each package's
+//! dependency DECLARATIONS, normalized — and not `resolve.nodes[].deps`, which
+//! is the graph one feature and target selection activates. This law is about
+//! whether an edge EXISTS, so an optional edge nothing enables and an edge
+//! conditioned on another platform are exactly the cases it must catch; reading
+//! the selected graph would let either pass on a machine whose selection happens
+//! not to activate it.
+//!
+//! Neither authority is a fallback for the other and neither is optional. If
+//! cargo could not be asked, this law REFUSES: an absence nobody established is
+//! not an absence, and "the core reaches no tooling" reported about a reading
+//! that never happened is the exact silence this repository is eliminating.
 
-use crate::repository::cargo::{DeclaredDependency, MANIFEST_FILE, ResolvedWorkspace};
+use crate::repository::cargo::{DeclaredDependency, MANIFEST_FILE, NormalizedWorkspace};
 use crate::repository::snapshot::{JUDGE_DIRECTORY, RepositorySnapshot, TOOLING_DIRECTORY};
 
 /// The metaprogramming packages the core package may never reach.
@@ -64,11 +72,11 @@ const JUDGE_PACKAGE: &str = "threadpak-testpak";
 /// consumer fixture at `xtask/fixtures/macro-consumer`.
 ///
 /// **Both parts are asked of both authorities.** A declared edge is refused
-/// where a manifest writes one; a resolved edge is refused where cargo resolves
-/// one, whatever the manifests happen to spell. An edge arriving through
-/// workspace inheritance is invisible to the first and plain to the second,
-/// which is why the second is not optional and why an unavailable resolution
-/// refuses rather than passes.
+/// where a manifest writes one; a normalized declaration is refused wherever
+/// cargo reports one, whatever the manifests happen to spell. An edge arriving
+/// through workspace inheritance is invisible to the first and plain to the
+/// second, which is why the second is not optional and why an unavailable
+/// reading refuses rather than passes.
 pub(crate) fn check_no_core_tooling_edge(snapshot: &RepositorySnapshot) -> Result<(), String> {
     let census = snapshot.cargo().census();
     let mut reported: Vec<String> = census
@@ -84,21 +92,21 @@ pub(crate) fn check_no_core_tooling_edge(snapshot: &RepositorySnapshot) -> Resul
             .filter_map(judge_services_declaration)
             .map(|violation| format!("services reach their expansion surface: {violation}")),
     );
-    let resolved = snapshot
+    let normalized = snapshot
         .cargo()
-        .resolved()
-        .required("what cargo resolved for this workspace")?;
-    reported.extend(resolved_offences(
-        resolved,
+        .normalized()
+        .required("what cargo normalized this workspace's manifests to")?;
+    reported.extend(normalized_offences(
+        normalized,
         CORE_PACKAGE,
         judge_core_package,
-        "core package reaches tooling or its judge, as cargo resolved it",
+        "core package reaches tooling or its judge, as cargo normalized the manifests",
     )?);
-    reported.extend(resolved_offences(
-        resolved,
+    reported.extend(normalized_offences(
+        normalized,
         SERVICES_PACKAGE,
         judge_services_package,
-        "services reach their expansion surface, as cargo resolved it",
+        "services reach their expansion surface, as cargo normalized the manifests",
     )?);
     if reported.is_empty() {
         Ok(())
@@ -146,24 +154,25 @@ fn judge_services_declaration(entry: &DeclaredDependency) -> Option<String> {
     None
 }
 
-/// Every offence one RESOLVED package commits.
+/// Every offence one package's NORMALIZED declarations commit.
 ///
-/// The resolved reading judges package IDENTITY and nothing else. A resolved
-/// path is absolute — it names where a checkout happens to sit — so reading a
-/// directory out of one would make this law depend on what somebody called the
-/// folder they cloned into. The declared reading is where a path is judged,
-/// because a declared path is relative and is what a manifest actually states.
-fn resolved_offences(
-    resolved: &ResolvedWorkspace,
+/// The normalized reading judges package IDENTITY and nothing else. A path
+/// cargo reports is absolute — it names where a checkout happens to sit — so
+/// reading a directory out of one would make this law depend on what somebody
+/// called the folder they cloned into. The declared reading is where a path is
+/// judged, because a declared path is relative and is what a manifest actually
+/// states.
+fn normalized_offences(
+    normalized: &NormalizedWorkspace,
     package: &str,
     judge: fn(&str) -> Option<String>,
     claim: &str,
 ) -> Result<Vec<String>, String> {
-    let found = resolved
+    let found = normalized
         .package(package)
-        .taken(&format!("the package `{package}` in what cargo resolved"))?;
+        .taken(&format!("the package `{package}` in what cargo normalized"))?;
     let mut offences = Vec::new();
-    for edge in found.dependencies() {
+    for edge in found.declarations() {
         let Some(violation) = judge(edge.package()) else {
             continue;
         };
@@ -180,7 +189,7 @@ fn resolved_offences(
     Ok(offences)
 }
 
-/// The violation one package the CORE resolved to commits, if any.
+/// The violation one package the CORE declares an edge to commits, if any.
 fn judge_core_package(identity: &str) -> Option<String> {
     if TOOLING_PACKAGES.contains(&identity) || identity == JUDGE_PACKAGE {
         Some(format!("resolves to package `{identity}`"))
@@ -189,7 +198,7 @@ fn judge_core_package(identity: &str) -> Option<String> {
     }
 }
 
-/// The violation one package the SERVICES resolved to commits, if any.
+/// The violation one package the SERVICES declare an edge to commits, if any.
 fn judge_services_package(identity: &str) -> Option<String> {
     if identity == FRONTEND_PACKAGE {
         Some(format!("resolves to package `{FRONTEND_PACKAGE}`"))

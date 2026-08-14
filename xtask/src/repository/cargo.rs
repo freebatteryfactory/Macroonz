@@ -10,12 +10,34 @@
 //! carrying `=`, a comment after a header — is one document to that decoder, so
 //! a reader standing on it recognizes a spelling nobody thought of.
 //!
-//! **What Cargo RESOLVES** is a different question, and only cargo answers it:
-//! `cargo metadata --locked --format-version 1` reports package identities, edge
-//! kinds, renames, target-conditioned edges, and the graph itself. The format
-//! version is pinned in the invocation because it is the machine-readable
-//! contract; `--locked` is pinned because a run that repaired the lock file on
-//! its way past would be reporting about a dependency set nobody chose.
+//! **What Cargo NORMALIZES** is a different question, and only cargo answers it:
+//! `cargo metadata --locked --format-version 1` reports, under
+//! `packages[].dependencies`, each package's manifest dependency DECLARATIONS
+//! after cargo has normalized them — workspace inheritance applied, package
+//! identity settled, a rename separated from the key it is written at, the edge
+//! kind spelled, a platform predicate spelled. The format version is pinned in
+//! the invocation because it is the machine-readable contract; `--locked` is
+//! pinned because a run that repaired the lock file on its way past would be
+//! reporting about a dependency set nobody chose.
+//!
+//! # Normalized declarations are not the resolved graph, and this reads the
+//! # declarations
+//!
+//! Cargo reports the two separately and they are not the same population.
+//! `packages[].dependencies` is what the manifests declare, normalized: it
+//! carries an optional dependency no feature enables, a dependency conditioned
+//! on a target this build is not for, and a dev edge no ordinary build takes.
+//! `resolve.nodes[].deps` is the SELECTED graph — the edges one feature and
+//! target selection actually activates. This module deserializes the first and
+//! is deliberately silent about the second.
+//!
+//! That is the right subject for the one law standing on it. The topology rule
+//! forbids an edge from existing at all, so a target-conditional edge and a
+//! currently-inactive optional edge are exactly the cases it must catch, and
+//! reading the selected graph would let either pass on a machine whose selection
+//! happens not to activate it. Nothing here is a claim about the selected graph,
+//! and `resolve.nodes` is the reading to add if a claim about it is ever
+//! written — never a stricter version of this one.
 //!
 //! # What this replaced, and why the class rather than the site
 //!
@@ -50,8 +72,8 @@ const TARGET_TABLE: &str = "target";
 /// Everything the Cargo authorities established about this repository, read
 /// once.
 pub(crate) struct CargoSnapshot {
-    /// What cargo resolved, or why nobody asked it.
-    resolved: Read<ResolvedWorkspace>,
+    /// What cargo normalized the manifests to, or why nobody asked it.
+    normalized: Read<NormalizedWorkspace>,
     /// Every `.toml` document in the tree, decoded by the decoder that owns
     /// TOML. Keyed by canonical path, so no reader spells one twice.
     documents: BTreeMap<CanonicalPath, Read<toml::Table>>,
@@ -72,15 +94,15 @@ impl CargoSnapshot {
         }
         let census = ManifestCensus::take(&documents);
         Self {
-            resolved: resolve(root, files),
+            normalized: ask_cargo(root, files),
             documents,
             census,
         }
     }
 
-    /// What cargo resolved, or why nobody asked it.
-    pub(crate) const fn resolved(&self) -> &Read<ResolvedWorkspace> {
-        &self.resolved
+    /// What cargo normalized the manifests to, or why nobody asked it.
+    pub(crate) const fn normalized(&self) -> &Read<NormalizedWorkspace> {
+        &self.normalized
     }
 
     /// One decoded TOML document, or the absence of the file that would carry
@@ -428,22 +450,24 @@ pub(crate) fn declares_table(document: &toml::Table, key_path: &[&str]) -> Read<
     }
 }
 
-/// What `cargo metadata` reported.
+/// What `cargo metadata` reported about this workspace's manifests.
 ///
 /// The fields are exactly the ones a law reads. `cargo metadata` reports a great
-/// deal more, and every field named here is one this repository has a reader
-/// for — a field carried because it was available would be an inventory nobody
-/// joins.
+/// deal more — `resolve` among it — and every field named here is one this
+/// repository has a reader for; a field carried because it was available would
+/// be an inventory nobody joins.
 #[derive(Debug, Deserialize)]
-pub(crate) struct ResolvedWorkspace {
-    /// Every package in the resolved graph, workspace members included.
-    packages: Vec<ResolvedPackage>,
+pub(crate) struct NormalizedWorkspace {
+    /// Every package cargo reported, workspace members included. This is the
+    /// manifest census as cargo normalized it, and not the selected graph — see
+    /// this module's own documentation for why that is the subject wanted here.
+    packages: Vec<NormalizedPackage>,
 }
 
-impl ResolvedWorkspace {
-    /// The package cargo resolved under one name, or the declared absence of
+impl NormalizedWorkspace {
+    /// The package cargo reported under one name, or the declared absence of
     /// it.
-    pub(crate) fn package(&self, named: &str) -> Read<&ResolvedPackage> {
+    pub(crate) fn package(&self, named: &str) -> Read<&NormalizedPackage> {
         match self.packages.iter().find(|package| package.name == named) {
             Some(found) => Read::Known(found),
             None => Read::DeclaredAbsent(AbsenceReason::NoSuchKey),
@@ -451,39 +475,45 @@ impl ResolvedWorkspace {
     }
 }
 
-/// One package as cargo resolved it.
+/// One package's manifest, as cargo normalized it.
 #[derive(Debug, Deserialize)]
-pub(crate) struct ResolvedPackage {
+pub(crate) struct NormalizedPackage {
     /// The package name, which is the identity a law judges.
     name: String,
-    /// Every edge cargo resolved out of it, of every kind.
-    dependencies: Vec<ResolvedDependency>,
+    /// Every dependency this package's manifest DECLARES, of every kind,
+    /// whether or not a build selects it.
+    dependencies: Vec<NormalizedDependency>,
 }
 
-impl ResolvedPackage {
-    /// Every edge cargo resolved out of this package.
-    pub(crate) fn dependencies(&self) -> &[ResolvedDependency] {
+impl NormalizedPackage {
+    /// Every dependency this package's manifest declares.
+    pub(crate) fn declarations(&self) -> &[NormalizedDependency] {
         &self.dependencies
     }
 }
 
-/// One resolved edge, as cargo reports it.
+/// One dependency declaration, as cargo normalized it.
+///
+/// Normalized rather than resolved: cargo has applied workspace inheritance,
+/// settled the package identity, and separated a rename from the key it is
+/// written at. Whether a build SELECTS this edge is a question about
+/// `resolve.nodes`, which nothing here reads.
 #[derive(Debug, Deserialize)]
-pub(crate) struct ResolvedDependency {
-    /// The PACKAGE the edge reaches. Cargo reports the package rather than the
-    /// key, so a rename is already resolved here.
+pub(crate) struct NormalizedDependency {
+    /// The PACKAGE the declaration names. Cargo reports the package rather than
+    /// the key, so a rename is already settled here.
     name: String,
     /// The key the declaring manifest wrote, where it renamed the package.
     rename: Option<String>,
     /// The edge kind, as cargo spells it: nothing for an ordinary edge.
     kind: Option<String>,
-    /// The platform predicate the edge is conditioned on, where it is
+    /// The platform predicate the declaration is conditioned on, where it is
     /// conditioned at all.
     target: Option<String>,
 }
 
-impl ResolvedDependency {
-    /// The package the edge reaches.
+impl NormalizedDependency {
+    /// The package the declaration names.
     pub(crate) fn package(&self) -> &str {
         &self.name
     }
@@ -502,18 +532,18 @@ impl ResolvedDependency {
         EdgeKind::reported(self.kind.as_deref())
     }
 
-    /// The platform predicate, where the edge is conditioned.
+    /// The platform predicate, where the declaration is conditioned.
     pub(crate) fn target(&self) -> Option<&str> {
         self.target.as_deref()
     }
 }
 
-/// Asks cargo what it resolved, or states why nobody asked.
+/// Asks cargo what it normalized the manifests to, or states why nobody asked.
 ///
 /// A root declaring no manifest is not a workspace, and saying so is a
-/// DECLARED absence rather than an empty resolution: an empty resolution would
-/// answer "the core reaches no tooling" about a tree cargo never opened.
-fn resolve(root: &Path, files: &CanonicalFileMap) -> Read<ResolvedWorkspace> {
+/// DECLARED absence rather than an empty report: an empty report would answer
+/// "the core reaches no tooling" about a tree cargo never opened.
+fn ask_cargo(root: &Path, files: &CanonicalFileMap) -> Read<NormalizedWorkspace> {
     if files.get(MANIFEST_FILE).is_none() {
         return Read::DeclaredAbsent(AbsenceReason::NotAWorkspaceCheckout);
     }
@@ -541,8 +571,8 @@ fn resolve(root: &Path, files: &CanonicalFileMap) -> Read<ResolvedWorkspace> {
             String::from_utf8_lossy(&output.stderr).trim(),
         ));
     }
-    match serde_json::from_slice::<ResolvedWorkspace>(&output.stdout) {
-        Ok(resolved) => Read::Known(resolved),
+    match serde_json::from_slice::<NormalizedWorkspace>(&output.stdout) {
+        Ok(reported) => Read::Known(reported),
         Err(error) => Read::Unreadable(ReadFailure::new(
             "cargo metadata --format-version 1",
             &error.to_string(),

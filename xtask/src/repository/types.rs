@@ -114,7 +114,7 @@ pub(crate) enum AbsenceReason {
     /// The snapshot's file map carries no such path.
     NoSuchPath,
     /// The root declares no `Cargo.toml`, so there is no workspace for cargo to
-    /// resolve and no resolution to ask about.
+    /// read and no reading to ask about.
     NotAWorkspaceCheckout,
     /// The root is not a git checkout, so no commit names what was read.
     NotAGitCheckout,
@@ -129,7 +129,7 @@ impl fmt::Display for AbsenceReason {
         let said = match *self {
             AbsenceReason::NoSuchPath => "no file in the repository sits at that path",
             AbsenceReason::NotAWorkspaceCheckout => {
-                "the root declares no Cargo.toml, so cargo resolves nothing here"
+                "the root declares no Cargo.toml, so cargo reports nothing here"
             }
             AbsenceReason::NotAGitCheckout => "the root is not a git checkout",
             AbsenceReason::NoBlockDeclaresThisSchema => {
