@@ -11,15 +11,16 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
-threadpak = { path = "../.." }
-# The tooling plane's digest, admitted by the note in README.md. Pinned exact,
-# because a projection identity is a value the plane hands out and a minor
-# version that changed one byte of output would silently rename every identity
-# in the tree. Default features are off: `std` buys the `io::Write` adapter and
-# the error-trait impls, and the services name neither; `rayon` is not a default
-# feature and is never named, because an expansion running inside `rustc` must
-# not stand up a thread pool to hash a few kilobytes; `serde`, `zeroize`,
-# `mmap`, and the digest-trait previews buy surfaces the plane has no seat for.
-# What is left is exactly `Hasher` and `derive_key`, which is the whole
-# mechanism the identity profile uses.
-blake3 = { version = "=1.8.6", default-features = false }
+# The machine, reached by path inside this checkout and by version anywhere
+# else. This package is publishable, and a registry resolves nothing by path, so
+# a path-only edge here is an edge that works only for the people who already
+# have the tree. The requirement restates `workspace.package.version` because a
+# dependency requirement cannot inherit it; the two move together or the package
+# stops resolving, which is the failure that names itself.
+threadpak = { path = "../..", version = "0.0.0" }
+# The tooling plane's digest, admitted by the note in README.md. What the plane
+# uses of it is exactly `Hasher` and `derive_key`, which is the whole mechanism
+# the identity profile needs; which version, and which features that leaves
+# switched on, is the workspace's one decision, inherited from the root
+# manifest's `[workspace.dependencies]` table rather than restated here.
+blake3 = { workspace = true }

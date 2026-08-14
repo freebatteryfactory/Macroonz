@@ -2,8 +2,11 @@
 # value nobody decided; restating it here converts inheritance into a decision.
 
 # CHOSEN: the toolchain floor the workspace already pins, stated to clippy so
-# its suggestions never reach past the version this machine compiles on.
-msrv = "1.97"
+# its suggestions never reach past the version this machine compiles on. The
+# same three digits as `rust-toolchain.toml`, the root manifest's
+# `rust-version`, and the README's yaml block — `one-toolchain-floor` joins all
+# four, so the four cannot drift apart the way the first two already had.
+msrv = "1.97.1"
 
 # CHOSEN: a function longer than a hundred lines has stopped being one operation.
 # This restates clippy's default AS a decision, so raising it is a visible act.
@@ -21,3 +24,93 @@ max-struct-bools = 0
 # CHOSEN: zero. A bool parameter is unreadable at the call site; the caller must
 # pass a named state, not a bare true.
 max-fn-params-bools = 0
+
+# NOT ADOPTED, ON THE RECORD: `disallowed-methods`. The table does not exist
+# here, and an unnamed absence reads as an oversight, so this is why.
+#
+# THE FALLBACK POPULATION IS UNCLASSIFIED, AND THAT IS THE REASON, NOT ITS SIZE.
+# The methods are `Result::unwrap_or_default`, `Option::unwrap_or_default`,
+# `String::from_utf8_lossy` and `Result::ok`, and their sites are spread across
+# the machine, the tooling, and the judge.
+#
+# HOW MANY there are is not recorded here, and the omission is the point. A site
+# total is a fact about a tree that moves under it, so a number written into
+# this comment would be wrong on the first refactor and nothing would say so —
+# this repository has already deleted one authored count of exactly that kind.
+# The population is MEASURED ON THE DAY THE TABLE IS ADOPTED, by configuring
+# every path at once and running clippy over the whole workspace: the run that
+# would install the list is the same run that reports what the list would
+# refuse, so the measurement is taken by the act it informs rather than
+# inherited from a comment.
+#
+# What such a total would NOT be is a count of defects. The calls are of at
+# least four different kinds, and a list installed before anyone separates them
+# would refuse the lawful ones alongside the rest. This repository has
+# deliberately eliminated gradual lint adoption, so this is one batch or it is
+# nothing, and the batch is a repair at the homes that hold the first class
+# rather than a configuration change.
+#
+# THE ENVIRONMENT CLASS REDUCES TO EUPHEMISM. `std::env::var`, `vars`,
+# `vars_os`, `args_os` and `current_dir` are not reached for here at all, while
+# `var_os` and `args` are both live in the operational road that reads which
+# cargo started it and which subcommand was asked for, and both are lawful reads
+# that never enter a semantic identity. `disallowed-methods` cannot be scoped to
+# a crate, so banning `var` while `var_os` stays open bans a spelling rather than
+# a behaviour. `set_var` and `remove_var` need no entry at all: MEASURED, they
+# are `unsafe fn` on this toolchain, and the wall forbids `unsafe_code`
+# outright, so an entry would be a weaker seat restating a stronger one.
+#
+# THE CLOCK IS THE ONLY HONEST ENTRY LEFT, and it has no reversal.
+# `SystemTime::now` and `Instant::now` are reached for nowhere in this tree, and
+# an entry naming them would carry real content, because an expansion is a
+# function of its declared input alone. What stops them is that a configured
+# lint has nowhere in this repository to be proven live:
+#   - MEASURED, `cargo build` does not fire a clippy lint at all;
+#   - MEASURED, a `compile_fail` doctest over a denied call reports "Test
+#     compiled successfully, but it's marked `compile_fail`" — doctests are
+#     compiled by rustc, so they cannot execute a clippy lint, and neither can
+#     trybuild, which shells out to the same compiler;
+#   - the one stage that DOES execute clippy is the lint wall, and its whole job
+#     is to pass.
+# A rule whose reversal cannot be planted is a rule that can stop firing in
+# silence, which is the exact defect class this repository exists to refuse.
+#
+# AND THE ROT HAS NO GUARD. MEASURED on this tree, with the wall inherited and
+# `build.warnings = "deny"` set: a `disallowed-methods` entry naming a path that
+# no longer resolves prints `… does not refer to a reachable function`, is
+# counted in the tally line, and the run still exits 0. The warning carries no
+# lint name, so nothing can promote it. An entry that goes stale therefore stops
+# guarding and keeps printing PASS.
+#
+# THE OPENING CONDITION, AND IT IS TWO CONDITIONS IN ORDER.
+#
+# FIRST, THE POPULATION IS CLASSIFIED RATHER THAN COUNTED. Every site is exactly
+# one of the kinds below, and only the first is a defect this mechanism should
+# ever speak about:
+#   - SEMANTIC SILENT FALLBACK — a missing or malformed input becomes a value the
+#     machine then treats as though an owner supplied it;
+#   - DIAGNOSTIC RENDERING FALLBACK — the substituted value reaches human text
+#     and nothing downstream: no identity, no decision, no stored byte;
+#   - OPERATIONAL TOOLING FALLBACK — the read is a host fact the tooling profile
+#     already admits by name, and it never enters a semantic identity;
+#   - LAWFUL TOTAL FALLBACK — the default IS the answer, and the call cannot fail
+#     in a way the fallback hides.
+# The first class is repaired at its own home, by its own owner, because the
+# repair is a type or a refusal and not a lint. The other three are lawful, and a
+# list that cannot tell them apart would need a production `#[expect]` at every
+# lawful site to say so. That workaround is refused outright, so a list needing
+# it is refused with it.
+#
+# SECOND, AND ONLY AFTER THAT REPAIR, a method enters this table only if it has
+# ZERO lawful uses left in the tree AND a replacement available everywhere it was
+# called. A method still lawful anywhere is a method this mechanism cannot
+# express at all, because `disallowed-methods` has no crate scope: the entry
+# would be a workspace-wide ban stating a claim true in one crate.
+#
+# WHAT THE TABLE STILL NEEDS ON THE DAY IT LANDS. Every configured path proven to
+# resolve. A scratch fixture that calls each forbidden path and REQUIRES
+# `clippy::disallowed_methods` to fire — the shape trybuild gives compile
+# refusals, pointed at the lint driver instead of the compiler. And a failure,
+# not a printed line, when a configured path rots. That one fixture is then both
+# the reversal and the staleness guard: a path that stops resolving stops
+# refusing, and the fixture goes red.

@@ -1,0 +1,173 @@
+# The dependency graph, checked against `deny.toml`.
+#
+# This is NOT the entry bar. `cargo xtask qualify` is the entry bar and the only
+# spelling of it, and every stage of it compiles, tests, or reads this tree with
+# the pinned toolchain and nothing else. cargo-deny is a separately installed
+# binary, so folding it into qualify would make the bar depend on what a machine
+# happens to have installed. It runs here instead, beside the bar, on a host
+# nobody configured.
+#
+# Two jobs, and the split is the point. The graph job reads THIS tree and
+# nothing else, so its result is about the tree alone — the same property qualify
+# states about itself — and it belongs on every pull request, and on every direct
+# push to the trunk for as long as a direct push to the trunk is possible at all.
+# It runs cargo-deny twice: once against `deny.toml`, which must pass, and once
+# against `deny-reversal.toml`, which must REFUSE. A gate that has only ever been
+# seen to pass is a gate whose refusal nobody has watched, so the second run is
+# the one that makes the first one mean something. The advisory job reads a
+# database that moves without this repository changing, so it would turn red on a
+# morning when nothing here changed and green again the same way. That is a
+# useful alarm and a broken gate, so it runs on its own schedule, where red means
+# "go look" rather than "this change is bad".
+name: dependencies
+
+on:
+  pull_request:
+  # And direct pushes to the trunk: the same trigger that
+  # `.github/workflows/qualify.yml` carries, for the same reason and under the
+  # same opening condition — which is written out once, there, rather than twice
+  # here.
+  #
+  # The asymmetry was the defect. Two workflows guard this trunk and `graph` is
+  # required to pass before a merge exactly as `qualify` is, but only one of the
+  # two carried the bootstrap cover, and nothing anywhere stated a reason for the
+  # difference. A gate that a direct push walks past is not a gate, whatever it
+  # reports on the pull requests it does see. The two triggers were added for one
+  # unexecuted refusal and they retire together.
+  push:
+    branches: [main]
+  # Weekly, and on demand. The advisory job needs a trigger that is not a change,
+  # because the thing it watches is not in this repository.
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+# One live run per ref, EXCEPT on the trunk. Cancelling a superseded pull-request
+# run costs nothing, because a newer commit on the same branch is the thing to
+# judge. Cancelling the trunk's own run destroys the record of whether a merged
+# commit held, and that record is the only one nobody can reconstruct later.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# The runs read the tree and write nothing back.
+permissions:
+  contents: read
+
+jobs:
+  graph:
+    # Not on the schedule: this job's subject is a change, and a schedule brings
+    # none. A pull request brings one and so does a direct push, which is why the
+    # push trigger above needed nothing added here to reach this job.
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    # The default is six hours. Nothing here is a six-hour job, so a run that
+    # reaches this number is a run that has stopped making progress, and holding
+    # a runner until lunchtime to find that out helps nobody.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install the pinned toolchain
+        run: |
+          rustup toolchain install
+          rustup show
+
+      # Built from source at an exact version, for the reason every action here
+      # is pinned to a commit: a version range is a decision deferred to whoever
+      # resolves next, and this binary's verdict is one of the repository's
+      # answers about its own supply chain.
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --version 0.19.0 --locked
+
+      # `--workspace` is load-bearing and its absence is silent. MEASURED:
+      # without it cargo-deny takes the root package as the sole graph root and
+      # sees ONE crate; with it, the graph is the whole workspace. A run missing
+      # the flag prints the same "ok" as a run that checked everything.
+      #
+      # `advisories` is deliberately absent from this list — see the schedule
+      # job below, and the note in `deny.toml`.
+      - name: Check the graph
+        run: cargo deny --workspace --locked check bans licenses sources
+
+      # THE PLANTED REVERSAL. The step above establishes that the graph is
+      # lawful today; it cannot establish that the rules still bite, because a
+      # rule that quietly stopped matching prints the same `ok` as a rule that
+      # checked everything. `deny-reversal.toml` is a deliberately wrong
+      # configuration, and this step fails the job when cargo-deny SUCCEEDS
+      # against it.
+      #
+      # BOTH the exit code and the diagnostic are required, because neither is
+      # enough on its own. MEASURED: a usage error — a flag in the wrong
+      # position, a subcommand cargo-deny stopped accepting — also exits 2, so
+      # the code alone would accept a run that never read the configuration at
+      # all. And a refusal for some other reason would arrive under a different
+      # diagnostic. `exact-features-mismatch` at exit 2 is the one pair that
+      # means the rule refused for the reason that was planted.
+      #
+      # WHAT THIS COVERS AND WHAT IT DOES NOT is written in
+      # `deny-reversal.toml`, beside the defect: it covers `[[bans.features]]`
+      # with `exact = true`, and it covers nothing about licences, sources,
+      # multiple versions, or wildcards, which stand on the positive invocation
+      # above alone.
+      #
+      # The repository law `dependency-gate-artifacts-are-present-and-distinct`
+      # counts this gate's committed artifacts and refuses when one of them goes
+      # or when the reversal stops differing from `deny.toml`. It does not read
+      # this file's steps, and its name no longer suggests it does: deleting
+      # THIS STEP while the file remains is caught by review and by nothing
+      # else. The law states that ceiling and its opening condition itself.
+      - name: The planted reversal must refuse
+        run: |
+          set +e
+          transcript=$(cargo deny --workspace --locked check --config deny-reversal.toml bans 2>&1)
+          code=$?
+          set -e
+          printf '%s\n' "$transcript"
+          if [ "$code" -ne 2 ]; then
+            echo "::error::cargo-deny exited ${code} against the planted reversal; a reversal that does not refuse is a gate nobody has watched work" >&2
+            exit 1
+          fi
+          case "$transcript" in
+            *exact-features-mismatch*) ;;
+            *)
+              echo "::error::cargo-deny refused without reporting exact-features-mismatch; the refusal is not the one that was planted" >&2
+              exit 1
+              ;;
+          esac
+          echo "the planted reversal refused: exit 2, exact-features-mismatch"
+
+  advisories:
+    # Only on the schedule and by hand. This job is an alarm, not a gate: its
+    # subject is a database outside this repository, so a red here means "go
+    # look" and never "this change is bad" — and a red standing beside a trunk
+    # commit would be read as the second when it can only ever be the first.
+    #
+    # Named by what it RUNS ON rather than by what it skips, and that is the
+    # whole of the change here. The skip-list form this condition used to have —
+    # everything that is not a pull request — would have handed this job the push
+    # trigger above the moment that trigger was added, silently, and the next
+    # trigger added would have done it again. A job whose triggers are listed
+    # positively gains none it was not given.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install the pinned toolchain
+        run: |
+          rustup toolchain install
+          rustup show
+
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --version 0.19.0 --locked
+
+      # This step reaches the network for the RustSec database, which is exactly
+      # why it is not on a pull request: its answer depends on when it ran.
+      - name: Check advisories
+        run: cargo deny --workspace --locked check advisories
