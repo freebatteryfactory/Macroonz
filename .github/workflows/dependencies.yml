@@ -28,12 +28,13 @@ on:
   # same opening condition — which is written out once, there, rather than twice
   # here.
   #
-  # The asymmetry was the defect. Two workflows guard this trunk and `graph` is
-  # required to pass before a merge exactly as `qualify` is, but only one of the
-  # two carried the bootstrap cover, and nothing anywhere stated a reason for the
-  # difference. A gate that a direct push walks past is not a gate, whatever it
+  # The asymmetry was the defect. When this was written two workflows guarded
+  # this trunk and `graph` was required to pass before a merge exactly as
+  # `qualify` is, and only one of the two carried the bootstrap cover, with
+  # nothing anywhere stating a reason for the difference. A gate that a direct push walks past is not a gate, whatever it
   # reports on the pull requests it does see. The two triggers were added for one
-  # unexecuted refusal and they retire together.
+  # unexecuted refusal and they retire together — along with every other trigger
+  # of the same shape, wherever a workflow carries one.
   push:
     branches: [main]
   # Weekly, and on demand. The advisory job needs a trigger that is not a change,

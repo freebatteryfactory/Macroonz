@@ -1,5 +1,12 @@
-# The planted reversal for `deny.toml`, and the only configuration in this
-# repository that is deliberately wrong.
+# The planted reversal for `deny.toml`: a configuration that is deliberately
+# wrong, kept on purpose.
+#
+# It used to say it was the ONLY one, and that clause is deleted rather than
+# renumbered. It stopped being true the moment a second deliberately wrong
+# configuration landed — `.config/nextest.toml`'s `reversal` profile — and a
+# count of its own kind written in prose is the shape this repository refuses
+# everywhere else. What it IS, is stated below; how many there are is not a fact
+# this file has any way to keep true.
 #
 # `deny.toml` settles what the resolved graph is allowed to be, and the hosted
 # dependency workflow runs cargo-deny against it and prints `ok`. That run

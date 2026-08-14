@@ -1,0 +1,143 @@
+# The second harness, and the doctests it cannot reach.
+#
+# This is NOT the entry bar. `cargo xtask qualify` is the entry bar and the only
+# spelling of it, and nothing here restates a stage of it. nextest is a
+# separately installed binary, so folding it into qualify would make the bar
+# depend on what a working machine happens to have — the same reason cargo-deny
+# runs beside the bar rather than inside it, written once in `deny.toml` and not
+# restated here either.
+#
+# WHY a second reading of one battery is worth having, WHAT it executes, and —
+# first — what it does NOT execute, is written once in `.config/nextest.toml`,
+# beside the configuration a run reads. This file is the caller. It runs two
+# things: the second harness, and the planted reversal that proves the
+# configuration above is live.
+name: harness
+
+on:
+  pull_request:
+  # And direct pushes to the trunk: the same trigger `.github/workflows/qualify.yml`
+  # carries, for the same reason and under the same opening condition, which is
+  # written out once there rather than a third time here.
+  push:
+    branches: [main]
+  # Weekly, and on demand. The claim this supports is nextest's own
+  # availability: this job installs a pinned version of a tool from a registry,
+  # and a tree that has not changed can still stop being testable this way when
+  # something outside it moves. A run on a schedule is what turns that into a
+  # morning's alarm rather than a surprise on somebody's pull request. The hour
+  # is its own: three workflows starting at once on the same runner pool would
+  # be three jobs waiting on each other for no reason.
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+# One live run per ref, EXCEPT on the trunk, for the reason
+# `.github/workflows/qualify.yml` states about its own runs: a superseded
+# pull-request run costs nothing to cancel, and the trunk's run is the only
+# record nobody can reconstruct later.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# The run reads the tree and writes nothing back.
+permissions:
+  contents: read
+
+jobs:
+  second-harness:
+    # ONE host, deliberately, and the asymmetry with `qualify` is not an
+    # oversight. The two-host matrix there exists because the qualification road
+    # CLAIMS to be one road across platforms and that claim needed executing.
+    # This job claims nothing about platforms: it claims that the workspace's
+    # harness tests hold under process-per-test isolation. A second host would
+    # double the cost of a job that is not the entry bar to re-execute a claim
+    # the entry bar already executes on both.
+    runs-on: ubuntu-latest
+    # The default is six hours. Nothing here is a six-hour job, and this number
+    # is generous against a cold, uncached compile of the whole workspace plus
+    # building nextest itself from source, not tuned to the current runtime.
+    timeout-minutes: 45
+    steps:
+      # Pinned to the exact commit `v4` named, for the reason every action pin
+      # in this repository carries: a tag is a movable label and a commit is not.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install the pinned toolchain
+        run: |
+          rustup toolchain install
+          rustup show
+
+      # Built from source at an exact version, exactly as cargo-deny is, and for
+      # the same reason: a version range is a decision deferred to whoever
+      # resolves next. This is the version MEASURED on a working machine when
+      # `.config/nextest.toml` was written; that file requires it by name, and
+      # what that requirement does and does not establish is stated there.
+      - name: Install cargo-nextest
+        run: cargo install cargo-nextest --version 0.9.132 --locked
+
+      # The positive control. `--workspace` is load-bearing here in the way it
+      # is load-bearing for cargo-deny, and its absence is silent. MEASURED on
+      # the pinned toolchain: without the flag the root package is the only one
+      # run — 180 tests rather than 532 — and both runs print the same shape of
+      # green summary and exit 0.
+      #
+      # An empty run cannot pass this step. MEASURED on the pinned toolchain: a
+      # selection that matches no test prints `error: no tests to run` and exits
+      # 4, so a filter that stopped matching is a red rather than a green over
+      # nothing.
+      - name: The second harness must pass
+        run: cargo nextest run --locked --workspace
+
+      # NO DOCTEST LEG HERE, AND THE ABSENCE IS A DECISION. `cargo nextest run`
+      # neither builds nor runs doctests, and this repository's three are
+      # load-bearing — which is exactly why nextest SUPPLEMENTS the entry bar's
+      # `tests` stage rather than replacing it. That stage still runs `cargo test
+      # --locked --workspace`, on both hosts, and it executes the doctests as it
+      # always did. A `cargo test --doc` step here would be a third execution of
+      # a control the bar already runs twice, establishing nothing the bar does
+      # not, and this repository does not seat a claim twice.
+      #
+      # So this job's population is a STRICT SUBSET of the bar's, deliberately:
+      # 532 of the 535 the bar executes. The three it does not reach are named in
+      # `.config/nextest.toml`, with the measurement that put that number there.
+      # A reader comparing the summary lines is meant to find them different.
+
+      # THE PLANTED REVERSAL. The steps above establish that the tests hold
+      # today; they cannot establish that the committed configuration is READ,
+      # because a key nextest stopped honouring and a file it never found leave
+      # exactly the same green summary as a run that used every line of it.
+      # `.config/nextest.toml`'s `reversal` profile is deliberately wrong, and
+      # this step fails the job when nextest SUCCEEDS under it.
+      #
+      # BOTH the exit code and the diagnostic are required, because neither is
+      # enough alone. nextest exits non-zero for a usage error and for a
+      # configuration it could not read as well, so the code by itself would
+      # accept a run that never reached a test. MEASURED on the pinned
+      # toolchain: exit 100 with `timed out` is the one pair that means it
+      # refused for the reason that was planted.
+      #
+      # WHAT THIS COVERS AND WHAT IT DOES NOT is written in
+      # `.config/nextest.toml`, beside the defect, where a reader deciding
+      # whether to trust a green log will be looking.
+      - name: The planted reversal must refuse
+        run: |
+          set +e
+          transcript=$(cargo nextest run --locked --workspace --profile reversal 2>&1)
+          code=$?
+          set -e
+          printf '%s\n' "$transcript"
+          if [ "$code" -ne 100 ]; then
+            echo "::error::nextest exited ${code} against the planted reversal profile; a reversal that does not refuse is a gate nobody has watched work" >&2
+            exit 1
+          fi
+          case "$transcript" in
+            *"timed out"*) ;;
+            *)
+              echo "::error::nextest refused without reporting a timed-out test; the refusal is not the one that was planted" >&2
+              exit 1
+              ;;
+          esac
+          echo "the planted reversal refused: exit 100, timed out"
