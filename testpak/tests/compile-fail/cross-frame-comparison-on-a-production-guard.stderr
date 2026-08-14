@@ -9,8 +9,8 @@ error[E0369]: binary operation `<` cannot be applied to type `&FrameVersion`
 note: `FrameVersion` does not implement `PartialOrd`
   --> $WORKSPACE/src/02_identity/mod.rs
    |
-   |           $vis struct $name($crate::identity::AuthorityPosition<$scope>);
-   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `FrameVersion` is defined in another crate
+   |               $vis struct $name($crate::identity::AuthorityPosition<$scope>);
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `FrameVersion` is defined in another crate
    |
   ::: $WORKSPACE/src/11_navigation/types.rs
    |
@@ -19,7 +19,7 @@ note: `FrameVersion` does not implement `PartialOrd`
    | |     /// frame is a VALUE inside the position rather than a type parameter, so two
    | |     /// frames' versions are ONE type and the compiler never tells them apart:
 ...  |
-   | |     pub struct FrameVersion over ReferenceFrameId;
+   | |     pub struct FrameVersion over ReferenceFrameId, seated in mod frame_version;
    | | }
    | |_- in this macro invocation
    = note: this error originates in the macro `crate::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
@@ -32,8 +32,8 @@ error[E0599]: the method `cmp` exists for reference `&FrameVersion`, but its tra
    |
   ::: $WORKSPACE/src/02_identity/mod.rs
    |
-   |         $vis struct $name($crate::identity::AuthorityPosition<$scope>);
-   |         --------------------------------------------------------------- doesn't satisfy `FrameVersion: Iterator` or `FrameVersion: Ord`
+   |             $vis struct $name($crate::identity::AuthorityPosition<$scope>);
+   |             --------------------------------------------------------------- doesn't satisfy `FrameVersion: Iterator` or `FrameVersion: Ord`
    |
    = note: the following trait bounds were not satisfied:
            `FrameVersion: Ord`

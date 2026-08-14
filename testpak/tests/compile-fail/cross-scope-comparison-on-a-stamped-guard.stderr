@@ -13,7 +13,7 @@ note: method defined here
    |
 15 | / threadpak::scope_guard_version! {
 16 | |     /// Alpha's version, positioned by Alpha's authority.
-17 | |     pub struct AlphaVersion over AlphaScopeId;
+17 | |     pub struct AlphaVersion over AlphaScopeId, seated in mod alpha_version;
 18 | | }
    | |_^
    = note: this error originates in the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)

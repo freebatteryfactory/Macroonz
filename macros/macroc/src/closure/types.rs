@@ -9,13 +9,12 @@
 
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
-    ClosureId, ClosureIssueLimit, GeneratedUnitSubject, MembershipLimit, OutputBytesSubject,
-    PlanId, ProfileVersion, ProjectionIdentity, ProjectionProfileSubject, ProjectionProvenance,
-    RenderedByteLimit, RenderedRole, RenderedUnitSubject,
+    ClosureId, GeneratedUnitSubject, MembershipLimit, OutputBytesSubject, PlanId, ProfileVersion,
+    ProjectionIdentity, ProjectionProfileSubject, ProjectionProvenance, RenderedByteLimit,
+    RenderedRole, RenderedUnitSubject,
 };
 use crate::planning::{MemberDestination, PlannedMembership};
 use crate::token::GeneratedTree;
-use threadpak::refusal::AdmittedPrefix;
 use threadpak::types::{Bounded, NonEmptyBounded};
 
 #[path = "type_guard.rs"]
@@ -155,29 +154,13 @@ pub enum ClosureIssue<R: RenderedRole> {
     JoinedTreeUnbounded,
 }
 
-/// The closure refusal family body.
+/// The closure refusal family body, published from this file and DECLARED in
+/// `type_guard.rs`'s `seat` module, beside the only roads that reach its seat.
 ///
-/// Independent members: a rendering may drop one role and orphan another in one
-/// pass, and reporting one of them would leave a caller repairing a rendering
-/// one role per attempt.
-#[must_use = "a refusal family body carries every way the rendering and the plan disagree"]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ProjectionClosureRefusal<R: RenderedRole> {
-    /// The established issues — at least one, at most the declared bound —
-    /// together with whether the body carries every issue the pass established
-    /// or names how many stand outside that bound. One seat rather than two,
-    /// because a coverage claim seated beside its body is a claim that can be
-    /// swapped for another body's. The pass itself always covers every
-    /// applicable role, so the completion here never reports a halted
-    /// examination.
-    ///
-    /// Private, and that is the second half of the same claim. The coupled seat
-    /// keeps a carry and its posture together; a PUBLIC seat on a one-field
-    /// record hands the whole record back as a literal, so any holder of a body
-    /// built for one pass could write it into another pass's refusal. Read back
-    /// through [`ProjectionClosureRefusal::body`].
-    body: AdmittedPrefix<ClosureIssue<R>, ClosureIssueLimit>,
-}
+/// The declaration is not here because Rust's privacy is MODULE-scoped: a
+/// private field is private to the module the declaration lands in, and this
+/// file declares much else that would have been inside that wall.
+pub use guard::ProjectionClosureRefusal;
 
 /// The proof that what was rendered is what was planned.
 ///

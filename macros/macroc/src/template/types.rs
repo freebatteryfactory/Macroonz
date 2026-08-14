@@ -13,12 +13,10 @@ use crate::plane::{
     ApplicationDistinctnessSubject, BoundFormulaSubject, FragmentDependencyLimit,
     InputDescriptorLimit, InputDescriptorSubject, LanguageProfileSubject, MetaBoundAxisLimit,
     MetaProfileSubject, OwnerFactRef, OwnerIdentityRef, ProfileVersion, SourceSnapshotSubject,
-    TemplateArgumentSubject, TemplateIssueLimit, TemplateParameterLimit, TemplateParameterSubject,
-    TemplateSubject,
+    TemplateArgumentSubject, TemplateParameterLimit, TemplateParameterSubject, TemplateSubject,
 };
 use threadpak::declaration::Stage;
 use threadpak::declaration::types::{FragmentIdentityDomain, ProjectionConfigurationDomain};
-use threadpak::refusal::AdmittedPrefix;
 use threadpak::types::{Bounded, NonEmptyBounded};
 
 #[path = "type_guard.rs"]
@@ -297,30 +295,14 @@ pub enum TemplateConstructionIssue {
     },
 }
 
-/// The template-construction refusal family body.
+/// The template-construction refusal family body, published from this file and
+/// DECLARED in `type_guard.rs`'s `seat` module, beside the only roads that reach
+/// its seat.
 ///
-/// Independent members: a template may double one parameter while leaving
-/// another category-disagreeing, and an application may leave one hole unbound
-/// while binding an unknown one. No primary issue is elected, and a zero-issue
-/// refusal is unrepresentable.
-#[must_use = "a refusal family body carries every established issue with the template"]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TemplateConstruction {
-    /// The established issues — at least one, at most the declared bound —
-    /// together with whether the body carries every issue the three passes
-    /// established or names how many stand outside that bound. One seat rather
-    /// than two, because a coverage claim seated beside its body is a claim that
-    /// can be swapped for another body's. The passes themselves always run their
-    /// rosters to the end, so the completion here never reports a halted
-    /// examination.
-    ///
-    /// Private, and that is the second half of the same claim. The coupled seat
-    /// keeps a carry and its posture together; a PUBLIC seat on a one-field
-    /// record hands the whole record back as a literal, so any holder of a body
-    /// built for one pass could write it into another pass's refusal. Read back
-    /// through [`TemplateConstruction::body`].
-    body: AdmittedPrefix<TemplateConstructionIssue, TemplateIssueLimit>,
-}
+/// The declaration is not here because Rust's privacy is MODULE-scoped: a
+/// private field is private to the module the declaration lands in, and this
+/// file declares much else that would have been inside that wall.
+pub use guard::TemplateConstruction;
 
 /// One authored declaration template: its identity, its typed holes, the three
 /// locks it declares before any evaluation, and the stage its owner declared it

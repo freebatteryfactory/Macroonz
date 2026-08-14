@@ -96,7 +96,7 @@ impl ImageFamilyId {
 
 crate::scope_guard_version! {
     /// One image-family format version — Class C, ordered ONLY within its family.
-    pub struct ImageFamilyFormatVersion over ImageFamilyId;
+    pub struct ImageFamilyFormatVersion over ImageFamilyId, seated in mod image_family_format_version;
 }
 
 /// The identity role marker for image profiles.
@@ -126,7 +126,7 @@ crate::scope_guard_version! {
     /// image-bytes, runtime, and release support do not move together; an unknown
     /// operation, version, profile, import, or kernel is refused, never silently
     /// ignored.
-    pub struct ImageProfileVersion over ImageProfileId;
+    pub struct ImageProfileVersion over ImageProfileId, seated in mod image_profile_version;
 }
 
 /// The identity role marker for admitted programs.

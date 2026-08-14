@@ -60,7 +60,7 @@ impl PortFamilyId {
 crate::scope_guard_version! {
     /// One version of a port family — Class C, scoped to its family: versions of
     /// different port families are incomparable by type.
-    pub struct PortFamilyVersion over PortFamilyId;
+    pub struct PortFamilyVersion over PortFamilyId, seated in mod port_family_version;
 }
 
 // ---------------------------------------------------------------------------

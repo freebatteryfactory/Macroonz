@@ -38,11 +38,10 @@ use crate::checks::dependency::check_no_core_tooling_edge;
 use crate::checks::hygiene::{
     check_lf_and_no_symlinks, check_no_python, check_underscore_fields_are_phantom,
 };
-use crate::checks::mint::check_refusal_mints_are_inside_the_plane;
 use crate::checks::obligations::check_obligations_join;
 use crate::checks::parity::check_agents_claude_parity;
 use crate::checks::placement::{check_band_map, check_tooling_module_order};
-use crate::checks::seal::check_stamped_guards_seal_their_position;
+use crate::checks::seat::check_seat_modules_carry_nothing_else;
 use crate::checks::supply_chain::check_dependency_gate_artifacts;
 use crate::checks::toolchain::{check_lint_wall, check_toolchain_pin, check_workspace_members};
 use crate::checks::vocabulary::{check_banned_vocabulary, check_no_personal_names};
@@ -63,7 +62,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 /// Runs every repository law, printing one PASS or FAIL line per law.
 fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
-    let checks: [Check; 17] = [
+    let checks: [Check; 16] = [
         ("agents-claude-parity", check_agents_claude_parity),
         ("lf-and-no-symlinks", check_lf_and_no_symlinks),
         ("no-python", check_no_python),
@@ -87,12 +86,8 @@ fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
             check_collection_bodies_are_coupled,
         ),
         (
-            "refusal-mints-are-inside-the-plane",
-            check_refusal_mints_are_inside_the_plane,
-        ),
-        (
-            "stamped-guards-seal-their-position",
-            check_stamped_guards_seal_their_position,
+            "seat-modules-carry-nothing-else",
+            check_seat_modules_carry_nothing_else,
         ),
         ("no-personal-names", check_no_personal_names),
         ("banned-vocabulary", check_banned_vocabulary),

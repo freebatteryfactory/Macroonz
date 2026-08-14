@@ -11,34 +11,44 @@
 //! only module in the workspace that can spell the literal. There is no other
 //! seam in the crate that can produce any of them.
 //!
+//! # Why the refusal body is DECLARED here and not in `types.rs`
+//!
+//! Rust's privacy is MODULE-scoped, so a seat declared in `types.rs` puts every
+//! other item in that file inside the wall and leaves "did anybody write a road
+//! out?" as a whole-file audit. The body is therefore declared in the `seat`
+//! module below, whose entire content is that record and inherent
+//! implementations of it — held to exactly that by `cargo xtask check`'s
+//! `seat-modules-carry-nothing-else`.
+//!
 //! # What a private seat does and does not exclude
 //!
-//! It excludes every SIBLING: `establish.rs` beside it, anywhere else in the
-//! services, and any crate downstream cannot write the literal, and the compiler
-//! says so with `E0451`. It does not exclude DESCENDANTS — a module declared
-//! inside this one would construct as freely as these roads do, so a
-//! `#[cfg(test)] mod` under the guard would reopen exactly what the guard closes,
-//! and the reversals for this seat are testpak's compile-fail fixtures instead.
+//! It excludes every SIBLING: `types.rs` above it, `establish.rs` beside it,
+//! anywhere else in the services, and any crate downstream cannot write the
+//! literal, and the compiler says so with `E0451`. It does not exclude
+//! DESCENDANTS — a module declared inside a guard would construct as freely as
+//! these roads do, so the reversals for these seats are testpak's compile-fail
+//! fixtures instead, and the law above refuses a nested module in a `seat`
+//! module outright.
 //!
-//! And it excludes the literal only. The refusal body's two mints are
-//! module-private for the other half of the same claim: a private seat reached
-//! by a public generic constructor lets any holder of an issue produce a body no
-//! pass established, and lets a holder of the borrowed body clone its issues out
-//! and reseat them. Both roads sit beside the three passes that raise them.
+//! And it excludes the literal only. The refusal body's two mints reach this
+//! file and no further, for the other half of the same claim: a private seat
+//! reached by a public generic constructor lets any holder of an issue produce a
+//! body no pass established, and lets a holder of the borrowed body clone its
+//! issues out and reseat them. Both roads sit beside the three passes that raise
+//! them.
 
 use super::super::establish::{binding_issues, ceiling_issues, parameter_issues};
 use super::{
     ApplicativeDistinctness, AxisCeiling, CheckedMeterPosture, DeclarationTemplate, ProfileCeiling,
     SpliceCategory, SymbolicBoundFormula, TemplateApplication, TemplateArgument, TemplateBinding,
-    TemplateBindingIssue, TemplateConstruction, TemplateConstructionIssue, TemplateParameter,
-    TemplateSeat, VersionedProfile,
+    TemplateBindingIssue, TemplateConstructionIssue, TemplateParameter, TemplateSeat,
+    VersionedProfile,
 };
 use crate::plane::{
     AuthoringLimitProfile, LanguageProfileSubject, MetaBoundAxisLimit, MetaProfileSubject,
-    OwnerIdentityRef, TemplateIssueLimit, TemplateParameterLimit, TemplateSubject,
+    OwnerIdentityRef, TemplateParameterLimit, TemplateSubject,
 };
 use threadpak::declaration::Stage;
-use threadpak::refusal::{AdmittedPrefix, StopBound};
 use threadpak::types::{AdmittedLimit, Bounded, ConstLimit, NonEmptyBounded, PositiveLimit};
 
 /// The refusal one established issue list amounts to, or nothing where the list
@@ -52,55 +62,90 @@ fn refused(issues: Vec<TemplateConstructionIssue>) -> Option<TemplateConstructio
     ))
 }
 
-impl TemplateConstruction {
-    /// The one-issue body. Total: the declared bound admits an item by
-    /// compile-time proof, so refusing never needs an error road of its own.
+pub use seat::TemplateConstruction;
+
+mod seat {
+    use super::super::TemplateConstructionIssue;
+    use crate::plane::{AuthoringLimitProfile, TemplateIssueLimit};
+    use threadpak::refusal::{AdmittedPrefix, StopBound};
+    use threadpak::types::PositiveLimit;
+
+    /// The template-construction refusal family body.
     ///
-    /// Module-private, like every other road in this file: the three passes that
-    /// establish these issues are the three checked constructors below, and a
-    /// body exists only where one of them ran. A public road here would let any
-    /// holder of an issue mint a refusal no pass raised, which is the same
-    /// opening a public SEAT would be — the seat and the mint are two halves of
-    /// one claim, and closing one of them closes neither.
-    fn established(issue: TemplateConstructionIssue) -> Self {
-        Self {
-            body: AdmittedPrefix::carrying_one(issue),
-        }
+    /// Independent members: a template may double one parameter while leaving
+    /// another category-disagreeing, and an application may leave one hole
+    /// unbound while binding an unknown one. No primary issue is elected, and a
+    /// zero-issue refusal is unrepresentable.
+    #[must_use = "a refusal family body carries every established issue with the template"]
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    pub struct TemplateConstruction {
+        /// The established issues — at least one, at most the declared bound —
+        /// together with whether the body carries every issue the three passes
+        /// established or names how many stand outside that bound. One seat
+        /// rather than two, because a coverage claim seated beside its body is a
+        /// claim that can be swapped for another body's. The passes themselves
+        /// always run their rosters to the end, so the completion here never
+        /// reports a halted examination.
+        ///
+        /// Private, and that is the second half of the same claim. The coupled
+        /// seat keeps a carry and its posture together; a PUBLIC seat on a
+        /// one-field record hands the whole record back as a literal, so any
+        /// holder of a body built for one pass could write it into another
+        /// pass's refusal. Read back through [`TemplateConstruction::body`].
+        body: AdmittedPrefix<TemplateConstructionIssue, TemplateIssueLimit>,
     }
 
-    /// The several-issue body.
-    ///
-    /// The three passes in `establish.rs` run their rosters to the end before a
-    /// body exists, so the posture here is about the REPORT and never about the
-    /// passes. Where every established issue fits the declared bound the body
-    /// carries all of them; where it does not, the body carries what the bound
-    /// holds and names how many established issues stand outside it — never a
-    /// silent drop, never an unearned claim of completeness, and never a claim
-    /// that nobody looked.
-    ///
-    /// Module-private, on the same terms as the one-issue road.
-    fn co_established(
-        first: TemplateConstructionIssue,
-        rest: Vec<TemplateConstructionIssue>,
-    ) -> Self {
-        Self {
-            body: AdmittedPrefix::examined_completely(
-                first,
-                rest,
-                &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
-                StopBound::DeclaredIssueBound,
-            ),
+    impl TemplateConstruction {
+        /// The one-issue body. Total: the declared bound admits an item by
+        /// compile-time proof, so refusing never needs an error road of its own.
+        ///
+        /// Reaches the guard file and no further: the three passes that
+        /// establish these issues are the three checked constructors beside it,
+        /// and a body exists only where one of them ran. A public road here
+        /// would let any holder of an issue mint a refusal no pass raised, which
+        /// is the same opening a public SEAT would be — the seat and the mint
+        /// are two halves of one claim, and closing one of them closes neither.
+        pub(super) fn established(issue: TemplateConstructionIssue) -> Self {
+            Self {
+                body: AdmittedPrefix::carrying_one(issue),
+            }
         }
-    }
 
-    /// The established issues and what this refusal says about its own coverage
-    /// of them.
-    ///
-    /// Borrowed and never owned, for the reason band 00 borrows its carry: an
-    /// owned body is a value a caller can seat under another refusal, which is
-    /// the pairing the coupled seat exists to end.
-    pub const fn body(&self) -> &AdmittedPrefix<TemplateConstructionIssue, TemplateIssueLimit> {
-        &self.body
+        /// The several-issue body.
+        ///
+        /// The three passes in `establish.rs` run their rosters to the end
+        /// before a body exists, so the posture here is about the REPORT and
+        /// never about the passes. Where every established issue fits the
+        /// declared bound the body carries all of them; where it does not, the
+        /// body carries what the bound holds and names how many established
+        /// issues stand outside it — never a silent drop, never an unearned
+        /// claim of completeness, and never a claim that nobody looked.
+        ///
+        /// Reaches the guard file and no further, on the same terms as the
+        /// one-issue road.
+        pub(super) fn co_established(
+            first: TemplateConstructionIssue,
+            rest: Vec<TemplateConstructionIssue>,
+        ) -> Self {
+            Self {
+                body: AdmittedPrefix::examined_completely(
+                    first,
+                    rest,
+                    &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+                    StopBound::DeclaredIssueBound,
+                ),
+            }
+        }
+
+        /// The established issues and what this refusal says about its own
+        /// coverage of them.
+        ///
+        /// Borrowed and never owned, for the reason band 00 borrows its carry:
+        /// an owned body is a value a caller can seat under another refusal,
+        /// which is the pairing the coupled seat exists to end.
+        pub const fn body(&self) -> &AdmittedPrefix<TemplateConstructionIssue, TemplateIssueLimit> {
+            &self.body
+        }
     }
 }
 

@@ -10,10 +10,10 @@
 use crate::diagnostics::RepairAction;
 use crate::origin_graph::DecisionTrace;
 use crate::plane::{
-    AssumptionLimit, ExplanationIssueLimit, ExplanationSeatLimit, GeneratedUnitSubject,
-    MembershipLimit, OutputBytesSubject, OwnerFactRef, OwnerIdentityRef, PatternInstanceSubject,
-    PatternSubject, ProfileVersion, ProjectionIdentity, ProjectionKindSubject,
-    ProjectionProfileSubject, RepairLimit, RuntimeTraceSubject, TraceEntryLimit,
+    AssumptionLimit, ExplanationSeatLimit, GeneratedUnitSubject, MembershipLimit,
+    OutputBytesSubject, OwnerFactRef, OwnerIdentityRef, PatternInstanceSubject, PatternSubject,
+    ProfileVersion, ProjectionIdentity, ProjectionKindSubject, ProjectionProfileSubject,
+    RepairLimit, RuntimeTraceSubject, TraceEntryLimit,
 };
 use crate::planning::{
     CauseAnchoring, GraphAnchoring, InvalidationSet, PlannedOutput, ProjectionDisposition,
@@ -21,7 +21,6 @@ use crate::planning::{
 };
 use crate::question::ExplanationQuestion;
 use core::marker::PhantomData;
-use threadpak::refusal::AdmittedPrefix;
 use threadpak::types::Bounded;
 
 #[path = "type_guard.rs"]
@@ -155,29 +154,14 @@ pub enum ExplanationCoverageIssue {
     },
 }
 
-/// The explanation-coverage refusal family body.
+/// The explanation-coverage refusal family body, published from this file and
+/// DECLARED in `type_guard.rs`'s `seat` module, beside the only roads that reach
+/// its seat.
 ///
-/// Independent members: several questions may be unanswered while another is
-/// doubled, and reporting one of them would leave a caller repairing the view
-/// one question per attempt.
-#[must_use = "a refusal family body carries every uncovered, doubled, or inadmissible question"]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ExplanationCoverage {
-    /// The established issues — at least one, at most the declared bound —
-    /// together with whether the body carries every issue the coverage pass
-    /// established or names how many stand outside that bound. One seat rather
-    /// than two, because a coverage claim seated beside its body is a claim that
-    /// can be swapped for another body's. The pass itself always covers every
-    /// applicable question, so the completion here never reports a halted
-    /// examination.
-    ///
-    /// Private, and that is the second half of the same claim. The coupled seat
-    /// keeps a carry and its posture together; a PUBLIC seat on a one-field
-    /// record hands the whole record back as a literal, so any holder of a body
-    /// built for one pass could write it into another pass's refusal. Read back
-    /// through [`ExplanationCoverage::body`].
-    body: AdmittedPrefix<ExplanationCoverageIssue, ExplanationIssueLimit>,
-}
+/// The declaration is not here because Rust's privacy is MODULE-scoped: a
+/// private field is private to the module the declaration lands in, and this
+/// file declares much else that would have been inside that wall.
+pub use guard::ExplanationCoverage;
 
 /// A complete explanation view over one kind's plans.
 ///

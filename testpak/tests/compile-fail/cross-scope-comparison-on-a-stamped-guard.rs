@@ -14,12 +14,12 @@ pub struct BetaScopeId;
 
 threadpak::scope_guard_version! {
     /// Alpha's version, positioned by Alpha's authority.
-    pub struct AlphaVersion over AlphaScopeId;
+    pub struct AlphaVersion over AlphaScopeId, seated in mod alpha_version;
 }
 
 threadpak::scope_guard_version! {
     /// Beta's version, positioned by Beta's authority.
-    pub struct BetaVersion over BetaScopeId;
+    pub struct BetaVersion over BetaScopeId, seated in mod beta_version;
 }
 
 fn main() {

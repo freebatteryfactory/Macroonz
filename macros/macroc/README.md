@@ -241,8 +241,11 @@ tooling-obligation: macroc.a-refusal-body-seat-cannot-be-written-from-outside
     keeps a carry and its posture together; the private seat stops the record
     being written as a LITERAL, because a one-field record whose one field is
     public is a record any holder can spell. Each body is read back through one
-    borrowed reader and through nothing else.
-  owner: macros/macroc/src/refusal/types.rs
+    borrowed reader and through nothing else. The declaration sits in a `seat`
+    module inside its home's `type_guard.rs` rather than in `types.rs`, because
+    Rust's privacy is module-scoped and a seat declared beside dozens of other
+    types puts every one of them inside its wall.
+  owner: macros/macroc/src/refusal/type_guard.rs
   positive: macros/macroc/src/laws.rs
   method: compile-refusal
   activation: cargo test -p threadpak-testpak --test compile_refusals
@@ -270,11 +273,11 @@ tooling-obligation: macroc.a-refusal-body-is-minted-only-inside-the-plane
     pass established, and lets any holder of the borrowed body clone its issues out
     and reseat them under a fresh record indistinguishable from one a seam
     returned. Each mint sits at the narrowest scope its own establishing passes
-    reach — module-private in `template`, `closure`, `explanation_protocol`,
-    `trigger_view` and `composition`, whose passes live in the same
-    `type_guard.rs`; home-scoped in `derive_refusal`, whose capture pass is a
-    sibling; and crate-scoped for the shared planning family, whose passes live in
-    four homes at once.
+    reach — `pub(super)` out of the `seat` module in `template`, `closure`,
+    `explanation_protocol`, `trigger_view` and `composition`, which reaches the
+    `type_guard.rs` their passes live in and stops there; home-scoped in
+    `derive_refusal`, whose capture pass is a sibling; and crate-scoped for the
+    shared planning family, whose passes live in four homes at once.
   owner: macros/macroc/src/refusal/type_guard.rs
   positive: macros/macroc/src/laws.rs
   method: compile-refusal
@@ -284,33 +287,37 @@ tooling-obligation: macroc.a-refusal-body-is-minted-only-inside-the-plane
     refusing with E0624; restoring `pub` on any one of the ten roads makes that
     line resolve and fails the fixture
   nonclaims: >
-    The FIXTURE is not the universal statement and never could be: it names the ten
-    roads that exist today, so a family added later with a public mint would leave
-    it compiling and passing. What closes the population is a repository law
-    instead — `cargo xtask check`'s `refusal-mints-are-inside-the-plane`, which
-    DERIVES the population rather than naming it: every services record whose every
-    seat is private and that some road refuses with, joined against every road that
-    hands one back, with both denominators printed on every run. That law asks one
-    question — does this road hand a caller OWNERSHIP of a closed body — and it
-    RESOLVES it rather than matching a spelling: it walks the whole return type, so
-    a body inside a `Box`, a tuple, a collection or an opaque iterator is a body; it
-    resolves a type alias to what it stands for; it treats a borrow as access to a
-    body that already exists rather than a new one; and it excludes the error
-    position of a `Result` by decision, because a caller receiving the refusal a
-    seam raised is what the type is FOR. A road is a copy rather than a mint only
-    where its receiver IS the body it hands back. A return shape it cannot resolve
-    is REFUSED, never passed over.
-    What it does not establish is narrowed to exactly this. It reaches no module
-    chain: a road's reach is read off the declaration that states it — its own `pub`
-    for an inherent road, the implemented contract's for a trait road — so a `pub`
-    item in a module nobody re-exports reads as reachable. That direction refuses
-    loudly rather than passing silently, and the repair is one word. It expands no
-    macro, so a record or a road a macro assembles is outside it altogether, and it
-    evaluates no `cfg`. It reads a type by its last path segment, so two homes
-    declaring one name are one subject. And it does not claim exclusion inside each
-    mint's own scope: a crate-scoped mint is reachable by every module in the
-    services, and the module order `lib.rs` declares is what enumerates the seams
-    that use it.
+    The FIXTURE is not a universal statement over roads nobody has written yet: it
+    names the ten roads that exist today, so a family added later with a public
+    mint would leave it compiling and passing. A repository law used to stand
+    beside it and try to close that gap by DERIVING the population — every closed
+    record some road refuses with, joined against every road handing one back —
+    and it was wrong repeatedly, because answering "does this road hand a caller
+    ownership of a closed body" means resolving types, following aliases, deciding
+    what a receiver stands for, and inferring reachability from visibility and
+    module chains. It read a `Box`, a `Vec`, a tuple, an opaque iterator, a type
+    alias, a nested `Result`, a free function and an implementation for a
+    reference wrong in turn, and once refused a lawful road under a private
+    module-local trait. That law is deleted rather than taught a thirteenth shape.
+    What stands in its place is structural and much narrower. Each body is now
+    DECLARED in a `seat` module inside its home's `type_guard.rs`, whose entire
+    content is that record and inherent implementations of it, so the set of code
+    that can reach the private seat is a module a reader reads in one screen
+    rather than a file with dozens of types in it — and `cargo xtask check`'s
+    `seat-modules-carry-nothing-else` holds it to that by reading item kinds and
+    identifiers alone, resolving no type, following no alias and reading no
+    visibility. Everything outside the seat module is `rustc`'s refusal: `E0451`
+    on the literal, `E0616` on the field.
+    What that does NOT establish is stated rather than implied. It does not decide
+    which records must be seated: a closed record declared in a module named
+    anything else is outside the law's population, and the fixture beside it is
+    what names these seven. It does not read what a road hands back, so an
+    inherent road written INSIDE a seat module could still return the seat and no
+    check would say so — what the move buys is that every such road is in one
+    small module rather than scattered through a file, and that the module cannot
+    grow sideways. And it does not claim exclusion inside each mint's own scope: a
+    crate-scoped mint is reachable by every module in the services, and the module
+    order `lib.rs` declares is what enumerates the seams that use it.
 
 tooling-obligation: macroc.a-plan-watches-every-identity-it-hangs-off-or-refuses
   claim: >

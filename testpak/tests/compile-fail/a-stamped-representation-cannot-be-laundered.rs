@@ -21,13 +21,13 @@ mod roles {
 
     threadpak::scope_guard_version! {
         /// Role A's version, positioned under role A's authority.
-        pub struct RoleAVersion over OneScopeId;
+        pub struct RoleAVersion over OneScopeId, seated in mod role_a_version;
     }
 
     threadpak::scope_guard_version! {
         /// Role B's version, positioned under role B's authority — over the very
         /// same scope.
-        pub struct RoleBVersion over OneScopeId;
+        pub struct RoleBVersion over OneScopeId, seated in mod role_b_version;
     }
 }
 

@@ -57,7 +57,7 @@ crate::scope_guard_version! {
     /// cross-frame answer that road's typed refusal. A version under another
     /// scope ROLE — a schema's, a profile's — is a different type outright, and
     /// that is the incomparability the stamp carries in the types.
-    pub struct FrameVersion over ReferenceFrameId;
+    pub struct FrameVersion over ReferenceFrameId, seated in mod frame_version;
 }
 
 /// Compile-time bound for an axis's declared capabilities.
