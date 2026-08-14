@@ -1,4 +1,4 @@
-//! The reversal for the visibility half of the coupled seat: a services refusal
+//! The reversal for the SEAT half of the coupled seat: a services refusal
 //! family body cannot be written as a literal from outside the crate, so a body
 //! one seam produced cannot be reseated under another seam's refusal.
 //!
@@ -10,18 +10,24 @@
 //! pass whose findings it reports.
 //!
 //! `ProjectionPlanning` stands for all six services families. The body below is
-//! REAL — it comes off the public guarded road, and it is the body that road
-//! produced — and the refusal it is being written into would be a refusal no
-//! seam in the plane ever raised. Nothing about the body is defective; the
-//! record it is being written into simply has no seat anybody out here can name.
+//! WELL-FORMED — band 00's report package is public, so anybody can build one
+//! over the plane's own issue type, and this is exactly the body a forger would
+//! arrive holding. Nothing about it is defective; the record it is being written
+//! into simply has no seat anybody out here can name.
+//!
+//! The MINT half is a different claim and has a fixture of its own:
+//! `a-services-refusal-minted-outside-its-plane.rs`. Closing one of the two
+//! halves closes neither, which is why the two stand together.
 
+use threadpak::refusal::AdmittedPrefix;
+use threadpak_macroc::plane::PlanningIssueLimit;
 use threadpak_macroc::{PlanSeat, ProjectionPlanning, ProjectionPlanningIssue};
 
 fn main() {
-    let established = ProjectionPlanning::established(ProjectionPlanningIssue::MissingOwnerFact {
-        seat: PlanSeat::TargetBinding,
-    });
-    let body = established.body().clone();
+    let body: AdmittedPrefix<ProjectionPlanningIssue, PlanningIssueLimit> =
+        AdmittedPrefix::carrying_one(ProjectionPlanningIssue::MissingOwnerFact {
+            seat: PlanSeat::TargetBinding,
+        });
 
     let _reseated = ProjectionPlanning { body };
 }

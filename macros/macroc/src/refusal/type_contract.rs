@@ -29,6 +29,7 @@ impl ProjectionPlanningIssue {
             Self::OrphanGeneratedNode { .. } => 6,
             Self::MembershipDoubled { .. } => 7,
             Self::TrailDiscontinuous { .. } => 8,
+            Self::CauseSetUnwatchable { .. } => 9,
         }
     }
 }

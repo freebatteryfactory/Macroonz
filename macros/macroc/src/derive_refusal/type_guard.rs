@@ -14,6 +14,12 @@
 //! structured diagnostic — read the refusal's own two private seats, so they sit
 //! here beside them rather than in `diagnose.rs`, which projects the refusals
 //! raised by the later stages.
+//!
+//! The capture refusal's own mint is scoped to this home for the same reason its
+//! seats are private. A private seat with a public mint closes the literal and
+//! leaves the road: a cause word and a span handle are both values anybody can
+//! spell, so a public road would hand any caller a refusal the capture pass
+//! never established, at a token it never read.
 
 use super::{
     CapturedCause, CauseOrderStanding, ClosedExpansion, CrateBinding, DEFAULT_CRATE_BINDING,
@@ -165,7 +171,17 @@ impl RefusalDeriveSurface {
 
 impl RefusalDeriveRefusal {
     /// The established refusal at one token of the declared input.
-    pub const fn established(cause: RefusalDeriveCapture, token: SpanHandle) -> Self {
+    ///
+    /// Reachable only from inside this home, which is where the capture pass
+    /// lives. Both seats are private, so no caller can write the literal; this
+    /// road is what a caller would reach for instead, and a cause word plus a
+    /// span handle are both values anybody can spell — so a public road here
+    /// would hand any holder of those two a refusal the capture pass never
+    /// established, at a token it never read.
+    pub(in crate::derive_refusal) const fn established(
+        cause: RefusalDeriveCapture,
+        token: SpanHandle,
+    ) -> Self {
         Self { cause, token }
     }
 

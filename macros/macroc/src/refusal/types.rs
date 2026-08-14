@@ -7,7 +7,8 @@
 //! a refusal body whose issues a caller could not read would be a refusal nobody
 //! can act on, so the seat is read back through a borrow — and a refusal a caller
 //! could WRITE would be a seam minting the plane's own answer, so there is no
-//! literal anybody outside the nucleus can spell.
+//! literal anybody outside the nucleus can spell and no mint anybody outside the
+//! crate can call.
 
 use crate::plane::{
     GeneratedUnitSubject, OwnerFactRef, PlanningIssueLimit, ProfileVersion, ProjectionIdentity,
@@ -140,14 +141,35 @@ pub enum ProjectionPlanningIssue {
     /// end a reader trusts, the other end is provenance nobody established. The
     /// position is carried because "the trail is broken" without a position is a
     /// finding an author cannot repair.
-    ///
-    /// Last in the roster on purpose: the declared order is what a canonical
-    /// encoding writes down as a slot, so a new issue joins at the end and moves
-    /// nobody else's byte.
     TrailDiscontinuous {
         /// The position of the edge that does not join its predecessor, counted
         /// from the trail's first edge.
         at: u32,
+    },
+    /// A cause set names more source declarations than the invalidation trigger
+    /// roster can watch.
+    ///
+    /// A plan may name up to the declared source magnitude, and one roster seat
+    /// carries one identity. Where the two disagree there is no partial answer
+    /// to give: a watch set covering the first declaration and no other reads
+    /// exactly like a complete one, so a plan hanging off three declarations and
+    /// watching one is CURRENT after two of its three causes changed. That is
+    /// not a narrower claim than the roster can support — it is a false one, and
+    /// the seam refuses rather than issuing it.
+    ///
+    /// Both counts are carried because the fact is the disagreement between
+    /// them: an author repairing this needs to know how far past the profile the
+    /// cause set reached, and "unwatchable" without the pair is a finding nobody
+    /// can act on.
+    ///
+    /// Last in the roster on purpose: the declared order is what a canonical
+    /// encoding writes down as a slot, so a new issue joins at the end and moves
+    /// nobody else's byte.
+    CauseSetUnwatchable {
+        /// How many source declarations the cause set names.
+        named: u32,
+        /// How many of them the trigger roster can watch.
+        watchable: u32,
     },
 }
 
@@ -170,5 +192,12 @@ pub struct ProjectionPlanning {
     /// record hands the whole record back as a literal, so any holder of a body
     /// built for one seam could write it into another seam's refusal. Read back
     /// through [`ProjectionPlanning::body`].
+    ///
+    /// The seat closes the literal and the mints close the road beside it. A
+    /// private seat reached by a public generic constructor is a fence with a
+    /// loading dock behind it: a caller holding an issue mints a refusal no pass
+    /// raised, and a caller holding this borrow clones the issues out and seats
+    /// them under a fresh one. Both roads are crate-internal for that reason,
+    /// and the reason is stated where they are declared.
     body: AdmittedPrefix<ProjectionPlanningIssue, PlanningIssueLimit>,
 }
