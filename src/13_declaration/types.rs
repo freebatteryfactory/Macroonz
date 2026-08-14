@@ -691,12 +691,15 @@ pub enum AuthoredNameConstructionIssue {
     },
 }
 
-/// Limit family for authored-name issues — a DECLARED finite issue bound
-/// (several scalars may each violate at once, so the roster's cardinality is
-/// not the cap; the bound value is evidence-selected).
+/// Limit family for authored-name issues. Several scalars may each violate at
+/// once, so the roster's cardinality is not the cap and the magnitude is
+/// selected by the owner's evidence rather than declared here — which is what
+/// [`crate::types::EvidenceSelectedLimit`] says, and why this family declares no
+/// [`crate::types::ConstLimit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AuthoredNameIssueLimit;
 impl Limit for AuthoredNameIssueLimit {}
+impl crate::types::EvidenceSelectedLimit for AuthoredNameIssueLimit {}
 
 /// Authored-name construction: a non-empty bounded canonical issue
 /// collection, ordered by declared cause order then ascending scalar
@@ -814,11 +817,13 @@ pub enum ClosureNamespaceIssue {
     },
 }
 
-/// Limit family for closure-namespace issues — a declared finite bound,
-/// evidence-selected.
+/// Limit family for closure-namespace issues. Its magnitude is selected by the
+/// owner's evidence rather than declared here — see
+/// [`crate::types::EvidenceSelectedLimit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ClosureNamespaceIssueLimit;
 impl Limit for ClosureNamespaceIssueLimit {}
+impl crate::types::EvidenceSelectedLimit for ClosureNamespaceIssueLimit {}
 
 /// Closure-namespace refusal: the namespace is closed as a whole and checked
 /// as a whole. Ordering: declared cause order, then the typed source
@@ -940,11 +945,13 @@ pub enum LinkResolutionIssue {
     },
 }
 
-/// Limit family for link-resolution issues — a declared finite bound,
-/// evidence-selected.
+/// Limit family for link-resolution issues. Its magnitude is selected by the
+/// owner's evidence rather than declared here — see
+/// [`crate::types::EvidenceSelectedLimit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LinkResolutionIssueLimit;
 impl Limit for LinkResolutionIssueLimit {}
+impl crate::types::EvidenceSelectedLimit for LinkResolutionIssueLimit {}
 
 /// Link-resolution refusal: the linker closes one complete graph in one pass
 /// and several claims may be defective at once — reporting one is a missing

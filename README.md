@@ -139,6 +139,35 @@ restating it: one field, minted by `AdmittedLimit::under_profile`, so the
 comparison and its diagnostic have a single owner and the stronger witness
 cannot quietly stop being the stronger form of the weaker one.
 
+**The same ladder stands twice, once per road a magnitude arrives by.** A
+magnitude declared in the source is admitted by `AdmittedLimit` and proven
+inhabited by `PositiveLimit`, both before the program runs. A magnitude the
+owner's evidence SELECTS while the machine runs has no `L::MAX` for a `const`
+block to read and no ceiling it could be compared against at the time such a
+comparison would have to be settled, so its two facts are carried by values
+instead: `LimitWitness` is what schema validation selected, and
+`PositiveLimitWitness` is that selection proven to admit an item. A family says
+which ladder its magnitude travels by declaring `EvidenceSelectedLimit`, and
+that declaration is the mint's bound — a family that never made it has no road
+to a runtime capacity at all. Several families in the machine said
+"evidence-selected" in a doc comment beside their declaration and said it nowhere
+a road could read; that sentence is now a fact the compiler carries.
+
+With that rung in place, EVERY constructor of the inhabitant-promising shape
+consumes evidence that its family admits an item: the two `const` roads prove it
+off the declaration, `admitted_const` and `admitted_prefix` take `PositiveLimit`,
+and `admitted` takes `PositiveLimitWitness`. The claim is total rather than
+sampled because the shape's seats are private — no road into it can exist outside
+`src/types.rs` and its guarded child. The other direction is NOT claimed here:
+"every limit family whose seat promises an inhabitant declares its ladder" is a
+population question, and no repository join derives that population from the
+sources. One side of it drifts loudly meanwhile — `rustc` answers an unsatisfied
+bound by listing the types that satisfy it, so the recorded diagnostic in
+`testpak/tests/compile-fail/a-capacity-minted-for-an-undeclared-family.stderr`
+carries the ladder's roster derived from the impls, and a family joining or
+leaving it fails that fixture. That is a drift detector over one side, not a
+denominator over both.
+
 Each construction road states its own claim class, and the classes do not
 substitute for one another:
 
@@ -153,7 +182,7 @@ substitute for one another:
 | `NonEmptyBounded::admitted_const` | admitted family magnitude, and it must be inhabited | `PositiveLimit<L, P>` |
 | `AdmittedPrefix::examined_completely` | admitted family magnitude, reported rather than refused | `PositiveLimit<L, P>` |
 | `AdmittedPrefix::stopped_early` | admitted family magnitude, and it must be inhabited | `PositiveLimit<L, P>` |
-| `NonEmptyBounded::admitted` | schema-minted runtime magnitude | `LimitWitness<L>` |
+| `NonEmptyBounded::admitted` | schema-minted runtime magnitude, and it must be inhabited | `PositiveLimitWitness<L>` |
 
 `examined_completely` is the one road that neither refuses nor claims
 completeness. Refusing is right for material that is meaningless in part — a
@@ -279,6 +308,22 @@ obligations:
     challenge_kind: compile-refusal
     green: laws.rs root::positivity_is_the_stronger_witness
     red: testpak/tests/compile-fail/a-zero-maximum-family-cannot-mint-a-positive-limit.rs
+  - id: root.a-runtime-capacity-is-witnessed-positive
+    challenge_kind: compile-law
+    green: laws.rs root::a_runtime_capacity_is_witnessed_positive
+    red: owed-to-testpak — a zero capacity refuses rather than failing to
+      compile, so the reversal is a behavioral hostile and not a fixture; it is
+      executed on the refusing arm of the green law meanwhile, and driving it
+      from OUTSIDE the crate stays owed while `LimitWitness` has only its
+      `cfg(test)` mint
+  - id: root.a-capacity-witness-does-not-cross-families
+    challenge_kind: compile-refusal
+    green: laws.rs root::a_capacity_witness_does_not_cross_families
+    red: testpak/tests/compile-fail/a-capacity-witness-from-another-family.rs
+  - id: root.the-runtime-ladder-is-declared-by-its-family
+    challenge_kind: compile-refusal
+    green: laws.rs root::the_runtime_ladder_is_declared_by_its_family
+    red: testpak/tests/compile-fail/a-capacity-minted-for-an-undeclared-family.rs
   - id: root.the-positive-witness-carries-the-admitted-one
     challenge_kind: compile-refusal
     green: laws.rs root::the_positive_witness_carries_the_admitted_one

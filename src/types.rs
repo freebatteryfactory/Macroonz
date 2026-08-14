@@ -72,6 +72,40 @@ pub trait ConstLimit: Limit {
     const MAX: usize;
 }
 
+/// A limit family whose magnitude is SELECTED BY EVIDENCE while the machine
+/// runs, rather than declared in the source.
+///
+/// # Why a family says which ladder its magnitude travels
+///
+/// [`ConstLimit`] and this trait are the two roads a family's capacity can
+/// arrive by, and they establish their facts in different places. A declared
+/// magnitude is a number in the source: [`AdmittedLimit`] stands it under a
+/// plane's ceiling and [`PositiveLimit`] proves it admits an item, both before
+/// the program runs. An evidence-selected magnitude does not exist until the
+/// owner's evidence selects it, so no `const` block can see it, no ceiling
+/// comparison can be settled at compile time, and the same two facts have to be
+/// established by values instead — [`LimitWitness`] and [`PositiveLimitWitness`].
+///
+/// Several families in this crate said "a declared finite bound,
+/// evidence-selected" in PROSE beside their declaration and said it nowhere a
+/// road could read, which left the second ladder with a magnitude nothing
+/// carried and a positivity nothing established. This trait is where that
+/// sentence becomes a fact the compiler carries: [`PositiveLimitWitness`]'s mint
+/// is bounded on it, so a family that never declared its magnitude
+/// evidence-selected has no road to a runtime capacity at all.
+///
+/// # What implementing it claims, and what it does not
+///
+/// It claims exactly that the family's magnitude arrives at runtime and that the
+/// owner admits the second ladder for it. It claims nothing about what that
+/// magnitude will be and nothing about whether the number the evidence selects
+/// is the right one for the family's domain — the owner profile and the evidence
+/// select that, no road can check it, and no witness below pretends to. It also
+/// does not claim the family declares no compile-time magnitude: a family
+/// implementing both this and [`ConstLimit`] would be stating two authorities
+/// for one capacity, and that is a declaration defect no bound here can see.
+pub trait EvidenceSelectedLimit: Limit {}
+
 /// The ceiling one PLANE admits its declared magnitudes under.
 ///
 /// # Root owns the algebra; a profile owns the number
@@ -299,6 +333,20 @@ impl<L: Limit, P: LimitAdmissionProfile> PositiveLimit<L, P> {
 /// A runtime magnitude for the limit family `L`, minted only by schema validation.
 /// Carrying the family as a type parameter keeps runtime-limited and compile-limited
 /// values in the same shape without confusing their authorities.
+///
+/// # What it establishes, and what it deliberately does not
+///
+/// It establishes that schema validation selected this magnitude FOR THIS
+/// FAMILY: the family tag is a type parameter, so one family's witnessed
+/// magnitude never authorizes another's seat whatever the two numbers are.
+///
+/// It does NOT establish that the family admits an item, and the absence is
+/// [`AdmittedLimit`]'s exactly. A witnessed magnitude of zero is an honest
+/// selection for a seat that holds nothing: [`Bounded::admitted`] under it
+/// yields a real empty collection, and a base witness that refused the
+/// selection would refuse that seat with it. The positivity claim is seated one
+/// witness up, in [`PositiveLimitWitness`], where exactly the runtime roads
+/// promising an inhabitant consume it.
 #[must_use = "a limit witness is the magnitude schema validation established; dropping it \
               discards the only admitted bound for its family"]
 pub struct LimitWitness<L: Limit> {
@@ -321,6 +369,120 @@ impl<L: Limit> LimitWitness<L> {
     #[must_use]
     pub fn max(&self) -> usize {
         self.max
+    }
+}
+
+/// How admitting one evidence-selected magnitude as a capacity refuses.
+///
+/// Single cause, because there is exactly one question to ask: a magnitude that
+/// admits an item has nothing left to fail. A plain root enum — the
+/// refusal-family binding is implemented by the refusal home, pointing downward.
+#[must_use = "a refusal carries the lawful reason the admission did not proceed"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CapacityAdmission {
+    /// The witnessed magnitude admits no item at all.
+    NotInhabited,
+}
+
+/// Evidence that one limit family's EVIDENCE-SELECTED magnitude admits at least
+/// one item.
+///
+/// # The runtime rung of the ladder [`PositiveLimit`] holds at compile time
+///
+/// The two witnesses answer the same question about magnitudes that arrive by
+/// different roads, and neither is evidence for the other's road.
+/// [`PositiveLimit`] proves an inhabitant off a number in the source, under a
+/// named plane's ceiling, before the program runs. This one proves an inhabitant
+/// off a number the owner's evidence selected while the machine ran, where there
+/// is no `L::MAX` to admit and no profile that could admit it. So the roads that
+/// promise an inhabitant have a positivity witness whichever road their
+/// magnitude arrived by, and the road that had neither —
+/// [`NonEmptyBounded::admitted`] — was the one hole in that ladder.
+///
+/// # What it establishes
+///
+/// Three facts, and holding the value is the whole of the evidence:
+///
+/// 1. **The family.** `L` is carried in the contained witness's own type
+///    parameter, so a capacity admitted for one family does not typecheck where
+///    another's is required — whatever the two magnitudes are.
+/// 2. **A positive capacity.** The magnitude admits at least one item, which is
+///    what a signature promising a first item needs and what a zero magnitude
+///    can never supply.
+/// 3. **The admitted runtime maximum.** [`max`](Self::max) is the magnitude
+///    schema validation selected, read off the contained witness.
+///
+/// # The claim ceiling, exactly
+///
+/// It establishes nothing about whether the magnitude is the RIGHT one for its
+/// domain. That is not a fact this witness withholds for lack of evidence; it is
+/// a fact no road here could ever hold, because the number is the owner
+/// profile's and the evidence's to select, and neither is visible from a witness
+/// that only sees a count. Reading a held witness as "this capacity is
+/// appropriate" reads a claim nobody made. It establishes nothing about any
+/// ceiling either: no plane admitted this magnitude, because a magnitude that
+/// does not exist until runtime has nothing to compare against a declared
+/// ceiling at the time a ceiling comparison would have to be settled.
+///
+/// # The stronger witness CONTAINS the weaker one
+///
+/// [`PositiveLimit`]'s containment doctrine, on the runtime road. The selection
+/// fact is not restated here — it is carried. This type's one field is the
+/// [`LimitWitness`] schema validation minted, and the magnitude this witness
+/// reports is that witness's own, so "the positive witness is the stronger form
+/// of the base one" is a fact about this value's shape rather than an agreement
+/// between two numbers somebody has to keep in step. Containment is not a
+/// conversion: the contained witness is private, no accessor hands it out, and
+/// there is no road from here back to a bare [`LimitWitness`].
+#[must_use = "a positive limit witness is the evidence a family's evidence-selected magnitude \
+              admits an item; dropping it discards the only proof a runtime road promising an \
+              inhabitant may act on"]
+pub struct PositiveLimitWitness<L: Limit> {
+    witness: LimitWitness<L>,
+}
+
+impl<L: EvidenceSelectedLimit> PositiveLimitWitness<L> {
+    /// Admit one evidence-selected magnitude as a capacity that holds an item.
+    ///
+    /// The bound is [`EvidenceSelectedLimit`] rather than [`Limit`], and that is
+    /// the gate: a family whose owner never declared its magnitude
+    /// evidence-selected has no road here, so a runtime capacity cannot be
+    /// minted for a family that never admitted the runtime ladder.
+    ///
+    /// It takes the witness by value and keeps it. A road that borrowed the
+    /// selection and copied the number out would leave the caller holding a
+    /// second value carrying the same magnitude under weaker evidence, and the
+    /// two could then be handed to different seats.
+    ///
+    /// This road refuses rather than refusing to compile, and the reason is
+    /// structural rather than a preference: the magnitude does not exist until
+    /// the evidence selects it, so there is no value for a `const` block to
+    /// read. Where the same relation IS visible in the source it moves into the
+    /// declaration instead — [`PositiveLimit::inhabited_under_profile`]'s
+    /// `const` block is that seat, and a zero-maximum family stops there at
+    /// compile time rather than here at runtime.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CapacityAdmission::NotInhabited`] when the witnessed magnitude
+    /// admits no item at all.
+    pub fn inhabited(witness: LimitWitness<L>) -> Result<Self, CapacityAdmission> {
+        if witness.max() >= 1 {
+            Ok(Self { witness })
+        } else {
+            Err(CapacityAdmission::NotInhabited)
+        }
+    }
+}
+
+impl<L: Limit> PositiveLimitWitness<L> {
+    /// The witnessed maximum this witness carries; at least one by construction.
+    ///
+    /// Read off the contained base witness, so no second copy of the magnitude
+    /// stands here to disagree with the one schema validation selected.
+    #[must_use]
+    pub fn max(&self) -> usize {
+        self.witness.max()
     }
 }
 
@@ -695,14 +857,31 @@ impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
 }
 
 impl<T, L: Limit> NonEmptyBounded<T, L> {
-    /// Checked construction against a schema-minted runtime witness.
+    /// Checked construction against a schema-minted runtime witness that admits
+    /// an item.
     ///
-    /// # The claim class: SCHEMA-MINTED RUNTIME MAGNITUDE
+    /// # The claim class: SCHEMA-MINTED RUNTIME MAGNITUDE, and it must be
+    /// inhabited
     ///
-    /// [`Bounded::admitted`]'s exactly, and the inhabitant is supplied by the
-    /// signature rather than by evidence: the first item is a separate
-    /// parameter, so emptiness is unrepresentable here whatever the witnessed
-    /// magnitude turns out to be.
+    /// [`Bounded::admitted`]'s magnitude authority, with
+    /// [`NonEmptyBounded::admitted_const`]'s evidence bar. No profile is
+    /// involved and none could be: the magnitude was selected by the owner's
+    /// evidence at runtime rather than declared at compile time, so there is no
+    /// `L::MAX` to admit and a profile-scoped admission is not evidence for this
+    /// road.
+    ///
+    /// It takes the STRONGER runtime witness, and the reason is its own
+    /// signature. It promises an inhabitant: whatever the runtime count turns
+    /// out to be, the value it returns holds a first item. A family whose
+    /// evidence selected a magnitude of zero can never lawfully satisfy that
+    /// promise — every call would refuse — so a bare [`LimitWitness`], which
+    /// admits a zero selection on purpose for [`Bounded::admitted`]'s
+    /// empty-only seat, is not enough evidence here.
+    ///
+    /// The first item being a separate parameter makes emptiness
+    /// unrepresentable in the RESULT; it says nothing about the magnitude the
+    /// road compares against, which is why the promise still needs the evidence
+    /// and is not discharged by the shape.
     ///
     /// # Errors
     ///
@@ -711,7 +890,7 @@ impl<T, L: Limit> NonEmptyBounded<T, L> {
     pub fn admitted(
         first: T,
         rest: Vec<T>,
-        witness: &LimitWitness<L>,
+        witness: &PositiveLimitWitness<L>,
     ) -> Result<Self, NonEmptyBoundedConstruction> {
         if rest.len().saturating_add(1) <= witness.max() {
             Ok(Self {

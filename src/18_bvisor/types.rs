@@ -363,10 +363,13 @@ pub enum AttemptAdmissionIssue {
     },
 }
 
-/// Limit family for admission issues — a declared finite bound.
+/// Limit family for admission issues. Its magnitude is selected by the owner's
+/// evidence rather than declared here — see
+/// [`crate::types::EvidenceSelectedLimit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AdmissionIssueLimit;
 impl Limit for AdmissionIssueLimit {}
+impl crate::types::EvidenceSelectedLimit for AdmissionIssueLimit {}
 
 /// The admission refusal family. The INVERSION RULE fixes its shape: a
 /// canonical body that discards a second established violation reports less

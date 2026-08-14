@@ -322,11 +322,13 @@ pub enum ExecutionFormConstructionIssue {
     },
 }
 
-/// Limit family for Execution Form issues — a declared finite bound,
-/// evidence-selected.
+/// Limit family for Execution Form issues. Its magnitude is selected by the
+/// owner's evidence rather than declared here — see
+/// [`crate::types::EvidenceSelectedLimit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ExecutionFormIssueLimit;
 impl Limit for ExecutionFormIssueLimit {}
+impl crate::types::EvidenceSelectedLimit for ExecutionFormIssueLimit {}
 
 /// Execution Form construction. Posture addition over the Semantic Form
 /// family: the independent reference lowerer posts `EarlyStopped` at its
@@ -688,10 +690,13 @@ pub enum EffectBatchCompositionIssue {
     },
 }
 
-/// Limit family for composition issues — a declared finite bound.
+/// Limit family for composition issues. Its magnitude is selected by the
+/// owner's evidence rather than declared here — see
+/// [`crate::types::EvidenceSelectedLimit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EffectBatchIssueLimit;
 impl Limit for EffectBatchIssueLimit {}
+impl crate::types::EvidenceSelectedLimit for EffectBatchIssueLimit {}
 
 /// Effect-batch composition. Posture: `Complete` when every applicable check
 /// ran; `EarlyStopped` only when (a) an established issue makes remaining

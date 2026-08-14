@@ -198,11 +198,13 @@ pub enum SemanticFormConstructionIssue {
     },
 }
 
-/// Limit family for Semantic Form issues — a declared finite bound,
-/// evidence-selected (several issues of one kind are lawful at once).
+/// Limit family for Semantic Form issues. Several issues of one kind are lawful
+/// at once, so the magnitude is selected by the owner's evidence rather than
+/// declared here — see [`crate::types::EvidenceSelectedLimit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SemanticFormIssueLimit;
 impl Limit for SemanticFormIssueLimit {}
+impl crate::types::EvidenceSelectedLimit for SemanticFormIssueLimit {}
 
 /// Semantic Form construction. Completion posture rule: complete diagnosis
 /// is PERMITTED, NEVER REQUIRED, AND NEVER ASSUMED — a first-party producer
