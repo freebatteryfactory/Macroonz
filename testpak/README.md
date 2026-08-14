@@ -37,7 +37,7 @@ suites, because cargo requires executable challenge material to live under
 | 04 | simulation | reserved — `src/04_simulation/README.md` states the question, the filling condition, and the nonclaims |
 | 05 | fault | reserved — `src/05_fault/README.md` states the question, the filling condition, and the nonclaims |
 | 06 | muterprater | **seated as `tests/planted_defect.rs`, `tests/failed_seat_refusals.rs`, `tests/declared_magnitudes.rs`, and `tests/compiled_behaviour.rs`** — the mutation seat: the damaged artifacts and the proof each lane notices what it owns, the killed repairs restored one at a time, the declared magnitudes driven both directions, and the two mutants that need a compiler |
-| 07 | conformance | **seated as `tests/compile_refusals.rs` + `tests/compile-fail/`** — the compile-refusal suite, run through trybuild — and as `tests/independent_identity_transcript.rs`, the independent transcript lane |
+| 07 | conformance | **seated as `tests/compile_refusals.rs` + `tests/compile-fail/`** — the compile-refusal suite, run through trybuild; as `tests/stamp_row_ceiling.rs`, the positive control the last of those fixtures is the reversal of; and as `tests/independent_identity_transcript.rs` and `tests/related_set_identity_levels.rs`, the two independent-encoder lanes |
 | 08 | evidence | reserved — `src/08_evidence/README.md` states the question, the filling condition, and the nonclaims |
 
 The five reserved names restore the plane's original nine-seat design; they were
@@ -75,6 +75,7 @@ discover it.
 | `tests/compile_refusals.rs` | the trybuild runner over the compile-fail fixtures |
 | `tests/compile-fail/` | one fixture per discharged red twin |
 | `tests/independent_identity_transcript.rs` | the independent transcript lane: a second encoder, written from the published specification, re-deriving the services' own identities |
+| `tests/related_set_identity_levels.rs` | the layer above it: a second encoder re-deriving the CONTENT one mint site composes, and the postures a public reader can tell apart |
 | `tests/stamp_row_ceiling.rs` | the closed-register stamp's row ceiling, spent to its last position through the public export — the positive control whose reversal is the fixture beside it |
 
 ## `Unreadable` is a failure class with its own alarm
@@ -125,22 +126,43 @@ independent statements rather than between a value and itself.
 ## The compile-fail fixtures
 
 trybuild covers compile refusals only — one challenge kind among several, never
-the universal one. Each fixture here discharges a red twin some green law names:
+the universal one. Each fixture here discharges a red twin some green law names,
+and this table is the DIRECTORY: every `.rs` file under `tests/compile-fail/`,
+in the order the directory sorts. Reading it against a listing is how a row that
+outlived its file, or a file that never got a row, becomes visible — both have
+happened here, and both read as coverage until somebody compares the two.
 
 | Fixture | The reversal it proves |
 | --- | --- |
-| `singleton-under-a-zero-maximum-family.rs` | `NonEmptyBounded::singleton` under a limit family declaring `MAX = 0` does not compile |
-| `cross-scope-comparison-on-a-stamped-guard.rs` | two stamped scope guards over different scopes are different types; comparing them does not compile |
-| `a-stamped-representation-cannot-be-laundered.rs` | two stamped guards over ONE scope: taking role A's position out and re-entering it under role B does not compile, in either direction |
-| `a-production-scope-guard-cannot-be-laundered.rs` | the seal holds on a guard the machine SHIPS, not only on roles a fixture stamps for itself: from outside the crate, `FrameVersion(position)` and `version.0` each refuse on their own |
-| `a-consumed-image-rung-cannot-be-reused.rs` | the image ladder is affine in the types and not only in its prose: a rung handed to a road that takes it by value cannot be handed over a second time |
-| `a-malformed-refusal-declaration-refuses.rs` | a shape word outside the machine's roster reaches the compiler as a refusal, not as a silent empty expansion |
-| `a-closed-expansion-without-a-closure.rs` | the only constructor of a receipt is crate-internal, so the plan, the origin graph, the trace, the invalidation set, the explanation, and the closure are all seats a caller cannot omit — they are arguments to a function nobody outside can call |
-| `a-rendering-taken-off-the-membership-only-draft.rs` | the frontage road is closed: the membership-only draft carries no rendering method at all |
-| `a-closure-minted-without-proving.rs` | every field of the proof is private and `proved` is the only road to one, so a closure assembled field by field does not compile |
-| `a-post-proof-join-outside-the-closure.rs` | joining the rendered units is crate-internal with one caller — the proof — so there is no public road to a joined tree outside it |
-| `a-materialized-malformed-mutant.rs` | lane C's `MalformedRust` seat: the mutated artifact text, checked in with its provenance stated, does not compile |
 | `a-cause-identity-cut-from-one-string.rs` | a cause identity is the pair of a family and a local key, so the retired string road — one literal cut by convention — does not compile |
+| `a-closed-expansion-without-a-closure.rs` | the only constructor of a receipt is crate-internal, so the plan, the origin graph, the trace, the invalidation set, the explanation, and the closure are all seats a caller cannot omit — they are arguments to a function nobody outside can call |
+| `a-closure-minted-without-proving.rs` | every field of the proof is private and `proved` is the only road to one, so a closure assembled field by field does not compile |
+| `a-collection-body-assembled-from-parts.rs` | a collection-shaped family body is ONE seat, so a caller cannot put one together out of a loose carry and a loose posture — both values below are real, and the record has no seat for either |
+| `a-cross-profile-admission.rs` | the admission witness says which plane admitted the family, so a magnitude admitted under one plane's ceiling does not reach a seat declaring another's; the profile rides as a type parameter and no coercion joins the two |
+| `a-discarded-refusal.rs` | the semantic `#[must_use]`'s bite, executed rather than asserted: an established refusal discarded as a statement fails the build, and the message the attribute carries is what the caller is shown |
+| `a-ladder-rung-cannot-be-duplicated.rs` | the image ladder is affine in the types and not only in its prose: five rungs and two duplication traits are TEN facts, and the fixture asks all ten as bounds, with nothing constructed |
+| `a-magnitude-past-the-authoring-ceiling.rs` | a family declaring a magnitude past the AUTHORING plane's ceiling stops the compiler during const evaluation, so no artifact carrying it is ever produced |
+| `a-malformed-refusal-declaration-refuses.rs` | a shape word outside the machine's roster reaches the compiler as a refusal, not as a silent empty expansion |
+| `a-materialized-malformed-mutant.rs` | lane C's `MalformedRust` seat: the mutated artifact text, checked in with its provenance stated, does not compile |
+| `a-past-ceiling-family-cannot-mint-a-positive-limit.rs` | the stronger witness refuses a past-ceiling family with the BASE witness's own diagnostic, because the base mint is what ran — which is what makes the composition falsifiable rather than a restated assertion |
+| `a-post-proof-join-outside-the-closure.rs` | joining the rendered units is crate-internal with one caller — the proof — so there is no public road to a joined tree outside it |
+| `a-production-scope-guard-cannot-be-laundered.rs` | representation privacy on a guard the machine SHIPS, not only on roles a fixture stamps for itself: from outside the crate, `FrameVersion(position)` and `version.0` each refuse on their own. That the guard has no road OUT is not this file's claim and cannot be — see its header, and `cargo xtask check`'s `stamped-guards-seal-their-position` |
+| `a-related-set-assembled-from-two-levels.rs` | a related set is built from issue MATERIAL and never from identities somebody already derived: the road taking a whole-body commitment beside a set of per-issue identities is not expressible |
+| `a-related-set-married-to-another-completion.rs` | a completion belongs to the set it was built beside: the seats are private, so the cross-wired literal does not compile |
+| `a-remainder-married-to-another-body.rs` | a completion belongs to the body it was minted with: the seats are private, so the cross-wired literal does not compile |
+| `a-rendering-taken-off-the-membership-only-draft.rs` | the frontage road is closed: the membership-only draft carries no rendering method at all |
+| `a-roster-past-the-stamp-ceiling.rs` | a declaration one row past the closed-register stamp's declared supply refuses with the STAMP'S OWN sentence, rather than dying against the compiler's recursion limit at a boundary nobody declared |
+| `a-services-refusal-body-reseated-by-literal.rs` | a services refusal family body cannot be written as a literal from outside the crate, so a body one seam established cannot be reseated under another seam's refusal |
+| `a-stamped-representation-cannot-be-laundered.rs` | two stamped guards over ONE scope: taking role A's position out and re-entering it under role B does not compile, in either direction |
+| `a-truncation-count-with-no-truncation-behind-it.rs` | the truncation posture's bound and count are private, so a posture describing a truncation that never happened is not a value a caller can write |
+| `a-weak-admission-at-a-strong-consumer.rs` | the weaker coverage does not stand in for the stronger one; carried as a type parameter, the substitution has no expression at all |
+| `a-zero-maximum-family-cannot-mint-a-positive-limit.rs` | a family declaring `MAX = 0` is admitted by the base witness one line above and refused by the positive one one line below — the split is honest only because the strong mint actually refuses here |
+| `an-admitted-family-minted-bare.rs` | band 00's family-admission witness carries two private seats, so the forged literal does not compile |
+| `an-admitted-role-minted-bare.rs` | band 02's role-admission witness carries two private seats, so the forged literal does not compile |
+| `an-outside-identity-subject.rs` | the identity-subject roster is closed by a seal whose only mint is crate-internal, and the constant it demands has no default; both roads out of the roster refuse |
+| `cross-frame-comparison-on-a-production-guard.rs` | `left < right` and `left.cmp(right)` on two frames' versions do not compile, which leaves `try_cmp_same_scope` as the only road to an ordering and makes the cross-frame answer that road's typed refusal |
+| `cross-scope-comparison-on-a-stamped-guard.rs` | two stamped scope guards over different scopes are different types; comparing them does not compile |
+| `singleton-under-a-zero-maximum-family.rs` | `NonEmptyBounded::singleton` under a limit family declaring `MAX = 0` does not compile |
 
 ## Owed, and counted out loud
 

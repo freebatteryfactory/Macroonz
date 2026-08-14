@@ -73,6 +73,12 @@ obligations:
   - id: navigation.frame-version-rides-authority-position
     challenge_kind: compile-refusal
     green: laws.rs navigation::frame_version_rides_authority_position
+    red: testpak/tests/compile-fail/cross-frame-comparison-on-a-production-guard.rs
+  - id: navigation.a-production-guard-cannot-be-laundered
+    challenge_kind: compile-refusal
+    green: structural (the position is a private seat of a stamped guard, and the
+      absence of any road out is derived rather than attempted — see band 02, and
+      cargo xtask check's stamped-guards-seal-their-position)
     red: testpak/tests/compile-fail/a-production-scope-guard-cannot-be-laundered.rs
   - id: navigation.axis-capabilities-are-declared
     challenge_kind: compile-refusal

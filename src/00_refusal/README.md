@@ -110,6 +110,18 @@ Writing a truncation posture by hand does not compile; neither does marrying one
 report's carry to another report's completion; and neither does assembling a
 migrated family out of a carry and a posture. All three reversals are testpak's.
 
+**What those three establish is representation privacy, and each says so at its
+own head.** The seats are not a caller's to write, so neither the cross-wired
+pair nor the fabricated posture is a value that can be assembled. That an
+`into_parts`, an owned carry, or a second mint does not EXIST is a fact about the
+surface as it stands and is held by review: adding one would leave every one of
+those three errors exactly where it is. Deriving that absence needs a
+machine-readable declaration of which package is sealed and which mint is the
+one, and this home has none — `CauseId` has two private seats it hands back on
+purpose, beside a public mint that takes them, so a reader condemning the one
+would condemn the other. The stamped scope guards are derived precisely because
+their stamp IS that declaration.
+
 ## The order is typed; the text is its projection
 
 A cause has a stable identity (`CauseId`) that is not its Rust spelling, not its

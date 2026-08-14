@@ -3289,12 +3289,16 @@ mod navigation {
     /// law: navigation.frame-version-rides-authority-position — versions of
     /// one frame compare; versions of different frames refuse with the
     /// scope-guard family body.
-    /// Reversal (red twin), discharged by the stamp this guard is now written
-    /// by: `testpak/tests/compile-fail/cross-scope-comparison-on-a-stamped-guard.rs`
-    /// (versions of two frames are two types, so the comparison is a category
-    /// error) and `a-production-scope-guard-cannot-be-laundered.rs` (this very
-    /// guard's position has no road out and no road back in). `a < b` refuses on
-    /// the stamp's derive set, which carries no `Ord`.
+    /// Reversal (red twin):
+    /// `testpak/tests/compile-fail/cross-frame-comparison-on-a-production-guard.rs`.
+    /// This law drives the scope-checked road through both of its outcomes and
+    /// would go on passing unchanged if an ambient `PartialOrd` or `Ord`
+    /// appeared beside it, so what falsifies the claim is the DIRECT comparison
+    /// refusing, and the fixture is where that is asked — on both traits.
+    /// A frame is a VALUE in the position, so two frames' versions are one
+    /// type; `cross-scope-comparison-on-a-stamped-guard.rs` compares two scope
+    /// ROLES, which is identity's claim and not this one. The laundering of
+    /// this guard's position is its own obligation, with its own reversal.
     #[test]
     fn frame_version_rides_authority_position() {
         let frame =

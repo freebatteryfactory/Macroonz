@@ -49,9 +49,14 @@ impl ReferenceFrameId {
 }
 
 crate::scope_guard_version! {
-    /// One version of a reference frame — Class C, scoped to its frame: versions
-    /// of different frames are incomparable by type, exactly as schema versions
-    /// are.
+    /// One version of a reference frame — Class C, scoped to its frame. The
+    /// frame is a VALUE inside the position rather than a type parameter, so two
+    /// frames' versions are ONE type and the compiler never tells them apart:
+    /// what it refuses is the ambient comparison, which leaves
+    /// `try_cmp_same_scope` as the only road to an ordering and makes the
+    /// cross-frame answer that road's typed refusal. A version under another
+    /// scope ROLE — a schema's, a profile's — is a different type outright, and
+    /// that is the incomparability the stamp carries in the types.
     pub struct FrameVersion over ReferenceFrameId;
 }
 
