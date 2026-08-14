@@ -18,29 +18,108 @@
 //! saw the key `threadpak-macros.workspace` where Cargo saw the package
 //! `threadpak-macros`, and a name matching no package matched no law either.
 //!
-//! # The line is the unit, and that is two ceilings, each with a direction
+//! # The line is the unit, so a declaration that is not one line is unread
 //!
 //! Every reader here is line-oriented, which is exact for the manifests this
-//! repository commits and for every spelling named above, and which cannot see
-//! two constructs.
+//! repository commits and for every spelling named above. What a line-oriented
+//! reader cannot do is tell structure from data once a value stops closing on
+//! the line that opened it. The lines that value spans are read as the headers
+//! and keys they resemble, so the reader believes a table ENDED where a string
+//! merely continued, and every key after it lands somewhere else.
 //!
-//! **A multi-line basic string whose body reads like a manifest.** Its lines
-//! are read as the header and entries they resemble, so a table quoted inside
-//! a `description` is read as a table. That answer is wrong in the direction
-//! this law can afford — a lawful manifest is REFUSED, never a prohibited one
-//! passed — and the reversal that would run the other way does not survive
-//! cargo. MEASURED on cargo 1.97.1: a decoy entry in a dependency table whose
-//! value is a multi-line string, which is the one shape that could close a
-//! table early and hide the edge beneath it, fails with `failed to parse the
-//! version requirement`, so it never reaches a build.
+//! That was not a ceiling. It was a hole, and it was executed. MEASURED on
+//! cargo 1.97.1, against the real root manifest, with the gate run as its own
+//! compiled binary: a `[dev-dependencies.helpers]` sub-table carrying a
+//! multi-line string whose body holds one line shaped like a table header is
+//! accepted by cargo, resolves `threadpak → threadpak-macroc`, and passed the
+//! topology law — because by the time the reader reached `package` and `path`
+//! it no longer believed it was inside a dependency table at all. Three more
+//! spellings buy the same forgetting and were measured accepted and resolving
+//! the same edge: the multi-line LITERAL string, the bracket list whose
+//! elements sit on their own lines with one of them shaped like a header, and
+//! the inline table spread across lines, whose continuation lines are read as
+//! fresh entries of the enclosing table. A fourth needs no dependency table at
+//! all: a spanning value anywhere in the file leaves the reader inside whatever
+//! header its body quoted, so a dotted `dev-dependencies.helpers.package` key
+//! written afterwards resolves for cargo and reaches no law here.
 //!
-//! **A dependency table written as an INLINE table**, whose entries live
-//! inside one line's value rather than on lines of their own. This one could
-//! hide an edge, so it is not left to be missed: [`dependency_declarations`]
-//! reports it by name in [`ManifestDependencies::unread`] and the topology law
-//! refuses a manifest that carries one. Reading it properly is the typed
-//! repository model's migration, and a second parser seated here would be the
-//! duplicate authority this repository is eliminating.
+//! So this reader refuses rather than guesses. [`dependency_declarations`]
+//! reports what it did not enter in [`ManifestDependencies::unread`], and the
+//! topology law refuses a manifest carrying any of three shapes:
+//!
+//! **A value that does not close on the line that opens it** — a multi-line
+//! basic string, a multi-line literal string, a bracket list broken across
+//! lines, or an inline table broken across lines. The refusal is on the SHAPE
+//! and never on what the body says, because a rule that read the body to decide
+//! whether the body was dangerous would be reading the body.
+//!
+//! **A basic string carrying a `\` escape**, which is the second half of the
+//! same honesty and is described under its own heading below.
+//!
+//! **A dependency table written as an INLINE table**, whose entries live inside
+//! one line's value rather than on lines of their own.
+//!
+//! Reading any of them properly is the typed repository model's migration, and a
+//! second parser seated here would be the duplicate authority this repository is
+//! eliminating.
+//!
+//! # Which way the refusal is allowed to be wrong
+//!
+//! Both delimiters are handled, `"""` and `'''`, and so are `[` and `{`. A value
+//! that closes where it opens is READ, not refused, so `notes = """one line"""`
+//! is self-contained and passes, and so does every other single-line use of
+//! either delimiter. The closing delimiter of a basic string is still found with
+//! `\` escapes honoured the way TOML honours them, and that has not stopped
+//! mattering now that an escape is refused on its own account: it is what makes
+//! `notes = "a \" b"` a value that CLOSES and carries an escape, rather than one
+//! reported as spanning lines it does not span. Two shapes, two repairs, and a
+//! reader that confused them would send an author to the wrong one.
+//!
+//! What is refused bluntly is the spanning shape itself, whatever it holds — a
+//! `description` spanning three lines of harmless prose is refused exactly like
+//! one quoting a table, and so is a workspace `members` list nobody could hide
+//! an edge inside. That costs this repository one real line, `workspace.members`
+//! in the root manifest, which is written on one line and says there why. It is
+//! the affordable direction: a manifest is REFUSED where it might have been
+//! read, and never READ where it should have been refused. The reverse rule —
+//! refuse only when the spanned body looks dangerous — would put the reader back
+//! inside the value it just admitted it cannot enter.
+//!
+//! # What a value SAYS is not what it MEANS
+//!
+//! The second refusal, in a different mechanism, found while measuring the
+//! first. It is not a ceiling: it was a hole, MEASURED on cargo 1.97.1 against
+//! the real root manifest with the gate run as its own compiled binary. Cargo
+//! decodes a basic string's escapes before it resolves anything, and this reader
+//! compares the TEXT of a value against the names Cargo compares the DECODED
+//! value against, so this manifest was accepted, resolved
+//! `threadpak -> threadpak-macroc`, and the topology law printed PASS:
+//!
+//! ```toml
+//! [dev-dependencies]
+//! helpers = { package = "threadpak\u002Dmacroc", path = "\u006Dacros/macroc" }
+//! ```
+//!
+//! `\u002D` is six characters here and one `-` to Cargo. So a basic string
+//! carrying a `\` is reported UNREAD, whatever the escape spells: TOML admits
+//! `\u`, `\U`, `\n`, `\t`, `\\`, `\"` and the rest, all of them decoded by Cargo
+//! and none of them decoded here, and a rule that refused only the escapes
+//! somebody had thought of would be the same guess this file exists to stop.
+//! Decoding them instead is the typed repository model's job; refusing is what
+//! an undecoded reader may honestly do in the meantime.
+//!
+//! A LITERAL string is a different value and is left READ, which is measured
+//! rather than assumed. TOML decodes nothing inside `'…'`, and cargo agrees:
+//! `package = 'threadpak\u002Dmacroc'` is refused by CARGO ITSELF with `invalid
+//! character \ in package name`, because nothing turned those six characters
+//! into a `-`, so there is no edge for an escape to hide there. What a `\` in a
+//! literal string IS, is a Windows path separator: `path = 'macros\macroc'` is
+//! accepted by cargo, resolves the edge, and is caught here — refusing it would
+//! be a false refusal on a lawful spelling, so it is not refused.
+//!
+//! The distinction is exactly TOML's, and it is why the escape scan runs inside
+//! the string skipper rather than over the line: a `\` is an escape where the
+//! string it sits in decodes escapes, and a character where it does not.
 
 /// Every Cargo dependency-edge kind, each of which the topology law covers.
 const DEPENDENCY_TABLE_KINDS: [&str; 3] =
@@ -86,8 +165,30 @@ pub(crate) fn bracket_list(text: &str, key: &str) -> Result<Vec<String>, String>
 /// path)`.
 pub(crate) type DependencyEntry = (&'static str, String, Option<String>, Option<String>);
 
+/// One declaration this reader did not enter, spelled as the key path it sits
+/// at.
+///
+/// Three shapes rather than one word, because they take three repairs: one is
+/// spelled out as a table with its entries on their own lines, one is put back
+/// on the single line it belongs on, and one is written with the characters it
+/// means. A reader that reported them the same way would tell an author to fix
+/// the wrong thing.
+pub(crate) enum Unread {
+    /// A whole dependency table written as an inline table. Its entries sit
+    /// inside one line's value, and this reader does not enter a value.
+    InlineTable(String),
+    /// A value that does not close on the line that opens it. The lines it
+    /// spans are data, and this reader reads lines — so what those lines look
+    /// like is not what they are.
+    MultiLineValue(String),
+    /// A basic string carrying a `\` escape. Cargo decodes it before resolving
+    /// anything and this reader does not, so what the value says here is not
+    /// what it means there. A literal string decodes nothing and is not this.
+    EscapedValue(String),
+}
+
 /// What one manifest declares about its dependencies: the entries a reader
-/// resolved, and the tables it could not enter.
+/// resolved, and the declarations it could not enter.
 ///
 /// The second field exists because a reader that returned only what it managed
 /// to read would answer "no prohibited edge" and "no reading happened" with the
@@ -97,11 +198,9 @@ pub(crate) struct ManifestDependencies {
     /// one per line: a dotted entry spelled across several lines is one entry,
     /// which is what Cargo resolves it to.
     pub(crate) entries: Vec<DependencyEntry>,
-    /// Every dependency table the manifest writes as an inline table, spelled
-    /// as the key path it sits at. Its entries live inside a value this
-    /// line-oriented reader does not enter, so they are reported UNREAD rather
-    /// than reported absent.
-    pub(crate) unread: Vec<String>,
+    /// Every declaration this reader could not enter, so that what it did not
+    /// read is reported UNREAD rather than reported absent.
+    pub(crate) unread: Vec<Unread>,
 }
 
 /// What a manifest declares about its dependencies.
@@ -118,9 +217,18 @@ pub(crate) struct ManifestDependencies {
 /// lines of a dotted entry accumulate into the one entry they declare. Blocks
 /// do not merge across headers: a package named in a bare table and again under
 /// a `target.'…'` prefix is two declarations and stays two entries.
+///
+/// A line whose value does not close on it, or whose basic string carries an
+/// escape, is reported UNREAD and is never resolved to an entry, wherever in the
+/// file it sits. The first check is on every such line rather than only on the
+/// ones inside a dependency table, because a value that spans lines takes the
+/// reader's idea of which table it is in with it, and the keys that idea then
+/// mis-seats are written after the value, not inside it. The second is on every
+/// line for a plainer reason: a reader that does not decode has no business
+/// deciding which undecoded values were the important ones.
 pub(crate) fn dependency_declarations(manifest_text: &str) -> ManifestDependencies {
     let mut entries: Vec<DependencyEntry> = Vec::new();
-    let mut unread: Vec<String> = Vec::new();
+    let mut unread: Vec<Unread> = Vec::new();
     let mut table: Vec<String> = Vec::new();
     let mut block_start = 0usize;
     for raw in manifest_text.lines() {
@@ -147,11 +255,22 @@ pub(crate) fn dependency_declarations(manifest_text: &str) -> ManifestDependenci
         let mut place = table.clone();
         place.extend(key_path(key));
         let value = value.trim();
+        match scan_value(value) {
+            ScannedValue::Read => {}
+            ScannedValue::SpansLines => {
+                unread.push(Unread::MultiLineValue(place.join(".")));
+                continue;
+            }
+            ScannedValue::Escaped => {
+                unread.push(Unread::EscapedValue(place.join(".")));
+                continue;
+            }
+        }
         let Some((kind, name, fields)) = dependency_position(&place) else {
             if value.starts_with('{')
                 && let Some(spelling) = unenterable_table(&place)
             {
-                unread.push(spelling);
+                unread.push(Unread::InlineTable(spelling));
             }
             continue;
         };
@@ -337,6 +456,149 @@ fn quoted_assignment(text: &str, key: &str) -> Option<String> {
             return Some(quoted);
         }
         from = end;
+    }
+}
+
+/// What one line's value is, as far as a reader that never decodes it can tell.
+enum ScannedValue {
+    /// The value closes on its line and passed through nothing this reader
+    /// cannot resolve: it is the value it appears to be.
+    Read,
+    /// The value does not close on the line that opens it, so the next line is
+    /// inside it rather than after it.
+    SpansLines,
+    /// The value closes, and a basic string inside it carries a `\` escape, so
+    /// the characters here are not the characters Cargo resolves against.
+    Escaped,
+}
+
+/// What a string this reader stepped over carried that it cannot resolve.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Carried {
+    /// Nothing. Every character in the body means itself, here and to Cargo.
+    Nothing,
+    /// A `\` escape, which Cargo decodes before it resolves anything and this
+    /// reader does not decode at all.
+    Escape,
+}
+
+/// One string stepped over whole: what follows it, and what it carried.
+struct SkippedString<'a> {
+    /// The text after the closing delimiter.
+    rest: &'a str,
+    /// What the body carried. Never [`Carried::Escape`] for a literal string,
+    /// which has no escapes to carry.
+    carried: Carried,
+}
+
+/// Both questions this reader has to answer about a value before it trusts
+/// anything it reads off the line, or off the next one.
+///
+/// A value that closes here means the next line is structure, and a value that
+/// does not means the next line is somebody's data wearing structure's clothes.
+/// Strings are skipped whole under either quote and either width, so a bracket
+/// or a brace inside one counts for nothing, and brackets and braces outside one
+/// are counted in and out. What is left open at the end of the line — a string
+/// still running, or a list or an inline table still nested — spans lines. What
+/// was passed on the way is reported too: a `\` inside a BASIC string is an
+/// escape Cargo decodes and this reader does not, and a `\` inside a literal
+/// string is a character in both, which is why the answer comes back from the
+/// string skipper rather than from a scan of the line.
+///
+/// This answers where a value ENDS and what it PASSED THROUGH, never what it
+/// means. It resolves no key, turns no escape into the character it stands for,
+/// and produces no value; a `#` outside a string ends the line here for the same
+/// reason it does in [`strip_comment`], and nothing else about the body is
+/// looked at.
+fn scan_value(value: &str) -> ScannedValue {
+    let mut depth = 0usize;
+    let mut carried = Carried::Nothing;
+    let mut rest = value;
+    loop {
+        let Some(character) = rest.chars().next() else {
+            return settled(depth, carried);
+        };
+        if character == '#' {
+            return settled(depth, carried);
+        }
+        if character == '"' || character == '\'' {
+            let Some(skipped) = string_end(rest, character) else {
+                return ScannedValue::SpansLines;
+            };
+            if skipped.carried == Carried::Escape {
+                carried = Carried::Escape;
+            }
+            rest = skipped.rest;
+            continue;
+        }
+        if character == '[' || character == '{' {
+            depth = depth.saturating_add(1);
+        } else if character == ']' || character == '}' {
+            depth = depth.saturating_sub(1);
+        }
+        let Some(after) = rest.get(character.len_utf8()..) else {
+            return settled(depth, carried);
+        };
+        rest = after;
+    }
+}
+
+/// The verdict once the line runs out.
+///
+/// Still nested is a value that spans lines; an escape passed on the way is a
+/// value whose characters are not the ones Cargo resolves against. Nesting is
+/// answered first because a value that has not ended yet has not finished saying
+/// what it carries either.
+fn settled(depth: usize, carried: Carried) -> ScannedValue {
+    if depth != 0 {
+        return ScannedValue::SpansLines;
+    }
+    match carried {
+        Carried::Nothing => ScannedValue::Read,
+        Carried::Escape => ScannedValue::Escaped,
+    }
+}
+/// The string a value opens with, stepped over whole, or nothing when it does
+/// not close on the same line.
+///
+/// The delimiter is whichever the value opened with — one quote or three, basic
+/// or literal — and the closing delimiter is the same one, which is what makes
+/// `"""` a different string from `"` rather than three of them in a row.
+///
+/// Whether the string DECODES is the difference TOML draws between its two
+/// kinds, and it decides both answers here. In a basic string a `\` escapes the
+/// character after it, so `"a \" b"` closes at its last quote and not its
+/// second, and the escape is reported because Cargo will turn it into a
+/// character this reader never will. In a literal string there are no escapes at
+/// all: a `\` is a backslash to TOML, to Cargo, and here, so it is stepped over
+/// like any other character and reported as nothing. That is measured rather
+/// than assumed — `package = 'threadpak\u002Dmacroc'` is refused by cargo itself
+/// as an invalid package name, because nothing decoded it.
+fn string_end(text: &str, quote: char) -> Option<SkippedString<'_>> {
+    let triple = if quote == '"' { "\"\"\"" } else { "'''" };
+    let decodes = quote == '"';
+    let (delimiter, mut rest) = if let Some(body) = text.strip_prefix(triple) {
+        (triple, body)
+    } else {
+        (text.get(..quote.len_utf8())?, text.get(quote.len_utf8()..)?)
+    };
+    let mut carried = Carried::Nothing;
+    loop {
+        if let Some(after) = rest.strip_prefix(delimiter) {
+            return Some(SkippedString {
+                rest: after,
+                carried,
+            });
+        }
+        let character = rest.chars().next()?;
+        let mut step = character.len_utf8();
+        if decodes && character == '\\' {
+            carried = Carried::Escape;
+            if let Some(after) = rest.get(step..).and_then(|tail| tail.chars().next()) {
+                step = step.saturating_add(after.len_utf8());
+            }
+        }
+        rest = rest.get(step..)?;
     }
 }
 

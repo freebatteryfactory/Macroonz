@@ -9,7 +9,7 @@
 use std::fs;
 use std::path::Path;
 
-use crate::repository::manifest::dependency_declarations;
+use crate::repository::manifest::{Unread, dependency_declarations};
 use crate::repository::walk::{JUDGE_DIRECTORY, TOOLING_DIRECTORY};
 
 /// The metaprogramming packages the core package may never reach.
@@ -51,7 +51,10 @@ const JUDGE_PACKAGE: &str = "threadpak-testpak";
 /// written in a shape [`dependency_declarations`] does not enter is refused
 /// here rather than passed. That is a third kind of offence and it says so in
 /// its own words: nobody reached tooling, and nobody established that anybody
-/// had not.
+/// had not. Three shapes arrive that way — a dependency table written inline, a
+/// value that does not close on the line that opens it, and a basic string
+/// carrying an escape this reader does not decode and Cargo does — and each
+/// carries the repair that shape takes, because they do not take the same one.
 pub(crate) fn check_no_core_tooling_edge(root: &Path) -> Result<(), String> {
     let manifest =
         fs::read_to_string(root.join("Cargo.toml")).map_err(|e| format!("Cargo.toml: {e}"))?;
@@ -91,12 +94,7 @@ fn core_tooling_edge_violations(manifest_text: &str) -> Vec<String> {
         })
         .map(|violation| format!("core package reaches tooling or its judge: {violation}"))
         .collect();
-    found.extend(
-        declared
-            .unread
-            .iter()
-            .map(|spelling| unread_table("core", spelling)),
-    );
+    found.extend(declared.unread.iter().map(|shape| unread("core", shape)));
     found
 }
 
@@ -119,24 +117,40 @@ fn services_frontend_edge_violations(manifest_text: &str) -> Vec<String> {
         declared
             .unread
             .iter()
-            .map(|spelling| unread_table("services", spelling)),
+            .map(|shape| unread("services", shape)),
     );
     found
 }
 
-/// The offence a dependency table written as an inline table commits.
+/// The offence one unreadable declaration commits.
 ///
-/// Not an edge — a manifest this law cannot read. Its entries sit inside one
-/// line's value, so the absence this law would otherwise report about such a
-/// manifest is an absence nobody established. An unreadable declaration is
-/// refused rather than passed, which is the difference between a law and a
-/// habit, and the repair is in the message because the repair is one line.
-fn unread_table(manifest: &str, spelling: &str) -> String {
-    format!(
-        "the {manifest} manifest declares `{spelling}` as an inline table, and the entries inside \
-         it are not read here: spell it as `[{spelling}]` with its entries on their own lines, so \
-         this law can see what it is being asked to allow"
-    )
+/// Not an edge — a manifest this law cannot read. What it declares sits inside a
+/// value, and this law reads lines, so the absence it would otherwise report
+/// about such a manifest is an absence nobody established. An unreadable
+/// declaration is refused rather than passed, which is the difference between a
+/// law and a habit, and the repair is in the message because the repair is one
+/// line either way. Which one line differs, so each shape says its own.
+fn unread(manifest: &str, shape: &Unread) -> String {
+    match *shape {
+        Unread::InlineTable(ref spelling) => format!(
+            "the {manifest} manifest declares `{spelling}` as an inline table, and the entries \
+             inside it are not read here: spell it as `[{spelling}]` with its entries on their own \
+             lines, so this law can see what it is being asked to allow"
+        ),
+        Unread::MultiLineValue(ref spelling) => format!(
+            "the {manifest} manifest gives `{spelling}` a value that does not close on the line \
+             that opens it, and every line it spans is read here as structure rather than as the \
+             data it is: put the value on one line, so this law cannot be told a dependency table \
+             ended where a string, a list, or an inline table merely continued"
+        ),
+        Unread::EscapedValue(ref spelling) => format!(
+            "the {manifest} manifest gives `{spelling}` a basic string carrying a `\\` escape, \
+             which Cargo decodes before it resolves anything and this law does not decode at all, \
+             so `\\u002D` reads here as six characters where Cargo reads a `-`: write the value \
+             with the characters it means, or write it as a literal string in single quotes, \
+             which TOML leaves undecoded and this law reads as it stands"
+        ),
+    }
 }
 
 /// The violation one dependency entry of the ROOT manifest commits, if any.
@@ -472,26 +486,229 @@ mod tests {
         assert!(whole_tree.iter().any(|v| v.contains("inline table")));
     }
 
-    /// The ceiling, executed rather than only written down: a multi-line
-    /// string whose body reads like a dependency table is read as one.
+    /// Reversal (s): THE bypass, in the shape it was executed in.
     ///
-    /// The reader is line-oriented and cannot see that these lines sit inside
-    /// a value, so the phantom edge quoted in the string is reported as an
-    /// edge. That is the wrong answer, and this test is here to state which
-    /// way it is wrong: a lawful manifest is REFUSED, never a prohibited one
-    /// passed. The opposite direction is closed by cargo rather than by this
-    /// reader, and the module documentation carries the measurement. A later
-    /// reader that resolves manifests properly has to delete this test to do
-    /// it, and that deletion is where the ceiling is allowed to lift.
+    /// A dependency sub-table carries a multi-line basic string whose body
+    /// holds one line shaped like a table header, and the rename is written
+    /// AFTER the string. MEASURED on cargo 1.97.1 against the real root
+    /// manifest, with this law run as its own compiled binary: cargo accepts
+    /// the manifest, `cargo tree` resolves `threadpak → threadpak-macroc`, and
+    /// the law printed PASS — because by the time the reader reached `package`
+    /// it believed the dependency table had ended three lines earlier.
+    ///
+    /// Nothing about the edge is read now, and that is the point: the offence
+    /// is the unreadable value, reported before the reader can be lied to
+    /// about what follows it.
     #[test]
-    fn a_multi_line_string_quoting_a_table_is_read_as_that_table() {
+    fn a_multi_line_string_inside_a_dependency_table_is_refused_unread() {
         let found = violations(
-            "description = \"\"\"\n[dependencies]\n\
-             threadpak-macroc = { path = \"macros/macroc\" }\n\"\"\"\n",
+            "[dev-dependencies.helpers]\nversion = \"0.0.0\"\nmetadata = \"\"\"\n\
+             this string contains a line that looks like a header\n[package]\n\
+             and keeps going\n\"\"\"\npackage = \"threadpak-macroc\"\n\
+             path = \"macros/macroc\"\n",
         );
         assert_eq!(found.len(), 1, "{found:?}");
+        assert!(
+            found
+                .iter()
+                .any(|v| v.contains("dev-dependencies.helpers.metadata")
+                    && v.contains("does not close on the line that opens it")),
+            "{found:?}"
+        );
     }
 
+    /// Reversal (t): the same bypass in TOML's other multi-line string. Two
+    /// spellings of one construct are one construct, and reading only the
+    /// basic one would have left the literal one open.
+    #[test]
+    fn a_multi_line_literal_string_inside_a_dependency_table_is_refused_unread() {
+        let found = violations(
+            "[dev-dependencies.helpers]\nmetadata = '''\n[package]\n'''\n\
+             package = \"threadpak-macroc\"\npath = \"macros/macroc\"\n",
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(
+            found.iter().any(|v| v.contains("does not close")),
+            "{found:?}"
+        );
+    }
+
+    /// Reversal (u): the bracket list broken across lines, one of whose
+    /// elements is itself a list and so occupies a line shaped like a header.
+    /// Measured accepted by cargo and resolving the same edge.
+    #[test]
+    fn a_multi_line_list_inside_a_dependency_table_is_refused_unread() {
+        let found = violations(
+            "[dev-dependencies.helpers]\nmetadata = [\n[1]\n]\n\
+             package = \"threadpak-macroc\"\npath = \"macros/macroc\"\n",
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(
+            found.iter().any(|v| v.contains("does not close")),
+            "{found:?}"
+        );
+    }
+
+    /// Reversal (v): the inline table broken across lines. Cargo takes it, and
+    /// its continuation lines are read here as fresh entries of the enclosing
+    /// table, so the entry that actually carries the rename is left holding
+    /// nothing but its own innocent key.
+    #[test]
+    fn an_inline_table_broken_across_lines_is_refused_unread() {
+        let found = violations(
+            "[dev-dependencies]\nhelpers = { version = \"0.0.0\",\n\
+             package = \"threadpak-macroc\",\npath = \"macros/macroc\" }\n",
+        );
+        assert!(
+            found
+                .iter()
+                .any(|v| v.contains("dev-dependencies.helpers") && v.contains("does not close")),
+            "{found:?}"
+        );
+    }
+
+    /// Reversal (w): the spanning value that is nowhere near a dependency
+    /// table, which is why the refusal is on every line rather than on the
+    /// lines inside one.
+    ///
+    /// The string sits at the top of the file and quotes a header. Everything
+    /// written after it is read at that phantom table, so the dotted
+    /// dependency keys below resolve for cargo — measured accepted, resolving
+    /// `threadpak → threadpak-macroc` — and reach no law here at all.
+    #[test]
+    fn a_spanning_value_outside_any_dependency_table_is_refused_unread() {
+        let found = core_tooling_edge_violations(
+            "notes = \"\"\"\n[x]\n\"\"\"\n\
+             dev-dependencies.helpers.package = \"threadpak-macroc\"\n\
+             dev-dependencies.helpers.path = \"macros/macroc\"\n\n\
+             [package]\nname = \"threadpak\"\n",
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found.iter().any(|v| v.contains("`notes`")), "{found:?}");
+    }
+
+    /// Reversal (x): the second seat reads the same refusal. Both halves of
+    /// this law stand on one manifest reader, and that is a claim, so it is
+    /// executed rather than asserted.
+    #[test]
+    fn a_spanning_value_in_the_services_manifest_is_refused_unread() {
+        let found = services_violations(
+            "[dev-dependencies.shell]\nmetadata = \"\"\"\n[package]\n\"\"\"\n\
+             package = \"threadpak-macros\"\n",
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(
+            found.iter().any(|v| v.contains("does not close")),
+            "{found:?}"
+        );
+    }
+
+    /// The direction the refusal is allowed to be wrong in, stated by what it
+    /// does NOT refuse: every value here closes on the line that opens it, so
+    /// every one of them is read.
+    ///
+    /// The single-line `"""…"""` form is a self-contained value and passes; a
+    /// `#` inside a literal string is content and does not end the line; a `\"`
+    /// inside a basic string does not close it early; and a one-line inline
+    /// table holding a bracket list nests in and back out to nothing. The
+    /// declared `path` is read off the last of them, which is how this control
+    /// proves the reader still WORKS rather than merely stays quiet.
+    #[test]
+    fn a_value_that_closes_on_its_line_is_read_rather_than_refused() {
+        let found = violations(
+            "[dependencies]\nserde = { version = \"1\", features = [\"derive\", \"std\"] }\n\n\
+             [dependencies.helpers]\nmetadata = \"\"\"one line\"\"\"\n\
+             notes = 'a # not a comment'\n\
+             path = 'vendor/helpers'\n",
+        );
+        assert!(found.is_empty(), "{found:?}");
+        let reached = violations(
+            "[dependencies.helpers]\nmetadata = \"\"\"one line\"\"\"\n\
+             path = 'macros/macroc'\n",
+        );
+        assert_eq!(reached.len(), 1, "{reached:?}");
+        assert!(reached.iter().any(|v| v.contains("macros/")), "{reached:?}");
+    }
+
+    /// Reversal (y): the escape sequence inside a value this law compares by
+    /// TEXT — a different mechanism from every reversal above, and the second
+    /// hole this reader was measured falling into.
+    ///
+    /// MEASURED on cargo 1.97.1 against the real root manifest with the gate run
+    /// as its own compiled binary: cargo decodes both escapes, `cargo tree -e
+    /// dev` resolves `threadpak -> threadpak-macroc`, and the law printed PASS.
+    /// No line lies about being structure here; the reader compared the text of
+    /// a value against names Cargo compares the DECODED value against, and
+    /// `\u002D` is six characters here and a `-` there.
+    ///
+    /// The escape is refused wherever it sits and whatever it spells, including
+    /// where the old normalization happened to catch it anyway: `\u002F` in a
+    /// path used to be turned into a separator by the same pass that reads
+    /// `..\macros` as a Windows spelling, which caught the edge by luck rather
+    /// than by law, and luck is not what an absence may rest on.
+    #[test]
+    fn a_basic_string_carrying_an_escape_is_refused_unread() {
+        let hidden = violations(
+            "[dev-dependencies]\nhelpers = { package = \"threadpak\\u002Dmacroc\", \
+             path = \"\\u006Dacros/macroc\" }\n",
+        );
+        assert_eq!(hidden.len(), 1, "{hidden:?}");
+        assert!(
+            hidden
+                .iter()
+                .any(|v| v.contains("dev-dependencies.helpers") && v.contains("escape")),
+            "{hidden:?}"
+        );
+        let lucky = violations(
+            "[dev-dependencies]\nhelpers = { package = \"threadpak-macroc\", \
+             path = \"macros\\u002Fmacroc\" }\n",
+        );
+        assert!(lucky.iter().any(|v| v.contains("escape")), "{lucky:?}");
+    }
+
+    /// The refusal knows which shape it found, which is the whole reason there
+    /// are two messages: an escaped value that CLOSES on its line is reported as
+    /// an escape and never as a value that spans lines.
+    ///
+    /// This is what the escape-honouring inside the string skipper buys now that
+    /// an escape is refused on its own account. A skipper that stopped at the
+    /// escaped quote would think the string ran off the end of the line, and
+    /// would send the author to put a value on one line it is already on.
+    #[test]
+    fn an_escaped_value_that_closes_is_reported_as_an_escape() {
+        let found = violations("[dependencies.helpers]\nnotes = \"a \\\" b\"\n");
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found.iter().any(|v| v.contains("escape")), "{found:?}");
+        assert!(
+            !found.iter().any(|v| v.contains("does not close")),
+            "{found:?}"
+        );
+    }
+
+    /// The direction the escape refusal is allowed to be wrong in, stated by
+    /// what it does NOT refuse: a LITERAL string decodes nothing, so a `\` in
+    /// one is a backslash to TOML, to Cargo, and here.
+    ///
+    /// MEASURED, both halves. `path = 'macros\macroc'` is the lawful Windows
+    /// spelling of a path: cargo accepts it and resolves the edge, and it is
+    /// caught here as the edge it is — refusing it would be a false refusal on
+    /// something nobody wrote to hide anything. And there is nothing to hide
+    /// there: `package = 'threadpak\u002Dmacroc'` is refused by CARGO ITSELF
+    /// with `invalid character \ in package name`, because no decoding ever
+    /// turned those six characters into a `-`.
+    #[test]
+    fn a_literal_string_carrying_a_backslash_is_read_rather_than_refused() {
+        let found = violations(
+            "[dev-dependencies]\nhelpers = { package = 'threadpak-macroc', \
+             path = 'macros\\macroc' }\n",
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(
+            found.iter().any(|v| v.contains("threadpak-macroc")),
+            "{found:?}"
+        );
+        assert!(!found.iter().any(|v| v.contains("escape")), "{found:?}");
+    }
     /// The positive control: a manifest with ordinary edges and none to the
     /// tooling or the judge is clean, so the law reports something real rather
     /// than everything.
