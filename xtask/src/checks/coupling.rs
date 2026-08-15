@@ -360,13 +360,16 @@ fn read_inline_module(
 
 /// Every name one module re-exports out of the named child module.
 ///
-/// A glob contributes nothing: what stands behind one is a set this reader would
-/// have to resolve, and a body left in the inner scope produces a refusal
-/// somebody can argue with rather than a silence nobody can see.
+/// Only a relative path to the immediate child contributes names. A leading
+/// `::` is absolute rather than local. A glob, rename, or deeper path contributes
+/// nothing: each carries facts this reader would have to resolve, and a family
+/// left without a body produces a refusal somebody can argue with rather than a
+/// false coupling nobody can see.
 fn reexported_from(child: &syn::Ident, items: &[syn::Item]) -> Vec<String> {
     let mut names = Vec::new();
     for item in items {
         if let syn::Item::Use(declared) = item
+            && declared.leading_colon.is_none()
             && let Some(tree) = immediate_child_reexport(&declared.tree, child)
         {
             reexported_names(tree, &mut names);
@@ -400,19 +403,22 @@ fn immediate_child_reexport<'tree>(
     (rooted.ident == *child).then_some(&rooted.tree)
 }
 
-/// Every name one `use` tree brings in, under the spelling the enclosing module
-/// then knows it by.
+/// Every direct name one selected immediate-child tree brings in.
+///
+/// A group is only authoring shorthand for its direct `Name` members. Nested
+/// paths, nested groups, renames, and globs require facts beyond one name in one
+/// known child scope, so each stays unlifted.
 fn reexported_names(tree: &syn::UseTree, into: &mut Vec<String>) {
     match *tree {
         syn::UseTree::Name(ref named) => into.push(named.ident.to_string()),
-        syn::UseTree::Rename(ref renamed) => into.push(renamed.rename.to_string()),
         syn::UseTree::Group(ref group) => {
             for inner in &group.items {
-                reexported_names(inner, into);
+                if let syn::UseTree::Name(named) = inner {
+                    into.push(named.ident.to_string());
+                }
             }
         }
-        syn::UseTree::Path(ref deeper) => reexported_names(&deeper.tree, into),
-        syn::UseTree::Glob(_) => {}
+        syn::UseTree::Path(_) | syn::UseTree::Rename(_) | syn::UseTree::Glob(_) => {}
     }
 }
 
@@ -641,6 +647,128 @@ mod tests {
         assert_eq!(verdict.declared, 1);
         assert_eq!(verdict.coupled, 1, "{:?}", verdict.offenders);
         assert!(verdict.offenders.is_empty(), "{:?}", verdict.offenders);
+    }
+
+    /// Direct names in one group are still immediate-child re-exports. The
+    /// group changes only how several direct names are written, not which scope
+    /// declares either body.
+    #[test]
+    fn a_group_of_direct_names_resolves_in_the_publishing_module() {
+        let verdict = coupled_body_verdict(&source(
+            "pub use seat::{FirstRefusal, SecondRefusal};\n\
+             \n\
+             mod seat {\n\
+             \x20   pub struct FirstRefusal {\n\
+             \x20       body: AdmittedPrefix<FirstIssue, FirstIssueLimit>,\n\
+             \x20   }\n\
+             \x20   pub struct SecondRefusal {\n\
+             \x20       body: AdmittedPrefix<SecondIssue, SecondIssueLimit>,\n\
+             \x20   }\n\
+             }\n\
+             impl RefusalFamily for FirstRefusal {\n\
+             \x20   const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             }\n\
+             impl RefusalFamily for SecondRefusal {\n\
+             \x20   const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 2);
+        assert_eq!(verdict.coupled, 2, "{:?}", verdict.offenders);
+        assert!(verdict.offenders.is_empty(), "{:?}", verdict.offenders);
+    }
+
+    /// Planted reversal: a nested path publishes the nested body's identity,
+    /// not an identically named top-level body inside the immediate child. This
+    /// bounded reader does not resolve the deeper path, so it must leave the
+    /// outer family loudly bodyless rather than couple the innocent body.
+    #[test]
+    fn a_nested_re_export_cannot_lift_a_top_level_collision() {
+        let verdict = coupled_body_verdict(&source(
+            "pub use seat::nested::DemoRefusal;\n\
+             mod seat {\n\
+             \x20   pub struct DemoRefusal {\n\
+             \x20       body: AdmittedPrefix<DemoIssue, DemoIssueLimit>,\n\
+             \x20   }\n\
+             \x20   mod nested {\n\
+             \x20       pub struct DemoRefusal {\n\
+             \x20           issues: NonEmptyBounded<DemoIssue, DemoIssueLimit>,\n\
+             \x20       }\n\
+             \x20   }\n\
+             }\n\
+             impl RefusalFamily for DemoRefusal {\n\
+             \x20   const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.coupled, 0, "{:?}", verdict.offenders);
+        assert!(
+            verdict
+                .offenders
+                .first()
+                .is_some_and(|offence| offence.contains("no `pub struct DemoRefusal`")),
+            "{:?}",
+            verdict.offenders
+        );
+    }
+
+    /// Planted reversal: a rename carries both a source and a published name.
+    /// This reader carries only one body identity, so it refuses to guess by
+    /// leaving the outer family bodyless rather than lifting a top-level body
+    /// that merely matches the alias.
+    #[test]
+    fn a_renamed_re_export_cannot_lift_an_alias_collision() {
+        let verdict = coupled_body_verdict(&source(
+            "pub use seat::OriginalRefusal as DemoRefusal;\n\
+             mod seat {\n\
+             \x20   pub struct OriginalRefusal {\n\
+             \x20       issues: NonEmptyBounded<DemoIssue, DemoIssueLimit>,\n\
+             \x20   }\n\
+             \x20   pub struct DemoRefusal {\n\
+             \x20       body: AdmittedPrefix<DemoIssue, DemoIssueLimit>,\n\
+             \x20   }\n\
+             }\n\
+             impl RefusalFamily for DemoRefusal {\n\
+             \x20   const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.coupled, 0, "{:?}", verdict.offenders);
+        assert!(
+            verdict
+                .offenders
+                .first()
+                .is_some_and(|offence| offence.contains("no `pub struct DemoRefusal`")),
+            "{:?}",
+            verdict.offenders
+        );
+    }
+
+    /// Planted reversal: a leading `::` makes the path absolute. It is not the
+    /// immediate child declared in this module even when the terminal spelling
+    /// matches, so no local body is lifted through it.
+    #[test]
+    fn an_absolute_re_export_does_not_lift_a_local_child() {
+        let verdict = coupled_body_verdict(&source(
+            "pub use ::seat::DemoRefusal;\n\
+             mod seat {\n\
+             \x20   pub struct DemoRefusal {\n\
+             \x20       body: AdmittedPrefix<DemoIssue, DemoIssueLimit>,\n\
+             \x20   }\n\
+             }\n\
+             impl RefusalFamily for DemoRefusal {\n\
+             \x20   const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.coupled, 0, "{:?}", verdict.offenders);
+        assert!(
+            verdict
+                .offenders
+                .first()
+                .is_some_and(|offence| offence.contains("no `pub struct DemoRefusal`")),
+            "{:?}",
+            verdict.offenders
+        );
     }
 
     /// A different prefix is not normalized into the immediate child. Doing so

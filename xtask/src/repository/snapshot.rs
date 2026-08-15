@@ -31,6 +31,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::error::Error;
 use std::ffi::OsString;
 use std::fmt;
+use std::fs;
 use std::io::{BufRead, BufReader, Read as IoRead, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -42,6 +43,42 @@ use crate::repository::types::{AbsenceReason, CanonicalPath, LinkState, Read, Re
 
 /// Git's own storage coordinate at a checkout root.
 const GIT_STORAGE: &str = ".git";
+
+/// Git-specific ambient inputs that can redirect repository identity, refs,
+/// objects, index, worktree, or configuration.
+///
+/// Git's own `rev-parse --local-env-vars` roster supplies the repository-local
+/// core. The additional namespace, config-file, quarantine, and discovery
+/// variables are documented Git routing inputs that can change the same
+/// answers. Numbered `GIT_CONFIG_KEY_*` and `GIT_CONFIG_VALUE_*` entries are
+/// inert once `GIT_CONFIG_COUNT` is absent, so no unbounded environment scan is
+/// needed. `GIT_NO_REPLACE_OBJECTS` is deliberately not listed: [`git`] sets it
+/// to the one admitted value after clearing this roster.
+const GIT_ROUTING_ENVIRONMENT: &[&str] = &[
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_CEILING_DIRECTORIES",
+    "GIT_COMMON_DIR",
+    "GIT_CONFIG",
+    "GIT_CONFIG_COUNT",
+    "GIT_CONFIG_GLOBAL",
+    "GIT_CONFIG_NOSYSTEM",
+    "GIT_CONFIG_PARAMETERS",
+    "GIT_CONFIG_SYSTEM",
+    "GIT_DIR",
+    "GIT_DISCOVERY_ACROSS_FILESYSTEM",
+    "GIT_GRAFT_FILE",
+    "GIT_IMPLICIT_WORK_TREE",
+    "GIT_INDEX_FILE",
+    "GIT_INTERNAL_SUPER_PREFIX",
+    "GIT_NAMESPACE",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_PREFIX",
+    "GIT_QUARANTINE_PATH",
+    "GIT_REPLACE_REF_BASE",
+    "GIT_SHALLOW_FILE",
+    "GIT_SUPER_PREFIX",
+    "GIT_WORK_TREE",
+];
 
 /// The metaprogramming subsystem's directory.
 ///
@@ -80,13 +117,20 @@ impl RepositorySnapshot {
     ///
     /// Git owns both membership and bytes: `ls-tree -z` derives the exact blob
     /// population and `cat-file --batch` reads those immutable objects. Ignored
-    /// and untracked filesystem entries therefore cannot enter this type. A
-    /// tracked checkout difference or a moving `HEAD` refuses construction.
+    /// and untracked filesystem entries therefore cannot enter this type. Every
+    /// committed regular file is compared directly with the type and bytes at
+    /// the explicit root; a mismatch or moving `HEAD` refuses construction.
+    /// Executable mode is not part of this byte-binding claim.
     ///
-    /// Cargo metadata remains a live observation. The committed state and
-    /// tracked-clean posture are checked again after that process so a run does
-    /// not join a stable committed projection to an observation taken while the
-    /// checkout moved.
+    /// A committed symbolic-link entry remains a raw Git fact rather than being
+    /// followed or silently treated as a regular file. The existing
+    /// `lf-and-no-symlinks` repository law consumes that mode and refuses it, so
+    /// no accepted qualification can spend a symlink-bearing snapshot.
+    ///
+    /// Cargo metadata remains a live observation. The committed state and every
+    /// regular file's direct live-byte match are checked again after that
+    /// process so a run does not join a stable committed projection to an
+    /// observation taken while the checkout moved.
     pub(crate) fn read(root: &Path) -> Result<Self, String> {
         Self::read_with_after_files(root, || Ok(()))
     }
@@ -111,17 +155,16 @@ impl RepositorySnapshot {
         after_files: impl FnOnce() -> Result<(), String>,
     ) -> Result<Self, String> {
         let before = committed_tree_with_after_commit(root, after_initial_commit)?;
-        require_tracked_clean(root)?;
         let files = CanonicalFileMap::read(root, &before.tree)?;
         after_files()?;
         require_same_committed_state(&before, &committed_tree(root)?)?;
-        require_tracked_clean(root)?;
+        require_live_regular_file_bytes(root, &files)?;
         let cargo = CargoSnapshot::read(&files);
         let rust = RustSyntaxSnapshot::read(&files);
         let markdown = MarkdownSnapshot::read(&files);
         let cargo_observation = CargoObservation::read(root, &files);
         require_same_committed_state(&before, &committed_tree(root)?)?;
-        require_tracked_clean(root)?;
+        require_live_regular_file_bytes(root, &files)?;
         Ok(Self {
             files,
             cargo,
@@ -340,12 +383,7 @@ fn parse_tracked_blobs(output: &[u8]) -> Result<Vec<TrackedBlob>, String> {
                 String::from_utf8_lossy(raw_path)
             )
         })?;
-        if spelled.contains('\\') {
-            return Err(format!(
-                "git tracks `{spelled}` with a literal backslash; canonical repository paths use \
-                 forward slashes, so replacing that byte would collapse two identities"
-            ));
-        }
+        validate_canonical_relative_path(spelled)?;
         let path = CanonicalPath::spelled(spelled);
         if !seen.insert(path.clone()) {
             return Err(format!("git listed committed path `{path}` more than once"));
@@ -357,6 +395,34 @@ fn parse_tracked_blobs(output: &[u8]) -> Result<Vec<TrackedBlob>, String> {
         });
     }
     Ok(tracked)
+}
+
+/// Requires a Git-derived path to be one safe canonical descendant.
+///
+/// This is checked before the spelling becomes a [`CanonicalPath`] and checked
+/// again immediately before the only `root.join`. Git normally emits this
+/// grammar already; refusing it here keeps a malformed or substituted Git
+/// response from turning repository identity into filesystem traversal.
+fn validate_canonical_relative_path(spelled: &str) -> Result<(), String> {
+    let bytes = spelled.as_bytes();
+    let windows_prefix = matches!(bytes, [drive, b':', ..] if drive.is_ascii_alphabetic());
+    let unsafe_spelling = spelled.is_empty()
+        || spelled.starts_with('/')
+        || spelled.ends_with('/')
+        || spelled.contains("//")
+        || spelled.contains('\\')
+        || windows_prefix
+        || spelled
+            .split('/')
+            .any(|component| component == "." || component == "..");
+    if unsafe_spelling || Path::new(spelled).is_absolute() {
+        Err(format!(
+            "git reported unsafe non-canonical repository path `{spelled}`; committed paths must \
+             be non-empty relative descendants with ordinary components"
+        ))
+    } else {
+        Ok(())
+    }
 }
 
 /// Reads every committed blob through one batch process.
@@ -519,30 +585,71 @@ fn committed_tree_with_after_commit(
     Ok(CommittedTree { commit, tree })
 }
 
-/// Requires every tracked checkout path to match `HEAD`.
+/// Requires every committed regular file to exist as a regular file with the
+/// same bytes beneath the explicit root.
 ///
-/// Untracked and ignored paths are deliberately excluded rather than refused:
-/// membership and bytes come from the committed tree, so neither population can
-/// enter the snapshot. The `-z` porcelain contract is used so a tracked path
-/// containing a newline cannot hide by changing record boundaries.
-fn require_tracked_clean(root: &Path) -> Result<(), String> {
-    let output = git(root)
-        .args(["status", "--porcelain=v2", "-z", "--untracked-files=no"])
-        .stderr(Stdio::piped())
-        .output()
-        .map_err(|error| format!("git status --porcelain=v2: {error}"))?;
-    if !output.status.success() {
-        return Err(format!(
-            "git could not establish tracked checkout cleanliness: {}",
-            String::from_utf8_lossy(&output.stderr).trim()
-        ));
+/// This does not ask Git whether the worktree is clean. Index flags, status
+/// refresh policy, filesystem monitors, and `core.worktree` therefore cannot
+/// hide a mismatch. Ignored and untracked paths remain outside the committed
+/// population. Executable mode is an explicit nonclaim: the binding is to bytes
+/// and file kind. An index-only staged difference with unchanged live bytes is
+/// likewise outside this snapshot binding; qualification's final worktree-clean
+/// stage owns that repository-state claim.
+///
+/// A committed symlink is deliberately not opened or followed here. Its Git
+/// mode stays in [`FileFact`] for the existing `lf-and-no-symlinks` law, whose
+/// refusal means no accepted qualification can spend that unbound live entry.
+fn require_live_regular_file_bytes(root: &Path, files: &CanonicalFileMap) -> Result<(), String> {
+    for (path, fact) in files.iter() {
+        match *fact.link().required(path.as_str())? {
+            LinkState::RegularFile => require_live_regular_file(root, path, fact)?,
+            LinkState::Symlink => {
+                // The raw Git mode is the owner fact. Following the live link
+                // here would turn its target into repository bytes; treating it
+                // as regular would erase the exact fact the no-symlink law owns.
+            }
+        }
     }
-    if output.stdout.is_empty() {
+    Ok(())
+}
+
+/// Compares one committed regular file with the explicit root twice around the
+/// byte read, refusing missing, unreadable, symlink, directory, or changed
+/// live state with the exact canonical path.
+fn require_live_regular_file(
+    root: &Path,
+    path: &CanonicalPath,
+    fact: &FileFact,
+) -> Result<(), String> {
+    validate_canonical_relative_path(path.as_str())?;
+    let live_path = root.join(path.as_str());
+    require_live_regular_kind(&live_path, path)?;
+    let live = fs::read(&live_path).map_err(|error| {
+        format!("committed regular file `{path}` could not be read at the explicit root: {error}")
+    })?;
+    require_live_regular_kind(&live_path, path)?;
+    let committed = fact.bytes().required(path.as_str())?;
+    if live == *committed {
         Ok(())
     } else {
-        Err(String::from(
-            "tracked checkout bytes differ from HEAD; a committed snapshot refuses rather than \
-             report about different live bytes beside the committed tree",
+        Err(format!(
+            "committed regular file `{path}` differs from the bytes at the explicit root"
+        ))
+    }
+}
+
+/// Requires one live path to be an ordinary file without following a symlink.
+fn require_live_regular_kind(live_path: &Path, path: &CanonicalPath) -> Result<(), String> {
+    let metadata = fs::symlink_metadata(live_path).map_err(|error| {
+        format!(
+            "committed regular file `{path}` is missing or unreadable at the explicit root: {error}"
+        )
+    })?;
+    if metadata.file_type().is_file() {
+        Ok(())
+    } else {
+        Err(format!(
+            "committed regular file `{path}` is not a regular file at the explicit root"
         ))
     }
 }
@@ -580,10 +687,19 @@ fn revision(root: &Path, spelling: &str) -> Result<String, String> {
     Ok(reported.trim().to_owned())
 }
 
-/// One Git command with replacement-object rewriting disabled.
+/// One Git command bound to the explicit worktree coordinate.
+///
+/// Environment routing is removed, repository-local `core.worktree` is
+/// overridden by the command-line coordinate, and replacement-object rewriting
+/// is disabled. Git still discovers the matching `.git` directory or gitfile at
+/// `root`, which preserves ordinary clones and linked worktrees alike.
 fn git(root: &Path) -> Command {
     let mut command = Command::new("git");
-    command.current_dir(root).env("GIT_NO_REPLACE_OBJECTS", "1");
+    command.current_dir(root).arg("--work-tree").arg(root);
+    for variable in GIT_ROUTING_ENVIRONMENT {
+        command.env_remove(variable);
+    }
+    command.env("GIT_NO_REPLACE_OBJECTS", "1");
     command
 }
 
@@ -760,6 +876,26 @@ mod tests {
             run_git(&self.root, arguments)
         }
 
+        /// The unpinned porcelain answer used only to prove a hostile really is
+        /// hidden from Git status before direct byte comparison rejects it.
+        fn unpinned_tracked_status(&self) -> Result<Vec<u8>, String> {
+            let output = Command::new("git")
+                .current_dir(&self.root)
+                .env("GIT_NO_REPLACE_OBJECTS", "1")
+                .args(["status", "--porcelain=v2", "-z", "--untracked-files=no"])
+                .stderr(Stdio::piped())
+                .output()
+                .map_err(|error| format!("unpinned fixture status: {error}"))?;
+            if output.status.success() {
+                Ok(output.stdout)
+            } else {
+                Err(format!(
+                    "unpinned fixture status refused: {}",
+                    String::from_utf8_lossy(&output.stderr).trim()
+                ))
+            }
+        }
+
         /// Reads the committed snapshot.
         fn snapshot(&self) -> Result<RepositorySnapshot, String> {
             RepositorySnapshot::read(&self.root)
@@ -916,6 +1052,128 @@ mod tests {
         Ok(())
     }
 
+    /// Aggregate hostile: Git routing inherited from the process names another
+    /// repository, worktree, object directory, and index, while command-scope
+    /// config attempts to redirect `core.worktree` as well. The explicit root
+    /// remains the only repository identity the snapshot consumes.
+    ///
+    /// The hostile runs in a child test process so no global environment is
+    /// mutated under concurrently executing Rust tests.
+    #[test]
+    fn ambient_git_routing_cannot_redirect_an_explicit_root() -> Result<(), String> {
+        const CHILD_ROOT: &str = "THREADPAK_GIT_ROUTING_CHILD_ROOT";
+        const EXPECTED_STATE: &str = "THREADPAK_GIT_ROUTING_EXPECTED_STATE";
+
+        if let Some(root) = std::env::var_os(CHILD_ROOT) {
+            let expected = std::env::var(EXPECTED_STATE)
+                .map_err(|error| format!("routing hostile expected state: {error}"))?;
+            let snapshot = RepositorySnapshot::read(Path::new(&root))?;
+            assert_eq!(snapshot.committed().to_string(), expected);
+            assert!(snapshot.files().get("explicit.txt").is_some());
+            assert!(snapshot.files().get("alternate.txt").is_none());
+            return Ok(());
+        }
+
+        let explicit = GitFixture::named("routing-explicit")?;
+        explicit.write("explicit.txt", b"explicit repository\n")?;
+        explicit.commit()?;
+        let expected = super::committed_tree(&explicit.root)?.to_string();
+
+        let alternate = GitFixture::named("routing-alternate")?;
+        alternate.write("alternate.txt", b"alternate repository\n")?;
+        alternate.commit()?;
+        let alternate_git = alternate.root.join(GIT_STORAGE);
+
+        let child = std::env::current_exe()
+            .map_err(|error| format!("current xtask test executable: {error}"))?;
+        let output = Command::new(child)
+            .arg("ambient_git_routing_cannot_redirect_an_explicit_root")
+            .arg("--test-threads=1")
+            .env(CHILD_ROOT, &explicit.root)
+            .env(EXPECTED_STATE, expected)
+            .env("GIT_DIR", &alternate_git)
+            .env("GIT_WORK_TREE", &alternate.root)
+            .env("GIT_COMMON_DIR", &alternate_git)
+            .env("GIT_INDEX_FILE", alternate_git.join("index"))
+            .env("GIT_OBJECT_DIRECTORY", alternate_git.join("objects"))
+            .env("GIT_CONFIG_COUNT", "1")
+            .env("GIT_CONFIG_KEY_0", "core.worktree")
+            .env("GIT_CONFIG_VALUE_0", &alternate.root)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()
+            .map_err(|error| format!("routing-hostile child test: {error}"))?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        if !output.status.success() || !stdout.contains("1 passed") {
+            return Err(format!(
+                "routing-hostile child did not establish the explicit root:\n{stdout}\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        Ok(())
+    }
+
+    /// Aggregate hostile: repository-local `core.worktree` points at a clean
+    /// alternate checkout while the explicit root's tracked bytes are dirty.
+    /// Unpinned porcelain demonstrates the concealment; the snapshot's central
+    /// command boundary pins the named root and refuses those dirty bytes.
+    #[test]
+    fn local_core_worktree_cannot_redirect_the_cleanliness_guard() -> Result<(), String> {
+        let explicit = GitFixture::named("configured-worktree-explicit")?;
+        explicit.write("tracked.txt", b"committed\n")?;
+        explicit.commit()?;
+
+        let alternate = GitFixture::named("configured-worktree-alternate")?;
+        let alternate_spelling = alternate
+            .root
+            .to_str()
+            .ok_or_else(|| String::from("alternate worktree has no Unicode spelling"))?;
+        explicit.git(&[
+            "--work-tree",
+            alternate_spelling,
+            "checkout",
+            "--force",
+            "HEAD",
+            "--",
+            ".",
+        ])?;
+        explicit.git(&["config", "core.worktree", alternate_spelling])?;
+        let pinned = super::git(&explicit.root)
+            .args(["rev-parse", "--show-toplevel"])
+            .stderr(Stdio::piped())
+            .output()
+            .map_err(|error| format!("pinned configured-worktree root: {error}"))?;
+        if !pinned.status.success() {
+            return Err(format!(
+                "pinned configured-worktree root refused: {}",
+                String::from_utf8_lossy(&pinned.stderr).trim()
+            ));
+        }
+        let pinned_root = std::str::from_utf8(&pinned.stdout)
+            .map_err(|error| format!("pinned Git root is not Unicode: {error}"))?
+            .trim();
+        assert_eq!(
+            fs::canonicalize(pinned_root)
+                .map_err(|error| format!("canonical pinned Git root: {error}"))?,
+            fs::canonicalize(&explicit.root)
+                .map_err(|error| format!("canonical explicit fixture root: {error}"))?
+        );
+        explicit.write("tracked.txt", b"dirty explicit bytes\n")?;
+
+        assert!(
+            explicit.unpinned_tracked_status()?.is_empty(),
+            "the hostile did not conceal the explicit-root difference"
+        );
+
+        let found = explicit.snapshot();
+        assert!(
+            found.is_err_and(|refusal| refusal.contains("tracked.txt")
+                && refusal.contains("differs from the bytes")),
+            "repository-local core.worktree redirected the committed cleanliness guard"
+        );
+        Ok(())
+    }
+
     /// A tracked checkout difference refuses the committed constructor.
     #[test]
     fn tracked_dirt_refuses_the_committed_snapshot() -> Result<(), String> {
@@ -925,8 +1183,96 @@ mod tests {
         fixture.write("tracked.txt", b"different\n")?;
         let found = fixture.snapshot();
         assert!(
-            found.is_err_and(|refusal| refusal.contains("tracked checkout bytes differ")),
+            found.is_err_and(|refusal| refusal.contains("tracked.txt")
+                && refusal.contains("differs from the bytes")),
             "tracked dirt entered a committed snapshot"
+        );
+        Ok(())
+    }
+
+    /// A committed regular file missing from the explicit root is unknown, not
+    /// an empty or absent contribution.
+    #[test]
+    fn a_missing_committed_regular_file_refuses() -> Result<(), String> {
+        let fixture = GitFixture::named("missing-regular")?;
+        fixture.write("tracked.txt", b"committed\n")?;
+        fixture.commit()?;
+        fs::remove_file(fixture.root.join("tracked.txt"))
+            .map_err(|error| format!("remove committed fixture file: {error}"))?;
+        let found = fixture.snapshot();
+        assert!(
+            found.is_err_and(|refusal| refusal.contains("tracked.txt")
+                && refusal.contains("missing or unreadable")),
+            "a missing committed regular file entered the byte binding"
+        );
+        Ok(())
+    }
+
+    /// A directory at a committed regular-file path is a type mismatch, even
+    /// if Git status or another reader would describe only the path spelling.
+    #[test]
+    fn a_directory_cannot_replace_a_committed_regular_file() -> Result<(), String> {
+        let fixture = GitFixture::named("regular-became-directory")?;
+        fixture.write("tracked.txt", b"committed\n")?;
+        fixture.commit()?;
+        fs::remove_file(fixture.root.join("tracked.txt"))
+            .map_err(|error| format!("remove committed fixture file: {error}"))?;
+        fs::create_dir(fixture.root.join("tracked.txt"))
+            .map_err(|error| format!("replace committed fixture file with directory: {error}"))?;
+        let found = fixture.snapshot();
+        assert!(
+            found
+                .is_err_and(|refusal| refusal.contains("tracked.txt")
+                    && refusal.contains("not a regular file")),
+            "a directory impersonated a committed regular file"
+        );
+        Ok(())
+    }
+
+    /// Planted reversal: `assume-unchanged` makes porcelain status omit a
+    /// modified tracked path. Direct comparison ignores that index hint and
+    /// refuses the bytes themselves.
+    #[test]
+    fn assume_unchanged_cannot_hide_tracked_dirt() -> Result<(), String> {
+        let fixture = GitFixture::named("assume-unchanged")?;
+        fixture.write("tracked.txt", b"committed\n")?;
+        fixture.commit()?;
+        fixture.git(&["update-index", "--assume-unchanged", "tracked.txt"])?;
+        fixture.write("tracked.txt", b"hidden difference\n")?;
+        assert!(
+            fixture.unpinned_tracked_status()?.is_empty(),
+            "the assume-unchanged hostile did not hide from porcelain"
+        );
+
+        let found = fixture.snapshot();
+        assert!(
+            found.is_err_and(|refusal| refusal.contains("tracked.txt")
+                && refusal.contains("differs from the bytes")),
+            "assume-unchanged hid tracked dirt from the committed guard"
+        );
+        Ok(())
+    }
+
+    /// Planted reversal: `skip-worktree` creates the other status-blind index
+    /// posture. Direct comparison again ignores the hint and reads the explicit
+    /// path.
+    #[test]
+    fn skip_worktree_cannot_hide_tracked_dirt() -> Result<(), String> {
+        let fixture = GitFixture::named("skip-worktree")?;
+        fixture.write("tracked.txt", b"committed\n")?;
+        fixture.commit()?;
+        fixture.git(&["update-index", "--skip-worktree", "tracked.txt"])?;
+        fixture.write("tracked.txt", b"hidden difference\n")?;
+        assert!(
+            fixture.unpinned_tracked_status()?.is_empty(),
+            "the skip-worktree hostile did not hide from porcelain"
+        );
+
+        let found = fixture.snapshot();
+        assert!(
+            found.is_err_and(|refusal| refusal.contains("tracked.txt")
+                && refusal.contains("differs from the bytes")),
+            "skip-worktree hid tracked dirt from the committed guard"
         );
         Ok(())
     }
@@ -970,10 +1316,35 @@ mod tests {
         );
     }
 
+    /// Git-derived paths must be safe canonical descendants before any
+    /// filesystem join. Traversal, absolute/prefixed, ambiguous-separator, and
+    /// empty spellings all refuse at the population reader.
+    #[test]
+    fn unsafe_git_paths_refuse_before_live_join() {
+        for path in [
+            "",
+            "/absolute.txt",
+            "C:/prefixed.txt",
+            "trailing/",
+            "repeated//separator.txt",
+            "./dot.txt",
+            "nested/../escape.txt",
+            "back\\slash.txt",
+        ] {
+            let record = format!("100644 blob abcdef\t{path}\0");
+            assert!(
+                parse_tracked_blobs(record.as_bytes())
+                    .is_err_and(|refusal| refusal.contains("unsafe non-canonical")),
+                "unsafe Git path `{path}` entered the canonical population"
+            );
+        }
+    }
+
     /// A clone and linked worktree of one tree have one canonical population.
     #[test]
     fn clone_and_linked_worktree_read_identically() -> Result<(), String> {
         let fixture = GitFixture::named("checkout-shapes")?;
+        fixture.write(".gitattributes", b"* text=auto eol=lf\n")?;
         fixture.write("a.txt", b"a\n")?;
         fixture.write("nested/b.txt", b"b\n")?;
         fixture.commit()?;
