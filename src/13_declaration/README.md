@@ -46,11 +46,12 @@ These collections are bounded by a DECLARED finite issue bound, not roster
 cardinality — several issues of one kind are lawful at once — so their
 magnitudes are selected by the owner's evidence rather than written in the
 source. Those three families say so at the type level by declaring
-`EvidenceSelectedLimit`, which is the bound on `PositiveLimitWitness`'s mint: the
-sentence that used to sit in a doc comment beside each of them is now a fact a
-road can read, and a family that never made the declaration has no road to a
-runtime capacity. The projection-contract family alone is derivable (5 member
-kinds + 5 unstatable claims = 10) and carries the compile-time cap instead.
+`EvidenceSelectedLimit`, which bounds the base `LimitWitness` type and every
+road consuming it: the sentence that used to sit in a doc comment beside each
+of them is now a fact a road can read, and a family that never made the
+declaration has no road to a runtime capacity. The projection-contract family
+alone is derivable (5 member kinds + 5 unstatable claims = 10) and carries the
+compile-time cap instead.
 
 All four bodies carry the one coupled seat — band 00's `AdmittedPrefix`, holding
 the issues and the coverage claim the same construction amounts to, read back

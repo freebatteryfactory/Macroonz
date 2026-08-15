@@ -36,12 +36,12 @@ mod tests {
     /// edited alone is exactly how a working law stops being one law.
     #[test]
     fn a_drifted_working_law_pair_is_a_violation() -> Result<(), String> {
-        let scratch = Scratch::named("agents-parity");
-        scratch.write("AGENTS.md", "the working law\n");
-        scratch.write("CLAUDE.md", "the working law\n");
+        let scratch = Scratch::named("agents-parity")?;
+        scratch.write("AGENTS.md", "the working law\n")?;
+        scratch.write("CLAUDE.md", "the working law\n")?;
         assert!(check_agents_claude_parity(&scratch.read()?).is_ok());
 
-        scratch.write("CLAUDE.md", "the working law, edited on one side only\n");
+        scratch.write("CLAUDE.md", "the working law, edited on one side only\n")?;
         let found = check_agents_claude_parity(&scratch.read()?);
         assert!(found.is_err_and(|reason| reason.contains("differ")));
         Ok(())
@@ -52,8 +52,8 @@ mod tests {
     /// with empty bytes would have found two empty files identical.
     #[test]
     fn a_missing_half_of_the_working_law_is_a_violation() -> Result<(), String> {
-        let scratch = Scratch::named("agents-parity-missing");
-        scratch.write("AGENTS.md", "the working law\n");
+        let scratch = Scratch::named("agents-parity-missing")?;
+        scratch.write("AGENTS.md", "the working law\n")?;
         let found = check_agents_claude_parity(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains("CLAUDE.md") && reason.contains("not there")),

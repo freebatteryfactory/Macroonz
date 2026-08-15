@@ -713,7 +713,7 @@ fn separator_follows(trees: &[TokenTree], index: usize) -> Option<&TokenTree> {
 }
 
 /// The segment heads one crate-root path reaches: the single name of a plain
-/// path, or every head inside a grouped use, at any nesting.
+/// path, or every path rooted directly inside a grouped use.
 fn referenced_heads(tail: &TokenTree) -> Vec<String> {
     match *tail {
         TokenTree::Ident(ref named) => vec![named.to_string()],
@@ -724,7 +724,11 @@ fn referenced_heads(tail: &TokenTree) -> Vec<String> {
     }
 }
 
-/// Every head inside one grouped use, at any nesting.
+/// Every root head inside one grouped use.
+///
+/// A nested group continues the path whose head preceded it. Its members are
+/// below that root and are not sibling modules of it, so this bounded token
+/// grammar deliberately does not descend into nested brace groups.
 fn grouped_heads(tokens: TokenStream) -> Vec<String> {
     let mut heads = Vec::new();
     let mut at_head = true;
@@ -738,7 +742,6 @@ fn grouped_heads(tokens: TokenStream) -> Vec<String> {
                 }
             }
             TokenTree::Group(ref group) if group.delimiter() == Delimiter::Brace => {
-                heads.extend(grouped_heads(group.stream()));
                 at_head = false;
             }
             TokenTree::Group(_) | TokenTree::Literal(_) | TokenTree::Punct(_) => (),
@@ -1002,6 +1005,16 @@ mod tests {
         Ok(())
     }
 
+    /// The heads of a grouped use are the paths rooted directly in the group.
+    /// Nested members remain beneath their root and do not become crate-root
+    /// module edges of their own.
+    #[test]
+    fn a_nested_grouped_use_reports_only_its_root_heads() -> Result<(), String> {
+        let references = references_of("use crate::{a::{b, c}, d};\n", ModuleLayout::Flat)?;
+        assert_eq!(references, vec![String::from("a"), String::from("d")]);
+        Ok(())
+    }
+
     /// The positive control: a clean set passes. Backward references, repeated
     /// references, a module naming itself, and a longer identifier merely
     /// ENDING in `crate` are all lawful, so the check reports something real
@@ -1061,26 +1074,26 @@ mod tests {
     /// crate drift apart, and the third is the one no file listing would catch.
     #[test]
     fn a_band_map_that_drifts_from_lib_is_a_violation() -> Result<(), String> {
-        let scratch = Scratch::named("band-map");
+        let scratch = Scratch::named("band-map")?;
         let ordered = "#[path = \"00_refusal/mod.rs\"]\npub mod refusal;\n\
                        #[path = \"01_logic/mod.rs\"]\npub mod logic;\n";
         for band in ["00_refusal", "01_logic"] {
             for file in ["README.md", "mod.rs", "types.rs"] {
-                scratch.write(&format!("src/{band}/{file}"), "the home's content\n");
+                scratch.write(&format!("src/{band}/{file}"), "the home's content\n")?;
             }
         }
-        scratch.write("src/lib.rs", ordered);
+        scratch.write("src/lib.rs", ordered)?;
         assert!(check_band_map(&scratch.read()?).is_ok());
 
-        scratch.remove("src/01_logic/types.rs");
+        scratch.remove("src/01_logic/types.rs")?;
         let incomplete = check_band_map(&scratch.read()?);
         assert!(incomplete.is_err_and(|reason| reason.contains("01_logic missing types.rs")));
-        scratch.write("src/01_logic/types.rs", "the home's content\n");
+        scratch.write("src/01_logic/types.rs", "the home's content\n")?;
 
         scratch.write(
             "src/lib.rs",
             "#[path = \"00_refusal/mod.rs\"]\npub mod refusal;\n",
-        );
+        )?;
         let undeclared = check_band_map(&scratch.read()?);
         assert!(undeclared.is_err_and(|reason| reason.contains("does not declare 01_logic")));
 
@@ -1088,7 +1101,7 @@ mod tests {
             "src/lib.rs",
             "#[path = \"01_logic/mod.rs\"]\npub mod logic;\n\
              #[path = \"00_refusal/mod.rs\"]\npub mod refusal;\n",
-        );
+        )?;
         let reordered = check_band_map(&scratch.read()?);
         assert!(reordered.is_err_and(|reason| reason.contains("out of band order")));
         Ok(())
@@ -1104,14 +1117,14 @@ mod tests {
     /// whitespace.
     #[test]
     fn a_band_declaration_is_read_however_it_is_spaced() -> Result<(), String> {
-        let scratch = Scratch::named("band-map-spacing");
+        let scratch = Scratch::named("band-map-spacing")?;
         for file in ["README.md", "mod.rs", "types.rs"] {
-            scratch.write(&format!("src/00_refusal/{file}"), "the home's content\n");
+            scratch.write(&format!("src/00_refusal/{file}"), "the home's content\n")?;
         }
         scratch.write(
             "src/lib.rs",
             "#[path=\"00_refusal/mod.rs\"]\npub mod refusal;\n",
-        );
+        )?;
         let found = check_band_map(&scratch.read()?);
         assert!(found.is_ok(), "{found:?}");
         Ok(())
@@ -1127,16 +1140,16 @@ mod tests {
     /// in it.
     #[test]
     fn an_entry_under_src_that_is_no_home_is_a_violation() -> Result<(), String> {
-        let scratch = Scratch::named("src-population");
+        let scratch = Scratch::named("src-population")?;
         scratch.write(
             "src/lib.rs",
             "#[path = \"00_refusal/mod.rs\"]\npub mod refusal;\n",
-        );
+        )?;
         for file in HOME_FILES {
-            scratch.write(&format!("src/00_refusal/{file}"), "the home's content\n");
+            scratch.write(&format!("src/00_refusal/{file}"), "the home's content\n")?;
         }
         for reserved in RESERVED_ROOT_FILES {
-            scratch.write(&format!("src/{reserved}"), "the root's own file\n");
+            scratch.write(&format!("src/{reserved}"), "the root's own file\n")?;
         }
         assert!(check_band_map(&scratch.read()?).is_ok());
 
@@ -1146,13 +1159,13 @@ mod tests {
             ("src/05_/mod.rs", "band number and no name"),
             ("src/notes.md", "sits directly in"),
         ] {
-            scratch.write(planted, "an entry the population never classified\n");
+            scratch.write(planted, "an entry the population never classified\n")?;
             let found = check_band_map(&scratch.read()?);
             assert!(
                 found.is_err_and(|reason| reason.contains(said)),
                 "{planted} left the population in silence"
             );
-            scratch.remove(planted);
+            scratch.remove(planted)?;
             assert!(check_band_map(&scratch.read()?).is_ok(), "{planted}");
         }
         Ok(())
@@ -1166,14 +1179,14 @@ mod tests {
     /// stood in all of them.
     #[test]
     fn a_conditionally_declared_band_is_a_violation() -> Result<(), String> {
-        let scratch = Scratch::named("band-map-condition");
+        let scratch = Scratch::named("band-map-condition")?;
         for file in HOME_FILES {
-            scratch.write(&format!("src/00_refusal/{file}"), "the home's content\n");
+            scratch.write(&format!("src/00_refusal/{file}"), "the home's content\n")?;
         }
         scratch.write(
             "src/lib.rs",
             "#[cfg(unix)]\n#[path = \"00_refusal/mod.rs\"]\npub mod refusal;\n",
-        );
+        )?;
         let found = check_band_map(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains("under a build condition")),
@@ -1190,16 +1203,16 @@ mod tests {
     /// the declarations never had a word to say about it.
     #[test]
     fn a_services_source_no_declaration_accounts_for_is_a_violation() -> Result<(), String> {
-        let scratch = Scratch::named("tooling-population");
+        let scratch = Scratch::named("tooling-population")?;
         scratch.write(
             "macros/macroc/src/lib.rs",
             "pub mod plane;\n\n#[cfg(test)]\nmod laws;\n",
-        );
-        scratch.write("macros/macroc/src/plane.rs", "//! no edges at all\n");
-        scratch.write("macros/macroc/src/laws.rs", "//! the proof surface\n");
+        )?;
+        scratch.write("macros/macroc/src/plane.rs", "//! no edges at all\n")?;
+        scratch.write("macros/macroc/src/laws.rs", "//! the proof surface\n")?;
         assert!(check_tooling_module_order(&scratch.read()?).is_ok());
 
-        scratch.write("macros/macroc/src/orphan.rs", "//! nobody declares this\n");
+        scratch.write("macros/macroc/src/orphan.rs", "//! nobody declares this\n")?;
         let found = check_tooling_module_order(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains("orphan.rs")),
@@ -1216,19 +1229,19 @@ mod tests {
     /// the check went on reporting about the module that owns it.
     #[test]
     fn a_module_written_as_both_a_file_and_a_directory_is_a_violation() -> Result<(), String> {
-        let scratch = Scratch::named("tooling-layout");
+        let scratch = Scratch::named("tooling-layout")?;
         scratch.write(
             "macros/macroc/src/lib.rs",
             "pub mod plane;\npub mod token;\n",
-        );
-        scratch.write("macros/macroc/src/plane.rs", "//! no edges at all\n");
-        scratch.write("macros/macroc/src/token.rs", "use crate::plane::Own;\n");
+        )?;
+        scratch.write("macros/macroc/src/plane.rs", "//! no edges at all\n")?;
+        scratch.write("macros/macroc/src/token.rs", "use crate::plane::Own;\n")?;
         assert!(check_tooling_module_order(&scratch.read()?).is_ok());
 
         scratch.write(
             "macros/macroc/src/plane/inner.rs",
             "use crate::token::Reaching;\n",
-        );
+        )?;
         let found = check_tooling_module_order(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains("written twice")),

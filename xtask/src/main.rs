@@ -74,36 +74,22 @@ fn main() -> Result<(), Box<dyn Error>> {
 /// The reading comes first and is shared, which is the whole of the typed
 /// repository model: no law walks the tree, opens a file, or starts a process,
 /// so two laws cannot be judging two different trees. The run opens by naming
-/// what it read — how many files, and WHETHER those files are a committed tree —
-/// because a verdict that cannot be attached to a tree is a verdict about
-/// nothing in particular, and this campaign has already produced one false green
-/// from a restore that preserved a modification time.
+/// what committed tree it read, because a verdict that cannot be attached to a
+/// tree is a verdict about nothing in particular.
 ///
-/// The opening line no longer names a commit it has not established. It used to:
-/// the reading walked the disk and then asked git what `HEAD` was, and printed
-/// the two side by side as though one were about the other, so every run on a
-/// dirty checkout stated a commit-bound result it had never bound. The binding
-/// is established around the read now, and where there is none the sentence says
-/// so instead of naming a commit anyway.
+/// The opening line names only the immutable Git tree that supplied membership
+/// and bytes. Cargo's normalization is a role-distinct live observation taken
+/// beside that snapshot; it is not described as another committed projection.
 fn run_checks(root: &Path) -> Result<(), Box<dyn Error>> {
     let snapshot = RepositorySnapshot::read(root)?;
     println!(
-        "read {} files {}",
+        "read {} committed files at {}; Cargo normalization is a live observation",
         snapshot.files().count(),
-        snapshot.binding()
+        snapshot.committed()
     );
-    // EIGHTEEN, and the number is decided here rather than counted from the
-    // lines below, because this array's length is the only statement of how many
-    // repository laws there are and a wrong one is `E0308` rather than a law
-    // that quietly stopped running. Where it came from, exactly: the two lanes
-    // this merge joins branched from a roster of SEVENTEEN. One lane made a
-    // defect class unrepresentable and retired the two readers that had been
-    // re-implementing name resolution to hunt it — the refusal-mint law and the
-    // stamped-guard law — replacing both with the one syntax-only law
-    // `seat-modules-carry-nothing-else`, which is sixteen. Two legs the lanes
-    // named honestly rather than shipping around land here:
-    // `alarm-artifacts-are-present-and-distinct` and
-    // `inhabitant-promising-limits-are-witnessed`. Sixteen and two is eighteen.
+    // This typed array is the roster and the denominator. Adding or removing a
+    // row without changing the owned length is a compiler error; no prose keeps
+    // a second history or count beside it.
     let checks: [Check; 18] = [
         ("agents-claude-parity", check_agents_claude_parity),
         ("lf-and-no-symlinks", check_lf_and_no_symlinks),

@@ -569,30 +569,41 @@ pub(crate) fn obligation_ledger(document: &MarkdownDocument, home: &str) -> Read
     };
     let mut records: Vec<ObligationRecord> = Vec::new();
     let mut offences: Vec<String> = Vec::new();
+    let mut current: Option<usize> = None;
     for line in block.body.lines() {
         match classify_line(line) {
             BlockLine::Item { key, value } => match key {
-                Some(RECORD_IDENTITY) => records.push(ObligationRecord {
-                    id: value.to_owned(),
-                    green: Vec::new(),
-                    red: Vec::new(),
-                }),
-                Some(other) => offences.push(format!(
-                    "{home}: an obligation record opens with `{other}:` rather than with \
-                     `{RECORD_IDENTITY}:`, so the rows written beneath it belong to no obligation \
-                     anything can name"
-                )),
-                None => offences.push(format!(
-                    "{home}: an obligation record opens with `{value}`, which states no field at \
-                     all, so the rows written beneath it belong to no obligation anything can name"
-                )),
+                Some(RECORD_IDENTITY) => {
+                    records.push(ObligationRecord {
+                        id: value.to_owned(),
+                        green: Vec::new(),
+                        red: Vec::new(),
+                    });
+                    current = records.len().checked_sub(1);
+                }
+                Some(other) => {
+                    current = None;
+                    offences.push(format!(
+                        "{home}: an obligation record opens with `{other}:` rather than with \
+                         `{RECORD_IDENTITY}:`, so the rows written beneath it belong to no \
+                         obligation anything can name"
+                    ));
+                }
+                None => {
+                    current = None;
+                    offences.push(format!(
+                        "{home}: an obligation record opens with `{value}`, which states no field \
+                         at all, so the rows written beneath it belong to no obligation anything \
+                         can name"
+                    ));
+                }
             },
             BlockLine::Field { key, value } => {
                 let row = match key {
                     GREEN_FIELD | RED_FIELD => key,
                     _ => continue,
                 };
-                let Some(record) = records.last_mut() else {
+                let Some(record) = current.and_then(|index| records.get_mut(index)) else {
                     offences.push(format!(
                         "{home}: a `{row}:` row stands outside every obligation record. This join \
                          reads rows through the record that declared them, so a row no record owns \
@@ -997,6 +1008,79 @@ mod tests {
             "{:?}",
             ledger.offences()
         );
+        Ok(())
+    }
+
+    /// Planted reversal: a malformed item ends the preceding record's
+    /// ownership. Both row kinds written beneath it are orphans, while the next
+    /// valid identity begins a fresh record normally.
+    #[test]
+    fn a_malformed_item_cannot_leave_the_previous_record_selected() -> Result<(), String> {
+        for malformed in [
+            "- challenge_kind: compile-law",
+            "- a-keyless-obligation-item",
+        ] {
+            let document = MarkdownDocument::parse(&format!(
+                "```yaml\n\
+                 home: bounds\n\
+                 obligations:\n\
+                 \x20 - id: bounds.preceding\n\
+                 \x20   green: laws.rs bounds::preceding\n\
+                 \x20   red: owed-to-testpak\n\
+                 \x20 {malformed}\n\
+                 \x20   green: laws.rs bounds::orphaned\n\
+                 \x20   red: testpak/tests/orphaned.rs\n\
+                 \x20 - id: bounds.restored\n\
+                 \x20   green: laws.rs bounds::restored\n\
+                 \x20   red: owed-to-testpak\n\
+                 ```\n"
+            ));
+            let ledger =
+                obligation_ledger(&document, "home/README.md").taken("the obligation ledger")?;
+            assert_eq!(ledger.records().len(), 2, "{malformed}");
+            assert_eq!(
+                ledger.offences().len(),
+                3,
+                "{malformed}: {:?}",
+                ledger.offences()
+            );
+            assert_eq!(
+                ledger
+                    .offences()
+                    .iter()
+                    .filter(|offence| offence.contains("stands outside every obligation record"))
+                    .count(),
+                2,
+                "{malformed}: {:?}",
+                ledger.offences()
+            );
+            assert!(
+                ledger
+                    .records()
+                    .iter()
+                    .all(|record| record.green.len() == 1 && record.red.len() == 1),
+                "{malformed}: a valid record lost or gained a row"
+            );
+            assert!(
+                !ledger
+                    .records()
+                    .iter()
+                    .flat_map(|record| &record.green)
+                    .any(|row| matches!(
+                        row,
+                        GreenRow::CompileTimeSeat { law, .. } if law == "orphaned"
+                    )),
+                "{malformed}: the malformed item's green row attached to a valid record"
+            );
+            assert!(
+                !ledger
+                    .records()
+                    .iter()
+                    .flat_map(|record| &record.red)
+                    .any(|row| row.contains("orphaned")),
+                "{malformed}: the malformed item's red row attached to a valid record"
+            );
+        }
         Ok(())
     }
 

@@ -238,27 +238,27 @@ mod tests {
     /// for, where the pin said 1.97.1 while two files said 1.97.
     #[test]
     fn a_floor_that_drifts_from_the_pin_is_a_violation() -> Result<(), String> {
-        let scratch = Scratch::named("toolchain-pin");
-        scratch.write("README.md", FIXTURE_README);
-        scratch.write("rust-toolchain.toml", "[toolchain]\nchannel = \"1.97.1\"\n");
+        let scratch = Scratch::named("toolchain-pin")?;
+        scratch.write("README.md", FIXTURE_README)?;
+        scratch.write("rust-toolchain.toml", "[toolchain]\nchannel = \"1.97.1\"\n")?;
         scratch.write(
             "Cargo.toml",
             "[workspace.package]\nrust-version = \"1.97.1\"\n",
-        );
-        scratch.write("clippy.toml", "msrv = \"1.97.1\"\n");
+        )?;
+        scratch.write("clippy.toml", "msrv = \"1.97.1\"\n")?;
         assert!(check_toolchain_pin(&scratch.read()?).is_ok());
 
-        scratch.write("rust-toolchain.toml", "[toolchain]\nchannel = \"1.98.0\"\n");
+        scratch.write("rust-toolchain.toml", "[toolchain]\nchannel = \"1.98.0\"\n")?;
         let drifted_readme = check_toolchain_pin(&scratch.read()?);
         assert!(drifted_readme.is_err_and(
             |reason| reason.contains("1.98.0") && reason.contains("README declares 1.97.1")
         ));
 
-        scratch.write("rust-toolchain.toml", "[toolchain]\nchannel = \"1.97.1\"\n");
+        scratch.write("rust-toolchain.toml", "[toolchain]\nchannel = \"1.97.1\"\n")?;
         scratch.write(
             "Cargo.toml",
             "[workspace.package]\nrust-version = \"1.97\"\n",
-        );
+        )?;
         let drifted_floor = check_toolchain_pin(&scratch.read()?);
         assert!(
             drifted_floor.is_err_and(|reason| reason.contains("Cargo.toml rust-version is 1.97"))
@@ -267,8 +267,8 @@ mod tests {
         scratch.write(
             "Cargo.toml",
             "[workspace.package]\nrust-version = \"1.97.1\"\n",
-        );
-        scratch.write("clippy.toml", "msrv = \"1.97\"\n");
+        )?;
+        scratch.write("clippy.toml", "msrv = \"1.97\"\n")?;
         let drifted_suggestions = check_toolchain_pin(&scratch.read()?);
         assert!(
             drifted_suggestions.is_err_and(|reason| reason.contains("clippy.toml msrv is 1.97"))
@@ -281,19 +281,19 @@ mod tests {
     /// from the manifest while the README still lists it.
     #[test]
     fn a_member_set_that_drifts_from_the_readme_is_a_violation() -> Result<(), String> {
-        let scratch = Scratch::named("workspace-members");
-        scratch.write("README.md", FIXTURE_README);
-        scratch.write("Cargo.toml", "[workspace]\nmembers = [\"one\", \"two\"]\n");
+        let scratch = Scratch::named("workspace-members")?;
+        scratch.write("README.md", FIXTURE_README)?;
+        scratch.write("Cargo.toml", "[workspace]\nmembers = [\"one\", \"two\"]\n")?;
         assert!(check_workspace_members(&scratch.read()?).is_ok());
 
         scratch.write(
             "Cargo.toml",
             "[workspace]\nmembers = [\"one\", \"two\", \"three\"]\n",
-        );
+        )?;
         let added = check_workspace_members(&scratch.read()?);
         assert!(added.is_err_and(|reason| reason.contains("three")));
 
-        scratch.write("Cargo.toml", "[workspace]\nmembers = [\"one\"]\n");
+        scratch.write("Cargo.toml", "[workspace]\nmembers = [\"one\"]\n")?;
         let removed = check_workspace_members(&scratch.read()?);
         assert!(removed.is_err_and(|reason| reason.contains("two")));
         Ok(())
@@ -305,23 +305,23 @@ mod tests {
     /// check names them apart.
     #[test]
     fn a_member_outside_the_lint_wall_is_a_violation() -> Result<(), String> {
-        let scratch = Scratch::named("lint-wall");
+        let scratch = Scratch::named("lint-wall")?;
         let inheriting = "[package]\nname = \"member\"\n\n[lints]\nworkspace = true\n";
         scratch.write(
             "Cargo.toml",
             "[workspace]\nmembers = [\"one\", \"two\"]\n\n[workspace.lints.rust]\n\
              warnings = { level = \"deny\", priority = -1 }\n",
-        );
-        scratch.write("one/Cargo.toml", inheriting);
-        scratch.write("two/Cargo.toml", inheriting);
+        )?;
+        scratch.write("one/Cargo.toml", inheriting)?;
+        scratch.write("two/Cargo.toml", inheriting)?;
         assert!(check_lint_wall(&scratch.read()?).is_ok());
 
-        scratch.write("two/Cargo.toml", "[package]\nname = \"member\"\n");
+        scratch.write("two/Cargo.toml", "[package]\nname = \"member\"\n")?;
         let escaped = check_lint_wall(&scratch.read()?);
         assert!(escaped.is_err_and(|reason| reason.contains("two") && !reason.contains("\"one\"")));
 
-        scratch.write("two/Cargo.toml", inheriting);
-        scratch.write("Cargo.toml", "[workspace]\nmembers = [\"one\", \"two\"]\n");
+        scratch.write("two/Cargo.toml", inheriting)?;
+        scratch.write("Cargo.toml", "[workspace]\nmembers = [\"one\", \"two\"]\n")?;
         let wall_free = check_lint_wall(&scratch.read()?);
         assert!(wall_free.is_err_and(|reason| reason.contains("no [workspace.lints.rust] wall")));
         Ok(())
@@ -336,20 +336,20 @@ mod tests {
     /// over it because the array it read still listed six members that inherit.
     #[test]
     fn a_root_package_outside_the_lint_wall_is_a_violation() -> Result<(), String> {
-        let scratch = Scratch::named("lint-wall-root");
+        let scratch = Scratch::named("lint-wall-root")?;
         let inheriting = "[package]\nname = \"member\"\n\n[lints]\nworkspace = true\n";
         let root = "[package]\nname = \"machine\"\n\n[lints]\nworkspace = true\n\n\
                     [workspace]\nmembers = [\"one\"]\n\n[workspace.lints.rust]\n\
                     warnings = { level = \"deny\", priority = -1 }\n";
-        scratch.write("Cargo.toml", root);
-        scratch.write("one/Cargo.toml", inheriting);
+        scratch.write("Cargo.toml", root)?;
+        scratch.write("one/Cargo.toml", inheriting)?;
         assert!(check_lint_wall(&scratch.read()?).is_ok());
 
         scratch.write(
             "Cargo.toml",
             "[package]\nname = \"machine\"\n\n[workspace]\nmembers = [\"one\"]\n\n\
              [workspace.lints.rust]\nwarnings = { level = \"deny\", priority = -1 }\n",
-        );
+        )?;
         let stripped = check_lint_wall(&scratch.read()?);
         assert!(
             stripped.is_err_and(|reason| reason.contains("Cargo.toml does not inherit")
@@ -369,20 +369,20 @@ mod tests {
     /// declaration rather than off a list kept in this file.
     #[test]
     fn a_package_the_array_never_lists_is_still_in_the_population() -> Result<(), String> {
-        let scratch = Scratch::named("lint-wall-unlisted");
+        let scratch = Scratch::named("lint-wall-unlisted")?;
         scratch.write(
             "Cargo.toml",
             "[workspace]\nmembers = [\"one\"]\nexclude = [\"outside\"]\n\n\
              [workspace.lints.rust]\nwarnings = { level = \"deny\", priority = -1 }\n",
-        );
+        )?;
         scratch.write(
             "one/Cargo.toml",
             "[package]\nname = \"member\"\n\n[lints]\nworkspace = true\n",
-        );
-        scratch.write("outside/Cargo.toml", "[package]\nname = \"excluded\"\n");
+        )?;
+        scratch.write("outside/Cargo.toml", "[package]\nname = \"excluded\"\n")?;
         assert!(check_lint_wall(&scratch.read()?).is_ok());
 
-        scratch.write("helpers/Cargo.toml", "[package]\nname = \"unlisted\"\n");
+        scratch.write("helpers/Cargo.toml", "[package]\nname = \"unlisted\"\n")?;
         let unlisted = check_lint_wall(&scratch.read()?);
         assert!(
             unlisted.is_err_and(|reason| reason.contains("helpers/Cargo.toml")
@@ -396,16 +396,16 @@ mod tests {
     /// does not resolve, and a derived population would report clean about it.
     #[test]
     fn a_member_the_tree_does_not_carry_is_a_violation() -> Result<(), String> {
-        let scratch = Scratch::named("lint-wall-ghost");
+        let scratch = Scratch::named("lint-wall-ghost")?;
         scratch.write(
             "Cargo.toml",
             "[workspace]\nmembers = [\"one\", \"ghost\"]\n\n[workspace.lints.rust]\n\
              warnings = { level = \"deny\", priority = -1 }\n",
-        );
+        )?;
         scratch.write(
             "one/Cargo.toml",
             "[package]\nname = \"member\"\n\n[lints]\nworkspace = true\n",
-        );
+        )?;
         let found = check_lint_wall(&scratch.read()?);
         assert!(found.is_err_and(|reason| reason.contains("`ghost`")));
         Ok(())
@@ -420,16 +420,16 @@ mod tests {
     /// clean, because the characters it was matching were in the file.
     #[test]
     fn inheritance_written_in_a_comment_inherits_nothing() -> Result<(), String> {
-        let scratch = Scratch::named("lint-wall-comment");
+        let scratch = Scratch::named("lint-wall-comment")?;
         scratch.write(
             "Cargo.toml",
             "[workspace]\nmembers = [\"one\"]\n\n[workspace.lints.rust]\n\
              warnings = { level = \"deny\", priority = -1 }\n",
-        );
+        )?;
         scratch.write(
             "one/Cargo.toml",
             "[package]\nname = \"member\"\n# [lints]\n# workspace = true\n",
-        );
+        )?;
         let found = check_lint_wall(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains("one")),

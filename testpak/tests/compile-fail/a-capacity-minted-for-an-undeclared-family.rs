@@ -1,15 +1,16 @@
-//! The reversal for the runtime ladder's gate: a family whose owner never
-//! declared its magnitude evidence-selected has no road to a runtime capacity.
+//! The reversal for the runtime ladder's gate: a family whose owner did not
+//! declare its magnitude evidence-selected cannot even name the base runtime
+//! witness, so it has no value to mint or pass to a runtime-capacity road.
 //!
-//! The two families below differ in exactly one line. Both are limit families;
-//! one declares `EvidenceSelectedLimit` and the other does not, and nothing else
-//! about them differs — same shape, same absence of a compile-time magnitude,
-//! same seat. So the refusal below can only be the missing declaration, and the
-//! lawful half above it is what says the bound is satisfiable at all.
+//! The selected family is the positive control. Beside it stand both other
+//! authority states: one family supplies a source-declared magnitude and one
+//! leaves its magnitude unstated. Neither is evidence-selected, and both stop
+//! at `LimitWitness`'s own bound before a consumer can receive a value.
 //!
-//! Nothing is minted here either. The bound sits on the mint, so naming the mint
-//! as a value is enough to make the compiler settle it, and a fixture outside
-//! this crate has no `LimitWitness` to build in any case.
+//! Nothing is minted here. That is the stronger test: a fixture outside this
+//! crate has no public mint, while the type bound proves that even a future
+//! owner mint cannot produce the wrong authority and that
+//! `Bounded::admitted` cannot name such a witness in its signature.
 //!
 //! # The recorded diagnostic carries a population nobody wrote
 //!
@@ -23,42 +24,61 @@
 //! from the sources is still owed.
 
 use threadpak::types::{
-    CapacityAdmission, EvidenceSelectedLimit, EvidenceSelectedMagnitude, Limit, LimitWitness,
-    PositiveLimitWitness, UnstatedMagnitude,
+    Bounded, BoundedConstruction, ConstLimit, DeclaredMagnitude, EvidenceSelectedLimit,
+    EvidenceSelectedMagnitude, Limit, LimitWitness, UnstatedMagnitude,
 };
 
 /// A family whose owner declared the magnitude evidence-selected.
-struct DeclaredFamily;
+struct SelectedFamily;
 
-impl Limit for DeclaredFamily {
+impl Limit for SelectedFamily {
     type Authority = EvidenceSelectedMagnitude;
 }
 
-impl EvidenceSelectedLimit for DeclaredFamily {}
+impl EvidenceSelectedLimit for SelectedFamily {}
+
+/// A family whose owner supplies a source-declared magnitude instead.
+struct SourceDeclaredFamily;
+
+impl Limit for SourceDeclaredFamily {
+    type Authority = DeclaredMagnitude;
+}
+
+impl ConstLimit for SourceDeclaredFamily {
+    const MAX: usize = 8;
+}
 
 /// A family whose owner did not. It is a lawful limit family and bounds seats
 /// like any other; what it has not done is admit the runtime ladder.
-struct UndeclaredFamily;
+struct UnstatedFamily;
 
-impl Limit for UndeclaredFamily {
+impl Limit for UnstatedFamily {
     type Authority = UnstatedMagnitude;
 }
 
-/// The lawful half, and it must stay lawful: the declared family reaches the
-/// mint.
-const DECLARED: fn(
-    LimitWitness<DeclaredFamily>,
-) -> Result<PositiveLimitWitness<DeclaredFamily>, CapacityAdmission> =
-    PositiveLimitWitness::inhabited;
+/// The lawful half: a selected-family witness can be named at the consumer.
+fn selected(
+    witness: &LimitWitness<SelectedFamily>,
+) -> Result<Bounded<u8, SelectedFamily>, BoundedConstruction> {
+    Bounded::admitted(Vec::new(), witness)
+}
 
-/// The unlawful half: the same mint, named for a family that never declared the
-/// ladder it belongs to.
-const UNDECLARED: fn(
-    LimitWitness<UndeclaredFamily>,
-) -> Result<PositiveLimitWitness<UndeclaredFamily>, CapacityAdmission> =
-    PositiveLimitWitness::inhabited;
+/// The source-declared ladder cannot name or pass the runtime witness.
+fn source_declared(
+    witness: &LimitWitness<SourceDeclaredFamily>,
+) -> Result<Bounded<u8, SourceDeclaredFamily>, BoundedConstruction> {
+    Bounded::admitted(Vec::new(), witness)
+}
+
+/// The unstated family cannot name or pass the runtime witness either.
+fn unstated(
+    witness: &LimitWitness<UnstatedFamily>,
+) -> Result<Bounded<u8, UnstatedFamily>, BoundedConstruction> {
+    Bounded::admitted(Vec::new(), witness)
+}
 
 fn main() {
-    let _ = DECLARED;
-    let _ = UNDECLARED;
+    let _ = selected;
+    let _ = source_declared;
+    let _ = unstated;
 }

@@ -121,8 +121,9 @@ containing dozens of other types*, and it is not answerable without being a
 compiler.
 
 Seating the guard in its own module answers it structurally. The set of roads is
-the expansion, and nothing else is inside the wall — so `stamped-guards-seal-
-their-position` is deleted rather than repaired, and the claim it used to make
+the expansion, and nothing else is inside the wall — so
+`stamped-guards-seal-their-position` is deleted rather than repaired, and the
+claim it used to make
 is `E0616`, `E0423` and `E0603` on the two laundering fixtures. That is the
 drain running downward: a type that makes the wrong move unrepresentable retires
 the law that asserted the move was wrong, and the law goes.

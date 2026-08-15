@@ -148,8 +148,9 @@ comparison would have to be settled, so its two facts are carried by values
 instead: `LimitWitness` is what schema validation selected, and
 `PositiveLimitWitness` is that selection proven to admit an item. A family says
 which ladder its magnitude travels by declaring `EvidenceSelectedLimit`, and
-that declaration is the mint's bound — a family that never made it has no road
-to a runtime capacity at all. Several families in the machine said
+that declaration bounds the base witness type itself and every road consuming
+it — a family that never made it cannot name a runtime witness or pass one to a
+runtime-capacity road. Several families in the machine said
 "evidence-selected" in a doc comment beside their declaration and said it nowhere
 a road could read; that sentence is now a fact the compiler carries.
 

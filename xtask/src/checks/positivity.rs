@@ -13,10 +13,11 @@
 //! established by VALUES instead: `LimitWitness` carries the selection and
 //! `PositiveLimitWitness` carries the promise that it admits an item.
 //!
-//! `PositiveLimitWitness::inhabited` is bounded on `EvidenceSelectedLimit`, so a
-//! family that never declared the runtime ladder has no road to a runtime
-//! capacity at all, and the compile-fail fixtures name that refusal from outside
-//! the crate. That half is `rustc`'s and this law does not restate it.
+//! `LimitWitness` itself is bounded on `EvidenceSelectedLimit`, and every
+//! consumer inherits or states the same authority, so a family that never
+//! declared the runtime ladder has no road to a runtime capacity at all. The
+//! compile-fail fixtures name that refusal from outside the crate. That half is
+//! `rustc`'s and this law does not restate it.
 //!
 //! What `rustc` cannot say is the UNIVERSAL sentence: that every family which
 //! needs the runtime ladder is on it. Rust cannot enumerate the types
@@ -337,7 +338,8 @@ fn read_items(path: &str, items: &[syn::Item], reading: &mut Reading) {
 /// Reads one implementation: which ladder it declares for which family, and the
 /// seats its own members declare.
 fn read_implementation(path: &str, declared: &syn::ItemImpl, reading: &mut Reading) {
-    if let Some((contract, _)) = &declared.trait_
+    if declared.modifiers.polarity.is_none()
+        && let Some((contract, _)) = &declared.trait_
         && let Some(contract) = last_segment(contract)
         && let Some(family) = head_of(&declared.self_ty)
     {
@@ -651,6 +653,26 @@ mod tests {
         assert_eq!(after.witnessed, 1);
         assert_eq!(before.offenders.len(), 1, "{:?}", before.offenders);
         assert!(after.offenders.is_empty(), "{:?}", after.offenders);
+    }
+
+    /// A negative impl states that the family is not on the named ladder. Syn
+    /// accepts this unstable spelling even on the pinned stable toolchain; the
+    /// reader must not invert its polarity and count it as a positive witness.
+    #[test]
+    fn a_negative_runtime_impl_is_not_a_positive_witness() {
+        let verdict = positivity_verdict(&source(
+            "pub struct DemoIssueLimit;\n\
+             impl Limit for DemoIssueLimit {\n\
+             \x20   type Authority = UnstatedMagnitude;\n\
+             }\n\
+             impl !EvidenceSelectedLimit for DemoIssueLimit {}\n\
+             pub struct DemoRefusal {\n\
+             \x20   body: AdmittedPrefix<DemoIssue, DemoIssueLimit>,\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.witnessed, 0);
+        assert_eq!(verdict.offenders.len(), 1, "{:?}", verdict.offenders);
     }
 
     /// A family with a compile-time magnitude is outside this population

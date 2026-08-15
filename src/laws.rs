@@ -64,8 +64,7 @@ mod root {
     }
 
     /// law: root.limit-families-do-not-unify — `Bounded` under one limit family is
-    /// a different type than under another, and a witness for one family cannot
-    /// authorize the other, regardless of magnitudes.
+    /// a different type than under another, regardless of magnitudes.
     /// Owed reversal (red twin): passing `Bounded<u8, DecodeDemo>` where
     /// `Bounded<u8, ArenaDemo>` is required must not compile.
     #[test]
@@ -84,10 +83,8 @@ mod root {
 
         let decode_bounded: Option<fn(Bounded<u8, DecodeDemo>)> = Some(drop);
         let arena_bounded: Option<fn(Bounded<u8, ArenaDemo>)> = Some(drop);
-        let arena_witness: Option<fn(LimitWitness<ArenaDemo>)> = Some(drop);
         assert!(decode_bounded.is_some());
         assert!(arena_bounded.is_some());
-        assert!(arena_witness.is_some());
         assert_eq!(DecodeDemo::MAX, 8);
     }
 
@@ -164,6 +161,11 @@ mod root {
         impl ConstLimit for SmallDemo {
             const MAX: usize = 2;
         }
+        struct RuntimeDemo;
+        impl Limit for RuntimeDemo {
+            type Authority = EvidenceSelectedMagnitude;
+        }
+        impl crate::types::EvidenceSelectedLimit for RuntimeDemo {}
 
         let admitted: AdmittedLimit<SmallDemo, RootLawsProfile> = AdmittedLimit::under_profile();
         let positive: PositiveLimit<SmallDemo, RootLawsProfile> =
@@ -175,10 +177,10 @@ mod root {
             Bounded::admitted_const(vec![1, 2, 3], &admitted);
         assert!(matches!(over, Err(BoundedConstruction::OverLimit)));
 
-        let witness: LimitWitness<SmallDemo> = LimitWitness::declared(1);
-        let witnessed: Result<Bounded<u8, SmallDemo>, _> = Bounded::admitted(vec![1], &witness);
+        let witness: LimitWitness<RuntimeDemo> = LimitWitness::declared(1);
+        let witnessed: Result<Bounded<u8, RuntimeDemo>, _> = Bounded::admitted(vec![1], &witness);
         assert!(witnessed.is_ok_and(|bounded| !bounded.is_empty()));
-        let over_witness: Result<Bounded<u8, SmallDemo>, _> =
+        let over_witness: Result<Bounded<u8, RuntimeDemo>, _> =
             Bounded::admitted(vec![1, 2], &witness);
         assert!(matches!(over_witness, Err(BoundedConstruction::OverLimit)));
 
@@ -484,9 +486,9 @@ mod root {
 
     /// law: root.the-runtime-ladder-is-declared-by-its-family — a family reaches
     /// a runtime capacity only where its owner declared the magnitude
-    /// evidence-selected. The declaration is the MINT'S BOUND rather than a
-    /// sentence beside the family, so a family that never made it has no road to
-    /// a capacity at all.
+    /// evidence-selected. The declaration bounds the base witness type and
+    /// every road consuming it rather than standing as a sentence beside the
+    /// family, so a family that never made it has no road to a capacity at all.
     ///
     /// The green half is that the bound is real and satisfiable: a family
     /// declaring it reaches the mint, settled by the compiler over a function
@@ -3355,11 +3357,7 @@ mod history {
             disposition: HistoryDisposition::Present(7),
             closure: SourceClosure(Completeness::Complete {
                 over: SourceRegions {
-                    regions: crate::types::Bounded::admitted(
-                        vec![],
-                        &crate::types::LimitWitness::declared(4),
-                    )
-                    .unwrap_or_else(|_| unreachable!("empty fits")),
+                    regions: crate::types::Bounded::empty(),
                 },
             }),
             freshness: crate::types::Freshness::Current(crate::types::Current::for_laws(7)),
@@ -3490,8 +3488,8 @@ mod navigation {
     };
     use crate::refusal::{FamilyShape, RefusalFamily};
     use crate::types::{
-        Bounded, Completeness, ConstLimit, EvidenceRef, Freshness, LimitWitness,
-        ReferentAvailability, ReferentIntegrity, Stale,
+        Bounded, Completeness, ConstLimit, EvidenceRef, Freshness, ReferentAvailability,
+        ReferentIntegrity, Stale,
     };
     use core::cmp::Ordering;
 
@@ -3526,8 +3524,7 @@ mod navigation {
 
     fn empty_regions() -> SourceRegions {
         SourceRegions {
-            regions: Bounded::admitted(vec![], &LimitWitness::declared(4))
-                .unwrap_or_else(|_| unreachable!("empty fits")),
+            regions: Bounded::empty(),
         }
     }
 
@@ -3565,8 +3562,7 @@ mod navigation {
                 missing: empty_regions(),
             }),
             freshness: Freshness::Stale(Stale::for_laws(42, HistoryCut(demo_cut(5, 9)))),
-            alternatives: Bounded::admitted(vec![], &LimitWitness::declared(2))
-                .unwrap_or_else(|_| unreachable!("empty fits")),
+            alternatives: Bounded::empty(),
             access: demo_evidence(6),
             provenance: demo_evidence(7),
             causation: demo_evidence(8),
@@ -4281,18 +4277,17 @@ mod declaration {
 
 mod semantic {
     use super::pairwise_distinct;
-    use crate::bounds::{BoundClass, DimensionId};
     use crate::declaration::Stage;
     use crate::identity::{Commitment, CreationLaw, IdentityClass, IdentityRole};
     use crate::refusal::{FamilyShape, RefusalFamily};
     use crate::semantic::{
-        BehaviorFamily, BoundDimensionRow, CapabilityRequirements, DefinitionBoundary,
-        EvidenceObligation, ExplanationObligation, Judgment, OPERATION_CONTRACT_FACTS,
-        OrderedEffectRegions, RefusalSet, SEMANTIC_FORM_CONTENT, SemanticForm,
-        SemanticFormConstruction, SemanticFormConstructionIssue, SemanticGraphDigest,
-        SemanticTypeRef, SourceCutPosture, SymbolicBounds,
+        BehaviorFamily, CapabilityRequirements, DefinitionBoundary, EvidenceObligation,
+        ExplanationObligation, Judgment, OPERATION_CONTRACT_FACTS, OrderedEffectRegions,
+        RefusalSet, SEMANTIC_FORM_CONTENT, SemanticForm, SemanticFormConstruction,
+        SemanticFormConstructionIssue, SemanticGraphDigest, SemanticTypeRef, SourceCutPosture,
+        SymbolicBounds,
     };
-    use crate::types::{Bounded, LimitWitness};
+    use crate::types::Bounded;
 
     /// law: semantic.form-family-holds-fifteen — the content roster read as
     /// defects, every issue carrying only its canonical-order position, on
@@ -4335,7 +4330,9 @@ mod semantic {
     /// law: semantic.judgment-binds-nine-axes — a complete judgment
     /// constructs with all nine typed members: normal type, stage, refusals,
     /// ordered effects, capability requirements, source posture, applicable
-    /// symbolic bounds, explanation, evidence.
+    /// symbolic bounds, explanation, evidence. Its bounded members are empty
+    /// here: their families declare no magnitude, so this structural law does
+    /// not claim a nonempty judgment population.
     /// Owed reversal (red twin): an erasable axis must not compile.
     #[test]
     fn judgment_binds_nine_axes() {
@@ -4343,40 +4340,23 @@ mod semantic {
             normal_type: SemanticTypeRef(Commitment::raw([1; 32])),
             stage: Stage::Semantic,
             refuses: RefusalSet {
-                families: Bounded::admitted(
-                    vec![Commitment::raw([2; 32])],
-                    &LimitWitness::declared(4),
-                )
-                .unwrap_or_else(|_| unreachable!("one fits")),
+                families: Bounded::empty(),
             },
             effects: OrderedEffectRegions {
-                regions: Bounded::admitted(vec![], &LimitWitness::declared(4))
-                    .unwrap_or_else(|_| unreachable!("empty fits")),
+                regions: Bounded::empty(),
             },
             requires: CapabilityRequirements {
-                requirements: Bounded::admitted(
-                    vec![Commitment::raw([3; 32])],
-                    &LimitWitness::declared(4),
-                )
-                .unwrap_or_else(|_| unreachable!("one fits")),
+                requirements: Bounded::empty(),
             },
             reads: SourceCutPosture(Commitment::raw([4; 32])),
             bounds: SymbolicBounds {
-                dimensions: Bounded::admitted(
-                    vec![BoundDimensionRow {
-                        dimension: DimensionId::registered(1),
-                        class: BoundClass::Work,
-                        maximum: 1_000,
-                    }],
-                    &LimitWitness::declared(8),
-                )
-                .unwrap_or_else(|_| unreachable!("one fits")),
+                dimensions: Bounded::empty(),
             },
             explains: ExplanationObligation(Commitment::raw([5; 32])),
             evidences: EvidenceObligation(Commitment::raw([6; 32])),
         };
         assert_eq!(judgment.stage, Stage::Semantic);
-        assert_eq!(judgment.bounds.dimensions.len(), 1);
+        assert!(judgment.bounds.dimensions.is_empty());
     }
 
     /// law: semantic.behavior-and-boundary-rosters-hold — seven behavior
@@ -4427,15 +4407,14 @@ mod semantic {
 
 mod execution {
     use super::pairwise_distinct;
-    use crate::bounds::{BoundClass, DimensionId};
     use crate::execution::{
-        AlgebraicLaw, AlgebraicLawLimit, CommandKind, CommandOrdinal, EffectBatch,
-        EffectBatchComposition, EffectCommand, EffectfulRecursionLane, ExecutionForm,
-        ExecutionFormConstruction, ExecutionFormConstructionIssue, ExecutionFormFamilyId,
-        ExecutionFormVersion, ForbiddenIdentitySource, GroupFenceDefect,
-        INDEPENDENCE_MAY_NOT_SHARE, INDEPENDENCE_MAY_SHARE, INTERLEAVED_CLOSURE_TOTALS,
-        KernelBindingPolicy, KernelBindingPolicyConstruction, KernelBindingPosture,
-        KernelFallbackPolicy, KernelInterfaceContract, KernelInterfaceContractConstructionIssue,
+        AlgebraicLaw, AlgebraicLawLimit, CommandKind, EffectBatch, EffectBatchComposition,
+        EffectfulRecursionLane, ExecutionForm, ExecutionFormConstruction,
+        ExecutionFormConstructionIssue, ExecutionFormFamilyId, ExecutionFormVersion,
+        ForbiddenIdentitySource, GroupFenceDefect, INDEPENDENCE_MAY_NOT_SHARE,
+        INDEPENDENCE_MAY_SHARE, INTERLEAVED_CLOSURE_TOTALS, KernelBindingPolicy,
+        KernelBindingPolicyConstruction, KernelBindingPosture, KernelFallbackPolicy,
+        KernelInterfaceContract, KernelInterfaceContractConstructionIssue,
         KernelInterfaceContractRef, KernelRealizationId, KernelRequirement, KernelSemanticContract,
         KernelSemanticContractConstructionIssue, KernelSemanticContractRef,
         KernelSubstitutionScope, OPERATOR_REGISTER, RecursionWitness, RequiredContractKind,
@@ -4445,10 +4424,7 @@ mod execution {
         AuthorityPosition, Commitment, Occurrence, OccurrenceForm, OrderComparison,
     };
     use crate::refusal::{FamilyShape, RefusalFamily};
-    use crate::semantic::BoundDimensionRow;
-    use crate::types::{
-        Bounded, ConstLimit, EvidenceRef, LimitWitness, ReferentAvailability, ReferentIntegrity,
-    };
+    use crate::types::{Bounded, ConstLimit, EvidenceRef, ReferentAvailability, ReferentIntegrity};
     use core::cmp::Ordering;
 
     fn demo_evidence<Claim>(seed: u8) -> EvidenceRef<Claim> {
@@ -4540,36 +4516,22 @@ mod execution {
         assert_eq!(form.content(), &Commitment::raw([43; 32]));
     }
 
-    /// law: execution.effect-batch-composes-as-data — a real intent
+    /// law: execution.effect-batch-composes-as-data — the declaration shape
     /// constructs with no result member representable, and the composition
-    /// family holds its five issues with the three closed subcause rosters.
+    /// family holds its five issues with the three closed subcause rosters. The
+    /// bounded command and bound seats stay empty here rather than borrowing a
+    /// runtime witness their unstated families did not declare.
     /// Owed reversal (red twin): a result or receipt member must not compile.
     #[test]
     fn effect_batch_composes_as_data() {
         let batch = EffectBatch {
-            commands: Bounded::admitted(
-                vec![EffectCommand {
-                    ordinal: CommandOrdinal::declared(0),
-                    kind: CommandKind::EventAppend,
-                    contracts: Commitment::raw([44; 32]),
-                }],
-                &LimitWitness::declared(16),
-            )
-            .unwrap_or_else(|_| unreachable!("one fits")),
+            commands: Bounded::empty(),
             boundary: Commitment::raw([45; 32]),
             groups_and_fences: Commitment::raw([46; 32]),
             idempotency: Commitment::raw([47; 32]),
-            bounds: Bounded::admitted(
-                vec![BoundDimensionRow {
-                    dimension: DimensionId::registered(2),
-                    class: BoundClass::Effect,
-                    maximum: 8,
-                }],
-                &LimitWitness::declared(8),
-            )
-            .unwrap_or_else(|_| unreachable!("one fits")),
+            bounds: Bounded::empty(),
         };
-        assert_eq!(batch.commands.len(), 1);
+        assert!(batch.commands.is_empty());
         let kinds = [
             CommandKind::EventAppend,
             CommandKind::EffectIntentAdmission,
@@ -4728,7 +4690,7 @@ mod image {
         ImageValidation, PROGRAM_IMAGE_EXTENSION, PackagingProfile, ProgramImage,
         ProgramImageComponent, SemanticImage, UntrustedImageBytes,
     };
-    use crate::types::{Bounded, LimitWitness};
+    use crate::types::Bounded;
     use core::cmp::Ordering;
 
     /// law: image.identities-ride-scope-guards — family-format, profile, and
@@ -4820,8 +4782,11 @@ mod image {
         assert!(matches!(component.carriage, ComponentCarriage::Inline));
     }
 
-    /// law: image.program-image-composes — a real image constructs through
-    /// the checked roads, and the bound-fact roster holds eighteen.
+    /// law: image.program-image-composes — the image carrier binds its family,
+    /// profile, packaging, and bounded component/kernel seats, and the
+    /// bound-fact roster holds eighteen. This laws-only value leaves both
+    /// bounded seats empty rather than pretending validation supplied their
+    /// unstated magnitudes; dual-form admission remains owed below.
     /// Owed reversal: an image without both forms' components must refuse at
     /// validation (owed to the machinery seam).
     #[test]
@@ -4836,23 +4801,13 @@ mod image {
                 1,
             )),
             packaging: PackagingProfile::SelfContained,
-            components: Bounded::admitted(
-                vec![ProgramImageComponent {
-                    role: ComponentRole::ExecutionForm,
-                    profile: 1,
-                    content: ContentRegionId::of(ByteIdentity::raw([68; 32])),
-                    length: 1_024,
-                    carriage: ComponentCarriage::Inline,
-                }],
-                &LimitWitness::declared(32),
-            )
-            .unwrap_or_else(|_| unreachable!("one fits")),
+            components: Bounded::empty(),
             kernel_requirements: KernelRequirementSet {
-                requirements: Bounded::admitted(vec![], &LimitWitness::declared(8))
-                    .unwrap_or_else(|_| unreachable!("empty fits")),
+                requirements: Bounded::empty(),
             },
         };
         assert!(matches!(image.packaging, PackagingProfile::SelfContained));
+        assert!(image.components.is_empty());
         assert_eq!(BOUND_FACT_ROSTER.len(), 18);
         assert_eq!(PROGRAM_IMAGE_EXTENSION, ".program.tpk");
     }
@@ -4902,18 +4857,14 @@ mod image {
 
 mod pakvm {
     use super::pairwise_distinct;
-    use crate::bounds::{BoundClass, DimensionId};
     use crate::identity::Commitment;
     use crate::pakvm::{
         ArenaIndex, CLOSURE_OBLIGATIONS, CapabilityHandle, CaptureRecord, ContinuationRecord,
         INVALID_CAPTURES, LambdaBoundaryPosture, PROHIBITED_INHABITANTS, PortHandle, ReplyHandle,
         STEP_PRODUCTIONS, ValueCategory, ValueResidence, VmTerminal,
     };
-    use crate::semantic::BoundDimensionRow;
-    use crate::time::{ConsumedBudgetEvidence, RecordingSite, SpendRecord};
-    use crate::types::{
-        Bounded, EvidenceRef, LimitWitness, ReferentAvailability, ReferentIntegrity,
-    };
+    use crate::time::{ConsumedBudgetEvidence, RecordingSite};
+    use crate::types::{Bounded, EvidenceRef, ReferentAvailability, ReferentIntegrity};
 
     fn demo_evidence<Claim>(seed: u8) -> EvidenceRef<Claim> {
         EvidenceRef::bound(
@@ -4974,7 +4925,9 @@ mod pakvm {
     /// law: pakvm.continuation-record-binds-twelve — a real persisted
     /// continuation constructs with all members, carrying the deadline-policy
     /// reference plus consumed-budget evidence — never a live monotonic
-    /// value.
+    /// value. The remaining-bound and spend seats are empty here rather than
+    /// inventing magnitudes for their unstated families; nonempty budget
+    /// behavior remains gated.
     /// Owed reversal (red twin): a live monotonic member must not compile
     /// (the live deadline type is unserializable and `!Send` by shape).
     #[test]
@@ -4988,28 +4941,12 @@ mod pakvm {
             effect_intent: demo_evidence(74),
             attempt: demo_evidence(75),
             generations: Commitment::raw([76; 32]),
-            remaining_bounds: Bounded::admitted(
-                vec![BoundDimensionRow {
-                    dimension: DimensionId::registered(3),
-                    class: BoundClass::Suspension,
-                    maximum: 2,
-                }],
-                &LimitWitness::declared(8),
-            )
-            .unwrap_or_else(|_| unreachable!("one fits")),
+            remaining_bounds: Bounded::empty(),
             deadline_policy: demo_evidence(77),
             spend: ConsumedBudgetEvidence {
                 site: RecordingSite::EffectAttempt,
                 coordinate: demo_evidence(78),
-                spends: Bounded::admitted(
-                    vec![SpendRecord {
-                        dimension: DimensionId::registered(4),
-                        magnitude: 100,
-                        uncertainty: 5,
-                    }],
-                    &LimitWitness::declared(8),
-                )
-                .unwrap_or_else(|_| unreachable!("one fits")),
+                spends: Bounded::empty(),
             },
             posture: Commitment::raw([79; 32]),
         };
@@ -5037,22 +4974,19 @@ mod pakvm {
         assert_eq!(STEP_PRODUCTIONS.first(), Some(&"semantic-value"));
     }
 
-    /// law: pakvm.captures-and-closure-obligations — the capture record
-    /// constructs in canonical binding order, the seven invalid captures and
-    /// four lambda postures hold, and the six closure obligations stand.
+    /// law: pakvm.captures-and-closure-obligations — the capture record carries
+    /// its bounded canonical-order seat, the seven invalid captures and four
+    /// lambda postures hold, and the six closure obligations stand. This
+    /// specimen is the lawful empty capture set; ordering hostiles remain owed.
     /// Owed reversal (red twin): a captured live handle must not compile.
     #[test]
     fn captures_and_closure_obligations() {
         let record = CaptureRecord {
             definition: Commitment::raw([80; 32]),
-            captures: Bounded::admitted(
-                vec![Commitment::raw([81; 32])],
-                &LimitWitness::declared(8),
-            )
-            .unwrap_or_else(|_| unreachable!("one fits")),
+            captures: Bounded::empty(),
             origins: demo_evidence(82),
         };
-        assert_eq!(record.captures.len(), 1);
+        assert!(record.captures.is_empty());
         assert_eq!(INVALID_CAPTURES.len(), 7);
         let postures = [
             LambdaBoundaryPosture::InlineOnly,
@@ -5085,10 +5019,7 @@ mod bvisor {
     use crate::identity::{AuthorityPosition, Commitment, Occurrence, OccurrenceForm};
     use crate::port::{PortFamilyId, PortFamilyVersion, PortPostcondition};
     use crate::refusal::{FamilyShape, RefusalFamily};
-    use crate::semantic::BoundDimensionRow;
-    use crate::types::{
-        Bounded, EvidenceRef, LimitWitness, ReferentAvailability, ReferentIntegrity,
-    };
+    use crate::types::{Bounded, EvidenceRef, ReferentAvailability, ReferentIntegrity};
 
     fn demo_observation(seed: u8) -> ReservationObservation {
         ReservationObservation {
@@ -5283,7 +5214,8 @@ mod bvisor {
 
     /// law: bvisor.port-crossing-binds — a real port request constructs
     /// bound to one Attempt and one family; the validation and cancellation
-    /// rosters hold.
+    /// rosters hold. Its bounded-request seat is empty here because the family
+    /// declares no magnitude; this law does not claim a nonempty bound set.
     /// Owed reversal (red twin): a request satisfying another Attempt must
     /// not compile.
     #[test]
@@ -5298,17 +5230,9 @@ mod bvisor {
                 1,
             )),
             payload: Commitment::raw([104; 32]),
-            bounds: Bounded::admitted(
-                vec![BoundDimensionRow {
-                    dimension: DimensionId::registered(6),
-                    class: crate::bounds::BoundClass::Work,
-                    maximum: 500,
-                }],
-                &LimitWitness::declared(8),
-            )
-            .unwrap_or_else(|_| unreachable!("one fits")),
+            bounds: Bounded::empty(),
         };
-        assert_eq!(request.bounds.len(), 1);
+        assert!(request.bounds.is_empty());
         assert_eq!(PORT_REQUEST_VALIDATION.len(), 10);
         assert_eq!(CANCELLATION_FACTS.len(), 10);
     }
@@ -5333,9 +5257,7 @@ mod runtime {
         RECOVERY_ACTIONS, ReconciliationDisposition, ReconciliationLifecycle, ReplayPosture,
         STITCH_OUTPUTS, SemanticRecoveryAuthority, TURN_PREIMAGE, TurnId, TurnPhase,
     };
-    use crate::types::{
-        Bounded, EvidenceRef, LimitWitness, ReferentAvailability, ReferentIntegrity,
-    };
+    use crate::types::{Bounded, EvidenceRef, ReferentAvailability, ReferentIntegrity};
 
     fn demo_evidence<Claim>(seed: u8) -> EvidenceRef<Claim> {
         EvidenceRef::bound(
@@ -5394,8 +5316,10 @@ mod runtime {
     }
 
     /// law: runtime.attempt-lineage-is-message-passing — the three-way cause
-    /// sum binds one endpoint each, the cause set is bounded membership, and
-    /// a lineage node composes with the membrane's Attempt identity.
+    /// sum binds one endpoint each, the cause set carries a bounded membership
+    /// seat, and a lineage node composes with the membrane's Attempt identity.
+    /// The node's seat stays empty here rather than inventing its unstated
+    /// family's magnitude.
     /// Owed reversal (red twin): a bare cause or an edge inside the cause
     /// value must not compile.
     #[test]
@@ -5414,14 +5338,10 @@ mod runtime {
         let node = AttemptLineageNode {
             attempt: AttemptId::for_laws(Occurrence::for_laws(OccurrenceForm::Fresh([113; 16]))),
             causes: BoundedCauseSet {
-                causes: Bounded::admitted(
-                    vec![AttemptCause::Turn(turn)],
-                    &LimitWitness::declared(4),
-                )
-                .unwrap_or_else(|_| unreachable!("one fits")),
+                causes: Bounded::empty(),
             },
         };
-        assert_eq!(node.causes.causes.len(), 1);
+        assert!(node.causes.causes.is_empty());
     }
 
     /// law: runtime.checkpoint-advances-only-on-prerequisites — the durable
@@ -6228,7 +6148,7 @@ mod evidence {
     };
     use crate::identity::Commitment;
     use crate::types::{
-        Bounded, Completeness, EvidenceRef, LimitWitness, ProofDisposition, ReferentAvailability,
+        Bounded, Completeness, EvidenceRef, ProofDisposition, ReferentAvailability,
         ReferentIntegrity,
     };
 
@@ -6405,8 +6325,10 @@ mod evidence {
 
     /// law: evidence.receipt-matrix-and-carriage — twenty-five families by
     /// semantic boundary (the two structurally two-record rows named),
-    /// per-item carriage, coexisting commitment layers, and the calibration
-    /// pair owning neither work nor truth.
+    /// per-item carriage, the bounded commitment-layer seat, and the
+    /// calibration pair owning neither work nor truth. The layer specimen is
+    /// empty because its family declares no magnitude; coexistence behavior
+    /// remains outside this compile-time structural law.
     /// Owed reversal (red twin): a universal receipt must not exist.
     #[test]
     fn receipt_matrix_and_carriage() {
@@ -6419,13 +6341,9 @@ mod evidence {
         ];
         assert_eq!(carriage.len(), 2);
         let layers = CommitmentLayers {
-            layers: Bounded::admitted(
-                vec![Commitment::raw([214; 32]), Commitment::raw([215; 32])],
-                &LimitWitness::declared(8),
-            )
-            .unwrap_or_else(|_| unreachable!("two fit")),
+            layers: Bounded::empty(),
         };
-        assert_eq!(layers.layers.len(), 2);
+        assert!(layers.layers.is_empty());
         let calibration = CalibrationEvidence {
             model: CalibrationModel(Commitment::raw([216; 32])),
             evidence: demo_evidence(217),

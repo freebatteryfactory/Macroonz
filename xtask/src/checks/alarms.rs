@@ -279,13 +279,13 @@ mod tests {
     const WORKFLOW_FIXTURE: &str = "name: harness\n";
 
     /// One scratch root carrying both alarms whole.
-    fn planted(name: &str) -> Scratch {
-        let scratch = Scratch::named(name);
-        scratch.write(&spelled(&HARNESS_WORKFLOW), WORKFLOW_FIXTURE);
-        scratch.write(&spelled(&MUTATION_WORKFLOW), WORKFLOW_FIXTURE);
-        scratch.write(&spelled(&HARNESS_CONFIGURATION), HARNESS_FIXTURE);
-        scratch.write(&spelled(&MUTATION_CONFIGURATION), MUTATION_FIXTURE);
-        scratch
+    fn planted(name: &str) -> Result<Scratch, String> {
+        let scratch = Scratch::named(name)?;
+        scratch.write(&spelled(&HARNESS_WORKFLOW), WORKFLOW_FIXTURE)?;
+        scratch.write(&spelled(&MUTATION_WORKFLOW), WORKFLOW_FIXTURE)?;
+        scratch.write(&spelled(&HARNESS_CONFIGURATION), HARNESS_FIXTURE)?;
+        scratch.write(&spelled(&MUTATION_CONFIGURATION), MUTATION_FIXTURE)?;
+        Ok(scratch)
     }
 
     /// The positive control: both alarms carrying all four artifacts, with a
@@ -294,7 +294,7 @@ mod tests {
     /// every reversal below and be worthless.
     #[test]
     fn present_and_distinct_artifacts_are_lawful() -> Result<(), String> {
-        let scratch = planted("alarms-whole");
+        let scratch = planted("alarms-whole")?;
         let found = check_alarm_artifacts(&scratch.read()?);
         assert!(found.is_ok(), "{found:?}");
         Ok(())
@@ -305,8 +305,8 @@ mod tests {
     /// moved no number and failed no stage.
     #[test]
     fn a_deleted_harness_configuration_is_a_violation() -> Result<(), String> {
-        let scratch = planted("alarms-harness-configuration-deleted");
-        scratch.remove(&spelled(&HARNESS_CONFIGURATION));
+        let scratch = planted("alarms-harness-configuration-deleted")?;
+        scratch.remove(&spelled(&HARNESS_CONFIGURATION))?;
         let found = check_alarm_artifacts(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains(".config/nextest.toml")
@@ -321,8 +321,8 @@ mod tests {
     /// finds nothing, and exits zero.
     #[test]
     fn a_deleted_mutation_configuration_is_a_violation() -> Result<(), String> {
-        let scratch = planted("alarms-mutation-configuration-deleted");
-        scratch.remove(&spelled(&MUTATION_CONFIGURATION));
+        let scratch = planted("alarms-mutation-configuration-deleted")?;
+        scratch.remove(&spelled(&MUTATION_CONFIGURATION))?;
         let found = check_alarm_artifacts(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains(".cargo/mutants.toml")
@@ -336,8 +336,8 @@ mod tests {
     /// no committed file names a run for.
     #[test]
     fn a_deleted_harness_workflow_is_a_violation() -> Result<(), String> {
-        let scratch = planted("alarms-harness-workflow-deleted");
-        scratch.remove(&spelled(&HARNESS_WORKFLOW));
+        let scratch = planted("alarms-harness-workflow-deleted")?;
+        scratch.remove(&spelled(&HARNESS_WORKFLOW))?;
         let found = check_alarm_artifacts(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains("harness.yml")
@@ -350,8 +350,8 @@ mod tests {
     /// Planted reversal: the mutation workflow deleted.
     #[test]
     fn a_deleted_mutation_workflow_is_a_violation() -> Result<(), String> {
-        let scratch = planted("alarms-mutation-workflow-deleted");
-        scratch.remove(&spelled(&MUTATION_WORKFLOW));
+        let scratch = planted("alarms-mutation-workflow-deleted")?;
+        scratch.remove(&spelled(&MUTATION_WORKFLOW))?;
         let found = check_alarm_artifacts(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains("mutation.yml")
@@ -368,11 +368,11 @@ mod tests {
     /// decoder reads as the empty document it is.
     #[test]
     fn an_emptied_mutation_configuration_is_a_violation() -> Result<(), String> {
-        let scratch = planted("alarms-mutation-configuration-emptied");
+        let scratch = planted("alarms-mutation-configuration-emptied")?;
         scratch.write(
             &spelled(&MUTATION_CONFIGURATION),
             "# every decision that was here is gone\n",
-        );
+        )?;
         let found = check_alarm_artifacts(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains("states no key at all")),
@@ -386,11 +386,11 @@ mod tests {
     /// thing by which this file can be shown to be READ is gone.
     #[test]
     fn a_harness_configuration_with_no_reversal_profile_is_a_violation() -> Result<(), String> {
-        let scratch = planted("alarms-reversal-profile-deleted");
+        let scratch = planted("alarms-reversal-profile-deleted")?;
         scratch.write(
             &spelled(&HARNESS_CONFIGURATION),
             "[profile.default]\nfail-fast = false\n",
-        );
+        )?;
         let found = check_alarm_artifacts(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains("does not state both")),
@@ -409,11 +409,11 @@ mod tests {
     /// wrong on purpose — has quietly stopped being true of it.
     #[test]
     fn a_reversal_profile_that_stopped_departing_is_a_violation() -> Result<(), String> {
-        let scratch = planted("alarms-reversal-profile-synchronized");
+        let scratch = planted("alarms-reversal-profile-synchronized")?;
         scratch.write(
             &spelled(&HARNESS_CONFIGURATION),
             "[profile.default]\nfail-fast = false\n\n[profile.reversal]\nfail-fast = false\n",
-        );
+        )?;
         let found = check_alarm_artifacts(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains("has been synchronized")),
@@ -428,11 +428,11 @@ mod tests {
     /// name.
     #[test]
     fn an_emptied_reversal_profile_is_a_violation() -> Result<(), String> {
-        let scratch = planted("alarms-reversal-profile-emptied");
+        let scratch = planted("alarms-reversal-profile-emptied")?;
         scratch.write(
             &spelled(&HARNESS_CONFIGURATION),
             "[profile.default]\nfail-fast = false\n\n[profile.reversal]\n",
-        );
+        )?;
         let found = check_alarm_artifacts(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains("states nothing")),
@@ -453,10 +453,10 @@ mod tests {
     /// deletion is the line of the diff where the claim is allowed to grow back.
     #[test]
     fn workflows_that_invoke_nothing_still_pass() -> Result<(), String> {
-        let scratch = planted("alarms-workflows-invoke-nothing");
+        let scratch = planted("alarms-workflows-invoke-nothing")?;
         let empty = "name: harness\non:\n  schedule:\n    - cron: '0 0 * * 0'\njobs: {}\n";
-        scratch.write(&spelled(&HARNESS_WORKFLOW), empty);
-        scratch.write(&spelled(&MUTATION_WORKFLOW), empty);
+        scratch.write(&spelled(&HARNESS_WORKFLOW), empty)?;
+        scratch.write(&spelled(&MUTATION_WORKFLOW), empty)?;
         let found = check_alarm_artifacts(&scratch.read()?);
         assert!(
             found.is_ok(),

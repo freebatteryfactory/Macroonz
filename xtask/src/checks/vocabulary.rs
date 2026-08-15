@@ -88,14 +88,16 @@ pub(crate) fn check_no_personal_names(snapshot: &RepositorySnapshot) -> Result<(
         vec![0x65, 0x61, 0x73, 0x73, 0x61],
         vec![0x61, 0x79, 0x6f, 0x75, 0x62],
     ];
-    let banned: Vec<String> = banned
+    let banned: Vec<&str> = banned
         .iter()
-        .map(|bytes| String::from_utf8_lossy(bytes).into_owned())
-        .collect();
+        .map(Vec::as_slice)
+        .map(std::str::from_utf8)
+        .collect::<Result<_, _>>()
+        .map_err(|error| format!("the personal-name verdict terms are not UTF-8: {error}"))?;
     let mut offenders = Vec::new();
     for (path, fact) in snapshot.files().iter() {
         let text = fact.text().required(path.as_str())?.to_lowercase();
-        if banned.iter().any(|name| text.contains(name.as_str())) {
+        if banned.iter().any(|name| text.contains(*name)) {
             offenders.push(path.to_string());
         }
     }
@@ -360,18 +362,44 @@ fn spells_banned_word(word: &str) -> Option<&'static str> {
     })
 }
 
-/// Planted reversals for the ban and for its allowlist.
+/// Planted reversals for both vocabulary checks and for the retired-word
+/// allowlist.
 ///
-/// The scans are pure over text, so every reversal below is a fixture string.
-/// Nothing on disk is written, read, or mutated: the law that guards the tree is
-/// never proven by dirtying the tree.
+/// The retired-word scan is pure over text, so its reversals are fixture
+/// strings. The personal-name check owns a repository population, so its
+/// reversal is a committed scratch tree read by the production snapshot builder.
+/// Nothing is written inside the repository the law guards.
 #[cfg(test)]
 mod tests {
     use super::{
         BANNED_VOCABULARY_ALLOWLIST, banned_vocabulary_offences, banned_words_in,
-        stale_allowlist_offences,
+        check_no_personal_names, stale_allowlist_offences,
     };
+    use crate::checks::scratch::Scratch;
     use crate::repository::snapshot::repository_snapshot;
+
+    /// The aggregate positive control and planted reversal for the registered
+    /// personal-name check. Both states are committed before the production
+    /// snapshot reads them, and the forbidden spelling exists only in the
+    /// planted file, assembled from numeric bytes at runtime.
+    #[test]
+    fn the_personal_name_check_activates_on_its_subject() -> Result<(), String> {
+        const SUBJECT: &str = "evidence/roles.txt";
+        let scratch = Scratch::named("personal-name-vocabulary")?;
+        scratch.write(SUBJECT, "the realization owner is named only by role\n")?;
+        check_no_personal_names(&scratch.read()?)?;
+
+        let forbidden = String::from_utf8(vec![0x65, 0x61, 0x73, 0x73, 0x61])
+            .map_err(|error| format!("the planted verdict term is not UTF-8: {error}"))?;
+        scratch.write(SUBJECT, &format!("the role was replaced by {forbidden}\n"))?;
+        let found = check_no_personal_names(&scratch.read()?);
+        assert_eq!(
+            found,
+            Err(format!("personal name present in: {SUBJECT}")),
+            "the aggregate check did not name its exact offending path"
+        );
+        Ok(())
+    }
 
     /// Planted reversal: the term smuggled into a `camelCase` identifier, where
     /// no whole-word scan of the text would ever find it.

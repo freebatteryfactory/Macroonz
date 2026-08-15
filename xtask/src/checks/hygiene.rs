@@ -308,11 +308,11 @@ mod tests {
     /// here, and this doc line is where that is admitted rather than implied.
     #[test]
     fn a_crlf_file_is_a_violation() -> Result<(), String> {
-        let scratch = Scratch::named("lf-only");
-        scratch.write("clean.md", "one line\nanother\n");
+        let scratch = Scratch::named("lf-only")?;
+        scratch.write("clean.md", "one line\nanother\n")?;
         assert!(check_lf_and_no_symlinks(&scratch.read()?).is_ok());
 
-        scratch.write("drifted.md", "one line\r\nanother\r\n");
+        scratch.write("drifted.md", "one line\r\nanother\r\n")?;
         let found = check_lf_and_no_symlinks(&scratch.read()?);
         assert!(found.is_err_and(|reason| reason.contains("CRLF") && reason.contains("drifted")));
         Ok(())
@@ -321,12 +321,12 @@ mod tests {
     /// Planted reversal: a Python file anywhere in the tree.
     #[test]
     fn a_python_file_is_a_violation() -> Result<(), String> {
-        let scratch = Scratch::named("no-python");
-        scratch.write("tool.rs", "fn main() {}\n");
-        scratch.write("notes/readme.md", "prose\n");
+        let scratch = Scratch::named("no-python")?;
+        scratch.write("tool.rs", "fn main() {}\n")?;
+        scratch.write("notes/readme.md", "prose\n")?;
         assert!(check_no_python(&scratch.read()?).is_ok());
 
-        scratch.write("notes/helper.py", "the file's presence is the offence\n");
+        scratch.write("notes/helper.py", "the file's presence is the offence\n")?;
         let found = check_no_python(&scratch.read()?);
         assert!(found.is_err_and(|reason| reason.contains("helper.py")));
         Ok(())
@@ -337,11 +337,11 @@ mod tests {
     /// covers, so no tree is scanned in name only.
     #[test]
     fn an_underscore_field_carrying_data_is_a_violation() -> Result<(), String> {
-        let scratch = Scratch::named("underscore-fields");
+        let scratch = Scratch::named("underscore-fields")?;
         let lawful = "use core::marker::PhantomData;\n\
                       pub struct Demo {\n    _law: PhantomData<*const ()>,\n}\n";
         for tree in SCANNED_TREES {
-            scratch.write(&format!("{tree}/lawful.rs"), lawful);
+            scratch.write(&format!("{tree}/lawful.rs"), lawful)?;
         }
         assert!(check_underscore_fields_are_phantom(&scratch.read()?).is_ok());
 
@@ -349,14 +349,14 @@ mod tests {
             scratch.write(
                 &format!("{tree}/smuggled.rs"),
                 "pub struct Demo {\n    _hidden: u64,\n}\n",
-            );
+            )?;
             let found = check_underscore_fields_are_phantom(&scratch.read()?);
             assert!(
                 found.is_err_and(|reason| reason.contains("smuggled.rs")
                     && reason.contains("underscore field without PhantomData")),
                 "{tree} tree is not scanned"
             );
-            scratch.remove(&format!("{tree}/smuggled.rs"));
+            scratch.remove(&format!("{tree}/smuggled.rs"))?;
         }
         Ok(())
     }
