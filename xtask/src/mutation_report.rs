@@ -84,6 +84,7 @@ enum SummaryOutcome {
 
 /// Mutant identities derived from the per-scenario observations.
 struct ClassifiedOutcomes {
+    baseline: Vec<SummaryOutcome>,
     all: Vec<String>,
     caught: Vec<String>,
     missed: Vec<String>,
@@ -371,6 +372,7 @@ fn validate_counts(
     rosters: &Rosters,
 ) -> Result<(), String> {
     let classified = classify_outcomes(&outcome.outcomes);
+    validate_baseline(&classified.baseline)?;
     compare_count(
         "total mutant population",
         "outcomes.json total_mutants",
@@ -442,6 +444,7 @@ fn validate_counts(
 
 fn classify_outcomes(outcomes: &[ScenarioOutcome]) -> ClassifiedOutcomes {
     let mut classified = ClassifiedOutcomes {
+        baseline: Vec::new(),
         all: Vec::new(),
         caught: Vec::new(),
         missed: Vec::new(),
@@ -451,8 +454,12 @@ fn classify_outcomes(outcomes: &[ScenarioOutcome]) -> ClassifiedOutcomes {
         failure: Vec::new(),
     };
     for observation in outcomes {
-        let Scenario::Mutant(mutant) = &observation.scenario else {
-            continue;
+        let mutant = match &observation.scenario {
+            Scenario::Baseline => {
+                classified.baseline.push(observation.summary);
+                continue;
+            }
+            Scenario::Mutant(mutant) => mutant,
         };
         classified.all.push(mutant.name.clone());
         let destination = match observation.summary {
@@ -466,6 +473,22 @@ fn classify_outcomes(outcomes: &[ScenarioOutcome]) -> ClassifiedOutcomes {
         destination.push(mutant.name.clone());
     }
     classified
+}
+
+fn validate_baseline(baselines: &[SummaryOutcome]) -> Result<(), String> {
+    match baselines {
+        [SummaryOutcome::Success] => Ok(()),
+        [] => Err(String::from(
+            "cargo-mutants wrote no baseline observation; the unmodified suite is unproven",
+        )),
+        [_] => Err(String::from(
+            "cargo-mutants baseline observation was not successful",
+        )),
+        _ => Err(format!(
+            "cargo-mutants wrote {} baseline observations; exactly one is required",
+            baselines.len()
+        )),
+    }
 }
 
 fn compare_count(
@@ -684,7 +707,10 @@ mod tests {
         }
 
         fn scenario_outcomes(&self) -> Vec<serde_json::Value> {
-            let mut outcomes = Vec::new();
+            let mut outcomes = vec![json!({
+                "scenario": "Baseline",
+                "summary": "Success"
+            })];
             Self::append_outcomes(&mut outcomes, &self.caught, "CaughtMutant");
             Self::append_outcomes(&mut outcomes, &self.missed, "MissedMutant");
             Self::append_outcomes(&mut outcomes, &self.timeout, "Timeout");
@@ -757,8 +783,8 @@ mod tests {
     }
 
     #[test]
-    fn a_successful_baseline_is_not_part_of_the_mutant_population() -> Result<(), String> {
-        let fixture = Fixture::new("baseline")?;
+    fn a_missing_baseline_refuses() -> Result<(), String> {
+        let fixture = Fixture::new("missing-baseline")?;
         fixture.write_report(&FixtureReport::run())?;
         let outcome_text = fs::read_to_string(fixture.root.join("outcomes.json"))
             .map_err(|source| format!("cannot read fixture outcome: {source}"))?;
@@ -770,15 +796,73 @@ mod tests {
         else {
             return Err(String::from("fixture outcome has no scenario array"));
         };
-        outcomes.insert(0, json!({ "scenario": "Baseline", "summary": "Success" }));
+        outcomes.retain(|observation| observation.get("scenario") != Some(&json!("Baseline")));
         fixture.write(
             "outcomes.json",
             serde_json::to_vec(&outcome)
                 .map_err(|source| format!("cannot encode fixture outcome: {source}"))?,
         )?;
-        let inspection = inspect(ReportMode::Run, 2, &fixture.root)?;
-        assert!(inspection.receipt.contains("mutation.total=3"));
-        inspection.finish()
+        assert!(refusal(inspect(ReportMode::Run, 2, &fixture.root))?.contains("no baseline"));
+        Ok(())
+    }
+
+    #[test]
+    fn a_failed_baseline_refuses() -> Result<(), String> {
+        let fixture = Fixture::new("failed-baseline")?;
+        fixture.write_report(&FixtureReport::run())?;
+        let outcome_text = fs::read_to_string(fixture.root.join("outcomes.json"))
+            .map_err(|source| format!("cannot read fixture outcome: {source}"))?;
+        let mut outcome: serde_json::Value = serde_json::from_str(&outcome_text)
+            .map_err(|source| format!("cannot decode fixture outcome: {source}"))?;
+        let Some(baseline) = outcome
+            .get_mut("outcomes")
+            .and_then(serde_json::Value::as_array_mut)
+            .and_then(|outcomes| {
+                outcomes.iter_mut().find(|observation| {
+                    observation
+                        .get("scenario")
+                        .and_then(serde_json::Value::as_str)
+                        == Some("Baseline")
+                })
+            })
+        else {
+            return Err(String::from("fixture outcome has no baseline"));
+        };
+        let Some(summary) = baseline.get_mut("summary") else {
+            return Err(String::from("fixture baseline has no summary"));
+        };
+        *summary = json!("Failure");
+        fixture.write(
+            "outcomes.json",
+            serde_json::to_vec(&outcome)
+                .map_err(|source| format!("cannot encode fixture outcome: {source}"))?,
+        )?;
+        assert!(refusal(inspect(ReportMode::Run, 2, &fixture.root))?.contains("not successful"));
+        Ok(())
+    }
+
+    #[test]
+    fn duplicate_baselines_refuse() -> Result<(), String> {
+        let fixture = Fixture::new("duplicate-baseline")?;
+        fixture.write_report(&FixtureReport::run())?;
+        let outcome_text = fs::read_to_string(fixture.root.join("outcomes.json"))
+            .map_err(|source| format!("cannot read fixture outcome: {source}"))?;
+        let mut outcome: serde_json::Value = serde_json::from_str(&outcome_text)
+            .map_err(|source| format!("cannot decode fixture outcome: {source}"))?;
+        let Some(outcomes) = outcome
+            .get_mut("outcomes")
+            .and_then(serde_json::Value::as_array_mut)
+        else {
+            return Err(String::from("fixture outcome has no scenario array"));
+        };
+        outcomes.push(json!({ "scenario": "Baseline", "summary": "Success" }));
+        fixture.write(
+            "outcomes.json",
+            serde_json::to_vec(&outcome)
+                .map_err(|source| format!("cannot encode fixture outcome: {source}"))?,
+        )?;
+        assert!(refusal(inspect(ReportMode::Run, 2, &fixture.root))?.contains("exactly one"));
+        Ok(())
     }
 
     #[test]
@@ -955,7 +1039,13 @@ mod tests {
         let Some(first_outcome) = outcome
             .get_mut("outcomes")
             .and_then(serde_json::Value::as_array_mut)
-            .and_then(|outcomes| outcomes.first_mut())
+            .and_then(|outcomes| {
+                outcomes.iter_mut().find(|observation| {
+                    observation
+                        .get("scenario")
+                        .is_some_and(serde_json::Value::is_object)
+                })
+            })
         else {
             return Err(String::from("fixture outcome carries no scenario"));
         };
