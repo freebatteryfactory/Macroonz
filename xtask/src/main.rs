@@ -1,6 +1,6 @@
 //! The `cargo xtask` command shell.
 //!
-//! Two commands, and the second contains the first.
+//! The repository-law, qualification, and hosted-evidence commands.
 //!
 //! `cargo xtask check` reads the repository ONCE and runs every day-zero
 //! repository law over that one reading, reporting each result; any broken law
@@ -27,6 +27,7 @@
 //! checks themselves.
 
 mod checks;
+mod mutation_report;
 mod repository;
 mod qualification;
 
@@ -61,6 +62,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     match command.as_str() {
         "check" => run_checks(&root),
+        "mutation-report" => mutation_report::run(&root, std::env::args().skip(2)),
         "qualify" => qualification::qualify(&root, run_checks),
         other => Err(format!("unknown xtask command: {other}").into()),
     }

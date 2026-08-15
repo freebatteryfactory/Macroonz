@@ -57,10 +57,9 @@ permissions:
 
 jobs:
   graph:
-    # Not on the schedule: this job's subject is a change, and a schedule brings
-    # none. A pull request brings one and so does a direct push, which is why the
-    # push trigger above needed nothing added here to reach this job.
-    if: github.event_name != 'schedule'
+    # Named positively so a future workflow trigger never joins this gate
+    # without an explicit decision.
+    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     # The default is six hours. Nothing here is a six-hour job, so a run that
     # reaches this number is a run that has stopped making progress, and holding

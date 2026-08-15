@@ -18,41 +18,13 @@
 # directory, a file another test wrote. The repository laws walk real trees and
 # write scratch directories, so that is not a theoretical class here.
 #
-# MEASURED, on the tree this file lands with, on the pinned toolchain:
-#   - `cargo test --locked --workspace` executes 533 harness tests and 3
-#     doctests, and passes;
-#   - `cargo nextest run --locked --workspace` executes 533, and passes;
-#   - the two executed sets are EQUAL name for name — the difference is empty in
-#     both directions, so no test changed hands and none was quietly dropped.
-# The second harness found nothing the first one did not. That is the honest
-# result of the first reading, and it is why this is an alarm standing beside
-# the bar rather than a bar of its own.
+# `cargo test --locked --workspace` remains the entry bar's test road and keeps
+# the workspace's doctests. nextest runs no doctests; it supplements that road
+# with process-per-test isolation and never replaces it.
 #
-# ONE TEST IN THE TREE IS EXECUTED BY NEITHER, and it is named here rather than
-# left for a reader to find in a summary line: `the_nextest_timeout_reversal`,
-# in `xtask/src/checks/alarms.rs`, is the SUBJECT of the planted reversal at the
-# bottom of this file. It carries `#[ignore]`, so both readings above report it
-# skipped and neither pays for it, and the reversal step is the one run that
-# selects it. Both counts were re-measured with it in the tree.
-#
-# WHAT NEXTEST DOES NOT EXECUTE, and it is the first thing to know rather than a
-# footnote: DOCTESTS. `cargo nextest run` neither builds nor runs them, and this
-# repository's three doctests are load-bearing. `CLOSED_REGISTER_ROW_CEILING`'s
-# example in `src/lib.rs` is the ONE place the stamp's current authoring profile
-# is written down, and its whole job is to fail when the supply is extended;
-# `closed_register`'s example and band 02's `scope_guard_version` example are
-# the other two. Replacing `cargo test` with nextest and saying nothing would
-# delete three executed controls and print the same green — the exact defect
-# class this repository exists to refuse.
-#
-# That is why nextest SUPPLEMENTS the `tests` stage and does not replace it. The
-# stage is untouched, it still executes all 536 on both hosts, and the doctests
-# lose nothing. What follows is that this configuration's population is a strict
-# SUBSET of the bar's — 533 of 536 — and the harness job deliberately runs no
-# doctest leg of its own, because a third execution of a control the bar already
-# runs twice would be one claim seated twice. A reader comparing the two summary
-# lines is meant to find them different, and the difference is exactly those
-# three.
+# `the_nextest_timeout_reversal` in `xtask/src/checks/alarms.rs` is ignored by
+# ordinary runs. Only the reversal command in `.github/workflows/harness.yml`
+# selects it and lifts that ignore.
 #
 # WHAT THIS FILE CLAIMS: that the workspace's harness tests pass under
 # process-per-test isolation, and that the configuration below is the one a run
@@ -110,23 +82,10 @@ fail-fast = false
 # not hold every time is a test whose claim is false; the repair is at the test.
 retries = 0
 
-# CHOSEN: name a test that runs long, and never kill one. `period` makes nextest
-# print a SLOW line for anything past it, which is a signal; `terminate-after`
-# would convert that signal into a failure.
-#
-# NOT ADOPTED, ON THE RECORD: `terminate-after`, over THIS population.
-# `compile_refusals` shells out to rustc once per compile-fail fixture and
-# MEASURED takes 20.8 seconds on this working machine over an already-built
-# tree; a cold hosted runner with no cache, which is what this repository
-# deliberately runs, is slower by a factor nobody here has measured, and the
-# same test on the same machine is faster again once another run has warmed what
-# it compiles. That spread is the whole point. A kill threshold set against an
-# unmeasured worst case is a gate that fails on how busy a runner was, and a
-# gate that reds for a reason unrelated to the tree teaches its readers to
-# ignore it. It is adopted here the day a hosted run publishes per-test
-# durations to set it against, and not before. Where `terminate-after` IS used
-# below, it is set against a test whose duration is an INSTRUCTION rather than a
-# measurement, which is a different thing entirely.
+# CHOSEN: report a slow test and never kill one in the lawful profile. No
+# qualified hosted worst-case duration exists from which to derive a lawful
+# termination threshold. The reversal below is different: its duration is an
+# instruction and its one-second termination is the planted defect.
 slow-timeout = { period = "60s" }
 
 # CHOSEN: print a failing test's output where it happened AND again at the end.
@@ -153,31 +112,11 @@ failure-output = "immediate-final"
 # found, the reversal stops refusing and the step that requires a refusal turns
 # red. One artifact, both facts.
 #
-# WHAT IS PLANTED. The profile selects exactly ONE test —
-# `the_nextest_timeout_reversal`, in `xtask/src/checks/alarms.rs`, whose entire
-# body is an instruction to sleep for thirty seconds — and sets a kill threshold
-# of one second against it. The defect is the sleep, and a sleep is the same
-# length on a cold runner, a warm one, and a busy one. Nothing about it is
-# compiled, resolved, cached, or reused, so there is no state any earlier step
-# can put the host in that shortens it.
-#
-# THE PLANT THIS REPLACES WAS A TIMING RACE, and a hosted run is what established
-# that rather than a review. It selected `binary(compile_refusals)` — the slowest
-# test in the repository, measured in the tens of seconds — and killed it at one
-# second, calling a factor of seventeen a margin. The margin was never the test's.
-# It was the COMPILATION that test pays for, and the positive step in this same
-# job pays it first: on the hosted runner at `f25f33d` the reversal run found
-# every compilation product already warm, finished inside the second, PASSED, and
-# exited 0 — so the step that requires a refusal went red, and the newly added
-# alarm's own negative control was the only thing on the board that had failed.
-# That is the finding this profile was rewritten from. A reversal whose
-# activation depends on a timing margin is a reversal that can stop refusing in
-# silence, which is the exact defect class this repository exists to refuse.
-#
-# THE SUBJECT IS `#[ignore]`d, and that is what keeps the plant off every other
-# run. `cargo test`, the entry bar's `tests` stage, the second harness's own
-# positive step, and every mutation rebuild report it skipped and pay nothing for
-# it. Two consequences follow, and both are measured rather than assumed:
+# WHAT IS PLANTED. The profile selects the ignored
+# `the_nextest_timeout_reversal`, whose body sleeps for thirty seconds, and kills
+# it after one. The deterministic sleep is independent of compilation caches and
+# runner warmth. The harness command is the only route that lifts the ignore.
+# Two command-line requirements follow:
 #
 #   - `run-ignored` is NOT a configuration key. MEASURED on 0.9.132: writing it
 #     in a profile prints `ignoring unknown configuration key:
@@ -197,17 +136,9 @@ failure-output = "immediate-final"
 #     otherwise buy: `0 tests run: 0 passed`, and a summary line no reader
 #     distinguishes from work.
 #
-# MEASURED, on the pinned toolchain, with the tree this file lands with:
-# `cargo nextest run --locked --workspace --profile reversal --run-ignored only
-# --no-tests fail` starts one test and skips 533, prints `TERMINATING` at 1.000s
-# and `TIMEOUT` against `xtask::bin/xtask
-# checks::alarms::tests::the_nextest_timeout_reversal`, reports `1 timed out`,
-# and exits 100. The step requires THREE things — the exit code,
-# the `timed out` diagnostic, and that test's NAME — for the reason the
-# dependency gate's reversal step requires more than a code: nextest exits
-# non-zero for a usage error and for a configuration it could not read, so a code
-# alone would accept a run that never reached a test, and a code with a
-# diagnostic would still accept a run that timed out something else.
+# The harness requires exit 100, a `timed out` diagnostic, and the planted
+# subject's name. A code alone could be a usage error; a timeout alone could name
+# another test.
 #
 # THE ONE WAY THIS REVERSAL CAN STOP BEING ABOUT ANYTHING is the subject being
 # renamed or deleted, and it does not go silent when that happens: the selection
