@@ -6,10 +6,9 @@
 # a merge are written once in `.cargo/mutants.toml`, beside the configuration a
 # run reads. This file is the caller.
 #
-# WHAT A RED HERE MEANS. Nothing about the change that is in flight, because no
-# change is: this workflow has no trigger a change can pull. A red means the
-# alarm itself did not work — the scope stopped matching sources, the tool
-# stopped killing anything, or the run never finished. SURVIVING MUTANTS DO NOT
+# WHAT A RED HERE MEANS. Nothing about a change in flight, because no change can
+# trigger this workflow. A red means either that the alarm did not operate or
+# that a timed-out mutant left its outcome uncertain. SURVIVING MUTANTS DO NOT
 # TURN IT RED. They are the finding, they are printed in full, and they are
 # evidence debt owed at the home of the source that carries them; a job that
 # went red on the first survivor would be red from the day it landed, and an
@@ -46,12 +45,9 @@ jobs:
     # its file ever grows; a positive list gains none it was not written.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    # MEASURED on a warm working machine: 128 mutants over one module in 3
-    # minutes at two jobs, and the whole `xtask` scope is 648. A cold hosted
-    # runner with no cache is slower by a factor nobody here has measured, so
-    # this number is generous against an unmeasured worst case rather than tuned
-    # to the current runtime — and a run that reaches it is a run that stopped
-    # making progress, which is exactly the "go look" this job exists to raise.
+    # A cold hosted runner has no measured upper runtime. This is a generous
+    # operational ceiling rather than an authored claim about today's mutant
+    # population; the run derives and prints that population from its report.
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -70,6 +66,12 @@ jobs:
       - name: Install cargo-mutants
         run: cargo install cargo-mutants --version 27.0.0 --locked
 
+      - name: Record the exact evidence basis
+        run: |
+          echo "repository SHA: $(git rev-parse HEAD)"
+          echo "repository tree: $(git rev-parse HEAD^{tree})"
+          cargo mutants --version
+
       # THE RUN, AND THE POSITIVE CONTROL OVER IT.
       #
       # `--workspace` is load-bearing and its absence costs nothing. MEASURED:
@@ -80,11 +82,10 @@ jobs:
       # this step counts what was examined instead of trusting that something
       # was.
       #
-      # TWO EXIT CODES ARE THE RUN HAPPENING. MEASURED: cargo-mutants exits 2
-      # when it found a mutant nothing caught, which is a finding rather than a
-      # failure of the alarm. Exit 0 is the other half — every mutant caught —
-      # and it is NOT measured here, because this tree has survivors today. Any
-      # other code is the alarm not working, and it stops the job.
+      # The typed report adapter owns the producer's exit-code and report
+      # contract. In particular, survivors are evidence debt and keep the alarm
+      # green after validation, while a timeout prints its full receipt and then
+      # leaves this step red because the outcome is uncertain.
       #
       # `-j 2` builds in two scratch directories at once. More would trade the
       # runner's disk for a speed this job does not need, since nothing waits on
@@ -92,37 +93,10 @@ jobs:
       - name: The mutation run
         run: |
           set +e
-          cargo mutants --workspace -j 2
+          cargo mutants --workspace -j 2 --output target/mutation-run
           code=$?
           set -e
-          if [ "$code" -ne 0 ] && [ "$code" -ne 2 ]; then
-            echo "::error::cargo-mutants exited ${code}; 0 and 2 are the run happening, and anything else is the alarm not working" >&2
-            exit 1
-          fi
-          report=target/mutants.out
-          for roster in caught missed timeout unviable; do
-            if [ ! -f "${report}/${roster}.txt" ]; then
-              echo "::error::${report}/${roster}.txt is not there; the run wrote no report, so nothing below is a measurement" >&2
-              exit 1
-            fi
-          done
-          caught=$(wc -l < "${report}/caught.txt")
-          missed=$(wc -l < "${report}/missed.txt")
-          timedout=$(wc -l < "${report}/timeout.txt")
-          unviable=$(wc -l < "${report}/unviable.txt")
-          examined=$((caught + missed + timedout + unviable))
-          echo "mutants examined: ${examined} — ${caught} caught, ${missed} survived, ${timedout} timed out, ${unviable} did not build"
-          if [ "$examined" -eq 0 ]; then
-            echo "::error::the run examined no mutant at all; the scope in .cargo/mutants.toml matches no source, and a scope that matches nothing is silent" >&2
-            exit 1
-          fi
-          if [ "$caught" -eq 0 ]; then
-            echo "::error::the run killed nothing; a mutation run that catches no mutant has not shown it can catch one, whatever it reports about the rest" >&2
-            exit 1
-          fi
-          echo "--- the finding: every mutant nothing caught ---"
-          cat "${report}/missed.txt"
-          echo "--- these are evidence debt, owed at the home of the source that carries them ---"
+          cargo xtask mutation-report run "$code" target/mutation-run/mutants.out
 
       # THE PLANTED REVERSAL. The step above establishes that the alarm worked
       # today. It cannot establish that its own guard bites, because a guard that
@@ -138,33 +112,24 @@ jobs:
       # seconds, because a run with nothing to test builds no baseline.
       #
       # WHAT THIS COVERS: that an empty scope really is silent, and that a run
-      # over one is distinguishable from a run over the real one by the number
-      # this job counts. What it does NOT cover: the counting itself is written
-      # in the step above and read here from its own copy of the same
-      # expressions, so a change made to one and not the other is caught by
-      # review and by nothing else. That is the same ceiling
-      # `deny-reversal.toml` admits about the step that runs it, and it closes
-      # the same way — when a hosted run publishes the roster of what it
-      # executed.
+      # over one is distinguishable from a run over the real one by the typed
+      # report contract both roads consume.
       - name: The planted reversal must examine nothing
+        if: always()
         run: |
           set +e
-          cargo mutants --workspace -e 'xtask/**' --output target/reversal
+          cargo mutants --workspace -e 'xtask/**' --output target/mutation-reversal
           code=$?
           set -e
-          if [ "$code" -ne 0 ]; then
-            echo "::error::cargo-mutants exited ${code} against the planted empty scope; the reversal did not run, so it establishes nothing" >&2
+          cargo xtask mutation-report reversal "$code" target/mutation-reversal/mutants.out
+
+      - name: The checkout remains clean
+        if: always()
+        run: |
+          dirty=$(git status --porcelain=v2 --untracked-files=all)
+          if [ -n "$dirty" ]; then
+            echo "::error::the mutation alarm changed Git-visible checkout bytes" >&2
+            printf '%s\n' "$dirty" >&2
             exit 1
           fi
-          report=target/reversal/mutants.out
-          examined=0
-          for roster in caught missed timeout unviable; do
-            if [ -f "${report}/${roster}.txt" ]; then
-              examined=$((examined + $(wc -l < "${report}/${roster}.txt")))
-            fi
-          done
-          if [ "$examined" -ne 0 ]; then
-            echo "::error::the planted empty scope examined ${examined} mutant(s); it is no longer wrong, so it proves nothing about the guard above" >&2
-            exit 1
-          fi
-          echo "the planted reversal examined nothing and exited 0: an empty scope is silent, which is why the run above counts"
+          echo "the mutation alarm left the Git-visible checkout clean"

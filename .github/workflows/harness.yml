@@ -78,37 +78,21 @@ jobs:
       - name: Install cargo-nextest
         run: cargo install cargo-nextest --version 0.9.132 --locked
 
-      # The positive control. `--workspace` is load-bearing here in the way it
-      # is load-bearing for cargo-deny, and its absence is silent. MEASURED on
-      # the pinned toolchain: without the flag the root package is the only one
-      # run — 183 tests rather than 533 — and both runs print the same shape of
-      # green summary and exit 0.
+      # The positive control. `--workspace` is load-bearing: without it, nextest
+      # runs only the root package rather than the workspace this job claims.
       #
-      # An empty run cannot pass this step. MEASURED on the pinned toolchain: a
-      # selection that matches no test prints `error: no tests to run` and exits
-      # 4, so a filter that stopped matching is a red rather than a green over
-      # nothing.
-      #
-      # One test in the tree is not in this population and the summary line says
-      # so — `1 test skipped`. It is `the_nextest_timeout_reversal`, the subject
-      # of the planted reversal below, and `.config/nextest.toml` names it beside
-      # the measurement that put both counts here.
+      # An empty selection refuses rather than reporting a green run over
+      # nothing. The ignored timeout subject is outside this positive run and is
+      # selected only by the reversal command below.
       - name: The second harness must pass
         run: cargo nextest run --locked --workspace
 
       # NO DOCTEST LEG HERE, AND THE ABSENCE IS A DECISION. `cargo nextest run`
-      # neither builds nor runs doctests, and this repository's three are
+      # neither builds nor runs doctests, and this repository's doctests are
       # load-bearing — which is exactly why nextest SUPPLEMENTS the entry bar's
       # `tests` stage rather than replacing it. That stage still runs `cargo test
-      # --locked --workspace`, on both hosts, and it executes the doctests as it
-      # always did. A `cargo test --doc` step here would be a third execution of
-      # a control the bar already runs twice, establishing nothing the bar does
-      # not, and this repository does not seat a claim twice.
-      #
-      # So this job's population is a STRICT SUBSET of the bar's, deliberately:
-      # 533 of the 536 the bar executes. The three it does not reach are named in
-      # `.config/nextest.toml`, with the measurement that put that number there.
-      # A reader comparing the summary lines is meant to find them different.
+      # --locked --workspace` and executes the doctests. A doctest leg here
+      # would duplicate that control rather than extend this alarm's claim.
 
       # THE PLANTED REVERSAL. The steps above establish that the tests hold
       # today; they cannot establish that the committed configuration is READ,
@@ -125,12 +109,6 @@ jobs:
       # nothing. Neither is a configuration key — MEASURED, and written down in
       # `.config/nextest.toml` beside the profile — which is why they are spelled
       # here and not there.
-      #
-      # THE PLANT THIS REPLACES was the elapsed runtime of an ordinary test, and
-      # this job is where that failed: the positive step above warms every
-      # compilation product a compile-fail fixture pays for, so the run that was
-      # supposed to be killed finished inside the second and exited 0. A margin
-      # is not a mechanism.
       #
       # THREE THINGS ARE REQUIRED, because no two of them are enough. nextest
       # exits non-zero for a usage error and for a configuration it could not
