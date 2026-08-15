@@ -28,9 +28,13 @@ const STRUCTURED_REPORT_BYTE_LIMIT: u64 = 67_108_864;
 /// Maximum bytes admitted from one line-oriented outcome roster.
 const ROSTER_BYTE_LIMIT: u64 = 16_777_216;
 
+/// The cargo-mutants report schema this adapter admits.
+const SUPPORTED_CARGO_MUTANTS_VERSION: &str = "27.0.0";
+
 /// The producer report fields `ThreadPak` consumes from cargo-mutants v27.
 #[derive(Deserialize)]
 struct LabOutcome {
+    outcomes: Vec<ScenarioOutcome>,
     total_mutants: usize,
     missed: usize,
     caught: usize,
@@ -45,6 +49,48 @@ struct LabOutcome {
 #[derive(Deserialize)]
 struct LockRecord {
     cargo_mutants_version: String,
+}
+
+/// One scenario observation in cargo-mutants v27's finalized report.
+#[derive(Deserialize)]
+struct ScenarioOutcome {
+    scenario: Scenario,
+    summary: SummaryOutcome,
+}
+
+/// Whether an observation is the baseline or one named mutant.
+#[derive(Deserialize)]
+enum Scenario {
+    Baseline,
+    Mutant(MutantRecord),
+}
+
+/// The stable producer spelling shared by JSON observations and text rosters.
+#[derive(Deserialize)]
+struct MutantRecord {
+    name: String,
+}
+
+/// cargo-mutants v27's closed scenario summary roster.
+#[derive(Clone, Copy, Deserialize)]
+enum SummaryOutcome {
+    CaughtMutant,
+    MissedMutant,
+    Timeout,
+    Unviable,
+    Success,
+    Failure,
+}
+
+/// Mutant identities derived from the per-scenario observations.
+struct ClassifiedOutcomes {
+    all: Vec<String>,
+    caught: Vec<String>,
+    missed: Vec<String>,
+    timeout: Vec<String>,
+    unviable: Vec<String>,
+    success: Vec<String>,
+    failure: Vec<String>,
 }
 
 /// Which hosted mutation claim is being admitted.
@@ -150,14 +196,14 @@ fn inspect(
     report_directory: &Path,
 ) -> Result<Inspection, String> {
     let producer_version = read_producer_version(report_directory)?;
-    let mutant_count = read_mutant_count(report_directory)?;
+    let mutant_inventory = read_mutant_inventory(report_directory)?;
     let rosters = read_rosters(report_directory)?;
     let (outcome, disposition) = match mode {
         ReportMode::Run => {
             let run_outcome = read_outcome(&report_directory.join("outcomes.json"))?
                 .ok_or_else(|| String::from("the mutation run wrote no outcomes.json"))?;
             validate_final_outcome(&run_outcome, &producer_version)?;
-            validate_counts(&run_outcome, &rosters)?;
+            validate_counts(&run_outcome, &mutant_inventory, &rosters)?;
             let run_disposition = validate_run(exit_code, &run_outcome)?;
             (Some(run_outcome), run_disposition)
         }
@@ -168,7 +214,7 @@ fn inspect(
                     "cargo-mutants v27 unexpectedly wrote outcomes.json for the planted empty scope",
                 ));
             }
-            validate_reversal(exit_code, mutant_count, &rosters)?;
+            validate_reversal(exit_code, mutant_inventory.len(), &rosters)?;
             (None, ReportDisposition::Accepted)
         }
     };
@@ -176,7 +222,7 @@ fn inspect(
         mode,
         &producer_version,
         outcome.as_ref(),
-        mutant_count,
+        mutant_inventory.len(),
         &rosters,
     )?;
     Ok(Inspection {
@@ -197,21 +243,25 @@ fn read_producer_version(report_directory: &Path) -> Result<String, String> {
     if lock.cargo_mutants_version.trim().is_empty() {
         return Err(String::from("lock.json carries no cargo-mutants version"));
     }
+    if lock.cargo_mutants_version != SUPPORTED_CARGO_MUTANTS_VERSION {
+        return Err(format!(
+            "unsupported cargo-mutants report version {}; expected {SUPPORTED_CARGO_MUTANTS_VERSION}",
+            lock.cargo_mutants_version
+        ));
+    }
     Ok(lock.cargo_mutants_version)
 }
 
-fn read_mutant_count(report_directory: &Path) -> Result<usize, String> {
+fn read_mutant_inventory(report_directory: &Path) -> Result<Vec<String>, String> {
     let mutants_path = report_directory.join("mutants.json");
     let mutants_text = read_utf8_bounded(&mutants_path, STRUCTURED_REPORT_BYTE_LIMIT)?;
-    let mutants: serde_json::Value = serde_json::from_str(&mutants_text)
-        .map_err(|source| format!("cannot decode {} as JSON: {source}", mutants_path.display()))?;
-    let Some(rows) = mutants.as_array() else {
-        return Err(format!(
-            "{} is not the cargo-mutants v27 mutant array",
+    let mutants: Vec<MutantRecord> = serde_json::from_str(&mutants_text).map_err(|source| {
+        format!(
+            "cannot decode {} as the cargo-mutants v27 mutant array: {source}",
             mutants_path.display()
-        ));
-    };
-    Ok(rows.len())
+        )
+    })?;
+    Ok(mutants.into_iter().map(|mutant| mutant.name).collect())
 }
 
 fn read_outcome(path: &Path) -> Result<Option<LabOutcome>, String> {
@@ -315,46 +365,135 @@ fn read_utf8_bounded(path: &Path, byte_limit: u64) -> Result<String, String> {
         .map_err(|source| format!("{} is not strict UTF-8: {source}", path.display()))
 }
 
-fn validate_counts(outcome: &LabOutcome, rosters: &Rosters) -> Result<(), String> {
-    compare_count("caught", outcome.caught, rosters.caught.len())?;
-    compare_count("missed", outcome.missed, rosters.missed.len())?;
-    compare_count("timeout", outcome.timeout, rosters.timeout.len())?;
-    compare_count("unviable", outcome.unviable, rosters.unviable.len())?;
-
-    let classified = [
+fn validate_counts(
+    outcome: &LabOutcome,
+    mutant_inventory: &[String],
+    rosters: &Rosters,
+) -> Result<(), String> {
+    let classified = classify_outcomes(&outcome.outcomes);
+    compare_count(
+        "total mutant population",
+        "outcomes.json total_mutants",
+        outcome.total_mutants,
+        "mutants.json records",
+        mutant_inventory.len(),
+    )?;
+    compare_count(
+        "observed mutant population",
+        "outcomes.json total_mutants",
+        outcome.total_mutants,
+        "per-scenario mutant observations",
+        classified.all.len(),
+    )?;
+    compare_count(
+        "caught",
+        "aggregate",
         outcome.caught,
+        "observed",
+        classified.caught.len(),
+    )?;
+    compare_count(
+        "missed",
+        "aggregate",
         outcome.missed,
+        "observed",
+        classified.missed.len(),
+    )?;
+    compare_count(
+        "timeout",
+        "aggregate",
         outcome.timeout,
+        "observed",
+        classified.timeout.len(),
+    )?;
+    compare_count(
+        "unviable",
+        "aggregate",
         outcome.unviable,
+        "observed",
+        classified.unviable.len(),
+    )?;
+    compare_count(
+        "success",
+        "aggregate",
         outcome.success,
-    ]
-    .into_iter()
-    .try_fold(0_usize, |subtotal, count| {
-        subtotal.checked_add(count).ok_or_else(|| {
-            String::from("cargo-mutants outcome counters overflowed while deriving the population")
-        })
-    })?;
-    if classified != outcome.total_mutants {
+        "observed",
+        classified.success.len(),
+    )?;
+    compare_records("mutant inventory", mutant_inventory, &classified.all)?;
+    compare_records("caught roster", &rosters.caught, &classified.caught)?;
+    compare_records("missed roster", &rosters.missed, &classified.missed)?;
+    compare_records("timeout roster", &rosters.timeout, &classified.timeout)?;
+    compare_records("unviable roster", &rosters.unviable, &classified.unviable)?;
+    if !classified.failure.is_empty() {
         return Err(format!(
-            "cargo-mutants classified {classified} of {} total mutants; the report contains an unclassified or inconsistent outcome",
-            outcome.total_mutants
+            "cargo-mutants emitted {} unclassified mutant failure observation(s)",
+            classified.failure.len()
         ));
     }
-    if outcome.success != 0 {
+    if !classified.success.is_empty() {
         return Err(format!(
             "cargo-mutants reported {} successful mutant outcome(s), which this run contract does not classify",
-            outcome.success
+            classified.success.len()
         ));
     }
     Ok(())
 }
 
-fn compare_count(role: &str, structured: usize, roster: usize) -> Result<(), String> {
-    if structured == roster {
+fn classify_outcomes(outcomes: &[ScenarioOutcome]) -> ClassifiedOutcomes {
+    let mut classified = ClassifiedOutcomes {
+        all: Vec::new(),
+        caught: Vec::new(),
+        missed: Vec::new(),
+        timeout: Vec::new(),
+        unviable: Vec::new(),
+        success: Vec::new(),
+        failure: Vec::new(),
+    };
+    for observation in outcomes {
+        let Scenario::Mutant(mutant) = &observation.scenario else {
+            continue;
+        };
+        classified.all.push(mutant.name.clone());
+        let destination = match observation.summary {
+            SummaryOutcome::CaughtMutant => &mut classified.caught,
+            SummaryOutcome::MissedMutant => &mut classified.missed,
+            SummaryOutcome::Timeout => &mut classified.timeout,
+            SummaryOutcome::Unviable => &mut classified.unviable,
+            SummaryOutcome::Success => &mut classified.success,
+            SummaryOutcome::Failure => &mut classified.failure,
+        };
+        destination.push(mutant.name.clone());
+    }
+    classified
+}
+
+fn compare_count(
+    role: &str,
+    first_seat: &str,
+    first: usize,
+    second_seat: &str,
+    second: usize,
+) -> Result<(), String> {
+    if first == second {
         Ok(())
     } else {
         Err(format!(
-            "cargo-mutants {role} count is {structured} in outcomes.json but {roster} in {role}.txt"
+            "cargo-mutants {role} is {first} in {first_seat} but {second} in {second_seat}"
+        ))
+    }
+}
+
+fn compare_records(role: &str, first: &[String], second: &[String]) -> Result<(), String> {
+    let mut first_sorted = first.to_vec();
+    let mut second_sorted = second.to_vec();
+    first_sorted.sort_unstable();
+    second_sorted.sort_unstable();
+    if first_sorted == second_sorted {
+        Ok(())
+    } else {
+        Err(format!(
+            "cargo-mutants {role} identities disagree across its structured and record surfaces"
         ))
     }
 }
@@ -479,13 +618,13 @@ mod tests {
 
         fn write_report(&self, report: &FixtureReport) -> Result<(), String> {
             let outcome = json!({
-                "outcomes": [],
+                "outcomes": report.scenario_outcomes(),
                 "total_mutants": report.total,
                 "missed": report.missed.len(),
                 "caught": report.caught.len(),
                 "timeout": report.timeout.len(),
                 "unviable": report.unviable.len(),
-                "success": report.success,
+                "success": report.success.len(),
                 "start_time": "2026-08-15T00:00:00Z",
                 "end_time": report.end_time,
                 "cargo_mutants_version": "27.0.0"
@@ -499,7 +638,16 @@ mod tests {
                 "lock.json",
                 br#"{"cargo_mutants_version":"27.0.0","start_time":"2026-08-15T00:00:00Z","hostname":"fixture","username":"fixture"}"#,
             )?;
-            self.write("mutants.json", b"[]")?;
+            let mutants = report
+                .mutant_names()
+                .into_iter()
+                .map(|name| json!({ "name": name }))
+                .collect::<Vec<_>>();
+            self.write(
+                "mutants.json",
+                serde_json::to_vec(&mutants)
+                    .map_err(|source| format!("cannot encode fixture mutants: {source}"))?,
+            )?;
             self.write("caught.txt", report.caught.join("\n"))?;
             self.write("missed.txt", report.missed.join("\n"))?;
             self.write("timeout.txt", report.timeout.join("\n"))?;
@@ -519,11 +667,41 @@ mod tests {
         missed: Vec<&'static str>,
         timeout: Vec<&'static str>,
         unviable: Vec<&'static str>,
-        success: usize,
+        success: Vec<&'static str>,
         end_time: Option<&'static str>,
     }
 
     impl FixtureReport {
+        fn mutant_names(&self) -> Vec<&str> {
+            self.caught
+                .iter()
+                .chain(&self.missed)
+                .chain(&self.timeout)
+                .chain(&self.unviable)
+                .chain(&self.success)
+                .copied()
+                .collect()
+        }
+
+        fn scenario_outcomes(&self) -> Vec<serde_json::Value> {
+            let mut outcomes = Vec::new();
+            Self::append_outcomes(&mut outcomes, &self.caught, "CaughtMutant");
+            Self::append_outcomes(&mut outcomes, &self.missed, "MissedMutant");
+            Self::append_outcomes(&mut outcomes, &self.timeout, "Timeout");
+            Self::append_outcomes(&mut outcomes, &self.unviable, "Unviable");
+            Self::append_outcomes(&mut outcomes, &self.success, "Success");
+            outcomes
+        }
+
+        fn append_outcomes(outcomes: &mut Vec<serde_json::Value>, names: &[&str], summary: &str) {
+            outcomes.extend(names.iter().map(|name| {
+                json!({
+                    "scenario": { "Mutant": { "name": name } },
+                    "summary": summary
+                })
+            }));
+        }
+
         fn run() -> Self {
             Self {
                 total: 3,
@@ -531,7 +709,7 @@ mod tests {
                 missed: vec!["survived one"],
                 timeout: Vec::new(),
                 unviable: Vec::new(),
-                success: 0,
+                success: Vec::new(),
                 end_time: Some("2026-08-15T00:01:00Z"),
             }
         }
@@ -543,7 +721,7 @@ mod tests {
                 missed: Vec::new(),
                 timeout: Vec::new(),
                 unviable: Vec::new(),
-                success: 0,
+                success: Vec::new(),
                 end_time: Some("2026-08-15T00:01:00Z"),
             }
         }
@@ -575,6 +753,31 @@ mod tests {
         assert_eq!(inspection.disposition, ReportDisposition::Accepted);
         assert!(inspection.receipt.contains("mutation.total=3"));
         assert!(inspection.receipt.contains("survived one"));
+        inspection.finish()
+    }
+
+    #[test]
+    fn a_successful_baseline_is_not_part_of_the_mutant_population() -> Result<(), String> {
+        let fixture = Fixture::new("baseline")?;
+        fixture.write_report(&FixtureReport::run())?;
+        let outcome_text = fs::read_to_string(fixture.root.join("outcomes.json"))
+            .map_err(|source| format!("cannot read fixture outcome: {source}"))?;
+        let mut outcome: serde_json::Value = serde_json::from_str(&outcome_text)
+            .map_err(|source| format!("cannot decode fixture outcome: {source}"))?;
+        let Some(outcomes) = outcome
+            .get_mut("outcomes")
+            .and_then(serde_json::Value::as_array_mut)
+        else {
+            return Err(String::from("fixture outcome has no scenario array"));
+        };
+        outcomes.insert(0, json!({ "scenario": "Baseline", "summary": "Success" }));
+        fixture.write(
+            "outcomes.json",
+            serde_json::to_vec(&outcome)
+                .map_err(|source| format!("cannot encode fixture outcome: {source}"))?,
+        )?;
+        let inspection = inspect(ReportMode::Run, 2, &fixture.root)?;
+        assert!(inspection.receipt.contains("mutation.total=3"));
         inspection.finish()
     }
 
@@ -636,10 +839,26 @@ mod tests {
     }
 
     #[test]
-    fn producer_version_disagreement_refuses() -> Result<(), String> {
-        let fixture = Fixture::new("version-disagreement")?;
+    fn unsupported_and_disagreeing_producer_versions_refuse() -> Result<(), String> {
+        let fixture = Fixture::new("unsupported-version")?;
         fixture.write_report(&FixtureReport::run())?;
         fixture.write("lock.json", br#"{"cargo_mutants_version":"28.0.0"}"#)?;
+        assert!(refusal(inspect(ReportMode::Run, 2, &fixture.root))?.contains("unsupported"));
+
+        fixture.write_report(&FixtureReport::run())?;
+        let outcome_text = fs::read_to_string(fixture.root.join("outcomes.json"))
+            .map_err(|source| format!("cannot read fixture outcome: {source}"))?;
+        let mut outcome: serde_json::Value = serde_json::from_str(&outcome_text)
+            .map_err(|source| format!("cannot decode fixture outcome: {source}"))?;
+        let Some(producer_version) = outcome.get_mut("cargo_mutants_version") else {
+            return Err(String::from("fixture outcome has no producer version"));
+        };
+        *producer_version = json!("28.0.0");
+        fixture.write(
+            "outcomes.json",
+            serde_json::to_vec(&outcome)
+                .map_err(|source| format!("cannot encode fixture outcome: {source}"))?,
+        )?;
         assert!(refusal(inspect(ReportMode::Run, 2, &fixture.root))?.contains("version differs"));
         Ok(())
     }
@@ -655,7 +874,7 @@ mod tests {
         let Some(object) = outcome.as_object_mut() else {
             return Err(String::from("fixture outcome is not an object"));
         };
-        object.remove("caught");
+        object.remove("outcomes");
         fixture.write(
             "outcomes.json",
             serde_json::to_vec(&outcome)
@@ -674,7 +893,11 @@ mod tests {
 
         fixture.write_report(&FixtureReport::run())?;
         fixture.write("caught.txt", b"caught one")?;
-        assert!(refusal(inspect(ReportMode::Run, 2, &fixture.root))?.contains("caught count"));
+        assert!(refusal(inspect(ReportMode::Run, 2, &fixture.root))?.contains("caught roster"));
+
+        fixture.write_report(&FixtureReport::run())?;
+        fixture.write("caught.txt", b"caught one\ncaught wrong")?;
+        assert!(refusal(inspect(ReportMode::Run, 2, &fixture.root))?.contains("caught roster"));
         Ok(())
     }
 
@@ -684,15 +907,68 @@ mod tests {
         let mut inconsistent = FixtureReport::run();
         inconsistent.total = 4;
         fixture.write_report(&inconsistent)?;
-        assert!(refusal(inspect(ReportMode::Run, 2, &fixture.root))?.contains("classified 3 of 4"));
+        assert!(
+            refusal(inspect(ReportMode::Run, 2, &fixture.root))?
+                .contains("total mutant population")
+        );
 
         let successful = FixtureReport {
             total: 4,
-            success: 1,
+            success: vec!["successful"],
             ..FixtureReport::run()
         };
         fixture.write_report(&successful)?;
         assert!(refusal(inspect(ReportMode::Run, 2, &fixture.root))?.contains("successful mutant"));
+        Ok(())
+    }
+
+    #[test]
+    fn candidate_and_observation_populations_must_reconcile() -> Result<(), String> {
+        let fixture = Fixture::new("candidate-mismatch")?;
+        fixture.write_report(&FixtureReport::run())?;
+        fixture.write(
+            "mutants.json",
+            br#"[{"name":"caught one"},{"name":"survived one"}]"#,
+        )?;
+        assert!(
+            refusal(inspect(ReportMode::Run, 2, &fixture.root))?
+                .contains("total mutant population")
+        );
+
+        fixture.write_report(&FixtureReport::run())?;
+        fixture.write(
+            "mutants.json",
+            br#"[{"name":"caught one"},{"name":"caught wrong"},{"name":"survived one"}]"#,
+        )?;
+        assert!(refusal(inspect(ReportMode::Run, 2, &fixture.root))?.contains("mutant inventory"));
+        Ok(())
+    }
+
+    #[test]
+    fn aggregate_and_per_scenario_classifications_must_reconcile() -> Result<(), String> {
+        let fixture = Fixture::new("classification-mismatch")?;
+        fixture.write_report(&FixtureReport::run())?;
+        let outcome_text = fs::read_to_string(fixture.root.join("outcomes.json"))
+            .map_err(|source| format!("cannot read fixture outcome: {source}"))?;
+        let mut outcome: serde_json::Value = serde_json::from_str(&outcome_text)
+            .map_err(|source| format!("cannot decode fixture outcome: {source}"))?;
+        let Some(first_outcome) = outcome
+            .get_mut("outcomes")
+            .and_then(serde_json::Value::as_array_mut)
+            .and_then(|outcomes| outcomes.first_mut())
+        else {
+            return Err(String::from("fixture outcome carries no scenario"));
+        };
+        let Some(summary) = first_outcome.get_mut("summary") else {
+            return Err(String::from("fixture scenario carries no summary"));
+        };
+        *summary = json!("MissedMutant");
+        fixture.write(
+            "outcomes.json",
+            serde_json::to_vec(&outcome)
+                .map_err(|source| format!("cannot encode fixture outcome: {source}"))?,
+        )?;
+        assert!(refusal(inspect(ReportMode::Run, 2, &fixture.root))?.contains("caught"));
         Ok(())
     }
 
