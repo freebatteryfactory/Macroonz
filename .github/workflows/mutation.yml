@@ -92,6 +92,7 @@ jobs:
       # it.
       - name: The mutation run
         run: |
+          mkdir -p target
           set +e
           cargo mutants --workspace -j 2 --output target/mutation-run
           code=$?
@@ -117,6 +118,7 @@ jobs:
       - name: The planted reversal must examine nothing
         if: always()
         run: |
+          mkdir -p target
           set +e
           cargo mutants --workspace -e 'xtask/**' --output target/mutation-reversal
           code=$?
