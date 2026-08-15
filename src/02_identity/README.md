@@ -100,6 +100,32 @@ trips `non_snake_case`, which the lint wall denies — no attribute suppresses
 anything, and two stamps naming one module in one file collide as a duplicate
 definition.
 
+The caller-coordinate re-export is the guard's canonical exported spelling.
+The caller's visibility appears there exactly once. The front grammar also
+transports the same reach one module into the private generated child: private
+and `self` become `super`, `super` gains one `super` segment, and absolute paths
+and `pub` keep their coordinate-independent meaning. The type and both methods
+carry that transported reach. Code already inside the authorized scope may name
+the generated child path, but no generated item is broad enough for a wider
+same-coordinate re-export, type alias, or public signature.
+
+The admitted direct-token population is Rust's private and public forms,
+`pub(self)`, `pub(super)`, `pub(crate)`, the equivalent `pub(in self)`,
+`pub(in super)`, and `pub(in crate)` forms, relative `super` chains, absolute
+`crate` paths, and an outer macro's coordinate-invariant `$crate` path. A whole
+visibility forwarded as a captured `$vis:vis` is opaque: the stamp refuses it
+instead of treating an unknown reach as crate-wide.
+
+Visibility selection does not duplicate the guard. One transcriber owns the
+type, private seat, and both methods; the front arms choose only the transported
+internal reach and the caller-coordinate re-export.
+The `@transcribe` arm follows the root register stamp's internal-arm precedent:
+Rust exports the arm, so a direct invocation is hand-authored authority over a
+new guard's two visibilities and is outside the front grammar's transport claim.
+It still cannot change an existing guard because the module or item name
+collides, and it cannot add a constructor or accessor because the shared body
+still contains the same private field and complete method set.
+
 The machine's production scope guards are stamped. Nine of them were tuple
 structs whose position field was `pub`, which is both a public constructor and a
 public accessor — so the road out the stamp refuses to emit was standing open
@@ -168,6 +194,18 @@ obligations:
     challenge_kind: compile-law
     green: laws.rs identity::a_stamped_scope_guard_matches_its_hand_written_twin
     red: testpak/tests/compile-fail/cross-scope-comparison-on-a-stamped-guard.rs
+  - id: identity.scope-guard-visibility-is-caller-relative
+    challenge_kind: compile-refusal
+    green: testpak/tests/scope_guard_visibility.rs
+    red: testpak/tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs
+  - id: identity.scope-guard-alias-cannot-widen
+    challenge_kind: compile-refusal
+    green: testpak/tests/scope_guard_alias_visibility.rs
+    red: testpak/tests/compile-fail/a-scope-guard-alias-cannot-widen-reach.rs
+  - id: identity.scope-guard-signature-cannot-widen
+    challenge_kind: compile-refusal
+    green: testpak/tests/scope_guard_signature_visibility.rs
+    red: testpak/tests/compile-fail/a-scope-guard-signature-cannot-widen-reach.rs
   - id: identity.admission-joins-creation-to-class
     challenge_kind: compile-refusal
     green: laws.rs identity::admission_joins_creation_to_class

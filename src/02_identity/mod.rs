@@ -98,13 +98,23 @@ pub use types::{
 /// that glob unused, which is a denied warning at the call site rather than
 /// anything silent.
 ///
-/// Both operations carry the caller's own `$vis`, so the road in and the
-/// comparison are reachable exactly as far as the role they serve and never one
-/// step further; the re-export carries it too, and it is the single gate on the
-/// type. `$vis` must reach at least the invoking module: a guard stamped with no
-/// visibility at all would be sealed inside a module nothing can name, so the
-/// proof surface's demonstration guard is stamped `pub(crate)`, which is the
-/// reach a bare private guard had before the seat moved.
+/// The caller's visibility is emitted once on the canonical re-export, at the
+/// coordinate where the caller wrote it. The front grammar separately moves
+/// that reach one level into the generated child: private and `self` become
+/// `super`, `super` gains one `super` segment, and absolute paths and `pub`
+/// remain absolute. The type and both methods carry that transported reach.
+/// Therefore a generated path can be named only from a scope already allowed
+/// by the caller; a same-coordinate re-export, alias, or signature cannot
+/// publish the guard farther. The child module itself stays private, so the
+/// caller-coordinate re-export remains the canonical exported spelling.
+///
+/// Direct source tokens cover Rust's private, `pub`, shorthand, relative
+/// `pub(in super::...)`, and absolute `pub(in ...)` families. An absolute path
+/// produced with an outer macro's `$crate` is preserved unchanged. A whole
+/// visibility first captured as `$vis:vis` by another macro is opaque to
+/// `macro_rules!`, so this stamp refuses it instead of guessing a reach; the
+/// wrapper must author the literal front syntax or explicitly own an internal
+/// transcriber call.
 ///
 /// # Where the stamp lives
 ///
@@ -112,6 +122,31 @@ pub use types::{
 /// Rust exports `macro_rules!` at the crate root; that placement is Rust's rule
 /// about macro namespacing and is not a root admission of a semantic noun — the
 /// stamp declares no type of its own and owns no meaning.
+///
+/// The `@transcribe` rule is the stamp's shared implementation arm, following
+/// the root `closed_register!` precedent; it is not the public front grammar.
+/// Because `macro_rules!` exports all arms together, Rust does not make that
+/// spelling private. A direct caller is hand-authoring both visibilities and
+/// therefore owns their relationship; the front grammar's exact-transport
+/// guarantee does not apply. The transcriber still owns one body with a private
+/// tuple field and exactly two methods, and a direct call cannot alter an
+/// existing guard because its generated module or item name collides. Rust also
+/// refuses a requested re-export that exceeds the hand-authored internal item.
+///
+/// A direct arm call that asks the re-export to exceed the internal reach is
+/// refused by rustc:
+///
+/// ```compile_fail
+/// # #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// # pub struct DemoScopeId;
+/// threadpak::scope_guard_version! {
+///     @transcribe
+///     [pub(crate)]
+///     [pub]
+///     /// No public re-export can widen this crate-confined item.
+///     struct TooWideVersion over DemoScopeId, seated in mod too_wide_version;
+/// }
+/// ```
 ///
 /// # The invocation
 ///
@@ -133,14 +168,140 @@ pub use types::{
 macro_rules! scope_guard_version {
     (
         $(#[$note:meta])*
-        $vis:vis struct $name:ident over $scope:ty, seated in mod $home:ident;
+        pub struct $name:ident over $scope:ty, seated in mod $home:ident;
+    ) => {
+        $crate::scope_guard_version! {
+            @transcribe
+            [pub]
+            [pub]
+            $(#[$note])*
+            struct $name over $scope, seated in mod $home;
+        }
+    };
+    (
+        $(#[$note:meta])*
+        pub(crate) struct $name:ident over $scope:ty, seated in mod $home:ident;
+    ) => {
+        $crate::scope_guard_version! {
+            @transcribe
+            [pub(crate)]
+            [pub(crate)]
+            $(#[$note])*
+            struct $name over $scope, seated in mod $home;
+        }
+    };
+    (
+        $(#[$note:meta])*
+        pub(self) struct $name:ident over $scope:ty, seated in mod $home:ident;
+    ) => {
+        $crate::scope_guard_version! {
+            @transcribe
+            [pub(super)]
+            [pub(self)]
+            $(#[$note])*
+            struct $name over $scope, seated in mod $home;
+        }
+    };
+    (
+        $(#[$note:meta])*
+        pub(super) struct $name:ident over $scope:ty, seated in mod $home:ident;
+    ) => {
+        $crate::scope_guard_version! {
+            @transcribe
+            [pub(in super::super)]
+            [pub(super)]
+            $(#[$note])*
+            struct $name over $scope, seated in mod $home;
+        }
+    };
+    (
+        $(#[$note:meta])*
+        pub(in self $(:: $relative:ident)*) struct $name:ident over $scope:ty,
+            seated in mod $home:ident;
+    ) => {
+        $crate::scope_guard_version! {
+            @transcribe
+            [pub(in super $(:: $relative)*)]
+            [pub(in self $(:: $relative)*)]
+            $(#[$note])*
+            struct $name over $scope, seated in mod $home;
+        }
+    };
+    (
+        $(#[$note:meta])*
+        pub(in super $(:: $relative:ident)*) struct $name:ident over $scope:ty,
+            seated in mod $home:ident;
+    ) => {
+        $crate::scope_guard_version! {
+            @transcribe
+            [pub(in super::super $(:: $relative)*)]
+            [pub(in super $(:: $relative)*)]
+            $(#[$note])*
+            struct $name over $scope, seated in mod $home;
+        }
+    };
+    (
+        $(#[$note:meta])*
+        pub(in crate $(:: $absolute:ident)*) struct $name:ident over $scope:ty,
+            seated in mod $home:ident;
+    ) => {
+        $crate::scope_guard_version! {
+            @transcribe
+            [pub(in crate $(:: $absolute)*)]
+            [pub(in crate $(:: $absolute)*)]
+            $(#[$note])*
+            struct $name over $scope, seated in mod $home;
+        }
+    };
+    (
+        $(#[$note:meta])*
+        pub(in $absolute:path) struct $name:ident over $scope:ty,
+            seated in mod $home:ident;
+    ) => {
+        $crate::scope_guard_version! {
+            @transcribe
+            [pub(in $absolute)]
+            [pub(in $absolute)]
+            $(#[$note])*
+            struct $name over $scope, seated in mod $home;
+        }
+    };
+    (
+        $(#[$note:meta])*
+        struct $name:ident over $scope:ty, seated in mod $home:ident;
+    ) => {
+        $crate::scope_guard_version! {
+            @capture_private
+            $(#[$note])*
+            struct $name over $scope, seated in mod $home;
+        }
+    };
+    (
+        @capture_private
+        $(#[$note:meta])*
+        $caller_vis:vis struct $name:ident over $scope:ty, seated in mod $home:ident;
+    ) => {
+        $crate::scope_guard_version! {
+            @transcribe
+            [pub(super)]
+            [$caller_vis]
+            $(#[$note])*
+            struct $name over $scope, seated in mod $home;
+        }
+    };
+    (
+        @transcribe
+        [$internal_vis:vis]
+        [$caller_vis:vis]
+        $(#[$note:meta])*
+        struct $name:ident over $scope:ty, seated in mod $home:ident;
     ) => {
         mod $home {
             use super::*;
 
             $(#[$note])*
             #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-            $vis struct $name($crate::identity::AuthorityPosition<$scope>);
+            $internal_vis struct $name($crate::identity::AuthorityPosition<$scope>);
 
             impl $name {
                 /// The one road in: read one position under this role.
@@ -151,7 +312,7 @@ macro_rules! scope_guard_version {
                 /// that could leave this role could be re-entered under another
                 /// one, and the role would have stopped being a wall.
                 #[must_use]
-                $vis fn positioned(
+                $internal_vis fn positioned(
                     position: $crate::identity::AuthorityPosition<$scope>,
                 ) -> Self {
                     Self(position)
@@ -165,7 +326,7 @@ macro_rules! scope_guard_version {
                 ///
                 /// Returns the `OrderComparison` family body when the two
                 /// positions do not share one scope.
-                $vis fn try_cmp_same_scope(
+                $internal_vis fn try_cmp_same_scope(
                     &self,
                     other: &Self,
                 ) -> ::core::result::Result<
@@ -177,6 +338,14 @@ macro_rules! scope_guard_version {
             }
         }
 
-        $vis use $home::$name;
+        $caller_vis use $home::$name;
+    };
+    (
+        $(#[$note:meta])*
+        $opaque_visibility:vis struct $name:ident over $scope:ty, seated in mod $home:ident;
+    ) => {
+        compile_error!(
+            "scope_guard_version! requires visibility tokens at its public front door; an opaque forwarded `vis` fragment cannot be transported one module deeper"
+        );
     };
 }

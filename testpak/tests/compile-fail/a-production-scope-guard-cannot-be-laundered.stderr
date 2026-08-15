@@ -7,8 +7,8 @@ error[E0423]: cannot initialize a tuple struct which contains private fields
 note: constructor is not visible here due to private fields
   --> $WORKSPACE/src/02_identity/mod.rs
    |
-   |               $vis struct $name($crate::identity::AuthorityPosition<$scope>);
-   |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |               $internal_vis struct $name($crate::identity::AuthorityPosition<$scope>);
+   |                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
    |
   ::: $WORKSPACE/src/11_navigation/types.rs
    |
@@ -20,7 +20,7 @@ note: constructor is not visible here due to private fields
    | |     pub struct FrameVersion over ReferenceFrameId, seated in mod frame_version;
    | | }
    | |_- in this macro invocation
-   = note: this error originates in the macro `crate::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+   = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `crate::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: you might have meant to use the `positioned` associated function
    |
 53 |         |position| threadpak::navigation::FrameVersion::positioned(position);

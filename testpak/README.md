@@ -76,6 +76,9 @@ discover it.
 | `tests/compile-fail/` | one fixture per discharged red twin |
 | `tests/independent_identity_transcript.rs` | the independent transcript lane: a second encoder, written from the published specification, re-deriving the services' own identities |
 | `tests/related_set_identity_levels.rs` | the layer above it: a second encoder re-deriving the CONTENT one mint site composes, and the postures a public reader can tell apart |
+| `tests/scope_guard_alias_visibility.rs` | every narrow direct-token grammar class receives a lawful same-reach type alias at two invocation depths |
+| `tests/scope_guard_signature_visibility.rs` | every narrow direct-token grammar class receives a lawful same-reach signature at two invocation depths |
+| `tests/scope_guard_visibility.rs` | every direct-token grammar class and equivalent spelling keeps both methods and permits a same-reach re-export at two invocation depths |
 | `tests/stamp_row_ceiling.rs` | the closed-register stamp's row ceiling, spent to its last position through the public export — the positive control whose reversal is the fixture beside it |
 
 ## `Unreadable` is a failure class with its own alarm
@@ -152,6 +155,9 @@ happened here, and both read as coverage until somebody compares the two.
 | `a-remainder-married-to-another-body.rs` | a completion belongs to the body it was minted with: the seats are private, so the cross-wired literal does not compile |
 | `a-rendering-taken-off-the-membership-only-draft.rs` | the frontage road is closed: the membership-only draft carries no rendering method at all |
 | `a-roster-past-the-stamp-ceiling.rs` | a declaration one row past the closed-register stamp's declared supply refuses with the STAMP'S OWN sentence, rather than dying against the compiler's recursion limit at a boundary nobody declared |
+| `a-scope-guard-alias-cannot-widen-reach.rs` | at two invocation depths, every narrow direct-token grammar class independently reaches `private_interfaces` when a type alias exceeds the guard's transported reach |
+| `a-scope-guard-reexport-cannot-widen-reach.rs` | at two invocation depths, every narrow direct-token grammar class independently refuses a same-coordinate wider re-export; direct uses cross each local and ancestor boundary, a public guard's generated child path stays private, and an opaque forwarded `vis` fragment refuses rather than being laundered through a fallback |
+| `a-scope-guard-signature-cannot-widen-reach.rs` | at two invocation depths, every narrow direct-token grammar class independently reaches `private_interfaces` when a signature exceeds the guard's transported reach |
 | `a-services-refusal-body-reseated-by-literal.rs` | a services refusal family body cannot be written as a literal from outside the crate, so a body one seam established cannot be reseated under another seam's refusal |
 | `a-stamped-representation-cannot-be-laundered.rs` | two stamped guards over ONE scope: taking role A's position out and re-entering it under role B does not compile, in either direction |
 | `a-truncation-count-with-no-truncation-behind-it.rs` | the truncation posture's bound and count are private, so a posture describing a truncation that never happened is not a value a caller can write |
