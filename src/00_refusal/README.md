@@ -87,11 +87,7 @@ the crate can build either half.
 and in the services.** Not this home's bodies and the tooling plane's six — all
 of them, the upper-band declaration families included. A family's body is one
 `AdmittedPrefix` seat read back through `issues()` and `posture()`, and the two
-seats those families used to spell are gone rather than deprecated. The
-population is DERIVED: `cargo xtask check`'s `collection-bodies-are-coupled`
-reads every `FamilyShape::IssueCollection` declaration off the sources and reads
-the seat each one declares, so a family added without the coupled seat is caught
-by the derivation rather than by anybody remembering a list. `laws.rs`
+seats those families used to spell are gone rather than deprecated. `laws.rs`
 `refusal::every_collection_family_carries_the_coupled_seat` is that claim's
 compile-time half, proving each family's reader pair.
 
@@ -209,68 +205,3 @@ a shared word is shared vocabulary, never a shared type.
 No seed roster of refusal triggers lives here: every trigger this home once
 listed as authoring seed has materialized as a family in its owner home, and
 what remains to be written is work-tracking, not specification.
-
-## Obligations
-
-```yaml
-home: 00_refusal
-obligations:
-  - id: refusal.envelope-is-family-generic
-    challenge_kind: compile-law
-    green: laws.rs refusal::envelope_is_family_generic
-    red: owed-to-testpak
-  - id: refusal.zero-issue-collection-unrepresentable
-    challenge_kind: compile-refusal
-    green: laws.rs refusal::issue_collections_are_nonempty_bounded
-    red: owed-to-testpak
-  - id: refusal.handling-carries-do-not-retry
-    challenge_kind: compile-law
-    green: structural (DoNotRetry is a declared row of HandlingClass, and
-      laws.rs refusal::publication_requires_an_admitted_family reads it back off
-      a published cause rather than off a literal beside itself)
-    red: owed-to-testpak
-  - id: refusal.selection-order-is-family-declared
-    challenge_kind: repository-structure
-    green: laws.rs refusal::selection_order_is_family_declared
-    red: owed-to-testpak
-  - id: refusal.posture-is-a-collection-instance-value
-    challenge_kind: compile-law
-    green: laws.rs refusal::posture_is_a_collection_instance_value
-    red: owed-to-testpak
-  - id: refusal.a-truncated-report-is-not-a-halted-examination
-    challenge_kind: compile-refusal
-    green: laws.rs refusal::a_truncated_report_is_not_a_halted_examination
-    red: testpak/tests/compile-fail/a-truncation-count-with-no-truncation-behind-it.rs
-  - id: refusal.a-halted-examination-couples-its-bound
-    challenge_kind: compile-law
-    green: laws.rs refusal::a_halted_examination_couples_its_bound
-    red: testpak/tests/compile-fail/a-remainder-married-to-another-body.rs
-  - id: refusal.every-collection-family-carries-the-coupled-seat
-    challenge_kind: repository-structure
-    green: laws.rs refusal::every_collection_family_carries_the_coupled_seat
-    red: testpak/tests/compile-fail/a-collection-body-assembled-from-parts.rs
-  - id: refusal.cause-identity-outlives-its-spelling
-    challenge_kind: compile-law
-    green: laws.rs refusal::cause_identity_outlives_its_spelling
-    red: owed-to-testpak
-  - id: refusal.cause-identity-is-a-family-and-a-local-key
-    challenge_kind: compile-refusal
-    green: laws.rs refusal::cause_identity_is_a_family_and_a_local_key
-    red: testpak/tests/compile-fail/a-cause-identity-cut-from-one-string.rs
-  - id: refusal.selection-order-projects-the-typed-order
-    challenge_kind: compile-law
-    green: laws.rs refusal::selection_order_projects_the_typed_order
-    red: owed-to-testpak
-  - id: refusal.admission-coverage-is-a-type-parameter
-    challenge_kind: compile-refusal
-    green: laws.rs refusal::admission_coverage_is_a_type_parameter
-    red: testpak/tests/compile-fail/an-admitted-family-minted-bare.rs
-  - id: refusal.order-admission-implies-shape-admission
-    challenge_kind: compile-refusal
-    green: laws.rs refusal::order_admission_implies_shape_admission
-    red: testpak/tests/compile-fail/a-weak-admission-at-a-strong-consumer.rs
-  - id: refusal.publication-requires-an-admitted-family
-    challenge_kind: compile-law
-    green: laws.rs refusal::publication_requires_an_admitted_family
-    red: owed-to-testpak
-```

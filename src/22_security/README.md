@@ -48,36 +48,3 @@ eight are law; any second roster is unowned, flagged). The
 release-projection default: refusal releases inherit the
 typed-redacted-diagnostic default posture — one answer, never a second per
 family (reconciling 20's length-disclosure flag).
-
-## Obligations
-
-```yaml
-home: 22_security
-obligations:
-  - id: security.lease-collects-the-banded-seat
-    challenge_kind: compile-law
-    green: laws.rs security::lease_collects_the_banded_seat
-    red: owed-to-testpak
-  - id: security.revocation-axes-stay-apart
-    challenge_kind: compile-law
-    green: laws.rs security::revocation_axes_stay_apart
-    red: owed-to-testpak — a fused observed/acknowledged token must not
-      compile
-  - id: security.shred-progress-never-collapses
-    challenge_kind: compile-law
-    green: laws.rs security::shred_progress_never_collapses
-    red: owed-to-testpak
-  - id: security.mechanism-standing-is-append-only
-    challenge_kind: compile-law
-    green: laws.rs security::mechanism_standing_is_append_only
-    red: owed-to-testpak — a mutable status enum must not exist
-  - id: security.secret-handle-refuses-the-morphism
-    challenge_kind: compile-refusal
-    green: laws.rs security::secret_handle_refuses_the_morphism
-    red: owed-to-testpak — Debug/Display/serde/Send on the handle must not
-      compile
-  - id: security.firewall-and-rosters-hold
-    challenge_kind: compile-law
-    green: laws.rs security::firewall_and_rosters_hold
-    red: owed-to-testpak
-```

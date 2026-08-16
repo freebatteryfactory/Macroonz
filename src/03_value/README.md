@@ -54,38 +54,3 @@ performing one owes its own disclosure row.
    live Rust-declaration frontend's names are already vetted by rustc, so no
    core home carries the heavy tables. A frontend that needs confusable
    detection carries it itself, on its own side of the declaration path.
-
-## Obligations
-
-```yaml
-home: 03_value
-obligations:
-  - id: value.absence-worlds-are-closed-and-six
-    challenge_kind: compile-law
-    green: laws.rs value::absence_worlds_are_closed_and_six
-    red: owed-to-testpak
-  - id: value.pre-authority-ladder-is-ordered
-    challenge_kind: compile-law
-    green: laws.rs value::pre_authority_ladder_is_ordered
-    red: owed-to-testpak
-  - id: value.inbound-path-has-eight-unmerged-stages
-    challenge_kind: compile-law
-    green: laws.rs value::inbound_path_has_eight_unmerged_stages
-    red: owed-to-testpak
-  - id: value.lossy-operations-stay-distinct
-    challenge_kind: compile-law
-    green: laws.rs value::lossy_operations_stay_distinct
-    red: owed-to-testpak
-  - id: value.bounded-text-carries-its-limit-family
-    challenge_kind: compile-refusal
-    green: laws.rs value::bounded_text_carries_its_limit_family
-    red: owed-to-testpak
-  - id: value.text-admission-roster-is-eight
-    challenge_kind: compile-law
-    green: laws.rs value::text_admission_roster_is_eight
-    red: owed-to-testpak
-  - id: value.no-universal-null-sentinel
-    challenge_kind: repository-structure
-    green: none — the type's nonexistence is the law
-    red: owed-to-xtask-and-testpak
-```

@@ -8,10 +8,9 @@
 //!
 //! That absence holds under test too. A compiler service never depends on its
 //! frontend surfaces, even for tests, so this crate carries no dev edge to the
-//! shell and no composition test of its own. Composition is proven from OUTSIDE
-//! the participants, by the consumer fixture at `xtask/fixtures/macro-consumer`,
-//! which depends on the machine and the shell and on neither of their internals.
-//! The `no-core-tooling-edge` gate enforces the absence.
+//! shell and no composition test of its own: composition is proven from outside
+//! the participants, by a consumer that depends on the machine and the shell and
+//! on neither of their internals.
 //!
 //! # The charter
 //!
@@ -59,11 +58,8 @@
 //! have read the dependency graph; there is no second place to look and nothing
 //! to keep in sync by hand.
 //!
-//! The rule is machine-enforced, not a convention: `cargo xtask check` runs
-//! `tooling-module-order`, which reads the declaration order out of this file,
-//! reads each module's `crate::` references out of its own source, and refuses
-//! any reference pointing later in the list. A cycle cannot survive that check,
-//! because a cycle always contains at least one backward-pointing edge.
+//! A cycle cannot hide in this order, because a cycle always contains at least
+//! one backward-pointing edge.
 //!
 //! The order is a straight line, not an accident of the alphabet. The formatter
 //! is told so — `reorder_modules = false` in `rustfmt.toml` — because a tool

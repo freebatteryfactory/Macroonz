@@ -35,32 +35,3 @@ not a live handle.
 The concrete exhaustive value enum lands with the executor machinery in this
 home's own machinery phase — the category roster, prohibited inhabitants,
 and residences are law now; the payloads need the arena types.
-
-## Obligations
-
-```yaml
-home: 17_pakvm
-obligations:
-  - id: pakvm.value-algebra-is-closed
-    challenge_kind: compile-law
-    green: laws.rs pakvm::value_algebra_is_closed
-    red: owed-to-testpak — an Any/host-object/function-pointer inhabitant
-      must not compile
-  - id: pakvm.live-handles-do-not-cross-threads
-    challenge_kind: compile-refusal
-    green: laws.rs pakvm::live_handles_do_not_cross_threads
-    red: owed-to-testpak — sending a handle across threads must not compile
-  - id: pakvm.continuation-record-binds-twelve
-    challenge_kind: compile-law
-    green: laws.rs pakvm::continuation_record_binds_twelve
-    red: owed-to-testpak — a live monotonic member must not compile
-  - id: pakvm.terminals-are-five-and-owned
-    challenge_kind: compile-law
-    green: laws.rs pakvm::terminals_are_five_and_owned
-    red: owed-to-testpak — a physical fact constructed by the executor must
-      not compile
-  - id: pakvm.captures-and-closure-obligations
-    challenge_kind: compile-law
-    green: laws.rs pakvm::captures_and_closure_obligations
-    red: owed-to-testpak
-```

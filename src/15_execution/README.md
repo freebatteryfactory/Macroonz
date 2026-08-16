@@ -44,36 +44,3 @@ The trust-boundary-widening disclosure profile family (the one place unsafe
 is even discussed) → 22 owns the law. The reference execution route and
 terminals → 17_pakvm. The image validation ladder and admission pipeline →
 16_image.
-
-## Obligations
-
-```yaml
-home: 15_execution
-obligations:
-  - id: execution.operator-register-holds-and-versions
-    challenge_kind: compile-law
-    green: laws.rs execution::operator_register_holds_and_versions
-    red: owed-to-testpak
-  - id: execution.form-family-holds-fifteen
-    challenge_kind: compile-law
-    green: laws.rs execution::form_family_holds_fifteen
-    red: owed-to-testpak
-  - id: execution.effect-batch-composes-as-data
-    challenge_kind: compile-law
-    green: laws.rs execution::effect_batch_composes_as_data
-    red: owed-to-testpak — a result or receipt member on EffectBatch must not
-      compile
-  - id: execution.recursion-witness-records-eleven
-    challenge_kind: compile-law
-    green: laws.rs execution::recursion_witness_records_eleven
-    red: owed-to-testpak
-  - id: execution.kernels-partition-not-duplicate
-    challenge_kind: compile-law
-    green: laws.rs execution::kernels_partition_not_duplicate
-    red: owed-to-testpak — literal construction of a binding-policy arm must
-      not compile
-  - id: execution.agreement-seam-lists-hold
-    challenge_kind: compile-law
-    green: laws.rs execution::agreement_seam_lists_hold
-    red: owed-to-testpak
-```

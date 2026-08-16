@@ -48,36 +48,3 @@ Terminal are non-Clone, non-serializable live handles (raw-pointer phantom);
 `AttemptReport` (sealing is not a phase; reconciliation is never a phase);
 `AttemptState` is only the persisted projection, re-entering live custody
 through validation, never construction.
-
-## Obligations
-
-```yaml
-home: 18_bvisor
-obligations:
-  - id: bvisor.admission-family-holds-fourteen
-    challenge_kind: compile-law
-    green: laws.rs bvisor::admission_family_holds_fourteen
-    red: owed-to-testpak
-  - id: bvisor.attempt-minting-is-admissions-alone
-    challenge_kind: compile-refusal
-    green: laws.rs bvisor::attempt_minting_is_admissions_alone
-    red: owed-to-testpak — an Attempt identity from any other route must not
-      compile
-  - id: bvisor.lifecycle-is-affine-and-sealed
-    challenge_kind: compile-law
-    green: laws.rs bvisor::lifecycle_is_affine_and_sealed
-    red: owed-to-testpak — resuming a terminal Attempt must not compile
-  - id: bvisor.reservation-has-one-home
-    challenge_kind: compile-law
-    green: laws.rs bvisor::reservation_has_one_home
-    red: owed-to-testpak — a conversion across the Attempt-existence line
-      must not compile
-  - id: bvisor.containment-is-two-coordinates
-    challenge_kind: compile-law
-    green: laws.rs bvisor::containment_is_two_coordinates
-    red: owed-to-testpak
-  - id: bvisor.port-crossing-binds
-    challenge_kind: compile-law
-    green: laws.rs bvisor::port_crossing_binds
-    red: owed-to-testpak
-```

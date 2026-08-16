@@ -23,8 +23,8 @@
 //!
 //! So the declaration sits in the `seat` module below, whose entire content is
 //! the body and the roads to it. The set of roads that reach this seat is now
-//! the module rather than the file, and `cargo xtask check`'s
-//! `seat-modules-carry-nothing-else` is what holds the module to that: a `seat`
+//! the module rather than the file, and the module keeps that shape by
+//! declaration: a `seat`
 //! module carries its one record and inherent implementations of it, and nothing
 //! else at all.
 //!

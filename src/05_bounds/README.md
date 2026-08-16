@@ -34,30 +34,3 @@ policy and rides this budget shape with its own dimension marker. The dimension
 roster — execution home, after the operator register. The widening morphism —
 authority and evidence homes. The 16 decode maxima — the bytes home instantiates
 them from these shapes.
-
-## Obligations
-
-```yaml
-home: 05_bounds
-obligations:
-  - id: bounds.classes-are-closed-and-seven
-    challenge_kind: compile-law
-    green: laws.rs bounds::classes_are_closed_and_seven
-    red: owed-to-testpak
-  - id: bounds.cross-domain-minimum-is-five
-    challenge_kind: compile-law
-    green: laws.rs bounds::cross_domain_minimum_is_five
-    red: owed-to-testpak
-  - id: bounds.budget-is-affine
-    challenge_kind: compile-refusal
-    green: laws.rs bounds::budget_is_affine
-    red: owed-to-testpak — cloning or copying a Budget must not compile
-  - id: bounds.charge-shrinks-or-refuses
-    challenge_kind: compile-law
-    green: laws.rs bounds::charge_shrinks_or_refuses
-    red: owed-to-testpak
-  - id: bounds.dimensions-do-not-unify
-    challenge_kind: compile-refusal
-    green: laws.rs bounds::dimensions_do_not_unify
-    red: owed-to-testpak — passing Budget<Work> where Budget<Effect> is required must not compile
-```

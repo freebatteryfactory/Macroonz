@@ -3,8 +3,8 @@
 //! # The lane, and which half of it lives here
 //!
 //! Lane C's method is `rustc` compiling the artifact and the test reading its
-//! trait constants back AS VALUES. The LAWFUL artifact's compiled seat is the
-//! consumer fixtures under `xtask/fixtures/`, and it has to be: the question
+//! trait constants back AS VALUES. The LAWFUL artifact's compiled seat is an
+//! outside consumer, and it has to be: the question
 //! "does a caller who holds the machine's types and wears the shell's derive
 //! actually compile?" cannot be answered from inside either participant.
 //!

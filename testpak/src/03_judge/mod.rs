@@ -29,9 +29,8 @@
 //! independent decoder: it parses by its own rules, with no anchor of ours in
 //! the path, and hands back typed values rather than substrings.
 //!
-//! The LAWFUL artifact's seat is the consumer-fixture parity tests at
-//! `xtask/fixtures/macro-consumer` and `xtask/fixtures/renamed-consumer`, which
-//! apply the shell's derive in crates owning neither participant and compare the
+//! The LAWFUL artifact's seat is outside consumer parity: crates owning
+//! neither participant apply the shell's derive and compare the
 //! derived `SHAPE`, `SELECTION_ORDER`, and `DECLARED_ORDER` against hand-written
 //! twins. The MUTANTS' seats are this package's `tests/compiled_behaviour.rs`: a
 //! mutant is this plane's own damage, so no participant is grading itself when

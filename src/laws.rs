@@ -519,12 +519,8 @@ mod root {
     /// fixture. It is a DRIFT DETECTOR over one side of the join, not a count:
     /// it sees families that are on the ladder and cannot see a seat that
     /// promises an inhabitant while its family stays off it. That second side
-    /// is a repository join over the sources, and
-    /// `cargo xtask check`'s `inhabitant-promising-limits-are-witnessed` is
-    /// where it is derived — the run prints the numerator over the denominator,
-    /// and the same reading refuses a terminal name two homes declare, because a
-    /// population that cannot say which family a seat named has no denominator
-    /// to count.
+    /// is a population question over the sources, and no law inside this crate
+    /// can state it.
     ///
     /// Red twin: minting a capacity for a family that never declared its
     /// magnitude evidence-selected must not compile —
@@ -1137,8 +1133,6 @@ mod refusal {
     /// law: refusal.selection-order-is-family-declared — a single-cause family
     /// declares a non-empty canonical selection order as machine-readable law; a
     /// collection family declares none.
-    /// Owed reversal: a single-cause family with an empty order must be refused by
-    /// the repository checks once the family↔order join lands in xtask.
     #[test]
     fn selection_order_is_family_declared() {
         assert!(!DemoSingle::SELECTION_ORDER.is_empty());
@@ -1369,13 +1363,9 @@ mod refusal {
     /// with the two exact signatures, and exposes no writable seat pair beside
     /// them. What it does NOT establish is that the seat's TYPE is
     /// `AdmittedPrefix` — a private field is unnameable from here — nor that
-    /// this list is the whole population. Both of those are the repository
-    /// join's, deriving the denominator from the sources rather than from a
-    /// list anybody maintains: `cargo xtask check`'s
-    /// `collection-bodies-are-coupled` enumerates every
-    /// `FamilyShape::IssueCollection` declaration in the workspace and reads the
-    /// declared body seat off each one. This law is the compile-time half and
-    /// that join is the completeness half, stated as such, because Rust cannot
+    /// this list is the whole population. Both of those are population
+    /// questions over the sources. This law is the compile-time half, stated as
+    /// such, because Rust cannot
     /// enumerate its own impls and a hand-kept count here would be exactly the
     /// inventory this repository bans.
     ///

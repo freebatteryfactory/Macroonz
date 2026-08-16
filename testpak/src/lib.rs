@@ -11,7 +11,7 @@
 //! The plane is a numbered waterfall of seats, mapped by `#[path]` exactly as
 //! the machine maps its bands, so a seat's number is visible in the tree and
 //! never in a module name. A seat holds a MODULE only once it holds something:
-//! the package README carries the full seat map, and each reserved seat's own
+//! the module declarations below are the source-home population, and each reserved seat's own
 //! directory carries one README stating its question, its filling condition, and
 //! its nonclaims. No module is declared at a reserved coordinate, so nothing
 //! here can reach one.

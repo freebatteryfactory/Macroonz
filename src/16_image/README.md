@@ -53,36 +53,3 @@ re-enters live use only through re-validation.
 ApplicationImage composition/interface/instance/lifecycle → 21 (this home
 owns the shared image-family packaging law). The invocation-admission
 authority-bound value, ExecutingAttempt, and the continuation record → 17/18/19.
-
-## Obligations
-
-```yaml
-home: 16_image
-obligations:
-  - id: image.identities-ride-scope-guards
-    challenge_kind: compile-refusal
-    green: laws.rs image::identities_ride_scope_guards
-    red: owed-to-testpak — cross-family/cross-profile compare must not typecheck
-  - id: image.component-roster-is-authored-nineteen
-    challenge_kind: compile-law
-    green: laws.rs image::component_roster_is_authored_nineteen
-    red: owed-to-testpak
-  - id: image.program-image-composes
-    challenge_kind: compile-law
-    green: laws.rs image::program_image_composes
-    red: owed-to-testpak
-  - id: image.validation-ladder-is-five-and-minted
-    challenge_kind: compile-refusal
-    green: laws.rs image::validation_ladder_is_five_and_minted
-    red: owed-to-testpak — literal construction of the two verifier-minted
-      rungs must not compile
-  - id: image.the-ladder-is-affine
-    challenge_kind: compile-refusal
-    green: structural (no rung derives Copy or Clone, so every road that takes a
-      rung by value consumes it)
-    red: testpak/tests/compile-fail/a-ladder-rung-cannot-be-duplicated.rs
-  - id: image.admission-pipeline-is-sixteen
-    challenge_kind: compile-law
-    green: laws.rs image::admission_pipeline_is_sixteen
-    red: owed-to-testpak
-```

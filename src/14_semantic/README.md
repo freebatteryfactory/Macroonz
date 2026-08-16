@@ -43,31 +43,3 @@ traversal spellings, ASK/DO/REQUEST/PEND lowering), the agreement seam, and
 `EffectBatch` → 15_execution. `ProgramImage`, the packaging profiles, the
 image identities, the validation ladder → 16_image. The closed value algebra,
 arenas, handles, terminals → 17_pakvm.
-
-## Obligations
-
-```yaml
-home: 14_semantic
-obligations:
-  - id: semantic.form-family-holds-fifteen
-    challenge_kind: compile-law
-    green: laws.rs semantic::form_family_holds_fifteen
-    red: owed-to-testpak
-  - id: semantic.judgment-binds-nine-axes
-    challenge_kind: compile-law
-    green: laws.rs semantic::judgment_binds_nine_axes
-    red: owed-to-testpak — an erasable axis must not compile
-  - id: semantic.behavior-and-boundary-rosters-hold
-    challenge_kind: compile-law
-    green: laws.rs semantic::behavior_and_boundary_rosters_hold
-    red: owed-to-testpak
-  - id: semantic.graph-digest-is-meaning
-    challenge_kind: compile-refusal
-    green: laws.rs semantic::graph_digest_is_meaning
-    red: owed-to-testpak — substituting a byte identity must not compile
-  - id: semantic.position-only-payloads
-    challenge_kind: compile-refusal
-    green: none — every issue payload is a canonical-order position; source
-      text is unrepresentable in the family
-    red: owed-to-testpak — a text-carrying payload must not compile
-```

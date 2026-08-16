@@ -15,8 +15,8 @@
 //! other item in that file inside the wall and leaves "did anybody write a road
 //! out?" as a whole-file audit. The body is therefore declared in the `seat`
 //! module below, whose entire content is that record and inherent
-//! implementations of it — held to exactly that by `cargo xtask check`'s
-//! `seat-modules-carry-nothing-else`.
+//! implementations of it and nothing else — the module is the complete set of
+//! roads that can reach the private seat.
 //!
 //! # What a private seat does and does not exclude
 //!
@@ -165,7 +165,7 @@ impl CompositionRoot {
     ///
     /// The order law applies: the provider set is keyed by provider identity,
     /// so nothing identity-bearing is derived from the order this yields — the
-    /// join xtask owes matches by identity, never by position.
+    /// join, when it lands, matches by identity, never by position.
     pub fn iter(&self) -> impl Iterator<Item = &DescriptorProvider> {
         self.providers.iter()
     }

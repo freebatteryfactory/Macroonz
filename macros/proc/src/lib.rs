@@ -46,7 +46,7 @@
 //!
 //! The services never depend on this crate, not even for tests, so the question
 //! "does a consumer wearing this derive actually compile?" is answered from
-//! outside both — by the consumer fixture at `xtask/fixtures/macro-consumer`.
+//! outside both, by a consumer crate owning neither participant.
 
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 use threadpak_macroc::{
@@ -85,7 +85,7 @@ use threadpak_macroc::{
 ///
 /// This crate carries no dependency on the machine, so the worked example —
 /// the derive applied, and its output proven equal to a hand-written twin —
-/// lives where a real consumer lives: `xtask/fixtures/macro-consumer`.
+/// belongs to an outside consumer, never to this crate.
 #[proc_macro_derive(RefusalFamily, attributes(refusal))]
 pub fn refusal_family(item: TokenStream) -> TokenStream {
     let mut spans: Vec<Span> = Vec::new();

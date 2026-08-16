@@ -48,38 +48,3 @@ mechanisms, capacity profiles, and the Stitch trait → this home's machinery
 phase. The calibration pair → 23. The concrete driver catalogue is host
 documentation: `DRIVER_INVARIANCE` and `DRIVER_MAY_CHANGE` carry the whole
 law, and no roster of driver names lives in core.
-
-## Obligations
-
-```yaml
-home: 19_runtime
-obligations:
-  - id: runtime.stitch-contract-and-driver-invariance
-    challenge_kind: compile-law
-    green: laws.rs runtime::stitch_contract_and_driver_invariance
-    red: owed-to-testpak
-  - id: runtime.turn-identity-quartet
-    challenge_kind: compile-law
-    green: laws.rs runtime::turn_identity_quartet
-    red: owed-to-testpak — a quartet merger must not compile
-  - id: runtime.attempt-lineage-is-message-passing
-    challenge_kind: compile-law
-    green: laws.rs runtime::attempt_lineage_is_message_passing
-    red: owed-to-testpak
-  - id: runtime.checkpoint-advances-only-on-prerequisites
-    challenge_kind: compile-law
-    green: laws.rs runtime::checkpoint_advances_only_on_prerequisites
-    red: owed-to-testpak
-  - id: runtime.effect-recovery-has-nine-axes
-    challenge_kind: compile-law
-    green: laws.rs runtime::effect_recovery_has_nine_axes
-    red: owed-to-testpak
-  - id: runtime.reconciliation-and-cancellation-axes
-    challenge_kind: compile-law
-    green: laws.rs runtime::reconciliation_and_cancellation_axes
-    red: owed-to-testpak — a disposition outside Complete must not compile
-  - id: runtime.delivery-and-bound-outcomes
-    challenge_kind: compile-law
-    green: laws.rs runtime::delivery_and_bound_outcomes
-    red: owed-to-testpak
-```

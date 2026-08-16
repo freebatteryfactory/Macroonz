@@ -27,10 +27,10 @@
 //! deleted.
 //!
 //! What stands in its place is structural. Each body is DECLARED in a `seat`
-//! module inside its home's `type_guard.rs`, and `cargo xtask check`'s
-//! `seat-modules-carry-nothing-else` holds that module to carrying the record
-//! and inherent implementations of it and nothing else — a question about item
-//! kinds, resolving nothing. So the set of code that can reach a private seat is
+//! module inside its home's `type_guard.rs`, whose entire content is that
+//! record and inherent implementations of it and nothing else — the module is
+//! the complete set of roads to the private seat.
+//! So the set of code that can reach a private seat is
 //! a module read in one screen rather than a file of dozens of types, and every
 //! road outside it is `E0451` or `E0616` from the compiler.
 //!

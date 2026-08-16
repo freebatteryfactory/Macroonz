@@ -8,45 +8,25 @@ derive works" is not one.
 
 The dependency direction is the whole point. testpak depends inward — on
 `threadpak`, on `threadpak-macroc`, and on `threadpak-macros` — and **nothing
-depends on testpak**. Production never depends on its judge, and the
-`no-core-tooling-edge` check enforces that absence at the root manifest under
-every Cargo edge kind, with planted reversals proving the check can fail.
+depends on testpak**. Production never depends on its judge.
 
 It is a workspace member and never published: it is dev-and-qualification
 material, first-class, and never on the production dependency path.
 
-## The seat map, and what actually occupies it
+## Seat coordinates
 
 The plane is a numbered waterfall of seats, mapped by `#[path]` exactly as the
 machine maps its bands: the number is visible in the tree and never in a module
-name. **A seat exists only once it holds something.** No empty directory stands
-here to make the tree look complete, and this table is the honest occupancy
-rather than a plan restated as a structure.
+name. **A seat exists only once it holds something.** The module declarations in
+`src/lib.rs` are the source-home population; a reserved coordinate's own README
+states that it is empty. Any assembled summary must derive from those owners
+rather than maintain another occupancy roster here.
 
-Nine seats are foreseen. Four are occupied, and the four that are occupied are
-seated where their content actually is — two as source homes, two as test
-suites, because cargo requires executable challenge material to live under
-`tests/` and moving it elsewhere would be arranging the tree against the tool.
-
-| Seat | Name | Occupancy |
-| ---- | ---- | --------- |
-| 00 | plan | **seated as `src/00_plan/`** — the denominators a verdict is stated over |
-| 01 | corpus | reserved — `src/01_corpus/README.md` states the question, the filling condition, and the nonclaims |
-| 02 | arena | reserved — `src/02_arena/README.md` states the question, the filling condition, and the nonclaims |
-| 03 | judge | **seated as `src/03_judge/`** — the readers that state a verdict over a rendered artifact: lane A in `byte_profile.rs`, lane B in `structural.rs`, the damage in `mutation.rs`, everything they may say in `types.rs` |
-| 04 | simulation | reserved — `src/04_simulation/README.md` states the question, the filling condition, and the nonclaims |
-| 05 | fault | reserved — `src/05_fault/README.md` states the question, the filling condition, and the nonclaims |
-| 06 | muterprater | **seated as `tests/planted_defect.rs`, `tests/failed_seat_refusals.rs`, `tests/declared_magnitudes.rs`, and `tests/compiled_behaviour.rs`** — the mutation seat: the damaged artifacts and the proof each lane notices what it owns, the killed repairs restored one at a time, the declared magnitudes driven both directions, and the two mutants that need a compiler |
-| 07 | conformance | **seated as `tests/compile_refusals.rs` + `tests/compile-fail/`** — the compile-refusal suite, run through trybuild; as `tests/stamp_row_ceiling.rs`, the positive control the last of those fixtures is the reversal of; and as `tests/independent_identity_transcript.rs` and `tests/related_set_identity_levels.rs`, the two independent-encoder lanes |
-| 08 | evidence | reserved — `src/08_evidence/README.md` states the question, the filling condition, and the nonclaims |
-
-The five reserved names restore the plane's original nine-seat design; they were
-placed on this map by decision, not authored to fill it. **A reserved name fixes the
-intended question of a seat. It does not claim that the seat exists, has an
-owner implementation, or has satisfied admission** — name reserved ≠ home
-materialized ≠ implementation admitted ≠ qualification established. Content that
-does not fit its reserved name comes back for an explicit decision instead of
-being normalized into the nearest drawer.
+**A reserved name fixes the intended question of a seat. It does not claim that
+the seat exists, has an owner implementation, or has satisfied admission** —
+name reserved ≠ home materialized ≠ implementation admitted ≠ qualification
+established. Content that does not fit its reserved name comes back for an
+explicit decision instead of being normalized into the nearest drawer.
 
 Each reserved seat is a directory carrying exactly one file: a README stating the
 seat's question, that its state is reserved, that it currently contains nothing,
@@ -54,32 +34,8 @@ the exact condition that would fill it, and what the reservation explicitly does
 not claim. That is a coordinate carrying its own honest specification, and it is
 the opposite of an empty directory dressed up to look occupied. **No `mod.rs`, no
 type, no API, and no obligation row stands for a reserved seat** — `lib.rs`
-declares no module at any of these five coordinates, so nothing in this package
-can reach one, and the map says so out loud rather than leaving a reader to
-discover it.
-
-| Path | What it carries |
-| --- | --- |
-| `src/00_plan/` | `RedTwinLedger`: expected against discharged, with no road past the denominator |
-| `src/03_judge/types.rs` | everything the seat can say: both verdicts, everything lane B recovers, what a caller declares against, and the fifteen-mutation roster |
-| `src/03_judge/type_contract.rs` | the roster's closed tables: which lane owns catching each mutation, and the sentence each one is shown as |
-| `src/03_judge/byte_profile.rs` | lane A: the three exact anchors and the readers that scan for them |
-| `src/03_judge/structural.rs` | lane B: the walk over the tree `syn` hands back, and the coarse-to-fine comparison against the caller's declaration |
-| `src/03_judge/mutation.rs` | the damage itself: string surgery that makes a lawful artifact lie |
-| `src/laws.rs` | the plane's own compile-time proof surface, sectioned by seat |
-| `tests/planted_defect.rs` | the planted defective expansion, the proof the checker notices, and the rehearsed false alarm |
-| `tests/failed_seat_refusals.rs` | each repair the failure-path law killed, restored by this plane and shown to be about another subject |
-| `tests/declared_magnitudes.rs` | the four magnitudes a captured input stands under, both directions each, and the killed depth-and-index coordinate restored |
-| `tests/compiled_behaviour.rs` | lane C's mutant seats: the materialized artifacts, their verified provenance, and the constants read back as values |
-| `tests/compiled-mutant/` | the materialized artifacts lane C compiles — checked in, provenance stated and verified |
-| `tests/compile_refusals.rs` | the trybuild runner over the compile-fail fixtures |
-| `tests/compile-fail/` | one fixture per discharged red twin |
-| `tests/independent_identity_transcript.rs` | the independent transcript lane: a second encoder, written from the published specification, re-deriving the services' own identities |
-| `tests/related_set_identity_levels.rs` | the layer above it: a second encoder re-deriving the CONTENT one mint site composes, and the postures a public reader can tell apart |
-| `tests/scope_guard_alias_visibility.rs` | every narrow direct-token grammar class receives a lawful same-reach type alias at two invocation depths |
-| `tests/scope_guard_signature_visibility.rs` | every narrow direct-token grammar class receives a lawful same-reach signature at two invocation depths |
-| `tests/scope_guard_visibility.rs` | every direct-token grammar class and equivalent spelling keeps both methods and permits a same-reach re-export at two invocation depths |
-| `tests/stamp_row_ceiling.rs` | the closed-register stamp's row ceiling, spent to its last position through the public export — the positive control whose reversal is the fixture beside it |
+declares no module at those coordinates, so nothing in this package can reach
+one.
 
 ## `Unreadable` is a failure class with its own alarm
 
@@ -126,141 +82,14 @@ The judge does not ask the services what the declared order was. It states the
 order itself, beside the declaration it wrote, so the comparison is between two
 independent statements rather than between a value and itself.
 
-## The compile-fail fixtures
-
-trybuild covers compile refusals only — one challenge kind among several, never
-the universal one. Each fixture here discharges a red twin some green law names,
-and this table is the DIRECTORY: every `.rs` file under `tests/compile-fail/`,
-in the order the directory sorts. Reading it against a listing is how a row that
-outlived its file, or a file that never got a row, becomes visible — both have
-happened here, and both read as coverage until somebody compares the two.
-
-| Fixture | The reversal it proves |
-| --- | --- |
-| `a-cause-identity-cut-from-one-string.rs` | a cause identity is the pair of a family and a local key, so the retired string road — one literal cut by convention — does not compile |
-| `a-closed-expansion-without-a-closure.rs` | the only constructor of a receipt is crate-internal, so the plan, the origin graph, the trace, the invalidation set, the explanation, and the closure are all seats a caller cannot omit — they are arguments to a function nobody outside can call |
-| `a-closure-minted-without-proving.rs` | every field of the proof is private and `proved` is the only road to one, so a closure assembled field by field does not compile |
-| `a-collection-body-assembled-from-parts.rs` | a collection-shaped family body is ONE seat, so a caller cannot put one together out of a loose carry and a loose posture — both values below are real, and the record has no seat for either |
-| `a-cross-profile-admission.rs` | the admission witness says which plane admitted the family, so a magnitude admitted under one plane's ceiling does not reach a seat declaring another's; the profile rides as a type parameter and no coercion joins the two |
-| `a-discarded-refusal.rs` | the semantic `#[must_use]`'s bite, executed rather than asserted: an established refusal discarded as a statement fails the build, and the message the attribute carries is what the caller is shown |
-| `a-ladder-rung-cannot-be-duplicated.rs` | the image ladder is affine in the types and not only in its prose: five rungs and two duplication traits are TEN facts, and the fixture asks all ten as bounds, with nothing constructed |
-| `a-magnitude-past-the-authoring-ceiling.rs` | a family declaring a magnitude past the AUTHORING plane's ceiling stops the compiler during const evaluation, so no artifact carrying it is ever produced |
-| `a-malformed-refusal-declaration-refuses.rs` | a shape word outside the machine's roster reaches the compiler as a refusal, not as a silent empty expansion |
-| `a-materialized-malformed-mutant.rs` | lane C's `MalformedRust` seat: the mutated artifact text, checked in with its provenance stated, does not compile |
-| `a-past-ceiling-family-cannot-mint-a-positive-limit.rs` | the stronger witness refuses a past-ceiling family with the BASE witness's own diagnostic, because the base mint is what ran — which is what makes the composition falsifiable rather than a restated assertion |
-| `a-post-proof-join-outside-the-closure.rs` | joining the rendered units is crate-internal with one caller — the proof — so there is no public road to a joined tree outside it |
-| `a-production-scope-guard-cannot-be-laundered.rs` | representation privacy on a guard the machine SHIPS, not only on roles a fixture stamps for itself: from outside the crate, `FrameVersion(position)` and `version.0` each refuse on their own. That the guard has no road OUT is not this file's claim and cannot be — it is structural instead: the stamp seats the guard in a module it writes whole, so the complete set of roads out is the expansion and rustc refuses every other one |
-| `a-related-set-assembled-from-two-levels.rs` | a related set is built from issue MATERIAL and never from identities somebody already derived: the road taking a whole-body commitment beside a set of per-issue identities is not expressible |
-| `a-related-set-married-to-another-completion.rs` | a completion belongs to the set it was built beside: the seats are private, so the cross-wired literal does not compile |
-| `a-remainder-married-to-another-body.rs` | a completion belongs to the body it was minted with: the seats are private, so the cross-wired literal does not compile |
-| `a-rendering-taken-off-the-membership-only-draft.rs` | the frontage road is closed: the membership-only draft carries no rendering method at all |
-| `a-roster-past-the-stamp-ceiling.rs` | a declaration one row past the closed-register stamp's declared supply refuses with the STAMP'S OWN sentence, rather than dying against the compiler's recursion limit at a boundary nobody declared |
-| `a-scope-guard-alias-cannot-widen-reach.rs` | at two invocation depths, every narrow direct-token grammar class independently reaches `private_interfaces` when a type alias exceeds the guard's transported reach |
-| `a-scope-guard-reexport-cannot-widen-reach.rs` | at two invocation depths, every narrow direct-token grammar class independently refuses a same-coordinate wider re-export; direct uses cross each local and ancestor boundary, a public guard's generated child path stays private, and an opaque forwarded `vis` fragment refuses rather than being laundered through a fallback |
-| `a-scope-guard-signature-cannot-widen-reach.rs` | at two invocation depths, every narrow direct-token grammar class independently reaches `private_interfaces` when a signature exceeds the guard's transported reach |
-| `a-services-refusal-body-reseated-by-literal.rs` | a services refusal family body cannot be written as a literal from outside the crate, so a body one seam established cannot be reseated under another seam's refusal |
-| `a-stamped-representation-cannot-be-laundered.rs` | two stamped guards over ONE scope: taking role A's position out and re-entering it under role B does not compile, in either direction |
-| `a-truncation-count-with-no-truncation-behind-it.rs` | the truncation posture's bound and count are private, so a posture describing a truncation that never happened is not a value a caller can write |
-| `a-weak-admission-at-a-strong-consumer.rs` | the weaker coverage does not stand in for the stronger one; carried as a type parameter, the substitution has no expression at all |
-| `a-zero-maximum-family-cannot-mint-a-positive-limit.rs` | a family declaring `MAX = 0` is admitted by the base witness one line above and refused by the positive one one line below — the split is honest only because the strong mint actually refuses here |
-| `an-admitted-family-minted-bare.rs` | band 00's family-admission witness carries two private seats, so the forged literal does not compile |
-| `an-admitted-role-minted-bare.rs` | band 02's role-admission witness carries two private seats, so the forged literal does not compile |
-| `an-outside-identity-subject.rs` | the identity-subject roster is closed by a seal whose only mint is crate-internal, and the constant it demands has no default; both roads out of the roster refuse |
-| `cross-frame-comparison-on-a-production-guard.rs` | `left < right` and `left.cmp(right)` on two frames' versions do not compile, which leaves `try_cmp_same_scope` as the only road to an ordering and makes the cross-frame answer that road's typed refusal |
-| `cross-scope-comparison-on-a-stamped-guard.rs` | two stamped scope guards over different scopes are different types; comparing them does not compile |
-| `singleton-under-a-zero-maximum-family.rs` | `NonEmptyBounded::singleton` under a limit family declaring `MAX = 0` does not compile |
-
-## Owed, and counted out loud
-
-The great majority of the red twins the green laws name are still owed. The
-`red:` rows in every home README are the ledger, and `cargo xtask check` prints
-the denominator on every run — `red twins: N discharged / M owed` — so the
-accounting is visible rather than inferred, and a shrinking numerator has
-nowhere to hide. A row spelled `owed-to-…` is a lawful debt; a row NAMING a
-reversal must resolve to a file in this directory, and the check refuses it if
-it does not.
-
-This directory is where those reversals land, and it is nearly empty. Also
-owed: the hostile corpora (permutation, determinism, and ambient-pathway
-hostiles the services' own docs name), and the mutation machinery beyond the one
-planted defect. Sequenced, not deferred.
-
-## Tooling qualification obligations
-
-A verdict about a TOOL is not a verdict about the machine, and the two
-denominators are never added. Each block binds the claim, the owner, the
-positive control, the reversal, the activation route, the method, and the
-nonclaims.
-
-```yaml
-tooling-obligation: testpak.lane-a-catches-what-lane-a-owns
-  claim: >
-    The byte-profile scan catches every mutation whose ownership it is recorded
-    as holding, and the lawful artifact passes it.
-  owner: testpak/src/03_judge/byte_profile.rs
-  positive: testpak/tests/planted_defect.rs
-  method: mutation
-  activation: cargo test -p threadpak-testpak --test planted_defect
-  tooling-red: testpak/tests/planted_defect.rs
-  nonclaims: >
-    It claims nothing structural. A decoy in a comment and an unplanned output
-    are both invisible to it, and the same test asserts that they are.
-
-tooling-obligation: testpak.the-anchor-alarm-is-rehearsed
-  claim: >
-    A lawful artifact whose anchored form has shifted reads as `Unreadable`, and
-    the unshifted control conforms first — so the alarm is known to sound before
-    anyone has to interpret one.
-  owner: testpak/src/03_judge/types.rs
-  positive: testpak/tests/planted_defect.rs
-  method: mutation
-  activation: cargo test -p threadpak-testpak --test planted_defect
-  tooling-red: testpak/tests/planted_defect.rs
-  nonclaims: >
-    It does not claim the anchor is stable across renderer changes; it claims the
-    opposite, and fixes the response.
-
-tooling-obligation: testpak.lane-b-structural-reader
-  claim: >
-    An independent parse of the rendered artifact recovers what it DECLARES —
-    implementation target, trait path, how the implementation is written, the
-    attributes it carries, every member it carries, the constructor paths its
-    values are built through, body shape, cause rows in order, output
-    cardinality, duplicate items, unplanned items — and catches every one of the
-    nine mutations the ownership ledger records as structural, while the lawful
-    artifact conforms.
-  owner: testpak/src/03_judge/structural.rs
-  positive: testpak/tests/planted_defect.rs
-  method: structural-read
-  activation: cargo test -p threadpak-testpak --test planted_defect
-  tooling-red: testpak/tests/planted_defect.rs
-  nonclaims: >
-    It claims nothing about compilation. Not that the artifact typechecks, not
-    that its paths resolve, not that the trait it names exists, not that any
-    constant evaluates to the value its spelling suggests. A wrong trait path
-    reads as a different path than the one declared, never as no such contract.
-
-tooling-obligation: testpak.lane-c-compiles-the-mutants-it-owns
-  claim: >
-    Both mutations the ownership ledger records as compiled behaviour have a
-    compiled seat: the malformed artifact is handed to `rustc` and fails to
-    compile, the shape-altered artifact compiles and its trait constants read
-    back as VALUES disagreeing with the shape this plane declares, and the
-    lawful artifact compiled the same way reads back as declared. Every
-    materialized artifact's provenance is re-derived on every run.
-  owner: testpak/src/03_judge/type_contract.rs
-  positive: testpak/tests/compiled_behaviour.rs
-  method: compiled-behaviour
-  activation: cargo test -p threadpak-testpak --test compiled_behaviour
-  tooling-red: testpak/tests/compiled_behaviour.rs
-  nonclaims: >
-    It does not claim the LAWFUL artifact composes for an outside consumer; that
-    is the consumer fixtures' claim, made from outside both participants, and a
-    materialized text compiled inside the judge does not stand in for it. It does
-    not claim the mutants are the only ones `rustc` would catch.
-```
-
 ## The three lanes, and what each one may claim
+
+```mermaid
+flowchart TD
+    ART["one rendered artifact"] --> A["Lane A — byte-profile scan: exact declared text, nothing structural"]
+    ART --> B["Lane B — structural read through syn: declared items and members, no compile claim"]
+    ART --> C["Lane C — compiled behaviour through rustc: trait constants read back as values"]
+```
 
 **Lane A — the byte-profile scan** (`src/03_judge/byte_profile.rs`). Its claim
 is exactly *the rendered text contains this exact declared textual form* and
@@ -279,8 +108,7 @@ an item nobody planned come along, was one emitted twice. It answers those by
 parsing the text with a parser nobody here wrote, and it claims nothing about
 whether any of it compiles.
 
-**Lane C — compiled behaviour** (`xtask/fixtures/macro-consumer`,
-`xtask/fixtures/renamed-consumer`, `tests/compiled_behaviour.rs`). `rustc`
+**Lane C — compiled behaviour** (`tests/compiled_behaviour.rs`). `rustc`
 compiles the artifact and the tests read its trait constants as VALUES. The
 LAWFUL artifact's seat is the consumer fixtures, and it has to be: they compare
 the derived implementation against hand-written twins from outside both

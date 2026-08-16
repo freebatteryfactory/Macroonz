@@ -29,28 +29,3 @@ success: missing · pending · unavailable · unauthorized · invalid · refused
 shredded · outcome-unknown. Missing acknowledgement proves nothing and authorizes
 no retry. Two-variant results are lawful only for questions decidable-total from
 data in hand (the gate is stated at the crate root; cited, not restated).
-
-## Obligations
-
-```yaml
-home: 01_logic
-obligations:
-  - id: logic.truth-tables-cell-for-cell
-    challenge_kind: compile-law
-    green: laws.rs logic::truth_tables_cell_for_cell
-    red: owed-to-testpak
-  - id: logic.pending-cannot-hide-known-failure
-    challenge_kind: compile-law
-    green: laws.rs logic::pending_cannot_hide_known_failure
-    red: owed-to-testpak
-  - id: logic.double-negation-is-identity
-    challenge_kind: compile-law
-    green: laws.rs logic::double_negation_is_identity
-    red: owed-to-testpak
-  - id: logic.decision-is-not-truth
-    challenge_kind: compile-refusal
-    green: structural (Decision and Truth are two enum declarations, so no value
-      of one inhabits the other; the deleted law restated that by matching each
-      against the variant it had just written)
-    red: owed-to-testpak — a From impl in either direction must not compile
-```

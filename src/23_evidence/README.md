@@ -52,39 +52,3 @@ is already owner-parameterized here), the permanent hostile families
 without its named morphism), the two named closures (adapter postcondition
 profile matrix; end-to-end completion and reopening rule), and the arena
 self-attack law.
-
-## Obligations
-
-```yaml
-home: 23_evidence
-obligations:
-  - id: evidence.verification-is-a-tuple-not-a-ladder
-    challenge_kind: compile-law
-    green: laws.rs evidence::verification_is_a_tuple_not_a_ladder
-    red: owed-to-testpak — a flattened status enum must not exist
-  - id: evidence.coverage-is-unordered
-    challenge_kind: compile-refusal
-    green: laws.rs evidence::coverage_is_unordered
-    red: owed-to-testpak — deriving Ord on Coverage must not compile
-  - id: evidence.terminals-are-lifecycle-owned
-    challenge_kind: compile-law
-    green: laws.rs evidence::terminals_are_lifecycle_owned
-    red: owed-to-testpak
-  - id: evidence.routes-bind-bases
-    challenge_kind: compile-law
-    green: laws.rs evidence::routes_bind_bases
-    red: owed-to-testpak — an invalid basis/route pair must refuse
-      structurally
-  - id: evidence.cause-disposition-narrows
-    challenge_kind: compile-law
-    green: laws.rs evidence::cause_disposition_narrows
-    red: owed-to-testpak
-  - id: evidence.receipt-matrix-and-carriage
-    challenge_kind: compile-law
-    green: laws.rs evidence::receipt_matrix_and_carriage
-    red: owed-to-testpak — a universal receipt must not exist
-  - id: evidence.lifecycles-are-four-and-separate
-    challenge_kind: compile-law
-    green: laws.rs evidence::lifecycles_are_four_and_separate
-    red: owed-to-testpak — a self-adoption must not compile
-```

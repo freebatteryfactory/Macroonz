@@ -24,12 +24,12 @@ that is not declared here does not participate.
 ## The bidirectional join this root is owed
 
 Detecting an omitted provider or one that exists only in the root is a JOIN, and
-the join belongs to xtask, which already owns the derived-fact side. Its shape is
+the join is repository-level and has no owner today. Its shape is
 stated here so the obligation is not vague: a provider exists ↔ it appears
 exactly once in this root ↔ it has a disposition ↔ it has an obligation. Omission
 fails, phantom fails, duplicate fails. This home owns the duplicate end of that
 join structurally — [`CompositionRoot::declared`] refuses one — and the omission
-and phantom ends land with xtask when the providers themselves exist. Sequencing
+and phantom ends land when the providers themselves exist. Sequencing
 the join is not deferring it: the shape above is the check, written down.
 
 ## The seats

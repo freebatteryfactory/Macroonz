@@ -45,45 +45,10 @@ The sans-I/O protocol core's step machinery, the generated projections, and
 the carrier design inventory (a design denominator, never a support claim) →
 the metaprogramming services (macroc) + hosts; participant surfaces are
 projections of the one global contract, produced by the projection engine
-and exposed through macro, xtask, or host tooling surfaces. Restricted-query
+and exposed through macro or host tooling surfaces. Restricted-query
 eligibility derives from the operator register's declared effect and
 suspension posture at 15_execution — never from a roster of operation names
 kept here; the derived predicate is owed to the metaprogramming services
 (macroc). The information-release contract and
 firewall authorship → 22. Projection-completeness and trace-equivalence proof
 → 23 (a consumer of the contract, never its co-owner).
-
-## Obligations
-
-```yaml
-home: 21_application
-obligations:
-  - id: application.activation-generation-rides-scope
-    challenge_kind: compile-refusal
-    green: laws.rs application::activation_generation_rides_scope
-    red: owed-to-testpak — cross-instance compare must not typecheck
-  - id: application.identities-do-not-merge
-    challenge_kind: compile-refusal
-    green: laws.rs application::identities_do_not_merge
-    red: owed-to-testpak — wrong-role substitution must not compile
-  - id: application.invocation-profiles-are-three
-    challenge_kind: compile-law
-    green: laws.rs application::invocation_profiles_are_three
-    red: owed-to-testpak
-  - id: application.carrier-identities-stay-apart
-    challenge_kind: compile-refusal
-    green: laws.rs application::carrier_identities_stay_apart
-    red: owed-to-testpak — a carrier id satisfying a port id must not compile
-  - id: application.session-and-stream-vocabularies
-    challenge_kind: compile-law
-    green: laws.rs application::session_and_stream_vocabularies
-    red: owed-to-testpak — a linear half-close enum must not exist
-  - id: application.ingress-ladders-hold
-    challenge_kind: compile-law
-    green: laws.rs application::ingress_ladders_hold
-    red: owed-to-testpak — a non-admitted discharge must be unreachable
-  - id: application.contract-and-rosters-hold
-    challenge_kind: compile-law
-    green: laws.rs application::contract_and_rosters_hold
-    red: owed-to-testpak
-```
