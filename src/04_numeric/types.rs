@@ -34,15 +34,11 @@
 //! with sound error or interval propagation; a typed wrapper around host floating
 //! point is not an admitted approximate operation.
 //!
-//! # Declared incompleteness (owed, not hidden)
+//! # Schema-declared ranges
 //!
 //! Ranges are schema-declared — this home fixes none (`Percent`'s range is decided
-//! fully schema-side; 0–100 is not implied by the name). Currency, time-unit, and
-//! unit-domain designation members await the schema home's designation types;
-//! structs carrying them say so on the missing member. Refusal-cause payloads are
-//! documented per cause and materialize with those same types. The interval
-//! truth tables are documented law on [`IntervalRelation`]; their executable form
-//! lands with the interval family roster.
+//! fully schema-side; 0–100 is not implied by the name). The interval truth
+//! tables are documented law on [`IntervalRelation`].
 
 use crate::identity::Commitment;
 use crate::logic::Truth;
@@ -1001,7 +997,7 @@ pub enum FloatClass {
 // ---------------------------------------------------------------------------
 
 /// The six terminals of checking an evidence requirement — each carries the
-/// terms that produced it (payloads owed to their owners). Composition may
+/// terms that produced it, each payload its owner's. Composition may
 /// never turn `Unresolved` or `SourceIncomplete` into rejection, nor let a
 /// decisive branch hide a term's invalidity.
 #[must_use = "a disposition is what checking the evidence requirement concluded"]

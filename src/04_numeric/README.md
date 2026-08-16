@@ -20,11 +20,3 @@ Every numeric constructor family is a closed single-cause enum — no
 No changelog of executed decisions lives here: every decision this home received
 is restated at the declaration it governs. Change history is the repository
 ledger's, never a section of a specification.
-
-## Declared incomplete (owed to owners)
-
-Currency/time-unit/unit-domain designation members (schema home); cause payload
-fields (schema identities); `QuantizeEvidence`'s seven remaining facts; the
-interval family roster (which makes the truth tables executable); the
-`DistributionEstimate` shape; the wide-exact seam carrier; the `decide`
-operation itself (a machine algorithm — closed until implementation opens).

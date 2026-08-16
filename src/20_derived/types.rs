@@ -421,7 +421,7 @@ impl ExtentEntryRef {
 ///
 /// Its mint is [`ExtentEntryRef::declared`]'s in every respect: an authoring
 /// road that names a position, and a validation join against a block's actual
-/// binding table that stays owed to the consuming owner.
+/// binding table that stays the consuming owner's.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BindingEntryRef(u32);
 

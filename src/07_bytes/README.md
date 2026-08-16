@@ -21,7 +21,7 @@ construction — the tiering law expressed as a field width.
 
 `threadpak/<tag-version>/<family>/<role>/<schema-version>`. Each row emits four
 projections — derive-key context, text-form prefix, frame role id, docs table —
-from one row, by the macros crate, so wire id, human prefix, and hash domain
+all four derived from that one row, so wire id, human prefix, and hash domain
 cannot drift. Two layers stay distinct: the logical preimage
 (algorithm-independent) and the digest transcript (algorithm-specific).
 

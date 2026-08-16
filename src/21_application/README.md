@@ -9,8 +9,8 @@ vocabularies, the ingress paved road).
 
 - **Serve is dead as a package; the type prefix died with it.** The contract
   types live here under plain names; the participant projections (client,
-  server, session, carrier shells) are MACRO-GENERATED from the contract
-  (hosts opt in via features); physical obligations are the host repos'.
+  server, session, carrier shells) are derived from the contract, never
+  hand-maintained as a second source; physical obligations are the host repos'.
   `ServeRequestId → CarrierRequestId` (approved) — it correlates protocol
   messages on a carrier, and the identity-separation wall becomes
   `CarrierRequestId ≠ PortRequestId`, related only through typed carriage.
@@ -38,17 +38,3 @@ capture) — tunables, never product decisions.
 `ActivationGeneration = AuthorityPosition<InstanceId>` — scope and order
 only; which image a generation activated rides `ActivationImageBinding`, a
 typed relation, never the ordinal's bytes.
-
-## Owed onward
-
-The sans-I/O protocol core's step machinery, the generated projections, and
-the carrier design inventory (a design denominator, never a support claim) →
-the metaprogramming services (macroc) + hosts; participant surfaces are
-projections of the one global contract, produced by the projection engine
-and exposed through macro or host tooling surfaces. Restricted-query
-eligibility derives from the operator register's declared effect and
-suspension posture at 15_execution — never from a roster of operation names
-kept here; the derived predicate is owed to the metaprogramming services
-(macroc). The information-release contract and
-firewall authorship → 22. Projection-completeness and trace-equivalence proof
-→ 23 (a consumer of the contract, never its co-owner).

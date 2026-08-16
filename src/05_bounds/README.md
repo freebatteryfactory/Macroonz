@@ -9,10 +9,9 @@ Work · Memory · Result · Effect · Suspension · Output · Time — seven, cl
 Time is the durable deadline-policy budget, enforced at the time home riding
 this home's affine shape. The first five are the cross-domain minimum: no
 computation is admitted without enforceable finite bounds in all five. The
-register is two-level; the dimension level under each class is owed to the
-execution home — dimensions derive from what operators charge, and the
-operator register is authored there. Carried here only as the registered
-`DimensionId` shape.
+register is two-level; this home carries only the registered `DimensionId`
+shape — dimensions derive from what operators charge, and the operator
+register that declares them is the execution home's.
 
 ## Budgets are affine — the monotone-shrink law at the type level
 

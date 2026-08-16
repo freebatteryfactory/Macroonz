@@ -3,8 +3,11 @@
 Band 13. Imports identity, refusal, value, and the root calculus. The
 frontend-neutral algebra every front door converges through: five phase roots,
 three name roles, five refusal families, the six facets, staged meta, and the
-frontend role enum. Producer versus judge is the boundary; front door versus
-front door is not.
+frontend role enum. Two further seats are this home's: the authoring surface's
+four top-level forms (`TopLevelForm` — ASK/DO/REQUEST/PEND as written, their
+boundary semantics and lowering the execution home's), and `Stage`, the
+judgment's four-value stage, which the semantic home's `Judgment` imports.
+Producer versus judge is the boundary; front door versus front door is not.
 
 ## The language-death line
 
@@ -78,19 +81,9 @@ What it retires is the hand-kept pair: a roster array beside a `match`
 returning numbers. Those are two statements of one fact, and the second drifts
 silently. Under the stamp the position IS the roster's layout, so a roster whose
 fourth row answers `2` is not a defect anybody catches — it is a value nobody
-can write. This home's obligation below is that consumption proved: the stamped
-roster beside its writable hand-kept twin, the twin required to fail.
+can write.
 
 The stamp's own ceiling — the length of its declared supply of positions, read
 as `CLOSED_REGISTER_ROW_CEILING` and refused by the stamp's own diagnostic at
 the first row past it — is the root's claim, and it is proved through the public
 export from outside the crate rather than here.
-
-## Owed upward
-
-The `Judgment` record and its axes → 14_semantic (this home seats `Stage`).
-ASK/DO/REQUEST/PEND boundary semantics and lowering → 15_execution (this home
-seats the authoring-surface `TopLevelForm`). The traversal spellings
-(`seek` / `children` / `descendants`) and the HOW-roster operations are
-operator-register rows → 15_execution. The build-time trust profile of the
-declaration frontend's expansion → 22_security.

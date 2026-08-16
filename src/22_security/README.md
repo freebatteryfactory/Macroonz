@@ -37,9 +37,6 @@ by the workspace lint wall; the named-receipted-loosening law
 (declassification, widening-as-new-grant, KDF-realizes-attenuation) is stated
 as this home's own law in the docs.
 
-Permanent hostile families are not a roster here: the qualifying owner
-(testpak) declares them, and 23_evidence already carries that assignment.
-
 ## Flags carried
 
 `ProtectedResolution` variant drift (prose elsewhere lists `Unavailable` and

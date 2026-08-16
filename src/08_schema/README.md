@@ -40,11 +40,14 @@ Deliberate cross-family spelling collisions over distinct types are lawful:
 `TransformOutsideBoundedLane` (schema & migration), `Unbounded` (contract,
 refinement, layout).
 
-## The permanent hostile corpus (binding here; contents are the evidence home's)
+## The attacks this plane is written against
 
-26 named cases: unknown-required member accepted; optional extension silently
-discarded despite a preservation promise; opaque extension interpreted as
-authority; colliding or recycled field identities; default silently inserted
+Every refusal family here answers something a declaration, a codec, or a
+migration could otherwise get past a reader. The named cases:
+
+unknown-required member accepted; optional extension silently discarded
+despite a preservation promise; opaque extension interpreted as authority;
+colliding or recycled field identities; default silently inserted
 during validation; normalization hidden inside decoding; Rust closure treated
 as a portable refinement; contextual lookup hidden inside validation; borrowed
 view escaping its extent; selective access bypassing required validation; issue
@@ -63,10 +66,3 @@ reader removed while its published compatibility promise remains.
 Value-carrier gate (this home) · refusal-carrier gate (repository plane) ·
 numeric-width route (evidence-selected). A universal opaque-storage token is
 forbidden — gates are owner-named, never generic.
-
-## Flags carried
-
-Codec roster 14-vs-15 count discrepancy, unresolved — the "which profile
-item" payload stays unreportable until it is settled.
-`MeaningOrBindingNotPreserved` authored as seven preservation objects
-(null-and-extension read as one law); the 5-vs-7 ambiguity flagged.

@@ -34,13 +34,3 @@ The seven-record register's `SemanticWork` was authored at 11_navigation for
 one type, one owner. The remaining six records: PhysicalEstimate /
 ResourceReservation / ReservationEvidence / PhysicalObservation are the
 physical membrane's (18); the calibration pair is evidence's (23).
-
-## Owed upward (named owners, band order)
-
-`PlanTemplate`/`PlanBinding` and the ephemeral bound specialization → 20
-(the full key law is read and banked: exact-equality static mechanism facts
-vs per-admitted-use binding; neither key captures a dynamic fact as static).
-The trust-boundary-widening disclosure profile family (the one place unsafe
-is even discussed) → 22 owns the law. The reference execution route and
-terminals → 17_pakvm. The image validation ladder and admission pipeline →
-16_image.

@@ -55,8 +55,9 @@ The halted posture has its own road, `AdmittedPrefix::stopped_early`, which
 couples the carry a halted pass handed over to the bound it stated it stopped at
 in one construction. Its honesty ceiling is stated where it lives: the
 constructor structurally couples the body to the posture, and it does not prove
-that an external examination truly halted — the family owner's algorithm and
-testpak establish the behavioral claim. It refuses where the truncating road
+that an external examination truly halted — the family owner's algorithm
+establishes the behavioral claim, and its proof lives outside this crate. It
+refuses where the truncating road
 truncates, because `ReportTruncated` has a seat to record what it dropped and
 `EarlyStopped` has none, so material past the declared bound could only be
 dropped silently. No caller exists today, because no scan in the machine halts;
@@ -104,7 +105,8 @@ coupling the road would fail.
 
 Writing a truncation posture by hand does not compile; neither does marrying one
 report's carry to another report's completion; and neither does assembling a
-migrated family out of a carry and a posture. All three reversals are testpak's.
+migrated family out of a carry and a posture. All three reversals are proven
+outside the crate, as compile refusals.
 
 **What those three establish is representation privacy, and each says so at its
 own head.** The seats are not a caller's to write, so neither the cross-wired
@@ -202,6 +204,7 @@ a shared word is shared vocabulary, never a shared type.
 
 ## Not here
 
-No seed roster of refusal triggers lives here: every trigger this home once
-listed as authoring seed has materialized as a family in its owner home, and
-what remains to be written is work-tracking, not specification.
+No roster of refusal triggers lives here. Every family is a concrete Rust type
+in the home whose checks establish it; what this home owns is the shapes those
+bodies take, the identities they declare, and the join that admits a
+declaration — never a list of what the machine refuses by.

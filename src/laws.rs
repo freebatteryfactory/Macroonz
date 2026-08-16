@@ -1,10 +1,9 @@
 //! The single compile-time proof surface, sectioned by home, and the sections follow
 //! the band order — the root calculus first, then band 00 upward — so reading this file
 //! from the top reads the machine's dependency line in the order `lib.rs` declares it.
-//! Green laws only: each law is named, and its name is the join key across the owning
-//! README's obligation row, this file, and the red twin. Red twins (compile-fail
-//! fixtures proving each law non-vacuous by reversal) land in testpak when it
-//! materializes; until then every law below states its owed reversal in its doc line.
+//! Green laws only: each law is named, and its name is the join key between the owning
+//! README's obligation row and this file. Each law's doc states what that law
+//! establishes and the ceiling of its claim.
 //!
 //! A law that cannot fail is not a law: these compile (and trivially run) only
 //! while the shapes hold; reversing the shape breaks the named law.
@@ -29,7 +28,6 @@ mod root {
 
     /// law: root.cut-families-are-caller-supplied — any owner can bind `Freshness`
     /// to its own coordinate type; no central cut registry exists.
-    /// Owed reversal: sealing `EvidenceCut` must break this law.
     #[test]
     fn cut_families_are_caller_supplied() {
         struct DemoCut;
@@ -41,8 +39,6 @@ mod root {
     /// law: root.no-coordinate-forecloses-stale — a family with no admitted
     /// coordinate parameterizes over `Never`, and its `Stale` form is
     /// unrepresentable (the type exists; no value of it can).
-    /// Owed reversal (red twin): constructing `Stale<_, Never>` must not compile
-    /// past the uninhabited coordinate.
     #[test]
     fn no_coordinate_forecloses_stale() {
         let probe: Option<Freshness<u8, Never>> = None;
@@ -52,7 +48,6 @@ mod root {
     /// law: root.completeness-domains-do-not-unify — completeness over one domain
     /// is a different type than completeness over another; a complete query cannot
     /// masquerade as complete verification.
-    /// Owed reversal: erasing the domain parameter must break this law.
     #[test]
     fn completeness_domains_do_not_unify() {
         struct QueryDomain;
@@ -65,8 +60,6 @@ mod root {
 
     /// law: root.limit-families-do-not-unify — `Bounded` under one limit family is
     /// a different type than under another, regardless of magnitudes.
-    /// Owed reversal (red twin): passing `Bounded<u8, DecodeDemo>` where
-    /// `Bounded<u8, ArenaDemo>` is required must not compile.
     #[test]
     fn limit_families_do_not_unify() {
         struct DecodeDemo;
@@ -90,7 +83,6 @@ mod root {
 
     /// law: root.dispatch-is-owner-refusal-generic — the transition grammar names
     /// no concrete refusal type; every machine binds its own family.
-    /// Owed reversal: hard-wiring a concrete refusal type must break this law.
     #[test]
     fn dispatch_is_owner_refusal_generic() {
         struct DemoRefusal;
@@ -101,8 +93,6 @@ mod root {
     /// law: root.evidence-ref-identity-is-referent-and-version — the four
     /// Class-E components exist, and equality/hashing use exactly the
     /// identifying pair; availability and integrity never participate.
-    /// Owed reversal (red twin): adding a third identifying field must break
-    /// this law.
     #[test]
     fn evidence_ref_identity_is_referent_and_version() {
         use crate::types::{EvidenceRef, ReferentAvailability, ReferentIntegrity};
@@ -146,8 +136,6 @@ mod root {
     /// case at all: the empty collection carries nothing, and the one-item
     /// collection compiles only where the declared maximum is proven at compile
     /// time to admit an item.
-    /// Owed reversal (red twin): an unchecked public constructor must not exist,
-    /// and `singleton` under a family declaring `MAX = 0` must not compile.
     #[test]
     fn bounded_construction_is_a_seam() {
         use crate::types::{
@@ -217,9 +205,6 @@ mod root {
     /// — `from_array`, `singleton` — read `L::MAX` bare by decision, because
     /// each proves a LOCAL fact about the call in front of it and claims no
     /// admission at all.
-    ///
-    /// Red twin: a family declaring a magnitude past the admitting profile's
-    /// ceiling must not compile — the fixture is testpak's.
     #[test]
     fn admission_precedes_a_trusted_magnitude() {
         use crate::types::{AdmittedLimit, Bounded, LimitAdmissionProfile, RootLawsProfile};
@@ -273,10 +258,6 @@ mod root {
     /// The claim ceiling: this says nothing about whether a zero maximum is the
     /// RIGHT declaration for any particular seat. It says the two facts are
     /// separately evidenced and separately consumed.
-    ///
-    /// Red twin: a zero-maximum family minting the positive witness must not
-    /// compile — the fixture is testpak's, because a claim about what does not
-    /// compile cannot be made by code that does.
     #[test]
     fn positivity_is_the_stronger_witness() {
         use crate::types::{
@@ -323,22 +304,17 @@ mod root {
     /// by restating its comparison, so the profile-admission claim has exactly
     /// one owner.
     ///
-    /// The green half is the magnitude: what the positive witness reports is
+    /// What stands here is the magnitude: what the positive witness reports is
     /// what the base witness admitted, read off the contained value rather than
-    /// off a second copy. The half that matters more is the red one, and it is
-    /// the reason the fixture is named below rather than owed: a family past the
-    /// admitting profile's ceiling stops the compiler at the POSITIVE mint, and
-    /// the diagnostic it stops with is the BASE mint's — which is only true
-    /// while the base check is the one that runs. Restating the comparison here
-    /// would keep the fixture failing and stop it saying anything about whether
-    /// the two roads still agree.
+    /// off a second copy. A family past the admitting profile's ceiling stops
+    /// the compiler at the POSITIVE mint, and the diagnostic it stops with is
+    /// the BASE mint's — which is only true while the base check is the one
+    /// that runs. Restating the comparison here would leave two copies of one
+    /// check with nothing holding them together.
     ///
     /// The claim ceiling: this says nothing about whether either number is right
     /// for a seat. It says the two witnesses cannot drift apart on the fact they
     /// share.
-    ///
-    /// Red twin: a past-ceiling family minting the positive witness must not
-    /// compile, and must fail inside the base road.
     #[test]
     fn the_positive_witness_carries_the_admitted_one() {
         use crate::types::{AdmittedLimit, PositiveLimit, RootLawsProfile};
@@ -388,18 +364,15 @@ mod root {
     /// magnitude is the RIGHT one for the family's domain. The owner profile
     /// and the evidence select that, and no road here can check it.
     ///
-    /// Red twin: a zero capacity REFUSES rather than failing to compile, and
-    /// the reason is structural — a magnitude that does not exist until runtime
-    /// has no compile-time value for a `const` block to read. So the reversal is
-    /// a behavioral hostile rather than a fixture, and it is executed below, on
-    /// the refusing arm. Driving that same refusal from OUTSIDE the crate stays
-    /// OWED and is gated rather than merely unwritten: `LimitWitness` has only
-    /// its `cfg(test)` mint, so no outside consumer can build the zero selection
-    /// this law refuses. The gate comes off with the schema home's lawful
-    /// minter. Where the same relation IS visible in the source it takes the
-    /// stronger seat instead: that is `root.positivity-is-the-stronger-witness`,
-    /// whose `const` gate stops a zero-maximum family at compile time and whose
-    /// fixture is testpak's.
+    /// A zero capacity REFUSES rather than failing to compile, and the reason is
+    /// structural: a magnitude that does not exist until runtime has no
+    /// compile-time value for a `const` block to read. The refusal is therefore
+    /// behavioral, and it is executed below, on the refusing arm. `LimitWitness`
+    /// has only its `cfg(test)` mint, so no outside consumer can build the zero
+    /// selection this law refuses. Where the same relation IS visible in the
+    /// source it takes the stronger seat instead: that is
+    /// `root.positivity-is-the-stronger-witness`, whose `const` gate stops a
+    /// zero-maximum family at compile time.
     #[test]
     fn a_runtime_capacity_is_witnessed_positive() {
         use crate::types::{
@@ -452,10 +425,6 @@ mod root {
     /// The claim ceiling: this says nothing about which family is right for a
     /// seat. It says a road that requires one family's capacity cannot be fed
     /// another's.
-    ///
-    /// Red twin: substituting one family's capacity where another's is required
-    /// must not compile —
-    /// testpak/tests/compile-fail/a-capacity-witness-from-another-family.rs.
     #[test]
     fn a_capacity_witness_does_not_cross_families() {
         use crate::types::{EvidenceSelectedLimit, PositiveLimitWitness};
@@ -490,10 +459,9 @@ mod root {
     /// every road consuming it rather than standing as a sentence beside the
     /// family, so a family that never made it has no road to a capacity at all.
     ///
-    /// The green half is that the bound is real and satisfiable: a family
+    /// What stands here is that the bound is real and satisfiable: a family
     /// declaring it reaches the mint, settled by the compiler over a function
-    /// pointer with nothing executed. The half that matters is the red one,
-    /// because a bound nothing fails is a bound nobody needed.
+    /// pointer with nothing executed.
     ///
     /// The claim ceiling. This declaration says the magnitude arrives at
     /// runtime, and it says nothing about the population: that every family in
@@ -508,23 +476,8 @@ mod root {
     /// could see it. That ceiling is gone rather than moved: `Limit::Authority`
     /// resolves to one type, the two ladders name theirs exactly, and the second
     /// declaration is a type mismatch. See
-    /// `root::a_family_declares_one_capacity_authority` for the positive control
-    /// and its reversal.
-    ///
-    /// What answers half of that question today is the red twin's own recorded
-    /// diagnostic. `rustc` reports an unsatisfied bound by listing the types
-    /// that satisfy it, so the committed `.stderr` carries the roster of every
-    /// family on this ladder, derived from the impls rather than authored — and
-    /// a family joining or leaving the ladder moves that file and fails the
-    /// fixture. It is a DRIFT DETECTOR over one side of the join, not a count:
-    /// it sees families that are on the ladder and cannot see a seat that
-    /// promises an inhabitant while its family stays off it. That second side
-    /// is a population question over the sources, and no law inside this crate
-    /// can state it.
-    ///
-    /// Red twin: minting a capacity for a family that never declared its
-    /// magnitude evidence-selected must not compile —
-    /// testpak/tests/compile-fail/a-capacity-minted-for-an-undeclared-family.rs.
+    /// `root::a_family_declares_one_capacity_authority` for the positive
+    /// control.
     #[test]
     fn the_runtime_ladder_is_declared_by_its_family() {
         use crate::types::{CapacityAdmission, EvidenceSelectedLimit, PositiveLimitWitness};
@@ -549,9 +502,9 @@ mod root {
     ///
     /// The exclusion itself is not asserted here and could not be: a family
     /// declaring both authorities does not compile, so there is no expression in
-    /// this file that could hold it. `rustc` owns that half, the reversal is
-    /// named below, and restating the exclusion at this weaker seat would leave
-    /// a sentence that keeps passing after the supertrait bounds are gone.
+    /// this file that could hold it. `rustc` owns that half, and restating the
+    /// exclusion at this weaker seat would leave a sentence that keeps passing
+    /// after the supertrait bounds are gone.
     ///
     /// What remains here is the half `rustc` cannot volunteer: that the two
     /// bounds are SATISFIABLE. A pair of ladders nothing could implement would
@@ -559,11 +512,6 @@ mod root {
     /// two families below are the evidence that the refusal is a refusal of one
     /// case rather than of all of them. Each declares one authority, and each
     /// reaches exactly the mint that authority admits.
-    ///
-    /// Red twin:
-    /// `testpak/tests/compile-fail/a-family-declaring-both-capacity-authorities.rs`
-    /// — the same declaration plus the other ladder, refused at the declaration
-    /// with a type mismatch on `<F as Limit>::Authority`.
     #[test]
     fn a_family_declares_one_capacity_authority() {
         use crate::types::{
@@ -627,10 +575,6 @@ mod root {
     /// is a body that dropped issues and cannot say so, and that consequence is
     /// band 00's to state — see
     /// `refusal::a_truncated_report_is_not_a_halted_examination`.
-    ///
-    /// Red twin: marrying one prefix operation's carry to another's completion
-    /// must not compile, because the pair has no public two-value road, no
-    /// `into_parts`, and no writable seat.
     #[test]
     fn a_prefix_road_reports_what_it_did_not_carry() {
         use crate::types::{NonEmptyBounded, PositiveLimit, RootLawsProfile};
@@ -678,9 +622,6 @@ mod root {
     /// The claim ceiling: this says nothing about which profile is right for a
     /// seat. It says a road that requires one profile's evidence cannot be fed
     /// another's.
-    ///
-    /// Red twin: substituting one profile's witness where another's is required
-    /// must not compile — the fixture is testpak's.
     #[test]
     fn an_admission_does_not_cross_profiles() {
         use crate::types::{
@@ -720,14 +661,9 @@ mod root {
     ///
     /// The order law this read carries: iteration exposes values for
     /// observation; iteration order may influence semantic meaning ONLY where
-    /// the owner type explicitly declares ordering as semantic; identity-bearing
-    /// generation over order-insensitive collections must canonicalize by an
-    /// owner-declared order or key first; testpak owes the permutation hostiles
-    /// — identical plans and identical output identities under permuted
-    /// order-insensitive inputs.
-    ///
-    /// Owed reversal (red twin): a consuming or mutating read road — `iter_mut`,
-    /// an `Index` impl, or a slice escape — must not compile.
+    /// the owner type explicitly declares ordering as semantic; and
+    /// identity-bearing generation over order-insensitive collections must
+    /// canonicalize by an owner-declared order or key first.
     #[test]
     fn reading_is_not_gaining() {
         use crate::types::{AdmittedLimit, Bounded, NonEmptyBounded, RootLawsProfile};
@@ -760,8 +696,6 @@ mod root {
     /// law: root.closure-bar-is-implementable — a minimal two-state machine
     /// satisfies the six-obligation bar: one initial state, total dispatch, a
     /// terminal no transition leaves, typed refusal for the unmatched pair.
-    /// Owed reversal (red twin): a machine whose dispatch drops an unmatched pair
-    /// instead of refusing must fail its closure evidence.
     #[test]
     fn closure_bar_is_implementable() {
         struct Demo;
@@ -990,9 +924,6 @@ mod refusal {
     /// the right selector for the family's checks, nothing about the family's
     /// Rust body, and nothing about family uniqueness across a whole program —
     /// that join stays the composition root's.
-    ///
-    /// Owed reversal (red twin): constructing the witness without admitting must
-    /// not compile — the fixture is testpak's.
     #[test]
     fn admission_coverage_is_a_type_parameter() {
         assert!(matches!(
@@ -1037,9 +968,6 @@ mod refusal {
     /// The claim ceiling: this establishes the implication between the two
     /// coverages and the reach of the two bounds. It establishes nothing further
     /// about either declaration than the joins behind it already did.
-    ///
-    /// Owed reversal (red twin): the weaker witness at the stronger consumer
-    /// must not compile — the fixture is testpak's.
     #[test]
     fn order_admission_implies_shape_admission() {
         let strong = admit_order::<DemoSingle>()
@@ -1086,9 +1014,6 @@ mod refusal {
     /// The claim ceiling: the road's reach today is this crate's, because
     /// `ReasonId` carries no public mint until the evidence home registers
     /// reasons. Nothing here claims an outside caller can publish.
-    ///
-    /// Owed reversal (red twin): a publication road that skips the witness must
-    /// not compile — the fixture is testpak's.
     #[test]
     fn publication_requires_an_admitted_family() {
         let admitted = admit_order::<DemoSingle>()
@@ -1106,7 +1031,6 @@ mod refusal {
 
     /// law: refusal.envelope-is-family-generic — the universal envelope binds any
     /// family type; no concrete family is hard-wired into it.
-    /// Owed reversal: hard-wiring a family into the envelope must break this law.
     #[test]
     fn envelope_is_family_generic() {
         let single: Option<Refusal<DemoSingle>> = None;
@@ -1117,8 +1041,6 @@ mod refusal {
 
     /// law: refusal.zero-issue-collection-unrepresentable — issue-collection
     /// families ride `NonEmptyBounded`, so a refusal with zero issues has no value.
-    /// Owed reversal (red twin): constructing an empty issue collection must not
-    /// compile past the shape.
     #[test]
     fn issue_collections_are_nonempty_bounded() {
         struct DemoIssue;
@@ -1144,8 +1066,6 @@ mod refusal {
     /// exists as a value carried inside collection-shaped refusals; the family
     /// trait carries no posture constant, so a single-cause family cannot claim
     /// one; an early stop names which declared bound stopped it.
-    /// Owed reversal (red twin): reintroducing a posture constant on the family
-    /// trait must break this law.
     #[test]
     fn posture_is_a_collection_instance_value() {
         let complete = CompletionPosture::Complete;
@@ -1197,11 +1117,6 @@ mod refusal {
     /// report that it did not, a body that dropped findings cannot report that it
     /// did not, and a caller holding no truncation cannot mint a posture that
     /// claims one.
-    ///
-    /// Red twin: writing a truncation posture with no truncation behind it —
-    /// a `ReportTruncated` assembled from a bound and a number — must not
-    /// compile, because the seats are private and the package's mint is the
-    /// only road to one.
     #[test]
     fn a_truncated_report_is_not_a_halted_examination() {
         use crate::refusal::AdmittedPrefix;
@@ -1292,14 +1207,10 @@ mod refusal {
     /// halt at the issue bound are two postures and not one word.
     ///
     /// The claim ceiling, exactly: this establishes the COUPLING and nothing
-    /// past it. It does not prove that any external examination truly halted —
-    /// the family owner's algorithm and testpak establish the behavioral claim.
+    /// past it. It does not prove that any external examination truly halted.
     /// No caller exists today, because no scan in the machine halts; the road is
     /// here so that the first one is coupled rather than pushed back onto a pair
     /// of loose values.
-    ///
-    /// Red twin: writing a halted posture beside a body of one's own must not
-    /// compile — testpak/tests/compile-fail/a-remainder-married-to-another-body.rs.
     #[test]
     fn a_halted_examination_couples_its_bound() {
         use crate::refusal::AdmittedPrefix;
@@ -1362,16 +1273,10 @@ mod refusal {
     /// What each line establishes, exactly: the family exposes the two readers
     /// with the two exact signatures, and exposes no writable seat pair beside
     /// them. What it does NOT establish is that the seat's TYPE is
-    /// `AdmittedPrefix` — a private field is unnameable from here — nor that
-    /// this list is the whole population. Both of those are population
-    /// questions over the sources. This law is the compile-time half, stated as
-    /// such, because Rust cannot
-    /// enumerate its own impls and a hand-kept count here would be exactly the
-    /// inventory this repository bans.
-    ///
-    /// Red twin: assembling a migrated family from a carry and a posture must
-    /// not compile —
-    /// testpak/tests/compile-fail/a-collection-body-assembled-from-parts.rs.
+    /// `AdmittedPrefix` — a private field is unnameable from here — nor that the
+    /// families read below are the whole population: Rust cannot enumerate its
+    /// own impls, so this law reads the families it names and claims nothing
+    /// about any it does not.
     #[test]
     fn every_collection_family_carries_the_coupled_seat() {
         /// The two readers one coupled body hands out, over one family type.
@@ -1483,9 +1388,6 @@ mod refusal {
     /// identity nor ordinal, while a cause whose MEANING changed carries a
     /// different identity under an unchanged spelling. An identity this order
     /// does not declare has no position at all.
-    /// Owed reversal (red twin): deriving the identity from the spelling — or
-    /// admitting a `CauseOrdinal` constructor that takes a number — must break
-    /// this law.
     #[test]
     fn cause_identity_outlives_its_spelling() {
         assert_ne!(DemoSingle::SELECTION_ORDER, DemoRenamed::SELECTION_ORDER);
@@ -1530,9 +1432,6 @@ mod refusal {
     /// is read off the value rather than parsed out of it; and the canonical
     /// text form is composed from the two seats on demand, so two identities
     /// that render alike are still two identities.
-    /// Reversal: `testpak/tests/compile-fail/a-cause-identity-cut-from-one-string.rs`
-    /// — the retired road, `CauseId::declared("family.local")`, does not
-    /// typecheck.
     #[test]
     fn cause_identity_is_a_family_and_a_local_key() {
         let mine = CauseId::declared(
@@ -1568,8 +1467,6 @@ mod refusal {
     /// no typed order and its empty textual order projects it faithfully. The
     /// two root construction families share the cause SPELLING `OverLimit` and
     /// share no cause IDENTITY.
-    /// Owed reversal (red twin): a projection check that compared lengths only,
-    /// or ignored position, must break this law.
     #[test]
     fn selection_order_projects_the_typed_order() {
         assert!(DemoSingle::DECLARED_ORDER.projects_to(DemoSingle::SELECTION_ORDER));
@@ -1630,7 +1527,6 @@ mod logic {
 
     /// law: logic.truth-tables-cell-for-cell — every cell of the strong Kleene
     /// conjunction, disjunction, and negation tables holds exactly.
-    /// Owed reversal (red twin): flipping any single cell must break this law.
     #[test]
     fn truth_tables_cell_for_cell() {
         use Truth::{False, Pending, True};
@@ -1663,7 +1559,6 @@ mod logic {
     /// law: logic.pending-cannot-hide-known-failure — a lagging answer never
     /// masks an established `False`: conjunction with `False` is `False` from
     /// either side, regardless of the other operand.
-    /// Owed reversal: making `Pending` absorb `False` must break this law.
     #[test]
     fn pending_cannot_hide_known_failure() {
         for value in ALL {
@@ -1674,7 +1569,6 @@ mod logic {
 
     /// law: logic.double-negation-is-identity — negation is an involution over
     /// all three values.
-    /// Owed reversal: any negation cell drifting must break this law.
     #[test]
     fn double_negation_is_identity() {
         for value in ALL {
@@ -1694,7 +1588,6 @@ mod identity {
     /// law: identity.two-column-law-is-machine-readable — class and creation law
     /// are independent declared columns: two roles of the same class carry
     /// different creation laws.
-    /// Owed reversal: deriving creation law from class must break this law.
     #[test]
     fn two_column_law_is_machine_readable() {
         struct DerivedRole;
@@ -1723,11 +1616,8 @@ mod identity {
     /// and this join does not touch it. Admission establishes nothing about the
     /// derived-seat law's two seats, which are facts about a deployment's design
     /// rather than about a pair of constants, and nothing about whether a
-    /// concrete minter follows the creation law it declared: that is behavioral,
-    /// it is owed, and it opens when minters exist.
-    ///
-    /// Owed reversal (red twin): constructing the witness without admitting must
-    /// not compile — the fixture is testpak's.
+    /// concrete minter follows the creation law it declared: that is
+    /// behavioral, and no minter exists yet.
     #[test]
     fn admission_joins_creation_to_class() {
         use crate::identity::{
@@ -1775,8 +1665,6 @@ mod identity {
     /// law: identity.scope-mismatch-refuses — comparison is total within one
     /// scope and refuses across scopes with the single-cause family body; the
     /// family's declared facts hold.
-    /// Owed reversal (red twin): `a < b` on positions must not compile (no
-    /// `Ord`/`PartialOrd` exists) — trybuild fixture owed to testpak.
     #[test]
     fn scope_mismatch_refuses() {
         let earlier = AuthorityPosition::assigned(7u8, 1);
@@ -1804,8 +1692,6 @@ mod identity {
 
     /// law: identity.scope-tuples-are-lawful — a two-part scope is an ordinary
     /// scope; the guard is generic over a scope tuple, not a single id.
-    /// Owed reversal: restricting the scope parameter to a single id must break
-    /// this law.
     #[test]
     fn scope_tuples_are_lawful() {
         let a = AuthorityPosition::assigned((3u8, true), 10);
@@ -1818,7 +1704,6 @@ mod identity {
 
     /// law: identity.typed-ref-equality-is-referent-and-version — equality is
     /// exactly the referent-and-version pair.
-    /// Owed reversal: adding a third identifying field must break this law.
     #[test]
     fn typed_ref_equality_is_referent_and_version() {
         let one = TypedRef::bound(5u8, 1);
@@ -1832,8 +1717,6 @@ mod identity {
 
     /// law: identity.commitment-domains-do-not-unify — commitments from
     /// different domains are different types.
-    /// Owed reversal (red twin): passing a `Commitment<DomA>` where
-    /// `Commitment<DomB>` is required must not compile.
     #[test]
     fn commitment_domains_do_not_unify() {
         struct SchemaDomain;
@@ -1900,9 +1783,6 @@ mod identity {
     /// this home already owns.
     /// The parity includes the way an instance is made: both are made through a
     /// named mint over a private position, neither through a public field.
-    /// Owed reversal (red twin): comparing two stamped guards over DIFFERENT
-    /// scope types must not compile, and neither must `a < b` on one — trybuild
-    /// fixtures in testpak.
     #[test]
     fn a_stamped_scope_guard_matches_its_hand_written_twin() {
         let scope = DemoStampScope(3);
@@ -1952,16 +1832,10 @@ mod identity {
     /// claim: parity is about the comparison answers agreeing, this is about the
     /// surface being one-way, and a stamp could match the twin's answers while
     /// handing the position back out.
-    /// The green half states the road that exists and its shape — `positioned`
+    /// What stands here is the road that exists and its shape — `positioned`
     /// takes a position under this role and returns the guard, on both the
     /// stamped guard and the twin, and neither type carries a public field. The
-    /// road that does not exist is an absence, and an absence is stated by a
-    /// compile-fail fixture.
-    /// Owed reversal (red twin):
-    /// `testpak/tests/compile-fail/a-stamped-representation-cannot-be-laundered.rs`
-    /// — taking one role's position out and re-entering it under another role
-    /// must not compile, proven over ONE scope type so nothing about the scope
-    /// is doing the work.
+    /// road out is an absence, and this law does not state it.
     #[test]
     fn a_stamped_representation_cannot_be_laundered() {
         // The one road in, as a function value: it takes a position and returns
@@ -1999,8 +1873,6 @@ mod value {
 
     /// law: value.absence-worlds-are-closed-and-six — the classification roster
     /// is exactly six distinct worlds.
-    /// Owed reversal: adding a seventh world or collapsing two must break this
-    /// law.
     #[test]
     fn absence_worlds_are_closed_and_six() {
         let worlds = [
@@ -2018,7 +1890,6 @@ mod value {
     /// law: value.pre-authority-ladder-is-ordered — five checks in the exact
     /// declared order, lengths first, role last, before any allocation or
     /// authority.
-    /// Owed reversal: reordering or dropping a check must break this law.
     #[test]
     fn pre_authority_ladder_is_ordered() {
         assert_eq!(
@@ -2035,7 +1906,6 @@ mod value {
 
     /// law: value.inbound-path-has-eight-unmerged-stages — eight pairwise
     /// distinct stages from carrier bytes to derived materialization.
-    /// Owed reversal: merging two stages must break this law.
     #[test]
     fn inbound_path_has_eight_unmerged_stages() {
         assert_eq!(CANONICAL_INBOUND_PATH.len(), 8);
@@ -2052,7 +1922,6 @@ mod value {
 
     /// law: value.lossy-operations-stay-distinct — seven closed, distinct
     /// operations; never one generic transform.
-    /// Owed reversal: collapsing two operations must break this law.
     #[test]
     fn lossy_operations_stay_distinct() {
         let operations = [
@@ -2071,8 +1940,6 @@ mod value {
     /// law: value.text-admission-roster-is-eight — the profile's defect
     /// roster, closed and distinct; every issue carries its offending
     /// scalar and coordinate.
-    /// Owed reversal: collapsing the join-control cause into the
-    /// default-ignorable cause must break this law (their repairs differ).
     #[test]
     fn text_admission_roster_is_eight() {
         use crate::value::{TEXT_PROFILE_UNICODE_PIN, TextAdmissionIssue, TextIssue};
@@ -2103,8 +1970,6 @@ mod value {
 
     /// law: value.bounded-text-carries-its-limit-family — text under one limit
     /// family is a different type than under another.
-    /// Owed reversal (red twin): passing text bounded by one family where
-    /// another is required must not compile.
     #[test]
     fn bounded_text_carries_its_limit_family() {
         struct PathLimit;
@@ -2133,7 +1998,6 @@ mod numeric {
 
     /// law: numeric.constructor-axis-ladder-is-ordered — unit → scale → range →
     /// witness coherence, exactly.
-    /// Owed reversal: reordering the ladder must break this law.
     #[test]
     fn constructor_axis_ladder_is_ordered() {
         assert_eq!(
@@ -2150,8 +2014,6 @@ mod numeric {
     /// law: numeric.families-are-single-cause-with-declared-orders — every
     /// numeric family is single-cause and declares its ladder-ordered selection
     /// order; the four-rung family's order is the ladder itself.
-    /// Owed reversal: a family declaring a cause off its ladder must break this
-    /// law.
     #[test]
     fn families_are_single_cause_with_declared_orders() {
         assert_eq!(MoneyConstruction::SHAPE, FamilyShape::SingleCause);
@@ -2179,7 +2041,6 @@ mod numeric {
 
     /// law: numeric.rounding-modes-are-six — the six standard spellings,
     /// distinct.
-    /// Owed reversal: adding a seventh mode must break this law.
     #[test]
     fn rounding_modes_are_six() {
         let modes = [
@@ -2196,7 +2057,6 @@ mod numeric {
 
     /// law: numeric.float-classes-are-six — exactly six exclusive
     /// classifications of one observation.
-    /// Owed reversal: collapsing the zero signs must break this law.
     #[test]
     fn float_classes_are_six() {
         let classes = [
@@ -2213,7 +2073,6 @@ mod numeric {
 
     /// law: numeric.requirement-disposition-has-six-terminals — six distinct
     /// terminals; composition may never collapse them.
-    /// Owed reversal: merging `Unresolved` into rejection must break this law.
     #[test]
     fn requirement_disposition_has_six_terminals() {
         let terminals = [
@@ -2230,7 +2089,6 @@ mod numeric {
 
     /// law: numeric.interval-relations-are-six — six relations, first-class
     /// data, all admitted (no relation is a cause).
-    /// Owed reversal: hiding a relation inside dispatch must break this law.
     #[test]
     fn interval_relations_are_six() {
         let relations = [
@@ -2247,7 +2105,6 @@ mod numeric {
 
     /// law: numeric.knowledge-axis-selection-order-is-declared — the dated
     /// decision's four-step order, machine-readable, truth-coverage first.
-    /// Owed reversal: reordering the decision must break this law.
     #[test]
     fn knowledge_axis_selection_order_is_declared() {
         assert_eq!(KNOWLEDGE_AXIS_SELECTION_ORDER.len(), 4);
@@ -2260,7 +2117,6 @@ mod numeric {
     /// law: numeric.quantize-evidence-binds-nine-facts — the full evidence
     /// record is constructible with every one of the nine facts, none omittable
     /// (a partial record does not compile).
-    /// Owed reversal (red twin): removing any field must break this law.
     #[test]
     fn quantize_evidence_binds_nine_facts() {
         use crate::numeric::{
@@ -2317,8 +2173,6 @@ mod numeric {
     /// law: numeric.designations-do-not-unify — a currency designation and a
     /// unit designation are different types; the estimate families are three
     /// role-distinct types, never one.
-    /// Owed reversal (red twin): passing one designation where the other is
-    /// required must not compile.
     #[test]
     fn designations_do_not_unify() {
         use crate::numeric::{
@@ -2351,7 +2205,6 @@ mod bounds {
 
     /// law: bounds.classes-are-closed-and-seven — seven distinct classes;
     /// Time is the durable deadline-policy budget, enforced at the time home.
-    /// Owed reversal: an eighth class must break this law.
     #[test]
     fn classes_are_closed_and_seven() {
         let classes = [
@@ -2370,7 +2223,6 @@ mod bounds {
 
     /// law: bounds.cross-domain-minimum-is-five — exactly the five, Output
     /// excluded (its dimension level is the execution home's).
-    /// Owed reversal: adding Output to the minimum must break this law.
     #[test]
     fn cross_domain_minimum_is_five() {
         assert_eq!(CROSS_DOMAIN_MINIMUM.len(), 5);
@@ -2385,9 +2237,6 @@ mod bounds {
     /// This law and `charge_shrinks_or_refuses` are two claims about one type —
     /// affinity is about how many times a budget can be spent, the charge law
     /// about what one spend yields — and each obligation proves its own.
-    /// Owed reversal (red twin): `.clone()` or a copy of a `Budget` must not
-    /// compile; the affinity that cannot be written down here is the absence of
-    /// `Clone` and `Copy`, and only a compile-fail fixture states an absence.
     #[test]
     fn budget_is_affine() {
         // The coercion holds only while `charge` takes `self` by value: a
@@ -2405,8 +2254,6 @@ mod bounds {
     /// law: bounds.charge-shrinks-or-refuses — charging consumes the budget and
     /// yields the strictly smaller successor; exact-to-zero is lawful; an
     /// overcharge returns the typed refusal; charging zero changes nothing.
-    /// Owed reversal: a charge yielding a larger successor, or a saturating
-    /// overcharge, must break this law.
     #[test]
     fn charge_shrinks_or_refuses() {
         let budget: Budget<WorkDemo> = Budget::admitted(10);
@@ -2432,8 +2279,6 @@ mod bounds {
 
     /// law: bounds.dimensions-do-not-unify — a budget in one dimension is a
     /// different type than in another, and a dimension id is not a budget.
-    /// Owed reversal (red twin): passing `Budget<Work>` where `Budget<Effect>`
-    /// is required must not compile.
     #[test]
     fn dimensions_do_not_unify() {
         let over_work: Option<fn(Budget<WorkDemo>)> = Some(drop);
@@ -2459,7 +2304,6 @@ mod authority {
 
     /// law: authority.claim-issue-bound-is-compile-time-ten — the issue
     /// collection's bound is the roster's own cardinality, compile-time.
-    /// Owed reversal: raising the bound past the roster must break this law.
     #[test]
     fn claim_issue_bound_is_compile_time_ten() {
         assert_eq!(ClaimIssueLimit::MAX, 10);
@@ -2467,8 +2311,6 @@ mod authority {
 
     /// law: authority.issues-are-ten-and-flat — ten distinct flat issues; the
     /// four killed causes are unrepresentable (no member-parameterized shape).
-    /// Owed reversal (red twin): a `MemberMissing(Member)` shape must not
-    /// exist.
     #[test]
     fn issues_are_ten_and_flat() {
         let issues = [
@@ -2490,7 +2332,6 @@ mod authority {
     /// law: authority.family-is-collection-shaped — the family declares the
     /// collection shape and no selection order (independent members, no
     /// ladder).
-    /// Owed reversal: declaring a ladder on this family must break this law.
     #[test]
     fn family_is_collection_shaped() {
         assert_eq!(
@@ -2502,7 +2343,6 @@ mod authority {
 
     /// law: authority.protected-resolution-is-eight — exactly the eight
     /// outcomes, distinct, never collapsed.
-    /// Owed reversal: collapsing any two must break this law.
     #[test]
     fn protected_resolution_is_eight() {
         let outcomes = [
@@ -2521,7 +2361,6 @@ mod authority {
 
     /// law: authority.foreign-surfaces-are-four-and-postures-five — the two
     /// closed classification rosters hold their counts.
-    /// Owed reversal: growing either roster silently must break this law.
     #[test]
     fn foreign_surfaces_are_four_and_postures_five() {
         let surfaces = [
@@ -2544,7 +2383,6 @@ mod authority {
     }
 
     /// law: authority.attenuation-axes-are-six — the narrow-only axes, closed.
-    /// Owed reversal: a widening operation appearing must break this law.
     #[test]
     fn attenuation_axes_are_six() {
         let axes = [
@@ -2561,7 +2399,6 @@ mod authority {
 
     /// law: authority.grant-id-declares-two-columns — the first production use
     /// of the two-column law: class Occurrence, creation fresh-opaque.
-    /// Owed reversal: deriving creation from class must break this law.
     #[test]
     fn grant_id_declares_two_columns() {
         assert_eq!(CapabilityGrantId::CLASS, IdentityClass::Occurrence);
@@ -2570,7 +2407,6 @@ mod authority {
 
     /// law: authority.keyscope-is-application-scope — Class F's contract is
     /// implemented by `KeyScope` (the O-13 decision landed).
-    /// Owed reversal: removing the impl must break this law.
     #[test]
     fn keyscope_is_application_scope() {
         fn requires_application_scope<S: ApplicationScope>() {}
@@ -2579,7 +2415,6 @@ mod authority {
 
     /// law: authority.postcondition-matrix-is-thirteen — the honesty matrix
     /// holds its rows, requested≠granted first.
-    /// Owed reversal: dropping a row must break this law.
     #[test]
     fn postcondition_matrix_is_thirteen() {
         assert_eq!(POSTCONDITION_NON_SUBSTITUTIONS.len(), 13);
@@ -2592,7 +2427,6 @@ mod authority {
 
     /// law: authority.admission-composes-two-judgments — admission carries both
     /// seats; neither substitutes; the pair carrier holds two sources.
-    /// Owed reversal: collapsing admission to one Decision must break this law.
     #[test]
     fn admission_composes_two_judgments() {
         let admission = OperationAdmission {
@@ -2619,7 +2453,6 @@ mod bytes {
     /// law: bytes.frame-header-is-fourteen-and-trailer-thirty-two — the frame
     /// arithmetic holds: magic 4 + role 2 + version 2 + flags 2 + length 4 = 14
     /// header bytes, 32 trailer bytes, one TPAK magic.
-    /// Owed reversal: changing any width must break this law.
     #[test]
     fn frame_header_is_fourteen_and_trailer_thirty_two() {
         assert_eq!(FRAME_HEADER_BYTES, 14);
@@ -2629,7 +2462,6 @@ mod bytes {
 
     /// law: bytes.frame-decode-ladder-is-declared — four dependent causes in
     /// the declared order, role first, digest last.
-    /// Owed reversal: reordering the ladder must break this law.
     #[test]
     fn frame_decode_ladder_is_declared() {
         assert_eq!(FrameDecode::SHAPE, FamilyShape::SingleCause);
@@ -2646,7 +2478,6 @@ mod bytes {
 
     /// law: bytes.commitment-roles-are-eight — the one neutral-inspection sum,
     /// eight distinct roles that never substitute.
-    /// Owed reversal: collapsing any two roles must break this law.
     #[test]
     fn commitment_roles_are_eight() {
         let roles = [
@@ -2665,7 +2496,6 @@ mod bytes {
 
     /// law: bytes.text-form-ladder-is-declared — prefix, case, checksum, in
     /// that dependent order.
-    /// Owed reversal: reordering must break this law.
     #[test]
     fn text_form_ladder_is_declared() {
         assert_eq!(TextFormDecode::SHAPE, FamilyShape::SingleCause);
@@ -2677,7 +2507,6 @@ mod bytes {
 
     /// law: bytes.tag-projections-are-four — one register row, four emitted
     /// projections, so wire id, human prefix, and hash domain cannot drift.
-    /// Owed reversal: a fifth projection or a dropped one must break this law.
     #[test]
     fn tag_projections_are_four() {
         let projections = [
@@ -2693,7 +2522,6 @@ mod bytes {
     /// law: bytes.decode-maxima-are-sixteen — the bounded-reader roster holds
     /// its count, its members are pairwise distinct, and total length is the
     /// maximum every other one is read under.
-    /// Owed reversal: dropping a maximum, or doubling one, must break this law.
     #[test]
     fn decode_maxima_are_sixteen() {
         assert_eq!(DECODE_MAXIMA.len(), 16);
@@ -2706,8 +2534,6 @@ mod bytes {
     /// law because they answer a separate question: the maxima bound what a
     /// reader will accept, the conventions fix how a width is written down, and
     /// changing either roster tells a reader nothing about the other.
-    /// Owed reversal: dropping a convention, or doubling one, must break this
-    /// law.
     #[test]
     fn width_conventions_are_eight() {
         assert_eq!(WIDTH_CONVENTIONS.len(), 8);
@@ -2718,7 +2544,6 @@ mod bytes {
     /// digest: class byte-digest, creation digest-of-exact-bytes; a payload
     /// reference binds extent + length + the keyed binding reference, and the
     /// frame header carries a registered role.
-    /// Owed reversal: changing either column must break this law.
     #[test]
     fn content_region_declares_two_columns() {
         use crate::bytes::{FrameHeader, FrameRoleId, PayloadBindingClaim, PayloadReference};
@@ -2771,7 +2596,6 @@ mod schema {
     /// law: schema.validation-pipeline-is-seven-ordered — untrusted input
     /// first, contextual admission last, seven distinct stages that never
     /// merge.
-    /// Owed reversal: merging two stages must break this law.
     #[test]
     fn validation_pipeline_is_seven_ordered() {
         assert_eq!(VALIDATION_PIPELINE.len(), 7);
@@ -2788,8 +2612,6 @@ mod schema {
 
     /// law: schema.value-shape-axes-are-four-closed-enums — 3/2/2/4 variants,
     /// four separate enums, never one enum of mutually exclusive variants.
-    /// Owed reversal (red twin): fusing the axes into one presence enum must
-    /// not compile once the fixture lands.
     #[test]
     fn value_shape_axes_are_four_closed_enums() {
         let cardinalities = [
@@ -2813,7 +2635,6 @@ mod schema {
 
     /// law: schema.refinement-kinds-are-nine-and-properties-nine — the closed
     /// registered kind vocabulary and the declared-property roster.
-    /// Owed reversal: a host-invented kind must break this law.
     #[test]
     fn refinement_kinds_are_nine_and_properties_nine() {
         let kinds = [
@@ -2835,7 +2656,6 @@ mod schema {
 
     /// law: schema.migration-boundaries-are-twelve — the closed vocabulary;
     /// rewrap and rotation stay separate crossings.
-    /// Owed reversal: fusing rewrap into rotation must break this law.
     #[test]
     fn migration_boundaries_are_twelve() {
         let boundaries = [
@@ -2858,7 +2678,6 @@ mod schema {
 
     /// law: schema.protected-transformations-are-six — the closed vocabulary;
     /// shred never maps to absence.
-    /// Owed reversal: dropping shred from the vocabulary must break this law.
     #[test]
     fn protected_transformations_are_six() {
         let transformations = [
@@ -2876,8 +2695,6 @@ mod schema {
     /// law: schema.seven-families-are-collection-shaped-with-roster-bounds —
     /// every family declares the collection shape, no ladder, and a
     /// compile-time bound equal to its roster's cardinality.
-    /// Owed reversal: any family growing a ladder or losing its bound must
-    /// break this law.
     #[test]
     fn seven_families_are_collection_shaped_with_roster_bounds() {
         assert_eq!(ContractConstruction::SHAPE, FamilyShape::IssueCollection);
@@ -2905,7 +2722,6 @@ mod schema {
     /// the nested value keeps its always-Complete posture, and both bodies
     /// reach the coupled report seat rather than assembling a carry beside a
     /// posture of their own.
-    /// Owed reversal (red twin): a union-typed nested cause must not compile.
     #[test]
     fn nested_causes_nest_distinct_families() {
         let nested = RefinementConstruction::for_laws(AdmittedPrefix::examined_completely(
@@ -2931,8 +2747,6 @@ mod schema {
     /// law: schema.identity-instantiations-declare-two-columns — the home's
     /// five identity instantiations carry their class and creation law, and
     /// the version type rides the scope-guarded order shape.
-    /// Owed reversal: any instantiation dropping its declaration must break
-    /// this law.
     #[test]
     fn identity_instantiations_declare_two_columns() {
         use crate::identity::{CreationLaw, IdentityClass, IdentityRole};
@@ -2963,8 +2777,6 @@ mod time {
     /// law: time.tick-is-the-clock-observation — a tick is one admitted clock
     /// reading: interval + domain + provenance, nothing else, and the reading's
     /// uncertainty lives inside the reading.
-    /// Owed reversal: a second uncertainty member beside the reading must break
-    /// this law.
     #[test]
     fn tick_is_the_clock_observation() {
         use crate::value::BoundedText;
@@ -2979,7 +2791,6 @@ mod time {
     /// law: time.observations-are-intervals — a point is the degenerate
     /// interval and says so structurally; a negative delta is lawful evidence
     /// of clock regression.
-    /// Owed reversal: a scalar observation type must break this law.
     #[test]
     fn observations_are_intervals() {
         let point = ObservedWallTime {
@@ -2997,7 +2808,6 @@ mod time {
     /// law: time.duration-limit-ladder-and-zero-lawful — the decoded-route
     /// ladder holds its declared order; the typed route is total and zero is
     /// lawful (immediately exhausted), never a cause.
-    /// Owed reversal: adding a zero cause must break this law.
     #[test]
     fn duration_limit_ladder_and_zero_lawful() {
         let zero = DurationLimit::admitted(0);
@@ -3019,8 +2829,6 @@ mod time {
     /// law: time.deadline-policy-ladder-and-opaque-posture — the six-cause
     /// declared order holds; the policy is opaque and its view reveals the
     /// posture without granting construction.
-    /// Owed reversal (red twin): public construction of a posture variant must
-    /// not compile.
     #[test]
     fn deadline_policy_ladder_and_opaque_posture() {
         assert_eq!(
@@ -3040,8 +2848,6 @@ mod time {
 
     /// law: time.chronology-merge-is-a-lawful-join — commutative, associative,
     /// idempotent over one profile; cross-profile refuses with the one cause.
-    /// Owed reversal: a merge that consults anything beyond the two summaries
-    /// must break this law.
     #[test]
     fn chronology_merge_is_a_lawful_join() {
         let profile = ChronologyProfileId::registered(1);
@@ -3098,8 +2904,6 @@ mod time {
     /// law: time.hlc-roles-do-not-unify — source, accepted, and the envelope
     /// are three distinct types; the envelope carries independent extrema, not
     /// a coordinate.
-    /// Owed reversal (red twin): a conversion from the envelope to either HLC
-    /// role must not compile.
     #[test]
     fn hlc_roles_do_not_unify() {
         let over_source: Option<fn(SourceHlc)> = Some(drop);
@@ -3157,9 +2961,6 @@ mod time {
     /// clock's machinery, it does not exist at this phase, and the contract's
     /// unwritten body is the seat it lands in. The demo below advances nothing
     /// and claims nothing about advancement.
-    ///
-    /// Owed reversal (red twin): a road that mints an admitted position without
-    /// consuming an observation must not compile.
     #[test]
     fn admission_is_the_only_crossing() {
         let mut clock = DemoClock {
@@ -3178,7 +2979,6 @@ mod time {
     /// law: time.spend-uses-the-dimension-register — a spend record binds a
     /// registered bound dimension with magnitude and uncertainty, at a named
     /// recording site.
-    /// Owed reversal: a raw-instant spend must break this law.
     #[test]
     fn spend_uses_the_dimension_register() {
         use crate::bounds::DimensionId;
@@ -3222,8 +3022,6 @@ mod history {
     /// law: history.four-object-split-and-knowledge-axes — the three knowledge
     /// enums are orthogonal and hold their counts; unknown is not
     /// known-absent; outstanding is a lifecycle posture.
-    /// Owed reversal: a "committed?" field on an event record must break this
-    /// law.
     #[test]
     fn four_object_split_and_knowledge_axes() {
         let knowledge = [
@@ -3262,7 +3060,6 @@ mod history {
     /// law: history.lineage-refusal-is-a-composite-pair — the machine's first
     /// composite-pair family: reason + partial evidence, neither droppable,
     /// with the four-cause declared order on the reason member.
-    /// Owed reversal (red twin): dropping either member must not compile.
     #[test]
     fn lineage_refusal_is_a_composite_pair() {
         let refusal = LineageRefusal {
@@ -3291,7 +3088,6 @@ mod history {
     /// law: history.federation-composition-is-a-seam — composition sorts
     /// deterministically, refuses duplicates and omissions, and admits a
     /// complete declared set.
-    /// Owed reversal (red twin): a raw-map constructor must not exist.
     #[test]
     fn federation_composition_is_a_seam() {
         let store_a = StoreId::for_laws(Occurrence::for_laws(OccurrenceForm::Fresh([1; 16])));
@@ -3323,7 +3119,6 @@ mod history {
 
     /// law: history.order-roles-do-not-unify — sequence, cut, applied cut, and
     /// turn-input cut are four distinct types with no bridges.
-    /// Owed reversal (red twin): a From/Into between any two must not compile.
     #[test]
     fn order_roles_do_not_unify() {
         let over_sequence: Option<fn(AuthoritySequence)> = Some(drop);
@@ -3339,8 +3134,6 @@ mod history {
     /// law: history.reading-has-three-orthogonal-axes — a real reading carries
     /// disposition, closure, and freshness as separate axes, with the history
     /// cut as the first production evidence-cut instantiation.
-    /// Owed reversal: the disposition absorbing either axis must break this
-    /// law.
     #[test]
     fn reading_has_three_orthogonal_axes() {
         let reading: HistoryReading<u8> = HistoryReading {
@@ -3363,7 +3156,6 @@ mod history {
 
     /// law: history.removal-families-hold-their-rosters — 12/2/3 issue
     /// rosters, all collection-shaped with compile-time bounds.
-    /// Owed reversal: any roster growing silently must break this law.
     #[test]
     fn removal_families_hold_their_rosters() {
         use crate::history::{
@@ -3409,7 +3201,6 @@ mod history {
 
     /// law: history.recovery-has-three-endings-and-five-steps — the scan's
     /// declared order and the closed outcome roster.
-    /// Owed reversal: a fourth ending must break this law.
     #[test]
     fn recovery_has_three_endings_and_five_steps() {
         assert_eq!(RECOVERY_SCAN.len(), 5);
@@ -3429,8 +3220,6 @@ mod history {
     /// law: history.epoch-and-cut-succession-are-typed — a stale-epoch write
     /// refuses through its single-cause family, and predecessor/successor
     /// cuts join only through explicit witnesses, never integer matching.
-    /// Owed reversal (red twin): joining cuts by comparing ceilings must not
-    /// establish succession.
     #[test]
     fn epoch_and_cut_succession_are_typed() {
         use crate::history::{CutTranslationWitness, EpochValidation, SuccessionWitness};
@@ -3521,7 +3310,6 @@ mod navigation {
     /// law: navigation.positioning-order-is-declared — four causes in the
     /// declared precedence, `Unsupported` first, `NoRoute` last and
     /// alone owing its closure witness.
-    /// Owed reversal (red twin): a payload-free `NoRoute` must not compile.
     #[test]
     fn positioning_order_is_declared() {
         assert_eq!(PositioningRefusal::SHAPE, FamilyShape::SingleCause);
@@ -3536,7 +3324,6 @@ mod navigation {
     /// law: navigation.fix-binds-orthogonal-axes — a real fix that is
     /// Approximate AND Incomplete AND Stale at once: the struct binds
     /// orthogonal axes and no shape erases closure or freshness.
-    /// Owed reversal: an enum-flattened fix must not be constructible.
     #[test]
     fn fix_binds_orthogonal_axes() {
         let fix: Fix<u8> = Fix {
@@ -3577,16 +3364,6 @@ mod navigation {
     /// law: navigation.frame-version-rides-authority-position — versions of
     /// one frame compare; versions of different frames refuse with the
     /// scope-guard family body.
-    /// Reversal (red twin):
-    /// `testpak/tests/compile-fail/cross-frame-comparison-on-a-production-guard.rs`.
-    /// This law drives the scope-checked road through both of its outcomes and
-    /// would go on passing unchanged if an ambient `PartialOrd` or `Ord`
-    /// appeared beside it, so what falsifies the claim is the DIRECT comparison
-    /// refusing, and the fixture is where that is asked — on both traits.
-    /// A frame is a VALUE in the position, so two frames' versions are one
-    /// type; `cross-scope-comparison-on-a-stamped-guard.rs` compares two scope
-    /// ROLES, which is identity's claim and not this one. The laundering of
-    /// this guard's position is its own obligation, with its own reversal.
     #[test]
     fn frame_version_rides_authority_position() {
         let frame =
@@ -3603,8 +3380,6 @@ mod navigation {
 
     /// law: navigation.axis-capabilities-are-nine — the closed roster and its
     /// compile-time bound; an undeclared capability has no representation.
-    /// Owed reversal (red twin): `distance` on a metric-free axis must not
-    /// compile.
     #[test]
     fn axis_capabilities_are_nine() {
         assert_eq!(AxisCapabilityLimit::MAX, 9);
@@ -3626,7 +3401,6 @@ mod navigation {
     /// law: navigation.cursor-transplantation-owes-its-order — eight causes
     /// with the AUTHORED precedence: family gates decode, source before its
     /// scoped generations, the query before its refinements, the cut last.
-    /// Owed reversal: reordering the declared list must break this law.
     #[test]
     fn cursor_transplantation_owes_its_order() {
         assert_eq!(CursorTransplantation::SHAPE, FamilyShape::SingleCause);
@@ -3656,7 +3430,6 @@ mod navigation {
     /// law: navigation.continuation-roles-do-not-unify — cursor, applied cut,
     /// and turn-input cut are distinct types with no bridges; the durable
     /// checkpoint is runtime-owned and only referenced.
-    /// Owed reversal (red twin): a From/Into among them must not compile.
     #[test]
     fn continuation_roles_do_not_unify() {
         let over_cursor: Option<fn(Cursor)> = Some(drop);
@@ -3670,7 +3443,6 @@ mod navigation {
     /// law: navigation.rosters-hold — traversal forms, destination kinds,
     /// page downgrade triggers, and the declared consts hold their exact
     /// cardinalities.
-    /// Owed reversal: any roster growing silently must break this law.
     #[test]
     fn traversal_path_and_checkpoint_rosters_hold() {
         let forms = [
@@ -3749,12 +3521,6 @@ mod port {
     /// law: port.family-version-rides-authority-position — versions of one
     /// family compare; versions of different families refuse with the
     /// scope-guard family body (the fourth production use).
-    /// Reversal (red twin), discharged by the stamp this guard is now written
-    /// by, on the stamp's own fixtures: cross-scope comparison is a category error
-    /// (`cross-scope-comparison-on-a-stamped-guard.rs`) and the position has no
-    /// road out and none back in (`a-stamped-representation-cannot-be-laundered.rs`).
-    /// Both prove a property of the generated shape, which is what makes them
-    /// this guard's reversal rather than another home's.
     #[test]
     fn family_version_rides_authority_position() {
         let family = demo_family(1);
@@ -3769,7 +3535,6 @@ mod port {
     }
 
     /// law: port.roles-are-thirteen — the closed role inventory.
-    /// Owed reversal: a fourteenth role appearing silently must break this law.
     #[test]
     fn roles_are_thirteen() {
         let roles = [
@@ -3795,7 +3560,6 @@ mod port {
     /// with the AUTHORED precedence: existence, then the spent one-shot, then
     /// request identity, contract shape, authority, bounds, and temporal
     /// facts last.
-    /// Owed reversal: reordering the declared list must break this law.
     #[test]
     fn response_binding_owes_its_order() {
         assert_eq!(ResponseBinding::SHAPE, FamilyShape::SingleCause);
@@ -3826,8 +3590,6 @@ mod port {
     /// law: port.foreign-claim-admits-only-through-evidence — the seam runs:
     /// wrapping is free, the one unwrap consumes the claim against admission
     /// evidence, and the admitted value carries that evidence.
-    /// Owed reversal (red twin): any other unwrap of a `ForeignClaim` must
-    /// not compile.
     #[test]
     fn foreign_claim_admits_only_through_evidence() {
         let claim = ForeignClaim::foreign(42_u8);
@@ -3839,8 +3601,6 @@ mod port {
     /// law: port.operation-contract-composes — a full seventeen-fact
     /// operation contract constructs through the checked roads, with the
     /// postcondition set on the compile-time bound.
-    /// Owed reversal: a universal request envelope must not exist to compile
-    /// against.
     #[test]
     fn operation_contract_composes() {
         let operation = PortOperation {
@@ -3881,7 +3641,6 @@ mod port {
     /// law: port.rosters-hold — postconditions three, secret verbs nine,
     /// expiry postures two, effect postures two, and the declared consts hold
     /// their exact cardinalities.
-    /// Owed reversal: any roster growing silently must break this law.
     #[test]
     fn rosters_hold() {
         let postconditions = [
@@ -3952,8 +3711,6 @@ mod declaration {
     /// under the declared derivation gate order; which gates ran is derivable
     /// from the named cause, so the family carries no posture member. A
     /// collision names the two symbols, never the two spellings.
-    /// Owed reversal (red twin): a posture member on this family must not
-    /// exist.
     #[test]
     fn export_alias_gate_order_is_declared() {
         assert_eq!(ExportAliasDerivation::SHAPE, FamilyShape::SingleCause);
@@ -3976,8 +3733,6 @@ mod declaration {
     /// The bodies themselves are not assembled here. Their seat is band 00's
     /// coupled report package and it is proven once, where the coupling is
     /// stated — see `refusal::every_collection_family_carries_the_coupled_seat`.
-    ///
-    /// Owed reversal (red twin): a two-scalar payload must not compile.
     #[test]
     fn name_and_closure_families_are_collections() {
         assert_eq!(
@@ -3990,8 +3745,6 @@ mod declaration {
     /// law: declaration.link-resolution-ranges-over-four-claim-kinds — the
     /// closed claim kinds ride as a typed member; the linker refuses, never
     /// repairs.
-    /// Owed reversal: a fifth claim kind appearing silently must break this
-    /// law.
     #[test]
     fn link_resolution_ranges_over_four_claim_kinds() {
         let kinds = [
@@ -4022,7 +3775,6 @@ mod declaration {
 
     /// law: declaration.projection-claims-are-five — the closed claim enum,
     /// the derivable ten-issue cap, and a constructed unstated-claim issue.
-    /// Owed reversal: a sixth claim must break this law.
     #[test]
     fn projection_claims_are_five() {
         let claims = [
@@ -4044,7 +3796,6 @@ mod declaration {
     /// law: declaration.facets-are-six-in-canonical-sequence — WHO first,
     /// WHY last, the six content rosters hold their exact cardinalities, and
     /// the registered facet forms are four typed values, pairwise distinct.
-    /// Owed reversal: reordering the canonical sequence must break this law.
     #[test]
     fn facets_are_six_in_canonical_sequence() {
         let facets = [
@@ -4077,12 +3828,6 @@ mod declaration {
 
     /// law: declaration.projection-profile-version-rides-authority-position —
     /// the fifth production scope-guard use.
-    /// Reversal (red twin), discharged by the stamp this guard is now written
-    /// by, on the stamp's own fixtures: cross-scope comparison is a category error
-    /// (`cross-scope-comparison-on-a-stamped-guard.rs`) and the position has no
-    /// road out and none back in (`a-stamped-representation-cannot-be-laundered.rs`).
-    /// Both prove a property of the generated shape, which is what makes them
-    /// this guard's reversal rather than another home's.
     #[test]
     fn projection_profile_version_rides_authority_position() {
         let profile =
@@ -4100,7 +3845,6 @@ mod declaration {
     /// law: declaration.authoring-rosters-hold — stages four and never open,
     /// hygiene six-fold, four authoring roles, four top-level forms, two
     /// front doors, six coordinate roles, and the declared consts.
-    /// Owed reversal: any roster growing silently must break this law.
     #[test]
     fn authoring_rosters_hold() {
         let stages = [
@@ -4226,10 +3970,9 @@ mod declaration {
     /// position in `ALL` rather than a second number that agrees with it. The
     /// declared stable name and the declared prose come back per row, in the
     /// row they were declared on.
-    /// Executed reversal: the hand-kept twin above states the same claim
-    /// through the writable form — an array beside a `match` — and this law
-    /// requires it to FAIL, so the stamped half is proven non-vacuous rather
-    /// than asserted.
+    /// The hand-kept twin above states the same claim through the writable form
+    /// — an array beside a `match` — and this law requires it to FAIL, so the
+    /// stamped half is proven non-vacuous rather than asserted.
     /// The claim's ceiling: closure of the roster is not checked here and is
     /// not checkable anywhere. A row outside the declaration does not exist
     /// because the stamp is the enum's only declaration site, which is a
@@ -4282,7 +4025,6 @@ mod semantic {
     /// law: semantic.form-family-holds-fifteen — the content roster read as
     /// defects, every issue carrying only its canonical-order position, on
     /// the declared-bound road.
-    /// Owed reversal (red twin): a text-carrying payload must not compile.
     #[test]
     fn form_family_holds_fifteen() {
         let issues = [
@@ -4323,7 +4065,6 @@ mod semantic {
     /// symbolic bounds, explanation, evidence. Its bounded members are empty
     /// here: their families declare no magnitude, so this structural law does
     /// not claim a nonempty judgment population.
-    /// Owed reversal (red twin): an erasable axis must not compile.
     #[test]
     fn judgment_binds_nine_axes() {
         let judgment = Judgment {
@@ -4352,7 +4093,6 @@ mod semantic {
     /// law: semantic.behavior-and-boundary-rosters-hold — seven behavior
     /// families, the three-way definition boundary, and the ten-fact
     /// operation contract.
-    /// Owed reversal: any roster growing silently must break this law.
     #[test]
     fn behavior_and_boundary_rosters_hold() {
         let families = [
@@ -4378,8 +4118,6 @@ mod semantic {
 
     /// law: semantic.graph-digest-is-meaning — the semantic graph digest is
     /// a commitment over normalized meaning, never a byte identity.
-    /// Owed reversal (red twin): substituting a byte identity must not
-    /// compile.
     #[test]
     fn graph_digest_is_meaning() {
         assert_eq!(
@@ -4430,12 +4168,6 @@ mod execution {
     /// register holds thirty-eight distinct rows, and changing the set
     /// advances the scope-guarded Execution-Form version (the sixth
     /// production use).
-    /// Reversal (red twin), discharged by the stamp this guard is now written
-    /// by, on the stamp's own fixtures: cross-scope comparison is a category error
-    /// (`cross-scope-comparison-on-a-stamped-guard.rs`) and the position has no
-    /// road out and none back in (`a-stamped-representation-cannot-be-laundered.rs`).
-    /// Both prove a property of the generated shape, which is what makes them
-    /// this guard's reversal rather than another home's.
     #[test]
     fn operator_register_holds_and_versions() {
         assert_eq!(OPERATOR_REGISTER.len(), 38);
@@ -4465,8 +4197,6 @@ mod execution {
     /// read as statement defects, position-only payloads, on the
     /// declared-bound road; the five declarable algebraic laws hold their
     /// compile-time cap.
-    /// Owed reversal (red twin): a payload carrying operator content must not
-    /// compile.
     #[test]
     fn form_family_holds_fifteen() {
         let issues = [
@@ -4511,7 +4241,6 @@ mod execution {
     /// family holds its five issues with the three closed subcause rosters. The
     /// bounded command and bound seats stay empty here rather than borrowing a
     /// runtime witness their unstated families did not declare.
-    /// Owed reversal (red twin): a result or receipt member must not compile.
     #[test]
     fn effect_batch_composes_as_data() {
         let batch = EffectBatch {
@@ -4559,7 +4288,6 @@ mod execution {
     /// law: execution.recursion-witness-records-eleven — a real witness
     /// constructs with all eleven facts, a lexicographic measure is lawful,
     /// and the two effectful lanes hold with the interleaved closure roster.
-    /// Owed reversal: a callback measure must not be representable.
     #[test]
     fn recursion_witness_records_eleven() {
         let witness = RecursionWitness {
@@ -4589,8 +4317,6 @@ mod execution {
     /// posture view, the decode-only family's ladder, and the two collection
     /// families' issue registers, whose compile-time bounds are the registers'
     /// own cardinalities.
-    /// Owed reversal (red twin): literal construction of a binding arm must
-    /// not compile.
     #[test]
     fn kernels_partition_not_duplicate() {
         use crate::execution::types::{KernelInterfaceIssueLimit, KernelSemanticIssueLimit};
@@ -4655,7 +4381,6 @@ mod execution {
 
     /// law: execution.agreement-seam-lists-hold — six shareable, eleven
     /// never-shareable, and the nine work dimensions.
-    /// Owed reversal: any list growing silently must break this law.
     #[test]
     fn agreement_seam_lists_hold() {
         assert_eq!(INDEPENDENCE_MAY_SHARE.len(), 6);
@@ -4687,12 +4412,6 @@ mod image {
     /// kernel versions are the seventh, eighth, and ninth scope-guard
     /// instantiations; the image digest is a byte identity, never a meaning
     /// digest.
-    /// Reversal (red twin), discharged by the stamp this guard is now written
-    /// by, on the stamp's own fixtures: cross-scope comparison is a category error
-    /// (`cross-scope-comparison-on-a-stamped-guard.rs`) and the position has no
-    /// road out and none back in (`a-stamped-representation-cannot-be-laundered.rs`).
-    /// Both prove a property of the generated shape, which is what makes them
-    /// this guard's reversal rather than another home's.
     #[test]
     fn identities_ride_scope_guards() {
         let family = ImageFamilyId::for_laws(Occurrence::for_laws(OccurrenceForm::Fresh([61; 16])));
@@ -4723,8 +4442,6 @@ mod image {
     /// law: image.component-roster-is-authored-nineteen — the authored
     /// roster, the two carriages, the three packaging profiles, and a real
     /// component row on the img-row shape.
-    /// Owed reversal: a twentieth role appearing silently must break this
-    /// law.
     #[test]
     fn component_roster_is_authored_nineteen() {
         let roles = [
@@ -4776,9 +4493,7 @@ mod image {
     /// profile, packaging, and bounded component/kernel seats, and the
     /// bound-fact roster holds eighteen. This laws-only value leaves both
     /// bounded seats empty rather than pretending validation supplied their
-    /// unstated magnitudes; dual-form admission remains owed below.
-    /// Owed reversal: an image without both forms' components must refuse at
-    /// validation (owed to the machinery seam).
+    /// unstated magnitudes.
     #[test]
     fn program_image_composes() {
         let image = ProgramImage {
@@ -4805,8 +4520,6 @@ mod image {
     /// law: image.validation-ladder-is-five-and-minted — five distinct
     /// ladder types with no public constructor on any rung, and the durable
     /// record's five phases.
-    /// Owed reversal (red twin): literal construction of the two
-    /// verifier-minted rungs must not compile.
     #[test]
     fn validation_ladder_is_five_and_minted() {
         let rung_one: Option<fn(UntrustedImageBytes)> = Some(drop);
@@ -4832,7 +4545,6 @@ mod image {
 
     /// law: image.admission-pipeline-is-sixteen — no stage skipped; the
     /// eight proven facts hold.
-    /// Owed reversal: a skipped stage must break this law.
     #[test]
     fn admission_pipeline_is_sixteen() {
         assert_eq!(ADMISSION_PIPELINE.len(), 16);
@@ -4867,8 +4579,6 @@ mod pakvm {
 
     /// law: pakvm.value-algebra-is-closed — nine categories, five prohibited
     /// inhabitants, four residences, and the dumb generational index.
-    /// Owed reversal (red twin): an Any / host-object / function-pointer
-    /// inhabitant must not compile.
     #[test]
     fn value_algebra_is_closed() {
         let categories = [
@@ -4900,8 +4610,6 @@ mod pakvm {
     /// law: pakvm.live-handles-do-not-cross-threads — three role-distinct
     /// executor handles exist, structurally execution-context-local via the
     /// raw-pointer phantom.
-    /// Owed reversal (red twin): sending any handle across threads must not
-    /// compile — the trybuild fixture is testpak's.
     #[test]
     fn live_handles_do_not_cross_threads() {
         let over_capability: Option<fn(CapabilityHandle)> = Some(drop);
@@ -4918,8 +4626,6 @@ mod pakvm {
     /// value. The remaining-bound and spend seats are empty here rather than
     /// inventing magnitudes for their unstated families; nonempty budget
     /// behavior remains gated.
-    /// Owed reversal (red twin): a live monotonic member must not compile
-    /// (the live deadline type is unserializable and `!Send` by shape).
     #[test]
     fn continuation_record_binds_twelve() {
         let record = ContinuationRecord {
@@ -4947,8 +4653,6 @@ mod pakvm {
     /// law: pakvm.terminals-are-five-and-owned — the executor's closed
     /// terminal set and the six step productions; the physical and
     /// reconciled facts are other owners' and unconstructible here.
-    /// Owed reversal (red twin): an executor-constructed physical fact must
-    /// not compile.
     #[test]
     fn terminals_are_five_and_owned() {
         let terminals = [
@@ -4967,8 +4671,7 @@ mod pakvm {
     /// law: pakvm.captures-and-closure-obligations — the capture record carries
     /// its bounded canonical-order seat, the seven invalid captures and four
     /// lambda postures hold, and the six closure obligations stand. This
-    /// specimen is the lawful empty capture set; ordering hostiles remain owed.
-    /// Owed reversal (red twin): a captured live handle must not compile.
+    /// specimen is the lawful empty capture set.
     #[test]
     fn captures_and_closure_obligations() {
         let record = CaptureRecord {
@@ -5025,7 +4728,6 @@ mod bvisor {
     /// with their closed subcause rosters, the port home's postcondition
     /// vocabulary collecting on its planted seat, and the sole
     /// constraint-source-pair carrier.
-    /// Owed reversal (red twin): a fifteenth issue must break this law.
     #[test]
     fn admission_family_holds_fourteen() {
         let issues = [
@@ -5108,8 +4810,6 @@ mod bvisor {
     /// law: bvisor.attempt-minting-is-admissions-alone — the admitted arm
     /// carries live custody with the fresh identity; the refused arm carries
     /// the family body and NO Attempt identity of any kind.
-    /// Owed reversal (red twin): minting an Attempt identity from any other
-    /// route must not compile.
     #[test]
     fn attempt_minting_is_admissions_alone() {
         let attempt = AttemptId::for_laws(Occurrence::for_laws(OccurrenceForm::Fresh([96; 16])));
@@ -5132,8 +4832,6 @@ mod bvisor {
     /// law: bvisor.lifecycle-is-affine-and-sealed — sealing CONSUMES the
     /// terminal Attempt and mints the immutable report; the persisted state
     /// enum holds four phases.
-    /// Owed reversal (red twin): using a terminal Attempt after seal must
-    /// not compile (moved value).
     #[test]
     fn lifecycle_is_affine_and_sealed() {
         let attempt = AttemptId::for_laws(Occurrence::for_laws(OccurrenceForm::Fresh([97; 16])));
@@ -5159,8 +4857,6 @@ mod bvisor {
     /// constructs with its uncertainty; the estimate is model-named; the
     /// non-substitution table holds thirteen and the observation kinds
     /// twelve.
-    /// Owed reversal (red twin): a conversion across the Attempt-existence
-    /// line must not compile.
     #[test]
     fn reservation_has_one_home() {
         let observation = demo_observation(99);
@@ -5181,8 +4877,6 @@ mod bvisor {
 
     /// law: bvisor.containment-is-two-coordinates — five profiles, two
     /// interaction shapes, and the closed is-not list.
-    /// Owed reversal: a sixth profile or a merged coordinate must break this
-    /// law.
     #[test]
     fn containment_is_two_coordinates() {
         let profiles = [
@@ -5206,8 +4900,6 @@ mod bvisor {
     /// bound to one Attempt and one family; the validation and cancellation
     /// rosters hold. Its bounded-request seat is empty here because the family
     /// declares no magnitude; this law does not claim a nonempty bound set.
-    /// Owed reversal (red twin): a request satisfying another Attempt must
-    /// not compile.
     #[test]
     fn port_crossing_binds() {
         let request = PortRequest {
@@ -5261,7 +4953,6 @@ mod runtime {
     /// law: runtime.stitch-contract-and-driver-invariance — seven outputs,
     /// fifteen invariants no driver may change, seven freedoms, twelve
     /// liveness declarations.
-    /// Owed reversal: a driver changing an invariant must break this law.
     #[test]
     fn stitch_contract_and_driver_invariance() {
         assert_eq!(STITCH_OUTPUTS.len(), 7);
@@ -5275,7 +4966,6 @@ mod runtime {
     /// DERIVED Class-D production identity (replay-stable); the logical
     /// operation and effect intent stay fresh; the fourteen phases hold with
     /// their initial and terminal postures.
-    /// Owed reversal (red twin): a quartet merger must not compile.
     #[test]
     fn turn_identity_quartet() {
         assert_eq!(TurnId::CLASS, IdentityClass::Occurrence);
@@ -5310,8 +5000,6 @@ mod runtime {
     /// seat, and a lineage node composes with the membrane's Attempt identity.
     /// The node's seat stays empty here rather than inventing its unstated
     /// family's magnitude.
-    /// Owed reversal (red twin): a bare cause or an edge inside the cause
-    /// value must not compile.
     #[test]
     fn attempt_lineage_is_message_passing() {
         let turn = TurnId::for_laws(Occurrence::for_laws(OccurrenceForm::Derived([110; 32])));
@@ -5337,7 +5025,6 @@ mod runtime {
     /// law: runtime.checkpoint-advances-only-on-prerequisites — the durable
     /// checkpoint constructs whole, the eight non-reasons hold, and the four
     /// process-state roles stand distinct.
-    /// Owed reversal: advancing on any non-reason must break this law.
     #[test]
     fn checkpoint_advances_only_on_prerequisites() {
         let checkpoint = DurableCheckpoint {
@@ -5363,7 +5050,6 @@ mod runtime {
     /// law: runtime.effect-recovery-has-nine-axes — a full profile
     /// constructs with the five pair-fact axes as records, the explicit
     /// weaker posture, and the closed action rosters.
-    /// Owed reversal (red twin): a boolean axis must not compile.
     #[test]
     fn effect_recovery_has_nine_axes() {
         let profile = EffectRecoveryProfile {
@@ -5405,8 +5091,6 @@ mod runtime {
     /// exists only inside completion; the record composes history's commit
     /// axis with this home's two; the cancellation fact model holds its
     /// rosters with no single outcome enum.
-    /// Owed reversal (red twin): a disposition outside `Complete` must not
-    /// compile.
     #[test]
     fn reconciliation_and_cancellation_axes() {
         let record = EffectReconciliationRecord {
@@ -5452,8 +5136,6 @@ mod runtime {
     /// Mailbox facts, six Completion terminals, four motions, five recovery
     /// authorities, and the bound outcome binding the membrane's observation
     /// across the Attempt-existence line.
-    /// Owed reversal (red twin): a conversion across that line must not
-    /// compile.
     #[test]
     fn delivery_and_bound_outcomes() {
         let roles = [
@@ -5529,8 +5211,6 @@ mod derived {
     /// the normative check order (the gate first, its fail-closed twin
     /// second, the silent-repair refusal last); unproven is never mismatch;
     /// the length cause carries both lengths canonically.
-    /// Owed reversal (red twin): a post-gate cause over unproven row domains
-    /// must be unreachable.
     #[test]
     fn mask_family_owes_the_normative_order() {
         assert_eq!(SelectionMaskConstruction::SHAPE, FamilyShape::SingleCause);
@@ -5556,7 +5236,6 @@ mod derived {
     /// meaning, seat 2 is fresh build identity, and a real mask carries
     /// both; the source-binding forms are structural; the representations
     /// and validity conditions hold their rosters.
-    /// Owed reversal (red twin): single-seat composition must not compile.
     #[test]
     fn two_seat_identity_holds() {
         assert_eq!(RowDomainId::CLASS, IdentityClass::SemanticCommitment);
@@ -5614,7 +5293,6 @@ mod derived {
     /// the generation is the tenth scope-guard; the three axes hold with
     /// coverage on the root completeness shape; and the load-bearing triple
     /// stays three types.
-    /// Owed reversal (red twin): collapsing the triple must not compile.
     #[test]
     fn materialization_axes_and_the_triple() {
         let generation = demo_generation(151);
@@ -5670,7 +5348,6 @@ mod derived {
     /// law: derived.payload-locator-is-closed-two-forms — both forms
     /// construct, the extent identity is the Tier-1 content region, and no
     /// third form exists.
-    /// Owed reversal (red twin): a four-scalar locator must not compile.
     #[test]
     fn payload_locator_is_closed_two_forms() {
         let slice = PayloadLocator::ExtentSlice {
@@ -5694,8 +5371,6 @@ mod derived {
     /// law: derived.plans-split-and-kernel-gate — the template/binding split
     /// constructs (static key vs per-use authority), the nine plan
     /// prohibitions hold, and the kernel admission gate holds eleven.
-    /// Owed reversal (red twin): binding authority inside the template key
-    /// must not compile.
     #[test]
     fn plans_split_and_kernel_gate() {
         let template = PlanTemplate {
@@ -5716,7 +5391,6 @@ mod derived {
     /// law: derived.never-authority-rosters-hold — the lifecycle five, the
     /// ten primitives, the fifteen refusal classes, and the nine-item
     /// reversible standing bar (a standing bar, never a permanent ban).
-    /// Owed reversal: flattening the bar into a ban must break this law.
     #[test]
     fn never_authority_rosters_hold() {
         let states = [
@@ -5769,12 +5443,6 @@ mod application {
     /// scope-guard: generations of one instance compare, cross-instance
     /// refuses, and the activated image rides a typed relation, never the
     /// ordinal's bytes.
-    /// Reversal (red twin), discharged by the stamp this guard is now written
-    /// by, on the stamp's own fixtures: cross-scope comparison is a category error
-    /// (`cross-scope-comparison-on-a-stamped-guard.rs`) and the position has no
-    /// road out and none back in (`a-stamped-representation-cannot-be-laundered.rs`).
-    /// Both prove a property of the generated shape, which is what makes them
-    /// this guard's reversal rather than another home's.
     #[test]
     fn activation_generation_rides_scope() {
         let instance = InstanceId::for_laws(Occurrence::for_laws(OccurrenceForm::Fresh([170; 16])));
@@ -5799,7 +5467,6 @@ mod application {
     /// law: application.identities-do-not-merge — meaning is not bytes, the
     /// six non-identities are refusal causes only, and the instance
     /// lifecycle holds four with a terminal.
-    /// Owed reversal (red twin): wrong-role substitution must not compile.
     #[test]
     fn identities_do_not_merge() {
         assert_eq!(
@@ -5823,7 +5490,6 @@ mod application {
 
     /// law: application.invocation-profiles-are-three — typed configuration
     /// with the resource never-becomes list.
-    /// Owed reversal: a fourth profile must break this law.
     #[test]
     fn invocation_profiles_are_three() {
         let profiles = [
@@ -5840,7 +5506,6 @@ mod application {
     /// identity and the membrane's port request identity are distinct types
     /// related only through typed carriage; the delivery index is scoped to
     /// one session direction.
-    /// Owed reversal (red twin): one satisfying the other must not compile.
     #[test]
     fn carrier_identities_stay_apart() {
         let over_carrier: Option<fn(CarrierRequestId)> = Some(drop);
@@ -5867,7 +5532,6 @@ mod application {
     /// carries its terminal, the stream state is a record of both halves
     /// plus closure (never one linear enum), and a half-closed half is not a
     /// terminal.
-    /// Owed reversal (red twin): a linear half-close enum must not exist.
     #[test]
     fn session_and_stream_vocabularies() {
         let stream = StreamState {
@@ -5901,8 +5565,6 @@ mod application {
     /// four-rung idempotency ladder in its declared preference order, the
     /// rejected-content classes with their guardrails, and the removal hole
     /// carrying history's commitment.
-    /// Owed reversal (red twin): a non-admitted discharge must be
-    /// unreachable.
     #[test]
     fn ingress_ladders_hold() {
         let ladder = [
@@ -5943,7 +5605,6 @@ mod application {
     /// components, the nine carrier observations (two of which carry typed
     /// evidence, never a verdict), sixteen message families with nine facts
     /// each, thirteen auth roles, and the surface rosters.
-    /// Owed reversal: any roster growing silently must break this law.
     #[test]
     fn contract_and_rosters_hold() {
         assert_eq!(CONTRACT_COMPONENTS.len(), 6);
@@ -6000,7 +5661,6 @@ mod security {
     /// binding one grant to the time home's policy by reference, with the
     /// role-qualified renewal authority; the four paved revocation defaults
     /// hold.
-    /// Owed reversal (red twin): a date edit as renewal must not compile.
     #[test]
     fn lease_collects_the_banded_seat() {
         let lease = CapabilityLease {
@@ -6019,8 +5679,6 @@ mod security {
     /// law: security.revocation-axes-stay-apart — observation and
     /// acknowledgement are distinct facts on one evidence record; freshness
     /// rides the evidence itself.
-    /// Owed reversal (red twin): a fused observed/acknowledged token must
-    /// not compile.
     #[test]
     fn revocation_axes_stay_apart() {
         let evidence = RevocationEvidence {
@@ -6039,7 +5697,6 @@ mod security {
     /// law: security.shred-progress-never-collapses — the four progress
     /// facts stand distinct; the evidence record constructs with its visible
     /// denominator rows and six honest statuses.
-    /// Owed reversal: a denominator hiding a row status must break this law.
     #[test]
     fn shred_progress_never_collapses() {
         let progress = [
@@ -6083,7 +5740,6 @@ mod security {
 
     /// law: security.mechanism-standing-is-append-only — four fact families
     /// plus a read-only view, never one mutable status enum.
-    /// Owed reversal (red twin): a mutable status enum must not exist.
     #[test]
     fn mechanism_standing_is_append_only() {
         let view = MechanismStandingView(Commitment::raw([204; 32]));
@@ -6092,10 +5748,7 @@ mod security {
 
     /// law: security.secret-handle-refuses-the-morphism — the handle type
     /// exists with no clone, copy, debug, display, or serialization route;
-    /// the green half is type-level existence, the true proof is the red
-    /// twin.
-    /// Owed reversal (red twin): Debug/Display/serde/Send on the handle must
-    /// not compile — trybuild fixtures owed to testpak.
+    /// what this law states is the type-level existence.
     #[test]
     fn secret_handle_refuses_the_morphism() {
         let over_handle: Option<fn(SecretUseHandle)> = Some(drop);
@@ -6105,7 +5758,6 @@ mod security {
     /// law: security.firewall-and-rosters-hold — the act table, crypto
     /// roles, witness role, foreign-execution pair, label arrows, secret
     /// capabilities, and trust-boundary members.
-    /// Owed reversal: any roster growing silently must break this law.
     #[test]
     fn firewall_and_rosters_hold() {
         assert_eq!(FIREWALL_ACT_TABLE.len(), 5);
@@ -6155,7 +5807,6 @@ mod evidence {
     /// constructs with every axis its own typed value, and each axis holds its
     /// own closed roster: four bases, sixteen methods, ten claims, five proof
     /// dispositions, three enforcement postures. No axis is a rank of another.
-    /// Owed reversal (red twin): a flattened status enum must not exist.
     #[test]
     fn verification_is_a_tuple_not_a_ladder() {
         let result = VerificationResult {
@@ -6245,9 +5896,6 @@ mod evidence {
     /// each other either. Bounded reach is not "more" than observed history;
     /// they are different reaches, and a comparison operator would invite a
     /// reader to trade one for the other.
-    /// Owed reversal (red twin): deriving `Ord` on `Coverage` and writing
-    /// `a < b` must not compile — the absence this law's green half cannot
-    /// state, only a compile-fail fixture can.
     #[test]
     fn coverage_is_unordered() {
         let coverage = [
@@ -6265,8 +5913,6 @@ mod evidence {
     /// law: evidence.terminals-are-lifecycle-owned — verification and
     /// qualification own distinct terminal algebras; no universal terminal
     /// exists, and a falsified run is a CONCLUDED run.
-    /// Owed reversal (red twin): one terminal substituting for the other
-    /// must not compile.
     #[test]
     fn terminals_are_lifecycle_owned() {
         let verification = [
@@ -6285,8 +5931,6 @@ mod evidence {
 
     /// law: evidence.routes-bind-bases — the three independent routes stand
     /// distinct with the mandatory substrate disclosure.
-    /// Owed reversal (red twin): an invalid basis/route pair must refuse
-    /// structurally when the admission seam lands.
     #[test]
     fn routes_bind_bases() {
         let routes = [
@@ -6303,8 +5947,6 @@ mod evidence {
     /// law: evidence.cause-disposition-narrows — narrowing is progress, not
     /// a forced verdict: all three postures construct, and the narrowed-cause
     /// set is a typed carrier, never a raw vector.
-    /// Owed reversal (red twin): upgrading a correlation into an established
-    /// cause must not compile.
     #[test]
     fn cause_disposition_narrows() {
         let established =
@@ -6319,7 +5961,6 @@ mod evidence {
     /// calibration pair owning neither work nor truth. The layer specimen is
     /// empty because its family declares no magnitude; coexistence behavior
     /// remains outside this compile-time structural law.
-    /// Owed reversal (red twin): a universal receipt must not exist.
     #[test]
     fn receipt_matrix_and_carriage() {
         assert_eq!(RECEIPT_FAMILIES.len(), 25);
@@ -6346,7 +5987,6 @@ mod evidence {
     /// act resting on qualification by reference; generated publication is
     /// all-or-refusal; release is a conjunction with agreeing denominators;
     /// the explanation ladder holds.
-    /// Owed reversal (red twin): a self-adoption must not compile.
     #[test]
     fn lifecycles_are_four_and_separate() {
         let adoption = AdoptionDecisionReceipt {

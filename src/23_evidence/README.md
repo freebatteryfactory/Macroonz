@@ -34,21 +34,3 @@ bindings) → **disclosed trust boundary**. The THREE-AUTHORITY SEPARATION —
 qualify ≠ adopt ≠ release — survives every rename, with the release owner a
 fourth authority deciding which qualified rows become public promises.
 `Muterprater` is a DELIBERATE keep (the mutation subsystem's name).
-
-## Owed to testpak (the separate unnumbered crate — production never
-depends on it)
-
-The full `QualificationEvidence` record, plans, arenas, judges, corpora
-(search ≠ holdout disjoint; access invalidates), mutation verdicts (killed
-only under the five-conjunct rule; survival is not equivalence), projected
-hostiles/mutants/metamorphic relations from owner law, activation evidence,
-the eleven result layers, workloads with contention posture, the lane roster
-(this home owns the typed `Lane` axis and the law that a faster lane never
-discharges a broader requirement; WHICH lanes exist is the qualifying
-owner's declaration), the denominator axis roster (the axes compared
-expected-versus-executed are the qualifying owner's; `VerificationDenominator`
-is already owner-parameterized here), the permanent hostile families
-(including the crossing-law family: every boundary attacked for the gain
-without its named morphism), the two named closures (adapter postcondition
-profile matrix; end-to-end completion and reopening rule), and the arena
-self-attack law.

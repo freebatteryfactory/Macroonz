@@ -57,8 +57,8 @@ mod guard;
 /// The stable identity of one registered refusal reason. A registered reason is a
 /// semantic commitment: new meaning mints a new id, never recycled. Opaque; equality
 /// and hashing only; no ordering beyond the declared raw-byte storage order; minted
-/// by derivation from its family (macro-projected once the macros crate lands),
-/// never by a public constructor.
+/// by derivation from its family — a projection of that declaration rather than a
+/// hand-kept value — and never by a public constructor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ReasonId([u8; 32]);
 
@@ -306,8 +306,8 @@ impl LocalCauseKey {
 /// **Family uniqueness is not provable there** and is not claimed here: whether
 /// two separately declared families collide on one `<domain>.<family>` is a
 /// question about the whole program, and it is answered where the whole program
-/// is assembled. That join is owed to the composition root and is stated as owed
-/// rather than quietly assumed.
+/// is assembled. That join is the composition root's, and the ceiling is
+/// stated rather than quietly assumed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CauseId {
     family: RefusalFamilyId,

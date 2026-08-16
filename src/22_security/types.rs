@@ -163,8 +163,7 @@ pub const FIREWALL_ACT_TABLE: [&str; 5] = [
 
 /// The label algebra's three arrows — closed. Labels ride schema fields and
 /// byte roles: no parallel taxonomy. Every operation declares its label
-/// transform beside its result axes (one more generated column — the macro
-/// role absorbs the ceremony). No single severity tier decides
+/// transform beside its result axes. No single severity tier decides
 /// authorization, filtering, logging, retention, export, and egress at once;
 /// a consumer with no fact for a field refuses to release it rather than
 /// defaulting to open.

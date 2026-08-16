@@ -11,10 +11,8 @@ and supervision.
 
 The STITCH is the transition contract (state + one observation → one bounded
 deterministic transition → one of seven outputs); the TURN is the identity of
-one such transition over frozen inputs. The Stitch trait's concrete Rust
-shape lands with the runtime machinery — the seven
-outputs, the fifteen-item driver-invariance list, and the seven driver
-freedoms are law now.
+one such transition over frozen inputs. The seven outputs, the fifteen-item
+driver-invariance list, and the seven driver freedoms are law now.
 
 ## TurnId is the machine's first DERIVED Class-D production identity
 
@@ -41,10 +39,8 @@ two-variant cancellation outcome is RETIRED in favor of the fact model;
 Attempt-existence line with no conversion; Permit custody-is-not-proof with
 no generic released flag; supervision strategy names deliberately not frozen.
 
-## Owed onward
+## Not here
 
-Session and DeliveryIndex carriage → 21. The live Mailbox/Broadcast
-mechanisms, capacity profiles, and the Stitch trait → this home's machinery
-phase. The calibration pair → 23. The concrete driver catalogue is host
-documentation: `DRIVER_INVARIANCE` and `DRIVER_MAY_CHANGE` carry the whole
-law, and no roster of driver names lives in core.
+The concrete driver catalogue is host documentation: `DRIVER_INVARIANCE` and
+`DRIVER_MAY_CHANGE` carry the whole law, and no roster of driver names lives in
+core.

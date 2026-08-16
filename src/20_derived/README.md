@@ -44,8 +44,7 @@ Mechanism-diagnostic rosters are per-host-profile declarations, never core
 content: `DATA_SEMANTIC_WORK` is the portable surface, and the law that a
 diagnostic never becomes semantic work is carried on it.
 
-## The parity contracts (the navigation heartbeat's derived half — testpak's
-campaigns)
+## The parity contracts (what a derived result must equal)
 
 P1 DataBlock ↔ journal evaluation (a derived result equals a simple
 accepted-history fold over the same admitted cut) · P2 scalar-route parity ·
@@ -54,8 +53,7 @@ durable-byte independent-reader parity · P6 differential parity per optimized
 kernel · P7 fusion's TWO invariants (algebraic fold-combination + concrete
 per-consumer preservation — proving the first does not prove the second) ·
 P8 semantic-work invariance across realizations · P9 profile equivalence at
-one frozen cut · P10 deterministic-order parity. Full-denominator honesty:
-every attempted proposal, target, workload, hostile, timeout, refusal,
-unsupported row, infrastructure failure, and not-run row stays in the
-denominator; benchmark victory excuses nothing; a Cargo feature is not proof
-of support.
+one frozen cut · P10 deterministic-order parity. Speed is never one of them: a
+kernel that wins a benchmark and misses a contract is not admitted, and
+enabling a Cargo feature is not a claim that the mechanism it enables is
+supported.

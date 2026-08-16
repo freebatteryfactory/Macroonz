@@ -35,11 +35,3 @@ it; empty groups do not materialize without an explicit finite key domain;
 missing/pending/invalid/unauthorized keys retain their typed posture;
 grouping is not correlation identity, causation, partition authority,
 joining, or aggregation.
-
-## Owed upward
-
-The Execution Form, the authored operator register (the HOW roster, the
-traversal spellings, ASK/DO/REQUEST/PEND lowering), the agreement seam, and
-`EffectBatch` → 15_execution. `ProgramImage`, the packaging profiles, the
-image identities, the validation ladder → 16_image. The closed value algebra,
-arenas, handles, terminals → 17_pakvm.

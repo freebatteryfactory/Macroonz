@@ -103,9 +103,10 @@ impl CreationLaw {
     }
 }
 
-/// The two-column declaration every concrete identity makes: machine-readable
-/// law, joined by tooling against the owner's README and (later) derived by the
-/// macros crate rather than hand-written.
+/// The two-column declaration every concrete identity makes: the class and the
+/// creation law as constants the type carries, so both are read off the type
+/// itself rather than restated in prose. A declaration is not yet a machine
+/// fact — [`AdmittedIdentityRole`] is the join that admits the pair.
 pub trait IdentityRole {
     /// Which question this identity answers.
     const CLASS: IdentityClass;

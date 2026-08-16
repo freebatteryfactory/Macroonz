@@ -103,7 +103,8 @@ impl<T, L: ConstLimit> AdmittedPrefix<T, L> {
     ///
     /// This constructor structurally couples the body to the posture. It does
     /// not prove that an external examination truly halted — the family owner's
-    /// algorithm and testpak establish the behavioral claim.
+    /// algorithm establishes the behavioral claim, and its proof lives outside
+    /// this crate.
     ///
     /// # It refuses where the other road truncates
     ///

@@ -47,9 +47,3 @@ and Hybrid stay first-class. Selecting the default narrows nothing.
 independent agreement verifier — never by literal. `ImageValidation` is the
 durable record of the reached phase, not the live handle; a decoded record
 re-enters live use only through re-validation.
-
-## Owed upward
-
-ApplicationImage composition/interface/instance/lifecycle → 21 (this home
-owns the shared image-family packaging law). The invocation-admission
-authority-bound value, ExecutingAttempt, and the continuation record → 17/18/19.

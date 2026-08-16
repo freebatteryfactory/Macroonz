@@ -22,7 +22,10 @@ reason + partial evidence, neither droppable) and the first production
 (`SourceClosure`), plus four more identity-class instantiations and two more
 scope-guarded orders (`AuthorityGeneration`, `WriteAuthorityEpoch`).
 
-## The 30-scenario crash-recovery denominator (binding; campaigns are testpak's)
+## Crash recovery: the thirty guarantees
+
+What a store owes a reader after it reopens — paid by the recovery scan's five
+declared steps and the receipt they admit into the successor history.
 
 acknowledged-durable-events-survive · partial batch invisible/rolled-back/
 refused · never a shorter successful batch · partial tail discarded with

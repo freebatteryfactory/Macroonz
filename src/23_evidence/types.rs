@@ -264,9 +264,9 @@ pub struct LaneDomain;
 /// LAW lives here and binds every declared lane: passing a faster lane never
 /// discharges a requirement assigned to a broader one, and every required
 /// lane stays visible in the expected denominator with its own disposition.
-/// WHICH lanes exist is the qualifying owner's declaration (testpak and its
-/// adapters), never a roster in core — a lane roster spelled here would be a
-/// second vocabulary competing with the owner's.
+/// This type does not decide WHICH lanes exist: that roster is declared
+/// outside this crate by whoever runs the verification, and a roster spelled
+/// here would be a second vocabulary competing with the owner's.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Lane(pub Commitment<LaneDomain>);
 
@@ -469,9 +469,9 @@ pub struct FrozenTargetDomain;
 /// confers implementation authority on qualified bytes. Proposal origin
 /// grants no adoption; qualification creates no release promise; no self-
 /// or automatic adoption exists. The three-authority separation (qualify ≠
-/// adopt ≠ release) is law that survives the rename. (The full
-/// qualification-evidence record is the testpak crate's — production never
-/// depends on testpak.)
+/// adopt ≠ release) is law that survives the rename. Adoption rests on a
+/// typed reference to the qualification; the full qualification-evidence
+/// record is not carried here.
 #[must_use = "a receipt records that a human authority adopted qualified bytes"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AdoptionDecisionReceipt {

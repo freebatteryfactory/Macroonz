@@ -61,7 +61,7 @@ pub const CROSS_DOMAIN_MINIMUM: [BoundClass; 5] = [
 pub trait Dimension {}
 
 /// A registered dimension identity (u16-registered; the dimension roster —
-/// the register's second level — is owed to the execution home, because the
+/// the register's second level — is the execution home's, because the
 /// dimensions derive from what operators charge).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DimensionId(u16);

@@ -1,10 +1,10 @@
 # 18_bvisor — the boundary supervisor
 
-Band 18. Imports port (PortFamilyVersion, PortPostcondition — the planted
-seat collecting), identity (ConstraintSourcePair), semantic, bounds, refusal,
-and the root calculus. The physical membrane: admission, the Attempt
-lifecycle, the reservation contract, physical observations, witnesses, the
-port crossing, and containment.
+Band 18. Imports port (PortFamilyVersion, PortPostcondition — the postcondition
+vocabulary collecting on its planted seat), authority (ConstraintSourcePair),
+identity, semantic, bounds, refusal, and the root calculus. The physical
+membrane: admission, the Attempt lifecycle, the reservation contract, physical
+observations, witnesses, the port crossing, and containment.
 
 ## Band-forced seat executed: AttemptId declares here
 

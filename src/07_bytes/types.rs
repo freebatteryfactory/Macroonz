@@ -173,8 +173,8 @@ pub struct DomainTag {
     pub schema_version: u64,
 }
 
-/// The four projections every domain-tag register row emits — from ONE row, by
-/// the macros crate, so wire id, human prefix, and hash domain cannot drift.
+/// The four projections every domain-tag register row emits — all four derived
+/// from ONE row, so wire id, human prefix, and hash domain cannot drift.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TagProjection {
     /// The derive-key context string.
