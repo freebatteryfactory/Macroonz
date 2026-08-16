@@ -1,32 +1,30 @@
 //! Answering the explanation protocol over one closed derivation.
 //!
-//! # The explanation is written AFTER the closure, on purpose
+//! # Ordering
 //!
+//! The explanation is written AFTER the closure.
 //! One of the nine seats is "which output identity and digest are you", and a
-//! digest is a fact about bytes. Written before the closure, that seat could
-//! only carry a value the plan invented. Written after it, the seat carries the
-//! digest the closure proved over the bytes that were actually rendered — so the
-//! explanation is a reading of what happened rather than a restatement of what
-//! was intended.
+//! digest is a fact about bytes.
+//! Written before the closure, that seat could only carry a value the plan
+//! invented; written after it, the seat carries the digest the closure proved
+//! over the bytes that were actually rendered — so the explanation is a reading
+//! of what happened rather than a restatement of what was intended.
 //!
-//! No human rendering is written here at all. A seat used to stand beside every
-//! answer for a sentence this module composed, which meant the sentence and the
-//! typed answer were two values that could disagree. The rendering is projected
-//! from the answer now — see `explanation_protocol::project` — so there is
-//! nothing to write and nothing to keep in agreement.
+//! No human rendering is written here at all.
+//! The rendering is projected from the answer — see
+//! `explanation_protocol::project` — so no sentence composed here can disagree
+//! with the typed answer beside it.
 //!
-//! # An explanation that cannot bind its subject refuses
+//! # Binding refusals
 //!
 //! Three seats here are bound to something the plan or the closure must already
 //! hold: the planned member standing under the family role, the digest the
 //! closure proved over that member's bytes, and the first owner fact the plan
-//! declares. Each of the three used to fall back to a NEIGHBOUR — the first
-//! planned member whatever its role, the first rendered unit's digest whatever
-//! it was a digest of, a hardcoded owner fact nobody's plan cited. An
-//! explanation built that way is worse than no explanation: it is a confident,
-//! well-formed, complete-looking answer about a different value. All three are
-//! [`ExplanationBindingRefusal::RequiredOutputAbsent`] now, and the refusal
-//! propagates.
+//! declares.
+//! An absent subject is [`ExplanationBindingRefusal::RequiredOutputAbsent`] and
+//! the refusal propagates, because an explanation that answered off a
+//! NEIGHBOURING value instead would be a confident, well-formed,
+//! complete-looking answer about a different value.
 
 use super::plan::DerivedPlan;
 use crate::closure::{ProjectionClosure, RenderedUnit};
@@ -42,10 +40,10 @@ use super::plan::derive_impl_kind;
 threadpak::closed_register! {
     /// The seat one explanation could not bind its subject to.
     ///
-    /// Named seats rather than one "something was missing": a caller repairing a
-    /// derivation needs to know whether the PLAN failed to declare the member, the
-    /// CLOSURE failed to prove its bytes, or the plan cited no owner fact at all,
-    /// and those are three different repairs.
+    /// Named seats rather than one "something was missing": a caller repairing
+    /// a derivation needs to know whether the PLAN failed to declare the member,
+    /// the CLOSURE failed to prove its bytes, or the plan cited no owner fact at
+    /// all, and those are three different repairs.
     pub enum ExplanationSeat {
         /// The planned member standing under the family implementation's role.
         PlannedFamilyMember = "planned-family-member",
@@ -60,10 +58,11 @@ threadpak::closed_register! {
 
 /// How writing one explanation refuses.
 ///
-/// Two postures, and they are different observations. A view that could not be
-/// BOUND never reached the coverage check — there was no subject to write nine
-/// seats about. A view that was written and does not cover its kind's questions
-/// reached it and failed it.
+/// Two postures, and they are different observations.
+/// A view that could not be BOUND never reached the coverage check — there was
+/// no subject to write nine seats about.
+/// A view that was written and does not cover its kind's questions reached it
+/// and failed it.
 #[must_use = "a refusal carries the unbound seat or the coverage the view failed"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ExplanationBindingRefusal {
@@ -80,9 +79,10 @@ pub enum ExplanationBindingRefusal {
 /// Answer the explanation protocol over one planned and closed derivation.
 ///
 /// Nine seats: the eight every kind owes, plus the assumptions this kind
-/// declares. The why-NOT-generated seat is answered by the cause-order
-/// disposition — where the shape declares no canonical order, the answer names
-/// the band 00 fact rather than saying nothing.
+/// declares.
+/// The why-NOT-generated seat is answered by the cause-order disposition —
+/// where the shape declares no canonical order, the answer names the band 00
+/// fact rather than saying nothing.
 ///
 /// # Errors
 ///

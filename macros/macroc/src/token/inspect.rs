@@ -1,23 +1,27 @@
 //! What a person is shown: the Rust source text a generated tree projects, and
 //! the sentence the seam's span refusal renders itself as.
 //!
-//! Every projection here is one-way. Nothing in the services reads a projection
-//! back, derives an identity from one, or decides anything by one — the artifact
-//! is the tree, and the refusal is the typed value. These exist so that a
-//! producer reporting an unresolvable handle composes no sentence of its own.
+//! Every projection here is one-way.
+//! Nothing in the services reads a projection back, derives an identity from
+//! one, or decides anything by one — the artifact is the tree, and the refusal
+//! is the typed value.
+//! These exist so that a producer reporting an unresolvable handle composes no
+//! sentence of its own.
 //!
-//! The bound refusal's sentence is not here: `CaptureBound` is a closed roster
-//! stamped at its declaration, and its prose is one of the columns that
-//! declaration states. A projection that is a constant per row belongs beside
-//! the row rather than in a second file that has to be kept in step with it.
+//! The bound refusal's sentence is not here: `CaptureBound` is a closed roster,
+//! and its prose is one of the columns that declaration states.
+//! A projection that is a constant per row belongs beside the row rather than
+//! in a second file that has to be kept in step with it.
 
 use super::SpanResolutionRefusal;
 use super::{GeneratedDelimiter, GeneratedSpacing, GeneratedToken};
 
 impl SpanResolutionRefusal {
-    /// The refusal rendered for a person. A projection of the typed value:
-    /// nothing reads it back, and it exists so that a caller reporting an
-    /// unresolvable handle composes no sentence of its own.
+    /// The refusal rendered for a person.
+    ///
+    /// A projection of the typed value: nothing reads it back, and it exists so
+    /// that a caller reporting an unresolvable handle composes no sentence of
+    /// its own.
     #[must_use]
     pub fn described(self) -> String {
         format!(

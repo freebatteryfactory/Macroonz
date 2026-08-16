@@ -1,10 +1,9 @@
 //! The diagnostics home's declarative surface: the one closed table a site
 //! posture is read through.
 //!
-//! Both roads are total const mappings rather than computations. One states
-//! which posture a span table's answer amounts to; the other states what a
-//! reader gets back from each posture. Nothing here decides anything — the
-//! deciding happened where the table was asked.
+//! Both roads are total const mappings rather than computations.
+//! Nothing here decides anything — the deciding happened where the table was
+//! asked.
 
 use super::SiteCoordinate;
 use crate::token::SpanResolutionRefusal;

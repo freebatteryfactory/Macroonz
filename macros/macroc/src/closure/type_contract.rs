@@ -1,11 +1,9 @@
 //! The closure home's declarative surface: the refusal family this home
 //! declares, and the closed table its issue roster is read through.
 //!
-//! Both are declarations rather than computations. The family states its shape
-//! and its selection order as constants; the issue roster states, per variant,
-//! the slot an encoding writes for it, the role it was established at where it
-//! is about one, and the sentence a person is shown. Nothing here decides
-//! anything — the deciding is `prove.rs`, and the proving is `type_guard.rs`.
+//! Both are declarations rather than computations.
+//! Nothing here decides anything — the deciding is `prove.rs`, and the proving
+//! is `type_guard.rs`.
 
 use super::ClosureIssue;
 use crate::plane::RenderedRole;
@@ -58,8 +56,8 @@ impl<R: RenderedRole> ClosureIssue<R> {
         }
     }
 
-    /// How the two disagreed, rendered for a person. A projection of the typed
-    /// value: nothing reads it back.
+    /// How the two disagreed, rendered for a person.
+    /// A projection of the typed value: nothing reads it back.
     #[must_use]
     pub const fn described(&self) -> &'static str {
         match self {

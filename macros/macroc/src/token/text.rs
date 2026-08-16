@@ -1,10 +1,8 @@
 //! The callable text route into the captured tree.
 //!
-//! A compiler is one producer of captured input; a test is another; text is the
-//! third, and it exists so that the callable-services reproduction route a
-//! diagnostic names is a real road rather than a promise. The reader is
-//! hand-rolled and bounded: it spends the same declared walk every producer
-//! spends, and every refusal it establishes names the byte it sits at.
+//! The reader is hand-rolled and bounded: it spends the same declared walk
+//! every producer spends, and every refusal it establishes names the byte it
+//! sits at.
 //!
 //! The whole route lives here, [`TextCapture::read`] included, because the
 //! relationship between a capture and the offsets that resolve its handles is
@@ -84,9 +82,9 @@ impl TextReader {
 
     /// Read the tokens of one group, stopping at `closing` where one is given.
     ///
-    /// The route this group sits at is carried in, and each token's own route is
-    /// that route stepped by the token's position — so a route is built the same
-    /// way at every level and no two tokens can share one.
+    /// The route this group sits at is carried in, and each token's own route
+    /// is that route stepped by the token's position — so a route is built the
+    /// same way at every level and no two tokens can share one.
     fn read_group(
         &mut self,
         characters: &mut Characters<'_>,
@@ -211,9 +209,9 @@ impl TextReader {
 
 /// What one character is to the group currently being read.
 ///
-/// The reader's question at a closing character is not two nested yes-or-nos.
-/// It is one question with three answers, and naming the three is what makes the
-/// unmatched closer a stated outcome rather than the fall-through of a branch.
+/// One question with three answers rather than two nested yes-or-nos, which is
+/// what makes the unmatched closer a stated outcome rather than the
+/// fall-through of a branch.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum GroupBoundary {
     /// Not a closing character: it belongs to a token inside the group.
@@ -239,9 +237,7 @@ fn group_boundary(character: char, closing: Option<(char, u64)>) -> GroupBoundar
 ///
 /// A word and a number are one operation over two admitted alphabets: take
 /// characters while the alphabet admits them, stop at the first it does not.
-/// Spelled out twice, the two runs can drift apart while both still look right;
-/// spelled once, the only thing that differs between them is the alphabet, which
-/// is the only thing that actually differs.
+/// Spelled once, the alphabet is the only thing that differs between them.
 fn read_run(characters: &mut Characters<'_>, admits: fn(char) -> bool) -> String {
     let mut spelled = String::new();
     while let Some(&(_, next)) = characters.peek() {
@@ -258,9 +254,9 @@ fn read_run(characters: &mut Characters<'_>, admits: fn(char) -> bool) -> String
 ///
 /// This stage owns both refusals a quoted text can establish — running off the
 /// end of the source, and carrying an escape this reader does not interpret —
-/// and it is the only place either is decided. The caller supplies the offset
-/// the text opened at so a refusal points at the quote, not at the byte the
-/// reader happened to reach.
+/// and it is the only place either is decided.
+/// The caller supplies the offset the text opened at, so a refusal points at
+/// the quote rather than at the byte the reader happened to reach.
 fn read_quoted(characters: &mut Characters<'_>, at: u64) -> Result<String, TextReadRefusal> {
     let mut text = String::new();
     loop {

@@ -1,16 +1,17 @@
 //! The per-role pass.
 //!
-//! The roster is the quantifier. Every role the kind declares is examined, in
-//! roster order, so "every applicable role was checked" is a fact about the loop
-//! rather than a claim about it. A role that establishes an issue contributes no
-//! rebuilt member, which is why a reconstruction is never a partial reading of a
-//! disagreement.
+//! The roster is the quantifier.
+//! Every role the kind declares is examined, in roster order, so "every
+//! applicable role was checked" is a fact about the loop rather than a claim
+//! about it.
+//! A role that establishes an issue contributes no rebuilt member, which is why
+//! a reconstruction is never a partial reading of a disagreement.
 //!
 //! Nothing here reaches a private field: the pass reads a rendered unit through
-//! the same public answers any caller gets, and the rebuild it hands back is the
-//! renderer's own answer in the shape a plan states it. The roads that consume
-//! this pass live in `type_guard.rs`, because building a closure and building
-//! the refusal body are both what must stay unreachable.
+//! the same public answers any caller gets, and the rebuild it hands back is
+//! the renderer's own answer in the shape a plan states it.
+//! The roads that consume this pass live in `type_guard.rs`, because building a
+//! closure and building the refusal body are both what must stay unreachable.
 
 use super::{ClosureIssue, RenderedProjection};
 use crate::plane::RenderedRole;
@@ -18,10 +19,6 @@ use crate::planning::{PlannedMember, PlannedMembership};
 
 /// The per-role pass: every issue the two establish at a role, and the members
 /// rebuilt at the roles where they agreed.
-///
-/// The roster is the quantifier. Every role the kind declares is examined, in
-/// roster order, and a role that establishes an issue contributes no rebuilt
-/// member — so a rebuild is never a partial reading of a disagreement.
 pub(super) fn examined<R: RenderedRole>(
     planned: &PlannedMembership<R>,
     rendered: &RenderedProjection<R>,
@@ -29,12 +26,11 @@ pub(super) fn examined<R: RenderedRole>(
     let mut issues: Vec<ClosureIssue<R>> = Vec::new();
     let mut rebuilt: Vec<PlannedMember<R>> = Vec::new();
     for role in R::ROLES.iter().copied() {
-        // What the PLAN declared under the role is checked in its own right, and
-        // before anything is compared. Today every role a plan declares is
-        // declared exactly once, so a planned count of two is a defect in the
-        // plan rather than a shape the check has to accommodate — and reading
-        // the plan's own count through `under`, which yields the first match,
-        // would have hidden it.
+        // What the plan declared under the role is checked in its own right and
+        // before anything is compared. A role is declared once, so a planned
+        // count of two is a defect in the plan rather than a shape the check
+        // accommodates — and `under` yields the first match, which would hide
+        // it.
         let planned_count = planned.count_under(role);
         if planned_count > 1 {
             issues.push(ClosureIssue::MemberPlannedTwice {

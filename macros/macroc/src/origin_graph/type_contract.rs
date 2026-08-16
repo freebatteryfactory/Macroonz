@@ -1,11 +1,11 @@
 //! The origin-graph home's declarative surface: the closed table a recorded
 //! decision is read through.
 //!
-//! A constant per variant and nothing else. The discriminant is written ahead of
-//! a decision's citation, which is what keeps a selection over one fact from
-//! ever encoding as an omission over the same fact — so this table is part of
-//! the trace's meaning rather than a convenience for the encoder that consumes
-//! it.
+//! A constant per variant and nothing else.
+//! The discriminant is written ahead of a decision's citation, which is what
+//! keeps a selection over one fact from ever encoding as an omission over the
+//! same fact — so this table is part of the trace's meaning rather than a
+//! convenience for the encoder that consumes it.
 
 use super::TraceDecision;
 

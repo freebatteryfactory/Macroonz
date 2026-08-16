@@ -1,19 +1,18 @@
 # closure — what was rendered, and the proof it is what was planned
 
-## Why a plan and a rendering are two values
+## Two values: a plan and a rendering
 
-A plan is made before anything exists. It states what WILL be materialized: under
-which roles, with which semantic keys, landing where, coming from where, and
-whose digests will be anchored to what. A rendering is what a renderer actually
-produced: token trees, their bytes, and the digests over those bytes.
+A plan is made before anything exists. It states what will be materialized:
+under which roles, with which semantic keys, landing where, coming from where,
+and whose digests will be anchored to what. A rendering is what a renderer
+actually produced: token trees, their bytes, and the digests over those bytes.
 
-Collapsing the two is the defect this home exists to make unrepresentable. A plan
-that carried its own rendered-byte digest would either be carrying a placeholder
-or carrying a digest from a rendering that already happened — and in the second
-case, any later "check" compares the value against itself and passes on every
-input.
+Keeping them apart is what this home is for. A plan that carried its own
+rendered-byte digest would either be carrying a placeholder or carrying a digest
+from a rendering that already happened — and in the second case, any later
+"check" compares the value against itself and passes on every input.
 
-## The closure is a reconstruction, not an assertion
+## A reconstruction, not an assertion
 
 [`ProjectionClosure::proved`] does not ask the renderer whether it obeyed the
 plan. It **rebuilds the membership out of the rendered units** — role by role,
@@ -33,11 +32,11 @@ role it disagreed at:
   ([`ClosureIssue::SemanticKeyMismatch`]);
 - a unit rendered under a profile or to a destination the plan did not name
   ([`ClosureIssue::MaterializationMismatch`]);
-- a role the PLAN ITSELF declared twice ([`ClosureIssue::MemberPlannedTwice`]);
-- a rebuild that is not the planned membership as a complete SET
+- a role the plan itself declared twice ([`ClosureIssue::MemberPlannedTwice`]);
+- a rebuild that is not the planned membership as a complete set
   ([`ClosureIssue::MembershipDisagreement`]).
 
-**Tokens are emitted only FROM a closure.** The closure joins the rendered units
+**Tokens are emitted only from a closure.** The closure joins the rendered units
 in role-roster order, keeps the resulting tree, and commits to its digest inside
 its own identity — so the exact byte stream a caller emits is part of what was
 proved rather than something assembled afterwards. Holding a closure is the
@@ -48,8 +47,5 @@ proof; there is no partial closure and no closure with a warning attached.
 `types.rs` declares; its own child `type_guard.rs` takes the digests, owns the
 join, builds the proof, and builds the refusal body, which is what keeps every
 one of those roads unreachable from anywhere else. `prove.rs` is the per-role
-pass those roads consume, reaching no private seat, and `type_contract.rs` states
-the refusal family and the issue roster's own table.
-
-This home's qualification obligations live in the crate README's tooling-obligation
-blocks.
+pass those roads consume, reaching no private seat, and `type_contract.rs`
+states the refusal family and the issue roster's own table.

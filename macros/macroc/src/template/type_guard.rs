@@ -6,36 +6,23 @@
 //! agreed, so a string that became an identifier is a value nobody can build. A
 //! ceiling is declared HERE, after every axis was accounted for exactly once, so
 //! a ceiling that leaves one magnitude unbounded while the others look governed
-//! does not exist. A template and an application are built HERE for the same
-//! reason, and so is the refusal BODY: its seat is private, so this file is the
-//! only module in the workspace that can spell the literal. There is no other
-//! seam in the crate that can produce any of them.
+//! does not exist. A template, an application, and the refusal BODY are built
+//! here for the same reason: there is no other seam in the crate that can
+//! produce any of them.
 //!
-//! # Why the refusal body is DECLARED here and not in `types.rs`
+//! The body is DECLARED in the `seat` module below rather than in `types.rs`,
+//! because Rust's privacy is MODULE-scoped and a seat declared beside the rest
+//! of this home's declarations would put all of them inside the wall. That
+//! module's entire content is the record and its inherent implementations, so
+//! the module IS the complete set of roads that reach the private seat.
 //!
-//! Rust's privacy is MODULE-scoped, so a seat declared in `types.rs` puts every
-//! other item in that file inside the wall and leaves "did anybody write a road
-//! out?" as a whole-file audit. The body is therefore declared in the `seat`
-//! module below, whose entire content is that record and inherent
-//! implementations of it and nothing else — the module is the complete set of
-//! roads that can reach the private seat.
-//!
-//! # What a private seat does and does not exclude
-//!
-//! It excludes every SIBLING: `types.rs` above it, `establish.rs` beside it,
-//! anywhere else in the services, and any crate downstream cannot write the
-//! literal, and the compiler says so with `E0451`. It does not exclude
-//! DESCENDANTS — a module declared inside a guard would construct as freely as
-//! these roads do, so the reversals for these seats are testpak's compile-fail
-//! fixtures instead, and the law above refuses a nested module in a `seat`
-//! module outright.
-//!
-//! And it excludes the literal only. The refusal body's two mints reach this
-//! file and no further, for the other half of the same claim: a private seat
-//! reached by a public generic constructor lets any holder of an issue produce a
-//! body no pass established, and lets a holder of the borrowed body clone its
-//! issues out and reseat them. Both roads sit beside the three passes that raise
-//! them.
+//! A private seat excludes every SIBLING: `types.rs` above it, `establish.rs`
+//! beside it, anywhere else in the services, and any crate downstream cannot
+//! write the literal, and the compiler says so with `E0451`. It does not exclude
+//! DESCENDANTS, so the reversals for these seats are testpak's compile-fail
+//! fixtures. And it excludes the literal only, which is why the body's two mints
+//! reach this file and no further: a private seat reached by a public generic
+//! constructor lets any holder of an issue produce a body no pass established.
 
 use super::super::establish::{binding_issues, ceiling_issues, parameter_issues};
 use super::{
@@ -83,15 +70,12 @@ mod seat {
         /// together with whether the body carries every issue the three passes
         /// established or names how many stand outside that bound. One seat
         /// rather than two, because a coverage claim seated beside its body is a
-        /// claim that can be swapped for another body's. The passes themselves
-        /// always run their rosters to the end, so the completion here never
-        /// reports a halted examination.
+        /// claim that can be swapped for another body's.
         ///
-        /// Private, and that is the second half of the same claim. The coupled
-        /// seat keeps a carry and its posture together; a PUBLIC seat on a
-        /// one-field record hands the whole record back as a literal, so any
-        /// holder of a body built for one pass could write it into another
-        /// pass's refusal. Read back through [`TemplateConstruction::body`].
+        /// Private for the same reason: a PUBLIC seat on a one-field record
+        /// hands the whole record back as a literal, so any holder of a body
+        /// built for one pass could write it into another pass's refusal. Read
+        /// back through [`TemplateConstruction::body`].
         body: AdmittedPrefix<TemplateConstructionIssue, TemplateIssueLimit>,
     }
 
@@ -99,12 +83,9 @@ mod seat {
         /// The one-issue body. Total: the declared bound admits an item by
         /// compile-time proof, so refusing never needs an error road of its own.
         ///
-        /// Reaches the guard file and no further: the three passes that
-        /// establish these issues are the three checked constructors beside it,
-        /// and a body exists only where one of them ran. A public road here
-        /// would let any holder of an issue mint a refusal no pass raised, which
-        /// is the same opening a public SEAT would be — the seat and the mint
-        /// are two halves of one claim, and closing one of them closes neither.
+        /// Reaches the guard file and no further, so a body exists only where
+        /// one of the three passes beside it ran: a public road here would let
+        /// any holder of an issue mint a refusal no pass raised.
         pub(super) fn established(issue: TemplateConstructionIssue) -> Self {
             Self {
                 body: AdmittedPrefix::carrying_one(issue),

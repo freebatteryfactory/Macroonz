@@ -68,16 +68,13 @@ pub(super) fn binding_issues(
             .iter()
             .filter(|binding| binding.parameter().parameter == declared.parameter)
             .collect();
-        // Two independent questions about one declared hole, and they are asked
-        // separately because they co-establish. "How many bindings name this
-        // hole" and "does a binding that names it disagree with its declared
-        // category" are true or false of each other in every combination, and
-        // the pass used to ask the second only in the arm where the first
-        // answered exactly one — so a hole bound twice, one of them under the
-        // wrong category, reported the doubling and swallowed the disagreement.
-        // A caller repairing the duplicate would then have been told about the
-        // category on the next attempt, which is the one-defect-per-attempt
-        // road this whole home exists to close.
+        // Two independent questions about one declared hole, asked separately
+        // because they co-establish. "How many bindings name this hole" and
+        // "does a binding that names it disagree with its declared category"
+        // are true or false of each other in every combination, so asking the
+        // second only where the first answered exactly one would report the
+        // doubling and swallow the disagreement — the one-defect-per-attempt
+        // road this home exists to close.
         let arity_issue = match supplied.len() {
             0 => Some(TemplateConstructionIssue::MissingBinding {
                 parameter: declared.parameter,

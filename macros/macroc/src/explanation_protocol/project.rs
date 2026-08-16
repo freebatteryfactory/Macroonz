@@ -1,23 +1,17 @@
 //! The human rendering of one typed answer.
 //!
-//! # There is no seat here for a caller's sentence
-//!
-//! An answer used to travel beside a human projection the CALLER supplied, which
-//! meant a true answer and a rendering that contradicted it were one value
-//! nobody could tell apart from an honest one. The rendering is a function of
-//! the answer now, and the seat that held the caller's sentence is gone — so
-//! "the rendering agrees with the answer" is not a check that passed, it is a
-//! disagreement that cannot be written down.
-//!
-//! Nothing is stored either. The line is composed every time it is asked, on the
-//! terms band 00's canonical cause text is composed on: a stored projection is a
-//! second value that can disagree with the one it was projected from.
+//! There is no seat for a caller's sentence: the rendering is a function of the
+//! answer, so "the rendering agrees with the answer" is not a check that
+//! passed, it is a disagreement that cannot be written down.
+//! Nothing is stored either — the line is composed every time it is asked,
+//! because a stored projection is a second value that can disagree with the one
+//! it was projected from.
 //!
 //! Every line below is a static literal proven to fit its limit family at
-//! compile time, so this module carries no refusal road and no truncation. The
-//! typed content stays in the answer, where a reader that needs the exact
+//! compile time, so this module carries no refusal road and no truncation.
+//! The typed content stays in the answer, where a reader that needs the exact
 //! identities reads it; the line says which question was answered and in what
-//! terms, which is what a person reading a diagnostic needs from it.
+//! terms.
 
 use super::ExplanationAnswer;
 use crate::plane::{HumanProjection, HumanTextLimit, human_projection};

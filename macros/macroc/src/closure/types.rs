@@ -1,11 +1,10 @@
 //! The closure home's declarations: what a renderer materialized, how a
 //! rendering and its plan can disagree, and the proof that they do not.
 //!
-//! Declarations only. Every road that reaches a private field — a rendered
-//! unit's digest and bytes, a rendering's units, the proof's own seats, and the
-//! refusal body's one seat — lives in `type_guard.rs`, this file's own child.
-//! That is what makes "tokens are emitted only from a closure" structural: there
-//! is no seam anywhere else that can build one.
+//! Declarations only.
+//! Every road that reaches a private field lives in `type_guard.rs`, this
+//! file's own child, which is what makes "tokens are emitted only from a
+//! closure" structural rather than reviewed.
 
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
@@ -22,13 +21,14 @@ mod guard;
 
 /// How one rendering failed to materialize a unit at all.
 ///
-/// Distinct from a closure disagreement: nothing has been compared yet. These
-/// are the two ways the act of materializing refuses, and both are magnitudes.
+/// Distinct from a closure disagreement: nothing has been compared yet.
+/// Each way names a declared magnitude the renderer would have passed.
 #[must_use = "a rendering refusal names the magnitude the renderer would have passed"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RenderingRefusal {
-    /// The rendered bytes exceed the declared magnitude. A renderer that would
-    /// emit past it refuses rather than materializing part of a unit.
+    /// The rendered bytes exceed the declared magnitude.
+    /// A renderer that would emit past it refuses rather than materializing
+    /// part of a unit.
     BytesUnbounded,
     /// The rendering carries more units than the declared membership magnitude
     /// admits.
@@ -37,13 +37,13 @@ pub enum RenderingRefusal {
 
 /// One unit a renderer actually materialized.
 ///
-/// Everything a closure needs to rebuild the plan's membership is here and is
-/// the RENDERER's own answer: the role it rendered under, the semantic key it
-/// answers to, where it lands, the profile it was rendered under, where it came
-/// from, the token tree itself, and the digest over that tree's canonical bytes.
+/// Every seat is the renderer's own answer, which is what a closure rebuilds
+/// the plan's membership out of.
 ///
-/// The Rust source text is not a member. It is
-/// [`GeneratedTree::inspected`] — a projection of the tree, for a person.
+/// # Nonclaims
+///
+/// The Rust source text is not a member of the unit.
+/// It is [`GeneratedTree::inspected`] — a projection of the tree, for a person.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RenderedUnit<R: RenderedRole> {
     role: R,
@@ -61,7 +61,8 @@ pub struct RenderedUnit<R: RenderedRole> {
 /// Everything one renderer produced for one plan.
 ///
 /// Structurally non-empty: a rendering that materialized nothing is not a
-/// rendering, and a plan whose membership is non-empty can never close over one.
+/// rendering, and a plan whose membership is non-empty can never close over
+/// one.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RenderedProjection<R: RenderedRole> {
     units: NonEmptyBounded<RenderedUnit<R>, MembershipLimit>,
@@ -69,12 +70,10 @@ pub struct RenderedProjection<R: RenderedRole> {
 
 /// How one rendering and the plan it claims to materialize disagree.
 ///
-/// Every issue that is ABOUT a role names it, because "the membership is wrong"
-/// is not an answer anybody can act on. The three that are about the whole
-/// reconstruction — an empty rebuild, a rebuild that will not declare, and a
-/// joined tree past its magnitude — name none, and that is the honest shape:
-/// there is no role to name, and electing one to fill the seat would be exactly
-/// the neighbouring-value repair this roster exists to refuse.
+/// Every issue about a role names it, because "the membership is wrong" is not
+/// an answer anybody can act on.
+/// The issues about the whole reconstruction name none, because there is no
+/// role to name and electing one would be a stand-in nobody established.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ClosureIssue<R: RenderedRole> {
     /// A role the plan declared was not rendered at all.
@@ -95,8 +94,8 @@ pub enum ClosureIssue<R: RenderedRole> {
         /// How many units stood under it.
         observed: u32,
     },
-    /// A rendered unit's origin trail is not the trail the plan declared. A
-    /// generated unit that walks back somewhere else is orphaned from the
+    /// A rendered unit's origin trail is not the trail the plan declared.
+    /// A generated unit that walks back somewhere else is orphaned from the
     /// declaration it claims to project.
     OriginOrphan {
         /// The role whose origin disagreed.
@@ -120,10 +119,10 @@ pub enum ClosureIssue<R: RenderedRole> {
         /// The role whose materialization disagreed.
         role: R,
     },
-    /// The PLAN declared one role twice. Independent of what was rendered: a
-    /// membership carrying two members under one role makes the role-to-unit
-    /// match elect one of them, and a proof that elected its own subject proves
-    /// nothing.
+    /// The plan itself declared one role twice, independent of what was
+    /// rendered: a membership carrying two members under one role makes the
+    /// role-to-unit match elect one of them, and a proof that elected its own
+    /// subject proves nothing.
     MemberPlannedTwice {
         /// The doubled role.
         role: R,
@@ -131,11 +130,11 @@ pub enum ClosureIssue<R: RenderedRole> {
         observed: u32,
     },
     /// The membership rebuilt out of the rendered units and the membership the
-    /// plan declared are not the same SET under this role.
+    /// plan declared are not the same set under this role.
     ///
-    /// The final theorem, checked as sets rather than as first-per-role pairs: a
-    /// pairwise walk that compared one member per role would agree about two
-    /// memberships that differ in their second.
+    /// The final theorem, checked as sets rather than as first-per-role pairs:
+    /// a walk comparing one member per role would agree about two memberships
+    /// that differ in their second.
     MembershipDisagreement {
         /// The role the two sets disagree under.
         role: R,
@@ -149,28 +148,25 @@ pub enum ClosureIssue<R: RenderedRole> {
         observed: u32,
     },
     /// The joined token tree the rendering amounts to outgrows the declared
-    /// token magnitude. Established DURING the proof, because the closure owns
-    /// the join.
+    /// token magnitude.
+    /// Established during the proof, because the closure owns the join.
     JoinedTreeUnbounded,
 }
 
-/// The closure refusal family body, published from this file and DECLARED in
+/// The closure refusal family body, published from this file and declared in
 /// `type_guard.rs`'s `seat` module, beside the only roads that reach its seat.
-///
-/// The declaration is not here because Rust's privacy is MODULE-scoped: a
-/// private field is private to the module the declaration lands in, and this
-/// file declares much else that would have been inside that wall.
 pub use guard::ProjectionClosureRefusal;
 
 /// The proof that what was rendered is what was planned.
 ///
-/// Holding one means: the membership was rebuilt out of the rendered units, and
-/// the rebuild equals the plan's declared membership role for role, key for key,
-/// origin for origin, and digest for digest. There is no partial closure.
+/// Holding one means the membership was rebuilt out of the rendered units and
+/// the rebuild equals the plan's declared membership role for role, key for
+/// key, origin for origin, and digest for digest.
+/// There is no partial closure.
 ///
-/// **Tokens are emitted only from a value of this type.** That is the whole
-/// point of the type existing: the road from a declaration to emitted tokens
-/// passes through here or it does not exist.
+/// **Tokens are emitted only from a value of this type.**
+/// The road from a declaration to emitted tokens passes through here or it
+/// does not exist.
 #[must_use = "a closure is the proof that what was rendered is what was planned"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProjectionClosure<R: RenderedRole> {

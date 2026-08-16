@@ -4,8 +4,7 @@
 //! The home's two principal trait implementations — the capture family's shape
 //! and selection order, and its typed cause order — are written by the
 //! `capture_causes!` declaration in `types.rs`, because a cause is stated once
-//! there and both contracts follow from that one statement. Moving them here
-//! would make one cause two declarations in two files.
+//! there and both contracts follow from that one statement.
 //!
 //! What stands here is the other declaration in method form: which rendered
 //! roles each membership answer names, stated as a constant table rather than

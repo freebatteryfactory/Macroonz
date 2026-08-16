@@ -1,6 +1,6 @@
 //! Projecting each refusal family into the services' structured diagnostic.
 //!
-//! # One projection per family, and each one keeps its family's distinctions
+//! # One projection per family
 //!
 //! Five steps of the compile road refuse, and each refuses in its own
 //! vocabulary: a planning body names an axis, a magnitude, and a count; a
@@ -8,11 +8,8 @@
 //! names every question that was unanswered, doubled, or inadmissible; a
 //! rendering refusal names the exact bound and the unit that overran it.
 //!
-//! All five used to collapse into one sentence through a single helper, under
-//! one classification, with [`CauseDisposition::UnresolvedCause`] and an empty
-//! related set. That helper was a smoke alarm: it told a caller that something
-//! in the building was on fire. Every function here projects the typed body it
-//! is handed and keeps what the body knew:
+//! Every function here projects the typed body it is handed and keeps what the
+//! body knew:
 //!
 //! - the **summary** is composed from the typed values — the axis and its
 //!   magnitude, the role and its disagreement, the question and its coverage,
@@ -32,18 +29,19 @@
 //! - the **posture** rides in the summary, so a body that stopped at its own
 //!   declared bound says so rather than reading as complete.
 //!
-//! # What this module still does not do
+//! # Nonclaims
 //!
-//! It elects no machine cause posture. Narrowing is the machine's progress to
-//! report and the plane observes rather than concludes, so every diagnostic here
-//! carries [`CauseDisposition::UnresolvedCause`] exactly as the capture road
-//! does.
+//! It elects no machine cause posture.
+//! Narrowing is the machine's progress to report and the plane observes rather
+//! than concludes, so every diagnostic here carries
+//! [`CauseDisposition::UnresolvedCause`] exactly as the capture road does.
 //!
-//! And it invents no repair. Every [`RepairAction`] below cites a fact the
-//! services' own charter declares — that a plan states its complete output set,
-//! that nothing is emitted that did not close, that every kind answers the
-//! explanation protocol, that every rendered seat stands under a declared
-//! magnitude — by the declared names those facts are written down under.
+//! And it invents no repair.
+//! Every [`RepairAction`] below cites a fact the services' own charter declares
+//! — that a plan states its complete output set, that nothing is emitted that
+//! did not close, that every kind answers the explanation protocol, that every
+//! rendered seat stands under a declared magnitude — by the declared names those
+//! facts are written down under.
 
 use super::explain::ExplanationBindingRefusal;
 use super::render::RenderRefusal;
@@ -515,6 +513,7 @@ fn bounded_rendering<R: RenderedRole>(
 ///
 /// It is a SUMMARY and says so: the first established issue in full, then how
 /// many others there were, then whether the body examined everything it could.
+///
 /// The remainder is not lost — every issue has its own identity in the related
 /// set, and the body itself is the value a caller of the underlying seam holds.
 fn summary(family: &str, first: &str, further: usize, posture: CompletionPosture) -> String {
@@ -597,10 +596,10 @@ fn diagnosed(
 /// One composed line, with the related set's own posture written into it.
 ///
 /// A complete set adds nothing: the line already reads as a summary of a
-/// complete body. A truncated set says so and says by how much, because the
-/// typed posture beside it is not something rustc shows, and a reader given only
-/// the body's own identity would otherwise take the coarser commitment for the
-/// full one.
+/// complete body.
+/// A truncated set says so and says by how much, because the typed posture
+/// beside it is not something rustc shows, and a reader given only the body's
+/// own identity would otherwise take the coarser commitment for the full one.
 pub(crate) fn witnessed(composed: &str, completion: RelatedSetCompletion) -> String {
     match completion {
         RelatedSetCompletion::Complete => composed.to_owned(),
@@ -618,12 +617,14 @@ pub(crate) fn witnessed(composed: &str, completion: RelatedSetCompletion) -> Str
 /// One composed summary as a bounded projection.
 ///
 /// The composition is a summary of a body whose issue count is bounded but whose
-/// rendering is not, so it may outgrow the declared text magnitude. It is not
-/// repaired with an empty line and not cut in half: the alternative is a static
-/// line that is TRUE of the same refusal and says where the detail went. The
-/// typed distinctions never depended on this seat — they ride on the observed
-/// classification, on one identity per established issue, and on the related
-/// set's own posture, which the static line points at rather than pre-empting.
+/// rendering is not, so it may outgrow the declared text magnitude.
+/// It is not repaired with an empty line and not cut in half: the alternative is
+/// a static line that is TRUE of the same refusal and says where the detail
+/// went.
+/// The typed distinctions never depended on this seat — they ride on the
+/// observed classification, on one identity per established issue, and on the
+/// related set's own posture, which the static line points at rather than
+/// pre-empting.
 fn shown(composed: &str) -> HumanProjection<HumanTextLimit> {
     match HumanProjection::<HumanTextLimit>::projected(composed) {
         Ok(projection) => projection,

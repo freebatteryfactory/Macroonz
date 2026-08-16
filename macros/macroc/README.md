@@ -1,8 +1,8 @@
-# macroc — the metaprogramming services
+# macroc — the generation services
 
-The services are ordinary callable Rust — capture, planning, rendering, closure,
-inspection, explanation — reached the same way by any caller. They depend inward
-on the machine and never back outward: nothing here knows a proc-macro exists.
+This is the product line: the road from a captured declaration to output that is
+planned, rendered, proved closed, and explainable. Each stage hands the next one
+a value the next one cannot forge.
 
 ```mermaid
 flowchart LR
@@ -13,9 +13,11 @@ flowchart LR
     CLO --> EXP["explanation — inspectable answers"]
 ```
 
-The crate's own doc comment carries the charter and the dependency order; this
-file carries what a README owes that rustdoc does not: **the mechanisms this
-tooling admits, and the qualification obligations it stands under.**
+The crate's own doc comment carries the charter, the callable-without-a-proc-macro
+promise, and the dependency order; each home's README carries that home's
+narrative. This file carries what a README owes that neither of them does: **the
+mechanism this tooling admits from outside, and the working rule it holds to when
+a required seat cannot be filled.**
 
 ## The admitted digest, and what it is admitted for
 
@@ -41,11 +43,10 @@ without a C toolchain.
 
 **And unusually, that cut is settled and not merely requested.** A manifest asks;
 a resolved graph holds; a compiled unit is handed. `deny.toml` settles the middle
-one, and for `blake3` it settles it as EMPTY and exact — MEASURED, no crate
-anywhere in this graph turns a `blake3` feature on. An empty graph set is the one
-case that reaches the third fact too, because a unit's features are a subset of
-what the graph resolved. So this paragraph is not a claim about what the services
-compile with; it is the reason behind a rule that already proves it.
+one, and for `blake3` it settles it as EMPTY and exact — no crate anywhere in
+this graph turns a `blake3` feature on. An empty graph set is the one case that
+reaches the third fact too, because a unit's features are a subset of what the
+graph resolved.
 
 **This admission is the TOOLING PLANE's, and it is not band 07's.** Band 07's
 digest-family rule proposes blake3-256 for the machine's commitments, under the
@@ -58,7 +59,10 @@ where a machine commitment is required.
 **What the profile claims.** For a transcript as specified beside
 `ProjectionTranscript`, under the declared profile version, collision resistance
 is claimed AS BLAKE3's — finding two transcripts that derive one identity is as
-hard as finding a BLAKE3 collision.
+hard as finding a BLAKE3 collision. The derivation runs over the complete
+transcript and never over a reduced fold: hashing a lost-information fold with a
+strong digest produces a strong-looking value carrying a weak preimage, which is
+worse than an honest nonclaim.
 
 **What it does NOT claim.** It does not claim that two things the plane considers
 different always have different transcripts; that is each mint site's
@@ -68,14 +72,7 @@ spaces. It does not make a plane identity into a machine commitment. And it make
 no claim at all about keyed use, authentication, or protection: the profile uses
 `derive_key` for domain separation and holds no secret.
 
-**What it replaced.** An in-house four-lane FNV-shaped fold that explicitly
-claimed no collision resistance at any width, and that reduced both the anchor
-and the content to eight bytes before hashing. That scheme is retired outright —
-deleted, not re-hashed. Hashing a lost-information fold with a strong digest
-would have produced a strong-looking value carrying a weak preimage, which is a
-worse position than the honest nonclaim it started from.
-
-## The working rule: a failed required seat is a typed refusal
+## The failed required seat
 
 **A required seat is never repaired with an empty, default, or neighbouring
 value after construction fails — a failed required seat is a typed refusal.**
@@ -123,9 +120,9 @@ render, inside a refusal that has already been established.
 
 ## What the services never do
 
-They decide no meaning. The three body shapes are band 00's; the canonical cause
-key grammar is band 00's; the selection order's content is the author's. A
-tooling type may summarize, reference, plan, explain, or project an owner fact;
-it may never create a second value that independently answers the owner's
-semantic question — which is why an unanchored diagnostic says it is unanchored
-rather than carrying a minted stand-in.
+They own no semantic noun. The body shapes are band 00's; the canonical cause key
+grammar is band 00's; the selection order's content is the author's. A tooling
+type may summarize, reference, plan, explain, or project an owner fact; it may
+never create a second value that independently answers the owner's semantic
+question — which is why an unanchored diagnostic says it is unanchored rather
+than carrying a minted stand-in.

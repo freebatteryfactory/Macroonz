@@ -1,16 +1,15 @@
-//! The coverage pass, the admission answer, and the refusal an established
-//! issue list amounts to.
+//! The coverage pass and the admission answer.
 //!
-//! The kind's applicable roster is the quantifier. Every question the kind
-//! admits is examined, in roster order, and then every supplied answer is
-//! examined against the roster — so an unanswered seat, a doubled seat, and an
-//! inadmissible answer are three findings reported together rather than a caller
-//! repairing a view one question per attempt.
+//! The kind's applicable roster is the quantifier.
+//! Every question the kind admits is examined, in roster order, and then every
+//! supplied answer is examined against the roster — so an unanswered seat, a
+//! doubled seat, and an inadmissible answer are findings reported together
+//! rather than a caller repairing a view one question per attempt.
 //!
 //! Nothing here reaches a private field: the pass reads each explanation's
-//! question through the same answer any caller gets. The roads that consume this
-//! pass live in `type_guard.rs`, because completing a view and building the
-//! refusal body are both what must stay unreachable.
+//! question through the same answer any caller gets.
+//! The roads that consume this pass live in `type_guard.rs`, because completing
+//! a view and building the refusal body are both what must stay unreachable.
 
 use super::{ExplanationCoverageIssue, ProjectionExplanation};
 use crate::planning::{ProjectionKind, ProjectionPlan};

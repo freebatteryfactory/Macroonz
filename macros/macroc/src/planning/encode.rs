@@ -1,15 +1,12 @@
 //! The canonical bytes a plan's transcript is taken over.
 //!
 //! Every posture is written as a discriminant AHEAD of the material it governs,
-//! so two postures naming the same identity never encode alike — target-free is
-//! a stated posture and not an absent contract, and a plan decided against a
+//! so two postures naming the same identity never encode alike — target-free is a
+//! stated posture and not an absent contract, and a plan decided against a
 //! captured declaration alone never reads as one decided against a closed graph.
 //!
 //! Declared SETS are canonicalized here too: each member is encoded, the
-//! ENCODINGS are sorted, and the sorted sequence is written. Sorting finished
-//! encodings rather than values is what lets a set be canonical without an `Ord`
-//! the plane refuses to declare — the plane ranks nothing, and a byte order over
-//! encodings is a spelling rule rather than a ranking.
+//! ENCODINGS are sorted, and the sorted sequence is written.
 
 use super::{
     CauseAnchoring, DigestContract, GraphAnchoring, InvalidationTrigger, MemberDestination,
@@ -19,8 +16,9 @@ use crate::plane::{RenderedRole, encode_bytes, encode_length};
 
 impl TargetBinding {
     /// Append this binding's canonical bytes: the posture's discriminant, then
-    /// the contract where one is named. Target-free is written as a posture and
-    /// never as an absent contract, exactly as the type states it.
+    /// the contract where one is named.
+    /// Target-free is written as a posture and never as an absent contract,
+    /// exactly as the type states it.
     pub fn encode_into(&self, into: &mut Vec<u8>) {
         match self {
             Self::HostContract(contract) => {
@@ -116,8 +114,9 @@ impl DigestContract {
 impl PlannedOutput {
     /// Append this output's canonical bytes: the semantic key, the destination,
     /// the origin trail in walk order, the expected profile and its version, and
-    /// the digest contract — everything a plan states about one member, and no
-    /// rendered byte, because a plan has none.
+    /// the digest contract.
+    /// Everything a plan states about one member, and no rendered byte, because a
+    /// plan has none.
     pub fn encode_into(&self, into: &mut Vec<u8>) {
         encode_bytes(self.semantic_key.as_bytes(), into);
         self.destination.encode_into(into);
@@ -176,6 +175,8 @@ impl InvalidationTrigger {
 
 /// Append one declared SET's canonical bytes: every member encoded, the
 /// encodings sorted, the sorted sequence written length-prefixed.
+///
+/// # Ordering
 ///
 /// Sorting the ENCODINGS rather than the members is what lets a set be
 /// canonicalized without an `Ord` the plane refuses to declare: the plane ranks

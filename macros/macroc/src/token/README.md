@@ -2,7 +2,7 @@
 
 What the services read, and what they write.
 
-## Why the services carry their own token vocabulary
+## The services' own token vocabulary
 
 `proc_macro` is a proc-macro-crate-only API. A crate that is not compiled as a
 proc-macro cannot name its types at all, so the services — which are ordinary
@@ -24,10 +24,10 @@ spent by every producer — the compiler shell and the text reader alike — so 
 big may a declared input be" has one answer rather than one per road.
 
 **Writing.** [`GeneratedTree`] is what a renderer produces. The human Rust text
-is [`GeneratedTree::inspected`] — a PROJECTION of the tree, produced for a person
+is [`GeneratedTree::inspected`] — a projection of the tree, produced for a person
 to read, never the artifact itself. The artifact is the tree.
 
-## The span handle is opaque, and deliberately so
+## The opaque span handle
 
 A [`SpanHandle`] means "the token at this index of the table the producer built
 while capturing". The services never resolve one: they carry it into a diagnostic
@@ -41,6 +41,3 @@ first token of the declaration.
 a private field, which is where all four magnitudes are settled. `text.rs` is the
 callable text route end to end, `resolve.rs` answers a span handle, `encode.rs`
 writes the canonical bytes, and `inspect.rs` renders what a person is shown.
-
-This home's qualification obligations live in the crate README's tooling-obligation
-blocks.

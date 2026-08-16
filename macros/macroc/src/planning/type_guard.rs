@@ -1,13 +1,14 @@
-//! The plan family's invariant nucleus: every road that reaches a private
-//! field, and every smart constructor that settles a declared magnitude.
+//! The plan family's invariant nucleus: every road that reaches a private field,
+//! and every smart constructor that settles a declared magnitude.
 //!
-//! Declared inside `types.rs` as its own child. The output firewall is here:
-//! a membership's members are unreachable except through the roads below, so a
-//! plan's declared output set is whatever one of them admitted and nothing else.
-//! The two total structural constructors — [`PlannedMembership::complete`] and
-//! the bundle's one-member road — carry no refusal at all, because a set fixed
-//! by a shape has no runtime count to read and therefore no error branch for a
-//! caller to fill with a shorter set.
+//! Declared inside `types.rs` as its own child.
+//! The output firewall is here: a membership's members are unreachable except
+//! through the roads below, so a plan's declared output set is whatever one of
+//! them admitted and nothing else.
+//! The total structural constructors — [`PlannedMembership::complete`] and the
+//! one-member roads — carry no refusal at all, because a set fixed by a shape has
+//! no runtime count to read and therefore no error branch for a caller to fill
+//! with a shorter set.
 
 use super::super::encode::encode_set;
 use super::{
@@ -29,9 +30,10 @@ use threadpak::declaration::types::FragmentIdentityDomain;
 use threadpak::types::{Bounded, ConstLimit, NonEmptyBounded, PositiveLimit};
 
 impl ProjectionContext {
-    /// Read the machine's own closed-graph commitment into the plane. This is
-    /// the production road for a caller that HOLDS a closed graph: the services
-    /// observe the identity the linker minted and never mint one of their own.
+    /// Read the machine's own closed-graph commitment into the plane.
+    ///
+    /// The road for a caller that HOLDS a closed graph: the services observe the
+    /// identity the linker minted and never mint one of their own.
     #[must_use]
     pub fn graph_of(graph: &DeclarationGraph) -> GraphAnchoring {
         GraphAnchoring::ClosedGraph(OwnerIdentityRef::of_commitment(graph.linked()))
@@ -48,9 +50,9 @@ impl ProjectionContext {
     /// # Errors
     ///
     /// Returns the planning family naming [`BoundAxis::Declarations`] when the
-    /// cause set outgrows the declared bound. A partial cause set is refused,
-    /// not trimmed: an explanation that names some of its causes is wrong about
-    /// all of them.
+    /// cause set outgrows the declared bound.
+    /// A partial cause set is refused, not trimmed: an explanation that names
+    /// some of its causes is wrong about all of them.
     pub fn declared_sources(
         first: OwnerIdentityRef<FragmentIdentityDomain>,
         rest: Vec<OwnerIdentityRef<FragmentIdentityDomain>>,
@@ -91,32 +93,27 @@ impl<R: RenderedRole> PlannedMembership<R> {
         }
     }
 
-    /// The complete output set of a kind whose roster is fixed by its own shape
-    /// — a *total structural* constructor.
+    /// The complete output set of a kind whose roster is fixed by its own shape —
+    /// a *total structural* constructor.
     ///
-    /// # Why the complete set has a road with no refusal on it
-    ///
-    /// Some kinds decide their membership at runtime and declare it through
+    /// A kind that decides its membership at runtime declares it through
     /// [`PlannedMembership::declared`], which reads a count and may refuse.
-    /// Others do not: a shape that fixes exactly which roles it materializes
-    /// knows the whole set before anything runs, and there is no count to read.
+    /// A shape that fixes exactly which roles it materializes knows the whole set
+    /// before anything runs: the arity is `N`, a compile-time constant, so the
+    /// bound is settled by const evaluation and this road returns no `Result`.
+    /// A caller then has no error branch to fill for a case that cannot happen,
+    /// and a complete set that quietly became one member would be a plan
+    /// declaring a smaller output set than its shape fixed — which everything
+    /// downstream would go on to prove correctly.
     ///
-    /// The arity is `N`, a compile-time constant, so the bound is settled by
-    /// const evaluation and this road returns no `Result`. That is the whole
-    /// point. The seam that stood here handed such a caller a `Result` it could
-    /// not fail, and the caller — having no honest value for a case that cannot
-    /// happen — repaired it with a ONE-MEMBER membership. A complete set that
-    /// silently became one member is a plan that declared a smaller output set
-    /// than the shape fixed, and the closure check downstream then proved the
-    /// smaller claim.
-    ///
-    /// # What this road does NOT settle
+    /// # Nonclaims
     ///
     /// It settles the magnitude, not the distinctness of the roles: nothing here
-    /// stops a caller passing one role twice. That is deliberate rather than
-    /// overlooked. A caller of this road names its roles literally, so a doubled
-    /// role is visible at the call site, and the closure check reads the PLAN's
-    /// own count per role independently and refuses before anything is emitted.
+    /// stops a caller passing one role twice.
+    /// That is deliberate — a caller of this road names its roles literally, so a
+    /// doubled role is visible at the call site, and the closure check reads the
+    /// PLAN's own count per role independently and refuses before anything is
+    /// emitted.
     /// The checked road, whose roles arrive at runtime, refuses a doubled role
     /// itself.
     #[must_use]
@@ -133,10 +130,11 @@ impl<R: RenderedRole> PlannedMembership<R> {
     /// Returns the planning family naming [`BoundAxis::Outputs`] when the set
     /// outgrows the declared bound, and naming
     /// [`ProjectionPlanningIssue::MembershipDoubled`] for every role two members
-    /// stand under. The second check is here rather than downstream because a
-    /// doubled role is a defect in the DECLARATION of the set: the closure check
-    /// matches by role, so a membership that reaches it doubled has already made
-    /// that match elect one member and ignore the other.
+    /// stand under.
+    /// The second check is here rather than downstream because a doubled role is
+    /// a defect in the DECLARATION of the set: the closure check matches by role,
+    /// so a membership that reaches it doubled has already made that match elect
+    /// one member and ignore the other.
     pub fn declared(
         first: PlannedMember<R>,
         rest: Vec<PlannedMember<R>>,
@@ -183,9 +181,10 @@ impl<R: RenderedRole> PlannedMembership<R> {
         self.members.iter().find(|member| member.role == role)
     }
 
-    /// How many members are planned under one role. Two is a defect
-    /// [`PlannedMembership::declared`] refuses; the membership itself never
-    /// elects one of them.
+    /// How many members are planned under one role.
+    ///
+    /// Two is a defect [`PlannedMembership::declared`] refuses; the membership
+    /// itself never elects one of them.
     #[must_use]
     pub fn count_under(&self, role: R) -> usize {
         self.members_under(role).count()
@@ -193,9 +192,10 @@ impl<R: RenderedRole> PlannedMembership<R> {
 
     /// Every member planned under one role, in declaration order.
     ///
-    /// The road a COMPLETE-SET comparison walks. Comparing two memberships by
-    /// their first member per role would agree about two sets that differ in
-    /// their second, which is exactly what a doubled role produces.
+    /// The road a COMPLETE-SET comparison walks.
+    /// Comparing two memberships by their first member per role would agree about
+    /// two sets that differ in their second, which is exactly what a doubled role
+    /// produces.
     pub fn members_under(&self, role: R) -> impl Iterator<Item = &PlannedMember<R>> {
         self.members
             .iter()
@@ -225,11 +225,13 @@ impl<R: RenderedRole> PlannedMembership<R> {
 
     /// Read the declared members, the guaranteed first one ahead of the rest.
     ///
-    /// The order law applies and is not weakened here: a declared output SET is
-    /// order-insensitive, so nothing identity-bearing may be derived from the
-    /// order this yields. Every member identity is derived from its ROLE and its
-    /// anchor, never from its position in this iteration, so the same members
-    /// supplied in another order yield the same plan.
+    /// # Ordering
+    ///
+    /// A declared output SET is order-insensitive, so nothing identity-bearing
+    /// may be derived from the order this yields.
+    /// Every member identity is derived from its ROLE and its anchor, never from
+    /// its position in this iteration, so the same members supplied in another
+    /// order yield the same plan.
     pub fn iter(&self) -> impl Iterator<Item = &PlannedMember<R>> {
         self.members.iter()
     }
@@ -239,10 +241,11 @@ impl<R: RenderedRole> PlannedMembership<R> {
     ///
     /// Roster order and never declaration order: a declared output set is
     /// order-insensitive, so the same members supplied in another order must
-    /// encode identically. Every member standing under a role is written, not
-    /// just the first, so a membership that doubled a role encodes differently
-    /// from one that did not — the closure check reports that as a defect, and
-    /// the encoding must not hide it before the check runs.
+    /// encode identically.
+    /// Every member standing under a role is written, not just the first, so a
+    /// membership that doubled a role encodes differently from one that did not —
+    /// the closure check reports that as a defect, and the encoding must not hide
+    /// it before the check runs.
     pub fn encode_into(&self, into: &mut Vec<u8>) {
         encode_length(R::ROLES.len(), into);
         for role in R::ROLES {
@@ -264,19 +267,18 @@ impl InvalidationTrigger {
     /// How many source declarations one
     /// [`InvalidationTrigger::SourceDeclarationChanged`] seat watches.
     ///
-    /// DECLARED here, and not derived: Rust cannot count a variant's seats, so
-    /// nothing anywhere reads this number off the roster, and a doc comment
-    /// saying it did would be worse than a bare literal — a number nobody checks
-    /// with a sentence that stops anybody checking it. What makes it more than a
-    /// literal is where it sits and what consumes it. It sits in the roster's own
-    /// implementation, so the edit that gives the seat a second watched identity
-    /// is an edit to the lines around it; and
+    /// DECLARED and not derived: Rust cannot count a variant's seats, so nothing
+    /// reads this number off the roster.
+    /// What holds it true is where it sits and what consumes it.
+    /// It sits in the roster's own implementation, so the edit that gives the
+    /// seat a second watched identity is an edit to the lines around it, and
     /// [`InvalidationTrigger::watching_source_declarations`] takes exactly this
     /// many identities and destructures them into the seat, so the number and the
-    /// seat cannot disagree without failing to compile. Raise it to two and the
-    /// pattern no longer matches the array; give the variant a second watched
-    /// seat and the construction is missing a field. This line and that road are
-    /// the one place that must change when the seat's shape changes.
+    /// seat cannot disagree without failing to compile.
+    /// Raise it to two and the pattern no longer matches the array; give the
+    /// variant a second watched seat and the construction is missing a field.
+    /// This line and that road are the one place that changes when the seat's
+    /// shape changes.
     pub(crate) const WATCHED_SOURCE_DECLARATIONS: usize = 1;
 
     /// The source-declaration watch, built from exactly the identities the seat
@@ -284,8 +286,8 @@ impl InvalidationTrigger {
     ///
     /// The array's arity IS
     /// [`InvalidationTrigger::WATCHED_SOURCE_DECLARATIONS`], which is what makes
-    /// the caller's refusal and this construction one statement instead of two: a
-    /// caller holding more declarations than the seat watches refuses before
+    /// the caller's refusal and this construction one statement instead of two:
+    /// a caller holding more declarations than the seat watches refuses before
     /// reaching here, naming both counts, and a caller holding exactly that many
     /// hands the whole set over and elects nothing out of it.
     pub(crate) const fn watching_source_declarations(
@@ -353,8 +355,9 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
     ///
     /// Returns the planning family naming [`PlanSeat::TargetBinding`] when the
     /// kind's plans are meaningless without a host contract and the context is
-    /// target-free. The binding is not defaulted: guessing a host is how a
-    /// wrapper ends up bound to a contract nobody declared.
+    /// target-free.
+    /// The binding is not defaulted: guessing a host is how a wrapper ends up
+    /// bound to a contract nobody declared.
     pub fn planned(
         context: ProjectionContext,
         kind_content: K::Content,
@@ -413,8 +416,10 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
         self.derivation.identity()
     }
 
-    /// How this plan's identity was derived — the record lives here, once,
-    /// rather than inside the identity value it explains.
+    /// How this plan's identity was derived.
+    ///
+    /// The record lives here, once, rather than inside the identity value it
+    /// explains.
     #[must_use]
     pub const fn derivation(&self) -> &PlanDerivation {
         &self.derivation
@@ -463,7 +468,9 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
     }
 
     /// The questions plans of this kind answer: the universal roster plus the
-    /// kind's own. This is the set an explanation view must fill every seat of.
+    /// kind's own.
+    ///
+    /// This is the set an explanation view must fill every seat of.
     #[must_use]
     pub fn applicable_questions() -> Vec<ExplanationQuestion> {
         UNIVERSAL_QUESTIONS

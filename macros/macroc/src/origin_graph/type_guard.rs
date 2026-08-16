@@ -2,12 +2,13 @@
 //! field.
 //!
 //! Declared inside `types.rs` as its own child, which is what makes this home's
-//! central claims structural. A trail is drawn HERE, so a generated unit with no
-//! origin is a value nobody can build rather than a shape a check has to catch,
-//! and a trail whose edges do not join is refused at the one seam that can draw
-//! one. A trace is recorded HERE, in selection order, so a trace that had been
-//! sorted into an inventory is likewise not a value that exists. There is no
-//! other seam in the crate that can produce either one.
+//! central claims structural.
+//! A trail is drawn HERE, so a generated unit with no origin is a value nobody
+//! can build rather than a shape a check has to catch, and a trail whose edges do
+//! not join is refused at the one seam that can draw one.
+//! A trace is recorded HERE, in selection order, so a trace sorted into an
+//! inventory is likewise not a value that exists.
+//! There is no other seam in the crate that can produce either one.
 
 use super::{DecisionTrace, OriginEdge, OriginTrail, TraceEntry};
 use crate::plane::{AuthoringLimitProfile, OriginEdgeLimit, TraceEntryLimit};
@@ -25,28 +26,28 @@ impl OriginTrail {
 
     /// Draw a trail of several edges.
     ///
-    /// # The two checks are dependent, and continuity runs first
-    ///
     /// A trail is a WALK: each edge starts where the one before it ended, and
     /// following it backwards is what makes a generated unit's provenance
-    /// readable. A sequence of edges that does not join is not a shorter walk, it
-    /// is two walks presented as one — and whichever end a reader trusts, the
-    /// other end is provenance nobody established. Accepting one would let a
-    /// disconnected list receive canonical bytes as a provenance path, which is
-    /// the exact defect the orphan law exists to prevent, one level up.
-    ///
-    /// So continuity is settled before the magnitude. The declared bound is a
-    /// fact about how long a walk may be, and measuring a sequence that is not a
-    /// walk would be measuring the wrong thing.
+    /// readable.
+    /// A sequence of edges that does not join is not a shorter walk, it is two
+    /// walks presented as one — and whichever end a reader trusts, the other end
+    /// is provenance nobody established.
+    /// Accepting one would let a disconnected list receive canonical bytes as a
+    /// provenance path, which is what the orphan law one level up exists to
+    /// prevent.
     ///
     /// # Errors
+    ///
+    /// The two checks are dependent, and continuity is settled first: the
+    /// declared bound is a fact about how long a walk may be, and measuring a
+    /// sequence that is not a walk would be measuring the wrong thing.
     ///
     /// Returns the planning family naming
     /// [`ProjectionPlanningIssue::TrailDiscontinuous`] with the position of the
     /// first edge that does not join its predecessor, and
-    /// [`BoundAxis::OriginEdges`] when a joined walk outgrows the declared
-    /// bound. A trail that does not fit refuses: truncating a trail is how an
-    /// origin silently becomes a span.
+    /// [`BoundAxis::OriginEdges`] when a joined walk outgrows the declared bound.
+    /// A trail that does not fit refuses: truncating a trail is how an origin
+    /// silently becomes a span.
     pub fn drawn(first: OriginEdge, rest: Vec<OriginEdge>) -> Result<Self, ProjectionPlanning> {
         if let Some(at) = break_position(&first, &rest) {
             return Err(ProjectionPlanning::established(
@@ -81,14 +82,16 @@ impl OriginTrail {
         self.edges.len()
     }
 
-    /// Always `false`: a trail holds at least one edge. The constant answer is
-    /// the orphan law stated as a method.
+    /// Always `false`: a trail holds at least one edge.
+    /// The constant answer is the orphan law stated as a method.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.edges.is_empty()
     }
 
     /// The edges, in the order the trail walks them.
+    ///
+    /// # Ordering
     ///
     /// The walk order is the trail's own meaning — it is the path back to the
     /// authored material — so unlike a declared SET, an identity may be derived
@@ -105,7 +108,8 @@ impl OriginTrail {
 /// interpretation: both ends of an edge are
 /// [`ProjectionIdentity`](crate::plane::ProjectionIdentity) values over the
 /// origin-node subject, so two nodes are the same node exactly when their bytes
-/// are. Nothing is normalized, and no near-match is accepted.
+/// are.
+/// Nothing is normalized, and no near-match is accepted.
 ///
 /// The position counts from the trail's first edge, so it names the edge a
 /// caller must repair rather than the gap's ordinal.
@@ -171,6 +175,8 @@ impl DecisionTrace {
     }
 
     /// The entries, in selection order.
+    ///
+    /// # Ordering
     ///
     /// Selection order is the trace's meaning, so an identity may be derived
     /// from it: two plans that decided the same things in a different order

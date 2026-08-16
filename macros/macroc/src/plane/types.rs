@@ -2,10 +2,10 @@
 //! rosters, the profile and generator facts, the transcript and its derivation
 //! record, and the rendered-role contract.
 //!
-//! Declarations only. Every constructor that must see a private field lives in
-//! `type_guard.rs`, which is declared below as this file's own child so the
-//! invariant nucleus and the fields it protects are never separated by a module
-//! boundary.
+//! Declarations only.
+//! Every constructor that must see a private field lives in `type_guard.rs`,
+//! declared below as this file's own child so the invariant nucleus and the
+//! fields it protects are never separated by a module boundary.
 
 use core::marker::PhantomData;
 use threadpak::types::{Bounded, ConstLimit, DeclaredMagnitude, Limit, LimitAdmissionProfile};
@@ -21,9 +21,8 @@ pub(crate) use guard::for_laws;
 /// The seal on the identity-subject roster.
 ///
 /// A value of this type is producible only inside the services, so a subject
-/// declared anywhere else cannot satisfy [`IdentitySubject`]. It is the third
-/// value seal in the plane, beside [`RenderedRoleSeal`] and the planning home's
-/// kind seal, and it is the one that guards the derive-key context itself.
+/// declared anywhere else cannot satisfy [`IdentitySubject`] — which is what
+/// keeps the derive-key context under this crate's own authority.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SubjectSeal(());
 
@@ -31,30 +30,28 @@ pub struct SubjectSeal(());
 /// with.
 ///
 /// The name is the subject's segment of the derive-key context, so it is part of
-/// what separates one subject's identities from another's. It is DECLARED beside
-/// the marker rather than taken from the Rust spelling: a type rename is a
-/// refactor, and a refactor that silently renamed every identity in the tree
-/// would be a law change nobody wrote down.
+/// what separates one subject's identities from another's.
+/// It is DECLARED beside the marker rather than taken from the Rust spelling: a
+/// type rename is a refactor, and a refactor that silently renamed every
+/// identity in the tree would be a law change nobody wrote down.
 ///
 /// The grammar is closed: lowercase ASCII letters and digits, in `-`-joined
 /// segments, with no leading, trailing, or doubled separator.
 ///
-/// # The roster is closed, and the seal is why
+/// # Authority
 ///
-/// Sealed, and the seal is load-bearing rather than decorative. The name a
-/// subject declares IS a domain separator: it is written into the derive-key
-/// context [`IdentityProfile::context_for`] composes and into every transcript
-/// derived under it, so the subject a type declares decides which name space its
-/// identities live in. An open trait would let a type outside the services pick
-/// that name space — declare `"plan"` and derive under the plan context, or
-/// declare a name nothing else uses and mint a separation context the plane never
-/// admitted. Either way an outside type would be choosing how the plane separates
-/// its own identities, which is a law change rather than an extension point.
-///
-/// The roster below is the whole of it, and it is declared by the `subjects!`
-/// macro, the only place a seal value is stamped. A downstream implementation is not
-/// discouraged: it is unwritable, because the constant it would have to furnish
-/// has no constructor outside this crate.
+/// The name a subject declares IS a domain separator: it is written into the
+/// derive-key context [`IdentityProfile::context_for`] composes and into every
+/// transcript derived under it, so the subject a type declares decides which
+/// name space its identities live in.
+/// An open trait would let a type outside the services pick that name space —
+/// declare `"plan"` and derive under the plan context, or declare a name
+/// nothing else uses and mint a separation context the plane never admitted.
+/// Either way an outside type would be choosing how the plane separates its own
+/// identities, which is a law change rather than an extension point.
+/// The `subjects!` macro below is the whole roster and the only place a
+/// [`SubjectSeal`] is stamped, so an outside implementation is unwritable
+/// rather than discouraged.
 pub trait IdentitySubject {
     /// The seal. Only the services can produce a value of this type.
     const SEAL: SubjectSeal;
@@ -68,8 +65,7 @@ pub trait IdentitySubject {
 /// the plane's records without hand-written impls, and each carrying its
 /// declared [`IdentitySubject`] name so no marker can exist without one.
 ///
-/// This is the only site that stamps a [`SubjectSeal`], which is what closes the
-/// roster: a subject exists because it was declared here, or it does not exist.
+/// A subject exists because it was declared here, or it does not exist.
 macro_rules! subjects {
     ($( $(#[$note:meta])* $name:ident = $declared:literal ),+ $(,)?) => {
         $(
@@ -83,8 +79,7 @@ macro_rules! subjects {
             }
         )+
 
-        /// Every declared subject name, in roster order. The proof surface reads
-        /// it to hold the grammar and the distinctness of the roster.
+        /// Every declared subject name, in roster order, for the proof surface.
         #[cfg(test)]
         pub(crate) const SUBJECT_NAMES: &[&str] = &[$($declared),+];
     };
@@ -93,33 +88,28 @@ macro_rules! subjects {
 /// The AUTHORING plane's admissible ceiling: the widest magnitude any limit
 /// family the services declare may state.
 ///
-/// # The number, and whose policy it is
-///
-/// `1_048_576`. It is the AUTHORING plane's policy and nobody else's. The
-/// machine owns the admission algebra — which witnesses exist and what each
+/// The machine owns the admission algebra — which witnesses exist and what each
 /// establishes — and deliberately declares no production ceiling, because a
 /// number seated there for convenience becomes the ceiling every plane inherits
-/// without deciding anything. This is where the services decide theirs, beside
-/// the families it governs.
+/// without deciding anything.
+/// This is where the services decide theirs, beside the families it governs.
 ///
-/// It is a number this plane CHOSE rather than one taken from a machine width.
-/// The widest magnitude the services declare today is [`RenderedByteLimit`] at
-/// `65_536`; this is sixteen times that, which leaves room for a magnitude
-/// nobody has needed yet and stops well short of a number that has stopped
-/// meaning anything. What it rules out is a "bound" that bounds nothing: a
-/// magnitude no declared input could reach makes its checked constructor
-/// unfalsifiable, and a constructor that cannot refuse is not a checked
-/// constructor.
+/// # Bounds
 ///
-/// It is revisable by decision, and revising it is a decision rather than an
-/// edit: every family below is admitted against it, so moving it moves what the
-/// whole plane will accept.
+/// `1_048_576`, a number this plane CHOSE rather than one taken from a machine
+/// width: it leaves room far above the widest magnitude the services declare
+/// and stops well short of a number that has stopped meaning anything.
+/// What it rules out is a "bound" that bounds nothing: a magnitude no declared
+/// input could reach makes its checked constructor unfalsifiable, and a
+/// constructor that cannot refuse is not a checked constructor.
+/// Every family below is admitted against it, so moving it moves what the whole
+/// plane will accept.
 ///
-/// # What it does not govern
+/// # Nonclaims
 ///
-/// Nothing outside this plane. A family admitted here is not admitted under a
-/// qualification profile or any host's, because the witness carries the profile
-/// as a type parameter and the two do not unify.
+/// A family admitted here is admitted nowhere else: the witness carries the
+/// admitting profile as a type parameter, so this admission never stands in for
+/// a qualification profile's ceiling or a host's.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AuthoringLimitProfile;
 
@@ -155,14 +145,10 @@ macro_rules! limits {
         ///
         /// Emitted from the SAME rows as the families themselves, in one
         /// expansion, so it is not an inventory of the declarations — it is the
-        /// declarations, read a second way. A family the roster gains appears
-        /// here without anybody adding a row, and a row nobody can add is a row
-        /// that cannot go stale. That is what lets the plane's ceiling law
-        /// derive the widest declared magnitude instead of naming a family and
-        /// hoping it stays the widest.
-        ///
-        /// It exists for the proof surface, which is the only reader that has a
-        /// question about the roster as a whole rather than about one family.
+        /// declarations, read a second way, with no row anybody could forget to
+        /// add or leave stale.
+        /// It exists for the proof surface, the one reader with a question about
+        /// the roster as a whole rather than about one family.
         #[cfg(test)]
         pub(crate) const DECLARED_LIMITS: &[(&str, usize)] = &[
             $( (stringify!($name), <$name as ConstLimit>::MAX) ),+
@@ -175,9 +161,8 @@ subjects! {
     RefusalReason = "refusal-reason",
     /// One refusal family, named by identity rather than by its Rust spelling.
     RefusalFamilySubject = "refusal-family",
-    /// One owning semantic home of the machine. The home roster itself belongs
-    /// to the machine and is derived by its tooling; the plane names a home by
-    /// identity so it never carries a second copy of that roster.
+    /// One owning semantic home of the machine, named by identity so the plane
+    /// never carries a second copy of the machine's home roster.
     OwnerHomeSubject = "owner-home",
     /// One exact fact an owning home declares.
     OwnerFactSubject = "owner-fact",
@@ -243,13 +228,12 @@ subjects! {
     /// opposed to any single issue inside it.
     ///
     /// A separate subject from [`RelatedIssueSubject`] because the two are
-    /// separate semantic LEVELS over one material, and one namespace holding two
-    /// levels collides by construction: a body's preimage is the framing of its
-    /// issues, so an issue whose own material happened to be that framing derived
-    /// the same identity as the body it aliased. Two subjects give the two levels
-    /// two derive-key contexts, so identical preimage bytes at different levels
-    /// are unrelated values rather than neighbouring ones — separation by
-    /// context, which is how this plane separates everything else.
+    /// separate semantic LEVELS over one material, and one name space holding
+    /// two levels collides by construction: a body's preimage is the framing of
+    /// its issues, so an issue whose own material happened to be that framing
+    /// would derive the identity of the body it aliased.
+    /// Two subjects give the two levels two derive-key contexts, so identical
+    /// preimage bytes at different levels are unrelated values.
     RelatedBodySubject = "related-body",
     /// One callable services entry point.
     ServiceEntrySubject = "service-entry",
@@ -328,11 +312,9 @@ limits! {
     ExplanationSeatLimit = 14,
     /// Bytes one human projection may carry.
     HumanTextLimit = 512,
-    /// Related issues one diagnostic may point at. It is the widest refusal-body
-    /// magnitude in the plane on purpose: a diagnostic projects a refusal body
-    /// issue for issue, so a narrower bound here would make the projection drop
-    /// established issues to fit — which is the defect the projection exists to
-    /// end.
+    /// Related issues one diagnostic may point at. A diagnostic projects a
+    /// refusal body issue for issue, so a narrower bound here would make the
+    /// projection drop established issues to fit.
     RelatedIssueLimit = 64,
     /// Repair actions one diagnostic may carry.
     RepairLimit = 8,
@@ -414,32 +396,30 @@ limits! {
 
 /// A reference to one exact machine identity, tagged by the subject it names.
 ///
-/// # The lens law
+/// The machine's identity home mints; this is the compiler plane's typed lens
+/// onto what it minted, carrying the identity's declared raw-byte storage order
+/// and nothing else — no availability, no version, no authority.
 ///
-/// This is a typed compiler-plane lens onto owner identity. Holding one means
-/// only "the compiler refers exactly to this owner identity" — nothing about
-/// admission, authority, freshness, availability, or equivalence.
+/// # Construction
 ///
-/// # The walls, all structural
+/// The public roads are [`OwnerIdentityRef::of_commitment`] and
+/// [`OwnerIdentityRef::of_reason`], each reading an identity the machine already
+/// minted; there is no public raw-byte constructor.
+/// `Subject` is a `PhantomData` parameter, so a reference naming one subject is
+/// a different type than a reference naming another regardless of bytes, and
+/// neither coerces to the other.
+/// [`OwnerIdentityRef::as_bytes`] hands back a borrow for comparison and
+/// rendering, and re-wrapping those bytes under a different subject is
+/// unrepresentable outside this crate precisely because there is no public byte
+/// constructor to wrap them with.
+/// There is no `IdentityRole` impl and no `Ord`: the plane declares no class or
+/// creation law for anything, and references are never ranked.
 ///
-/// 1. **No public raw-byte constructor.** The only public roads are
-///    [`OwnerIdentityRef::of_commitment`] and [`OwnerIdentityRef::of_reason`], each of
-///    which reads an identity the machine already minted. The byte seam
-///    (`decoded`) is crate-internal, awaiting the real decoder.
-/// 2. **No cross-subject substitution.** `Subject` is a `PhantomData`
-///    parameter, so a reference naming one subject is a different type than a
-///    reference naming another regardless of bytes, and neither coerces to the
-///    other.
-/// 3. **No subject-erasing conversion.** [`OwnerIdentityRef::as_bytes`] hands back
-///    a borrow for comparison and rendering, and re-wrapping those bytes under
-///    a different subject is *unrepresentable outside this crate* precisely
-///    because there is no public byte constructor to wrap them with.
-/// 4. **No `IdentityRole` impl and no `Ord`.** The plane declares no class or
-///    creation law for anything — that pair is the machine's to declare — and
-///    references are never ranked.
+/// # Nonclaims
 ///
-/// The value carries the identity's declared raw-byte storage order and nothing
-/// else — no availability, no version, no authority.
+/// Holding one means only that the compiler refers exactly to this owner
+/// identity — nothing about admission, authority, freshness, availability, or
+/// equivalence.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct OwnerIdentityRef<Subject> {
     bytes: [u8; 32],
@@ -449,10 +429,8 @@ pub struct OwnerIdentityRef<Subject> {
 /// One owning home and one fact it declares, named by their declared stable
 /// names rather than by minted identity.
 ///
-/// This is a REFERENCE to an owner fact and never a second answer to it. The
-/// plane reads the names the owning home wrote down; it derives nothing from
-/// them, decides nothing by them, and mints no identity to stand where the
-/// machine's would be.
+/// The plane reads the names the owning home wrote down; it derives nothing
+/// from them and mints no identity to stand where the machine's would be.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct OwnerFactName {
     /// The owning semantic home, by its declared name.
@@ -464,24 +442,19 @@ pub struct OwnerFactName {
 /// A typed reference naming the owning band fact that caused a decision.
 ///
 /// Every selection, omission, exclusion, and non-applicability in the plane
-/// cites one of these. A bare boolean would say a decision happened without
-/// saying whose fact decided it, which is exactly the explanation the plane
-/// owes.
+/// cites one of these.
+/// A bare boolean would say a decision happened without saying whose fact
+/// decided it, which is exactly the explanation the plane owes.
 ///
-/// # Two postures, and neither is silence
-///
-/// The machine mints fact identities inside its own homes. Where a caller HOLDS
-/// those identities, a citation carries them exactly
-/// ([`OwnerFactRef::Minted`]). Where a caller does not — and an expansion shell
-/// running inside `rustc` does not, because nothing has been linked and no home
-/// has published an identity to it — the citation names the home and the fact by
-/// their declared stable names ([`OwnerFactRef::Declared`]).
-///
-/// The second posture is a reference, not a substitute. The plane does not mint
-/// an identity to fill the gap, because a plane-minted "owner fact identity"
-/// would be a second value independently answering the owner's question, which
-/// the services are forbidden to create. Naming the fact is what a deriver is
-/// allowed to do; minting one is not.
+/// Where a caller HOLDS the machine's minted fact identities, a citation carries
+/// them exactly ([`OwnerFactRef::Minted`]).
+/// Where a caller does not — and an expansion shell running inside `rustc` does
+/// not, because nothing has been linked and no home has published an identity to
+/// it — the citation names the home and the fact by their declared stable names
+/// ([`OwnerFactRef::Declared`]).
+/// The second posture is a reference and not a substitute: a plane-minted
+/// "owner fact identity" would be a second value independently answering the
+/// owner's question, which the services are forbidden to create.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum OwnerFactRef {
     /// The machine's own identities for the home and the fact.
@@ -496,16 +469,17 @@ pub enum OwnerFactRef {
 }
 
 /// One version of one projection profile: a position in that profile's own
-/// order. There is no `Ord` — versions of two different profiles are not
-/// comparable, and the plane never ranks them.
+/// order.
+/// There is no `Ord` — versions of two different profiles are not comparable,
+/// and the plane never ranks them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ProfileVersion(u64);
 
 /// One bounded human-readable rendering of a typed value.
 ///
 /// It is a projection and only a projection: derived from typed values, carried
-/// for a person to read, and never read back by the plane. No decision, no
-/// identity, and no refusal consults it.
+/// for a person to read, and never read back.
+/// No decision, no identity, and no refusal in the plane consults it.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct HumanProjection<L: Limit> {
     text: Bounded<u8, L>,
@@ -517,21 +491,18 @@ threadpak::closed_register! {
     /// The role is part of the derive-key context AND part of the transcript, so
     /// two identities derived from the same anchor under different roles are
     /// different identities twice over: they are separated before a byte of the
-    /// transcript is read, and they disagree inside it. A role that means
-    /// something else is a law change, not a new string.
+    /// transcript is read, and they disagree inside it.
+    /// Giving a role a different meaning is a law change, not a new string.
     ///
-    /// # The stable name is a transcript member
+    /// # Authority
     ///
-    /// `stable_name` is the role's declared segment of the derive-key context
-    /// and is written into every transcript. It is declared rather than taken
-    /// from the Rust spelling for exactly the reason
-    /// [`IdentitySubject::SUBJECT_NAME`] is: renaming a variant must not rename
-    /// every identity derived under it. Changing one of these literals renames
-    /// every identity the profile ever derived under that role, which is an
-    /// identity-profile version bump and never an edit.
-    ///
-    /// `slot` is the byte the transcript carries beside it, and `ALL` is the
-    /// roster in the order the plane states it.
+    /// A role's stable name is its declared segment of the derive-key context
+    /// and is written into every transcript, declared rather than taken from the
+    /// Rust spelling for exactly the reason
+    /// [`IdentitySubject::SUBJECT_NAME`] is.
+    /// Changing one of these literals renames every identity the profile ever
+    /// derived under that role, which is an identity-profile version bump and
+    /// never an edit.
     ///
     /// [`IdentitySubject::SUBJECT_NAME`]: super::IdentitySubject::SUBJECT_NAME
     pub enum ProjectionRole {
@@ -561,28 +532,22 @@ threadpak::closed_register! {
 /// One version of the projection-identity profile.
 ///
 /// The version is a typed constant and a real segment of every derive-key
-/// context, not a comment about one. Changing what a transcript contains, what
-/// order it is written in, or what the domain grammar spells is a version bump,
-/// and a bump renames every identity the profile derives — which is exactly what
-/// it is for.
+/// context, not a comment about one.
+/// Changing what a transcript contains, what order it is written in, or what the
+/// domain grammar spells is a version bump, and a bump renames every identity
+/// the profile derives — which is exactly what it is for.
 ///
-/// # A mint site's content grammar is inside that rule
-///
-/// The eleven shared members are one half of what a transcript contains; the
-/// other half is the CONTENT each mint site composes, and each mint site
-/// documents its own. A change to either is a change to what a transcript
-/// contains. Version 2 is what closures committing to their emitted joined tree
-/// cost: a reader handed two receipts under one version must be able to assume
-/// both were derived the same way, and leaving the version at 1 across that
-/// change would have broken exactly that assumption while every golden vector
-/// stayed green.
+/// The members [`ProjectionTranscript`] specifies are one half of what a
+/// transcript contains; the other half is the CONTENT each mint site composes
+/// and documents.
+/// A change to either is a change to what a transcript contains, so a reader
+/// handed two identities under one version may assume both were derived the
+/// same way.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct IdentityProfileVersion(u32);
 
 /// The versioned, domain-separated profile the plane derives its identities
 /// under.
-///
-/// # The domain grammar
 ///
 /// One derive-key context per subject and role, spelled exactly:
 ///
@@ -593,13 +558,14 @@ pub struct IdentityProfileVersion(u32);
 /// with `<stem>` the profile's declared stem, `<version>` the decimal position
 /// of [`IdentityProfileVersion`], `<subject>` the target subject's
 /// [`IdentitySubject::SUBJECT_NAME`], and `<role>` the
-/// [`ProjectionRole::stable_name`]. Every segment is lowercase ASCII letters,
-/// digits, and `-`, joined by `/`.
+/// [`ProjectionRole::stable_name`].
+/// Every segment is lowercase ASCII letters, digits, and `-`, joined by `/`.
 ///
-/// Separation is by CONTEXT and not by message prefix. Two identities over
-/// identical transcript bytes under different subjects or different roles are
-/// derived under different keys, so they are unrelated values rather than
-/// neighbouring ones — there is no shared hash state for them to collide inside.
+/// Separation is by CONTEXT and not by message prefix.
+/// Two identities over identical transcript bytes under different subjects or
+/// different roles are derived under different keys, so they are unrelated
+/// values rather than neighbouring ones — there is no shared hash state for them
+/// to collide inside.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct IdentityProfile {
     stem: &'static str,
@@ -621,41 +587,34 @@ pub struct GeneratorProfileId(&'static str);
 
 /// The version of the SHAPE this generator renders.
 ///
-/// # It is bumped deliberately, and the rule is exact
-///
 /// Bump it when the rendered output's shape changes: a different token layout, a
 /// different set of rendered roles, a different contract realized, or a
-/// different meaning attached to one that already existed. Do not bump it for a
-/// change that cannot reach the output — a comment, a refactor, a renamed local.
+/// different meaning attached to one that already existed.
+/// Do not bump it for a change that cannot reach the output — a comment, a
+/// refactor, a renamed local.
+/// It rides in every transcript, so a bump renames every identity this generator
+/// derives, and a plan produced under the old shape can never be mistaken for
+/// one produced under the new.
 ///
-/// It is load-bearing: it rides in every transcript, so a bump renames every
-/// identity this generator derives, and a plan produced under the old shape can
-/// never be mistaken for one produced under the new.
-///
-/// This is deliberately NOT the package version. The package version moves for
-/// reasons that have nothing to do with the rendered shape, and — at `0.0.0`
-/// before the first release — does not move at all, which makes it worthless as
-/// the fact a plan is invalidated by.
+/// This is deliberately NOT the package version, which moves for reasons that
+/// have nothing to do with the rendered shape and is therefore worthless as the
+/// fact a plan is invalidated by.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GeneratorSchemaVersion(u32);
 
 /// Which generator produced a plane identity, and under which rendered shape.
 ///
-/// # Two load-bearing facts and one recorded one
-///
 /// The profile name and the schema version are IN the transcript: they decide
-/// identity, and a change to either renames what the generator derives. The
-/// package version is recorded and read back, and it is NOT in the transcript,
-/// because it moves for reasons the rendered shape does not follow — and an
-/// identity that changed on a version bump nobody's output noticed would be
-/// noise dressed as provenance.
+/// identity, and a change to either renames what the generator derives.
+/// The package version is recorded and read back but is NOT in the transcript,
+/// because an identity that changed on a version bump nobody's output noticed
+/// would be noise dressed as provenance.
 ///
-/// # What is NOT here, and why
+/// # Nonclaims
 ///
-/// There is no digest of this generator's own source. Computing one would mean
-/// reading the source tree at expansion time, which the ambient-free law
-/// forbids, or running a build script, which this repository forbids outright. A
-/// self-digest that could not be computed honestly is not carried dishonestly.
+/// It carries no digest of this generator's own source, and holding one is no
+/// evidence about the source: computing such a digest would mean reading the
+/// source tree at expansion time, which the ambient-free law forbids.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct GeneratorIdentity {
     profile: GeneratorProfileId,
@@ -672,14 +631,15 @@ pub const MACROC_GENERATOR: GeneratorIdentity = GeneratorIdentity::declared(
 
 /// What one transcript is anchored under.
 ///
-/// Three postures, and each is written into the transcript as a distinct
-/// discriminant ahead of its commitment, so a rooted transcript can never encode
-/// as an anchored one whose anchor happened to be empty.
+/// Each posture is written into the transcript as a distinct discriminant ahead
+/// of its commitment, so a rooted transcript can never encode as an anchored one
+/// whose anchor happened to be empty.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TranscriptAnchoring {
     /// No anchor at all — the root of one derivation chain, where the content is
-    /// the whole of what varies. The captured declaration is what stands here:
-    /// everything else in a plan hangs off it.
+    /// the whole of what varies.
+    /// The captured declaration is what stands here: everything else in a plan
+    /// hangs off it.
     Rooted,
     /// Anchored under an identity the MACHINE minted, carried at full width.
     UnderOwnerIdentity([u8; 32]),
@@ -689,11 +649,9 @@ pub enum TranscriptAnchoring {
 
 /// The COMPLETE preimage one [`ProjectionIdentity`] is derived from.
 ///
-/// # The transcript specification
-///
-/// A transcript is the exact byte string handed to the digest. It is written
-/// once, here, and this specification is complete: an independent implementation
-/// needs this section and nothing else.
+/// A transcript is the exact byte string handed to the digest, and this
+/// specification is complete: an independent implementation needs what follows
+/// and nothing else.
 ///
 /// Two primitives:
 ///
@@ -719,14 +677,12 @@ pub enum TranscriptAnchoring {
 /// | 11 | generator schema version | `u32be` |
 ///
 /// The derive-key context is [`IdentityProfile::context_for`] over the same
-/// subject and role. The identity is
+/// subject and role, and the identity is
 /// `blake3::derive_key(context, transcript) -> [u8; 32]`.
 ///
-/// # Nothing is folded on the way in
-///
-/// The anchor is carried at its full 32 bytes and the content at its full
-/// length. The 32-byte output is the only compression anywhere in the
-/// derivation, and it is the digest's own.
+/// Nothing is folded on the way in: the anchor is carried at its full 32 bytes
+/// and the content at its full length, so the 32-byte output is the only
+/// compression anywhere in the derivation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ProjectionTranscript<'material> {
     profile: IdentityProfile,
@@ -741,32 +697,26 @@ pub struct ProjectionTranscript<'material> {
 /// profile at which version, which generator, what it was anchored under, and
 /// how much content went in.
 ///
-/// # Why this is a separate value from the identity
-///
-/// The identity answers "which thing is this?" and is thirty-two bytes. The
+/// The identity answers "which thing is this?" and is thirty-two bytes; the
 /// record answers "where did those thirty-two bytes come from?" and is
-/// inspection material. Carrying the second inside the first put a derivation
-/// record on every identity in every plan, every trace entry, and every refusal
-/// body — which is what made an earlier design fold its anchor and its content
-/// down to eight bytes each just to keep the record small enough to travel.
-///
-/// Split apart, neither constrains the other: the transcript can be complete
-/// because it is not stored, and the record can be honest because it is written
-/// once where the derivation happened rather than copied everywhere the identity
-/// goes.
-///
-/// # What it carries exactly, and what it states rather than carries
+/// inspection material.
+/// They are separate values so neither constrains the other: the transcript can
+/// be complete because it is not stored, and the record can be honest because it
+/// is written once where the derivation happened rather than copied everywhere
+/// the identity goes.
 ///
 /// The subject, the role, the profile and its version, the generator, the
 /// anchoring posture, the anchor commitment at its FULL thirty-two bytes, and
-/// the roster position are all carried exactly. The content is stated by its
-/// LENGTH and not carried, because content is unbounded — a rendered unit's
-/// canonical bytes run to the declared rendering magnitude — and a record that
-/// copied it would double every rendering in memory to say something the
-/// rendered unit already holds.
+/// the roster position are all carried exactly.
+/// The content is stated by its LENGTH and not carried, because content is
+/// unbounded — a rendered unit's canonical bytes run to the declared rendering
+/// magnitude — and a record that copied it would double every rendering in
+/// memory to say something the rendered unit already holds.
 ///
-/// That is a stated limit and not a hidden one, and it is not a fold: nothing
-/// here is a lossy summary of the content presented as though it identified it.
+/// # Nonclaims
+///
+/// The stated length is not a fold and identifies nothing: reading it as a
+/// summary of the content reads a claim nobody made.
 /// The identity is what commits to the content, at full width, under BLAKE3.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ProjectionProvenance {
@@ -781,60 +731,47 @@ pub struct ProjectionProvenance {
 
 /// One identity the COMPILER PLANE owns, tagged by the subject it names.
 ///
-/// # What holding one means
-///
-/// It means the plane derived these thirty-two bytes from a complete
+/// Holding one means the plane derived these thirty-two bytes from a complete
 /// [`ProjectionTranscript`] under [`PROJECTION_IDENTITY_PROFILE`], and would
-/// derive the same ones again from the same transcript on any machine. It means
-/// nothing about the machine: the machine mints no plane identity and accepts
-/// none.
+/// derive the same ones again from the same transcript on any machine.
 ///
-/// # The collision claim, stated exactly
+/// # Authority
 ///
 /// **Collision resistance is claimed AS BLAKE3's, for the transcript as
 /// specified on [`ProjectionTranscript`], under profile version
 /// [`IdentityProfileVersion`] as declared by
 /// [`PROJECTION_IDENTITY_PROFILE`] — and nothing broader.**
+/// Finding two different transcripts that derive one identity is as hard as
+/// finding a BLAKE3 collision.
 ///
-/// Read the boundaries of that sentence as strictly as it is written. It claims
-/// that finding two different transcripts deriving one identity is as hard as
-/// finding a BLAKE3 collision. It does NOT claim that two things the plane
-/// considers different always have different transcripts — that is the
-/// transcript's completeness, which each mint site is responsible for and which
-/// each mint site documents. It does NOT claim anything about a different
-/// profile version, which derives under different contexts and is a different
-/// name space. And it does NOT make a plane identity into a machine commitment:
-/// where the machine needs a commitment the machine mints one, and no plane
-/// identity is ever accepted in its place.
+/// # Construction
 ///
-/// The weak in-house fold this replaced claimed no collision resistance at any
-/// width and folded its anchor and content to eight bytes before hashing. It is
-/// retired: nothing in the plane derives an identity that way, and the narrow
-/// folds are gone rather than re-hashed.
+/// The only road is [`ProjectionIdentity::derived`], which takes a typed
+/// transcript; no seam, public or crate-internal, wraps arbitrary bytes.
+/// `Subject` is a `PhantomData` parameter, so an identity naming one subject is
+/// a different type than one naming another regardless of bytes — and their
+/// derive-key contexts differ too, so the separation is a runtime fact and not
+/// only a compile-time one.
+/// Neither identity family is reachable from the other, and plane identities are
+/// never ranked, so there is no `Ord`.
 ///
-/// # The walls
+/// # Nonclaims
 ///
-/// 1. **No raw-byte constructor at all.** The only road is
-///    [`ProjectionIdentity::derived`], which takes a typed transcript. There is
-///    no public or crate-internal seam that wraps arbitrary bytes.
-/// 2. **No cross-subject substitution.** `Subject` is a `PhantomData` parameter,
-///    so an identity naming one subject is a different type than one naming
-///    another regardless of bytes — and their derive-key contexts differ too, so
-///    the separation is a runtime fact and not only a compile-time one.
-/// 3. **No conversion to or from [`OwnerIdentityRef`].** The two families answer
-///    different questions and neither is reachable from the other.
-/// 4. **No `Ord`.** Plane identities are never ranked.
+/// It does NOT claim that two things the plane considers different always have
+/// different transcripts — that is the transcript's completeness, which each
+/// mint site is responsible for and documents.
+/// It does NOT claim anything about a different profile version, which derives
+/// under different contexts and is a different name space.
+/// And it is never a machine commitment: where the machine needs one the machine
+/// mints it, and no plane identity is accepted in its place.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ProjectionIdentity<Subject> {
     bytes: [u8; 32],
     _subject: PhantomData<Subject>,
 }
 
-/// One projection plan's own identity.
-///
-/// A plan is spoken of by identity in three places — a bundle's membership, the
-/// planning family's issues, and the closure that proves a rendering against it
-/// — and all three name this one type.
+/// One projection plan's own identity — the one type anything that speaks of a
+/// plan by identity names.
 pub type PlanId = ProjectionIdentity<PlanSubject>;
 
 /// One proved closure's own identity.
@@ -846,13 +783,10 @@ pub type ClosedExpansionId = ProjectionIdentity<ClosedExpansionSubject>;
 /// The seal on the rendered-role roster.
 ///
 /// A value of this type is producible only inside the services, so a roster
-/// declared anywhere else cannot satisfy [`RenderedRole`]. It is the same seal
-/// the planning home puts on the projection-kind roster, for the
-/// same reason: the closure check walks `ROLES` and asks what stood under each
-/// one, so a roster that left a variant out would make that variant's rendered
-/// unit invisible to the loop that is supposed to prove it. An outside
-/// implementation could declare exactly that roster; a sealed one cannot exist
-/// at all.
+/// declared anywhere else cannot satisfy [`RenderedRole`].
+/// The closure check walks [`RenderedRole::ROLES`] and asks what stood under
+/// each one, so a roster that left a variant out would make that variant's
+/// rendered unit invisible to the loop that is supposed to prove it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RenderedRoleSeal(());
 
@@ -861,17 +795,17 @@ pub struct RenderedRoleSeal(());
 /// A kind declares this roster once, and the closure check reads it: a rendered
 /// unit is matched to a planned member by ROLE, so "the family implementation"
 /// and "the cause-order implementation" are different seats rather than two
-/// entries in an ordered list nobody can tell apart. A rendering that produced
-/// the right number of units in the wrong roles is caught by the role, not by a
-/// count.
+/// entries in an ordered list nobody can tell apart.
+/// A rendering that produced the right number of units in the wrong roles is
+/// caught by the role, not by a count.
 ///
-/// Sealed, and the seal is load-bearing rather than decorative. Every proof in
-/// the plane that says "every role was examined" says it by walking [`ROLES`],
-/// so the roster IS the quantifier. An implementation that omitted one variant
-/// would render a unit the closure loop never looks at and never reports, which
-/// is a silent output past the firewall. Each admitted roster carries a law
-/// proving it names every variant exactly once, at the roster position that
-/// variant's slot claims.
+/// # Authority
+///
+/// Every claim in the plane that "every role was examined" is made by walking
+/// [`ROLES`], so the roster IS the quantifier — which is why it is sealed.
+/// An implementation that omitted one variant would render a unit the closure
+/// loop never looks at and never reports, which is a silent output past the
+/// firewall.
 ///
 /// [`ROLES`]: RenderedRole::ROLES
 pub trait RenderedRole: Copy + PartialEq + Eq + core::fmt::Debug + Sized + 'static {
@@ -881,8 +815,9 @@ pub trait RenderedRole: Copy + PartialEq + Eq + core::fmt::Debug + Sized + 'stat
     /// The complete roster, in the order the kind states it.
     const ROLES: &'static [Self];
 
-    /// This role's position in the roster. Part of every transcript derived for
-    /// the role, so two roles never derive one identity.
+    /// This role's position in the roster.
+    /// Part of every transcript derived for the role, so two roles never derive
+    /// one identity.
     fn slot(self) -> u32;
 
     /// The role rendered for a person. A projection: nothing reads it back.

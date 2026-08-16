@@ -13,40 +13,40 @@
 //!    diagnostic becomes a `compile_error!` at the exact token its span handle
 //!    names.
 //!
-//! # What "semantically empty" means here
+//! # Semantic emptiness
 //!
 //! Read the derive below and there is no grammar, no roster, no shape decision,
-//! no identity, no plan, and no message. Every sentence a user reads was
-//! composed inside the services, where the typed value it projects lives. The
-//! shell does not even build the string it emits: the services hand it tokens.
+//! no identity, no plan, and no message.
+//! Every sentence a user reads was composed inside the services, where the typed
+//! value it projects lives; the shell does not even build the string it emits.
 //!
-//! That holds for the magnitudes too. The four bounds a capture stands under —
-//! nesting depth, tokens per level, tokens across the whole tree, and the
-//! capture-work budget — are declared in the services and spent by the walk
-//! below, and the sentence a refused capture reaches the compiler with is
-//! `CaptureBound::described`. The shell reports which bound; it declares none.
+//! That holds for the magnitudes too.
+//! The four bounds a capture stands under — nesting depth, tokens per level,
+//! tokens across the whole tree, and the capture-work budget — are declared in
+//! the services and spent by the walk below, and the sentence a refused capture
+//! reaches the compiler with is `CaptureBound::described`.
+//! The shell reports which bound; it declares none.
 //!
-//! # The offending token, not the first one
+//! # Spans
 //!
 //! The shell keeps a span table while converting, so a diagnostic's
 //! [`SpanHandle`] resolves to the exact `proc_macro::Span` of the token the
-//! services refused at. `compile_error!` is emitted at that span. A shell that
-//! reported at `token[0]` would send every reader of every refusal to the same
-//! wrong place.
+//! services refused at, and `compile_error!` is emitted there.
+//! A shell that reported at `token[0]` would send every reader of every refusal
+//! to the same wrong place.
 //!
 //! The services never resolve a handle themselves — they cannot, because
 //! `proc_macro` is a proc-macro-crate-only API and the services are ordinary
-//! callable Rust. That split is the reason the seam is a handle rather than a
-//! span.
+//! callable Rust.
+//! That split is the reason the seam is a handle rather than a span.
 //!
-//! # Dependency-minimized, and it stays that way
+//! # Dependencies
 //!
-//! Nothing here depends on `proc-macro2`, on `syn`, or on `quote`. The
+//! Nothing here depends on `proc-macro2`, on `syn`, or on `quote`: the
 //! conversion below walks `TokenTree` values with the standard library alone.
-//!
-//! The services never depend on this crate, not even for tests, so the question
-//! "does a consumer wearing this derive actually compile?" is answered from
-//! outside both, by a consumer crate owning neither participant.
+//! The services never depend on this crate either, not even for tests, so the
+//! question "does a consumer wearing this derive actually compile?" is answered
+//! from outside both, by a consumer crate owning neither participant.
 
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 use threadpak_macroc::{
@@ -57,19 +57,18 @@ use threadpak_macroc::{
 
 /// Derives a refusal family's declared facts from its declaration.
 ///
-/// The macro namespace and the type namespace are different namespaces, so a
-/// derive named `RefusalFamily` and a trait named `RefusalFamily` do not
-/// collide: `#[derive(RefusalFamily)]` resolves in the macro namespace and
-/// `impl RefusalFamily for …` resolves in the type namespace. Naming the derive
-/// for the contract it derives is the honest name, and a consumer that imports
-/// both may always spell either one path-qualified.
+/// The derive and the trait it derives share a name without colliding, because
+/// the macro namespace and the type namespace are different namespaces:
+/// `#[derive(RefusalFamily)]` resolves in the first and
+/// `impl RefusalFamily for …` in the second, and a consumer that imports both
+/// may always spell either one path-qualified.
 ///
 /// The declaration is stated with the `#[refusal(...)]` helper attribute; the
 /// grammar, the shapes, the coverage rules, the identities, the plan, the
 /// rendering, the closure, and every refusal live in
-/// `threadpak_macroc::derive_refusal`. A malformed declaration expands to
-/// `compile_error!` at the offending token, carrying the services' own rendering
-/// of the established cause.
+/// `threadpak_macroc::derive_refusal`.
+/// A malformed declaration expands to `compile_error!` at the offending token,
+/// carrying the services' own rendering of the established cause.
 ///
 /// ```text
 /// #[derive(RefusalFamily)]
@@ -82,10 +81,6 @@ use threadpak_macroc::{
 ///     NotCanonical,
 /// }
 /// ```
-///
-/// This crate carries no dependency on the machine, so the worked example —
-/// the derive applied, and its output proven equal to a hand-written twin —
-/// belongs to an outside consumer, never to this crate.
 #[proc_macro_derive(RefusalFamily, attributes(refusal))]
 pub fn refusal_family(item: TokenStream) -> TokenStream {
     let mut spans: Vec<Span> = Vec::new();
@@ -105,8 +100,8 @@ pub fn refusal_family(item: TokenStream) -> TokenStream {
     }
 }
 
-/// The closed expansion's token tree, as the compiler's tokens. The shell's only
-/// act.
+/// The closed expansion's token tree, as the compiler's tokens — the shell's
+/// only act.
 fn emit(closed: &ClosedExpansion) -> TokenStream {
     emit_tree(closed.emitted())
 }

@@ -1,6 +1,6 @@
 //! Reading one refusal-family declaration out of a typed token tree.
 //!
-//! # The grammar is AUTHORED, and it is small
+//! # The authored grammar
 //!
 //! ```text
 //! #[refusal(
@@ -17,7 +17,7 @@
 //!   captured because some do.
 //! - `family` states the family's stable identity. The causes' identities are
 //!   DERIVED from it and their local keys, under band 00's canonical key
-//!   grammar, so no author writes a shared prefix out by hand fifteen times.
+//!   grammar, so no author writes a shared prefix out by hand.
 //! - `<shape-word>` is one of `single_cause`, `issue_collection`,
 //!   `inseparable_pair`. The words map onto the machine's own [`FamilyShape`]
 //!   roster; this module carries the spelling of the words and not a second
@@ -28,19 +28,20 @@
 //! - Variants carry nothing but their own names, and a local key is a quoted
 //!   text with no escape sequence in it.
 //!
-//! # Reading tokens, not text
+//! # Tokens, not text
 //!
-//! Everything below walks [`CapturedTokenTree`] values. Groups are already
-//! groups, so nothing here re-discovers balance, and every refusal names the
-//! exact token it was established at rather than a byte somewhere near it.
+//! Everything below walks [`CapturedTokenTree`] values.
+//! Groups are already groups, so nothing here re-discovers balance, and every
+//! refusal names the exact token it was established at rather than a byte
+//! somewhere near it.
 //!
-//! # Refusals are honest about what they found
+//! # Refusal precision
 //!
-//! A real enum whose variant carries a payload is not "not an enum". A struct is
-//! not "not an enum". A generic enum is not "not an enum". Each of those is a
-//! real declaration meeting a real limit of this grammar, and each gets a cause
-//! that says which limit — because a caller told `NotAnEnum` about a perfectly
-//! good enum goes looking for the wrong problem.
+//! A real enum whose variant carries a payload is not "not an enum".
+//! A struct is not "not an enum". A generic enum is not "not an enum".
+//! Each of those is a real declaration meeting a real limit of this grammar, and
+//! each gets a cause that says which limit — because a caller told `NotAnEnum`
+//! about a perfectly good enum goes looking for the wrong problem.
 
 use super::types::{
     CapturedCause, CrateBinding, RefusalDeriveCapture, RefusalDeriveRefusal, RefusalDeriveSurface,
@@ -130,7 +131,9 @@ fn first_span(trees: &[&CapturedTokenTree]) -> SpanHandle {
 }
 
 /// The item words this grammar recognizes as real Rust declarations that are
-/// nevertheless not enums. A declaration spelling one of these gets
+/// nevertheless not enums.
+///
+/// A declaration spelling one of these gets
 /// [`RefusalDeriveCapture::UnsupportedDeclarationForm`], never `NotAnEnum`.
 const OTHER_ITEM_FORMS: [&str; 8] = [
     "struct", "union", "trait", "fn", "impl", "type", "const", "static",
@@ -242,10 +245,11 @@ fn read_variants(body: &[&CapturedTokenTree]) -> Result<Vec<String>, RefusalDeri
     Ok(variants)
 }
 
-/// Close one comma-separated group. Empty groups are trailing commas, a lone
-/// word is a variant, and a word followed by anything is a variant carrying a
-/// payload — which is a real variant this grammar does not admit, not a
-/// non-enum.
+/// Close one comma-separated group.
+///
+/// Empty groups are trailing commas, a lone word is a variant, and a word
+/// followed by anything is a variant carrying a payload — which is a real
+/// variant this grammar does not admit, not a non-enum.
 fn close_variant(
     group: &[&CapturedTokenTree],
     variants: &mut Vec<String>,
@@ -527,8 +531,10 @@ fn covers(causes: &[CapturedCause], variants: &[String]) -> bool {
 }
 
 /// Whether every declared local key is distinct — the local-uniqueness proof the
-/// derive owes. Family uniqueness is a different question and is owed to the
-/// composition root, which band 00's key grammar says out loud.
+/// derive owes.
+///
+/// Family uniqueness is a different question and is owed to the composition
+/// root, which band 00's key grammar says out loud.
 fn distinct(causes: &[CapturedCause]) -> bool {
     causes.iter().enumerate().all(|(index, cause)| {
         causes

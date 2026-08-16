@@ -33,9 +33,10 @@ use threadpak::types::Bounded;
 /// Returns a [`MacrocDiagnostic`] whenever any step refuses: a declaration the
 /// grammar does not admit, a plan whose magnitudes are exceeded, a rendering
 /// that outgrows its bound, a closure the rendering does not satisfy, or an
-/// explanation that does not cover its kind's questions. **Every one of those
-/// refusals happens BEFORE a token exists to emit**, because the token tree is
-/// reachable only off the value this function returns on success.
+/// explanation that does not cover its kind's questions.
+/// **Every one of those refusals happens BEFORE a token exists to emit**,
+/// because the token tree is reachable only off the value this function returns
+/// on success.
 #[expect(
     clippy::result_large_err,
     reason = "the diagnostic is seat-complete by law, and the settled service signature returns it by value: boxing it here would move a required seat behind a pointer to satisfy a size lint"
@@ -77,9 +78,10 @@ pub fn compile_refusal(
 
 /// How the callable text route refused.
 ///
-/// Two postures, and they are genuinely different observations. A text that
-/// cannot be cut into tokens never reached the grammar at all and has no span
-/// table to point into; a text that cut fine and said the wrong thing has both.
+/// Two postures, and they are genuinely different observations.
+/// A text that cannot be cut into tokens never reached the grammar at all and
+/// has no span table to point into; a text that cut fine and said the wrong
+/// thing has both.
 /// Folding them together would hand a caller a diagnostic whose site indexes a
 /// table that was never built.
 #[must_use = "a refusal names which of the two ways the callable text route refused"]
@@ -122,7 +124,7 @@ pub fn compile_refusal_text(
 /// Render every planned role into a rendered unit.
 ///
 /// The roster is fixed by the shape, so the rendering is built by matching on
-/// the two answers rather than by folding a slice and repairing an empty fold.
+/// the two answers.
 /// [`RenderedProjection::complete`] settles the magnitude at compile time, which
 /// is why neither arm carries a refusal road of its own.
 #[expect(

@@ -1,11 +1,10 @@
 //! The explanation-protocol home's declarations: the typed answers, one
 //! answered question, how a view fails to be complete, and the complete view.
 //!
-//! Declarations only. Every road that reaches a private field — an explanation's
-//! question, answer, and human projection, the view's own seats, and the refusal
-//! body's one seat — lives in `type_guard.rs`, this file's own child. That is
-//! what makes "the question is derived from the answer" structural rather than
-//! reviewed.
+//! Declarations only.
+//! Every road that reaches a private field lives in `type_guard.rs`, this
+//! file's own child, which is what makes "the question is derived from the
+//! answer" structural rather than reviewed.
 
 use crate::diagnostics::RepairAction;
 use crate::origin_graph::DecisionTrace;
@@ -26,9 +25,11 @@ use threadpak::types::Bounded;
 #[path = "type_guard.rs"]
 mod guard;
 
-/// One typed answer. Each variant carries the exact values that answer its
-/// question — identities, typed rosters, and typed dispositions, never a
-/// sentence standing in for a fact.
+/// One typed answer.
+///
+/// Each variant carries the exact values that answer its question — identities,
+/// typed rosters, and typed dispositions, never a sentence standing in for a
+/// fact.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExplanationAnswer {
     /// What are you: the projection kind.
@@ -74,14 +75,15 @@ pub enum ExplanationAnswer {
     },
     /// Which output identity and digest you are.
     ///
-    /// Two values, because they come from two places and always did: the planned
-    /// member is what the PLAN declared, and the digest is what the CLOSURE
-    /// proved over bytes that exist. An answer carrying only the first would be
-    /// answering half the question; an answer carrying a digest the plan
-    /// supplied would be answering it with a value nobody computed.
+    /// Two values, because they come from two places: the planned member is
+    /// what the plan declared, and the digest is what the closure proved over
+    /// bytes that exist.
+    /// An answer carrying only the first would be answering half the question;
+    /// an answer carrying a digest the plan supplied would be answering it with
+    /// a value nobody computed.
     OutputAndDigest {
-        /// The planned member. Boxed because one answer of fourteen must not set
-        /// the size of the other thirteen.
+        /// The planned member.
+        /// Boxed because one answer must not set the size of every other.
         output: Box<PlannedOutput>,
         /// The digest the closure proved over the bytes actually rendered.
         digest: ProjectionIdentity<OutputBytesSubject>,
@@ -122,14 +124,10 @@ pub enum ExplanationAnswer {
 
 /// One answered question: the typed answer, and the question it answers.
 ///
-/// # Two seats, because the rendering is not one
-///
-/// There is no seat here for a rendering. The line a person reads is a function
-/// of the answer — see `project.rs` — and it is composed when it is asked for
-/// rather than carried, so an explanation whose sentence contradicts its typed
-/// content is not a value anybody can build. A stored rendering would be a
-/// second value answering a question the answer already answers, which is
-/// exactly what a projection may never become.
+/// There is no seat here for a rendering.
+/// The line a person reads is a function of the answer, composed when it is
+/// asked for rather than carried, so an explanation whose sentence contradicts
+/// its typed content is not a value anybody can build.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProjectionExplanation {
     question: ExplanationQuestion,
@@ -155,19 +153,16 @@ pub enum ExplanationCoverageIssue {
 }
 
 /// The explanation-coverage refusal family body, published from this file and
-/// DECLARED in `type_guard.rs`'s `seat` module, beside the only roads that reach
-/// its seat.
-///
-/// The declaration is not here because Rust's privacy is MODULE-scoped: a
-/// private field is private to the module the declaration lands in, and this
-/// file declares much else that would have been inside that wall.
+/// declared in `type_guard.rs`'s `seat` module, beside the only roads that
+/// reach its seat.
 pub use guard::ExplanationCoverage;
 
 /// A complete explanation view over one kind's plans.
 ///
 /// Holding one is the proof: every applicable question has exactly one answer,
-/// and no question outside the kind's roster was answered. There is no partial
-/// view — a view that could not be completed is a refusal instead.
+/// and no question outside the kind's roster was answered.
+/// There is no partial view — a view that could not be completed is a refusal
+/// instead.
 #[must_use = "a complete view is the proof every applicable question has exactly one answer"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProjectionExplanationView<K: ProjectionKind> {

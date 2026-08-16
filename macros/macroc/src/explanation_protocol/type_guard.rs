@@ -2,34 +2,30 @@
 //! private field.
 //!
 //! Declared inside `types.rs` as its own child, which is what makes the
-//! protocol's central claims structural. An explanation's question and its human
-//! rendering are both taken HERE, from the answer itself, so a true answer filed
-//! under the wrong question and a sentence that contradicts its answer are
-//! values nobody can build. A view is completed HERE, after the coverage pass
-//! agreed, so there is no partial view for a reader to mistake for a complete
-//! one. The refusal BODY is built here for the same reason and by the same
-//! permission: its seat is private, so this file is the only module in the
-//! workspace that can spell the literal, and every refusal that exists came off
-//! the coverage pass.
+//! protocol's central claims structural.
+//! An explanation's question and its human rendering are both taken here, from
+//! the answer itself, so a true answer filed under the wrong question and a
+//! sentence that contradicts its answer are values nobody can build.
+//! A view is completed here, after the coverage pass agreed, so there is no
+//! partial view for a reader to mistake for a complete one.
+//! The refusal body is built here by the same permission: its seat is private,
+//! so this file is the only module in the workspace that can spell the literal,
+//! and every refusal that exists came off the coverage pass.
 //!
-//! # Why the body is DECLARED here and not in `types.rs`
+//! Rust's privacy is module-scoped, so a seat declared in `types.rs` would put
+//! every other item in that file inside the wall.
+//! The body is therefore declared in the `seat` module below, whose entire
+//! content is that record and inherent implementations of it — the module is
+//! the complete set of roads that can reach the private seat.
 //!
-//! Rust's privacy is MODULE-scoped, so a seat declared in `types.rs` puts every
-//! other item in that file inside the wall and leaves "did anybody write a road
-//! out?" as a whole-file audit. The body is therefore declared in the `seat`
-//! module below, whose entire content is that record and inherent
-//! implementations of it and nothing else — the module is the complete set of
-//! roads that can reach the private seat.
+//! # Nonclaims
 //!
-//! # What a private seat does and does not exclude
-//!
-//! It excludes every SIBLING: the rest of this file, `types.rs` above it,
-//! `establish.rs` beside it, anywhere else in the services, and any crate
-//! downstream cannot write the literal, and the compiler says so with `E0451`.
-//! It does not exclude DESCENDANTS — a module declared inside the seat would
-//! construct as freely as these roads do, which is why the reversals for this
-//! seat are testpak's compile-fail fixtures and why the law above refuses a
-//! nested module in a `seat` module outright.
+//! A private seat excludes every sibling — the rest of this file, `types.rs`
+//! above it, `establish.rs` beside it, anywhere else in the services, and any
+//! crate downstream — and the compiler says so with `E0451`.
+//! It does not exclude descendants: a module declared inside the seat would
+//! construct as freely as these roads do, so the reversal for this seat is a
+//! compile-fail fixture testpak owns.
 
 use super::super::establish::coverage_issues;
 use super::super::project::human_line;
@@ -75,17 +71,15 @@ mod seat {
     pub struct ExplanationCoverage {
         /// The established issues — at least one, at most the declared bound —
         /// together with whether the body carries every issue the coverage pass
-        /// established or names how many stand outside that bound. One seat
-        /// rather than two, because a coverage claim seated beside its body is a
-        /// claim that can be swapped for another body's. The pass itself always
-        /// covers every applicable question, so the completion here never
-        /// reports a halted examination.
+        /// established or names how many stand outside that bound.
+        /// One seat rather than two, because a coverage claim seated beside its
+        /// body is a claim that can be swapped for another body's.
         ///
-        /// Private, and that is the second half of the same claim. The coupled
-        /// seat keeps a carry and its posture together; a PUBLIC seat on a
+        /// Private for the second half of the same claim: a public seat on a
         /// one-field record hands the whole record back as a literal, so any
         /// holder of a body built for one pass could write it into another
-        /// pass's refusal. Read back through [`ExplanationCoverage::body`].
+        /// pass's refusal.
+        /// Read back through [`ExplanationCoverage::body`].
         body: AdmittedPrefix<ExplanationCoverageIssue, ExplanationIssueLimit>,
     }
 
@@ -94,14 +88,12 @@ mod seat {
         ///
         /// The coverage pass walks the kind's whole applicable roster and then
         /// every supplied answer before a body exists, so the posture here is
-        /// about the REPORT rather than the pass. Where every established issue
-        /// fits the declared bound the body carries all of them; where it does
-        /// not, the body carries what the bound holds and names how many
-        /// established issues stand outside it.
+        /// about the report rather than the pass: where every established issue
+        /// fits the declared bound the body carries all of them, and where it
+        /// does not, the body carries what the bound holds and names how many
+        /// stand outside it.
         ///
-        /// Reaches the guard file and no further — `pub(super)` from inside the
-        /// seat is exactly the module-private reach this road had before the
-        /// declaration moved, and the pass that raises it is beside it.
+        /// Reaches the guard file and no further.
         pub(super) fn established(
             first: ExplanationCoverageIssue,
             rest: Vec<ExplanationCoverageIssue>,
@@ -133,12 +125,11 @@ mod seat {
 impl ProjectionExplanation {
     /// Answer one question.
     ///
-    /// The answer is the whole input, and that is the claim. The question is
-    /// taken from the answer, so no explanation can file a true answer under the
-    /// wrong question; the rendering is taken from the answer too, so no
-    /// explanation can carry a sentence its typed content does not support. Both
-    /// used to be seats a caller could fill independently — the question was
-    /// closed first, and this road closes the second.
+    /// The answer is the whole input, and that is the claim.
+    /// The question is taken from the answer, so no explanation can file a true
+    /// answer under the wrong question; the rendering is taken from the answer
+    /// too, so no explanation can carry a sentence its typed content does not
+    /// support.
     #[must_use]
     pub fn answered(answer: ExplanationAnswer) -> Self {
         Self {
@@ -160,7 +151,8 @@ impl ProjectionExplanation {
     }
 
     /// The rendering for a person, composed from the answer at the moment it is
-    /// asked for. Never stored, never read back, and never supplied.
+    /// asked for.
+    /// Never stored, never read back, and never supplied.
     #[must_use]
     pub fn human(&self) -> HumanProjection<HumanTextLimit> {
         human_line(&self.answer)
@@ -173,9 +165,9 @@ impl<K: ProjectionKind> ProjectionExplanationView<K> {
     /// # Errors
     ///
     /// Returns [`ExplanationCoverage`] naming every unanswered question, every
-    /// doubled question, and every question the kind does not admit. All three
-    /// are reported together: a caller repairing a view one question per
-    /// attempt is a caller the protocol failed.
+    /// doubled question, and every question the kind does not admit.
+    /// All of them are reported together: a caller repairing a view one
+    /// question per attempt is a caller the protocol failed.
     pub fn complete(answers: Vec<ProjectionExplanation>) -> Result<Self, ExplanationCoverage> {
         if let Some(refusal) = refused(coverage_issues::<K>(&answers)) {
             return Err(refusal);
@@ -206,8 +198,9 @@ impl<K: ProjectionKind> ProjectionExplanationView<K> {
         self.answers.len()
     }
 
-    /// Whether the view holds no answer. Always `false` in practice: a kind's
-    /// applicable roster is never empty, so a complete view always has seats.
+    /// Whether the view holds no answer.
+    /// A kind's applicable roster is never empty, so a complete view always has
+    /// seats.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.answers.is_empty()

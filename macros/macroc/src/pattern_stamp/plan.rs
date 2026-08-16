@@ -6,18 +6,12 @@
 //! declaration, the decisions in selection order with the identity home's facts
 //! cited, and the identities whose change makes the account stale.
 //!
-//! # What the watch set covers, exactly
+//! # The watch set
 //!
 //! The shared half is not written here at all. It is
 //! [`ProjectionContext::watch_set`](crate::planning::ProjectionContext::watch_set),
-//! derived from the context's own seats — so the roster that used to stand at
-//! this call site, and go stale against a context declared elsewhere, is gone.
-//! One consequence lands immediately: the target binding is watched now. The
-//! hand-written roster named the cause set, the graph, the profile and the
-//! generator and stopped, so a plan bound to a host contract carried no trigger
-//! for the contract it was bound to, while the roster's
-//! [`InvalidationTrigger::TargetContractChanged`] seat sat unused. No context in
-//! the tree is target-bound today, which is exactly why nobody met it.
+//! derived from the context's own seats, which is why a plan bound to a host
+//! contract carries a trigger for the contract it is bound to.
 //!
 //! The watch set does NOT cover the anchors a caller supplies beside the context
 //! — the authored pattern, this instantiation of it, the two typed arguments,
@@ -25,16 +19,18 @@
 //! facts. Those define the plan as surely as the context does, and a stamp
 //! planned against different ones is a different account.
 //!
-//! That gap is now COUNTED rather than remembered. The road below destructures
+//! That gap is COUNTED rather than remembered. The road below destructures
 //! [`ScopeGuardStampAnchors`] exhaustively, so every anchor is accounted for by
 //! the compiler and an anchor added later stops the build until somebody decides
 //! what it means for invalidation. Each binding says where its anchor reaches
 //! the plan. The reason the remaining ones carry no trigger is not a judgment
-//! that they do not matter: [`InvalidationTrigger`]'s roster declares no seat any
-//! of them could be watched through, every seat it does declare is one
-//! thirty-two-byte identity of a declared kind, and the set's magnitude IS that
-//! roster's cardinality — so minting a seat per anchor would rebuild the
-//! hand-maintained roster one level down and push the set past its own bound.
+//! that they do not matter:
+//! [`InvalidationTrigger`](crate::planning::InvalidationTrigger)'s roster
+//! declares no seat any of them could be watched through, every seat it does
+//! declare is one thirty-two-byte identity of a declared kind, and the set's
+//! magnitude IS that roster's cardinality — so minting a seat per anchor would
+//! rebuild a hand-maintained roster one level down and push the set past its
+//! own bound.
 //! That is a declared-limit decision with its own controls, and it is not one
 //! this file may take.
 //!
@@ -71,12 +67,9 @@ use threadpak::types::{AdmittedLimit, Bounded, ConstLimit};
 pub fn plan_scope_guard_stamp(
     anchors: &ScopeGuardStampAnchors,
 ) -> Result<ProjectionPlan<PatternStampProjection>, ProjectionPlanning> {
-    // Exhaustive, and that is the mechanism rather than a style. The watch set
-    // used to be a roster written beside these anchors, so an anchor added later
-    // joined the plan and joined nothing else, silently. Destructured, every
-    // anchor is accounted for HERE: each binding below says where its anchor
-    // reaches the plan, and one added tomorrow stops the build until somebody
-    // says the same about it.
+    // Exhaustive, and that is the mechanism rather than a style. Each binding
+    // below says where its anchor reaches the plan, and an anchor added later
+    // stops the build until somebody says the same about it.
     let ScopeGuardStampAnchors {
         // The shared dependency keys. The only seat whose triggers are derived,
         // because it is the only seat the roster has kinds for.

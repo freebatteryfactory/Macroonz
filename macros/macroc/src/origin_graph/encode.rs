@@ -1,11 +1,12 @@
 //! The canonical bytes every value in this home contributes to a transcript.
 //!
 //! Written through the plane's one length framing and nothing else, so no home
-//! invents a second spelling of a length. Every road here reads the trail and
-//! the trace through their public walks — the same answers any caller gets — so
-//! an encoding can never commit to more than a reader can see. The count is
-//! written ahead of the members, which is what keeps two differently split walks
-//! from encoding alike.
+//! invents a second spelling of a length.
+//! Every road here reads the trail and the trace through their public walks — the
+//! same answers any caller gets — so an encoding can never commit to more than a
+//! reader can see.
+//! The count is written ahead of the members, which is what keeps two differently
+//! split walks from encoding alike.
 
 use super::{DecisionTrace, Nonclaim, OriginEdge, OriginTrail, TraceDecision, TraceEntry};
 use crate::plane::{encode_bytes, encode_length};

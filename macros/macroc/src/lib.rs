@@ -1,39 +1,41 @@
 //! `threadpak-macroc`: the metaprogramming services.
 //!
 //! The services are ordinary callable Rust — planning, rendering, inspection,
-//! explanation — reached the same way by any caller. They depend inward on the
-//! machine and never back outward: nothing here knows a proc-macro exists. The
-//! Rust-facing expansion shell (`threadpak-macros`) is one thin surface over
-//! this crate; a future language frontend would be another.
+//! explanation — reached the same way by any caller.
+//! They depend inward on the machine and never back outward: nothing here knows
+//! a proc-macro exists, under test as well as in a build.
+//! The Rust-facing expansion shell (`threadpak-macros`) is one thin surface over
+//! this crate; a language frontend would be another.
 //!
-//! That absence holds under test too. A compiler service never depends on its
-//! frontend surfaces, even for tests, so this crate carries no dev edge to the
-//! shell and no composition test of its own: composition is proven from outside
-//! the participants, by a consumer that depends on the machine and the shell and
-//! on neither of their internals.
+//! Because this crate carries no dev edge to the shell, it has no composition
+//! test of its own: composition is proven from outside the participants, by a
+//! consumer that depends on neither's internals.
 //!
 //! # The charter
 //!
 //! **Derivers, not legislators.** The services project contracts the machine's
-//! homes already own. They decide no meaning, own no semantic noun, and are
-//! never their own oracle. Every roster they speak — identity classes, refusal
-//! shapes, verification methods, semantic facets — is the machine's, imported
-//! rather than restated.
+//! homes already own.
+//! They decide no meaning, own no semantic noun, and are never their own oracle.
+//! Every roster they speak — identity classes, refusal shapes, verification
+//! methods, semantic facets — is the machine's, imported rather than restated.
 //!
 //! **Plan before render, and close before emit.** Nothing is rendered that was
 //! not planned: a plan names its complete output set LOGICALLY — role, semantic
 //! key, destination, origin, expected renderer, digest contract — before a byte
 //! of target syntax exists, and never carries a digest of bytes nobody has
-//! produced. Nothing is emitted that did not close: the membership is rebuilt
-//! out of the rendered units and proven equal to the plan's, role by role, and
-//! the token tree is reachable only off the value that proof produced.
+//! produced.
+//! Nothing is emitted that did not close: the membership is rebuilt out of the
+//! rendered units and proven equal to the plan's, role by role, and the token
+//! tree is reachable only off the value that proof produced.
 //!
 //! **No partial output.** A declared output set is materialized whole or not at
-//! all. A refusal is a refusal; it is never a smaller success.
+//! all.
+//! A refusal is a refusal; it is never a smaller success.
 //!
 //! **Callable without a proc-macro.** Every service is reachable as an ordinary
-//! function. The expansion shell is one caller among possible callers, and a
-//! diagnostic names the callable route as a first-class way to reproduce it.
+//! function.
+//! The expansion shell is one caller among possible callers, and a diagnostic
+//! names the callable route as a first-class way to reproduce it.
 //!
 //! # The plane's spine
 //!
@@ -44,26 +46,23 @@
 //! ```
 //!
 //! Expansion is deterministic from its declared input: no network, no
-//! filesystem scans, no environment reads, no clock, no entropy. Nothing in
-//! this crate reaches for any of them, and there is no seat where one could
-//! enter.
+//! filesystem scans, no environment reads, no clock, no entropy.
+//! There is no seat where one could enter.
 //!
-//! # Declaration order IS the dependency order
+//! # Declaration order
 //!
-//! The machine states its dependency bands with numbered directories. This
-//! crate carries no numbers, so it states the same fact with the only ordering
-//! an unnumbered module list has: **the order the `pub mod` declarations appear
-//! below.** A module imports only modules declared EARLIER than itself, never a
-//! later one and never itself-by-way-of-another. Read top to bottom and you
-//! have read the dependency graph; there is no second place to look and nothing
-//! to keep in sync by hand.
-//!
-//! A cycle cannot hide in this order, because a cycle always contains at least
+//! The machine states its dependency bands with numbered directories.
+//! This crate carries no numbers, so it states the same fact with the only
+//! ordering an unnumbered module list has: **the order the `pub mod`
+//! declarations appear below.**
+//! A module imports only modules declared EARLIER than itself, never a later
+//! one and never itself-by-way-of-another, so reading top to bottom is reading
+//! the dependency graph.
+//! A cycle cannot hide in that order, because a cycle always contains at least
 //! one backward-pointing edge.
 //!
-//! The order is a straight line, not an accident of the alphabet. The formatter
-//! is told so — `reorder_modules = false` in `rustfmt.toml` — because a tool
-//! that re-alphabetizes this list would be erasing a law.
+//! `reorder_modules = false` in `rustfmt.toml` keeps a formatter from
+//! re-alphabetizing the list and erasing the law.
 //!
 //! ```text
 //! plane                 the shared carriers and the two identity families
@@ -85,41 +84,26 @@
 //! A directory module's edges are the union of every file under it:
 //! `derive_refusal/` reaches what its capture, plan, render, explain, and
 //! diagnose files reach, and a submodule pointing forward is its parent pointing
-//! forward. Inside a directory, `super::` names the parent and is not a
-//! crate-root route; in a single-file module `super::` IS the crate root, and
-//! the checker reads it as one.
+//! forward.
+//! Inside a directory, `super::` names the parent and is not a crate-root route;
+//! in a single-file module `super::` IS the crate root.
 //!
-//! Every module above is a directory home, and each carries the repository's
-//! file grammar inside it: `README.md` states what the home owns and why, and is
-//! the module's own documentation — `mod.rs` includes it rather than restating
-//! it. `mod.rs` is the door and re-exports the home's public names, so
-//! `crate::plane::X` names the owner exactly as it did when the home was one
-//! file; `types.rs` declares; `types.rs`'s own child `type_guard.rs` holds every
-//! road that reaches a private field, which is what makes each home's walls
-//! structural; `type_contract.rs` states the declarative surface; and the
-//! remaining files are role-named and pure. A seat exists only where it has
-//! content: a home with no private field carries no `type_guard.rs`, and a home
-//! that declares and computes nothing else is `mod.rs` and `types.rs` alone. No
-//! home publishes a second path to its own contents: the seat files are private
-//! and reached through the door.
-//!
-//! Reaching a sibling's content through a crate-root re-export is refused
-//! outright, whatever the declaration order says: `crate::planning::PlannedMember`
-//! names an owner and `crate::PlannedMember` names none, so only the first can
-//! be checked at all.
+//! Every module above is a directory home carrying the repository's file
+//! grammar, and `mod.rs` is its door: the seat files behind the door are
+//! private, and a home's public names are re-exported so `crate::plane::X` names
+//! the owner exactly as it did when the home was one file.
+//! A sibling is therefore always reached by its owner's path —
+//! `crate::planning::PlannedMember` names an owner and `crate::PlannedMember`
+//! names none.
 //!
 //! `question` is a leaf over nothing and could sit anywhere earlier; it is
 //! seated exactly where both its readers need it, which is the honest place for
 //! a vocabulary that exists to keep two machinery modules from importing each
 //! other.
 //!
-//! Only `mod` declarations carry the rule. The proof surface (`laws`) is
-//! declared last, is not public, is excluded by its `#[cfg(test)]`, and reaches
-//! every module by design: it is what proves the order, not a participant in it.
-//!
-//! The graph above is stated here once. The declarations below carry no
-//! commentary of their own, because a second copy of a dependency map is a
-//! second thing to keep true.
+//! Only `mod` declarations carry the rule.
+//! The `#[cfg(test)]` proof surface (`laws`) is declared last and reaches every
+//! module by design: it is what proves the order, not a participant in it.
 
 pub mod plane;
 pub mod token;

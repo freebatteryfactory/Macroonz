@@ -2,13 +2,15 @@
 //!
 //! Declared inside `types.rs` as its own child, so the walk's budget, the
 //! route's steps, the captured trees, and the generated tree's tokens are
-//! reachable here and nowhere else. Each magnitude is settled at the moment a
-//! value is made, which is why nothing downstream re-checks one.
+//! reachable here and nowhere else.
+//! Each magnitude is settled at the moment a value is made, which is why
+//! nothing downstream re-checks one.
 //!
 //! The two byte-producing seats — a capture's canonical bytes and a generated
 //! tree's — read their private collections here and hand each element to the
-//! walkers in `encode.rs` and `inspect.rs`. The value's own bytes are the
-//! value's business; walking a token is the walker's.
+//! walkers in `encode.rs` and `inspect.rs`.
+//! The value's own bytes are the value's business; walking a token is the
+//! walker's.
 
 use super::super::encode::{encode_captured, encode_generated};
 use super::super::inspect::inspect_token;
@@ -48,9 +50,9 @@ impl TokenPath {
     /// # Errors
     ///
     /// Returns [`CaptureBound::DepthUnbounded`] when the route would run past
-    /// the declared nesting magnitude. The step refuses rather than saturating:
-    /// a saturated depth makes two different tokens share one route, which is
-    /// the defect this type exists to end.
+    /// the declared nesting magnitude.
+    /// The step refuses rather than saturating: a saturated depth makes two
+    /// different tokens share one route.
     pub fn stepped(&self, index: u32) -> Result<Self, CaptureBound> {
         let mut steps: Vec<u32> = self.steps.iter().copied().collect();
         steps.push(index);
@@ -67,7 +69,7 @@ impl TokenPath {
         self.steps.iter()
     }
 
-    /// How deep this route runs. The root is zero.
+    /// How deep this route runs; the root is zero.
     #[must_use]
     pub fn depth(&self) -> usize {
         self.steps.len()
@@ -83,9 +85,9 @@ impl TokenPath {
 impl CaptureWalk {
     /// The declared capture-work budget, in units of one examined token.
     ///
-    /// Four times the whole-tree magnitude, because a walk may look at more than
-    /// it keeps. A budget at the tree magnitude exactly would refuse a lawful
-    /// input the moment its producer looked twice at anything.
+    /// Wider than the whole-tree magnitude, because a walk may look at more
+    /// than it keeps: a budget at the tree magnitude exactly would refuse a
+    /// lawful input the moment its producer looked twice at anything.
     pub const DECLARED_WORK: u32 = 65_536;
 
     /// A fresh walk, holding the whole declared budget and nothing taken.
@@ -213,10 +215,10 @@ impl CapturedTokenTree {
     /// # Errors
     ///
     /// Returns [`CaptureBound::LevelUnbounded`] when the group carries more
-    /// tokens than the declared magnitude admits. A group that does not fit
-    /// refuses rather than capturing as an empty one: an empty group is not a
-    /// shorter declaration, it is a declaration with no body, and the two must
-    /// never read alike.
+    /// tokens than the declared magnitude admits.
+    /// A group that does not fit refuses rather than capturing as an empty one:
+    /// an empty group is a declaration with no body, not a shorter declaration,
+    /// and the two must never read alike.
     pub fn group_of(
         delimiter: CapturedDelimiter,
         trees: Vec<Self>,
@@ -255,8 +257,9 @@ impl CapturedInput {
     /// # Errors
     ///
     /// Returns [`CaptureBound::LevelUnbounded`] when the top level carries more
-    /// trees than the declared magnitude admits. A capture that does not fit
-    /// refuses rather than reading part of a declaration.
+    /// trees than the declared magnitude admits.
+    /// A capture that does not fit refuses rather than reading part of a
+    /// declaration.
     pub fn taken(trees: Vec<CapturedTokenTree>, issued: u32) -> Result<Self, CaptureBound> {
         Bounded::admitted_const(
             trees,
@@ -283,17 +286,17 @@ impl CapturedInput {
         self.trees.is_empty()
     }
 
-    /// How many span handles the producer issued. A handle at or past this
-    /// index names no token.
+    /// How many span handles the producer issued.
+    /// A handle at or past this index names no token.
     #[must_use]
     pub const fn issued(&self) -> u32 {
         self.issued
     }
 
     /// The canonical bytes of this capture — what a plane identity over the
-    /// declared input is derived from. Deterministic, and independent of span
-    /// handles: two captures of the same declaration from different producers
-    /// encode identically.
+    /// declared input is derived from.
+    /// Deterministic, and independent of span handles: two captures of the same
+    /// declaration from different producers encode identically.
     #[must_use]
     pub fn canonical_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
@@ -354,8 +357,7 @@ impl GeneratedToken {
 
     /// The absolute path `::a::b::c`, as the tokens that spell it.
     ///
-    /// Rendering a path by hand is where a renderer starts writing Rust text; a
-    /// path stated as segments cannot be mis-spaced, cannot lose a colon, and
+    /// A path stated as segments cannot be mis-spaced, cannot lose a colon, and
     /// cannot be built out of a string a caller supplied.
     #[must_use]
     pub fn absolute_path(segments: &[&str]) -> Vec<Self> {
@@ -369,8 +371,9 @@ impl GeneratedToken {
     }
 
     /// The path `a::b::c` relative to the caller's own crate binding, as the
-    /// tokens that spell it. The first segment is written as a plain word, so a
-    /// caller that renamed its dependency is named the way it named itself.
+    /// tokens that spell it.
+    /// The first segment is written as a plain word, so a caller that renamed
+    /// its dependency is named the way it named itself.
     #[must_use]
     pub fn bound_path(binding: &str, segments: &[&str]) -> Vec<Self> {
         let mut tokens = vec![Self::word(binding)];
@@ -429,8 +432,8 @@ impl GeneratedTree {
 
     /// The Rust source text this tree projects, for a person to read.
     ///
-    /// A projection and only a projection. Nothing reads it back, no identity is
-    /// derived from it, and a caller comparing two trees compares the trees.
+    /// A projection and only a projection: nothing reads it back, no identity
+    /// is derived from it, and a caller comparing two trees compares the trees.
     #[must_use]
     pub fn inspected(&self) -> String {
         let mut rendered = String::new();

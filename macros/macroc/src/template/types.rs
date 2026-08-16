@@ -1,12 +1,10 @@
 //! The template home's declarations: category-typed holes, the three locks, the
 //! template and its application, and the semantic invocation key.
 //!
-//! Declarations only. Every road that reaches a private field — a binding's two
-//! ends, a ceiling's axes, a template's holes, an application's bindings, and the
-//! refusal body's one seat — lives in `type_guard.rs`, this file's own child.
-//! That is what makes each of this home's proofs structural: a cross-category
+//! Declarations only. Every road that reaches a private field lives in
+//! `type_guard.rs`, this file's own child, which is what makes a cross-category
 //! binding, a ceiling missing an axis, and an application with an unbound hole
-//! are values nobody can build.
+//! values nobody can build.
 
 use crate::origin_graph::Nonclaim;
 use crate::plane::{
@@ -196,11 +194,14 @@ pub struct ProfileCeiling {
 /// The third lock: the declared posture of the checked evaluation meter.
 ///
 /// The obligation is the owner's — an actual meter refuses BEFORE over-limit
-/// allocation and never returns a partial fragment set. The meter itself is a
-/// gated mechanism, so this carrier states the obligation by citation and
-/// states, as a [`Nonclaim`], that holding this value is not evidence a meter
-/// ran. A posture that read as a measurement would be the plane answering a
-/// question it has no standing to answer.
+/// allocation and never returns a partial fragment set — and this carrier states
+/// it by citation.
+///
+/// # Nonclaims
+///
+/// Holding one is not evidence a meter ran: the meter is a gated mechanism, and
+/// a posture read as a measurement would be the plane answering a question it
+/// has no standing to answer. The [`Nonclaim`] seat says so in the value itself.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CheckedMeterPosture {
     /// The owner fact declaring the checked-evaluation meter obligation.
@@ -298,10 +299,6 @@ pub enum TemplateConstructionIssue {
 /// The template-construction refusal family body, published from this file and
 /// DECLARED in `type_guard.rs`'s `seat` module, beside the only roads that reach
 /// its seat.
-///
-/// The declaration is not here because Rust's privacy is MODULE-scoped: a
-/// private field is private to the module the declaration lands in, and this
-/// file declares much else that would have been inside that wall.
 pub use guard::TemplateConstruction;
 
 /// One authored declaration template: its identity, its typed holes, the three
@@ -344,18 +341,17 @@ pub enum ApplicativeDistinctness {
 /// commitments that fill its holes, the profiles it was applied under, and its
 /// distinctness posture.
 ///
-/// # What makes two applications the same
+/// # Identity
 ///
 /// Same template + same arguments + same profiles = same meaning. Expansion
 /// count, expansion order, formatting, an alias, and the position an
 /// application sits at mint nothing: none of them is a member here, so none of
 /// them can be read back as a difference.
 ///
-/// The binding set is order-insensitive. Nothing identity-bearing may be
-/// derived from the order [`TemplateApplication::bindings`] yields — an
+/// The binding set is order-insensitive: nothing identity-bearing may be
+/// derived from the order [`TemplateApplication::bindings`] yields, and an
 /// applicative identity computed over these bindings canonicalizes by
-/// parameter identity first, and testpak owes the permutation hostile: the
-/// same bindings supplied in another order must yield the same application.
+/// parameter identity first.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TemplateApplication {
     template: OwnerIdentityRef<TemplateSubject>,
@@ -372,10 +368,9 @@ pub struct TemplateApplication {
 /// The semantic invocation key: the complete set of lawful inputs one template
 /// invocation is keyed by.
 ///
-/// Seven members, every one of them a typed commitment. A cached expansion is
-/// disposable: it is an optimization keyed by this value and never a
-/// replacement for recomputing under it, so discarding every cache anywhere
-/// changes no meaning at all.
+/// Every member is a typed commitment. A cached expansion is disposable: it is
+/// an optimization keyed by this value and never a replacement for recomputing
+/// under it, so discarding every cache anywhere changes no meaning at all.
 ///
 /// What may never participate is [`INVOCATION_KEY_NEVER`], and it is a roster
 /// rather than a warning: none of those facts is a member of this record, so a

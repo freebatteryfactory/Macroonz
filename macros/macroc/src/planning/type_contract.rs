@@ -2,10 +2,10 @@
 //!
 //! The kind roster's own [`ProjectionKind`] implementations are written by the
 //! `kinds!` declaration in `types.rs`, because a kind's contract is the
-//! declaration rather than something added to it afterwards. What stands here is
-//! the one roster a kind names rather than declares: the two rendered roles an
-//! implementation projection materializes, stated as a constant roster, a
-//! constant slot, and a constant sentence.
+//! declaration rather than something added to it afterwards.
+//! What stands here is the one roster a kind names rather than declares: the
+//! rendered roles an implementation projection materializes, stated as a constant
+//! roster, a constant slot, and a constant sentence.
 //!
 //! [`ProjectionKind`]: super::ProjectionKind
 

@@ -3,19 +3,19 @@
 //!
 //! Every canonical encoding anywhere in the services — a captured tree, a
 //! planned membership, a rendered unit, a transcript — is written through the
-//! two primitives here. One framing rather than one per home is what makes the
-//! concatenation collision impossible to reintroduce locally: a home that
-//! invented its own length spelling would admit two byte strings for one value
-//! without anything else in the crate noticing.
+//! two primitives here.
+//! One framing rather than one per home is what keeps the concatenation
+//! collision from being reintroduced locally: a home that invented its own
+//! length spelling would admit two byte strings for one value without anything
+//! else in the crate noticing.
 
 use super::OwnerFactRef;
 
 /// Append one length as eight big-endian bytes.
 ///
-/// The plane's one length framing, used by every canonical encoding it writes.
-/// Eight bytes at a fixed width rather than a varint, because a canonical
-/// encoding that admitted two spellings of one length would admit two preimages
-/// for one value.
+/// A fixed width rather than a varint, because a canonical encoding that
+/// admitted two spellings of one length would admit two preimages for one
+/// value.
 pub fn encode_length(length: usize, into: &mut Vec<u8>) {
     into.extend_from_slice(&u64::try_from(length).unwrap_or(u64::MAX).to_be_bytes());
 }
@@ -23,10 +23,9 @@ pub fn encode_length(length: usize, into: &mut Vec<u8>) {
 /// Append one length-prefixed byte string: the eight-byte length, then the
 /// bytes.
 ///
-/// Every variable-length member of every canonical encoding in the plane is
-/// written this way. Without the prefix, two members could be split at a
-/// different boundary and encode identically — the classic concatenation
-/// collision, which the length prefix removes outright.
+/// Without the prefix, two members could be split at a different boundary and
+/// encode identically — the concatenation collision the prefix removes
+/// outright.
 pub fn encode_bytes(material: &[u8], into: &mut Vec<u8>) {
     encode_length(material.len(), into);
     into.extend_from_slice(material);

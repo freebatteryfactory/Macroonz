@@ -1,8 +1,7 @@
-//! The plane's declarative trait implementations.
+//! The plane's declarative trait implementations: the sole-unit rendered role.
 //!
-//! One roster stands here: the sole-unit rendered role. It is declarative in the
-//! strict sense — a constant roster, a constant slot, and a constant sentence —
-//! so it is stated as a contract rather than computed by anything.
+//! A constant roster, a constant slot, and a constant sentence — nothing here is
+//! computed.
 
 use super::{RenderedRole, RenderedRoleSeal, SoleRenderedUnit};
 

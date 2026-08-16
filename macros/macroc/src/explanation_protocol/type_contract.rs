@@ -2,11 +2,9 @@
 //! family declares, and the closed table an answer's own question is read
 //! through.
 //!
-//! Both are declarations rather than computations. The family states its shape
-//! and its selection order as constants; the answer roster states, per variant,
-//! the one question that variant answers. That table is what makes the pairing
-//! derived rather than supplied, so a mismatched question-and-answer pair is a
-//! value nobody can build.
+//! Both are declarations rather than computations.
+//! The table is what makes the pairing derived rather than supplied, so a
+//! mismatched question-and-answer pair is a value nobody can build.
 
 use super::{ExplanationAnswer, ExplanationCoverage};
 use crate::question::ExplanationQuestion;
@@ -18,9 +16,11 @@ impl RefusalFamily for ExplanationCoverage {
 }
 
 impl ExplanationAnswer {
-    /// The question this answer answers. Total, and the only road there is: a
-    /// pairing between a question and an answer that does not fit it cannot be
-    /// built, because the pairing is derived rather than supplied.
+    /// The question this answer answers.
+    ///
+    /// Total, and the only road there is: a pairing between a question and an
+    /// answer that does not fit it cannot be built, because the pairing is
+    /// derived rather than supplied.
     #[must_use]
     pub const fn question(&self) -> ExplanationQuestion {
         match self {

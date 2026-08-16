@@ -1,28 +1,29 @@
 //! Rendering one refusal-family derivation into typed token trees.
 //!
-//! # What a renderer writes here is TOKENS
+//! # Tokens, not text
 //!
-//! Not text. Every path is spelled as segments, every literal is a typed literal
-//! whose quoting the tree owns, and every brace is a group. A renderer that
-//! wrote Rust source text would be composing a string the caller then has to
-//! re-parse — and the place a quoting bug lives is exactly that round trip.
+//! Every path is spelled as segments, every literal is a typed literal whose
+//! quoting the tree owns, and every brace is a group.
+//! A renderer that wrote Rust source text would be composing a string the caller
+//! then has to re-parse — and the place a quoting bug lives is exactly that
+//! round trip.
 //!
 //! The Rust source a person reads is [`crate::token::GeneratedTree::inspected`],
 //! and it is a projection of what is emitted rather than the thing itself.
 //!
-//! # The crate binding is honoured, never assumed
+//! # The crate binding
 //!
-//! Every path below starts at the binding the CAPTURE read. A consumer that
-//! renamed its dependency gets its own name back; a consumer that did not gets
-//! `threadpak`. Nothing here spells a crate name that did not come from the
-//! declaration.
+//! Every path below starts at the binding the CAPTURE read.
+//! A consumer that renamed its dependency gets its own name back; a consumer
+//! that did not gets `threadpak`.
+//! Nothing here spells a crate name that did not come from the declaration.
 //!
-//! # The textual order is emitted from the typed rows
+//! # The selection order
 //!
-//! The caller never writes a selection-order string. It writes variants and
-//! local keys; the textual projection and the typed order are BOTH emitted from
-//! the same captured rows, which is the whole point of band 00's split between a
-//! cause's identity and its spelling.
+//! The caller never writes a selection-order string.
+//! It writes variants and local keys; the textual projection and the typed order
+//! are BOTH emitted from the same captured rows, which is the whole point of
+//! band 00's split between a cause's identity and its spelling.
 
 use super::types::{CapturedCause, RefusalDeriveSurface};
 use crate::token::{GeneratedDelimiter, GeneratedToken, GeneratedTree};
@@ -43,13 +44,13 @@ const fn shape_variant(shape: FamilyShape) -> &'static str {
 ///
 /// # Two seats, and no join
 ///
-/// A cause identity IS the pair, so the rendering emits the pair. The renderer
-/// composes no text at all here — it did once, joining the family identity and
-/// the local key into a single literal, and that join put a family's ownership
-/// of its own cause back into a spelling exactly where band 00's shape had
-/// taken it out of one. What survives of the old composition is the property it
-/// bought: the author writes the local key and never the prefix, so a family's
-/// causes cannot drift apart one hand-typed prefix at a time.
+/// A cause identity IS the pair, so the rendering emits the pair and composes no
+/// text at all here.
+/// Joining the family identity and the local key into a single literal would put
+/// a family's ownership of its own cause back into a spelling, exactly where
+/// band 00's shape takes it out of one.
+/// The author writes the local key and never the prefix, so a family's causes
+/// cannot drift apart one hand-typed prefix at a time.
 fn cause_identity(
     surface: &RefusalDeriveSurface,
     cause: &CapturedCause,

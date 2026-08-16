@@ -5,29 +5,20 @@
 //! disposition structural. A view is built HERE, after the disposition pass
 //! agreed that every component was disposed of exactly once, so a view carrying
 //! an undecided component is a value nobody can hold rather than a state a
-//! reader has to notice. The refusal BODY is built here for the same reason and
-//! by the same permission: its seat is private, so this file is the only module
-//! in the workspace that can spell the literal, and every refusal that exists
-//! came off the disposition pass.
+//! reader has to notice. The refusal BODY is built here for the same reason, so
+//! every refusal that exists came off that pass.
 //!
-//! # Why the body is DECLARED here and not in `types.rs`
+//! The body is DECLARED in the `seat` module below rather than in `types.rs`,
+//! because Rust's privacy is MODULE-scoped and a seat declared beside the rest
+//! of this home's declarations would put all of them inside the wall. That
+//! module's entire content is the record and its inherent implementations, so
+//! the module IS the complete set of roads that reach the private seat.
 //!
-//! Rust's privacy is MODULE-scoped, so a seat declared in `types.rs` puts every
-//! other item in that file inside the wall and leaves "did anybody write a road
-//! out?" as a whole-file audit. The body is therefore declared in the `seat`
-//! module below, whose entire content is that record and inherent
-//! implementations of it and nothing else — the module is the complete set of
-//! roads that can reach the private seat.
-//!
-//! # What a private seat does and does not exclude
-//!
-//! It excludes every SIBLING: the rest of this file, `types.rs` above it,
-//! `establish.rs` beside it, anywhere else in the services, and any crate
-//! downstream cannot write the literal, and the compiler says so with `E0451`.
-//! It does not exclude DESCENDANTS — a module declared inside the seat would
-//! construct as freely as these roads do, which is why the reversals for this
-//! seat are testpak's compile-fail fixtures and why the law above refuses a
-//! nested module in a `seat` module outright.
+//! A private seat excludes every SIBLING: the rest of this file, `types.rs`
+//! above it, `establish.rs` beside it, anywhere else in the services, and any
+//! crate downstream cannot write the literal, and the compiler says so with
+//! `E0451`. It does not exclude DESCENDANTS, so the reversal for this seat is
+//! testpak's compile-fail fixture.
 
 use super::super::establish::disposition_issues;
 use super::{TriggerOmission, TriggerSelection, TriggerViewIssue, WrapperTriggerView};
@@ -65,15 +56,12 @@ mod seat {
         /// together with whether the body carries every issue the disposition
         /// pass established or names how many stand outside that bound. One seat
         /// rather than two, because a coverage claim seated beside its body is a
-        /// claim that can be swapped for another body's. The pass itself always
-        /// covers every component, so the completion here never reports a halted
-        /// examination.
+        /// claim that can be swapped for another body's.
         ///
-        /// Private, and that is the second half of the same claim. The coupled
-        /// seat keeps a carry and its posture together; a PUBLIC seat on a
-        /// one-field record hands the whole record back as a literal, so any
-        /// holder of a body built for one pass could write it into another
-        /// pass's refusal. Read back through [`TriggerViewComposition::body`].
+        /// Private for the same reason: a PUBLIC seat on a one-field record
+        /// hands the whole record back as a literal, so any holder of a body
+        /// built for one pass could write it into another pass's refusal. Read
+        /// back through [`TriggerViewComposition::body`].
         body: AdmittedPrefix<TriggerViewIssue, TriggerViewIssueLimit>,
     }
 
@@ -86,9 +74,8 @@ mod seat {
         /// carries all of them; where it does not, the body carries what the
         /// bound holds and names how many established issues stand outside it.
         ///
-        /// Reaches the guard file and no further — `pub(super)` from inside the
-        /// seat is exactly the module-private reach this road had before the
-        /// declaration moved, and the pass that raises it is beside it.
+        /// Reaches the guard file and no further, so a body exists only where
+        /// the disposition pass beside it ran.
         pub(super) fn established(first: TriggerViewIssue, rest: Vec<TriggerViewIssue>) -> Self {
             Self {
                 body: AdmittedPrefix::examined_completely(

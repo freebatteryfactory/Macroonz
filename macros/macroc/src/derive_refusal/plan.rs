@@ -2,18 +2,18 @@
 //! origin graph, the decision trace, and the watch set — all of it before a
 //! token of Rust exists.
 //!
-//! # Every identity here is DERIVED, and the derivation is readable
+//! # Derived identities
 //!
-//! Nothing in this module is handed an identity by a caller. Each one is derived
-//! from a complete transcript that names the profile and its version, the role,
-//! the anchor it hangs off at full width, the material it stands over at full
-//! length, and the generator that produced it — so the whole plan is a
-//! deterministic function of the captured declaration, and two captures of the
-//! same declaration produce the same plan on every machine.
+//! Nothing in this module is handed an identity by a caller.
+//! Each one is derived from a complete transcript that names the profile and its
+//! version, the role, the anchor it hangs off at full width, the material it
+//! stands over at full length, and the generator that produced it — so the whole
+//! plan is a deterministic function of the captured declaration, and two
+//! captures of the same declaration produce the same plan on every machine.
 //!
-//! That is what makes the plan comparable to the rendering afterwards. A plan
-//! whose identities were supplied could be made to agree with any rendering by
-//! supplying different ones.
+//! That is what makes the plan comparable to the rendering afterwards.
+//! A plan whose identities were supplied could be made to agree with any
+//! rendering by supplying different ones.
 
 use super::types::{
     CauseOrderStanding, DerivedMembership, RefusalDerivationDraft, RefusalOwnerFacts,
@@ -55,14 +55,10 @@ pub const fn rust_declaration_profile_version() -> ProfileVersion {
 /// produced a plan.
 ///
 /// The content is the generator's two LOAD-BEARING facts — its declared name and
-/// its schema version — and nothing else. The package version is deliberately
-/// absent: it sat here before, spelled `threadpak-macroc@0.0.0`, and at `0.0.0`
-/// before the first release it never moved, so a plan watching
-/// [`GeneratorVersionChanged`](crate::planning::InvalidationTrigger::GeneratorVersionChanged)
-/// was watching a value that
-/// could not change. The schema version is the fact
-/// that moves when the rendered shape moves, so it is the fact this identity
-/// turns on.
+/// its schema version — and nothing else.
+/// The schema version is the fact that moves when the rendered shape moves, so
+/// it is the fact this identity turns on, and the package version is
+/// deliberately absent from it.
 #[must_use]
 pub fn generator_version() -> ProjectionIdentity<GeneratorVersionSubject> {
     let mut content = Vec::new();
@@ -183,23 +179,14 @@ pub fn expansion_context(draft: &RefusalDerivationDraft) -> ProjectionContext {
 
 /// The complete logical membership one draft declares.
 ///
-/// # Total, because the set is fixed by the shape
+/// # Totality
 ///
 /// [`DerivedMembership`] has exactly two answers and each names a statically
 /// known set of roles, so there is no count to read, nothing to admit, and no
-/// failure to repair. The match below is the whole function: one answer builds a
-/// one-role membership, the other builds a two-role one, and
+/// failure to repair.
+/// The match below is the whole function: one answer builds a one-role
+/// membership, the other builds a two-role one, and
 /// [`PlannedMembership::complete`] settles the magnitude at compile time.
-///
-/// What this replaced is worth stating, because it is the defect this whole
-/// boundary is about. The roles arrived as a SLICE, the membership was built
-/// through the checked seam, and the impossible refusal was repaired with a
-/// ONE-MEMBER membership built from the first role. A `FamilyAndCauseOrder`
-/// derivation whose complete set failed to declare would have planned the family
-/// implementation alone — and the closure downstream would have proved that
-/// smaller claim, correctly, about a rendering that dropped a contract. The
-/// slice also had an empty case, which nothing can produce and which invented a
-/// family member to fill. Neither shape exists now.
 #[must_use]
 pub fn membership(draft: &RefusalDerivationDraft) -> PlannedMembership<RenderedImplementation> {
     let member = |role: RenderedImplementation| {
@@ -272,12 +259,10 @@ pub fn planned(
         ],
     )?;
 
-    // Derived from the context rather than listed here. The roster this
-    // replaced named three triggers and skipped the graph one, because an
-    // expansion-time context is decided against the same capture that caused it
-    // and listing both would have stated one kind twice — knowledge held at this
-    // call site about a value declared elsewhere. The derivation holds it, and
-    // the set it returns is the same three.
+    // Derived from the context rather than listed here: an expansion-time
+    // context is decided against the same capture that caused it, so a roster
+    // written at this call site would be knowledge held here about a value
+    // declared elsewhere.
     let invalidation = context.watch_set()?;
 
     let derived_type: ProjectionIdentity<DerivedTypeSubject> =
@@ -341,9 +326,11 @@ pub fn planned(
     Ok(DerivedPlan { plan, cause_order })
 }
 
-/// The contract identity's transcript material: the crate binding travels into it,
-/// because a rendering against a renamed dependency realizes the contract under
-/// a different path and is a different generated unit.
+/// The contract identity's transcript material.
+///
+/// The crate binding travels into it, because a rendering against a renamed
+/// dependency realizes the contract under a different path and is a different
+/// generated unit.
 fn binding_contract_bytes(draft: &RefusalDerivationDraft) -> Vec<u8> {
     let mut material = Vec::new();
     material.extend_from_slice(draft.surface().binding().spelling().as_bytes());

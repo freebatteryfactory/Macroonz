@@ -1,10 +1,11 @@
 //! The refusal home's declarative surface: the family shape this home declares,
 //! and the closed table its issue roster is read through.
 //!
-//! Both are declarations rather than computations. The family states its shape
-//! and its selection order as constants; the issue roster states, per variant,
-//! the slot an encoding writes for it. Nothing here decides anything — the
-//! deciding is `establish.rs`.
+//! Both are declarations rather than computations.
+//! The family states its shape and its selection order as constants; the issue
+//! roster states, per variant, the slot an encoding writes for it.
+//! Nothing here decides anything: the passes that establish a planning issue live
+//! in the homes that refuse.
 
 use super::{ProjectionPlanning, ProjectionPlanningIssue};
 use threadpak::refusal::{FamilyShape, RefusalFamily};

@@ -75,10 +75,6 @@ pub enum TriggerViewIssue {
 /// The trigger-view composition refusal family body, published from this file
 /// and DECLARED in `type_guard.rs`'s `seat` module, beside the only roads that
 /// reach its seat.
-///
-/// The declaration is not here because Rust's privacy is MODULE-scoped: a
-/// private field is private to the module the declaration lands in, and this
-/// file declares much else that would have been inside that wall.
 pub use guard::TriggerViewComposition;
 
 /// The complete wrapper-trigger view over one plan.

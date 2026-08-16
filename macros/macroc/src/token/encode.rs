@@ -2,9 +2,10 @@
 //!
 //! Spans are excluded on the reading side on purpose: a capture's identity is
 //! about the declaration, and two producers reading one declaration issue
-//! different handles for it. Every variable-length member is written through the
-//! plane's one length framing, so no two token sequences can be cut at another
-//! boundary and produce one byte string.
+//! different handles for it.
+//! Every variable-length member is written through the plane's one length
+//! framing, so no two token sequences can be cut at another boundary and
+//! produce one byte string.
 
 use super::{CapturedDelimiter, CapturedPayload, CapturedTokenTree, GeneratedDelimiter};
 use super::{GeneratedSpacing, GeneratedToken};

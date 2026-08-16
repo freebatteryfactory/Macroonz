@@ -2,35 +2,31 @@
 //! field.
 //!
 //! Declared inside `types.rs` as its own child, which is what makes the home's
-//! central claim structural. A rendered unit's digest is taken HERE, over the
-//! tree's own canonical bytes, so a renderer cannot hand in a digest of bytes it
-//! did not emit. A closure is built HERE, after the reconstruction agreed and
-//! over the joined tree this file builds and keeps, so the exact token stream a
-//! caller emits is inside what was proved rather than assembled afterwards.
-//! There is no other seam anywhere in the crate that can produce either value.
-//! The refusal BODY is built here for the same reason and by the same
-//! permission: its seat is private, so this file is the only module in the
-//! workspace that can spell the literal, and every refusal that exists came off
-//! the per-role pass.
+//! central claim structural.
+//! A rendered unit's digest is taken here, over the tree's own canonical bytes,
+//! so a renderer cannot hand in a digest of bytes it did not emit.
+//! A closure is built here, after the reconstruction agreed and over the joined
+//! tree this file builds and keeps, so the exact token stream a caller emits is
+//! inside what was proved rather than assembled afterwards.
+//! No other seam in the crate produces either value.
+//! The refusal body is built here by the same permission: its seat is private,
+//! so this file is the only module in the workspace that can spell the literal,
+//! and every refusal that exists came off the per-role pass.
 //!
-//! # Why the refusal body is DECLARED here and not in `types.rs`
+//! Rust's privacy is module-scoped, so a seat declared in `types.rs` would put
+//! every other item in that file inside the wall.
+//! The body is therefore declared in the `seat` module below, whose entire
+//! content is that record and inherent implementations of it — the module is
+//! the complete set of roads that can reach the private seat.
 //!
-//! Rust's privacy is MODULE-scoped, so a seat declared in `types.rs` puts every
-//! other item in that file inside the wall and leaves "did anybody write a road
-//! out?" as a whole-file audit. The body is therefore declared in the `seat`
-//! module below, whose entire content is that record and inherent
-//! implementations of it and nothing else — the module is the complete set of
-//! roads that can reach the private seat.
+//! # Nonclaims
 //!
-//! # What a private seat does and does not exclude
-//!
-//! It excludes every SIBLING: `types.rs` above it, `prove.rs` beside it,
-//! anywhere else in the services, and any crate downstream cannot write the
-//! literal, and the compiler says so with `E0451`. It does not exclude
-//! DESCENDANTS — a module declared inside a guard would construct as freely as
-//! these roads do, so the reversals for these seats are testpak's compile-fail
-//! fixtures instead, and the law above refuses a nested module in a `seat`
-//! module outright.
+//! A private seat excludes every sibling — `types.rs` above it, `prove.rs`
+//! beside it, anywhere else in the services, and any crate downstream — and the
+//! compiler says so with `E0451`.
+//! It does not exclude descendants: a module declared inside a guard would
+//! construct as freely as these roads do, so the reversal for these seats is a
+//! compile-fail fixture testpak owns.
 
 use super::super::prove::examined;
 use super::{ClosureIssue, ProjectionClosure, RenderedProjection, RenderedUnit, RenderingRefusal};
@@ -80,33 +76,29 @@ mod seat {
     pub struct ProjectionClosureRefusal<R: RenderedRole> {
         /// The established issues — at least one, at most the declared bound —
         /// together with whether the body carries every issue the pass
-        /// established or names how many stand outside that bound. One seat
-        /// rather than two, because a coverage claim seated beside its body is a
-        /// claim that can be swapped for another body's. The pass itself always
-        /// covers every applicable role, so the completion here never reports a
-        /// halted examination.
+        /// established or names how many stand outside that bound.
+        /// One seat rather than two, because a coverage claim seated beside its
+        /// body is a claim that can be swapped for another body's.
         ///
-        /// Private, and that is the second half of the same claim. The coupled
-        /// seat keeps a carry and its posture together; a PUBLIC seat on a
+        /// Private for the second half of the same claim: a public seat on a
         /// one-field record hands the whole record back as a literal, so any
         /// holder of a body built for one pass could write it into another
-        /// pass's refusal. Read back through [`ProjectionClosureRefusal::body`].
+        /// pass's refusal.
+        /// Read back through [`ProjectionClosureRefusal::body`].
         body: AdmittedPrefix<ClosureIssue<R>, ClosureIssueLimit>,
     }
 
     impl<R: RenderedRole> ProjectionClosureRefusal<R> {
         /// The body a closure check refuses with.
         ///
-        /// The per-role pass walks the kind's whole roster before a body exists,
-        /// so the posture here is about the REPORT rather than the pass. Where
-        /// every established issue fits the declared bound the body carries all
-        /// of them; where it does not, the body carries what the bound holds and
-        /// names how many established issues stand outside it — never a silent
-        /// drop.
+        /// The per-role pass walks the kind's whole roster before a body
+        /// exists, so the posture here is about the report rather than the
+        /// pass: where every established issue fits the declared bound the body
+        /// carries all of them, and where it does not, the body carries what
+        /// the bound holds and names how many stand outside it.
+        /// Never a silent drop.
         ///
-        /// Reaches the guard file and no further — `pub(super)` from inside the
-        /// seat is exactly the module-private reach this road had before the
-        /// declaration moved, and the pass that raises it is beside it.
+        /// Reaches the guard file and no further.
         pub(super) fn established(first: ClosureIssue<R>, rest: Vec<ClosureIssue<R>>) -> Self {
             Self {
                 body: AdmittedPrefix::examined_completely(
@@ -133,9 +125,10 @@ mod seat {
 impl<R: RenderedRole> RenderedUnit<R> {
     /// Materialize one rendered unit from the tree a renderer produced.
     ///
-    /// The digest is taken HERE, over the tree's own canonical bytes, under the
-    /// contract's anchor. Nothing is supplied by the caller, so a renderer
-    /// cannot hand in a digest of bytes it did not emit.
+    /// The digest is taken here, over the tree's own canonical bytes, under the
+    /// contract's anchor.
+    /// No caller supplies one, so a renderer cannot hand in a digest of bytes
+    /// it did not emit.
     ///
     /// # Errors
     ///
@@ -255,9 +248,9 @@ impl<R: RenderedRole> RenderedUnit<R> {
     /// The digest recomputed from the bytes this unit actually carries, under
     /// one stated contract.
     ///
-    /// This is what the closure compares against [`RenderedUnit::digest`]: a
-    /// digest that does not survive being recomputed under the plan's contract
-    /// is a digest of something else.
+    /// The closure compares this against [`RenderedUnit::digest`]: a digest
+    /// that does not survive being recomputed under the plan's contract is a
+    /// digest of something else.
     #[must_use]
     pub fn digest_under(&self, contract: DigestContract) -> ProjectionIdentity<OutputBytesSubject> {
         let raw: Vec<u8> = self.bytes.iter().copied().collect();
@@ -274,7 +267,7 @@ impl<R: RenderedRole> RenderedUnit<R> {
     /// and version it was rendered under, where it came from, and the digest of
     /// the bytes it carries.
     ///
-    /// The rendered bytes themselves are not written. They do not need to be:
+    /// The rendered bytes themselves are not written, and do not need to be:
     /// the digest is derived over them at full width, so a byte that changed
     /// changes the digest and therefore this encoding.
     pub fn encode_into(&self, into: &mut Vec<u8>) {
@@ -299,7 +292,7 @@ impl<R: RenderedRole> RenderedProjection<R> {
     }
 
     /// The rendering of a roster fixed by its own shape — a *total structural*
-    /// constructor, for the same reason [`PlannedMembership::complete`] is one.
+    /// constructor, as [`PlannedMembership::complete`] is one.
     ///
     /// A renderer that knows before it starts exactly which roles it will
     /// materialize has no runtime count to read, so there is no refusal here to
@@ -361,21 +354,15 @@ impl<R: RenderedRole> RenderedProjection<R> {
 
     /// The token tree the whole rendering is, in role-roster order.
     ///
+    /// # Ordering
+    ///
     /// Role order, never rendering order: the roster is declared and the
     /// renderer's own sequencing is not, so what is emitted is stable under a
     /// renderer that happened to produce its units in another order.
     ///
-    /// # It is a step INSIDE the proof, not a road beside it
-    ///
-    /// This is crate-internal and has exactly one caller:
-    /// [`ProjectionClosure::proved`]. It used to be public, and the compile road
-    /// called it AFTER the closure was proved — so the exact token stream a
-    /// compiler was handed was a concatenation performed past the proof
-    /// boundary, over which the closure identity said nothing. A second caller
-    /// joining the same units in another order, or joining a subset, would have
-    /// produced a different emission that the same closure still vouched for.
-    /// Now the closure performs the join, owns the result, and commits to its
-    /// digest, and there is no second road to a joined tree at all.
+    /// Crate-internal, with one caller: [`ProjectionClosure::proved`].
+    /// The join is a step inside the proof, so there is no second road to a
+    /// joined tree the closure identity says nothing about.
     ///
     /// # Errors
     ///
@@ -395,11 +382,11 @@ impl<R: RenderedRole> RenderedProjection<R> {
 impl<R: RenderedRole> ProjectionClosure<R> {
     /// Prove the closure between one plan's membership and one rendering.
     ///
-    /// # The closure transcript
+    /// # Construction
     ///
     /// The identity is derived under [`ProjectionRole::Closure`], anchored on
-    /// the PLAN's own identity, over a content transcript that commits to the
-    /// COMPLETE closure claim, in this order:
+    /// the plan's own identity, over a content transcript that commits to the
+    /// complete closure claim, in this order:
     ///
     /// 1. the explanation protocol version
     ///    ([`EXPLANATION_PROTOCOL_VERSION`]) — a closure claims a rendering
@@ -412,27 +399,20 @@ impl<R: RenderedRole> ProjectionClosure<R> {
     /// 4. for every role in roster order: the role slot, how many units stood
     ///    under it, and the unit that did — its identity, semantic key,
     ///    destination, profile and version, origin trail, and digest;
-    /// 5. the digest of the EMITTED joined tree, at full width.
+    /// 5. the digest of the emitted joined tree, at full width.
     ///
     /// So the identity names the whole agreement rather than a sample of it.
-    /// The earlier design anchored on the first planned member's semantic key
-    /// and hashed the concatenated digests: it committed to no destination, no
-    /// origin, no profile, no plan, and — because bare concatenation admits two
-    /// splits of one byte string — not reliably to the digest sequence either.
     ///
-    /// # Member 5 is why the emission is inside the proof
-    ///
-    /// The joined tree is built HERE, from the rendered units in role-roster
-    /// order, and the closure keeps it. The compile road used to join the units
-    /// itself after the proof returned, which meant the exact token stream the
-    /// compiler was handed was assembled past the proof boundary and the closure
-    /// identity said nothing about it. Committing to the joined tree's digest
-    /// closes that: the bytes a caller emits are the bytes this identity names.
+    /// The last member is why the emission is inside the proof: the joined tree
+    /// is built here, from the rendered units in role-roster order, and the
+    /// closure keeps it.
+    /// The bytes a caller emits are the bytes this identity names.
     ///
     /// # Errors
     ///
     /// Returns [`ProjectionClosureRefusal`] naming every role the two disagree
-    /// at. All of them are reported together: a caller repairing a rendering one
+    /// at.
+    /// All of them are reported together: a caller repairing a rendering one
     /// role per attempt is a caller the check failed.
     pub fn proved(
         plan: PlanId,
@@ -461,8 +441,8 @@ impl<R: RenderedRole> ProjectionClosure<R> {
 
         // The theorem, stated over the whole set: role by role, the rebuild and
         // the plan hold the same members. Every check above is about one seat;
-        // this one is about the collection, and it is what a first-per-role walk
-        // could never establish.
+        // this one is about the collection, which a first-per-role walk could
+        // never establish.
         let disagreements: Vec<ClosureIssue<R>> = R::ROLES
             .iter()
             .copied()
@@ -523,12 +503,12 @@ impl<R: RenderedRole> ProjectionClosure<R> {
         &self.rendered
     }
 
-    /// The token tree this closure proved, joined in role-roster order and owned
-    /// here.
+    /// The token tree this closure proved, joined in role-roster order and
+    /// owned here.
     ///
-    /// The one road to emitted tokens. Nothing joins the rendered units a second
-    /// time, and the digest this closure's identity commits to is the digest of
-    /// exactly these bytes.
+    /// The one road to emitted tokens.
+    /// Nothing joins the rendered units a second time, and the digest this
+    /// closure's identity commits to is the digest of exactly these bytes.
     #[must_use]
     pub const fn emitted(&self) -> &GeneratedTree {
         &self.emitted
@@ -547,8 +527,9 @@ impl<R: RenderedRole> ProjectionClosure<R> {
         self.plan
     }
 
-    /// This closure's own identity. Inspection and emission both read THIS
-    /// value, so there is no second closure identity anywhere to disagree with.
+    /// This closure's own identity.
+    /// Inspection and emission both read this value, so there is no second
+    /// closure identity anywhere to disagree with.
     #[must_use]
     pub const fn identity(&self) -> ClosureId {
         self.identity

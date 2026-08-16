@@ -1,12 +1,9 @@
 //! The plane's invariant nucleus: every road that reaches a private field.
 //!
 //! This file is declared inside `types.rs` as its own child, so it sees the
-//! fields the declarations keep private and nothing else in the crate does. That
-//! is what makes the plane's walls structural rather than reviewed: there is no
-//! public raw-byte constructor for either identity family, no way to re-wrap an
-//! identity's bytes under another subject, and no road to a human projection
-//! that truncates — because the roads that could do any of those would have to
-//! be written here, and they are not.
+//! fields the declarations keep private and nothing else in the crate does.
+//! That is what makes the plane's walls structural rather than reviewed: a road
+//! around one of them would have to be written here, and none is.
 
 use super::{
     AuthoringLimitProfile, GeneratorIdentity, GeneratorProfileId, GeneratorSchemaVersion,
@@ -21,10 +18,11 @@ use threadpak::refusal::ReasonId;
 use threadpak::types::{AdmittedLimit, Bounded, BoundedConstruction, ConstLimit, Limit};
 
 impl<Subject> OwnerIdentityRef<Subject> {
-    /// The production road: project one machine commitment into the plane. The
-    /// commitment's domain is the reference's subject, so a commitment over one
-    /// domain cannot become a reference naming another. Nothing is adapted —
-    /// the bytes cross unchanged.
+    /// The production road: project one machine commitment into the plane.
+    ///
+    /// The commitment's domain is the reference's subject, so a commitment over
+    /// one domain cannot become a reference naming another.
+    /// Nothing is adapted — the bytes cross unchanged.
     #[must_use]
     pub fn of_commitment(commitment: &Commitment<Subject>) -> Self {
         Self {
@@ -33,14 +31,12 @@ impl<Subject> OwnerIdentityRef<Subject> {
         }
     }
 
-    /// The decode-route seam, awaiting a real decoder.
+    /// The plane's single byte road: one identity that arrived already in its
+    /// declared byte order.
     ///
-    /// It is crate-internal on purpose: an identity that arrived already in its
-    /// declared byte order comes from an artifact somebody decoded, and the
-    /// decoder that will own this route does not exist yet. Until it does, this
-    /// is the single byte road in the plane and no caller outside the services
-    /// can reach it. It mints nothing and admits nothing; the machine never
-    /// accepts a plane reference as an identity mint.
+    /// It mints nothing and admits nothing — the machine never accepts a plane
+    /// reference as an identity mint — and it is crate-internal until a decoder
+    /// owns the route.
     #[must_use]
     pub(crate) const fn decoded(bytes: [u8; 32]) -> Self {
         Self {
@@ -52,11 +48,8 @@ impl<Subject> OwnerIdentityRef<Subject> {
     /// The identity's declared raw-byte storage order, borrowed for comparison
     /// and for rendering.
     ///
-    /// This is not a subject-erasing conversion. Reading the bytes out and
-    /// re-wrapping them under a different subject is unrepresentable outside
-    /// this crate because no public byte constructor exists to wrap them with —
-    /// the accessor is one-way by the absence of its inverse, not by a runtime
-    /// check.
+    /// One-way by the absence of its inverse rather than by a runtime check:
+    /// no public byte constructor exists to re-wrap what it hands back.
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8; 32] {
         &self.bytes
@@ -64,8 +57,9 @@ impl<Subject> OwnerIdentityRef<Subject> {
 }
 
 impl OwnerIdentityRef<RefusalReason> {
-    /// Project one registered refusal reason into the plane. A diagnostic names
-    /// the reason the machine registered; it never registers one.
+    /// Project one registered refusal reason into the plane.
+    /// A diagnostic names the reason the machine registered; it never registers
+    /// one.
     #[must_use]
     pub fn of_reason(reason: ReasonId) -> Self {
         Self::decoded(*reason.as_bytes())
@@ -100,8 +94,9 @@ impl<L: ConstLimit> HumanProjection<L> {
     /// # Errors
     ///
     /// Returns [`BoundedConstruction::OverLimit`] when the rendering exceeds the
-    /// family's declared byte maximum. A projection that does not fit refuses
-    /// rather than truncating: a silently cut explanation is a false one.
+    /// family's declared byte maximum.
+    /// A projection that does not fit refuses rather than truncating: a silently
+    /// cut explanation is a false one.
     pub fn projected(text: &str) -> Result<Self, BoundedConstruction> {
         Bounded::admitted_const(
             text.as_bytes().to_vec(),
@@ -112,19 +107,15 @@ impl<L: ConstLimit> HumanProjection<L> {
 
     /// The seam behind [`human_projection!`], which is the only road to it.
     ///
-    /// # There is no length to check here, so there is no branch to fall down
-    ///
     /// The rendering arrives as a fixed-width byte array, and the width is the
-    /// array's own TYPE. So this road carries no runtime count, returns no
+    /// array's own TYPE, so this road carries no runtime count, returns no
     /// refusal, and has no branch where a rendering that did not fit becomes an
-    /// empty one — the earlier seam had exactly that branch, and an oversized
-    /// explanation silently became a blank one.
-    ///
+    /// empty one.
     /// The width cannot be chosen independently of the material either: the
-    /// caller does not pass a length, it passes the array, and
-    /// [`human_projection!`] builds that array in a `const` item out of the
-    /// rendering itself. A rendering the width does not cover stops the
-    /// compiler during that const evaluation.
+    /// caller passes the array rather than a length, [`human_projection!`]
+    /// builds that array in a `const` item out of the rendering itself, and a
+    /// rendering the width does not cover stops the compiler during that const
+    /// evaluation.
     #[must_use]
     pub(crate) fn proven<const N: usize>(rendered: [u8; N]) -> Self {
         Self {
@@ -135,9 +126,9 @@ impl<L: ConstLimit> HumanProjection<L> {
 
 /// One static rendering's bytes, at the fixed width the caller declared.
 ///
-/// Written for the `const` item [`human_projection!`] builds. Evaluated at
-/// compile time, where a width the rendering does not reach is a compile error
-/// rather than a padded or cut projection handed to a reader.
+/// Written for the `const` item [`human_projection!`] builds, and evaluated at
+/// compile time: a width the rendering does not reach is a compile error rather
+/// than a padded or cut projection handed to a reader.
 #[expect(
     clippy::indexing_slicing,
     reason = "the walk is a const evaluation over the declared width, so an index past the rendering stops the compiler instead of reading at runtime"
@@ -157,14 +148,13 @@ pub(crate) const fn static_bytes<const N: usize>(text: &str) -> [u8; N] {
 /// Projects one STATIC rendering, proving at COMPILE TIME that it fits the named
 /// limit family.
 ///
-/// This is the total road, and it is the only road to
-/// [`HumanProjection::proven`]. `HumanProjection::projected` reads a runtime
-/// length and may refuse, and a caller that swallowed that refusal with an empty
-/// fallback would be silently deleting an explanation — which is exactly the
-/// defect this macro exists to make unrepresentable. Where the material is
-/// static, the length is a compile-time fact: the `const` block below settles
-/// the bound, the `const` item below carries the rendering at its own width, and
-/// no refusal road appears anywhere between them.
+/// This is the total road, and the only road to [`HumanProjection::proven`].
+/// [`HumanProjection::projected`] reads a runtime length and may refuse, and a
+/// caller that swallowed that refusal with an empty fallback would be silently
+/// deleting an explanation.
+/// Where the material is static, the length is a compile-time fact instead: the
+/// `const` block settles the bound, the `const` item carries the rendering at
+/// its own width, and no refusal road appears anywhere between them.
 macro_rules! human_projection {
     ($limit:ty, $text:literal) => {{
         const RENDERED: [u8; $text.len()] = $crate::plane::static_bytes($text);
@@ -181,8 +171,9 @@ macro_rules! human_projection {
 pub(crate) use human_projection;
 
 impl<L: Limit> HumanProjection<L> {
-    /// The empty rendering. Total: nothing exceeds any bound, and a caller with
-    /// nothing to say for a person still owes a value rather than a hole.
+    /// The empty rendering.
+    /// Total: nothing exceeds any bound, and a caller with nothing to say for a
+    /// person still owes a value rather than a hole.
     #[must_use]
     pub const fn empty() -> Self {
         Self {
@@ -204,11 +195,9 @@ impl<L: Limit> HumanProjection<L> {
 
     /// The rendering, for a caller to SHOW a person.
     ///
-    /// This is the one lawful use of the bytes and it is a one-way road out of
-    /// the plane. Nothing inside the plane calls it: no decision, no identity,
-    /// and no refusal consults a human projection, and none ever will. A
-    /// frontend that must put a sentence in front of somebody calls this, and
-    /// that is what the type exists for.
+    /// The one lawful use of the bytes, and a one-way road out of the plane:
+    /// a frontend that must put a sentence in front of somebody calls this, and
+    /// nothing inside the plane calls it at all.
     #[must_use]
     pub fn shown(&self) -> String {
         let bytes: Vec<u8> = self.text.iter().copied().collect();
@@ -250,7 +239,7 @@ impl IdentityProfile {
     }
 
     /// The derive-key context for one subject under one role, spelled by the
-    /// grammar above.
+    /// domain grammar [`IdentityProfile`] states.
     #[must_use]
     pub fn context_for(self, subject: &str, role: ProjectionRole) -> String {
         let version = self.version.position();
@@ -498,8 +487,8 @@ impl ProjectionProvenance {
 }
 
 impl<Subject: IdentitySubject> ProjectionIdentity<Subject> {
-    /// Derive one plane identity from its complete transcript. Deterministic
-    /// and total: every transcript names an identity.
+    /// Derive one plane identity from its complete transcript.
+    /// Deterministic and total: every transcript names an identity.
     #[must_use]
     pub fn derived(transcript: ProjectionTranscript<'_>) -> Self {
         let context = transcript
@@ -513,12 +502,11 @@ impl<Subject: IdentitySubject> ProjectionIdentity<Subject> {
 
     /// Derive one plane identity and the record of how it was derived.
     ///
-    /// The record is for whoever is going to keep it. Three values keep theirs:
-    /// a plan, a proved closure, and a closed expansion — the three whose
-    /// identity a reader is most likely to be handed on its own and asked to
-    /// account for. A caller with nowhere to put one takes
-    /// [`ProjectionIdentity::derived`] instead, and the record is simply not
-    /// made rather than made and carried by everything.
+    /// The record is for a value that is going to keep it — one whose identity a
+    /// reader may be handed on its own and asked to account for.
+    /// A caller with nowhere to put one takes [`ProjectionIdentity::derived`]
+    /// instead, and the record is simply not made rather than made and carried
+    /// by everything.
     #[must_use]
     pub fn derived_with_provenance(
         transcript: ProjectionTranscript<'_>,
@@ -547,8 +535,8 @@ impl RenderedRoleSeal {
 }
 
 impl SubjectSeal {
-    /// The seal, admitted only within the services. The `subjects!` declaration
-    /// is the one caller, which is what makes the subject roster closed.
+    /// The seal, admitted only within the services; the `subjects!` declaration
+    /// is the one caller.
     pub(crate) const fn admitted() -> Self {
         Self(())
     }
@@ -556,10 +544,9 @@ impl SubjectSeal {
 
 /// One plane identity minted for the proof surface alone.
 ///
-/// Test-gated on purpose. The laws need distinguishable identities without
-/// having a captured declaration to derive them from, and this road exists
-/// nowhere else: a production caller derives from a real transcript or has no
-/// identity at all.
+/// Test-gated on purpose: the laws need distinguishable identities without
+/// having a captured declaration to derive them from, and a production caller
+/// derives from a real transcript or has no identity at all.
 #[cfg(test)]
 pub(crate) fn for_laws<Subject: IdentitySubject>(tag: u8) -> ProjectionIdentity<Subject> {
     ProjectionIdentity::derived(ProjectionTranscript::rooted(

@@ -1,16 +1,11 @@
-//! The transcript's executable specification: the declared segments and slots a
-//! transcript is written from, and the byte string itself.
+//! The transcript byte string, written from the specification stated on
+//! [`ProjectionTranscript`].
 //!
-//! The specification a reader implements against is the table on
-//! [`ProjectionTranscript`]; this file is that table as code. It reads the
-//! transcript through the transcript's own public accessors and touches no
-//! private field, because the encoding is an operation over a value that is
-//! already informed rather than part of the invariant that made it.
-//!
-//! The role's slot and its declared context segment are not restated here: they
-//! are stamped onto [`ProjectionRole`] at its own declaration by the machine's
-//! closed-roster stamp, which writes the roster and the position from one row
-//! list. This file reads them.
+//! It reads the transcript through the transcript's own public accessors and
+//! touches no private field.
+//! The role's stable name and slot are not restated here either: the
+//! closed-roster stamp writes them onto [`ProjectionRole`] at its declaration,
+//! and this file reads them back.
 
 use super::encode::encode_bytes;
 use super::{ProjectionTranscript, TranscriptAnchoring};

@@ -1,25 +1,17 @@
 //! The derive home's invariant nucleus: every road that reaches a private
 //! field.
 //!
-//! Declared inside `types.rs` as its own child. Two of the roads here are the
-//! home's whole structural claim. [`RefusalDeriveSurface::assembled`] is
-//! crate-internal, so the only way to hold a captured surface is to have
-//! captured one; [`ClosedExpansion::bound`] is crate-internal and takes a proved
-//! closure, so the only way to hold a receipt — and therefore the only way to
-//! reach an emitted tree — is to have walked the whole road. Neither can be
-//! written anywhere else, which is why deleting any step on that road deletes
-//! the emission rather than shortening it.
+//! Two of the roads here are the home's whole structural claim.
+//! [`RefusalDeriveSurface::assembled`] is crate-internal, so the only way to
+//! hold a captured surface is to have captured one; [`ClosedExpansion::bound`]
+//! is crate-internal and takes a proved closure, so the only way to hold a
+//! receipt — and therefore the only way to reach an emitted tree — is to have
+//! walked the whole road.
+//! Neither can be written anywhere else, which is why deleting any step on that
+//! road deletes the emission rather than shortening it.
 //!
 //! The two projections of a capture refusal — the compiler-facing line and the
-//! structured diagnostic — read the refusal's own two private seats, so they sit
-//! here beside them rather than in `diagnose.rs`, which projects the refusals
-//! raised by the later stages.
-//!
-//! The capture refusal's own mint is scoped to this home for the same reason its
-//! seats are private. A private seat with a public mint closes the literal and
-//! leaves the road: a cause word and a span handle are both values anybody can
-//! spell, so a public road would hand any caller a refusal the capture pass
-//! never established, at a token it never read.
+//! structured diagnostic — read the refusal's own two private seats.
 
 use super::{
     CapturedCause, CauseOrderStanding, ClosedExpansion, CrateBinding, DEFAULT_CRATE_BINDING,
@@ -93,8 +85,9 @@ impl CapturedCause {
 }
 
 impl RefusalDeriveSurface {
-    /// Assemble one captured surface. Crate-internal: the only road to one is
-    /// the capture itself.
+    /// Assemble one captured surface.
+    ///
+    /// Crate-internal: the only road to one is the capture itself.
     pub(crate) const fn assembled(
         family_name: String,
         family_id: String,
@@ -150,8 +143,9 @@ impl RefusalDeriveSurface {
         self.identity
     }
 
-    /// Fix the complete declared output set. This is the one road to a
-    /// [`RefusalDerivationDraft`].
+    /// Fix the complete declared output set.
+    ///
+    /// This is the one road to a [`RefusalDerivationDraft`].
     #[must_use]
     pub fn planned(self) -> RefusalDerivationDraft {
         let membership = match self.shape {
@@ -175,9 +169,10 @@ mod seat {
 
     /// One capture refusal: the established cause, and the token it sits at.
     ///
-    /// Both seats are required. A refusal that could omit its token would send
-    /// the caller looking, and a refusal that could omit its cause would be a
-    /// complaint rather than an answer.
+    /// Both seats are required.
+    /// A refusal that could omit its token would send the caller looking, and a
+    /// refusal that could omit its cause would be a complaint rather than an
+    /// answer.
     #[must_use = "a capture refusal carries the established cause and the offending token"]
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub struct RefusalDeriveRefusal {
@@ -189,11 +184,12 @@ mod seat {
         /// The established refusal at one token of the declared input.
         ///
         /// Reachable only from inside this home, which is where the capture pass
-        /// lives. Both seats are private, so no caller can write the literal;
-        /// this road is what a caller would reach for instead, and a cause word
-        /// plus a span handle are both values anybody can spell — so a public
-        /// road here would hand any holder of those two a refusal the capture
-        /// pass never established, at a token it never read.
+        /// lives.
+        /// Both seats are private, so no caller can write the literal, and this
+        /// road is what a caller would reach for instead.
+        /// A cause word plus a span handle are both values anybody can spell, so
+        /// a public road here would hand any holder of those two a refusal the
+        /// capture pass never established, at a token it never read.
         pub(in crate::derive_refusal) const fn established(
             cause: RefusalDeriveCapture,
             token: SpanHandle,
@@ -206,8 +202,10 @@ mod seat {
             self.cause
         }
 
-        /// The token the observation sits at. The producer resolves it to the
-        /// exact compiler span; the services never do.
+        /// The token the observation sits at.
+        ///
+        /// The producer resolves it to the exact compiler span; the services
+        /// never do.
         #[must_use]
         pub const fn token(self) -> SpanHandle {
             self.token
@@ -223,10 +221,11 @@ impl RefusalDeriveRefusal {
     /// shell composes no sentence of its own.
     ///
     /// Where the supplied table does not reach the handle, the line says THAT
-    /// rather than a position. The cause is established either way — it is a
-    /// fact about the declaration, not about the table — so the sentence still
-    /// names it, and the reader is told the locating half is missing instead of
-    /// being handed a number that means nothing.
+    /// rather than a position.
+    /// The cause is established either way — it is a fact about the declaration,
+    /// not about the table — so the sentence still names it, and the reader is
+    /// told the locating half is missing instead of being handed a number that
+    /// means nothing.
     #[must_use]
     pub fn compiler_message(self, spans: &SpanTable) -> String {
         let described = self.cause().described();
@@ -248,8 +247,9 @@ impl RefusalDeriveRefusal {
     ///
     /// The machine anchoring is the CALLER's: where a caller holds the machine's
     /// identities it supplies them, and where none exists at this seam the
-    /// diagnostic says so. This module mints none of them, because none of them
-    /// is its to mint — the services classify what they OBSERVED
+    /// diagnostic says so.
+    /// This module mints none of them, because none of them is its to mint — the
+    /// services classify what they OBSERVED
     /// ([`RefusalDeriveCapture::observed`](super::RefusalDeriveCapture::observed))
     /// and never mint the machine's cause commitment.
     pub fn diagnosed(self, spans: &SpanTable, machine: MachineAnchoring) -> MacrocDiagnostic {
@@ -331,9 +331,9 @@ impl RefusalDerivationDraft {
 impl RefusalOwnerFacts {
     /// The three facts, cited by the declared names the refusal home wrote down.
     ///
-    /// This is the posture an expansion runs under: the home's fact identities
-    /// have not been published to the compiler plane, so the citation names them
-    /// and mints nothing.
+    /// This is the posture an expansion runs under: the refusal home's fact
+    /// identities are not published to the compiler plane, so the citation names
+    /// them and mints nothing.
     #[must_use]
     pub const fn declared() -> Self {
         Self {
@@ -363,7 +363,9 @@ impl RefusalCompileContext {
 }
 
 impl ClosedExpansion {
-    /// Bind one closed expansion. Crate-internal: the only road to one is
+    /// Bind one closed expansion.
+    ///
+    /// Crate-internal: the only road to one is
     /// [`compile_refusal`](crate::derive_refusal::compile_refusal).
     ///
     /// # The closed-expansion transcript
@@ -372,13 +374,13 @@ impl ClosedExpansion {
     /// anchored on the CLOSURE's identity — because a receipt exists only where
     /// a closure does — over a content transcript committing to the captured
     /// declaration's identity, the plan's identity, and the emitted token tree's
-    /// canonical bytes at full length. Those are exactly the three things a
-    /// reader of one receipt asks about: what was read, what was decided, and
-    /// what was handed to the compiler.
+    /// canonical bytes at full length.
+    /// Those are exactly the three things a reader of one receipt asks about:
+    /// what was read, what was decided, and what was handed to the compiler.
     ///
-    /// The emitted tree is not a parameter. It is read off the closure, which
-    /// owns it: a receipt that was handed a tree separately could be handed one
-    /// the closure never proved.
+    /// The emitted tree is not a parameter.
+    /// It is read off the closure, which owns it: a receipt that was handed a
+    /// tree separately could be handed one the closure never proved.
     pub(crate) fn bound(
         surface: RefusalDeriveSurface,
         plan: ProjectionPlan<DeriveImplProjection>,
@@ -448,9 +450,9 @@ impl ClosedExpansion {
         &self.cause_order
     }
 
-    /// The token tree an expansion emits. The shell's only act is to hand this
-    /// to the compiler.
+    /// The token tree an expansion emits.
     ///
+    /// The shell's only act is to hand this to the compiler.
     /// It is the CLOSURE's tree, borrowed rather than copied: the receipt keeps
     /// no second tree, so what is emitted is what was proved and there is no
     /// pair of values to drift apart.

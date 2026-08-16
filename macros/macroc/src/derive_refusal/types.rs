@@ -1,19 +1,11 @@
 //! The refusal-family derive's public types: what was declared, what was
 //! refused, what was planned, and what one closed expansion binds.
 //!
-//! The home is a directory rather than one file because the responsibilities
-//! genuinely separated: reading a declaration, planning over it, rendering it,
-//! explaining it, and binding the whole receipt are five different jobs against
-//! five different vocabularies. The types they all speak live here, once.
-//!
-//! Declarations only, with one deliberate exception. `capture_causes!` below
-//! declares the capture family AND writes its two contracts and its four
-//! per-cause tables in the same expansion, because the whole point of that
-//! declaration is that a cause is stated once and everything about it follows.
-//! Splitting the contracts out to `type_contract.rs` would make a cause two
-//! declarations in two files, which is the defect the macro exists to prevent.
-//! Everything that reaches a private field is in `type_guard.rs`, this file's
-//! own child.
+//! Declarations only, with one deliberate exception.
+//! `capture_causes!` below declares the capture family AND writes its two
+//! contracts and its four per-cause tables in the same expansion, because the
+//! whole point of that declaration is that a cause is stated once and everything
+//! about it follows.
 
 use crate::closure::ProjectionClosure;
 use crate::diagnostics::{MachineAnchoring, ObservedClassification};
@@ -57,17 +49,17 @@ pub const DEFAULT_CRATE_BINDING: &str = "threadpak";
 
 /// How the consumer names the machine on its own dependency list.
 ///
-/// # Why a rendering may not hardcode `::threadpak`
+/// A consumer is allowed to rename its dependencies.
+/// `tp = { package = "threadpak" }` is an ordinary Cargo edge, and in that crate
+/// the machine is not called `threadpak` at all — so a rendering that spelled
+/// `::threadpak` would name a crate the consumer does not have, and the
+/// expansion would fail to compile for a reason that has nothing to do with the
+/// declaration.
 ///
-/// A consumer is allowed to rename its dependencies. `tp = { package =
-/// "threadpak" }` is an ordinary Cargo edge, and in that crate the machine is
-/// not called `threadpak` at all — so a rendering that spelled `::threadpak`
-/// would name a crate the consumer does not have, and the expansion would fail
-/// to compile for a reason that has nothing to do with the declaration.
-///
-/// So the binding is part of what is CAPTURED. It travels into the plan, into
-/// the explanation, into the rendering, and into the invalidation set, because a
-/// consumer that renames its dependency has changed what the rendering must say.
+/// So the binding is part of what is CAPTURED.
+/// It travels into the plan, into the explanation, into the rendering, and into
+/// the invalidation set, because a consumer that renames its dependency has
+/// changed what the rendering must say.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CrateBinding {
     spelling: String,
@@ -76,11 +68,11 @@ pub struct CrateBinding {
 /// One cause as the capture read it: the Rust variant that spells it, and the
 /// LOCAL key the author declared for it.
 ///
-/// The local key is not the cause identity. The identity is band 00's pair —
-/// the family's declared identity in one seat and this key in the other — and
-/// the derive mints it from the two rather than asking the author to write a
-/// whole identity out, which is what keeps a family's causes from drifting apart
-/// one hand-typed prefix at a time.
+/// The local key is not the cause identity.
+/// The identity is band 00's pair — the family's declared identity in one seat
+/// and this key in the other — and the derive mints it from the two rather than
+/// asking the author to write a whole identity out, which is what keeps a
+/// family's causes from drifting apart one hand-typed prefix at a time.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CapturedCause {
     spelling: String,
@@ -110,10 +102,11 @@ pub struct RefusalDeriveSurface {
 /// declaration the typed roster, the selection order, the stable identities, the
 /// observed classification, the text, and the bounded human projection.
 ///
-/// One literal per cause. A second copy of any of these would be a second thing
-/// to keep true, and the human projection in particular is proven to FIT its
-/// limit family at compile time — so the explanation road has no refusal to
-/// swallow and no empty fallback to fall into.
+/// One literal per cause.
+/// A second copy of any of these would be a second thing to keep true, and the
+/// human projection in particular is proven to FIT its limit family at compile
+/// time — so the explanation road has no refusal to swallow and no empty
+/// fallback to fall into.
 macro_rules! capture_causes {
     ($(
         $(#[$note:meta])*
@@ -124,9 +117,9 @@ macro_rules! capture_causes {
         /// Single cause because the checks are dependent: there is no shape word
         /// to admit until an attribute was found, no coverage to check until
         /// both the order clause and the body were read, and no distinctness to
-        /// check until the keys were parsed. Claiming a result from a check that
-        /// never ran is unrepresentable here, which is exactly what the shape is
-        /// for.
+        /// check until the keys were parsed.
+        /// Claiming a result from a check that never ran is unrepresentable
+        /// here, which is exactly what the shape is for.
         ///
         /// The canonical order below is the SELECTOR's order, not the execution
         /// schedule.
@@ -145,9 +138,9 @@ macro_rules! capture_causes {
         }
 
         /// Hand-declared, and deliberately so: the services never derive their
-        /// own contracts. A generator that produced its own declared facts would
-        /// be its own oracle, and the parity this module is qualified by would
-        /// compare it to itself.
+        /// own contracts.
+        /// A generator that produced its own declared facts would be its own
+        /// oracle.
         impl CauseOrderDeclaration for RefusalDeriveCapture {
             const DECLARED_ORDER: DeclaredCauseOrder = DeclaredCauseOrder::declared(&[
                 $(
@@ -295,9 +288,8 @@ capture_causes! {
 /// `type_guard.rs`'s `seat` module, beside the only roads that reach its two
 /// seats.
 ///
-/// The declaration is not here because Rust's privacy is MODULE-scoped: a
-/// private field is private to the module the declaration lands in, and this
-/// file declares much else that would have been inside that wall.
+/// Rust's privacy is MODULE-scoped, so a seat declared here would be private to
+/// everything else this file declares as well.
 pub use guard::RefusalDeriveRefusal;
 
 // ---------------------------------------------------------------------------
@@ -307,8 +299,9 @@ pub use guard::RefusalDeriveRefusal;
 /// The complete declared output set of one derivation.
 ///
 /// A closed sum rather than a bounded collection, because the set is decided by
-/// the shape and there are exactly two answers. Neither answer is empty: a
-/// derivation that would generate nothing is a disposition, not a derivation.
+/// the shape and there are exactly two answers.
+/// Neither answer is empty: a derivation that would generate nothing is a
+/// disposition, not a derivation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DerivedMembership {
     /// The family implementation alone — the shape declares no cause order.
@@ -331,17 +324,8 @@ pub enum CauseOrderStanding {
 /// The membership-only view of one derivation: what was captured, and the
 /// complete output set the shape fixes.
 ///
-/// # It is a DRAFT, and it renders nothing
-///
-/// This type used to be the front door: it carried a `rendered()` method, and a
-/// caller could take a rendering off it without a plan, without identities,
-/// without an origin graph, without an explanation, and without a closure. That
-/// road existed beside the receipt-rich one and was shorter, so it was the road
-/// anything in a hurry took — which made every receipt on the other road
-/// optional in practice.
-///
-/// It is gone. A draft states what the shape fixed and nothing else; the road to
-/// emitted tokens runs through
+/// A draft states what the shape fixed and nothing else, and it renders nothing.
+/// The road to emitted tokens runs through
 /// [`compile_refusal`](crate::derive_refusal::compile_refusal), which builds the
 /// plan, the origin graph, the trace, the rendering, the closure, and the
 /// explanation, in that order, and refuses before any of them is skipped.
@@ -367,10 +351,11 @@ pub struct RefusalOwnerFacts {
 
 /// What one live compilation needs supplied to it, and nothing more.
 ///
-/// Every seat is something the CALLER genuinely has. There is no seat here for
-/// an identity the machine has not published, because the honest answer to
-/// "which closed graph?" inside an expansion is that there is none yet — and the
-/// plan says so in its own anchoring rather than being handed a fiction.
+/// Every seat is something the CALLER genuinely has.
+/// There is no seat here for an identity the machine has not published, because
+/// the honest answer to "which closed graph?" inside an expansion is that there
+/// is none — and the plan says so in its own anchoring rather than being handed
+/// a fiction.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RefusalCompileContext {
     /// How the producer resolves span handles.
@@ -395,20 +380,22 @@ pub struct RefusalCompileContext {
 ///
 /// A caller cannot hold this without the plan, the origin graph, the trace, the
 /// rendering, the closure, and the explanation all having been produced and
-/// having agreed. There is no constructor that skips one, and there is no other
-/// value in the services that carries a token tree an expansion may emit.
+/// having agreed.
+/// There is no constructor that skips one, and there is no other value in the
+/// services that carries a token tree an expansion may emit.
 ///
-/// # Inspection and emission read one value
+/// # Inspection and emission
 ///
 /// [`ClosedExpansion::plan`] and [`ClosedExpansion::closure`] are the SAME
-/// values [`ClosedExpansion::emitted`] is projected from. There is no parallel
-/// plan built for inspection and no synthetic sibling built for emission, so
-/// "what does it say it did" and "what did it do" cannot drift.
+/// values [`ClosedExpansion::emitted`] is projected from.
+/// There is no parallel plan built for inspection and no synthetic sibling built
+/// for emission, so "what does it say it did" and "what did it do" cannot drift.
 ///
-/// The receipt holds no tree of its own. The emitted tree belongs to the
-/// CLOSURE, which built it as part of proving and committed to its digest inside
-/// its own identity; this value borrows it. A receipt that had been handed a
-/// tree alongside a closure could have been handed one the closure never joined.
+/// The receipt holds no tree of its own.
+/// The emitted tree belongs to the CLOSURE, which built it as part of proving
+/// and committed to its digest inside its own identity; this value borrows it.
+/// A receipt that had been handed a tree alongside a closure could have been
+/// handed one the closure never joined.
 #[must_use = "a closed expansion is the whole receipt one live compilation produced"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClosedExpansion {

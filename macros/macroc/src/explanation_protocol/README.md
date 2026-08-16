@@ -1,12 +1,9 @@
-# `explanation_protocol` — the typed answers, and the coverage that admits no partial view
-
-The explanation protocol's machinery: the typed answers that carry the questions,
-and the coverage check that admits no incomplete view.
+# explanation_protocol — the typed answers, and the coverage that admits no partial view
 
 The question roster itself is a leaf vocabulary and lives in [`crate::question`],
 which both this home and the planning home import. Nothing here restates it.
 
-## The protocol is mandatory, and the shape enforces it
+## The mandatory protocol
 
 A projection kind declares which questions its plans answer, and every kind
 carries the universal roster whether it lists it or not. A
@@ -16,7 +13,7 @@ question the kind does not admit are all refused, each naming the question. No
 kind ducks the protocol by answering fewer questions than its roster, because the
 roster is what the view is checked against.
 
-## Answers reference identities, not prose
+## Identities, not prose
 
 Every [`ExplanationAnswer`] carries typed values and exact identities. Two things
 are derived from the answer and neither is a seat a caller fills: the question it
@@ -29,16 +26,12 @@ agreement. Nothing reads the rendering back.
 ## The seats
 
 `types.rs` declares. Its own child `type_guard.rs` holds every road that reaches
-a private field — an explanation's question and answer, the view's own seats, and
-the refusal body's one seat
-— which is what makes "the question comes from the answer" structural: there is
-no seam anywhere that files a true answer under a question somebody supplied.
-`project.rs` renders one answer for a person, exhaustively and from static
-literals proven at compile time, which is the same claim for the sentence.
-`type_contract.rs` states the refusal family's shape and the closed table that
-maps an answer to its question. `establish.rs` is the coverage pass and the
-admission answer a caller asks for one kind — reaching no private seat, because
-the body the established issues amount to is built beside the seat it fills.
-
-This home's qualification obligations live in the crate README's tooling-obligation
-blocks.
+a private field, which is what makes "the question comes from the answer"
+structural: there is no seam anywhere that files a true answer under a question
+somebody supplied. `project.rs` renders one answer for a person, exhaustively
+and from static literals proven at compile time, which is the same claim for the
+sentence. `type_contract.rs` states the refusal family's shape and the closed
+table that maps an answer to its question. `establish.rs` is the coverage pass
+and the admission answer a caller asks for one kind — reaching no private seat,
+because the body the established issues amount to is built beside the seat it
+fills.
