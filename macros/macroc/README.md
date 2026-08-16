@@ -14,10 +14,64 @@ flowchart LR
 ```
 
 The crate's own doc comment carries the charter, the callable-without-a-proc-macro
-promise, and the dependency order; each home's README carries that home's
-narrative. This file carries what a README owes that neither of them does: **the
-mechanism this tooling admits from outside, and the working rule it holds to when
-a required seat cannot be filled.**
+promise, and the declaration-order law; each home's README carries that home's
+narrative. This file carries the drawn module map, the mechanism this tooling
+admits from outside, and the working rule it holds to when a required seat cannot
+be filled.
+
+## The module map
+
+An arrow points at what a module imports. The same graph is stated structurally
+in `src/lib.rs`: the `pub mod` list is declared in dependency order, so a module
+imports only modules declared earlier than itself. Rustdoc renders no diagram
+and needs none — reading that list top to bottom is reading this map, and the
+`use` lines under each home are the edges themselves, greppable at their source.
+A station no arrow reaches is a road not yet built, and the map shows it
+without a status label.
+
+```mermaid
+flowchart TD
+    subgraph SVC["the services, in declaration order"]
+        TOK["token"] --> PLN["plane"]
+        REF["refusal"] --> PLN
+        DIA["diagnostics"] --> PLN
+        DIA --> TOK
+        QUE["question — a leaf, the closed question roster"]
+        OG["origin_graph"] --> PLN
+        OG --> REF
+        PLAN["planning"] --> PLN
+        PLAN --> REF
+        PLAN --> QUE
+        PLAN --> OG
+        CLO["closure"] --> PLN
+        CLO --> OG
+        CLO --> PLAN
+        CLO --> QUE
+        CLO --> TOK
+        EXP["explanation_protocol"] --> PLN
+        EXP --> DIA
+        EXP --> QUE
+        EXP --> OG
+        EXP --> PLAN
+        TPL["template"] --> PLN
+        TPL --> OG
+        TV["trigger_view"] --> PLN
+        TV --> PLAN
+        CMP["composition"] --> PLN
+        PS["pattern_stamp"] --> PLN
+        PS --> REF
+        PS --> OG
+        PS --> PLAN
+    end
+    DR["derive_refusal — the working derive road"] --> PLN
+    DR --> TOK
+    DR --> REF
+    DR --> DIA
+    DR --> OG
+    DR --> PLAN
+    DR --> CLO
+    DR --> EXP
+```
 
 ## The admitted digest, and what it is admitted for
 
@@ -56,21 +110,11 @@ different preimages, different domain separation, different claims, different
 owners. Neither one licenses the other, and a plane identity is never accepted
 where a machine commitment is required.
 
-**What the profile claims.** For a transcript as specified beside
-`ProjectionTranscript`, under the declared profile version, collision resistance
-is claimed AS BLAKE3's — finding two transcripts that derive one identity is as
-hard as finding a BLAKE3 collision. The derivation runs over the complete
-transcript and never over a reduced fold: hashing a lost-information fold with a
-strong digest produces a strong-looking value carrying a weak preimage, which is
-worse than an honest nonclaim.
-
-**What it does NOT claim.** It does not claim that two things the plane considers
-different always have different transcripts; that is each mint site's
-completeness, documented at each mint site. It does not claim anything across
-profile versions, which derive under different contexts and are different name
-spaces. It does not make a plane identity into a machine commitment. And it makes
-no claim at all about keyed use, authentication, or protection: the profile uses
-`derive_key` for domain separation and holds no secret.
+**What the profile claims.** An identity is derived over its subject's complete
+transcript, never over a reduced fold. The claim's full statement — the
+collision resistance inherited, what each mint site still owes, and what the
+profile never claims — is owned by `ProjectionIdentity` and
+`ProjectionTranscript` in `src/plane/types.rs`.
 
 ## The failed required seat
 

@@ -64,22 +64,9 @@
 //! `reorder_modules = false` in `rustfmt.toml` keeps a formatter from
 //! re-alphabetizing the list and erasing the law.
 //!
-//! ```text
-//! plane                 the shared carriers and the two identity families
-//! token                 the typed token seam, both directions; over plane
-//! refusal               over plane
-//! diagnostics           over plane, token
-//! question              the closed question roster; over nothing at all
-//! origin_graph          over plane, refusal
-//! planning              over plane, refusal, question, origin_graph
-//! closure               over plane, origin_graph, planning, token
-//! explanation_protocol  over plane, diagnostics, question, origin_graph, planning
-//! template              over plane, origin_graph
-//! trigger_view          over plane, refusal, planning
-//! composition           over plane
-//! pattern_stamp         over plane, refusal, origin_graph, planning
-//! derive_refusal        over every module above it
-//! ```
+//! The per-edge map is drawn once, as a diagram in the crate README; this list
+//! is not a second copy of it, because the order IS the graph and the `use`
+//! lines under each home are the edges themselves.
 //!
 //! A directory module's edges are the union of every file under it:
 //! `derive_refusal/` reaches what its capture, plan, render, explain, and
