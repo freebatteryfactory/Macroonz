@@ -1,6 +1,6 @@
 [package]
 name = "threadpak"
-description = "A host-neutral semantic machine: programs are typed data, not text."
+description = "Embedded, sync-first, event-native database and runtime: typed declarations in, accepted history as the authority, receipts, replay, and derived projections."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -16,113 +16,27 @@ members = [
     "macros/macroc",
     "macros/proc",
     "testpak",
-    "xtask",
-    "xtask/fixtures/macro-consumer",
-    "xtask/fixtures/renamed-consumer",
 ]
 
 [workspace.package]
 version = "0.0.0"
 edition = "2024"
-# The floor is the pin. `rust-version = "1.97"` means 1.97.0, and nothing has
-# ever been built on 1.97.0 here: `rust-toolchain.toml` pins 1.97.1, every
-# hosted run installs 1.97.1, and every working machine resolves 1.97.1. A floor
-# nobody stands on is a claim nobody tested, so the floor is stated as the
-# version that is actually underneath the build. `one-toolchain-floor` joins
-# this line to the pin, to the README, and to `clippy.toml`, which is why the
-# disagreement is now unrepresentable rather than merely absent.
+# The floor is the pin: 1.97.1 is the version every build actually stands on.
 rust-version = "1.97.1"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/freebatteryfactory/ThreadPak"
 
-# Every third-party version and feature cut this workspace decides, decided
-# once. Two members that spelled the same exact pin were never agreement — they
-# were two places a later edit could disagree, and nothing would have caught the
-# disagreement, because either spelling on its own still compiles. What moved
-# here is only the FACT: which version, and which features. WHY a member reaches
-# for a mechanism at all stays at that member, beside the reading it buys, since
-# that reason differs at every home even when the pin is identical.
-#
-# Members inherit with whichever spelling reads best where they write it.
-# `{ workspace = true }` and the dotted `name.workspace = true` are one
-# declaration to Cargo and are now one declaration to the topology law as well,
-# which reads the key path Cargo resolves rather than the text before a line's
-# first `=`. A rule stood here telling authors never to write the dotted form,
-# because the reader that could not resolve it would have let a banned edge
-# through under a key matching no package. That rule is deleted rather than
-# reworded: it asked every future author to protect a law from its own reader,
-# and a "never" in a comment is advice, not an invariant. The invariant is in
-# `xtask/src/repository/cargo.rs`, where the decoder that owns TOML resolves the
-# document and nine spellings of one declaration are proven to resolve alike.
-#
-# What this table declares is what the workspace ASKS FOR. What the resolved
-# graph actually enables is a different question, because Cargo unifies features
-# across a build and any dependency may turn one on. `deny.toml` is where that
-# second question is answered against the graph itself; the two are not a copy
-# of one fact, they are a request and its settlement, and the whole reason both
-# exist is that they can disagree.
+# Every third-party version and feature cut is decided once, here, exact. WHY a
+# member reaches for a mechanism stays at that member, beside the reading it
+# buys. `deny.toml` settles what the resolved graph actually enables.
 [workspace.dependencies]
-# The Rust decoder, so the judge's structural lane and the repository's coupling
-# law read Rust through one decoder at one version rather than through two.
-# Default features off, cut to the two the readings use: `parsing`, without
-# which there is no text-to-tree road at all, and `full`, without which items
-# and their associated constants are not in the tree. Printing, folding,
-# visiting, derive input, extra traits, and the proc-macro bridge are not asked
-# for HERE — both readers read and never write, and neither runs inside a macro.
-# What the graph then holds is a separate measured fact, and `deny.toml` is where
-# it is written down, because four of those features do arrive through a crate
-# the compile-refusal harness brings in. It is also where the CEILING on that
-# settlement is stated: a graph rule reads the graph, so a third fact — what any
-# one compiled unit is handed — is settled by neither file.
+# The Rust decoder for the judge's structural lane: `parsing` + `full`, nothing else.
 syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }
-# The token model `syn` parses FROM, named here because one reading needs Rust's
-# LEXICAL grammar rather than its item grammar: a crate-root reference is a path
-# in a token stream, so `crate` has to be an identifier rather than a substring
-# before a law can say whether a source reaches the root. Nothing new arrives in
-# the graph — `syn` already holds this exact version, and `multiple-versions =
-# "deny"` in `deny.toml` is what keeps that true. Exact for the same reason every
-# pin here is exact. Default features off: the `proc-macro` bridge is the
-# compiler's own token types, and no reader here runs inside a macro.
-proc-macro2 = { version = "=1.0.107", default-features = false }
-# The digest. Pinned exact because a projection identity is a value the plane
-# hands out, and a minor version that changed one byte of output would silently
-# rename every identity in the tree. Default features off: `std` buys the
-# `io::Write` adapter and the error-trait impls and neither crate names them;
-# `rayon` must never stand a thread pool up inside `rustc` to hash a few
-# kilobytes; `serde`, `zeroize`, `mmap`, and the digest-trait previews buy
-# surfaces neither crate has a seat for. What is left is `Hasher` and
-# `derive_key`.
+# The digest. Exact because one changed output byte silently renames every
+# identity. No std, no rayon, no serde: `Hasher` and `derive_key` are the surface.
 blake3 = { version = "=1.8.6", default-features = false }
-# The compile-refusal harness, exact for the reason every other decision here is
-# exact: a refusal fixture compares a diagnostic byte for byte against a file in
-# the tree, so a harness free to move under a caret requirement could rewrite
-# what that comparison means without any change landing in the repository.
+# The compile-refusal harness. Exact: fixtures compare diagnostics byte for byte.
 trybuild = "=1.0.120"
-# The TOML decoder, so the repository model reads Cargo's own syntax through the
-# decoder that owns it rather than through a line reader that re-derives it.
-# Eleven spellings escaped the hand reader this replaces — dotted keys, quoted
-# keys, bracketed-string headers, escaped keys, literal-string values,
-# multi-line strings, four-quote terminators, unicode escapes, inline tables, a
-# quoted key carrying `=`, and a comment after a table header — and each repair
-# revealed the next, because a spelling recognized one at a time is a set with no
-# last member. Default features off, cut to the three the reading uses: `parse`,
-# without which there is no text-to-document road; `serde`, which is how a
-# document is obtained at all; and `std`. `display` is not asked for — this
-# reader never writes TOML.
-toml = { version = "=1.1.4", default-features = false, features = ["std", "serde", "parse"] }
-# The Markdown decoder, so a fenced data block is selected by what the document
-# STRUCTURALLY declares rather than by which fence happens to be written first.
-# Default features off: `html` and `getopts` build a renderer and a command line,
-# and this reader neither renders nor takes arguments.
-pulldown-cmark = { version = "=0.13.4", default-features = false }
-# The JSON decoder and the derive it deserializes through, for one input:
-# `cargo metadata --format-version 1`. Everything Cargo RESOLVES — package
-# identities, edge kinds, renames, target-conditioned edges — is answered by
-# Cargo rather than re-derived from manifest text. The format version is pinned
-# in the invocation because it is the machine-readable contract; the crates are
-# pinned exact for the reason every pin here is exact.
-serde = { version = "=1.0.229", default-features = false, features = ["std", "derive"] }
-serde_json = { version = "=1.0.151", default-features = false, features = ["std"] }
 
 [profile.release]
 # Release arithmetic traps instead of wrapping; defense in depth behind the
@@ -130,58 +44,12 @@ serde_json = { version = "=1.0.151", default-features = false, features = ["std"
 overflow-checks = true
 
 [profile.bench]
-# Release arithmetic traps instead of wrapping; defense in depth behind the
-# source-level arithmetic lints, never permission for bare arithmetic.
 overflow-checks = true
 
-# The lint wall is declared here once and inherited by every member; no member
-# weakens it. `#[allow]` is refused outright, so the single escape hatch is
-# `#[expect]`, and it is disciplined: an expectation names the exact lint,
-# carries a mandatory reason, and sits on the narrowest item that contains the
-# concern — never a module, never a crate. One expectation states one concern;
-# two concerns are two expectations. The reason states the structural fact that
-# makes the lint wrong there, not the inconvenience it causes. Because an
-# unfulfilled expectation is itself a warning and warnings are denied, an
-# expectation that outlives its cause fails the build, which is why the wall
-# admits this hatch and refuses the silent one. Generated code never emits an
-# expectation: an expansion that needs one is an expansion whose plan is wrong.
-#
-# REFUSED ON THE RECORD. A wall this dense is only honest if the lints it
-# declines are named, because an unnamed absence reads as an oversight.
-#   - `exhaustive_structs` and `exhaustive_enums` demand `#[non_exhaustive]`,
-#     and this machine's rosters are closed BY LAW. Adding a variant must break
-#     every match that handles the roster; `#[non_exhaustive]` exists to stop
-#     exactly that break, so adopting these lints would convert the machine's
-#     strongest structural alarm into silence.
-#   - `tests_outside_test_module` refuses integration tests under `tests/`,
-#     which is cargo's own model for out-of-crate test targets. A lint may not
-#     overrule the build system's layout.
-#   - `min_ident_chars` cannot tell a meaningless name from a conventional one.
-#     Lifetime and closure-parameter brevity is idiom, not sloppiness, and the
-#     lint has no way to separate them.
-#   - Blanket `missing_copy_implementations` and `missing_debug_implementations`
-#     force trait surface onto every type regardless of whether the type wants
-#     it. `Copy` is a semantic promise about duplication and `Debug` is an
-#     output surface; both are decided per type, and identity-bearing types
-#     deliberately decline the first.
-#   - Blanket `absolute_paths` penalizes the fully-qualified form exactly where
-#     it is clearest — disambiguating a one-off reference — while saying nothing
-#     about the import hygiene it is reached for.
-#   - `missing_docs_in_private_items` is refused as a blanket gate. Private
-#     fields earn their documentation when the restructure gives them their home
-#     in `type_guard.rs` beside the invariant they carry; a blanket gate would
-#     buy that documentation now at the price of writing it twice.
-#   - `variant_size_differences` is a physical-layout signal, not a semantic
-#     one. It is adopted only alongside measurement of a real layout cost;
-#     switched on blind it forces boxing that trades a cache line for an
-#     allocation with nothing observed either way.
-# ADOPTED IN PRINCIPLE, NOT YET LANDED: `map_err_ignore`. Discarding the source
-# error is a real defect and the lint names it correctly. It lands once its sites
-# are classified and repaired so each preserves its source, and that repair
-# arrives with the laws-drain boundary rather than as a mechanical sweep. No
-# count stands here: the number this comment used to carry was authored before
-# the lint was ever run over the tree, and a debt figure nobody re-measured is a
-# figure that decides nothing. It is measured at adoption, by running the lint.
+# The lint wall, declared once and inherited by every member; no member weakens
+# it. `#[allow]` is refused; `#[expect]` is the one hatch — exact lint, mandatory
+# reason, narrowest item. An unfulfilled expectation is itself a denied warning,
+# so an expectation that outlives its cause fails the build.
 [workspace.lints.rust]
 warnings = { level = "deny", priority = -1 }
 unsafe_code = "forbid"
@@ -202,6 +70,8 @@ arithmetic_side_effects = "deny"
 as_conversions = "deny"
 dbg_macro = "deny"
 default_numeric_fallback = "deny"
+excessive_nesting = "deny"
+exit = "deny"
 expect_used = "deny"
 indexing_slicing = "deny"
 integer_division = "deny"
@@ -209,6 +79,8 @@ iter_over_hash_type = "deny"
 let_underscore_must_use = "deny"
 mem_forget = "deny"
 panic = "deny"
+print_stdout = "deny"
+print_stderr = "deny"
 rest_pat_in_fully_bound_structs = "deny"
 shadow_same = "deny"
 shadow_unrelated = "deny"

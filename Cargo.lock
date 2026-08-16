@@ -15,12 +15,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3fb67a6e08acf24fdeccbac2cb6ac4305825bd1f117462e0e6f2f193345ad56"
 
 [[package]]
-name = "bitflags"
-version = "2.13.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b588b76d00fde79687d7646a9b5bdf3cc0f655e0bbd080335a95d7e96f3587da"
-
-[[package]]
 name = "blake3"
 version = "1.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -127,17 +121,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pulldown-cmark"
-version = "0.13.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9f068eba8e7071c5f9511831b44f32c740d5adf574e990f946ddb53db2f314e"
-dependencies = [
- "bitflags",
- "memchr",
- "unicase",
-]
-
-[[package]]
 name = "quote"
 version = "1.0.47"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -153,7 +136,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba"
 dependencies = [
  "serde_core",
- "serde_derive",
 ]
 
 [[package]]
@@ -235,14 +217,6 @@ name = "threadpak"
 version = "0.0.0"
 
 [[package]]
-name = "threadpak-macro-consumer"
-version = "0.0.0"
-dependencies = [
- "threadpak",
- "threadpak-macros",
-]
-
-[[package]]
 name = "threadpak-macroc"
 version = "0.0.0"
 dependencies = [
@@ -255,14 +229,6 @@ name = "threadpak-macros"
 version = "0.0.0"
 dependencies = [
  "threadpak-macroc",
-]
-
-[[package]]
-name = "threadpak-renamed-consumer"
-version = "0.0.0"
-dependencies = [
- "threadpak",
- "threadpak-macros",
 ]
 
 [[package]]
@@ -332,12 +298,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "unicase"
-version = "2.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbc4bc3a9f746d862c45cb89d705aa10f187bb96c76001afab07a0d35ce60142"
-
-[[package]]
 name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -372,18 +332,6 @@ name = "winnow"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23b97319f7b8343df12cc98938e5c3eb436064524c8d2b4e30a1d3a36eecdf81"
-
-[[package]]
-name = "xtask"
-version = "0.0.0"
-dependencies = [
- "proc-macro2",
- "pulldown-cmark",
- "serde",
- "serde_json",
- "syn",
- "toml",
-]
 
 [[package]]
 name = "zmij"

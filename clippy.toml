@@ -1,197 +1,38 @@
-# Every threshold below is CHOSEN. A tool default that is never restated is a
-# value nobody decided; restating it here converts inheritance into a decision.
+# Configuration for the clippy half of the lint wall in Cargo.toml.
+# Settings only. A key with no live lint behind it does not belong here.
 
-# CHOSEN: the toolchain floor the workspace already pins, stated to clippy so
-# its suggestions never reach past the version this machine compiles on. The
-# same three digits as `rust-toolchain.toml`, the root manifest's
-# `rust-version`, and the README's yaml block — `one-toolchain-floor` joins all
-# four, so the four cannot drift apart the way the first two already had.
 msrv = "1.97.1"
 
-# CHOSEN: a function longer than a hundred lines has stopped being one operation.
-# This restates clippy's default AS a decision, so raising it is a visible act.
+# A function past a hundred lines has stopped being one operation.
 too-many-lines-threshold = 100
 
-# CHOSEN: four levels of nesting is the depth at which control flow stops being
-# readable as a shape. Past it, the honest repair is a type that already knows
-# its state, a stage split, or closed dispatch — never a deeper block.
+# Past four levels of nesting the repair is a type that knows its state, not a deeper block.
 excessive-nesting-threshold = 4
 
-# CHOSEN: zero. A bool field is an unnamed two-state machine; the machine's
-# states are named enums, so a struct never carries one.
+# A bool field is an unnamed two-state machine; states are named enums here.
 max-struct-bools = 0
-
-# CHOSEN: zero. A bool parameter is unreadable at the call site; the caller must
-# pass a named state, not a bare true.
 max-fn-params-bools = 0
 
-# NOT ADOPTED, ON THE RECORD: `disallowed-methods`. The table does not exist
-# here, and an unnamed absence reads as an oversight, so this is why.
-#
-# THE FALLBACK POPULATION IS UNCLASSIFIED, AND THAT IS THE REASON, NOT ITS SIZE.
-# The methods are `Result::unwrap_or_default`, `Option::unwrap_or_default`,
-# `String::from_utf8_lossy` and `Result::ok`, and their sites are spread across
-# the machine, the tooling, and the judge.
-#
-# HOW MANY there are is not recorded here, and the omission is the point. A site
-# total is a fact about a tree that moves under it, so a number written into
-# this comment would be wrong on the first refactor and nothing would say so —
-# this repository has already deleted one authored count of exactly that kind.
-# The population is MEASURED ON THE DAY THE TABLE IS ADOPTED, by configuring
-# every path at once and running clippy over the whole workspace: the run that
-# would install the list is the same run that reports what the list would
-# refuse, so the measurement is taken by the act it informs rather than
-# inherited from a comment.
-#
-# What such a total would NOT be is a count of defects. The calls are of at
-# least four different kinds, and a list installed before anyone separates them
-# would refuse the lawful ones alongside the rest. This repository has
-# deliberately eliminated gradual lint adoption, so this is one batch or it is
-# nothing, and the batch is a repair at the homes that hold the first class
-# rather than a configuration change.
-#
-# THE ENVIRONMENT CLASS REDUCES TO EUPHEMISM. `std::env::var`, `vars`,
-# `vars_os`, `args_os` and `current_dir` are not reached for here at all, while
-# `var_os` and `args` are both live in the operational road that reads which
-# cargo started it and which subcommand was asked for, and both are lawful reads
-# that never enter a semantic identity. `disallowed-methods` cannot be scoped to
-# a crate, so banning `var` while `var_os` stays open bans a spelling rather than
-# a behaviour. `set_var` and `remove_var` need no entry at all: MEASURED, they
-# are `unsafe fn` on this toolchain, and the wall forbids `unsafe_code`
-# outright, so an entry would be a weaker seat restating a stronger one.
-#
-# THE CLOCK IS THE ONLY HONEST ENTRY LEFT, and it has no reversal.
-# `SystemTime::now` and `Instant::now` are reached for nowhere in this tree, and
-# an entry naming them would carry real content, because an expansion is a
-# function of its declared input alone. What stops them is that a configured
-# lint has nowhere in this repository to be proven live:
-#   - MEASURED, `cargo build` does not fire a clippy lint at all;
-#   - MEASURED, a `compile_fail` doctest over a denied call reports "Test
-#     compiled successfully, but it's marked `compile_fail`" — doctests are
-#     compiled by rustc, so they cannot execute a clippy lint, and neither can
-#     trybuild, which shells out to the same compiler;
-#   - the one stage that DOES execute clippy is the lint wall, and its whole job
-#     is to pass.
-# A rule whose reversal cannot be planted is a rule that can stop firing in
-# silence, which is the exact defect class this repository exists to refuse.
-#
-# AND THE ROT HAS NO GUARD. MEASURED on this tree, with the wall inherited and
-# `build.warnings = "deny"` set: a `disallowed-methods` entry naming a path that
-# no longer resolves prints `… does not refer to a reachable function`, is
-# counted in the tally line, and the run still exits 0. The warning carries no
-# lint name, so nothing can promote it. An entry that goes stale therefore stops
-# guarding and keeps printing PASS.
-#
-# THE OPENING CONDITION, AND IT IS TWO CONDITIONS IN ORDER.
-#
-# FIRST, THE POPULATION IS CLASSIFIED RATHER THAN COUNTED. Every site is exactly
-# one of the kinds below, and only the first is a defect this mechanism should
-# ever speak about:
-#   - SEMANTIC SILENT FALLBACK — a missing or malformed input becomes a value the
-#     machine then treats as though an owner supplied it;
-#   - DIAGNOSTIC RENDERING FALLBACK — the substituted value reaches human text
-#     and nothing downstream: no identity, no decision, no stored byte;
-#   - OPERATIONAL TOOLING FALLBACK — the read is a host fact the tooling profile
-#     already admits by name, and it never enters a semantic identity;
-#   - LAWFUL TOTAL FALLBACK — the default IS the answer, and the call cannot fail
-#     in a way the fallback hides.
-# The first class is repaired at its own home, by its own owner, because the
-# repair is a type or a refusal and not a lint. The other three are lawful, and a
-# list that cannot tell them apart would need a production `#[expect]` at every
-# lawful site to say so. That workaround is refused outright, so a list needing
-# it is refused with it.
-#
-# SECOND, AND ONLY AFTER THAT REPAIR, a method enters this table only if it has
-# ZERO lawful uses left in the tree AND a replacement available everywhere it was
-# called. A method still lawful anywhere is a method this mechanism cannot
-# express at all, because `disallowed-methods` has no crate scope: the entry
-# would be a workspace-wide ban stating a claim true in one crate.
-#
-# WHAT THE TABLE STILL NEEDS ON THE DAY IT LANDS. Every configured path proven to
-# resolve. A scratch fixture that calls each forbidden path and REQUIRES
-# `clippy::disallowed_methods` to fire — the shape trybuild gives compile
-# refusals, pointed at the lint driver instead of the compiler. And a failure,
-# not a printed line, when a configured path rots. That one fixture is then both
-# the reversal and the staleness guard: a path that stops resolving stops
-# refusing, and the fixture goes red.
-#
-# ────────────────────────────────────────────────────────────────────────────
-#
-# THE FIRST CONDITION IS DISCHARGED. The population was classified — every call
-# of the four methods read at its own site, in the machine, the tooling and the
-# judge — and what that found is below. The second condition is untouched by it,
-# so the table is still not here.
-#
-# THE PLACING IS DECIDABLE RATHER THAN A MATTER OF TASTE, because the four kinds
-# are TOTAL over the population and a site is placed by ELIMINATION:
-#   - it is not LAWFUL TOTAL if the call CAN fail in a way the fallback hides,
-#     however lawful the site reads — and a fallback whose value is exposed by an
-#     assertion on the next line hides nothing, which is what most of this
-#     population turns out to be;
-#   - it is not OPERATIONAL TOOLING unless the read is a host fact the tooling
-#     profile admits BY NAME. A repository file's CONTENT is not one. Where cargo
-#     is, where the root is, where a temporary directory is — those are the
-#     admitted facts, and a file's bytes are the SUBJECT a law judges rather than
-#     a fact about the host it judges from;
-#   - it is not DIAGNOSTIC RENDERING unless the substituted value reaches human
-#     text and stops there.
-# What survives all three is SEMANTIC SILENT FALLBACK, and that is the only
-# defect. Nothing is placed by how it looks.
-#
-# NO TOTAL IS WRITTEN HERE, per kind or over the population, and the omission is
-# the same one the paragraphs above make for the same reason. What IS written is
-# the first kind's sites, BY NAME, and a name is not a count: a reader checks a
-# named site by opening the file it names, and there is nothing anybody can open
-# to check a number. A named site that was repaired reads as wrong to the first
-# person who looks; a stale total reads as fine forever.
-#
-# THE FIRST KIND, NAMED. Three sites, and each one is repaired at its own home
-# by its own owner, because each repair is a type or a refusal and none of them
-# is a lint:
-#
-#   - `src/00_refusal/types.rs`, `DeclaredCauseOrder::ordinal_of`. A position
-#     past what `CauseOrdinal` represents becomes `None`, and `None` on that road
-#     MEANS "this order declares no such cause" — so an over-magnitude
-#     declaration answers a question about a cause it does declare with the word
-#     for absent. `declared` takes a bare static slice and proves nothing about
-#     its length, so the fit that type's own documentation calls provable is
-#     proven nowhere. Latent rather than live: no order in this tree is near the
-#     bound. The repair is an order that carries its admitted magnitude, so the
-#     conversion cannot fail at all.
-#
-#   - `xtask/src/checks/vocabulary.rs`, `check_no_personal_names`. The file's
-#     bytes are decoded lossily and the decoding is what the law searches, so a
-#     file this reader cannot decode is judged as a rendering of itself and
-#     passes. What that entails, read off the substitution rather than executed:
-#     a forbidden spelling written in an encoding this decoder does not read
-#     survives as something else and is not found, and the law reports PASS over
-#     it. Nothing in this tree is such a file today, which is why the entailment
-#     is stated and not measured — measuring it means committing one.
-#
-#   - `xtask/src/checks/vocabulary.rs`, `check_banned_vocabulary`. The same call
-#     in the same shape over the scanned tree, with the same consequence for the
-#     same reason.
-#
-# The repair for the two scanning laws is a standard this repository already
-# applies one module over: the obligations join refuses a source it cannot parse
-# because whether that source declares a test is UNKNOWN rather than false. A
-# file that cannot be decoded is unknown in exactly that sense, and the honest
-# answer is to name it, not to judge a substitute for it.
-#
-# THE THIRD KIND IS EMPTY, and that is a finding rather than an absence nobody
-# looked for. Not one operational host read in this tree is spelled with any of
-# the four methods — the ones that exist are `unwrap_or_else` with a named
-# fallback beside them — so a `disallowed-methods` table would refuse nothing in
-# that class. The environment paragraph above reduced the class to euphemism;
-# this reduces it to nobody.
-#
-# WHY THE SECOND CONDITION IS STILL NOT MET, MEASURED rather than assumed. All
-# four methods have lawful uses left after the three sites above are set aside,
-# and most of the population is one shape: a fallback standing immediately
-# beneath an assertion that refuses the fallback's own value, in the judge and in
-# the laws' own controls. `disallowed-methods` has no crate scope and this
-# repository refuses a production `#[expect]`, so a table installed now would
-# refuse every one of those lawful sites with no lawful way to say so. The table
-# stays out until the three are repaired at their homes and each method has zero
-# lawful uses left — which is the condition already written above, unchanged by
-# this pass.
+# Version 0.0.0, never published: there is no exported API to shield from stricter suggestions, so pedantic runs at full strength on public items too.
+avoid-breaking-exported-api = false
+
+# The product name in prose is a word, not a code path needing backticks.
+doc-valid-idents = ["ThreadPak", ".."]
+
+# The machine is a function of its declared input: no ambient clock, no
+# nondeterministic iteration order, no environment reads.
+disallowed-types = [
+    { path = "std::time::SystemTime", reason = "no ambient clock: output is a function of declared input" },
+    { path = "std::time::Instant", reason = "no ambient clock: output is a function of declared input" },
+    { path = "std::collections::HashMap", reason = "unseeded hash iteration is nondeterministic: use BTreeMap" },
+    { path = "std::collections::HashSet", reason = "unseeded hash iteration is nondeterministic: use BTreeSet" },
+]
+disallowed-methods = [
+    { path = "std::env::var", reason = "the environment is not a declared port" },
+    { path = "std::env::var_os", reason = "the environment is not a declared port" },
+    { path = "std::env::vars", reason = "the environment is not a declared port" },
+    { path = "std::env::vars_os", reason = "the environment is not a declared port" },
+    { path = "std::env::args", reason = "arguments are not a declared port" },
+    { path = "std::env::args_os", reason = "arguments are not a declared port" },
+    { path = "std::env::current_dir", reason = "host location is not a declared port" },
+]
