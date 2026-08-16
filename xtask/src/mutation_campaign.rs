@@ -122,7 +122,7 @@ mod tests {
     use std::ffi::{OsStr, OsString};
     use std::path::Path;
 
-    use super::{OUTPUT_DIRECTORY, command, report_path, require_no_arguments};
+    use super::{OUTPUT_DIRECTORY, command, report_path, require_no_arguments, run};
     use crate::repository::snapshot::{
         MUTATION_SUBJECT_COMMIT, MUTATION_SUBJECT_ROOT, MUTATION_SUBJECT_TREE,
     };
@@ -184,5 +184,26 @@ mod tests {
             require_no_arguments([String::from("--baseline=skip")].into_iter())
                 .is_err_and(|reason| reason.contains("accepts no arguments"))
         );
+    }
+
+    /// Planted reversal: the subject root crosses into cargo-mutants' scratch
+    /// test processes, so a relative spelling cannot identify one repository
+    /// independently of either process's working directory.
+    #[test]
+    fn a_relative_subject_root_refuses_at_the_launcher() -> Result<(), String> {
+        let observed = run(
+            Path::new("relative-mutation-subject"),
+            std::iter::empty::<String>(),
+        );
+        let Err(reason) = observed else {
+            return Err(String::from(
+                "a relative mutation subject root did not refuse",
+            ));
+        };
+        assert_eq!(
+            reason.to_string(),
+            "mutation-campaign requires an absolute repository root; got relative-mutation-subject"
+        );
+        Ok(())
     }
 }
