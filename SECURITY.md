@@ -27,18 +27,12 @@ about a promise that does not exist.
 
 ## What is in scope
 
-The repository as it stands, which today means its tooling and its hosted
-qualification road rather than a running machine:
+The repository as it stands, which today means its typed surfaces and its
+toolchain rather than a running machine:
 
-- the qualification road and the repository laws — a check that can be made to
-  report PASS about a tree it did not read is a defect of exactly the kind this
-  file is for, and so is one that can be made to write into the tree it is
-  judging;
 - the dependency posture — what `deny.toml` allows, what the manifests pin, and
   any road by which the resolved graph can come to differ from what the
   repository declares;
-- the hosted workflows — anything that lets a change execute code the
-  repository did not commit, or lets a run reach a credential;
 - the metaprogramming services and the expansion shell — an expansion is
   supposed to be a function of its declared input alone, and a way to make one
   read the network, the filesystem, the environment, a clock, or entropy is a
