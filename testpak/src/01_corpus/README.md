@@ -40,21 +40,3 @@ dependency position: no module is declared, so no band edge exists to point
 anywhere. And it does not claim that material which fails to fit this question
 may be filed here anyway — content that does not fit a reserved name comes back
 for an explicit decision instead of being normalized into the nearest drawer.
-
-```yaml
-seat: 01_corpus
-state: reserved
-question: >
-  Which populations of declared input must the machine survive, and where do
-  they live — the permutation, determinism, and ambient-pathway hostiles the
-  services' own documentation names as owed.
-materializes_when: >
-  A population enumerated or generated from a stated rule is carried as its own
-  value and handed to a challenge that states what it establishes over it. A
-  second hand-written case does not materialize this seat.
-nonclaims: >
-  No corpus exists, is designed, or is specified beyond the question above. No
-  hostile population here has an owner, a method, or a date. The number reserves
-  no dependency position, because no module is declared. Content that does not
-  fit this question is not filed here.
-```

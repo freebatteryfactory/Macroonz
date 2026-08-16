@@ -1,9 +1,9 @@
 //! The mutation seat: testpak damages a lawful artifact and proves each lane
 //! catches what that lane CLAIMS to catch.
 //!
-//! The mutations are testpak's, not the services'. The services no longer carry
-//! a road that renders a deliberately defective artifact — a generator writing
-//! its own exam is rehearsed only against the defects it already imagined.
+//! The mutations are testpak's, not the services'. The services carry no road
+//! that renders a deliberately defective artifact — a generator writing its own
+//! exam is rehearsed only against the defects it already imagined.
 //!
 //! The declaration and the order it declares are stated HERE, twice over: once
 //! as the source text handed to the services, and once as the two rosters the
@@ -29,13 +29,14 @@ const DECLARED_SPELLINGS: [&str; 3] = ["NotCanonical", "NotAdmitted", "Unbounded
 /// The declared stable identities, stated independently of the services, each
 /// as the `(family, local)` pair the artifact spells.
 ///
-/// The caller writes both seats out HERE precisely because the derive mints
-/// them from a family identity and three local keys — so the two statements are
-/// independent. They are stated as pairs rather than as joined names because a
-/// cause identity IS a pair: a caller asserting over `testpak.demo.unbounded`
-/// would be asserting over a string the artifact does not carry, and the join
-/// it would have to compose is the producer's grammar rather than the caller's
-/// declaration.
+/// The caller writes both seats out HERE precisely because the derive mints them
+/// from a family identity and three local keys, so the two statements stay
+/// independent.
+///
+/// They are stated as pairs rather than as joined names because a cause identity
+/// IS a pair: a caller asserting over `testpak.demo.unbounded` would be asserting
+/// over a string the artifact does not carry, and the join it would have to
+/// compose is the producer's grammar rather than the caller's declaration.
 const DECLARED_IDENTITIES: [(&str, &str); 3] = [
     ("testpak.demo", "not-canonical"),
     ("testpak.demo", "not-admitted"),
@@ -75,9 +76,10 @@ const DECLARED_ATTRIBUTES: [&str; 0] = [];
 /// declared implementation is written plainly.
 const DECLARED_POSTURES: [ImplPosture; 0] = [];
 
-/// The whole structural declaration lane B is held to. Every roster in it is
-/// authored beside [`DECLARATION`], by the same hand that wrote the declaration
-/// and by nothing downstream of it.
+/// The whole structural declaration lane B is held to.
+///
+/// Every roster in it is authored beside [`DECLARATION`], by the same hand that
+/// wrote the declaration and by nothing downstream of it.
 const DECLARED_STRUCTURE: DeclaredStructure<'static> = DeclaredStructure {
     target: "DemoFamily",
     traits: &DECLARED_TRAITS,
@@ -120,9 +122,8 @@ fn the_lawful_rendering_conforms() {
 /// which is the honest half nobody writes.
 #[test]
 fn lane_a_catches_every_mutation_lane_a_owns() {
-    // The lawful artifact is the control every assertion below rests on. A run
-    // that could not produce it has tested nothing, and fails here rather than
-    // passing over an empty string.
+    // The control: a run that could not produce the lawful artifact has tested
+    // nothing, and fails here rather than passing over an empty string.
     let text = lawful().unwrap_or_default();
     assert!(
         !text.is_empty(),
@@ -162,9 +163,8 @@ fn lane_a_catches_every_mutation_lane_a_owns() {
 /// that learned would have started implementing Rust.
 #[test]
 fn lane_a_does_not_catch_what_lane_a_does_not_own() {
-    // The lawful artifact is the control every assertion below rests on. A run
-    // that could not produce it has tested nothing, and fails here rather than
-    // passing over an empty string.
+    // The control: a run that could not produce the lawful artifact has tested
+    // nothing, and fails here rather than passing over an empty string.
     let text = lawful().unwrap_or_default();
     assert!(
         !text.is_empty(),
@@ -187,8 +187,8 @@ fn lane_a_does_not_catch_what_lane_a_does_not_own() {
 /// The lawful rendering passes lane B.
 ///
 /// Load-bearing exactly as lane A's control is: a structural reader that
-/// disagreed with everything would catch all four mutations below and be
-/// worthless. This is the half that says the reader can also say yes.
+/// disagreed with everything would catch every mutation below and be worthless.
+/// This is the half that says the reader can also say yes.
 #[test]
 fn the_lawful_rendering_is_structurally_conforming() {
     assert_eq!(
@@ -199,15 +199,14 @@ fn the_lawful_rendering_is_structurally_conforming() {
 
 /// Every mutation lane B OWNS is caught by lane B.
 ///
-/// These are the four the ownership ledger records as structural, and until the
-/// lane existed no test here caught any of them. The claim stays exactly as
-/// narrow as the lane: each mutation below changes what the artifact DECLARES,
-/// and that is what is read back — not whether the result would compile.
+/// These are the mutations the ownership ledger records as structural. The claim
+/// stays exactly as narrow as the lane: each of them changes what the artifact
+/// DECLARES, and that is what is read back — not whether the result would
+/// compile.
 #[test]
 fn lane_b_catches_every_mutation_lane_b_owns() {
-    // The lawful artifact is the control every assertion below rests on. A run
-    // that could not produce it has tested nothing, and fails here rather than
-    // passing over an empty string.
+    // The control: a run that could not produce the lawful artifact has tested
+    // nothing, and fails here rather than passing over an empty string.
     let text = lawful().unwrap_or_default();
     assert!(
         !text.is_empty(),
@@ -239,7 +238,7 @@ fn lane_b_catches_every_mutation_lane_b_owns() {
 /// each land on a different one.
 ///
 /// A lane that answered "no" to everything for one reason would pass the test
-/// above while measuring one thing nine times. These are genuinely different
+/// above while measuring one thing over and over. These are genuinely different
 /// questions, and the answers say so.
 ///
 /// The decoy is the pair that makes the two lanes' split visible in one line.
@@ -305,10 +304,9 @@ fn lane_b_names_the_structural_fact_it_found() {
 /// A duplicate member constant is READ twice and never written over once.
 ///
 /// The finding above says the artifact deviates; this says why the reader can
-/// tell. The seat that stood here filed each named constant into one `Option`,
-/// so the second reading replaced the first and a byte-identical copy of a
-/// lawful constant disappeared without trace. The reading now carries both the
-/// value it kept and the name it saw twice.
+/// tell. The reading carries both the value it kept and the name it saw twice,
+/// so a byte-identical copy of a lawful constant cannot replace the first
+/// reading and disappear without trace.
 #[test]
 fn a_duplicated_member_is_recorded_rather_than_overwritten() {
     let text = lawful().unwrap_or_default();
@@ -338,9 +336,9 @@ fn a_duplicated_member_is_recorded_rather_than_overwritten() {
 /// A member nobody planned is named by what it is, and the lawful artifact
 /// carries none.
 ///
-/// The reader used to step over every member that was not one of the three
-/// constants it was looking for, which made a method, an associated type, and a
-/// macro invocation in member position all invisible.
+/// A member that is not one of the three constants the reader looks for is named
+/// rather than stepped over, so a method, an associated type, and a macro
+/// invocation in member position are each visible.
 #[test]
 fn an_unexpected_member_is_named_by_what_it_is() {
     let text = lawful().unwrap_or_default();
@@ -434,9 +432,8 @@ fn a_rendering_that_is_not_rust_is_unparsable_not_conforming() {
 /// like coverage while testing an unchanged string.
 #[test]
 fn every_declared_mutation_damages_the_artifact() {
-    // The lawful artifact is the control every assertion below rests on. A run
-    // that could not produce it has tested nothing, and fails here rather than
-    // passing over an empty string.
+    // The control: a run that could not produce the lawful artifact has tested
+    // nothing, and fails here rather than passing over an empty string.
     let text = lawful().unwrap_or_default();
     assert!(
         !text.is_empty(),

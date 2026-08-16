@@ -331,10 +331,8 @@ mod scope_guard_visibility {
 }
 
 /// The admitted narrow visibility grammar preserves its caller coordinate at
-/// two nesting depths, including shorthand/equivalent forms, relative chains,
-/// absolute `crate` paths, and macro-authored `$crate` paths.
-///
-/// green: identity.scope-guard-visibility-is-caller-relative
+/// two nesting depths, including shorthand and equivalent forms, relative
+/// chains, absolute `crate` paths, and macro-authored `$crate` paths.
 #[test]
 fn every_narrow_scope_guard_visibility_form_keeps_its_caller_coordinate() {
     scope_guard_visibility::ancestor_surfaces();

@@ -1,7 +1,7 @@
 //! The closed-register stamp's row ceiling, driven from OUTSIDE the crate that
 //! exports the stamp.
 //!
-//! # What is under judgement
+//! # Positions
 //!
 //! The stamp admits a declaration that spends its declared supply of positions
 //! to the last one, and answers an exact position for every row of it. The
@@ -10,17 +10,18 @@
 //! pin both ends of the supply, and every row between them answers its own
 //! place in `ALL`.
 //!
-//! # Why this seat, and not the machine's own proof surface
+//! # The outside seat
 //!
 //! This plane is a separate crate that depends on `threadpak` by path, so it is
 //! an ordinary outside consumer. It reaches `closed_register!` the way any
 //! downstream caller does — through the public export, with no crate-internal
 //! path available to it — which is strictly more than the same roster stamped
-//! inside the crate that defines the macro could establish. The reversal for
-//! this claim already lives beside this file as a compile-fail fixture, so both
-//! roads of one obligation are read in one crate.
+//! inside the crate that defines the macro could establish.
 //!
-//! # The ceiling is never spelled here
+//! The reversal for this claim lives beside this file as a compile-fail fixture,
+//! so both roads of one obligation are read in one crate.
+//!
+//! # The ceiling
 //!
 //! Nothing below writes the ceiling down. The roster spends the supply and the
 //! assertions compare against `threadpak::CLOSED_REGISTER_ROW_CEILING`, which
@@ -29,7 +30,7 @@
 //! against a number that has moved. Where the profile's value IS recorded, once
 //! and on purpose, is the constant's own documentation.
 //!
-//! # The claim's ceiling
+//! # Nonclaims
 //!
 //! This says the ceiling stands exactly where the stamp says it stands. It says
 //! nothing about whether any vocabulary should approach it, and the same
@@ -120,9 +121,8 @@ fn highest_position() -> u8 {
     u8::try_from(threadpak::CLOSED_REGISTER_ROW_CEILING.saturating_sub(1)).unwrap_or(u8::MAX)
 }
 
-/// green: root.a-stamped-roster-declares-its-own-ceiling — the stamp admits a
-/// declaration that spends its declared supply of positions and answers an
-/// exact position for every row of it.
+/// The stamp admits a declaration that spends its declared supply of positions
+/// and answers an exact position for every row of it.
 ///
 /// The assertions are relational: the roster's length is held against the
 /// supply's own length, and the last row's position against that length rather

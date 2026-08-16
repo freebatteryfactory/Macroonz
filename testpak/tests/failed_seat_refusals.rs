@@ -1,22 +1,22 @@
-//! The seat-deletion seat, executed: each repair the failure-path law killed is
-//! restored HERE, by this plane, and the value it produces is shown to be about
-//! something else while the live road refuses instead.
+//! Each repair the failure-path law forbids is restored HERE, by this plane, and
+//! the value it produces is shown to be about something else while the live road
+//! refuses instead.
 //!
-//! # Why the mutant is testpak's and not the services'
+//! # Ownership
 //!
 //! The law says a failed required seat is never repaired with an empty, default,
 //! or neighbouring value. A law of that shape is only evidence if the repair can
-//! be performed and seen to be wrong. The services no longer carry any of them —
-//! that is the whole point — so the plane performs each one itself, out of the
-//! public values a lawful compilation hands back, and states what the repair
-//! would have produced beside what the road actually does.
+//! be performed and seen to be wrong. The services carry none of them — that is
+//! the whole point — so the plane performs each one itself, out of the public
+//! values a lawful compilation hands back, and states what the repair produces
+//! beside what the road actually does.
 //!
 //! Two directions, always. The lawful road binds every required seat and closes;
 //! the restored repair produces a well-formed, complete-looking value about a
 //! different subject, and the seam it would have filled refuses with a typed
 //! cause that names the seat.
 //!
-//! # What is unwritable is proven elsewhere
+//! # The compiler's half
 //!
 //! Deleting a seat outright — a receipt without a closure, a rendering off the
 //! membership-only draft, a closure nobody proved, a join outside the proof —
@@ -99,11 +99,12 @@ fn the_lawful_road_binds_every_required_seat() {
 /// The shortened-complete-set repair, restored: it produces a membership that is
 /// honest about a plan nobody declared.
 ///
-/// The killed repair took a two-role complete set whose construction failed and
-/// handed back the first member alone. The mutant below builds exactly that
-/// value — a one-member membership over a declaration whose shape fixes two —
-/// and it is well-formed, complete-looking, and about a smaller claim. The
-/// closure refuses to close the real rendering over it, naming the role the
+/// The repair takes a two-role complete set whose construction failed and hands
+/// back the first member alone. The mutant below builds exactly that value — a
+/// one-member membership over a declaration whose shape fixes two — and it is
+/// well-formed, complete-looking, and about a smaller claim.
+///
+/// The closure refuses to close the real rendering over it, naming the role the
 /// smaller claim dropped.
 #[test]
 fn a_shortened_complete_set_proves_a_smaller_claim() {
@@ -136,11 +137,13 @@ fn a_shortened_complete_set_proves_a_smaller_claim() {
 /// The neighbouring-digest repair, restored: the first rendered unit's digest is
 /// a digest of the wrong bytes.
 ///
-/// The killed repair answered the explanation's output-and-digest seat with the
-/// FIRST rendered unit's digest, whatever it was a digest of. The mutant below
-/// builds a rendering whose first unit is the neighbour, which is a rendering
-/// the renderer is free to produce — role order is declared, rendering order is
-/// not — and the digest that repair would have read is not the family role's.
+/// The repair answers the explanation's output-and-digest seat with the FIRST
+/// rendered unit's digest, whatever it was a digest of.
+///
+/// The mutant below builds a rendering whose first unit is the neighbour — a
+/// rendering the renderer is free to produce, since role order is declared and
+/// rendering order is not — and the digest that repair would read is not the
+/// family role's.
 ///
 /// The seat refuses instead, and it names itself. The refusal is exhibited as
 /// the typed value rather than reached through the live road, because the live
@@ -186,13 +189,14 @@ fn a_neighbouring_digest_answers_about_another_value() -> Result<(), ()> {
 /// Every explanation seat that can fail to bind names itself, and the three name
 /// three different things.
 ///
-/// The three seats were three different neighbouring-value repairs — the first
-/// planned member whatever its role, the first rendered unit's digest whatever
-/// it was a digest of, a hardcoded owner fact nobody's plan cited. A caller
-/// repairing a derivation needs to know which of the three failed, so the
-/// refusal is typed per seat and the distinction survives into the diagnostic:
-/// each projects under `SeatAbsent`, each names its own seat in the line, and
-/// each derives its own related identity.
+/// The three seats stand for three different neighbouring-value repairs: the
+/// first planned member whatever its role, the first rendered unit's digest
+/// whatever it was a digest of, and a hardcoded owner fact nobody's plan cited.
+///
+/// A caller repairing a derivation needs to know which of the three failed, so
+/// the refusal is typed per seat and the distinction survives into the
+/// diagnostic: each projects under `SeatAbsent`, each names its own seat in the
+/// line, and each derives its own related identity.
 #[test]
 fn each_explanation_seat_refuses_under_its_own_name() {
     let seats = [
@@ -292,9 +296,11 @@ fn a_doubled_role_refuses_at_the_declaration_and_at_the_closure() -> Result<(), 
 /// Two refusal families reaching the diagnostic keep their distinctions, even
 /// where they classify alike.
 ///
-/// Five steps of the road refuse in five vocabularies, and all five used to
-/// collapse into one sentence under one classification with an empty related
-/// set. A closure that dropped a role and an explanation that could not bind its
+/// Five steps of the road refuse in five vocabularies, and none of them
+/// collapses into a shared sentence under one classification with an empty
+/// related set.
+///
+/// A closure that dropped a role and an explanation that could not bind its
 /// digest both observe an absent seat — and they are different absences, of
 /// different things, repaired differently. The related identities say so.
 #[test]
@@ -342,7 +348,7 @@ fn two_families_observing_one_classification_are_still_two_refusals() {
 /// The magnitude is stated here, not read off the services, so the assertion is
 /// between two independent statements. One byte under it is admitted and carries
 /// its whole length; one byte over it refuses. Neither answer is an empty
-/// projection, which is what the killed repair produced.
+/// projection, which is what the repair would produce.
 #[test]
 fn an_over_long_projection_refuses_rather_than_blanking() {
     assert_eq!(HumanTextLimit::MAX, DECLARED_HUMAN_TEXT_MAGNITUDE);
@@ -361,8 +367,9 @@ fn an_over_long_projection_refuses_rather_than_blanking() {
 ///
 /// The last required seat on the list is the diagnostic's own. A refusal that
 /// arrived without its phase, its classification, its repair, or its
-/// reproduction route would be a complaint rather than an answer — and the
-/// reproduction route in particular is what makes the callable road a road
+/// reproduction route would be a complaint rather than an answer.
+///
+/// The reproduction route in particular is what makes the callable road a road
 /// rather than a promise, since this whole test reaches it without a proc-macro
 /// anywhere in the path.
 #[test]

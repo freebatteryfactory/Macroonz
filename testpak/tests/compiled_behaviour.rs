@@ -1,21 +1,22 @@
-//! Lane C — compiled behaviour, over the mutants this plane produced.
+//! Lane C — compiled behaviour: `rustc` compiles the artifact and the test reads
+//! its trait constants back AS VALUES.
 //!
-//! # The lane, and which half of it lives here
+//! # Seats
 //!
-//! Lane C's method is `rustc` compiling the artifact and the test reading its
-//! trait constants back AS VALUES. The LAWFUL artifact's compiled seat is an
-//! outside consumer, and it has to be: the question
-//! "does a caller who holds the machine's types and wears the shell's derive
-//! actually compile?" cannot be answered from inside either participant.
+//! The mutant seats are testpak's own, and they have to be. A mutant is this
+//! plane's own damage, inflicted on a lawful artifact by `mutated`; no
+//! participant is grading itself when the judge hands its own damaged text to
+//! `rustc` and reads back what comes out.
 //!
-//! A MUTANT has no such problem. The mutant is this plane's own damage, inflicted
-//! on a lawful artifact by `mutated`; no participant is grading itself when the
-//! judge hands its own damaged text to `rustc` and reads back what comes out. So
-//! the two mutations the ownership ledger records as `CompiledBehaviour` get
-//! their compiled seats here, and they were owed until now: the roster recorded
-//! the claim and nothing compiled either mutant.
+//! The lawful compiled seat below is deliberate too: it is the control the
+//! mutants are measured against, held inside testpak on purpose. Outside-consumer
+//! parity — a crate that owns neither participant applying the derive — is a
+//! separate seat, and it is absent.
 //!
-//! # The two mechanisms, and why each is honest
+//! The two mutations the ownership ledger records as `CompiledBehaviour` get
+//! their compiled seats here.
+//!
+//! # Mechanisms
 //!
 //! **`MalformedRust` — the mutant must FAIL to compile.** The materialized text
 //! is checked in as a trybuild compile-fail fixture, under a header that states
@@ -62,9 +63,11 @@ const DECLARED_SPELLINGS: [&str; 3] = ["NotCanonical", "NotAdmitted", "Unbounded
 /// The family every declared identity sits in.
 const DECLARED_FAMILY: &str = "testpak.demo";
 
-/// The declared local keys, in declared order. The family is stated once beside
-/// them because the artifact states it once per row, and a lane that wrote the
-/// joined name would be asserting over a value no compiled constant carries.
+/// The declared local keys, in declared order.
+///
+/// The family is stated once beside them because the artifact states it once per
+/// row, and a lane that wrote the joined name would be asserting over a value no
+/// compiled constant carries.
 const DECLARED_LOCAL_KEYS: [&str; 3] = ["not-canonical", "not-admitted", "unbounded"];
 
 /// The lawful artifact's compiled seat.

@@ -37,21 +37,3 @@ concurrency posture. It does not claim the seat's number reserves any dependency
 position: no module is declared, so no band edge exists to point anywhere. And it
 does not claim that material which fails to fit this question may be filed here
 anyway.
-
-```yaml
-seat: 04_simulation
-state: reserved
-question: >
-  How is a history driven — a sequence of typed observations through the
-  machine's transition, with next state and effect intents read back — and what
-  does driving one establish.
-materializes_when: >
-  The machine's runtime transition exists to drive. Until a transition takes an
-  observation and returns a next state, there is no history to sequence and
-  nothing here may be written against an imagined one.
-nonclaims: >
-  No driver exists, is designed, or is specified beyond the question above. No
-  scenario language, scheduling model, or concurrency posture is claimed. The
-  number reserves no dependency position, because no module is declared. Content
-  that does not fit this question is not filed here.
-```

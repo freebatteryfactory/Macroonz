@@ -37,22 +37,3 @@ belongs to seat 03, the judge. It does not claim the seat's number reserves any
 dependency position: no module is declared, so no band edge exists to point
 anywhere. And it does not claim that material which fails to fit this question
 may be filed here anyway.
-
-```yaml
-seat: 08_evidence
-state: reserved
-question: >
-  What did an executed run establish, in a form a reader who did not watch it
-  can read — which claims, by which method, against which population, under
-  which magnitudes.
-materializes_when: >
-  A result must outlive the process that produced it. While every challenge is a
-  cargo test invocation whose failure is its own report, a record here would be
-  a second statement of what the first already said.
-nonclaims: >
-  No record exists, is designed, or is specified beyond the question above. No
-  format, storage road, or retention posture is claimed. No authority over what
-  a verdict may say is claimed; that belongs to the judge seat. The number
-  reserves no dependency position, because no module is declared. Content that
-  does not fit this question is not filed here.
-```

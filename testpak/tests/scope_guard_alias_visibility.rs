@@ -1,4 +1,9 @@
 //! Positive controls for same-reach scope-guard type aliases.
+//!
+//! Each declaration below aliases a guard at exactly the reach its front
+//! spelling grants; the compile-refusal twin
+//! `tests/compile-fail/a-scope-guard-alias-cannot-widen-reach.rs` crosses that
+//! boundary.
 
 macro_rules! shallow_dollar_guard {
     () => {
@@ -134,8 +139,6 @@ mod deep {
 
 /// Every narrow front spelling permits a type alias at exactly its own reach,
 /// at both invocation depths.
-///
-/// green: identity.scope-guard-alias-cannot-widen
 #[test]
 fn same_reach_scope_guard_aliases_are_lawful() {
     shallow_ancestor::ancestor_aliases();

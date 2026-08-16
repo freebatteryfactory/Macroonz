@@ -1,7 +1,7 @@
 //! The four declared magnitudes a captured input stands under, driven from
 //! outside the services, both directions each.
 //!
-//! # What is under judgement
+//! # Bounds
 //!
 //! Every producer of captured input walks under one nesting depth, one per-level
 //! token magnitude, one whole-tree token magnitude, and one capture-work budget,
@@ -16,28 +16,30 @@
 //! it is read to assert that the two statements agree, which is the comparison,
 //! not the evidence.
 //!
-//! # Which producer each bound is reached from, and why
+//! # Producers
 //!
 //! The depth and whole-tree magnitudes bite on the callable text route, so they
 //! are driven through it — the same road `compile_refusal_text` takes, with no
 //! proc-macro anywhere in the path.
 //!
-//! The per-level magnitude and the work budget are not reachable from either of
-//! today's producers, and saying so is the honest state rather than a gap. The
-//! text route issues one span offset per token into a table bounded at the
-//! per-level magnitude, so a text carrying more tokens than one level admits
-//! overruns the whole-tree count first; and both of today's producers KEEP every
-//! token they examine, so the tree magnitude bites before the walk's budget can.
-//! The budget is what bounds a producer that reads material it discards. Both
-//! are therefore driven at the seam that governs them — the walk itself, and the
-//! capture constructor — which is where a future producer would meet them.
+//! The per-level magnitude and the work budget are reachable from neither
+//! producer the services carry, and saying so is the honest state rather than a
+//! gap. The text route issues one span offset per token into a table bounded at
+//! the per-level magnitude, so a text carrying more tokens than one level admits
+//! overruns the whole-tree count first; and both producers KEEP every token they
+//! examine, so the tree magnitude bites before the walk's budget can. The budget
+//! is what bounds a producer that reads material it discards.
+//!
+//! Both are therefore driven at the seam that governs them — the walk itself,
+//! and the capture constructor — which is where a further producer would meet
+//! them.
 //!
 //! # The planted mutant
 //!
-//! The reversal this file owes is the coordinate that used to stand where the
-//! route stands: a depth and an index, which named two tokens with one value.
-//! The plane implements that coordinate itself, below, and shows two distinct
-//! tokens colliding under it while their routes differ.
+//! The planted reversal is the coordinate the route replaces: a depth and an
+//! index, which name two tokens with one value. The plane implements that
+//! coordinate itself, below, and shows two distinct tokens colliding under it
+//! while their routes differ.
 
 use threadpak::types::ConstLimit;
 use threadpak_macroc::plane::{CapturedTokenLimit, CapturedTreeTokenLimit, TokenPathDepthLimit};
@@ -91,12 +93,12 @@ fn collect_routes(tree: &CapturedTokenTree, into: &mut Vec<Vec<u32>>) {
     }
 }
 
-/// The coordinate that used to stand where the route stands: how deep the token
-/// sits, and its position inside its own group.
+/// The planted coordinate: how deep the token sits, and its position inside its
+/// own group.
 ///
-/// This is the planted mutant. It is implemented here, by the judge, because the
-/// services no longer carry it — and a law about a killed coordinate is only
-/// evidence if the coordinate can be restored and seen to collide.
+/// It is implemented here, by the judge, because the services carry no such
+/// coordinate — and a law about a coordinate is only evidence if the coordinate
+/// can be built and seen to collide.
 fn saturating_coordinate(route: &TokenPath) -> (usize, u32) {
     (route.depth(), route.steps().copied().last().unwrap_or(0))
 }
@@ -135,14 +137,13 @@ fn every_route_in_one_capture_names_a_different_token() {
     }));
 }
 
-/// The killed coordinate, restored: it names two different tokens with one
-/// value.
+/// The planted coordinate names two different tokens with one value.
 ///
 /// The first token of one group and the first token of its sibling sit at the
-/// same depth and the same position inside their own groups. Under the pair that
-/// used to stand here they are one coordinate, so a diagnostic, an origin
-/// mapping, or an inspection reading it was pointing at whichever of them the
-/// reader guessed. Under the route from the root they are two.
+/// same depth and the same position inside their own groups. Under a depth and
+/// an index they are one coordinate, so a diagnostic, an origin mapping, or an
+/// inspection reading it points at whichever of them the reader guesses. Under
+/// the route from the root they are two.
 #[test]
 fn the_killed_depth_and_index_coordinate_names_two_tokens_at_once() {
     let read = TextCapture::read("(b) (c)").map_err(|_| ());
@@ -202,10 +203,12 @@ fn nesting_to_the_declared_depth_reads_and_one_deeper_refuses() {
 ///
 /// The hostile is generated rather than written out: it nests its tokens so that
 /// no single level approaches the per-level magnitude, which is what makes the
-/// whole-tree count the bound that bites. The control is the lawful declaration
-/// itself — the text route's span table is bounded at the per-level magnitude,
-/// so no text anywhere near the tree magnitude reads successfully, and pretending
-/// one does would be a control that never held.
+/// whole-tree count the bound that bites.
+///
+/// The control is the lawful declaration itself. The text route's span table is
+/// bounded at the per-level magnitude, so no text anywhere near the tree
+/// magnitude reads successfully, and pretending one does would be a control that
+/// never held.
 #[test]
 fn a_tree_past_the_declared_token_magnitude_refuses() {
     let control = TextCapture::read(DECLARATION).map_err(|_| ());

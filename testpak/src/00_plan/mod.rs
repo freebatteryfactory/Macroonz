@@ -2,9 +2,8 @@
 //! actually discharged.
 //!
 //! Qualification begins from a declared plan, never from whichever tests a
-//! runner happens to discover. The seat is opened here with the one thing a
-//! plan cannot be honest without: its denominator. See the package README for
-//! the seat map and what each seat currently holds.
+//! runner happens to discover, so the seat opens with the one thing a plan
+//! cannot be honest without: its denominator.
 
 pub mod types;
 

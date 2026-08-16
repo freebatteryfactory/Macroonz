@@ -73,7 +73,10 @@ impl ArtifactMutation {
         }
     }
 
-    /// The mutation rendered for a person. A projection: nothing reads it back.
+    /// The mutation rendered for a person.
+    ///
+    /// A projection: the failing assertions in `tests/planted_defect.rs` name
+    /// the row through it, and no decision anywhere consults it.
     #[must_use]
     pub const fn described(self) -> &'static str {
         match self {

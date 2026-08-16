@@ -2,17 +2,17 @@
 //! preimage from the published SPECIFICATION and requires the services' minted
 //! value to match it.
 //!
-//! # What makes this independent
+//! # Independence
 //!
 //! Everything below that turns a transcript into bytes is written here. The
 //! encoder is this file's own: its own length framing, its own field order, its
 //! own domain-string assembly, its own byte-for-byte spelling of every member.
+//!
 //! Not one encoding function, constant, or spelling is imported from
-//! `threadpak-macroc` — the subject names, the role names, the role slots, the
+//! `threadpak-macroc`. The subject names, the role names, the role slots, the
 //! anchoring discriminants, the profile stem, the profile version, the generator
 //! name, and the generator schema version are all written out in full here, from
-//! the specification on `ProjectionTranscript`, exactly as the planted-defect
-//! lane writes out the declared order it judges against.
+//! the specification on `ProjectionTranscript`.
 //!
 //! What IS shared is the digest itself, and deliberately: both sides call
 //! BLAKE3. A lane that reimplemented the hash would be testing an arithmetic
@@ -21,7 +21,7 @@
 //! enough for somebody else to derive the same identity — which is exactly what
 //! a reader of a published receipt has to be able to do.
 //!
-//! # The rehearsed reversal
+//! # Reversals
 //!
 //! A match that could not fail proves nothing. Two negative controls run beside
 //! the positive one: an encoder that drops the content's length prefix, and an
@@ -44,10 +44,9 @@ const PROFILE_STEM: &str = "threadpak/macroc/projection-identity";
 
 /// The profile version, spelled out rather than imported.
 ///
-/// Version 2 is the version this lane judges. It moved when closures began
-/// committing to the joined tree they emit, and the lane restates it here rather
-/// than reading it from the producer — a lane that imported the version would
-/// agree with a producer that silently changed it.
+/// Version 2 is the version this lane judges, restated here rather than read
+/// from the producer — a lane that imported the version would agree with a
+/// producer that silently changed it.
 const PROFILE_VERSION: u32 = 2;
 
 /// The generator's declared name, spelled out rather than imported.

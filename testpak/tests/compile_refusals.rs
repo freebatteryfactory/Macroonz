@@ -1,8 +1,8 @@
-//! The compile-refusal fixtures: one per owed red twin.
+//! The compile-refusal fixtures: one per reversal a compiler refusal proves.
 //!
 //! trybuild covers compile refusals only. It is one challenge kind, never the
-//! universal one, and the fixtures below say exactly which reversal each of
-//! them proves.
+//! universal one, and each fixture in `tests/compile-fail/` states exactly which
+//! reversal it proves.
 
 /// Every declared compile-fail fixture refuses to compile, with the message it
 /// is recorded as producing.

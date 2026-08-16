@@ -1,35 +1,36 @@
 //! The related set, judged from outside: the postures a public reader can tell
 //! apart, and the body identity an INDEPENDENT encoder re-derives.
 //!
-//! # What this lane adds that the services' own laws cannot
+//! # Independence
 //!
 //! `macroc` proves that its set-building road behaves. It cannot prove that the
 //! road's output is what the SPECIFICATION says it is, because it would be
 //! asking itself: a producer comparing its own value against its own helper
-//! agrees for the same reason it exists. So this file rebuilds the body's
-//! identity from the published content grammar with its own encoder — its own
-//! length framing, its own field order, its own domain-string assembly, its own
-//! subject and role spellings — and requires the produced identity to match. Not
-//! one encoding function, constant, or spelling is imported from
-//! `threadpak-macroc`, exactly as `independent_identity_transcript.rs` derives
-//! the plane's transcript, and this file follows that lane's precedent because
-//! it is judging the layer directly above it: that lane judges the TRANSCRIPT
-//! grammar, this one judges the CONTENT one mint site composes.
+//! agrees for the same reason it exists.
+//!
+//! So this file rebuilds the body's identity from the published content grammar
+//! with its own encoder — its own length framing, its own field order, its own
+//! domain-string assembly, its own subject and role spellings — and requires the
+//! produced identity to match. Not one encoding function, constant, or spelling
+//! is imported from `threadpak-macroc`.
+//!
+//! `independent_identity_transcript.rs` judges the TRANSCRIPT grammar; this file
+//! judges the CONTENT one mint site composes.
 //!
 //! What IS shared is the digest, and deliberately: both sides call BLAKE3. A
 //! lane that reimplemented the hash would be testing an arithmetic exercise
 //! rather than a specification.
 //!
-//! # The rehearsed reversals
+//! # Reversals
 //!
 //! A match that could not fail proves nothing. Three negative controls run
 //! beside the positive ones: an encoder that frames the body's material by
 //! concatenating the issues unframed must DISAGREE, an encoder that derives the
 //! body under the ISSUE subject must disagree, and the crafted aliasing case —
-//! material that derived one identity at both levels under the single-subject
-//! grammar this split replaced — must produce two.
+//! material that derives one identity at both levels under a single-subject
+//! grammar — must produce two.
 //!
-//! # What is unwritable is proven beside this file
+//! # The compiler's half
 //!
 //! Assembling a set out of an independently supplied carry and completion, and
 //! reaching the two identity levels as separate public inputs, do not compile at
@@ -304,15 +305,17 @@ fn an_encoder_that_derives_the_body_under_the_issue_subject_disagrees() {
     );
 }
 
-/// The crafted collision: material that derived ONE identity at both levels
-/// under the single-subject grammar this split replaced now derives two.
+/// The crafted collision: material that derives ONE identity at both levels
+/// under a single-subject grammar derives two under the subject split.
 ///
 /// The aliasing is constructed rather than described. A body's material is the
 /// framing of its issues, so a one-issue set whose single issue's material IS
 /// another set's framing composes, by the published content rule, the exact same
 /// content bytes at the issue level that the other set composes at the body
-/// level. Under one subject those bytes were one derive-key context and one
-/// transcript and therefore one identity; under two they are two.
+/// level.
+///
+/// Under one subject those bytes are one derive-key context and one transcript
+/// and therefore one identity; under two they are two.
 #[test]
 fn crafted_aliasing_material_derives_two_identities_now() {
     let inner: Vec<Vec<u8>> = vec![material(1), material(2)];
@@ -391,13 +394,15 @@ fn every_family_tag_reaches_one_empty_relation() {
 /// have carried is a real value this lane can name, and no road in the services
 /// hands it out.
 ///
-/// Named rather than described. The un-routed road framed no issues, so its body
-/// material was empty, and by the published content rule its whole-body
+/// Named rather than described. A road without the routing frames no issues, so
+/// its body material is empty, and by the published content rule its whole-body
 /// commitment is the derivation over `family_byte || u64be(0)` — which this file
-/// composes with its own encoder below. That value is perfectly well-formed and
-/// that is the point: it is not a corrupt identity a check could notice, it is an
-/// honest commitment to no issues, and a reader handed one has no way to tell it
-/// from a commitment to the issues of any other empty set at that family.
+/// composes with its own encoder below.
+///
+/// That value is perfectly well-formed and that is the point: it is not a corrupt
+/// identity a check could notice, it is an honest commitment to no issues, and a
+/// reader handed one has no way to tell it from a commitment to the issues of any
+/// other empty set at that family.
 ///
 /// If the routing were removed this test fails at the first assertion, because
 /// the derived road produces exactly `over_empty`.

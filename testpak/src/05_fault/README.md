@@ -38,21 +38,3 @@ dependency position: no module is declared, so no band edge exists to point
 anywhere. And it does not claim that material which fails to fit this question
 may be filed here anyway — in particular, artifact damage is the mutation seat's
 and stays there.
-
-```yaml
-seat: 05_fault
-state: reserved
-question: >
-  What happens when the surroundings misbehave — a refusing effect, an
-  acknowledgement that never arrives, a resumption older than the caller
-  believed — and what does the machine state it holds to across each one.
-materializes_when: >
-  A machine seam exists that can experience a fault and states a promise a fault
-  could break: an effect boundary, an acknowledgement ladder, or a
-  checkpoint-and-resume road.
-nonclaims: >
-  No injector exists, is designed, or is specified beyond the question above. No
-  fault roster, recovery model, or machine promise is claimed. The number
-  reserves no dependency position, because no module is declared. Artifact
-  damage belongs to the mutation seat and is not filed here.
-```
