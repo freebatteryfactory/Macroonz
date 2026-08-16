@@ -691,11 +691,17 @@ fn revision(root: &Path, spelling: &str) -> Result<String, String> {
 ///
 /// Environment routing is removed, repository-local `core.worktree` is
 /// overridden by the command-line coordinate, and replacement-object rewriting
-/// is disabled. Git still discovers the matching `.git` directory or gitfile at
-/// `root`, which preserves ordinary clones and linked worktrees alike.
-fn git(root: &Path) -> Command {
+/// is disabled. Existing clones and linked worktrees still discover the
+/// matching `.git` directory or gitfile at `root`. Before that coordinate
+/// exists, the command names the exact storage path as well, so a caller such as
+/// the scratch fixture can initialize this root without discovering a parent or
+/// inheriting another repository.
+pub(crate) fn git(root: &Path) -> Command {
     let mut command = Command::new("git");
     command.current_dir(root).arg("--work-tree").arg(root);
+    if !root.join(GIT_STORAGE).exists() {
+        command.arg("--git-dir").arg(root.join(GIT_STORAGE));
+    }
     for variable in GIT_ROUTING_ENVIRONMENT {
         command.env_remove(variable);
     }

@@ -9,16 +9,19 @@
 //! never proven by dirtying the tree. Fixture planting and deliberate removal
 //! carry every filesystem refusal; drop makes a best-effort cleanup only after
 //! the fixture can no longer affect a verdict.
+//! Scratch Git operations use the repository reader's command constructor, so
+//! the explicit fixture root receives the same complete ambient-routing
+//! containment as the production committed snapshot.
 //!
 //! This module exists only under `cfg(test)`: it is fixture machinery shared by
 //! several law families, and it ships in no binary.
 
 use std::fs;
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use crate::repository::snapshot::RepositorySnapshot;
+use crate::repository::snapshot::{RepositorySnapshot, git as repository_git};
 
 /// One scratch root outside the repository, and the files planted in it.
 pub(crate) struct Scratch {
@@ -103,9 +106,7 @@ impl Scratch {
 
     /// Runs one Git operation against this fixture and carries its refusal.
     fn git(&self, arguments: &[&str]) -> Result<(), String> {
-        let output = Command::new("git")
-            .current_dir(&self.root)
-            .env("GIT_NO_REPLACE_OBJECTS", "1")
+        let output = repository_git(&self.root)
             .args(arguments)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -134,7 +135,59 @@ impl Drop for Scratch {
 
 #[cfg(test)]
 mod tests {
+    use std::process::{Command, Stdio};
+
     use super::Scratch;
+    use crate::repository::snapshot::RepositorySnapshot;
+
+    /// Git routing inherited by the test process cannot redirect the fixture's
+    /// initialization, index, or commit away from the explicit scratch root.
+    ///
+    /// The hostile is injected only into a child process. No process-global
+    /// environment is changed while the rest of the Rust tests may be running.
+    #[test]
+    fn ambient_git_routing_cannot_redirect_scratch_commits() -> Result<(), String> {
+        const CHILD: &str = "THREADPAK_SCRATCH_GIT_ROUTING_CHILD";
+
+        if std::env::var_os(CHILD).is_some() {
+            let scratch = Scratch::named("routing-explicit")?;
+            scratch.write("explicit.txt", "explicit scratch root\n")?;
+            let snapshot = scratch.read()?;
+            assert!(snapshot.files().get("explicit.txt").is_some());
+            assert!(snapshot.files().get("alternate.txt").is_none());
+            return Ok(());
+        }
+
+        let alternate = Scratch::named("routing-alternate")?;
+        alternate.write("alternate.txt", "alternate repository\n")?;
+        let before = alternate.read()?.committed().to_string();
+
+        let child = std::env::current_exe()
+            .map_err(|error| format!("current xtask test executable: {error}"))?;
+        let output = Command::new(child)
+            .arg("ambient_git_routing_cannot_redirect_scratch_commits")
+            .arg("--test-threads=1")
+            .env(CHILD, "1")
+            .env("GIT_DIR", alternate.root.join(".git"))
+            .env("GIT_WORK_TREE", &alternate.root)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()
+            .map_err(|error| format!("scratch-routing child test: {error}"))?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        if !output.status.success() || !stdout.contains("1 passed") {
+            return Err(format!(
+                "scratch-routing child did not commit the explicit root:\n{stdout}\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+
+        let after = RepositorySnapshot::read(&alternate.root)?
+            .committed()
+            .to_string();
+        assert_eq!(after, before, "Scratch Git mutated the routed repository");
+        Ok(())
+    }
 
     /// A failed removal is an explicit fixture failure, not a successful
     /// absence plant that lets the challenged law run against the wrong tree.
