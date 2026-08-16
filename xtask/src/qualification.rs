@@ -58,7 +58,7 @@ use std::error::Error;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-use crate::repository::snapshot::cargo_binary;
+use crate::repository::snapshot::{cargo_binary, git};
 
 /// One qualification stage: what the log calls it, and the work it is.
 struct Stage {
@@ -259,8 +259,7 @@ fn run_cargo(root: &Path, args: &[&str], env: &[(&str, &str)]) -> Result<(), Str
 /// git's own complaint about a checkout it cannot read lands in the log next to
 /// the stage that asked.
 fn run_worktree_clean(root: &Path) -> Result<(), String> {
-    let output = Command::new("git")
-        .current_dir(root)
+    let output = git(root)
         .args(["status", "--porcelain"])
         .stderr(Stdio::inherit())
         .output()
@@ -299,7 +298,40 @@ fn dirty_entries(listing: &str) -> Vec<&str> {
 /// dirty checkout is never proven by dirtying one.
 #[cfg(test)]
 mod tests {
-    use super::dirty_entries;
+    use std::fs;
+    use std::io::ErrorKind;
+    use std::path::PathBuf;
+    use std::process;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    use super::{dirty_entries, run_worktree_clean};
+
+    /// Creates an empty non-repository coordinate without trusting one
+    /// process-local name to be absent after an interrupted earlier run.
+    fn non_repository_directory() -> Result<PathBuf, String> {
+        const CREATION_ATTEMPTS: usize = 1_024;
+        static NEXT: AtomicUsize = AtomicUsize::new(0);
+        for _ in 0..CREATION_ATTEMPTS {
+            let ordinal = NEXT.fetch_add(1, Ordering::Relaxed);
+            let root = std::env::temp_dir().join(format!(
+                "threadpak-qualification-non-repository-{}-{ordinal}",
+                process::id()
+            ));
+            match fs::create_dir(&root) {
+                Ok(()) => return Ok(root),
+                Err(error) if error.kind() == ErrorKind::AlreadyExists => {}
+                Err(error) => {
+                    return Err(format!(
+                        "cannot create non-repository qualification subject {}: {error}",
+                        root.display()
+                    ));
+                }
+            }
+        }
+        Err(format!(
+            "cannot create a non-repository qualification subject after {CREATION_ATTEMPTS} attempts"
+        ))
+    }
 
     /// The pass condition, stated exactly: a clean checkout prints nothing, and
     /// a trailing newline is still nothing.
@@ -331,5 +363,25 @@ mod tests {
     fn one_dirty_path_is_already_a_failure() {
         let found = dirty_entries(" M Cargo.lock\n");
         assert_eq!(found.len(), 1, "{found:?}");
+    }
+
+    /// Planted reversal: a failed Git observation is unknown, not an empty
+    /// listing. An empty directory is deliberately not a repository, so Git's
+    /// nonzero exit must reach the qualification verdict as a refusal.
+    #[test]
+    fn a_git_status_failure_is_not_a_clean_checkout() -> Result<(), String> {
+        let root = non_repository_directory()?;
+        let observed = run_worktree_clean(&root);
+        fs::remove_dir(&root).map_err(|error| {
+            format!(
+                "cannot remove non-repository qualification subject {}: {error}",
+                root.display()
+            )
+        })?;
+        let Err(reason) = observed else {
+            return Err(String::from("a failed Git observation did not refuse"));
+        };
+        assert!(reason.starts_with("git exited "), "{reason}");
+        Ok(())
     }
 }

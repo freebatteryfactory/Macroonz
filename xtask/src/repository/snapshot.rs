@@ -462,22 +462,7 @@ fn read_tracked_blobs(
         }
         let header = std::str::from_utf8(&header)
             .map_err(|error| format!("git cat-file emitted a non-UTF-8 header: {error}"))?;
-        let mut fields = header.split(' ');
-        let reported_object = fields.next().unwrap_or_default();
-        let kind = fields.next().unwrap_or_default();
-        let size = fields
-            .next()
-            .ok_or_else(|| format!("git cat-file emitted malformed header `{header}`"))?
-            .parse::<usize>()
-            .map_err(|error| {
-                format!("git cat-file emitted malformed size in `{header}`: {error}")
-            })?;
-        if fields.next().is_some() || reported_object != entry.object || kind != "blob" {
-            return Err(format!(
-                "git cat-file reported `{header}` while `{}` was requested for `{}`",
-                entry.object, entry.path
-            ));
-        }
+        let size = parse_batch_blob_header(header, entry)?;
         let mut bytes = vec![0_u8; size];
         output.read_exact(&mut bytes).map_err(|error| {
             format!("git blob `{}` for `{}`: {error}", entry.object, entry.path)
@@ -528,6 +513,29 @@ fn read_tracked_blobs(
         ));
     }
     Ok(entries)
+}
+
+/// Decodes one bounded `git cat-file --batch` header for the requested blob.
+///
+/// Each protocol field is independently binding: an extra field, another
+/// object identity, or another object kind refuses even when the other two
+/// facts agree with the request.
+fn parse_batch_blob_header(header: &str, entry: &TrackedBlob) -> Result<usize, String> {
+    let mut fields = header.split(' ');
+    let reported_object = fields.next().unwrap_or_default();
+    let kind = fields.next().unwrap_or_default();
+    let size = fields
+        .next()
+        .ok_or_else(|| format!("git cat-file emitted malformed header `{header}`"))?
+        .parse::<usize>()
+        .map_err(|error| format!("git cat-file emitted malformed size in `{header}`: {error}"))?;
+    if fields.next().is_some() || reported_object != entry.object || kind != "blob" {
+        return Err(format!(
+            "git cat-file reported `{header}` while `{}` was requested for `{}`",
+            entry.object, entry.path
+        ));
+    }
+    Ok(size)
 }
 
 /// Splits one byte slice at its first named byte.
@@ -922,7 +930,7 @@ mod tests {
         RepositorySnapshot, TestRepositorySubject, parse_tracked_blobs,
     };
     use crate::checks::hygiene::check_lf_and_no_symlinks;
-    use crate::repository::types::{LinkState, Read};
+    use crate::repository::types::{CanonicalPath, LinkState, Read};
 
     /// One isolated directory carrying no version-control storage.
     struct PlainDirectory {
@@ -1181,8 +1189,11 @@ mod tests {
     fn ordinary_subject_child() -> Result<(), String> {
         match super::test_repository_subject()? {
             TestRepositorySubject::Ordinary(root) => {
-                let ordinary = super::repo_root().map_err(|error| error.to_string())?;
-                assert_eq!(root, &ordinary);
+                let manifest_directory = Path::new(env!("CARGO_MANIFEST_DIR"));
+                let expected = manifest_directory
+                    .parent()
+                    .ok_or_else(|| String::from("xtask manifest directory has no parent"))?;
+                assert_eq!(root, expected);
                 Ok(())
             }
             TestRepositorySubject::Mutation(_) => Err(String::from(
@@ -1352,12 +1363,37 @@ mod tests {
         fixture.commit()?;
 
         let snapshot = fixture.snapshot()?;
+        assert_eq!(snapshot.files().count(), expected.len());
         let found: BTreeSet<_> = snapshot
             .files()
             .iter()
             .map(|(path, _)| path.as_str().to_owned())
             .collect();
         assert_eq!(found, expected);
+        Ok(())
+    }
+
+    /// Every `cat-file --batch` header field binds independently. A malformed
+    /// response cannot borrow agreement from its neighboring fields.
+    #[test]
+    fn batch_blob_headers_bind_every_protocol_field() -> Result<(), String> {
+        let expected = super::TrackedBlob {
+            path: CanonicalPath::spelled("tracked.txt"),
+            object: String::from("abcdef"),
+            link: LinkState::RegularFile,
+        };
+        assert_eq!(
+            super::parse_batch_blob_header("abcdef blob 4", &expected)?,
+            4
+        );
+
+        for malformed in ["abcdef blob 4 extra", "different blob 4", "abcdef tree 4"] {
+            assert!(
+                super::parse_batch_blob_header(malformed, &expected)
+                    .is_err_and(|refusal| refusal.contains(malformed)),
+                "malformed batch header `{malformed}` was accepted"
+            );
+        }
         Ok(())
     }
 
