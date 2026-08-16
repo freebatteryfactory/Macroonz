@@ -12,15 +12,18 @@ publish = false
 workspace = true
 
 [dependencies]
-threadpak = { path = ".." }
-threadpak-macroc = { path = "../macros/macroc" }
-threadpak-macros = { path = "../macros/proc" }
 # The structural lane's parser, admitted by the note in README.md. Which version
 # and which features is the workspace's one decision, inherited from the root
 # manifest's `[workspace.dependencies]` table rather than restated here.
 syn = { workspace = true }
 
 [dev-dependencies]
+# The three participants under judgment, reached only from tests/ — the judge's
+# own body compiles against syn alone, so the manifest states the independence
+# the lanes claim.
+threadpak = { path = ".." }
+threadpak-macroc = { path = "../macros/macroc" }
+threadpak-macros = { path = "../macros/proc" }
 # The compile-refusal harness, inherited exact from the workspace table.
 trybuild = { workspace = true }
 # The independent transcript lane's digest, admitted by the note in README.md.
