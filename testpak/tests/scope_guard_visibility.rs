@@ -330,13 +330,14 @@ mod scope_guard_visibility {
     }
 }
 
-/// The admitted visibility grammar preserves its caller coordinate at two
-/// nesting depths, including shorthand/equivalent forms, relative chains,
-/// absolute `crate` paths, macro-authored `$crate` paths, and public reach.
+/// The admitted narrow visibility grammar preserves its caller coordinate at
+/// two nesting depths, including shorthand/equivalent forms, relative chains,
+/// absolute `crate` paths, and macro-authored `$crate` paths. The downstream
+/// `pub` control lives in `xtask/fixtures/macro-consumer/src/lib.rs`.
 ///
 /// green: identity.scope-guard-visibility-is-caller-relative
 #[test]
-fn every_scope_guard_visibility_form_keeps_its_caller_coordinate() {
+fn every_narrow_scope_guard_visibility_form_keeps_its_caller_coordinate() {
     scope_guard_visibility::ancestor_surfaces();
     assert_surface(
         scope_guard_visibility::shallow::CrateShort::positioned,
