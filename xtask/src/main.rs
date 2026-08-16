@@ -27,6 +27,7 @@
 //! checks themselves.
 
 mod checks;
+mod mutation_campaign;
 mod mutation_report;
 mod repository;
 mod qualification;
@@ -62,6 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     match command.as_str() {
         "check" => run_checks(&root),
+        "mutation-campaign" => mutation_campaign::run(&root, std::env::args().skip(2)),
         "mutation-report" => mutation_report::run(&root, std::env::args().skip(2)),
         "qualify" => qualification::qualify(&root, run_checks),
         other => Err(format!("unknown xtask command: {other}").into()),

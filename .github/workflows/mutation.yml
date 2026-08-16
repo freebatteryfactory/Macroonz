@@ -7,12 +7,13 @@
 # run reads. This file is the caller.
 #
 # WHAT A RED HERE MEANS. Nothing about a change in flight, because no change can
-# trigger this workflow. A red means either that the alarm did not operate or
-# that a timed-out mutant left its outcome uncertain. SURVIVING MUTANTS DO NOT
-# TURN IT RED. They are the finding, they are printed in full, and they are
-# evidence debt owed at the home of the source that carries them; a job that
-# went red on the first survivor would be red from the day it landed, and an
-# alarm that is always red is an alarm nobody reads.
+# trigger this workflow. A red means that the alarm did not operate, that a
+# timed-out mutant left its outcome uncertain, or that external interruption
+# prevented a final observation. SURVIVING MUTANTS DO NOT TURN IT RED. They are
+# the finding, they are printed in full, and they are evidence debt owed at the
+# home of the source that carries them; a job that went red on the first
+# survivor would be red from the day it landed, and an alarm that is always red
+# is an alarm nobody reads.
 name: mutation
 
 on:
@@ -34,7 +35,68 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  CARGO_MUTANTS_VERSION: "27.0.0"
+
 jobs:
+  # THE PLANTED REVERSAL. This is a sibling of the campaign, with no `needs`
+  # edge in either direction. A campaign runner that disappears therefore
+  # cannot erase the cheap observation that the empty scope is still empty.
+  # Whole-workflow cancellation may stop both jobs; no workflow topology can
+  # make a running job survive cancellation of its own run.
+  empty-scope-reversal:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    # The reversal builds no baseline after its deliberately empty selection.
+    # This is an operational hang ceiling, not a population claim.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install the pinned toolchain
+        run: |
+          rustup toolchain install
+          rustup show
+
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants --version "$CARGO_MUTANTS_VERSION" --locked
+
+      - name: Record the exact reversal basis
+        run: |
+          echo "repository SHA: $(git rev-parse HEAD)"
+          echo "repository tree: $(git rev-parse HEAD^{tree})"
+          cargo mutants --version
+
+      # The real campaign's positive control cannot establish that its empty-
+      # scope guard bites: a run that silently selects nothing also exits zero.
+      # Excluding every source selected by `.cargo/mutants.toml` plants that
+      # exact defect. cargo-mutants v27 writes an empty inventory and empty
+      # rosters but no outcomes document, and the typed adapter admits exactly
+      # that producer posture.
+      - name: The planted reversal must examine nothing
+        run: |
+          mkdir -p target
+          set +e
+          cargo mutants --workspace -e 'xtask/**' --output target/mutation-reversal
+          code=$?
+          set -e
+          cargo xtask mutation-report reversal "$code" target/mutation-reversal/mutants.out
+
+      # This says only that the reversal's checkout remained clean. It is not
+      # evidence about the independent campaign runner or its checkout.
+      - name: The reversal checkout remains clean
+        if: always()
+        run: |
+          dirty=$(git status --porcelain=v2 --untracked-files=all)
+          if [ -n "$dirty" ]; then
+            echo "::error::the empty-scope reversal changed Git-visible checkout bytes" >&2
+            printf '%s\n' "$dirty" >&2
+            exit 1
+          fi
+          echo "the empty-scope reversal left its Git-visible checkout clean"
+
   xtask:
     # NAMED BY WHAT IT RUNS ON, never by what it skips, and the triggers above
     # already allow nothing else — so this condition is redundant TODAY and is
@@ -64,7 +126,7 @@ jobs:
       # decision deferred to whoever resolves next. This is the version MEASURED
       # on a working machine when `.cargo/mutants.toml` was written.
       - name: Install cargo-mutants
-        run: cargo install cargo-mutants --version 27.0.0 --locked
+        run: cargo install cargo-mutants --version "$CARGO_MUTANTS_VERSION" --locked
 
       - name: Record the exact evidence basis
         run: |
@@ -82,56 +144,27 @@ jobs:
       # this step counts what was examined instead of trusting that something
       # was.
       #
-      # The typed report adapter owns the producer's exit-code and report
-      # contract. In particular, survivors are evidence debt and keep the alarm
-      # green after validation, while a timeout prints its full receipt and then
-      # leaves this step red because the outcome is uncertain.
+      # The fixed xtask launcher first validates this clean checkout as the
+      # campaign's exact subject, then passes its absolute root, commit, and tree
+      # to tests compiled in cargo-mutants' VCS-free scratch copy. It owns the
+      # producer exit and invokes the typed report adapter afterward. Survivors
+      # are evidence debt and keep the alarm green after validation, while a
+      # timeout prints its full receipt and then leaves this step red because
+      # the outcome is uncertain.
       #
-      # `-j 2` builds in two scratch directories at once. More would trade the
-      # runner's disk for a speed this job does not need, since nothing waits on
-      # it.
       - name: The mutation run
-        run: |
-          mkdir -p target
-          set +e
-          cargo mutants --workspace -j 2 --output target/mutation-run
-          code=$?
-          set -e
-          cargo xtask mutation-report run "$code" target/mutation-run/mutants.out
+        run: cargo xtask mutation-campaign
 
-      # THE PLANTED REVERSAL. The step above establishes that the alarm worked
-      # today. It cannot establish that its own guard bites, because a guard that
-      # quietly stopped counting prints the same numbers as one that counted
-      # everything — and what it guards against costs nothing by MEASUREMENT: a
-      # scope matching no source finds no mutant, warns, writes empty rosters,
-      # and exits 0.
-      #
-      # So the same run is made deliberately wrong, by excluding every source the
-      # scope selects, and this step fails the job when that run comes back with
-      # a mutant. It writes to its own report directory so the finding above is
-      # not overwritten by a run that found nothing. MEASURED: it finishes in
-      # seconds, because a run with nothing to test builds no baseline.
-      #
-      # WHAT THIS COVERS: that an empty scope really is silent, and that a run
-      # over one is distinguishable from a run over the real one by the typed
-      # report contract both roads consume.
-      - name: The planted reversal must examine nothing
-        if: always()
-        run: |
-          mkdir -p target
-          set +e
-          cargo mutants --workspace -e 'xtask/**' --output target/mutation-reversal
-          code=$?
-          set -e
-          cargo xtask mutation-report reversal "$code" target/mutation-reversal/mutants.out
-
-      - name: The checkout remains clean
+      # This can run after an ordinary command refusal. It cannot run after the
+      # hosted runner itself disappears, so cleanliness is claimed only when
+      # this step has an executed record.
+      - name: The campaign checkout remains clean
         if: always()
         run: |
           dirty=$(git status --porcelain=v2 --untracked-files=all)
           if [ -n "$dirty" ]; then
-            echo "::error::the mutation alarm changed Git-visible checkout bytes" >&2
+            echo "::error::the mutation campaign changed Git-visible checkout bytes" >&2
             printf '%s\n' "$dirty" >&2
             exit 1
           fi
-          echo "the mutation alarm left the Git-visible checkout clean"
+          echo "the mutation campaign left its Git-visible checkout clean"

@@ -782,6 +782,21 @@ mod tests {
         inspection.finish()
     }
 
+    /// Positive control for cargo-mutants' zero exit: a finalized campaign in
+    /// which every candidate was caught is accepted rather than mistaken for a
+    /// report/exit disagreement.
+    #[test]
+    fn an_all_caught_run_with_exit_zero_is_accepted() -> Result<(), String> {
+        let all_caught = FixtureReport {
+            total: 2,
+            caught: vec!["caught one", "caught two"],
+            ..FixtureReport::reversal()
+        };
+        let (_fixture, inspection) = inspected("all-caught-run", ReportMode::Run, 0, &all_caught)?;
+        assert_eq!(inspection.disposition, ReportDisposition::Accepted);
+        inspection.finish()
+    }
+
     #[test]
     fn a_missing_baseline_refuses() -> Result<(), String> {
         let fixture = Fixture::new("missing-baseline")?;
@@ -883,6 +898,44 @@ mod tests {
                 .contains("mutation.cargo_mutants_version=27.0.0")
         );
         inspection.finish()
+    }
+
+    /// Planted reversal: producer failure alone invalidates an otherwise-empty
+    /// reversal report.
+    #[test]
+    fn a_nonzero_reversal_exit_refuses_independently() -> Result<(), String> {
+        let fixture = Fixture::new("reversal-nonzero-exit")?;
+        fixture.write_report(&FixtureReport::reversal())?;
+        fs::remove_file(fixture.root.join("outcomes.json"))
+            .map_err(|source| format!("cannot remove fixture outcome: {source}"))?;
+        assert!(refusal(inspect(ReportMode::Reversal, 2, &fixture.root))?.contains("exited 2"));
+        Ok(())
+    }
+
+    /// Planted reversal: one generated candidate invalidates the reversal even
+    /// when the producer exit and every outcome roster remain empty.
+    #[test]
+    fn a_nonempty_reversal_inventory_refuses_independently() -> Result<(), String> {
+        let fixture = Fixture::new("reversal-nonempty-inventory")?;
+        fixture.write_report(&FixtureReport::reversal())?;
+        fs::remove_file(fixture.root.join("outcomes.json"))
+            .map_err(|source| format!("cannot remove fixture outcome: {source}"))?;
+        fixture.write("mutants.json", br#"[{"name":"unexpected mutant"}]"#)?;
+        assert!(refusal(inspect(ReportMode::Reversal, 0, &fixture.root))?.contains("listed=1"));
+        Ok(())
+    }
+
+    /// Planted reversal: one classified record invalidates the reversal even
+    /// when the producer exit and generated-candidate inventory remain empty.
+    #[test]
+    fn a_nonempty_reversal_roster_refuses_independently() -> Result<(), String> {
+        let fixture = Fixture::new("reversal-nonempty-roster")?;
+        fixture.write_report(&FixtureReport::reversal())?;
+        fs::remove_file(fixture.root.join("outcomes.json"))
+            .map_err(|source| format!("cannot remove fixture outcome: {source}"))?;
+        fixture.write("caught.txt", b"unexpected caught mutant")?;
+        assert!(refusal(inspect(ReportMode::Reversal, 0, &fixture.root))?.contains("rostered=1"));
+        Ok(())
     }
 
     #[test]
@@ -1122,6 +1175,11 @@ mod tests {
     fn report_bytes_are_bounded_and_strict_utf8() -> Result<(), String> {
         let fixture = Fixture::new("bounded-utf8")?;
         fixture.write("tiny", b"four")?;
+        assert_eq!(
+            read_utf8_bounded(&fixture.root.join("tiny"), 4)?,
+            "four",
+            "an artifact exactly at its admitted byte limit must remain readable"
+        );
         assert!(read_utf8_bounded(&fixture.root.join("tiny"), 3).is_err());
         fixture.write("tiny", [0xff_u8])?;
         assert!(read_utf8_bounded(&fixture.root.join("tiny"), 3).is_err());

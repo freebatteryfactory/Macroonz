@@ -557,6 +557,18 @@ pub(crate) struct CommittedTree {
     tree: TreeId,
 }
 
+impl CommittedTree {
+    /// The exact commit identity carried by this aggregate fact.
+    pub(crate) fn commit(&self) -> &str {
+        &self.commit.0
+    }
+
+    /// The exact tree identity carried by this aggregate fact.
+    pub(crate) fn tree(&self) -> &str {
+        &self.tree.0
+    }
+}
+
 impl fmt::Display for CommittedTree {
     fn fmt(&self, out: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(out, "commit {} (tree {})", self.commit, self.tree)
@@ -738,6 +750,122 @@ pub(crate) fn repo_root() -> Result<PathBuf, Box<dyn Error>> {
     Ok(parent.to_path_buf())
 }
 
+/// The explicit clean repository subject supplied to tests compiled inside a
+/// cargo-mutants scratch copy.
+///
+/// cargo-mutants deliberately compiles changed code outside the Git checkout.
+/// Repository-law tests still need one committed repository to judge, but that
+/// subject must not be inferred from the scratch process's current directory or
+/// from a copied `.git` directory whose tracked bytes the mutant changed. The
+/// mutation workflow therefore supplies this all-or-none basis triple. It is a
+/// `cfg(test)` operational input only: production root discovery remains the
+/// compile-time [`repo_root`] above.
+#[cfg(test)]
+struct MutationSubject {
+    root: PathBuf,
+    expected_commit: String,
+    expected_tree: String,
+}
+
+pub(crate) const MUTATION_SUBJECT_ROOT: &str = "THREADPAK_MUTATION_SUBJECT_ROOT";
+
+pub(crate) const MUTATION_SUBJECT_COMMIT: &str = "THREADPAK_MUTATION_SUBJECT_COMMIT";
+
+pub(crate) const MUTATION_SUBJECT_TREE: &str = "THREADPAK_MUTATION_SUBJECT_TREE";
+
+/// Which repository the test-only real-tree population reads.
+///
+/// Absence preserves ordinary test behavior exactly. A mutation subject is
+/// admitted only when its absolute coordinate and both expected Git identities
+/// arrive together; the snapshot later proves those expectations against the
+/// commit and tree it actually read.
+#[cfg(test)]
+enum TestRepositorySubject {
+    Ordinary(PathBuf),
+    Mutation(MutationSubject),
+}
+
+#[cfg(test)]
+impl TestRepositorySubject {
+    fn read() -> Result<Self, String> {
+        let root = std::env::var_os(MUTATION_SUBJECT_ROOT);
+        let commit = std::env::var_os(MUTATION_SUBJECT_COMMIT);
+        let tree = std::env::var_os(MUTATION_SUBJECT_TREE);
+        match (root, commit, tree) {
+            (None, None, None) => repo_root()
+                .map(Self::Ordinary)
+                .map_err(|error| error.to_string()),
+            (Some(root), Some(commit), Some(tree)) => {
+                let root = PathBuf::from(root);
+                if !root.is_absolute() {
+                    return Err(format!(
+                        "{MUTATION_SUBJECT_ROOT} must name an absolute repository root; got {}",
+                        root.display()
+                    ));
+                }
+                Ok(Self::Mutation(MutationSubject {
+                    root,
+                    expected_commit: mutation_subject_identity(MUTATION_SUBJECT_COMMIT, commit)?,
+                    expected_tree: mutation_subject_identity(MUTATION_SUBJECT_TREE, tree)?,
+                }))
+            }
+            _ => Err(format!(
+                "{MUTATION_SUBJECT_ROOT}, {MUTATION_SUBJECT_COMMIT}, and {MUTATION_SUBJECT_TREE} must be supplied together or all remain absent"
+            )),
+        }
+    }
+
+    fn root(&self) -> &Path {
+        match self {
+            Self::Ordinary(root) => root,
+            Self::Mutation(subject) => &subject.root,
+        }
+    }
+
+    fn require_expected_basis(&self, actual: &CommittedTree) -> Result<(), String> {
+        let Self::Mutation(expected) = self else {
+            return Ok(());
+        };
+        if actual.commit() == expected.expected_commit && actual.tree() == expected.expected_tree {
+            return Ok(());
+        }
+        Err(format!(
+            "mutation subject {} was expected at commit {} (tree {}) but read {actual}",
+            expected.root.display(),
+            expected.expected_commit,
+            expected.expected_tree
+        ))
+    }
+}
+
+/// Reads the mutation subject basis once for the whole test process.
+///
+/// Environment is process-global. Caching before any thread-local snapshot is
+/// built means two test threads cannot observe different subject triples even
+/// if an external harness changes its environment incorrectly while they run.
+#[cfg(test)]
+fn test_repository_subject() -> Result<&'static TestRepositorySubject, String> {
+    use std::sync::OnceLock;
+
+    static SUBJECT: OnceLock<Result<TestRepositorySubject, String>> = OnceLock::new();
+    match SUBJECT.get_or_init(TestRepositorySubject::read) {
+        Ok(subject) => Ok(subject),
+        Err(refusal) => Err(refusal.clone()),
+    }
+}
+
+#[cfg(test)]
+fn mutation_subject_identity(role: &str, value: OsString) -> Result<String, String> {
+    let identity = value
+        .into_string()
+        .map_err(|_| format!("{role} is not Unicode"))?;
+    if identity.is_empty() {
+        Err(format!("{role} is empty"))
+    } else {
+        Ok(identity)
+    }
+}
+
 /// The cargo binary a spawned stage or reading is given.
 ///
 /// Cargo sets `CARGO` for every process it starts, so a nested invocation
@@ -770,9 +898,10 @@ pub(crate) fn repository_snapshot() -> Result<&'static RepositorySnapshot, Strin
         if let Some(already) = *held.borrow() {
             return Ok(already);
         }
-        let root = repo_root().map_err(|error| error.to_string())?;
-        let built: &'static RepositorySnapshot =
-            Box::leak(Box::new(RepositorySnapshot::read(&root)?));
+        let subject = test_repository_subject()?;
+        let built = RepositorySnapshot::read(subject.root())?;
+        subject.require_expected_basis(built.committed())?;
+        let built: &'static RepositorySnapshot = Box::leak(Box::new(built));
         *held.borrow_mut() = Some(built);
         Ok(built)
     })
@@ -788,9 +917,37 @@ mod tests {
     use std::process::{Command, Stdio};
     use std::sync::atomic::{AtomicUsize, Ordering};
 
-    use super::{GIT_STORAGE, RepositorySnapshot, parse_tracked_blobs};
+    use super::{
+        GIT_STORAGE, MUTATION_SUBJECT_COMMIT, MUTATION_SUBJECT_ROOT, MUTATION_SUBJECT_TREE,
+        RepositorySnapshot, TestRepositorySubject, parse_tracked_blobs,
+    };
     use crate::checks::hygiene::check_lf_and_no_symlinks;
     use crate::repository::types::{LinkState, Read};
+
+    /// One isolated directory carrying no version-control storage.
+    struct PlainDirectory {
+        root: PathBuf,
+    }
+
+    impl PlainDirectory {
+        fn named(name: &str) -> Result<Self, String> {
+            static NEXT: AtomicUsize = AtomicUsize::new(0);
+            let ordinal = NEXT.fetch_add(1, Ordering::Relaxed);
+            let root = std::env::temp_dir().join(format!(
+                "threadpak-plain-directory-{}-{ordinal}-{name}",
+                std::process::id()
+            ));
+            let _removed = fs::remove_dir_all(&root);
+            fs::create_dir_all(&root).map_err(|error| format!("{}: {error}", root.display()))?;
+            Ok(Self { root })
+        }
+    }
+
+    impl Drop for PlainDirectory {
+        fn drop(&mut self) {
+            let _removed = fs::remove_dir_all(&self.root);
+        }
+    }
 
     /// One isolated Git repository for a committed-snapshot control.
     struct GitFixture {
@@ -948,6 +1105,217 @@ mod tests {
                 ))
             })
             .collect()
+    }
+
+    /// Selects one child-only mutation-subject control without mutating the
+    /// parent test process's environment.
+    const MUTATION_SUBJECT_CHILD_CASE: &str = "THREADPAK_MUTATION_SUBJECT_CHILD_CASE";
+
+    fn mutation_subject_child(case: &str, current_dir: &Path) -> Result<Command, String> {
+        let child = std::env::current_exe()
+            .map_err(|error| format!("current xtask test executable: {error}"))?;
+        let mut command = Command::new(child);
+        command
+            .arg("mutation_subject_basis_is_explicit_and_bound")
+            .arg("--test-threads=1")
+            .current_dir(current_dir)
+            .env(MUTATION_SUBJECT_CHILD_CASE, case)
+            .env_remove(MUTATION_SUBJECT_ROOT)
+            .env_remove(MUTATION_SUBJECT_COMMIT)
+            .env_remove(MUTATION_SUBJECT_TREE)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        Ok(command)
+    }
+
+    fn require_subject_child(mut command: Command, case: &str) -> Result<(), String> {
+        let output = command
+            .output()
+            .map_err(|error| format!("mutation-subject {case} child test: {error}"))?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        if output.status.success() && stdout.contains("1 passed") {
+            Ok(())
+        } else {
+            Err(format!(
+                "mutation-subject {case} child did not establish its claim:\n{stdout}\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ))
+        }
+    }
+
+    fn clean_subject_child() -> Result<(), String> {
+        let current = std::env::current_dir()
+            .map_err(|error| format!("mutation child current directory: {error}"))?;
+        let discovery = super::git(&current)
+            .args(["rev-parse", "--is-inside-work-tree"])
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()
+            .map_err(|error| format!("detached-directory Git probe: {error}"))?;
+        assert!(
+            !discovery.status.success(),
+            "the clean-subject child current directory unexpectedly discovered Git"
+        );
+        let _snapshot = super::repository_snapshot()?;
+        Ok(())
+    }
+
+    fn require_snapshot_refusal(description: &str, fragments: &[&str]) -> Result<(), String> {
+        let refusal = super::repository_snapshot()
+            .err()
+            .ok_or_else(|| format!("{description} was accepted"))?;
+        for fragment in fragments {
+            assert!(refusal.contains(fragment), "{refusal}");
+        }
+        Ok(())
+    }
+
+    fn require_subject_selection_refusal(description: &str, fragment: &str) -> Result<(), String> {
+        let refusal = super::test_repository_subject()
+            .err()
+            .ok_or_else(|| format!("{description} was accepted"))?;
+        assert!(refusal.contains(fragment), "{refusal}");
+        Ok(())
+    }
+
+    fn ordinary_subject_child() -> Result<(), String> {
+        match super::test_repository_subject()? {
+            TestRepositorySubject::Ordinary(root) => {
+                let ordinary = super::repo_root().map_err(|error| error.to_string())?;
+                assert_eq!(root, &ordinary);
+                Ok(())
+            }
+            TestRepositorySubject::Mutation(_) => Err(String::from(
+                "absent mutation subject inputs selected the mutation road",
+            )),
+        }
+    }
+
+    fn execute_mutation_subject_child(case: &str) -> Result<(), String> {
+        match case {
+            "clean" => clean_subject_child(),
+            "non-git" => {
+                require_snapshot_refusal("a non-Git mutation subject", &["is not a Git checkout"])
+            }
+            "dirty" => require_snapshot_refusal(
+                "a dirty mutation subject",
+                &["tracked.txt", "differs from the bytes"],
+            ),
+            "partial" => require_subject_selection_refusal(
+                "a partial mutation subject",
+                "must be supplied together",
+            ),
+            "relative" => require_subject_selection_refusal(
+                "a relative mutation subject",
+                "must name an absolute",
+            ),
+            "empty-commit" => require_subject_selection_refusal(
+                "an empty expected mutation commit",
+                "THREADPAK_MUTATION_SUBJECT_COMMIT is empty",
+            ),
+            "empty-tree" => require_subject_selection_refusal(
+                "an empty expected mutation tree",
+                "THREADPAK_MUTATION_SUBJECT_TREE is empty",
+            ),
+            "wrong-commit" => require_snapshot_refusal(
+                "a wrong expected commit",
+                &["was expected at commit wrong-commit"],
+            ),
+            "wrong-tree" => require_snapshot_refusal("a wrong expected tree", &["tree wrong-tree"]),
+            "absent" => ordinary_subject_child(),
+            other => Err(format!("unknown mutation-subject child case {other}")),
+        }
+    }
+
+    /// The mutation-only subject is an all-or-none exact basis, and it is the
+    /// sole exception to ordinary tests reading their compile-time repository
+    /// root. Every environment variant runs in a child so parallel tests never
+    /// observe a process-global input changing underneath them.
+    #[test]
+    fn mutation_subject_basis_is_explicit_and_bound() -> Result<(), String> {
+        if let Ok(case) = std::env::var(MUTATION_SUBJECT_CHILD_CASE) {
+            return execute_mutation_subject_child(&case);
+        }
+
+        let clean = GitFixture::named("mutation-subject-clean")?;
+        clean.write("tracked.txt", b"committed mutation subject\n")?;
+        clean.commit()?;
+        let clean_basis = super::committed_tree(&clean.root)?;
+        let clean_commit = clean_basis.commit.to_string();
+        let clean_tree = clean_basis.tree.to_string();
+
+        let dirty = GitFixture::named("mutation-subject-dirty")?;
+        dirty.write("tracked.txt", b"committed\n")?;
+        dirty.commit()?;
+        let dirty_basis = super::committed_tree(&dirty.root)?;
+        let dirty_commit = dirty_basis.commit.to_string();
+        let dirty_tree = dirty_basis.tree.to_string();
+        dirty.write("tracked.txt", b"dirty\n")?;
+
+        let detached = PlainDirectory::named("mutation-subject-current-directory")?;
+        let non_git = PlainDirectory::named("mutation-subject-non-git")?;
+
+        let mut clean_child = mutation_subject_child("clean", &detached.root)?;
+        clean_child
+            .env(MUTATION_SUBJECT_ROOT, &clean.root)
+            .env(MUTATION_SUBJECT_COMMIT, &clean_commit)
+            .env(MUTATION_SUBJECT_TREE, &clean_tree);
+        require_subject_child(clean_child, "clean")?;
+
+        let mut non_git_child = mutation_subject_child("non-git", &detached.root)?;
+        non_git_child
+            .env(MUTATION_SUBJECT_ROOT, &non_git.root)
+            .env(MUTATION_SUBJECT_COMMIT, &clean_commit)
+            .env(MUTATION_SUBJECT_TREE, &clean_tree);
+        require_subject_child(non_git_child, "non-git")?;
+
+        let mut dirty_child = mutation_subject_child("dirty", &detached.root)?;
+        dirty_child
+            .env(MUTATION_SUBJECT_ROOT, &dirty.root)
+            .env(MUTATION_SUBJECT_COMMIT, &dirty_commit)
+            .env(MUTATION_SUBJECT_TREE, &dirty_tree);
+        require_subject_child(dirty_child, "dirty")?;
+
+        let mut partial_child = mutation_subject_child("partial", &detached.root)?;
+        partial_child.env(MUTATION_SUBJECT_ROOT, &clean.root);
+        require_subject_child(partial_child, "partial")?;
+
+        let mut relative_child = mutation_subject_child("relative", &detached.root)?;
+        relative_child
+            .env(MUTATION_SUBJECT_ROOT, "relative-subject")
+            .env(MUTATION_SUBJECT_COMMIT, &clean_commit)
+            .env(MUTATION_SUBJECT_TREE, &clean_tree);
+        require_subject_child(relative_child, "relative")?;
+
+        let mut empty_commit_child = mutation_subject_child("empty-commit", &detached.root)?;
+        empty_commit_child
+            .env(MUTATION_SUBJECT_ROOT, &clean.root)
+            .env(MUTATION_SUBJECT_COMMIT, "")
+            .env(MUTATION_SUBJECT_TREE, &clean_tree);
+        require_subject_child(empty_commit_child, "empty-commit")?;
+
+        let mut empty_tree_child = mutation_subject_child("empty-tree", &detached.root)?;
+        empty_tree_child
+            .env(MUTATION_SUBJECT_ROOT, &clean.root)
+            .env(MUTATION_SUBJECT_COMMIT, &clean_commit)
+            .env(MUTATION_SUBJECT_TREE, "");
+        require_subject_child(empty_tree_child, "empty-tree")?;
+
+        let mut wrong_commit_child = mutation_subject_child("wrong-commit", &detached.root)?;
+        wrong_commit_child
+            .env(MUTATION_SUBJECT_ROOT, &clean.root)
+            .env(MUTATION_SUBJECT_COMMIT, "wrong-commit")
+            .env(MUTATION_SUBJECT_TREE, &clean_tree);
+        require_subject_child(wrong_commit_child, "wrong-commit")?;
+
+        let mut wrong_tree_child = mutation_subject_child("wrong-tree", &detached.root)?;
+        wrong_tree_child
+            .env(MUTATION_SUBJECT_ROOT, &clean.root)
+            .env(MUTATION_SUBJECT_COMMIT, &clean_commit)
+            .env(MUTATION_SUBJECT_TREE, "wrong-tree");
+        require_subject_child(wrong_tree_child, "wrong-tree")?;
+
+        require_subject_child(mutation_subject_child("absent", &detached.root)?, "absent")
     }
 
     /// Positive control: committed files are read from their Git blobs.
