@@ -58,14 +58,17 @@
 #
 # THE ONE THING THIS LINE CANNOT SAY is which PACKAGES a run examines — the
 # configuration has no key for it. `cargo xtask mutation-campaign` owns the one
-# admitted invocation and supplies `--workspace`; it accepts no pass-through
-# arguments. MEASURED: a raw `cargo mutants` with no package selection takes the
-# root package alone, this glob matches nothing inside it, and the run finds no
-# mutant and exits 0. It does say so, on a WARN line — and a warning that fails
-# nothing is what a job reads as success, which is the whole difference between
-# a diagnostic and a refusal. The fixed launcher also binds scratch-compiled
-# tests to the exact clean commit and tree they judge, so neither workflow shell
-# nor cargo-mutants' current directory becomes repository identity.
+# admitted positive campaign invocation and supplies `--workspace`; it accepts
+# no pass-through arguments. The sole raw invocation is the workflow's planted
+# empty-scope reversal, whose deliberately excluded source population challenges
+# the report guard rather than producing campaign evidence. MEASURED: a raw
+# `cargo mutants` with no package selection takes the root package alone, this
+# glob matches nothing inside it, and the run finds no mutant and exits 0. It
+# does say so, on a WARN line — and a warning that fails nothing is what a job
+# reads as success, which is the whole difference between a diagnostic and a
+# refusal. The fixed launcher also binds scratch-compiled tests to the exact
+# clean commit and tree they judge, so neither workflow shell nor cargo-mutants'
+# current directory becomes repository identity.
 examine_globs = ["xtask/**/*.rs"]
 
 # CHOSEN: the changed code is compiled in cargo-mutants' VCS-free scratch copy.
