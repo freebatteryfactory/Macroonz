@@ -34,6 +34,37 @@ default seated here for convenience would become a ceiling nobody decided. No
 universal status, result, uncertainty, or receipt type: each operation composes
 only the axes it answers.
 
+## Crate-wide laws the root states once
+
+- **The structural spine.** A compile-time shape makes the wrong move
+  unrepresentable, and a runtime-validated fact carried in the value's own
+  canonical bytes enforces the right move at the operation boundary. The shape
+  never decides — it makes bypassing the runtime check impossible.
+- **The opaque-newtype obligations.** Every role-distinct public type is
+  opaque; minted only by its owner; `Eq`/`Hash`; no `Ord` beyond a declared
+  raw-byte storage order; serialized through an explicit codec only; no public
+  constructor, no `Default`, no cross-family `From`; wrong-role construction
+  does not compile, and wrong-role decode refuses.
+- **Crossings never gain.** At every boundary crossing, uncertainty only
+  widens, budgets only shrink, authority only attenuates, and information
+  classification only restricts. Each reverse direction is a named,
+  authority-bearing morphism that consumes new evidence and leaves a receipt.
+- **Result conventions.** `ASK` is pure and publishes nothing; `DO` admits a
+  bounded effect batch after required evidence and decisions pass; `REQUEST`
+  durably admits an asynchronous effect intent; `PEND` admits the same durable
+  intent and performs one immediate bounded attempt. `bool` is a result axis
+  only for questions decidable-total from data in hand. Only the knowledge
+  axes (`Truth`, `CommitKnowledge`, `OutcomeKnowledge`) may say "not yet"; an
+  owed-but-not-performed posture spells itself `Outstanding` or `Unresolved`,
+  never `Pending`. `Freshness` and `ProofDisposition` are evidence facts, not
+  knowledge axes — neither can say "not yet".
+- **Standing prohibitions.** No universal uncertainty wrapper and no parallel
+  belief store. One owner per public type: every public type has exactly one
+  owning home defining its body; all others reference it. A projection may
+  adapt syntax, transport, or presentation; it may never change identity,
+  schemas, authority, capabilities, bounds, effects, results, refusals, or
+  evidence meaning.
+
 ## The band map
 
 The numbered homes under this directory are dependency bands: band N imports

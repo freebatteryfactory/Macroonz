@@ -1,55 +1,7 @@
-//! The root shape calculus: the generic composition shapes every home instantiates,
-//! plus the two axes admitted to root by explicit decision. Nothing here is a semantic
-//! noun beyond those two — a semantic noun lives at root only by an explicit root
-//! admission decision.
-//!
-//! # The structural spine
-//!
-//! One pattern governs the whole crate: *a compile-time shape makes the wrong move
-//! unrepresentable, and a runtime-validated fact carried in the value's own canonical
-//! bytes enforces the right move at the operation boundary.* The shape never decides —
-//! it cannot see runtime facts; it makes bypassing the runtime check impossible.
-//!
-//! # The opaque-newtype obligations
-//!
-//! Every role-distinct public type in this crate satisfies eight obligations: it is
-//! opaque; it is minted only by its owner; it is `Eq`/`Hash`; it has no `Ord` beyond a
-//! declared raw-byte storage order; it serializes through an explicit codec only (no
-//! ambient serde); it has no public constructor, no `Default`, and no cross-family
-//! `From`; wrong-role construction does not compile; wrong-role decode refuses.
-//!
-//! # Crossings never gain
-//!
-//! At every boundary crossing, uncertainty only widens, budgets only shrink, authority
-//! only attenuates, and information classification only restricts. Each reverse
-//! direction exists solely as a named, authority-bearing morphism that consumes new
-//! evidence and leaves a receipt. The falsifier for every home: attempt the gain
-//! without the named morphism — it must be unrepresentable or refuse.
-//!
-//! # Result conventions
-//!
-//! `ASK` returns a pure result and explanation, publishing nothing. `DO` admits a
-//! bounded effect batch after required evidence and decisions pass. `REQUEST` durably
-//! admits an asynchronous effect intent. `PEND` admits the same durable intent and
-//! additionally performs and observes one immediate bounded attempt. `bool` is never a
-//! result axis: a two-variant result is lawful only when the question is
-//! decidable-total from data in hand; any question whose answer can lag composes a
-//! knowledge axis into its result. Only the knowledge axes (`Truth`,
-//! `CommitKnowledge`, `OutcomeKnowledge` — owned by their homes) may say "not yet";
-//! no other enum grows a `Pending` variant, and a merely owed-but-not-yet-performed
-//! posture spells itself `Outstanding` or `Unresolved`, never `Pending`.
-//!
-//! By explicit decision, [`Freshness`] and [`ProofDisposition`] are *evidence facts*,
-//! not knowledge axes: neither can express "not yet", so the three-axis closure
-//! stands unbroken.
-//!
-//! # Standing prohibitions
-//!
-//! There is no universal uncertainty wrapper and no parallel belief store. One owner
-//! per public type: every public type has exactly one owning home defining its body;
-//! all others reference it. A projection may adapt syntax, transport, or presentation;
-//! it may never change identity, schemas, authority, capabilities, bounds, effects,
-//! results, refusals, or evidence meaning.
+//! The root shape calculus: the generic composition shapes every home
+//! instantiates, plus the two axes admitted to root by explicit decision.
+//! `src/README.md` owns the root narrative and the crate-wide laws;
+//! each declaration below owns its own contract.
 
 use core::marker::PhantomData;
 
@@ -61,205 +13,124 @@ use core::marker::PhantomData;
 /// Which authority supplies one limit family's capacity.
 ///
 /// A capacity arrives by exactly one road, and which road is a fact about the
-/// FAMILY rather than about any call site. [`DeclaredMagnitude`] is a number
-/// written in the source; [`EvidenceSelectedMagnitude`] is a number the owner's
-/// evidence selects while the machine runs; [`UnstatedMagnitude`] is a family
-/// that has named neither.
+/// family, never about a call site:
+/// [`DeclaredMagnitude`] is a number written in the source,
+/// [`EvidenceSelectedMagnitude`] is a number the owner's evidence selects while
+/// the machine runs, and [`UnstatedMagnitude`] names neither.
+/// Every marker implementing this is uninhabited:
+/// its whole job is to be the type a family's [`Limit::Authority`] resolves to,
+/// so two ladders demanding different authorities can never both be satisfied.
 ///
-/// Every marker implementing this is uninhabited. Nothing constructs one,
-/// nothing carries one, and none of them is a value: the whole of what a marker
-/// does is be the type one family's [`Limit::Authority`] resolves to, so that
-/// two ladders demanding different types cannot both be satisfied by one
-/// family.
-///
-/// # It is not sealed, and what that does and does not admit
-///
-/// [`Limit`] is an extension point by decision — any home, and any frontend
-/// outside this crate, declares a family — so the authority set is open in the
-/// same way. What a marker declared outside can do is exactly nothing:
-/// [`ConstLimit`] and [`EvidenceSelectedLimit`] name their authority type
-/// EXACTLY, so a family whose authority is a fourth marker satisfies neither
-/// ladder and reaches no mint. An open set therefore admits no capacity road
-/// this crate did not declare; it admits only a family saying, in a vocabulary
-/// of its own, that it takes none of the roads seated here.
+/// The set is open — any home, and any frontend outside this crate, declares a
+/// family — but a foreign marker reaches nothing:
+/// [`ConstLimit`] and [`EvidenceSelectedLimit`] name their authority exactly,
+/// so a fourth authority satisfies neither ladder and reaches no mint.
 pub trait CapacityAuthority {}
 
-/// The authority of a magnitude written in the SOURCE.
+/// The authority of a magnitude written in the source.
 ///
 /// [`ConstLimit`] is the declaration that supplies the number, and the two
-/// compile-time roads — [`AdmittedLimit`] and [`PositiveLimit`] — are what stand
-/// it under a plane's ceiling and prove it admits an item, both before the
+/// compile-time roads — [`AdmittedLimit`] and [`PositiveLimit`] — stand it
+/// under a plane's ceiling and prove it admits an item, both before the
 /// program runs.
 pub enum DeclaredMagnitude {}
 
 impl CapacityAuthority for DeclaredMagnitude {}
 
-/// The authority of a magnitude the owner's EVIDENCE selects while the machine
+/// The authority of a magnitude the owner's evidence selects while the machine
 /// runs.
 ///
 /// [`EvidenceSelectedLimit`] is the declaration that admits this road, and the
-/// two runtime roads — [`LimitWitness`] and [`PositiveLimitWitness`] — are what
-/// carry the selection and the promise that it admits an item, because no
-/// `const` block can see a number that does not exist yet.
+/// two runtime roads — [`LimitWitness`] and [`PositiveLimitWitness`] — carry
+/// the selection and the promise that it admits an item, because no `const`
+/// block can see a number that does not exist yet.
 pub enum EvidenceSelectedMagnitude {}
 
 impl CapacityAuthority for EvidenceSelectedMagnitude {}
 
-/// The authority of a family that has named NEITHER road.
+/// The authority of a family that has named neither capacity road.
 ///
-/// It is a real state and the largest one in this crate today: a family
-/// bounding a [`Bounded`] seat needs no magnitude to exist, because
-/// [`Bounded::empty`] reads none and an empty collection under such a family is
-/// honest rather than degenerate.
-///
-/// # What declaring it claims, exactly
-///
-/// That the family has supplied no capacity authority the type system carries.
-/// It does NOT claim the owner has no view about where the magnitude should
-/// come from: several families in this crate say "schema-witnessed" in the prose
-/// beside their declaration and say it nowhere a road can read, and this marker
-/// is what makes that gap a fact rather than an absence — the family is on no
-/// ladder, no mint takes it, and moving it onto one is a change to this line at
-/// the declaration rather than a bound somebody remembers to add.
+/// A family bounding only a [`Bounded`] seat needs no magnitude:
+/// [`Bounded::empty`] reads none, and an empty collection under such a family
+/// is honest rather than degenerate.
+/// Declaring it states the one fact the type system carries — the family is on
+/// no ladder and no mint takes it.
+/// Choosing a capacity authority is a one-line change at the family's own
+/// declaration.
 pub enum UnstatedMagnitude {}
 
 impl CapacityAuthority for UnstatedMagnitude {}
 
-/// A limit family marker. The type names *which* limit governs a bounded value, so
-/// two different limits never unify: `Bounded<T, DecodeMax>` and
-/// `Bounded<T, ArenaMax>` are distinct types regardless of their magnitudes.
+/// A limit family marker: the type names *which* limit governs a bounded
+/// value, so two different limits never unify.
+/// `Bounded<T, DecodeMax>` and `Bounded<T, ArenaMax>` are distinct types
+/// regardless of their magnitudes.
 ///
-/// Owner homes declare their limit families; the schema home is the only authority
-/// that mints runtime magnitudes (as [`LimitWitness`] values).
+/// Owner homes declare their limit families; the schema home is the only
+/// authority that mints runtime magnitudes (as [`LimitWitness`] values).
 pub trait Limit {
     /// Which authority supplies this family's capacity.
     ///
-    /// # One family, one capacity authority, by type identity
+    /// A family declares this once, and the ladder traits name the authority
+    /// they require exactly:
+    /// [`ConstLimit`] requires [`DeclaredMagnitude`], and
+    /// [`EvidenceSelectedLimit`] requires [`EvidenceSelectedMagnitude`].
+    /// One associated type resolves to one type, so a family declaring both
+    /// ladders does not compile — the exclusion is the arity of an associated
+    /// type, not a bound, a law, or a sentence.
     ///
-    /// A family declares this once, at its own declaration, and the two ladder
-    /// traits name the authority they require EXACTLY:
-    /// [`ConstLimit`] requires [`DeclaredMagnitude`] and
-    /// [`EvidenceSelectedLimit`] requires [`EvidenceSelectedMagnitude`]. An
-    /// associated type resolves to one type, so a family declaring both ladders
-    /// is asking one projection to be two types at once and does not compile.
-    ///
-    /// That is the whole of the mechanism, and it is why nothing below has to
-    /// remember it: the exclusion is not a bound a road carries, a law that
-    /// asserts it, or a sentence in a doc comment — it is the arity of an
-    /// associated type. Two authorities for one capacity is the shape where two
-    /// independently supplied halves of one fact drift apart, and here the
-    /// second half cannot be supplied.
-    ///
-    /// # What it does not decide
-    ///
-    /// It does not supply a magnitude, and it does not check one. Declaring
-    /// [`DeclaredMagnitude`] without implementing [`ConstLimit`] leaves a family
-    /// with no `MAX` and therefore no road to [`AdmittedLimit`]; declaring
-    /// [`EvidenceSelectedMagnitude`] without implementing
-    /// [`EvidenceSelectedLimit`] leaves it with no road to either [`LimitWitness`]
-    /// or [`PositiveLimitWitness`]. Both are inert rather than wrong: the family
-    /// names a road and never walks it, and the ladder traits stay the one place
-    /// a capacity is actually reachable from.
+    /// Declaring an authority without implementing its ladder trait is inert
+    /// rather than wrong:
+    /// the family names a road and never walks it, and the ladder traits stay
+    /// the one place a capacity is actually reachable from.
     type Authority: CapacityAuthority;
 }
 
-/// A limit family whose magnitude is known at compile time.
+/// A limit family whose magnitude is written in the source.
 ///
-/// The supertrait bound names the authority exactly, so implementing this for a
-/// family whose [`Limit::Authority`] is anything else is a type mismatch at the
-/// declaration — see [`Limit::Authority`] for what that forecloses.
+/// The supertrait bound names the authority exactly, so implementing this for
+/// a family whose [`Limit::Authority`] is anything else is a type mismatch at
+/// the declaration.
 pub trait ConstLimit: Limit<Authority = DeclaredMagnitude> {
     /// The maximum item count this family admits.
     const MAX: usize;
 }
 
-/// A limit family whose magnitude is SELECTED BY EVIDENCE while the machine
-/// runs, rather than declared in the source.
+/// A limit family whose capacity is selected from admitted runtime evidence,
+/// not written in the source.
 ///
-/// # Why a family says which ladder its magnitude travels
-///
-/// [`ConstLimit`] and this trait are the two roads a family's capacity can
-/// arrive by, and they establish their facts in different places. A declared
-/// magnitude is a number in the source: [`AdmittedLimit`] stands it under a
-/// plane's ceiling and [`PositiveLimit`] proves it admits an item, both before
-/// the program runs. An evidence-selected magnitude does not exist until the
-/// owner's evidence selects it, so no `const` block can see it, no ceiling
-/// comparison can be settled at compile time, and the same two facts have to be
-/// established by values instead — [`LimitWitness`] and [`PositiveLimitWitness`].
-///
-/// Several families in this crate said "a declared finite bound,
-/// evidence-selected" in PROSE beside their declaration and said it nowhere a
-/// road could read, which left the second ladder with a magnitude nothing
-/// carried and a positivity nothing established. This trait is where that
-/// sentence becomes a fact the compiler carries: both runtime witness types and
-/// every road consuming them are bounded on it, so a family that never declared
-/// its magnitude evidence-selected has no road to a runtime capacity at all.
-///
-/// # What implementing it claims, and what it does not
-///
-/// It claims exactly that the family's magnitude arrives at runtime and that the
-/// owner admits the second ladder for it. It claims nothing about what that
-/// magnitude will be and nothing about whether the number the evidence selects
-/// is the right one for the family's domain — the owner profile and the evidence
-/// select that, no road can check it, and no witness below pretends to.
-///
-/// # A family cannot declare both ladders
-///
-/// It once said here that a family implementing both this and [`ConstLimit`]
-/// would be stating two authorities for one capacity, and that no bound could
-/// see it. The supertrait bounds are what see it now: this trait requires
-/// [`EvidenceSelectedMagnitude`] and [`ConstLimit`] requires
-/// [`DeclaredMagnitude`], one associated type resolves to one type, and the
-/// second implementation is a type mismatch at the declaration rather than a
-/// defect a reader has to notice. [`Limit::Authority`] carries the whole
-/// statement; nothing here restates it.
+/// Implementing it enables the runtime witness ladder:
+/// [`LimitWitness`] carries the selected magnitude, and
+/// [`PositiveLimitWitness`] establishes that the selection admits an item.
+/// The validating owner remains responsible for selecting a magnitude suitable
+/// for the family's domain.
+/// The compile-time counterpart is [`ConstLimit`]; a family cannot declare
+/// both — [`Limit::Authority`] carries that exclusion.
 pub trait EvidenceSelectedLimit: Limit<Authority = EvidenceSelectedMagnitude> {}
 
-/// The ceiling one PLANE admits its declared magnitudes under.
+/// The ceiling one plane admits its declared magnitudes under.
 ///
-/// # Root owns the algebra; a profile owns the number
-///
-/// This crate owns the admission-witness algebra — which witnesses exist, what
-/// each one establishes, and which road consumes which. It does not own any
-/// plane's admissible magnitude. There is no single number that is right for
-/// every plane: an authoring plane bounding token material, a qualification
-/// plane rehearsing hostiles, and a host sizing its own buffers are answering
-/// different questions, and one number spanning all of them would be a number
-/// nobody decided — which is the exact defect a declared ceiling exists to end.
-///
-/// So the number is written down where its plane's seats are written down, and
-/// the generic roads below are instantiated with the downstream profile type.
-/// That is why this crate needs no edge to any plane that declares one.
-///
-/// # What this crate may seat, exactly
-///
-/// A profile-independent witness algebra; an absolute bound the REPRESENTATION
-/// imposes; and narrowly named profiles its own laws stand under, behind
-/// `cfg(test)`. Nothing else. In particular there is no production default
-/// profile here, because a default seated for convenience becomes the ceiling
-/// every downstream reaches for without deciding anything.
+/// The root owns the admission-witness algebra; a plane owns its number.
+/// There is no single magnitude right for every plane, so the ceiling is
+/// declared where the plane's seats are declared, and the generic roads here
+/// are instantiated with the downstream profile type.
+/// The root seats no production profile:
+/// a default seated for convenience becomes a ceiling nobody decided.
 pub trait LimitAdmissionProfile {
     /// The widest declared magnitude this profile admits.
     ///
-    /// What it rules out is a "bound" that bounds nothing: a magnitude no input
-    /// under this plane could reach makes its checked constructor
-    /// unfalsifiable, and a constructor that cannot refuse is not a checked
-    /// constructor.
+    /// What it rules out is a bound that bounds nothing:
+    /// a magnitude no input under the plane could reach makes its checked
+    /// constructor unfalsifiable.
     const MAX_DECLARED_LIMIT: usize;
 }
 
-/// The profile the ROOT'S OWN LAWS stand under, and nothing else.
+/// The profile the root's own laws stand under, and nothing else.
 ///
-/// Narrowly named and `cfg(test)`-gated on purpose. The proof surface needs
-/// families to admit in order to exercise the witness algebra at all, and the
-/// families it declares are small demonstrations rather than any plane's
-/// vocabulary. Seating a ceiling for them is not seating a production default:
-/// this profile does not exist in a built artifact, and nothing outside the
-/// crate's own proof surface can name it.
-///
-/// The number leaves room above the widest family the laws instantiate, which
-/// is a home's issue bound in the low tens. A law that needed a wider one would
-/// raise this number deliberately rather than inherit a wide one.
+/// `cfg(test)`-gated on purpose: it does not exist in a built artifact, and
+/// nothing outside the crate's own proof surface can name it.
+/// The number leaves room above the widest family the laws instantiate; a law
+/// needing a wider one raises this number deliberately.
 #[cfg(test)]
 pub(crate) struct RootLawsProfile;
 
@@ -268,11 +139,9 @@ impl LimitAdmissionProfile for RootLawsProfile {
     const MAX_DECLARED_LIMIT: usize = 1_024;
 }
 
-/// A second laws-only profile, deliberately narrower than [`RootLawsProfile`].
-///
-/// It exists so the proof surface can show that a witness names WHICH profile
-/// admitted it. One profile alone cannot demonstrate that, because there is
-/// nothing for it to fail to unify with.
+/// A second laws-only profile, deliberately narrower than [`RootLawsProfile`],
+/// so the proof surface can show that a witness names which profile admitted
+/// it.
 #[cfg(test)]
 pub(crate) struct NarrowLawsProfile;
 
@@ -284,46 +153,26 @@ impl LimitAdmissionProfile for NarrowLawsProfile {
 /// Evidence that one limit family's declared magnitude stands under one
 /// profile's ceiling.
 ///
-/// # Why a declaration is not yet a machine fact
-///
-/// [`Limit`] and [`ConstLimit`] are extension points: any home — and any
-/// frontend outside this crate — declares a family, and the compiler checks
-/// nothing about the number it declares. A road that reads `L::MAX` and acts on
-/// it is trusting a value nobody validated. This witness is what a family's
-/// declaration must pass through before a road may treat it as a fact, and it is
-/// opaque and constructor-free, so holding one *is* the evidence.
-///
-/// # What the mint establishes, and what it deliberately does not
-///
-/// [`under_profile`](Self::under_profile) establishes exactly one thing about
-/// `L`, at COMPILE TIME, so no artifact carrying an inadmissible family is ever
-/// produced: `L::MAX` stands under `P::MAX_DECLARED_LIMIT`.
-///
-/// It does NOT establish that the family admits an item, and that absence is
-/// deliberate. A family declaring `MAX = 0` mints this witness lawfully,
-/// because a zero maximum is an honest declaration for a seat that holds
-/// nothing: [`Bounded::empty`] under such a family is a real empty collection,
-/// and a base witness that refused the declaration would refuse that seat with
-/// it. The positivity claim is seated one witness up, in [`PositiveLimit`],
-/// where exactly the roads promising an inhabitant consume it.
-///
-/// # Both parameters are load-bearing
-///
-/// The family tag stops one family's admission from authorizing another. The
-/// profile tag stops one PLANE's admission from authorizing another: a
-/// magnitude admitted under a wide authoring ceiling is not admitted under a
-/// narrow qualification one, and `AdmittedLimit<L, A>` does not typecheck where
+/// [`Limit`] is an extension point, so `L::MAX` is whatever its author wrote
+/// and the compiler checks nothing about the number.
+/// This witness is what a declaration passes through before a road may treat
+/// the number as a fact; it is opaque and constructor-free, so holding one is
+/// the evidence.
+/// Both tags are load-bearing:
+/// the family tag stops one family's admission from authorizing another, and
+/// the profile tag stops one plane's admission from authorizing another
+/// plane's — `AdmittedLimit<L, A>` does not typecheck where
 /// `AdmittedLimit<L, B>` is required.
 ///
-/// # The claim ceiling, exactly
+/// # Nonclaims
 ///
-/// It establishes nothing about whether the magnitude is the RIGHT one for its
-/// domain. That is the owner's declaration, no road can check it, and this
-/// witness does not pretend to. It establishes nothing about any runtime value.
-/// And it says nothing whatever about a [`Limit`] family that declares no
-/// compile-time magnitude: such a family has no `MAX` to admit, its runtime
-/// magnitude is the schema home's [`LimitWitness`] to mint, and no road here
-/// admits it.
+/// It does not establish that the family admits an item:
+/// a `MAX = 0` family mints this lawfully, because [`Bounded::empty`] under it
+/// is a real empty collection, and positivity is seated in [`PositiveLimit`]
+/// where the inhabitant-promising roads consume it.
+/// It does not establish that the magnitude is right for its domain, and it
+/// says nothing about runtime values or about families that declare no
+/// compile-time magnitude.
 #[must_use = "an admitted limit is the evidence a family's declared magnitude passed admission; \
               dropping it discards the only proof a road may act on that declaration"]
 pub struct AdmittedLimit<L: Limit, P: LimitAdmissionProfile> {
@@ -333,14 +182,13 @@ pub struct AdmittedLimit<L: Limit, P: LimitAdmissionProfile> {
 }
 
 impl<L: ConstLimit, P: LimitAdmissionProfile> AdmittedLimit<L, P> {
-    /// Admit one compile-time magnitude against one profile's declared ceiling.
+    /// Admit one compile-time magnitude against one profile's declared
+    /// ceiling.
     ///
-    /// The `const` block below settles the question before the program runs: a
-    /// `const` item refuses under `cargo check`, a function-body call refuses at
-    /// codegen, and there is no road that reaches a running program with a
-    /// family past its profile's ceiling. This is why the road has no refusal to
-    /// return — the failing case is not a value a caller has to invent a repair
-    /// for, it is a program that does not exist.
+    /// The `const` block settles the question before the program runs — a
+    /// `const` item refuses under `cargo check`, a function-body call refuses
+    /// at codegen — so no artifact carrying an inadmissible family is ever
+    /// produced, and the road has no refusal to return.
     pub const fn under_profile() -> Self {
         const {
             assert!(
@@ -364,42 +212,23 @@ impl<L: Limit, P: LimitAdmissionProfile> AdmittedLimit<L, P> {
     }
 }
 
-/// Evidence that one limit family is admitted under a profile AND admits at
+/// Evidence that one limit family is admitted under a profile and admits at
 /// least one item.
 ///
-/// # Why positivity is a separate witness rather than a stronger base
+/// Positivity is a separate witness because the two facts govern different
+/// roads:
+/// a checked constructor needs the ceiling fact, while a road promising an
+/// inhabitant — [`NonEmptyBounded`] carries a first item by signature — needs
+/// a family that can hold one at all.
+/// Folding positivity into [`AdmittedLimit`] would make a zero maximum
+/// inadmissible everywhere, and the empty-only seat is a real seat.
 ///
-/// The two facts govern different roads. "Stands under the plane's ceiling" is
-/// what a checked constructor needs in order to compare a runtime count against
-/// a number somebody decided. "Admits at least one item" is what a road
-/// PROMISING AN INHABITANT needs: [`NonEmptyBounded`] carries a first item by
-/// signature, so a family declaring `MAX = 0` is one that road can never
-/// satisfy, whatever the ceiling says.
-///
-/// Folding positivity into [`AdmittedLimit`] would have made a zero maximum
-/// inadmissible everywhere, and a zero maximum is lawful for [`Bounded::empty`]
-/// — the empty-only seat is a real seat rather than a mistake. So the stronger
-/// claim is seated in the stronger witness, and the roads that promise an
-/// inhabitant are the ones that consume it.
-///
-/// # The stronger witness CONTAINS the weaker one
-///
-/// The admission fact is not restated here — it is carried. This type's one
-/// field is an [`AdmittedLimit`] minted by [`AdmittedLimit::under_profile`], and
-/// the magnitude this witness reports is that witness's own. So the ceiling
-/// comparison, the diagnostic it fails with, and the number it admits have
-/// exactly one owner, and "the positive witness is the stronger form of the base
-/// one" is a fact about this value's shape rather than an agreement between two
-/// assertions somebody has to keep in step. A change to the base admission
-/// reaches here because it IS the base admission, not because two copies were
-/// edited together.
-///
-/// # No widening road back
-///
-/// Containment is not a conversion. The contained witness is private, no
-/// accessor hands it out, and there is no road from here to [`AdmittedLimit`].
-/// Dropping a claim would be lawful, but no seat needs it, and an unearned
-/// conversion is surface nobody asked for.
+/// The stronger witness contains the weaker one:
+/// this type's one field is an [`AdmittedLimit`] minted by
+/// [`AdmittedLimit::under_profile`], so the ceiling comparison, its
+/// diagnostic, and the admitted number have exactly one owner.
+/// Containment is not a conversion — the contained witness is private, no
+/// accessor hands it out, and there is no road back to [`AdmittedLimit`].
 #[must_use = "a positive limit is the evidence a family's declared magnitude passed admission and \
               admits an item; dropping it discards the only proof a road promising an inhabitant \
               may act on"]
@@ -408,16 +237,14 @@ pub struct PositiveLimit<L: Limit, P: LimitAdmissionProfile> {
 }
 
 impl<L: ConstLimit, P: LimitAdmissionProfile> PositiveLimit<L, P> {
-    /// Admit one compile-time magnitude against one profile's ceiling AND
+    /// Admit one compile-time magnitude against one profile's ceiling and
     /// establish that the family admits an item.
     ///
-    /// The ceiling question is not asked here. It is asked by
-    /// [`AdmittedLimit::under_profile`], whose witness this road holds, so
-    /// instantiating the stronger witness instantiates the weaker one and its
-    /// `const` block settles the ceiling in the one place that owns it. The
-    /// `const` block below adds the single fact this witness is stronger by and
-    /// nothing else. Both are settled before the program runs, so this road has
-    /// no refusal to return either.
+    /// The ceiling question is asked by [`AdmittedLimit::under_profile`],
+    /// whose witness this road holds; the `const` block below adds the single
+    /// fact this witness is stronger by.
+    /// Both settle before the program runs, so the road has no refusal to
+    /// return.
     pub const fn inhabited_under_profile() -> Self {
         const {
             assert!(L::MAX >= 1, "a limit family admitting no item at all");
@@ -429,56 +256,33 @@ impl<L: ConstLimit, P: LimitAdmissionProfile> PositiveLimit<L, P> {
 }
 
 impl<L: Limit, P: LimitAdmissionProfile> PositiveLimit<L, P> {
-    /// The admitted maximum this witness carries; at least one by construction.
+    /// The admitted maximum this witness carries; at least one by
+    /// construction.
     ///
-    /// Read off the contained base witness, so no second copy of the magnitude
-    /// stands here to disagree with the one that was admitted.
+    /// Read off the contained base witness, so no second copy of the
+    /// magnitude stands here to disagree with the one that was admitted.
     #[must_use]
     pub const fn max(&self) -> usize {
         self.admitted.max()
     }
 }
 
-/// A runtime magnitude for the limit family `L`, minted only by schema validation.
-/// Carrying the family as a type parameter keeps runtime-limited and compile-limited
-/// values in the same shape without confusing their authorities.
+/// A runtime magnitude for the limit family `L`, minted only by schema
+/// validation.
 ///
-/// # What it establishes, and what it deliberately does not
+/// The family tag is a type parameter, so one family's witnessed magnitude
+/// never authorizes another's seat, whatever the two numbers are.
+/// The [`EvidenceSelectedLimit`] bound sits on this base rung, so a
+/// runtime-selected magnitude cannot even be named for a family whose owner
+/// never declared the runtime ladder.
 ///
-/// It establishes that schema validation selected this magnitude FOR THIS
-/// FAMILY: the family tag is a type parameter, so one family's witnessed
-/// magnitude never authorizes another's seat whatever the two numbers are.
+/// # Nonclaims
 ///
-/// It does NOT establish that the family admits an item, and the absence is
-/// [`AdmittedLimit`]'s exactly. A witnessed magnitude of zero is an honest
-/// selection for a seat that holds nothing: [`Bounded::admitted`] under it
-/// yields a real empty collection, and a base witness that refused the
-/// selection would refuse that seat with it. The positivity claim is seated one
-/// witness up, in [`PositiveLimitWitness`], where exactly the runtime roads
-/// promising an inhabitant consume it.
-///
-/// The family bound is part of this BASE rung rather than deferred to the
-/// positive one: a runtime-selected magnitude cannot even be named for a
-/// family whose owner did not declare [`EvidenceSelectedLimit`]. Consequently
-/// every mint and consumer inherits the same authority fact from the witness
-/// it must mention, and no weaker base value can be handed to
-/// [`Bounded::admitted`] under a declared or unstated family.
-///
-/// # No production road mints one, and that is stated rather than implied
-///
-/// `LimitWitness::declared` is the only mint, it is `#[cfg(test)]`, and it is
-/// crate-internal. So production schema validation can neither mint a runtime
-/// magnitude for any family today nor consume one, and nothing downstream can
-/// either. What stands is the ALGEBRA — which witnesses exist, what each one
-/// establishes, which road takes which, and the declaration-side guard that
-/// keeps a family off a ladder it never admitted. A production road is a
-/// separate opening whose exact condition is the schema home carrying a
-/// validation path that selects a magnitude; until then every claim about this
-/// witness is a claim about the shape, and none is a claim about a running
-/// machine.
-///
-/// The mint is named in backticks above rather than linked, because a
-/// documentation build does not contain it.
+/// It does not establish that the family admits an item:
+/// a witnessed magnitude of zero is an honest selection for a seat that holds
+/// nothing, and positivity is seated in [`PositiveLimitWitness`].
+/// No production mint exists yet; the opening condition is the schema home
+/// carrying a validation path that selects a magnitude.
 #[must_use = "a limit witness is the magnitude schema validation established; dropping it \
               discards the only admitted bound for its family"]
 pub struct LimitWitness<L: EvidenceSelectedLimit> {
@@ -506,9 +310,10 @@ impl<L: EvidenceSelectedLimit> LimitWitness<L> {
 
 /// How admitting one evidence-selected magnitude as a capacity refuses.
 ///
-/// Single cause, because there is exactly one question to ask: a magnitude that
-/// admits an item has nothing left to fail. A plain root enum — the
-/// refusal-family binding is implemented by the refusal home, pointing downward.
+/// Single cause, because there is exactly one question to ask:
+/// a magnitude that admits an item has nothing left to fail.
+/// A plain root enum — the refusal-family binding is implemented by the
+/// refusal home, pointing downward.
 #[must_use = "a refusal carries the lawful reason the admission did not proceed"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CapacityAdmission {
@@ -516,75 +321,25 @@ pub enum CapacityAdmission {
     NotInhabited,
 }
 
-/// Evidence that one limit family's EVIDENCE-SELECTED magnitude admits at least
-/// one item.
+/// Evidence that one limit family's evidence-selected magnitude admits at
+/// least one item — the runtime rung of the ladder [`PositiveLimit`] holds at
+/// compile time.
 ///
-/// # The runtime rung of the ladder [`PositiveLimit`] holds at compile time
+/// Holding one establishes three facts:
+/// the family (carried in the contained witness's type parameter), a positive
+/// capacity, and the admitted runtime maximum read back by
+/// [`max`](Self::max).
+/// Containment follows [`PositiveLimit`]'s doctrine:
+/// the one field is the [`LimitWitness`] schema validation minted, it is
+/// private, and there is no road back to the bare witness.
 ///
-/// The two witnesses answer the same question about magnitudes that arrive by
-/// different roads, and neither is evidence for the other's road.
-/// [`PositiveLimit`] proves an inhabitant off a number in the source, under a
-/// named plane's ceiling, before the program runs. This one proves an inhabitant
-/// off a number the owner's evidence selected while the machine ran, where there
-/// is no `L::MAX` to admit and no profile that could admit it. So the roads that
-/// promise an inhabitant have a positivity witness whichever road their
-/// magnitude arrived by, and the road that had neither —
-/// [`NonEmptyBounded::admitted`] — was the one hole in that ladder.
+/// # Nonclaims
 ///
-/// # What it establishes
-///
-/// Three facts, and holding the value is the whole of the evidence:
-///
-/// 1. **The family.** `L` is carried in the contained witness's own type
-///    parameter, so a capacity admitted for one family does not typecheck where
-///    another's is required — whatever the two magnitudes are.
-/// 2. **A positive capacity.** The magnitude admits at least one item, which is
-///    what a signature promising a first item needs and what a zero magnitude
-///    can never supply.
-/// 3. **The admitted runtime maximum.** [`max`](Self::max) is the magnitude
-///    schema validation selected, read off the contained witness.
-///
-/// # The claim ceiling, exactly
-///
-/// It establishes nothing about whether the magnitude is the RIGHT one for its
-/// domain. That is not a fact this witness withholds for lack of evidence; it is
-/// a fact no road here could ever hold, because the number is the owner
-/// profile's and the evidence's to select, and neither is visible from a witness
-/// that only sees a count. Reading a held witness as "this capacity is
-/// appropriate" reads a claim nobody made. It establishes nothing about any
-/// ceiling either: no plane admitted this magnitude, because a magnitude that
-/// does not exist until runtime has nothing to compare against a declared
-/// ceiling at the time a ceiling comparison would have to be settled.
-///
-/// # The stronger witness CONTAINS the weaker one
-///
-/// [`PositiveLimit`]'s containment doctrine, on the runtime road. The selection
-/// fact is not restated here — it is carried. This type's one field is the
-/// [`LimitWitness`] schema validation minted, and the magnitude this witness
-/// reports is that witness's own, so "the positive witness is the stronger form
-/// of the base one" is a fact about this value's shape rather than an agreement
-/// between two numbers somebody has to keep in step. Containment is not a
-/// conversion: the contained witness is private, no accessor hands it out, and
-/// there is no road from here back to a bare [`LimitWitness`].
-///
-/// # Nothing consumes one yet, and that is two absences rather than one
-///
-/// [`NonEmptyBounded::admitted`] is the one road that takes this witness, and
-/// both ends of it are still shut.
-///
-/// Upstream, no value of it can be built: [`LimitWitness`] has only its
-/// `#[cfg(test)]` mint, so there is no production road to the selection this
-/// witness is the stronger form of.
-///
-/// Downstream, the collection-shaped refusal bodies cannot reach it at all. The
-/// mints on [`crate::refusal::AdmittedPrefix`] are bounded on [`ConstLimit`],
-/// so a family on the runtime ladder — whose authority is
-/// [`EvidenceSelectedMagnitude`] and therefore never [`DeclaredMagnitude`] —
-/// has no road into that package whatever witness it holds. Every
-/// collection-shaped body in the machine seats an `AdmittedPrefix`, so a
-/// runtime capacity is presently a witness with no consumer among them. The
-/// exact opening condition is a prefix road that takes this witness; naming it
-/// is not building it, and this paragraph claims only that the gap is known.
+/// It does not establish that the magnitude is right for its domain — that is
+/// the owner profile's and the evidence's to select, and reading a held
+/// witness as "this capacity is appropriate" reads a claim nobody made.
+/// It carries no ceiling fact either: a magnitude that does not exist until
+/// runtime has nothing to compare against a declared ceiling.
 #[must_use = "a positive limit witness is the evidence a family's evidence-selected magnitude \
               admits an item; dropping it discards the only proof a runtime road promising an \
               inhabitant may act on"]
@@ -595,28 +350,22 @@ pub struct PositiveLimitWitness<L: EvidenceSelectedLimit> {
 impl<L: EvidenceSelectedLimit> PositiveLimitWitness<L> {
     /// Admit one evidence-selected magnitude as a capacity that holds an item.
     ///
-    /// The bound is [`EvidenceSelectedLimit`] rather than [`Limit`], and that is
-    /// the gate: a family whose owner never declared its magnitude
-    /// evidence-selected has no road here, so a runtime capacity cannot be
-    /// minted for a family that never admitted the runtime ladder.
-    ///
-    /// It takes the witness by value and keeps it. A road that borrowed the
+    /// The bound is [`EvidenceSelectedLimit`] rather than [`Limit`], and that
+    /// is the gate:
+    /// a family whose owner never declared its magnitude evidence-selected has
+    /// no road here.
+    /// It takes the witness by value and keeps it — a road that borrowed the
     /// selection and copied the number out would leave the caller holding a
-    /// second value carrying the same magnitude under weaker evidence, and the
-    /// two could then be handed to different seats.
-    ///
-    /// This road refuses rather than refusing to compile, and the reason is
-    /// structural rather than a preference: the magnitude does not exist until
-    /// the evidence selects it, so there is no value for a `const` block to
-    /// read. Where the same relation IS visible in the source it moves into the
-    /// declaration instead — [`PositiveLimit::inhabited_under_profile`]'s
-    /// `const` block is that seat, and a zero-maximum family stops there at
-    /// compile time rather than here at runtime.
+    /// second value carrying the same magnitude under weaker evidence.
+    /// It refuses rather than refusing to compile because the magnitude does
+    /// not exist until the evidence selects it; where the same relation is
+    /// visible in the source, [`PositiveLimit::inhabited_under_profile`] is
+    /// the seat and settles it at compile time.
     ///
     /// # Errors
     ///
-    /// Returns [`CapacityAdmission::NotInhabited`] when the witnessed magnitude
-    /// admits no item at all.
+    /// Returns [`CapacityAdmission::NotInhabited`] when the witnessed
+    /// magnitude admits no item at all.
     pub fn inhabited(witness: LimitWitness<L>) -> Result<Self, CapacityAdmission> {
         if witness.max() >= 1 {
             Ok(Self { witness })
@@ -627,18 +376,21 @@ impl<L: EvidenceSelectedLimit> PositiveLimitWitness<L> {
 }
 
 impl<L: EvidenceSelectedLimit> PositiveLimitWitness<L> {
-    /// The witnessed maximum this witness carries; at least one by construction.
+    /// The witnessed maximum this witness carries; at least one by
+    /// construction.
     ///
-    /// Read off the contained base witness, so no second copy of the magnitude
-    /// stands here to disagree with the one schema validation selected.
+    /// Read off the contained base witness, so no second copy of the
+    /// magnitude stands here to disagree with the one schema validation
+    /// selected.
     #[must_use]
     pub fn max(&self) -> usize {
         self.witness.max()
     }
 }
 
-/// The construction refusal for bounded collections. A plain root enum — the
-/// refusal-family binding is implemented by the refusal home, pointing downward.
+/// The construction refusal for bounded collections.
+/// A plain root enum — the refusal-family binding is implemented by the
+/// refusal home, pointing downward.
 #[must_use = "a refusal carries the lawful reason the construction did not proceed"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BoundedConstruction {
@@ -646,9 +398,9 @@ pub enum BoundedConstruction {
     OverLimit,
 }
 
-/// A collection that structurally carries which limit family bounds it. There is no
-/// public unbounded collection anywhere in the machine; both constructors are the
-/// enforcement seams of that law.
+/// A collection that structurally carries which limit family bounds it.
+/// There is no public unbounded collection anywhere in the machine; the
+/// constructors here are the enforcement seams of that law.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Bounded<T, L: Limit> {
     items: Vec<T>,
@@ -656,32 +408,19 @@ pub struct Bounded<T, L: Limit> {
 }
 
 impl<T, L: ConstLimit> Bounded<T, L> {
-    /// The fixed-arity collection: a *total structural* constructor whose "fits
-    /// the bound" proof is discharged at COMPILE TIME.
+    /// The fixed-arity collection: a total structural constructor whose
+    /// "fits the bound" proof is discharged at compile time.
     ///
-    /// The item count is `N`, a compile-time constant, so the `const` block
-    /// below decides the whole question before the program runs and this road
-    /// has no refusal to return. Its reason for existing is downstream honesty:
-    /// where the material is known statically — a declared roster, a fixed pair
-    /// of assumptions, one repair — a caller has no runtime failure to invent a
-    /// value for, so the place a caller reaches for `unwrap_or_else(empty)` and
-    /// silently deletes its own content simply is not on the road.
+    /// The item count is `N`, so the `const` block decides the whole question
+    /// before the program runs and this road has no refusal to return —
+    /// where the material is known statically, a caller has no runtime
+    /// failure to invent a value for.
     ///
-    /// The honest scope is [`NonEmptyBounded::singleton`]'s: the refusal fires
-    /// when the instantiation is const-evaluated, so no artifact carrying an
-    /// over-long fixed collection is ever produced.
+    /// # Nonclaims
     ///
-    /// # The claim class: LOCAL ARITY, and it is not an admission
-    ///
-    /// This road reads `L::MAX` bare, and it stays that way by decision. What it
-    /// proves is that `N` items — a count written at the call site — fit under a
-    /// type-level maximum. It does NOT prove that maximum was a sensible
-    /// declaration, and it must never be read as though it had: proving the
-    /// family's magnitude was admitted requires a profile, and no profile is
-    /// involved here. A road that claims the ADMITTED FAMILY MAGNITUDE consumes
-    /// an admission witness — [`Bounded::admitted_const`] is that road. This one
-    /// proves exactly the local fact it needs and claims nothing wider, which is
-    /// why it can stay total.
+    /// It proves that `N` items fit under a type-level maximum, and nothing
+    /// wider: no profile is involved, so it never claims the family's
+    /// magnitude was admitted — [`Bounded::admitted_const`] is that road.
     #[must_use]
     pub fn from_array<const N: usize>(items: [T; N]) -> Self {
         const {
@@ -696,27 +435,15 @@ impl<T, L: ConstLimit> Bounded<T, L> {
         }
     }
 
-    /// Checked construction against the family's ADMITTED compile-time maximum.
+    /// Checked construction against the family's admitted compile-time
+    /// maximum.
     ///
-    /// # The claim class: ADMITTED FAMILY MAGNITUDE
-    ///
-    /// [`Limit`] and [`ConstLimit`] are extension points, so `L::MAX` is
-    /// whatever its author wrote and the compiler checks nothing about it. This
-    /// road reads its bound off the [`AdmittedLimit`] witness instead, which
-    /// means the number it compares against is one that stood under a named
-    /// plane's ceiling rather than one nobody validated. That is the whole
-    /// difference, and it is why the witness is a parameter rather than a
-    /// comment: a caller that has not admitted the family under a profile has no
-    /// value to pass.
-    ///
-    /// The profile rides on the witness and not on the collection: `P` is a
-    /// parameter of this method, so admitting a family under one plane never
-    /// stamps that plane onto the value the road returns.
-    ///
-    /// The total structural roads beside this one — [`Bounded::from_array`],
-    /// [`NonEmptyBounded::singleton`], [`NonEmptyBounded::from_array`] — read
-    /// `L::MAX` bare by decision. Each proves a LOCAL fact and claims no
-    /// admission; see each road's own claim class.
+    /// `L::MAX` is whatever its author wrote; this road reads its bound off
+    /// the [`AdmittedLimit`] witness instead, so the number it compares
+    /// against stood under a named plane's ceiling.
+    /// The profile rides on the witness and not on the collection: admitting
+    /// a family under one plane never stamps that plane onto the returned
+    /// value.
     ///
     /// # Errors
     ///
@@ -738,23 +465,17 @@ impl<T, L: ConstLimit> Bounded<T, L> {
 }
 
 impl<T, L: Limit> Bounded<T, L> {
-    /// The empty collection: a *total structural* constructor.
+    /// The empty collection: a total structural constructor.
     ///
-    /// The two constructor classes are not interchangeable and are not spelled
-    /// alike. A **checked** constructor ([`Bounded::admitted_const`],
-    /// [`Bounded::admitted`]) reads a runtime count against a declared bound and
-    /// MAY REFUSE; its name carries `admitted` because admission is exactly what
-    /// it performs. A **total structural** constructor CANNOT FORM THE FAILING
-    /// CASE: no limit family admits fewer than zero items, so this road has no
-    /// refusal to return, and callers outside this crate get a bounded value
-    /// without an impossible error branch to invent a value for.
-    ///
-    /// # The claim class: NO MAGNITUDE EVIDENCE AT ALL
-    ///
-    /// This road never reads `L::MAX`, so it neither claims nor needs one. That
-    /// is why it is bounded by `L: Limit` alone and why a family declaring
-    /// `MAX = 0` inhabits it lawfully: an empty-only seat is a real seat, and
-    /// the empty collection under it is honest rather than degenerate.
+    /// A checked constructor reads a runtime count against a declared bound
+    /// and may refuse — its name carries `admitted` because admission is what
+    /// it performs.
+    /// A total structural constructor cannot form the failing case: no limit
+    /// family admits fewer than zero items, so this road has no refusal to
+    /// return.
+    /// It never reads `L::MAX`, which is why it is bounded by `L: Limit`
+    /// alone and why a `MAX = 0` family inhabits it lawfully — the empty-only
+    /// seat is a real seat.
     #[must_use]
     pub const fn empty() -> Self {
         Self {
@@ -763,16 +484,12 @@ impl<T, L: Limit> Bounded<T, L> {
         }
     }
 
-    /// Checked construction against a schema-minted runtime witness of the same
-    /// limit family — a witness for another family does not typecheck.
+    /// Checked construction against a schema-minted runtime witness of the
+    /// same limit family — a witness for another family does not typecheck.
     ///
-    /// # The claim class: SCHEMA-MINTED RUNTIME MAGNITUDE
-    ///
-    /// No profile is involved and none could be: the magnitude here was
-    /// established by schema validation at runtime rather than declared at
-    /// compile time, so there is no `L::MAX` to admit. A profile-scoped
-    /// admission is not evidence for this road and this road's witness is not
-    /// evidence for that one.
+    /// No profile is involved and none could be: the magnitude was
+    /// established at runtime, so there is no `L::MAX` to admit, and a
+    /// profile-scoped admission is not evidence for this road.
     ///
     /// # Errors
     ///
@@ -804,26 +521,25 @@ impl<T, L: Limit> Bounded<T, L> {
         self.items.is_empty()
     }
 
-    /// Read the held values. Read-only by construction: the collection is
-    /// borrowed, not consumed, and no mutable or positional road exists beside
-    /// this one — there is no `iter_mut`, no `Index`, and no slice escape.
+    /// Read the held values.
+    /// Read-only by construction: the collection is borrowed, not consumed,
+    /// and no mutable or positional road exists beside this one — no
+    /// `iter_mut`, no `Index`, no slice escape.
     ///
-    /// # The order law
+    /// # Ordering
     ///
-    /// Iteration exposes values for observation; iteration order may influence
-    /// semantic meaning ONLY where the owner type explicitly declares ordering
-    /// as semantic. Identity-bearing generation over order-insensitive
-    /// collections must canonicalize by an owner-declared order or key first.
-    /// testpak owes the permutation hostiles: identical plans and identical
-    /// output identities under permuted order-insensitive inputs.
+    /// Iteration order may influence semantic meaning only where the owner
+    /// type explicitly declares ordering as semantic; identity-bearing
+    /// generation over order-insensitive collections canonicalizes by an
+    /// owner-declared order or key first.
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.items.iter()
     }
 }
 
-/// The construction refusal for non-empty bounded collections. Emptiness is not
-/// a cause: the constructor signature takes the first item separately, so a
-/// zero-item value is unrepresentable rather than refused.
+/// The construction refusal for non-empty bounded collections.
+/// Emptiness is not a cause: the constructor signature takes the first item
+/// separately, so a zero-item value is unrepresentable rather than refused.
 #[must_use = "a refusal carries the lawful reason the construction did not proceed"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NonEmptyBoundedConstruction {
@@ -831,8 +547,9 @@ pub enum NonEmptyBoundedConstruction {
     OverLimit,
 }
 
-/// A bounded collection that structurally holds at least one item — a refusal with
-/// zero issues is not a refusal, and this shape makes that unrepresentable.
+/// A bounded collection that structurally holds at least one item — a refusal
+/// with zero issues is not a refusal, and this shape makes that
+/// unrepresentable.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct NonEmptyBounded<T, L: Limit> {
     first: T,
@@ -841,20 +558,15 @@ pub struct NonEmptyBounded<T, L: Limit> {
 }
 
 impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
-    /// Checked construction against the family's ADMITTED and POSITIVE
-    /// compile-time maximum. The first item is a separate parameter — emptiness
-    /// is unrepresentable, not refused.
+    /// Checked construction against the family's admitted and positive
+    /// compile-time maximum.
+    /// The first item is a separate parameter — emptiness is unrepresentable,
+    /// not refused.
     ///
-    /// # The claim class: ADMITTED FAMILY MAGNITUDE, and it must be inhabited
-    ///
-    /// This road takes the stronger witness, and the reason is its own
-    /// signature. It promises an inhabitant: whatever the runtime count turns
-    /// out to be, the value it returns holds a first item. A family declaring
-    /// `MAX = 0` can never lawfully satisfy that promise, so an
+    /// This road takes the stronger witness because its signature promises an
+    /// inhabitant: a `MAX = 0` family can never satisfy that promise, so an
     /// [`AdmittedLimit`] — which admits zero-maximum families on purpose — is
-    /// not enough evidence here. [`PositiveLimit`] carries both facts, and the
-    /// bound this road compares against is read off it rather than off the
-    /// declaration.
+    /// not enough evidence here, and the bound is read off [`PositiveLimit`].
     ///
     /// # Errors
     ///
@@ -876,43 +588,23 @@ impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
         }
     }
 
-    /// Carry as many supplied items as the family's ADMITTED maximum holds, and
-    /// hand back how many it could not carry.
+    /// Carry as many supplied items as the family's admitted maximum holds,
+    /// and hand back how many it could not carry.
     ///
-    /// # The claim class: ADMITTED FAMILY MAGNITUDE, reported rather than refused
+    /// A checked constructor refuses the whole value, which is wrong for a
+    /// report: the issues an over-bound pass established are each true on
+    /// their own, so this road carries the prefix the admitted magnitude
+    /// holds and reports the dropped count beside it.
     ///
-    /// A third constructor class, and it exists because the other two answer the
-    /// wrong question for a REPORT. A checked constructor refuses the whole
-    /// value, which is right for material that is meaningless in part — a trail,
-    /// a membership, a ceiling. A collection-shaped refusal body is not that: the
-    /// issues an over-bound pass established are each true on their own, and
-    /// refusing the body would leave a caller with no findings at all. So this
-    /// road carries the prefix the admitted magnitude holds and reports the count
-    /// it dropped beside it, which is what keeps the truncation from being
-    /// silent.
-    ///
-    /// # Why this road is crate-internal
-    ///
-    /// The two values it produces are a carry and a count, and a road that hands
-    /// both to a caller hands out two things the caller may pair with anything.
-    /// A body truncated by one pass could then wear the count another pass
-    /// dropped, and both values would still be honest on their own while the
-    /// pair was a lie. So this road is the crate's own seam and has exactly one
-    /// consumer: [`crate::refusal::AdmittedPrefix`], band 00's package, which
-    /// takes the carry and the count in the one construction that produced them
-    /// and never lets them apart again. The public road to a truncated
-    /// collection is that package and nothing else.
-    ///
-    /// It is total for the same reason [`NonEmptyBounded::singleton`] is: the
-    /// witness is [`PositiveLimit`], so the maximum is at least one, so the first
-    /// item always fits and the prefix is never empty. There is no failing case
-    /// to return, and therefore no impossible arm for a caller to fill with a
-    /// value nobody computed.
-    ///
-    /// The bound is read off the witness, so the number this road truncates at is
-    /// one that stood under a named plane's ceiling rather than one nobody
-    /// validated. The profile rides on the witness and is not stamped onto the
-    /// returned value.
+    /// It is crate-internal because the carry and the count must never be
+    /// pairable with anything else:
+    /// a body truncated by one pass wearing the count another pass dropped
+    /// would be two honest values and one lie.
+    /// Its one consumer is [`crate::refusal::AdmittedPrefix`], which takes
+    /// both in the construction that produced them and never lets them apart.
+    /// It is total because the witness is [`PositiveLimit`]: the maximum is at
+    /// least one, so the first item always fits and the prefix is never
+    /// empty.
     #[must_use = "the dropped count is what keeps a truncated report from claiming completeness"]
     pub(crate) fn admitted_prefix<P: LimitAdmissionProfile>(
         first: T,
@@ -933,28 +625,19 @@ impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
         )
     }
 
-    /// The fixed-arity collection: a *total structural* constructor whose "at
-    /// least one" and "fits the bound" proofs are BOTH discharged at COMPILE
-    /// TIME.
+    /// The fixed-arity collection: a total structural constructor whose
+    /// "at least one" and "fits the bound" proofs are both discharged at
+    /// compile time.
     ///
-    /// The first item is a separate parameter, so emptiness is unrepresentable
-    /// rather than refused, and the remainder's arity is `N`, a compile-time
-    /// constant, so the `const` block below settles the bound question before
-    /// the program runs. This road has no refusal to return.
+    /// The first item is a separate parameter, so emptiness is
+    /// unrepresentable, and the remainder's arity is `N`, so the `const`
+    /// block settles the bound question before the program runs.
     ///
-    /// Its reason for existing is [`Bounded::from_array`]'s: where a COMPLETE
-    /// set is known statically — a two-member output roster fixed by a declared
-    /// shape, a pair of citations written side by side — a caller has no runtime
-    /// failure to invent a value for, so the place a caller reaches for a
-    /// shortened collection is not on the road at all.
+    /// # Nonclaims
     ///
-    /// # The claim class: LOCAL ARITY AND LOCAL POSITIVITY
-    ///
-    /// The `const` block proves that `N + 1` items fit under a type-level
-    /// maximum, and the separate first parameter is the inhabitant. Both are
-    /// facts about THIS call, and neither claims the family's magnitude was
-    /// admitted — that claim needs a profile, and no profile is involved here.
-    /// The road that makes it is [`NonEmptyBounded::admitted_const`].
+    /// Both proofs are facts about this call; neither claims the family's
+    /// magnitude was admitted — [`NonEmptyBounded::admitted_const`] is that
+    /// road.
     #[must_use]
     pub fn from_array<const N: usize>(first: T, rest: [T; N]) -> Self {
         const {
@@ -970,35 +653,21 @@ impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
         }
     }
 
-    /// The one-item collection: a *total structural* constructor whose "at
-    /// least one" proof is discharged at COMPILE TIME.
+    /// The one-item collection: a total structural constructor whose
+    /// "at least one" proof is discharged at compile time.
     ///
-    /// The two constructor classes are not interchangeable. A **checked**
-    /// constructor ([`NonEmptyBounded::admitted_const`],
-    /// [`NonEmptyBounded::admitted`]) reads a runtime count against a declared
-    /// bound and MAY REFUSE. This **total structural** road CANNOT FORM THE
-    /// FAILING CASE: the only way a single item could exceed a family's
-    /// maximum is a family declaring `MAX = 0`, and the `const` block below
-    /// rejects that instantiation at const evaluation. The honest scope: the
-    /// refusal fires when the instantiation is const-evaluated — a `const`
-    /// item refuses under `cargo check`, while a function-body call refuses at
-    /// codegen — so no artifact containing this road under a zero-maximum
-    /// family is ever produced, and the failing case never reaches a running
-    /// program. The qualification fixture exercises the `const`-item form.
+    /// The only way a single item could exceed a family's maximum is a
+    /// `MAX = 0` family, and the `const` block rejects that instantiation at
+    /// const evaluation — a `const` item refuses under `cargo check`, a
+    /// function-body call refuses at codegen — so the failing case never
+    /// reaches a running program, and a caller assembling a one-issue refusal
+    /// body has no impossible error branch to fabricate a value for.
     ///
-    /// Its reason for existing is downstream honesty: a caller assembling a
-    /// one-issue refusal body has no impossible error branch to fabricate a
-    /// value for, so refusal construction never becomes the place a consumer
-    /// reaches for a panic.
+    /// # Nonclaims
     ///
-    /// # The claim class: LOCAL POSITIVITY
-    ///
-    /// The `const` block proves `L::MAX >= 1` — the one fact this call needs in
-    /// order to hold its single item — and proves it structurally, off the
-    /// declaration. It claims nothing about whether that declaration was
-    /// admitted under any plane's ceiling, and it must never be read as though
-    /// it did. [`PositiveLimit`] is where the same positivity fact is seated
-    /// TOGETHER WITH admission, for the road that needs both.
+    /// The proof is local positivity off the declaration; it claims nothing
+    /// about admission under any plane's ceiling — [`PositiveLimit`] seats
+    /// both facts together for the road that needs both.
     #[must_use]
     pub const fn singleton(value: T) -> Self {
         const { assert!(L::MAX >= 1, "a limit family admitting no item at all") }
@@ -1011,31 +680,17 @@ impl<T, L: ConstLimit> NonEmptyBounded<T, L> {
 }
 
 impl<T, L: Limit> NonEmptyBounded<T, L> {
-    /// Checked construction against a schema-minted runtime witness that admits
-    /// an item.
-    ///
-    /// # The claim class: SCHEMA-MINTED RUNTIME MAGNITUDE, and it must be
-    /// inhabited
+    /// Checked construction against a schema-minted runtime witness that
+    /// admits an item.
     ///
     /// [`Bounded::admitted`]'s magnitude authority, with
-    /// [`NonEmptyBounded::admitted_const`]'s evidence bar. No profile is
-    /// involved and none could be: the magnitude was selected by the owner's
-    /// evidence at runtime rather than declared at compile time, so there is no
-    /// `L::MAX` to admit and a profile-scoped admission is not evidence for this
-    /// road.
-    ///
-    /// It takes the STRONGER runtime witness, and the reason is its own
-    /// signature. It promises an inhabitant: whatever the runtime count turns
-    /// out to be, the value it returns holds a first item. A family whose
-    /// evidence selected a magnitude of zero can never lawfully satisfy that
-    /// promise — every call would refuse — so a bare [`LimitWitness`], which
-    /// admits a zero selection on purpose for [`Bounded::admitted`]'s
-    /// empty-only seat, is not enough evidence here.
-    ///
-    /// The first item being a separate parameter makes emptiness
-    /// unrepresentable in the RESULT; it says nothing about the magnitude the
-    /// road compares against, which is why the promise still needs the evidence
-    /// and is not discharged by the shape.
+    /// [`NonEmptyBounded::admitted_const`]'s evidence bar.
+    /// It takes the stronger runtime witness because its signature promises
+    /// an inhabitant: a zero selection would refuse every call, so a bare
+    /// [`LimitWitness`] — which admits a zero selection on purpose for the
+    /// empty-only seat — is not enough evidence here.
+    /// The separate first parameter makes emptiness unrepresentable in the
+    /// result; the magnitude promise still needs the evidence.
     ///
     /// # Errors
     ///
@@ -1072,26 +727,25 @@ impl<T, L: Limit> NonEmptyBounded<T, L> {
         self.rest.len().saturating_add(1)
     }
 
-    /// Always `false`: the shape holds at least one item. Present because the
-    /// `len`/`is_empty` pair is conventional; the constant answer *is* the law.
+    /// Always `false`: the shape holds at least one item.
+    /// Present because the `len`/`is_empty` pair is conventional; the
+    /// constant answer *is* the law.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         false
     }
 
     /// Read the held values, the guaranteed first item ahead of the rest.
-    /// Read-only by construction: the collection is borrowed, not consumed, and
-    /// no mutable or positional road exists beside this one — there is no
-    /// `iter_mut`, no `Index`, and no slice escape.
+    /// Read-only by construction: the collection is borrowed, not consumed,
+    /// and no mutable or positional road exists beside this one — no
+    /// `iter_mut`, no `Index`, no slice escape.
     ///
-    /// # The order law
+    /// # Ordering
     ///
-    /// Iteration exposes values for observation; iteration order may influence
-    /// semantic meaning ONLY where the owner type explicitly declares ordering
-    /// as semantic. Identity-bearing generation over order-insensitive
-    /// collections must canonicalize by an owner-declared order or key first.
-    /// testpak owes the permutation hostiles: identical plans and identical
-    /// output identities under permuted order-insensitive inputs.
+    /// Iteration order may influence semantic meaning only where the owner
+    /// type explicitly declares ordering as semantic; identity-bearing
+    /// generation over order-insensitive collections canonicalizes by an
+    /// owner-declared order or key first.
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         core::iter::once(&self.first).chain(self.rest.iter())
     }
@@ -1102,9 +756,10 @@ impl<T, L: Limit> NonEmptyBounded<T, L> {
 // that requires fresh input demands `Current<T>` and stale data does not typecheck.
 // ---------------------------------------------------------------------------
 
-/// The invalidation coordinate of one claim family. Every family implements this
-/// with its *own* coordinate; there is no universal cut, and a flattened
-/// anything-freshness substrate is refused by construction.
+/// The invalidation coordinate of one claim family.
+/// Every family implements this with its *own* coordinate; there is no
+/// universal cut, and a flattened anything-freshness substrate is refused by
+/// construction.
 pub trait EvidenceCut {}
 
 /// The uninhabited coordinate: a claim family with no admitted invalidation
@@ -1114,8 +769,9 @@ pub enum Never {}
 
 impl EvidenceCut for Never {}
 
-/// A value proven applicable now. Minted only by the evidence-producing boundary;
-/// there is no public constructor, so holding a `Current<T>` *is* the proof.
+/// A value proven applicable now.
+/// Minted only by the evidence-producing boundary; there is no public
+/// constructor, so holding a `Current<T>` *is* the proof.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Current<T> {
     value: T,
@@ -1136,8 +792,9 @@ impl<T> Current<T> {
 }
 
 /// A value disclosed as stale, carrying exactly which coordinate it is stale
-/// against. Staleness changes present admissibility, never the earlier claim's
-/// truth. Returning to [`Current`] happens only through a named re-assessment
+/// against.
+/// Staleness changes present admissibility, never the earlier claim's truth.
+/// Returning to [`Current`] happens only through a named re-assessment
 /// morphism that consumes a new observation — a crossing never gains.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Stale<T, Cut: EvidenceCut> {
@@ -1166,8 +823,8 @@ impl<T, Cut: EvidenceCut> Stale<T, Cut> {
 }
 
 /// The classification join over the two freshness types, produced where an
-/// assessment has not yet branched. The types are primary; this sum only carries
-/// them to the branch point.
+/// assessment has not yet branched.
+/// The types are primary; this sum only carries them to the branch point.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Freshness<T, Cut: EvidenceCut> {
     /// Proven applicable now.
@@ -1180,9 +837,9 @@ pub enum Freshness<T, Cut: EvidenceCut> {
 // Proof and completeness: root-admitted axis + the non-erasable-domain shape.
 // ---------------------------------------------------------------------------
 
-/// What one verification run established about one claim. Its own axis — never a
-/// terminal variant, never a rank, and (by decision) not a knowledge axis: no variant
-/// means "not yet".
+/// What one verification run established about one claim.
+/// Its own axis — never a terminal variant, never a rank, and (by decision)
+/// not a knowledge axis: no variant means "not yet".
 #[must_use = "a disposition is what the verification run established; dropping it leaves the \
               run's conclusion unrecorded"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -1199,9 +856,10 @@ pub enum ProofDisposition {
     Incomplete,
 }
 
-/// Completeness over an owner-specific domain. The domain parameter is
-/// non-erasable, so a complete query can never masquerade as complete
-/// verification. Owners instantiate it under their own names — source closure in
+/// Completeness over an owner-specific domain.
+/// The domain parameter is non-erasable, so a complete query can never
+/// masquerade as complete verification.
+/// Owners instantiate it under their own names — source closure in
 /// navigation, materialization coverage in derived data, the verification
 /// denominator in evidence.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -1224,9 +882,8 @@ pub enum Completeness<D> {
 // Evidence references: the generic typed-reference shape (identity class E).
 // ---------------------------------------------------------------------------
 
-/// Whether a referent is currently reachable. A non-identifying runtime fact
-/// carried on a reference (authored shape; the four-component roster is the old
-/// book's: referent identity + version + availability + integrity).
+/// Whether a referent is currently reachable.
+/// A non-identifying runtime fact carried on a reference.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ReferentAvailability {
     /// The referent is currently reachable.
@@ -1247,9 +904,10 @@ pub enum ReferentIntegrity {
 /// A typed reference to evidence about a claim, carrying all four Class-E
 /// components: referent identity and version (the identifying pair — equality
 /// and hashing use exactly these two), availability and integrity
-/// (non-identifying runtime facts). The claim marker is defined by the owner
-/// making the claim, never centrally. This is a reference, not a container — no
-/// value comes out of it.
+/// (non-identifying runtime facts).
+/// The claim marker is defined by the owner making the claim, never
+/// centrally.
+/// This is a reference, not a container — no value comes out of it.
 #[derive(Debug, Clone)]
 pub struct EvidenceRef<Claim> {
     referent: [u8; 32],
@@ -1322,8 +980,9 @@ impl<Claim> core::hash::Hash for EvidenceRef<Claim> {
 // Transition grammar: the closure conformance bar every machine proves against.
 // ---------------------------------------------------------------------------
 
-/// One dispatch outcome. Generic over the owner's refusal family — the root grammar
-/// names no concrete refusal type.
+/// One dispatch outcome.
+/// Generic over the owner's refusal family — the root grammar names no
+/// concrete refusal type.
 #[must_use = "a dispatch outcome carries the transition that fired or the typed refusal that \
               stood in its place; dropping it is the silent drop the grammar forbids"]
 pub enum Dispatch<T, R> {
@@ -1337,13 +996,15 @@ pub enum Dispatch<T, R> {
     Refused(R),
 }
 
-/// The transition-system closure bar. This is a conformance contract, not a
-/// universal state type: each machine implements it and proves six obligations —
-/// exact initial posture; every declared state reachable; every transition naming
-/// exact source, destination, and firing input; terminals that no transition
-/// leaves; deterministic dispatch or declared ambiguity with a named resolution;
-/// and total typed refusal for every unmatched pair. Closure is evidenced, not
-/// asserted: the machine and its judge never share the dispatch path being judged.
+/// The transition-system closure bar.
+/// A conformance contract, not a universal state type: each machine
+/// implements it and proves six obligations — exact initial posture; every
+/// declared state reachable; every transition naming exact source,
+/// destination, and firing input; terminals that no transition leaves;
+/// deterministic dispatch or declared ambiguity with a named resolution; and
+/// total typed refusal for every unmatched pair.
+/// Closure is evidenced, not asserted: the machine and its judge never share
+/// the dispatch path being judged.
 pub trait TransitionSystem {
     /// The machine's state space.
     type State;

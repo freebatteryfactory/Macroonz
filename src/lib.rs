@@ -1,30 +1,18 @@
-//! `ThreadPak` is a host-neutral semantic machine written in safe Rust. Programs are
-//! typed data, not text: a builder constructs typed declarations, and the machine
-//! validates, seals, executes, and remembers them. Any frontend enters through the
-//! same public declaration path.
+//! `ThreadPak` is an embedded, sync-first, event-native database and runtime —
+//! an opinionated Rust library of semantic primitives, named for the logical
+//! thread it preserves from intent through accepted facts, Turns, Attempts,
+//! effects, receipts, replay, and reconciliation.
+//! Programs enter as typed declarations, not text; accepted history is the
+//! authority; everything else is derived and rebuildable.
+//! The repository README carries the machine in one view and the band map;
+//! `src/README.md` carries the root calculus and the crate-wide laws.
 //!
-//! The spine:
-//!
-//! ```text
-//! typed declarations → Semantic Form → Execution Form → ProgramImage (.tpk)
-//! → PakVM → runtime (the Stitch) → Bvisor → accepted history (.tlog)
-//! ```
-//!
-//! Hosts live in other repositories and pin an exact `ThreadPak` revision. The machine
-//! never knows which host is running it.
-//!
-//! The crate is a numbered waterfall of semantic homes (see the repository README's
-//! band map); each home is declared here as it materializes, in dependency order.
-//! The repository is in architecture closure: declaration surfaces and compile-time
-//! laws are real code; machine runtime algorithms remain unopened until authorized.
-//!
-//! Two things sit at the root itself, ahead of the waterfall. [`types`] holds the
-//! shape calculus every home instantiates. [`closed_register!`] is the composition
-//! mechanism every home, the services crate, and this crate's own proof surface
-//! stamp their closed rosters with; it declares no type, reaches no band's
-//! material, and belongs to no band. [`CLOSED_REGISTER_ROW_CEILING`] is the one
-//! value that mechanism projects, and it sits beside the stamp because it is read
-//! out of the stamp's own expansion.
+//! The crate is a numbered waterfall of semantic homes, declared below in
+//! dependency order as each materializes.
+//! Two things sit at the root itself: [`types`] holds the shape calculus every
+//! home instantiates, and [`closed_register!`] is the stamp every closed
+//! roster is declared through, with [`CLOSED_REGISTER_ROW_CEILING`] the one
+//! value it projects.
 
 pub mod types;
 
@@ -36,121 +24,43 @@ pub mod types;
 
 /// Stamps one closed, fieldless roster from a single declaration of its rows.
 ///
-/// # What one row states, and what follows from it
-///
-/// A row is a variant, its documentation, a declared stable name, and the prose
-/// a person is shown. From that one statement the stamp writes the enum, the
-/// roster constant `ALL` in declared order, the row's position as `slot`, the
-/// declared stable name as `stable_name`, and the prose as `described` — so a
-/// roster is authored once and read five ways.
-///
-/// # The position cannot drift from the order, and the order is semantic
-///
-/// `ALL` and `slot` are generated from the SAME row list in one expansion.
-/// There is no second place to write a position, so a roster whose fourth row
-/// answers `2` is not a defect this stamp can express — it is a value nobody
-/// can write down. That is the whole reason the stamp exists: the hand-kept
-/// form of this pattern is a roster array beside a `match` returning numbers,
-/// and those two are two things to keep true.
-///
-/// The consequence runs the other way too, and it binds the caller. A
-/// row's slot IS its place in the declaration, so reordering rows renumbers
-/// every slot from the first move onward — and where a slot is written into
-/// canonical bytes, that renumbering renames every identity ever derived under
-/// it. A row is appended. It is never inserted, and never moved.
-///
-/// # What the stamp refuses to guess
-///
-/// The caller states everything. The stable name is DECLARED rather than taken
-/// from the Rust spelling, on exactly the terms
-/// [`CauseId`](crate::refusal::CauseId) is declared apart from its spelling:
-/// renaming a variant must move the spelling and must move nothing derived
-/// under the declared name. The prose is declared for the same reason — a
-/// sentence built from an identifier is a sentence nobody wrote.
-///
-/// The derive set is the stamp's, not the caller's: `Debug`, `Clone`, `Copy`,
-/// `PartialEq`, `Eq`, and `Hash`. A roster is a closed vocabulary of bare
-/// words, and every one of those is true of every such roster; letting a caller
-/// vary them would make the stamped pattern negotiable, which is the property
-/// the stamp is for.
-///
-/// # The row ceiling is the supply's length, and the stamp is what says so
-///
-/// The stamp carries a DECLARED SUPPLY of positions, written out as literals in
-/// ONE arm of the expansion, and the walk over a declaration's rows pairs each
-/// row with exactly one of them. A row past the last of them finds the supply
-/// spent, and the rule that matches that state is a `compile_error!` naming the
-/// mechanism. Nothing is counted and nothing is added: the ceiling IS the
-/// length of the supply, so there is no arithmetic anywhere in the expansion to
-/// overflow, to saturate, or to disagree with a number written down elsewhere.
-///
-/// [`CLOSED_REGISTER_ROW_CEILING`] is that same supply read out as a value,
-/// from the same arm the pairing walk spends, so the ceiling has one source and
-/// two readings rather than a length and a number that agree. This
-/// documentation names that constant and never the number, because a sentence
-/// stating the number is a second place the ceiling would have to be moved.
-///
-/// The supply is also what bounds the recursion, and that is why the refusal is
-/// reachable at all. The exhausted-supply rule MATCHES the rows that remain
-/// without recursing over them, so expansion stops at the first row past the
-/// supply whatever the declaration's length — rather than walking on until the
-/// compiler's recursion limit ends it with a diagnostic about the stamp's own
-/// internals at a boundary nobody declared.
-///
-/// **The ceiling is this stamp implementation's current authoring profile, not
-/// a semantic cap on any vocabulary.** No roster in the machine is closed
-/// because the supply is the length it is; each is closed because its
-/// vocabulary is closed. A future mechanism, or a wider declared profile, may
-/// raise the ceiling once it is qualified — raising it means extending the
-/// supply, and what a longer supply costs is stated at
-/// [`CLOSED_REGISTER_ROW_CEILING`].
-///
-/// The proven altitude of that claim is the DECLARATION.
-/// `testpak/tests/stamp_row_ceiling.rs` stamps a roster that spends the supply
-/// to its last position and reads exact positions off it — through the public
-/// export, from a crate that is an ordinary consumer of this one — and
-/// `testpak/tests/compile-fail/a-roster-past-the-stamp-ceiling.rs` is the row
-/// past the supply refusing with the sentence above. The same boundary read
-/// through the lifecycle facade is neither proven nor claimed here: that facade
-/// does not exist, and its validation arrives with the lifecycle specimen.
-///
-/// # The closure claim, and its exact ceiling
-///
+/// A row is a variant, its documentation, a declared stable name, and the
+/// prose a person is shown.
+/// From that one statement the stamp writes the enum, the roster constant
+/// `ALL` in declared order, the position `slot`, the declared `stable_name`,
+/// and the human `described` — authored once, read five ways, with no second
+/// place for a position to drift.
 /// A row that is not in the declaration does not exist: the enum has exactly
-/// one declaration site and the stamp is it. That closure is a property of
-/// macro output rather than a check anything performs, so it is stated as the
-/// claim's ceiling and no fixture is manufactured to rehearse it. What IS
-/// rehearsed is the drift the stamp removes —
-/// `laws.rs declaration::a_stamped_roster_cannot_disagree_with_its_own_order`
-/// exhibits a hand-kept roster whose position and slot disagree beside a
-/// stamped one where the disagreement is unwritable.
+/// one declaration site, and the stamp is it.
 ///
-/// # Where the stamp lives
+/// # Ordering
 ///
-/// The root owns it. A closed roster of declared words is a composition shape
-/// the whole repository instantiates rather than any one band's material: band
-/// 13's authoring algebra reaches for it, the services crate stamps its rosters
-/// with it, and this crate's proof surface stamps its own. Seating it in a band
-/// made every other consumer reach across a band edge for a mechanism that band
-/// did not own.
+/// A row's slot IS its place in the declaration, so reordering rows renumbers
+/// every slot from the first move onward — and where a slot is written into
+/// canonical bytes, that renumbering renames every identity derived under it.
+/// A row is appended. It is never inserted, and never moved.
 ///
-/// It sits in `lib.rs` rather than in `types.rs` because that is where the
-/// precedent puts it. [`scope_guard_version!`] sits in band 02's `mod.rs` — the
-/// module surface that DECLARES its home's content — and not inside the
-/// `types.rs` that holds the shapes. The root calculus has no `mod.rs`;
-/// `lib.rs` is its module surface and `types.rs` is where its shapes live. The
-/// stamp declares no type, so it has nothing to put in the latter.
+/// # Construction
 ///
-/// Rust exports `macro_rules!` at the crate root whatever file it is written in.
-/// That was always Rust's rule about macro namespacing rather than a root
-/// admission of a semantic noun; it simply no longer has any explaining to do,
-/// because the seat and the export now agree.
+/// The caller states everything: the stable name is declared rather than
+/// taken from the Rust spelling, so renaming a variant moves the spelling and
+/// moves nothing derived under the name, and the prose is declared for the
+/// same reason.
+/// The derive set is the stamp's, not the caller's: `Debug`, `Clone`, `Copy`,
+/// `PartialEq`, `Eq`, `Hash`.
 ///
-/// The `@`-prefixed rules below are the stamp's own internals — the declared
-/// supply of positions, the two readings taken off it, and the walk that pairs
-/// rows with it. None of them is an invocation form.
+/// # Bounds
 ///
-/// # The invocation
+/// The stamp pairs each row with one position from its own declared supply;
+/// a roster past the supply refuses at compile time with the stamp's own
+/// sentence.
+/// The supply's length is [`CLOSED_REGISTER_ROW_CEILING`] — an authoring
+/// ceiling of this implementation, never a semantic cap on any vocabulary.
+///
+/// The `@`-prefixed rules below are the stamp's internals, not invocation
+/// forms.
+///
+/// # Examples
 ///
 /// ```
 /// threadpak::closed_register! {
@@ -168,8 +78,6 @@ pub mod types;
 /// assert_eq!(DemoRow::Second.stable_name(), "second");
 /// assert_eq!(DemoRow::Second.described(), "the second row");
 /// ```
-///
-/// [`scope_guard_version!`]: crate::scope_guard_version
 #[macro_export]
 macro_rules! closed_register {
     (
@@ -326,69 +234,33 @@ macro_rules! closed_register {
     };
 }
 
-/// How many rows one [`closed_register!`] roster may declare: the length of the
-/// stamp's own declared supply of positions, read out as a value.
+/// How many rows one [`closed_register!`] roster may declare: the length of
+/// the stamp's own declared supply of positions, read out as a value.
 ///
-/// # It is the supply, not a number kept beside it
+/// The pairing walk that answers `slot` and this constant are two readings of
+/// one list, so extending the supply moves this value with it and cannot
+/// leave it standing.
+/// It is the current authoring profile of this stamp implementation, never a
+/// semantic cap: no roster is closed because the supply is the length it is —
+/// each is closed because its own vocabulary is closed.
 ///
-/// The stamp writes its supply of positions out in one arm. The pairing walk
-/// that answers `slot` and this constant are two readings of that ONE list, so
-/// a supply that is extended moves this value with it and cannot leave it
-/// standing. That is the same anti-drift shape the stamp applies to its
-/// callers, applied to the stamp itself: the hand-kept form of this pattern is
-/// a supply of literals beside a number stating how many there are, and those
-/// are two things to keep true.
+/// # Bounds
 ///
-/// # The one place this profile's value is written down
+/// A position is answered as a `u8`, and that width tells two acts apart.
+/// A supply extended within `u8` is an append: every answered position keeps
+/// its value, no slot moves, and no identity derived under a slot is renamed.
+/// A supply extended past `u8` is not a longer supply at all — it is a new
+/// versioned encoding profile for positions and the identities written under
+/// them, arriving with its own version, migration, and qualification.
 ///
-/// The example below is that place, and it is deliberate rather than
-/// decorative. It records what the supply is TODAY, so extending the supply
-/// fails here and nowhere else in this repository's prose. That failure is the
-/// requalification trigger: repairing it means restating the recorded value on
-/// purpose, once, where a reader of the diff can see the profile move.
+/// # Examples
+///
+/// The recorded value is deliberate: extending the supply fails here, once,
+/// where a reader of the diff sees the profile move.
 ///
 /// ```
 /// assert_eq!(threadpak::CLOSED_REGISTER_ROW_CEILING, 64);
 /// ```
-///
-/// # What it is a ceiling ON
-///
-/// This is the current authoring profile of this stamp implementation, and
-/// nothing else. No roster in the machine is closed because the supply is the
-/// length it is; each is closed because its own vocabulary is closed. A
-/// vocabulary that genuinely holds more rows than the supply is a reason to
-/// extend the supply, never a reason to read a meaning into this number.
-///
-/// # Extending the supply, and the width that decides what it costs
-///
-/// A row's position is answered as a `u8`, and that width is what tells two
-/// different acts apart.
-///
-/// A supply extended WITHIN what a `u8` represents is an append and nothing
-/// more. Every position already answered keeps the value it answered, no
-/// existing row's slot moves, and no identity ever derived under a slot is
-/// renamed — the same terms a roster's own rows stand under, where a row is
-/// appended and never inserted or moved.
-///
-/// A supply extended PAST what a `u8` represents is not a longer supply at all.
-/// It is a new versioned encoding profile for positions and for the identities
-/// written under them, and it arrives as one: its own version, its own
-/// migration of anything already written, and its own qualification. The
-/// measured decision to answer positions as a `u8` rather than a wider integer
-/// is stated here because this is the value that would have to move first, and
-/// a reader who is about to move it is the reader who needs to know which of
-/// the two acts they are performing.
-///
-/// # Where it is seated, and why
-///
-/// It is a projection of the stamp's own expansion, so it cannot be written
-/// anywhere the stamp is not in scope. The stamp is seated in `lib.rs` — the
-/// root calculus's module surface — on the precedent [`scope_guard_version!`]
-/// set in band 02's `mod.rs`, and this constant seats beside it on exactly that
-/// precedent. `types.rs` holds the root's shapes; a value read out of a
-/// mechanism that file does not carry has nothing to do there.
-///
-/// [`scope_guard_version!`]: crate::scope_guard_version
 pub const CLOSED_REGISTER_ROW_CEILING: usize = crate::closed_register!(@supply length);
 
 #[path = "00_refusal/mod.rs"]
