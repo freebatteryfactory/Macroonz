@@ -299,10 +299,39 @@ fn dirty_entries(listing: &str) -> Vec<&str> {
 #[cfg(test)]
 mod tests {
     use std::fs;
+    use std::io::ErrorKind;
+    use std::path::PathBuf;
     use std::process;
     use std::sync::atomic::{AtomicUsize, Ordering};
 
     use super::{dirty_entries, run_worktree_clean};
+
+    /// Creates an empty non-repository coordinate without trusting one
+    /// process-local name to be absent after an interrupted earlier run.
+    fn non_repository_directory() -> Result<PathBuf, String> {
+        const CREATION_ATTEMPTS: usize = 1_024;
+        static NEXT: AtomicUsize = AtomicUsize::new(0);
+        for _ in 0..CREATION_ATTEMPTS {
+            let ordinal = NEXT.fetch_add(1, Ordering::Relaxed);
+            let root = std::env::temp_dir().join(format!(
+                "threadpak-qualification-non-repository-{}-{ordinal}",
+                process::id()
+            ));
+            match fs::create_dir(&root) {
+                Ok(()) => return Ok(root),
+                Err(error) if error.kind() == ErrorKind::AlreadyExists => {}
+                Err(error) => {
+                    return Err(format!(
+                        "cannot create non-repository qualification subject {}: {error}",
+                        root.display()
+                    ));
+                }
+            }
+        }
+        Err(format!(
+            "cannot create a non-repository qualification subject after {CREATION_ATTEMPTS} attempts"
+        ))
+    }
 
     /// The pass condition, stated exactly: a clean checkout prints nothing, and
     /// a trailing newline is still nothing.
@@ -341,18 +370,7 @@ mod tests {
     /// nonzero exit must reach the qualification verdict as a refusal.
     #[test]
     fn a_git_status_failure_is_not_a_clean_checkout() -> Result<(), String> {
-        static NEXT: AtomicUsize = AtomicUsize::new(0);
-        let nonce = NEXT.fetch_add(1, Ordering::Relaxed);
-        let root = std::env::temp_dir().join(format!(
-            "threadpak-qualification-non-repository-{}-{nonce}",
-            process::id()
-        ));
-        fs::create_dir(&root).map_err(|error| {
-            format!(
-                "cannot create non-repository qualification subject {}: {error}",
-                root.display()
-            )
-        })?;
+        let root = non_repository_directory()?;
         let observed = run_worktree_clean(&root);
         fs::remove_dir(&root).map_err(|error| {
             format!(
