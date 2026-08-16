@@ -346,14 +346,30 @@ fn an_unexpected_member_is_named_by_what_it_is() {
         !text.is_empty(),
         "the lawful artifact did not compile through the receipt-rich road"
     );
-    let damaged = mutated(&text, ArtifactMutation::ImplMemberUnexpected).unwrap_or_default();
-    let read = structure_of(&damaged);
-    assert!(read.is_some_and(|structure| {
-        structure
-            .implementations
-            .iter()
-            .any(|found| found.unexpected_members == vec![String::from("an associated function")])
-    }));
+    let kinds = [
+        ("fn nobody_planned_this ( ) { }", "an associated function"),
+        ("type NobodyPlannedThis = ( ) ;", "an associated type"),
+        ("nobody_planned_this ! ( ) ;", "a macro invocation in member position"),
+    ];
+    for (member, named) in kinds {
+        let damaged = with_member_planted(&text, member);
+        assert_ne!(damaged, text, "`{named}` was planted nowhere");
+        let read = structure_of(&damaged);
+        assert!(
+            read.is_some_and(|structure| {
+                structure
+                    .implementations
+                    .iter()
+                    .any(|found| found.unexpected_members == vec![String::from(named)])
+            }),
+            "the planted member was not read as `{named}`"
+        );
+        assert_eq!(
+            judge_structure(&damaged, &DECLARED_STRUCTURE),
+            StructuralVerdict::Deviates(StructuralDisagreement::UnexpectedImplMember),
+            "`{named}` did not reach lane B's member finding"
+        );
+    }
     let lawful_read = structure_of(&text);
     assert!(lawful_read.is_some_and(|structure| {
         structure
@@ -361,6 +377,12 @@ fn an_unexpected_member_is_named_by_what_it_is() {
             .iter()
             .all(|found| found.unexpected_members.is_empty())
     }));
+}
+
+/// Plant one member at the end of the first implementation's body, where the
+/// declared mutation plants its own.
+fn with_member_planted(lawful: &str, member: &str) -> String {
+    lawful.replacen("; } impl", &format!("; {member} }} impl"), 1)
 }
 
 /// A non-impl item anywhere in the artifact is caught, wherever it sits.

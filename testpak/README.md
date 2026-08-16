@@ -85,7 +85,6 @@ the specification says enough for somebody else to re-derive the value is.
 | Statement | Home |
 | --- | --- |
 | The plane, its seats, and what a verdict may claim | `src/lib.rs` |
-| The denominators a plan is stated over | `src/00_plan/types.rs` |
 | The lane doctrine | `src/03_judge/mod.rs` |
 | Everything a judge can say, and why `Unreadable` is a failure class | `src/03_judge/types.rs` |
 | Lane A's anchors and the exact edge of its claim | `src/03_judge/byte_profile.rs` |

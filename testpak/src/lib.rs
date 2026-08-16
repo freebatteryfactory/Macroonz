@@ -40,7 +40,6 @@ pub use judge::{
     StructuralVerdict, cause_identities_in, judge_declared_order, judge_structure, mutated,
     selection_order_in, structure_of,
 };
-pub use plan::RedTwinLedger;
 
 #[cfg(test)]
 mod laws;
