@@ -1952,8 +1952,8 @@ mod tests {
     /// missing one gets, since the leg refuses on the first.
     #[test]
     fn a_missing_tooling_ledger_is_a_violation() -> Result<(), String> {
-        let scratch = Scratch::named("tooling-ledger-missing");
-        scratch.write("README.md", "# a tree with no tooling ledger\n");
+        let scratch = Scratch::named("tooling-ledger-missing")?;
+        scratch.write("README.md", "# a tree with no tooling ledger\n")?;
         let found = tooling_rows(&scratch.read()?);
         assert!(found.is_err(), "{found:?}");
         assert!(

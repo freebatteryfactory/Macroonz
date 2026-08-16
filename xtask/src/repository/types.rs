@@ -116,8 +116,6 @@ pub(crate) enum AbsenceReason {
     /// The root declares no `Cargo.toml`, so there is no workspace for cargo to
     /// read and no reading to ask about.
     NotAWorkspaceCheckout,
-    /// The root is not a git checkout, so no commit names what was read.
-    NotAGitCheckout,
     /// The document declares no data block carrying the schema asked for.
     NoBlockDeclaresThisSchema,
     /// The document is there and states no such key.
@@ -131,7 +129,6 @@ impl fmt::Display for AbsenceReason {
             AbsenceReason::NotAWorkspaceCheckout => {
                 "the root declares no Cargo.toml, so cargo reports nothing here"
             }
-            AbsenceReason::NotAGitCheckout => "the root is not a git checkout",
             AbsenceReason::NoBlockDeclaresThisSchema => {
                 "no fenced data block in that document declares this schema"
             }

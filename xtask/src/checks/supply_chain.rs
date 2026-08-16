@@ -248,12 +248,12 @@ mod tests {
     const WORKFLOW_FIXTURE: &str = "name: dependencies\n";
 
     /// One scratch root carrying a whole, lawful gate.
-    fn planted(name: &str) -> Scratch {
-        let scratch = Scratch::named(name);
-        scratch.write(&GATE_WORKFLOW.join("/"), WORKFLOW_FIXTURE);
-        scratch.write(RULE_SET, RULE_SET_FIXTURE);
-        scratch.write(PLANTED_REVERSAL, REVERSAL_FIXTURE);
-        scratch
+    fn planted(name: &str) -> Result<Scratch, String> {
+        let scratch = Scratch::named(name)?;
+        scratch.write(&GATE_WORKFLOW.join("/"), WORKFLOW_FIXTURE)?;
+        scratch.write(RULE_SET, RULE_SET_FIXTURE)?;
+        scratch.write(PLANTED_REVERSAL, REVERSAL_FIXTURE)?;
+        Ok(scratch)
     }
 
     /// The positive control: a gate carrying all three of its artifacts, with a
@@ -262,7 +262,7 @@ mod tests {
     /// reversal below and be worthless.
     #[test]
     fn present_and_distinct_artifacts_are_lawful() -> Result<(), String> {
-        let scratch = planted("gate-whole");
+        let scratch = planted("gate-whole")?;
         let found = check_dependency_gate_artifacts(&scratch.read()?);
         assert!(found.is_ok(), "{found:?}");
         Ok(())
@@ -273,8 +273,8 @@ mod tests {
     /// be watched is gone, and nothing else in the tree notices.
     #[test]
     fn a_deleted_reversal_is_a_violation() -> Result<(), String> {
-        let scratch = planted("gate-reversal-deleted");
-        scratch.remove(PLANTED_REVERSAL);
+        let scratch = planted("gate-reversal-deleted")?;
+        scratch.remove(PLANTED_REVERSAL)?;
         let found = check_dependency_gate_artifacts(&scratch.read()?);
         assert!(
             found.is_err_and(
@@ -289,8 +289,8 @@ mod tests {
     /// configurations survive and no committed file names a run that reads them.
     #[test]
     fn a_deleted_workflow_is_a_violation() -> Result<(), String> {
-        let scratch = planted("gate-workflow-deleted");
-        scratch.remove(&GATE_WORKFLOW.join("/"));
+        let scratch = planted("gate-workflow-deleted")?;
+        scratch.remove(&GATE_WORKFLOW.join("/"))?;
         let found = check_dependency_gate_artifacts(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains("hosted seat is not committed")),
@@ -303,8 +303,8 @@ mod tests {
     /// against nothing.
     #[test]
     fn a_deleted_rule_set_is_a_violation() -> Result<(), String> {
-        let scratch = planted("gate-rule-set-deleted");
-        scratch.remove(RULE_SET);
+        let scratch = planted("gate-rule-set-deleted")?;
+        scratch.remove(RULE_SET)?;
         let found = check_dependency_gate_artifacts(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains(RULE_SET) && reason.contains("is not there")),
@@ -318,8 +318,8 @@ mod tests {
     /// would report as present.
     #[test]
     fn an_emptied_reversal_is_a_violation() -> Result<(), String> {
-        let scratch = planted("gate-reversal-emptied");
-        scratch.write(PLANTED_REVERSAL, "\n   \n");
+        let scratch = planted("gate-reversal-emptied")?;
+        scratch.write(PLANTED_REVERSAL, "\n   \n")?;
         let found = check_dependency_gate_artifacts(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains("states nothing at all")),
@@ -338,8 +338,8 @@ mod tests {
     /// purpose — has quietly stopped being true of it.
     #[test]
     fn a_reversal_that_stopped_departing_is_a_violation() -> Result<(), String> {
-        let scratch = planted("gate-reversal-synchronized");
-        scratch.write(PLANTED_REVERSAL, RULE_SET_FIXTURE);
+        let scratch = planted("gate-reversal-synchronized")?;
+        scratch.write(PLANTED_REVERSAL, RULE_SET_FIXTURE)?;
         let found = check_dependency_gate_artifacts(&scratch.read()?);
         assert!(
             found.is_err_and(|reason| reason.contains("byte-for-byte")),
@@ -361,11 +361,11 @@ mod tests {
     /// back.
     #[test]
     fn a_workflow_that_invokes_nothing_still_passes() -> Result<(), String> {
-        let scratch = planted("gate-workflow-invokes-nothing");
+        let scratch = planted("gate-workflow-invokes-nothing")?;
         scratch.write(
             &GATE_WORKFLOW.join("/"),
             "name: dependencies\non:\n  pull_request:\njobs: {}\n",
-        );
+        )?;
         let found = check_dependency_gate_artifacts(&scratch.read()?);
         assert!(
             found.is_ok(),

@@ -705,8 +705,8 @@ pub enum EffectBatchCompositionIssue {
     },
 }
 
-/// Limit family for composition issues. Its magnitude is selected by the
-/// owner's evidence rather than declared here — see
+/// Limit family for `EffectBatch` composition issues. Its magnitude is
+/// selected by the owner's evidence rather than declared here — see
 /// [`crate::types::EvidenceSelectedLimit`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct EffectBatchIssueLimit;

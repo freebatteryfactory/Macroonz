@@ -156,8 +156,8 @@ pub trait Limit {
     /// [`DeclaredMagnitude`] without implementing [`ConstLimit`] leaves a family
     /// with no `MAX` and therefore no road to [`AdmittedLimit`]; declaring
     /// [`EvidenceSelectedMagnitude`] without implementing
-    /// [`EvidenceSelectedLimit`] leaves it with no road to
-    /// [`PositiveLimitWitness`]. Both are inert rather than wrong: the family
+    /// [`EvidenceSelectedLimit`] leaves it with no road to either [`LimitWitness`]
+    /// or [`PositiveLimitWitness`]. Both are inert rather than wrong: the family
     /// names a road and never walks it, and the ladder traits stay the one place
     /// a capacity is actually reachable from.
     type Authority: CapacityAuthority;
@@ -191,9 +191,9 @@ pub trait ConstLimit: Limit<Authority = DeclaredMagnitude> {
 /// evidence-selected" in PROSE beside their declaration and said it nowhere a
 /// road could read, which left the second ladder with a magnitude nothing
 /// carried and a positivity nothing established. This trait is where that
-/// sentence becomes a fact the compiler carries: [`PositiveLimitWitness`]'s mint
-/// is bounded on it, so a family that never declared its magnitude
-/// evidence-selected has no road to a runtime capacity at all.
+/// sentence becomes a fact the compiler carries: both runtime witness types and
+/// every road consuming them are bounded on it, so a family that never declared
+/// its magnitude evidence-selected has no road to a runtime capacity at all.
 ///
 /// # What implementing it claims, and what it does not
 ///
@@ -457,6 +457,13 @@ impl<L: Limit, P: LimitAdmissionProfile> PositiveLimit<L, P> {
 /// witness up, in [`PositiveLimitWitness`], where exactly the runtime roads
 /// promising an inhabitant consume it.
 ///
+/// The family bound is part of this BASE rung rather than deferred to the
+/// positive one: a runtime-selected magnitude cannot even be named for a
+/// family whose owner did not declare [`EvidenceSelectedLimit`]. Consequently
+/// every mint and consumer inherits the same authority fact from the witness
+/// it must mention, and no weaker base value can be handed to
+/// [`Bounded::admitted`] under a declared or unstated family.
+///
 /// # No production road mints one, and that is stated rather than implied
 ///
 /// `LimitWitness::declared` is the only mint, it is `#[cfg(test)]`, and it is
@@ -474,12 +481,12 @@ impl<L: Limit, P: LimitAdmissionProfile> PositiveLimit<L, P> {
 /// documentation build does not contain it.
 #[must_use = "a limit witness is the magnitude schema validation established; dropping it \
               discards the only admitted bound for its family"]
-pub struct LimitWitness<L: Limit> {
+pub struct LimitWitness<L: EvidenceSelectedLimit> {
     max: usize,
     _family: PhantomData<L>,
 }
 
-impl<L: Limit> LimitWitness<L> {
+impl<L: EvidenceSelectedLimit> LimitWitness<L> {
     /// In-crate mint for laws. Test-gated until the schema home carries the real
     /// declaration path — the gate comes off when a lawful minter exists.
     #[cfg(test)]
@@ -581,7 +588,7 @@ pub enum CapacityAdmission {
 #[must_use = "a positive limit witness is the evidence a family's evidence-selected magnitude \
               admits an item; dropping it discards the only proof a runtime road promising an \
               inhabitant may act on"]
-pub struct PositiveLimitWitness<L: Limit> {
+pub struct PositiveLimitWitness<L: EvidenceSelectedLimit> {
     witness: LimitWitness<L>,
 }
 
@@ -619,7 +626,7 @@ impl<L: EvidenceSelectedLimit> PositiveLimitWitness<L> {
     }
 }
 
-impl<L: Limit> PositiveLimitWitness<L> {
+impl<L: EvidenceSelectedLimit> PositiveLimitWitness<L> {
     /// The witnessed maximum this witness carries; at least one by construction.
     ///
     /// Read off the contained base witness, so no second copy of the magnitude
@@ -771,7 +778,10 @@ impl<T, L: Limit> Bounded<T, L> {
     ///
     /// Returns [`BoundedConstruction::OverLimit`] when the items exceed the
     /// witnessed maximum.
-    pub fn admitted(items: Vec<T>, witness: &LimitWitness<L>) -> Result<Self, BoundedConstruction> {
+    pub fn admitted(items: Vec<T>, witness: &LimitWitness<L>) -> Result<Self, BoundedConstruction>
+    where
+        L: EvidenceSelectedLimit,
+    {
         if items.len() <= witness.max() {
             Ok(Self {
                 items,
@@ -1035,7 +1045,10 @@ impl<T, L: Limit> NonEmptyBounded<T, L> {
         first: T,
         rest: Vec<T>,
         witness: &PositiveLimitWitness<L>,
-    ) -> Result<Self, NonEmptyBoundedConstruction> {
+    ) -> Result<Self, NonEmptyBoundedConstruction>
+    where
+        L: EvidenceSelectedLimit,
+    {
         if rest.len().saturating_add(1) <= witness.max() {
             Ok(Self {
                 first,

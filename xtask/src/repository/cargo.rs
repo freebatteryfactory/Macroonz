@@ -11,7 +11,7 @@
 //! a reader standing on it recognizes a spelling nobody thought of.
 //!
 //! **What Cargo NORMALIZES** is a different question, and only cargo answers it:
-//! `cargo metadata --locked --format-version 1` reports, under
+//! `cargo metadata --locked --no-deps --format-version 1` reports, under
 //! `packages[].dependencies`, each package's manifest dependency DECLARATIONS
 //! after cargo has normalized them — workspace inheritance applied, package
 //! identity settled, a rename separated from the key it is written at, the edge
@@ -69,22 +69,23 @@ pub(crate) const MANIFEST_FILE: &str = "Cargo.toml";
 /// The table a platform-conditional dependency table hangs beneath.
 const TARGET_TABLE: &str = "target";
 
-/// Everything the Cargo authorities established about this repository, read
-/// once.
+/// What the committed manifest bytes declare, decoded once.
+///
+/// This is a pure projection of the committed file map. Cargo's live answer is
+/// deliberately carried by [`CargoObservation`], because a process observation
+/// does not become a committed fact merely by being taken beside one.
 pub(crate) struct CargoSnapshot {
-    /// What cargo normalized the manifests to, or why nobody asked it.
-    normalized: Read<NormalizedWorkspace>,
     /// Every `.toml` document in the tree, decoded by the decoder that owns
     /// TOML. Keyed by canonical path, so no reader spells one twice.
     documents: BTreeMap<CanonicalPath, Read<toml::Table>>,
-    /// Every dependency entry every committed manifest declares, in one list.
-    census: ManifestCensus,
+    /// Every dependency entry every committed manifest declares, or the exact
+    /// manifest failure that prevented the census.
+    census: Read<ManifestCensus>,
 }
 
 impl CargoSnapshot {
-    /// Reads every TOML document in the tree, takes the census off them, and
-    /// asks cargo what it resolved.
-    pub(crate) fn read(root: &Path, files: &CanonicalFileMap) -> Self {
+    /// Reads every TOML document in the committed tree and takes the census.
+    pub(crate) fn read(files: &CanonicalFileMap) -> Self {
         let mut documents = BTreeMap::new();
         for (path, fact) in files.iter() {
             if !path.extension_is("toml") {
@@ -93,16 +94,7 @@ impl CargoSnapshot {
             documents.insert(path.clone(), decode(path, fact.text()));
         }
         let census = ManifestCensus::take(&documents);
-        Self {
-            normalized: ask_cargo(root, files),
-            documents,
-            census,
-        }
-    }
-
-    /// What cargo normalized the manifests to, or why nobody asked it.
-    pub(crate) const fn normalized(&self) -> &Read<NormalizedWorkspace> {
-        &self.normalized
+        Self { documents, census }
     }
 
     /// One decoded TOML document, or the absence of the file that would carry
@@ -116,9 +108,43 @@ impl CargoSnapshot {
         }
     }
 
-    /// Every dependency entry every committed manifest declares.
-    pub(crate) const fn census(&self) -> &ManifestCensus {
+    /// Every dependency entry every committed manifest declares, or why that
+    /// census could not be established.
+    pub(crate) const fn census(&self) -> &Read<ManifestCensus> {
         &self.census
+    }
+}
+
+/// Cargo's live normalization of the checkout beside one committed snapshot.
+///
+/// This is role-distinct from [`CargoSnapshot`]. The latter is a pure decoding
+/// of Git-owned bytes; this value is what an external process reported while
+/// the checkout was observed clean and stable around that process. Consumers
+/// that need Cargo's normalization ask for this observation explicitly rather
+/// than inheriting it from the committed file facts.
+///
+/// The observation does not claim that Cargo's operational configuration,
+/// environment, executable, or dependency cache is part of the committed tree.
+/// Untracked and ignored repository paths are likewise outside the committed
+/// file population even where Cargo itself may consult an operational input.
+/// A check spending this value therefore reports a live Cargo observation, not
+/// a pure projection of `HEAD`.
+pub(crate) struct CargoObservation {
+    /// What cargo normalized the manifests to, or why nobody asked it.
+    normalized: Read<NormalizedWorkspace>,
+}
+
+impl CargoObservation {
+    /// Asks cargo what it normalized the committed manifest population to.
+    pub(crate) fn read(root: &Path, files: &CanonicalFileMap) -> Self {
+        Self {
+            normalized: ask_cargo(root, files),
+        }
+    }
+
+    /// What cargo normalized the manifests to, or why nobody asked it.
+    pub(crate) const fn normalized(&self) -> &Read<NormalizedWorkspace> {
+        &self.normalized
     }
 }
 
@@ -231,23 +257,28 @@ impl fmt::Display for DeclaredDependency {
 ///
 /// The census is taken ONCE, over every manifest at once, so no law can be
 /// judging a different set of entries than another. A number that moves here
-/// moved because the tree moved.
+/// moved because the tree moved. One unreadable manifest makes the aggregate
+/// unreadable; it never contributes the empty edge set.
 pub(crate) struct ManifestCensus(Vec<DeclaredDependency>);
 
 impl ManifestCensus {
     /// The census of every decoded manifest, in manifest-path order and, within
     /// one manifest, in edge-kind then key order.
-    fn take(documents: &BTreeMap<CanonicalPath, Read<toml::Table>>) -> Self {
+    fn take(documents: &BTreeMap<CanonicalPath, Read<toml::Table>>) -> Read<Self> {
         let mut entries = Vec::new();
         for (path, document) in documents {
             if path.file_name() != MANIFEST_FILE {
                 continue;
             }
-            if let Read::Known(ref document) = *document {
-                entries.extend(dependency_declarations(path, document));
+            match *document {
+                Read::Known(ref document) => {
+                    entries.extend(dependency_declarations(path, document));
+                }
+                Read::DeclaredAbsent(reason) => return Read::DeclaredAbsent(reason),
+                Read::Unreadable(ref failure) => return Read::Unreadable(failure.clone()),
             }
         }
-        Self(entries)
+        Read::Known(Self(entries))
     }
 
     /// Every entry one manifest declares.
@@ -458,19 +489,34 @@ pub(crate) fn declares_table(document: &toml::Table, key_path: &[&str]) -> Read<
 /// be an inventory nobody joins.
 #[derive(Debug, Deserialize)]
 pub(crate) struct NormalizedWorkspace {
-    /// Every package cargo reported, workspace members included. This is the
-    /// manifest census as cargo normalized it, and not the selected graph — see
-    /// this module's own documentation for why that is the subject wanted here.
+    /// Every workspace package cargo reported under `--no-deps`. This is the
+    /// workspace manifest census as cargo normalized it, and not the selected
+    /// graph — see this module's own documentation for why that is the subject
+    /// wanted here.
     packages: Vec<NormalizedPackage>,
 }
 
 impl NormalizedWorkspace {
-    /// The package cargo reported under one name, or the declared absence of
-    /// it.
+    /// The one workspace package cargo reported under a name.
+    ///
+    /// Zero matches are declared absence. More than one match is unreadable:
+    /// terminal spelling cannot choose an identity, and selecting the first
+    /// would make Cargo's output order an ambient authority over the verdict.
     pub(crate) fn package(&self, named: &str) -> Read<&NormalizedPackage> {
-        match self.packages.iter().find(|package| package.name == named) {
-            Some(found) => Read::Known(found),
-            None => Read::DeclaredAbsent(AbsenceReason::NoSuchKey),
+        let mut matching = self.packages.iter().filter(|package| package.name == named);
+        let Some(found) = matching.next() else {
+            return Read::DeclaredAbsent(AbsenceReason::NoSuchKey);
+        };
+        if matching.next().is_some() {
+            Read::Unreadable(ReadFailure::new(
+                "cargo metadata workspace package identity",
+                &format!(
+                    "more than one workspace package is named `{named}`; terminal spelling cannot \
+                     select one"
+                ),
+            ))
+        } else {
+            Read::Known(found)
         }
     }
 }
@@ -552,6 +598,7 @@ fn ask_cargo(root: &Path, files: &CanonicalFileMap) -> Read<NormalizedWorkspace>
         .args([
             "metadata",
             "--locked",
+            "--no-deps",
             "--format-version",
             "1",
             "--manifest-path",
@@ -574,7 +621,7 @@ fn ask_cargo(root: &Path, files: &CanonicalFileMap) -> Read<NormalizedWorkspace>
     match serde_json::from_slice::<NormalizedWorkspace>(&output.stdout) {
         Ok(reported) => Read::Known(reported),
         Err(error) => Read::Unreadable(ReadFailure::new(
-            "cargo metadata --format-version 1",
+            "cargo metadata --no-deps --format-version 1",
             &error.to_string(),
         )),
     }
@@ -590,7 +637,10 @@ fn ask_cargo(root: &Path, files: &CanonicalFileMap) -> Read<NormalizedWorkspace>
 /// is proven against text, never against the tree it guards.
 #[cfg(test)]
 mod tests {
-    use super::{DeclaredDependency, EdgeKind, dependency_declarations, string_at, strings_at};
+    use super::{
+        DeclaredDependency, EdgeKind, NormalizedPackage, NormalizedWorkspace,
+        dependency_declarations, string_at, strings_at,
+    };
     use crate::repository::snapshot::repository_snapshot;
     use crate::repository::types::{CanonicalPath, Read};
 
@@ -805,56 +855,60 @@ mod tests {
         Ok(())
     }
 
-    /// The census this repository commits, entry for entry.
-    ///
-    /// A reader replacement moves numbers only where the TREE moved, and this is
-    /// where that is pinned rather than asserted. Nineteen entries across seven
-    /// committed manifests; the root manifest declares none of them, because
-    /// what it carries is a workspace POOL.
-    ///
-    /// It was fifteen before the decoders were admitted, and the four that
-    /// arrived are the four this crate now reads through: `toml`,
-    /// `pulldown-cmark`, `serde`, and `serde_json`, every one of them an entry
-    /// of `xtask/Cargo.toml`. Nothing else moved — same manifests, same kinds,
-    /// same keys, same declared packages and paths — so the number moved exactly
-    /// where the tree did and nowhere else.
+    /// Package lookup has three states: no workspace member, exactly one, or
+    /// an identity collision. Cargo's output order cannot settle the third.
     #[test]
-    fn the_committed_census_is_nineteen_entries() -> Result<(), String> {
+    fn normalized_package_lookup_refuses_terminal_name_collisions() {
+        let one = NormalizedPackage {
+            name: String::from("threadpak"),
+            dependencies: Vec::new(),
+        };
+        let duplicate = NormalizedPackage {
+            name: String::from("threadpak"),
+            dependencies: Vec::new(),
+        };
+        let unique = NormalizedWorkspace {
+            packages: vec![one],
+        };
+        assert!(matches!(unique.package("missing"), Read::DeclaredAbsent(_)));
+        assert!(matches!(unique.package("threadpak"), Read::Known(_)));
+
+        let collided = NormalizedWorkspace {
+            packages: vec![
+                NormalizedPackage {
+                    name: String::from("threadpak"),
+                    dependencies: Vec::new(),
+                },
+                duplicate,
+            ],
+        };
+        assert!(matches!(collided.package("threadpak"), Read::Unreadable(_)));
+    }
+
+    /// The real census preserves Cargo's package identity across a rename.
+    ///
+    /// Structural control rather than a frozen population count: the committed
+    /// manifest map derives the denominator, this specimen proves a declaration
+    /// whose key and package differ survives that derivation, and the root
+    /// workspace pool remains outside the edge population.
+    #[test]
+    fn the_real_census_preserves_a_renamed_consumer_identity() -> Result<(), String> {
         let snapshot = repository_snapshot()?;
-        let census: Vec<String> = snapshot
+        let census = snapshot
             .cargo()
             .census()
-            .0
-            .iter()
-            .map(|entry| {
-                format!(
-                    "{} [{}] {} package={:?} path={:?}",
-                    entry.manifest(),
-                    entry.kind,
-                    entry.key,
-                    entry.package,
-                    entry.path
-                )
-            })
-            .collect();
-        assert_eq!(census.len(), 19, "{census:#?}");
+            .required("the committed manifest dependency census")?;
         assert!(
-            census.iter().any(|entry| entry
-                == "xtask/fixtures/renamed-consumer/Cargo.toml [dependencies] tp \
-                    package=Some(\"threadpak\") path=Some(\"../../..\")"),
-            "{census:#?}"
-        );
-        // The four the decoders brought, and no fifth.
-        assert_eq!(
             census
+                .of("xtask/fixtures/renamed-consumer/Cargo.toml")
                 .iter()
-                .filter(|entry| entry.starts_with("xtask/Cargo.toml"))
-                .count(),
-            6,
-            "{census:#?}"
+                .any(|entry| entry.key == "tp"
+                    && entry.package.as_deref() == Some("threadpak")
+                    && entry.path() == Some("../../..")),
+            "the committed renamed-consumer declaration lost its package identity"
         );
         assert!(
-            snapshot.cargo().census().of("Cargo.toml").is_empty(),
+            census.of("Cargo.toml").is_empty(),
             "the root manifest's workspace pool was read as an edge"
         );
         Ok(())

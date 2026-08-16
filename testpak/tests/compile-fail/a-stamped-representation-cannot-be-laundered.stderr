@@ -13,12 +13,12 @@ note: constructor is not visible here due to private fields
 30 | |         pub struct RoleBVersion over OneScopeId, seated in mod role_b_version;
 31 | |     }
    | |_____^ private field
-   = note: this error originates in the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+   = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: consider making the field publicly accessible
   --> $WORKSPACE/src/02_identity/mod.rs
    |
-   |             $vis struct $name(pub $crate::identity::AuthorityPosition<$scope>);
-   |                               +++
+   |             $internal_vis struct $name(pub $crate::identity::AuthorityPosition<$scope>);
+   |                                        +++
 
 error[E0616]: field `0` of struct `RoleAVersion` is private
   --> tests/compile-fail/a-stamped-representation-cannot-be-laundered.rs:36:45

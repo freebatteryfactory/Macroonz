@@ -16,4 +16,4 @@ note: method defined here
 17 | |     pub struct AlphaVersion over AlphaScopeId, seated in mod alpha_version;
 18 | | }
    | |_^
-   = note: this error originates in the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+   = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -264,7 +264,13 @@ fn read_sources(sources: &[(&CanonicalPath, &syn::File)]) -> Reading {
     };
     for (path, file) in sources {
         let spelled = path.as_str();
-        read_module(spelled, &declaring_home(spelled), &file.items, &mut reading);
+        read_module(
+            spelled,
+            &declaring_home(spelled),
+            spelled,
+            &file.items,
+            &mut reading,
+        );
     }
     reading
 }
@@ -286,15 +292,23 @@ fn declaring_home(path: &str) -> String {
 
 /// Reads one module's items, then every inline module inside it.
 ///
-/// An inline `mod` is its own resolution scope, keyed by the file that writes it
-/// so two files' identically named inline modules never resolve into each other.
+/// An inline `mod` is its own resolution scope, keyed by the file and the full
+/// inline-module chain that writes it. Two files' identically named modules do
+/// not resolve into each other, and neither do two same-named children under
+/// distinct parents in one file.
 /// Written as an `if let` chain rather than a match because `syn::Item` is
 /// `non_exhaustive`: the items this reading has a question about are named, and
 /// every other item is passed over without a wildcard arm standing in for a set
 /// no crate outside `syn` can enumerate. The expectation that used to sit here —
 /// naming the lint and the reason — was a real refusal of a real hatch, and it
 /// is gone because the shape that needed it is gone.
-fn read_module(path: &str, home: &str, items: &[syn::Item], reading: &mut Reading) {
+fn read_module(
+    path: &str,
+    home: &str,
+    inline_scope: &str,
+    items: &[syn::Item],
+    reading: &mut Reading,
+) {
     for item in items {
         if let syn::Item::Impl(declared) = item {
             if let Some(family) = collection_family(declared) {
@@ -313,7 +327,7 @@ fn read_module(path: &str, home: &str, items: &[syn::Item], reading: &mut Readin
                 });
             }
         } else if let syn::Item::Mod(module) = item {
-            read_inline_module(path, home, module, items, reading);
+            read_inline_module(path, home, inline_scope, module, items, reading);
         }
     }
 }
@@ -329,6 +343,7 @@ fn read_module(path: &str, home: &str, items: &[syn::Item], reading: &mut Readin
 fn read_inline_module(
     path: &str,
     home: &str,
+    inline_scope: &str,
     module: &syn::ItemMod,
     siblings: &[syn::Item],
     reading: &mut Reading,
@@ -336,8 +351,8 @@ fn read_inline_module(
     let Some((_, inner)) = &module.content else {
         return;
     };
-    let inside = format!("{path}::{}", module.ident);
-    read_module(path, &inside, inner, reading);
+    let inside = format!("{inline_scope}::{}", module.ident);
+    read_module(path, &inside, &inside, inner, reading);
     for name in reexported_from(&module.ident, siblings) {
         read_reexported_body(home, &name, inner, reading);
     }
@@ -345,35 +360,65 @@ fn read_inline_module(
 
 /// Every name one module re-exports out of the named child module.
 ///
-/// A glob contributes nothing: what stands behind one is a set this reader would
-/// have to resolve, and a body left in the inner scope produces a refusal
-/// somebody can argue with rather than a silence nobody can see.
+/// Only a relative path to the immediate child contributes names. A leading
+/// `::` is absolute rather than local. A glob, rename, or deeper path contributes
+/// nothing: each carries facts this reader would have to resolve, and a family
+/// left without a body produces a refusal somebody can argue with rather than a
+/// false coupling nobody can see.
 fn reexported_from(child: &syn::Ident, items: &[syn::Item]) -> Vec<String> {
     let mut names = Vec::new();
     for item in items {
         if let syn::Item::Use(declared) = item
-            && let syn::UseTree::Path(rooted) = &declared.tree
-            && rooted.ident == *child
+            && declared.leading_colon.is_none()
+            && let Some(tree) = immediate_child_reexport(&declared.tree, child)
         {
-            reexported_names(&rooted.tree, &mut names);
+            reexported_names(tree, &mut names);
         }
     }
     names
 }
 
-/// Every name one `use` tree brings in, under the spelling the enclosing module
-/// then knows it by.
+/// The tree re-exported from one immediate child.
+///
+/// Exactly one leading `self::` is normalized because it names the same child
+/// from the enclosing module. No other prefix is followed: `super`, `crate`,
+/// aliases, and repeated paths would require name resolution this reader does
+/// not own.
+fn immediate_child_reexport<'tree>(
+    tree: &'tree syn::UseTree,
+    child: &syn::Ident,
+) -> Option<&'tree syn::UseTree> {
+    let syn::UseTree::Path(rooted) = tree else {
+        return None;
+    };
+    if rooted.ident == *child {
+        return Some(&rooted.tree);
+    }
+    if rooted.ident != "self" {
+        return None;
+    }
+    let syn::UseTree::Path(rooted) = &*rooted.tree else {
+        return None;
+    };
+    (rooted.ident == *child).then_some(&rooted.tree)
+}
+
+/// Every direct name one selected immediate-child tree brings in.
+///
+/// A group is only authoring shorthand for its direct `Name` members. Nested
+/// paths, nested groups, renames, and globs require facts beyond one name in one
+/// known child scope, so each stays unlifted.
 fn reexported_names(tree: &syn::UseTree, into: &mut Vec<String>) {
     match *tree {
         syn::UseTree::Name(ref named) => into.push(named.ident.to_string()),
-        syn::UseTree::Rename(ref renamed) => into.push(renamed.rename.to_string()),
         syn::UseTree::Group(ref group) => {
             for inner in &group.items {
-                reexported_names(inner, into);
+                if let syn::UseTree::Name(named) = inner {
+                    into.push(named.ident.to_string());
+                }
             }
         }
-        syn::UseTree::Path(ref deeper) => reexported_names(&deeper.tree, into),
-        syn::UseTree::Glob(_) => {}
+        syn::UseTree::Path(_) | syn::UseTree::Rename(_) | syn::UseTree::Glob(_) => {}
     }
 }
 
@@ -579,6 +624,174 @@ mod tests {
         assert_eq!(verdict.declared, 1);
         assert_eq!(verdict.coupled, 1, "{:?}", verdict.offenders);
         assert!(verdict.offenders.is_empty(), "{:?}", verdict.offenders);
+    }
+
+    /// One leading `self::` names the same immediate child from the enclosing
+    /// module. The bounded lift normalizes that spelling without attempting
+    /// general import resolution.
+    #[test]
+    fn a_self_qualified_re_export_resolves_the_immediate_child() {
+        let verdict = coupled_body_verdict(&source(
+            "pub use self::seat::DemoRefusal;\n\
+             \n\
+             mod seat {\n\
+             \x20   pub struct DemoRefusal {\n\
+             \x20       body: AdmittedPrefix<DemoIssue, DemoIssueLimit>,\n\
+             \x20   }\n\
+             }\n\
+             \n\
+             impl RefusalFamily for DemoRefusal {\n\
+             \x20   const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.coupled, 1, "{:?}", verdict.offenders);
+        assert!(verdict.offenders.is_empty(), "{:?}", verdict.offenders);
+    }
+
+    /// Direct names in one group are still immediate-child re-exports. The
+    /// group changes only how several direct names are written, not which scope
+    /// declares either body.
+    #[test]
+    fn a_group_of_direct_names_resolves_in_the_publishing_module() {
+        let verdict = coupled_body_verdict(&source(
+            "pub use seat::{FirstRefusal, SecondRefusal};\n\
+             \n\
+             mod seat {\n\
+             \x20   pub struct FirstRefusal {\n\
+             \x20       body: AdmittedPrefix<FirstIssue, FirstIssueLimit>,\n\
+             \x20   }\n\
+             \x20   pub struct SecondRefusal {\n\
+             \x20       body: AdmittedPrefix<SecondIssue, SecondIssueLimit>,\n\
+             \x20   }\n\
+             }\n\
+             impl RefusalFamily for FirstRefusal {\n\
+             \x20   const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             }\n\
+             impl RefusalFamily for SecondRefusal {\n\
+             \x20   const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 2);
+        assert_eq!(verdict.coupled, 2, "{:?}", verdict.offenders);
+        assert!(verdict.offenders.is_empty(), "{:?}", verdict.offenders);
+    }
+
+    /// Planted reversal: a nested path publishes the nested body's identity,
+    /// not an identically named top-level body inside the immediate child. This
+    /// bounded reader does not resolve the deeper path, so it must leave the
+    /// outer family loudly bodyless rather than couple the innocent body.
+    #[test]
+    fn a_nested_re_export_cannot_lift_a_top_level_collision() {
+        let verdict = coupled_body_verdict(&source(
+            "pub use seat::nested::DemoRefusal;\n\
+             mod seat {\n\
+             \x20   pub struct DemoRefusal {\n\
+             \x20       body: AdmittedPrefix<DemoIssue, DemoIssueLimit>,\n\
+             \x20   }\n\
+             \x20   mod nested {\n\
+             \x20       pub struct DemoRefusal {\n\
+             \x20           issues: NonEmptyBounded<DemoIssue, DemoIssueLimit>,\n\
+             \x20       }\n\
+             \x20   }\n\
+             }\n\
+             impl RefusalFamily for DemoRefusal {\n\
+             \x20   const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.coupled, 0, "{:?}", verdict.offenders);
+        assert!(
+            verdict
+                .offenders
+                .first()
+                .is_some_and(|offence| offence.contains("no `pub struct DemoRefusal`")),
+            "{:?}",
+            verdict.offenders
+        );
+    }
+
+    /// Planted reversal: a rename carries both a source and a published name.
+    /// This reader carries only one body identity, so it refuses to guess by
+    /// leaving the outer family bodyless rather than lifting a top-level body
+    /// that merely matches the alias.
+    #[test]
+    fn a_renamed_re_export_cannot_lift_an_alias_collision() {
+        let verdict = coupled_body_verdict(&source(
+            "pub use seat::OriginalRefusal as DemoRefusal;\n\
+             mod seat {\n\
+             \x20   pub struct OriginalRefusal {\n\
+             \x20       issues: NonEmptyBounded<DemoIssue, DemoIssueLimit>,\n\
+             \x20   }\n\
+             \x20   pub struct DemoRefusal {\n\
+             \x20       body: AdmittedPrefix<DemoIssue, DemoIssueLimit>,\n\
+             \x20   }\n\
+             }\n\
+             impl RefusalFamily for DemoRefusal {\n\
+             \x20   const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.coupled, 0, "{:?}", verdict.offenders);
+        assert!(
+            verdict
+                .offenders
+                .first()
+                .is_some_and(|offence| offence.contains("no `pub struct DemoRefusal`")),
+            "{:?}",
+            verdict.offenders
+        );
+    }
+
+    /// Planted reversal: a leading `::` makes the path absolute. It is not the
+    /// immediate child declared in this module even when the terminal spelling
+    /// matches, so no local body is lifted through it.
+    #[test]
+    fn an_absolute_re_export_does_not_lift_a_local_child() {
+        let verdict = coupled_body_verdict(&source(
+            "pub use ::seat::DemoRefusal;\n\
+             mod seat {\n\
+             \x20   pub struct DemoRefusal {\n\
+             \x20       body: AdmittedPrefix<DemoIssue, DemoIssueLimit>,\n\
+             \x20   }\n\
+             }\n\
+             impl RefusalFamily for DemoRefusal {\n\
+             \x20   const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.coupled, 0, "{:?}", verdict.offenders);
+        assert!(
+            verdict
+                .offenders
+                .first()
+                .is_some_and(|offence| offence.contains("no `pub struct DemoRefusal`")),
+            "{:?}",
+            verdict.offenders
+        );
+    }
+
+    /// A different prefix is not normalized into the immediate child. Doing so
+    /// would be partial name resolution and could lift a body from another
+    /// scope merely because its terminal spelling matched.
+    #[test]
+    fn a_nonlocal_prefix_does_not_lift_an_immediate_child() {
+        let verdict = coupled_body_verdict(&source(
+            "pub use super::seat::DemoRefusal;\n\
+             \n\
+             mod seat {\n\
+             \x20   pub struct DemoRefusal {\n\
+             \x20       body: AdmittedPrefix<DemoIssue, DemoIssueLimit>,\n\
+             \x20   }\n\
+             }\n\
+             \n\
+             impl RefusalFamily for DemoRefusal {\n\
+             \x20   const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.coupled, 0);
+        assert_eq!(verdict.offenders.len(), 1, "{:?}", verdict.offenders);
     }
 
     /// A body a child module declares and nobody re-exports stays in the child's
@@ -980,6 +1193,62 @@ mod tests {
                 .first()
                 .is_some_and(|offence| offence.contains("carries no"))
         );
+    }
+
+    /// Planted reversal: identical terminal child names under distinct parent
+    /// modules are distinct syntactic scopes. A family in the first child may
+    /// not borrow the body declared in the second child merely because both
+    /// chains end in `seat`.
+    #[test]
+    fn identical_nested_terminal_names_do_not_cross_couple() {
+        let verdict = coupled_body_verdict(&source(
+            "mod first {\n\
+             \x20   mod seat {\n\
+             \x20       impl RefusalFamily for DemoRefusal {\n\
+             \x20           const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             \x20       }\n\
+             \x20   }\n\
+             }\n\
+             mod second {\n\
+             \x20   mod seat {\n\
+             \x20       pub struct DemoRefusal {\n\
+             \x20           body: AdmittedPrefix<DemoIssue, DemoIssueLimit>,\n\
+             \x20       }\n\
+             \x20   }\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.coupled, 0, "{:?}", verdict.offenders);
+        assert_eq!(verdict.offenders.len(), 1, "{:?}", verdict.offenders);
+        assert!(
+            verdict
+                .offenders
+                .first()
+                .is_some_and(|offence| offence.contains("no `pub struct DemoRefusal`")),
+            "{:?}",
+            verdict.offenders
+        );
+    }
+
+    /// Positive control: a body and its family nested together through more
+    /// than one inline-module segment still share one full syntactic scope.
+    #[test]
+    fn a_nested_family_and_body_share_their_full_scope() {
+        let verdict = coupled_body_verdict(&source(
+            "mod parent {\n\
+             \x20   mod seat {\n\
+             \x20       pub struct DemoRefusal {\n\
+             \x20           body: AdmittedPrefix<DemoIssue, DemoIssueLimit>,\n\
+             \x20       }\n\
+             \x20       impl RefusalFamily for DemoRefusal {\n\
+             \x20           const SHAPE: FamilyShape = FamilyShape::IssueCollection;\n\
+             \x20       }\n\
+             \x20   }\n\
+             }\n",
+        ));
+        assert_eq!(verdict.declared, 1);
+        assert_eq!(verdict.coupled, 1, "{:?}", verdict.offenders);
+        assert!(verdict.offenders.is_empty(), "{:?}", verdict.offenders);
     }
 
     /// A source this reader cannot parse is a hole in the population, and it is
