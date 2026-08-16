@@ -57,15 +57,23 @@
 # every file here is xtask's.
 #
 # THE ONE THING THIS LINE CANNOT SAY is which PACKAGES a run examines — the
-# configuration has no key for it, so the selection is an argument. MEASURED:
-# `cargo mutants` with no selection takes the root package alone, this glob
-# matches nothing inside it, and the run finds no mutant and exits 0. It does say
-# so, on a WARN line — and a warning that fails nothing is what a job reads as
-# success, which is the whole difference between a diagnostic and a refusal.
-# `cargo mutants --workspace` is therefore the invocation, on a working machine
-# exactly as in the hosted job, and the job COUNTS what it examined rather than
-# trusting that it examined something.
+# configuration has no key for it. `cargo xtask mutation-campaign` owns the one
+# admitted invocation and supplies `--workspace`; it accepts no pass-through
+# arguments. MEASURED: a raw `cargo mutants` with no package selection takes the
+# root package alone, this glob matches nothing inside it, and the run finds no
+# mutant and exits 0. It does say so, on a WARN line — and a warning that fails
+# nothing is what a job reads as success, which is the whole difference between
+# a diagnostic and a refusal. The fixed launcher also binds scratch-compiled
+# tests to the exact clean commit and tree they judge, so neither workflow shell
+# nor cargo-mutants' current directory becomes repository identity.
 examine_globs = ["xtask/**/*.rs"]
+
+# CHOSEN: the changed code is compiled in cargo-mutants' VCS-free scratch copy.
+# Copying `.git` would make the mutant a tracked difference, so committed-
+# snapshot tests would catch every mutation for the same unrelated reason. The
+# launcher supplies a separate exact clean subject root, commit, and tree to
+# tests instead; no mutation is made in that subject checkout.
+copy_vcs = false
 
 # CHOSEN: cap the lints, and this is the setting that decides what the run
 # MEASURES. `.cargo/config.toml` makes a surviving warning fatal, so without
@@ -77,15 +85,6 @@ examine_globs = ["xtask/**/*.rs"]
 # it is not weakened by anything here — this flag reaches the throwaway build in
 # a scratch directory and no build of this tree.
 cap_lints = true
-
-# CHOSEN: write the report inside `target`, which is already ignored. The
-# default puts `mutants.out` beside `Cargo.toml`, and the qualification road
-# ends by refusing a checkout that does not match what is committed — so the
-# default would make a working machine's mutation run fail the next `cargo xtask
-# qualify` for a reason that has nothing to do with the tree. A tool that writes
-# into the checkout is a tool that has to be remembered; one that writes into
-# `target` does not.
-output = "target"
 
 # NOT SET, ON THE RECORD: `test_tool`. nextest would run these suites faster,
 # and `.config/nextest.toml` configures it two directories away. It is left at
