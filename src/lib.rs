@@ -16,6 +16,8 @@
 
 pub mod types;
 
+pub mod depot;
+
 // ---------------------------------------------------------------------------
 // The closed-register stamp: the root's own composition mechanism. Instantiated
 // by band 13's authoring algebra, by the services crate's rosters, and by this
