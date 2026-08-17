@@ -14,7 +14,10 @@ delta, no promotion; no report of the run, no trust in its result.
 high-assurance passes; its receipts are parsed and every survivor is explained
 against the declared properties. The artifact-mutation mode — damaging a
 rendered artifact to prove the readers notice — is the harness rehearsing its
-own alarm, and its mutation roster doubles as this lane's seed material. The
+own alarm, and its mutation roster doubles as this lane's seed material.
+Sequences are a mutation subject of their own: dropping, duplicating,
+reordering, or delaying commands in a generated history must trip the
+temporal laws — the cheapest event-order pressure there is. The
 compile-once interpreter is the rapid loop this instrument is named for; it
 opens on the evidence that the property suites kill mutants, not on a date.
 

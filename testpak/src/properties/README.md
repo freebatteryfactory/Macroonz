@@ -6,6 +6,13 @@ shapes — permutation insensitivity, run-twice-one-answer determinism, and
 ambient-pathway invariance. The oracle for a property is the declared algebra
 itself; no second implementation is needed for a law to be checkable.
 
+Temporal laws are the suite shape over histories: a generated command
+sequence drives a transition system, and the law is asserted across the whole
+history — what always holds, what never happens, what is eventually reached.
+The sequence driver is the fuzz lane's generation machinery; a command
+sequence is a structured input like any other, and a failing sequence is a
+counterexample carrying its seed like any other.
+
 Because every semantic function is stateless and typed, it is legal here
 unmodified — the suites import product functions directly and drive them with
 structure-aware generation over `arbitrary`, budgeted and minimizing. A
