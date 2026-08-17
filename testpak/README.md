@@ -38,7 +38,7 @@ carry no kind decoration.
 | `src/descriptor/` | the typed descriptor vocabulary — the public interface every producer writes into |
 | `src/report/` | the harness record vocabulary: what ran, what was inspected, what was skipped and why |
 | `src/oracle/` | the independence annex: reference decoding where bytes are the spec, and the vector parser |
-| `src/runner/` | the nextest-protocol runner enumerating descriptor tables into trials |
+| `src/runner/` | the pure execution engine: descriptor table and typed invocation in, typed reports out |
 | `src/properties/` | the algebraic property suites: roundtrip, idempotence, conservation, the metamorphic shapes |
 | `src/muterprater/` | the proof-pressure engine: mutation, fuzz, and chaos lanes, survivor explanation, promotion |
 | `src/fault/` | refusing adapters — typed values implementing port contracts — and campaign shapes |
@@ -106,7 +106,11 @@ implementation, what it targets, and whether an anchored constant is a member
 of it are not questions about bytes. The text goes to a decoder that owes this
 repository nothing: `parsing`, without which there is no text-to-tree road,
 and `full`, without which items and their associated constants are not in the
-tree. The lane reads, never writes, and never runs inside a macro.
+tree. The lane reads, never writes, and never runs inside a macro — and its
+home is the challenge side: structural decoding of this repository's rendered
+artifacts belongs to `tests/`, while the oracle library owns only vocabulary
+and parsers. The standing seat is what still holds the decoder in the
+library; its absorption is what moves it out.
 
 **And that reason settles less than it sounds like.** What a manifest ASKS
 FOR, what the resolved graph HOLDS, and what one compiled unit is HANDED are

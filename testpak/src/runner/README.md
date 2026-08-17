@@ -1,19 +1,18 @@
-# runner — descriptor tables become nextest trials
+# runner — descriptor tables become runs
 
-The runner enumerates descriptor tables into named trials and speaks the
-nextest custom-harness protocol itself: list mode emits one stable
-`module::path::trial_name` per line; exact mode runs one trial; failure is a
-returned typed value, never a panic. The protocol is small enough to own
-outright, which is what keeps an adopter's inherited tree tiny.
+The runner is a pure engine: it takes a descriptor table and a typed
+invocation — which trials, what budgets — and returns typed reports.
+Invocation is a parameter and results are values. The runner touches no
+process boundary: it reads no arguments, prints nothing, and exits nothing,
+so the wall holds over it without a single exception.
 
-The invocation arguments and the list stream are this binary's one declared
-host port — the single seam where the harness touches the process boundary,
-and the wall's spelling for that seam is recorded at the seam itself.
+Hosting is the caller's. The stamp spelling gives every row a named test
+function, so the standard harness carries listing, filtering, and per-trial
+visibility natively — no protocol code lives in this tree. A standalone
+adopter hosts the same engine from their own entry point under their own
+lints; a custom-harness shell is a documented recipe, not machinery here.
 
 Discovery is pure and in memory — a trial table is constructed from typed
-descriptors, so per-trial process spawning costs nothing quadratic. Subject
-panics are contained at the trial boundary and converted into verdicts with
-their locations; the runner itself has no panic path.
-
-Execution is sequential or scoped-parallel; nothing here owns a thread pool,
-an ambient clock, or an environment read.
+descriptors, so nothing scans and nothing spawns. Subject panics are
+contained at the trial boundary and converted into verdicts with their
+locations; the runner itself has no panic path.
