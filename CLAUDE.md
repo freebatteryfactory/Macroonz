@@ -160,6 +160,14 @@ agent edits code to silence a finding.
 
 ## Phase gate
 
+**Under construction — the concrete is not hard yet.** During the build-out, the
+spec files carry two kinds of text and say which is which: ground rules and
+mental models (the door law, the process arrow, the depot pattern, the zero-
+compile phase — hard enough to keep anyone from walking into an already-walked
+rake), and drying structure that hardens only at the owner's blessing. Text
+describing machinery mid-absorption is read as the standing state, not as
+finished law; the hard-law versions land when the things they govern exist.
+
 The generation system is the product line: families are authored through front doors
 and their contracts are generated. The hand-written contract code standing in `src/`
 today is scaffolding awaiting re-authoring once the doors exist. The door law is
