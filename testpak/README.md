@@ -1,99 +1,123 @@
-# testpak — the qualification plane
+# testpak — ThreadPak's testing harness
 
-testpak is the judge: hostile executable evidence against the machine and the
-generation services. What the plane is, how its seats are mapped, and what a
-verdict may claim are stated in `src/lib.rs`. This file carries what has no
-other home — the dependency direction, the reserved-name ladder, the reason
-this package asks for the third-party mechanisms it asks for, and a map of
-where every other statement lives.
+testpak is a property-based, descriptor-driven, mutation-pressured testing
+harness. It is ThreadPak's own judge and a standalone product: any crate adopts
+it with `cargo add threadpak-testpak`, and the library's whole inherited
+dependency tree is one crate — `arbitrary`. Hand-written descriptors are a
+lawful producer; the generation services are an optional producer of the same
+inputs. No secret second language, pointed at ourselves.
 
 ## The dependency direction
 
-testpak depends inward — on `threadpak`, on `threadpak-macroc`, and on
-`threadpak-macros` — and **nothing depends on testpak**. Production never
-depends on its judge. The workspace manifests are where that is visible:
-testpak is a member, and no crate's dependency table names it.
+testpak depends inward — on `threadpak`, `threadpak-macroc`, and
+`threadpak-macros`, all as dev-dependencies reached only from `tests/` — and
+nothing depends on testpak. Production never depends on its judge. The
+library's own body compiles against its public vocabulary and `arbitrary`
+alone. It is never published onto a production dependency path.
 
-It is never published: dev-and-qualification material, first-class, and never
-on the production dependency path.
+## The uniform test model
 
-## The reserved names
+Every test is a nextest-visible trial; what varies is where its content comes
+from — a property, a descriptor row, or a fixture. Test kinds are data, not
+directories: regression, boundary, metamorphic, malformed-input, smoke, and
+their siblings are fields on a descriptor row, so one runner runs everything
+and one report describes it. Every descriptor names the claim it serves — a
+test that cannot say why it exists is a value nobody can build.
 
-**A reserved name fixes the intended question of a seat. It does not claim that
-the seat exists, has an owner implementation, or has satisfied admission** —
-name reserved ≠ home materialized ≠ implementation admitted ≠ qualification
-established. Content that does not fit its reserved name comes back for an
-explicit decision instead of being normalized into the nearest drawer.
+Trial names are stable across runs, spelled `module::path::trial_name`, and
+carry no kind decoration.
 
-Each reserved seat's own README states its question, its filling condition, and
-what the reservation does not claim. Those READMEs are the occupancy record;
-nothing here keeps a second one.
+## The instruments
 
-## The three lanes
+| Instrument | Owns |
+| --- | --- |
+| `src/descriptor/` | the typed descriptor vocabulary — the public interface every producer writes into |
+| `src/report/` | the harness record vocabulary: what ran, what was inspected, what was skipped and why |
+| `src/oracle/` | the independence annex: reference decoding where bytes are the spec, and the vector parser |
+| `src/runner/` | the nextest-protocol runner enumerating descriptor tables into trials |
+| `src/properties/` | the algebraic property suites: roundtrip, idempotence, conservation, the metamorphic shapes |
+| `src/muterprater/` | the proof-pressure engine: mutation, fuzz, and chaos lanes, survivor explanation, promotion |
+| `src/fault/` | refusing adapters — typed values implementing port contracts — and campaign shapes |
+| `tests/` | executable entry points, compile-refusal fixtures, compiled-behaviour seats |
+| `corpus/` | compressed seed-packs for warm-start fuzzing |
+| `benches/` | performance reports, gated on green |
 
-```mermaid
-flowchart TD
-    ART["one rendered artifact"] --> A["Lane A — byte-profile scan: exact declared text, nothing structural"]
-    ART --> B["Lane B — structural read through syn: declared items and members, no compile claim"]
-    ART --> C["Lane C — compiled behaviour through rustc: trait constants read back as values"]
-```
+The instruments are order-free peers over one vocabulary; nothing here forms a
+dependency waterfall, so nothing is numbered.
 
-The doctrine — what each lane may claim, why no lane subsumes another, and why
-the readers stay dumb — is `src/03_judge/mod.rs`.
+## Verdicts are typed refusals
 
-Outside-consumer parity is a seat with no crate. No package in this workspace
-applies the expansion shell's derive to a lawful declaration, compares what
-comes back against hand-written twins, or reaches the machine under a renamed
-dependency binding — so no lane here claims any of that.
+A failed check is a typed refusal value carrying its evidence and its source
+location — the harness fails the way the machine refuses. Assertion machinery
+that fails by panicking has no seat here; the runner reports failure as a
+returned value. A panic from the subject under test is contained at the trial
+boundary and converted into a verdict with its location: an overflow check
+that fires is the machine's own bounds working, and the harness records it as
+the finding it is. The depot is authored specification; an observed panic is
+runtime evidence; no failed execution mutates specification.
+
+## Reports, coverage, and the parity receipts
+
+The harness's records are reports. The denominator of a run is the descriptor
+table itself, so claim coverage — did every declared claim, hostile case, and
+mutation row get exercised — is computed from reports, never hand-counted.
+"Receipt" is the machine's word: only the parity records the machine consumes
+before trusting an optimized component carry it.
+
+## Muterprater
+
+Muterprater plans which proof pressure is worth running, runs it under budget,
+explains every survivor, and promotes only candidates that kill a real mutant
+or pin a named invariant. No oracle, no promotion; no killed mutant or new
+proof delta, no promotion; no receipt of the run, no trust in its result.
+Fuzzing is structure-aware over `arbitrary`; a minimized find is promoted into
+a regression descriptor row carrying its reproduction seed. Compiled mutation
+runs through `cargo-mutants`, retained for high-assurance passes.
+
+## Tests gate benches
+
+A failing operation is never benchmarked. The vacuity gate is itself a trial:
+a reference implementation and a deliberately worse one are timed across input
+sizes, and the gate asserts the growth classes separate — its sample counts
+and thresholds are declared beside it. Bench output is a human report and
+never fails a build.
 
 ## The third-party mechanisms this package asks for
 
 Which version and which feature cut is the workspace's one decision, in the
-root manifest's `[workspace.dependencies]` table. What this package owes is the
-reason it reaches for each mechanism, beside the reading that mechanism buys.
+root manifest's `[workspace.dependencies]` table. What this package owes is
+the reason it reaches for each mechanism.
 
-**`syn`, for lane B.** Lane A finds bytes. Whether the artifact DECLARES an
-implementation, what that implementation targets, whether the anchored constant
-is a member of it, and whether a comment put those bytes there are not
-questions about bytes, and no number of anchors turns them into ones. Making
-the scan answer them means writing a Rust parser inside the judge, from the
-same understanding the renderer was written from — and two readings of one
-understanding agree because they share it. So the text goes to a decoder that
-owes this repository nothing. Two features carry the reading: `parsing`,
-without which there is no text-to-tree road at all, and `full`, without which
-items and their associated constants are not in the tree. The lane asks for
-nothing beyond those two, because it reads, never writes, and never runs inside
-a macro.
+**`arbitrary`, for generation.** The one library dependency: the shared
+vocabulary for structure-aware input generation, derivable for closed algebraic
+types, and the same vocabulary a coverage-guided fuzzer consumes.
 
-**And that reason settles less than it sounds like.** What a manifest ASKS FOR,
-what the resolved graph HOLDS, and what one compiled unit is HANDED are three
-different facts. The paragraph above states the first. `deny.toml` settles the
-second against the graph itself, and the set it settles there is wider than the
-two named above, because the compile-refusal harness brings in a crate that
-asks for more. The third has no seat anywhere in this tree, so no sentence here
-says the unit lane B links carries those two features and nothing else.
+**`syn`, for the structural oracle.** Whether an artifact DECLARES an
+implementation, what it targets, and whether an anchored constant is a member
+of it are not questions about bytes. The text goes to a decoder that owes this
+repository nothing: `parsing`, without which there is no text-to-tree road,
+and `full`, without which items and their associated constants are not in the
+tree. The lane reads, never writes, and never runs inside a macro.
 
-**`blake3`, for the independent transcript lane.** That lane re-derives a
-published identity from its published specification, writing out every encoding
-decision itself and importing none. The digest is the one thing it shares with
-the producer, deliberately: a lane that reimplemented the hash would be judging
-an arithmetic exercise, and the hash is not what is under judgement — whether
-the specification says enough for somebody else to re-derive the value is.
+**And that reason settles less than it sounds like.** What a manifest ASKS
+FOR, what the resolved graph HOLDS, and what one compiled unit is HANDED are
+three different facts. The paragraph above states the first; `deny.toml`
+settles the second against the graph itself; the third has no seat in this
+tree, so no sentence here claims it.
 
-## Where each statement lives
+**`blake3`, for the independent transcript oracle.** That lane re-derives a
+published identity from its published specification, writing out every
+encoding decision itself and importing none. The digest is the one thing it
+shares with the producer, deliberately: whether the specification says enough
+for somebody else to re-derive the value is what is under judgement.
 
-| Statement | Home |
-| --- | --- |
-| The plane, its seats, and what a verdict may claim | `src/lib.rs` |
-| The lane doctrine | `src/03_judge/mod.rs` |
-| Everything a judge can say, and why `Unreadable` is a failure class | `src/03_judge/types.rs` |
-| Lane A's anchors and the exact edge of its claim | `src/03_judge/byte_profile.rs` |
-| Lane B's reading, and what it refuses to claim | `src/03_judge/structural.rs` |
-| The damage a judge inflicts on a lawful artifact | `src/03_judge/mutation.rs` |
-| Which lane owns catching each mutation | `src/03_judge/type_contract.rs` |
-| A reserved seat's question, filling condition, and nonclaims | that seat's own README |
+Dev-side mechanisms — `trybuild` for compile refusals, and the bench and
+snapshot tooling admitted at their first real use — never reach an adopter's
+tree.
 
-Every file under `tests/` states its own subject in its header: lanes A and B
-are held to exactly their recorded rows in `tests/planted_defect.rs`, lane C's
-compiled seats are `tests/compiled_behaviour.rs`, and the independent
-transcript lane is `tests/independent_identity_transcript.rs`.
+## Extending the harness
+
+Consumers extend through data and functions, never through this crate's
+source: new populations, suites, property functions, and fault adapters all
+flow through the descriptor and report vocabularies. The kind roster is
+sealed — a new kind is a law change; a new population is a Tuesday.

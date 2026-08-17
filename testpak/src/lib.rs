@@ -1,32 +1,47 @@
-//! `threadpak-testpak` is the qualification plane: hostile execution against
-//! the machine and its tooling, and the denominators every verdict is stated
-//! over.
+//! `threadpak-testpak` is ThreadPak's testing harness: property-based,
+//! descriptor-driven, mutation-pressured, and standalone — the library's one
+//! inherited dependency is `arbitrary`.
 //!
 //! A verdict here is always claim-specific and method-specific.
 //! "The permuted rendering was rejected by the string scan over these two
 //! declared orders" is a verdict; "the derive works" is not one.
+//! A failed check is a typed refusal value carrying its evidence and its
+//! source location; the harness fails the way the machine refuses.
 //!
-//! # The seats
+//! # The instruments
 //!
-//! The plane is a numbered waterfall of seats, mapped by `#[path]` exactly as
-//! the machine maps its bands, so a seat's number is visible in the tree and
-//! never in a module name.
-//! A seat holds a MODULE only once it holds something: the declarations below
-//! are the source-home population, and a reserved seat's own directory carries
-//! one README stating its question, its filling condition, and its nonclaims.
-//! No module is declared at a reserved coordinate, so nothing here can reach
-//! one.
+//! The homes below are order-free peers over one vocabulary: [`descriptor`]
+//! owns the rows every producer writes into, [`report`] owns the records a
+//! run leaves, [`oracle`] is the independence annex for claims where bytes
+//! are the spec, [`runner`] turns descriptor tables into nextest trials,
+//! [`properties`] carries the algebraic suites, [`muterprater`] is the
+//! proof-pressure engine, and [`fault`] holds the refusing adapters.
+//! Each home's README is its module page.
 //!
-//! A seat whose material is genuinely all executable challenge is seated under
-//! `tests/`, where cargo requires it to live. Material sits where its content
-//! is, never where a symmetrical tree would look tidier.
+//! Executable challenge material sits under `tests/`, where cargo requires
+//! it to live; seed-packs sit under `corpus/`; performance reports under
+//! `benches/`.
+//!
+//! # The standing seats
+//!
+//! Two numbered seats carry the pre-redesign machinery: [`plan`] and
+//! [`judge`], whose three readings and mutation roster are the oracle's and
+//! muterprater's seed material.
 //!
 //! # The dependency direction
 //!
-//! testpak depends inward — on `threadpak`, on `threadpak-macroc`, and on
-//! `threadpak-macros` — and nothing depends on testpak: no manifest in this
-//! workspace names it in a dependency table of any kind. Production never
-//! depends on its judge.
+//! testpak reaches the machine and the generation services only from
+//! `tests/`, as dev-dependencies, and nothing depends on testpak: no manifest
+//! in this workspace names it in a dependency table of any kind. Production
+//! never depends on its judge.
+
+pub mod descriptor;
+pub mod fault;
+pub mod muterprater;
+pub mod oracle;
+pub mod properties;
+pub mod report;
+pub mod runner;
 
 #[path = "00_plan/mod.rs"]
 pub mod plan;
