@@ -28,7 +28,9 @@ search and hold nothing the promotion road has not already made durable.
 
 **chaos** — campaigns over the fault adapters: schedules, stacked faults, and
 budgets. The adapters are the fault instrument's typed values; this lane only
-orchestrates them.
+orchestrates them. A schedule is a fault placed at a sequence position, so the
+strongest claim in the harness is one campaign: the temporal laws hold under
+the faults.
 
 Mutation families expressed as rewrite descriptors join the plan once the
 interpreter is the execution substrate that makes them cheap.
