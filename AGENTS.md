@@ -167,6 +167,10 @@ compile phase — hard enough to keep anyone from walking into an already-walked
 rake), and drying structure that hardens only at the owner's blessing. Text
 describing machinery mid-absorption is read as the standing state, not as
 finished law; the hard-law versions land when the things they govern exist.
+While the concrete dries, authority runs one way: the landed READMEs and
+types are the spec, and standing code that disagrees with them is the defect
+being drained — never a counterexample to the spec, and never a precedent to
+imitate.
 
 The generation system is the product line: families are authored through front doors
 and their contracts are generated. The hand-written contract code standing in `src/`
