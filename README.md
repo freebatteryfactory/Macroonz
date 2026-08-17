@@ -100,7 +100,9 @@ flowchart TD
 Architecture closure: the homes carry their typed specifications, and product
 runtime is deliberately absent — it opens per home only by explicit owner
 authorization. The generation system is the product line: families are authored
-through front doors and their contracts are generated.
+through front doors and their contracts are generated. The current phase builds
+the harness and the generation services in parallel; the machine's features are
+built through them afterward, and the application compiler comes last.
 
 The toolchain is the enforcement surface, run locally:
 

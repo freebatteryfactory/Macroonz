@@ -162,9 +162,21 @@ agent edits code to silence a finding.
 
 The generation system is the product line: families are authored through front doors
 and their contracts are generated. The hand-written contract code standing in `src/`
-today is scaffolding awaiting re-authoring once the doors exist. Which door — and
-whether core may carry a dependency edge to the proc-macro crate — is an open owner
-ruling; neither direction is standing law.
+today is scaffolding awaiting re-authoring once the doors exist. The door law is
+settled: every door is a thin shell over the one callable engine, and equivalent
+declarations through different doors produce equivalent contracts. Core never
+carries a compile-time dependency edge to the proc-macro crate. Core-local
+declarative stamps are standing law (`closed_register!` and `scope_guard_version!`
+are the exemplars); generation beyond a stamp's reach lands in core as published
+source under a receipt; the derive is the outside consumer's door.
+
+The current phase builds the harness (testpak) and the generation services
+(macros) in parallel as one phase, with zero compilation: implementers write
+complete code end to end — no stubs, no placeholder bodies, no
+compiler-appeasement — and QA is ast-grep and read-only review. The toolchain
+corrects the work once, when the owner declares final production pre-approval;
+nothing runs cargo before that word. Approvals and dial-downs are recorded in the
+crates' own READMEs and types, because the repository is the spec.
 
 No product-runtime implementation opens in any home without explicit human
 authorization. Commits are decided by a human — never initiated by an agent.
