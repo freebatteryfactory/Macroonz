@@ -2,7 +2,11 @@
 
 A descriptor is one row of the harness's denominator: a typed statement of one
 test — the claim it serves, the kind it belongs to, the subject it exercises,
-the check that judges it, and where it came from. The runner enumerates
+the check that judges it, and where it came from. A claim names behavior,
+never structure: it is stated in inputs, outputs, and laws, so a lawful
+refactor of the subject cannot break it. A test that would break under a
+refactor that preserves meaning is coupled to an owner, not to a law — and
+owner-coupled tests are how structure ossifies and intent flattens. The runner enumerates
 descriptor tables into trials; coverage is computed over the same tables; a
 test that exists without a row is a value nobody can build.
 

@@ -9,6 +9,11 @@ itself; no second implementation is needed for a law to be checkable.
 Temporal laws are the suite shape over histories: a generated command
 sequence drives a transition system, and the law is asserted across the whole
 history — what always holds, what never happens, what is eventually reached.
+Parity is the suite shape over roads: wherever one meaning is reachable two
+ways — a maintained result and its recomputed fold, a generated artifact and
+its hand-written twin, two doors over one declaration — the suites drive both
+roads with the same inputs and demand agreement. A parity law pins meaning
+while leaving every road free to change.
 The sequence driver is the fuzz lane's generation machinery; a command
 sequence is a structured input like any other, and a failing sequence is a
 counterexample carrying its seed like any other.
