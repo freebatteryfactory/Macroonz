@@ -6,7 +6,11 @@ the check that judges it, and where it came from. A claim names behavior,
 never structure: it is stated in inputs, outputs, and laws, so a lawful
 refactor of the subject cannot break it. A test that would break under a
 refactor that preserves meaning is coupled to an owner, not to a law — and
-owner-coupled tests are how structure ossifies and intent flattens. The runner enumerates
+owner-coupled tests are how structure ossifies and intent flattens. Where
+bytes are declared canonical, the bytes are part of the meaning: a check
+anchored on a canonical encoding is coupled to a declared contract, not to
+an owner, because changing those bytes renames identities and is no
+refactor at all. The runner enumerates
 descriptor tables into trials; coverage is computed over the same tables; a
 test that exists without a row is a value nobody can build.
 
