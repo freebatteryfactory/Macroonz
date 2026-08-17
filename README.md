@@ -44,7 +44,7 @@ machine never knows which host is running it.
 | `threadpak`     | the machine — root package at the repository root    |
 | `macros/macroc` | the generation services — package `threadpak-macroc` |
 | `macros/proc`   | the Rust-facing expansion shell — `threadpak-macros` |
-| `testpak`       | the judge — package `threadpak-testpak`              |
+| `testpak`       | the testing harness — package `threadpak-testpak`    |
 
 ```mermaid
 flowchart LR
@@ -66,9 +66,12 @@ Numbered directories are dependency bands. An arrow means everything downstream
 may import it: band N imports any band above it, never below. Homes materialize
 only when their specification content lands; no directory exists empty.
 
+The root also carries the depot — the bank of data-shaped truth every band
+and every crate may read; a fact has no band.
+
 ```mermaid
 flowchart TD
-    R["root — types.rs shape calculus · laws.rs proof residue"]
+    R["root — types.rs shape calculus · depot data bank · laws.rs proof residue"]
     R --> B00["00 refusal — envelope, families, handling, ReasonId"]
     B00 --> B01["01 logic — three-valued logic, truth tables, finality"]
     B01 --> B02["02 identity — six identity classes, minting, scope guards"]

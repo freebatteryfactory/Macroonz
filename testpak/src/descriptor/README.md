@@ -11,8 +11,12 @@ promotion from a fuzz find — emit data conforming to this vocabulary; no
 producer's own types are imported, so no producer's shape can quietly become
 the interface. Parsing what a producer emitted is itself a lane.
 
+The sealed kind roster: anomaly, boundary, malformed-input, regression,
+metamorphic, fault, crash-recovery, mutation, smoke, end-to-end, performance.
+A new kind is a law change; a new population inside a kind is a Tuesday.
+
 The fields of a row: the claim served (a typed identity); the kind, from the
-sealed kind roster; the subject route — a typed selection of what is under
+sealed roster above; the subject route — a typed selection of what is under
 test, resolving to a runnable check; the check binding — which property suite
 or oracle lane judges the subject; suite tags; the origin (hand-written,
 generated, or promoted); and, for promoted rows, the reproduction seed — the

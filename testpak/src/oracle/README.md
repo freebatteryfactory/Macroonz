@@ -15,9 +15,13 @@ The vector parser lives here, public: an adopter writing golden vectors for
 their own types gets the same instrument. The depot ships data; the harness
 ships tools.
 
-The three readings this instrument descends from — an exact byte scan, a
-structural read through `syn`, and a compiled read-back through rustc — stand
-today under `src/03_judge/`, and their doctrine (what each reading may claim,
-why none subsumes another, why the readers stay dumb) is stated there. This
-home absorbs them as `transcript`, `structural`, and `compiled` as the
-build-out reaches each.
+A vector transcribed into the depot is transcribed from this instrument's own
+re-derivations, never from a producer's laws — a vector copied from the
+producer would convert the annex into a mirror of the thing it judges.
+
+The readings this instrument descends from live under `src/03_judge/`, and
+their doctrine (what each reading may claim, why none subsumes another, why
+the readers stay dumb) is stated there. The structural read and the compiled
+read-back absorb here as `structural` and `compiled`; the byte-anchor scan
+does not — its anchors are generator-invalidation data, and they move to the
+depot when the generator becomes their author.

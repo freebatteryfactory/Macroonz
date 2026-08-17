@@ -22,5 +22,8 @@ Composition owes its own laws: wiring correct operations in the wrong order
 is still a defect, so composed roads carry a small named suite of the same
 algebraic shapes.
 
-Behavioral laws draining out of the machine's proof surface land here as
-properties under mutation pressure; the machine keeps no self-test corpus.
+Behavioral laws drain out of the machine's proof surface and land here as
+properties under mutation pressure; at end state the machine keeps no
+self-test corpus of its own. The suites drive declared transition systems;
+the machine's own running history becomes a subject only once the machine
+can run one.

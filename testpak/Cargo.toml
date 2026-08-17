@@ -1,6 +1,6 @@
 [package]
 name = "threadpak-testpak"
-description = "The qualification plane: orchestration, hostile execution, and denominators. Production never depends on its judge."
+description = "ThreadPak's testing harness: property-based, descriptor-driven, mutation-pressured. Production never depends on its judge."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

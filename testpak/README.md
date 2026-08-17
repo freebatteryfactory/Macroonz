@@ -2,18 +2,22 @@
 
 testpak is a property-based, descriptor-driven, mutation-pressured testing
 harness. It is ThreadPak's own judge and a standalone product: any crate adopts
-it with `cargo add threadpak-testpak`, and the library's whole inherited
-dependency tree is one crate — `arbitrary`. Hand-written descriptors are a
-lawful producer; the generation services are an optional producer of the same
-inputs. No secret second language, pointed at ourselves.
+it with `cargo add threadpak-testpak`, and the library's inherited dependency
+tree stays deliberately tiny — the manifest is the roster. Hand-written
+descriptors are a lawful producer; the generation services are an optional
+producer of the same inputs. No secret second language, pointed at ourselves.
 
 ## The dependency direction
 
 testpak depends inward — on `threadpak`, `threadpak-macroc`, and
 `threadpak-macros`, all as dev-dependencies reached only from `tests/` — and
-nothing depends on testpak. Production never depends on its judge. The
-library's own body compiles against its public vocabulary and `arbitrary`
-alone. It is never published onto a production dependency path.
+nothing depends on testpak. Production never depends on its judge. It is
+never published onto a production dependency path.
+
+Outside-consumer parity is still a seat with no crate: no package in this
+workspace applies the expansion shell's derive as an ordinary outside
+consumer or reaches the machine under a renamed dependency binding, so no
+lane here claims any of that.
 
 ## The uniform test model
 
@@ -40,17 +44,19 @@ carry no kind decoration.
 | `src/fault/` | refusing adapters — typed values implementing port contracts — and campaign shapes |
 | `tests/` | executable entry points, compile-refusal fixtures, compiled-behaviour seats |
 | `corpus/` | compressed seed-packs for warm-start fuzzing |
-| `benches/` | performance reports, gated on green |
 
-The instruments are order-free peers over one vocabulary; nothing here forms a
-dependency waterfall, so nothing is numbered.
+The instruments are order-free peers over one vocabulary — no instrument
+imports another, so no instrument carries a number. The one numbered seat,
+`src/03_judge/`, is the pre-redesign machinery the oracle and muterprater
+absorb.
 
 ## Verdicts are typed refusals
 
 A failed check is a typed refusal value carrying its evidence and its source
-location — the harness fails the way the machine refuses. Assertion machinery
-that fails by panicking has no seat here; the runner reports failure as a
-returned value. A panic from the subject under test is contained at the trial
+location — the harness fails the way the machine refuses. That is the
+instruments' law: the runner reports failure as a returned value, and no
+instrument fails by panicking. The standing seat still asserts the old way;
+its absorption is what retires that. A panic from the subject under test is contained at the trial
 boundary and converted into a verdict with its location: an overflow check
 that fires is the machine's own bounds working, and the harness records it as
 the finding it is. The depot is authored specification; an observed panic is
@@ -69,7 +75,7 @@ before trusting an optimized component carry it.
 Muterprater plans which proof pressure is worth running, runs it under budget,
 explains every survivor, and promotes only candidates that kill a real mutant
 or pin a named invariant. No oracle, no promotion; no killed mutant or new
-proof delta, no promotion; no receipt of the run, no trust in its result.
+proof delta, no promotion; no report of the run, no trust in its result.
 Fuzzing is structure-aware over `arbitrary`; a minimized find is promoted into
 a regression descriptor row carrying its reproduction seed. Compiled mutation
 runs through `cargo-mutants`, retained for high-assurance passes.
@@ -79,8 +85,10 @@ runs through `cargo-mutants`, retained for high-assurance passes.
 A failing operation is never benchmarked. The vacuity gate is itself a trial:
 a reference implementation and a deliberately worse one are timed across input
 sizes, and the gate asserts the growth classes separate — its sample counts
-and thresholds are declared beside it. Bench output is a human report and
-never fails a build.
+and thresholds are declared beside it. Stated honestly, the gate is robust,
+not deterministic: it asserts a growth class, never a time. Bench output is a
+human report, never fails a build, and the bench home arrives with the first
+bench — the manifest admits its tooling then.
 
 ## The third-party mechanisms this package asks for
 
@@ -88,9 +96,10 @@ Which version and which feature cut is the workspace's one decision, in the
 root manifest's `[workspace.dependencies]` table. What this package owes is
 the reason it reaches for each mechanism.
 
-**`arbitrary`, for generation.** The one library dependency: the shared
-vocabulary for structure-aware input generation, derivable for closed algebraic
-types, and the same vocabulary a coverage-guided fuzzer consumes.
+**`arbitrary`, for generation** — admitted with the instruments that consume
+it: the shared vocabulary for structure-aware input generation, derivable for
+closed algebraic types, and the same vocabulary a coverage-guided fuzzer
+consumes.
 
 **`syn`, for the structural oracle.** Whether an artifact DECLARES an
 implementation, what it targets, and whether an anchored constant is a member
@@ -105,7 +114,8 @@ three different facts. The paragraph above states the first; `deny.toml`
 settles the second against the graph itself; the third has no seat in this
 tree, so no sentence here claims it.
 
-**`blake3`, for the independent transcript oracle.** That lane re-derives a
+**`blake3`, for the independent transcript oracle — a dev-side mechanism,
+reached from `tests/`.** That lane re-derives a
 published identity from its published specification, writing out every
 encoding decision itself and importing none. The digest is the one thing it
 shares with the producer, deliberately: whether the specification says enough

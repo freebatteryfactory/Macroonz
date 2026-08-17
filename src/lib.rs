@@ -9,10 +9,11 @@
 //!
 //! The crate is a numbered waterfall of semantic homes, declared below in
 //! dependency order as each materializes.
-//! Two things sit at the root itself: [`types`] holds the shape calculus every
-//! home instantiates, and [`closed_register!`] is the stamp every closed
-//! roster is declared through, with [`CLOSED_REGISTER_ROW_CEILING`] the one
-//! value it projects.
+//! Three things sit at the root itself: [`types`] holds the shape calculus
+//! every home instantiates, [`depot`] is the bank of data-shaped truth every
+//! crate on the machine can read, and [`closed_register!`] is the stamp every
+//! closed roster is declared through, with [`CLOSED_REGISTER_ROW_CEILING`]
+//! the one value it projects.
 
 pub mod types;
 

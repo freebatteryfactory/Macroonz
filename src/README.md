@@ -24,6 +24,11 @@ unrepresentable retires the law that asserted the move was wrong.
   knowledge axes — neither can say "not yet".
 - `closed_register!`, the composition stamp every closed roster is declared
   through, and `CLOSED_REGISTER_ROW_CEILING`, the one value it projects.
+- The depot, by explicit root admission: the bank of data-shaped truth —
+  error prose, golden vectors, hostile and fault shapes, roster tables — as
+  doc-commented constants. Data only, never behavior; its own README carries
+  its law. It sits at the root because every band and every crate on the
+  machine may read a fact, and a fact has no band.
 
 ## What the root refuses to own
 

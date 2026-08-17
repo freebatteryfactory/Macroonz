@@ -11,8 +11,8 @@ delta, no promotion; no report of the run, no trust in its result.
 ## The lanes
 
 **mutation** — compiled mutation wraps `cargo-mutants`, retained for
-high-assurance passes; its receipts are parsed and every survivor is explained
-against the declared properties. The artifact-mutation mode — damaging a
+high-assurance passes; its output is parsed into reports and every survivor is
+explained against the declared properties. The artifact-mutation mode — damaging a
 rendered artifact to prove the readers notice — is the harness rehearsing its
 own alarm, and its mutation roster doubles as this lane's seed material.
 Sequences are a mutation subject of their own: dropping, duplicating,
