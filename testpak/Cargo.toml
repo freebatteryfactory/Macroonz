@@ -12,24 +12,29 @@ publish = false
 workspace = true
 
 [dependencies]
-# The structural lane's parser, admitted by the note in README.md. Which version
-# and which features is the workspace's one decision, inherited from the root
+# The adopter's whole inherited bill is these two library mechanisms, both
+# admitted by the notes in README.md and both inherited from the root
 # manifest's `[workspace.dependencies]` table rather than restated here.
+# The generation vocabulary: structure-aware input generation, derivable.
+arbitrary = { workspace = true }
+# The family identity substrate: schema identity, revision identities,
+# fingerprints, replay-capsule and proposal identities, the execution key and
+# its rerun-cache keys, seed-pack content addresses — one domain-separated,
+# versioned profile, and no identity island. The independent transcript lane
+# hashes with the same admitted mechanism the services do — a lane that
+# reimplemented BLAKE3 would be testing an arithmetic exercise rather than a
+# specification; the two crates differ in what they ENCODE and in nothing else.
+blake3 = { workspace = true }
+# The structural lane's parser, admitted by the note in README.md; its home is
+# the challenge side, and it moves to dev-dependencies at the absorption wave
+# that moves the decoder out of the library — the manifest states what the
+# code does today.
 syn = { workspace = true }
 
 [dev-dependencies]
-# The three participants under judgment, reached only from tests/ — the judge's
-# own body compiles against syn alone, so the manifest states the independence
-# the lanes claim.
+# The three participants under judgment, reached only from tests/.
 threadpak = { path = ".." }
 threadpak-macroc = { path = "../macros/macroc" }
 threadpak-macros = { path = "../macros/proc" }
 # The compile-refusal harness, inherited exact from the workspace table.
 trybuild = { workspace = true }
-# The independent transcript lane's digest, admitted by the note in README.md.
-# The judge hashes with the same admitted mechanism the services do — a lane
-# that reimplemented BLAKE3 would be testing an arithmetic exercise rather than
-# a specification. Inheriting the workspace decision is what makes "the same
-# mechanism" a fact rather than two manifests that currently agree: the two
-# crates differ in what they ENCODE and in nothing else.
-blake3 = { workspace = true }

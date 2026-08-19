@@ -38,6 +38,12 @@ crate = "blake3"
 allow = []
 exact = true
 
+# The generation vocabulary: `derive` and nothing else.
+[[bans.features]]
+crate = "arbitrary"
+allow = ["derive"]
+exact = true
+
 [sources]
 # One registry, no git dependencies.
 unknown-registry = "deny"

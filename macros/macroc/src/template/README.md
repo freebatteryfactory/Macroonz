@@ -1,7 +1,15 @@
-# template — the authoring front door
+# template — the authoring capability
 
 A typed declaration template: the holes it declares, what a binding may fill them
-with, and what one invocation of it is keyed by.
+with, and what one invocation of it is keyed by. A capability, not a door —
+any front door may offer a template surface, or none; nothing here knows
+which one is calling. And the station's typed values are PUBLIC — the
+primitive layer consumers build their own sugar from: their own declaration
+families, their own stamps, over the one engine. Category-typed holes mean
+their sugar can't hide magic any more than ours can, and the door
+equivalence law protects doors they build exactly as it protects ours. The
+projections apply to consumers' declarations, not just ours — we don't
+ship batteries; we ship the battery factory.
 
 ## Category-typed holes
 
@@ -18,9 +26,6 @@ every semantic fact this home speaks of. The laws governing meta evaluation are
 the owner's closed roster, [`threadpak::declaration::MetaStageLaw`]; this home
 cites that surface and answers none of it a second time. Every declaration below
 is a typed member summarizing an owner fact.
-
-Any front door may offer a template surface, or none. Nothing here knows which
-one is calling.
 
 ## The three locks
 

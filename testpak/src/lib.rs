@@ -9,10 +9,15 @@
 //! # The instruments
 //!
 //! [`descriptor`] owns the rows every producer writes into, [`report`] owns
-//! the records a run leaves, [`oracle`] is the independence annex for claims
-//! where bytes are the spec, [`runner`] turns descriptor tables into nextest
-//! trials, [`properties`] carries the algebraic suites, [`muterprater`] is
+//! the records a run leaves and the identity rails, [`oracle`] is the
+//! independence annex for claims where shared producer logic would make
+//! self-agreement vacuous, [`runner`] is the pure engine that turns
+//! descriptor tables and typed invocations into typed reports,
+//! [`properties`] carries the algebraic suites, [`muterprater`] is
 //! the proof-pressure engine, and [`fault`] holds the refusing adapters.
+//! The generation contract's home (`generate`) and the harness's own fact
+//! bank (`depot`) are declared in the crate README's instrument table; their
+//! modules land with their content.
 //!
 //! Executable challenge material sits under `tests/`, where cargo requires
 //! it to live; seed-packs sit under `corpus/`.

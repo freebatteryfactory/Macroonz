@@ -1,8 +1,68 @@
 # macroc — the generation services
 
 This is the product line: the road from a captured declaration to output that is
-planned, rendered, proved closed, and explainable. Each stage hands the next one
+planned, rendered, proved closed, and explainable — an expander that writes a
+record of every decision it makes. Each stage hands the next one
 a value the next one cannot forge.
+
+## The spine — the services in seven nouns
+
+Meaning becomes planned artifacts. The arrows are honest constructors, and
+the products say what a value actually requires:
+
+```text
+OwnerContentAccount              →  ProjectionIntent
+ProjectionIntent (+ context)     →  Plan
+Plan                             →  RenderedProjection
+Plan × RenderedProjection        →  ProjectionClosure
+Plan × ProjectionClosure         →  Explanation
+Plan × ProjectionClosure
+     × Explanation               →  ClosedExpansion   (the only value
+                                                       emission reaches)
+```
+
+The owner content account is the typed entry account — content, its
+owner-supplied commitment, and its dependency set — the ONE account feeding
+four readings: semantic identity, invalidation dependencies, explanation
+facts, and origin edges; no second account of content dependencies ever
+forms. The intent is what you meant — the kind plus the content commitment.
+The plan is the decision record of one expansion: it exists inside one
+service invocation, consulted by the closure and the explanation, then
+bound into the closed expansion. The law is precise: these services own no
+persistent plan store, no queue, no lifecycle, no ambient registry; an
+ordinary returned plan value may remain inspectable in caller memory — the
+architecture prohibits a planning institution, not ownership. The rendered
+projection's members carry their own rendered-unit identities, derived from
+the exact rendered bytes — a projection is not singularly identified by one
+member's id. The closure proves that plan, declared membership, rendering,
+origins, and trace agree — agreement among values that exist when it runs.
+The explanation reads the plan and the proved closure. The closed expansion
+binds all three and is the ONLY value from which emission is reachable.
+
+## The doors
+
+Every door is a thin shell over the one engine. Door equivalence has its
+exact comparison — never plan-identity equality, which is impossible by
+design since a plan's identity contains origin and distinct doors are
+required to carry distinct origins: same intent identity, same declared
+semantic output membership and roles, equivalent rendered semantic
+contracts, origins distinct and correctly attributed; rendered bytes may
+lawfully differ where a consumer binding or lawful surface spelling
+differs. The builder is the engine's own entrance — the typed functions the
+derive already calls — promoted to a public, documented, comfortable API:
+no new station, no new folder, and if that cannot be done comfortably, the
+finding is about the entrance — fix the entrance, never build a lobby. The
+derive is the outside consumer's door and the worked example. A core-local
+stamp cannot be a live caller — core carries no dependency edge to these
+services — so a core stamp is an engine-authored published shell over the
+same declaration contract, proven equivalent to the builder. The template
+station is a capability, not a door, and its typed values are public:
+consumers mint their own sugar — their own declaration families, their own
+stamps — over this engine, and the equivalence law protects doors they
+build exactly as it protects ours. Test and bench targets are consumption
+sites, not doors: they invoke the declarations' generated support shells
+and receive the cargo; generating test rows at the product declaration site
+is refused — a reverse dev dependency and a normal-build tax.
 
 ```mermaid
 flowchart LR
@@ -72,6 +132,18 @@ flowchart TD
     DR --> CLO
     DR --> EXP
 ```
+
+## The publication road
+
+Default generation writes NOTHING to disk. Publication exists only for
+identifier-minting across files — git-visible source under a receipt,
+committed by a human — and its admission rule is structural: publication is
+lawful only when the requested output requires a cross-file artifact or
+identifier minting that neither declaration-site generation nor a
+core-local stamp can express, and the plan RECORDS why the lighter roads
+are insufficient — the road held narrow by rule, never by a reader's mood.
+The generated-support schema pair is this road's own case: both checked-in
+sides written by one publication operation, under its receipt.
 
 ## The admitted digest, and what it is admitted for
 

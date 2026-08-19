@@ -1,0 +1,12 @@
+# Regrowth guard: hand-restated diagnostic-phrase assertions are the
+# phrase-law disease — assertions compose from typed values (the
+# described()/MAX.to_string() pattern), never from restated prose.
+id: regrowth-no-phrase-matching-assertions
+message: "compose the assertion from typed values; a restated diagnostic phrase is a second proof authority"
+severity: warning
+language: rust
+rule:
+  any:
+    - pattern: assert!($E.contains($LIT))
+    - pattern: assert!($E.starts_with($LIT))
+    - pattern: assert!($E.ends_with($LIT))

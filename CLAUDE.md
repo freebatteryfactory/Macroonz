@@ -187,7 +187,16 @@ The current phase builds the harness (testpak) and the generation services
 complete code end to end — no stubs, no placeholder bodies, no
 compiler-appeasement — and QA is ast-grep and read-only review. The toolchain
 corrects the work once, when the owner declares final production pre-approval;
-nothing runs cargo before that word. Approvals and dial-downs are recorded in the
+nothing runs cargo before that word. That first toolchain contact is quiet and
+corrective — it is not the ceremony. After it comes the trust opening (baseline
+qualification, then wrap-first mutation pressure, then the mandatory
+no-mutation parity — only then are interpreted-mutation results and
+rewrite-produced descriptors admitted as evidence), then the migration pass
+(the generator runs its own migration, never a hand), then the per-home source
+pass with the owner in the loop; the blessing-day ceremony — the native-clone
+dual-target runs, the diagnostic-fixture thaw, the vectors born, the packaged
+outsider check — crowns the COMPLETE machine after all of that, and CI is
+designed fresh, last. Approvals and dial-downs are recorded in the
 crates' own READMEs and types, because the repository is the spec.
 
 No product-runtime implementation opens in any home without explicit human

@@ -41,6 +41,11 @@ in role-roster order, keeps the resulting tree, and commits to its digest inside
 its own identity — so the exact byte stream a caller emits is part of what was
 proved rather than something assembled afterwards. Holding a closure is the
 proof; there is no partial closure and no closure with a warning attached.
+The closure proves agreement among values that exist when it runs — plan,
+declared membership, rendering, origins, trace — never with an explanation
+not yet produced; the explanation reads the PROVED closure, and the closed
+expansion binds plan, closure, and explanation into the one complete
+account from which emission alone is reachable.
 
 ## The seats
 

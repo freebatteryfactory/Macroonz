@@ -2,18 +2,98 @@
 
 A report states what one run did: what ran, what was inspected, what was
 skipped and why, and what each trial concluded. The denominator a report is
-stated over is the descriptor table itself — one census, already typed.
+stated over is the descriptor table itself — one census, already typed. A
+RunReport records its denominator and names its table posture — authored,
+or staged with its parent named — and the posture has consumers: claim
+coverage admits authored-posture reports only, and the comparison refuses a
+cross-posture pair, so a staged run cannot masquerade by refusal, not by
+declaration.
+
+## The identity rails
+
+Semantic identity is content-addressed; diagnostic identity is
+location-addressed; the two never mix. TrialId is semantic meaning — the
+claim, the subject, the mechanism (the check contract the check reference
+names), the population, and the profile — and survives file and module
+moves. TrialSite is the locator: module path, file, line, display name.
+Reports join both; the path-spelled name is a site, never the identity. The
+profile coordinate's sole lawful value today is `Unprofiled` — an honest
+present-tense value, not a fictional default; the first real feature split
+adds choices.
+
+Beside the semantic identity ride the revision identities: RowRevisionId
+pins the complete authored row; SubjectRevisionId and CheckRevisionId pin
+the exact implementation and check revisions. The keys split by job.
+ROWREVISIONID owns bookkeeping — census, aggregation, report diff; a
+suite-tag or origin edit changes it, aggregation recomputes, and no
+execution is owed. The EXECUTIONKEY owns execution — TrialId, the subject
+and check revisions, the invocation profile, and the target/toolchain
+binding, unconditionally: a cross-target cache hit is a claim nothing
+verifies, and refusing it costs only reruns — cost, never truth. The
+invocation profile is its own typed value — the invocation's
+conclusion-relevant facts, budgets included, declared as a typed subset on
+the invocation itself; it is not TrialId's profile component.
+
+Cache eligibility is governed by the attachment postures — the one owning
+statement: derived is fully eligible; declared skips only while the
+author's declared revisions are unchanged, the author's-word ceiling stated
+in the report; untracked always reruns, never cached. An attachment carries
+two posture-bearing revision bindings, subject and check, and every
+per-posture sentence reads over their MEET — the weakest of the pair:
+cache eligibility takes the meet, and the replay posture is the meet's
+image — a mixed attachment can never mint an exact-replay claim over an
+author's-word check revision. Every other mention of eligibility,
+anywhere, points here.
+
+The ReplayCapsule is a reproduction account: it binds the execution key,
+the exact input bytes, the generation and minimization profiles and
+versions, and the generated-support schema identity — and it carries its
+replay posture: exact-derived, the one posture that earns the phrase
+"replay exactly"; declared-by-author, inheriting the author's-word ceiling;
+unavailable-because-untracked, where the historical run and its input are
+real evidence, the attachment always reruns, no cache hit is permitted, and
+every rendering states that reproduction is non-exact. All of these
+identities are content addresses under the family identity substrate — no
+identity island.
+
+`Fingerprint` is failure identity: the trial's semantic identity joined
+with its typed cause and a normalized failure class. Its dividends:
+cross-run deduplication, fingerprint-preserving minimization, stable rerun
+selection across refactors, and grouping many finds into few defects.
+
+## The census and the comparison
 
 Claim coverage is a reading of reports: did every declared claim, hostile
 case, and mutation row get exercised. It is computed, never hand-counted.
-Reports are machine-readable so any front end can project them — a code lens
-showing a declaration's proof status is a reading of reports, not a new
-record. Line coverage is a command a person runs, never a gate; claim
-coverage is the gate-shaped reading, and it comes from here.
+A RunReport records its denominator; the comparison is what reports the
+change. The comparison takes a typed baseline — a previous report, a first
+run, or an unavailable baseline with its reason — because an optional input
+cannot distinguish two absences and a result may never claim knowledge
+absent from its input; its outcome is either a comparison with its pure
+diff or an honest not-compared carrying the first-run, unavailable, or
+posture-mismatch arm. A pure operation outside the runner, which therefore
+never grows memory; the baseline is the caller's to supply; a shrinking
+census appears explicitly in the comparison result, and the census never
+reads "no change" merely because it had nothing to compare.
 
-A contained subject panic is recorded as the finding it is — a typed verdict
-carrying its source location — and emitted as a report artifact that rides the
-promotion road. The depot is authored specification; a report is runtime
+Reports are machine-readable so any front end can project them — a code
+lens showing a declaration's proof status is a reading across three report
+families (the semantic run's descriptor accounting, the mutation record's
+score, the bench record's planted-worse gap), each value
+absent-with-a-reason when its family has not run, and a ratio is
+absent-with-a-reason when its denominator is zero, never a value — a
+reading of reports, not a new record. Line coverage is a command a person
+runs, never a gate; claim coverage is the gate-shaped reading, and it comes
+from here.
+
+Any text a finding carries that came from outside this crate's own
+vocabulary — a subject's panic payload, parsed external-tool output — rides
+a distinct, bounded, typed foreign-text field, and no composed summary is
+built from it: the finding is a typed value first and prose second.
+
+A caught subject panic is recorded as the finding it is — a typed verdict
+carrying its source location — and emitted as a report artifact that rides
+the proposal road. The depot is authored specification; a report is runtime
 evidence; no report writes the depot.
 
 "Receipt" is the machine's word. The one record family here that earns it is

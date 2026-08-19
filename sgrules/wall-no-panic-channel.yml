@@ -1,0 +1,11 @@
+# The wall: the harness never verdicts by panicking, prints nothing, exits nothing.
+id: wall-no-panic-print-exit
+message: "panic/print/exit is a process-boundary or panic channel; the wall holds with zero exceptions"
+severity: error
+language: rust
+rule:
+  any:
+    - pattern: panic!($$$)
+    - pattern: println!($$$)
+    - pattern: eprintln!($$$)
+    - pattern: std::process::exit($$$)

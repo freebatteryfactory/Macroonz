@@ -9,6 +9,12 @@ itself; no second implementation is needed for a law to be checkable.
 Temporal laws are the suite shape over histories: a generated command
 sequence drives a transition system, and the law is asserted across the whole
 history — what always holds, what never happens, what is eventually reached.
+The temporal machinery is generic and neutral: it carries owner-supplied
+claim carriers — monotonicity laws included — over owner-supplied
+transition contracts and yields the harness's own neutral conclusions; a
+standalone public type never names a product type, and the product's
+integration adapts its own vocabulary into the neutral contract at its own
+layer.
 Parity is the suite shape over roads: wherever one meaning is reachable two
 ways — a maintained result and its recomputed fold, a generated artifact and
 its hand-written twin, two doors over one declaration — the suites drive both
@@ -26,6 +32,27 @@ failure is a typed counterexample carrying its seed, not a panic.
 Composition owes its own laws: wiring correct operations in the wrong order
 is still a defect, so composed roads carry a small named suite of the same
 algebraic shapes.
+
+The suite vocabulary also carries panic-freedom and fail-closed behavior
+(refusal-family properties), fused-versus-separate and replay/cold-start
+equivalence (parity road pairs), and the differential reference
+implementation in its general form. Where an owner declares algebra, the
+generator projects the matching property descriptors — declared law only,
+never inferred. Two honesty clauses ride every suite: a declared-algebra
+property proves the subject honors the declared law — it can never falsify
+the declaration itself; and a parity suite names the substrate its two
+roads share, because agreement across a shared substrate is silence about
+that substrate. Suites are separate role-named files, each appearing only
+when it has content, per the file grammar; the `ensure_*` typed-refusal
+sugar lives here beside the check combinators it wraps, a thin transparent
+stamp expanding to the typed call — and ambient provenance rides it for
+free: caller-tracking on the Result-returning checks is what makes every
+refusal born knowing its file and line with zero panic machinery. The
+lawful twin rides every generated hostile family: the generator emits the
+un-swapped lawful pair beside every swap-refusal case, and the lawful
+pair's ACCEPTANCE is a row in the same battery — a role separation that
+silently stops existing fails the battery instead of making every refusal
+pass for the wrong reason.
 
 Behavioral laws drain out of the machine's proof surface and land here as
 properties under mutation pressure; at end state the machine keeps no

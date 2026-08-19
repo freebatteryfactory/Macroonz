@@ -33,7 +33,12 @@ A [`SpanHandle`] means "the token at this index of the table the producer built
 while capturing". The services never resolve one: they carry it into a diagnostic
 so that whoever produced the input can map it back to the exact compiler span.
 That is what puts a `compile_error!` on the offending token rather than on the
-first token of the declaration.
+first token of the declaration. Author token identity survives capture →
+plan → render → closure → diagnostics and origin inspection — the
+span-fidelity law, and every post-capture diagnostic is measured against
+it. The span facts that are stable on the pin: line, column, and the
+display-oriented file; the file path may be remapped, so it lives only on
+the location rail, and deeper span surfaces stay untouched.
 
 ## The seats
 

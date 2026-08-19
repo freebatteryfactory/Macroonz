@@ -30,6 +30,10 @@ repository = "https://github.com/freebatteryfactory/ThreadPak"
 # member reaches for a mechanism stays at that member, beside the reading it
 # buys. `deny.toml` settles what the resolved graph actually enables.
 [workspace.dependencies]
+# Structure-aware input generation: the harness library's shared generation
+# vocabulary, derivable for closed algebraic types, and the same vocabulary a
+# coverage-guided fuzzer consumes.
+arbitrary = { version = "=1.4.2", default-features = false, features = ["derive"] }
 # The Rust decoder for the judge's structural lane: `parsing` + `full`, nothing else.
 syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }
 # The digest. Exact because one changed output byte silently renames every

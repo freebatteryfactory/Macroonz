@@ -11,4 +11,8 @@ needed — the machine's own bounds are the injection points.
 
 The scenario shapes — which faults exist, in what families — are depot data,
 owned with the machine's facts. This instrument owns the adapter values and
-the campaign shapes the chaos lane schedules over them.
+the campaign shapes the chaos lane schedules over them. Each adapter's
+postcondition profile — what the refusal leaves true — is part of the
+adapter's declared contract, and an end-to-end chain declares when it is
+complete and what reopens it; that rule rides the end-to-end role's
+semantics.

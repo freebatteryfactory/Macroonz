@@ -1,9 +1,11 @@
 # oracle — the independence annex
 
-Independence survives here only where bytes are the spec: identity preimages,
-canonical encodings, and compile refusals. Everything else is judged by
-declared algebra in the property suites, which need no second implementation
-to be meaningful.
+The oracle owns an independent verdict route wherever shared producer logic
+would make self-agreement vacuous: identity preimages and canonical
+encodings, structural conformance, compiled read-back, and compile
+refusals. Everything else is judged by declared algebra in the property
+suites, which need no second implementation to be meaningful — no universal
+second implementation exists.
 
 The read-direction law: a depot vector is the specification; only this
 instrument reads it; a producer states its own constants internally and gets

@@ -1,0 +1,13 @@
+# The constructor rule: generated and consuming code calls public
+# constructors, never struct literals of the descriptor vocabulary — the
+# smart constructors are where parse-don't-validate lives. Advisory until
+# its signal quality is observed (graduated trust).
+id: constructor-rule-no-vocab-struct-literals
+message: "descriptor vocabulary values are built through public constructors, never struct literals"
+severity: warning
+language: rust
+rule:
+  any:
+    - pattern: Row { $$$ }
+    - pattern: Binding { $$$ }
+    - pattern: Table { $$$ }

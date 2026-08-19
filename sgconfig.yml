@@ -1,0 +1,4 @@
+# ast-grep entry point. The rule pack is construction-phase QA instrumentation —
+# toolchain-layer data like clippy.toml, never a permanent scanner registry.
+ruleDirs:
+  - sgrules

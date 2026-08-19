@@ -1,0 +1,11 @@
+# The read-direction law: only the oracle reads depot vectors; the generation
+# services never name the vector constants. Rust has no "public except to
+# crate X", so this rule is the load-bearing enforcement.
+id: read-direction-macroc-never-reads-depot
+message: "the generation services never name depot vector constants; only the oracle reads the depot"
+severity: error
+language: rust
+files:
+  - macros/**
+rule:
+  pattern: $PATH::depot::$$$
