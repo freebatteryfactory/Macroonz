@@ -91,12 +91,51 @@ holds none. So what this door delivers is an EVALUATION-ONLY carrier — an empt
 trials seat beside carried deferred cargo — which is exactly the delivery the
 carrier's grammar renders both seats for.
 
-[`compile_declaration`] hands back both terminals and the assembly. Its two
-declaration-site cargos are exactly the two terminals' declaration-site
-partitions — the implementations, and the shell definition — and an emitter
-writes both. [`compile_refusal`] is unchanged and its callers stand: the
-difference between the two roads is a second terminal, never a different first
-one.
+Inside what [`compile_declaration`] hands back stand both terminals and the
+assembly. Their two declaration-site cargos are exactly the two terminals'
+declaration-site partitions — the implementations, and the shell definition —
+and an emitter writes both. [`compile_refusal`] is unchanged and its callers
+stand: the difference between the two roads is what is added, never a different
+first one.
+
+## The whole roster answers, and none of it is a fake seat
+
+Two kinds are produced here and the sealed roster names eight, so the six that
+produce nothing say so. [`compile_declaration`] hands back an account carrying
+one typed disposition per kind: the implementation projection and the carrier
+name the output they were planned as, and the other six carry the standing this
+door's declared compiler profile has for them, named at that profile and at its
+version.
+
+The ground is one fact wanted six different ways. A plan of any of those kinds
+names something the machine MINTS — a schema and the byte role its canonical
+bytes are read under, a measured unit and the work currency its envelope is
+stated in, a host contract, a port and a wire contract, a documented subject and
+the audience it is written for, an authored pattern and its typed arguments —
+and an expansion is handed a captured declaration and a context, which is to say
+no mint at all. `account.rs` states each of those seats beside its own kind's
+answer, so a reader is told which seat could not be filled rather than only that
+something could not be.
+
+**No anchoring was invented to close any of them.** Several of those records
+carry one seat of exactly the shape the descriptor's obligation seat has — a
+SUBJECT the captured declaration could honestly stand in for, the way a
+descriptor stands over what it challenges. Every one of those records carries a
+second seat that is not a subject at all, and no declaration stands for a byte
+role, a currency, an audience, or a wire contract under any posture. A record
+that still cannot be filled is a record no plan is made from, so growing its
+subject seat would be machinery nothing pulls — and the posture would have been
+decided by a door instead of by the home that owns the seat. The verdicts are
+recorded at each kind's road in `account.rs`, where the ground travels with the
+answer.
+
+The documentation kind is the one whose MATERIAL this door can read and whose
+PLAN it still cannot make. `document.rs` wires the family seat's prose into a
+documented item through the documentation home's own door, and a caller that
+wants the material walks that road. The plan wants an audience beside the
+subject, and the facets it covers are the same election that road already stops
+at — under the same profile at the same version, from the one construction both
+readings share.
 
 ## Refusal vocabulary, step by step
 

@@ -6,9 +6,12 @@
 //! a terminal's own partition and compared against what that partition carries,
 //! so a value carrying tokens nobody proved is not a value anybody can hold. An
 //! assembly is built HERE, after the whole verification agreed, so there is no
-//! half-verified whole for a renderer to mistake for a verified one. And a
-//! joined expansion is built HERE, over two terminals that were both bound, so a
-//! door-level value naming a carrier it never rendered is unwritable.
+//! half-verified whole for a renderer to mistake for a verified one. A joined
+//! expansion is built HERE, over two terminals that were both bound, so a
+//! door-level value naming a carrier it never rendered is unwritable. And the
+//! complete account is built HERE, over a joined value and the roster of
+//! dispositions one door decided, so an account seating another door's answers
+//! beside these terminals is unwritable on the same terms.
 //!
 //! The refusal BODY is DECLARED in the `seat` module below rather than in
 //! `types.rs`, because Rust's privacy is MODULE-scoped and a seat declared beside
@@ -27,13 +30,15 @@
 
 use super::super::establish::{consumption_issues, root_issues};
 use super::{
-    AssemblyIssue, AxisCargo, CargoAxis, JoinedExpansion, ProvedCargo, SupportAssembly,
+    AccountedExpansion, AssemblyIssue, AxisCargo, CargoAxis, JoinedExpansion, ProvedCargo,
+    SupportAssembly,
 };
 use crate::closure::{ClosedExpansion, PartitionCargo};
 use crate::plane::{ClosedExpansionId, OutputBytesSubject, ProjectionIdentity};
 use crate::planning::{
     CauseAnchoring, EXPECTED_GENERATED_SUPPORT_SCHEMA_ID, EmissionPartition,
-    ExpectedGeneratedSupportSchemaId, ProjectionKind, TestDescriptorProjection,
+    ExpectedGeneratedSupportSchemaId, KindDispositions, ProjectionDisposition, ProjectionKind,
+    ProjectionKindRow, TestDescriptorProjection,
 };
 use crate::test_descriptor::{DeferredCargo, TrialTablePayload};
 
@@ -404,5 +409,94 @@ impl<Projected> JoinedExpansion<Projected> {
     #[must_use]
     pub const fn carrier_declaration_site(&self) -> &PartitionCargo {
         self.carrier.declaration_site()
+    }
+}
+
+impl<Projected> AccountedExpansion<Projected> {
+    /// Bind one door road's complete account: what it produced, and what it says
+    /// happened to every kind of the sealed roster.
+    ///
+    /// Crate-internal, on the terms [`JoinedExpansion::joined`] states and for
+    /// the same reason one step further out: a caller that could write this
+    /// literal could seat a roster of dispositions beside terminals they were
+    /// never decided over, and every reading downstream would answer correctly
+    /// about the wrong door.
+    pub(crate) fn accounted(
+        joined: JoinedExpansion<Projected>,
+        dispositions: KindDispositions,
+    ) -> Self {
+        Self {
+            joined,
+            dispositions,
+        }
+    }
+
+    /// What this door PRODUCED: both terminals, and the assembly that joined
+    /// them.
+    ///
+    /// Read through, never restated. What each terminal planned, proved, and
+    /// emits, and what the carrier delivers, are that value's own answers —
+    /// [`JoinedExpansion::projected`], [`JoinedExpansion::carrier`],
+    /// [`JoinedExpansion::assembly`], and
+    /// [`JoinedExpansion::carrier_declaration_site`] — and a seat here that
+    /// repeated one of them would be a second answer to a question this value
+    /// already answers.
+    #[must_use]
+    pub const fn joined(&self) -> &JoinedExpansion<Projected> {
+        &self.joined
+    }
+
+    /// What happened to one kind's projection at this door, over this surface.
+    ///
+    /// Total over the sealed roster: every row has exactly one answer, and a
+    /// generated row's answer names the one output a disposition names.
+    #[must_use]
+    pub const fn disposition(&self, kind: ProjectionKindRow) -> &ProjectionDisposition {
+        self.dispositions.under(kind)
+    }
+
+    /// Which delivery one kind's cargo landed in, where that kind produced any.
+    ///
+    /// The planned member's own destination, read to the emission it belongs to
+    /// through the one road a destination reads to
+    /// ([`MemberDestination::partition`]) — so what a reader is told about where
+    /// a kind's cargo went is what the join, the proof, and a consumption target
+    /// were told.
+    ///
+    /// # Nonclaims
+    ///
+    /// It answers with nothing for a kind that produced nothing, and that is a
+    /// stated posture rather than a missing value: a kind whose disposition is an
+    /// absence landed nowhere, and the disposition beside it says which absence
+    /// it was. It claims nothing about the OTHER members a generated kind's plan
+    /// declared — a disposition names one output, and the membership is where a
+    /// reader asking what was materialized reads.
+    ///
+    /// [`MemberDestination::partition`]: crate::planning::MemberDestination::partition
+    #[must_use]
+    pub fn landed(&self, kind: ProjectionKindRow) -> Option<EmissionPartition> {
+        match self.disposition(kind) {
+            ProjectionDisposition::Generated { output } => Some(output.destination.partition()),
+            ProjectionDisposition::NotApplicable { .. }
+            | ProjectionDisposition::Refused { .. }
+            | ProjectionDisposition::UnavailableUnderProfile { .. }
+            | ProjectionDisposition::NotRequested
+            | ProjectionDisposition::ExcludedByConfiguration { .. } => None,
+        }
+    }
+
+    /// Every kind this door generated, in roster order.
+    ///
+    /// The rows whose disposition says GENERATED, and nothing else: which
+    /// terminal each of them ended at is read off [`AccountedExpansion::joined`],
+    /// because a terminal is what a door produced and a row is what it said about
+    /// it.
+    pub fn generated(&self) -> impl Iterator<Item = ProjectionKindRow> + '_ {
+        ProjectionKindRow::ALL.iter().copied().filter(|row| {
+            matches!(
+                self.disposition(*row),
+                ProjectionDisposition::Generated { .. }
+            )
+        })
     }
 }

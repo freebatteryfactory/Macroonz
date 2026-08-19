@@ -1,11 +1,13 @@
 //! The assembly home's declarations: the axis roster, what one axis carries or
 //! why it carries nothing, one terminal's proved cargo, the closed issue set,
-//! the assembly itself, and the joined value a door hands back.
+//! the assembly itself, the joined value a door hands back, and the complete
+//! account that joined value stands inside.
 //!
 //! Declarations only.
 //! Every road that reaches a private field — a proved cargo's provenance, the
-//! assembly's seats, the refusal body's one seat, and the joined value's two
-//! terminals — lives in `type_guard.rs`, this file's own child.
+//! assembly's seats, the refusal body's one seat, the joined value's two
+//! terminals, and the account's roster of dispositions — lives in
+//! `type_guard.rs`, this file's own child.
 //!
 //! # Nothing here is planned, and nothing here is owned
 //!
@@ -18,8 +20,8 @@
 use crate::closure::ClosedExpansion;
 use crate::plane::{ClosedExpansionId, OutputBytesSubject, ProjectionIdentity};
 use crate::planning::{
-    CauseAnchoring, EmissionPartition, ExpectedGeneratedSupportSchemaId, ProjectionDisposition,
-    TestDescriptorProjection,
+    CauseAnchoring, EmissionPartition, ExpectedGeneratedSupportSchemaId, KindDispositions,
+    ProjectionDisposition, TestDescriptorProjection,
 };
 use crate::test_descriptor::{DeferredCargo, TrialTablePayload};
 
@@ -324,4 +326,42 @@ pub struct JoinedExpansion<Projected> {
     projected: Projected,
     carrier: ClosedExpansion<TestDescriptorProjection>,
     assembly: SupportAssembly,
+}
+
+/// One door road's COMPLETE account over one captured surface: what it
+/// generated, and what happened to every kind it did not.
+///
+/// # Authority
+///
+/// **A door answers for the whole sealed roster or it answers for nothing.** The
+/// joined value below it carries what was PRODUCED — the kind's own terminal,
+/// the carrier that delivers its cargo, and the assembly that joined them — and
+/// it is silent about every kind that produced nothing, because there is nothing
+/// of them for it to hold. Silence is exactly what a disposition exists to
+/// abolish, so the account seats one beside it: [`KindDispositions`] carries a
+/// required seat per row of the enumerated kind roster, and a reader asking why
+/// a kind is absent reads the answer instead of inferring it from an emptiness.
+///
+/// The two halves are not two accounts of one thing. The generated kinds' seats
+/// name the one output a disposition names, and the terminals that produced them
+/// are read off the joined value — so what was planned, what was proved, and
+/// what each build receives are answered once, where they already were.
+///
+/// # Bounds
+///
+/// The projected half is a TYPE PARAMETER for the reason
+/// [`JoinedExpansion`] states, and this value reads it through nothing at all:
+/// which kind that terminal stands for, and therefore which seat of the roster
+/// says GENERATED about it, is decided by the DOOR that built the record. A
+/// value that decided it here would be this home electing what a door meant.
+///
+/// It claims nothing about a kind's standing anywhere but at THIS door over
+/// THIS surface. A kind unavailable under one door's profile is a fact about
+/// that profile, and another door over the same declaration answers its own
+/// roster.
+#[must_use = "an accounted expansion is what one door produced and what happened to every kind it did not"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AccountedExpansion<Projected> {
+    joined: JoinedExpansion<Projected>,
+    dispositions: KindDispositions,
 }

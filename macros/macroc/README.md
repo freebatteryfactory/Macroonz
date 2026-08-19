@@ -83,6 +83,16 @@ its declaration-site one, so nothing a consumption target invokes is in the
 normal build; generating test rows at the product declaration site
 is refused — a reverse dev dependency and a normal-build tax.
 
+What a door hands back is the whole roster's account and not only what it made:
+the terminals its generated kinds ended at, and one typed disposition for every
+other kind of the sealed roster, so a cell that is empty says which kind of
+empty it is. The roster is enumerated by the same declaration that declares the
+kinds, and the disposition record carries one required seat per row — a kind
+admitted to the roster breaks every door's construction until that door says
+what it does about it. No door generates a seat to look full: where a kind's
+plan names a fact the machine mints and a seam holds none, the answer is the
+standing under that seam's profile, at its version, and never a stand-in.
+
 ```mermaid
 flowchart LR
     CAP["capture — typed reading of the declaration"] --> PLAN["planning — the ProjectionPlan"]

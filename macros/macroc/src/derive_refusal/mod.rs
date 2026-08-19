@@ -1,5 +1,6 @@
 #![doc = include_str!("README.md")]
 
+pub mod account;
 pub mod capture;
 pub mod carry;
 pub mod diagnose;
@@ -10,6 +11,11 @@ pub mod render;
 mod type_contract;
 pub mod types;
 
+pub use account::{
+    accounted, benchmark_disposition, codec_disposition, documentation_disposition,
+    host_wrapper_disposition, pattern_stamp_disposition, profile_does_not_offer,
+    remote_surface_disposition,
+};
 pub use capture::{captured, captured_text};
 pub use carry::{
     assembly, bench_disposition, carrier_expansion, carrier_kind, carrier_node, carrier_origin,
@@ -33,7 +39,7 @@ pub use types::{
 use crate::closure::{ProjectionClosure, RenderedProjection, RenderedUnit};
 use crate::derive_impl::{EvaluationBinding, MutationPointTable, evaluation_copy};
 use crate::diagnostics::MacrocDiagnostic;
-use crate::generated_support::JoinedExpansion;
+use crate::generated_support::{AccountedExpansion, JoinedExpansion};
 use crate::planning::RenderedImplementation;
 use crate::token::{CapturedInput, GeneratedTree, TextCapture};
 use threadpak::types::Bounded;
@@ -96,8 +102,8 @@ pub fn compile_refusal(
 }
 
 /// Capture, plan, render, close, and explain one refusal-family declaration AND
-/// the carrier that delivers what it deferred — the whole joined road, in one
-/// call.
+/// the carrier that delivers what it deferred, and state what happened to every
+/// other kind of the sealed roster — the whole door, in one call.
 ///
 /// # The same public steps, joined
 ///
@@ -116,17 +122,25 @@ pub fn compile_refusal(
 /// that wants the implementation projection and nothing else asks for exactly
 /// that and is handed a terminal. This road is what a caller asks for when it
 /// wants the declaration DELIVERED — the implementations at the declaration
-/// site, and a carrier a consumption target can invoke — and the difference
-/// between the two is a second terminal rather than a different first one.
+/// site, a carrier a consumption target can invoke, and the account of what
+/// became of everything else — and the difference between the two is what is
+/// added, never a different first road.
 ///
 /// # What comes back
 ///
-/// [`JoinedExpansion`] over this family's own view: BOTH terminals and the
-/// assembly that joined them. Its two declaration-site cargos are exactly the
-/// two terminals' declaration-site partitions — the implementation members, and
-/// the shell definition — read off the terminals themselves. An emitter writes
+/// [`AccountedExpansion`] over this family's own view. Inside it stands the
+/// [`JoinedExpansion`] the joined road produces — BOTH terminals and the
+/// assembly that joined them — whose two declaration-site cargos are exactly the
+/// two terminals' declaration-site partitions, the implementation members and
+/// the shell definition, read off the terminals themselves. An emitter writes
 /// both; writing one would leave a carrier nobody defined or a declaration that
 /// never expands.
+///
+/// Beside it stands one typed disposition for every kind of the sealed roster.
+/// The two kinds this door generates read their answers off the terminals that
+/// produced them; the six it does not each carry the ground stated at their own
+/// road in [`account`]. Nothing is silently absent, and nothing is a seat
+/// generated to look full.
 ///
 /// # Errors
 ///
@@ -138,6 +152,8 @@ pub fn compile_refusal(
 /// that are not the terminal's own.
 /// **Every one of those refusals happens BEFORE a token exists to emit**, on the
 /// same terms the impl-only road states.
+/// The roster's remaining dispositions add no refusal road of their own: they
+/// are decisions this door records, and a decision does not fail.
 #[expect(
     clippy::result_large_err,
     reason = "the diagnostic is seat-complete by law, and the settled service signature returns it by value: boxing it here would move a required seat behind a pointer to satisfy a size lint"
@@ -145,7 +161,7 @@ pub fn compile_refusal(
 pub fn compile_declaration(
     input: &CapturedInput,
     context: &RefusalCompileContext,
-) -> Result<JoinedExpansion<RefusalFamilyExpansion>, MacrocDiagnostic> {
+) -> Result<AccountedExpansion<RefusalFamilyExpansion>, MacrocDiagnostic> {
     let implementation = compile_refusal(input, context)?;
     // The draft is read off the terminal's own captured surface rather than
     // captured a second time: two captures of one declaration produce one
@@ -160,7 +176,15 @@ pub fn compile_declaration(
     let assembly = carry::assembly(&draft, implementation.expansion())?;
     let plan = carry::carrier_plan(&draft)?;
     let carrier = carry::carrier_expansion(plan, &assembly)?;
-    Ok(JoinedExpansion::joined(implementation, carrier, assembly))
+
+    // Read BEFORE the two terminals move into the joined value, and read off
+    // the terminals themselves: what a generated kind produced is its plan's
+    // answer, and a disposition composed here would be a second one.
+    let dispositions = account::accounted(&implementation, &carrier);
+    Ok(AccountedExpansion::accounted(
+        JoinedExpansion::joined(implementation, carrier, assembly),
+        dispositions,
+    ))
 }
 
 /// How the callable text route refused.

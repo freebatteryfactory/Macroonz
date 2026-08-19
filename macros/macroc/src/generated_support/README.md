@@ -91,15 +91,39 @@ seat that would carry it separately is reserved rather than written. So a carrie
 bench axis refuses, and the refusal names the condition — the bench seat filling
 — rather than pretending the material had somewhere to go.
 
+## The value a door hands back, and the account around it
+
+A door road ends at TWO terminals — what the declaration IS, and the exported
+shell that carries whatever of it was planned into a consumption target — plus
+the assembly that joined them. That is the joined value, and it holds what was
+PRODUCED.
+
+What it cannot hold is the rest of the sealed kind roster, because there is
+nothing of those kinds to hold. So the accounted value seats a
+`KindDispositions` beside it: one required seat per enumerated kind row, the
+generated rows naming the one output a disposition names and the rest carrying
+the typed absence that says why. A reader asking "why did I get an
+implementation, why no bench, where did my evaluation support go" reads three
+answers off one value — the disposition, the delivery each generated kind's
+cargo landed in, and the assembly's own axes — rather than inferring any of them
+from an emptiness.
+
+The two halves never restate each other. The terminals answer what was planned,
+proved, and emitted; the roster answers what happened. Which kind the projected
+terminal stands for is the DOOR's fact and is decided where the record is built
+— this home reads the projected half through nothing, exactly as the joined
+value does.
+
 ## The seats
 
 `types.rs` declares: the axis roster, the axis cargo shape, one terminal's proved
-cargo, the closed issue set, the assembly itself, and the joined value a door
-hands back. Its own child `type_guard.rs` holds every road that reaches a private
-seat — reading cargo off a terminal, assembling the verified whole, and the
-refusal body — which is what makes "nothing unproved is in an assembly"
-structural: there is no second seam that can build one. `establish.rs` is the
-verification pass itself, pure, reading axes through the same answers any caller
-gets. `type_contract.rs` states the declarative tables: the family's declared
-shape, and which carrier partition each axis delivers from. `render.rs` is the
-one road from a verified assembly to a rendered carrier.
+cargo, the closed issue set, the assembly itself, the joined value a door hands
+back, and the complete account it stands inside. Its own child `type_guard.rs`
+holds every road that reaches a private seat — reading cargo off a terminal,
+assembling the verified whole, the refusal body, and binding both door-level
+values — which is what makes "nothing unproved is in an assembly" structural:
+there is no second seam that can build one. `establish.rs` is the verification
+pass itself, pure, reading axes through the same answers any caller gets.
+`type_contract.rs` states the declarative tables: the family's declared shape,
+and which carrier partition each axis delivers from. `render.rs` is the one road
+from a verified assembly to a rendered carrier.

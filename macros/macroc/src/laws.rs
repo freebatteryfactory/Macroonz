@@ -1424,12 +1424,12 @@ mod planning {
     use crate::planning::{
         BenchmarkDescriptorProjection, CodecProjection, DeriveImplContent, DeriveImplProjection,
         DigestContract, DocumentationProjection, GraphAnchoring, HostWrapperContent,
-        HostWrapperProjection, InvalidationTrigger, MemberDestination, OwnerContentAccount,
-        PatternStampProjection, PlanDecisions, PlannedMember, PlannedMembership, PlannedOutput,
-        ProjectionBundlePlan, ProjectionContext, ProjectionDisposition, ProjectionKind,
-        ProjectionPlan, RemoteSurfaceProjection, RenderedImplementation, TargetBinding,
-        TargetRequirement, TestDescriptorProjection, UNIVERSAL_QUESTIONS, WRAPPER_COMPONENTS,
-        WrapperComponent,
+        HostWrapperProjection, InvalidationTrigger, KindDispositions, MemberDestination,
+        OwnerContentAccount, PatternStampProjection, PlanDecisions, PlannedMember,
+        PlannedMembership, PlannedOutput, ProjectionBundlePlan, ProjectionContext,
+        ProjectionDisposition, ProjectionKind, ProjectionKindRow, ProjectionPlan,
+        RemoteSurfaceProjection, RenderedImplementation, TargetBinding, TargetRequirement,
+        TestDescriptorProjection, UNIVERSAL_QUESTIONS, WRAPPER_COMPONENTS, WrapperComponent,
     };
     use crate::question::ExplanationQuestion;
     use crate::refusal::{PlanSeat, ProjectionPlanning, ProjectionPlanningIssue};
@@ -1892,6 +1892,116 @@ mod planning {
             ExplanationQuestion::ALL
                 .iter()
                 .all(|question| rosters.iter().any(|roster| roster.contains(question)))
+        );
+    }
+
+    /// law: planning.the-kind-roster-is-enumerated-once-and-answered-once — the
+    /// enumerated roster is the sealed kind roster whole, each row's name is its
+    /// own kind's declared stable name, and a disposition record answers every
+    /// row exactly once, at the row's own seat.
+    ///
+    /// The roster and the record are emitted by the SAME declaration that
+    /// declares the kinds, which is what makes "no kind is silently absent" a
+    /// shape rather than a review note: a kind admitted to `kinds!` grows a row
+    /// and a required seat together, and every construction of the record stops
+    /// compiling until somebody says what happens to it.
+    ///
+    /// The seats carry distinguishable answers here on purpose. A record whose
+    /// reading road crossed two rows would still answer with a disposition for
+    /// every row, so the mapping is proved by the tags rather than assumed from
+    /// totality.
+    ///
+    /// Owed reversal (red twin): a roster enumerated beside the kind declaration
+    /// rather than by it, a row naming a spelling the kind does not declare, or
+    /// a reading road that answered one row from another's seat, must break this
+    /// law.
+    #[test]
+    fn the_kind_roster_is_enumerated_once_and_answered_once() {
+        /// One answer per seat, each distinguishable from every other.
+        fn tagged(tag: u8) -> ProjectionDisposition {
+            ProjectionDisposition::ExcludedByConfiguration {
+                configuration: OwnerIdentityRef::decoded([tag; 32]),
+            }
+        }
+
+        // Every row names its own kind, read off the kind rather than spelled
+        // beside it — and the pairing covers the roster whole.
+        let named: [(ProjectionKindRow, &str); 8] = [
+            (
+                ProjectionKindRow::CodecProjection,
+                CodecProjection::KIND_NAME,
+            ),
+            (
+                ProjectionKindRow::HostWrapperProjection,
+                HostWrapperProjection::KIND_NAME,
+            ),
+            (
+                ProjectionKindRow::RemoteSurfaceProjection,
+                RemoteSurfaceProjection::KIND_NAME,
+            ),
+            (
+                ProjectionKindRow::TestDescriptorProjection,
+                TestDescriptorProjection::KIND_NAME,
+            ),
+            (
+                ProjectionKindRow::BenchmarkDescriptorProjection,
+                BenchmarkDescriptorProjection::KIND_NAME,
+            ),
+            (
+                ProjectionKindRow::DocumentationProjection,
+                DocumentationProjection::KIND_NAME,
+            ),
+            (
+                ProjectionKindRow::DeriveImplProjection,
+                DeriveImplProjection::KIND_NAME,
+            ),
+            (
+                ProjectionKindRow::PatternStampProjection,
+                PatternStampProjection::KIND_NAME,
+            ),
+        ];
+        assert_eq!(named.len(), ProjectionKindRow::ALL.len());
+        assert!(named.iter().all(|(row, name)| row.declared_name() == *name));
+        assert!(
+            ProjectionKindRow::ALL
+                .iter()
+                .all(|row| named.iter().any(|(named_row, _)| named_row == row))
+        );
+
+        // No two rows answer to one name, so a reader that joins by name joins
+        // to one kind.
+        assert!(
+            ProjectionKindRow::ALL
+                .iter()
+                .enumerate()
+                .all(|(position, row)| {
+                    ProjectionKindRow::ALL
+                        .iter()
+                        .skip(position.saturating_add(1))
+                        .all(|other| other.declared_name() != row.declared_name())
+                })
+        );
+
+        // The tags are written in ROSTER order, so a row's position IS the tag
+        // its seat carries: a reading that crossed two rows answers with another
+        // position's tag.
+        let record = KindDispositions {
+            codec: tagged(0),
+            host_wrapper: tagged(1),
+            remote_surface: tagged(2),
+            test_descriptor: tagged(3),
+            benchmark_descriptor: tagged(4),
+            documentation: tagged(5),
+            derive_impl: tagged(6),
+            pattern_stamp: tagged(7),
+        };
+        assert!(
+            ProjectionKindRow::ALL
+                .iter()
+                .enumerate()
+                .all(|(position, row)| {
+                    *record.under(*row) == tagged(u8::try_from(position).unwrap_or(u8::MAX))
+                })
         );
     }
 }
@@ -3741,18 +3851,21 @@ mod pattern_stamp {
 
 mod generated_support {
     use crate::closure::{ClosedExpansion, PartitionCargo};
+    use crate::derive_refusal::plan::{rust_declaration_profile, rust_declaration_profile_version};
     use crate::derive_refusal::{
         EVALUATION_SUBJECT, RefusalCompileContext, RefusalDerivationDraft, RefusalFamilyExpansion,
         RefusalOwnerFacts, carrier_expansion, carrier_plan, compile_declaration,
-        compile_refusal_text, deferred_selectors, evaluation_axis, rows_disposition,
+        compile_refusal_text, deferred_selectors, evaluation_axis, profile_does_not_offer,
+        rows_disposition,
     };
     use crate::diagnostics::MachineAnchoring;
     use crate::generated_support::{
-        AssemblyIssue, AxisCargo, CargoAxis, JoinedExpansion, ProvedCargo, SupportAssembly,
+        AccountedExpansion, AssemblyIssue, AxisCargo, CargoAxis, ProvedCargo, SupportAssembly,
     };
     use crate::planning::{
         CauseAnchoring, DeriveImplProjection, EXPECTED_GENERATED_SUPPORT_SCHEMA_ID,
         EmissionPartition, ExpectedGeneratedSupportSchemaId, ProjectionDisposition,
+        ProjectionKindRow,
     };
     use crate::test_descriptor::DeferredCargo;
     use crate::token::{GeneratedToken, GeneratedTree, TextCapture};
@@ -3772,8 +3885,8 @@ mod generated_support {
             .map(|(_, closed)| closed)
     }
 
-    /// The joined value the door hands back for that same declaration.
-    fn joined() -> Option<JoinedExpansion<RefusalFamilyExpansion>> {
+    /// The complete account the door hands back for that same declaration.
+    fn accounted() -> Option<AccountedExpansion<RefusalFamilyExpansion>> {
         let read = TextCapture::read(DECLARATION).ok()?;
         let context = RefusalCompileContext {
             spans: read.spans().clone(),
@@ -3783,6 +3896,21 @@ mod generated_support {
         };
         compile_declaration(read.input(), &context).ok()
     }
+
+    /// The kinds this door does NOT generate, written out one by one.
+    ///
+    /// A list rather than "the roster minus the generated ones", because the
+    /// point of the law that reads it is that each of these six was DECIDED: a
+    /// complement computed from the other half would pass for a row nobody had
+    /// ever said anything about.
+    const NOT_OFFERED: [ProjectionKindRow; 6] = [
+        ProjectionKindRow::CodecProjection,
+        ProjectionKindRow::HostWrapperProjection,
+        ProjectionKindRow::RemoteSurfaceProjection,
+        ProjectionKindRow::BenchmarkDescriptorProjection,
+        ProjectionKindRow::DocumentationProjection,
+        ProjectionKindRow::PatternStampProjection,
+    ];
 
     /// The evaluation axis's proved cargo, read off one implementation terminal.
     fn proved(
@@ -4031,7 +4159,8 @@ mod generated_support {
     /// or one that returned a single terminal, must break this law.
     #[test]
     fn the_joined_road_emits_exactly_the_two_terminals() -> Result<(), ()> {
-        let joined = joined().ok_or(())?;
+        let accounted = accounted().ok_or(())?;
+        let joined = accounted.joined();
         let projected = joined.projected().emitted();
         let carrier = joined.carrier_declaration_site();
 
@@ -4057,7 +4186,8 @@ mod generated_support {
     /// law.
     #[test]
     fn the_deferred_seat_carries_exactly_the_test_carrier_cargo() -> Result<(), ()> {
-        let joined = joined().ok_or(())?;
+        let accounted = accounted().ok_or(())?;
+        let joined = accounted.joined();
         let AxisCargo::Carried(proved) = joined.assembly().evaluation() else {
             return Err(());
         };
@@ -4124,6 +4254,160 @@ mod generated_support {
             carrier.test_carrier(),
             PartitionCargo::NothingPlanned
         ));
+        Ok(())
+    }
+
+    /// law: account.every-kind-of-the-sealed-roster-is-dispositioned-exactly-once
+    /// — over one captured surface, every row of the enumerated kind roster
+    /// reads to exactly one answer off the door's account, the generated rows
+    /// are exactly the kinds a terminal was bound for, and a kind that produced
+    /// nothing landed nowhere.
+    ///
+    /// The two halves of the account never disagree about which kinds those are:
+    /// the roster of generated rows is READ off the dispositions, and where a
+    /// row says generated the delivery reader answers with a partition, so a
+    /// record claiming a production nothing was planned for would show up as a
+    /// row that generated and landed nowhere.
+    ///
+    /// The claim ceiling: it says every kind is answered and says nothing about
+    /// whether an answer is the RIGHT one. What each answer stands on is the law
+    /// below it.
+    ///
+    /// Owed reversal (red twin): an account that left a kind out, that answered
+    /// one kind twice, or that reported a generated kind with no delivery, must
+    /// break this law.
+    #[test]
+    fn every_kind_of_the_sealed_roster_is_dispositioned_exactly_once() -> Result<(), ()> {
+        let accounted = accounted().ok_or(())?;
+        let generated: Vec<ProjectionKindRow> = accounted.generated().collect();
+
+        // The kinds this door produces, in roster order: the carrier it planned,
+        // rendered and closed, and the implementation projection the declaration
+        // IS.
+        assert_eq!(
+            generated,
+            [
+                ProjectionKindRow::TestDescriptorProjection,
+                ProjectionKindRow::DeriveImplProjection,
+            ]
+        );
+
+        // Together the two halves cover the roster and overlap nowhere.
+        assert_eq!(
+            generated.len().saturating_add(NOT_OFFERED.len()),
+            ProjectionKindRow::ALL.len()
+        );
+        assert!(NOT_OFFERED.iter().all(|row| !generated.contains(row)));
+
+        for row in ProjectionKindRow::ALL {
+            let produced = generated.contains(row);
+            assert_eq!(
+                produced,
+                matches!(
+                    accounted.disposition(*row),
+                    ProjectionDisposition::Generated { .. }
+                )
+            );
+            // A delivery is a fact about an output, so a kind with no output has
+            // none — and a kind with one has exactly the delivery its planned
+            // member declared.
+            assert_eq!(produced, accounted.landed(*row).is_some());
+        }
+        Ok(())
+    }
+
+    /// law: account.a-generated-row-names-the-output-its-terminal-planned — a
+    /// generated kind's disposition carries the output that kind's own terminal
+    /// declared, and the delivery it reads to is that member's own destination.
+    ///
+    /// This is what keeps the account's two halves one account rather than two:
+    /// the disposition is READ off the terminal beside it, so a record naming an
+    /// output no terminal planned is not a record this door produces. And the
+    /// cargo an emitter writes is those same two terminals' declaration-site
+    /// partitions, both occupied — which is why the account changes what a
+    /// reader can ask and changes nothing a compiler receives.
+    ///
+    /// Owed reversal (red twin): a disposition composed beside a terminal rather
+    /// than read off it, or a delivery answered from anywhere but the member's
+    /// declared destination, must break this law.
+    #[test]
+    fn a_generated_row_names_the_output_its_terminal_planned() -> Result<(), ()> {
+        let accounted = accounted().ok_or(())?;
+        let joined = accounted.joined();
+
+        let ProjectionDisposition::Generated {
+            output: implemented,
+        } = accounted.disposition(ProjectionKindRow::DeriveImplProjection)
+        else {
+            return Err(());
+        };
+        assert_eq!(
+            **implemented,
+            joined.projected().plan().membership().first().output
+        );
+
+        let ProjectionDisposition::Generated { output: carried } =
+            accounted.disposition(ProjectionKindRow::TestDescriptorProjection)
+        else {
+            return Err(());
+        };
+        assert_eq!(
+            **carried,
+            joined.carrier().plan().membership().first().output
+        );
+
+        // Both land at the declaration site, which is why an emitter writes two
+        // cargos and the consumer's normal build compiles both.
+        assert_eq!(
+            accounted.landed(ProjectionKindRow::DeriveImplProjection),
+            Some(EmissionPartition::DeclarationSite)
+        );
+        assert_eq!(
+            accounted.landed(ProjectionKindRow::TestDescriptorProjection),
+            Some(EmissionPartition::DeclarationSite)
+        );
+        assert!(matches!(
+            joined.projected().emitted(),
+            PartitionCargo::Carried(_)
+        ));
+        assert!(matches!(
+            joined.carrier_declaration_site(),
+            PartitionCargo::Carried(_)
+        ));
+        Ok(())
+    }
+
+    /// law: account.a-non-generated-row-carries-a-readable-ground — every kind
+    /// this door does not offer carries the standing of the profile the door
+    /// renders under, naming that profile and its version, and it is the same
+    /// value the documentation road records for the one election it stops at.
+    ///
+    /// A reader asking why no bench arrived is handed a posture with a repair in
+    /// it — a profile that offers the kind — rather than "nobody asked", which
+    /// would invite a request this seam cannot honour, or silence, which is what
+    /// the disposition exists to abolish.
+    ///
+    /// Owed reversal (red twin): a door that answered one of these six with a
+    /// generated output, that minted a machine identity to fill a content seat,
+    /// or that left the posture unnamed, must break this law.
+    #[test]
+    fn a_non_generated_row_carries_a_readable_ground() -> Result<(), ()> {
+        let accounted = accounted().ok_or(())?;
+        for row in NOT_OFFERED {
+            assert!(matches!(
+                accounted.disposition(row),
+                ProjectionDisposition::UnavailableUnderProfile { profile, version }
+                    if *profile == rust_declaration_profile()
+                        && *version == rust_declaration_profile_version()
+            ));
+        }
+        // One construction, read twice: the standing a kind stands under and the
+        // standing the facet election stops at are the same value, so a profile
+        // bump moves both or neither.
+        assert_eq!(
+            *accounted.disposition(ProjectionKindRow::DocumentationProjection),
+            profile_does_not_offer()
+        );
         Ok(())
     }
 }

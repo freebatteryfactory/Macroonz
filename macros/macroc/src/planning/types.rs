@@ -1,9 +1,11 @@
 //! The plan family's declarations: the entry account and the intent it names,
 //! the shared context, the output firewall, the destination vocabulary and the
 //! emission roster every destination reads to, the invalidation roster, the
-//! sealed kind roster and its contents, the plan itself, the bundle, the
-//! disposition, the services' own expectation of the generated-support schema
-//! identity, and the magnitudes this home's own capacities are governed by.
+//! sealed kind roster with its contents, its enumerated rows, and the record
+//! that carries exactly one disposition per row, the plan itself, the bundle,
+//! the disposition, the services' own expectation of the generated-support
+//! schema identity, and the magnitudes this home's own capacities are governed
+//! by.
 //!
 //! Declarations only.
 //! Every road that reaches a private field — the account's addressing, the
@@ -889,13 +891,30 @@ pub struct PatternStampContent {
     pub arguments: Bounded<OwnerIdentityRef<PatternArgumentSubject>, PatternArgumentLimit>,
 }
 
-/// Declares one projection kind: a zero-sized marker plus its sealed
-/// [`ProjectionKind`] implementation.
+/// Declares the sealed projection-kind roster ONCE, and derives from that single
+/// declaration everything the roster settles: each kind's zero-sized marker and
+/// its sealed [`ProjectionKind`] implementation, the enumerated roster a reader
+/// quantifies over, and the disposition record that carries exactly one answer
+/// per row.
+///
+/// One row per kind.
+/// A roster written a second time is a roster that agrees until one of the two is
+/// edited — and the thing that would then disagree is what a door says happened
+/// to a kind, which is the one place silence is not an answer. A kind added below
+/// therefore grows the marker, the roster, and the record together, and stops the
+/// compiler at every total reading over the roster until somebody says what
+/// happens to it.
+///
+/// The SEAT column is the spelling the disposition record names a row by. It is
+/// declared beside the kind rather than composed from the type's spelling,
+/// because a field name composed from a Rust identifier is renamed by every
+/// refactor of that identifier — the same reason the declared stable name beside
+/// it is declared rather than taken from the spelling.
 macro_rules! kinds {
     ($(
         $(#[$note:meta])*
-        $name:ident = $declared:literal => $content:ty, $rendered:ty, $requirement:expr,
-            [$($question:expr),* $(,)?]
+        $name:ident = $declared:literal, $seat:ident => $content:ty, $rendered:ty,
+            $requirement:expr, [$($question:expr),* $(,)?]
     );+ $(;)?) => {
         $(
             $(#[$note])*
@@ -911,6 +930,89 @@ macro_rules! kinds {
                 const TARGET_REQUIREMENT: TargetRequirement = $requirement;
             }
         )+
+
+        /// The sealed kind roster, enumerated: one row per kind the declaration
+        /// above states, and no row for a kind it does not.
+        ///
+        /// # Authority
+        ///
+        /// **The roster is the quantifier for what a door says it did, exactly as
+        /// the rendered-role roster is the quantifier for the membership proof.**
+        /// A reader that walked the kinds it happened to remember would leave a
+        /// kind undispositioned, and an undispositioned kind is silence — the one
+        /// answer [`ProjectionDisposition`] does not have a variant for. The rows
+        /// are emitted by the same declaration that declares the kinds, so the
+        /// roster cannot be short.
+        ///
+        /// # Nonclaims
+        ///
+        /// A row names a kind. It says nothing about whether any door plans that
+        /// kind, whether a plan of it can be made at a given seam, or what
+        /// happened to it anywhere: those are a door's answers, and
+        /// [`KindDispositions`] is where a door carries them.
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        pub enum ProjectionKindRow {
+            $( $(#[$note])* $name ),+
+        }
+
+        impl ProjectionKindRow {
+            /// The complete roster, in the order the kind declaration states it.
+            pub const ALL: &'static [Self] = &[$( Self::$name ),+];
+
+            /// This row's kind's declared stable name.
+            ///
+            /// READ off the kind itself rather than spelled again here, so a
+            /// roster row and the kind it names cannot disagree about what the
+            /// kind is called.
+            #[must_use]
+            pub const fn declared_name(self) -> &'static str {
+                match self {
+                    $( Self::$name => <$name as ProjectionKind>::KIND_NAME ),+
+                }
+            }
+        }
+
+        /// What happened to EVERY kind of the sealed roster over one piece of
+        /// owner content: one seat per row, and every one of them required.
+        ///
+        /// # Authority
+        ///
+        /// **Exactly one disposition per kind, by the record's shape rather than
+        /// by a caller's care.** Every field is public and required, so a
+        /// construction that leaves a kind unanswered stops compiling exactly
+        /// where a missing field does, and a kind admitted to the roster breaks
+        /// every construction again — which is the whole point of stating the
+        /// roster once. Nothing here can carry two answers for one kind, and
+        /// nothing here can carry none.
+        ///
+        /// # Bounds
+        ///
+        /// It says what HAPPENED and never what was produced. A generated kind's
+        /// seat names the one output a disposition names ([`ProjectionDisposition`]);
+        /// the terminal that produced it, the membership it declared, and the
+        /// cargo it proved are the terminal's own answers, read off the terminal.
+        #[must_use = "a disposition record is what happened to every kind of the sealed roster"]
+        #[derive(Debug, Clone, PartialEq, Eq)]
+        pub struct KindDispositions {
+            $(
+                #[doc = concat!("What happened to the `", $declared, "` projection.")]
+                pub $seat: ProjectionDisposition
+            ),+
+        }
+
+        impl KindDispositions {
+            /// What happened to one kind's projection.
+            ///
+            /// Total over the closed roster: every row reads to exactly one seat,
+            /// and a row admitted later stops the compiler here until somebody
+            /// says which seat carries it.
+            #[must_use]
+            pub const fn under(&self, row: ProjectionKindRow) -> &ProjectionDisposition {
+                match row {
+                    $( ProjectionKindRow::$name => &self.$seat ),+
+                }
+            }
+        }
     };
 }
 
@@ -979,45 +1081,45 @@ pub enum RenderedImplementation {
 kinds! {
     /// Projects a schema into the codec that reads and writes its canonical
     /// bytes.
-    CodecProjection = "codec-projection" => CodecContent, SoleRenderedUnit,
+    CodecProjection = "codec-projection", codec => CodecContent, SoleRenderedUnit,
         TargetRequirement::EitherBinding,
         [ExplanationQuestion::WhichAssumptionsAndSpecializations];
 
     /// Projects a declared surface into the wrapper one host contract needs.
-    HostWrapperProjection = "host-wrapper-projection" => HostWrapperContent, SoleRenderedUnit,
-        TargetRequirement::BoundHostContract,
+    HostWrapperProjection = "host-wrapper-projection", host_wrapper => HostWrapperContent,
+        SoleRenderedUnit, TargetRequirement::BoundHostContract,
         [
             ExplanationQuestion::WhichCapabilitiesSelectedWrappers,
             ExplanationQuestion::WhichRuntimeTracesCorrespond,
         ];
 
     /// Projects a port declaration into a remote surface over a wire contract.
-    RemoteSurfaceProjection = "remote-surface-projection" => RemoteSurfaceContent, SoleRenderedUnit,
-        TargetRequirement::BoundHostContract,
+    RemoteSurfaceProjection = "remote-surface-projection", remote_surface => RemoteSurfaceContent,
+        SoleRenderedUnit, TargetRequirement::BoundHostContract,
         [ExplanationQuestion::WhichRuntimeTracesCorrespond];
 
     /// Projects a declared obligation into the descriptor that challenges it.
-    TestDescriptorProjection = "test-descriptor-projection" => TestDescriptorContent,
-        SoleRenderedUnit, TargetRequirement::EitherBinding,
+    TestDescriptorProjection = "test-descriptor-projection", test_descriptor =>
+        TestDescriptorContent, SoleRenderedUnit, TargetRequirement::EitherBinding,
         [ExplanationQuestion::WhichTestsChallenge];
 
     /// Projects a declared work formula into the descriptor that measures it.
-    BenchmarkDescriptorProjection = "benchmark-descriptor-projection" =>
+    BenchmarkDescriptorProjection = "benchmark-descriptor-projection", benchmark_descriptor =>
         BenchmarkDescriptorContent, SoleRenderedUnit, TargetRequirement::EitherBinding,
         [ExplanationQuestion::WhichBenchmarksMeasure];
 
     /// Projects declared meaning into prose for a named audience.
-    DocumentationProjection = "documentation-projection" => DocumentationContent, SoleRenderedUnit,
-        TargetRequirement::EitherBinding, [];
+    DocumentationProjection = "documentation-projection", documentation => DocumentationContent,
+        SoleRenderedUnit, TargetRequirement::EitherBinding, [];
 
     /// Projects a declared contract into the implementation that realizes it.
-    DeriveImplProjection = "derive-impl-projection" => DeriveImplContent, RenderedImplementation,
-        TargetRequirement::EitherBinding,
+    DeriveImplProjection = "derive-impl-projection", derive_impl => DeriveImplContent,
+        RenderedImplementation, TargetRequirement::EitherBinding,
         [ExplanationQuestion::WhichAssumptionsAndSpecializations];
 
     /// Projects an authored pattern's instantiation into declaration material.
-    PatternStampProjection = "pattern-stamp-projection" => PatternStampContent, SoleRenderedUnit,
-        TargetRequirement::EitherBinding,
+    PatternStampProjection = "pattern-stamp-projection", pattern_stamp => PatternStampContent,
+        SoleRenderedUnit, TargetRequirement::EitherBinding,
         [ExplanationQuestion::WhichTemplateOrPatternInstance];
 }
 

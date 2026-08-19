@@ -7,6 +7,6 @@ mod types;
 
 pub use render::assembled_shell;
 pub use types::{
-    AssemblyIssue, AssemblyIssueLimit, AxisCargo, CargoAxis, CarrierAssembly, JoinedExpansion,
-    ProvedCargo, SupportAssembly,
+    AccountedExpansion, AssemblyIssue, AssemblyIssueLimit, AxisCargo, CargoAxis, CarrierAssembly,
+    JoinedExpansion, ProvedCargo, SupportAssembly,
 };

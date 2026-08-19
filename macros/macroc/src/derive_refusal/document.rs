@@ -42,7 +42,7 @@
 //! a facet. They stay on the captured surface, where a reader that wants them
 //! reads them, and they are inside the documentation commitment either way.
 
-use super::plan::{rust_declaration_profile, rust_declaration_profile_version};
+use super::account::profile_does_not_offer;
 use super::types::{DocumentedDeclaration, RefusalDeriveSurface};
 use crate::documentation::{
     DocumentationDeclarationRefusal, DocumentedItem, PlainSentence,
@@ -139,9 +139,16 @@ pub fn documented(
 /// The seat that closes it is a facet the owner DECLARES on the declaration
 /// rather than one this home reads out of prose — at which point the election
 /// stops being an election.
+///
+/// # One construction, two readings
+///
+/// The posture itself is [`profile_does_not_offer`] — the standing this door's
+/// declared compiler profile has for everything it does not offer — read rather
+/// than spelled a second time here. The two questions are genuinely different:
+/// that road answers what happened to a whole projection kind, and this one
+/// answers what happened to the election a section is earned by. The ANSWER is
+/// the same profile at the same version in both cases, and a profile bump that
+/// moved one of them and not the other would be two answers to one fact.
 fn facet_election() -> ProjectionDisposition {
-    ProjectionDisposition::UnavailableUnderProfile {
-        profile: rust_declaration_profile(),
-        version: rust_declaration_profile_version(),
-    }
+    profile_does_not_offer()
 }

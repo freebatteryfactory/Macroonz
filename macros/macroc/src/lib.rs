@@ -177,15 +177,45 @@
 //! verification.
 //!
 //! [`compile_declaration`] is the refusal family's one-call road through both,
-//! and it hands back a [`JoinedExpansion`]: both terminals and the assembly that
-//! joined them. Its TWO declaration-site cargos are exactly the two terminals'
-//! declaration-site partitions — the implementation members, and the shell
-//! definition — read off the terminals themselves rather than joined into a
-//! third value nobody proved. An emitter writes both.
+//! and inside what it hands back stands a [`JoinedExpansion`]: both terminals
+//! and the assembly that joined them. Its TWO declaration-site cargos are
+//! exactly the two terminals' declaration-site partitions — the implementation
+//! members, and the shell definition — read off the terminals themselves rather
+//! than joined into a third value nobody proved. An emitter writes both.
 //!
 //! [`compile_refusal`] is unchanged and its callers stand: a caller that wants
 //! the implementation projection alone asks for exactly that. The difference
-//! between the two roads is a second terminal, never a different first one.
+//! between the two roads is what is added, never a different first one.
+//!
+//! # The complete account: every kind of the sealed roster answers
+//!
+//! A door produces some kinds and produces none of the rest, and the value it
+//! hands back says both. [`AccountedExpansion`] is that value: the joined road's
+//! own product, and beside it a [`KindDispositions`] carrying one required seat
+//! for every row of [`ProjectionKindRow`] — the enumerated kind roster, emitted
+//! by the same declaration that declares the kinds, so it cannot be shorter than
+//! the roster it stands for.
+//!
+//! The generated rows name the one output a disposition names, read off the
+//! terminals that produced them. The rest carry the existing disposition
+//! vocabulary: what a projection's absence IS, and on whose fact or under whose
+//! profile. Nothing is silently absent and nothing is a seat generated to look
+//! full, which is the whole of what the roster buys — a reader asks why an
+//! implementation arrived, why no bench did, and where the evaluation support
+//! went, and reads three answers off one value:
+//! [`AccountedExpansion::disposition`] for what happened to a kind,
+//! [`AccountedExpansion::landed`] for which delivery a generated kind's cargo
+//! belongs to, and the assembly's own axes for what the carrier delivers.
+//!
+//! What a door CAN generate is decided at the door, never here. The refusal
+//! family's door generates the implementation projection and the carrier, and
+//! states the standing of the six it does not: each of those kinds' plans names
+//! a fact the machine mints — a schema and a byte role, a measured unit and a
+//! work currency, a host contract, a port and a wire contract, a documented
+//! subject and its audience, an authored pattern and its arguments — and
+//! [`OwnerIdentityRef`] has one production road, which takes a commitment the
+//! machine already minted. An expansion holds none, so the honest answer is that
+//! the profile does not offer the kind, at that profile and at its version.
 //!
 //! Every step refuses in its own vocabulary: [`ProjectionPlanning`] at the
 //! account, the watch set, and the plan; [`RenderingRefusal`] at a rendered
@@ -497,7 +527,7 @@ pub use derive_refusal::{
     compile_refusal, compile_refusal_text, documented,
 };
 pub use generated_support::{
-    AssemblyIssue, AssemblyIssueLimit, AxisCargo, CargoAxis, CarrierAssembly, JoinedExpansion,
+    AccountedExpansion, AssemblyIssue, AxisCargo, CargoAxis, CarrierAssembly, JoinedExpansion,
     ProvedCargo, SupportAssembly, assembled_shell,
 };
 pub use diagnostics::{
@@ -533,10 +563,11 @@ pub use planning::{
     DeriveImplContent, DeriveImplProjection, DigestContract, DocumentationContent,
     DocumentationProjection, EXPECTED_GENERATED_SUPPORT_SCHEMA_ID, EmissionPartition,
     ExpectedGeneratedSupportSchemaId, GraphAnchoring, HostWrapperContent, HostWrapperProjection,
-    InvalidationSet, InvalidationTrigger, KindSeal, MemberDestination, OwnerContentAccount,
-    ObligationAnchoring, PatternStampContent, PatternStampProjection,
+    InvalidationSet, InvalidationTrigger, KindDispositions, KindSeal, MemberDestination,
+    OwnerContentAccount, ObligationAnchoring, PatternStampContent, PatternStampProjection,
     PlanDecisions, PlannedMember, PlannedMembership, PlannedOutput, ProjectionBundlePlan,
-    ProjectionContext, ProjectionDisposition, ProjectionIntentId, ProjectionKind, ProjectionPlan,
+    ProjectionContext, ProjectionDisposition, ProjectionIntentId, ProjectionKind,
+    ProjectionKindRow, ProjectionPlan,
     RemoteSurfaceContent, RemoteSurfaceProjection, RenderedImplementation, RowMaterialPosture,
     SourceDeclarations,
     SurfaceDirection, TargetBinding, TargetRequirement, TestDescriptorContent,

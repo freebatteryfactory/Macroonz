@@ -137,6 +137,14 @@ of absence it was and on whose fact.
 Silence is not one of the variants, because silence is what the disposition
 exists to abolish.
 
+Abolishing silence needs a quantifier as well as a vocabulary, and the sealed
+roster is it. [`ProjectionKindRow`] enumerates the kinds — emitted by the same
+`kinds!` declaration that declares them, so the enumeration cannot be shorter
+than the roster — and [`KindDispositions`] carries one required seat per row. A
+door hands back one of those records, so "which kinds did you not generate, and
+why" is answered by reading rather than by remembering, and a kind admitted to
+the roster breaks every construction until somebody says what happens to it.
+
 ## A watch set covers its context or there is no plan
 
 A plan's watch set is derived from the context's own seats and the entry
@@ -160,10 +168,11 @@ naming one member of a committed set is a claim about the others.
 
 ## The seats
 
-`types.rs` declares, including the `kinds!` roster whose sealed contract is part
-of each kind's declaration, and the three magnitude rows this home's capacities
-are governed by — meaning, number, and reason on one row, stamped through the
-plane's `limits!`.
+`types.rs` declares, including the `kinds!` roster whose sealed contract, whose
+enumerated rows, and whose one-seat-per-row disposition record are all part of
+each kind's single declaration, and the three magnitude rows this home's
+capacities are governed by — meaning, number, and reason on one row, stamped
+through the plane's `limits!`.
 Its own child `type_guard.rs` holds the output firewall and every other road
 that reaches a private field.
 `type_contract.rs` states the rendered-role roster an implementation projection
