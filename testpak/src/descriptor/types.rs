@@ -735,6 +735,41 @@ pub enum EncodeRefusal {
     LengthPastEncodingWidth,
 }
 
+/// Why one stamped trial table was not built.
+///
+/// # Authority
+///
+/// This is the complete refusal family of the road
+/// [`trial_table!`](crate::trial_table) expands: every constructor the stamped
+/// module calls answers with one of these causes, so a seat that could not be
+/// built states WHICH construction refused rather than a single flattened
+/// failure. Each arm carries the owning constructor's own typed refusal
+/// unchanged — nothing is re-spelled here, so there is no second vocabulary for
+/// a cause that already has one.
+///
+/// # Nonclaims
+///
+/// It says nothing about what a trial CONCLUDED. A table that was never built
+/// ran nothing, and a run's verdict is the report instrument's
+/// ([`crate::report`]) to state.
+#[must_use = "a refusal is the reason a trial table was not stamped"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrialTableRefusal {
+    /// A name the stamp declares — the table's, a suite's, or a producer's —
+    /// was refused by the name parser.
+    NameNotParsed(NameRefusal),
+    /// The root schema declaration a produced table pins against was refused by
+    /// the roster law.
+    SchemaNotDeclared(SchemaRefusal),
+    /// The root schema declaration's canonical bytes were refused, so no
+    /// identity could be derived to pin against.
+    SchemaNotEncoded(EncodeRefusal),
+    /// A row's binding constructor refused the row and attachment it was given.
+    BindingNotBound(BindingRefusal),
+    /// The authored world refused the bindings it was given.
+    TableNotAuthored(AuthoredTableRefusal),
+}
+
 /// The descriptor vocabulary's canonical field roster: the closed field set one
 /// row states, in reading order.
 ///
@@ -766,6 +801,129 @@ pub const DESCRIPTOR_FIELDS: &[SchemaField] = &[
             "admitted-replay",
             "admitted-discharge",
         ]),
+        FieldCardinality::ExactlyOne,
+    ),
+];
+
+/// The mutation-point vocabulary's canonical field roster: what a producer
+/// states about one point on an evaluation surface.
+///
+/// # Authority
+///
+/// This roster is the mutation-point member's preimage material and the whole
+/// of what the second crossing admits. The RUNTIME types that carry these
+/// values belong to the lane that owns them ([`crate::muterprater`]); what is
+/// declared here is the producer-facing VOCABULARY, so a producer emits against
+/// this roster rather than against another crate's shape.
+///
+/// # The fields
+///
+/// The identity names the point itself, and the owner claim is what makes a
+/// survivor explainable: a point that survived leads to the claim that owns the
+/// behaviour, and from there to the check reference that would close it.
+///
+/// The original operation is the unmutated reading — the no-mutation mutant
+/// every evaluation surface contains — carried as the declaration's own
+/// rendered bytes rather than as a name, because two different operations a
+/// producer happened to name alike would otherwise encode identically. The
+/// admitted alternatives are the damages this point may be selected into, a
+/// roster because a point admitting none is a lawful point that only ever reads
+/// as no-mutation.
+///
+/// The activation site is where a selected alternative fires. It is NAMED
+/// rather than path-spelled, for the reason a trial's identity is not its site:
+/// a file move must rename nothing.
+///
+/// # Nonclaims
+///
+/// A roster of admitted alternatives states which damages the point ADMITS, and
+/// never that any of them was materialized, activated, or killed. Those are
+/// executed facts and they live in the mutation lane's own record.
+pub const MUTATION_POINT_FIELDS: &[SchemaField] = &[
+    SchemaField::declared("identity", FieldShape::NamespacedName, FieldCardinality::ExactlyOne),
+    SchemaField::declared("owner_claim", FieldShape::NamespacedName, FieldCardinality::ExactlyOne),
+    SchemaField::declared("original_operation", FieldShape::Bytes, FieldCardinality::ExactlyOne),
+    SchemaField::declared(
+        "admitted_alternatives",
+        FieldShape::Bytes,
+        FieldCardinality::ZeroOrMore,
+    ),
+    SchemaField::declared(
+        "activation_site",
+        FieldShape::NamespacedName,
+        FieldCardinality::ExactlyOne,
+    ),
+];
+
+/// The bench-row vocabulary's canonical field roster: what a producer states
+/// about one measured workload.
+///
+/// # Authority
+///
+/// This roster is the bench member's preimage material and the whole of what
+/// the third crossing admits. The bench seat's own contract is where these
+/// fields are argued; this is the vocabulary they cross in.
+///
+/// # The fields
+///
+/// The workload identity names what is measured. The input-size axis is the
+/// declared roster of sizes it is measured across, because a growth class is
+/// read off a curve and never off one point.
+///
+/// The correctness preflight and the planted-worse falsifier are the two gates
+/// the host order runs before any backend is invoked: a failing operation is
+/// never benchmarked, and a measurement that cannot separate a deliberately
+/// worse implementation from the real one has not been shown to measure
+/// anything. Both are REFERENCES — the callables that stand behind them ride
+/// the bench binding, exactly as a descriptor row references its check rather
+/// than carrying one.
+///
+/// The declared budgets are the gate's own tolerances — sample counts, warmup,
+/// the ratio threshold — declared beside the row so a threshold is spec rather
+/// than a number somebody tuned. The contention posture is a closed pair,
+/// stated always: a measurement taken with the host to itself and a measurement
+/// taken with declared competing work present are different measurements, and
+/// an undeclared posture is inadmissible — which is why there is no third arm
+/// standing for "unstated".
+///
+/// The work formula is optional because only some operations declare one; where
+/// one is declared, the gate reads WORK COUNTS against it and wall time is the
+/// secondary human observation. The complexity claim is a neutral reference: a
+/// standalone public vocabulary never names a product type, so a machine maps
+/// its own complexity contract into this seat from the product side.
+///
+/// # Nonclaims
+///
+/// A roster of declared budgets carries counts and states nothing about what a
+/// run spent. Adding an arm to the contention posture moves the derived schema
+/// identity — which is the mechanism, not an accident of it.
+pub const BENCH_FIELDS: &[SchemaField] = &[
+    SchemaField::declared(
+        "workload_identity",
+        FieldShape::NamespacedName,
+        FieldCardinality::ExactlyOne,
+    ),
+    SchemaField::declared("input_size_axis", FieldShape::Count, FieldCardinality::ZeroOrMore),
+    SchemaField::declared(
+        "correctness_preflight",
+        FieldShape::NamespacedName,
+        FieldCardinality::ExactlyOne,
+    ),
+    SchemaField::declared(
+        "planted_worse_falsifier",
+        FieldShape::NamespacedName,
+        FieldCardinality::ExactlyOne,
+    ),
+    SchemaField::declared("declared_budgets", FieldShape::Count, FieldCardinality::ZeroOrMore),
+    SchemaField::declared(
+        "contention_posture",
+        FieldShape::ClosedChoice(&["uncontended", "contended"]),
+        FieldCardinality::ExactlyOne,
+    ),
+    SchemaField::declared("work_formula", FieldShape::Bytes, FieldCardinality::ZeroOrOne),
+    SchemaField::declared(
+        "complexity_claim",
+        FieldShape::NamespacedName,
         FieldCardinality::ExactlyOne,
     ),
 ];

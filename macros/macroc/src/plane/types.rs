@@ -126,6 +126,10 @@ impl LimitAdmissionProfile for AuthoringLimitProfile {
 /// so a family cannot be declared here on the compile-time ladder while wearing
 /// another road's authority: the transcriber writes `DeclaredMagnitude` and
 /// `ConstLimit` together or writes neither.
+///
+/// The magnitude is emitted at BOTH widths its readers hold it in — a
+/// collection's on the ladder, a counter's beside it — from that same row, for
+/// the reason stated on the counter-width constant itself.
 macro_rules! limits {
     ($( $(#[$note:meta])* $name:ident = $max:expr ),+ $(,)?) => {
         $(
@@ -137,6 +141,26 @@ macro_rules! limits {
             }
             impl ConstLimit for $name {
                 const MAX: usize = $max;
+            }
+
+            impl $name {
+                /// The same declared magnitude at the width a COUNTER holds it.
+                ///
+                /// [`ConstLimit::MAX`] is a collection's width, and a seat that
+                /// counts rather than collects — a work budget, a token tally —
+                /// holds thirty-two bits. Nothing converts the one into the
+                /// other where a magnitude is read: no narrowing conversion is
+                /// callable in a `const`, and the as-conversion road is barred
+                /// outright, so a counter reading the ladder would have to
+                /// narrow at RUNTIME and carry a refusal branch for a case its
+                /// own declaration rules out.
+                ///
+                /// The magnitude is therefore stated once and emitted twice,
+                /// from the SAME row in the SAME expansion: the two widths are
+                /// one number read two ways and cannot drift, and a row past
+                /// thirty-two bits stops the compiler here rather than
+                /// narrowing anything silently.
+                pub const MAX_U32: u32 = $max;
             }
         )+
 
@@ -276,6 +300,18 @@ subjects! {
     ClosureSubject = "closure",
     /// One closed expansion: the whole receipt one live compilation produced.
     ClosedExpansionSubject = "closed-expansion",
+    /// One projection intent — WHAT a door meant, ahead of anything decided
+    /// about it: the kind and the owner content commitment it was meant over.
+    ///
+    /// A separate subject from [`PlanSubject`] because the two are separate
+    /// semantic LEVELS over one material, on the same terms
+    /// [`RelatedBodySubject`] states.
+    /// A plan's identity commits to everything the plan decided, its origin
+    /// included, so two doors that meant the same thing are REQUIRED to derive
+    /// different plan identities; the intent level is the one that is allowed to
+    /// agree, and one name space holding both levels would let an intent's
+    /// preimage alias a plan's.
+    ProjectionIntentSubject = "projection-intent",
 }
 
 limits! {
@@ -382,6 +418,19 @@ limits! {
     /// the total is bounded in its own right rather than left as the product of
     /// two other magnitudes.
     CapturedTreeTokenLimit = 16384,
+    /// Units of capture work one walk may spend, one unit per examined token.
+    ///
+    /// Wider than the whole-tree magnitude, because a walk may LOOK at more than
+    /// it keeps: a budget at the tree magnitude exactly would refuse a lawful
+    /// input the moment its producer looked twice at anything.
+    /// Four units for every token [`CapturedTreeTokenLimit`] admits, which is
+    /// the room a producer that backtracks over an alternative or skips trivia
+    /// needs and no more.
+    /// That magnitude is the one this number stands over, so the two are moved
+    /// together or not at all: a wider tree under this budget would refuse
+    /// lawful declarations naming a bound they never approached, and this is the
+    /// number that would have to move to keep the tree magnitude reachable.
+    CaptureWorkLimit = 65536,
     /// Bytes one rendered unit may carry. A renderer that would emit past this
     /// refuses rather than materializing part of a unit.
     RenderedByteLimit = 65536,
@@ -526,6 +575,9 @@ threadpak::closed_register! {
         Closure = "closure", "one proved closure between a plan and its rendering";
         /// One closed expansion.
         ClosedExpansion = "closed-expansion", "one closed expansion";
+        /// One projection intent — what a door meant, ahead of what it decided.
+        ProjectionIntent = "projection-intent",
+            "one projection intent, ahead of anything decided about it";
     }
 }
 
@@ -573,9 +625,24 @@ pub struct IdentityProfile {
 }
 
 /// The profile every plane identity in this crate is derived under.
+///
+/// # Versions
+///
+/// Each position below is the change to what a transcript CONTAINS that moved
+/// it, because that is the only thing a position may move for.
+/// A position is never reused and never edited: the identities derived under an
+/// earlier one keep their names, in a name space nothing later can reach.
+///
+/// - **1** — the profile as first declared.
+/// - **2** — the closure transcript grew the joined-tree digest, so a closure
+///   commits to the tree it proved rather than to the units it counted.
+/// - **3** — the entry account entered the plan transcript's content: a plan is
+///   derived over the ONE account of the owner content it was planned over —
+///   the commitment and the dependency set it declares it stands on — where the
+///   content it stood on had been named nowhere in its own preimage.
 pub const PROJECTION_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
     "threadpak/macroc/projection-identity",
-    IdentityProfileVersion::declared(2),
+    IdentityProfileVersion::declared(3),
 );
 
 /// The stable name of the generator that derives plane identities.

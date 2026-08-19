@@ -3,6 +3,9 @@
 The two identity families, owner-fact references, profile versions, bounded human
 projections, and the plane's declared limit families.
 
+Every limit family states its magnitude once, in one row, and carries it at both
+widths its readers hold it in: a collection's and a counter's.
+
 ## The two identity families
 
 **[`OwnerIdentityRef`] is a read-only lens on an identity the MACHINE minted.**

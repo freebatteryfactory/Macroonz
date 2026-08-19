@@ -29,6 +29,14 @@
 //! - the **posture** rides in the summary, so a body that stopped at its own
 //!   declared bound says so rather than reading as complete.
 //!
+//! # One grammar
+//!
+//! Every line this home hands a compiler is composed by [`composed`] and by
+//! nothing else — including the capture family's, which is composed there and
+//! read back by both of its projections.
+//! Two grammars for one home is two shapes a reader has to learn, and the second
+//! one is always the one that drifts: it is the one no law was written against.
+//!
 //! # Nonclaims
 //!
 //! It elects no machine cause posture.
@@ -37,15 +45,14 @@
 //! [`CauseDisposition::UnresolvedCause`] exactly as the capture road does.
 //!
 //! And it invents no repair.
-//! Every [`RepairAction`] below cites a fact the services' own charter declares
-//! — that a plan states its complete output set, that nothing is emitted that
-//! did not close, that every kind answers the explanation protocol, that every
-//! rendered seat stands under a declared magnitude — by the declared names those
-//! facts are written down under.
+//! Every [`RepairAction`] below cites a fact declared once on
+//! [`RefusalDeriveFact`] and shows that fact's own repair, so a citation and the
+//! sentence beside it are one row rather than two arguments that happened to be
+//! passed together.
 
 use super::explain::ExplanationBindingRefusal;
 use super::render::RenderRefusal;
-use super::types::{callable_entry, expected_contract};
+use super::types::{DIAGNOSTIC_PREFIX, RefusalDeriveFact, callable_entry, expected_contract};
 use crate::closure::{ClosureIssue, ProjectionClosureRefusal, RenderingRefusal};
 use crate::diagnostics::{
     DiagnosticSite, MacrocDiagnostic, MacrocPhase, ObservedClassification, RelatedSet,
@@ -53,10 +60,11 @@ use crate::diagnostics::{
 };
 use crate::explanation_protocol::{ExplanationCoverage, ExplanationCoverageIssue};
 use crate::plane::{
-    GeneratedTokenLimit, HumanProjection, HumanTextLimit, MembershipLimit, OwnerFactRef,
-    RenderedByteLimit, RenderedRole, encode_bytes, human_projection,
+    GeneratedTokenLimit, HumanProjection, HumanTextLimit, MembershipLimit, RenderedByteLimit,
+    RenderedRole, encode_bytes, human_projection,
 };
 use crate::refusal::{ProjectionPlanning, ProjectionPlanningIssue};
+use threadpak::declaration::CoordinateRole;
 use threadpak::evidence::CauseDisposition;
 use threadpak::refusal::CompletionPosture;
 use threadpak::types::{Bounded, BoundedConstruction, ConstLimit};
@@ -73,6 +81,221 @@ const COVERAGE_FAMILY: u8 = 2;
 
 /// The rendering family's tag.
 const RENDERING_FAMILY: u8 = 3;
+
+// ---------------------------------------------------------------------------
+// The one compiler-facing grammar.
+// ---------------------------------------------------------------------------
+
+threadpak::closed_register! {
+    /// Which class of refusal one composed line is about.
+    ///
+    /// The class is the second clause of every line this home composes, and it
+    /// is READ off this roster rather than written at the seam that refused.
+    /// A class phrase spelled at a seam is a phrase only that seam knows about:
+    /// two seams reporting one class then read as two classes, and a reader
+    /// grouping a build log by what went wrong groups them apart.
+    pub enum RefusalClass {
+        /// The declared input was not read into a captured surface.
+        DeclarationNotRead = "declaration-not-read", "the declaration was not read";
+        /// Planning refused before a token of Rust existed.
+        PlanNotStated = "plan-not-stated", "planning refused";
+        /// The rendering does not close over the plan it claims to materialize.
+        RenderingNotClosed = "rendering-not-closed",
+            "the rendering does not close over the plan it claims to materialize";
+        /// The written explanation does not cover its kind's questions.
+        ExplanationNotCovered = "explanation-not-covered",
+            "the explanation does not cover its kind's questions";
+        /// The explanation had no subject to write its seats about.
+        ExplanationNotBound = "explanation-not-bound",
+            "the explanation cannot bind its subject";
+        /// A rendering would have passed a declared magnitude.
+        MagnitudeNotHeld = "magnitude-not-held", "a rendering would pass a declared magnitude";
+    }
+}
+
+/// What a composed line is a summary OF.
+///
+/// Two shapes, and they are different facts rather than one with the numbers
+/// zeroed out.
+/// A single-cause refusal establishes one cause and enumerates nothing: there is
+/// no remainder to count and no examination bound anything could have stopped
+/// at, so a line reporting "and 0 further issues, examination complete" would be
+/// answering a question that was never asked of it.
+/// A collection-shaped body has both, and the line carries both.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum LineBody {
+    /// One established cause, with nothing enumerated beside it.
+    SingleCause,
+    /// A refusal body: how many further issues it established beyond the first,
+    /// and whether it examined everything it could.
+    Body {
+        /// Established issues past the one the line states in full.
+        further: usize,
+        /// Whether the body examined every site, and what it did with what did
+        /// not fit.
+        posture: CompletionPosture,
+    },
+}
+
+/// The typed parts one compiler line is composed from.
+///
+/// They travel as one value because they are one line: a class handed to
+/// [`composed`] beside another refusal's first established issue would compose a
+/// sentence that is well formed, complete-looking, and about nothing in
+/// particular.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct RefusalLine<'issue> {
+    /// Which class of refusal the line is about.
+    pub class: RefusalClass,
+    /// The first established issue, stated in full.
+    pub first: &'issue str,
+    /// What the line is a summary of.
+    pub body: LineBody,
+}
+
+/// Whether a composed line says where the refusal sits.
+///
+/// Not an option: a whole-declaration refusal is a STATED posture, not a site
+/// somebody forgot to supply.
+/// A refusal about the declaration as a whole has nowhere narrower to point, and
+/// its typed [`DiagnosticSite`] already carries that; adding a position to its
+/// line would send a reader to an arbitrary spot inside a declaration the
+/// refusal is not about.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum LineSite {
+    /// The refusal is about the declaration as a whole, and the line adds
+    /// nothing.
+    WholeDeclaration,
+    /// The refusal sits at one place the producer can name, and the line says
+    /// where — or says that the producer's table does not reach it.
+    At(SiteCoordinate),
+}
+
+threadpak::closed_register! {
+    /// One declared magnitude a rendering can pass, and the thing it governs.
+    ///
+    /// The prose belongs to the MAGNITUDE rather than to whichever refusal named
+    /// it: two refusal families reach the same magnitudes, and a phrase written
+    /// at each of them is a phrase that can disagree with itself about what one
+    /// number bounds.
+    pub enum RenderedMagnitude {
+        /// The rendered-byte magnitude one materialized unit stands under.
+        RenderedBytes = "rendered-bytes", "the bytes one rendered unit may carry";
+        /// The membership magnitude one rendering stands under.
+        RenderedUnits = "rendered-units", "the units one rendering may carry";
+        /// The generated-token magnitude one tree level stands under.
+        GeneratedTokens = "generated-tokens",
+            "the tokens one generated tree may carry at one nesting level";
+    }
+}
+
+impl RenderedMagnitude {
+    /// The declared magnitude itself, read off the plane's limits roster.
+    ///
+    /// Read rather than restated: a number written here would be a second
+    /// authority on a bound the plane already declares, and a diagnostic naming
+    /// a bound the code does not enforce is evidence about nothing.
+    #[must_use]
+    pub const fn declared(self) -> usize {
+        match self {
+            Self::RenderedBytes => RenderedByteLimit::MAX,
+            Self::RenderedUnits => MembershipLimit::MAX,
+            Self::GeneratedTokens => GeneratedTokenLimit::MAX,
+        }
+    }
+}
+
+/// The word one coordinate role counts its positions in.
+///
+/// The ONE reading of [`CoordinateRole`] this home performs.
+///
+/// # Nonclaims
+///
+/// The phrase belongs beside the role, in the declaration home that owns the
+/// roster; this is the reading seat until a projection lands there, and it is
+/// exhaustive on purpose so a seventh role stops compiling here rather than
+/// being shown under a sixth role's word.
+const fn coordinate_role_word(role: CoordinateRole) -> &'static str {
+    match role {
+        CoordinateRole::Byte => "byte",
+        CoordinateRole::UnicodeScalar => "unicode-scalar position",
+        CoordinateRole::Utf16 => "utf-16 position",
+        CoordinateRole::LineColumn => "line-column position",
+        CoordinateRole::NormalizedSource => "normalized-source position",
+        CoordinateRole::SemanticOrigin => "semantic-origin position",
+    }
+}
+
+/// How much of a body one line is not carrying, composed from the typed body.
+fn body_clause(body: LineBody) -> String {
+    let (further, posture) = match body {
+        LineBody::SingleCause => return String::new(),
+        LineBody::Body { further, posture } => (further, posture),
+    };
+    let more = if further > 0 {
+        format!(" (and {further} further established issues)")
+    } else {
+        String::new()
+    };
+    // The three postures are three different facts and the line says which one
+    // it is carrying. A halted examination knows nothing about the sites past
+    // its bound; a truncated report examined every site and knows exactly how
+    // many findings it has no room for. Projecting both as "stopped" would tell
+    // a reader to re-run a pass that already covered everything.
+    let coverage = match posture {
+        CompletionPosture::Complete => String::new(),
+        CompletionPosture::EarlyStopped { .. } => {
+            String::from(" (examination stopped at the declared issue bound)")
+        }
+        CompletionPosture::ReportTruncated(truncation) => {
+            let omitted = truncation.omitted();
+            format!(
+                " (every site was examined; {omitted} further established issues do not fit the \
+                 declared issue bound)"
+            )
+        }
+    };
+    format!("{more}{coverage}")
+}
+
+/// Where one line says the refusal sits, composed from the typed coordinate.
+///
+/// The role travels with the position, so a byte offset never reads as a token
+/// ordinal and an ordinal never reads as a byte.
+/// Where the producer's table does not reach the handle, the clause is that
+/// refusal's own rendering — the locating half is missing and the reader is told
+/// so, rather than handed a number that means nothing.
+fn site_clause(site: LineSite) -> String {
+    match site {
+        LineSite::WholeDeclaration => String::new(),
+        LineSite::At(SiteCoordinate::Resolved(coordinate)) => {
+            let word = coordinate_role_word(coordinate.role);
+            let position = coordinate.position;
+            format!(" (at {word} {position})")
+        }
+        LineSite::At(SiteCoordinate::NotReached(refusal)) => format!(" ({})", refusal.described()),
+    }
+}
+
+/// Compose the one line this home hands a compiler.
+///
+/// `<prefix>: <class>: <first>[<body>][<site>]`, and there is no second
+/// composition anywhere in this home.
+///
+/// It is a SUMMARY and says so: the first established issue in full, then how
+/// many others there were, then whether the body examined everything it could,
+/// then where it sits if it sits anywhere narrower than the declaration.
+///
+/// The remainder is not lost — every issue has its own identity in the related
+/// set, and the body itself is the value a caller of the underlying seam holds.
+#[must_use]
+pub fn composed(line: &RefusalLine<'_>, site: LineSite) -> String {
+    let class_word = line.class.described();
+    let first = line.first;
+    let stated_body = body_clause(line.body);
+    let stated_site = site_clause(site);
+    format!("{DIAGNOSTIC_PREFIX}: {class_word}: {first}{stated_body}{stated_site}")
+}
 
 // ---------------------------------------------------------------------------
 // Planning.
@@ -93,20 +316,17 @@ pub fn planning_refused(refusal: &ProjectionPlanning) -> MacrocDiagnostic {
     diagnosed(
         MacrocPhase::Planning,
         planning_observed(first),
-        &summary(
-            "planning refused",
-            &planning_line(first),
-            refusal.body().carried().len().saturating_sub(1),
-            refusal.body().completion(),
-        ),
+        &RefusalLine {
+            class: RefusalClass::PlanNotStated,
+            first: &planning_line(first),
+            body: LineBody::Body {
+                further: refusal.body().carried().len().saturating_sub(1),
+                posture: refusal.body().completion(),
+            },
+        },
         PLANNING_FAMILY,
         &material,
-        OwnerFactRef::named("macroc", "a-plan-states-its-complete-output-set-or-refuses"),
-        human_projection!(
-            HumanTextLimit,
-            "a plan states its complete output set inside its declared magnitudes, once per role, \
-             or it refuses"
-        ),
+        RefusalDeriveFact::APlanStatesItsCompleteOutputSetOrRefuses,
     )
 }
 
@@ -254,20 +474,17 @@ pub fn closure_refused<R: RenderedRole>(refusal: &ProjectionClosureRefusal<R>) -
     diagnosed(
         MacrocPhase::Rendering,
         closure_observed(first),
-        &summary(
-            "the rendering does not close over the plan it claims to materialize",
-            &closure_line(first),
-            refusal.body().carried().len().saturating_sub(1),
-            refusal.body().completion(),
-        ),
+        &RefusalLine {
+            class: RefusalClass::RenderingNotClosed,
+            first: &closure_line(first),
+            body: LineBody::Body {
+                further: refusal.body().carried().len().saturating_sub(1),
+                posture: refusal.body().completion(),
+            },
+        },
         CLOSURE_FAMILY,
         &material,
-        OwnerFactRef::named("macroc", "nothing-is-emitted-that-did-not-close"),
-        human_projection!(
-            HumanTextLimit,
-            "the membership rebuilt out of the rendered units must equal the plan's declared \
-             membership, role for role and set for set, before a token exists"
-        ),
+        RefusalDeriveFact::NothingIsEmittedThatDidNotClose,
     )
 }
 
@@ -340,36 +557,28 @@ const fn closure_observed<R: RenderedRole>(issue: &ClosureIssue<R>) -> ObservedC
 /// An absent subject names its seat; a coverage refusal names every question it
 /// established an issue about.
 pub fn explanation_refused(refusal: &ExplanationBindingRefusal) -> MacrocDiagnostic {
-    let owner = OwnerFactRef::named("macroc", "every-kind-answers-the-explanation-protocol");
-    let repair = human_projection!(
-        HumanTextLimit,
-        "a projection answers every question its kind admits, exactly once, about its own subject \
-         — an unbindable seat refuses rather than answering about a neighbouring value"
-    );
     match refusal {
         ExplanationBindingRefusal::RequiredOutputAbsent { seat } => diagnosed(
             MacrocPhase::Inspection,
             ObservedClassification::SeatAbsent,
-            &format!(
-                "threadpak refusal-family derive: the explanation cannot bind its subject — {} is \
-                 absent",
-                seat.described()
-            ),
+            &RefusalLine {
+                class: RefusalClass::ExplanationNotBound,
+                first: &format!("{} is absent", seat.described()),
+                // One unbindable seat: the binding road refuses at the first
+                // subject it cannot reach, so there is no body of seats behind
+                // this one.
+                body: LineBody::SingleCause,
+            },
             COVERAGE_FAMILY,
             &[vec![u8::MAX, seat.slot()]],
-            owner,
-            repair,
+            RefusalDeriveFact::EveryKindAnswersTheExplanationProtocol,
         ),
-        ExplanationBindingRefusal::Coverage(coverage) => coverage_refused(coverage, owner, repair),
+        ExplanationBindingRefusal::Coverage(coverage) => coverage_refused(coverage),
     }
 }
 
 /// Project one coverage body: every unanswered, doubled, and inadmissible seat.
-fn coverage_refused(
-    coverage: &ExplanationCoverage,
-    owner: OwnerFactRef,
-    repair: HumanProjection<HumanTextLimit>,
-) -> MacrocDiagnostic {
+fn coverage_refused(coverage: &ExplanationCoverage) -> MacrocDiagnostic {
     let first = coverage.body().carried().first();
     let material: Vec<Vec<u8>> = coverage
         .body()
@@ -380,16 +589,17 @@ fn coverage_refused(
     diagnosed(
         MacrocPhase::Inspection,
         coverage_observed(first),
-        &summary(
-            "the explanation does not cover its kind's questions",
-            &coverage_line(first),
-            coverage.body().carried().len().saturating_sub(1),
-            coverage.body().completion(),
-        ),
+        &RefusalLine {
+            class: RefusalClass::ExplanationNotCovered,
+            first: &coverage_line(first),
+            body: LineBody::Body {
+                further: coverage.body().carried().len().saturating_sub(1),
+                posture: coverage.body().completion(),
+            },
+        },
         COVERAGE_FAMILY,
         &material,
-        owner,
-        repair,
+        RefusalDeriveFact::EveryKindAnswersTheExplanationProtocol,
     )
 }
 
@@ -445,63 +655,56 @@ const fn coverage_observed(issue: &ExplanationCoverageIssue) -> ObservedClassifi
 /// Project one materialization refusal: the exact declared magnitude, and the
 /// unit it governs.
 pub fn rendering_refused<R: RenderedRole>(refusal: RenderingRefusal, role: R) -> MacrocDiagnostic {
-    let (bound, unit, slot) = match refusal {
-        RenderingRefusal::BytesUnbounded => (
-            RenderedByteLimit::MAX,
-            "the bytes one rendered unit may carry",
-            0u8,
-        ),
-        RenderingRefusal::UnitsUnbounded => (
-            MembershipLimit::MAX,
-            "the units one rendering may carry",
-            1u8,
-        ),
-    };
-    bounded_rendering(bound, unit, slot, role)
+    bounded_rendering(materialization_magnitude(refusal), role)
+}
+
+/// The declared magnitude one materialization refusal names.
+///
+/// A projection of the foreign typed value onto this home's magnitude roster,
+/// and the only place the two are related: the closure home states WHICH
+/// magnitude was passed, and the roster states what that magnitude governs and
+/// how large it is.
+const fn materialization_magnitude(refusal: RenderingRefusal) -> RenderedMagnitude {
+    match refusal {
+        RenderingRefusal::BytesUnbounded => RenderedMagnitude::RenderedBytes,
+        RenderingRefusal::UnitsUnbounded => RenderedMagnitude::RenderedUnits,
+    }
 }
 
 /// Project one assembly refusal: the tree magnitude, and the role that overran
 /// it.
 pub fn render_refused<R: RenderedRole>(refusal: RenderRefusal, role: R) -> MacrocDiagnostic {
     match refusal {
-        RenderRefusal::Unbounded => bounded_rendering(
-            GeneratedTokenLimit::MAX,
-            "the tokens one generated tree may carry at one nesting level",
-            2u8,
-            role,
-        ),
+        RenderRefusal::Unbounded => bounded_rendering(RenderedMagnitude::GeneratedTokens, role),
     }
 }
 
-/// The shared body of both rendering projections: which magnitude, which unit,
-/// which role.
-fn bounded_rendering<R: RenderedRole>(
-    bound: usize,
-    unit: &str,
-    slot: u8,
-    role: R,
-) -> MacrocDiagnostic {
-    let mut material = vec![slot];
+/// The shared body of both rendering projections: which magnitude, and which
+/// role passed it.
+///
+/// Every part of the line is read off the two typed values — the role's own
+/// description, the magnitude's own description, and the magnitude's own
+/// declared number — so no phrase here restates a bound the plane declares.
+fn bounded_rendering<R: RenderedRole>(magnitude: RenderedMagnitude, role: R) -> MacrocDiagnostic {
+    let bound = magnitude.declared();
+    let mut material = vec![magnitude.slot()];
     material.extend_from_slice(&role.slot().to_be_bytes());
     material.extend_from_slice(&u64::try_from(bound).unwrap_or(u64::MAX).to_be_bytes());
+    let described = role.described();
+    let governs = magnitude.described();
     diagnosed(
         MacrocPhase::Rendering,
         ObservedClassification::BoundExceeded,
-        &format!(
-            "threadpak refusal-family derive: rendering {} exceeded {unit}, declared {bound}",
-            role.described()
-        ),
+        &RefusalLine {
+            class: RefusalClass::MagnitudeNotHeld,
+            first: &format!("{described} passed {governs}, declared {bound}"),
+            // One magnitude, one role: a renderer refuses at the bound it
+            // reached and enumerates nothing behind it.
+            body: LineBody::SingleCause,
+        },
         RENDERING_FAMILY,
         &[material],
-        OwnerFactRef::named(
-            "macroc",
-            "every-rendered-seat-stands-under-a-declared-magnitude",
-        ),
-        human_projection!(
-            HumanTextLimit,
-            "a renderer that would emit past its declared magnitude refuses rather than \
-             materializing part of a unit"
-        ),
+        RefusalDeriveFact::EveryRenderedSeatStandsUnderADeclaredMagnitude,
     )
 }
 
@@ -509,58 +712,32 @@ fn bounded_rendering<R: RenderedRole>(
 // The shared shape.
 // ---------------------------------------------------------------------------
 
-/// One line for rustc, composed out of the typed issues.
-///
-/// It is a SUMMARY and says so: the first established issue in full, then how
-/// many others there were, then whether the body examined everything it could.
-///
-/// The remainder is not lost — every issue has its own identity in the related
-/// set, and the body itself is the value a caller of the underlying seam holds.
-fn summary(family: &str, first: &str, further: usize, posture: CompletionPosture) -> String {
-    let more = if further > 0 {
-        format!(" (and {further} further established issues)")
-    } else {
-        String::new()
-    };
-    // The three postures are three different facts and the line says which one
-    // it is carrying. A halted examination knows nothing about the sites past
-    // its bound; a truncated report examined every site and knows exactly how
-    // many findings it has no room for. Projecting both as "stopped" would tell
-    // a reader to re-run a pass that already covered everything.
-    let coverage = match posture {
-        CompletionPosture::Complete => String::new(),
-        CompletionPosture::EarlyStopped { .. } => {
-            String::from(" (examination stopped at the declared issue bound)")
-        }
-        CompletionPosture::ReportTruncated(truncation) => {
-            let omitted = truncation.omitted();
-            format!(
-                " (every site was examined; {omitted} further established issues do not fit the \
-                 declared issue bound)"
-            )
-        }
-    };
-    format!("threadpak refusal-family derive: {family}: {first}{more}{coverage}")
-}
-
 /// One diagnostic over one refusal body's projected material.
+///
+/// Every seat that could be written two ways is written once here: the line
+/// through [`composed`], the citation and its repair through one
+/// [`RefusalDeriveFact`] row, and the site through the whole-declaration posture
+/// this road is for.
 fn diagnosed(
     phase: MacrocPhase,
     observed: ObservedClassification,
-    composed: &str,
+    line: &RefusalLine<'_>,
     family: u8,
     material: &[Vec<u8>],
-    declared_by: OwnerFactRef,
-    repair: HumanProjection<HumanTextLimit>,
+    fact: RefusalDeriveFact,
 ) -> MacrocDiagnostic {
     // The material goes over, and the set derives both identity levels itself.
     // This seam holds one refusal family's issue material and nothing else, so
     // there is no body identity here to pair with somebody else's issues.
     let related = RelatedSet::derived_over(family, material);
+    // The refusals on this road are about the declaration as a whole — a plan's
+    // output set, a rendering's closure, an explanation's coverage, a magnitude
+    // a role passed — so the line names no position inside it.
+    let composed_line = composed(line, LineSite::WholeDeclaration);
     MacrocDiagnostic {
         // The one line says which of the two sets stands behind it, because the
         // typed posture beside it is not what rustc shows.
-        summary: shown(&witnessed(composed, related.completion())),
+        summary: shown(&witnessed(&composed_line, related.completion())),
         machine: crate::diagnostics::MachineAnchoring::UnmintedAtThisSeam,
         phase,
         // The declaration's first token. The disagreement is about the
@@ -572,7 +749,7 @@ fn diagnosed(
             // declaration itself, so the semantic-origin role at position zero
             // IS the claim, not a stand-in for a table that did not reach.
             coordinate: SiteCoordinate::Resolved(threadpak::declaration::SourceCoordinate {
-                role: threadpak::declaration::CoordinateRole::SemanticOrigin,
+                role: CoordinateRole::SemanticOrigin,
                 position: 0,
             }),
         },
@@ -583,8 +760,8 @@ fn diagnosed(
         cause: CauseDisposition::UnresolvedCause,
         related,
         repairs: Bounded::from_array([RepairAction {
-            declared_by,
-            description: repair,
+            declared_by: fact.citation(),
+            description: fact.repair(),
         }]),
         reproduction: ReproductionRoute::CallableServices {
             entry: callable_entry(),
@@ -600,15 +777,14 @@ fn diagnosed(
 /// A truncated set says so and says by how much, because the typed posture
 /// beside it is not something rustc shows, and a reader given only the body's
 /// own identity would otherwise take the coarser commitment for the full one.
-pub(crate) fn witnessed(composed: &str, completion: RelatedSetCompletion) -> String {
+pub(crate) fn witnessed(line: &str, completion: RelatedSetCompletion) -> String {
     match completion {
-        RelatedSetCompletion::Complete => composed.to_owned(),
+        RelatedSetCompletion::Complete => line.to_owned(),
         RelatedSetCompletion::ReportTruncated(truncation) => {
             let omitted = truncation.omitted();
             format!(
-                "{composed} (the related set was truncated at the declared issue bound: one \
-                 identity over the complete body is carried and {omitted} per-issue identities \
-                 are not)"
+                "{line} (the related set was truncated at the declared issue bound: one identity \
+                 over the complete body is carried and {omitted} per-issue identities are not)"
             )
         }
     }
@@ -625,8 +801,20 @@ pub(crate) fn witnessed(composed: &str, completion: RelatedSetCompletion) -> Str
 /// observed classification, on one identity per established issue, and on the
 /// related set's own posture, which the static line points at rather than
 /// pre-empting.
-fn shown(composed: &str) -> HumanProjection<HumanTextLimit> {
-    match HumanProjection::<HumanTextLimit>::projected(composed) {
+///
+/// # The one second spelling of the prefix
+///
+/// The static line below spells [`DIAGNOSTIC_PREFIX`] a second time, and it is
+/// the only place in this home that does.
+/// [`human_projection!`] proves a rendering fits its limit family during const
+/// evaluation and therefore takes a LITERAL, so a line composed out of the
+/// prefix constant cannot be proven at compile time — and a runtime projection
+/// here would return a refusal this seat has no honest value to fill, which is
+/// exactly the empty fallback the projection road exists to avoid.
+/// Closing it is a `const` road to a proven projection in the plane, which is
+/// not this home's to write.
+pub(crate) fn shown(line: &str) -> HumanProjection<HumanTextLimit> {
+    match HumanProjection::<HumanTextLimit>::projected(line) {
         Ok(projection) => projection,
         Err(BoundedConstruction::OverLimit) => human_projection!(
             HumanTextLimit,

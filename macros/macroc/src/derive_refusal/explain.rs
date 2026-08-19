@@ -132,8 +132,11 @@ fn seats(
             kind: derive_impl_kind(),
         }),
         ProjectionExplanation::answered(ExplanationAnswer::Owner { owner }),
+        // Read off the plan's own entry account, which is the one holder of
+        // "which declaration caused you". A second seat carrying the same answer
+        // could be answered from the copy after the account moved.
         ProjectionExplanation::answered(ExplanationAnswer::CausingDeclarations {
-            sources: plan.context().sources.clone(),
+            sources: plan.account().commitment(),
         }),
         ProjectionExplanation::answered(ExplanationAnswer::GraphAndProfile {
             graph: plan.context().graph,

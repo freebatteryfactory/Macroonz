@@ -16,11 +16,12 @@
 
 use super::{
     AdmissionFacts, AdmissionGround, AuthoredTable, AuthoredTableName, AuthoredTableRefusal,
-    BenchSchema, Binding, BindingRefusal, CapsulePosture, CheckRef, ClaimRef, Classification,
-    ClassificationRefusal, DescriptorSchema, DoorRef, EncodeRefusal, ExecutableAttachment,
-    ExecutionSuite, FieldCardinality, FieldShape, GeneratedSupportSchema, GeneratedSupportSchemaId,
-    MutationPointRef, MutationPointSchema, NameRefusal, NamespacedName, Origin, PopulationRef,
-    ProducerFacts, ProducerName, ProjectionRef, ProposalId, Provenance, ReplayRef, RevisionBinding,
+    BENCH_FIELDS, BenchSchema, Binding, BindingRefusal, CapsulePosture, CheckRef, ClaimRef,
+    Classification, ClassificationRefusal, DESCRIPTOR_FIELDS, DescriptorSchema, DoorRef,
+    EncodeRefusal, ExecutableAttachment, ExecutionSuite, FieldCardinality, FieldShape,
+    GeneratedSupportSchema, GeneratedSupportSchemaId, MUTATION_POINT_FIELDS, MutationPointRef,
+    MutationPointSchema, NameRefusal, NamespacedName, Origin, PopulationRef, ProducerFacts,
+    ProducerName, ProjectionRef, ProposalId, Provenance, ReplayRef, RevisionBinding,
     RevisionPosture, Role, Row, RowRefusal, SchemaField, SchemaRefusal, StagedTableRefusal,
     StagedTableView, SubjectRoute, TablePosture, TableView, Tag, TrialKey,
 };
@@ -880,6 +881,40 @@ impl GeneratedSupportSchema {
     #[must_use]
     pub const fn bench(self) -> BenchSchema {
         self.bench
+    }
+
+    /// THE root declaration this harness publishes: the three rosters this home
+    /// states, each parsed under the one roster law.
+    ///
+    /// # Authority
+    ///
+    /// One assembled value, in one place. Everything downstream reads it rather
+    /// than rebuilding it from the rosters, so there is no second assembly that
+    /// could pin a different set of members than this one.
+    ///
+    /// Its canonical bytes are
+    /// [`encode_generated_support_schema`](crate::descriptor::encode_generated_support_schema)
+    /// over this value, and its identity is [`identity`](Self::identity) over
+    /// those bytes. The two steps are separate calls rather than one, because
+    /// they refuse for separate reasons and folding them would put one cause
+    /// where two are true.
+    ///
+    /// # Errors
+    ///
+    /// Refuses when any member's roster refuses — an empty roster, an unnamed
+    /// field, or a repeated field name — in the declared member order:
+    /// descriptor, then mutation-point, then bench.
+    ///
+    /// # Nonclaims
+    ///
+    /// The cause names the offending FIELD and not the member it was found in.
+    /// A reader that needs the member reads which roster carries the name.
+    pub fn published() -> Result<Self, SchemaRefusal> {
+        Ok(Self::declared(
+            DescriptorSchema::declared(DESCRIPTOR_FIELDS)?,
+            MutationPointSchema::declared(MUTATION_POINT_FIELDS)?,
+            BenchSchema::declared(BENCH_FIELDS)?,
+        ))
     }
 
     /// The identity derived from this declaration's canonical bytes.

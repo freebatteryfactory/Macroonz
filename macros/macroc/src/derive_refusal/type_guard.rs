@@ -15,24 +15,27 @@
 
 use super::{
     CapturedCause, CauseOrderStanding, ClosedExpansion, CrateBinding, DEFAULT_CRATE_BINDING,
-    DerivedMembership, RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveSurface,
-    RefusalOwnerFacts,
+    DerivedMembership, RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveFact,
+    RefusalDeriveSurface, RefusalOwnerFacts, RefusalSite,
 };
 use crate::closure::{ProjectionClosure, RenderedProjection};
+use crate::derive_refusal::diagnose::{
+    LineBody, LineSite, RefusalClass, RefusalLine, composed, shown, witnessed,
+};
 use crate::diagnostics::{
     DiagnosticSite, MachineAnchoring, MacrocDiagnostic, MacrocPhase, RelatedSet, ReleasePosture,
     RepairAction, ReproductionRoute, SiteCoordinate,
 };
 use crate::explanation_protocol::ProjectionExplanationView;
 use crate::plane::{
-    CapturedDeclarationSubject, ClosedExpansionId, ContractSubject, DeriveCauseLimit, OwnerFactRef,
+    CapturedDeclarationSubject, ClosedExpansionId, ContractSubject, DeriveCauseLimit,
     ProjectionIdentity, ProjectionProvenance, ProjectionRole, ProjectionTranscript,
     ServiceEntrySubject, encode_bytes,
 };
 use crate::planning::{
     DeriveImplProjection, ProjectionDisposition, ProjectionPlan, RenderedImplementation,
 };
-use crate::token::{GeneratedTree, SpanTable};
+use crate::token::{GeneratedTree, SpanHandle, SpanTable};
 use threadpak::evidence::CauseDisposition;
 use threadpak::refusal::FamilyShape;
 use threadpak::types::Bounded;
@@ -164,37 +167,37 @@ impl RefusalDeriveSurface {
 pub use seat::RefusalDeriveRefusal;
 
 mod seat {
-    use super::super::RefusalDeriveCapture;
+    use super::super::{RefusalDeriveCapture, RefusalSite};
     use crate::token::SpanHandle;
 
-    /// One capture refusal: the established cause, and the token it sits at.
+    /// One capture refusal: the established cause, and where it was established.
     ///
     /// Both seats are required.
-    /// A refusal that could omit its token would send the caller looking, and a
+    /// A refusal that could omit its site would send the caller looking, and a
     /// refusal that could omit its cause would be a complaint rather than an
     /// answer.
-    #[must_use = "a capture refusal carries the established cause and the offending token"]
+    #[must_use = "a capture refusal carries the established cause and where it was established"]
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub struct RefusalDeriveRefusal {
         cause: RefusalDeriveCapture,
-        token: SpanHandle,
+        site: RefusalSite,
     }
 
     impl RefusalDeriveRefusal {
-        /// The established refusal at one token of the declared input.
+        /// The established refusal at one site of the declared input.
         ///
         /// Reachable only from inside this home, which is where the capture pass
         /// lives.
         /// Both seats are private, so no caller can write the literal, and this
         /// road is what a caller would reach for instead.
-        /// A cause word plus a span handle are both values anybody can spell, so
-        /// a public road here would hand any holder of those two a refusal the
-        /// capture pass never established, at a token it never read.
+        /// A cause word plus a site are both values anybody can spell, so a
+        /// public road here would hand any holder of those two a refusal the
+        /// capture pass never established, at a place it never read.
         pub(in crate::derive_refusal) const fn established(
             cause: RefusalDeriveCapture,
-            token: SpanHandle,
+            site: RefusalSite,
         ) -> Self {
-            Self { cause, token }
+            Self { cause, site }
         }
 
         /// The established cause.
@@ -202,18 +205,100 @@ mod seat {
             self.cause
         }
 
-        /// The token the observation sits at.
+        /// Where the observation was established: one token of a captured
+        /// declaration, or one byte of a text that refused before any capture
+        /// existed.
+        pub const fn site(self) -> RefusalSite {
+            self.site
+        }
+
+        /// The token the observation sits at, where a capture issued one.
         ///
         /// The producer resolves it to the exact compiler span; the services
         /// never do.
+        ///
+        /// # Nonclaims
+        ///
+        /// It answers with nothing for a refusal established BEFORE a capture,
+        /// because no table was built and no handle was issued. That is a stated
+        /// posture rather than a missing value: a handle invented here would
+        /// index a table that never existed, and would read exactly like an
+        /// honest handle naming the declaration's first token.
+        /// The byte such a refusal was born at is on
+        /// [`RefusalDeriveRefusal::site`].
         #[must_use]
-        pub const fn token(self) -> SpanHandle {
-            self.token
+        pub const fn token(self) -> Option<SpanHandle> {
+            match self.site {
+                RefusalSite::AtToken(token) => Some(token),
+                RefusalSite::BeforeCapture(_) => None,
+            }
         }
     }
 }
 
 impl RefusalDeriveRefusal {
+    /// Where this refusal's coordinate seat stands, as a typed answer.
+    ///
+    /// Two roads and no third: a captured refusal asks the producer's table
+    /// about its handle and carries whatever the table answers, and a
+    /// pre-capture refusal carries the byte it was BORN at, which no table was
+    /// ever consulted for.
+    /// The second is [`SiteCoordinate::Resolved`] and honestly so — nothing was
+    /// resolved because nothing needed resolving, and the coordinate's own role
+    /// says which text the position counts into.
+    fn site_coordinate(self, spans: &SpanTable) -> SiteCoordinate {
+        match self.site() {
+            RefusalSite::AtToken(token) => SiteCoordinate::answered(spans.coordinate_of(token)),
+            RefusalSite::BeforeCapture(coordinate) => SiteCoordinate::Resolved(coordinate),
+        }
+    }
+
+    /// The handle seat [`DiagnosticSite`] requires.
+    ///
+    /// # Nonclaims
+    ///
+    /// [`DiagnosticSite`] declares its handle seat as a required
+    /// [`SpanHandle`], so a refusal established before any capture — which has
+    /// no table and no handle — has nothing true to put in it, and handle zero
+    /// is what the shape forces rather than what this home observed.
+    /// The COORDINATE beside it is the seat that carries the whole of what is
+    /// known about a pre-capture refusal, and it is honest; a reader holding
+    /// both is told a byte position under the byte role, which no handle in an
+    /// unbuilt table could mean.
+    /// Closing the gap is a typed handle posture on [`DiagnosticSite`], which
+    /// belongs to the diagnostics home and is not this home's to write.
+    const fn site_handle(self) -> SpanHandle {
+        match self.token() {
+            Some(token) => token,
+            None => SpanHandle::at(0),
+        }
+    }
+
+    /// The one line this refusal reaches a compiler under.
+    ///
+    /// The ONE owner of the capture family's compiler prose: both the public
+    /// projection ([`RefusalDeriveRefusal::compiler_message`]) and the
+    /// structured diagnostic's summary are this string, so the two cannot say
+    /// different things about one refusal.
+    ///
+    /// Every part of it is a projection of a typed value — the home's declared
+    /// prefix, the refusal class, the cause's own description, and the site
+    /// clause the coordinate composes — and no phrase here restates any of them
+    /// in other words.
+    fn compiler_line(self, coordinate: SiteCoordinate) -> String {
+        composed(
+            &RefusalLine {
+                class: RefusalClass::DeclarationNotRead,
+                first: self.cause().described(),
+                // The capture family is single-cause: it establishes one cause
+                // and enumerates nothing, so there is no remainder to report and
+                // no examination bound an enumeration could have stopped at.
+                body: LineBody::SingleCause,
+            },
+            LineSite::At(coordinate),
+        )
+    }
+
     /// The compiler-facing rendering: one line naming the cause and where it
     /// was established, in whatever coordinate role the producer speaks.
     ///
@@ -228,19 +313,7 @@ impl RefusalDeriveRefusal {
     /// means nothing.
     #[must_use]
     pub fn compiler_message(self, spans: &SpanTable) -> String {
-        let described = self.cause().described();
-        match spans.coordinate_of(self.token()) {
-            Ok(coordinate) => {
-                let position = coordinate.position;
-                format!(
-                    "threadpak refusal-family derive: {described} (at token position {position})"
-                )
-            }
-            Err(refusal) => format!(
-                "threadpak refusal-family derive: {described} ({})",
-                refusal.described()
-            ),
-        }
+        self.compiler_line(self.site_coordinate(spans))
     }
 
     /// Project this refusal into the services' structured diagnostic.
@@ -252,18 +325,32 @@ impl RefusalDeriveRefusal {
     /// services classify what they OBSERVED
     /// ([`RefusalDeriveCapture::observed`](super::RefusalDeriveCapture::observed))
     /// and never mint the machine's cause commitment.
+    ///
+    /// The repair cites the fact THIS cause is a violation of
+    /// ([`RefusalDeriveCapture::declared_by`](super::RefusalDeriveCapture::declared_by))
+    /// and shows that fact's own repair.
+    /// One citation for the whole family would point a caller repairing a
+    /// malformed local key at the rule about body shapes.
     pub fn diagnosed(self, spans: &SpanTable, machine: MachineAnchoring) -> MacrocDiagnostic {
-        let repairs = Bounded::from_array([RepairAction {
-            declared_by: OwnerFactRef::named("refusal", "family-shapes-are-three-and-closed"),
-            description: self.cause().description(),
-        }]);
+        // Read once and seated twice: the prose and the typed coordinate are
+        // projections of the SAME answer, so a line saying one position beside a
+        // seat holding another is unrepresentable here.
+        let coordinate = self.site_coordinate(spans);
+        // The capture road establishes one cause and enumerates nothing, so
+        // there is no per-issue set to stop short of: zero identities are
+        // carried and zero are omitted.
+        let related = RelatedSet::nothing_enumerated();
+        let fact = self.cause().declared_by();
         MacrocDiagnostic {
             machine,
-            summary: self.cause().description(),
+            summary: shown(&witnessed(
+                &self.compiler_line(coordinate),
+                related.completion(),
+            )),
             phase: MacrocPhase::Capture,
             site: DiagnosticSite {
-                token: self.token(),
-                coordinate: SiteCoordinate::answered(spans.coordinate_of(self.token())),
+                token: self.site_handle(),
+                coordinate,
             },
             expected: expected_contract(),
             observed: self.cause().observed(),
@@ -271,11 +358,11 @@ impl RefusalDeriveRefusal {
             // machine's cause posture: narrowing is the machine's progress to
             // report, not the compiler plane's to assert.
             cause: CauseDisposition::UnresolvedCause,
-            // The capture road establishes one cause and enumerates nothing, so
-            // there is no per-issue set to stop short of: zero identities are
-            // carried and zero are omitted.
-            related: RelatedSet::nothing_enumerated(),
-            repairs,
+            related,
+            repairs: Bounded::from_array([RepairAction {
+                declared_by: fact.citation(),
+                description: fact.repair(),
+            }]),
             reproduction: ReproductionRoute::CallableServices {
                 entry: callable_entry(),
             },
@@ -334,15 +421,18 @@ impl RefusalOwnerFacts {
     /// This is the posture an expansion runs under: the refusal home's fact
     /// identities are not published to the compiler plane, so the citation names
     /// them and mints nothing.
+    ///
+    /// The names are READ off [`RefusalDeriveFact`] rather than spelled here.
+    /// A name spelled at this seat and again at a diagnostic's repair would be
+    /// two spellings of one fact, and the two encode differently the moment
+    /// either one is edited.
     #[must_use]
     pub const fn declared() -> Self {
+        let shape_ruled = RefusalDeriveFact::CanonicalOrderStandsForSingleCauseAlone;
         Self {
-            body_shapes: OwnerFactRef::named("refusal", "family-shapes-are-three-and-closed"),
-            canonical_order_is_shape_ruled: OwnerFactRef::named(
-                "refusal",
-                "canonical-order-stands-for-single-cause-alone",
-            ),
-            cause_key_grammar: OwnerFactRef::named("refusal", "cause-identity-is-family-and-key"),
+            body_shapes: RefusalDeriveFact::BodyShapesAreThreeAndClosed.citation(),
+            canonical_order_is_shape_ruled: shape_ruled.citation(),
+            cause_key_grammar: RefusalDeriveFact::CauseIdentityIsFamilyAndKey.citation(),
         }
     }
 }

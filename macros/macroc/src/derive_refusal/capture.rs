@@ -45,7 +45,7 @@
 
 use super::types::{
     CapturedCause, CrateBinding, RefusalDeriveCapture, RefusalDeriveRefusal, RefusalDeriveSurface,
-    SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
+    RefusalSite, SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
 };
 use crate::plane::{
     AuthoringLimitProfile, CapturedTokenLimit, DeriveCauseLimit, ProjectionIdentity,
@@ -100,6 +100,11 @@ pub fn captured(input: &CapturedInput) -> Result<RefusalDeriveSurface, RefusalDe
 /// Returns [`RefusalDeriveRefusal`] for both the read and the capture: a text
 /// that cannot be cut into tokens establishes a grammar cause exactly as a
 /// declaration that cuts fine and says the wrong thing does.
+///
+/// The two are the same CAUSE family and different SITES, and the refusal says
+/// which: a capture refusal names the token it was established at, and a read
+/// refusal names the byte it was born at, because no table exists for it to have
+/// a handle into. See [`RefusalSite`].
 pub fn captured_text(
     source: &str,
 ) -> Result<(TextCapture, RefusalDeriveSurface), RefusalDeriveRefusal> {
@@ -108,7 +113,19 @@ pub fn captured_text(
     Ok((read, surface))
 }
 
-/// The capture cause one text-read refusal establishes.
+/// The capture cause one text-read refusal establishes, at the byte the read was
+/// born carrying.
+///
+/// # The site
+///
+/// A read that refused produced no capture, and therefore no span table and no
+/// handle: there is nothing for a handle to index, and handle zero in particular
+/// would read exactly like an honest handle naming the declaration's first
+/// token.
+/// So the refusal travels under [`RefusalSite::BeforeCapture`] carrying
+/// [`TextReadRefusal::coordinate`] — the byte the cause was established at,
+/// which the refusal was born holding and which this road only puts into the
+/// coordinate shape the rest of the seam wears.
 const fn text_refusal(refusal: TextReadRefusal) -> RefusalDeriveRefusal {
     let cause = match refusal.cause {
         TextReadCause::NotTerminated | TextReadCause::NotEscapeFree => {
@@ -117,15 +134,29 @@ const fn text_refusal(refusal: TextReadRefusal) -> RefusalDeriveRefusal {
         TextReadCause::NotBalanced | TextReadCause::NotOpened => RefusalDeriveCapture::NotAnEnum,
         TextReadCause::Unbounded(_) => RefusalDeriveCapture::Unbounded,
     };
-    RefusalDeriveRefusal::established(cause, SpanHandle::at(0))
+    RefusalDeriveRefusal::established(cause, RefusalSite::BeforeCapture(refusal.coordinate()))
 }
 
-/// One established capture refusal at one token.
+/// One established capture refusal at one token of the captured declaration.
+///
+/// Every refusal on this road is post-capture, so every one of them has a real
+/// handle the producer issued while capturing, and this is the only road that
+/// writes one.
 const fn refuse(cause: RefusalDeriveCapture, token: SpanHandle) -> RefusalDeriveRefusal {
-    RefusalDeriveRefusal::established(cause, token)
+    RefusalDeriveRefusal::established(cause, RefusalSite::AtToken(token))
 }
 
-/// The span of the first token, or handle zero where there is none.
+/// The handle of the first token, for a refusal about the declaration's opening.
+///
+/// # Nonclaims
+///
+/// A declared input carrying no token at all has no first token, and the handle
+/// answered for it names nothing.
+/// That is not a substitution: the producer's table for an empty capture reaches
+/// no handle, so the coordinate seat states
+/// [`SiteCoordinate::NotReached`](crate::diagnostics::SiteCoordinate::NotReached)
+/// and the reader is told the locating half is missing rather than being sent to
+/// a token that is not there.
 fn first_span(trees: &[&CapturedTokenTree]) -> SpanHandle {
     trees.first().map_or(SpanHandle::at(0), |tree| tree.span())
 }
@@ -159,9 +190,23 @@ struct DeclaredAttribute {
     shape: FamilyShape,
     /// The token the shape word sits at.
     shape_span: SpanHandle,
-    /// The declared order pairs, where an order clause was declared, and the
+    /// The declared order rows, where an order clause was declared, and the
     /// token that clause opens at.
-    order: Option<(Vec<CapturedCause>, SpanHandle)>,
+    order: Option<(Vec<OrderedCause>, SpanHandle)>,
+}
+
+/// One row of a declared `order(...)` clause: the cause it states, and the token
+/// its local key sits at.
+///
+/// The token travels with the row because the refusals about a row are about
+/// THAT row — a repeated local key, a spelling the body does not declare — and a
+/// refusal that pointed at the enum body instead would name the one place in the
+/// declaration that is not the problem.
+struct OrderedCause {
+    /// The cause this row declares.
+    cause: CapturedCause,
+    /// The token the row's local key sits at.
+    key_span: SpanHandle,
 }
 
 /// Read the enum declaration: the item form, the keyword, the name, the profile
@@ -270,7 +315,14 @@ fn close_variant(
     Ok(())
 }
 
-/// The span of one token, or handle zero where there is none.
+/// The handle of the token at one position of the walk.
+///
+/// # Nonclaims
+///
+/// Every caller reaches this with a position the walk already read a token at,
+/// so the fallback below is unreachable rather than a default; where a table has
+/// no such handle the producer's resolution says so, and this home invents no
+/// position for it.
 fn span_at(trees: &[&CapturedTokenTree], index: usize) -> SpanHandle {
     trees
         .get(index)
@@ -279,8 +331,20 @@ fn span_at(trees: &[&CapturedTokenTree], index: usize) -> SpanHandle {
 
 /// Read the `#[refusal(...)]` attribute: the crate binding, the family
 /// identity, the shape word, and the order clause.
+///
+/// # Where each refusal sits
+///
+/// The token the attribute itself sits at stays inside this function: a seat the
+/// attribute fails to declare is refused ON the attribute, and every refusal
+/// that needs it is raised here.
+/// The first token of the whole declared input is a different place, and
+/// pointing there for a missing `shape = ...` sends a reader to the item rather
+/// than to the attribute that is short a seat.
 fn read_attribute(trees: &[&CapturedTokenTree]) -> Result<DeclaredAttribute, RefusalDeriveRefusal> {
-    let body = refusal_attribute_body(trees)
+    // No attribute at all is a fact about the declaration's opening, and the
+    // first token is where a reader starts. Every refusal PAST this line is a
+    // fact about the attribute, and names the attribute's own token.
+    let (body, attribute_span) = refusal_attribute_body(trees)
         .ok_or_else(|| refuse(RefusalDeriveCapture::NotFamilyDeclared, first_span(trees)))?;
     let inner: &[&CapturedTokenTree] = &body;
 
@@ -290,7 +354,7 @@ fn read_attribute(trees: &[&CapturedTokenTree]) -> Result<DeclaredAttribute, Ref
         });
 
     let (family_id, family_span) = assigned_text(inner, "family")
-        .ok_or_else(|| refuse(RefusalDeriveCapture::NotFamilyDeclared, first_span(trees)))?;
+        .ok_or_else(|| refuse(RefusalDeriveCapture::NotFamilyDeclared, attribute_span))?;
     if !is_family_grammatical(family_id) {
         return Err(refuse(
             RefusalDeriveCapture::NotFamilyGrammatical,
@@ -299,12 +363,12 @@ fn read_attribute(trees: &[&CapturedTokenTree]) -> Result<DeclaredAttribute, Ref
     }
 
     let (word, shape_span) = assigned_word(inner, "shape")
-        .ok_or_else(|| refuse(RefusalDeriveCapture::NotShapeDeclared, first_span(trees)))?;
+        .ok_or_else(|| refuse(RefusalDeriveCapture::NotShapeDeclared, attribute_span))?;
     let shape = admitted_shape(word)
         .ok_or_else(|| refuse(RefusalDeriveCapture::NotAnAdmittedShape, shape_span))?;
 
     let order = match order_clause(inner) {
-        Some((clause, span)) => Some((read_order_pairs(&clause, span)?, span)),
+        Some((clause, span)) => Some((read_order_rows(&clause, span)?, span)),
         None => None,
     };
 
@@ -318,10 +382,10 @@ fn read_attribute(trees: &[&CapturedTokenTree]) -> Result<DeclaredAttribute, Ref
 }
 
 /// The token trees inside the `#[refusal(...)]` attribute, where one is
-/// declared.
+/// declared, with the token the attribute itself sits at.
 fn refusal_attribute_body<'trees>(
     trees: &[&'trees CapturedTokenTree],
-) -> Option<Vec<&'trees CapturedTokenTree>> {
+) -> Option<(Vec<&'trees CapturedTokenTree>, SpanHandle)> {
     for (index, tree) in trees.iter().enumerate() {
         let Some((delimiter, inner)) = tree.group() else {
             continue;
@@ -346,7 +410,7 @@ fn refusal_attribute_body<'trees>(
         if let Some((CapturedDelimiter::Parenthesis, body)) =
             bracketed.get(1).and_then(|after_name| after_name.group())
         {
-            return Some(body.iter().collect());
+            return Some((body.iter().collect(), tree.span()));
         }
     }
     None
@@ -400,53 +464,79 @@ fn order_clause<'trees>(
     None
 }
 
-/// The `Variant = "local-key"` pairs inside an order clause.
-fn read_order_pairs(
+/// The `Variant = "local-key"` rows inside an order clause.
+///
+/// Every refusal here names the token the walk was standing on rather than the
+/// clause it is inside: a clause of nine rows whose fourth row is missing its
+/// `=` is repaired at that `=`, and a refusal at the clause's opening
+/// parenthesis would make the reader find it.
+fn read_order_rows(
     clause: &[&CapturedTokenTree],
     span: SpanHandle,
-) -> Result<Vec<CapturedCause>, RefusalDeriveRefusal> {
-    let mut pairs: Vec<CapturedCause> = Vec::new();
+) -> Result<Vec<OrderedCause>, RefusalDeriveRefusal> {
+    let mut rows: Vec<OrderedCause> = Vec::new();
     let mut index = 0usize;
     while index < clause.len() {
-        let spelling = clause
+        let named = clause
             .get(index)
-            .and_then(|tree| tree.word())
             .ok_or_else(|| refuse(RefusalDeriveCapture::NotCovered, span))?;
-        if clause
-            .get(index.saturating_add(1))
-            .and_then(|tree| tree.punct())
-            != Some('=')
-        {
-            return Err(refuse(RefusalDeriveCapture::NotCovered, span));
+        let spelling = named
+            .word()
+            .ok_or_else(|| refuse(RefusalDeriveCapture::NotCovered, named.span()))?;
+        let assigned = clause.get(index.saturating_add(1));
+        if assigned.and_then(|tree| tree.punct()) != Some('=') {
+            return Err(refuse(
+                RefusalDeriveCapture::NotCovered,
+                assigned.map_or(named.span(), |tree| tree.span()),
+            ));
         }
-        let value = clause
-            .get(index.saturating_add(2))
-            .ok_or_else(|| refuse(RefusalDeriveCapture::NotCovered, span))?;
+        let value = clause.get(index.saturating_add(2)).ok_or_else(|| {
+            refuse(
+                RefusalDeriveCapture::NotCovered,
+                assigned.map_or(named.span(), |tree| tree.span()),
+            )
+        })?;
         let local_key = value
             .text()
             .ok_or_else(|| refuse(RefusalDeriveCapture::NotKeyed, value.span()))?;
         if !is_local_key_grammatical(local_key) {
             return Err(refuse(RefusalDeriveCapture::NotKeyed, value.span()));
         }
-        pairs.push(CapturedCause::read(spelling, local_key));
+        rows.push(OrderedCause {
+            cause: CapturedCause::read(spelling, local_key),
+            key_span: value.span(),
+        });
         index = index.saturating_add(3);
         if index < clause.len() {
-            if clause.get(index).and_then(|tree| tree.punct()) != Some(',') {
-                return Err(refuse(RefusalDeriveCapture::NotCovered, span));
+            let separator = clause.get(index);
+            if separator.and_then(|tree| tree.punct()) != Some(',') {
+                return Err(refuse(
+                    RefusalDeriveCapture::NotCovered,
+                    separator.map_or(span, |tree| tree.span()),
+                ));
             }
             index = index.saturating_add(1);
         }
     }
-    Ok(pairs)
+    Ok(rows)
 }
 
 /// Read the declared causes: the order clause where the shape carries one, and
 /// then coverage and distinctness against the body.
+///
+/// # Where each refusal sits
+///
+/// A coverage disagreement has two directions and they sit in two places.
+/// An ordered ROW naming a variant the body does not declare is a fact about
+/// that row, and the refusal names the row's own token; a body VARIANT the
+/// clause does not name is a fact about the body, and the refusal names the
+/// body. A repeated local key is a fact about the row that repeats it, so the
+/// refusal names the SECOND occurrence — the first one is not the problem.
 fn read_causes(
     attribute: &DeclaredAttribute,
     declared: &DeclaredEnum,
 ) -> Result<Vec<CapturedCause>, RefusalDeriveRefusal> {
-    let causes = match (attribute.shape, attribute.order.as_ref()) {
+    let rows: &[OrderedCause] = match (attribute.shape, attribute.order.as_ref()) {
         (FamilyShape::SingleCause, None) => {
             return Err(refuse(
                 RefusalDeriveCapture::NotOrderDeclared,
@@ -459,21 +549,28 @@ fn read_causes(
         (FamilyShape::IssueCollection | FamilyShape::InseparablePair, None) => {
             return Ok(Vec::new());
         }
-        (FamilyShape::SingleCause, Some((pairs, _))) => pairs.clone(),
+        (FamilyShape::SingleCause, Some((declared_rows, _))) => declared_rows.as_slice(),
     };
-    if !covers(&causes, &declared.variants) {
+    if let Some(row) = rows
+        .iter()
+        .find(|row| !body_names_once(&declared.variants, row.cause.spelling()))
+    {
+        return Err(refuse(RefusalDeriveCapture::NotCovered, row.key_span));
+    }
+    if declared
+        .variants
+        .iter()
+        .any(|variant| !rows_name_once(rows, variant))
+    {
         return Err(refuse(RefusalDeriveCapture::NotCovered, declared.body_span));
     }
-    if !distinct(&causes) {
-        return Err(refuse(
-            RefusalDeriveCapture::NotDistinct,
-            declared.body_span,
-        ));
+    if let Some(row) = first_repeated_key(rows) {
+        return Err(refuse(RefusalDeriveCapture::NotDistinct, row.key_span));
     }
-    if u16::try_from(causes.len()).is_err() {
+    if u16::try_from(rows.len()).is_err() {
         return Err(refuse(RefusalDeriveCapture::Unbounded, declared.body_span));
     }
-    Ok(causes)
+    Ok(rows.iter().map(|row| row.cause.clone()).collect())
 }
 
 /// The machine's body shape one authored word names.
@@ -510,36 +607,44 @@ fn is_family_grammatical(identity: &str) -> bool {
     }
 }
 
-/// Whether the ordered causes and the body variants name the same set, each
-/// exactly once.
-fn covers(causes: &[CapturedCause], variants: &[String]) -> bool {
-    causes.len() == variants.len()
-        && causes.iter().all(|cause| {
-            variants
-                .iter()
-                .filter(|variant| variant.as_str() == cause.spelling())
-                .count()
-                == 1
-        })
-        && variants.iter().all(|variant| {
-            causes
-                .iter()
-                .filter(|cause| cause.spelling() == variant.as_str())
-                .count()
-                == 1
-        })
+/// Whether the enum body declares one variant of this spelling, exactly once.
+///
+/// One half of coverage, asked from the ORDER clause's side, so the caller holds
+/// the row that asked and can name its token.
+fn body_names_once(variants: &[String], spelling: &str) -> bool {
+    variants
+        .iter()
+        .filter(|variant| variant.as_str() == spelling)
+        .count()
+        == 1
 }
 
-/// Whether every declared local key is distinct — the local-uniqueness proof the
-/// derive owes.
+/// Whether the order clause names this body variant, exactly once.
+///
+/// The other half, asked from the BODY's side — a variant the clause never
+/// mentions has no row to point at, so the refusal names the body.
+fn rows_name_once(rows: &[OrderedCause], variant: &str) -> bool {
+    rows.iter()
+        .filter(|row| row.cause.spelling() == variant)
+        .count()
+        == 1
+}
+
+/// The first row whose local key an earlier row already declared — the
+/// local-uniqueness proof the derive owes, answered with the offending row
+/// rather than with a yes or no.
+///
+/// The SECOND occurrence is what is returned, because that is the row that
+/// repeats: the first declaration of a key is a perfectly good row, and sending
+/// a reader there would name the one place that is correct.
 ///
 /// Family uniqueness is a different question and is owed to the composition
 /// root, which band 00's key grammar says out loud.
-fn distinct(causes: &[CapturedCause]) -> bool {
-    causes.iter().enumerate().all(|(index, cause)| {
-        causes
-            .iter()
-            .skip(index.saturating_add(1))
-            .all(|other| other.local_key() != cause.local_key())
+fn first_repeated_key(rows: &[OrderedCause]) -> Option<&OrderedCause> {
+    rows.iter().enumerate().find_map(|(index, row)| {
+        rows.iter()
+            .take(index)
+            .any(|earlier| earlier.cause.local_key() == row.cause.local_key())
+            .then_some(row)
     })
 }

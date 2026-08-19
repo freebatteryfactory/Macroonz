@@ -9,14 +9,16 @@ mod type_contract;
 pub mod types;
 
 pub use capture::{captured, captured_text};
+pub use diagnose::{LineBody, LineSite, RefusalClass, RefusalLine, RenderedMagnitude, composed};
 pub use explain::{ExplanationBindingRefusal, ExplanationSeat};
 pub use plan::DerivedPlan;
-pub use render::RenderRefusal;
+pub use render::{CAUSE_ORDER_CONTRACT, FAMILY_CONTRACT, REFUSAL_MODULE, RenderRefusal};
 pub use types::{
     CapturedCause, CauseOrderStanding, ClosedExpansion, CrateBinding, DEFAULT_CRATE_BINDING,
-    DerivedMembership, RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveCapture,
-    RefusalDeriveRefusal, RefusalDeriveSurface, RefusalOwnerFacts, SHAPE_WORD_INSEPARABLE_PAIR,
-    SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
+    DIAGNOSTIC_PREFIX, DerivedMembership, RefusalCompileContext, RefusalDerivationDraft,
+    RefusalDeriveCapture, RefusalDeriveFact, RefusalDeriveRefusal, RefusalDeriveSurface,
+    RefusalOwnerFacts, RefusalSite, SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION,
+    SHAPE_WORD_SINGLE_CAUSE,
 };
 
 use crate::closure::{ProjectionClosure, RenderedProjection, RenderedUnit};

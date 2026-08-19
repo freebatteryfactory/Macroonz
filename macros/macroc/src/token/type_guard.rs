@@ -19,7 +19,9 @@ use super::{
     CapturedTokenTree, GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree,
     SpanHandle, TokenPath,
 };
-use crate::plane::{AuthoringLimitProfile, CapturedTokenLimit, CapturedTreeTokenLimit};
+use crate::plane::{
+    AuthoringLimitProfile, CaptureWorkLimit, CapturedTokenLimit, CapturedTreeTokenLimit,
+};
 use threadpak::types::{AdmittedLimit, Bounded, BoundedConstruction, ConstLimit};
 
 impl SpanHandle {
@@ -85,20 +87,24 @@ impl TokenPath {
 impl CaptureWalk {
     /// The declared capture-work budget, in units of one examined token.
     ///
-    /// Wider than the whole-tree magnitude, because a walk may look at more
-    /// than it keeps: a budget at the tree magnitude exactly would refuse a
-    /// lawful input the moment its producer looked twice at anything.
-    ///
     /// # Bounds
     ///
-    /// Four units for every token [`CapturedTreeTokenLimit`] admits, which is
-    /// the room a producer that backtracks over an alternative or skips trivia
-    /// needs and no more.
-    /// That magnitude is the one this number stands over, so the two are moved
-    /// together or not at all: a wider tree under this budget would refuse
-    /// lawful declarations naming a bound they never approached, and this is
-    /// the number that would have to move to keep the tree magnitude reachable.
-    pub const DECLARED_WORK: u32 = 65_536;
+    /// [`CaptureWorkLimit`] is the family that declares it, beside the tree
+    /// magnitude it stands over and under the same admitting ceiling; the number
+    /// itself and the relation that justifies it are stated there, where every
+    /// magnitude in the plane is stated.
+    /// This seat NAMES that family and holds no second copy of its number: a
+    /// budget written here as well would agree with the roster until one of them
+    /// was moved.
+    ///
+    /// It is read at the counter width the walk holds
+    /// ([`CaptureWorkLimit::MAX_U32`]) rather than at the collection width of
+    /// [`ConstLimit::MAX`], because the budget is counted down and never
+    /// collected. That road keeps [`CaptureWalk::declared`] const and total:
+    /// narrowing the ladder's width would have to happen at runtime, and a
+    /// total constructor would then carry a refusal branch for a case the
+    /// declaration itself rules out.
+    pub const DECLARED_WORK: u32 = CaptureWorkLimit::MAX_U32;
 
     /// A fresh walk, holding the whole declared budget and nothing taken.
     #[must_use]

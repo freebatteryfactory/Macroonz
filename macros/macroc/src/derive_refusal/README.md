@@ -41,6 +41,29 @@ body reaches the caller naming its axis and magnitude, a closure body naming its
 role and the disagreement at it, a coverage body naming every seat, a rendering
 refusal naming the exact bound. See [`diagnose`].
 
+## One grammar, one citation, one site
+
+Three things about the compiler-facing half are structural rather than reviewed.
+
+**One grammar.** Every line this home hands a compiler is composed by
+[`diagnose::composed`] — `<prefix>: <class>: <first>[<body>][<site>]` — including
+the capture family's, whose two projections read the same composition back.
+The prefix is [`DIAGNOSTIC_PREFIX`], the class is a [`RefusalClass`] row, and
+every clause is projected from a typed value rather than restated in prose beside
+one.
+
+**One citation.** Every owner fact this home cites is a [`RefusalDeriveFact`]
+row, which carries the home that declares it, the fact's declared stable name,
+and the repair that fact declares. A citation and the sentence shown beside it
+are one row, so neither can be shown against the other; and every capture cause
+names the fact it is a violation OF, so no repair points a caller at a rule
+unrelated to what was refused.
+
+**One site.** A refusal established after capture names the offending token, and
+a text read that refused BEFORE any capture names the byte it was born at — see
+[`RefusalSite`]. Handle zero is never written to mean "somewhere": the second
+posture exists so that it does not have to be.
+
 ## Nonclaims
 
 This home decides no meaning. The three body shapes are band 00's; the canonical

@@ -40,6 +40,7 @@ pub mod identity;
 pub mod depot;
 pub mod descriptor;
 pub mod fault;
+pub mod generate;
 pub mod muterprater;
 pub mod oracle;
 pub mod properties;

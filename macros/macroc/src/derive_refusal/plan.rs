@@ -15,6 +15,7 @@
 //! A plan whose identities were supplied could be made to agree with any
 //! rendering by supplying different ones.
 
+use super::render::contract_path_bytes;
 use super::types::{
     CauseOrderStanding, DerivedMembership, RefusalDerivationDraft, RefusalOwnerFacts,
 };
@@ -28,8 +29,8 @@ use crate::plane::{
     ProjectionRole, ProjectionTranscript, RenderedRole, TracedSubject, encode_bytes,
 };
 use crate::planning::{
-    CauseAnchoring, DeriveImplContent, DeriveImplProjection, DigestContract, GraphAnchoring,
-    MemberDestination, PlannedMember, PlannedMembership, PlannedOutput, ProjectionContext,
+    DeriveImplContent, DeriveImplProjection, DigestContract, GraphAnchoring, MemberDestination,
+    OwnerContentAccount, PlannedMember, PlannedMembership, PlannedOutput, ProjectionContext,
     ProjectionDisposition, ProjectionPlan, RenderedImplementation, TargetBinding,
 };
 use crate::refusal::ProjectionPlanning;
@@ -142,15 +143,39 @@ pub fn member_node(
     ))
 }
 
+/// The entry account one captured declaration walks in the door carrying.
+///
+/// # One account, and no second one
+///
+/// An expansion is handed token material and nothing else: nothing has been
+/// linked, so the content's own address IS the capture identity the plane
+/// derived for it, and the dependency set is empty — which is a STATED fact
+/// about content that stands on nothing, not a set somebody forgot to supply.
+///
+/// It is derived here rather than supplied, on the same terms as every other
+/// identity in this module: a caller that could hand a plan a different account
+/// could make the plan's identity, its watch set, and its origin edges all agree
+/// with a declaration it was not planned over.
+pub fn content_account(
+    draft: &RefusalDerivationDraft,
+) -> OwnerContentAccount<DeriveImplProjection> {
+    OwnerContentAccount::captured(draft.surface().identity())
+}
+
 /// The origin node the authored declaration sits at.
+///
+/// # Read, never re-derived
+///
+/// It is the ACCOUNT's node
+/// ([`OwnerContentAccount::origin_node`](crate::planning::OwnerContentAccount::origin_node)).
+/// A node derived here over a preimage of this module's own choosing would be a
+/// second node for one piece of content: the same declaration would stand at one
+/// node as the content this plan is over, and at another as the content some
+/// other plan declares it stands on, and the origin graph would carry two
+/// answers to one question. One content, one node.
 #[must_use]
 pub fn authored_node(draft: &RefusalDerivationDraft) -> ProjectionIdentity<OriginNodeSubject> {
-    ProjectionIdentity::derived(ProjectionTranscript::under_projection(
-        ProjectionRole::OriginNode,
-        &draft.surface().identity(),
-        b"authored-declaration",
-        u32::MAX,
-    ))
+    content_account(draft).origin_node()
 }
 
 /// The origin trail one member walks back along.
@@ -164,14 +189,20 @@ pub fn member_origin(draft: &RefusalDerivationDraft, role: RenderedImplementatio
 }
 
 /// The shared plan context one expansion is decided under.
+///
+/// # Bounds
+///
+/// What the plan was planned OVER is not here.
+/// That is the entry account's fact ([`content_account`]), stated once: a
+/// context that also named the content would be a second account of what the
+/// plan stands on, and the watch derivation would then be reading a copy rather
+/// than the account.
 #[must_use]
 pub fn expansion_context(draft: &RefusalDerivationDraft) -> ProjectionContext {
-    let captured = draft.surface().identity();
     ProjectionContext {
-        graph: GraphAnchoring::CapturedDeclarationOnly(captured),
+        graph: GraphAnchoring::CapturedDeclarationOnly(draft.surface().identity()),
         profile: rust_declaration_profile(),
         profile_version: rust_declaration_profile_version(),
-        sources: CauseAnchoring::CapturedDeclaration(captured),
         generator: generator_version(),
         target: TargetBinding::TargetFree,
     }
@@ -225,6 +256,7 @@ pub fn planned(
     owner_facts: RefusalOwnerFacts,
     nonclaims: Bounded<Nonclaim, NonclaimLimit>,
 ) -> Result<DerivedPlan, ProjectionPlanning> {
+    let account = content_account(draft);
     let context = expansion_context(draft);
     let standing = draft.cause_order_standing();
     let traced: ProjectionIdentity<TracedSubject> =
@@ -259,11 +291,13 @@ pub fn planned(
         ],
     )?;
 
-    // Derived from the context rather than listed here: an expansion-time
-    // context is decided against the same capture that caused it, so a roster
-    // written at this call site would be knowledge held here about a value
-    // declared elsewhere.
-    let invalidation = context.watch_set()?;
+    // Derived from the context and the ACCOUNT rather than listed here: an
+    // expansion-time context is decided against the same capture that caused it,
+    // so a roster written at this call site would be knowledge held here about a
+    // value declared elsewhere. The account is what the derivation reads for
+    // "what does this content stand on", and it is the same value the plan is
+    // planned over below.
+    let invalidation = context.watch_set(&account)?;
 
     let derived_type: ProjectionIdentity<DerivedTypeSubject> =
         ProjectionIdentity::derived(ProjectionTranscript::under_projection(
@@ -276,7 +310,7 @@ pub fn planned(
         ProjectionIdentity::derived(ProjectionTranscript::under_projection(
             ProjectionRole::GeneratedUnit,
             &draft.surface().identity(),
-            binding_contract_bytes(draft).as_slice(),
+            contract_path_bytes(draft.surface()).as_slice(),
             1,
         ));
 
@@ -287,6 +321,7 @@ pub fn planned(
     ]);
 
     let plan = ProjectionPlan::<DeriveImplProjection>::planned(
+        account,
         context,
         DeriveImplContent {
             derived_type,
@@ -324,17 +359,4 @@ pub fn planned(
     };
 
     Ok(DerivedPlan { plan, cause_order })
-}
-
-/// The contract identity's transcript material.
-///
-/// The crate binding travels into it, because a rendering against a renamed
-/// dependency realizes the contract under a different path and is a different
-/// generated unit.
-fn binding_contract_bytes(draft: &RefusalDerivationDraft) -> Vec<u8> {
-    let mut material = Vec::new();
-    material.extend_from_slice(draft.surface().binding().spelling().as_bytes());
-    material.push(b'.');
-    material.extend_from_slice(b"refusal.RefusalFamily");
-    material
 }

@@ -29,6 +29,16 @@ use super::types::{CapturedCause, RefusalDeriveSurface};
 use crate::token::{GeneratedDelimiter, GeneratedToken, GeneratedTree};
 use threadpak::refusal::FamilyShape;
 
+/// The module the machine's refusal contracts live under, inside whatever the
+/// consumer calls the machine.
+pub const REFUSAL_MODULE: &str = "refusal";
+
+/// The contract a family implementation realizes.
+pub const FAMILY_CONTRACT: &str = "RefusalFamily";
+
+/// The contract a cause-order implementation realizes.
+pub const CAUSE_ORDER_CONTRACT: &str = "CauseOrderDeclaration";
+
 /// The machine's shape variant one body shape spells.
 const fn shape_variant(shape: FamilyShape) -> &'static str {
     match shape {
@@ -36,6 +46,33 @@ const fn shape_variant(shape: FamilyShape) -> &'static str {
         FamilyShape::IssueCollection => "IssueCollection",
         FamilyShape::InseparablePair => "InseparablePair",
     }
+}
+
+/// The path one rendering realizes the family contract under, as canonical
+/// bytes.
+///
+/// # Why the bytes live here
+///
+/// A path is a rendering fact.
+/// This home is the one that knows how a contract is spelled under a binding —
+/// it spells exactly that path into the tokens it emits — so the bytes an
+/// identity is derived over are composed here, out of the same three spellings
+/// the rendering uses. Composed anywhere else, the identity would stand over a
+/// path assembled from a second copy of those spellings, and a rename that moved
+/// the rendering would leave the identity naming a path nothing emits.
+///
+/// The crate binding travels into it, because a rendering against a renamed
+/// dependency realizes the contract under a different path and is a different
+/// generated unit.
+#[must_use]
+pub fn contract_path_bytes(surface: &RefusalDeriveSurface) -> Vec<u8> {
+    let mut material = Vec::new();
+    material.extend_from_slice(surface.binding().spelling().as_bytes());
+    material.push(b'.');
+    material.extend_from_slice(REFUSAL_MODULE.as_bytes());
+    material.push(b'.');
+    material.extend_from_slice(FAMILY_CONTRACT.as_bytes());
+    material
 }
 
 /// The tokens one captured cause's stable identity is minted through: the
@@ -57,7 +94,7 @@ fn cause_identity(
 ) -> Result<Vec<GeneratedToken>, RenderRefusal> {
     let binding = surface.binding().spelling();
     let mut seats =
-        GeneratedToken::absolute_path(&[binding, "refusal", "RefusalFamilyId", "declared"]);
+        GeneratedToken::absolute_path(&[binding, REFUSAL_MODULE, "RefusalFamilyId", "declared"]);
     seats.push(
         GeneratedToken::group(
             GeneratedDelimiter::Parenthesis,
@@ -68,7 +105,7 @@ fn cause_identity(
     seats.push(GeneratedToken::alone(','));
     seats.extend(GeneratedToken::absolute_path(&[
         binding,
-        "refusal",
+        REFUSAL_MODULE,
         "LocalCauseKey",
         "declared",
     ]));
@@ -80,7 +117,8 @@ fn cause_identity(
         .map_err(|_| RenderRefusal::Unbounded)?,
     );
 
-    let mut minted = GeneratedToken::absolute_path(&[binding, "refusal", "CauseId", "declared"]);
+    let mut minted =
+        GeneratedToken::absolute_path(&[binding, REFUSAL_MODULE, "CauseId", "declared"]);
     minted.push(
         GeneratedToken::group(GeneratedDelimiter::Parenthesis, seats)
             .map_err(|_| RenderRefusal::Unbounded)?,
@@ -113,13 +151,13 @@ pub fn family_implementation(
     body.push(GeneratedToken::alone(':'));
     body.extend(GeneratedToken::absolute_path(&[
         binding,
-        "refusal",
+        REFUSAL_MODULE,
         "FamilyShape",
     ]));
     body.push(GeneratedToken::alone('='));
     body.extend(GeneratedToken::absolute_path(&[
         binding,
-        "refusal",
+        REFUSAL_MODULE,
         "FamilyShape",
         shape_variant(surface.shape()),
     ]));
@@ -144,7 +182,7 @@ pub fn family_implementation(
     );
     body.push(GeneratedToken::alone(';'));
 
-    implementation(binding, "RefusalFamily", surface.family_name(), body)
+    implementation(binding, FAMILY_CONTRACT, surface.family_name(), body)
 }
 
 /// Render the `CauseOrderDeclaration` implementation.
@@ -164,7 +202,7 @@ pub fn cause_order_implementation(
         row_arguments.push(GeneratedToken::text(cause.spelling()));
 
         let mut row =
-            GeneratedToken::absolute_path(&[binding, "refusal", "DeclaredCause", "declared"]);
+            GeneratedToken::absolute_path(&[binding, REFUSAL_MODULE, "DeclaredCause", "declared"]);
         row.push(
             GeneratedToken::group(GeneratedDelimiter::Parenthesis, row_arguments)
                 .map_err(|_| RenderRefusal::Unbounded)?,
@@ -179,13 +217,13 @@ pub fn cause_order_implementation(
     body.push(GeneratedToken::alone(':'));
     body.extend(GeneratedToken::absolute_path(&[
         binding,
-        "refusal",
+        REFUSAL_MODULE,
         "DeclaredCauseOrder",
     ]));
     body.push(GeneratedToken::alone('='));
     body.extend(GeneratedToken::absolute_path(&[
         binding,
-        "refusal",
+        REFUSAL_MODULE,
         "DeclaredCauseOrder",
         "declared",
     ]));
@@ -200,12 +238,7 @@ pub fn cause_order_implementation(
     );
     body.push(GeneratedToken::alone(';'));
 
-    implementation(
-        binding,
-        "CauseOrderDeclaration",
-        surface.family_name(),
-        body,
-    )
+    implementation(binding, CAUSE_ORDER_CONTRACT, surface.family_name(), body)
 }
 
 /// `impl ::<binding>::refusal::<Contract> for <Type> { <body> }`.
@@ -217,7 +250,7 @@ fn implementation(
 ) -> Result<GeneratedTree, RenderRefusal> {
     let mut tokens = vec![GeneratedToken::word("impl")];
     tokens.extend(GeneratedToken::absolute_path(&[
-        binding, "refusal", contract,
+        binding, REFUSAL_MODULE, contract,
     ]));
     tokens.push(GeneratedToken::word("for"));
     tokens.push(GeneratedToken::word(target));

@@ -20,8 +20,19 @@
 //! from declaration order, because a variant reordered for readability must not
 //! silently move an identity. No slot is zero, so a zeroed buffer never reads
 //! back as a lawful arm.
+//!
+//! [`Origin::slot`], [`SynthesisFacts::slot`], and [`AdmissionGround::slot`]
+//! are identity-bearing in the same way and for a second consumer: the row
+//! preimage ([`crate::descriptor::encode_row`]) writes them, so a changed slot
+//! renames every row revision derived under it. The origin's slots are the same
+//! arms, in the same order, that the descriptor schema's `origin` field
+//! declares as its closed choice — one reading order, written twice because the
+//! two are different kinds of statement, and held together by the conformance
+//! trial.
 
-use super::types::{AdmissionGround, CapsulePosture, FieldCardinality, FieldShape};
+use super::types::{
+    AdmissionGround, CapsulePosture, FieldCardinality, FieldShape, Origin, SynthesisFacts,
+};
 
 impl AdmissionGround {
     /// Whether admitting on this ground authors a depot capsule entry.
@@ -36,6 +47,44 @@ impl AdmissionGround {
         match self {
             Self::MutantKilled | Self::ClaimPinned => CapsulePosture::ReplayBearing,
             Self::ObligationDischarged => CapsulePosture::NoCapsule,
+        }
+    }
+
+    /// The byte this ground is written as in a row's canonical preimage.
+    #[must_use]
+    pub const fn slot(self) -> u8 {
+        match self {
+            Self::MutantKilled => 1,
+            Self::ClaimPinned => 2,
+            Self::ObligationDischarged => 3,
+        }
+    }
+}
+
+impl Origin {
+    /// The byte this arm is written as in a row's canonical preimage.
+    ///
+    /// The order is the descriptor schema's declared `origin` choice order:
+    /// hand-written, generated, candidate, admitted-replay, admitted-discharge.
+    #[must_use]
+    pub const fn slot(self) -> u8 {
+        match self {
+            Self::HandWritten => 1,
+            Self::Generated(_) => 2,
+            Self::Candidate(_) => 3,
+            Self::AdmittedReplay { .. } => 4,
+            Self::AdmittedDischarge { .. } => 5,
+        }
+    }
+}
+
+impl SynthesisFacts {
+    /// The byte this arm is written as in a row's canonical preimage.
+    #[must_use]
+    pub const fn slot(self) -> u8 {
+        match self {
+            Self::Survivor(_) => 1,
+            Self::ProofGap => 2,
         }
     }
 }
