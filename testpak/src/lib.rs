@@ -32,10 +32,12 @@
 //!
 //! # The dependency direction
 //!
-//! testpak depends inward and nothing depends on testpak: no manifest in
-//! this workspace names it in a dependency table of any kind. Production
-//! never depends on its judge. What this package asks for, and why, is the
-//! README's; which versions, the workspace manifest's.
+//! testpak depends inward, and production never depends on its judge: no
+//! production dependency table in this workspace names it. The one manifest
+//! that names it at all is the consumer parity seat's, as a dev-dependency
+//! under a consumer-chosen name — which is that seat's whole point. What
+//! this package asks for, and why, is the README's; which versions, the
+//! workspace manifest's.
 
 pub mod identity;
 
