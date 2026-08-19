@@ -132,6 +132,14 @@ flowchart TD
         BD --> OG
         BD --> PLAN
         BD --> TD
+        HW["host_wrapper"] --> PLN
+        HW --> TOK
+        HW --> OG
+        HW --> PLAN
+        RS["remote_surface"] --> PLN
+        RS --> TOK
+        RS --> OG
+        RS --> PLAN
         EXP["explanation_protocol"] --> PLN
         EXP --> DIA
         EXP --> QUE

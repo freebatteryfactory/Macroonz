@@ -1,15 +1,7 @@
 //! The codec home's declarative surface: the tables and trait implementations
 //! this home states rather than computes.
 //!
-//! Five declarations stand here.
-//!
-//! The LIMIT FAMILIES: each family's capacity authority and its magnitude are
-//! written on adjacent rows, so a family cannot be declared on the compile-time
-//! ladder while wearing another road's authority — [`Limit::Authority`] resolves
-//! to one type, and naming [`DeclaredMagnitude`] there is what makes
-//! [`ConstLimit`] implementable at all. The families themselves are declared
-//! beside the capacities they govern in `types.rs`; what a family is FOR is said
-//! there, and the number is said here.
+//! Four declarations stand here.
 //!
 //! The REFUSAL FAMILY's declared shape: an issue collection, because several
 //! members may shadow the decode road's own bindings at once, and a caller
@@ -31,41 +23,9 @@
 //! sentence, so "an encode-only codec renders no reader" is a value a reader can
 //! read back and a match the compiler keeps exhaustive.
 
-use super::{
-    CodecComposition, CodecMemberLimit, CodecMemberShape, CodecPathSegmentLimit, CodecRoad,
-    CodecSurfaceIssueLimit,
-};
+use super::{CodecComposition, CodecMemberShape, CodecRoad};
 use crate::planning::CodecDirection;
 use threadpak::refusal::{FamilyShape, RefusalFamily};
-use threadpak::types::{ConstLimit, DeclaredMagnitude, Limit};
-
-impl Limit for CodecMemberLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for CodecMemberLimit {
-    const MAX: usize = 64;
-}
-
-impl Limit for CodecPathSegmentLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for CodecPathSegmentLimit {
-    const MAX: usize = 8;
-}
-
-impl Limit for CodecSurfaceIssueLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for CodecSurfaceIssueLimit {
-    /// One per member seat, because the widest pass asks one question of every
-    /// declared member. Written as the number rather than as the member
-    /// magnitude read a second time: a magnitude derived from another magnitude
-    /// reads as a fact when it is a choice.
-    const MAX: usize = 64;
-}
 
 impl RefusalFamily for CodecComposition {
     const SHAPE: FamilyShape = FamilyShape::IssueCollection;

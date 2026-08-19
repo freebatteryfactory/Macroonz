@@ -138,10 +138,13 @@ fn materialized_artifact(fixture: &str) -> &str {
     fixture.lines().last().unwrap_or_default()
 }
 
-/// The lawful rendering, as the receipt-rich road produced and closed over it.
+/// The lawful rendering, as the receipt-rich road produced and closed over it:
+/// the declaration-site cargo's projection, and empty where the road refused
+/// or the declaration site was planned nothing.
 fn lawful_rendering() -> String {
     compile_refusal_text(DECLARATION)
-        .map(|(_, closed)| closed.inspected())
+        .ok()
+        .and_then(|(_, closed)| closed.inspected())
         .unwrap_or_default()
 }
 

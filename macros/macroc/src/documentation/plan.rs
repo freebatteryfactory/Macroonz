@@ -52,9 +52,10 @@ use crate::planning::{DocumentationProjection, MemberDestination, ProjectionPlan
 /// to look hard enough.
 ///
 /// Returns [`DocumentationIssue::DestinationNotDeclarationSite`] where the planned
-/// member is written as a standalone artifact: doc material is an attribute run
-/// spliced ahead of the owner's own item, and a member written as a standalone
-/// artifact is a different delivery.
+/// member lands anywhere but the declaration site: doc material is an attribute
+/// run spliced ahead of the owner's own item, so a standalone artifact, deferred
+/// test cargo, and deferred bench cargo are three other deliveries and each
+/// reaches this answer.
 ///
 /// The two checks are DEPENDENT — there is no destination to read until a member
 /// was found — so exactly one of them is ever established.
@@ -69,7 +70,13 @@ pub fn documentation_plan(
     };
     match member.output.destination {
         MemberDestination::AtDeclarationSite => {}
-        MemberDestination::AsArtifact { .. } => {
+        // Every delivery this kind does not make reaches one answer, and the
+        // arms are written out one by one rather than under a wildcard: a
+        // delivery admitted later stops the compiler here until somebody says
+        // whether doc material is ever written into it.
+        MemberDestination::AsArtifact { .. }
+        | MemberDestination::IntoTestCarrier
+        | MemberDestination::IntoBenchCarrier => {
             return Err(DocumentationIssue::DestinationNotDeclarationSite {
                 role_slot: role.slot(),
             });

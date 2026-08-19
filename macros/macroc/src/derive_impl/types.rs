@@ -391,11 +391,17 @@ pub enum ImplementationSurfaceIssue {
         /// The role's position in its kind's declared roster.
         role_slot: u32,
     },
-    /// The planned member lands somewhere other than where its ROLE says it
-    /// lands ([`RenderedImplementation::destination`]). Every seat on this
-    /// kind's roster lands at the declaration site, so a member written as a
-    /// standalone artifact is a different delivery and is not this one.
-    DestinationNotDeclarationSite {
+    /// The planned member lands somewhere other than where its ROLE declares it
+    /// lands ([`RenderedImplementation::destination`]).
+    ///
+    /// The roster answers differently for the two halves of every pair, and the
+    /// difference is what the pair is for: the production implementation lands
+    /// at the declaration site, and the evaluation copy lands in the test
+    /// carrier. So the disagreement is with the ROLE's own answer and never with
+    /// a landing the whole roster shares — a production member written as a
+    /// standalone artifact and an evaluation copy written at the declaration
+    /// site are both this issue, at the role each was planned under.
+    DestinationNotRoleDeclared {
         /// The role whose planned destination disagreed.
         role_slot: u32,
     },

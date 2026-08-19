@@ -105,13 +105,14 @@ published module whose head writes the one import a wrapped surface needs.
 
 ## The seats
 
-`types.rs` declares, including the three limit families this home's capacities are
-governed by and the two refusal families it answers through. Its own child
+`types.rs` declares, including the three magnitude rows this home's capacities are
+governed by — meaning, number, and reason on one row, stamped through the plane's
+`limits!` — and the two refusal families it answers through. Its own child
 `type_guard.rs` holds every road that reaches a private seat — a path's segments,
 a member's spelling, a shape's members, the assembly road, the placement's module
 spelling, the surface's composition, and the refusal body's one seat. 
-`type_contract.rs` states the declarative tables: each limit family's authority
-and magnitude written together, the refusal family's declared shape, the member
+`type_contract.rs` states the declarative tables: the refusal family's declared
+shape, the member
 contract, the reserved bindings the decode road names, and which of the two roads
 each declared direction covers. `plan.rs` reads the plan through its public
 surface — the account, the context, the membership, the kind content — and states

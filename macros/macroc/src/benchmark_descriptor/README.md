@@ -96,14 +96,14 @@ issue on the carrier's rendering family for either of them.
 
 ## The seats
 
-`types.rs` declares, including the four limit families this home's capacities are
-governed by and the one refusal family its declarations refuse through — rendering
+`types.rs` declares, including the four magnitude rows this home's capacities are
+governed by — meaning, number, and reason on one row, stamped through the plane's
+`limits!` — and the one refusal family its declarations refuse through; rendering
 refuses in the carrier's family, because both crossings hit one token roster and a
 second body would be a second answer to one question. Its own child
 `type_guard.rs` holds every road that reaches a private seat — a work formula's
 bytes, an axis, a row's observations, a table's rows, the backend spelling, and
-the shell's composition. `type_contract.rs` states the declarative tables: each
-limit family's authority and magnitude written together, the posture's emitted arm
-spellings, the budget order, and the crossing bill. `plan.rs` reads the plan
+the shell's composition. `type_contract.rs` states the declarative tables: the
+posture's emitted arm spellings, the budget order, and the crossing bill. `plan.rs` reads the plan
 through its public surface. `render.rs` is the token half: the bench table, the
 one-file adapter, and the two typed literals it writes directly.

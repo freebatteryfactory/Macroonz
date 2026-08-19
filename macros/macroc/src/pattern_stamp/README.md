@@ -92,16 +92,16 @@ seat it is about cannot disagree.
 
 ## The seats
 
-`types.rs` declares — the two anchor records, the two limit families, the four
+`types.rs` declares — the two anchor records, the two magnitude rows (meaning,
+number, and reason on one row, stamped through the plane's `limits!`), the four
 closed rosters, the seat's declared facts, the plan statement, the rendering
 refusal, and the published artifact with the record it pairs with. Its own child
 `type_guard.rs` holds every road that reaches a private seat: a path's segments,
 a seat's two spellings, the exported name, the coverage's two namespaces, and the
 one composition road, which is what makes "a published stamp never seats one
 family twice" a shape rather than a rule. `type_contract.rs` states the
-declarative tables: each limit family's authority and magnitude written together,
-the visibility transport, and the road from a declared mint to the form the stamp
-definition is written from. `plan.rs` is both planning roads — the account the
+declarative tables: the visibility transport, and the road from a declared mint
+to the form the stamp definition is written from. `plan.rs` is both planning roads — the account the
 scope-guard stamp owes, and the reading that turns a plan into the statement of
 what its artifact will be. `render.rs` is the token half: the front grammar, the
 internal arms, the seat module they transcribe, and the one invocation each

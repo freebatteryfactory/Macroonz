@@ -12,13 +12,15 @@ pub use capture::{captured, captured_text};
 pub use diagnose::{LineBody, LineSite, RefusalClass, RefusalLine, RenderedMagnitude, composed};
 pub use explain::{ExplanationBindingRefusal, ExplanationSeat};
 pub use plan::DerivedPlan;
-pub use render::{CAUSE_ORDER_CONTRACT, FAMILY_CONTRACT, REFUSAL_MODULE, RenderRefusal};
+pub use render::{
+    CAUSE_ORDER_CONTRACT, EVALUATION_SUBJECT, FAMILY_CONTRACT, REFUSAL_MODULE, RenderRefusal,
+};
 pub use types::{
-    CapturedCause, CauseOrderStanding, ClosedExpansion, CrateBinding, DEFAULT_CRATE_BINDING,
-    DIAGNOSTIC_PREFIX, DerivedMembership, RefusalCompileContext, RefusalDerivationDraft,
-    RefusalDeriveCapture, RefusalDeriveFact, RefusalDeriveRefusal, RefusalDeriveSurface,
-    RefusalOwnerFacts, RefusalSite, SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION,
-    SHAPE_WORD_SINGLE_CAUSE,
+    CapturedCause, CapturedDocumentation, CauseOrderStanding, ClosedExpansion, CrateBinding,
+    DEFAULT_CRATE_BINDING, DIAGNOSTIC_PREFIX, DerivedMembership, DocumentedDeclaration,
+    RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveCapture, RefusalDeriveFact,
+    RefusalDeriveRefusal, RefusalDeriveSurface, RefusalOwnerFacts, RefusalSite,
+    SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
 };
 
 use crate::closure::{ProjectionClosure, RenderedProjection, RenderedUnit};
@@ -35,10 +37,12 @@ use threadpak::types::Bounded;
 ///
 /// Returns a [`MacrocDiagnostic`] whenever any step refuses: a declaration the
 /// grammar does not admit, a plan whose magnitudes are exceeded, a rendering
-/// that outgrows its bound, a closure the rendering does not satisfy, or an
-/// explanation that does not cover its kind's questions.
+/// that outgrows its bound or that cannot be copied over the evaluation
+/// subject, a closure the rendering does not satisfy, an explanation that does
+/// not cover its kind's questions, or a binding whose closure was proved
+/// against another plan.
 /// **Every one of those refusals happens BEFORE a token exists to emit**,
-/// because the token tree is reachable only off the value this function returns
+/// because every emission is reachable only off the value this function returns
 /// on success.
 #[expect(
     clippy::result_large_err,
@@ -57,8 +61,11 @@ pub fn compile_refusal(
 
     let rendered = render_units(&draft)?;
 
-    // The closure joins the rendered units and keeps the joined tree, so there
-    // is nothing left to assemble on this road after the proof returns.
+    // The closure SPLITS the rendered units across the deliveries their members
+    // declared, joins each emission in role-roster order, keeps them, and
+    // commits to each one's digest — so there is nothing left to assemble on
+    // this road after the proof returns, and the tokens each build receives are
+    // inside what was proved rather than concatenated behind it.
     let closure = ProjectionClosure::proved(
         planned.plan().identity(),
         planned.plan().membership(),
@@ -70,13 +77,14 @@ pub fn compile_refusal(
         .map_err(|refusal| diagnose::explanation_refused(&refusal))?;
 
     let (plan_value, cause_order) = planned.into_parts();
-    Ok(ClosedExpansion::bound(
+    ClosedExpansion::bound(
         draft.surface().clone(),
         plan_value,
         closure,
         explanation,
         cause_order,
-    ))
+    )
+    .map_err(|refusal| diagnose::receipt_refused(&refusal))
 }
 
 /// How the callable text route refused.
@@ -133,9 +141,13 @@ const FAMILY_ACTIVE_POINT: &str = "RefusalFamilyActivePoint";
 
 /// The name the family contract's evaluation copy reads its selector through.
 ///
-/// The copy READS this name and never declares it. Where it comes to be in
-/// scope at every activation site is the generated support shell's splice, and
-/// that splice is not this home's rendering.
+/// The copy READS this name and never declares it. What brings it into scope at
+/// every activation site is the generated support shell's splice, which
+/// declares the constant beside the local subject the copy stands over — inside
+/// the shell's own module, in the same expansion, so the copy and the name it
+/// reads arrive at the consumption target together or not at all.
+/// That splice is the shell's rendering and not this home's; what this home owns
+/// is the spelling, which the shell reads as the data it is.
 const FAMILY_ACTIVE_POINT_SELECTOR: &str = "REFUSAL_FAMILY_ACTIVE_POINT";
 
 /// The active-point enum the cause-order contract's evaluation copy declares.
@@ -170,7 +182,8 @@ const fn evaluation_spellings(role: RenderedImplementation) -> (&'static str, &'
     }
 }
 
-/// Transform one rendered production tree into its mutation-evaluation copy.
+/// Transform one contract's body, rendered over the evaluation subject, into
+/// its mutation-evaluation copy.
 ///
 /// # No mutation point is admitted here, and that is a stated fact
 ///
@@ -184,8 +197,10 @@ const fn evaluation_spellings(role: RenderedImplementation) -> (&'static str, &'
 /// STRUCTURALLY, and the admitted set beside it is empty — a stated fact about
 /// a declaration nobody admitted a damage against, rather than a set somebody
 /// forgot to supply. Under the control every point renders its original
-/// operation, so a copy with no admitted point emits exactly the production
-/// surface's own operations, which is the parity the control exists to prove.
+/// operation, so a copy with no admitted point carries exactly the production
+/// surface's own operations under another subject's head, which is the parity
+/// the control exists to prove and the whole of what the rendering guard
+/// established before this seat was reached.
 ///
 /// # Errors
 ///
@@ -261,20 +276,24 @@ fn render_units(
 }
 
 /// Render one role into one materialized unit, projecting either refusal into a
-/// diagnostic that names the exact magnitude and the role that overran it.
+/// diagnostic that names what the rendering could not be done under and the
+/// role it was refused at.
 ///
-/// Total in the role it is handed, and the road is the same for all four seats:
-/// both halves of a pair stand over ONE production rendering — the production
-/// member IS that tree, and the evaluation copy is that tree transformed — so
-/// the match below reads the roster for the CONTRACT, and the two evaluation
-/// arms are written out beside the two production ones. A fifth role stops the
-/// compiler here rather than falling through a wildcard into whichever contract
-/// the last arm happened to name.
+/// Total in the role it is handed, and the four seats are written out one by
+/// one because they are four renderings rather than two: both halves of a pair
+/// stand over one contract's BODY, and the two halves stand that body over two
+/// SUBJECTS. The production member is the body implemented for the type the
+/// declaration named; the evaluation member is the same body implemented for
+/// the support shell's own local subject, and then transformed into the copy.
+/// A fifth role stops the compiler here rather than falling through a wildcard
+/// into whichever contract the last arm happened to name.
 ///
-/// The production tree is rendered again for the copy rather than handed over
-/// from the member beside it: each unit is then a function of the DECLARATION
-/// alone, and no member's rendering depends on another member's having been
-/// rendered first — which is the ordering the roster exists to remove.
+/// The body is rendered again for the copy rather than handed over from the
+/// member beside it, and the two renderings could not share a tree in any case:
+/// each unit is a function of the DECLARATION alone, no member's rendering
+/// depends on another member's having been rendered first — which is the
+/// ordering the roster exists to remove — and the copy's head names a subject
+/// the production member's head does not.
 #[expect(
     clippy::result_large_err,
     reason = "the same seat-complete diagnostic the settled service road returns; this helper hands \n              it straight through"
@@ -283,21 +302,25 @@ fn rendered_unit(
     draft: &RefusalDerivationDraft,
     role: RenderedImplementation,
 ) -> Result<RenderedUnit<RenderedImplementation>, MacrocDiagnostic> {
-    let production = match role {
-        RenderedImplementation::RenderedFamilyImpl
-        | RenderedImplementation::RenderedFamilyEvaluation => {
+    let implemented = match role {
+        RenderedImplementation::RenderedFamilyImpl => {
             render::family_implementation(draft.surface())
         }
-        RenderedImplementation::RenderedCauseOrderImpl
-        | RenderedImplementation::RenderedCauseOrderEvaluation => {
+        RenderedImplementation::RenderedCauseOrderImpl => {
             render::cause_order_implementation(draft.surface())
+        }
+        RenderedImplementation::RenderedFamilyEvaluation => {
+            render::family_evaluation_implementation(draft.surface())
+        }
+        RenderedImplementation::RenderedCauseOrderEvaluation => {
+            render::cause_order_evaluation_implementation(draft.surface())
         }
     }
     .map_err(|refusal| diagnose::render_refused(refusal, role))?;
     let tree = if role.is_evaluation_copy() {
-        evaluation_tree(&production, role)?
+        evaluation_tree(&implemented, role)?
     } else {
-        production
+        implemented
     };
     RenderedUnit::materialized(
         role,

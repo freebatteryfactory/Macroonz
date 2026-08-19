@@ -52,38 +52,43 @@ mod guard;
 
 // ---------------------------------------------------------------------------
 // The magnitude.
+//
+// This home's own row, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on the row below
+// are this home's, declared beside the capacity it governs.
 // ---------------------------------------------------------------------------
 
-/// The magnitude governing how many segments one rendered type path may carry.
-///
-/// # Bounds
-///
-/// Eight. A path reaching deeper than eight segments has stopped naming an item
-/// and started describing a tree, and the repair is a re-export at the address
-/// rather than a longer spelling at this end.
-///
-/// The authority and the number are written together in `type_contract.rs`, one
-/// row per family, so a family cannot stand on the compile-time ladder while
-/// wearing another road's authority.
-///
-/// # Nonclaims
-///
-/// It is this home's own family. Three rendering homes now declare a path
-/// magnitude of their own — the test-descriptor home's is rooted at a rename twin
-/// and crosses the wall, the codec home's is rooted in the consumer's own crate
-/// beside an owner's item, and this one is rooted in an INTEGRATION TARGET that
-/// names both a port realization and a codec from outside the crate that declared
-/// either. One family standing for all three would be one authority answering
-/// three questions, and the day one road has to reach deeper than the others is
-/// the day that would show.
-///
-/// The promotion is real and it is not an edit: a single path magnitude on the
-/// plane's own roster, read by every rendering home, is a decision about where the
-/// capacity lives, and it is owed the same argument the plane's other magnitudes
-/// carry. Until it is made, three families that agree on a number are three
-/// authorities that happen to agree.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SurfacePathSegmentLimit;
+crate::plane::limits! {
+    /// The magnitude governing how many segments one rendered type path may
+    /// carry.
+    ///
+    /// # Bounds
+    ///
+    /// Eight. A path reaching deeper than eight segments has stopped naming an
+    /// item and started describing a tree, and the repair is a re-export at the
+    /// address rather than a longer spelling at this end.
+    ///
+    /// # Nonclaims
+    ///
+    /// It is this home's own family. Five rendering homes declare a path
+    /// magnitude of their own, and each one is rooted somewhere else: the
+    /// test-descriptor home's at a rename twin, crossing the wall; the codec
+    /// home's in the consumer's own crate beside an owner's item; the
+    /// host-wrapper home's in a host target; the pattern-stamp home's at the
+    /// invocation site inside the machine, carrying no crate binding at all; and
+    /// this one in an INTEGRATION TARGET that names both a port realization and
+    /// a codec from outside the crate that declared either. Five roads, five
+    /// rootings, five questions — and one family standing for all of them would
+    /// be one authority answering five, so the day one road has to reach deeper
+    /// than the others is the day that would show.
+    ///
+    /// Five families that agree on a number are five authorities that happen to
+    /// agree, and that is the honest reading rather than a shortfall: each one
+    /// is owned where its rooting is owned. A magnitude the plane's rows carry
+    /// is one MORE THAN ONE home asks about, and no home asks about another's
+    /// rooting.
+    SurfacePathSegmentLimit = 8,
+}
 
 // ---------------------------------------------------------------------------
 // The declaration refusal family.
@@ -494,13 +499,17 @@ pub enum RemoteSurfaceIssue {
         /// The role's position in its kind's declared roster.
         role_slot: u32,
     },
-    /// The planned member is spliced at the declaration site rather than written
-    /// as a standalone artifact.
+    /// The planned member lands somewhere other than a standalone artifact.
     ///
-    /// A remote surface lands in its INTEGRATION target, which is a different file
-    /// than the declaration the plan was derived from; a member spliced beside
-    /// that declaration is a surface inside the library that declared the port,
-    /// and that is a different delivery.
+    /// A remote surface lands in a FILE its INTEGRATION target owns, which is a
+    /// different file than the declaration the plan was derived from.
+    /// The destination roster names four deliveries, and a member that is not an
+    /// artifact declared one of the other three: tokens spliced at the
+    /// declaration site, the deferred cargo a test target invokes, or the
+    /// deferred cargo a bench target invokes. The first is a surface inside the
+    /// library that declared the port, and neither carrier is a file at all — a
+    /// carrier is deferred cargo a consumption target expands — so each of the
+    /// three establishes this issue.
     DestinationNotIntegrationTarget {
         /// The role whose planned destination disagreed.
         role_slot: u32,

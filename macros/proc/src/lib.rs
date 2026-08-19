@@ -106,10 +106,15 @@ pub fn refusal_family(item: TokenStream) -> TokenStream {
     }
 }
 
-/// The closed expansion's token tree, as the compiler's tokens — the shell's
-/// only act.
+/// The closed expansion's declaration-site cargo, as the compiler's tokens —
+/// the shell's only act. A projection that plans nothing at the declaration
+/// site emits nothing there; the carrier cargo is the generated support
+/// shell's to deliver, not this shell's.
 fn emit(closed: &ClosedExpansion) -> TokenStream {
-    emit_tree(closed.emitted())
+    closed
+        .emitted()
+        .tokens()
+        .map_or_else(TokenStream::new, emit_tree)
 }
 
 /// One generated tree as the compiler's tokens.

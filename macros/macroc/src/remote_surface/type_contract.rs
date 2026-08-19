@@ -1,15 +1,7 @@
 //! The remote-surface home's declarative surface: the tables and trait
 //! implementations this home states rather than computes.
 //!
-//! Four declarations stand here.
-//!
-//! The LIMIT FAMILY: its capacity authority and its magnitude are written on
-//! adjacent rows, so the family cannot be declared on the compile-time ladder
-//! while wearing another road's authority — [`Limit::Authority`] resolves to one
-//! type, and naming [`DeclaredMagnitude`] there is what makes [`ConstLimit`]
-//! implementable at all. The family itself is declared beside the capacity it
-//! governs in `types.rs`; what it is FOR is said there, and the number is said
-//! here.
+//! Three declarations stand here.
 //!
 //! The REFUSAL FAMILY's declared shape: a single cause with a declared selection
 //! order, because every check on this road is dependent on the one before it and
@@ -27,18 +19,9 @@
 //! rather than a sentence in a README, so a reader can read the bill back and the
 //! compiler keeps the roster and the bill the same length.
 
-use super::{PairedCodecRoad, RemoteSurfaceIssue, SurfaceContractMint, SurfacePathSegmentLimit};
+use super::{PairedCodecRoad, RemoteSurfaceIssue, SurfaceContractMint};
 use crate::planning::SurfaceDirection;
 use threadpak::refusal::{FamilyShape, RefusalFamily};
-use threadpak::types::{ConstLimit, DeclaredMagnitude, Limit};
-
-impl Limit for SurfacePathSegmentLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for SurfacePathSegmentLimit {
-    const MAX: usize = 8;
-}
 
 impl RefusalFamily for RemoteSurfaceIssue {
     const SHAPE: FamilyShape = FamilyShape::SingleCause;

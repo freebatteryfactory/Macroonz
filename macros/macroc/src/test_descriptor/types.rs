@@ -1,13 +1,14 @@
 //! The test-descriptor home's declarations: the generated support shell every
 //! crossing of the wall rides, the descriptor row vocabulary in the harness's
-//! own field shape, the two rename twins a rendered path is rooted at, and the
-//! magnitudes and refusal families this home answers with.
+//! own field shape, the cargo an expansion defers into that shell, the two
+//! rename twins a rendered path is rooted at, and the magnitudes and refusal
+//! families this home answers with.
 //!
 //! Declarations only.
 //! Every road that reaches a private field — a name's two parts, a path's
-//! segments, a row's rosters, a group's rows, a payload's groups, the shell's
-//! mangled name and its tree, and the refusal body's one seat — lives in
-//! `type_guard.rs`, this file's own child.
+//! segments, a row's rosters, a group's rows, a payload's groups, a cargo's
+//! subject and selectors, the shell's mangled name and its tree, and the
+//! refusal body's one seat — lives in `type_guard.rs`, this file's own child.
 //!
 //! # Nothing of the harness is imported
 //!
@@ -40,76 +41,85 @@ mod guard;
 
 // ---------------------------------------------------------------------------
 // The magnitudes.
+//
+// This home's own rows, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on every row below
+// are this home's, declared beside the capacities they govern.
 // ---------------------------------------------------------------------------
 
-/// The magnitude governing how many segments one rendered path may carry after
-/// the crate binding it is rooted at.
-///
-/// # Bounds
-///
-/// Eight. A path reaching deeper than eight segments past a crate root has
-/// stopped naming an item and started describing a tree, and the repair is a
-/// re-export at the address rather than a longer spelling at this end.
-///
-/// The authority and the number are written together in `type_contract.rs`, one
-/// row per family, so a family cannot stand on the compile-time ladder while
-/// wearing another road's authority.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct PathSegmentLimit;
-
-/// The magnitude governing how many roles one descriptor row may carry.
-///
-/// # Bounds
-///
-/// Sixteen. A role is open classification and a row carrying more than sixteen
-/// of them has stopped classifying and started describing; the repair is a
-/// second row, not a wider roster.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct RoleLimit;
-
-/// The magnitude governing how many tags one descriptor row may carry.
-///
-/// # Bounds
-///
-/// Sixteen, and DECLARED separately from [`RoleLimit`] rather than aliased to
-/// it: roles and tags are two capacities the harness declares as two rosters,
-/// and one family standing for both would be one authority answering two
-/// questions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct TagLimit;
-
-/// The magnitude governing how many rows one aggregate seat's group may declare.
-///
-/// # Bounds
-///
-/// Two hundred and fifty-six. Every row is one stamped lens function and one
-/// entry in the table the seat runs, so the group's size is what a consumer's
-/// test binary pays for; past this the repair is a second stamped module.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct RowLimit;
-
-/// The magnitude governing how many aggregate seats one stamped module declares.
-///
-/// # Bounds
-///
-/// Thirty-two. A seat is one ordinary test function selecting on one execution
-/// suite, and a module declaring more suites than this is a module whose rows
-/// belong to more than one world.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SuiteGroupLimit;
-
-/// The magnitude governing how many issues one shell-rendering refusal body may
-/// carry.
-///
-/// # Bounds
-///
-/// Sixteen. The rendering's issues are facts about the TOKEN VOCABULARY and
-/// about the harness's own refusal composition rather than about the rows, so
-/// their count is bounded by how many distinct spellings one shell needs and not
-/// by how many rows it carries — a shell of one row and a shell of two hundred
-/// establish the same set.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ShellIssueLimit;
+crate::plane::limits! {
+    /// The magnitude governing how many segments one rendered path may carry
+    /// after the crate binding it is rooted at.
+    ///
+    /// # Bounds
+    ///
+    /// Eight. A path reaching deeper than eight segments past a crate root has
+    /// stopped naming an item and started describing a tree, and the repair is a
+    /// re-export at the address rather than a longer spelling at this end.
+    PathSegmentLimit = 8,
+    /// The magnitude governing how many roles one descriptor row may carry.
+    ///
+    /// # Bounds
+    ///
+    /// Sixteen. A role is open classification and a row carrying more than
+    /// sixteen of them has stopped classifying and started describing; the
+    /// repair is a second row, not a wider roster.
+    RoleLimit = 16,
+    /// The magnitude governing how many tags one descriptor row may carry.
+    ///
+    /// # Bounds
+    ///
+    /// Sixteen, and DECLARED separately from [`RoleLimit`] rather than aliased
+    /// to it: roles and tags are two capacities the harness declares as two
+    /// rosters, and one family standing for both would be one authority
+    /// answering two questions.
+    TagLimit = 16,
+    /// The magnitude governing how many rows one aggregate seat's group may
+    /// declare.
+    ///
+    /// # Bounds
+    ///
+    /// Two hundred and fifty-six. Every row is one stamped lens function and one
+    /// entry in the table the seat runs, so the group's size is what a
+    /// consumer's test binary pays for; past this the repair is a second stamped
+    /// module.
+    RowLimit = 256,
+    /// The magnitude governing how many aggregate seats one stamped module
+    /// declares.
+    ///
+    /// # Bounds
+    ///
+    /// Thirty-two. A seat is one ordinary test function selecting on one
+    /// execution suite, and a module declaring more suites than this is a module
+    /// whose rows belong to more than one world.
+    SuiteGroupLimit = 32,
+    /// The magnitude governing how many active-point selectors one deferred
+    /// cargo may declare.
+    ///
+    /// # Bounds
+    ///
+    /// Sixteen. A selector is one active-point roster the deferred cargo reads
+    /// itself through, and a cargo declaring more than sixteen of them carries
+    /// more selection rosters than one declaration's deliveries have; the repair
+    /// is a second declaration behind its own shell, not a wider roster behind
+    /// this one.
+    SelectorLimit = 16,
+    /// The magnitude governing how many issues one shell-rendering refusal body
+    /// may carry.
+    ///
+    /// # Bounds
+    ///
+    /// Sixteen. The rendering's issues are facts about the TOKEN VOCABULARY and
+    /// about the harness's own refusal composition rather than about the rows,
+    /// so their count is bounded by how many distinct spellings one shell needs
+    /// and not by how many rows it carries — a shell of one row and a shell of
+    /// two hundred establish the same set.
+    ///
+    /// Written as the number rather than as a product of the row magnitude
+    /// beside it: a magnitude derived from another magnitude reads as a fact
+    /// when it is a choice.
+    ShellIssueLimit = 16,
+}
 
 // ---------------------------------------------------------------------------
 // The declaration refusal family.
@@ -179,6 +189,13 @@ threadpak::closed_register! {
         /// Two aggregate seats of one payload carry one spelling.
         SeatSpellingDoubled = "seat-spelling-doubled",
             "two aggregate seats of one payload carry one spelling";
+        /// Two of one cargo's selectors are read through one constant, so the
+        /// module the cargo is spliced into would declare that constant twice.
+        SelectorConstantDoubled = "selector-constant-doubled",
+            "two active-point selectors of one deferred cargo carry one constant spelling";
+        /// The cargo declares more selectors than the declared magnitude.
+        SelectorsUnbounded = "selectors-unbounded",
+            "a deferred cargo declares more active-point selectors than the declared magnitude";
     }
 }
 
@@ -447,6 +464,91 @@ pub struct ShellName {
     spelling: String,
 }
 
+/// One active-point selector a deferred cargo reads itself through: the constant
+/// every activation site reads, the roster that constant stands on, and the row
+/// it stands at.
+///
+/// # Authority
+///
+/// **Every spelling arrives from the caller and none is composed here.** Which
+/// name a deferred implementation reads its selector through, what its
+/// active-point roster is called, and which row is the roster's no-damage
+/// control are the facts of the home that RENDERED the cargo; this home writes
+/// the constant that brings them into scope and knows nothing about what they
+/// select.
+///
+/// # Bounds
+///
+/// The roster itself is not declared here either. The cargo carries the item
+/// that declares it — an active-point enum travels in the same tokens the
+/// implementations do — so what this seat adds is the one item the cargo cannot
+/// carry: a constant standing at a row of that roster, in the scope the cargo
+/// was spliced into.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ActivePointSelector {
+    constant: String,
+    active_enum: String,
+    variant: String,
+}
+
+/// The cargo one consumption target receives deferred: the local subject the
+/// deferred implementations stand over, the selectors they read, and the tokens
+/// themselves.
+///
+/// # Where the tokens come from
+///
+/// They are ONE emission's proved cargo, read off the receipt by the caller that
+/// holds one, and handed over whole. Nothing here joins anything, nothing here
+/// decides which units belong to a carrier, and nothing here holds a second copy
+/// of them: the split by delivery is inside the proof, the receipt is what the
+/// split is read from, and this seat is the vehicle's end of the same tokens.
+///
+/// # The subject
+///
+/// The deferred implementations stand over a subject the CONSUMPTION target
+/// owns, and this is its spelling. A copy of an implementation rendered for the
+/// type its declaration named would be that implementation declared twice where
+/// the declaration is, and a foreign trait implemented for a foreign type where
+/// the cargo lands; so the shell declares a private type inside its own module
+/// and the cargo's implementations name it.
+///
+/// The spelling is the rendering home's and travels as data, on the terms every
+/// other name crossing this wall travels: this home writes letters to an
+/// address and does not own the vocabulary in them.
+///
+/// # Bounds
+///
+/// The subject type never becomes consumer API. It is declared inside a module
+/// the shell writes with no visibility, under the shell's own content-addressed
+/// name, so nothing outside the expansion can name it and two shells in one
+/// crate declare two of them without either knowing about the other.
+#[must_use = "a deferred cargo is one emission's proved tokens and what they stand over"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DeferredCargo {
+    subject: String,
+    selectors: Bounded<ActivePointSelector, SelectorLimit>,
+    tokens: GeneratedTree,
+}
+
+/// What one shell defers into its consumption target.
+///
+/// Two postures, and they are different facts rather than one with a missing
+/// half. An expansion that planned members into this carrier defers their proved
+/// cargo; an expansion that planned none defers nothing, and the shell splices
+/// no module at all.
+/// A cargo of no tokens would be a module declaring a subject nothing implements
+/// and constants nothing reads, which is a different thing from an expansion
+/// that never sent this carrier anything — so the absence is a posture rather
+/// than an empty tree.
+#[must_use = "a deferred delivery either carries proved cargo or states that nothing was planned"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum DeferredDelivery {
+    /// The expansion planned no member into this carrier.
+    NothingDeferred,
+    /// The cargo the carrier receives.
+    Carried(DeferredCargo),
+}
+
 /// The generated support shell: the ONE physical carrier every crossing of the
 /// wall rides.
 ///
@@ -536,9 +638,17 @@ pub enum DescriptorPlanIssue {
         role_slot: u32,
     },
     /// The planned member lands somewhere other than the declaration site.
-    /// The shell is emitted at the declaration site as deferred tokens and
-    /// invoked by the consumption target; a member written as a standalone
-    /// artifact is a different delivery and is not this one.
+    ///
+    /// The shell is DEFINED at the declaration site — that is what makes it
+    /// reachable — and the cargo it carries rides into a consumption target as
+    /// that cargo's own delivery and never as the shell's.
+    /// The destination roster names four deliveries, and a member that is not at
+    /// the declaration site declared one of the other three: a standalone
+    /// artifact a publication writes to its own address, the deferred cargo a
+    /// test target invokes, or the deferred cargo a bench target invokes. Each
+    /// of the three is a different delivery and each establishes this issue —
+    /// the two carriers included, because a shell declared into a carrier is a
+    /// member declared into the thing it is the vehicle for.
     DestinationNotDeclarationSite {
         /// The role whose planned destination disagreed.
         role_slot: u32,

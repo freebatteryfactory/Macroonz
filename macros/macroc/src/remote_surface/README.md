@@ -118,15 +118,16 @@ declaring one here would be a body shape claiming a pass that does not exist.
 
 ## The seats
 
-`types.rs` declares, including the one limit family this home's capacity is
-governed by and the two refusal families it answers through. Its own child
+`types.rs` declares, including the one magnitude row this home's capacity is
+governed by — meaning, number, and reason on one row, stamped through the plane's
+`limits!` — and the two refusal families it answers through. Its own child
 `type_guard.rs` holds every road that reaches a private seat — a path's segments
 and rooting, a pairing's two roads, a signature's three paths, a shape's port road
 and entry spelling, the landing's byte role, and the surface's composition — which
 is what makes "a pairing never spells its two roads alike" a shape rather than a
-rule. `type_contract.rs` states the declarative surface: the limit family's
-authority and magnitude written together, the refusal family's declared shape and
-selection order, the facing table, the pairing contract, and the mint standing.
+rule. `type_contract.rs` states the declarative surface: the refusal family's
+declared shape and selection order, the facing table, the pairing contract, and
+the mint standing.
 `plan.rs` reads the plan through its public surface — the account, the context, the
 membership, the kind content — and states what the surface will be, beside the
 availability reading a caller takes before it holds a plan at all. `render.rs` is

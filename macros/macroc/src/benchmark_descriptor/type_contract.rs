@@ -1,13 +1,7 @@
 //! The benchmark-descriptor home's declarative surface: the tables this home
 //! states rather than computes.
 //!
-//! Three declarations stand here.
-//!
-//! The LIMIT FAMILIES: each family's capacity authority and its magnitude on
-//! adjacent rows, so a family cannot be declared on the compile-time ladder while
-//! wearing another road's authority. The families themselves are declared beside
-//! the capacities they govern in `types.rs`; what a family is FOR is said there,
-//! and the number is said here.
+//! Two declarations stand here.
 //!
 //! The BUDGET ORDER: which position of the schema's positional budget roster each
 //! named tolerance occupies. The schema declares budgets as a roster of counts and
@@ -24,42 +18,7 @@
 //! through the gate. Stated as a constant table so the join between what this home
 //! writes and what the mailbox publishes is one list rather than a search.
 
-use super::{
-    BenchRowLimit, ContentionPosture, InputSizeLimit, WorkFormulaLimit, WorkObservationLimit,
-};
-use threadpak::types::{ConstLimit, DeclaredMagnitude, Limit};
-
-impl Limit for InputSizeLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for InputSizeLimit {
-    const MAX: usize = 32;
-}
-
-impl Limit for WorkFormulaLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for WorkFormulaLimit {
-    const MAX: usize = 256;
-}
-
-impl Limit for WorkObservationLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for WorkObservationLimit {
-    const MAX: usize = 8;
-}
-
-impl Limit for BenchRowLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for BenchRowLimit {
-    const MAX: usize = 128;
-}
+use super::ContentionPosture;
 
 impl ContentionPosture {
     /// The arm spelling this posture is emitted under, exactly as the harness's

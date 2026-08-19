@@ -1,15 +1,7 @@
 //! The test-descriptor home's declarative surface: the tables and trait
 //! implementations this home states rather than computes.
 //!
-//! Three declarations stand here.
-//!
-//! The LIMIT FAMILIES: each family's capacity authority and its magnitude are
-//! written on adjacent rows, so a family cannot be declared on the compile-time
-//! ladder while wearing another road's authority — [`Limit::Authority`] resolves
-//! to one type, and naming [`DeclaredMagnitude`] there is what makes
-//! [`ConstLimit`] implementable at all. The families themselves are declared
-//! beside the capacities they govern in `types.rs`; what a family is FOR is said
-//! there, and the number is said here.
+//! Two declarations stand here.
 //!
 //! The REFUSAL FAMILY's declared shape: an issue collection, because one
 //! crossing renders several parts independently — the carrier rides two of them,
@@ -22,66 +14,8 @@
 //! rather than a sentence in a README, so a reader can read the map back and a
 //! compiler keeps the match exhaustive when a row is added.
 
-use super::{
-    CrateFacing, PathSegmentLimit, RoleLimit, RowLimit, ShellIssueLimit, ShellRendering,
-    SuiteGroupLimit, TagLimit,
-};
+use super::{CrateFacing, ShellRendering};
 use threadpak::refusal::{FamilyShape, RefusalFamily};
-use threadpak::types::{ConstLimit, DeclaredMagnitude, Limit};
-
-impl Limit for PathSegmentLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for PathSegmentLimit {
-    const MAX: usize = 8;
-}
-
-impl Limit for RoleLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for RoleLimit {
-    const MAX: usize = 16;
-}
-
-impl Limit for TagLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for TagLimit {
-    const MAX: usize = 16;
-}
-
-impl Limit for RowLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for RowLimit {
-    const MAX: usize = 256;
-}
-
-impl Limit for SuiteGroupLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for SuiteGroupLimit {
-    const MAX: usize = 32;
-}
-
-impl Limit for ShellIssueLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for ShellIssueLimit {
-    /// Sixteen. The rendering's issues are facts about the token vocabulary and
-    /// about the harness's refusal composition, so their count is bounded by the
-    /// number of distinct spellings one shell needs rather than by the rows it
-    /// carries. Written as the number rather than as a product of the row
-    /// magnitude beside it: a magnitude derived from another magnitude reads as a
-    /// fact when it is a choice.
-    const MAX: usize = 16;
-}
 
 impl RefusalFamily for ShellRendering {
     const SHAPE: FamilyShape = FamilyShape::IssueCollection;

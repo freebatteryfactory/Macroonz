@@ -37,64 +37,62 @@ mod guard;
 
 // ---------------------------------------------------------------------------
 // The magnitudes.
+//
+// This home's own rows, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on every row below
+// are this home's, declared beside the capacities they govern.
 // ---------------------------------------------------------------------------
 
-/// The magnitude governing how many members one declared codec shape may carry.
-///
-/// # Bounds
-///
-/// Sixty-four. Every member is one framed run in the encode road and one bound
-/// local in the decode road, so a shape past sixty-four has stopped being one
-/// value's spelling and started being a record nobody reads in one sitting — and
-/// the repair is a NESTED member carrying its own codec, not a longer roster
-/// here.
-///
-/// The authority and the number are written together in `type_contract.rs`, one
-/// row per family, so a family cannot stand on the compile-time ladder while
-/// wearing another road's authority.
-///
-/// # Nonclaims
-///
-/// It is this home's own family and not a seat on the plane's roster. The plane
-/// declares the magnitudes its own capacities are governed by; a codec shape is
-/// this home's capacity, so the family is declared here beside what it governs,
-/// exactly as the derive-implementation home declares its own. A promotion to
-/// the plane's roster is a decision about where the capacity lives, not an edit.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct CodecMemberLimit;
-
-/// The magnitude governing how many segments one rendered type path may carry.
-///
-/// # Bounds
-///
-/// Eight. A path reaching deeper than eight segments has stopped naming an item
-/// and started describing a tree, and the repair is a re-export at the address
-/// rather than a longer spelling at this end.
-///
-/// Declared here rather than borrowed from the test-descriptor home's own
-/// path family: that one is rooted at a rename twin and crosses the wall, and a
-/// path this home writes is rooted in the consumer's own crate. One family
-/// standing for both would be one authority answering two questions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct CodecPathSegmentLimit;
-
-/// The magnitude governing how many issues one codec-composition refusal body
-/// may carry.
-///
-/// # Bounds
-///
-/// Sixty-four — one per member seat, because the widest pass is the binding pass
-/// and that pass asks one question of every declared member: whether the local
-/// the decode road would bind for it collides with a binding the rendering
-/// declares itself. Every member can collide at once, and a caller repairing a
-/// shape one member per attempt is a caller this home failed.
-///
-/// Written as the number rather than as the member magnitude read a second time:
-/// a magnitude derived from another magnitude reads as a fact when it is a
-/// choice, and this home would still owe the same number if the member magnitude
-/// moved for its own reasons.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct CodecSurfaceIssueLimit;
+crate::plane::limits! {
+    /// The magnitude governing how many members one declared codec shape may
+    /// carry.
+    ///
+    /// # Bounds
+    ///
+    /// Sixty-four. Every member is one framed run in the encode road and one
+    /// bound local in the decode road, so a shape past sixty-four has stopped
+    /// being one value's spelling and started being a record nobody reads in one
+    /// sitting — and the repair is a NESTED member carrying its own codec, not a
+    /// longer roster here.
+    ///
+    /// # Nonclaims
+    ///
+    /// It is this home's own family because a codec shape is this home's
+    /// capacity. The plane's rows are the magnitudes more than one home asks
+    /// about; this one nobody else asks, so it is declared beside what it
+    /// governs.
+    CodecMemberLimit = 64,
+    /// The magnitude governing how many segments one rendered type path may
+    /// carry.
+    ///
+    /// # Bounds
+    ///
+    /// Eight. A path reaching deeper than eight segments has stopped naming an
+    /// item and started describing a tree, and the repair is a re-export at the
+    /// address rather than a longer spelling at this end.
+    ///
+    /// Declared here rather than borrowed from the test-descriptor home's own
+    /// path family: that one is rooted at a rename twin and crosses the wall,
+    /// and a path this home writes is rooted in the consumer's own crate. One
+    /// family standing for both would be one authority answering two questions.
+    CodecPathSegmentLimit = 8,
+    /// The magnitude governing how many issues one codec-composition refusal
+    /// body may carry.
+    ///
+    /// # Bounds
+    ///
+    /// Sixty-four — one per member seat, because the widest pass is the binding
+    /// pass and that pass asks one question of every declared member: whether
+    /// the local the decode road would bind for it collides with a binding the
+    /// rendering declares itself. Every member can collide at once, and a caller
+    /// repairing a shape one member per attempt is a caller this home failed.
+    ///
+    /// Written as the number rather than as the member magnitude read a second
+    /// time: a magnitude derived from another magnitude reads as a fact when it
+    /// is a choice, and this home would still owe the same number if the member
+    /// magnitude moved for its own reasons.
+    CodecSurfaceIssueLimit = 64,
+}
 
 // ---------------------------------------------------------------------------
 // The declaration refusal family.
@@ -461,8 +459,15 @@ pub enum CodecSurfaceIssue {
         role_slot: u32,
     },
     /// The planned member lands somewhere other than the declaration site.
-    /// Both admitted placements are expansion deliveries; a member written as a
-    /// standalone artifact is a different delivery and is not this one.
+    ///
+    /// Both admitted placements are expansion deliveries — spliced beside the
+    /// owner's item, or wrapped in a visibly published module — so a codec
+    /// surface belongs in the tokens the consumer's normal build compiles.
+    /// The destination roster names four deliveries, and a member that is not at
+    /// the declaration site declared one of the other three: a standalone
+    /// artifact a publication writes to its own address, the deferred cargo a
+    /// test target invokes, or the deferred cargo a bench target invokes. Each
+    /// of the three is a different delivery and each establishes this issue.
     DestinationNotDeclarationSite {
         /// The role whose planned destination disagreed.
         role_slot: u32,

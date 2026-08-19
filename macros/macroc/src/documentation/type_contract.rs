@@ -1,15 +1,7 @@
 //! The documentation home's declarative surface: the tables and trait
 //! implementations this home states rather than computes.
 //!
-//! Three declarations stand here.
-//!
-//! The LIMIT FAMILIES: each family's capacity authority and its magnitude are
-//! written on adjacent rows, so a family cannot be declared on the compile-time
-//! ladder while wearing another road's authority — [`Limit::Authority`] resolves
-//! to one type, and naming [`DeclaredMagnitude`] there is what makes
-//! [`ConstLimit`] implementable at all. The families themselves are declared
-//! beside the capacities they govern in `types.rs`; what a family is FOR is said
-//! there, and the number is said here.
+//! Two declarations stand here.
 //!
 //! The REFUSAL FAMILY's declared shape: an issue collection, because a plan may
 //! cover several facets nobody wrote while an item writes several sections nobody
@@ -21,50 +13,8 @@
 //! sentence in a README, so a reader can read the discipline back and the
 //! compiler keeps the roster and the table the same length.
 
-use super::{
-    DocumentationCoverage, DocumentationIssueLimit, DocumentationLineLimit,
-    DocumentationSectionLimit, DocumentationTextLimit,
-};
+use super::DocumentationCoverage;
 use threadpak::refusal::{FamilyShape, RefusalFamily};
-use threadpak::types::{ConstLimit, DeclaredMagnitude, Limit};
-
-impl Limit for DocumentationSectionLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for DocumentationSectionLimit {
-    /// The machine's facet roster's own cardinality. A section is earned by one
-    /// facet and a facet earns at most one section, so a seventh section would
-    /// have to be earned by a seventh facet — and the machine declares six.
-    const MAX: usize = 6;
-}
-
-impl Limit for DocumentationLineLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for DocumentationLineLimit {
-    const MAX: usize = 32;
-}
-
-impl Limit for DocumentationTextLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for DocumentationTextLimit {
-    const MAX: usize = 512;
-}
-
-impl Limit for DocumentationIssueLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for DocumentationIssueLimit {
-    /// Eighteen: two independent questions of each of the six covered facets, and
-    /// one question of each of the six sections a bounded item may declare. All
-    /// three can hold at once, and no more can.
-    const MAX: usize = 18;
-}
 
 impl RefusalFamily for DocumentationCoverage {
     const SHAPE: FamilyShape = FamilyShape::IssueCollection;

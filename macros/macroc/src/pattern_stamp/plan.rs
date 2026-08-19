@@ -212,10 +212,12 @@ pub fn plan_scope_guard_stamp(
 /// failure to look hard enough.
 ///
 /// Returns [`StampedUnitPlanIssue::DestinationNotArtifact`] where the planned
-/// member is spliced into the declaration it came from: a published stamp is a
-/// standalone artifact written under a byte role, staged and landed by the
-/// publication operation and committed by a human, and a member that lands at the
-/// declaration site is the delivery that needs no publication road at all.
+/// member lands anywhere but a standalone artifact: a published stamp is bytes at
+/// an address, written under a byte role, staged and landed by the publication
+/// operation and committed by a human, so the declaration site — the delivery
+/// that needs no publication road at all — and the two carriers, whose cargo is
+/// expanded by a consumption target and written nowhere, are three other
+/// deliveries and each reaches this answer.
 ///
 /// The two checks are DEPENDENT — there is no destination to read until a member
 /// was found — so exactly one of them is ever established.
@@ -230,7 +232,15 @@ pub fn stamped_unit_plan(
     };
     let byte_role = match member.output.destination {
         MemberDestination::AsArtifact { byte_role } => byte_role,
-        MemberDestination::AtDeclarationSite => {
+        // A published stamp is bytes at an ADDRESS, so every delivery that
+        // names no address reaches one answer — a carrier's cargo is expanded
+        // by a consumption target and written nowhere. The arms are written out
+        // one by one rather than under a wildcard: a delivery admitted later
+        // stops the compiler here until somebody says whether a stamp is
+        // published into it.
+        MemberDestination::AtDeclarationSite
+        | MemberDestination::IntoTestCarrier
+        | MemberDestination::IntoBenchCarrier => {
             return Err(StampedUnitPlanIssue::DestinationNotArtifact {
                 role_slot: role.slot(),
             });

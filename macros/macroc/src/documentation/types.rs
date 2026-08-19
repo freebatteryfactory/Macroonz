@@ -45,70 +45,69 @@ mod guard;
 
 // ---------------------------------------------------------------------------
 // The magnitudes.
+//
+// This home's own rows, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on every row below
+// are this home's, declared beside the capacities they govern.
 // ---------------------------------------------------------------------------
 
-/// The magnitude governing how many earned sections one documented item may
-/// carry.
-///
-/// # Bounds
-///
-/// Six — the machine's facet roster's own cardinality, because a section is
-/// EARNED by one facet and one facet earns at most one section. It is not a
-/// number this home chose out of taste: a seventh section would have to be earned
-/// by a seventh facet, and the machine declares six.
-///
-/// The authority and the number are written together in `type_contract.rs`, one
-/// row per family, so a family cannot stand on the compile-time ladder while
-/// wearing another road's authority.
-///
-/// # Nonclaims
-///
-/// It is this home's own family and not a seat on the plane's roster. The plane's
-/// [`FacetLimit`] governs how many facets a PLAN may cover; this one governs how
-/// many sections an ITEM may carry, and one family standing for both would be one
-/// authority answering two questions — even where the two numbers agree today. A
-/// promotion to the plane's roster is a decision about where the capacity lives,
-/// not an edit.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DocumentationSectionLimit;
-
-/// The magnitude governing how many lines one earned section may carry.
-///
-/// # Bounds
-///
-/// Thirty-two. A section past thirty-two lines has stopped explaining one facet
-/// and started being a document, and the repair is prose the owner keeps
-/// somewhere a reader can navigate rather than a longer run of doc attributes on
-/// one item.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DocumentationLineLimit;
-
-/// The magnitude governing how many bytes one piece of owner doc text may carry.
-///
-/// # Bounds
-///
-/// Five hundred and twelve. One summary sentence and one section line are both
-/// single LINES, and a line past five hundred and twelve bytes is a paragraph
-/// that lost its line breaks — which the door already refuses for a different
-/// reason. The two checks stand together: no line breaks, and not this long.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DocumentationTextLimit;
-
-/// The magnitude governing how many issues one documentation-coverage refusal
-/// body may carry.
-///
-/// # Bounds
-///
-/// Eighteen. The coverage pass asks two independent questions of every covered
-/// facet — whether a section was written for it, and whether two were — and one
-/// question of every declared section, whether the plan covers the facet it
-/// names. The facet roster is six and the section roster is bounded by the same
-/// six, so eighteen issues can hold at once and no more.
-///
-/// The plan pass does not add to it: reading the plan and covering its facets are
-/// dependent, and there is nothing to cover until the plan has been read.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DocumentationIssueLimit;
+crate::plane::limits! {
+    /// The magnitude governing how many earned sections one documented item may
+    /// carry.
+    ///
+    /// # Bounds
+    ///
+    /// Six — the machine's facet roster's own cardinality, because a section is
+    /// EARNED by one facet and one facet earns at most one section. It is not a
+    /// number this home chose out of taste: a seventh section would have to be
+    /// earned by a seventh facet, and the machine declares six.
+    ///
+    /// # Nonclaims
+    ///
+    /// It is not the plane's [`FacetLimit`], which governs how many facets a
+    /// PLAN may cover. This one governs how many sections an ITEM may carry, and
+    /// one family standing for both would be one authority answering two
+    /// questions — even where the two numbers agree today. The plan's question is
+    /// asked by more than one home and lives on the plane's rows; an item's
+    /// sections are this home's question alone.
+    DocumentationSectionLimit = 6,
+    /// The magnitude governing how many lines one earned section may carry.
+    ///
+    /// # Bounds
+    ///
+    /// Thirty-two. A section past thirty-two lines has stopped explaining one
+    /// facet and started being a document, and the repair is prose the owner
+    /// keeps somewhere a reader can navigate rather than a longer run of doc
+    /// attributes on one item.
+    DocumentationLineLimit = 32,
+    /// The magnitude governing how many bytes one piece of owner doc text may
+    /// carry.
+    ///
+    /// # Bounds
+    ///
+    /// Five hundred and twelve. One summary sentence and one section line are
+    /// both single LINES, and a line past five hundred and twelve bytes is a
+    /// paragraph that lost its line breaks — which the door already refuses for a
+    /// different reason. The two checks stand together: no line breaks, and not
+    /// this long.
+    DocumentationTextLimit = 512,
+    /// The magnitude governing how many issues one documentation-coverage
+    /// refusal body may carry.
+    ///
+    /// # Bounds
+    ///
+    /// Eighteen. The coverage pass asks two independent questions of every
+    /// covered facet — whether a section was written for it, and whether two
+    /// were — and one question of every declared section, whether the plan
+    /// covers the facet it names. The facet roster is six and the section roster
+    /// is bounded by the same six, so eighteen issues can hold at once and no
+    /// more.
+    ///
+    /// The plan pass does not add to it: reading the plan and covering its
+    /// facets are dependent, and there is nothing to cover until the plan has
+    /// been read.
+    DocumentationIssueLimit = 18,
+}
 
 // ---------------------------------------------------------------------------
 // The declaration refusal family.
@@ -426,8 +425,14 @@ pub enum DocumentationIssue {
         role_slot: u32,
     },
     /// The planned member lands somewhere other than the declaration site.
-    /// Doc material is spliced ahead of the owner's own item; a member written as
-    /// a standalone artifact is a different delivery and is not this one.
+    ///
+    /// Doc material is an attribute run spliced ahead of the owner's own item, so
+    /// it belongs in the tokens the consumer's normal build compiles.
+    /// The destination roster names four deliveries, and a member that is not at
+    /// the declaration site declared one of the other three: a standalone
+    /// artifact a publication writes to its own address, the deferred cargo a
+    /// test target invokes, or the deferred cargo a bench target invokes. Each
+    /// of the three is a different delivery and each establishes this issue.
     DestinationNotDeclarationSite {
         /// The role whose planned destination disagreed.
         role_slot: u32,

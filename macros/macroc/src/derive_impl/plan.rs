@@ -99,12 +99,14 @@ pub struct SurfacePlan {
 /// than a failure to look hard enough. Both halves are looked for, because both
 /// are planned members and a delivery missing either is half a delivery.
 ///
-/// Returns [`ImplementationSurfaceIssue::DestinationNotDeclarationSite`] where a
+/// Returns [`ImplementationSurfaceIssue::DestinationNotRoleDeclared`] where a
 /// planned member lands somewhere other than the landing its ROLE declares
 /// ([`RenderedImplementation::destination`]): where a member of this kind lands
-/// is the roster's own constant answer, so a plan that wrote a member of it as a
-/// standalone artifact is refused against that answer rather than against a
-/// literal repeated here.
+/// is the roster's own constant answer, and the two halves of a pair are
+/// answered differently — the production implementation at the declaration site,
+/// the evaluation copy in the test carrier — so a plan that wrote either of them
+/// into the other's delivery is refused against that answer rather than against
+/// a literal repeated here.
 ///
 /// The checks are DEPENDENT per half — there is no destination to read until a
 /// member was found — so at most one of them is established per role, and the
@@ -152,7 +154,7 @@ fn planned_member<'plan>(
     if member.output.destination == role.destination() {
         Ok(member)
     } else {
-        Err(ImplementationSurfaceIssue::DestinationNotDeclarationSite {
+        Err(ImplementationSurfaceIssue::DestinationNotRoleDeclared {
             role_slot: role.slot(),
         })
     }

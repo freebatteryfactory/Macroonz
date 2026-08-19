@@ -417,6 +417,8 @@ pub mod derive_impl;
 pub mod codec;
 pub mod test_descriptor;
 pub mod benchmark_descriptor;
+pub mod host_wrapper;
+pub mod remote_surface;
 pub mod explanation_protocol;
 pub mod closure;
 pub mod documentation;

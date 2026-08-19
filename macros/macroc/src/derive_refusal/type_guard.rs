@@ -4,9 +4,10 @@
 //! Two of the roads here are the home's whole structural claim.
 //! [`RefusalDeriveSurface::assembled`] is crate-internal, so the only way to
 //! hold a captured surface is to have captured one; [`ClosedExpansion::bound`]
-//! is crate-internal and takes a proved closure, so the only way to hold a
-//! receipt — and therefore the only way to reach an emitted tree — is to have
-//! walked the whole road.
+//! is crate-internal and binds through the generic terminal, which takes a plan,
+//! a closure proved against that plan, and a complete explanation — so the only
+//! way to hold this family's view, and therefore the only way to reach an
+//! emission, is to have walked the whole road.
 //! Neither can be written anywhere else, which is why deleting any step on that
 //! road deletes the emission rather than shortening it.
 //!
@@ -14,11 +15,13 @@
 //! structured diagnostic — read the refusal's own two private seats.
 
 use super::{
-    CapturedCause, CauseOrderStanding, ClosedExpansion, CrateBinding, DEFAULT_CRATE_BINDING,
-    DerivedMembership, RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveFact,
-    RefusalDeriveSurface, RefusalOwnerFacts, RefusalSite,
+    CapturedCause, CapturedDocumentation, CauseOrderStanding, ClosedExpansion, CrateBinding,
+    DEFAULT_CRATE_BINDING, DerivedMembership, DocumentedDeclaration, RefusalCompileContext,
+    RefusalDerivationDraft, RefusalDeriveFact, RefusalDeriveSurface, RefusalOwnerFacts, RefusalSite,
 };
-use crate::closure::{ProjectionClosure, RenderedProjection};
+use crate::closure::{
+    PartitionCargo, ProjectionClosure, ProjectionReceipt, ReceiptBindingRefusal, RenderedProjection,
+};
 use crate::derive_refusal::diagnose::{
     LineBody, LineSite, RefusalClass, RefusalLine, composed, shown, witnessed,
 };
@@ -28,14 +31,14 @@ use crate::diagnostics::{
 };
 use crate::explanation_protocol::ProjectionExplanationView;
 use crate::plane::{
-    CapturedDeclarationSubject, ClosedExpansionId, ContractSubject, DeriveCauseLimit,
-    ProjectionIdentity, ProjectionProvenance, ProjectionRole, ProjectionTranscript,
-    ServiceEntrySubject, encode_bytes,
+    CapturedDeclarationSubject, CapturedTokenLimit, ClosedExpansionId, ContractSubject,
+    DeriveCauseLimit, ProjectionIdentity, ProjectionProvenance, ProjectionRole,
+    ProjectionTranscript, ServiceEntrySubject,
 };
 use crate::planning::{
     DeriveImplProjection, ProjectionDisposition, ProjectionPlan, RenderedImplementation,
 };
-use crate::token::{GeneratedTree, SpanTable};
+use crate::token::{GeneratedTree, SpanHandle, SpanTable};
 use threadpak::evidence::CauseDisposition;
 use threadpak::refusal::FamilyShape;
 use threadpak::types::Bounded;
@@ -87,6 +90,47 @@ impl CapturedCause {
     }
 }
 
+impl CapturedDocumentation {
+    /// Read one documentation row off the attribute that carries it.
+    ///
+    /// Crate-internal, on the terms every other captured seat stands under: a
+    /// row states that this text was written on this declaration at this token,
+    /// and the only party that can say so is the walk that read it there.
+    pub(crate) fn read(declared_on: DocumentedDeclaration, text: &str, token: SpanHandle) -> Self {
+        Self {
+            declared_on,
+            text: text.to_owned(),
+            token,
+        }
+    }
+
+    /// Which declaration this row was written on.
+    #[must_use]
+    pub const fn declared_on(&self) -> &DocumentedDeclaration {
+        &self.declared_on
+    }
+
+    /// The text the attribute carries, exactly as the capture read it.
+    ///
+    /// The escaping is the token producer's and was undone before the text
+    /// reached this seat, so what stands here is what an author wrote rather
+    /// than the spelling a literal wore.
+    #[must_use]
+    pub fn text(&self) -> &str {
+        &self.text
+    }
+
+    /// The token this row sits at, as a handle into the producer's own span
+    /// table.
+    ///
+    /// The ATTRIBUTE's own token and never the text inside it: a reader sent to
+    /// a documentation row is sent to the line an author would edit.
+    #[must_use]
+    pub const fn token(&self) -> SpanHandle {
+        self.token
+    }
+}
+
 impl RefusalDeriveSurface {
     /// Assemble one captured surface.
     ///
@@ -97,6 +141,7 @@ impl RefusalDeriveSurface {
         binding: CrateBinding,
         shape: FamilyShape,
         causes: Bounded<CapturedCause, DeriveCauseLimit>,
+        documentation: Bounded<CapturedDocumentation, CapturedTokenLimit>,
         identity: ProjectionIdentity<CapturedDeclarationSubject>,
     ) -> Self {
         Self {
@@ -105,6 +150,7 @@ impl RefusalDeriveSurface {
             binding,
             shape,
             causes,
+            documentation,
             identity,
         }
     }
@@ -138,9 +184,33 @@ impl RefusalDeriveSurface {
         self.causes.iter()
     }
 
+    /// The documentation rows the declaration carries, in the order the walk
+    /// read them: the family's own ahead of the variants', and each variant's in
+    /// the order its lines were written.
+    ///
+    /// # Ordering
+    ///
+    /// This order IS meaning for the rows of one declaration, because prose
+    /// reordered is prose rewritten. It ranks nothing across declarations: which
+    /// declaration a row belongs to is the row's own seat
+    /// ([`CapturedDocumentation::declared_on`]) rather than its position here.
+    pub fn documentation(&self) -> impl Iterator<Item = &CapturedDocumentation> {
+        self.documentation.iter()
+    }
+
     /// This captured declaration's own identity — derived from the token
     /// material, so the same declaration captures to the same identity whoever
     /// produced the tokens.
+    ///
+    /// # Content
+    ///
+    /// **The token material is the whole of what this stands over, and the
+    /// documentation is part of it.** The derivation runs over the declared
+    /// input's canonical bytes at full length, and a documentation attribute is
+    /// declared input like any other token — so a declaration whose prose
+    /// changed captures to a different identity, plans differently, and closes
+    /// under a different receipt. The rows on this surface are a READING of that
+    /// same material, never a second thing to commit to.
     #[must_use]
     pub const fn identity(&self) -> ProjectionIdentity<CapturedDeclarationSubject> {
         self.identity
@@ -442,67 +512,76 @@ impl RefusalCompileContext {
 }
 
 impl ClosedExpansion {
-    /// Bind one closed expansion.
+    /// Bind one closed expansion: this family's two facts, over the receipt the
+    /// generic terminal binds.
     ///
     /// Crate-internal: the only road to one is
     /// [`compile_refusal`](crate::derive_refusal::compile_refusal).
     ///
-    /// # The closed-expansion transcript
+    /// # One binding, and no transcript of its own
     ///
-    /// The identity is derived under [`ProjectionRole::ClosedExpansion`],
-    /// anchored on the CLOSURE's identity — because a receipt exists only where
-    /// a closure does — over a content transcript committing to the captured
-    /// declaration's identity, the plan's identity, and the emitted token tree's
-    /// canonical bytes at full length.
-    /// Those are exactly the three things a reader of one receipt asks about:
-    /// what was read, what was decided, and what was handed to the compiler.
+    /// The plan, the proof, and the explanation are handed straight to
+    /// [`ProjectionReceipt::bound`], which derives the identity and refuses a
+    /// closure proved against another plan. This road derives nothing.
+    /// A second transcript here would be a second name for one expansion — two
+    /// identities over one plan and one proof, agreeing until either derivation
+    /// was edited — and the terminal's is the one every projection kind's door
+    /// already ends at.
     ///
-    /// The emitted tree is not a parameter.
-    /// It is read off the closure, which owns it: a receipt that was handed a
-    /// tree separately could be handed one the closure never proved.
+    /// # Errors
+    ///
+    /// Returns [`ReceiptBindingRefusal`] exactly as the terminal returns it,
+    /// naming the plan handed in and the plan the closure was proved against.
+    /// It is handed through rather than folded into a diagnostic here, because
+    /// the road that projects it is [`diagnose::receipt_refused`], and this seat
+    /// composes no sentence of its own.
+    ///
+    /// [`diagnose::receipt_refused`]: crate::derive_refusal::diagnose::receipt_refused
     pub(crate) fn bound(
         surface: RefusalDeriveSurface,
         plan: ProjectionPlan<DeriveImplProjection>,
         closure: ProjectionClosure<RenderedImplementation>,
         explanation: ProjectionExplanationView<DeriveImplProjection>,
         cause_order: ProjectionDisposition,
-    ) -> Self {
-        let mut content = Vec::new();
-        encode_bytes(surface.identity().as_bytes(), &mut content);
-        encode_bytes(plan.identity().as_bytes(), &mut content);
-        encode_bytes(&closure.emitted().canonical_bytes(), &mut content);
-        let closure_identity = closure.identity();
-        let (identity, provenance) =
-            ClosedExpansionId::derived_with_provenance(ProjectionTranscript::under_projection(
-                ProjectionRole::ClosedExpansion,
-                &closure_identity,
-                &content,
-                0,
-            ));
-        Self {
-            identity,
-            provenance,
+    ) -> Result<Self, ReceiptBindingRefusal> {
+        let receipt = ProjectionReceipt::bound(plan, closure, explanation)?;
+        Ok(Self {
             surface,
-            plan,
-            closure,
-            explanation,
+            receipt,
             cause_order,
-        }
+        })
     }
 
-    /// This closed expansion's own identity: the name of the whole receipt.
+    /// The receipt this view stands over — the terminal every projection kind's
+    /// door ends at.
+    ///
+    /// Every road below that answers about the plan, the proof, the explanation,
+    /// or an emission reads THIS value, so a caller that wants the terminal's own
+    /// surface — its published artifacts, its delivery addressing — reads it here
+    /// rather than through a copy of it seated beside one.
+    #[must_use]
+    pub const fn receipt(&self) -> &ProjectionReceipt<DeriveImplProjection> {
+        &self.receipt
+    }
+
+    /// This closed expansion's own identity: the receipt's, and never a second
+    /// one derived beside it.
     #[must_use]
     pub const fn identity(&self) -> ClosedExpansionId {
-        self.identity
+        self.receipt.identity()
     }
 
     /// How that identity was derived.
     #[must_use]
     pub const fn provenance(&self) -> &ProjectionProvenance {
-        &self.provenance
+        self.receipt.provenance()
     }
 
     /// The captured typed declaration this expansion was compiled from.
+    ///
+    /// This family's own fact and the one seat the receipt does not carry: the
+    /// terminal is generic over every projection kind, and a captured
+    /// refusal-family surface is a value only this door produces.
     #[must_use]
     pub const fn surface(&self) -> &RefusalDeriveSurface {
         &self.surface
@@ -511,45 +590,64 @@ impl ClosedExpansion {
     /// The complete plan: context, content, membership, invalidation set,
     /// decision trace, origin trail, and nonclaims.
     pub const fn plan(&self) -> &ProjectionPlan<DeriveImplProjection> {
-        &self.plan
+        self.receipt.plan()
     }
 
     /// The proof that what was rendered is what was planned.
     pub const fn closure(&self) -> &ProjectionClosure<RenderedImplementation> {
-        &self.closure
+        self.receipt.closure()
     }
 
     /// The complete explanation over this kind's applicable questions.
     pub const fn explanation(&self) -> &ProjectionExplanationView<DeriveImplProjection> {
-        &self.explanation
+        self.receipt.explanation()
     }
 
     /// What happened to the typed cause-order projection.
+    ///
+    /// This family's other fact, and the second seat the receipt does not carry:
+    /// which related projection a shape declares is a question about a refusal
+    /// family's shape, and the explanation protocol asks it of this kind alone.
     pub const fn cause_order(&self) -> &ProjectionDisposition {
         &self.cause_order
     }
 
-    /// The token tree an expansion emits.
+    /// What the declaration site expands into: the cargo the consumer's normal
+    /// build compiles, and the only cargo it compiles.
     ///
-    /// The shell's only act is to hand this to the compiler.
-    /// It is the CLOSURE's tree, borrowed rather than copied: the receipt keeps
-    /// no second tree, so what is emitted is what was proved and there is no
-    /// pair of values to drift apart.
+    /// The evaluation copies are not here and cannot be. They are planned into
+    /// the TEST CARRIER, the proof splits the rendering by the delivery each
+    /// member declared, and this road reads the declaration-site seat of that
+    /// split — so a selector-bearing copy standing in what a normal build
+    /// compiles is not a value this road can hand back.
+    ///
+    /// It is the CLOSURE's own proved cargo, reached through the receipt: no
+    /// second join happens anywhere, so what is emitted is what was proved.
     #[must_use]
-    pub const fn emitted(&self) -> &GeneratedTree {
-        self.closure.emitted()
+    pub const fn emitted(&self) -> &PartitionCargo {
+        self.receipt.declaration_site()
     }
 
-    /// What one rendered unit looks like as Rust source text — an inspection
-    /// projection of the SAME tree that is emitted, never a second rendering.
+    /// What the declaration site's cargo looks like as Rust source text — an
+    /// inspection projection of the SAME tokens that are emitted, never a second
+    /// rendering.
+    ///
+    /// # Nonclaims
+    ///
+    /// It answers with nothing where the plan declared no member into the
+    /// declaration site. That is a stated posture rather than a missing value:
+    /// an empty text is what a rendering of no tokens projects, and an
+    /// unoccupied emission is one nothing was ever planned into. This road never
+    /// turns the second into the first.
     #[must_use]
-    pub fn inspected(&self) -> String {
-        self.emitted().inspected()
+    pub fn inspected(&self) -> Option<String> {
+        self.emitted().tokens().map(GeneratedTree::inspected)
     }
 
-    /// The rendering this expansion closed over.
+    /// The rendering this expansion closed over — every unit, under every role,
+    /// whichever delivery it was planned into.
     #[must_use]
     pub const fn rendered(&self) -> &RenderedProjection<RenderedImplementation> {
-        self.closure.rendered()
+        self.receipt.closure().rendered()
     }
 }

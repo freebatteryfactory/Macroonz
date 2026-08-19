@@ -102,32 +102,39 @@ pub struct ScopeGuardStampAnchors {
 
 // ---------------------------------------------------------------------------
 // The magnitudes.
+//
+// This home's own rows, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on every row below
+// are this home's, declared beside the capacities they govern.
 // ---------------------------------------------------------------------------
 
-/// The magnitude governing how many segments one rendered type path may carry.
-///
-/// # Bounds
-///
-/// Eight. A path reaching deeper than eight segments has stopped naming an item
-/// and started describing a tree, and the repair is a re-export at the address
-/// rather than a longer spelling at this end.
-///
-/// The authority and the number are written together in `type_contract.rs`, one
-/// row per family, so a family cannot stand on the compile-time ladder while
-/// wearing another road's authority.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SeatPathSegmentLimit;
-
-/// The magnitude governing how many coupled seats one published stamp covers.
-///
-/// # Bounds
-///
-/// Sixty-four. One publication unit is one artifact landed under one receipt,
-/// and the seats it covers are the homes that will invoke it; past sixty-four
-/// the unit has stopped being one migration and become two, which is a decision
-/// the publication road's own admission rule takes rather than a wider bound.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SeatDeclarationLimit;
+crate::plane::limits! {
+    /// The magnitude governing how many segments one rendered type path may
+    /// carry.
+    ///
+    /// # Bounds
+    ///
+    /// Eight. A path reaching deeper than eight segments has stopped naming an
+    /// item and started describing a tree, and the repair is a re-export at the
+    /// address rather than a longer spelling at this end.
+    SeatPathSegmentLimit = 8,
+    /// The magnitude governing how many coupled seats one published stamp
+    /// covers.
+    ///
+    /// # Bounds
+    ///
+    /// Sixty-four. One publication unit is one artifact landed under one
+    /// receipt, and the seats it covers are the homes that will invoke it; past
+    /// sixty-four the unit has stopped being one migration and become two, which
+    /// is a decision the publication road's own admission rule takes rather than
+    /// a wider bound.
+    ///
+    /// Written as the number rather than as a count of the machine's bands: a
+    /// magnitude derived from another structure's size reads as a fact when it
+    /// is a choice, and it would move for a reason nobody's publication changed
+    /// by.
+    SeatDeclarationLimit = 64,
+}
 
 // ---------------------------------------------------------------------------
 // The declaration refusal family.
@@ -460,11 +467,17 @@ pub enum StampedUnitPlanIssue {
         /// The role's position in its kind's declared roster.
         role_slot: u32,
     },
-    /// The planned member lands at the declaration site.
-    /// A published stamp is a standalone artifact written under a byte role and
-    /// committed by a human; a member spliced into the declaration it came from
-    /// is a different delivery, and it is the delivery that needs no publication
-    /// road at all.
+    /// The planned member lands somewhere other than a standalone artifact.
+    ///
+    /// A published stamp is bytes at an ADDRESS — written under a byte role,
+    /// staged and landed by the publication operation, and committed by a human.
+    /// The destination roster names four deliveries, and a member that is not an
+    /// artifact declared one of the other three: tokens spliced at the
+    /// declaration it came from, the deferred cargo a test target invokes, or the
+    /// deferred cargo a bench target invokes. None of the three names an address
+    /// — the first is the delivery that needs no publication road at all, and a
+    /// carrier's cargo is expanded by a consumption target and written nowhere —
+    /// so each of them establishes this issue.
     DestinationNotArtifact {
         /// The role whose planned destination disagreed.
         role_slot: u32,

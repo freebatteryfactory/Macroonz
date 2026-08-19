@@ -3,13 +3,18 @@
 //! # The authored grammar
 //!
 //! ```text
+//! /// <documentation>
 //! #[refusal(
 //!     crate = <binding>,                     // optional; defaults to `threadpak`
 //!     family = "<domain>.<family>",
 //!     shape = <shape-word>,
 //!     order(<Variant> = "<local-key>", ...),
 //! )]
-//! enum <FamilyName> { <Variant>, ... }
+//! enum <FamilyName> {
+//!     /// <documentation>
+//!     <Variant>,
+//!     ...
+//! }
 //! ```
 //!
 //! - `<binding>` is how the consumer names the machine on its own dependency
@@ -25,8 +30,23 @@
 //! - `order(...)` states the canonical selection order, required exactly when
 //!   the shape is `single_cause` and admitted only then. Its order is the
 //!   *selector's* order and need not match the order the variants are written in.
-//! - Variants carry nothing but their own names, and a local key is a quoted
-//!   text with no escape sequence in it.
+//! - Variants carry nothing but their own names and the documentation written
+//!   on them, and a local key is a quoted text with no escape sequence in it.
+//!
+//! # Documentation is read, not skipped
+//!
+//! A documentation comment is an ATTRIBUTE by the time a declaration reaches
+//! this grammar — `#[doc = "…"]`, one attribute per written line — so what is
+//! read here is the form the language already produces, on the family and on
+//! every variant, into typed rows the surface carries as declared data.
+//! Nothing about it is a special case in the walk: a row is the `#`, the
+//! bracket, the `doc` word, the `=`, and the text, read exactly.
+//!
+//! **Every other attribute is exactly as unread as it was.** The
+//! refusal-attribute search still passes over what it does not name at the
+//! declaration's own level, and an unrecognized attribute on a VARIANT still
+//! refuses on the `#` that opens it, under the cause and at the site it always
+//! did. There is no bucket here for attributes nobody claimed.
 //!
 //! # Tokens, not text
 //!
@@ -44,8 +64,9 @@
 //! about a perfectly good enum goes looking for the wrong problem.
 
 use super::types::{
-    CapturedCause, CrateBinding, RefusalDeriveCapture, RefusalDeriveRefusal, RefusalDeriveSurface,
-    RefusalSite, SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
+    CapturedCause, CapturedDocumentation, CrateBinding, DocumentedDeclaration,
+    RefusalDeriveCapture, RefusalDeriveRefusal, RefusalDeriveSurface, RefusalSite,
+    SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
 };
 use crate::plane::{
     AuthoringLimitProfile, CapturedTokenLimit, DeriveCauseLimit, ProjectionIdentity,
@@ -82,12 +103,31 @@ pub fn captured(input: &CapturedInput) -> Result<RefusalDeriveSurface, RefusalDe
         &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
     )
     .map_err(|_| refuse(RefusalDeriveCapture::Unbounded, declared.body_span))?;
+    let DeclaredEnum {
+        family_name,
+        variants,
+        body_span: _,
+    } = declared;
+    // The family's own rows first, then each variant's, in body order — the
+    // order the rows were written, which is the order a reader reads.
+    let mut written = read_family_documentation(&trees);
+    for variant in variants {
+        written.extend(variant.documentation);
+    }
+    let documentation = Bounded::admitted_const(
+        written,
+        &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
+    )
+    // The roster spans the declaration's own level and the body's, so the site
+    // is the declaration's opening rather than either level's.
+    .map_err(|_| refuse(RefusalDeriveCapture::Unbounded, first_span(&trees)))?;
     Ok(RefusalDeriveSurface::assembled(
-        declared.family_name,
+        family_name,
         attribute.family_id,
         attribute.binding,
         attribute.shape,
         causes,
+        documentation,
         identity,
     ))
 }
@@ -174,10 +214,24 @@ const OTHER_ITEM_FORMS: [&str; 8] = [
 struct DeclaredEnum {
     /// The declared family's Rust name.
     family_name: String,
-    /// The variant names, in the order the body writes them.
-    variants: Vec<String>,
+    /// The variants, in the order the body writes them.
+    variants: Vec<DeclaredVariant>,
     /// The token the body opens at.
     body_span: SpanHandle,
+}
+
+/// One variant as the body declares it: the name it spells, and the
+/// documentation written on it.
+///
+/// The two travel together because they were read together, and because a row
+/// names the variant it was written on: a roster of rows assembled beside a
+/// roster of names would be two lists joined by position, and position is
+/// exactly what an author's edit moves.
+struct DeclaredVariant {
+    /// The variant's own bare name.
+    spelling: String,
+    /// The documentation rows written on it, in the order they were written.
+    documentation: Vec<CapturedDocumentation>,
 }
 
 /// The attribute as it was read.
@@ -274,9 +328,12 @@ fn read_enum(trees: &[&CapturedTokenTree]) -> Result<DeclaredEnum, RefusalDerive
     })
 }
 
-/// Read the bare variant names out of one enum body.
-fn read_variants(body: &[&CapturedTokenTree]) -> Result<Vec<String>, RefusalDeriveRefusal> {
-    let mut variants: Vec<String> = Vec::new();
+/// Read the variants out of one enum body: each one's documentation, and each
+/// one's bare name.
+fn read_variants(
+    body: &[&CapturedTokenTree],
+) -> Result<Vec<DeclaredVariant>, RefusalDeriveRefusal> {
+    let mut variants: Vec<DeclaredVariant> = Vec::new();
     let mut group: Vec<&CapturedTokenTree> = Vec::new();
     for tree in body {
         if tree.punct() == Some(',') {
@@ -292,15 +349,36 @@ fn read_variants(body: &[&CapturedTokenTree]) -> Result<Vec<String>, RefusalDeri
 
 /// Close one comma-separated group.
 ///
-/// Empty groups are trailing commas, a lone word is a variant, and a word
-/// followed by anything is a variant carrying a payload — which is a real
-/// variant this grammar does not admit, not a non-enum.
+/// A group opens with the documentation attributes written on the variant and
+/// closes on the variant's own bare name.
+/// Empty groups are trailing commas; a name followed by anything is a variant
+/// carrying a payload — a real variant this grammar does not admit, not a
+/// non-enum.
+///
+/// # What is unchanged here
+///
+/// An attribute this grammar does not read stops the documentation walk at
+/// once, and the group is then closed exactly as it always was: the first token
+/// the walk stopped at is that attribute's `#`, it spells no word, and the
+/// refusal is [`RefusalDeriveCapture::NotAnEnum`] there.
+/// The same answer stands for a group that carries documentation and no name —
+/// a row was written on a variant that is not there, and the group still spells
+/// no variant.
 fn close_variant(
     group: &[&CapturedTokenTree],
-    variants: &mut Vec<String>,
+    variants: &mut Vec<DeclaredVariant>,
 ) -> Result<(), RefusalDeriveRefusal> {
-    let Some((first, rest)) = group.split_first() else {
-        return Ok(());
+    let (written, at) = read_documentation(group);
+    let remainder = group.get(at..).unwrap_or_default();
+    let Some((first, rest)) = remainder.split_first() else {
+        // A group of nothing at all is a trailing comma. A group whose whole
+        // content was documentation spells no variant — the rows were written
+        // on a variant that is not there — and it is closed on its own first
+        // token exactly as an unread attribute is.
+        return match group.first() {
+            Some(opening) => Err(refuse(RefusalDeriveCapture::NotAnEnum, opening.span())),
+            None => Ok(()),
+        };
     };
     let Some(word) = first.word() else {
         return Err(refuse(RefusalDeriveCapture::NotAnEnum, first.span()));
@@ -311,8 +389,102 @@ fn close_variant(
             extra.span(),
         ));
     }
-    variants.push(word.to_owned());
+    let declared_on = DocumentedDeclaration::Variant(word.to_owned());
+    let documentation = written
+        .into_iter()
+        .map(|(text, token)| CapturedDocumentation::read(declared_on.clone(), text, token))
+        .collect();
+    variants.push(DeclaredVariant {
+        spelling: word.to_owned(),
+        documentation,
+    });
     Ok(())
+}
+
+/// The attribute standing at one position of a walk: the trees inside its
+/// bracket, and the token the bracket itself sits at.
+///
+/// One shape, read once: a `#` and the bracket that follows it. Every other
+/// arrangement answers with nothing and leaves the position to whoever was
+/// already reading it.
+fn attribute_at<'trees>(
+    trees: &[&'trees CapturedTokenTree],
+    index: usize,
+) -> Option<(Vec<&'trees CapturedTokenTree>, SpanHandle)> {
+    if trees.get(index).and_then(|hash| hash.punct()) != Some('#') {
+        return None;
+    }
+    let bracket = trees.get(index.saturating_add(1))?;
+    match bracket.group() {
+        Some((CapturedDelimiter::Bracket, inner)) => {
+            Some((inner.iter().collect(), bracket.span()))
+        }
+        Some(_) | None => None,
+    }
+}
+
+/// The text one attribute body states as documentation, where the body is the
+/// `doc = "…"` form an ordinary documentation comment produces.
+///
+/// Exactly that form and no other: three trees, the word `doc`, the assignment,
+/// and a text literal. A body that is anything else — a longer one, a `doc`
+/// spelled with a list, an attribute somebody else owns — answers with nothing,
+/// which is what keeps this road from becoming a bucket for attributes nobody
+/// claimed.
+fn documented_text<'trees>(bracketed: &[&'trees CapturedTokenTree]) -> Option<&'trees str> {
+    if bracketed.len() != 3 {
+        return None;
+    }
+    if bracketed.first().and_then(|named| named.word()) != Some("doc") {
+        return None;
+    }
+    if bracketed.get(1).and_then(|assigned| assigned.punct()) != Some('=') {
+        return None;
+    }
+    bracketed.get(2).and_then(|value| value.text())
+}
+
+/// The documentation attributes one walk opens with, and the position the walk
+/// stands at once they are read.
+///
+/// The rows come back as the text and the token they were read at rather than
+/// as finished rows, because a row names the declaration it was written on and
+/// that name is not known until the declaration itself has been read.
+fn read_documentation<'trees>(
+    trees: &[&'trees CapturedTokenTree],
+) -> (Vec<(&'trees str, SpanHandle)>, usize) {
+    let mut written: Vec<(&str, SpanHandle)> = Vec::new();
+    let mut at = 0usize;
+    while let Some((bracketed, token)) = attribute_at(trees, at) {
+        let Some(text) = documented_text(&bracketed) else {
+            break;
+        };
+        written.push((text, token));
+        at = at.saturating_add(2);
+    }
+    (written, at)
+}
+
+/// The documentation rows the FAMILY declaration itself carries.
+///
+/// Every `#[doc = "…"]` at the declaration's own level, in the order it was
+/// written. The enum body is ONE tree at this level and is not descended into,
+/// so a variant's rows are read where the variant is read and never twice.
+fn read_family_documentation(trees: &[&CapturedTokenTree]) -> Vec<CapturedDocumentation> {
+    let mut rows: Vec<CapturedDocumentation> = Vec::new();
+    for index in 0..trees.len() {
+        let Some((bracketed, token)) = attribute_at(trees, index) else {
+            continue;
+        };
+        if let Some(text) = documented_text(&bracketed) {
+            rows.push(CapturedDocumentation::read(
+                DocumentedDeclaration::Family,
+                text,
+                token,
+            ));
+        }
+    }
+    rows
 }
 
 /// The handle of the token at one position of the walk.
@@ -560,7 +732,7 @@ fn read_causes(
     if declared
         .variants
         .iter()
-        .any(|variant| !rows_name_once(rows, variant))
+        .any(|variant| !rows_name_once(rows, variant.spelling.as_str()))
     {
         return Err(refuse(RefusalDeriveCapture::NotCovered, declared.body_span));
     }
@@ -611,10 +783,10 @@ fn is_family_grammatical(identity: &str) -> bool {
 ///
 /// One half of coverage, asked from the ORDER clause's side, so the caller holds
 /// the row that asked and can name its token.
-fn body_names_once(variants: &[String], spelling: &str) -> bool {
+fn body_names_once(variants: &[DeclaredVariant], spelling: &str) -> bool {
     variants
         .iter()
-        .filter(|variant| variant.as_str() == spelling)
+        .filter(|variant| variant.spelling == spelling)
         .count()
         == 1
 }

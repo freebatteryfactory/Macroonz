@@ -101,15 +101,15 @@ happened to be nearer.
 
 ## The seats
 
-`types.rs` declares, including the three limit families this home's capacities
-are governed by and the two refusal families it answers through. Its own child
-`type_guard.rs` holds every road that reaches a private seat — a path's segments
-and rooting, a stage's road, a shape's stages, the landing's byte role, the
-surface's composition, and the refusal body's one seat — which is what makes
+`types.rs` declares, including the three magnitude rows this home's capacities
+are governed by — meaning, number, and reason on one row, stamped through the
+plane's `limits!` — and the two refusal families it answers through. Its own
+child `type_guard.rs` holds every road that reaches a private seat — a path's
+segments and rooting, a stage's road, a shape's stages, the landing's byte role,
+the surface's composition, and the refusal body's one seat — which is what makes
 "every composed component was staged exactly once" a shape rather than a rule.
-`type_contract.rs` states the declarative surface: each limit family's authority
-and magnitude written together, the refusal family's declared shape, the stage
-contract, and the mint standing. `plan.rs` reads the plan through its public
+`type_contract.rs` states the declarative surface: the refusal family's declared
+shape, the stage contract, and the mint standing. `plan.rs` reads the plan through its public
 surface — the account, the context, the membership, the kind content — and states
 what the wrapper will be, beside the availability reading a caller takes before
 it holds a plan at all. `render.rs` is the token half: the primitives, the

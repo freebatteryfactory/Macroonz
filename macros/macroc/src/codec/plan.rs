@@ -44,10 +44,10 @@ use crate::planning::{CodecProjection, MemberDestination, ProjectionPlan};
 /// failure to look hard enough.
 ///
 /// Returns [`CodecSurfaceIssue::DestinationNotDeclarationSite`] where the planned
-/// member is written as a standalone artifact: both admitted placements are
+/// member lands anywhere but the declaration site: both admitted placements are
 /// expansion deliveries — spliced beside the owner's item, or wrapped in a
-/// visibly published module — and a member written as a standalone artifact is a
-/// different delivery.
+/// visibly published module — so a standalone artifact, deferred test cargo, and
+/// deferred bench cargo are three other deliveries and each reaches this answer.
 ///
 /// The two checks are DEPENDENT — there is no destination to read until a member
 /// was found — so exactly one of them is ever established.
@@ -60,7 +60,13 @@ pub fn codec_plan(plan: &ProjectionPlan<CodecProjection>) -> Result<CodecPlan, C
     };
     match member.output.destination {
         MemberDestination::AtDeclarationSite => {}
-        MemberDestination::AsArtifact { .. } => {
+        // Every delivery this kind does not make reaches one answer, and the
+        // arms are written out one by one rather than under a wildcard: a
+        // delivery admitted later stops the compiler here until somebody says
+        // whether a codec surface is ever written into it.
+        MemberDestination::AsArtifact { .. }
+        | MemberDestination::IntoTestCarrier
+        | MemberDestination::IntoBenchCarrier => {
             return Err(CodecSurfaceIssue::DestinationNotDeclarationSite {
                 role_slot: role.slot(),
             });

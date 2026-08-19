@@ -1,15 +1,17 @@
-//! The consumer's own trials: the whole authoring road, hand-written, with both
-//! ThreadPak crates reached under the names this package chose for them.
+//! The consumer's own trials over the family it realized BY HAND: the whole
+//! authoring road, hand-written, with the two ThreadPak crates this file
+//! reaches named as this package named them.
 //!
 //! # What this file is evidence of
 //!
-//! Every path below is spelled `harness::` or `tp::`. Neither published package
-//! name appears anywhere in it, and the stamp's expansion adds none: what
-//! `harness::trial_table!` writes into this crate reaches its defining crate
-//! through `$crate`, which is the mechanism this file exercises rather than
-//! describes. A generated reference that resolved only under a canonical
-//! spelling would fail to resolve here, at this seat, rather than in somebody
-//! else's tree later.
+//! Every path below into either ThreadPak crate is spelled `harness::` or
+//! `tp::`; the machine's and the judge's published names stand on this
+//! package's dependency list and in no path here, and the stamp's expansion
+//! adds none: what `harness::trial_table!` writes into this crate reaches its
+//! defining crate through `$crate`, which is the mechanism this file exercises
+//! rather than describes. A generated reference that resolved only under a
+//! canonical spelling would fail to resolve here, at this seat, rather than in
+//! somebody else's tree later.
 //!
 //! # The road, as a hand walks it
 //!

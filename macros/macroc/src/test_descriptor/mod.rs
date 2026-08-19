@@ -14,17 +14,18 @@ pub use render::{
     PROVENANCE_CLAUSE, PROVENANCE_PRODUCED, PROVENANCE_PRODUCER_SEAT, PROVENANCE_SCHEMA_SEAT,
     REVISION_BINDING, ROLE_REF, ROW, ROW_ROAD, SCHEMA_IDENTITY, SCHEMA_NOT_DECLARED,
     SCHEMA_NOT_ENCODED, SCHEMA_PUBLISHED, SCHEMA_TYPE, SUBJECT_ROUTE, TABLE_REFUSAL, TAG_REF,
-    attachment, attribute, bound_path, classification, declared_row, descriptor_path,
-    documentation, expectation_literal, expectation_literal_of, exported_shell, gate_invocation,
-    group, matcher, metavariable, name_arguments, named_clause, origin, parsed_name, provenance,
-    revision_binding, roster, row_expression, row_schema_identity, stamped_module, suite_group,
-    table_schema_identity, twin_path, unbounded,
+    attachment, attribute, bound_path, classification, declared_row, deferred_module,
+    descriptor_path, documentation, expectation_literal, expectation_literal_of, exported_shell,
+    gate_invocation, group, matcher, metavariable, name_arguments, named_clause, origin,
+    parsed_name, provenance, revision_binding, roster, row_expression, row_schema_identity,
+    stamped_module, suite_group, table_schema_identity, twin_path, unbounded,
 };
 pub use type_contract::{ROW_CONVERSIONS, RowConversion};
 pub use types::{
-    BoundPath, CrateFacing, DescriptorPlan, DescriptorPlanIssue, DescriptorRow,
-    GeneratedSupportShell, PathSegmentLimit, ProducerOrigin, RevisionReference, RevisionStanding,
-    RoleLimit, RowAttachment, RowLimit, RowReferences, ShellDeclarationRefusal, ShellIssueLimit,
-    ShellName, ShellRenderIssue, ShellRendering, SuiteGroup, SuiteGroupLimit, TagLimit,
-    TrialTablePayload, WallName, is_rendered_identifier,
+    ActivePointSelector, BoundPath, CrateFacing, DeferredCargo, DeferredDelivery, DescriptorPlan,
+    DescriptorPlanIssue, DescriptorRow, GeneratedSupportShell, PathSegmentLimit, ProducerOrigin,
+    RevisionReference, RevisionStanding, RoleLimit, RowAttachment, RowLimit, RowReferences,
+    SelectorLimit, ShellDeclarationRefusal, ShellIssueLimit, ShellName, ShellRenderIssue,
+    ShellRendering, SuiteGroup, SuiteGroupLimit, TagLimit, TrialTablePayload, WallName,
+    is_rendered_identifier,
 };

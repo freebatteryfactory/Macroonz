@@ -1,14 +1,23 @@
-//! The plane's declarations: the two identity families, the subject and limit
-//! rosters, the profile and generator facts, the transcript and its derivation
-//! record, and the rendered-role contract.
+//! The plane's declarations: the two identity families, the subject roster, the
+//! magnitude stamp and the plane's own magnitude rows, the profile and generator
+//! facts, the transcript and its derivation record, and the rendered-role
+//! contract.
 //!
 //! Declarations only.
 //! Every constructor that must see a private field lives in `type_guard.rs`,
 //! declared below as this file's own child so the invariant nucleus and the
 //! fields it protects are never separated by a module boundary.
+//!
+//! # The stamp is published, and the rows are not a central register
+//!
+//! `limits!` is the plane's own road and is invoked from any home in the crate.
+//! The rows below it are not everybody's bounds gathered in one place: a
+//! magnitude belongs here when more than ONE home asks its question, and is
+//! declared in a semantic home — through this same stamp — when only that home
+//! asks it.
 
 use core::marker::PhantomData;
-use threadpak::types::{Bounded, ConstLimit, DeclaredMagnitude, Limit, LimitAdmissionProfile};
+use threadpak::types::{Bounded, Limit, LimitAdmissionProfile};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -92,7 +101,8 @@ macro_rules! subjects {
 /// establishes — and deliberately declares no production ceiling, because a
 /// number seated there for convenience becomes the ceiling every plane inherits
 /// without deciding anything.
-/// This is where the services decide theirs, beside the families it governs.
+/// This is where the services decide theirs, beside the stamp every family they
+/// declare is stamped by.
 ///
 /// # Bounds
 ///
@@ -102,7 +112,8 @@ macro_rules! subjects {
 /// What it rules out is a "bound" that bounds nothing: a magnitude no declared
 /// input could reach makes its checked constructor unfalsifiable, and a
 /// constructor that cannot refuse is not a checked constructor.
-/// Every family below is admitted against it, so moving it moves what the whole
+/// Every bounded construction in the services is admitted against it — the
+/// plane's own rows and every home's alike — so moving it moves what the whole
 /// plane will accept.
 ///
 /// # Nonclaims
@@ -117,29 +128,82 @@ impl LimitAdmissionProfile for AuthoringLimitProfile {
     const MAX_DECLARED_LIMIT: usize = 1_048_576;
 }
 
-/// Declares the plane's limit families: each is a `Limit` whose capacity
-/// authority is a magnitude written here, so every bounded seat in the plane
-/// names which bound governs it and no family in the plane can acquire a second
-/// authority for the same capacity.
+/// The magnitude stamp: the one mechanism that turns a magnitude ROW into every
+/// form its readers hold it in, wherever the row is declared.
 ///
-/// The authority and the magnitude are emitted from ONE row, in one expansion,
-/// so a family cannot be declared here on the compile-time ladder while wearing
-/// another road's authority: the transcriber writes `DeclaredMagnitude` and
-/// `ConstLimit` together or writes neither.
+/// # The mechanism and the meaning are two different ownerships
+///
+/// **This stamp is the plane's, and every row it stamps belongs to the home that
+/// owns the question the row answers.** What a magnitude MEANS — which capacity
+/// it governs, what number it states, and why that number and not another — is
+/// the semantic home's declaration, and it is written in that home beside the
+/// capacity it bounds. What a magnitude has to BECOME to be usable — a capacity
+/// authority, a compile-time ladder, and the two integer widths its readers hold
+/// it at — is a mechanical fact that is the same for every row in the services,
+/// and a home that spelled it out again would be a second copy of one mechanism
+/// rather than a second opinion about anything.
+///
+/// So the stamp is published in-crate and INVOKED LOCALLY: a home writes
+/// `crate::plane::limits! { … }` in its own `types.rs`, its rows stay in the
+/// home that owns them, and nothing about the emission is written twice.
+///
+/// # What one row emits
+///
+/// The authority and the magnitude come out of ONE row, in one expansion, so a
+/// family cannot be declared on the compile-time ladder while wearing another
+/// road's authority: the transcriber writes `DeclaredMagnitude` and `ConstLimit`
+/// together or writes neither.
 ///
 /// The magnitude is emitted at BOTH widths its readers hold it in — a
 /// collection's on the ladder, a counter's beside it — from that same row, for
 /// the reason stated on the counter-width constant itself.
+///
+/// Every path in the expansion is absolute, because the expansion lands in
+/// whatever module invoked it and a relative path would make the stamp depend on
+/// what that module happened to import.
+///
+/// # The two forms
+///
+/// The plain form stamps rows. The ROSTERED form stamps the same rows and emits
+/// one constant reading them back — `limits! { roster NAME; … }` — for a row set
+/// that has a reader with a question about the set as a whole rather than about
+/// one family. The rostered form delegates the rows to the plain one rather than
+/// spelling the emission twice, so there is exactly one transcriber for a
+/// family however it is declared.
 macro_rules! limits {
-    ($( $(#[$note:meta])* $name:ident = $max:expr ),+ $(,)?) => {
+    (
+        roster $roster:ident;
+        $( $(#[$note:meta])* $name:ident = $max:expr ),+ $(,)?
+    ) => {
+        $crate::plane::limits! { $( $(#[$note])* $name = $max ),+ }
+
+        /// Every limit family THIS row set declares, as its Rust spelling and
+        /// the magnitude it declares.
+        ///
+        /// Emitted from the SAME rows as the families themselves, in one
+        /// expansion, so it is not an inventory of the declarations — it is the
+        /// declarations, read a second way, with no row anybody could forget to
+        /// add or leave stale.
+        /// It exists for the proof surface, the one reader with a question about
+        /// this row set as a whole rather than about one family.
+        ///
+        /// It is a projection over one row set and never a second owner of any
+        /// row in it: a magnitude read here and a magnitude read through the
+        /// family's own `ConstLimit` are one number.
+        #[cfg(test)]
+        pub(crate) const $roster: &[(&str, usize)] = &[
+            $( (stringify!($name), <$name as ::threadpak::types::ConstLimit>::MAX) ),+
+        ];
+    };
+    ( $( $(#[$note:meta])* $name:ident = $max:expr ),+ $(,)?) => {
         $(
             $(#[$note])*
             #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
             pub struct $name;
-            impl Limit for $name {
-                type Authority = DeclaredMagnitude;
+            impl ::threadpak::types::Limit for $name {
+                type Authority = ::threadpak::types::DeclaredMagnitude;
             }
-            impl ConstLimit for $name {
+            impl ::threadpak::types::ConstLimit for $name {
                 const MAX: usize = $max;
             }
 
@@ -160,25 +224,15 @@ macro_rules! limits {
                 /// one number read two ways and cannot drift, and a row past
                 /// thirty-two bits stops the compiler here rather than
                 /// narrowing anything silently.
+                ///
+                /// [`ConstLimit::MAX`]: threadpak::types::ConstLimit::MAX
                 pub const MAX_U32: u32 = $max;
             }
         )+
-
-        /// Every limit family this plane declares, as its Rust spelling and the
-        /// magnitude it declares.
-        ///
-        /// Emitted from the SAME rows as the families themselves, in one
-        /// expansion, so it is not an inventory of the declarations — it is the
-        /// declarations, read a second way, with no row anybody could forget to
-        /// add or leave stale.
-        /// It exists for the proof surface, the one reader with a question about
-        /// the roster as a whole rather than about one family.
-        #[cfg(test)]
-        pub(crate) const DECLARED_LIMITS: &[(&str, usize)] = &[
-            $( (stringify!($name), <$name as ConstLimit>::MAX) ),+
-        ];
     };
 }
+
+pub(crate) use limits;
 
 subjects! {
     /// One registered refusal reason, as published by the machine's refusal home.
@@ -315,6 +369,7 @@ subjects! {
 }
 
 limits! {
+    roster DECLARED_LIMITS;
     /// Source declarations one plan may name. A plan whose declared cause set
     /// outgrows this bound refuses rather than narrating a partial cause.
     SourceDeclarationLimit = 64,

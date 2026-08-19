@@ -49,81 +49,74 @@ mod guard;
 
 // ---------------------------------------------------------------------------
 // The magnitudes.
+//
+// This home's own rows, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on every row below
+// are this home's, declared beside the capacities they govern.
 // ---------------------------------------------------------------------------
 
-/// The magnitude governing how many segments one rendered type path may carry.
-///
-/// # Bounds
-///
-/// Eight. A path reaching deeper than eight segments has stopped naming an item
-/// and started describing a tree, and the repair is a re-export at the address
-/// rather than a longer spelling at this end.
-///
-/// The authority and the number are written together in `type_contract.rs`, one
-/// row per family, so a family cannot stand on the compile-time ladder while
-/// wearing another road's authority.
-///
-/// # Nonclaims
-///
-/// It is this home's own family and not the codec home's path family, even
-/// though the two magnitudes agree today. That one bounds a path written beside
-/// an owner's own item inside one expansion; this one bounds a path written into
-/// a HOST TARGET, which is a different file than the declaration and resolves
-/// against a different root. One family standing for both would be one authority
-/// answering two questions, and the day one of the two roads has to reach deeper
-/// is the day that would show. A promotion to the plane's roster — one path
-/// magnitude every rendering home reads — is a decision about where the capacity
-/// lives, not an edit, and it would be made once for all the homes that declare
-/// one rather than by this home borrowing a neighbour's.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct WrapperPathSegmentLimit;
-
-/// The magnitude governing how many stages one declared wrapper shape may carry.
-///
-/// # Bounds
-///
-/// Eight — the plane's wrapper-component roster's own cardinality, because a
-/// stage is earned by ONE component and a component earns at most one stage. It
-/// is not a number this home chose out of taste: a ninth stage would have to be
-/// earned by a ninth component, and the plane declares eight.
-///
-/// # Nonclaims
-///
-/// It is not the plane's
-/// [`WrapperComponentLimit`](crate::plane::WrapperComponentLimit), which is
-/// sixteen and governs how many components a PLAN may name. The two numbers
-/// disagree on purpose and the disagreement is the reason to keep the families
-/// apart: the plan's seat is a bounded list that may name a component twice,
-/// while a shape's stages stand one per component. One family answering both
-/// questions would make a doubled selection look like a wider roster.
-///
-/// A promotion to the plane's roster would mean the plane declaring how many
-/// stages a rendering may write, which is a rendering fact and not a planning
-/// one — so the promotion this family would actually take is the plane's roster
-/// growing a component, at which point this number moves with it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct WrapperStageLimit;
-
-/// The magnitude governing how many issues one wrapper-composition refusal body
-/// may carry.
-///
-/// # Bounds
-///
-/// Eight — the wrapper-component roster's own cardinality, because the roster is
-/// the QUANTIFIER of the composition pass and each component establishes at most
-/// one issue. A component the plan selects is either unstaged or doubly staged
-/// and never both, and a component the plan does not select can only be staged
-/// when it should not have been; the three answers are mutually exclusive per
-/// component, so eight issues can hold at once and no more.
-///
-/// # Nonclaims
-///
-/// It is this home's own family. A promotion to the plane's roster is a decision
-/// about where the capacity lives, not an edit — and it would have to answer why
-/// a composition body's magnitude belongs beside the planning magnitudes when
-/// every rendering home sizes its own body by its own widest pass.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct WrapperCompositionIssueLimit;
+crate::plane::limits! {
+    /// The magnitude governing how many segments one rendered type path may
+    /// carry.
+    ///
+    /// # Bounds
+    ///
+    /// Eight. A path reaching deeper than eight segments has stopped naming an
+    /// item and started describing a tree, and the repair is a re-export at the
+    /// address rather than a longer spelling at this end.
+    ///
+    /// # Nonclaims
+    ///
+    /// It is this home's own family and not the codec home's path family, even
+    /// though the two magnitudes agree today. That one bounds a path written
+    /// beside an owner's own item inside one expansion; this one bounds a path
+    /// written into a HOST TARGET, which is a different file than the
+    /// declaration and resolves against a different root. One family standing
+    /// for both would be one authority answering two questions, and the day one
+    /// of the two roads has to reach deeper is the day that would show.
+    WrapperPathSegmentLimit = 8,
+    /// The magnitude governing how many stages one declared wrapper shape may
+    /// carry.
+    ///
+    /// # Bounds
+    ///
+    /// Eight — the wrapper-component roster's own cardinality, because a stage
+    /// is earned by ONE component and a component earns at most one stage. It is
+    /// not a number this home chose out of taste: a ninth stage would have to be
+    /// earned by a ninth component, and the roster declares eight. The roster is
+    /// the plane's, so this number moves when the roster grows a component and
+    /// for no other reason.
+    ///
+    /// # Nonclaims
+    ///
+    /// It is not the plane's
+    /// [`WrapperComponentLimit`](crate::plane::WrapperComponentLimit), which is
+    /// sixteen and governs how many components a PLAN may name. The two numbers
+    /// disagree on purpose and the disagreement is the reason to keep the
+    /// families apart: the plan's seat is a bounded list that may name a
+    /// component twice, while a shape's stages stand one per component. One
+    /// family answering both questions would make a doubled selection look like
+    /// a wider roster.
+    WrapperStageLimit = 8,
+    /// The magnitude governing how many issues one wrapper-composition refusal
+    /// body may carry.
+    ///
+    /// # Bounds
+    ///
+    /// Eight — the wrapper-component roster's own cardinality, because the
+    /// roster is the QUANTIFIER of the composition pass and each component
+    /// establishes at most one issue. A component the plan selects is either
+    /// unstaged or doubly staged and never both, and a component the plan does
+    /// not select can only be staged when it should not have been; the three
+    /// answers are mutually exclusive per component, so eight issues can hold at
+    /// once and no more.
+    ///
+    /// # Nonclaims
+    ///
+    /// It is this home's own family: every rendering home sizes its own refusal
+    /// body by its own widest pass, and this body's widest pass is this home's.
+    WrapperCompositionIssueLimit = 8,
+}
 
 // ---------------------------------------------------------------------------
 // The declaration refusal family.
@@ -287,10 +280,12 @@ pub struct WrapperShape {
 /// # Bounds
 ///
 /// There is no constant destination here, and the absence is the honest shape.
-/// Every other rendering home in these services lands at the declaration site
-/// and can therefore state its destination as a constant; this one lands under a
-/// byte role that only the plan holds, so the destination is a value composed
-/// from the plan rather than a fact stated ahead of it.
+/// A home whose delivery is decided by its ROLE alone — a codec surface, a
+/// documentation run, a generated support shell at the declaration site, a
+/// mutation-evaluation copy in the test carrier — can state its destination as a
+/// constant, because the answer is the same for every plan that home ever reads.
+/// This one lands under a byte role that only the plan holds, so the destination
+/// is a value composed from the plan rather than a fact stated ahead of it.
 ///
 /// A wrapper written at the declaration site would be a wrapper in the library
 /// that declared the contract, which is the one place a host target is not.
@@ -492,13 +487,17 @@ pub enum WrapperSurfaceIssue {
         /// The role's position in its kind's declared roster.
         role_slot: u32,
     },
-    /// The planned member is spliced at the declaration site rather than written
-    /// as a standalone artifact.
+    /// The planned member lands somewhere other than a standalone artifact.
     ///
-    /// A wrapper lands in the HOST's own target, which is a different file than
-    /// the declaration the plan was derived from; a member spliced beside that
-    /// declaration is a wrapper in the library that declared the contract, and
-    /// that is a different delivery.
+    /// A wrapper lands in a FILE the host target owns, which is a different file
+    /// than the declaration the plan was derived from.
+    /// The destination roster names four deliveries, and a member that is not an
+    /// artifact declared one of the other three: tokens spliced at the
+    /// declaration site, the deferred cargo a test target invokes, or the
+    /// deferred cargo a bench target invokes. The first is a wrapper in the
+    /// library that declared the contract, and neither carrier is a file at all —
+    /// a carrier is deferred cargo a consumption target expands — so each of the
+    /// three establishes this issue.
     DestinationNotHostTarget {
         /// The role whose planned destination disagreed.
         role_slot: u32,

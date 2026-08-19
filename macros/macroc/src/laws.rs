@@ -18,12 +18,12 @@ mod plane {
     };
     use threadpak::types::{BoundedConstruction, ConstLimit, LimitAdmissionProfile};
 
-    /// The widest magnitude the plane's limit roster declares, read off the
-    /// roster itself.
+    /// The widest magnitude the plane's OWN magnitude rows declare, read off
+    /// those rows.
     ///
     /// `DECLARED_LIMITS` is emitted from the same rows the families are, so this
     /// answer moves the moment a declaration does — which is the whole point:
-    /// naming a family here would make the law green against a roster that had
+    /// naming a family here would make the law green against a row set that had
     /// grown past it.
     fn widest_declared_magnitude() -> usize {
         DECLARED_LIMITS.iter().fold(
@@ -37,7 +37,7 @@ mod plane {
     /// law: plane.the-authoring-ceiling-is-this-plane-s-own — the services admit
     /// their declared magnitudes under a ceiling this plane wrote down, and the
     /// relation that justifies the number holds: the ceiling is sixteen times
-    /// the widest magnitude the plane declares.
+    /// the widest magnitude the plane's OWN rows declare.
     ///
     /// The widest magnitude is DERIVED from the roster rather than named. The
     /// law used to compare the ceiling against one family by its Rust spelling,
@@ -47,7 +47,10 @@ mod plane {
     /// what makes the relation the thing under test.
     ///
     /// The claim ceiling: this is the positive control for the AUTHORING plane's
-    /// policy and nothing about the machine's algebra.
+    /// policy and nothing about the machine's algebra. The roster it reads is
+    /// the plane's own rows, which is where the ceiling's justifying relation
+    /// was argued; a home's rows are admitted under the same profile and every
+    /// one of them stands far inside it, and no claim is made here about that.
     ///
     /// Owed reversal (red twin): a family declaring a magnitude past this
     /// ceiling must not compile — the fixture is testpak's.
@@ -63,9 +66,10 @@ mod plane {
     }
 
     /// law: plane.the-declared-limit-roster-is-read-from-its-own-rows — the
-    /// roster a claim about "every declared family" is answered from is emitted
-    /// by the same expansion that declares the families, so it cannot list a
-    /// family the plane does not declare and cannot omit one it does.
+    /// roster a claim about "every family on these rows" is answered from is
+    /// emitted by the same expansion that declares them, so it cannot list a row
+    /// the plane does not declare and cannot omit one it does. It is a
+    /// projection over one row set and never a second owner of any row in it.
     ///
     /// The two spot checks are the joins a hand-maintained table would fail: a
     /// named family's magnitude read through the table equals the magnitude read
@@ -1593,6 +1597,81 @@ mod planning {
     }
 }
 
+mod test_descriptor {
+    use crate::plane::GeneratedUnitSubject;
+    use crate::test_descriptor::{
+        ActivePointSelector, DeferredCargo, DeferredDelivery, ShellName, deferred_module,
+    };
+    use crate::token::{GeneratedToken, GeneratedTree};
+
+    /// law: descriptor.the-deferred-module-stands-exactly-where-cargo-was-deferred
+    /// — the shell splices its private module when, and only when, the expansion
+    /// deferred a cargo into this carrier. Rendered with carried cargo the module
+    /// carries the local subject the deferred implementations stand over and one
+    /// constant per selection they read; rendered with nothing deferred there is
+    /// no module at all.
+    ///
+    /// The two postures are different FACTS rather than one with a missing half:
+    /// an expansion that planned no member into this carrier sent it nothing, and
+    /// a module written for it would declare a subject nothing implements and
+    /// constants nothing reads. So the absence is the carrier's own answer and
+    /// never an empty module standing in for one.
+    ///
+    /// Every assertion is composed from the cargo's own typed values — its
+    /// subject, and each selector's constant, roster, and row — so the law reads
+    /// the same answers the rendering wrote rather than a spelling restated
+    /// beside it.
+    ///
+    /// The claim ceiling: it says which items the module carries and nothing
+    /// about what they select. Which name a deferred implementation reads its
+    /// selection through, and what its roster's rows mean, are the rendering
+    /// home's facts, and this home writes them as the data they are.
+    ///
+    /// Owed reversal (red twin): a shell that spliced an empty module for a
+    /// carrier nothing was deferred into must break this law.
+    #[test]
+    fn the_deferred_module_stands_exactly_where_cargo_was_deferred() -> Result<(), ()> {
+        let name = ShellName::mangled(&crate::plane::for_laws::<GeneratedUnitSubject>(7));
+        let selector = ActivePointSelector::declared(
+            "REFUSAL_FAMILY_ACTIVE_POINT",
+            "RefusalFamilyActivePoint",
+            "NoMutation",
+        )
+        .map_err(|_| ())?;
+        let declared = GeneratedTree::assembled(vec![
+            GeneratedToken::word("enum"),
+            GeneratedToken::word("RefusalFamilyActivePoint"),
+        ])
+        .map_err(|_| ())?;
+        let cargo = DeferredCargo::deferred("EvaluationSubject", vec![selector], declared)
+            .map_err(|_| ())?;
+
+        let carried =
+            deferred_module(&name, &DeferredDelivery::Carried(cargo.clone())).map_err(|_| ())?;
+        assert_eq!(carried.first(), Some(&GeneratedToken::word("mod")));
+        assert_eq!(
+            carried.get(1),
+            Some(&GeneratedToken::word(name.deferred_module().as_str()))
+        );
+        let Some(GeneratedToken::Group { tokens, .. }) = carried.get(2) else {
+            return Err(());
+        };
+        let carries =
+            |spelling: &str| tokens.iter().any(|token| token == &GeneratedToken::word(spelling));
+        assert!(carries(cargo.subject()));
+        assert_eq!(cargo.selectors().count(), 1);
+        assert!(cargo.selectors().all(|read| {
+            carries(read.constant()) && carries(read.active_enum()) && carries(read.variant())
+        }));
+
+        assert!(
+            deferred_module(&name, &DeferredDelivery::NothingDeferred)
+                .is_ok_and(|spliced| spliced.is_empty())
+        );
+        Ok(())
+    }
+}
+
 mod explanation_protocol {
     use crate::explanation_protocol::{
         ExplanationAnswer, ExplanationCoverageIssue, ProjectionExplanation,
@@ -3083,12 +3162,13 @@ mod pattern_stamp {
 mod derive_refusal {
     use crate::closure::ClosureIssue;
     use crate::derive_refusal::{
-        CapturedCause, CauseOrderStanding, DerivedMembership, RefusalDeriveCapture,
-        RefusalDeriveSurface, captured, captured_text, compile_refusal, compile_refusal_text,
+        CapturedCause, CapturedDocumentation, CauseOrderStanding, DerivedMembership,
+        DocumentedDeclaration, EVALUATION_SUBJECT, RefusalDeriveCapture, RefusalDeriveSurface,
+        RenderRefusal, captured, captured_text, compile_refusal, compile_refusal_text, render,
     };
     use crate::diagnostics::{MachineAnchoring, MacrocPhase};
     use crate::planning::{ProjectionDisposition, RenderedImplementation};
-    use crate::token::TextCapture;
+    use crate::token::{GeneratedToken, GeneratedTree, TextCapture};
     use threadpak::declaration::CoordinateRole;
     use threadpak::refusal::{CauseOrderDeclaration, FamilyShape, RefusalFamily};
 
@@ -3101,11 +3181,75 @@ mod derive_refusal {
     const ISSUE_COLLECTION: &str = "#[refusal(family = \"demo.example\", shape = issue_collection)] \
         enum DemoIssues { NotBound, NotCovered, }";
 
+    /// A lawful declaration whose Rust type is spelled like a word the FAMILY
+    /// body writes: the body spells the machine's shape roster, so the type name
+    /// stands inside the body it would be relocated out of.
+    const FAMILY_BODY_OBSERVER: &str = "#[refusal(family = \"demo.example\", shape = single_cause, \
+        order(NotCanonical = \"not-canonical\"))] enum FamilyShape { NotCanonical, }";
+
+    /// A lawful declaration whose Rust type is spelled like a word the
+    /// CAUSE-ORDER body writes, and like nothing the family body writes.
+    const ORDER_BODY_OBSERVER: &str = "#[refusal(family = \"demo.example\", shape = single_cause, \
+        order(NotCanonical = \"not-canonical\"))] enum DeclaredCause { NotCanonical, }";
+
+    /// The variant of a documented declaration the variant prose is written on.
+    const DOCUMENTED_VARIANT: &str = "NotBound";
+
+    /// The prose written on the one documented VARIANT of a documented
+    /// declaration.
+    const VARIANT_PROSE: &str = "nothing bound this";
+
+    /// The prose written on the FAMILY of one documented declaration.
+    const FAMILY_PROSE: &str = "the family a reader is handed";
+
+    /// The prose written on the family of the OTHER documented declaration —
+    /// the one thing the two declarations disagree about.
+    const OTHER_FAMILY_PROSE: &str = "the family a reader is shown";
+
+    /// The lawful collection declaration carrying prose on the family and on one
+    /// of its variants, in the attribute form a documentation comment becomes.
+    ///
+    /// The prose is a parameter rather than a spelling inside the source, so the
+    /// text a law reads back is the text this fixture wrote — one authority for
+    /// both sides of the comparison rather than a literal restated beside it.
+    fn documented(family_prose: &str) -> String {
+        format!(
+            "#[doc = \"{family_prose}\"] \
+             #[refusal(family = \"demo.example\", shape = issue_collection)] \
+             enum DemoIssues {{ #[doc = \"{VARIANT_PROSE}\"] {DOCUMENTED_VARIANT}, NotCovered, }}"
+        )
+    }
+
     /// One captured surface, or the cause the capture established.
     fn surface(source: &str) -> Result<RefusalDeriveSurface, RefusalDeriveCapture> {
         captured_text(source)
             .map(|(_, surface)| surface)
             .map_err(crate::derive_refusal::RefusalDeriveRefusal::cause)
+    }
+
+    /// Whether one rendered tree names a spelling as a WORD anywhere inside it,
+    /// head and body alike.
+    ///
+    /// The whole tree and not its top level, because the two halves of the
+    /// question live at two depths: a target's spelling stands in the HEAD, and
+    /// the substitution the guard establishes is about the BODY.
+    fn names(tree: &GeneratedTree, spelling: &str) -> bool {
+        let wanted = GeneratedToken::word(spelling);
+        tree.tokens().any(|token| carries(token, &wanted))
+    }
+
+    /// Whether one token, or anything nested inside it, is the wanted token.
+    fn carries(token: &GeneratedToken, wanted: &GeneratedToken) -> bool {
+        match token {
+            GeneratedToken::Group { tokens, .. } => {
+                tokens.iter().any(|nested| carries(nested, wanted))
+            }
+            GeneratedToken::Word(_)
+            | GeneratedToken::Punct { .. }
+            | GeneratedToken::Text(_)
+            | GeneratedToken::ByteText(_)
+            | GeneratedToken::Number(_) => token == wanted,
+        }
     }
 
     /// law: derive.the-engine-declares-its-own-order-by-hand — the capture
@@ -3208,8 +3352,10 @@ mod derive_refusal {
         let rendered = compile_refusal_text(renamed)
             .map(|(_, closed)| closed.inspected())
             .map_err(|_| ());
-        assert!(rendered.is_ok_and(|text| {
-            text.contains(":: tp :: refusal :: RefusalFamily") && !text.contains("threadpak")
+        assert!(rendered.is_ok_and(|inspected| {
+            inspected.is_some_and(|text| {
+                text.contains(":: tp :: refusal :: RefusalFamily") && !text.contains("threadpak")
+            })
         }));
     }
 
@@ -3432,7 +3578,7 @@ mod derive_refusal {
                 .emission()
                 .declaration_site()
                 .tokens()
-                .is_some_and(|tree| inspected == tree.inspected())
+                .is_some_and(|tree| inspected == Some(tree.inspected()))
         }));
     }
 
@@ -3544,6 +3690,108 @@ mod derive_refusal {
                     role: RenderedImplementation::RenderedCauseOrderImpl,
                 }
         }));
+        Ok(())
+    }
+
+    /// law: derive.a-relocated-body-is-established-or-refused — an
+    /// implementation body only stands over the support shell's own subject
+    /// where standing it there changes nothing. A body that observes the target
+    /// it was derived for is refused with the typed refusal, and a body that
+    /// observes it nowhere renders under the local evaluation subject's
+    /// spelling while the production implementation renders under the type the
+    /// declaration named.
+    ///
+    /// Both directions, and the guard's precision with them. The walk covers the
+    /// BODY, so the two evaluation roads answer independently: a family whose
+    /// Rust type is spelled like a word the FAMILY body writes refuses on the
+    /// family road and renders on the cause-order road, and a family spelled
+    /// like a word the CAUSE-ORDER body writes does the reverse. A walk over the
+    /// whole implementation would refuse both, because the head names the target
+    /// on purpose.
+    ///
+    /// The claim ceiling: the walk asks two questions of every word, and one of
+    /// them is the language's `Self`, which no body this home renders spells at
+    /// all — so it is a wall the bodies stand clear of rather than a branch a
+    /// declaration reaches, and what stands under test here is the declared-name
+    /// question and the substitution it guards.
+    ///
+    /// Owed reversal (red twin): a copy rendered over the evaluation subject
+    /// with no guard in front of it must break this law.
+    #[test]
+    fn a_relocated_body_is_established_or_refused() -> Result<(), ()> {
+        let lawful = surface(SINGLE_CAUSE).map_err(|_| ())?;
+        let production = render::family_implementation(&lawful).map_err(|_| ())?;
+        let relocated = render::family_evaluation_implementation(&lawful).map_err(|_| ())?;
+        assert!(
+            names(&production, lawful.family_name())
+                && !names(&production, EVALUATION_SUBJECT)
+                && names(&relocated, EVALUATION_SUBJECT)
+                && !names(&relocated, lawful.family_name())
+        );
+
+        let family_observer = surface(FAMILY_BODY_OBSERVER).map_err(|_| ())?;
+        assert!(render::family_implementation(&family_observer).is_ok());
+        assert!(
+            render::family_evaluation_implementation(&family_observer)
+                .is_err_and(|refusal| refusal == RenderRefusal::TargetObserved)
+        );
+        assert!(render::cause_order_evaluation_implementation(&family_observer).is_ok());
+
+        let order_observer = surface(ORDER_BODY_OBSERVER).map_err(|_| ())?;
+        assert!(render::cause_order_implementation(&order_observer).is_ok());
+        assert!(
+            render::cause_order_evaluation_implementation(&order_observer)
+                .is_err_and(|refusal| refusal == RenderRefusal::TargetObserved)
+        );
+        assert!(render::family_evaluation_implementation(&order_observer).is_ok());
+        Ok(())
+    }
+
+    /// law: derive.documentation-is-captured-and-is-already-committed-to — a
+    /// declaration carrying prose on the family and on its variants captures
+    /// with those rows present, each row's declared-on seat and its text read
+    /// back as typed values; a declaration that writes none carries none; and a
+    /// declaration whose prose differs is a different capture.
+    ///
+    /// The last part is the one-commitment fact as it stands: a captured
+    /// declaration's identity is derived over the token material at full length,
+    /// and a documentation attribute is inside that material — so prose needs no
+    /// second commitment, and a seat that exempted it would be a way for a
+    /// declaration to change without its identity changing.
+    ///
+    /// The claim ceiling: a row states what was written and where it was
+    /// written. Nothing here says what the text MEANS — no facet, no audience,
+    /// no heading, no section — because those are the documentation
+    /// projection's declarations and a capture that decided them would be
+    /// deciding meaning it was handed as text.
+    ///
+    /// Owed reversal (red twin): a capture that skipped documentation
+    /// attributes, or an identity taken over anything less than the whole
+    /// material, must break this law.
+    #[test]
+    fn documentation_is_captured_and_is_already_committed_to() -> Result<(), ()> {
+        let written = surface(&documented(FAMILY_PROSE)).map_err(|_| ())?;
+        let rows: Vec<&CapturedDocumentation> = written.documentation().collect();
+        assert_eq!(rows.len(), 2);
+        assert!(
+            rows.first().is_some_and(|row| {
+                row.declared_on() == &DocumentedDeclaration::Family && row.text() == FAMILY_PROSE
+            })
+        );
+        assert!(rows.get(1).is_some_and(|row| {
+            row.declared_on() == &DocumentedDeclaration::Variant(DOCUMENTED_VARIANT.to_owned())
+                && row.text() == VARIANT_PROSE
+        }));
+        assert!(surface(ISSUE_COLLECTION).is_ok_and(|plain| plain.documentation().count() == 0));
+
+        let again = surface(&documented(FAMILY_PROSE)).map_err(|_| ())?;
+        let otherwise = surface(&documented(OTHER_FAMILY_PROSE)).map_err(|_| ())?;
+        assert!(
+            otherwise
+                .documentation()
+                .any(|row| row.text() == OTHER_FAMILY_PROSE)
+        );
+        assert!(written.identity() == again.identity() && written.identity() != otherwise.identity());
         Ok(())
     }
 

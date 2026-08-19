@@ -2,11 +2,13 @@
 //!
 //! # One projection per family
 //!
-//! Five steps of the compile road refuse, and each refuses in its own
+//! Six steps of the compile road refuse, and each refuses in its own
 //! vocabulary: a planning body names an axis, a magnitude, and a count; a
 //! closure body names a role and how the two disagreed at it; a coverage body
 //! names every question that was unanswered, doubled, or inadmissible; a
-//! rendering refusal names the exact bound and the unit that overran it.
+//! rendering refusal names the exact bound and the unit that overran it, or the
+//! role whose body observes the target its delivery must move it off; and a
+//! binding refusal names the two plans it was asked to hold under one identity.
 //!
 //! Every function here projects the typed body it is handed and keeps what the
 //! body knew:
@@ -53,7 +55,9 @@
 use super::explain::ExplanationBindingRefusal;
 use super::render::RenderRefusal;
 use super::types::{DIAGNOSTIC_PREFIX, RefusalDeriveFact, callable_entry, expected_contract};
-use crate::closure::{ClosureIssue, ProjectionClosureRefusal, RenderingRefusal};
+use crate::closure::{
+    ClosureIssue, ProjectionClosureRefusal, ReceiptBindingRefusal, RenderingRefusal,
+};
 use crate::diagnostics::{
     DiagnosticSite, MacrocDiagnostic, MacrocPhase, ObservedClassification, RelatedSet,
     RelatedSetCompletion, ReleasePosture, RepairAction, ReproductionRoute, SiteCoordinate,
@@ -81,6 +85,9 @@ const COVERAGE_FAMILY: u8 = 2;
 
 /// The rendering family's tag.
 const RENDERING_FAMILY: u8 = 3;
+
+/// The receipt-binding family's tag.
+const RECEIPT_FAMILY: u8 = 4;
 
 // ---------------------------------------------------------------------------
 // The one compiler-facing grammar.
@@ -110,6 +117,13 @@ threadpak::closed_register! {
             "the explanation cannot bind its subject";
         /// A rendering would have passed a declared magnitude.
         MagnitudeNotHeld = "magnitude-not-held", "a rendering would pass a declared magnitude";
+        /// The rendering cannot be delivered under the subject its delivery
+        /// stands over.
+        SubjectNotSubstitutable = "subject-not-substitutable",
+            "the rendering does not stand over the subject its delivery requires";
+        /// The three values the terminal binds do not belong to one expansion.
+        ReceiptNotBound = "receipt-not-bound",
+            "the receipt does not bind the plan its proof was taken against";
     }
 }
 
@@ -513,6 +527,17 @@ fn closure_bytes<R: RenderedRole>(issue: &ClosureIssue<R>) -> Vec<u8> {
         | ClosureIssue::ReconstructionUndeclarable { observed } => {
             bytes.extend_from_slice(&observed.to_be_bytes());
         }
+        // The emission is the issue's own distinction: three joins are three
+        // byte streams for three builds, and a caller told only that "the tree"
+        // overran does not know which delivery to cut.
+        ClosureIssue::JoinedTreeUnbounded { partition } => bytes.push(partition.slot()),
+        // The ADDRESS is what collided, so the address is what separates two of
+        // these issues: the roles are already written above, and two units at
+        // two addresses under one pair of roles is a different observation from
+        // two units at one.
+        ClosureIssue::ArtifactAddressDoubled { byte_role, .. } => {
+            encode_bytes(byte_role.as_bytes(), &mut bytes);
+        }
         ClosureIssue::MemberMissing { .. }
         | ClosureIssue::MemberUnplanned { .. }
         | ClosureIssue::OriginOrphan { .. }
@@ -520,8 +545,7 @@ fn closure_bytes<R: RenderedRole>(issue: &ClosureIssue<R>) -> Vec<u8> {
         | ClosureIssue::SemanticKeyMismatch { .. }
         | ClosureIssue::MaterializationMismatch { .. }
         | ClosureIssue::MembershipDisagreement { .. }
-        | ClosureIssue::ReconstructionEmpty
-        | ClosureIssue::JoinedTreeUnbounded => {}
+        | ClosureIssue::ReconstructionEmpty => {}
     }
     bytes
 }
@@ -533,18 +557,21 @@ const fn closure_observed<R: RenderedRole>(issue: &ClosureIssue<R>) -> ObservedC
             ObservedClassification::SeatAbsent
         }
         ClosureIssue::MemberUnplanned { .. } => ObservedClassification::ContractDisagreement,
+        // An address answering for two units is an identity that had to be
+        // distinct and was not, which is the observation the doubled and
+        // mismatched seats already carry.
         ClosureIssue::MemberDuplicated { .. }
         | ClosureIssue::MemberPlannedTwice { .. }
         | ClosureIssue::DigestMismatch { .. }
         | ClosureIssue::SemanticKeyMismatch { .. }
-        | ClosureIssue::MembershipDisagreement { .. } => {
+        | ClosureIssue::MembershipDisagreement { .. }
+        | ClosureIssue::ArtifactAddressDoubled { .. } => {
             ObservedClassification::IdentityDisagreement
         }
         ClosureIssue::OriginOrphan { .. } => ObservedClassification::OriginAbsent,
         ClosureIssue::MaterializationMismatch { .. } => ObservedClassification::ProfileDisagreement,
-        ClosureIssue::ReconstructionUndeclarable { .. } | ClosureIssue::JoinedTreeUnbounded => {
-            ObservedClassification::BoundExceeded
-        }
+        ClosureIssue::ReconstructionUndeclarable { .. }
+        | ClosureIssue::JoinedTreeUnbounded { .. } => ObservedClassification::BoundExceeded,
     }
 }
 
@@ -671,12 +698,84 @@ const fn materialization_magnitude(refusal: RenderingRefusal) -> RenderedMagnitu
     }
 }
 
-/// Project one assembly refusal: the tree magnitude, and the role that overran
-/// it.
+/// Project one assembly refusal: the tree magnitude and the role that overran
+/// it, or the body that observes the target its delivery must move it off.
+///
+/// Two arms and two projections, because they are two observations rather than
+/// one with a different number in it. A tree past a magnitude is a fact about
+/// SIZE and its repair is a smaller declaration; a body that observes its own
+/// target is a fact about MEANING and no size makes it lawful, so a line naming
+/// a bound would send a reader to shorten a declaration that is already short
+/// enough.
 pub fn render_refused<R: RenderedRole>(refusal: RenderRefusal, role: R) -> MacrocDiagnostic {
     match refusal {
         RenderRefusal::Unbounded => bounded_rendering(RenderedMagnitude::GeneratedTokens, role),
+        RenderRefusal::TargetObserved => target_observed(role),
     }
+}
+
+/// Project one relocation refusal: the role whose body observes the target the
+/// declaration named.
+///
+/// The role's own description is the whole of the line's subject, because the
+/// role IS which delivery could not be rendered — and the two evaluation roles
+/// are the only ones this refusal is establishable at, since the production
+/// roles are rendered for the declared target and move nowhere.
+fn target_observed<R: RenderedRole>(role: R) -> MacrocDiagnostic {
+    let mut material = vec![u8::MAX];
+    material.extend_from_slice(&role.slot().to_be_bytes());
+    let described = role.described();
+    diagnosed(
+        MacrocPhase::Rendering,
+        ObservedClassification::ContractDisagreement,
+        &RefusalLine {
+            class: RefusalClass::SubjectNotSubstitutable,
+            first: &format!(
+                "{described} observes the type the declaration named, so the copy does not stand \
+                 over the support shell's own subject"
+            ),
+            // One role, one body, one observation: the walk answers about the
+            // tree it was handed and enumerates nothing behind it.
+            body: LineBody::SingleCause,
+        },
+        RENDERING_FAMILY,
+        &[material],
+        RefusalDeriveFact::AnEvaluationCopyStandsOverALocalSubject,
+    )
+}
+
+/// Project one receipt-binding refusal: the plan the binding was handed, and the
+/// plan the closure was actually proved against.
+///
+/// Both identities travel, and neither is elected: a receipt bound over the pair
+/// would name one plan while carrying the proof of another and would answer
+/// every question correctly about the wrong expansion, so the diagnostic carries
+/// what would have been bound rather than a summary of it.
+///
+/// The line names the disagreement and the related set names the two identities.
+/// Spelling thirty-two bytes into a sentence rustc shows one line of would hand a
+/// reader a digest where a repair belongs; the identities are typed values and
+/// travel as the material this projection derives its related identities over.
+pub fn receipt_refused(refusal: &ReceiptBindingRefusal) -> MacrocDiagnostic {
+    let ReceiptBindingRefusal::ClosureProvedAgainstAnotherPlan { planned, proved } = refusal;
+    let mut material = vec![0];
+    encode_bytes(planned.as_bytes(), &mut material);
+    encode_bytes(proved.as_bytes(), &mut material);
+    diagnosed(
+        MacrocPhase::Inspection,
+        ObservedClassification::IdentityDisagreement,
+        &RefusalLine {
+            class: RefusalClass::ReceiptNotBound,
+            first: "the closure proves a rendering against a plan other than the one bound beside \
+                    it",
+            // One disagreement: the binding checks the one thing three
+            // separately produced values can disagree about, and refuses at it.
+            body: LineBody::SingleCause,
+        },
+        RECEIPT_FAMILY,
+        &[material],
+        RefusalDeriveFact::NothingIsHandedOutThatDidNotBind,
+    )
 }
 
 /// The shared body of both rendering projections: which magnitude, and which

@@ -1,14 +1,6 @@
 //! The pattern-stamp home's declarative surface: the tables this home states
 //! rather than computes.
 //!
-//! The LIMIT FAMILIES: each family's capacity authority and its magnitude are
-//! written on adjacent rows, so a family cannot be declared on the compile-time
-//! ladder while wearing another road's authority — [`Limit::Authority`] resolves
-//! to one type, and naming [`DeclaredMagnitude`] there is what makes
-//! [`ConstLimit`] implementable at all. The families themselves are declared
-//! beside the capacities they govern in `types.rs`; what a family is FOR is said
-//! there, and the number is said here.
-//!
 //! The VISIBILITY TRANSPORT: which reach a stamped item carries inside the
 //! module the stamp seats it in, stated once as a total answer over the closed
 //! reach roster. The stamped item sits one module deeper than the coordinate the
@@ -16,33 +8,7 @@
 //! private seat to the caller's own parent — and a reach widened by guesswork
 //! would publish it further than that.
 
-use super::{
-    SeatDeclarationLimit, SeatMint, SeatMintForm, SeatPathSegmentLimit, SeatVisibility,
-    TransportedReach,
-};
-use threadpak::types::{ConstLimit, DeclaredMagnitude, Limit};
-
-impl Limit for SeatPathSegmentLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for SeatPathSegmentLimit {
-    const MAX: usize = 8;
-}
-
-impl Limit for SeatDeclarationLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for SeatDeclarationLimit {
-    /// Sixty-four. One publication unit is one artifact landed under one
-    /// receipt, and what it covers is the set of homes that will invoke it.
-    /// Written as the number rather than as a count of the machine's bands: a
-    /// magnitude derived from another structure's size reads as a fact when it
-    /// is a choice, and it would move for a reason nobody's publication changed
-    /// by.
-    const MAX: usize = 64;
-}
+use super::{SeatMint, SeatMintForm, SeatVisibility, TransportedReach};
 
 impl SeatVisibility {
     /// The reach the stamped item carries INSIDE the module the stamp seats it

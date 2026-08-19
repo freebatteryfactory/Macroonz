@@ -366,8 +366,8 @@ impl ProductionSurface {
     ///
     /// Total and private: every seat is the plan's own answer or the tree the
     /// caller rendered, and the one question that could fail — whether the plan
-    /// declared this member at the declaration site — was asked before this road
-    /// was reached.
+    /// landed this member where its ROLE declares, which for the production half
+    /// is the declaration site — was asked before this road was reached.
     fn rendered(stated: &SurfacePlan, tree: GeneratedTree) -> Self {
         Self {
             role: stated.role,

@@ -64,6 +64,33 @@ consumer's declaration — the stamp seats them in a `const` item precisely so a
 ambient fact cannot appear among them — and a producer that wrote its own would
 be declaring how long somebody else's machine may spend.
 
+## The carrier also carries what the expansion deferred
+
+A shell body is two things side by side: the gate invocation, which carries the
+descriptor rows under the harness's own grammar, and a private module carrying
+the cargo an expansion deferred into this carrier. The module stands beside the
+gate rather than inside it, because what rides through the gate is the harness's
+and this module is not.
+
+The module holds three things: a LOCAL SUBJECT the deferred implementations
+stand over, the cargo's own tokens, and one constant per selection the cargo
+reads. The subject is why the module exists — a deferred implementation is a
+copy of one the declaration site already carries, so a copy standing over the
+type the declaration named would be that implementation declared twice where the
+declaration is, and a foreign trait implemented for a foreign type once the copy
+reaches the consumer's test target. The module's own name is
+[`ShellName::deferred_module`], the shell's content-addressed spelling and a
+suffix, so nothing outside the expansion can reach the subject and two shells in
+one crate never collide.
+
+The tokens are ONE emission's proved cargo, read off the receipt by the caller
+that holds one and handed over whole. Nothing here joins anything and nothing
+here decides which units belong to a carrier: the split by delivery is inside
+the proof, and this home is the vehicle's end of the same tokens. A carrier
+nothing was deferred into gets no module at all — an expansion that planned no
+member into it and one that sent it a cargo of no tokens are different facts,
+and [`DeferredDelivery`] keeps them apart.
+
 ## Nothing of the harness is imported
 
 Not one type in `types.rs` is the harness's. What crosses is conforming DATA in
@@ -113,16 +140,17 @@ since that pair is two tokens where the gate's pattern matches one.
 
 ## The seats
 
-`types.rs` declares, including the six limit families this home's capacities are
-governed by and the two refusal families it refuses through. Its own child
-`type_guard.rs` holds every road that reaches a private seat — a name's parts, a
-path's segments, a row's rosters, a group's rows, the stamped module's ONE
-namespace, the mangling, and the shell's composition — which is what makes "a
+`types.rs` declares, including the seven magnitude rows this home's capacities
+are governed by — meaning, number, and reason on one row, stamped through the
+plane's `limits!` — and the two refusal families it refuses through. Its own
+child `type_guard.rs` holds every road that reaches a private seat — a name's
+parts, a path's segments, a row's rosters, a group's rows, the stamped module's
+ONE namespace, the mangling, and the shell's composition — which is what makes "a
 stamped module never declares one function twice" a shape rather than a rule.
-`type_contract.rs` states the declarative tables: each limit family's authority
-and magnitude written together, the rendering family's declared shape, each
-twin's own metavariable spelling, and the row conversion record. `plan.rs` reads the
+`type_contract.rs` states the declarative tables: the rendering family's declared
+shape, each twin's own metavariable spelling, and the row conversion record. `plan.rs` reads the
 plan through its public surface — the account, the context, the membership, the
 kind content — and states what the shell will be. `render.rs` is the token half:
 the exported carrier, the gate invocation inside it, the stamped payload inside
-that, and the constructor-calling expression each row is.
+that, the constructor-calling expression each row is, and the private module the
+deferred cargo is spliced into beside the gate.

@@ -91,8 +91,10 @@ fn the_lawful_road_binds_every_required_seat() {
             && closed.rendered().len() == DECLARED_ROLE_COUNT
             && closed.closure().reconstructed().len() == DECLARED_ROLE_COUNT
             && closed.explanation().len() == 9
-            && !closed.emitted().is_empty()
-            && closed.emitted() == closed.closure().emitted()
+            && closed
+                .emitted()
+                .tokens()
+                .is_some_and(|tree| tree.tokens().next().is_some())
     }));
 }
 

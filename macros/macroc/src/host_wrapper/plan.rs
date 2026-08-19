@@ -67,10 +67,11 @@ use crate::planning::{
 /// failure to look hard enough.
 ///
 /// Returns [`WrapperSurfaceIssue::DestinationNotHostTarget`] where the planned
-/// member is spliced at the declaration site: a wrapper lands in the HOST's own
-/// target, which is a different file than the declaration the plan was derived
-/// from, so the member is written as a standalone artifact under a byte role and
-/// a member spliced beside the declaration is a different delivery.
+/// member lands anywhere but a standalone artifact: a wrapper lands in a file the
+/// HOST target owns, written under a byte role, so the declaration site — where
+/// the wrapper would sit in the library that declared the contract — and the two
+/// carriers, which are deferred cargo rather than a file at all, are three other
+/// deliveries and each reaches this answer.
 ///
 /// Returns [`WrapperSurfaceIssue::TargetBindingFree`] where the plan's context
 /// binds no host contract. That posture is foreclosed on this seam's own route —
@@ -93,7 +94,15 @@ pub fn host_wrapper_plan(
     };
     let byte_role = match member.output.destination {
         MemberDestination::AsArtifact { byte_role } => byte_role,
-        MemberDestination::AtDeclarationSite => {
+        // A wrapper lands in a FILE the host target owns, so every delivery
+        // that is not an address reaches one answer — a carrier is deferred
+        // cargo a consumption target expands, which is not a file at all. The
+        // arms are written out one by one rather than under a wildcard: a
+        // delivery admitted later stops the compiler here until somebody says
+        // whether a wrapper is written into it.
+        MemberDestination::AtDeclarationSite
+        | MemberDestination::IntoTestCarrier
+        | MemberDestination::IntoBenchCarrier => {
             return Err(WrapperSurfaceIssue::DestinationNotHostTarget {
                 role_slot: role.slot(),
             });

@@ -34,54 +34,53 @@ mod guard;
 
 // ---------------------------------------------------------------------------
 // The magnitudes.
+//
+// This home's own rows, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on every row below
+// are this home's, declared beside the capacities they govern.
 // ---------------------------------------------------------------------------
 
-/// The magnitude governing how many sizes one row's input-size axis may state.
-///
-/// # Bounds
-///
-/// Thirty-two. A growth class is read off a CURVE, so the axis must carry more
-/// than one point — and a curve of more than thirty-two points is a measurement
-/// campaign rather than a gate, which is a different thing with a different
-/// budget.
-///
-/// The authority and the number are written together in `type_contract.rs`, one
-/// row per family, so a family cannot stand on the compile-time ladder while
-/// wearing another road's authority.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct InputSizeLimit;
-
-/// The magnitude governing how many bytes one declared work formula may carry.
-///
-/// # Bounds
-///
-/// Two hundred and fifty-six. The formula is the declaration's own encoded form
-/// rather than a name, because two different formulas an owner happened to name
-/// alike would otherwise encode identically — and a formula past this width has
-/// stopped being a formula the gate counts work against.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct WorkFormulaLimit;
-
-/// The magnitude governing how many work-observation bindings one row may name.
-///
-/// # Bounds
-///
-/// Eight. Each observation is one counted quantity the gate reads against the
-/// declared formula, and a row observing more than eight has stopped measuring
-/// one workload.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct WorkObservationLimit;
-
-/// The magnitude governing how many rows one bench table may declare.
-///
-/// # Bounds
-///
-/// One hundred and twenty-eight, and DELIBERATELY narrower than the trial
-/// table's. Every bench row is measured across its whole input-size axis under
-/// declared sample and warmup counts, so a bench table's cost is its rows times
-/// its axis times its samples — where a trial table's is its rows.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct BenchRowLimit;
+crate::plane::limits! {
+    /// The magnitude governing how many sizes one row's input-size axis may
+    /// state.
+    ///
+    /// # Bounds
+    ///
+    /// Thirty-two. A growth class is read off a CURVE, so the axis must carry
+    /// more than one point — and a curve of more than thirty-two points is a
+    /// measurement campaign rather than a gate, which is a different thing with
+    /// a different budget.
+    InputSizeLimit = 32,
+    /// The magnitude governing how many bytes one declared work formula may
+    /// carry.
+    ///
+    /// # Bounds
+    ///
+    /// Two hundred and fifty-six. The formula is the declaration's own encoded
+    /// form rather than a name, because two different formulas an owner happened
+    /// to name alike would otherwise encode identically — and a formula past
+    /// this width has stopped being a formula the gate counts work against.
+    WorkFormulaLimit = 256,
+    /// The magnitude governing how many work-observation bindings one row may
+    /// name.
+    ///
+    /// # Bounds
+    ///
+    /// Eight. Each observation is one counted quantity the gate reads against
+    /// the declared formula, and a row observing more than eight has stopped
+    /// measuring one workload.
+    WorkObservationLimit = 8,
+    /// The magnitude governing how many rows one bench table may declare.
+    ///
+    /// # Bounds
+    ///
+    /// One hundred and twenty-eight, and DELIBERATELY narrower than the trial
+    /// table's. Every bench row is measured across its whole input-size axis
+    /// under declared sample and warmup counts, so a bench table's cost is its
+    /// rows times its axis times its samples — where a trial table's is its
+    /// rows.
+    BenchRowLimit = 128,
+}
 
 // ---------------------------------------------------------------------------
 // The declaration refusal family.
@@ -418,6 +417,17 @@ pub enum BenchmarkPlanIssue {
         role_slot: u32,
     },
     /// The planned member lands somewhere other than the declaration site.
+    ///
+    /// The bench shell is DEFINED at the declaration site — that is what makes it
+    /// reachable — and the rows it carries ride into the bench target as its
+    /// deferred cargo, which is the cargo's delivery and never the shell's.
+    /// The destination roster names four deliveries, and a member that is not at
+    /// the declaration site declared one of the other three: a standalone
+    /// artifact a publication writes to its own address, the deferred cargo a
+    /// test target invokes, or the deferred cargo a bench target invokes. Each
+    /// of the three is a different delivery and each establishes this issue —
+    /// the two carriers included, because a shell declared into a carrier is a
+    /// member declared into the thing it is the vehicle for.
     DestinationNotDeclarationSite {
         /// The role whose planned destination disagreed.
         role_slot: u32,

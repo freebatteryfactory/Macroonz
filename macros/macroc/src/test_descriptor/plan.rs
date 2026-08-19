@@ -48,9 +48,10 @@ use crate::planning::{MemberDestination, ProjectionPlan, TestDescriptorProjectio
 /// failure to look hard enough.
 ///
 /// Returns [`DescriptorPlanIssue::DestinationNotDeclarationSite`] where the
-/// planned member is written as a standalone artifact: the generated support
+/// planned member lands anywhere but the declaration site: the generated support
 /// shell is emitted at the declaration site as deferred tokens and invoked by the
-/// consumption target, and a member landing elsewhere is a different delivery.
+/// consumption target, so a standalone artifact, deferred test cargo, and deferred
+/// bench cargo are three other deliveries and each reaches this answer.
 ///
 /// The two checks are DEPENDENT — there is no destination to read until a member
 /// was found — so exactly one of them is ever established.
@@ -65,7 +66,16 @@ pub fn descriptor_plan(
     };
     match member.output.destination {
         MemberDestination::AtDeclarationSite => {}
-        MemberDestination::AsArtifact { .. } => {
+        // The SHELL is defined at the declaration site — that is what makes it
+        // reachable — and the cargo it carries is a member of some other plan.
+        // So a shell member declared into a carrier is a member declared into
+        // the thing it is the vehicle for, and it reaches the same answer as an
+        // artifact. The arms are written out one by one rather than under a
+        // wildcard: a delivery admitted later stops the compiler here until
+        // somebody says whether a shell is written into it.
+        MemberDestination::AsArtifact { .. }
+        | MemberDestination::IntoTestCarrier
+        | MemberDestination::IntoBenchCarrier => {
             return Err(DescriptorPlanIssue::DestinationNotDeclarationSite {
                 role_slot: role.slot(),
             });

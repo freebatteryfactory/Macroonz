@@ -1,6 +1,7 @@
 //! The token half of the road: the exported shell, the gate invocation inside
-//! it, the stamped payload inside that, and the constructor-calling expression
-//! each row is.
+//! it, the stamped payload inside that, the constructor-calling expression each
+//! row is, and the private module the shell splices its deferred cargo into
+//! beside the gate.
 //!
 //! # Tokens, not text
 //!
@@ -45,8 +46,8 @@
 //! expectation as something else.
 
 use super::{
-    BoundPath, CrateFacing, DescriptorRow, RevisionReference, RevisionStanding, RowAttachment,
-    ShellName, ShellRenderIssue, SuiteGroup, TrialTablePayload, WallName,
+    BoundPath, CrateFacing, DeferredDelivery, DescriptorRow, RevisionReference, RevisionStanding,
+    RowAttachment, ShellName, ShellRenderIssue, SuiteGroup, TrialTablePayload, WallName,
 };
 use crate::plane::GeneratedTokenLimit;
 use crate::planning::{EXPECTED_GENERATED_SUPPORT_SCHEMA_ID, ExpectedGeneratedSupportSchemaId};
@@ -693,6 +694,78 @@ pub fn gate_invocation(
     tokens.push(GeneratedToken::alone('!'));
     tokens.push(group(GeneratedDelimiter::Brace, clauses)?);
     Ok(tokens)
+}
+
+/// The private module one shell splices its deferred cargo into: the local
+/// subject the cargo's implementations stand over, the cargo itself, and one
+/// constant per selection the cargo reads.
+///
+/// # Where it stands, and why there
+///
+/// BESIDE the gate invocation rather than inside it. What rides through the gate
+/// is the harness's own cargo under the harness's own grammar, and this module
+/// is neither: it is a private module the consumption target expands, holding
+/// items the harness never sees. Splicing it through the gate would be this home
+/// writing into a grammar it does not own.
+///
+/// # What the module is for
+///
+/// A deferred implementation is a copy of one the declaration site already
+/// carries, so a copy rendered for the type the declaration named would be that
+/// implementation declared twice where the declaration is — and, once the copy
+/// reaches a consumer's test target, a foreign trait implemented for a foreign
+/// type. The module answers both at once: it declares a type the target owns,
+/// the copies stand over that, and the module's own name is the shell's
+/// content-addressed spelling, so nothing outside the expansion can reach the
+/// subject and two shells in one crate never collide.
+///
+/// # Ordering
+///
+/// The subject is declared first, the cargo second — its own items include the
+/// active-point rosters — and the constants last, because a constant stands at a
+/// row of a roster the cargo declares. Rust resolves a module's items without
+/// regard to order, so the order is for the reader, and the reader is who it is
+/// written for.
+///
+/// # Errors
+///
+/// Returns [`ShellRenderIssue::ShellTreeUnbounded`] where the module outgrows
+/// the declared token magnitude.
+pub fn deferred_module(
+    name: &ShellName,
+    deferred: &DeferredDelivery,
+) -> Result<Vec<GeneratedToken>, ShellRenderIssue> {
+    let cargo = match deferred {
+        // An expansion that planned no member into this carrier splices no
+        // module at all: a module carrying no cargo would declare a subject
+        // nothing implements and constants nothing reads, which is a different
+        // thing from a carrier nothing was ever deferred into.
+        DeferredDelivery::NothingDeferred => return Ok(Vec::new()),
+        DeferredDelivery::Carried(carried) => carried,
+    };
+    let mut body = vec![
+        GeneratedToken::word("struct"),
+        GeneratedToken::word(cargo.subject()),
+        GeneratedToken::alone(';'),
+    ];
+    body.extend(cargo.tree().tokens().cloned());
+    for selector in cargo.selectors() {
+        body.push(GeneratedToken::word("const"));
+        body.push(GeneratedToken::word(selector.constant()));
+        body.push(GeneratedToken::alone(':'));
+        body.push(GeneratedToken::word(selector.active_enum()));
+        body.push(GeneratedToken::alone('='));
+        body.push(GeneratedToken::word(selector.active_enum()));
+        body.push(GeneratedToken::joint(':'));
+        body.push(GeneratedToken::alone(':'));
+        body.push(GeneratedToken::word(selector.variant()));
+        body.push(GeneratedToken::alone(';'));
+    }
+    Ok(vec![
+        GeneratedToken::word("mod"),
+        GeneratedToken::word(name.deferred_module().as_str()),
+        group(GeneratedDelimiter::Brace, body)?,
+    ])
 }
 
 /// One `#[doc = "…"]` attribute, as the tokens that spell it.

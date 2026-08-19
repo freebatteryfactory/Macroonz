@@ -35,7 +35,7 @@ pub use types::{
     TriggerViewIssueLimit, WireContractSubject, WorkCurrencySubject, WorkFormulaSubject,
     WrapperComponentLimit,
 };
-pub(crate) use types::{human_projection, static_bytes};
+pub(crate) use types::{human_projection, limits, static_bytes};
 
 #[cfg(test)]
 pub(crate) use types::{DECLARED_LIMITS, SUBJECT_NAMES, for_laws};

@@ -84,14 +84,14 @@ four would be answering the station with a value nobody computed.
 
 ## The seats
 
-`types.rs` declares, including the four limit families this home's capacities are
-governed by and the two refusal families it answers through. Its own child
+`types.rs` declares, including the four magnitude rows this home's capacities are
+governed by — meaning, number, and reason on one row, stamped through the plane's
+`limits!` — and the two refusal families it answers through. Its own child
 `type_guard.rs` holds every road that reaches a private seat — a sentence's text,
 a line's text, a section's lines, an item's sections, the surface's composition,
 and the refusal body's one seat — which is what makes the one-plain-sentence law
-a shape rather than a rule. `type_contract.rs` states the declarative tables:
-each limit family's authority and magnitude written together, the refusal
-family's declared shape, and the fact roster with what each arm traces to.
+a shape rather than a rule. `type_contract.rs` states the declarative tables: the
+refusal family's declared shape, and the fact roster with what each arm traces to.
 `plan.rs` reads the plan through its public surface and composes the station's
 answers. `render.rs` is the token half: the summary attribute, the earned
 sections, and the one sentence per typed fact.

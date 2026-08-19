@@ -8,8 +8,10 @@
 //! reference that names nothing is not a value anybody can hold. A path is rooted
 //! HERE, so a rendered expression that names no crate binding is unwritable. A
 //! payload's namespace is closed HERE, so a stamped module that would declare one
-//! function twice is refused before a token exists. And a shell is composed HERE,
-//! so there is no half-rendered carrier for a reader to mistake for a whole one.
+//! function twice is refused before a token exists. A deferred cargo's subject
+//! and selectors are declared HERE, so a module the shell splices can never
+//! declare one constant twice. And a shell is composed HERE, so there is no
+//! half-rendered carrier for a reader to mistake for a whole one.
 //!
 //! The refusal BODY is DECLARED in the `seat` module below rather than in
 //! `types.rs`, because Rust's privacy is MODULE-scoped and a seat declared beside
@@ -20,9 +22,10 @@
 
 use super::super::render;
 use super::{
-    BoundPath, CrateFacing, DescriptorPlan, DescriptorRow, GeneratedSupportShell, PathSegmentLimit,
-    ProducerOrigin, RoleLimit, RowAttachment, RowLimit, RowReferences, ShellDeclarationRefusal,
-    ShellName, ShellRenderIssue, SuiteGroup, SuiteGroupLimit, TagLimit, TrialTablePayload, WallName,
+    ActivePointSelector, BoundPath, CrateFacing, DeferredCargo, DeferredDelivery, DescriptorPlan,
+    DescriptorRow, GeneratedSupportShell, PathSegmentLimit, ProducerOrigin, RoleLimit,
+    RowAttachment, RowLimit, RowReferences, SelectorLimit, ShellDeclarationRefusal, ShellName,
+    ShellRenderIssue, SuiteGroup, SuiteGroupLimit, TagLimit, TrialTablePayload, WallName,
 };
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
@@ -395,6 +398,130 @@ impl TrialTablePayload {
     }
 }
 
+impl ActivePointSelector {
+    /// Declare one active-point selector.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ShellDeclarationRefusal::SpellingNotAnIdentifier`] where the
+    /// constant, the roster it stands on, or the row it stands at is not one
+    /// Rust identifier. All three are written as identifiers into the module the
+    /// cargo is spliced into, and a spelling that is not one renders tokens the
+    /// consumer's compiler reads as something else.
+    pub fn declared(
+        constant: &str,
+        active_enum: &str,
+        variant: &str,
+    ) -> Result<Self, ShellDeclarationRefusal> {
+        if !is_rendered_identifier(constant)
+            || !is_rendered_identifier(active_enum)
+            || !is_rendered_identifier(variant)
+        {
+            return Err(ShellDeclarationRefusal::SpellingNotAnIdentifier);
+        }
+        Ok(Self {
+            constant: constant.to_owned(),
+            active_enum: active_enum.to_owned(),
+            variant: variant.to_owned(),
+        })
+    }
+
+    /// The constant every activation site reads the selection through.
+    #[must_use]
+    pub fn constant(&self) -> &str {
+        self.constant.as_str()
+    }
+
+    /// The active-point roster that constant stands on.
+    #[must_use]
+    pub fn active_enum(&self) -> &str {
+        self.active_enum.as_str()
+    }
+
+    /// The row of that roster the constant stands at.
+    #[must_use]
+    pub fn variant(&self) -> &str {
+        self.variant.as_str()
+    }
+}
+
+impl DeferredCargo {
+    /// Declare the cargo one carrier receives.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ShellDeclarationRefusal::SpellingNotAnIdentifier`] where the
+    /// subject's spelling is not one Rust identifier,
+    /// [`ShellDeclarationRefusal::SelectorConstantDoubled`] where two selectors
+    /// are read through one constant — the module the cargo is spliced into
+    /// would declare that constant twice — and
+    /// [`ShellDeclarationRefusal::SelectorsUnbounded`] where the selectors
+    /// outgrow the declared magnitude.
+    ///
+    /// # Bounds
+    ///
+    /// An EMPTY selector roster is admitted and is a stated fact: a cargo whose
+    /// implementations read no selection still stands over the subject, and the
+    /// module the shell splices carries the subject either way.
+    ///
+    /// A cargo of no TOKENS is admitted too, and is a different fact from a
+    /// carrier nothing was deferred into — that one is
+    /// [`DeferredDelivery::NothingDeferred`], and this road never turns one into
+    /// the other.
+    pub fn deferred(
+        subject: &str,
+        selectors: Vec<ActivePointSelector>,
+        tokens: GeneratedTree,
+    ) -> Result<Self, ShellDeclarationRefusal> {
+        if !is_rendered_identifier(subject) {
+            return Err(ShellDeclarationRefusal::SpellingNotAnIdentifier);
+        }
+        if constants_doubled(&selectors) {
+            return Err(ShellDeclarationRefusal::SelectorConstantDoubled);
+        }
+        let admitted: Bounded<ActivePointSelector, SelectorLimit> = Bounded::admitted_const(
+            selectors,
+            &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
+        )
+        .map_err(|_| ShellDeclarationRefusal::SelectorsUnbounded)?;
+        Ok(Self {
+            subject: subject.to_owned(),
+            selectors: admitted,
+            tokens,
+        })
+    }
+
+    /// The local subject the deferred implementations stand over.
+    #[must_use]
+    pub fn subject(&self) -> &str {
+        self.subject.as_str()
+    }
+
+    /// The selectors the deferred implementations read, in the order they were
+    /// declared.
+    pub fn selectors(&self) -> impl Iterator<Item = &ActivePointSelector> {
+        self.selectors.iter()
+    }
+
+    /// How many selectors the cargo declares.
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.selectors.len()
+    }
+
+    /// Whether the cargo declares no selector at all — a lawful, stated posture.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.selectors.is_empty()
+    }
+
+    /// The tokens themselves: one emission's proved cargo, handed over whole.
+    #[must_use]
+    pub const fn tree(&self) -> &GeneratedTree {
+        &self.tokens
+    }
+}
+
 impl ShellName {
     /// The fixed prefix every exported shell name carries.
     ///
@@ -438,6 +565,28 @@ impl ShellName {
     pub fn spelling(&self) -> &str {
         self.spelling.as_str()
     }
+
+    /// The suffix the shell's own deferred module wears.
+    pub const DEFERRED_SUFFIX: &'static str = "_deferred";
+
+    /// The private module this shell splices its deferred cargo into.
+    ///
+    /// The shell's own hex-keyed spelling and one suffix, so the module is
+    /// collision-free on exactly the terms the exported name is: the key is
+    /// content-addressed, so two distinct planned members reach two distinct
+    /// modules without this home keeping a register of what it has already
+    /// written.
+    ///
+    /// A macro and a module stand in two of Rust's namespaces and could share
+    /// one spelling, but a reader who trips over both at one crate root should
+    /// not have to know which namespace resolved which — so the module says
+    /// which of the two it is.
+    #[must_use]
+    pub fn deferred_module(&self) -> String {
+        let mut spelling = self.spelling.clone();
+        spelling.push_str(Self::DEFERRED_SUFFIX);
+        spelling
+    }
 }
 
 impl GeneratedSupportShell {
@@ -450,36 +599,57 @@ impl GeneratedSupportShell {
     /// deferred tokens the consumption target then invokes.
     pub const DESTINATION: MemberDestination = MemberDestination::AtDeclarationSite;
 
-    /// Render one generated support shell over what the plan decided and what the
-    /// caller declared.
+    /// Render one generated support shell over what the plan decided, what the
+    /// caller declared, and what the expansion deferred into this carrier.
     ///
     /// The order is the road: the exported name from the plan's own semantic key,
     /// then the payload's tokens, then the gate invocation the payload rides
-    /// inside, then the exported macro definition that carries it — and the shell
-    /// only after all four, so no half-rendered carrier exists.
+    /// inside, then the deferred module beside it, then the exported macro
+    /// definition that carries both — and the shell only after all five, so no
+    /// half-rendered carrier exists.
+    ///
+    /// # What each part of the body is
+    ///
+    /// The GATE INVOCATION carries the descriptor rows, and its grammar is the
+    /// harness's. The DEFERRED MODULE stands beside it rather than inside it,
+    /// because what rides through the gate is the harness's own cargo and this
+    /// module is not: it is the local subject the deferred implementations stand
+    /// over, those implementations, and one constant per selection they read.
+    /// Both are items at the invocation site and both are expanded by the
+    /// consumption target, which is what makes them one delivery.
+    ///
+    /// A delivery that deferred nothing splices no module: an expansion that
+    /// planned no member into this carrier and one that sent it a cargo of no
+    /// tokens are different facts, and only the second has a module to write.
     ///
     /// # Errors
     ///
     /// Returns the rendering family naming
     /// [`ShellRenderIssue::ShellTreeUnbounded`] where the stamped payload, the
-    /// gate invocation around it, the exported carrier around that, or the
-    /// assembled tree outgrows the declared token magnitude.
+    /// gate invocation around it, the deferred module beside it, the exported
+    /// carrier around both, or the assembled tree outgrows the declared token
+    /// magnitude.
     ///
     /// The gate's own expectation is not among them: thirty-two bytes are one
     /// literal token, so the road that writes it is total and there is no branch
-    /// here for a case that cannot happen. What remains is a DEPENDENT chain —
-    /// each part is the material the next one wraps — so exactly one issue is
-    /// ever established on this crossing. The family's collection shape is the
-    /// BENCH crossing's, which renders two independent parts — a bench table and
-    /// a reporter adapter — either of which can overrun on its own.
+    /// here for a case that cannot happen. What remains is a chain each part of
+    /// which is refused before the next is reached, so exactly one issue is ever
+    /// established on this crossing. The family's collection shape is the BENCH
+    /// crossing's, which renders two independent parts — a bench table and a
+    /// reporter adapter — either of which can overrun on its own.
     pub fn rendered(
         stated: &DescriptorPlan,
         payload: &TrialTablePayload,
+        deferred: &DeferredDelivery,
     ) -> Result<Self, ShellRendering> {
         let name = ShellName::mangled(&stated.semantic_key);
         let pin = render::expectation_literal();
         let cargo = render::stamped_module(payload).map_err(|issue| established(vec![issue]))?;
-        let body = render::gate_invocation(pin, cargo).map_err(|issue| established(vec![issue]))?;
+        let mut body =
+            render::gate_invocation(pin, cargo).map_err(|issue| established(vec![issue]))?;
+        body.extend(
+            render::deferred_module(&name, deferred).map_err(|issue| established(vec![issue]))?,
+        );
         let tokens = render::exported_shell(&name, body).map_err(|issue| established(vec![issue]))?;
         let tree = GeneratedTree::assembled(tokens)
             .map_err(|_| established(vec![render::unbounded()]))?;
@@ -577,6 +747,18 @@ fn established(issues: Vec<ShellRenderIssue>) -> ShellRendering {
 fn names_doubled(names: &[WallName]) -> bool {
     let distinct: BTreeSet<&WallName> = names.iter().collect();
     distinct.len() != names.len()
+}
+
+/// Whether two of one cargo's selectors are read through one constant.
+///
+/// The CONSTANT alone, because that is what the spliced module declares: two
+/// selectors standing on one roster at two rows is an ordinary cargo, and two
+/// standing under one constant is a module declaring one item twice.
+///
+/// Counted rather than walked with an early return, on the same terms.
+fn constants_doubled(selectors: &[ActivePointSelector]) -> bool {
+    let distinct: BTreeSet<&str> = selectors.iter().map(ActivePointSelector::constant).collect();
+    distinct.len() != selectors.len()
 }
 
 /// The stamped module's ONE namespace, closed: every seat spelling and every lens

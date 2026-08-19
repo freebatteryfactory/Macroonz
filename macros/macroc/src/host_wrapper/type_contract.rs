@@ -1,15 +1,7 @@
 //! The host-wrapper home's declarative surface: the tables and trait
 //! implementations this home states rather than computes.
 //!
-//! Four declarations stand here.
-//!
-//! The LIMIT FAMILIES: each family's capacity authority and its magnitude are
-//! written on adjacent rows, so a family cannot be declared on the compile-time
-//! ladder while wearing another road's authority — [`Limit::Authority`] resolves
-//! to one type, and naming [`DeclaredMagnitude`] there is what makes
-//! [`ConstLimit`] implementable at all. The families themselves are declared
-//! beside the capacities they govern in `types.rs`; what a family is FOR is said
-//! there, and the number is said here.
+//! Three declarations stand here.
 //!
 //! The REFUSAL FAMILY's declared shape: an issue collection, because a plan may
 //! select several components nobody staged while a shape stages several nobody
@@ -26,45 +18,9 @@
 //! a host contract at all. It is a value rather than a sentence in a README, so
 //! the honest answer travels with the vocabulary that needs it.
 
-use super::{
-    WrapperComposition, WrapperCompositionIssueLimit, WrapperContractMint, WrapperPathSegmentLimit,
-    WrapperStageLimit,
-};
+use super::{WrapperComposition, WrapperContractMint};
 use crate::planning::{WRAPPER_COMPONENTS, WrapperComponent};
 use threadpak::refusal::{FamilyShape, RefusalFamily};
-use threadpak::types::{ConstLimit, DeclaredMagnitude, Limit};
-
-impl Limit for WrapperPathSegmentLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for WrapperPathSegmentLimit {
-    const MAX: usize = 8;
-}
-
-impl Limit for WrapperStageLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for WrapperStageLimit {
-    /// The plane's wrapper-component roster's own cardinality. A stage is earned
-    /// by one component and a component earns at most one stage, so a ninth
-    /// stage would have to be earned by a ninth component — and the plane
-    /// declares eight.
-    const MAX: usize = 8;
-}
-
-impl Limit for WrapperCompositionIssueLimit {
-    type Authority = DeclaredMagnitude;
-}
-
-impl ConstLimit for WrapperCompositionIssueLimit {
-    /// Eight: the component roster is the composition pass's quantifier and each
-    /// component establishes at most one issue, because "selected and unstaged",
-    /// "selected and doubled", and "staged and unselected" cannot two of them
-    /// hold of one component at once.
-    const MAX: usize = 8;
-}
 
 impl RefusalFamily for WrapperComposition {
     const SHAPE: FamilyShape = FamilyShape::IssueCollection;

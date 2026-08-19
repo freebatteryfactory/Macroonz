@@ -8,18 +8,14 @@
 //! expansion, because the whole point of either declaration is that a row is
 //! stated once and everything about it follows.
 
-use crate::closure::ProjectionClosure;
+use crate::closure::ProjectionReceipt;
 use crate::diagnostics::{MachineAnchoring, ObservedClassification};
-use crate::explanation_protocol::ProjectionExplanationView;
 use crate::origin_graph::Nonclaim;
 use crate::plane::{
-    CapturedDeclarationSubject, ClosedExpansionId, DeriveCauseLimit, HumanProjection,
-    HumanTextLimit, NonclaimLimit, OwnerFactRef, ProjectionIdentity, ProjectionProvenance,
-    human_projection,
+    CapturedDeclarationSubject, CapturedTokenLimit, DeriveCauseLimit, HumanProjection,
+    HumanTextLimit, NonclaimLimit, OwnerFactRef, ProjectionIdentity, human_projection,
 };
-use crate::planning::{
-    DeriveImplProjection, ProjectionDisposition, ProjectionPlan, RenderedImplementation,
-};
+use crate::planning::{DeriveImplProjection, ProjectionDisposition};
 use crate::token::{SpanHandle, SpanTable};
 use threadpak::declaration::SourceCoordinate;
 use threadpak::refusal::{
@@ -217,6 +213,19 @@ refusal_derive_facts! {
         "every-rendered-seat-stands-under-a-declared-magnitude",
         "a renderer that would emit past its declared magnitude refuses rather than materializing \
          part of a unit";
+
+    /// This home's own charter fact: what the mutation-evaluation copy stands
+    /// over, and what that costs a production body.
+    AnEvaluationCopyStandsOverALocalSubject = "macroc",
+        "an-evaluation-copy-stands-over-a-local-subject",
+        "the evaluation copy is rendered against the support shell's own local subject, so a \
+         production body that observes `Self` or names the type it was derived for has no copy \
+         this delivery renders";
+
+    /// This home's own charter fact: the terminal binds what it hands out.
+    NothingIsHandedOutThatDidNotBind = "macroc", "nothing-is-handed-out-that-did-not-bind",
+        "a receipt binds the plan its proof was taken against, so a closure proved against another \
+         plan is refused rather than bound under one identity";
 }
 
 /// How the consumer names the machine on its own dependency list.
@@ -235,6 +244,59 @@ refusal_derive_facts! {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CrateBinding {
     spelling: String,
+}
+
+/// Which declaration one captured documentation row was written on.
+///
+/// Two arms, because the grammar admits documentation in two places and a
+/// reader joining a row back to what it describes needs to know which: a row on
+/// the FAMILY describes the declaration as a whole, and a row on a VARIANT
+/// describes one cause of it.
+/// A roster carrying rows with no such seat would be a pile of sentences that
+/// have to be re-associated by position, and position is exactly what an
+/// author's edit moves.
+#[must_use = "a documentation row names the declaration it was written on"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum DocumentedDeclaration {
+    /// The family declaration itself.
+    Family,
+    /// One declared variant, under the spelling the enum body writes it with.
+    Variant(String),
+}
+
+/// One documentation row as the capture read it: what it was written on, the
+/// text it carries, and the token it sits at.
+///
+/// # The attribute form
+///
+/// A documentation comment is an ATTRIBUTE by the time a declaration reaches
+/// this grammar — `#[doc = "…"]`, one attribute per written line — so what is
+/// captured here is exactly the form the language already produces, read
+/// through the same token walk every other seat is read through. Nothing here
+/// recognizes a comment: there are no comments left to recognize.
+///
+/// # Content
+///
+/// **The text is inside the one content commitment, and it is inside it
+/// already.** A captured declaration's identity is derived over the token
+/// material at full length ([`RefusalDeriveSurface::identity`]), and these rows
+/// are cut from that same material — so a declaration whose documentation
+/// changed is a different capture, derives a different plan, and closes under a
+/// different receipt. There is no second commitment for prose and no seat that
+/// would exempt one.
+///
+/// # Nonclaims
+///
+/// It states what was written and where, and nothing about what the text MEANS:
+/// no facet, no audience, no heading, and no section. Those are the
+/// documentation projection's declarations, and a capture that decided any of
+/// them would be deciding meaning it was handed as text.
+#[must_use = "a captured documentation row is declared data the surface carries"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CapturedDocumentation {
+    declared_on: DocumentedDeclaration,
+    text: String,
+    token: SpanHandle,
 }
 
 /// One cause as the capture read it: the Rust variant that spells it, and the
@@ -256,6 +318,20 @@ pub struct CapturedCause {
 /// The causes are non-empty exactly when the shape is
 /// [`FamilyShape::SingleCause`]; the other two shapes declare no canonical
 /// order, so there is nothing here to carry for them.
+///
+/// # The documentation rows
+///
+/// One roster, over the whole declaration, with every row naming the
+/// declaration it was written on ([`DocumentedDeclaration`]). One roster rather
+/// than one per variant, because the rows a shape carries no cause seat for are
+/// rows all the same: a family whose shape declares no canonical cause order
+/// still documents its variants, and a per-cause seat would drop exactly those.
+///
+/// The magnitude is [`CapturedTokenLimit`], which is the magnitude that already
+/// governs the material these rows are cut from — a documentation row is one
+/// captured attribute at one nesting level, and the trees at one nesting level
+/// are what that bound admits. A second magnitude here would be a second
+/// authority over one capacity.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RefusalDeriveSurface {
     family_name: String,
@@ -263,6 +339,7 @@ pub struct RefusalDeriveSurface {
     binding: CrateBinding,
     shape: FamilyShape,
     causes: Bounded<CapturedCause, DeriveCauseLimit>,
+    documentation: Bounded<CapturedDocumentation, CapturedTokenLimit>,
     identity: ProjectionIdentity<CapturedDeclarationSubject>,
 }
 
@@ -609,40 +686,51 @@ pub struct RefusalCompileContext {
 }
 
 // ---------------------------------------------------------------------------
-// The receipt.
+// The refusal family's view over the terminal.
 // ---------------------------------------------------------------------------
 
-/// One closed expansion: everything one live compilation produced, bound
-/// together, with the emitted token tree reachable only from here.
+/// One closed expansion: this family's view over the receipt one live
+/// compilation ended at, together with the two facts the receipt does not carry.
+///
+/// # A view, and not a second account
+///
+/// The plan, the proof, the explanation, the identity, and every emission are
+/// the RECEIPT's — [`ProjectionReceipt`] is the terminal every projection kind's
+/// door ends at, and this value holds one and reads it. Every road below that
+/// answers about them delegates, so there is nothing here that could answer
+/// differently from the terminal it stands over, and no second identity for one
+/// expansion.
+///
+/// What it adds is what the refusal-family road knows and the generic terminal
+/// does not: the CAPTURED SURFACE the declaration was read into, and the
+/// disposition of the typed cause-order projection.
+/// Both are facts about this family's own declaration, so a terminal seat for
+/// either would be a seat every other kind carries empty.
 ///
 /// # The one road to emitted tokens
 ///
-/// A caller cannot hold this without the plan, the origin graph, the trace, the
-/// rendering, the closure, and the explanation all having been produced and
-/// having agreed.
-/// There is no constructor that skips one, and there is no other value in the
-/// services that carries a token tree an expansion may emit.
+/// A caller cannot hold this without the plan, the rendering, the proved
+/// closure, and the complete explanation all having been produced, having
+/// agreed, and having been bound: [`ClosedExpansion::bound`] is crate-internal
+/// and builds through [`ProjectionReceipt::bound`], which refuses a closure
+/// proved against another plan. There is no constructor that skips a step and
+/// no other public value in this home that carries a token tree.
 ///
 /// # Inspection and emission
 ///
 /// [`ClosedExpansion::plan`] and [`ClosedExpansion::closure`] are the SAME
-/// values [`ClosedExpansion::emitted`] is projected from.
+/// values [`ClosedExpansion::emitted`] is read off.
 /// There is no parallel plan built for inspection and no synthetic sibling built
 /// for emission, so "what does it say it did" and "what did it do" cannot drift.
 ///
-/// The receipt holds no tree of its own.
-/// The emitted tree belongs to the CLOSURE, which built it as part of proving
-/// and committed to its digest inside its own identity; this value borrows it.
-/// A receipt that had been handed a tree alongside a closure could have been
-/// handed one the closure never joined.
-#[must_use = "a closed expansion is the whole receipt one live compilation produced"]
+/// This value holds no tokens of its own.
+/// The partitioned emission belongs to the CLOSURE, which built it as part of
+/// proving and committed to each emission's digest inside its own identity; the
+/// receipt borrows it and this view reads the receipt.
+#[must_use = "a closed expansion is this family's whole view over the receipt it ended at"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClosedExpansion {
-    identity: ClosedExpansionId,
-    provenance: ProjectionProvenance,
     surface: RefusalDeriveSurface,
-    plan: ProjectionPlan<DeriveImplProjection>,
-    closure: ProjectionClosure<RenderedImplementation>,
-    explanation: ProjectionExplanationView<DeriveImplProjection>,
+    receipt: ProjectionReceipt<DeriveImplProjection>,
     cause_order: ProjectionDisposition,
 }

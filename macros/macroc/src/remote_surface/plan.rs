@@ -58,10 +58,11 @@ use crate::planning::{
 /// to look hard enough.
 ///
 /// Returns [`RemoteSurfaceIssue::DestinationNotIntegrationTarget`] where the
-/// planned member is spliced at the declaration site: a remote surface lands in
-/// its INTEGRATION target, which is a different file than the declaration the plan
-/// was derived from, so the member is written as a standalone artifact under a
-/// byte role and a member spliced beside the declaration is a different delivery.
+/// planned member lands anywhere but a standalone artifact: a remote surface lands
+/// in a file its INTEGRATION target owns, written under a byte role, so the
+/// declaration site — where the surface would sit inside the library that declared
+/// the port — and the two carriers, which are deferred cargo rather than a file at
+/// all, are three other deliveries and each reaches this answer.
 ///
 /// Returns [`RemoteSurfaceIssue::TargetBindingFree`] where the plan's context
 /// binds no host contract. That posture is foreclosed on this seam's own route —
@@ -84,7 +85,15 @@ pub fn remote_surface_plan(
     };
     let byte_role = match member.output.destination {
         MemberDestination::AsArtifact { byte_role } => byte_role,
-        MemberDestination::AtDeclarationSite => {
+        // A remote surface lands in a FILE the integration target owns, so
+        // every delivery that is not an address reaches one answer — a carrier
+        // is deferred cargo a consumption target expands, which is not a file at
+        // all. The arms are written out one by one rather than under a wildcard:
+        // a delivery admitted later stops the compiler here until somebody says
+        // whether a surface is written into it.
+        MemberDestination::AtDeclarationSite
+        | MemberDestination::IntoTestCarrier
+        | MemberDestination::IntoBenchCarrier => {
             return Err(RemoteSurfaceIssue::DestinationNotIntegrationTarget {
                 role_slot: role.slot(),
             });
