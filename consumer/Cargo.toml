@@ -1,0 +1,29 @@
+[package]
+name = "threadpak-consumer"
+description = "The outside-consumer parity seat: an ordinary adopter that renames both ThreadPak crates and reaches them under no other name."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+# The wall this package stands under is the workspace's, inherited unweakened.
+# An adopter outside this repository declares its own; what THIS seat shows is
+# that nothing in the machine's public road needs a weaker one.
+[lints]
+workspace = true
+
+# The machine, under the name this consumer chose for it. Every path in this
+# package is spelled `tp::`, and the published package name appears on this line
+# and nowhere else in the tree — so a reference that resolves only under the
+# canonical spelling does not resolve here at all.
+[dependencies]
+tp = { package = "threadpak", path = ".." }
+
+# The judge, under the name this consumer chose for it, reached only from
+# `tests/`. Two facts ride that placement: the harness's own dependency
+# direction — production never depends on its judge — and the ordinary shape of
+# a consumer, whose testing lives in its tests.
+[dev-dependencies]
+harness = { package = "threadpak-testpak", path = "../testpak" }

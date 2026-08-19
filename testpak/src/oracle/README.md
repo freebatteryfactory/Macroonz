@@ -21,9 +21,16 @@ A vector transcribed into the depot is transcribed from this instrument's own
 re-derivations, never from a producer's laws — a vector copied from the
 producer would convert the annex into a mirror of the thing it judges.
 
-The readings this instrument descends from live under `src/03_judge/`, and
-their doctrine (what each reading may claim, why none subsumes another, why
-the readers stay dumb) is stated there. The structural read and the compiled
-read-back absorb here as `structural` and `compiled`; the byte-anchor scan
-does not — its anchors are generator-invalidation data, and they move to the
-depot when the generator becomes their author.
+Two readings stand here, `structural` and `compiled`, and the doctrine they
+answer to is stated with each of them: what that reading may claim, why
+neither subsumes the other, and why a reader that got cleverer would start
+agreeing with the producer it judges. A verdict is method-specific, and
+reporting one as though it came from another is the collapse this instrument
+exists to refuse.
+
+A third reading — a scan for one declared textual form in a rendered
+artifact — is deliberately absent, and its absence is a decision rather than
+a gap. Its anchors are generator-invalidation data: they belong to whoever
+AUTHORS the rendered form, so they arrive in the depot when the generator
+becomes their author, and a hand restating them beside the renderer would be
+maintaining a second spelling of somebody else's output.

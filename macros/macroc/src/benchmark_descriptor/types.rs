@@ -27,7 +27,6 @@ use crate::plane::{
 use crate::planning::CauseAnchoring;
 use crate::test_descriptor::{BoundPath, ShellName, WallName};
 use crate::token::GeneratedTree;
-use threadpak::evidence::VerifiedClaim;
 use threadpak::types::{Bounded, NonEmptyBounded};
 
 #[path = "type_guard.rs"]
@@ -369,6 +368,19 @@ pub struct BenchmarkShell {
 /// engine, its declaration, or the unit it measures would be an account that
 /// sometimes says less than it knows.
 ///
+/// # Bounds
+///
+/// There is no verified-CLAIM seat, and the absence is the honest shape rather
+/// than a dropped fact: the plan's kind content declares none
+/// ([`BenchmarkDescriptorContent`](crate::planning::BenchmarkDescriptorContent)),
+/// because the harness's bench row roster carries a NEUTRAL complexity reference
+/// — a standalone public vocabulary never names a product type — so the
+/// reference itself is part of the caller-supplied row material and the claim a
+/// product's own evidence home declares is mapped onto it at the PRODUCT's
+/// integration. A product claim carried here would reach no emitted seat and
+/// would put the product's vocabulary inside the statement a neutral crossing is
+/// rendered from.
+///
 /// # Nonclaims
 ///
 /// A benchmark is evidence about one realization, never a specification. Holding
@@ -394,16 +406,6 @@ pub struct BenchmarkPlan {
     pub measured: OwnerIdentityRef<MeasuredSubject>,
     /// The named work currency the envelope is stated in.
     pub work_currency: OwnerIdentityRef<WorkCurrencySubject>,
-    /// The claim the envelope stands for.
-    ///
-    /// # Bounds
-    ///
-    /// It reaches no seat of the emitted row. The harness's bench field roster
-    /// carries a NEUTRAL complexity-claim reference instead, because a standalone
-    /// public vocabulary never names a product type — so the machine's own claim
-    /// travels for the explanation station, and the caller states which neutral
-    /// reference it maps to.
-    pub claim: VerifiedClaim,
 }
 
 /// How reading a plan into [`BenchmarkPlan`] disagrees with the plan.

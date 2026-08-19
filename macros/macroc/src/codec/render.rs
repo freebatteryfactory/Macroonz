@@ -21,8 +21,9 @@
 //!
 //! # No numeric literal is written anywhere here
 //!
-//! The generated-token roster carries four arms — word, punctuation, text, group
-//! — and no numeric one. Rather than refuse, every place a number would have
+//! The generated-token roster carries a numeric arm and a byte-string arm
+//! beside word, punctuation, text, and group; this home simply writes no
+//! literal through either. Every place a number would have
 //! stood is written as the language's own road to the same value: the framing
 //! width is `::core::mem::size_of::<u64>()`, a presence byte is `u8::from(false)`
 //! and `u8::from(true)`, a repeated member stops on a length comparison, and a

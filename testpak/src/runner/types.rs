@@ -26,7 +26,8 @@
 //! rather than being written into every expansion that wants one.
 
 use crate::descriptor::{
-    AuthoredTable, Binding, ClaimRef, ExecutionSuite, SubjectRoute, TableView, TrialTableRefusal,
+    AuthoredTable, Binding, ClaimRef, EncodeRefusal, ExecutionSuite, SubjectRoute, TableView,
+    TrialTableRefusal,
 };
 use crate::report::{
     FindingCause, InfrastructureFault, InvocationProfile, SkipReason, TargetBinding, TimeBudget,
@@ -217,6 +218,15 @@ pub struct FailedTrial {
 pub enum SeatRefusal {
     /// The world could not be built, and this is the construction that refused.
     TableNotBuilt(TrialTableRefusal),
+    /// A row's canonical bytes could not be written, so the run's census could
+    /// not name that row's revision and no report was stated.
+    ///
+    /// The cause is the descriptor home's own and is carried unchanged. It is
+    /// unreachable on every target this crate is built for — the row encoder
+    /// states its widths rather than guessing at one — and it is a refusal
+    /// rather than a silence because a census entry under an identity derived
+    /// from bytes nobody wrote would be two rows' bookkeeping under one name.
+    RowNotEncoded(EncodeRefusal),
     /// The selection named no row of the denominator, so the run exercised
     /// nothing.
     ///

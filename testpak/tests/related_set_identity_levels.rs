@@ -50,8 +50,11 @@ use threadpak_macroc::{RelatedIdentity, RelatedSet, RelatedSetCompletion};
 /// The profile stem, spelled out rather than imported.
 const PROFILE_STEM: &str = "threadpak/macroc/projection-identity";
 
-/// The profile version, spelled out rather than imported.
-const PROFILE_VERSION: u32 = 2;
+/// The profile version, spelled out rather than imported. It moves here
+/// deliberately when the published profile moves — this lane writes both the
+/// derive-key context and the transcript itself, so the constant is the whole
+/// of following a bump.
+const PROFILE_VERSION: u32 = 4;
 
 /// The generator's declared name, spelled out rather than imported.
 const GENERATOR_PROFILE: &str = "threadpak-macroc";

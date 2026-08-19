@@ -1,8 +1,9 @@
 //! The proof-pressure engine's declarations: the verdict chain's axes, the
 //! per-mutant record and its run, the mutation target and its owner mapping, the
 //! wrap lane's reading vocabulary, the interpreted lane's evaluation surface and
-//! trust gate, the rewrite lane's descriptors, the survivor explanation and the
-//! check gap, the scope shapes and the proof plan, and the whole proposal road.
+//! trust gate, the rewrite lane's descriptors, the artifact-mutation seed
+//! roster, the survivor explanation and the check gap, the scope shapes and the
+//! proof plan, and the whole proposal road.
 //!
 //! Declarations only. Every road that reaches a private field is this file's own
 //! child, `type_guard.rs`; the declarative tables are `type_contract.rs`; the
@@ -21,8 +22,9 @@
 
 use crate::depot::types::OperatorFamily;
 use crate::descriptor::{
-    CheckRef, ClaimRef, Classification, ExecutionSuite, MutationPointRef, NameRefusal,
-    NamespacedName, PopulationRef, ProposalId, Row, RowRefusal, StagedTableRefusal, SubjectRoute,
+    CheckRef, ClaimRef, Classification, EncodeRefusal, ExecutionSuite, MutationPointRef,
+    NameRefusal, NamespacedName, PopulationRef, ProposalId, Row, RowRefusal, StagedTableRefusal,
+    SubjectRoute,
 };
 use crate::identity::{ContentAddress, DomainTag};
 use crate::properties::SubstrateRefusal;
@@ -976,6 +978,98 @@ pub enum RewriteAdmission {
 }
 
 // ---------------------------------------------------------------------------
+// The artifact-mutation seed roster.
+// ---------------------------------------------------------------------------
+
+/// One deliberate damage the artifact-mutation mode inflicts on a lawful
+/// rendered artifact.
+///
+/// # Authority
+///
+/// Each arm is a LIE a damaged rendering tells about the declaration it claims
+/// to project, and every one of them is this harness's own: the services carry
+/// no road that renders a defective artifact, because a producer that writes its
+/// own exam is rehearsed only against the defects it already imagined.
+///
+/// The roster is seed material and not a lane. It states WHICH damages the
+/// self-attack mode plans for; the surgery that realizes one over a rendered
+/// artifact is authored where the anchors are authored, so that a damage is cut
+/// against the anchors a generator emits rather than against spellings a hand
+/// restated beside them.
+///
+/// # Nonclaims
+///
+/// It says nothing about which reader CATCHES a damage. Ownership of a catching
+/// claim belongs to the readers that exist — the independence annex's lanes
+/// ([`crate::oracle`]) — and is stated there, against a seat that can hold it,
+/// once the self-attack mode runs over generated anchors. A roster that carried
+/// its own ownership table with no run to falsify it would be a green wall that
+/// measures nothing, which is the defect this vocabulary is descended from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ArtifactMutation {
+    /// The textual selection order is reversed while the typed order stands as
+    /// declared — the projection no longer projects.
+    OrderPermuted,
+    /// Every cause is emitted under the first cause's local key: distinct causes
+    /// inside one family made to share one identity.
+    IdentityRecycled,
+    /// One planned output is deleted from the artifact.
+    PlannedOutputOmitted,
+    /// An output nobody planned is appended.
+    UnplannedOutputAdded,
+    /// The implementation targets a different type than the one declared.
+    ImplTargetAltered,
+    /// The declared body shape is changed.
+    ShapeAltered,
+    /// A planned output is emitted twice.
+    OutputDuplicated,
+    /// The trait path names a contract the declaration did not realize.
+    TraitPathWrong,
+    /// A decoy carrying the anchored bytes is planted inside a comment while the
+    /// real constant is damaged.
+    DecoyInComment,
+    /// One planned member constant is emitted twice inside one implementation.
+    ImplMemberDuplicated,
+    /// A member nobody planned is added inside one implementation.
+    ImplMemberUnexpected,
+    /// A declared value is carried through a constructor the declaration did not
+    /// name.
+    ConstructorPathAltered,
+    /// The implementation is written under a posture the declaration did not
+    /// name.
+    ImplPostureAltered,
+    /// An attribute that decides something is added to an implementation.
+    MeaningBearingAttributeAdded,
+    /// The artifact stops being well-formed Rust.
+    MalformedRust,
+}
+
+/// The artifact-mutation roster, in the order this home states it.
+///
+/// # Authority
+///
+/// A declared table rather than a derived one: the order is the order a plan
+/// reads the damages in, so it is written down once here instead of arriving
+/// from whichever road happened to enumerate them.
+pub const ARTIFACT_MUTATIONS: [ArtifactMutation; 15] = [
+    ArtifactMutation::OrderPermuted,
+    ArtifactMutation::IdentityRecycled,
+    ArtifactMutation::PlannedOutputOmitted,
+    ArtifactMutation::UnplannedOutputAdded,
+    ArtifactMutation::ImplTargetAltered,
+    ArtifactMutation::ShapeAltered,
+    ArtifactMutation::OutputDuplicated,
+    ArtifactMutation::TraitPathWrong,
+    ArtifactMutation::DecoyInComment,
+    ArtifactMutation::ImplMemberDuplicated,
+    ArtifactMutation::ImplMemberUnexpected,
+    ArtifactMutation::ConstructorPathAltered,
+    ArtifactMutation::ImplPostureAltered,
+    ArtifactMutation::MeaningBearingAttributeAdded,
+    ArtifactMutation::MalformedRust,
+];
+
+// ---------------------------------------------------------------------------
 // Survivor explanation and the check gap.
 // ---------------------------------------------------------------------------
 
@@ -1332,12 +1426,16 @@ pub struct Demonstration {
 /// Why no kill was demonstrated.
 ///
 /// Dependent checks in a declared order: the view's posture, then the census,
-/// then the candidate's own disposition.
+/// then the candidate's own disposition. The two construction arms stand first
+/// because there is no report to read until both of them have held.
 #[must_use = "a refusal is the reason a kill was not demonstrated"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProofRefusal {
     /// The staged view could not be built.
     StagingRefused(StagedTableRefusal),
+    /// A row's canonical bytes could not be written, so the engine stated no
+    /// report at all. The descriptor home's own cause, carried unchanged.
+    RowNotEncoded(EncodeRefusal),
     /// The report stands over the authored world rather than a staged view, so
     /// no candidate was proven by it.
     NotStaged,

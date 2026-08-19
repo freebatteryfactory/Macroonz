@@ -43,7 +43,8 @@ named seats rather than a roster of counts, because the schema's roster is
 positional and a positional roster is a shape that can be declared short — a table
 whose second budget silently became its third is a gate judging against the wrong
 tolerance. `BUDGET_ORDER` is the stated mapping between the named seats and the
-schema's positions, and the rendering reads it.
+schema's positions: a table a reader joins the two sides by, written in exactly
+the order the rendering emits the three counts in.
 
 **The host order is carried by the shape.** [`BenchAttachment`] requires the
 measured callable, the planted-worse falsifier, and the preflight binding
@@ -85,11 +86,13 @@ payload, and the host that runs the declared order are not. Every row of that
 table names a seat the rendering actually writes a path to; nothing is listed that
 the emission does not depend on.
 
-Two literals this home writes have no arm in the generated-token roster either:
-the declared COUNTS (the axis, the budgets) and the declared BYTES (the work
-formula). Each refuses in the carrier's own rendering family naming the field and
-the value, so a caller reads which field defeated it rather than that the bench
-shell failed.
+Two literals this home writes are typed literals the token roster spells
+directly: the declared COUNTS (the axis, the budgets) as unsuffixed integers, and
+the declared BYTES (the work formula) as a byte string. Each states the VALUE and
+lets the tree own the spelling — an unsuffixed integer takes the type the
+consumer's own seat declares, and the `b`, the quotes, and every escape belong to
+the tree — so neither road carries a refusal, and there is no unspellable-literal
+issue on the carrier's rendering family for either of them.
 
 ## The seats
 
@@ -103,4 +106,4 @@ the shell's composition. `type_contract.rs` states the declarative tables: each
 limit family's authority and magnitude written together, the posture's emitted arm
 spellings, the budget order, and the crossing bill. `plan.rs` reads the plan
 through its public surface. `render.rs` is the token half: the bench table, the
-one-file adapter, and the two literals it cannot spell.
+one-file adapter, and the two typed literals it writes directly.

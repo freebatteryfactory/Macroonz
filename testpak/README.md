@@ -22,6 +22,10 @@ Table × Selection × Invocation     →  RunReport     (run_all)
 RunReport × RunReport              →  ReportDiff
 ```
 
+`run_all` is the one engine arrow that can refuse: a row whose canonical bytes
+cannot be written has no revision identity, the census cannot name it, and no
+report is stated at all.
+
 Row is pure descriptor data — it carries a check reference, never a callable.
 Binding pairs one Row with one callable through the executable attachment,
 whose constructor structurally verifies the row's references match. Table is
@@ -108,17 +112,16 @@ call with a differently selected subset of the one complete table.
 The instruments form an honest acyclic graph over one vocabulary — the
 descriptor vocabulary at the bottom, report beside it, the runner using
 both, generate serving properties and muterprater alike — and nobody forms
-a cycle, so no instrument carries a number. The one numbered seat,
-`src/03_judge/`, is the pre-redesign machinery the oracle and muterprater
-absorb.
+a cycle, so no instrument carries a number. Nothing is re-exported at the
+crate root either: a vocabulary is spelled through the home that owns it, so
+a call site says which instrument made the claim.
 
 ## Verdicts are typed refusals
 
 A failed check is a typed refusal value carrying its evidence and its source
 location — the harness fails the way the machine refuses. That is the
 instruments' law: the runner reports failure as a returned value, and no
-instrument fails by panicking. The standing seat still asserts the old way;
-its absorption is what retires that. A panic from the subject under test is
+instrument fails by panicking. A panic from the subject under test is
 CAUGHT at the trial boundary and converted into a verdict with its location —
 catch is the harness's own word for this; containment belongs to another
 band's vocabulary and is never used here: an overflow check
@@ -170,16 +173,19 @@ closed algebraic types, and the same vocabulary a coverage-guided fuzzer
 consumes.
 
 **`syn`, for the structural oracle.** Whether an artifact DECLARES an
-implementation, what it targets, and whether an anchored constant is a member
-of it are not questions about bytes. The text goes to a decoder that owes this
+implementation, what it targets, and whether a constant is a member of it are
+not questions about bytes. The text goes to a decoder that owes this
 repository nothing: `parsing`, without which there is no text-to-tree road,
 and `full`, without which items and their associated constants are not in the
 tree. The lane reads, never writes, and never runs inside a macro — and its
 home is the challenge side: structural decoding of this repository's rendered
-artifacts belongs to `tests/`, while the oracle library owns only vocabulary
-and parsers. The absorbed decoder stands isolated in one oracle file today;
-moving it out to the challenge side is what retires the library dependency
-at the manifest flip.
+artifacts belongs to `tests/`, while the oracle library owns vocabulary and
+comparison. The decoder stands isolated in one oracle file today, so the move
+is a file's worth of work, and the manifest carries the opening condition
+exactly: it happens at the wave where a challenge-side caller exists to call
+it there, and that same wave retires this from a library dependency to a
+dev-dependency. A decoder parked in `tests/` with nothing calling it would be
+unreachable code wearing the shape of a move.
 
 **And that reason settles less than it sounds like.** What a manifest ASKS
 FOR, what the resolved graph HOLDS, and what one compiled unit is HANDED are
@@ -201,9 +207,11 @@ a published identity from its published specification, writing out every
 encoding decision itself and importing none — the digest is the one thing
 it shares with the producer, deliberately, because whether the
 specification says enough for somebody else to re-derive the value is what
-is under judgement. The adopter's whole inherited bill is two library
-dependencies, `arbitrary` and `blake3` — blake3's build machinery is a
-disclosed mechanism of the admitted dependency, not a purity claim.
+is under judgement. The adopter's standing bill is two library dependencies,
+`arbitrary` and `blake3` — blake3's build machinery is a disclosed mechanism
+of the admitted dependency, not a purity claim. Today an adopter inherits
+`syn` beside them, because the decoder above has not moved yet; the manifest
+states that as the present tense rather than as an aspiration.
 
 Dev-side mechanisms — `trybuild` for compile refusals, and the bench and
 snapshot tooling admitted at their first real use — never reach an adopter's

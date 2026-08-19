@@ -6,10 +6,10 @@
 //! axes, the per-mutant record and its run, the mutation target and its owner
 //! mapping, the wrap lane's reading vocabulary, the interpreted lane's
 //! evaluation surface and trust gate, the rewrite lane's descriptors, the
-//! survivor explanation and the check gap, the scope shapes and the proof plan,
-//! and the whole proposal road. Every road that reaches one of its private
-//! fields is its own child, `type_guard.rs`; the total maps its arms are read
-//! through are `type_contract.rs`.
+//! artifact-mutation seed roster, the survivor explanation and the check gap,
+//! the scope shapes and the proof plan, and the whole proposal road. Every road
+//! that reaches one of its private fields is its own child, `type_guard.rs`;
+//! the total maps its arms are read through are `type_contract.rs`.
 //!
 //! The lanes are role-named pure-function modules. [`wrap`] reads a compiled
 //! mutation backend's output into the axis-composed record and plans its witness
@@ -38,13 +38,13 @@ mod type_contract;
 mod types;
 
 pub use types::{
-    ActivationAxis, ActivationDisposition, ActivationEvidence, ActivationSite, ActiveMutant,
-    ActiveSelection, AdmissionPatch, AlternativeIndex, AnnouncedRoster, BaselineAxis,
-    BaselinePrecondition, BaselineQualification, BudgetRefusal, CandidateSketch, CheckGap,
-    CoordinateRefusal, DemonstratedRejection, Demonstration, DiffPath, DiffPathRefusal,
-    DischargeEvidence, DudPlant, DuplicateEvidence, DuplicateRefusal, EquivalenceAxis,
-    EvaluationSurface, ExecutionAxis, ExplanationRefusal, FamilyAttribution, FamilyLookup,
-    InconclusiveCause, InferredObligation, IntendedRejection, InterpreterAvailability,
+    ARTIFACT_MUTATIONS, ActivationAxis, ActivationDisposition, ActivationEvidence, ActivationSite,
+    ActiveMutant, ActiveSelection, AdmissionPatch, AlternativeIndex, AnnouncedRoster,
+    ArtifactMutation, BaselineAxis, BaselinePrecondition, BaselineQualification, BudgetRefusal,
+    CandidateSketch, CheckGap, CoordinateRefusal, DemonstratedRejection, Demonstration, DiffPath,
+    DiffPathRefusal, DischargeEvidence, DudPlant, DuplicateEvidence, DuplicateRefusal,
+    EquivalenceAxis, EvaluationSurface, ExecutionAxis, ExplanationRefusal, FamilyAttribution,
+    FamilyLookup, InconclusiveCause, InferredObligation, IntendedRejection, InterpreterAvailability,
     KillProposalRefusal, KillRefusal, MUTATION_TARGET_TAG, MUTERPRATER_NAMESPACE, MappingPosture,
     MaterializationAxis, MissingTrustEvidence, MutantId, MutationCensus, MutationIdentity,
     MutationOutcome, MutationPoint, MutationReport, MutationRun, MutationSite, MutationTarget,

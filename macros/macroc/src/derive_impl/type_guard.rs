@@ -31,21 +31,18 @@
 use super::super::plan::{SurfacePlan, surface_plan};
 use super::super::render;
 use super::{
-    EvaluationBinding, EvaluationIdentityContract, ImplementationSurface,
-    ImplementationSurfaceIssue, ImplementationSurfaces, MutationClaimRef, MutationEvaluationSurface,
-    MutationOperation, MutationPoint, MutationPointLimit, MutationPointName, MutationPointTable,
-    NO_MUTATION_NAMESPACE, NO_MUTATION_STEM, NoMutationControl, ProductionSurface,
-    SurfaceDeclarationRefusal, SurfaceParity,
+    EvaluationBinding, ImplementationSurface, ImplementationSurfaceIssue, ImplementationSurfaces,
+    MutationClaimRef, MutationEvaluationSurface, MutationOperation, MutationPoint,
+    MutationPointName, MutationPointTable, NO_MUTATION_NAMESPACE, NO_MUTATION_STEM,
+    NoMutationControl, ProductionSurface, SurfaceDeclarationRefusal, SurfaceParity,
 };
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
-    AuthoringLimitProfile, GeneratedUnitSubject, GeneratorVersionSubject, ProfileVersion,
-    ProjectionIdentity, ProjectionProfileSubject, ProjectionRole, ProjectionTranscript,
-    RenderedRole, RenderedUnitSubject,
+    AuthoringLimitProfile, GeneratedUnitSubject, GeneratorVersionSubject, MutationPointLimit,
+    ProfileVersion, ProjectionIdentity, ProjectionProfileSubject, ProjectionRole,
+    ProjectionTranscript, RenderedRole, RenderedUnitSubject,
 };
-use crate::planning::{
-    CauseAnchoring, DeriveImplProjection, MemberDestination, ProjectionPlan, RenderedImplementation,
-};
+use crate::planning::{CauseAnchoring, DeriveImplProjection, ProjectionPlan, RenderedImplementation};
 use crate::token::{GeneratedTree, TokenPath};
 use std::collections::BTreeSet;
 use threadpak::types::{AdmittedLimit, Bounded, ConstLimit, NonEmptyBounded, PositiveLimit};
@@ -356,31 +353,11 @@ impl EvaluationBinding {
     }
 }
 
-impl EvaluationIdentityContract {
-    /// The contract binding the evaluation copy's eventual identity to the
-    /// production member it is a copy of.
-    ///
-    /// The role is the rendered-unit role and not the generated-unit one: a
-    /// generated unit is something a plan declared it would materialize, and
-    /// nothing declared this copy.
-    #[must_use]
-    pub const fn over(anchored_to: ProjectionIdentity<GeneratedUnitSubject>) -> Self {
-        Self {
-            role: ProjectionRole::RenderedUnit,
-            anchored_to,
-        }
-    }
-}
-
 // ---------------------------------------------------------------------------
 // The two surfaces.
 // ---------------------------------------------------------------------------
 
 impl ProductionSurface {
-    /// Where a production surface lands, stated once as a constant rather than
-    /// carried as a seat that could say something else.
-    pub const DESTINATION: MemberDestination = MemberDestination::AtDeclarationSite;
-
     /// Which of the two surfaces this is.
     pub const SURFACE: ImplementationSurface = ImplementationSurface::Production;
 
@@ -505,20 +482,26 @@ impl SurfaceParity {
 impl ImplementationSurfaces {
     /// Compose one implementation meaning's two surfaces.
     ///
-    /// The order is the road: what the plan decided, then the table with its
-    /// control seated, then the evaluation copy transformed out of the
-    /// production tree, then the copy's identity under the contract the plan
-    /// stated, and only then the parity — which is derived from those values
-    /// rather than asserted about them.
+    /// The order is the road: what the plan decided about BOTH members, then the
+    /// table with its control seated, then the evaluation copy transformed out
+    /// of the production tree, then the copy's identity over its own planned
+    /// key, and only then the parity — which is derived from those values rather
+    /// than asserted about them.
+    ///
+    /// The role a caller hands over names ONE half of a pair, and either half
+    /// names the whole: the plan is read for the production member and for its
+    /// twin together ([`surface_plan`]), so the two surfaces can never be
+    /// composed backwards.
     ///
     /// # Errors
     ///
-    /// Returns the composition family naming the plan's disagreement (the role
-    /// was not planned, or its member lands somewhere other than the declaration
-    /// site), the table's (a doubled name, a point claiming the control's name,
-    /// or too many points), or the transform's (a point's operation absent from
-    /// the production tree, occurring there more than once, overlapped by
-    /// another point's, or a copy past the declared token magnitude).
+    /// Returns the composition family naming the plan's disagreement (one half
+    /// of the pair was not planned, or its member lands somewhere other than
+    /// where its role says), the table's (a doubled name, a point claiming the
+    /// control's name, or too many points), or the transform's (a point's
+    /// operation absent from the production tree, occurring there more than
+    /// once, overlapped by another point's, or a copy past the declared token
+    /// magnitude).
     pub fn composed(
         plan: &ProjectionPlan<DeriveImplProjection>,
         role: RenderedImplementation,
@@ -535,7 +518,7 @@ impl ImplementationSurfaces {
         Ok(Self {
             production: ProductionSurface::rendered(&stated, production),
             evaluation: MutationEvaluationSurface {
-                role: stated.role,
+                role: stated.evaluation_role,
                 identity,
                 binding,
                 table,
@@ -639,30 +622,41 @@ fn is_identifier(spelling: &str) -> bool {
     characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
 }
 
-/// Derive the evaluation copy's identity under exactly the contract the plan
-/// stated, over exactly the bytes the copy carries.
+/// Derive the evaluation copy's identity over exactly the bytes the copy
+/// carries, anchored on the copy's OWN planned semantic key at its OWN role's
+/// roster position.
 ///
-/// The role and the anchor are read off the contract rather than written here,
-/// so the fact the plan stated and the fact the rendering performed are one
-/// value read twice.
+/// The derivation is the one every planned member's rendered-unit identity is
+/// taken under — role [`ProjectionRole::RenderedUnit`], anchored on the member's
+/// semantic key, at that member's role slot — so the copy is identified the way
+/// [`RenderedUnit::materialized`] identifies anything the plan declared, and
+/// this home holds no second rule for it.
+///
+/// The seats it reads are the PLAN's: the copy is a planned member, so its key
+/// and its role are read off the membership rather than borrowed from the
+/// production half. Anchoring it on the production member's key would be one
+/// identity standing for two members, which is exactly what the role-by-role
+/// closure exists to tell apart.
+///
+/// [`RenderedUnit::materialized`]: crate::closure::RenderedUnit::materialized
 fn evaluation_identity(
     stated: &SurfacePlan,
     tree: &GeneratedTree,
 ) -> ProjectionIdentity<RenderedUnitSubject> {
     let material = tree.canonical_bytes();
     ProjectionIdentity::derived(ProjectionTranscript::under_projection(
-        stated.identity_contract.role,
-        &stated.identity_contract.anchored_to,
+        ProjectionRole::RenderedUnit,
+        &stated.evaluation_key,
         &material,
-        stated.role.slot(),
+        stated.evaluation_role.slot(),
     ))
 }
 
 pub use seat::ImplementationSurfaceComposition;
 
 mod seat {
-    use super::super::{ImplementationSurfaceIssue, SurfaceIssueLimit};
-    use crate::plane::AuthoringLimitProfile;
+    use super::super::ImplementationSurfaceIssue;
+    use crate::plane::{AuthoringLimitProfile, SurfaceIssueLimit};
     use threadpak::refusal::{AdmittedPrefix, StopBound};
     use threadpak::types::PositiveLimit;
 

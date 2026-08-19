@@ -18,21 +18,24 @@
 //!
 //! # Producers
 //!
-//! The depth and whole-tree magnitudes bite on the callable text route, so they
-//! are driven through it — the same road `compile_refusal_text` takes, with no
-//! proc-macro anywhere in the path.
+//! Three of the four magnitudes bite on the callable text route — the depth, the
+//! per-level magnitude, and the whole-tree magnitude — so they are driven
+//! through it, the same road `compile_refusal_text` takes, with no proc-macro
+//! anywhere in the path. The text route issues one span offset per token it
+//! keeps into a table bounded at the WHOLE-TREE magnitude, which is what the
+//! table counts, so a level that overruns its own magnitude reaches that bound
+//! and names it rather than tripping a count it never approached.
 //!
-//! The per-level magnitude and the work budget are reachable from neither
-//! producer the services carry, and saying so is the honest state rather than a
-//! gap. The text route issues one span offset per token into a table bounded at
-//! the per-level magnitude, so a text carrying more tokens than one level admits
-//! overruns the whole-tree count first; and both producers KEEP every token they
-//! examine, so the tree magnitude bites before the walk's budget can. The budget
-//! is what bounds a producer that reads material it discards.
+//! The per-level magnitude is driven a second way as well, at the capture
+//! constructor: that is the seam a producer holding its own spans — a compiler
+//! shell, or a future language frontend — meets it at, and the two roads reach
+//! the same named bound.
 //!
-//! Both are therefore driven at the seam that governs them — the walk itself,
-//! and the capture constructor — which is where a further producer would meet
-//! them.
+//! The work budget is reachable from neither producer the services carry, and
+//! saying so is the honest state rather than a gap: both producers KEEP every
+//! token they examine, so the whole-tree magnitude bites before the walk's
+//! budget can. The budget is what bounds a producer that reads material it
+//! discards, so it is driven at the seam that governs it — the walk itself.
 //!
 //! # The planted mutant
 //!
@@ -64,7 +67,8 @@ const DECLARED_TREE_TOKENS: u32 = 16_384;
 const DECLARED_WORK_BUDGET: u32 = 65_536;
 
 /// The lawful declaration, small enough that no magnitude is anywhere near it.
-/// It is the control every hostile below is measured against.
+/// It is the control that says the road admits an ordinary declaration at all;
+/// the bounds below carry their own near-magnitude controls beside it.
 const DECLARATION: &str = "#[refusal(family = \"testpak.demo\", shape = single_cause, \
     order(NotCanonical = \"not-canonical\", NotAdmitted = \"not-admitted\", \
     Unbounded = \"unbounded\"))] enum DemoFamily { NotAdmitted, Unbounded, NotCanonical, }";
@@ -72,6 +76,29 @@ const DECLARATION: &str = "#[refusal(family = \"testpak.demo\", shape = single_c
 /// A text nesting one token inside `groups` parenthesized levels.
 fn nested(groups: usize) -> String {
     format!("{}x{}", "(".repeat(groups), ")".repeat(groups))
+}
+
+/// A text of `groups` sibling groups, each carrying `per_level` word tokens.
+///
+/// The whole tree carries `groups * (per_level + 1)` tokens — one for each group
+/// and one for each word inside it — and no level carries more than the larger
+/// of `groups` and `per_level`, which is what lets a caller reach the whole-tree
+/// magnitude without going anywhere near the per-level one.
+fn wide(groups: usize, per_level: usize) -> String {
+    let mut text = String::new();
+    for _ in 0..groups {
+        text.push('(');
+        for _ in 0..per_level {
+            text.push_str("a ");
+        }
+        text.push_str(") ");
+    }
+    text
+}
+
+/// A text of `tokens` word tokens, all at the top level.
+fn flat(tokens: usize) -> String {
+    "a ".repeat(tokens)
 }
 
 /// Every route in one captured input, from the root inward, in reading order.
@@ -199,38 +226,41 @@ fn nesting_to_the_declared_depth_reads_and_one_deeper_refuses() {
 }
 
 /// A tree past the declared whole-tree magnitude refuses, naming the tree, and
-/// the lawful declaration reads.
+/// a tree just under it reads.
 ///
-/// The hostile is generated rather than written out: it nests its tokens so that
-/// no single level approaches the per-level magnitude, which is what makes the
-/// whole-tree count the bound that bites.
+/// Both texts are generated rather than written out, and both nest their tokens
+/// so that no single level approaches the per-level magnitude — which is what
+/// makes the whole-tree count the bound under judgement here rather than a
+/// neighbour that happened to bite first.
 ///
-/// The control is the lawful declaration itself. The text route's span table is
-/// bounded at the per-level magnitude, so no text anywhere near the tree
-/// magnitude reads successfully, and pretending one does would be a control that
-/// never held.
+/// Two controls, and each answers a different doubt. The lawful declaration
+/// reads, so the road admits an ordinary declaration at all. The near-magnitude
+/// text reads, so the refusal below is the tree magnitude's own and not
+/// something this road does to every long text.
 #[test]
 fn a_tree_past_the_declared_token_magnitude_refuses() {
     let control = TextCapture::read(DECLARATION).map_err(|_| ());
     assert!(control.is_ok_and(|read| !read.input().is_empty()));
 
     let level = 4_000usize;
-    let groups = 5usize;
-    let mut hostile = String::new();
-    for _ in 0..groups {
-        hostile.push('(');
-        for _ in 0..level {
-            hostile.push_str("a ");
-        }
-        hostile.push_str(") ");
-    }
-    let counted = u32::try_from(groups.saturating_mul(level.saturating_add(1))).unwrap_or(u32::MAX);
+    let counted = |groups: usize| {
+        u32::try_from(groups.saturating_mul(level.saturating_add(1))).unwrap_or(u32::MAX)
+    };
+
+    let admitted_groups = 4usize;
     assert!(
-        counted > DECLARED_TREE_TOKENS,
+        counted(admitted_groups) <= DECLARED_TREE_TOKENS,
+        "the near-magnitude text already overruns the declared tree magnitude"
+    );
+    let admitted = TextCapture::read(&wide(admitted_groups, level)).map_err(|_| ());
+    assert!(admitted.is_ok_and(|read| read.input().len() == admitted_groups));
+
+    let hostile_groups = 5usize;
+    assert!(
+        counted(hostile_groups) > DECLARED_TREE_TOKENS,
         "the hostile text does not reach the declared tree magnitude"
     );
-
-    let refused = TextCapture::read(&hostile);
+    let refused = TextCapture::read(&wide(hostile_groups, level));
     assert!(refused.is_err_and(|refusal| matches!(
         refusal.cause,
         TextReadCause::Unbounded(CaptureBound::TreeUnbounded)
@@ -261,14 +291,33 @@ fn the_walk_counts_to_each_declared_magnitude_and_refuses_past_it() {
 }
 
 /// One nesting level carrying more trees than the declared magnitude refuses,
-/// naming the level.
+/// naming the level, on the callable text route.
 ///
-/// Driven at the capture constructor rather than through a text, because the
-/// text route's span table is bounded at this same magnitude and would overrun
-/// its whole-tree count first. This is the seam a producer holding its own spans
-/// — a compiler shell, or a future language frontend — meets the bound at.
+/// The route's span table stands under the WHOLE-TREE magnitude, so a top level
+/// one tree past its own bound reaches that bound and names it: four thousand
+/// and ninety-seven tokens is a lawful count for a tree and an unlawful width
+/// for a level, and the refusal says which of the two it is. A bound that bites
+/// is only evidence when it is the bound the input actually overran.
 #[test]
-fn a_level_past_the_declared_magnitude_refuses() {
+fn a_level_past_the_declared_magnitude_refuses_on_the_text_route() {
+    let lawful = TextCapture::read(&flat(DECLARED_LEVEL_TOKENS)).map_err(|_| ());
+    assert!(lawful.is_ok_and(|read| read.input().len() == DECLARED_LEVEL_TOKENS));
+
+    let hostile = TextCapture::read(&flat(DECLARED_LEVEL_TOKENS.saturating_add(1)));
+    assert!(hostile.is_err_and(|refusal| matches!(
+        refusal.cause,
+        TextReadCause::Unbounded(CaptureBound::LevelUnbounded)
+    )));
+}
+
+/// One nesting level carrying more trees than the declared magnitude refuses,
+/// naming the level, at the capture constructor.
+///
+/// The same bound met at the other seam: this is where a producer holding its
+/// own spans — a compiler shell, or a future language frontend — reaches it,
+/// with no text and no reader anywhere in the path. Two roads, one named bound.
+#[test]
+fn a_level_past_the_declared_magnitude_refuses_at_the_constructor() {
     let tree = |position: u32| {
         CapturedTokenTree::captured(
             CapturedPayload::Word(String::from("a")),

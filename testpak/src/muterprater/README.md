@@ -21,9 +21,11 @@ The staging below is a TRUST order, never a construction order: all three
 lanes are written complete during the build-out, and nothing is trusted
 merely because its code exists. Trust opens after the first toolchain
 contact, in the owner's order: baseline qualification, then wrap-first
-pressure; interpreter results are admitted only once the wrap-first
-survivor report proves the properties bite and the mandatory no-mutation
-parity passes; rewrite-produced descriptors are admitted last.
+pressure; interpreter results are admitted only once the wrap run's KILLS
+prove the properties bite — its non-kills are the inconclusive roster the
+interpreter's planning reads, never survivors, because that backend carries
+no activation channel to earn one — and the mandatory no-mutation parity
+passes; rewrite-produced descriptors are admitted last.
 
 ## The lanes
 
@@ -57,8 +59,12 @@ narrowed run. A survivor's explanation hands off directly into synthesis:
 survivor → owning claim → which oracle class is missing → the check
 reference that would close it. The artifact-mutation mode — damaging a
 rendered artifact to prove the readers notice — is the harness rehearsing
-its own alarm, and its mutation roster doubles as this lane's seed
-material. Sequences are a mutation subject of their own: dropping,
+its own alarm; its roster of damages is declared here as seed material,
+while the surgery that realizes one is authored where the anchors are
+authored, so a damage is cut against a generator's own anchors rather than
+against spellings a hand restated beside them, and which reader catches
+which damage is stated by the readers that exist rather than by the roster.
+Sequences are a mutation subject of their own: dropping,
 duplicating, reordering, or delaying commands in a generated history must
 trip the temporal laws — the cheapest event-order pressure there is.
 

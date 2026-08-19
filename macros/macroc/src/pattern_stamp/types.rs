@@ -88,6 +88,12 @@ pub struct ScopeGuardStampAnchors {
     pub rendered_node: ProjectionIdentity<OriginNodeSubject>,
     /// The generated unit the stamp materializes.
     pub stamped_unit: ProjectionIdentity<GeneratedUnitSubject>,
+    /// The byte role the published artifact stands under — the stamp is
+    /// cross-file published source on the publication road, so its planned
+    /// member lands as an artifact, and an artifact destination names the
+    /// byte role it is read under. The caller holds the machine-minted
+    /// reference; nothing here mints one.
+    pub byte_role: OwnerIdentityRef<ByteRoleSubject>,
     /// The subject the plan's decisions are recorded about.
     pub traced: ProjectionIdentity<TracedSubject>,
     /// The owner facts the stamp rests on.

@@ -33,7 +33,6 @@ use crate::plane::{
 };
 use crate::planning::CauseAnchoring;
 use crate::token::GeneratedTree;
-use threadpak::evidence::Method;
 use threadpak::types::{Bounded, NonEmptyBounded};
 
 #[path = "type_guard.rs"]
@@ -489,6 +488,17 @@ pub struct GeneratedSupportShell {
 /// sometimes says less than it knows. There is no private field here and this
 /// home's invariant nucleus holds nothing of it.
 ///
+/// # Bounds
+///
+/// There is no challenge-METHOD seat, and the absence is the honest shape rather
+/// than a dropped fact: the plan's kind content declares none
+/// ([`TestDescriptorContent`](crate::planning::TestDescriptorContent)), because
+/// the harness's closed descriptor field set has no method seat at all — a row
+/// names its CHECK, and which mechanism that check runs under is the check's own
+/// fact. A method carried here would reach no emitted seat of the crossing: a
+/// value the plan decided and nothing read, which reads as a decision the plan
+/// made about the rendering when the rendering never consults it.
+///
 /// # Nonclaims
 ///
 /// Holding one claims that these are the facts the plan carries under its one
@@ -511,16 +521,6 @@ pub struct DescriptorPlan {
     pub engine: ProjectionIdentity<GeneratorVersionSubject>,
     /// The obligation the descriptor challenges.
     pub obligation: OwnerIdentityRef<ObligationSubject>,
-    /// The method the challenge is made by.
-    ///
-    /// # Bounds
-    ///
-    /// It reaches no seat of the emitted row. The harness's closed descriptor
-    /// field set has no method seat — a row names its CHECK, and which mechanism
-    /// that check runs under is the check's own fact — so this travels for the
-    /// explanation station and for a caller deciding which check reference the row
-    /// should name, and the rendering reads it nowhere.
-    pub challenge: Method,
 }
 
 /// How reading a plan into [`DescriptorPlan`] disagrees with the plan.
@@ -549,63 +549,30 @@ pub enum DescriptorPlanIssue {
 // The rendering refusal family.
 // ---------------------------------------------------------------------------
 
-/// How rendering the shell disagrees with what the token vocabulary can spell or
-/// with what the harness's own refusal composition admits.
+/// How rendering the shell disagrees with what the token vocabulary can carry.
 ///
 /// # Authority
 ///
 /// **Every issue here is a fact about a VOCABULARY and never about a row.** A row
 /// that could not be declared was refused at the door by
-/// [`ShellDeclarationRefusal`]; what reaches this family is a spelling the
-/// rendering needs and cannot write, which is a gap in the seam rather than a
-/// defect in the caller's material — so each issue names the exact seat that
-/// closes it.
+/// [`ShellDeclarationRefusal`]; what reaches this family is a limit of the seam
+/// rather than a defect in the caller's material — so the issue names the exact
+/// magnitude that bit.
+///
+/// # Bounds
+///
+/// There is no unspellable-LITERAL arm on this roster, and its absence is the
+/// current truth rather than a gap somebody closed by deleting the report. The
+/// generated-token roster carries a byte-string arm and a numeric arm
+/// ([`GeneratedToken::ByteText`](crate::token::GeneratedToken::ByteText),
+/// [`GeneratedToken::Number`](crate::token::GeneratedToken::Number)), so the
+/// gate's byte-string expectation, a declared count, and a declared byte string
+/// are each ONE literal token this home writes directly. A refusal arm for a
+/// spelling the roster can spell would be a decision nothing can reach: no road
+/// constructs it, no caller repairs it, and a reader would be owed a story about
+/// a seam that closed.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ShellRenderIssue {
-    /// The gate's `expected:` clause takes a BYTE STRING literal, and the
-    /// generated-token vocabulary has no arm that spells one: its literal arm is
-    /// a text literal, which the gate reads as a different literal and refuses
-    /// against.
-    ///
-    /// The seat that closes it is a byte-string arm on the generated token
-    /// roster, carried through the expansion shell as the compiler's own
-    /// byte-string literal. Rendering the two tokens `b` and `"…"` instead is
-    /// NOT the repair: the gate's pattern matches one literal token, so the pair
-    /// reaches the refusing arm and a reader is told the published pair is
-    /// incoherent when the truth is that the producer could not spell its own
-    /// expectation.
-    PinLiteralNotSpellable {
-        /// How many bytes the expectation carries, so a reader knows the width
-        /// the missing arm has to spell.
-        width: u64,
-    },
-    /// A field the schema declares as a COUNT has no literal arm in the
-    /// generated-token vocabulary, so the rendering cannot write the number.
-    ///
-    /// The seat that closes it is a numeric arm on the generated token roster —
-    /// the captured side already carries one, and the generated side does not.
-    CountLiteralNotSpellable {
-        /// The declared field the count belongs to.
-        field: &'static str,
-        /// The count itself, so a reader sees the value that could not be
-        /// written rather than only the seat it belonged in.
-        value: u64,
-    },
-    /// A field the schema declares as BYTES has no literal arm in the
-    /// generated-token vocabulary either, for the same reason the gate's
-    /// expectation does: the roster's one literal arm is text.
-    ///
-    /// It is a separate issue from the expectation's because the CONSEQUENCE
-    /// differs — an unspellable expectation misroutes the gate and reports pair
-    /// incoherence, while an unspellable declared field simply cannot be written —
-    /// and a caller repairing them reads two different sentences.
-    ByteLiteralNotSpellable {
-        /// The declared field the bytes belong to.
-        field: &'static str,
-        /// How many bytes the field carries, so a reader knows the width the
-        /// missing arm has to spell.
-        width: u64,
-    },
     /// The rendered tree outgrows the declared token magnitude.
     /// A shell carrying every row's complete constructor expression is the widest
     /// tree this home writes, and it refuses rather than materializing part of

@@ -61,14 +61,22 @@ The production surface's rendered tree is what the plan's membership declared: i
 carries the planned member's semantic key, its expected profile at its version,
 and its origin trail, so it is exactly the material a closure rebuilds a planned
 member out of, and its destination is the declaration site by construction rather
-than by a seat that could say otherwise. A planned member that lands anywhere else
-is not a derive-implementation production surface, and this home refuses it.
+than by a seat that could say otherwise. Where a member of this kind lands is the
+ROSTER's constant answer ([`RenderedImplementation::destination`]), so a planned
+member landing anywhere else is refused against that answer rather than against a
+literal this home repeats.
 
-The evaluation copy is NOT a planned member of that plan. Its identity is
-therefore derived here, over its own rendered bytes, under the rendered-unit role
-and anchored on the production member's semantic key — the contract
-([`EvaluationIdentityContract`]) is stated at planning time and honoured at
-rendering time, never a digest of bytes nobody has produced yet. It reaches the
+The evaluation copy IS a planned member of that plan, on exactly the terms the
+production unit is: it stands under its own rendered role — the production role's
+twin — carries its own planned semantic key, and carries its own digest contract.
+The output firewall is that the declared set is the whole set, so a copy standing
+outside the membership would be material emitted past the firewall and a copy no
+role planned is a copy the proof never looks at.
+
+Its identity is therefore derived at rendering time over its own rendered bytes,
+under the rendered-unit role and anchored on its OWN semantic key at its own
+role's roster position — the same derivation any planned member's rendered unit
+is identified by, so this home holds no second rule for it. It reaches the
 consumer's test target as deferred tokens inside the generated support shell; the
 shell's own crossing — constructor-calling expressions against the harness's
 mutation-point vocabulary, under the two-sided schema pin — is the shell's
@@ -93,16 +101,17 @@ oracle.
 
 ## The seats
 
-`types.rs` declares, including the three limit families this home's capacities are
-governed by and the two refusal families it refuses through. Its own child
+`types.rs` declares, including the two refusal families this home refuses
+through; the three magnitudes its capacities are governed by stand on the plane's
+own limit roster and are named here rather than declared again. Its own child
 `type_guard.rs` holds every road that reaches a private seat — a name's parts, an
 operation's tokens, a point's alternatives, the table's control, both surfaces'
 renderings, the parity, and the refusal body — which is what makes the control
 structural and keeps a surface from existing that the passes did not agree on.
-`type_contract.rs` states the declarative tables: each limit family's authority
-and magnitude written together, the composition family's declared shape, and the
-two-surface roster with the one fact that separates them. `plan.rs` reads the plan
-through its public surface — the account and the membership — and states what the
-two surfaces will be. `render.rs` is the token half: the active-point enum, one
-point's selection, and the single walk that turns the production tree into the
-evaluation copy.
+`type_contract.rs` states the declarative tables: the composition family's
+declared shape, and the two-surface roster with the one fact that separates them.
+`plan.rs` reads the plan through its public surface — the account and the
+membership — and states what the two surfaces will be, reading the planned PAIR
+from whichever half of it a caller names. `render.rs` is the token half: the
+active-point enum, one point's selection, and the single walk that turns the
+production tree into the evaluation copy.

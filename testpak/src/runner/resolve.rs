@@ -8,8 +8,8 @@
 //! the descriptor home owns, and this file adds only the pairing.
 
 use super::types::{Invocation, TrialBinding};
-use crate::descriptor::Row;
 use crate::descriptor::encode::encode_row;
+use crate::descriptor::{EncodeRefusal, Row};
 use crate::report::{
     CheckRevisionId, ExecutionKey, RowRevisionId, SubjectRevisionId, TrialId, TrialProfile,
 };
@@ -64,6 +64,15 @@ pub fn execution_key(binding: &TrialBinding, invocation: &Invocation) -> Executi
 /// The bytes are the descriptor home's, taken from that home's own encoder: a
 /// row's canonical byte string has one author, and this engine derives an
 /// identity from it rather than encoding a row it does not own.
-pub(super) fn row_revision(row: &Row) -> RowRevisionId {
-    RowRevisionId::over(&encode_row(row))
+///
+/// # Errors
+///
+/// Refuses when that encoder refuses — a length past the width the row encoding
+/// declares, which is unreachable on every target this crate is built for. It is
+/// carried rather than swallowed because there is no honest stand-in: a census
+/// entry under an identity derived from bytes nobody wrote would be two rows'
+/// bookkeeping sharing one name, which is the exact thing a revision identity
+/// exists to prevent.
+pub(super) fn row_revision(row: &Row) -> Result<RowRevisionId, EncodeRefusal> {
+    Ok(RowRevisionId::over(&encode_row(row)?))
 }

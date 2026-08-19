@@ -12,7 +12,9 @@
 //! The BUDGET ORDER: which position of the schema's positional budget roster each
 //! named tolerance occupies. The schema declares budgets as a roster of counts and
 //! this home declares them as three named seats, so the mapping between the two is
-//! a stated table rather than an order a reader infers from a rendering.
+//! a stated table rather than an order a reader infers from a rendering. It is a
+//! table for a reader: the rendering writes the counts as literals in exactly this
+//! order and elects no name at rendering time.
 //!
 //! The CROSSING BILL: exactly what the harness owes before anything this home
 //! renders resolves at a consumer's site. The bench row vocabulary's SCHEMA is
@@ -80,8 +82,20 @@ impl ContentionPosture {
 /// carries, in the order the rendering writes them.
 ///
 /// The schema declares `declared_budgets` as a roster of counts and this home
-/// declares three named seats, so the mapping is stated here and read by the
-/// rendering rather than implied by the order a function happens to push in.
+/// declares three named seats, so the mapping is a stated table rather than an
+/// order a reader infers from a rendering: a reader joining this home's
+/// [`DeclaredBudgets`](super::DeclaredBudgets) to the schema's positions reads
+/// this, and [`budgets`](super::budgets) writes the three counts in exactly this
+/// order.
+///
+/// # Nonclaims
+///
+/// It is a table for a READER and never a lookup the rendering depends on. The
+/// rendered counts are literals now that the token roster spells numbers, so
+/// nothing here elects a name at rendering time — which is why moving a row of
+/// this table is a change to what the table SAYS and never a silent change to
+/// what is emitted. The order the emission writes and the order stated here move
+/// together, or this table has stopped describing the emission.
 pub const BUDGET_ORDER: [&str; 3] = ["samples", "warmup", "ratio-threshold"];
 
 /// One thing the harness owes before what this home renders resolves at a

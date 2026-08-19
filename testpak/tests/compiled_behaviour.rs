@@ -1,49 +1,63 @@
-//! Lane C — compiled behaviour: `rustc` compiles the artifact and the test reads
-//! its trait constants back AS VALUES.
+//! The compiled read-back: `rustc` compiles the artifact and the test reads its
+//! trait constants back AS VALUES.
 //!
 //! # Seats
 //!
-//! The mutant seats are testpak's own, and they have to be. A mutant is this
-//! plane's own damage, inflicted on a lawful artifact by `mutated`; no
-//! participant is grading itself when the judge hands its own damaged text to
-//! `rustc` and reads back what comes out.
+//! The damaged seats are this harness's own, and they have to be. The services
+//! carry no road that renders a defective artifact — a producer that writes its
+//! own exam is rehearsed only against the defects it already imagined — so a
+//! damaged artifact here is damage this plane inflicted on a lawful rendering,
+//! and no participant is grading itself when that text goes to a compiler.
 //!
 //! The lawful compiled seat below is deliberate too: it is the control the
-//! mutants are measured against, held inside testpak on purpose. Outside-consumer
-//! parity — a crate that owns neither participant applying the derive — is a
-//! separate seat, and it is absent.
-//!
-//! The two mutations the ownership ledger records as `CompiledBehaviour` get
-//! their compiled seats here.
+//! damaged ones are measured against, held inside testpak on purpose.
+//! Outside-consumer parity — a crate that owns neither participant applying the
+//! derive — is a separate seat, and it is absent.
 //!
 //! # Mechanisms
 //!
-//! **`MalformedRust` — the mutant must FAIL to compile.** The materialized text
-//! is checked in as a trybuild compile-fail fixture, under a header that states
-//! its provenance, and the provenance is VERIFIED below rather than asserted: the
-//! fixture must still be exactly what `mutated(lawful, MalformedRust)` produces.
-//! A fixture written into the source tree by a running test would agree with
-//! whatever the producer had just done, which is not evidence; a checked-in one
-//! whose provenance is re-derived on every run is a text somebody can read and a
-//! claim that can go stale loudly.
+//! **The malformed artifact must FAIL to compile.** Its materialized text is
+//! checked in as a trybuild compile-fail fixture under a header that states
+//! where it came from. It is checked in rather than written by a running test on
+//! purpose: a fixture a test writes into the source tree agrees with whatever
+//! the producer had just done, which is not evidence.
 //!
-//! **`ShapeAltered` — the mutant COMPILES and declares the wrong shape.** The
+//! **The shape-altered artifact COMPILES and declares the wrong shape.** Its
 //! materialized text is checked in beside this file and included into the test
 //! crate, so `rustc` compiles it exactly as it compiles any other item, and the
 //! assertion below reads `SHAPE` back as a VALUE and compares it against the
 //! shape this plane declares. Never against text: a text comparison here would
-//! be lane A's method wearing lane C's name.
+//! be a scan over bytes wearing this lane's name.
 //!
-//! Both directions, for both. The lawful artifact is materialized and compiled
-//! the same way and reads back as declared — a lane that rejected everything
-//! would catch both mutants and prove nothing.
+//! Both directions. The lawful artifact is materialized and compiled the same
+//! way and reads back as declared — a lane that rejected everything would catch
+//! both damaged artifacts and prove nothing.
+//!
+//! # What holds the fixtures to the renderer, and what does not
+//!
+//! The LAWFUL fixture's provenance is re-derived below on every run: it must
+//! still be, byte for byte, what the receipt-rich road produces from the
+//! declaration stated here. That is what makes renderer drift loud — when the
+//! rendering legitimately changes shape, this file says so by name.
+//!
+//! The two DAMAGED fixtures are not re-derived, and saying so is the honest
+//! state rather than a gap. The road that damaged them was the retired judge
+//! seat's string surgery, which cut against spellings a hand restated beside
+//! the renderer's own output; it left the tree with that seat rather than being
+//! copied here. What still holds the shape-altered fixture is the pair of
+//! value-level readings below — it agrees with the lawful artifact in every
+//! constant but the one it lies about — and the lawful control's own freshness:
+//! a renderer that moves fails the control loudly, and a stale mutant beside a
+//! failing control is never read as evidence. The malformed fixture carries
+//! less than that: it proves a compiler refuses that text, and nothing here
+//! ties it to today's renderer. Full custody returns when the generator owns
+//! materialization and publishes each fixture with its receipt.
 
 use threadpak::refusal::{
     CauseId, CauseOrderDeclaration, DeclaredCauseOrder, FamilyShape, LocalCauseKey, RefusalFamily,
     RefusalFamilyId,
 };
 use threadpak_macroc::compile_refusal_text;
-use threadpak_testpak::{ARTIFACT_MUTATIONS, ArtifactMutation, LaneOwnership, mutated};
 
 /// The declaration handed to the services, stated here beside the values the
 /// artifacts are held to.
@@ -54,8 +68,8 @@ const DECLARATION: &str = "#[refusal(family = \"testpak.demo\", shape = single_c
 /// The body shape the declaration states.
 const DECLARED_SHAPE: FamilyShape = FamilyShape::SingleCause;
 
-/// The body shape the `ShapeAltered` mutant states instead.
-const MUTATED_SHAPE: FamilyShape = FamilyShape::IssueCollection;
+/// The body shape the shape-altered artifact states instead.
+const DAMAGED_SHAPE: FamilyShape = FamilyShape::IssueCollection;
 
 /// The declared spellings, in declared order.
 const DECLARED_SPELLINGS: [&str; 3] = ["NotCanonical", "NotAdmitted", "Unbounded"];
@@ -91,13 +105,13 @@ mod lawful_artifact {
     include!("compiled-mutant/lawful.rs");
 }
 
-/// The `ShapeAltered` mutant's compiled seat.
+/// The shape-altered artifact's compiled seat.
 ///
 /// The same declaration, and an artifact that lies about one thing. It compiles,
-/// which is exactly why the byte scan and the structural read are not the last
-/// word: the disagreement is a VALUE, and only a compiler hands back values.
+/// which is exactly why a structural read is not the last word: the
+/// disagreement is a VALUE, and only a compiler hands back values.
 mod shape_altered_artifact {
-    /// The declared family, unchanged — the mutation is in the artifact.
+    /// The declared family, unchanged — the damage is in the artifact.
     /// Visible to the whole test binary and no further, exactly as the lawful
     /// seat's is.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -118,7 +132,7 @@ mod shape_altered_artifact {
 /// A materialized artifact is one line — the rendering's own projection carries
 /// no newline — and the lines above it are the comment stating where the file
 /// came from. Reading the last line rather than the whole file is what lets a
-/// checked-in mutant explain itself without the explanation becoming part of
+/// checked-in artifact explain itself without the explanation becoming part of
 /// what is compared.
 fn materialized_artifact(fixture: &str) -> &str {
     fixture.lines().last().unwrap_or_default()
@@ -137,7 +151,7 @@ fn lawful_rendering() -> String {
 /// The identity each row must carry is BUILT here, out of the two seats this
 /// file declares, and compared as a value. Nothing reads a name back out of the
 /// compiled constant and nothing compares text: an identity comparison that went
-/// through a rendering would be lane A's method wearing lane C's name.
+/// through a rendering would be a scan over bytes wearing this lane's name.
 fn order_reads_as_declared(order: DeclaredCauseOrder) -> bool {
     let family = RefusalFamilyId::declared(DECLARED_FAMILY);
     order.len() == DECLARED_LOCAL_KEYS.len()
@@ -154,8 +168,8 @@ fn order_reads_as_declared(order: DeclaredCauseOrder) -> bool {
 /// The lawful artifact compiles, and every constant reads back as the
 /// declaration states it.
 ///
-/// The control lane C's mutants are measured against. Read as VALUES: `SHAPE` is
-/// a `FamilyShape`, not the word `SingleCause` found in some bytes.
+/// The control the damaged artifacts are measured against. Read as VALUES:
+/// `SHAPE` is a `FamilyShape`, not the word `SingleCause` found in some bytes.
 #[test]
 fn the_lawful_artifact_compiles_and_reads_back_as_declared() {
     assert_eq!(
@@ -171,17 +185,18 @@ fn the_lawful_artifact_compiles_and_reads_back_as_declared() {
     ));
 }
 
-/// The `ShapeAltered` mutant compiles and declares a shape the declaration did
+/// The shape-altered artifact compiles and declares a shape the declaration did
 /// not name.
 ///
 /// The disagreement is a value disagreement and is asserted as one. Everything
 /// else the artifact declares still reads back as declared, which is what makes
-/// the finding exactly "the shape" rather than "something over there is wrong".
+/// the finding exactly "the shape" rather than "something over there is wrong"
+/// — and it is also what holds this fixture to the lawful one it was cut from.
 #[test]
-fn the_shape_altered_mutant_compiles_and_declares_another_shape() {
+fn the_shape_altered_artifact_compiles_and_declares_another_shape() {
     let read = <shape_altered_artifact::DemoFamily as RefusalFamily>::SHAPE;
     assert_ne!(read, DECLARED_SHAPE);
-    assert_eq!(read, MUTATED_SHAPE);
+    assert_eq!(read, DAMAGED_SHAPE);
     assert_eq!(
         <shape_altered_artifact::DemoFamily as RefusalFamily>::SELECTION_ORDER,
         DECLARED_SPELLINGS
@@ -191,54 +206,24 @@ fn the_shape_altered_mutant_compiles_and_declares_another_shape() {
     ));
 }
 
-/// Every materialized artifact in this lane is still exactly what this plane's
-/// own mutation produces.
+/// The lawful materialized artifact is still exactly what the road produces.
 ///
-/// The provenance check, and the reason a checked-in mutant is honest. Where a
-/// renderer legitimately changes shape the fixtures go stale and this test says
-/// so, by name, in one place — the same discipline lane A's anchor stands under.
+/// The freshness check, and the reason a checked-in artifact is honest. Where
+/// the renderer legitimately changes shape this fixture goes stale and this test
+/// says so, by name, in one place.
+///
+/// It is the only fixture in this lane whose provenance is re-derived; what
+/// stands behind the two damaged ones, and what does not, is this file's page.
 #[test]
-fn the_materialized_artifacts_are_this_planes_own_output() {
+fn the_lawful_materialized_artifact_is_the_roads_own_output() {
     let lawful = lawful_rendering();
-    assert!(!lawful.is_empty());
+    assert!(
+        !lawful.is_empty(),
+        "the lawful artifact did not compile through the receipt-rich road"
+    );
     assert_eq!(
         materialized_artifact(include_str!("compiled-mutant/lawful.rs")),
         lawful.trim_end()
-    );
-
-    let shape_altered = mutated(&lawful, ArtifactMutation::ShapeAltered).unwrap_or_default();
-    assert!(!shape_altered.is_empty() && shape_altered != lawful);
-    assert_eq!(
-        materialized_artifact(include_str!("compiled-mutant/shape-altered.rs")),
-        shape_altered.trim_end()
-    );
-
-    let malformed = mutated(&lawful, ArtifactMutation::MalformedRust).unwrap_or_default();
-    assert!(!malformed.is_empty() && malformed != lawful);
-    assert!(
-        include_str!("compile-fail/a-materialized-malformed-mutant.rs")
-            .contains(malformed.trim_end()),
-        "the compile-fail fixture is no longer the mutant it says it is"
-    );
-}
-
-/// Lane C owns exactly the two mutations that have a compiled seat here.
-///
-/// The ledger and the evidence are held to each other in one assertion. A third
-/// mutation recorded as `CompiledBehaviour` without a compiled seat would fail
-/// here rather than sitting in the roster looking like coverage.
-#[test]
-fn lane_c_owns_exactly_the_mutations_with_a_compiled_seat() {
-    let owned: Vec<ArtifactMutation> = ARTIFACT_MUTATIONS
-        .into_iter()
-        .filter(|mutation| mutation.owned_by() == LaneOwnership::CompiledBehaviour)
-        .collect();
-    assert_eq!(
-        owned,
-        vec![
-            ArtifactMutation::ShapeAltered,
-            ArtifactMutation::MalformedRust
-        ]
     );
 }
 

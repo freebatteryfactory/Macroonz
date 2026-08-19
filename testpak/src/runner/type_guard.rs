@@ -8,7 +8,7 @@
 //! report will say the run stood on.
 
 use super::{FailedTrial, HostClock, Invocation, SeatFailure, SeatRefusal};
-use crate::descriptor::TrialTableRefusal;
+use crate::descriptor::{EncodeRefusal, TrialTableRefusal};
 use crate::report::{InvocationProfile, TargetBinding, TrialId, TrialSite};
 
 /// The reading that does not move, for a caller with no measurement to offer.
@@ -139,5 +139,17 @@ impl SeatRefusal {
 impl From<TrialTableRefusal> for SeatRefusal {
     fn from(refusal: TrialTableRefusal) -> Self {
         Self::TableNotBuilt(refusal)
+    }
+}
+
+/// A row whose canonical bytes could not be written reaches a seat unchanged.
+///
+/// The second step of the same law: the engine carries the descriptor home's own
+/// encoding refusal, and this is the one road from there to the type a test
+/// function returns, so a stamped seat spells `?` over the engine call and
+/// nothing else.
+impl From<EncodeRefusal> for SeatRefusal {
+    fn from(refusal: EncodeRefusal) -> Self {
+        Self::RowNotEncoded(refusal)
     }
 }

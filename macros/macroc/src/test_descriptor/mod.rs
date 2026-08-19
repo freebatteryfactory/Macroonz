@@ -20,7 +20,7 @@ pub use render::{
     revision_binding, roster, row_expression, row_schema_identity, stamped_module, suite_group,
     table_schema_identity, twin_path, unbounded,
 };
-pub use type_contract::{CONVERSIONS_OWED, ConversionOwed};
+pub use type_contract::{ROW_CONVERSIONS, RowConversion};
 pub use types::{
     BoundPath, CrateFacing, DescriptorPlan, DescriptorPlanIssue, DescriptorRow,
     GeneratedSupportShell, PathSegmentLimit, ProducerOrigin, RevisionReference, RevisionStanding,

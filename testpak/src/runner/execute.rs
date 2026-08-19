@@ -10,6 +10,7 @@ use super::catch::caught_conclusion;
 use super::resolve::{row_revision, trial_identity};
 use super::select::{Admission, admission};
 use super::types::{Invocation, Selection, TrialBinding, TrialTableView};
+use crate::descriptor::EncodeRefusal;
 use crate::report::{
     RecordedDuration, RunAttempt, RunReport, SelectionDisposition, TrialAccounting, TrialReport,
 };
@@ -60,30 +61,45 @@ pub fn run_one(binding: &TrialBinding, invocation: &Invocation) -> TrialReport {
 /// invocation's, both recorded rather than restated. Comparing two reports and
 /// reading claim coverage are the record home's operations over what this one
 /// wrote.
-#[must_use]
+///
+/// # Errors
+///
+/// Refuses when a row's canonical bytes could not be written, so its revision
+/// identity could not be derived — a length past the width the descriptor
+/// home's row encoding declares, which is unreachable on every target this
+/// crate is built for. The refusal is the whole report's rather than one
+/// entry's: the census is the denominator, and a denominator carrying an entry
+/// that cannot name its own row is a smaller world wearing the shape of the
+/// complete one.
 pub fn run_all(
     view: &TrialTableView<'_>,
     selection: &Selection,
     invocation: &Invocation,
-) -> RunReport {
+) -> Result<RunReport, EncodeRefusal> {
     let census: Vec<TrialAccounting> = view
         .bindings()
         .map(|binding| accounted(binding, selection, invocation))
-        .collect();
-    RunReport::recorded(census, view.posture(), invocation.profile())
+        .collect::<Result<_, _>>()?;
+    Ok(RunReport::recorded(census, view.posture(), invocation.profile()))
 }
 
 /// One row of the denominator, and what this invocation did about it.
+///
+/// # Errors
+///
+/// Refuses exactly where [`row_revision`] does, and carries that refusal
+/// unchanged.
 fn accounted(
     binding: &TrialBinding,
     selection: &Selection,
     invocation: &Invocation,
-) -> TrialAccounting {
+) -> Result<TrialAccounting, EncodeRefusal> {
     let row = binding.row();
     let trial = trial_identity(row);
+    let revision = row_revision(row)?;
     let disposition = match admission(selection, row, trial) {
         Admission::Selected => SelectionDisposition::selected(run_one(binding, invocation)),
         Admission::NotSelected(reason) => SelectionDisposition::not_selected(reason),
     };
-    TrialAccounting::recorded(trial, row_revision(row), row.claim(), disposition)
+    Ok(TrialAccounting::recorded(trial, revision, row.claim(), disposition))
 }

@@ -103,10 +103,11 @@ pub fn synthesize(
 ///
 /// # Errors
 ///
-/// Refuses a staging the descriptor vocabulary rejected, then every way the
-/// report can fail to demonstrate a kill — a report over the authored world, a
-/// census without the candidate, a candidate the selection passed over, one that
-/// did not execute, and one that executed and did not refuse.
+/// Refuses a staging the descriptor vocabulary rejected, then a row whose
+/// canonical bytes the engine could not write, then every way the report can
+/// fail to demonstrate a kill — a report over the authored world, a census
+/// without the candidate, a candidate the selection passed over, one that did
+/// not execute, and one that executed and did not refuse.
 pub fn prove_candidate(
     parent: &TrialTable,
     candidate: TrialBinding,
@@ -117,7 +118,8 @@ pub fn prove_candidate(
     let staged =
         StagedTableView::staged(parent, vec![candidate]).map_err(ProofRefusal::StagingRefused)?;
     let selection = mutant_scoped(target);
-    let report = run_all(&staged.view(), &selection, invocation);
+    let report =
+        run_all(&staged.view(), &selection, invocation).map_err(ProofRefusal::RowNotEncoded)?;
     Demonstration::read(report, trial)
 }
 

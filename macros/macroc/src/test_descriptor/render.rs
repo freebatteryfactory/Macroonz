@@ -25,20 +25,24 @@
 //!
 //! # What the expressions demand of the harness
 //!
-//! A row expression is declared by the stamp to answer with the binding family,
-//! and the constructions on the road to a binding answer with five other
+//! A row expression is declared by the stamp to answer with the trial-table
+//! family, and the constructions on the road to a binding answer with five other
 //! families. The emission writes `?`, which is the language's own conversion
 //! rather than a variant this home invented inside a vocabulary it does not own.
-//! `CONVERSIONS_OWED` in `type_contract.rs` is the complete bill, stated once.
+//! `ROW_CONVERSIONS` in `type_contract.rs` is the complete map of those `?`
+//! travels, stated once, and the address owns every arm it names.
 //!
-//! # The one thing this file cannot spell
+//! # The gate's expectation is ONE literal token
 //!
-//! The gate's `expected:` clause takes a BYTE STRING literal and the generated
-//! token roster has no arm that writes one. [`expectation_literal`] is the single
-//! seam where that bites, and it refuses rather than writing the identifier `b`
-//! beside a text literal: that pair is two tokens, the gate's pattern matches
-//! one, and the consumer would be told the published pair is incoherent when the
-//! truth is that the producer could not spell its own expectation.
+//! The gate's `expected:` clause takes a BYTE STRING literal, and the generated
+//! token roster has the arm that writes one
+//! ([`GeneratedToken::ByteText`](crate::token::GeneratedToken::ByteText)):
+//! [`expectation_literal`] states the thirty-two bytes and the tree owns the `b`,
+//! the quotes, and every escape. Composing the identifier `b` beside a text
+//! literal was never the road and is not one now — that pair is two tokens where
+//! the gate's pattern matches one, and the consumer would be told the published
+//! pair is incoherent when the truth would be that the producer spelled its own
+//! expectation as something else.
 
 use super::{
     BoundPath, CrateFacing, DescriptorRow, RevisionReference, RevisionStanding, RowAttachment,
@@ -303,12 +307,11 @@ pub fn roster(items: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, ShellRe
 /// nowhere else, so the literal this emission carries and the constant the
 /// publication operation rewrites are one fact rather than two.
 ///
-/// # Errors
-///
-/// Returns [`ShellRenderIssue::PinLiteralNotSpellable`] under the token roster as
-/// it stands: the gate's clause takes a byte-string literal, and the generated
-/// token roster's only literal arm is a TEXT literal.
-pub fn expectation_literal() -> Result<GeneratedToken, ShellRenderIssue> {
+/// Total: thirty-two bytes are one literal token whatever they are, so there is
+/// no count to read, nothing to admit, and no error branch for a caller to fill
+/// for a case that cannot happen.
+#[must_use]
+pub fn expectation_literal() -> GeneratedToken {
     expectation_literal_of(&EXPECTED_GENERATED_SUPPORT_SCHEMA_ID)
 }
 
@@ -316,17 +319,17 @@ pub fn expectation_literal() -> Result<GeneratedToken, ShellRenderIssue> {
 /// publication operation's own posture flip travels, since a verified-derived
 /// expectation is a different type and the same rendering.
 ///
-/// # Errors
+/// The expectation's thirty-two bytes are stated as the literal's VALUE and
+/// never as a spelling: the `b`, the quotes, and every escape are the tree's, so
+/// no caller composes `b"…"` out of a word and a quoted string.
 ///
-/// Returns [`ShellRenderIssue::PinLiteralNotSpellable`] on exactly
-/// [`expectation_literal`]'s terms.
+/// Total on exactly [`expectation_literal`]'s terms.
+#[must_use]
 pub fn expectation_literal_of<Posture>(
     expectation: &ExpectedGeneratedSupportSchemaId<Posture>,
-) -> Result<GeneratedToken, ShellRenderIssue> {
+) -> GeneratedToken {
     let material: &[u8; 32] = expectation.as_bytes();
-    Err(ShellRenderIssue::PinLiteralNotSpellable {
-        width: u64::try_from(material.len()).unwrap_or(u64::MAX),
-    })
+    GeneratedToken::byte_text(material)
 }
 
 // ---------------------------------------------------------------------------

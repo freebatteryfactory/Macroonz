@@ -47,11 +47,12 @@
 //!   `ByExecutionSuite(BTreeSet<ExecutionSuite>)` — one aggregate seat names
 //!   exactly one suite and hands it in as the one-element set the arm is over.
 //! - `runner::run_all(&TrialTableView<'_>, &Selection, &Invocation) ->
-//!   RunReport`.
+//!   Result<RunReport, EncodeRefusal>`.
 //! - `runner::run_one(&TrialBinding, &Invocation) -> TrialReport`.
 //! - `runner::SeatRefusal`, the seats' one refusal type, which is `Debug` and
-//!   carries `From<TrialTableRefusal>` so that every construction refusal on
-//!   this road reaches a seat unchanged.
+//!   carries `From<TrialTableRefusal>` and `From<EncodeRefusal>` so that every
+//!   construction refusal on this road, and the engine's own, reaches a seat
+//!   unchanged.
 //! - `runner::seat_verdict(&RunReport) -> Result<(), SeatRefusal>`.
 //! - `runner::lens_verdict(&TrialReport) -> Result<(), SeatRefusal>`.
 //!
@@ -512,9 +513,10 @@ macro_rules! trial_table {
                 /// # Errors
                 ///
                 /// Refuses when the world could not be built, when this seat's
-                /// suite name could not be parsed, or when the run's own
-                /// verdict refuses — including the run that selected nothing,
-                /// which is the suite pairing the stamp cannot check.
+                /// suite name could not be parsed, when a row's canonical bytes
+                /// could not be written, or when the run's own verdict refuses
+                /// — including the run that selected nothing, which is the
+                /// suite pairing the stamp cannot check.
                 #[test]
                 fn $seat() -> ::core::result::Result<(), $crate::runner::SeatRefusal> {
                     let world = table()?;
@@ -538,7 +540,7 @@ macro_rules! trial_table {
                         ),
                         CLOCK,
                     );
-                    let report = $crate::runner::run_all(&view, &selection, &invocation);
+                    let report = $crate::runner::run_all(&view, &selection, &invocation)?;
                     $crate::runner::seat_verdict(&report)
                 }
             )+

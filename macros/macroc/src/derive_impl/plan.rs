@@ -2,32 +2,46 @@
 //! surfaces, read off the plan's own public surface.
 //!
 //! Nothing here decides meaning and nothing here mints an identity for a member.
-//! The production surface's semantic key, its expected profile at its version,
-//! and its origin trail are the PLAN's answers, read exactly; the address the
-//! two surfaces stand on is the entry account's one commitment; and the
-//! rendering engine is the generator the plan's context names. Two readings and
-//! no third: the account answers what this was planned over, the membership
-//! answers what will be materialized, and this file joins them without keeping a
-//! copy of either.
+//! Each surface's semantic key, the expected profile at its version, and the
+//! origin trail are the PLAN's answers, read exactly; the address the two
+//! surfaces stand on is the entry account's one commitment; and the rendering
+//! engine is the generator the plan's context names. Two readings and no third:
+//! the account answers what this was planned over, the membership answers what
+//! will be materialized, and this file joins them without keeping a copy of
+//! either.
 //!
-//! # The evaluation copy has no planned identity, and none is invented here
+//! # Both surfaces are planned members, and this file reads the pair
 //!
-//! The evaluation copy is not a member of the plan's declared membership — the
-//! output firewall is exactly that the declared set is the whole set — so
-//! nothing planned an identity for it. What this file states is the CONTRACT
-//! that identity must satisfy: the role it will stand under, and the production
-//! member it will be anchored to. The identity itself is derived at rendering
-//! time over the copy's own canonical bytes, because an identity derived here
-//! would be a fact about bytes nobody has produced.
+//! One implementation meaning is delivered as two surfaces, and the plan
+//! declares BOTH: the production unit under its role, and the evaluation copy
+//! under that role's twin ([`RenderedImplementation::twin`]). The output
+//! firewall is that the declared set is the whole set, so a copy standing
+//! outside the membership would be material emitted past it — which is exactly
+//! why the roster carries the evaluation roles and why the generator's schema
+//! version moved when it did.
+//!
+//! So there is no identity CONTRACT stated here and no second rule for the
+//! copy's name. The copy has a planned semantic key of its own and a digest
+//! contract of its own, on exactly the terms the production member has them, and
+//! the rendering derives the copy's identity over its own canonical bytes
+//! anchored on its own key — the derivation any planned member's rendered unit
+//! is identified by.
+//!
+//! # Either half names the pair
+//!
+//! [`surface_plan`] is total in the role it is handed. A production role names
+//! its evaluation twin and an evaluation role names its production original, so
+//! a caller holding one half cannot compose the two surfaces backwards, and
+//! there is no precondition a reader has to keep.
 
-use super::types::{EvaluationIdentityContract, ImplementationSurfaceIssue};
+use super::types::ImplementationSurfaceIssue;
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
     GeneratedUnitSubject, GeneratorVersionSubject, ProfileVersion, ProjectionIdentity,
     ProjectionProfileSubject, RenderedRole,
 };
 use crate::planning::{
-    CauseAnchoring, DeriveImplProjection, MemberDestination, ProjectionPlan, RenderedImplementation,
+    CauseAnchoring, DeriveImplProjection, PlannedMember, ProjectionPlan, RenderedImplementation,
 };
 
 /// What one planned member's two surfaces will be, stated before either is
@@ -46,12 +60,17 @@ use crate::planning::{
 /// from.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SurfacePlan {
-    /// The rendered role both surfaces stand for.
+    /// The rendered role the production surface stands for.
     pub role: RenderedImplementation,
     /// The production member's semantic key, exactly as the plan declared it.
     pub production_key: ProjectionIdentity<GeneratedUnitSubject>,
-    /// What the evaluation copy's eventual identity must satisfy.
-    pub identity_contract: EvaluationIdentityContract,
+    /// The rendered role the evaluation copy stands for — the production role's
+    /// twin, read from the roster rather than chosen here.
+    pub evaluation_role: RenderedImplementation,
+    /// The evaluation member's OWN semantic key, exactly as the plan declared
+    /// it. The copy is identified over this and never over the production
+    /// member's key, so two members never answer to one identity.
+    pub evaluation_key: ProjectionIdentity<GeneratedUnitSubject>,
     /// The profile the plan expects to render the production member.
     pub profile: ProjectionIdentity<ProjectionProfileSubject>,
     /// That profile's version.
@@ -64,48 +83,77 @@ pub struct SurfacePlan {
     pub engine: ProjectionIdentity<GeneratorVersionSubject>,
 }
 
-/// Read one planned member into the statement of what its two surfaces will be.
+/// Read one planned PAIR into the statement of what its two surfaces will be.
+///
+/// The role names one half and the roster names the other: a production role is
+/// taken as given, an evaluation role is turned into its production original
+/// ([`RenderedImplementation::is_evaluation_copy`]), and the twin of whichever
+/// one that is names the copy. The road is therefore total in the role it is
+/// handed, and the pair it reads is the same pair either way.
 ///
 /// # Errors
 ///
 /// Returns [`ImplementationSurfaceIssue::RoleNotPlanned`] where the plan
-/// declares no member under this role — the membership is the quantifier, so an
-/// unplanned role is an absence the plan itself states rather than a failure to
-/// look hard enough.
+/// declares no member under one half of the pair — the membership is the
+/// quantifier, so an unplanned role is an absence the plan itself states rather
+/// than a failure to look hard enough. Both halves are looked for, because both
+/// are planned members and a delivery missing either is half a delivery.
 ///
-/// Returns [`ImplementationSurfaceIssue::DestinationNotDeclarationSite`] where
-/// the planned member is written as a standalone artifact: the
-/// derive-implementation projection's production surface lands at the
-/// declaration site, and a member landing elsewhere is a different delivery.
+/// Returns [`ImplementationSurfaceIssue::DestinationNotDeclarationSite`] where a
+/// planned member lands somewhere other than the landing its ROLE declares
+/// ([`RenderedImplementation::destination`]): where a member of this kind lands
+/// is the roster's own constant answer, so a plan that wrote a member of it as a
+/// standalone artifact is refused against that answer rather than against a
+/// literal repeated here.
 ///
-/// The two checks are DEPENDENT — there is no destination to read until a member
-/// was found — so exactly one of them is ever established.
+/// The checks are DEPENDENT per half — there is no destination to read until a
+/// member was found — so at most one of them is established per role, and the
+/// production half is read before the evaluation half.
 pub fn surface_plan(
     plan: &ProjectionPlan<DeriveImplProjection>,
     role: RenderedImplementation,
 ) -> Result<SurfacePlan, ImplementationSurfaceIssue> {
+    let production_role = if role.is_evaluation_copy() {
+        role.twin()
+    } else {
+        role
+    };
+    let evaluation_role = production_role.twin();
+    let production = planned_member(plan, production_role)?;
+    let evaluation = planned_member(plan, evaluation_role)?;
+    Ok(SurfacePlan {
+        role: production_role,
+        production_key: production.output.semantic_key,
+        evaluation_role,
+        evaluation_key: evaluation.output.semantic_key,
+        profile: production.output.expected_profile,
+        profile_version: production.output.expected_profile_version,
+        origin: production.output.origin.clone(),
+        declaration: plan.account().commitment(),
+        engine: plan.context().generator,
+    })
+}
+
+/// The member one role plans, where the plan declares one and lands it where the
+/// role says it lands.
+///
+/// One road for both halves of the pair, so the two are read under one rule: a
+/// second reading written per half is a second rule that agrees until one of
+/// them is edited.
+fn planned_member<'plan>(
+    plan: &'plan ProjectionPlan<DeriveImplProjection>,
+    role: RenderedImplementation,
+) -> Result<&'plan PlannedMember<RenderedImplementation>, ImplementationSurfaceIssue> {
     let Some(member) = plan.membership().under(role) else {
         return Err(ImplementationSurfaceIssue::RoleNotPlanned {
             role_slot: role.slot(),
         });
     };
-    match member.output.destination {
-        MemberDestination::AtDeclarationSite => {}
-        MemberDestination::AsArtifact { .. } => {
-            return Err(ImplementationSurfaceIssue::DestinationNotDeclarationSite {
-                role_slot: role.slot(),
-            });
-        }
+    if member.output.destination == role.destination() {
+        Ok(member)
+    } else {
+        Err(ImplementationSurfaceIssue::DestinationNotDeclarationSite {
+            role_slot: role.slot(),
+        })
     }
-    let production_key = member.output.semantic_key;
-    Ok(SurfacePlan {
-        role,
-        production_key,
-        identity_contract: EvaluationIdentityContract::over(production_key),
-        profile: member.output.expected_profile,
-        profile_version: member.output.expected_profile_version,
-        origin: member.output.origin.clone(),
-        declaration: plan.account().commitment(),
-        engine: plan.context().generator,
-    })
 }

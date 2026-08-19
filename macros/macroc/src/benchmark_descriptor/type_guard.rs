@@ -13,8 +13,9 @@
 //!
 //! Rendering refuses in [`ShellRendering`], which the test-descriptor home
 //! declares beside the carrier both crossings ride. A second body for the same
-//! question would be a second answer to "what could this rendering not spell",
-//! and the two crossings hit the same token roster.
+//! question would be a second answer to "what magnitude did this rendering
+//! overrun", and the two crossings hit the same token roster under the same
+//! declared magnitude.
 
 use super::super::render;
 use super::{
@@ -377,22 +378,24 @@ impl BenchmarkShell {
     /// declared.
     ///
     /// The order is the road: the exported name from the plan's own semantic key,
-    /// then the gate's expectation, then the bench table the gate carries, then
-    /// the one-file adapter that rides beside it, and the shell only after all
-    /// four.
+    /// then the bench table the gate carries and the one-file adapter that rides
+    /// beside it — attempted independently, because they are independent — then
+    /// the gate's expectation, which is total, and the shell only after all of
+    /// them.
     ///
     /// # Errors
     ///
     /// Returns the carrier's rendering family naming
-    /// [`ShellRenderIssue::PinLiteralNotSpellable`] where the token vocabulary
-    /// cannot write the gate's byte-string expectation,
-    /// [`ShellRenderIssue::CountLiteralNotSpellable`] where a declared count has
-    /// no literal arm, [`ShellRenderIssue::ByteLiteralNotSpellable`] where a
-    /// declared work formula has none, and
-    /// [`ShellRenderIssue::ShellTreeUnbounded`] where the rendered tree outgrows
-    /// the declared token magnitude. The issues are established TOGETHER: a caller
-    /// repairing a seam one missing spelling per attempt is a caller this home
-    /// failed.
+    /// [`ShellRenderIssue::ShellTreeUnbounded`] where the bench table, the
+    /// one-file adapter, or the carrier that holds them outgrows the declared
+    /// token magnitude. The table and the adapter are INDEPENDENT parts and are
+    /// attempted both before either is given up on, so their issues are
+    /// established TOGETHER: a caller repairing a seam one part per attempt is a
+    /// caller this home failed, and which part overran is what the reader repairs
+    /// from.
+    ///
+    /// The gate's expectation is not among them: the road that writes it is
+    /// total, because thirty-two bytes are one literal token.
     pub fn rendered(
         stated: &BenchmarkPlan,
         payload: &BenchTablePayload,
@@ -400,13 +403,12 @@ impl BenchmarkShell {
     ) -> Result<Self, ShellRendering> {
         let name = ShellName::mangled(&stated.semantic_key);
         let mut issues: Vec<ShellRenderIssue> = Vec::new();
-        let pin = collected(expectation_literal(), &mut issues);
         let cargo = collected(render::bench_table(payload), &mut issues);
         let reporter = collected(render::reporter_adapter(adapter, payload), &mut issues);
-        let (Some(pin), Some(cargo), Some(reporter)) = (pin, cargo, reporter) else {
+        let (Some(cargo), Some(reporter)) = (cargo, reporter) else {
             return Err(established(issues));
         };
-        let mut body = gate_invocation(pin, cargo).map_err(sole)?;
+        let mut body = gate_invocation(expectation_literal(), cargo).map_err(sole)?;
         body.extend(reporter);
         let tokens = exported_shell(&name, body).map_err(sole)?;
         let tree = GeneratedTree::assembled(tokens).map_err(|_| sole(unbounded()))?;

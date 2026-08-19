@@ -150,9 +150,9 @@ mod plane {
 /// would be discovered by whoever compared an old receipt to a new one, which is
 /// the worst possible time.
 ///
-/// These vectors are the profile's version-1 fingerprint. A vector that fails is
-/// a profile change, and a profile change is a version bump, not a fixed
-/// constant.
+/// These vectors are the profile's fingerprint at the version they pin. A vector
+/// that fails is a profile change, and a profile change is a version bump, not a
+/// fixed constant.
 mod identity_profile {
     use crate::plane::{
         GeneratedUnitSubject, IdentityProfileVersion, MACROC_GENERATOR,
@@ -198,14 +198,14 @@ mod identity_profile {
     fn the_declared_version_is_pinned() {
         assert_eq!(
             PROJECTION_IDENTITY_PROFILE.version(),
-            IdentityProfileVersion::declared(2)
+            IdentityProfileVersion::declared(4)
         );
         assert_eq!(
             PROJECTION_IDENTITY_PROFILE.stem(),
             "threadpak/macroc/projection-identity"
         );
         assert_eq!(MACROC_GENERATOR.profile().spelling(), "threadpak-macroc");
-        assert_eq!(MACROC_GENERATOR.schema().position(), 1);
+        assert_eq!(MACROC_GENERATOR.schema().position(), 2);
     }
 
     /// law: identity-profile.the-domain-grammar-is-spelled-exactly — the
@@ -216,7 +216,7 @@ mod identity_profile {
     fn the_domain_grammar_is_spelled_exactly() {
         assert_eq!(
             PROJECTION_IDENTITY_PROFILE.context_for("generated-unit", ProjectionRole::OutputBytes),
-            "threadpak/macroc/projection-identity/v2/generated-unit/output-bytes"
+            "threadpak/macroc/projection-identity/v4/generated-unit/output-bytes"
         );
     }
 
@@ -268,7 +268,7 @@ mod identity_profile {
     fn the_transcript_is_spelled_exactly() {
         let mut expected = Vec::new();
         encode_bytes(b"threadpak/macroc/projection-identity", &mut expected);
-        expected.extend_from_slice(&2_u32.to_be_bytes());
+        expected.extend_from_slice(&4_u32.to_be_bytes());
         encode_bytes(b"generated-unit", &mut expected);
         encode_bytes(b"generated-unit", &mut expected);
         expected.push(3);
@@ -277,7 +277,7 @@ mod identity_profile {
         encode_bytes(GOLDEN_CONTENT, &mut expected);
         expected.extend_from_slice(&GOLDEN_POSITION.to_be_bytes());
         encode_bytes(b"threadpak-macroc", &mut expected);
-        expected.extend_from_slice(&1_u32.to_be_bytes());
+        expected.extend_from_slice(&2_u32.to_be_bytes());
         assert_eq!(anchored_vector().encoded("generated-unit"), expected);
     }
 
@@ -286,8 +286,26 @@ mod identity_profile {
     /// anchoring postures.
     /// Owed reversal (red twin): any change to the field order, the length
     /// framing, the domain grammar, or the digest must break this law.
+    ///
+    /// # The three values below PREDATE profile version 4
+    ///
+    /// They were written as the fingerprint of an earlier profile position, and
+    /// every one of them is a BLAKE3 output — a value nobody can recompute by
+    /// reading, only by executing. The profile version is a member of the
+    /// transcript and a segment of the derive-key context, so all three moved
+    /// when the position did, and none of them can be restated in a phase where
+    /// no toolchain runs.
+    ///
+    /// Writing three plausible-looking constants in their place would be worse
+    /// than leaving them: a fabricated vector is green against nothing and would
+    /// pin a derivation nobody performed. So the authored values stand, stated
+    /// stale, and recomputing all three is the first toolchain contact's
+    /// corrective batch — one act, under the version they are the fingerprint
+    /// of.
     #[test]
     fn golden_vectors_pin_the_derivation() {
+        // Predates profile v4: recomputed at the first toolchain contact's
+        // corrective batch.
         assert_eq!(
             *ProjectionIdentity::<GeneratedUnitSubject>::derived(anchored_vector()).as_bytes(),
             [
@@ -296,6 +314,8 @@ mod identity_profile {
                 0x57, 0x9a, 0x06, 0x98
             ]
         );
+        // Predates profile v4: recomputed at the first toolchain contact's
+        // corrective batch.
         assert_eq!(
             *ProjectionIdentity::<RenderedUnitSubject>::derived(anchored_vector()).as_bytes(),
             [
@@ -304,6 +324,8 @@ mod identity_profile {
                 0x31, 0x5c, 0x49, 0x07
             ]
         );
+        // Predates profile v4: recomputed at the first toolchain contact's
+        // corrective batch.
         assert_eq!(
             *ProjectionIdentity::<PlanSubject>::derived(rooted_vector()).as_bytes(),
             [
@@ -451,7 +473,7 @@ mod identity_profile {
         );
         assert_eq!(
             provenance.context(),
-            "threadpak/macroc/projection-identity/v2/generated-unit/generated-unit"
+            "threadpak/macroc/projection-identity/v4/generated-unit/generated-unit"
         );
     }
 }
@@ -686,13 +708,13 @@ mod diagnostics {
             })),
             summary: HumanProjection::empty(),
             phase: MacrocPhase::Planning,
-            site: DiagnosticSite {
-                token: SpanHandle::at(4),
-                coordinate: SiteCoordinate::Resolved(SourceCoordinate {
+            site: DiagnosticSite::at_token(
+                SpanHandle::at(4),
+                SiteCoordinate::Resolved(SourceCoordinate {
                     role: CoordinateRole::SemanticOrigin,
                     position: 17,
                 }),
-            },
+            ),
             expected: crate::plane::for_laws(47),
             observed: ObservedClassification::SeatAbsent,
             cause: CauseDisposition::UnresolvedCause,
@@ -712,10 +734,10 @@ mod diagnostics {
                 )
                 && diagnostic
                     .site
-                    .coordinate
+                    .coordinate()
                     .resolved()
                     .is_some_and(|coordinate| coordinate.position == 17)
-                && diagnostic.site.token == SpanHandle::at(4)
+                && diagnostic.site.token() == Some(SpanHandle::at(4))
                 && matches!(diagnostic.machine, MachineAnchoring::Anchored(_))
                 && matches!(diagnostic.cause, CauseDisposition::UnresolvedCause)
                 && matches!(diagnostic.phase, MacrocPhase::Planning)
@@ -1097,10 +1119,10 @@ mod planning {
         AuthoringLimitProfile, OwnerFactRef, OwnerIdentityRef, ProfileVersion, SoleRenderedUnit,
     };
     use crate::planning::{
-        BenchmarkDescriptorProjection, CauseAnchoring, CodecProjection, DeriveImplContent,
-        DeriveImplProjection, DigestContract, DocumentationProjection, GraphAnchoring,
-        HostWrapperContent, HostWrapperProjection, InvalidationTrigger, MemberDestination,
-        PatternStampProjection, PlannedMember, PlannedMembership, PlannedOutput,
+        BenchmarkDescriptorProjection, CodecProjection, DeriveImplContent, DeriveImplProjection,
+        DigestContract, DocumentationProjection, GraphAnchoring, HostWrapperContent,
+        HostWrapperProjection, InvalidationTrigger, MemberDestination, OwnerContentAccount,
+        PatternStampProjection, PlanDecisions, PlannedMember, PlannedMembership, PlannedOutput,
         ProjectionBundlePlan, ProjectionContext, ProjectionDisposition, ProjectionKind,
         ProjectionPlan, RemoteSurfaceProjection, RenderedImplementation, TargetBinding,
         TargetRequirement, TestDescriptorProjection, UNIVERSAL_QUESTIONS, WRAPPER_COMPONENTS,
@@ -1159,16 +1181,41 @@ mod planning {
     }
 
     /// One shared context, under the binding the caller names.
+    ///
+    /// What the plan was planned OVER is deliberately not here: that is the entry
+    /// account's fact, stated once, and a context that also named it would be the
+    /// second account of content dependencies the watch derivation would then be
+    /// reading a copy of.
     fn context(target: TargetBinding) -> ProjectionContext {
         ProjectionContext {
             graph: GraphAnchoring::ClosedGraph(OwnerIdentityRef::decoded([16; 32])),
             profile: crate::plane::for_laws(17),
             profile_version: ProfileVersion::declared(3),
-            sources: CauseAnchoring::Declarations(ProjectionContext::one_source(
-                OwnerIdentityRef::decoded([18; 32]),
-            )),
             generator: crate::plane::for_laws(19),
             target,
+        }
+    }
+
+    /// The ONE entry account every plan below is planned over: a linked
+    /// commitment, standing on nothing, which is a stated fact rather than a set
+    /// somebody forgot to supply.
+    fn account<K: ProjectionKind>() -> OwnerContentAccount<K> {
+        OwnerContentAccount::linked(OwnerIdentityRef::decoded([18; 32]))
+    }
+
+    /// The five decided seats, bundled the way a plan's transcript writes them,
+    /// over the membership and the watch set a law states.
+    fn decisions<R: crate::plane::RenderedRole>(
+        membership: PlannedMembership<R>,
+        invalidation: crate::planning::InvalidationSet,
+        nonclaims: Bounded<Nonclaim, crate::plane::NonclaimLimit>,
+    ) -> PlanDecisions<R> {
+        PlanDecisions {
+            membership,
+            invalidation,
+            trace: trace(),
+            origin: trail(),
+            nonclaims,
         }
     }
 
@@ -1191,20 +1238,30 @@ mod planning {
 
     /// law: planning.a-complete-plan-constructs-through-checked-seams — every
     /// seat is furnished through the plane's own seams, and the resulting plan
-    /// carries its cause set, output set, watch set, trace, and trail.
+    /// carries its entry account, output set, watch set, trace, and trail.
+    ///
+    /// The account arrives FIRST and is moved in, so the plan's own answer to
+    /// "what were you planned over" is the value its identity, its watch set, and
+    /// its origin edges were all read off; the five decided seats travel as one
+    /// [`PlanDecisions`] value in the order the transcript writes them.
+    ///
     /// Owed reversal (red twin): omitting any seat must not compile.
     #[test]
     fn a_complete_plan_constructs_through_checked_seams() {
         let planned = ProjectionPlan::<DeriveImplProjection>::planned(
+            account(),
             context(TargetBinding::TargetFree),
             derive_content(),
-            PlannedMembership::from_member(member(RenderedImplementation::RenderedFamilyImpl, 14)),
-            InvalidationTrigger::one_watched(InvalidationTrigger::GraphIdentityChanged {
-                watched: OwnerIdentityRef::decoded([16; 32]),
-            }),
-            trace(),
-            trail(),
-            Bounded::empty(),
+            decisions(
+                PlannedMembership::from_member(member(
+                    RenderedImplementation::RenderedFamilyImpl,
+                    14,
+                )),
+                InvalidationTrigger::one_watched(InvalidationTrigger::GraphIdentityChanged {
+                    watched: OwnerIdentityRef::decoded([16; 32]),
+                }),
+                Bounded::empty(),
+            ),
         );
         assert!(planned.is_ok_and(|plan| {
             plan.membership().len() == 1
@@ -1214,6 +1271,7 @@ mod planning {
                 && plan.origin().len() == 1
                 && plan.nonclaims().is_empty()
                 && plan.context().profile_version.position() == 3
+                && plan.account().dependency_count() == 0
                 && !plan.membership().first().output.origin.is_empty()
         }));
     }
@@ -1241,17 +1299,18 @@ mod planning {
         let built = nonclaims.and_then(|nonclaims| {
             membership.and_then(|membership| {
                 ProjectionPlan::<DeriveImplProjection>::planned(
+                    account(),
                     context(TargetBinding::TargetFree),
                     derive_content(),
-                    membership,
-                    InvalidationTrigger::one_watched(
-                        InvalidationTrigger::GeneratorVersionChanged {
-                            watched: crate::plane::for_laws(19),
-                        },
+                    decisions(
+                        membership,
+                        InvalidationTrigger::one_watched(
+                            InvalidationTrigger::GeneratorVersionChanged {
+                                watched: crate::plane::for_laws(19),
+                            },
+                        ),
+                        nonclaims,
                     ),
-                    trace(),
-                    trail(),
-                    nonclaims,
                 )
                 .map_err(|_| ())
             })
@@ -1308,19 +1367,20 @@ mod planning {
             TargetRequirement::BoundHostContract
         ));
         let refused = ProjectionPlan::<HostWrapperProjection>::planned(
+            account(),
             context(TargetBinding::TargetFree),
             HostWrapperContent {
                 host_contract: OwnerIdentityRef::decoded([24; 32]),
                 components: NonEmptyBounded::singleton(WrapperComponent::Admission),
                 capability_basis: owner_fact(),
             },
-            PlannedMembership::from_member(sole_member(14)),
-            InvalidationTrigger::one_watched(InvalidationTrigger::TargetContractChanged {
-                watched: OwnerIdentityRef::decoded([24; 32]),
-            }),
-            trace(),
-            trail(),
-            Bounded::empty(),
+            decisions(
+                PlannedMembership::from_member(sole_member(14)),
+                InvalidationTrigger::one_watched(InvalidationTrigger::TargetContractChanged {
+                    watched: OwnerIdentityRef::decoded([24; 32]),
+                }),
+                Bounded::empty(),
+            ),
         );
         assert!(refused.is_err_and(|planning| matches!(
             planning.body().carried().first(),
@@ -1545,7 +1605,7 @@ mod explanation_protocol {
     use crate::planning::{
         CauseAnchoring, DeriveImplProjection, DigestContract, GraphAnchoring,
         HostWrapperProjection, InvalidationTrigger, MemberDestination, PlannedOutput,
-        ProjectionContext, ProjectionDisposition,
+        ProjectionDisposition,
     };
     use crate::question::{ExplanationQuestion, QuestionApplicability};
     use threadpak::types::Bounded;
@@ -1573,9 +1633,7 @@ mod explanation_protocol {
                 owner: owner_fact(),
             }),
             ProjectionExplanation::answered(ExplanationAnswer::CausingDeclarations {
-                sources: CauseAnchoring::Declarations(ProjectionContext::one_source(
-                    OwnerIdentityRef::decoded([65; 32]),
-                )),
+                sources: CauseAnchoring::Declaration(OwnerIdentityRef::decoded([65; 32])),
             }),
             ProjectionExplanation::answered(ExplanationAnswer::GraphAndProfile {
                 graph: GraphAnchoring::ClosedGraph(OwnerIdentityRef::decoded([66; 32])),
@@ -2705,7 +2763,8 @@ mod pattern_stamp {
     };
     use crate::plane::{OwnerFactRef, OwnerIdentityRef, ProfileVersion};
     use crate::planning::{
-        CauseAnchoring, GraphAnchoring, InvalidationTrigger, ProjectionContext, TargetBinding,
+        GraphAnchoring, InvalidationTrigger, OwnerContentAccount, PatternStampProjection,
+        ProjectionContext, TargetBinding,
     };
     use crate::refusal::ProjectionPlanningIssue;
 
@@ -2717,16 +2776,31 @@ mod pattern_stamp {
         }
     }
 
+    /// The ONE address the demo stamp's content walks in the door carrying.
+    ///
+    /// A CAPTURE and not a declaration fragment, because a stamp is planned while
+    /// an expansion is holding token material and nothing has been linked. It is
+    /// the anchors' own `content` seat, read back here so the account the plan
+    /// site builds and the account a law reasons about are one derivation.
+    fn content() -> crate::plane::ProjectionIdentity<crate::plane::CapturedDeclarationSubject> {
+        crate::plane::for_laws(103)
+    }
+
+    /// The entry account the stamp's plan site builds from that address, rebuilt
+    /// here so a law that asks what the watch derivation reads reads the same
+    /// value the plan site moved into the plan.
+    fn account() -> OwnerContentAccount<PatternStampProjection> {
+        OwnerContentAccount::captured(content())
+    }
+
     /// The anchors one demo stamp is planned against.
     fn anchors() -> ScopeGuardStampAnchors {
         ScopeGuardStampAnchors {
+            content: content(),
             context: ProjectionContext {
                 graph: GraphAnchoring::ClosedGraph(OwnerIdentityRef::decoded([101; 32])),
                 profile: crate::plane::for_laws(102),
                 profile_version: ProfileVersion::declared(1),
-                sources: CauseAnchoring::Declarations(ProjectionContext::one_source(
-                    OwnerIdentityRef::decoded([103; 32]),
-                )),
                 generator: crate::plane::for_laws(104),
                 target: TargetBinding::TargetFree,
             },
@@ -2738,6 +2812,7 @@ mod pattern_stamp {
             instantiated_node: crate::plane::for_laws(110),
             rendered_node: crate::plane::for_laws(111),
             stamped_unit: crate::plane::for_laws(112),
+            byte_role: OwnerIdentityRef::decoded([113; 32]),
             traced: crate::plane::for_laws(114),
             owner_facts: ScopeGuardOwnerFacts {
                 class_c_carries_no_ordering: owner_fact(115),
@@ -2789,21 +2864,26 @@ mod pattern_stamp {
     /// beside it rather than the claim itself.
     ///
     /// The claim ceiling, stated because it is the honest boundary: the derived
-    /// set covers the CONTEXT and not the anchors supplied beside it. The
-    /// pattern, the instantiation, the two typed arguments, the origin nodes,
-    /// the stamped unit, the traced subject and the cited owner facts define the
-    /// plan too, and the trigger roster declares no seat any of them could be
-    /// watched through — every seat it declares is one thirty-two-byte identity
-    /// of a declared kind, and the set's magnitude IS that roster's cardinality.
-    /// Those anchors are now COUNTED by the plan site's destructure rather than
-    /// remembered by its prose.
+    /// set covers the CONTEXT and the entry ACCOUNT, and not the anchors supplied
+    /// beside them. The pattern, the instantiation, the two typed arguments, the
+    /// origin nodes, the stamped unit, the traced subject and the cited owner
+    /// facts define the plan too, and the trigger roster declares no seat any of
+    /// them could be watched through — every seat it declares is one
+    /// thirty-two-byte identity of a declared kind, and the set's magnitude IS
+    /// that roster's cardinality. Those anchors are now COUNTED by the plan
+    /// site's destructure rather than remembered by its prose.
+    ///
+    /// The account is handed to the derivation rather than copied out of it: the
+    /// value read below is rebuilt from the same `content` anchor the plan site
+    /// builds its account from, so this law compares one derivation against
+    /// itself rather than against a second account of the same content.
     ///
     /// Reversal: dropping any context seat from the derivation breaks this law,
     /// and adding a seat to either struct breaks the build.
     #[test]
     fn the_watch_set_is_derived_from_the_context() {
         let anchors = anchors();
-        let derived = anchors.context.watch_set();
+        let derived = anchors.context.watch_set(&account());
         let planned = plan_scope_guard_stamp(&anchors);
         assert!(planned.is_ok_and(|plan| {
             derived.is_ok_and(|derived| {
@@ -2816,9 +2896,9 @@ mod pattern_stamp {
     }
 
     /// law: pattern-stamp.every-context-identity-is-watched — every identity the
-    /// shared plan context carries has a trigger of its own: the cause set, the
-    /// graph, the projection profile, the generator version, and — where the
-    /// context is bound to one — the host contract.
+    /// derivation reads has a trigger of its own: the entry account's own
+    /// commitment, the graph, the projection profile, the generator version, and
+    /// — where the context is bound to one — the host contract.
     ///
     /// The target binding was the missing one, and it was missing in a way no
     /// existing control could see: the hand-written roster stopped at four, the
@@ -2833,8 +2913,8 @@ mod pattern_stamp {
     #[test]
     fn every_context_identity_is_watched() {
         let free = anchors();
-        let cause = free.context.cause_trigger();
-        assert!(free.context.watch_set().is_ok_and(|set| {
+        let cause = account().cause_trigger();
+        assert!(free.context.watch_set(&account()).is_ok_and(|set| {
             let watched: Vec<InvalidationTrigger> = set.iter().copied().collect();
             watched.len() == 4
                 && cause.as_ref().is_ok_and(|cause| watched.contains(cause))
@@ -2855,7 +2935,7 @@ mod pattern_stamp {
         let contract = OwnerIdentityRef::decoded([117; 32]);
         let mut bound = anchors();
         bound.context.target = TargetBinding::HostContract(contract);
-        assert!(bound.context.watch_set().is_ok_and(|set| {
+        assert!(bound.context.watch_set(&account()).is_ok_and(|set| {
             let watched: Vec<InvalidationTrigger> = set.iter().copied().collect();
             watched.len() == 5
                 && watched
@@ -2867,29 +2947,32 @@ mod pattern_stamp {
     /// derived set is a SET.
     ///
     /// An expansion-time context is decided against one captured declaration and
-    /// CAUSED by that same capture, so its cause trigger and its graph trigger
-    /// are the same trigger. Listed, that is one kind stated twice — which is
-    /// what the invalidation magnitude is declared to exclude, since its value IS
-    /// the trigger roster's cardinality. The derivation deduplicates, so the
-    /// set does not depend on a call site remembering to skip the repeat, and
-    /// the plan transcript's set encoding writes one member rather than two.
+    /// the entry account's content IS that same capture, so the account's cause
+    /// trigger and the context's graph trigger are the same trigger. Listed, that
+    /// is one kind stated twice — which is what the invalidation magnitude is
+    /// declared to exclude, since its value IS the trigger roster's cardinality.
+    /// The derivation deduplicates, so the set does not depend on a call site
+    /// remembering to skip the repeat, and the plan transcript's set encoding
+    /// writes one member rather than two.
+    ///
+    /// The premise is built rather than assumed: the graph is pointed at exactly
+    /// the address the account was opened over, which is the posture every
+    /// expansion-time plan actually stands in.
     #[test]
     fn the_watch_set_never_states_one_kind_twice() {
-        let captured = crate::plane::for_laws(120);
         let mut shared = anchors();
-        shared.context.graph = GraphAnchoring::CapturedDeclarationOnly(captured);
-        shared.context.sources = CauseAnchoring::CapturedDeclaration(captured);
+        shared.context.graph = GraphAnchoring::CapturedDeclarationOnly(content());
 
         // The two seats really do resolve to one trigger — the premise the
         // deduplication is about, asserted rather than assumed.
-        let cause = shared.context.cause_trigger();
+        let cause = account().cause_trigger();
         assert!(
             cause
                 .as_ref()
                 .is_ok_and(|cause| *cause == shared.context.graph_trigger())
         );
 
-        assert!(shared.context.watch_set().is_ok_and(|set| {
+        assert!(shared.context.watch_set(&account()).is_ok_and(|set| {
             let watched: Vec<InvalidationTrigger> = set.iter().copied().collect();
             watched.len() == 3
                 && cause.is_ok_and(|cause| {
@@ -2898,64 +2981,68 @@ mod pattern_stamp {
         }));
     }
 
-    /// law: pattern-stamp.a-cause-set-this-profile-cannot-watch-refuses — a
-    /// context whose cause set names more source declarations than the trigger
-    /// roster can watch produces no watch set at all, and therefore no plan.
+    /// law: pattern-stamp.a-dependency-set-this-profile-cannot-watch-refuses — an
+    /// entry account naming more commitments than the trigger roster can watch
+    /// produces no watch set at all, and therefore no plan over it.
     ///
     /// # Why a refusal and not a narrower set
     ///
-    /// The roster's `SourceDeclarationChanged` seat carries one identity and a
-    /// cause set names up to its declared magnitude. Watching the FIRST
-    /// declaration produced a value byte-for-byte the shape of a complete watch
-    /// set, so a plan committed to three declarations while watching one read as
-    /// CURRENT after the other two changed — and nothing downstream could tell
-    /// the two apart, because there is nothing wrong with the value. That is
-    /// false freshness rather than a smaller claim, and the plane fails closed
-    /// until a wider roster exists.
+    /// The roster's `SourceDeclarationChanged` seat carries one identity and an
+    /// account names ONE commitment plus up to the declared dependency magnitude
+    /// beside it. Watching the content's own commitment alone produced a value
+    /// byte-for-byte the shape of a complete watch set, so a plan committed to a
+    /// commitment and two dependencies while watching one read as CURRENT after
+    /// the other two changed — and nothing downstream could tell the two apart,
+    /// because there is nothing wrong with the value. That is false freshness
+    /// rather than a smaller claim, and the plane fails closed until a wider
+    /// roster exists.
     ///
-    /// The control asserts both directions and the payload. The one-declaration
-    /// context still derives its four triggers, so this is not a road that
-    /// refuses everything; the two-declaration context refuses with the typed
-    /// issue naming both counts; and both public roads refuse, because a
-    /// `cause_trigger` that still answered would be the partial claim surviving
+    /// The control asserts both directions and the payload. The
+    /// stands-on-nothing account still derives its four triggers, so this is not
+    /// a road that refuses everything; the two-dependency account refuses with
+    /// the typed issue naming both counts; and both public roads refuse, because
+    /// a `cause_trigger` that still answered would be the partial claim surviving
     /// beside the road that refuses it.
     ///
-    /// Reversal: restoring `declared.first()` as the unconditional answer makes
-    /// the two-declaration half of this law fail — the derivation hands back a
-    /// set, `is_err` is false, and the issue nobody establishes cannot be
-    /// matched.
+    /// # Bounds
+    ///
+    /// It does not assert that no PLAN stands over such an account, because the
+    /// stamp's own anchors cannot express one: [`ScopeGuardStampAnchors`] carries
+    /// a single `content` address and no dependency seat, so the plan site builds
+    /// an account that stands on nothing by construction. A control that reached
+    /// the plan site would have to build the unwatchable account somewhere the
+    /// stamp home cannot, and asserting through it would be asserting about a
+    /// road this home does not have. The propagation itself is the plan site's
+    /// `?` on the derivation, and it is carried by the type.
+    ///
+    /// Reversal: restoring the content's own commitment as the unconditional
+    /// answer makes the two-dependency half of this law fail — the derivation
+    /// hands back a set, `is_err` is false, and the issue nobody establishes
+    /// cannot be matched.
     #[test]
-    fn a_cause_set_this_profile_cannot_watch_refuses() {
-        // One declaration is representable and stays so: the refusal is about
-        // the profile's reach, not about cause sets.
+    fn a_dependency_set_this_profile_cannot_watch_refuses() {
+        // An account that stands on nothing is representable and stays so: the
+        // refusal is about the profile's reach, not about accounts.
         let single = anchors();
-        assert!(single.context.watch_set().is_ok());
-        assert!(single.context.cause_trigger().is_ok());
+        assert!(single.context.watch_set(&account()).is_ok());
+        assert!(account().cause_trigger().is_ok());
 
-        let declared = ProjectionContext::declared_sources(
-            OwnerIdentityRef::decoded([103; 32]),
-            vec![
-                OwnerIdentityRef::decoded([118; 32]),
-                OwnerIdentityRef::decoded([119; 32]),
-            ],
+        let several = OwnerContentAccount::<PatternStampProjection>::captured_over(
+            content(),
+            vec![crate::plane::for_laws(118), crate::plane::for_laws(119)],
         );
-        assert!(declared.is_ok_and(|sources| {
-            let mut several = anchors();
-            several.context.sources = CauseAnchoring::Declarations(sources);
+        assert!(several.is_ok_and(|several| {
             let unwatchable = ProjectionPlanningIssue::CauseSetUnwatchable {
                 named: 3,
                 watchable: 1,
             };
-            several.context.cause_trigger().is_err_and(|refusal| {
+            several.cause_trigger().is_err_and(|refusal| {
                 refusal.body().carried().len() == 1
                     && *refusal.body().carried().first() == unwatchable
-            }) && several
+            }) && single
                 .context
-                .watch_set()
+                .watch_set(&several)
                 .is_err_and(|refusal| *refusal.body().carried().first() == unwatchable)
-                // And no plan stands over it: the stamp's plan site propagates
-                // the derivation's refusal rather than planning around it.
-                && plan_scope_guard_stamp(&several).is_err()
         }));
     }
 
@@ -3238,9 +3325,17 @@ mod derive_refusal {
     }
 
     /// law: derive.a-refusal-names-the-offending-token — a capture refusal
-    /// carries the token it was established at, and the text route resolves that
-    /// token to a byte position. A refusal that always pointed at the first
-    /// token would send every reader to the same wrong place.
+    /// established AFTER a capture carries the token it sits at, and the text
+    /// route resolves that token to a byte position. A refusal that always
+    /// pointed at the first token would send every reader to the same wrong
+    /// place.
+    ///
+    /// The handle is an OPTION and the law reads it as one: a refusal established
+    /// before any capture issues no handle, and this control asserts the answer
+    /// is present for a refusal that did — which is what makes the option's other
+    /// arm a real posture rather than a seat this law would have papered over
+    /// with handle zero.
+    ///
     /// Owed reversal (red twin): reporting at `token[0]` must break this law.
     #[test]
     fn a_refusal_names_the_offending_token() -> Result<(), ()> {
@@ -3250,12 +3345,11 @@ mod derive_refusal {
             .map_err(|_| ())?;
         let refused = captured_text(source).map(|_| ());
         assert!(refused.is_err_and(|refusal| {
-            table
-                .coordinate_of(refusal.token())
-                .is_ok_and(|coordinate| {
+            refusal.token().is_some_and(|token| {
+                table.coordinate_of(token).is_ok_and(|coordinate| {
                     coordinate.role == CoordinateRole::Byte && coordinate.position > 0
                 })
-                && refusal.cause() == RefusalDeriveCapture::NotAnAdmittedShape
+            }) && refusal.cause() == RefusalDeriveCapture::NotAnAdmittedShape
         }));
         Ok(())
     }
@@ -3271,7 +3365,7 @@ mod derive_refusal {
         assert!(single.is_ok_and(|draft| {
             matches!(draft.cause_order_standing(), CauseOrderStanding::Declared)
                 && draft.declared_membership() == DerivedMembership::FamilyAndCauseOrder
-                && draft.declared_membership().len() == 2
+                && draft.declared_membership().len() == 4
                 && !draft.declared_membership().is_empty()
         }));
         assert!(collection.is_ok_and(|draft| {
@@ -3286,6 +3380,15 @@ mod derive_refusal {
     /// a plan, a rendering, a proved closure, and a complete explanation, and
     /// the token tree is reachable only off the closed expansion those four
     /// produced.
+    ///
+    /// The counts are FOUR because one implementation meaning is delivered as two
+    /// surfaces and this declaration carries two contracts: the family
+    /// implementation and the typed cause order, each with its own
+    /// mutation-evaluation copy planned beside it. A membership of two would be a
+    /// plan declaring a smaller output set than the delivery has, and the
+    /// closure — which rebuilds the membership role by role — would be honest
+    /// about a plan that is not.
+    ///
     /// Owed reversal (red twin): a render road that skipped the closure must
     /// break this law.
     #[test]
@@ -3294,9 +3397,9 @@ mod derive_refusal {
         assert!(compiled.is_ok_and(|(_, closed)| {
             let plan = closed.plan();
             let closure = closed.closure();
-            plan.membership().len() == 2
-                && closure.rendered().len() == 2
-                && closure.reconstructed().len() == 2
+            plan.membership().len() == 4
+                && closure.rendered().len() == 4
+                && closure.reconstructed().len() == 4
                 && plan.trace().len() == 3
                 && plan.invalidation().len() == 3
                 && plan.origin().len() == 1
@@ -3367,7 +3470,7 @@ mod derive_refusal {
             // The draft answers what the SHAPE fixed and nothing else. Every
             // question about bytes is answered by a closed expansion or by
             // nobody.
-            draft.declared_membership().roles().len() == 2
+            draft.declared_membership().roles().len() == 4
                 && draft.surface().family_id() == "demo.example"
         }));
     }
@@ -3506,16 +3609,23 @@ mod failure_path_closure {
     use threadpak::declaration::CoordinateRole;
     use threadpak::types::ConstLimit;
 
-    /// The lawful single-cause declaration, whose shape fixes a two-role output
-    /// set.
+    /// The lawful single-cause declaration, whose shape fixes TWO contracts — the
+    /// family implementation and the typed cause order — and therefore a four-role
+    /// output set, since each contract is delivered as two surfaces.
     const SINGLE_CAUSE: &str = "#[refusal(family = \"demo.example\", shape = single_cause, \
         order(NotCanonical = \"not-canonical\", NotAdmitted = \"not-admitted\"))] \
         enum DemoFamily { NotCanonical, NotAdmitted, }";
 
     /// law: closure.a-complete-set-is-never-shortened — a shape that fixes two
-    /// rendered roles plans two members, one under each role, and the road that
-    /// builds it carries no refusal to swallow. The old road repaired a failed
-    /// complete set with the first member alone.
+    /// contracts plans FOUR members, one under each rendered role, and the road
+    /// that builds it carries no refusal to swallow. The old road repaired a
+    /// failed complete set with the first member alone.
+    ///
+    /// The quantifier is the ROSTER and the assertion is per role, so this law
+    /// does not restate the count: a roster that grew a seat makes the loop below
+    /// ask about that seat too, and a membership that left it unplanned fails
+    /// here rather than passing a length comparison.
+    ///
     /// Owed reversal (red twin): a membership road returning a `Result` a caller
     /// must repair must break this law.
     #[test]
@@ -3523,7 +3633,7 @@ mod failure_path_closure {
         let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
         assert!(compiled.is_ok_and(|(_, closed)| {
             let membership = closed.plan().membership();
-            membership.len() == 2
+            membership.len() == RenderedImplementation::ROLES.len()
                 && RenderedImplementation::ROLES
                     .iter()
                     .all(|role| membership.count_under(*role) == 1)
@@ -3790,6 +3900,8 @@ mod failure_path_closure {
             match role {
                 RenderedImplementation::RenderedFamilyImpl => 0,
                 RenderedImplementation::RenderedCauseOrderImpl => 1,
+                RenderedImplementation::RenderedFamilyEvaluation => 2,
+                RenderedImplementation::RenderedCauseOrderEvaluation => 3,
             }
         }
         const fn sole_position(role: SoleRenderedUnit) -> usize {
@@ -3797,12 +3909,18 @@ mod failure_path_closure {
                 SoleRenderedUnit::Sole => 0,
             }
         }
-        assert_eq!(RenderedImplementation::ROLES.len(), 2);
+        assert_eq!(RenderedImplementation::ROLES.len(), 4);
         assert_eq!(SoleRenderedUnit::ROLES.len(), 1);
         for (position, role) in RenderedImplementation::ROLES.iter().enumerate() {
             assert_eq!(implementation_position(*role), position);
             assert_eq!(usize::try_from(role.slot()).unwrap_or(usize::MAX), position);
             assert!(!role.described().is_empty());
+            // The pairing is an involution and it never answers with a seat: one
+            // implementation meaning is two surfaces, so a roster entry without a
+            // pair would be a surface delivered on its own.
+            assert_eq!(role.twin().twin(), *role);
+            assert_ne!(role.twin(), *role);
+            assert_ne!(role.twin().is_evaluation_copy(), role.is_evaluation_copy());
         }
         for (position, role) in SoleRenderedUnit::ROLES.iter().enumerate() {
             assert_eq!(sole_position(*role), position);
@@ -4165,8 +4283,17 @@ mod failure_path_closure {
     /// law: closure.a-planned-member-carries-no-invented-role — the membership
     /// road is a match over the two answers the shape admits, so the member set
     /// is a function of the shape and nothing invents a role for an empty
-    /// roster. A collection shape plans one member and a single-cause shape
-    /// plans two, and both are built through the total road.
+    /// roster. A collection shape declares ONE contract and a single-cause shape
+    /// declares two, and both are built through the total road.
+    ///
+    /// Each declared contract contributes TWO members, because one implementation
+    /// meaning is delivered as two surfaces and both are planned: the production
+    /// implementation under its role, and the mutation-evaluation copy under that
+    /// role's twin. So the counts below are two and four rather than one and two,
+    /// and every member's twin stands beside it — a membership that planned the
+    /// production half alone would put the copy outside the output firewall,
+    /// where the closure never looks at it.
+    ///
     /// Owed reversal: a roster-shaped membership road must break this law.
     #[test]
     fn a_planned_member_carries_no_invented_role() -> Result<(), ()> {
@@ -4175,24 +4302,27 @@ mod failure_path_closure {
         let (_, closed) = compile_refusal_text(collection).map_err(|_| ())?;
         let planned = closed.plan().membership();
         assert!(
-            planned.len() == 1
+            planned.len() == 2
                 && planned.count_under(RenderedImplementation::RenderedFamilyImpl) == 1
+                && planned.count_under(RenderedImplementation::RenderedFamilyEvaluation) == 1
                 && planned.count_under(RenderedImplementation::RenderedCauseOrderImpl) == 0
+                && planned.count_under(RenderedImplementation::RenderedCauseOrderEvaluation) == 0
         );
 
         // The same theorem stated over the planning road directly: the profile,
-        // destination, and digest contract of every member come from the role.
+        // destination, and digest contract of every member come from the role,
+        // and every member's twin is planned beside it.
         let read = TextCapture::read(SINGLE_CAUSE).map_err(|_| ())?;
         let surface = crate::derive_refusal::captured(read.input()).map_err(|_| ())?;
         let draft = surface.planned();
         let membership = derive_plan::membership(&draft);
         assert!(
-            membership.len() == 2
+            membership.len() == 4
                 && membership.iter().all(|member: &PlannedMember<_>| {
                     matches!(
                         member.output.destination,
                         MemberDestination::AtDeclarationSite
-                    )
+                    ) && membership.count_under(member.role.twin()) == 1
                 })
         );
         Ok(())

@@ -5,29 +5,34 @@
 //! member's semantic key, its expected profile at its version, and its origin
 //! trail are the PLAN's answers, read exactly; the address the shell stands on is
 //! the entry account's one commitment; the rendering engine is the generator the
-//! plan's context names; and the obligation and the challenge method are the
-//! kind content's, read and not interpreted. Two readings and no third: the
-//! account answers what this was planned over, the membership answers what will
-//! be materialized, and this file joins them without keeping a copy of either.
+//! plan's context names; and the obligation is the kind content's, read and not
+//! interpreted. Two readings and no third: the account answers what this was
+//! planned over, the membership answers what will be materialized, and this file
+//! joins them without keeping a copy of either.
 //!
 //! # Two roads, two vocabularies
 //!
 //! Reading a plan and rendering a shell refuse in two different families, and
 //! they are not folded into one. A plan that declares no member under its kind's
-//! one role is a fact about the PLAN, and a rendering that cannot spell a literal
-//! the gate demands is a fact about the SEAM — a caller told only "the shell
+//! one role is a fact about the PLAN, and a shell that outgrows the declared
+//! token magnitude is a fact about the SEAM — a caller told only "the shell
 //! failed" would go looking in the wrong place, and the two are not
 //! co-establishable anyway, because there is nothing to render until the plan has
 //! been read.
 //!
 //! # The rows are not here
 //!
-//! The plan's kind content names an obligation and a challenge method; it does
-//! not name a claim, a suite, roles, tags, a subject route, a check reference, a
-//! population, or a callable. Those are the harness's declarations, they arrive
-//! from the CALLER as [`TrialTablePayload`](super::TrialTablePayload), and a
-//! generator that invented them would be producing its own facts and then
-//! proving them.
+//! The plan's kind content names an obligation and states where the rows come
+//! from; it does not name a claim, a suite, roles, tags, a subject route, a check
+//! reference, a population, or a callable. Those are the harness's declarations,
+//! they arrive from the CALLER as
+//! [`TrialTablePayload`](super::TrialTablePayload), and a generator that invented
+//! them would be producing its own facts and then proving them.
+//!
+//! The challenge METHOD is not among what is read, and its absence is the honest
+//! shape rather than a dropped fact: the harness's closed descriptor field set
+//! has no method seat, so a method carried through here would reach no emitted
+//! seat of the crossing.
 
 use super::{DescriptorPlan, DescriptorPlanIssue};
 use crate::plane::{RenderedRole, SoleRenderedUnit};
@@ -76,6 +81,5 @@ pub fn descriptor_plan(
         declaration: plan.account().commitment(),
         engine: plan.context().generator,
         obligation: content.obligation,
-        challenge: content.challenge,
     })
 }

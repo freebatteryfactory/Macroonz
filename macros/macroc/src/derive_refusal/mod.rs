@@ -22,9 +22,10 @@ pub use types::{
 };
 
 use crate::closure::{ProjectionClosure, RenderedProjection, RenderedUnit};
+use crate::derive_impl::{EvaluationBinding, MutationPointTable, evaluation_copy};
 use crate::diagnostics::MacrocDiagnostic;
-use crate::planning::{MemberDestination, RenderedImplementation};
-use crate::token::{CapturedInput, TextCapture};
+use crate::planning::RenderedImplementation;
+use crate::token::{CapturedInput, GeneratedTree, TextCapture};
 use threadpak::types::Bounded;
 
 /// Capture, plan, render, close, and explain one refusal-family declaration —
@@ -123,12 +124,115 @@ pub fn compile_refusal_text(
     }
 }
 
+/// The active-point enum the family contract's evaluation copy declares.
+///
+/// A literal identifier and never a spelling composed from the declaration:
+/// composing one would be this home deciding how an author's own type name
+/// becomes a Rust identifier, which is a spelling law nobody gave it.
+const FAMILY_ACTIVE_POINT: &str = "RefusalFamilyActivePoint";
+
+/// The name the family contract's evaluation copy reads its selector through.
+///
+/// The copy READS this name and never declares it. Where it comes to be in
+/// scope at every activation site is the generated support shell's splice, and
+/// that splice is not this home's rendering.
+const FAMILY_ACTIVE_POINT_SELECTOR: &str = "REFUSAL_FAMILY_ACTIVE_POINT";
+
+/// The active-point enum the cause-order contract's evaluation copy declares.
+const CAUSE_ORDER_ACTIVE_POINT: &str = "CauseOrderActivePoint";
+
+/// The name the cause-order contract's evaluation copy reads its selector
+/// through.
+const CAUSE_ORDER_ACTIVE_POINT_SELECTOR: &str = "CAUSE_ORDER_ACTIVE_POINT";
+
+/// The two spellings one contract's evaluation copy names: the active-point
+/// enum it declares, and the selector it reads.
+///
+/// One pair per CONTRACT rather than one pair for the home. A declaration that
+/// carries both contracts delivers two evaluation copies, and one enum spelling
+/// across them would declare a single type twice wherever the shell lands them.
+///
+/// Read through either half of a pair the answer is the same, because the
+/// spellings belong to the PAIR rather than to one half of it — so no caller
+/// has to hold which half it is looking at, and the two evaluation seats are
+/// written out beside the two production ones rather than collapsed under a
+/// wildcard.
+const fn evaluation_spellings(role: RenderedImplementation) -> (&'static str, &'static str) {
+    match role {
+        RenderedImplementation::RenderedFamilyImpl
+        | RenderedImplementation::RenderedFamilyEvaluation => {
+            (FAMILY_ACTIVE_POINT, FAMILY_ACTIVE_POINT_SELECTOR)
+        }
+        RenderedImplementation::RenderedCauseOrderImpl
+        | RenderedImplementation::RenderedCauseOrderEvaluation => {
+            (CAUSE_ORDER_ACTIVE_POINT, CAUSE_ORDER_ACTIVE_POINT_SELECTOR)
+        }
+    }
+}
+
+/// Transform one rendered production tree into its mutation-evaluation copy.
+///
+/// # No mutation point is admitted here, and that is a stated fact
+///
+/// Which operation is worth damaging, which alternatives stand against it, and
+/// which claim owns the site are the harness's declarations, and nothing
+/// reaches this home carrying any of them: [`compile_refusal`] is handed a
+/// captured declaration and an expansion context, and neither names a point.
+///
+/// So the table composed below is the honest minimum this delivery admits.
+/// [`MutationPointTable::over`] seats the mandatory no-mutation control
+/// STRUCTURALLY, and the admitted set beside it is empty — a stated fact about
+/// a declaration nobody admitted a damage against, rather than a set somebody
+/// forgot to supply. Under the control every point renders its original
+/// operation, so a copy with no admitted point emits exactly the production
+/// surface's own operations, which is the parity the control exists to prove.
+///
+/// # Errors
+///
+/// Returns the token-magnitude diagnostic naming the role that overran it.
+///
+/// The three roads below refuse in the derive-implementation home's own
+/// families, and at THIS seat all three reduce to that one observation. The
+/// two spellings are the literal identifiers declared above, so a spelling that
+/// is not one is not a value these calls can produce; the admitted set is
+/// empty, so no name can be doubled, no point can claim the control's name, and
+/// no count can outgrow its magnitude; and with no point to stand in, every
+/// composition issue that names one is unestablishable. What remains is the
+/// copy outgrowing the declared token magnitude, which is exactly what
+/// [`RenderRefusal::Unbounded`] names. A seat that ever admitted a caller's
+/// points would owe [`diagnose`] a projection of the composition family; this
+/// one admits none.
+#[expect(
+    clippy::result_large_err,
+    reason = "the same seat-complete diagnostic the settled service road returns; this helper hands \n              it straight through"
+)]
+fn evaluation_tree(
+    production: &GeneratedTree,
+    role: RenderedImplementation,
+) -> Result<GeneratedTree, MacrocDiagnostic> {
+    let unbounded = || diagnose::render_refused(RenderRefusal::Unbounded, role);
+    let (active_enum, selector) = evaluation_spellings(role);
+    let binding = EvaluationBinding::declared(active_enum, selector).map_err(|_| unbounded())?;
+    let table = MutationPointTable::over(Vec::new()).map_err(|_| unbounded())?;
+    evaluation_copy(&binding, &table, production).map_err(|_| unbounded())
+}
+
 /// Render every planned role into a rendered unit.
 ///
 /// The roster is fixed by the shape, so the rendering is built by matching on
-/// the two answers.
+/// the two answers — and each answer names TWO members per contract, because
+/// one implementation meaning is delivered as two surfaces and the plan
+/// declares both ([`plan::membership`]). A rendering that materialized the
+/// production half alone would leave the closure rebuilding a membership half
+/// the size of the one the plan states, and the proof would refuse — so the
+/// copy is rendered here rather than being a surface that crosses the wall
+/// outside the declared set.
 /// [`RenderedProjection::complete`] settles the magnitude at compile time, which
 /// is why neither arm carries a refusal road of its own.
+///
+/// The twin is READ from the roster rather than named here
+/// ([`RenderedImplementation::twin`]), exactly as the plan reads it, so a
+/// roster that paired its seats differently pairs these units differently too.
 #[expect(
     clippy::result_large_err,
     reason = "the same seat-complete diagnostic the settled service road returns; this helper hands \n              it straight through"
@@ -136,18 +240,41 @@ pub fn compile_refusal_text(
 fn render_units(
     draft: &RefusalDerivationDraft,
 ) -> Result<RenderedProjection<RenderedImplementation>, MacrocDiagnostic> {
-    let family = rendered_unit(draft, RenderedImplementation::RenderedFamilyImpl)?;
+    let family = RenderedImplementation::RenderedFamilyImpl;
+    let cause_order = RenderedImplementation::RenderedCauseOrderImpl;
+    let family_implementation = rendered_unit(draft, family)?;
+    let family_evaluation = rendered_unit(draft, family.twin())?;
     match draft.declared_membership() {
-        DerivedMembership::FamilyOnly => Ok(RenderedProjection::complete(family, [])),
+        DerivedMembership::FamilyOnly => Ok(RenderedProjection::complete(
+            family_implementation,
+            [family_evaluation],
+        )),
         DerivedMembership::FamilyAndCauseOrder => {
-            let cause_order = rendered_unit(draft, RenderedImplementation::RenderedCauseOrderImpl)?;
-            Ok(RenderedProjection::complete(family, [cause_order]))
+            let order_implementation = rendered_unit(draft, cause_order)?;
+            let order_evaluation = rendered_unit(draft, cause_order.twin())?;
+            Ok(RenderedProjection::complete(
+                family_implementation,
+                [family_evaluation, order_implementation, order_evaluation],
+            ))
         }
     }
 }
 
 /// Render one role into one materialized unit, projecting either refusal into a
 /// diagnostic that names the exact magnitude and the role that overran it.
+///
+/// Total in the role it is handed, and the road is the same for all four seats:
+/// both halves of a pair stand over ONE production rendering — the production
+/// member IS that tree, and the evaluation copy is that tree transformed — so
+/// the match below reads the roster for the CONTRACT, and the two evaluation
+/// arms are written out beside the two production ones. A fifth role stops the
+/// compiler here rather than falling through a wildcard into whichever contract
+/// the last arm happened to name.
+///
+/// The production tree is rendered again for the copy rather than handed over
+/// from the member beside it: each unit is then a function of the DECLARATION
+/// alone, and no member's rendering depends on another member's having been
+/// rendered first — which is the ordering the roster exists to remove.
 #[expect(
     clippy::result_large_err,
     reason = "the same seat-complete diagnostic the settled service road returns; this helper hands \n              it straight through"
@@ -156,19 +283,29 @@ fn rendered_unit(
     draft: &RefusalDerivationDraft,
     role: RenderedImplementation,
 ) -> Result<RenderedUnit<RenderedImplementation>, MacrocDiagnostic> {
-    let tree = match role {
-        RenderedImplementation::RenderedFamilyImpl => {
+    let production = match role {
+        RenderedImplementation::RenderedFamilyImpl
+        | RenderedImplementation::RenderedFamilyEvaluation => {
             render::family_implementation(draft.surface())
         }
-        RenderedImplementation::RenderedCauseOrderImpl => {
+        RenderedImplementation::RenderedCauseOrderImpl
+        | RenderedImplementation::RenderedCauseOrderEvaluation => {
             render::cause_order_implementation(draft.surface())
         }
     }
     .map_err(|refusal| diagnose::render_refused(refusal, role))?;
+    let tree = if role.is_evaluation_copy() {
+        evaluation_tree(&production, role)?
+    } else {
+        production
+    };
     RenderedUnit::materialized(
         role,
         plan::semantic_key(draft, role),
-        MemberDestination::AtDeclarationSite,
+        // The roster's own constant answer, not a literal repeated here: where a
+        // member under a role lands is the role's fact, and the plan states this
+        // member's destination by reading the same answer.
+        role.destination(),
         plan::rust_declaration_profile(),
         plan::rust_declaration_profile_version(),
         plan::member_origin(draft, role),

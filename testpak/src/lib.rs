@@ -3,8 +3,9 @@
 //! are the crate README's; each instrument's README is its module page.
 //!
 //! A verdict here is always claim-specific and method-specific.
-//! "The permuted rendering was rejected by the string scan over these two
-//! declared orders" is a verdict; "the derive works" is not one.
+//! "The artifact declares a trait path the caller's declaration did not name,
+//! read out of a parse nobody here wrote" is a verdict; "the derive works" is
+//! not one.
 //!
 //! # The instruments
 //!
@@ -14,19 +15,20 @@
 //! self-agreement vacuous, [`runner`] is the pure engine that turns
 //! descriptor tables and typed invocations into typed reports,
 //! [`properties`] carries the algebraic suites, [`muterprater`] is
-//! the proof-pressure engine, and [`fault`] holds the refusing adapters.
-//! The generation contract's home (`generate`) and the harness's own fact
-//! bank (`depot`) are declared in the crate README's instrument table; their
-//! modules land with their content.
+//! the proof-pressure engine, [`generate`] owns the generation contract,
+//! [`depot`] is the harness's own fact bank, and [`fault`] holds the refusing
+//! adapters. [`identity`] is the derivation substrate every identity kind in
+//! this crate derives through.
 //!
 //! Executable challenge material sits under `tests/`, where cargo requires
 //! it to live; seed-packs sit under `corpus/`.
 //!
-//! # The standing seat
+//! # The instruments are reached at their own homes
 //!
-//! One numbered seat carries the pre-redesign machinery: [`judge`], whose
-//! three readings and mutation roster are the oracle's and muterprater's
-//! seed material.
+//! Nothing is re-exported at this root. An instrument's vocabulary is spelled
+//! through the module that owns it — `oracle::StructuralVerdict`,
+//! `muterprater::ARTIFACT_MUTATIONS` — so a reader of a call site sees which
+//! home made the claim rather than a flat surface that hides it.
 //!
 //! # The dependency direction
 //!
@@ -46,16 +48,3 @@ pub mod oracle;
 pub mod properties;
 pub mod report;
 pub mod runner;
-
-#[path = "03_judge/mod.rs"]
-pub mod judge;
-
-pub use judge::{
-    ARTIFACT_MUTATIONS, ArtifactMutation, ArtifactStructure, CauseRow, DeclaredStructure,
-    ImplPosture, ImplementationStructure, LaneOwnership, RenderVerdict, StructuralDisagreement,
-    StructuralVerdict, cause_identities_in, judge_declared_order, judge_structure, mutated,
-    selection_order_in, structure_of,
-};
-
-#[cfg(test)]
-mod laws;

@@ -44,10 +44,13 @@ const PROFILE_STEM: &str = "threadpak/macroc/projection-identity";
 
 /// The profile version, spelled out rather than imported.
 ///
-/// Version 2 is the version this lane judges, restated here rather than read
+/// Version 4 is the version this lane judges, restated here rather than read
 /// from the producer — a lane that imported the version would agree with a
-/// producer that silently changed it.
-const PROFILE_VERSION: u32 = 2;
+/// producer that silently changed it. The number moves HERE, deliberately and
+/// visibly, when the published profile moves: the version rides both the
+/// derive-key context and the transcript, and this lane writes both out itself,
+/// so restating it is the whole of following a bump.
+const PROFILE_VERSION: u32 = 4;
 
 /// The generator's declared name, spelled out rather than imported.
 const GENERATOR_PROFILE: &str = "threadpak-macroc";

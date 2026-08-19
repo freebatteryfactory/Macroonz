@@ -242,7 +242,7 @@ threadpak::closed_register! {
 /// The parts are OWNED text, where a `'static` roster would be this crate's own:
 /// a path here is cut from the token material one expansion was handed, and it
 /// becomes static text only once it is spliced into the consumer's own item.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CodecTypePath {
     rooting: PathRooting,
     segments: NonEmptyBounded<String, CodecPathSegmentLimit>,

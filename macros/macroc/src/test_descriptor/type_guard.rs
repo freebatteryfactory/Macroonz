@@ -461,37 +461,24 @@ impl GeneratedSupportShell {
     /// # Errors
     ///
     /// Returns the rendering family naming
-    /// [`ShellRenderIssue::PinLiteralNotSpellable`] where the token vocabulary
-    /// cannot write the gate's byte-string expectation,
-    /// [`ShellRenderIssue::CountLiteralNotSpellable`] where a declared count has
-    /// no literal arm to be written with, and
-    /// [`ShellRenderIssue::ShellTreeUnbounded`] where the rendered tree outgrows
-    /// the declared token magnitude. The issues are established TOGETHER, because
-    /// a caller repairing a seam one missing spelling per attempt is a caller this
-    /// home failed.
+    /// [`ShellRenderIssue::ShellTreeUnbounded`] where the stamped payload, the
+    /// gate invocation around it, the exported carrier around that, or the
+    /// assembled tree outgrows the declared token magnitude.
+    ///
+    /// The gate's own expectation is not among them: thirty-two bytes are one
+    /// literal token, so the road that writes it is total and there is no branch
+    /// here for a case that cannot happen. What remains is a DEPENDENT chain —
+    /// each part is the material the next one wraps — so exactly one issue is
+    /// ever established on this crossing. The family's collection shape is the
+    /// BENCH crossing's, which renders two independent parts — a bench table and
+    /// a reporter adapter — either of which can overrun on its own.
     pub fn rendered(
         stated: &DescriptorPlan,
         payload: &TrialTablePayload,
     ) -> Result<Self, ShellRendering> {
         let name = ShellName::mangled(&stated.semantic_key);
-        let mut issues: Vec<ShellRenderIssue> = Vec::new();
-        let pin = match render::expectation_literal() {
-            Ok(rendered) => Some(rendered),
-            Err(issue) => {
-                issues.push(issue);
-                None
-            }
-        };
-        let cargo = match render::stamped_module(payload) {
-            Ok(rendered) => Some(rendered),
-            Err(issue) => {
-                issues.push(issue);
-                None
-            }
-        };
-        let (Some(pin), Some(cargo)) = (pin, cargo) else {
-            return Err(established(issues));
-        };
+        let pin = render::expectation_literal();
+        let cargo = render::stamped_module(payload).map_err(|issue| established(vec![issue]))?;
         let body = render::gate_invocation(pin, cargo).map_err(|issue| established(vec![issue]))?;
         let tokens = render::exported_shell(&name, body).map_err(|issue| established(vec![issue]))?;
         let tree = GeneratedTree::assembled(tokens)
@@ -658,9 +645,10 @@ mod seat {
 
     /// The shell-rendering refusal family body.
     ///
-    /// Independent members: a shell can need a byte-string literal the token
-    /// vocabulary cannot spell WHILE a declared count needs a numeric literal it
-    /// also cannot spell, and both are true of the same rendering — so no primary
+    /// Independent members: a crossing renders its parts independently — the
+    /// carrier's expectation and its payload, and the bench crossing's payload
+    /// and adapter beside them — and each can outgrow the declared token
+    /// magnitude on its own, so several are true of one rendering and no primary
     /// issue is ever elected.
     #[must_use = "a refusal family body carries every gap the rendering passes established"]
     #[derive(Debug, Clone, PartialEq, Eq, Hash)]

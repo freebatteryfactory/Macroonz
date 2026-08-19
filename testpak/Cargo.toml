@@ -12,9 +12,10 @@ publish = false
 workspace = true
 
 [dependencies]
-# The adopter's whole inherited bill is these two library mechanisms, both
-# admitted by the notes in README.md and both inherited from the root
-# manifest's `[workspace.dependencies]` table rather than restated here.
+# What an adopter inherits, and why. Two of these three are the standing bill —
+# `arbitrary` and `blake3` — and the third is a lodger whose exit condition is
+# stated with it. All are admitted by the notes in README.md and inherited from
+# the root manifest's `[workspace.dependencies]` table rather than restated here.
 # The generation vocabulary: structure-aware input generation, derivable.
 arbitrary = { workspace = true }
 # The family identity substrate: schema identity, revision identities,
@@ -25,10 +26,15 @@ arbitrary = { workspace = true }
 # reimplemented BLAKE3 would be testing an arithmetic exercise rather than a
 # specification; the two crates differ in what they ENCODE and in nothing else.
 blake3 = { workspace = true }
-# The structural lane's parser, admitted by the note in README.md; its home is
-# the challenge side, and it moves to dev-dependencies at the absorption wave
-# that moves the decoder out of the library — the manifest states what the
-# code does today.
+# The structural read's decoder, admitted by the note in README.md. Its home is
+# the challenge side and the flip is owed, so the opening condition is stated
+# here rather than left to a later reader's judgement: `syn` moves to
+# [dev-dependencies] at the wave that moves `oracle::structural::declarations_in`
+# out of `src/` and into a `tests/` module — and that is the wave in which a
+# challenge-side caller exists to call it there. A decoder moved into `tests/`
+# with nothing calling it is not a move to the challenge side; it is unreachable
+# code wearing the shape of one. Until then this manifest states what the code
+# does today: the decoder is library code, so this is a library dependency.
 syn = { workspace = true }
 
 [dev-dependencies]

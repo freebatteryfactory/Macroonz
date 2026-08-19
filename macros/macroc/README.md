@@ -103,6 +103,23 @@ flowchart TD
         PLAN --> REF
         PLAN --> QUE
         PLAN --> OG
+        DI["derive_impl — the two surfaces one meaning is delivered as"] --> PLN
+        DI --> TOK
+        DI --> OG
+        DI --> PLAN
+        COD["codec"] --> PLN
+        COD --> TOK
+        COD --> OG
+        COD --> PLAN
+        TD["test_descriptor — the wall's ONE carrier is declared here"] --> PLN
+        TD --> TOK
+        TD --> OG
+        TD --> PLAN
+        BD["benchmark_descriptor"] --> PLN
+        BD --> TOK
+        BD --> OG
+        BD --> PLAN
+        BD --> TD
         CLO["closure"] --> PLN
         CLO --> OG
         CLO --> PLAN
@@ -113,15 +130,23 @@ flowchart TD
         EXP --> QUE
         EXP --> OG
         EXP --> PLAN
+        DOC["documentation"] --> PLN
+        DOC --> TOK
+        DOC --> DIA
+        DOC --> OG
+        DOC --> PLAN
+        DOC --> EXP
         TPL["template"] --> PLN
         TPL --> OG
         TV["trigger_view"] --> PLN
         TV --> PLAN
         CMP["composition"] --> PLN
         PS["pattern_stamp"] --> PLN
+        PS --> TOK
         PS --> REF
         PS --> OG
         PS --> PLAN
+        PS --> TD
     end
     DR["derive_refusal — the working derive road"] --> PLN
     DR --> TOK

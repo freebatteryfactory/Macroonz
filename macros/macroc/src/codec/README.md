@@ -37,9 +37,10 @@ that consumed the remainder would make the member after it unreadable.
 
 ## The rendering writes no numeric literal, and that is deliberate
 
-The generated-token roster carries four arms — word, punctuation, text, group —
-and no numeric one. Rather than refuse, every place a number would have stood is
-written as the language's own road to the same value:
+The generated-token roster carries a numeric arm
+([`GeneratedToken::Number`](crate::token::GeneratedToken::Number)) and this home
+writes no literal through it. Every place a number would have stood is written as
+the language's own road to the same value:
 
 | where a number would stand | what the rendering writes |
 | -------------------------- | ------------------------- |
@@ -55,10 +56,19 @@ candidate's `slot()` against the byte it read. A roster that gained an arm gains
 it in the decode road too, without this home ever learning what the arms are —
 and a slot no arm answers to refuses rather than electing a neighbour.
 
-This home therefore renders no `ByteLiteralNotSpellable` and no
-`CountLiteralNotSpellable`. The missing numeric arm is still a gap in the token
-roster, recorded by the two crossings that DO need it; the codec simply does not
-stand on it.
+This home therefore renders no unspellable-literal refusal, and there is no such
+refusal anywhere for it to render: the roster carries a byte-string arm beside
+the numeric one
+([`GeneratedToken::ByteText`](crate::token::GeneratedToken::ByteText)), so a
+declared count and a declared byte string are each ONE literal token, and the
+crossings that need them write them directly.
+
+What stands above is therefore this home's own choice of road and never a bound
+it is under. `::core::mem::size_of::<u64>()` says the width IS the framing's,
+where a digit would say only what that width happens to be today; the owner's
+own `ALL` roster says the slots are the OWNER's, where a table of them would be
+a second copy of somebody else's declaration. A literal is available here, and
+it is the weaker sentence.
 
 ## The shape arrives from the caller
 

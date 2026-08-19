@@ -33,9 +33,14 @@
 //! its home is the challenge side: structural decoding of this repository's own
 //! rendered artifacts belongs to `tests/`, while the annex owns vocabulary and
 //! comparison. It stands here until that move, isolated in this one file so the
-//! move is a file's worth of work — and the manifest states what the code does
-//! today, so the same move is what retires `syn` from the library's dependency
-//! table and leaves it a dev-dependency.
+//! move is a file's worth of work.
+//!
+//! The opening condition is exact, and the manifest carries the same sentence:
+//! the move happens at the wave where a challenge-side caller exists to call it
+//! there, and that same wave retires `syn` from the library's dependency table
+//! and leaves it a dev-dependency. Moving it sooner would put a decoder in
+//! `tests/` that nothing calls — unreachable code wearing the shape of a move —
+//! so the manifest states what the code does today rather than what it is owed.
 //!
 //! [`compared`] is what survives that move: it takes typed values on both
 //! sides, reads no text, and names no parser.

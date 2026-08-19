@@ -125,6 +125,10 @@ pub fn plan_scope_guard_stamp(
         // Reaches the plan through the membership: it is the member's semantic
         // key and the anchor its digest contract binds to. No trigger seat.
         stamped_unit,
+        // Reaches the plan through the membership's destination: the stamp is
+        // published cross-file source, so its member lands as an artifact and
+        // the artifact names the byte role it is read under. No trigger seat.
+        byte_role,
         // Reaches the plan through the decision trace, as the subject both
         // decisions are recorded about. No trigger seat.
         traced,
@@ -171,7 +175,7 @@ pub fn plan_scope_guard_stamp(
         role: SoleRenderedUnit::Sole,
         output: PlannedOutput {
             semantic_key: *stamped_unit,
-            destination: MemberDestination::AtDeclarationSite,
+            destination: MemberDestination::AsArtifact { byte_role: *byte_role },
             origin: origin.clone(),
             expected_profile: context.profile,
             expected_profile_version: context.profile_version,

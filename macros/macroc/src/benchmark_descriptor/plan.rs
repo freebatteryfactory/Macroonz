@@ -5,18 +5,23 @@
 //! member's semantic key, its expected profile at its version, and its origin
 //! trail are the PLAN's answers, read exactly; the address the shell stands on is
 //! the entry account's one commitment; the rendering engine is the generator the
-//! plan's context names; and the measured unit, the work currency, and the claim
-//! are the kind content's, read and not interpreted.
+//! plan's context names; and the measured unit and the work currency are the kind
+//! content's, read and not interpreted.
 //!
 //! # The rows are not here
 //!
-//! The plan's kind content names a MEASURED UNIT, a WORK CURRENCY, and a CLAIM.
-//! It does not name an input-size axis, a correctness preflight, a planted-worse
-//! falsifier, declared budgets, a contention posture, a work formula, or a
-//! complexity-claim reference — so [`BenchTablePayload`](super::BenchTablePayload)
-//! arrives from the caller. A generator that chose a row's sample count or
-//! elected its falsifier would be setting the tolerance it is then measured
-//! against.
+//! The plan's kind content names a MEASURED UNIT and a WORK CURRENCY, and states
+//! where the rows come from. It does not name an input-size axis, a correctness
+//! preflight, a planted-worse falsifier, declared budgets, a contention posture,
+//! a work formula, or a complexity-claim reference — so
+//! [`BenchTablePayload`](super::BenchTablePayload) arrives from the caller. A
+//! generator that chose a row's sample count or elected its falsifier would be
+//! setting the tolerance it is then measured against.
+//!
+//! The product's own verified CLAIM is not among what is read, and its absence is
+//! the honest shape rather than a dropped fact: the emitted row carries a NEUTRAL
+//! complexity reference, which arrives as part of the caller's row material, and
+//! a product claim carried through here would reach no emitted seat.
 //!
 //! # A benchmark is evidence, never a specification
 //!
@@ -73,6 +78,5 @@ pub fn benchmark_plan(
         engine: plan.context().generator,
         measured: content.measured,
         work_currency: content.work_currency,
-        claim: content.claim,
     })
 }

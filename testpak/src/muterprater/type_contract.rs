@@ -24,10 +24,17 @@
 //! Which lane discharges an obligation follows from the SHAPE of proof its
 //! opening asks for, and nothing else. Stated as a map so lane choice is a
 //! planning decision a reader can check rather than a branch inside a planner.
+//!
+//! # The seed roster's rendering
+//!
+//! The artifact-mutation roster's one projection is here for the same reason:
+//! a person reading a plan needs the damage in words, and a constant answer per
+//! arm is a declaration. Nothing decides anything by it.
 
 use super::types::{
-    ActivationAxis, ActivationDisposition, AdmissionPatch, ExecutionAxis, MaterializationAxis,
-    MutationOutcome, MutationVerdict, ObligationLane, ProofShape, ProposalGround, WrapOutcomeWord,
+    ActivationAxis, ActivationDisposition, AdmissionPatch, ArtifactMutation, ExecutionAxis,
+    MaterializationAxis, MutationOutcome, MutationVerdict, ObligationLane, ProofShape,
+    ProposalGround, WrapOutcomeWord,
 };
 use crate::descriptor::{AdmissionGround, CapsulePosture};
 
@@ -121,6 +128,33 @@ impl From<CapsulePosture> for AdmissionPatch {
         match posture {
             CapsulePosture::ReplayBearing => Self::RowAndCapsule,
             CapsulePosture::NoCapsule => Self::RowAlone,
+        }
+    }
+}
+
+impl ArtifactMutation {
+    /// The damage rendered for a person.
+    ///
+    /// A projection: a plan and a survivor explanation name a row through it,
+    /// and no decision anywhere consults it.
+    #[must_use]
+    pub const fn described(self) -> &'static str {
+        match self {
+            Self::OrderPermuted => "the textual selection order is reversed",
+            Self::IdentityRecycled => "every cause is emitted under one local key",
+            Self::PlannedOutputOmitted => "a planned output is deleted",
+            Self::UnplannedOutputAdded => "an unplanned output is appended",
+            Self::ImplTargetAltered => "the implementation targets a different type",
+            Self::ShapeAltered => "the declared body shape is changed",
+            Self::OutputDuplicated => "a planned output is emitted twice",
+            Self::TraitPathWrong => "the trait path names a different contract",
+            Self::DecoyInComment => "the anchored bytes are planted in a comment",
+            Self::ImplMemberDuplicated => "one member constant is emitted twice",
+            Self::ImplMemberUnexpected => "a member nobody planned joins the implementation",
+            Self::ConstructorPathAltered => "a row is built through another constructor",
+            Self::ImplPostureAltered => "the implementation is written under another posture",
+            Self::MeaningBearingAttributeAdded => "an attribute that decides something is added",
+            Self::MalformedRust => "the artifact stops being well-formed Rust",
         }
     }
 }

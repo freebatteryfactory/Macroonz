@@ -1,7 +1,7 @@
 //! The derive-implementation home's declarations: the two surfaces one
 //! implementation meaning is delivered as, the mutation points the evaluation
-//! copy carries, the control that is never absent from it, the parity between
-//! the two, and the magnitudes this home's capacities are governed by.
+//! copy carries, the control that is never absent from it, and the parity
+//! between the two.
 //!
 //! Declarations only.
 //! Every road that reaches a private field — a name's two parts, an operation's
@@ -14,8 +14,8 @@
 
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
-    GeneratedUnitSubject, GeneratorVersionSubject, ProfileVersion, ProjectionIdentity,
-    ProjectionProfileSubject, ProjectionRole, RenderedUnitSubject,
+    GeneratedUnitSubject, GeneratorVersionSubject, MutationAlternativeLimit, MutationPointLimit,
+    ProfileVersion, ProjectionIdentity, ProjectionProfileSubject, RenderedUnitSubject,
 };
 use crate::planning::{CauseAnchoring, RenderedImplementation};
 use crate::token::{GeneratedTree, TokenPath};
@@ -23,54 +23,6 @@ use threadpak::types::{Bounded, NonEmptyBounded};
 
 #[path = "type_guard.rs"]
 mod guard;
-
-// ---------------------------------------------------------------------------
-// The magnitudes.
-// ---------------------------------------------------------------------------
-
-/// The magnitude governing how many mutation points one evaluation surface may
-/// admit.
-///
-/// # Bounds
-///
-/// Sixty-four, a number this home CHOSE. What it rules out is a compile-once
-/// evaluation copy whose selection roster has stopped being reviewable: every
-/// point is an arm in every other point's `match`, so the rendered copy grows
-/// with the square of the roster and a reader auditing which damages a surface
-/// admits is reading a page rather than a list.
-///
-/// The authority and the number are written together in `type_contract.rs`, one
-/// row per family, so a family cannot stand on the compile-time ladder while
-/// wearing another road's authority.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct MutationPointLimit;
-
-/// The magnitude governing how many alternatives one mutation point may admit.
-///
-/// # Bounds
-///
-/// Eight. A point names the admitted damages of ONE operation, and a point
-/// offering more than eight has stopped being about one operation — the repair
-/// is a second point at a second activation site, not a wider roster at this
-/// one.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct MutationAlternativeLimit;
-
-/// The magnitude governing how many issues one surface-composition refusal body
-/// may carry.
-///
-/// # Bounds
-///
-/// Twice the mutation-point magnitude, sized by the widest pass rather than the
-/// narrowest. That pass is the naming pass, and it asks TWO independent
-/// questions of every admitted point — whether the point claims the control's
-/// reserved name, and whether it is the second point under its own — and both
-/// can hold of one point at once.
-///
-/// The passes themselves do not add up: they are dependent, and each refuses
-/// before the next one runs.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SurfaceIssueLimit;
 
 // ---------------------------------------------------------------------------
 // The declaration refusal family.
@@ -303,12 +255,11 @@ threadpak::closed_register! {
 ///
 /// # Bounds
 ///
-/// There is no destination seat either, for the opposite reason: the
-/// derive-implementation projection's production surface lands at the
-/// declaration site and nowhere else, so the answer is a constant
-/// ([`ProductionSurface::DESTINATION`]) rather than a seat that could say
-/// something else. A planned member landing elsewhere is refused before a
-/// surface exists.
+/// There is no destination seat either, for the opposite reason: where a member
+/// under a rendered role LANDS is that roster's own constant answer
+/// ([`RenderedImplementation::destination`]) rather than a seat here that could
+/// say something else. A planned member landing anywhere but where the role says
+/// is refused before a surface exists, against exactly that answer.
 ///
 /// The remaining seats are exactly what a rendered unit is rebuilt from — role,
 /// semantic key, profile at its version, origin trail, and the tree — so the
@@ -342,24 +293,6 @@ pub struct EvaluationBinding {
     selector: String,
 }
 
-/// What the evaluation copy's eventual identity must satisfy — stated before a
-/// token of it exists.
-///
-/// The evaluation copy is not a member of the plan's declared membership, so
-/// nothing planned an identity for it. Deriving one at planning time would mean
-/// deriving it from bytes nobody has rendered; carrying one from a rendering
-/// that already happened would make any later check compare a value against
-/// itself. The plan states the CONTRACT instead — the role the identity will
-/// stand under, and the production member it must be anchored to — and the
-/// rendering honours exactly this contract over the copy's own canonical bytes.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct EvaluationIdentityContract {
-    /// The identity role the eventual identity will stand under.
-    pub role: ProjectionRole,
-    /// The production member the identity must be anchored to.
-    pub anchored_to: ProjectionIdentity<GeneratedUnitSubject>,
-}
-
 /// The evaluation copy's typed description: what it is, what it carries, and how
 /// it names its selector.
 ///
@@ -372,11 +305,19 @@ pub struct EvaluationIdentityContract {
 ///
 /// # Bounds
 ///
-/// The identity is derived over THIS copy's canonical bytes, under the contract
-/// the plan stated, so it is a fact about the rendering rather than a name
-/// borrowed from the production member. The two surfaces answer to two
-/// identities of two subjects, and that asymmetry is the point: one was planned
-/// and one was not.
+/// The identity is derived over THIS copy's canonical bytes, anchored on the
+/// copy's OWN planned semantic key at its own role's roster position — the same
+/// derivation [`RenderedUnit::materialized`] performs for any planned member, so
+/// the copy's identity is a fact about this rendering rather than a name
+/// borrowed from the production member beside it.
+///
+/// The role seat is the EVALUATION role
+/// ([`RenderedImplementation::twin`] of the production one), never the
+/// production role: the copy is a planned member on exactly the terms the
+/// production unit is, and a copy wearing the production role would be the
+/// second member standing under a role the closure matches one member per.
+///
+/// [`RenderedUnit::materialized`]: crate::closure::RenderedUnit::materialized
 #[must_use = "an evaluation surface is the copy every admitted mutation point is selected from"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MutationEvaluationSurface {
@@ -443,16 +384,17 @@ pub struct ImplementationSurfaces {
 /// because a caller told only that composition failed has nothing to repair.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ImplementationSurfaceIssue {
-    /// The plan declares no member under the requested rendered role, so there
-    /// is no production surface to render an evaluation copy of.
+    /// The plan declares no member under one half of the requested pair — no
+    /// production surface to render, or no planned evaluation copy to render it
+    /// as. Both halves are planned members, so either absence is this issue.
     RoleNotPlanned {
         /// The role's position in its kind's declared roster.
         role_slot: u32,
     },
-    /// The planned member lands somewhere other than the declaration site.
-    /// The derive-implementation projection's production surface lands at the
-    /// declaration site; a member written as a standalone artifact is a
-    /// different delivery and is not this one.
+    /// The planned member lands somewhere other than where its ROLE says it
+    /// lands ([`RenderedImplementation::destination`]). Every seat on this
+    /// kind's roster lands at the declaration site, so a member written as a
+    /// standalone artifact is a different delivery and is not this one.
     DestinationNotDeclarationSite {
         /// The role whose planned destination disagreed.
         role_slot: u32,

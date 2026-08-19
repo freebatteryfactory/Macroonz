@@ -14,18 +14,19 @@
 //! quoting the tree owns, and every brace is a group. Nothing here composes Rust
 //! source.
 //!
-//! # The two literals this file cannot spell
+//! # The two literals this file writes directly
 //!
 //! The bench field roster declares COUNTS — the input-size axis, the declared
-//! budgets — and BYTES — the work formula — and the generated token roster's one
-//! literal arm is text. [`count_literal`] and [`byte_literal`] are the two seams
-//! where that bites, and each refuses in the carrier's own rendering family naming
-//! the declared field and the value it could not write, so a caller reads which
-//! field defeated it rather than that "the bench shell failed".
+//! budgets — and BYTES — the work formula — and the generated token roster has an
+//! arm for each ([`GeneratedToken::Number`], [`GeneratedToken::ByteText`]).
+//! [`count_literal`] and [`byte_literal`] are the two seams that write them, and
+//! each states the VALUE while the tree owns the spelling: an unsuffixed integer
+//! takes the type the consumer's own seat declares, and the `b`, the quotes, and
+//! every escape of a byte string are the tree's.
 
 use super::{
-    BUDGET_ORDER, BenchAttachment, BenchReporterAdapter, BenchRow, BenchTablePayload,
-    ContentionPosture, DeclaredBudgets, WorkFormula,
+    BenchAttachment, BenchReporterAdapter, BenchRow, BenchTablePayload, ContentionPosture,
+    DeclaredBudgets, WorkFormula,
 };
 use crate::test_descriptor::{
     BoundPath, INVOCATION_CLAUSE, PROVENANCE_CLAUSE, ShellRenderIssue, bound_path, descriptor_path,
@@ -83,15 +84,6 @@ pub const BENCH_BINDING: &str = "BenchBinding";
 /// The road a bench binding is married by.
 pub const BENCH_BINDING_ROAD: &str = "bound";
 
-/// The schema field an input-size axis is declared under.
-pub const AXIS_FIELD: &str = "input_size_axis";
-
-/// The schema field the gate's tolerances are declared under.
-pub const BUDGETS_FIELD: &str = "declared_budgets";
-
-/// The schema field a work formula is declared under.
-pub const WORK_FORMULA_FIELD: &str = "work_formula";
-
 /// The name the rendered adapter registers one measured function under.
 pub const MEASURED_FUNCTION: &str = "measured";
 
@@ -117,37 +109,34 @@ pub const BLACK_BOX: &str = "black_box";
 pub const BACKEND_MAIN: &str = "main";
 
 // ---------------------------------------------------------------------------
-// The two literals the token roster cannot spell.
+// The two literals the token roster spells.
 // ---------------------------------------------------------------------------
 
 /// One declared count, as the literal token the address's constructor takes.
 ///
-/// # Errors
+/// Written UNSUFFIXED, because the consumer's type position is what types it: the
+/// literal lands in a seat the address already declares, so one road writes a
+/// count into a `u32` seat, a `u64` seat, and a `usize` seat without being told
+/// which. A suffix would state a second type beside the one the address declares.
 ///
-/// Returns [`ShellRenderIssue::CountLiteralNotSpellable`] under the token roster
-/// as it stands: the roster's one literal arm is a TEXT literal, and a count
-/// written as text is a different value at the address. The seat that closes it is
-/// a numeric arm on the generated token roster — the captured side already carries
-/// one, and the generated side does not.
-pub fn count_literal(field: &'static str, value: u64) -> Result<GeneratedToken, ShellRenderIssue> {
-    Err(ShellRenderIssue::CountLiteralNotSpellable { field, value })
+/// It takes the value and nothing else. A field NAME beside it named the seat a
+/// refusal reported, and there is no refusal to report: a count the roster can
+/// spell is spelled, and a parameter kept for a report nobody writes is a value
+/// this road decided and nothing reads.
+#[must_use]
+pub fn count_literal(value: u64) -> GeneratedToken {
+    GeneratedToken::number(value)
 }
 
 /// One declared byte string, as the literal token the address's constructor
 /// takes.
 ///
-/// # Errors
-///
-/// Returns [`ShellRenderIssue::ByteLiteralNotSpellable`] on the same terms, and
-/// through the same missing arm the gate's expectation waits on.
-pub fn byte_literal(
-    field: &'static str,
-    material: &[u8],
-) -> Result<GeneratedToken, ShellRenderIssue> {
-    Err(ShellRenderIssue::ByteLiteralNotSpellable {
-        field,
-        width: u64::try_from(material.len()).unwrap_or(u64::MAX),
-    })
+/// The material is stated and the spelling is the tree's — the `b`, the quotes,
+/// and every escape — so no caller composes `b"…"` out of a word and a quoted
+/// string. It takes no field name, on exactly [`count_literal`]'s terms.
+#[must_use]
+pub fn byte_literal(material: &[u8]) -> GeneratedToken {
+    GeneratedToken::byte_text(material)
 }
 
 // ---------------------------------------------------------------------------
@@ -158,11 +147,10 @@ pub fn byte_literal(
 ///
 /// # Errors
 ///
-/// Returns [`ShellRenderIssue::CountLiteralNotSpellable`] where a size cannot be
-/// written, and [`ShellRenderIssue::ShellTreeUnbounded`] where the roster outgrows
+/// Returns [`ShellRenderIssue::ShellTreeUnbounded`] where the roster outgrows
 /// the declared token magnitude.
 pub fn axis(row: &BenchRow) -> Result<Vec<GeneratedToken>, ShellRenderIssue> {
-    roster(axis_literals(row)?)
+    roster(axis_literals(row))
 }
 
 /// The axis's sizes as the bare comma-separated literals both the row expression
@@ -171,29 +159,33 @@ pub fn axis(row: &BenchRow) -> Result<Vec<GeneratedToken>, ShellRenderIssue> {
 /// One road, two readers: a roster and an attribute argument list are two
 /// delimiters around one sequence, and rendering the sequence twice would be two
 /// axes that agree until one of them is edited.
-fn axis_literals(row: &BenchRow) -> Result<Vec<GeneratedToken>, ShellRenderIssue> {
+fn axis_literals(row: &BenchRow) -> Vec<GeneratedToken> {
     let mut sizes: Vec<GeneratedToken> = Vec::new();
     for size in row.axis() {
-        sizes.push(count_literal(AXIS_FIELD, *size)?);
+        sizes.push(count_literal(*size));
         sizes.push(GeneratedToken::alone(','));
     }
-    Ok(sizes)
+    sizes
 }
 
 /// The gate's declared tolerances, in the position order the schema's roster
 /// states and this home's own budget table names.
 ///
+/// The three named seats are written in exactly
+/// [`BUDGET_ORDER`](super::BUDGET_ORDER)'s order, which is what that table is
+/// stated for: the schema's roster is positional, this home's seats are named,
+/// and the mapping between the two is a table a reader joins by rather than an
+/// order inferred from the array below.
+///
 /// # Errors
 ///
-/// Returns [`ShellRenderIssue::CountLiteralNotSpellable`] naming the tolerance
-/// that could not be written, and [`ShellRenderIssue::ShellTreeUnbounded`] where
-/// the call outgrows the declared token magnitude.
+/// Returns [`ShellRenderIssue::ShellTreeUnbounded`] where the call outgrows the
+/// declared token magnitude.
 pub fn budgets(declared: &DeclaredBudgets) -> Result<Vec<GeneratedToken>, ShellRenderIssue> {
     let stated: [u64; 3] = [declared.samples, declared.warmup, declared.ratio_threshold];
     let mut arguments: Vec<GeneratedToken> = Vec::new();
-    for (position, tolerance) in stated.iter().enumerate() {
-        let named = BUDGET_ORDER.get(position).copied().unwrap_or(BUDGETS_FIELD);
-        arguments.push(count_literal(named, *tolerance)?);
+    for tolerance in stated {
+        arguments.push(count_literal(tolerance));
         arguments.push(GeneratedToken::alone(','));
     }
     let mut tokens = descriptor_path(&[DECLARED_BUDGETS, DECLARED_BUDGETS_ROAD]);
@@ -211,9 +203,8 @@ pub fn contention(posture: ContentionPosture) -> Vec<GeneratedToken> {
 ///
 /// # Errors
 ///
-/// Returns [`ShellRenderIssue::ByteLiteralNotSpellable`] where a declared formula
-/// cannot be written, and [`ShellRenderIssue::ShellTreeUnbounded`] where the
-/// construction outgrows the declared token magnitude.
+/// Returns [`ShellRenderIssue::ShellTreeUnbounded`] where the construction
+/// outgrows the declared token magnitude.
 pub fn work_formula(
     declared: Option<&WorkFormula>,
 ) -> Result<Vec<GeneratedToken>, ShellRenderIssue> {
@@ -226,7 +217,7 @@ pub fn work_formula(
     let mut encoded = descriptor_path(&[WORK_FORMULA, WORK_FORMULA_ROAD]);
     encoded.push(group(
         GeneratedDelimiter::Parenthesis,
-        vec![byte_literal(WORK_FORMULA_FIELD, &material)?],
+        vec![byte_literal(&material)],
     )?);
     encoded.push(GeneratedToken::alone('?'));
     let mut tokens = GeneratedToken::absolute_path(&["core", "option", "Option", "Some"]);
@@ -253,7 +244,9 @@ pub fn observations(attachment: &BenchAttachment) -> Result<Vec<GeneratedToken>,
 ///
 /// # Errors
 ///
-/// Returns whatever the row's counts, bytes, and rosters refuse with.
+/// Returns [`ShellRenderIssue::ShellTreeUnbounded`] where any of the row's
+/// rosters, calls, or the row expression itself outgrows the declared token
+/// magnitude.
 pub fn declared_row(row: &BenchRow) -> Result<Vec<GeneratedToken>, ShellRenderIssue> {
     let references = row.references();
     let measurement = row.measurement();
@@ -288,7 +281,9 @@ pub fn declared_row(row: &BenchRow) -> Result<Vec<GeneratedToken>, ShellRenderIs
 ///
 /// # Errors
 ///
-/// Returns whatever the row, its callables, and its observations refuse with.
+/// Returns [`ShellRenderIssue::ShellTreeUnbounded`] where the row, its
+/// callables, its observations, or the expression itself outgrows the declared
+/// token magnitude.
 pub fn bench_row_expression(row: &BenchRow) -> Result<Vec<GeneratedToken>, ShellRenderIssue> {
     let attachment = row.attachment();
     let mut arguments = declared_row(row)?;
@@ -318,9 +313,8 @@ pub fn bench_row_expression(row: &BenchRow) -> Result<Vec<GeneratedToken>, Shell
 ///
 /// # Errors
 ///
-/// Returns whatever the rows refuse with, and
-/// [`ShellRenderIssue::ShellTreeUnbounded`] where the payload outgrows the
-/// declared token magnitude.
+/// Returns [`ShellRenderIssue::ShellTreeUnbounded`] where a row expression or
+/// the payload itself outgrows the declared token magnitude.
 pub fn bench_table(payload: &BenchTablePayload) -> Result<Vec<GeneratedToken>, ShellRenderIssue> {
     let mut body = vec![
         GeneratedToken::word(PROVENANCE_CLAUSE),
@@ -373,9 +367,8 @@ fn backend_path(backend: &str, road: &str) -> Vec<GeneratedToken> {
 ///
 /// # Errors
 ///
-/// Returns whatever the axis refuses with, and
-/// [`ShellRenderIssue::ShellTreeUnbounded`] where the attribute outgrows the
-/// declared token magnitude.
+/// Returns [`ShellRenderIssue::ShellTreeUnbounded`] where the attribute outgrows
+/// the declared token magnitude.
 pub fn bench_attribute(
     backend: &str,
     row: &BenchRow,
@@ -386,7 +379,7 @@ pub fn bench_attribute(
         vec![
             GeneratedToken::word(ARGS_CLAUSE),
             GeneratedToken::alone('='),
-            group(GeneratedDelimiter::Bracket, axis_literals(row)?)?,
+            group(GeneratedDelimiter::Bracket, axis_literals(row))?,
         ],
     )?);
     Ok(vec![

@@ -78,37 +78,38 @@ vocabulary.
 
 ## The rows arrive from the caller
 
-The plan's kind content names an OBLIGATION and a CHALLENGE METHOD. It does not
-name a claim, a suite, roles, tags, a subject route, a check reference, a
-population, or a callable — so [`TrialTablePayload`] arrives from the caller and
-`plan.rs` reads only what the plan actually decided. A generator that invented a
-row's claim or elected its check would be producing its own facts and then
-proving them, which is the one thing these services never do.
+The plan's kind content names an OBLIGATION and states where the rows come from.
+It does not name a claim, a suite, roles, tags, a subject route, a check
+reference, a population, or a callable — so [`TrialTablePayload`] arrives from the
+caller and `plan.rs` reads only what the plan actually decided. A generator that
+invented a row's claim or elected its check would be producing its own facts and
+then proving them, which is the one thing these services never do.
 
-The challenge method reaches no seat of the emitted row, and that is stated where
-it is carried: the harness's closed field set has no method seat, because a row
-names its CHECK and which mechanism that check runs under is the check's own
-fact.
+There is no CHALLENGE METHOD anywhere on this road, and the absence is the honest
+shape rather than a dropped fact: the harness's closed field set has no method
+seat, because a row names its CHECK and which mechanism that check runs under is
+the check's own fact. A method carried through the plan and the statement would
+reach no emitted seat — a value the plan decided and nothing read.
 
-## What the emission demands of the address
+## What the emission stands on at the address
 
-Two things, both stated in the repository rather than in a reader's head.
-
-`CONVERSIONS_OWED` in `type_contract.rs` is the complete bill: the stamp declares
-a row expression's type as the binding family's, the five constructions on the
-road to a binding answer with five other families, and no arm of the binding
-family carries any of them. The emission writes `?`, which is the language's own
+`ROW_CONVERSIONS` in `type_contract.rs` is the discharge record: the stamp
+declares a row expression's type as the trial-table family's, the five
+constructions on the road to a binding answer with five other families, and the
+descriptor home's own `type_contract` publishes one `From` per family into
+exactly that type. The emission writes `?`, which is the language's own
 conversion rather than a variant invented inside a vocabulary this home does not
-own — so the mailbox side keeps the choice of whether the bill is met by a `From`
-implementation, by an added arm, or by a total name constructor that removes the
-refusal entirely.
+own, and every `?` it writes lands on an arm the address already declared. The
+record is the join between the two sides; the roster that settles it belongs to
+the address, and which arm each refusal becomes is stated there and never copied
+here.
 
-[`ShellRenderIssue::PinLiteralNotSpellable`] is the other. The gate's `expected:`
-clause takes a BYTE STRING literal and the generated token roster's only literal
-arm is a text literal. Rendering the identifier `b` beside a text literal is not
-the repair: that pair is two tokens, the gate's pattern matches one, and the
-consumer would be told the published pair is incoherent when the truth is that
-the producer could not write its own expectation down.
+The gate's `expected:` clause takes a BYTE STRING literal, and the generated
+token roster has the arm that writes one — [`expectation_literal`] states the
+thirty-two bytes and the tree owns the `b`, the quotes, and the escaping. There
+is no unspellable-literal refusal on this road, because there is no unspellable
+literal: composing the identifier `b` beside a text literal was never the road,
+since that pair is two tokens where the gate's pattern matches one.
 
 ## The seats
 
@@ -120,7 +121,7 @@ namespace, the mangling, and the shell's composition — which is what makes "a
 stamped module never declares one function twice" a shape rather than a rule.
 `type_contract.rs` states the declarative tables: each limit family's authority
 and magnitude written together, the rendering family's declared shape, each
-twin's own metavariable spelling, and the conversion bill. `plan.rs` reads the
+twin's own metavariable spelling, and the row conversion record. `plan.rs` reads the
 plan through its public surface — the account, the context, the membership, the
 kind content — and states what the shell will be. `render.rs` is the token half:
 the exported carrier, the gate invocation inside it, the stamped payload inside

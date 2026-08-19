@@ -1,18 +1,20 @@
-//! Lane C's reversal for `MalformedRust`: the mutated artifact does not
-//! compile.
+//! The compiled read-back's reversal: a compiler REFUSES a malformed artifact.
 //!
 //! # Provenance
 //!
-//! Everything below this header is a MATERIALIZED MUTANT. It is the byte-for-byte
-//! output of this plane's own `mutated(lawful, MalformedRust)` over the lawful
-//! rendering of the declaration restated below, and `compiled_behaviour.rs`
-//! asserts that it still is on every run — a fixture whose provenance nobody
-//! checks is a hand-written guess wearing a mutant's name.
+//! Everything below this header is a MATERIALIZED DAMAGED ARTIFACT: the lawful
+//! rendering of the declaration restated below, with one damage this harness
+//! inflicted. The services render no defective artifact, so nothing here is a
+//! defect anybody's producer produced. It is checked in rather than written by
+//! a running test on purpose: a fixture a test writes agrees with whatever the
+//! producer had just done.
 //!
-//! It is checked in rather than generated at test time on purpose. A fixture
-//! written into the source tree by a running test is a fixture that agrees with
-//! whatever the producer just did; a checked-in one whose provenance is stated
-//! and verified is a fixture somebody can read.
+//! Nothing re-derives this text today — the road that cut it left the tree with
+//! the retired judge seat — so this file supports one claim and no more: a
+//! compiler refuses THIS text. That it is still today's renderer's output
+//! damaged returns when the generator owns materialization and publishes each
+//! fixture with its receipt; `compiled_behaviour.rs` states what stands behind
+//! every fixture in this lane meanwhile.
 //!
 //! # The declaration it was rendered from
 //!
@@ -23,12 +25,10 @@
 //! enum DemoFamily { NotAdmitted, Unbounded, NotCanonical, }
 //! ```
 //!
-//! # What the mutation did
-//!
-//! The first brace of the first implementation became three, so the artifact
-//! stops being well-formed Rust. Lane B reports `Unparsable` on it and claims
-//! nothing further; this file is where the claim that `rustc` REJECTS it is
-//! made, by handing the text to `rustc`.
+//! The damage: the first brace of the first implementation became three, so the
+//! artifact stops being well-formed Rust. A structural read recovers nothing
+//! from it and claims nothing further; this is where the claim that `rustc`
+//! REJECTS it is made, by handing the text to `rustc`.
 
 enum DemoFamily {
     NotAdmitted,

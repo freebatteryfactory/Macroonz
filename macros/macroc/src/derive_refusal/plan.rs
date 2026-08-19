@@ -29,9 +29,9 @@ use crate::plane::{
     ProjectionRole, ProjectionTranscript, RenderedRole, TracedSubject, encode_bytes,
 };
 use crate::planning::{
-    DeriveImplContent, DeriveImplProjection, DigestContract, GraphAnchoring, MemberDestination,
-    OwnerContentAccount, PlanDecisions, PlannedMember, PlannedMembership, PlannedOutput,
-    ProjectionContext, ProjectionDisposition, ProjectionPlan, RenderedImplementation, TargetBinding,
+    DeriveImplContent, DeriveImplProjection, DigestContract, GraphAnchoring, OwnerContentAccount,
+    PlanDecisions, PlannedMember, PlannedMembership, PlannedOutput, ProjectionContext,
+    ProjectionDisposition, ProjectionPlan, RenderedImplementation, TargetBinding,
 };
 use crate::refusal::ProjectionPlanning;
 use threadpak::types::Bounded;
@@ -210,14 +210,31 @@ pub fn expansion_context(draft: &RefusalDerivationDraft) -> ProjectionContext {
 
 /// The complete logical membership one draft declares.
 ///
+/// # Both surfaces are declared, never the production half alone
+///
+/// One implementation meaning is delivered as TWO surfaces, so every contract
+/// this draft declares contributes two members: the production implementation
+/// under its own role, and the mutation-evaluation copy under that role's twin
+/// ([`RenderedImplementation::twin`]).
+/// The output firewall is exactly that the declared set is the whole set, and the
+/// closure rebuilds the membership role by role — so a copy standing outside the
+/// membership would be a surface crossing the wall that the proof never looks at,
+/// and "nothing is emitted that did not close" would be true of the production
+/// half alone.
+/// The twin is READ from the roster rather than named here, so a roster that
+/// paired its seats differently pairs these members differently too.
+///
 /// # Totality
 ///
 /// [`DerivedMembership`] has exactly two answers and each names a statically
-/// known set of roles, so there is no count to read, nothing to admit, and no
+/// known set of contracts, so there is no count to read, nothing to admit, and no
 /// failure to repair.
-/// The match below is the whole function: one answer builds a one-role
-/// membership, the other builds a two-role one, and
-/// [`PlannedMembership::complete`] settles the magnitude at compile time.
+/// The match below is the whole function: one answer builds a two-member
+/// membership — one contract, two surfaces — the other builds a four-member one,
+/// and [`PlannedMembership::complete`] settles the magnitude at compile time.
+/// Every role in each array is written literally and no two of them are the same
+/// seat, which is what the total constructor asks of a caller that names its
+/// roles rather than reading a count.
 #[must_use]
 pub fn membership(draft: &RefusalDerivationDraft) -> PlannedMembership<RenderedImplementation> {
     let member = |role: RenderedImplementation| {
@@ -226,7 +243,10 @@ pub fn membership(draft: &RefusalDerivationDraft) -> PlannedMembership<RenderedI
             role,
             output: PlannedOutput {
                 semantic_key: key,
-                destination: MemberDestination::AtDeclarationSite,
+                // The roster's own constant answer, not a literal repeated here:
+                // where a member under a role lands is the role's fact, and a
+                // second copy of it would be a second answer to one question.
+                destination: role.destination(),
                 origin: member_origin(draft, role),
                 expected_profile: rust_declaration_profile(),
                 expected_profile_version: rust_declaration_profile_version(),
@@ -234,13 +254,19 @@ pub fn membership(draft: &RefusalDerivationDraft) -> PlannedMembership<RenderedI
             },
         }
     };
+    let family = RenderedImplementation::RenderedFamilyImpl;
+    let cause_order = RenderedImplementation::RenderedCauseOrderImpl;
     match draft.declared_membership() {
         DerivedMembership::FamilyOnly => {
-            PlannedMembership::complete(member(RenderedImplementation::RenderedFamilyImpl), [])
+            PlannedMembership::complete(member(family), [member(family.twin())])
         }
         DerivedMembership::FamilyAndCauseOrder => PlannedMembership::complete(
-            member(RenderedImplementation::RenderedFamilyImpl),
-            [member(RenderedImplementation::RenderedCauseOrderImpl)],
+            member(family),
+            [
+                member(family.twin()),
+                member(cause_order),
+                member(cause_order.twin()),
+            ],
         ),
     }
 }
@@ -344,20 +370,30 @@ pub fn planned(
         },
     )?;
 
+    // The disposition names ONE output, because that is the shape a disposition
+    // has, and the one it names is the cause-order contract's PRODUCTION member.
+    // The complete set the contract contributes — that member and its
+    // mutation-evaluation twin — is the plan's own membership above, which is
+    // where a reader asking what was materialized reads; this seat answers the
+    // narrower question the explanation protocol asks, which is what happened to
+    // the cause-order projection at all.
+    let cause_order_role = RenderedImplementation::RenderedCauseOrderImpl;
     let cause_order = match standing {
-        CauseOrderStanding::Declared => ProjectionDisposition::Generated {
-            output: Box::new(PlannedOutput {
-                semantic_key: semantic_key(draft, RenderedImplementation::RenderedCauseOrderImpl),
-                destination: MemberDestination::AtDeclarationSite,
-                origin: member_origin(draft, RenderedImplementation::RenderedCauseOrderImpl),
-                expected_profile: rust_declaration_profile(),
-                expected_profile_version: rust_declaration_profile_version(),
-                digest_contract: DigestContract::over(semantic_key(
-                    draft,
-                    RenderedImplementation::RenderedCauseOrderImpl,
-                )),
-            }),
-        },
+        CauseOrderStanding::Declared => {
+            // Derived inside the arm that names it: a key is a BLAKE3
+            // derivation, and the other arm has no output to state one for.
+            let key = semantic_key(draft, cause_order_role);
+            ProjectionDisposition::Generated {
+                output: Box::new(PlannedOutput {
+                    semantic_key: key,
+                    destination: cause_order_role.destination(),
+                    origin: member_origin(draft, cause_order_role),
+                    expected_profile: rust_declaration_profile(),
+                    expected_profile_version: rust_declaration_profile_version(),
+                    digest_contract: DigestContract::over(key),
+                }),
+            }
+        }
         CauseOrderStanding::NotApplicableToShape => ProjectionDisposition::NotApplicable {
             because: owner_facts.canonical_order_is_shape_ruled,
         },

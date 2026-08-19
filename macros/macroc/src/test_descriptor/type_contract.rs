@@ -11,16 +11,16 @@
 //! beside the capacities they govern in `types.rs`; what a family is FOR is said
 //! there, and the number is said here.
 //!
-//! The REFUSAL FAMILY's declared shape: an issue collection, because a shell can
-//! need a literal spelling the token vocabulary lacks AND outgrow the token
-//! magnitude at once, and a caller repairing a seam one gap per attempt is a
-//! caller this home failed.
+//! The REFUSAL FAMILY's declared shape: an issue collection, because one
+//! crossing renders several parts independently — the carrier rides two of them,
+//! the bench crossing three — and each can outgrow the token magnitude on its
+//! own, so no primary issue is ever elected and a caller repairing a seam one
+//! part per attempt is a caller this home failed.
 //!
-//! The CONVERSION BILL: the exact `From` implementations the harness owes before
-//! a rendered row expression type-checks at a consumer's site. It is a constant
-//! table over a closed roster rather than a sentence in a README, so a reader can
-//! read the bill back and a compiler keeps the match exhaustive when a row is
-//! added.
+//! The ROW CONVERSION MAP: which `From` each `?` in a rendered row expression
+//! travels through, and who owns it. It is a constant table over a closed roster
+//! rather than a sentence in a README, so a reader can read the map back and a
+//! compiler keeps the match exhaustive when a row is added.
 
 use super::{
     CrateFacing, PathSegmentLimit, RoleLimit, RowLimit, ShellIssueLimit, ShellRendering,
@@ -106,28 +106,36 @@ impl CrateFacing {
     }
 }
 
-/// One conversion the harness owes before a rendered row expression type-checks
-/// at a consumer's site: the refusal a part constructor answers with, and the
-/// family the row expression is declared to refuse in.
+/// One conversion a rendered row expression's `?` travels through: the refusal a
+/// part constructor answers with, and the family the row expression is declared
+/// to refuse in.
 ///
 /// # Authority
 ///
-/// **The bill is stated and never worked around.** The stamp declares a row
-/// expression's type as `Result<Binding<…>, BindingRefusal>`, the part
-/// constructors on the road to a binding answer with three other families, and no
-/// arm of the binding family carries any of them — so a generated expression that
-/// builds its own parts has no lawful discharge and this home writes `?`, which
-/// is exactly the standard conversion the harness's own families are one
-/// implementation away from admitting.
+/// **This is the DISCHARGE RECORD, and the address owns every arm on it.** The
+/// stamp declares a row expression's type as
+/// `Result<Binding<…>, TrialTableRefusal>`, the part constructors on the road to
+/// a binding answer with their own families, and the descriptor home's own
+/// `type_contract` declares one `From` per family into exactly that type — so
+/// every `?` this home writes has a lawful discharge already published at the
+/// address. The record is what a reader joins the two sides by; the roster that
+/// SETTLES it is the address's, and this table is never a second copy of that
+/// authority.
 ///
 /// Writing `?` rather than naming a variant is the least-invention road: a
 /// variant spelled here would be this home legislating inside a vocabulary it
 /// does not own, while `From` is the machine-neutral conversion the language
-/// already declares. The rendering states the requirement; the mailbox side owns
-/// whether it is met by a `From` implementation, by an added arm, or by a total
-/// name constructor that removes the refusal entirely.
+/// already declares. That the discharge exists is the address's statement; what
+/// this table adds is which construction in THIS emission reaches it.
+///
+/// # Nonclaims
+///
+/// It claims nothing about the arm each conversion lands on. Which variant of
+/// the trial-table family a refusal becomes is the address's declaration, stated
+/// once in its own roster; a copy of that mapping here would be a second answer
+/// to a question this home does not own.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ConversionOwed {
+pub struct RowConversion {
     /// The part constructor's own refusal family, as the harness spells it.
     pub from: &'static str,
     /// The family the row expression is declared to refuse in.
@@ -136,43 +144,43 @@ pub struct ConversionOwed {
     pub raised_by: &'static str,
 }
 
-/// The complete conversion bill one rendered row expression stands on, in the
-/// order the expression performs the constructions.
+/// Every conversion one rendered row expression stands on, in the order the
+/// expression performs the constructions.
 ///
 /// Five rows and no more: every other construction on the road to a binding is
-/// total, and a bill that listed a total road would be asking for a conversion
-/// nobody can be handed a value to perform.
+/// total, and a row here for a total road would name a conversion nobody can be
+/// handed a value to perform.
 ///
-/// The last two are the SCHEMA PIN's, and they are on this bill for a structural
-/// reason rather than a convenient one: a row carrying producer facts is refused
-/// by the binding constructor unless the binding names the schema the producer
-/// emitted against, so every generated row derives that identity inside its own
-/// expression and every generated row therefore owes the two refusals the
-/// derivation answers with.
-pub const CONVERSIONS_OWED: [ConversionOwed; 5] = [
-    ConversionOwed {
+/// The last two are the SCHEMA PIN's, and they are on this record for a
+/// structural reason rather than a convenient one: a row carrying producer facts
+/// is refused by the binding constructor unless the binding names the schema the
+/// producer emitted against, so every generated row derives that identity inside
+/// its own expression and every generated row therefore travels the two
+/// conversions the derivation's refusals discharge through.
+pub const ROW_CONVERSIONS: [RowConversion; 5] = [
+    RowConversion {
         from: "NameRefusal",
-        into: "BindingRefusal",
+        into: "TrialTableRefusal",
         raised_by: "the namespaced reference parsers",
     },
-    ConversionOwed {
+    RowConversion {
         from: "ClassificationRefusal",
-        into: "BindingRefusal",
+        into: "TrialTableRefusal",
         raised_by: "the classification constructor",
     },
-    ConversionOwed {
+    RowConversion {
         from: "RowRefusal",
-        into: "BindingRefusal",
+        into: "TrialTableRefusal",
         raised_by: "the row constructor",
     },
-    ConversionOwed {
+    RowConversion {
         from: "SchemaRefusal",
-        into: "BindingRefusal",
+        into: "TrialTableRefusal",
         raised_by: "the published root schema declaration",
     },
-    ConversionOwed {
+    RowConversion {
         from: "EncodeRefusal",
-        into: "BindingRefusal",
+        into: "TrialTableRefusal",
         raised_by: "the schema identity derivation",
     },
 ];

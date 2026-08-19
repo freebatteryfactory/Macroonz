@@ -22,7 +22,8 @@ home shows the roster meant it.
 
 Every identity a stamp plan carries names something the machine owns — the
 captured declaration the invocation is, the closed graph, the profile, the
-authored pattern, the instantiation, the typed arguments, the generated unit.
+authored pattern, the instantiation, the typed arguments, the generated unit,
+and the byte role the published artifact is read under.
 The caller supplies them as [`ScopeGuardStampAnchors`]; this home reads them and
 adapts none. Nothing here observes the stamp's expansion, and nothing here
 decides what the stamp means.

@@ -2,7 +2,11 @@
 
 The runner is a pure engine with two calls: `run_one` takes a binding and a
 typed invocation and returns one trial report; `run_all` takes the sealed
-table view, a selection, and a typed invocation and returns a run report.
+table view, a selection, and a typed invocation and returns a run report, or
+the descriptor home's own encoding refusal where a row's canonical bytes
+could not be written — a census entry cannot name a revision derived from
+bytes nobody wrote, and a denominator missing one row is a smaller world
+wearing the shape of the complete one.
 The row is pure data and cannot execute — the binding carries the callable,
 so no hidden row-to-function registry can exist. The table is always the
 complete world; the selection chooses from it, and the run report accounts
@@ -17,9 +21,10 @@ so the wall holds over it without a single exception.
 Two readings turn a report into a seat's answer: `seat_verdict` over a run
 report, `lens_verdict` over one trial report, both answering with
 `SeatRefusal` — the one refusal type a stamped test function returns. A
-construction refusal enters it unchanged through `From`, and everything else
-it says is lifted from typed fields the run already wrote, never matched out
-of anybody's prose. The readings live here rather than in the stamp because
+construction refusal enters it unchanged through `From`, and so does the
+engine's own encoding refusal, so `?` is the whole ceremony at a seat;
+everything else it says is lifted from typed fields the run already wrote,
+never matched out of anybody's prose. The readings live here rather than in the stamp because
 a fold written into every expansion is one calculator standing in as many
 places as there are invocations. A run that selected nothing refuses: that
 is the suite pairing a stamp cannot check without reading inside a row
