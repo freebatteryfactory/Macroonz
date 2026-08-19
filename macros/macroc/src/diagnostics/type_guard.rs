@@ -1,29 +1,43 @@
 //! The diagnostics home's invariant nucleus: the one road that reaches the one
-//! seat a caller may not write, and the one place a related set's identities
-//! are derived.
+//! seat a caller may not write, the one place a related set's identities are
+//! derived, and the roads a diagnostic's site is built and read through.
 //!
 //! Declared inside `types.rs` as its own child, so the truncation's bound and
 //! count are reachable here and nowhere else.
-//! Everything else in this home is a plain readable seat; this file exists for
-//! the one fact that is about an act rather than about a value — how many
-//! per-issue identities a set-building road left behind.
+//! Most of this home is a plain readable seat; what lands here is what is about
+//! an ACT rather than about a value — how many per-issue identities a
+//! set-building road left behind, and which of two postures a site was
+//! established under.
 //!
-//! The road below takes the issue material, not a number and not identities
-//! somebody else already derived, and it builds the set rather than being
-//! handed one.
+//! The related-set road below takes the issue material, not a number and not
+//! identities somebody else already derived, and it builds the set rather than
+//! being handed one.
 //! The count is read off what the road itself dropped and lands in the same
 //! value as what it kept, so the posture and the set are two readings of one
 //! act.
 //! Both identity levels are derived here out of that one material, so there is
 //! no loose half for a caller to hold and no way to seat one refusal's coarse
 //! commitment over another refusal's issues.
+//!
+//! The site roads are here because one of them decides something.
+//! A site under either posture answers "where does this sit?", but only one of
+//! the two postures ever had a table to resolve an answer with: a pre-capture
+//! observation carries the byte it was born at, which no table was ever
+//! consulted for, and lifting that byte into the answered posture is a statement
+//! about what did and did not happen.
+//! It is stated once, below, rather than at each seam that asks.
 
-use super::{RelatedIdentity, RelatedSet, RelatedSetCompletion, RelatedSetTruncation};
+use super::{
+    DiagnosticSite, RelatedIdentity, RelatedSet, RelatedSetCompletion, RelatedSetTruncation,
+    SiteCoordinate,
+};
 use crate::plane::{
     AuthoringLimitProfile, ProjectionIdentity, ProjectionRole, ProjectionTranscript,
     RelatedBodySubject, RelatedIssueLimit, RelatedIssueSubject, encode_bytes,
 };
+use crate::token::SpanHandle;
 use core::num::NonZeroUsize;
+use threadpak::declaration::SourceCoordinate;
 use threadpak::refusal::StopBound;
 use threadpak::types::{AdmittedLimit, Bounded, BoundedConstruction};
 
@@ -233,5 +247,66 @@ impl RelatedSet {
     #[must_use]
     pub const fn completion(&self) -> RelatedSetCompletion {
         self.completion
+    }
+}
+
+impl DiagnosticSite {
+    /// The site of an observation about one token of a captured declaration.
+    ///
+    /// The handle is the load-bearing half: the producer resolves it to the
+    /// exact compiler span, and the services never do.
+    /// The coordinate beside it is whatever that producer's table answered,
+    /// including the typed statement that the table does not reach the handle —
+    /// which is a fact about the TABLE and leaves the observation itself
+    /// standing.
+    #[must_use]
+    pub const fn at_token(token: SpanHandle, coordinate: SiteCoordinate) -> Self {
+        Self::AtToken { token, coordinate }
+    }
+
+    /// The site of an observation established before any capture existed to
+    /// issue a handle: the byte the read was born at, and no handle at all.
+    ///
+    /// It takes no [`SpanHandle`], which is the whole point of the road: there
+    /// is no seat here for a caller to fill with handle zero, and no branch in
+    /// which one is invented.
+    #[must_use]
+    pub const fn before_capture(coordinate: SourceCoordinate) -> Self {
+        Self::BeforeCapture { coordinate }
+    }
+
+    /// The token this diagnostic points at, where a capture issued one.
+    ///
+    /// # Nonclaims
+    ///
+    /// It answers with nothing for a site established BEFORE a capture, because
+    /// no table was built and no handle was issued.
+    /// That is a stated posture rather than a missing value: a handle answered
+    /// here would index a table that never existed and would read exactly like
+    /// an honest handle naming the declaration's first token.
+    /// [`DiagnosticSite::coordinate`] is the seat that carries the whole of what
+    /// is known about such an observation.
+    #[must_use]
+    pub const fn token(self) -> Option<SpanHandle> {
+        match self {
+            Self::AtToken { token, .. } => Some(token),
+            Self::BeforeCapture { .. } => None,
+        }
+    }
+
+    /// Where this diagnostic sits, whichever posture it stands under.
+    ///
+    /// The ONE place a pre-capture byte is lifted into the answered posture, and
+    /// it lifts to [`SiteCoordinate::Resolved`] honestly: nothing was resolved
+    /// because nothing needed resolving, and the coordinate's own role says
+    /// which text the position counts into.
+    /// A seam that matched the arms itself would be making that same statement
+    /// again, somewhere it could be made differently.
+    #[must_use]
+    pub const fn coordinate(self) -> SiteCoordinate {
+        match self {
+            Self::AtToken { coordinate, .. } => coordinate,
+            Self::BeforeCapture { coordinate } => SiteCoordinate::Resolved(coordinate),
+        }
     }
 }

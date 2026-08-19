@@ -177,8 +177,9 @@ and `full`, without which items and their associated constants are not in the
 tree. The lane reads, never writes, and never runs inside a macro — and its
 home is the challenge side: structural decoding of this repository's rendered
 artifacts belongs to `tests/`, while the oracle library owns only vocabulary
-and parsers. The standing seat is what still holds the decoder in the
-library; its absorption is what moves it out.
+and parsers. The absorbed decoder stands isolated in one oracle file today;
+moving it out to the challenge side is what retires the library dependency
+at the manifest flip.
 
 **And that reason settles less than it sounds like.** What a manifest ASKS
 FOR, what the resolved graph HOLDS, and what one compiled unit is HANDED are

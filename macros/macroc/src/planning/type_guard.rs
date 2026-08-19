@@ -22,7 +22,7 @@ use super::super::encode::encode_set;
 use super::{
     CapturedDependencies, CauseAnchoring, ContentAddressing, DeclaredBootstrap, DigestContract,
     ExpectedGeneratedSupportSchemaId, GraphAnchoring, InvalidationSet, InvalidationTrigger,
-    KindSeal, OwnerContentAccount, PlanDerivation, PlannedMember, PlannedMembership,
+    KindSeal, OwnerContentAccount, PlanDecisions, PlanDerivation, PlannedMember, PlannedMembership,
     ProjectionBundlePlan, ProjectionContext, ProjectionIntentId, ProjectionKind, ProjectionPlan,
     SourceDeclarations, TargetBinding, TargetRequirement, UNIVERSAL_QUESTIONS,
 };
@@ -215,27 +215,82 @@ impl<K: ProjectionKind> OwnerContentAccount<K> {
         self.dependency_count().saturating_add(1)
     }
 
-    /// What was MEANT: the kind and the commitment, as the pair that means it.
+    /// What was MEANT: the kind and the commitment, derived into the intent
+    /// layer's own identity.
+    ///
+    /// # The intent transcript
+    ///
+    /// This is a mint site, so its content grammar is stated here in full, the
+    /// way [`crate::plane::ProjectionTranscript`] requires of every mint site.
+    /// The identity is derived under the identity subject `projection-intent`
+    /// at role [`ProjectionRole::ProjectionIntent`], ROOTED, at roster position
+    /// zero, over exactly the bytes [`OwnerContentAccount::intent_bytes`] hands
+    /// back:
+    ///
+    /// ```text
+    /// content = bytes(kind_name) || posture_byte || bytes(commitment)
+    /// ```
+    ///
+    /// where `kind_name` is [`ProjectionKind::KIND_NAME`], and the posture byte
+    /// and the commitment at its full thirty-two bytes are
+    /// [`CauseAnchoring`]'s own canonical spelling — so a linked commitment and
+    /// a captured one never derive alike even where their bytes coincide.
+    /// An independent reader holding the pair and this paragraph re-derives
+    /// these thirty-two bytes and needs nothing else.
+    ///
+    /// # Ordering
+    ///
+    /// Rooted, and deliberately so.
+    /// The preimage already carries the commitment at full width, so anchoring
+    /// the derivation on that same commitment would write it twice into one
+    /// derivation — a double entry that separates nothing, since two intents
+    /// over one commitment are already separated by the kind name inside the
+    /// content.
+    ///
+    /// # Bounds
+    ///
+    /// Not `const`: the identity is a BLAKE3 derivation, which is not a const
+    /// evaluation. The road this replaced carried the pair by value and could
+    /// be; what a reader is handed instead is thirty-two bytes that stand
+    /// wherever a derived identity is required.
     #[must_use]
-    pub const fn intent(&self) -> ProjectionIntentId {
-        ProjectionIntentId {
-            kind: K::KIND_NAME,
-            content: self.commitment(),
-        }
+    pub fn intent(&self) -> ProjectionIntentId {
+        ProjectionIntentId::derived_over(&self.intent_bytes())
     }
 }
 
 impl ProjectionIntentId {
-    /// The kind's declared stable name.
-    #[must_use]
-    pub const fn kind(&self) -> &'static str {
-        self.kind
+    /// The intent identity over one canonical intent preimage.
+    ///
+    /// Private, and the one road to a value of this type: an intent is a fact
+    /// about an ACCOUNT, so [`OwnerContentAccount::intent`] is where it is
+    /// derived, and a caller holding thirty-two bytes of its own has no road
+    /// that turns them into one.
+    fn derived_over(preimage: &[u8]) -> Self {
+        Self {
+            identity: ProjectionIdentity::derived(ProjectionTranscript::rooted(
+                ProjectionRole::ProjectionIntent,
+                preimage,
+                0,
+            )),
+        }
     }
 
-    /// The owner content commitment this intent was meant over.
+    /// The intent identity's thirty-two bytes, borrowed for comparison and for
+    /// rendering.
+    ///
+    /// This is the whole public surface, and it replaced the pair's two
+    /// readers: a digest cannot hand back the kind name or the commitment it
+    /// committed to, and a road that claimed to would be reading a preimage the
+    /// value does not carry.
+    /// A caller that needs the pair itself reads the ACCOUNT, which holds it.
+    ///
+    /// One-way by the absence of its inverse, exactly as the plane's own
+    /// identities are: no road anywhere takes bytes and returns an intent
+    /// identity.
     #[must_use]
-    pub const fn content(&self) -> CauseAnchoring {
-        self.content
+    pub const fn as_bytes(&self) -> &[u8; 32] {
+        self.identity.as_bytes()
     }
 }
 
@@ -550,10 +605,21 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
     ///
     /// The account arrives first because it is what was MEANT: the kind and the
     /// owner content commitment are the intent, the context is what that intent
-    /// was decided under, and the plan is the record of the decision.
+    /// was decided under, and the decisions are the record of the decision.
     /// The account is moved in rather than read and dropped, so the plan's own
     /// answer to "what were you planned over" is the value its identity, its
     /// watch set, and its origin edges were all derived from.
+    ///
+    /// # Bounds
+    ///
+    /// The five decided seats arrive as ONE [`PlanDecisions`] value rather than
+    /// as five positions, and the bundling settles nothing: the value's fields
+    /// are all required, so a caller that leaves one out stops compiling exactly
+    /// where a missing argument used to, and a seat added to a plan is added to
+    /// [`PlanDecisions`] and breaks every construction again.
+    /// What it removes is a call site stating eight positional facts — the arity
+    /// past which the lint wall refuses, and past which a reader tells two seats
+    /// of one shape apart by counting commas.
     ///
     /// # Errors
     ///
@@ -566,12 +632,19 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
         account: OwnerContentAccount<K>,
         context: ProjectionContext,
         kind_content: K::Content,
-        membership: PlannedMembership<K::Rendered>,
-        invalidation: InvalidationSet,
-        trace: DecisionTrace,
-        origin: OriginTrail,
-        nonclaims: Bounded<Nonclaim, NonclaimLimit>,
+        decisions: PlanDecisions<K::Rendered>,
     ) -> Result<Self, ProjectionPlanning> {
+        // Destructured at the door rather than read field by field further
+        // down: every seat the bundle carries is moved into the plan below, so
+        // a seat added to the bundle and forgotten here fails to compile at
+        // this pattern instead of arriving unwritten.
+        let PlanDecisions {
+            membership,
+            invalidation,
+            trace,
+            origin,
+            nonclaims,
+        } = decisions;
         match (K::TARGET_REQUIREMENT, context.target) {
             (TargetRequirement::BoundHostContract, TargetBinding::TargetFree) => Err(
                 ProjectionPlanning::established(ProjectionPlanningIssue::MissingOwnerFact {
@@ -632,12 +705,18 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
         &self.account
     }
 
-    /// What this plan MEANT: the kind and the owner content commitment.
+    /// What this plan MEANT: the intent layer's identity over the kind and the
+    /// owner content commitment.
     ///
     /// The comparison door equivalence is stated over — never plan identity,
     /// which contains origin and is required to differ between distinct doors.
+    ///
+    /// Read off the plan's own account, so the intent a plan reports and the
+    /// intent its transcript opened with are one derivation rather than two.
+    /// Not `const`, for the reason [`OwnerContentAccount::intent`] states: the
+    /// identity is derived, and the digest is not a const evaluation.
     #[must_use]
-    pub const fn intent(&self) -> ProjectionIntentId {
+    pub fn intent(&self) -> ProjectionIntentId {
         self.account.intent()
     }
 

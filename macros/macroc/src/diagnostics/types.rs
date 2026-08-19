@@ -6,6 +6,9 @@
 //! Every seat of a diagnostic is readable; the two that a caller may not write
 //! are private below, and the roads that reach them live in `type_guard.rs`,
 //! this file's own child.
+//! The site's two postures are declared here as one sum, and the roads that
+//! build and read it live in that same child — including the one place a
+//! pre-capture byte becomes an answered coordinate.
 
 use crate::plane::{
     ContractSubject, ExpansionSurfaceSubject, FixturePopulationSubject, HumanProjection,
@@ -187,19 +190,52 @@ pub enum SiteCoordinate {
 
 /// Where one diagnostic points.
 ///
-/// The **token handle** is the load-bearing seat: it names the offending token
-/// in the producer's own span table, so whoever produced the input can put a
-/// compiler error on exactly that token rather than on the first token of the
-/// declaration.
-/// The **coordinate** is that position rendered in whatever coordinate role the
-/// producer speaks, or the typed statement that this producer's table does not
-/// reach the handle at all.
+/// Two arms, and they are different observations rather than one with a missing
+/// half — the same split the derive home's own refusal site states one level
+/// down, landed here so a diagnostic can carry it.
+///
+/// A diagnostic about a CAPTURED declaration names the offending token in the
+/// producer's own span table, so whoever produced the input can put a compiler
+/// error on exactly that token rather than on the first token of the
+/// declaration; the coordinate beside it is that position rendered in whatever
+/// coordinate role the producer speaks, or the typed statement that this
+/// producer's table does not reach the handle at all.
+///
+/// A diagnostic established BEFORE any capture has no token to name: no table
+/// was built, no handle was issued, and there is nothing for a handle to index.
+/// What such an observation has is the byte it was born at, and that is the
+/// whole of what its arm carries.
+///
+/// # Nonclaims
+///
+/// **The pre-capture arm mints no handle, and that is the substitution this sum
+/// removes.** A required handle seat forces handle zero onto an observation that
+/// issued none, and handle zero reads exactly like an honest answer pointing at
+/// the first token of the declaration.
+///
+/// It carries no [`SiteCoordinate`] either: a table that was never built cannot
+/// have failed to reach anything, so the arm carries a plain
+/// [`SourceCoordinate`] and [`DiagnosticSite::coordinate`] is the one place that
+/// byte is lifted into the answered posture.
+#[must_use = "a diagnostic site names the token it points at, or the byte it was born at"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DiagnosticSite {
-    /// The offending token.
-    pub token: SpanHandle,
-    /// Where that token sits, in the producer's coordinate role.
-    pub coordinate: SiteCoordinate,
+pub enum DiagnosticSite {
+    /// One token of a captured declaration, and where the producer's table put
+    /// it.
+    AtToken {
+        /// The offending token, as a handle into the producer's own span table.
+        token: SpanHandle,
+        /// Where that token sits, in the producer's coordinate role — or the
+        /// typed statement that the table does not reach the handle.
+        coordinate: SiteCoordinate,
+    },
+    /// One byte of the text a read refused on, before any capture existed to
+    /// issue a handle.
+    BeforeCapture {
+        /// The byte the observation was born at, in the role its own text
+        /// counts in.
+        coordinate: SourceCoordinate,
+    },
 }
 
 /// How many per-issue identities one truncated related set does not carry.
@@ -310,7 +346,8 @@ pub struct MacrocDiagnostic {
     pub machine: MachineAnchoring,
     /// The act that was running.
     pub phase: MacrocPhase,
-    /// Where the observation sits, and which token it is about.
+    /// Where the observation sits, and which token it is about where a capture
+    /// issued one to be about.
     pub site: DiagnosticSite,
     /// The one line this diagnostic projects for a person.
     ///

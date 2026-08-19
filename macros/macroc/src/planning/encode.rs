@@ -11,7 +11,7 @@
 use super::{
     CauseAnchoring, ContentAddressing, DigestContract, GraphAnchoring, InvalidationTrigger,
     MemberDestination, OwnerContentAccount, PlannedMember, PlannedOutput, ProjectionContext,
-    ProjectionIntentId, ProjectionKind, TargetBinding,
+    ProjectionKind, TargetBinding,
 };
 use crate::plane::{
     CapturedDeclarationSubject, OwnerIdentityRef, ProjectionIdentity, RenderedRole, encode_bytes,
@@ -100,11 +100,23 @@ impl ContentAddressing {
     /// one never encode alike even where their thirty-two bytes coincide.
     ///
     /// The posture and the commitment are written by the COMMITMENT's own road
-    /// rather than spelled again here, which is what makes an account's bytes
-    /// begin with its intent's bytes structurally instead of by two spellings
-    /// that happen to agree today.
+    /// rather than spelled again here, and the dependency set by the road below,
+    /// so the account's own encoding reaches both halves through exactly these
+    /// spellings instead of restating either.
     pub fn encode_into(&self, into: &mut Vec<u8>) {
         self.commitment().encode_into(into);
+        self.encode_dependencies_into(into);
+    }
+
+    /// Append the dependency set alone, canonicalized — everything this
+    /// addressing writes AFTER the commitment.
+    ///
+    /// Split out rather than spelled twice, because an account's own encoding
+    /// opens with the INTENT PREIMAGE — which writes the same commitment through
+    /// the same road — and continues here.
+    /// One spelling of the dependency set, whichever road reaches it, so the
+    /// account's bytes and the addressing's own cannot part company.
+    fn encode_dependencies_into(&self, into: &mut Vec<u8>) {
         match self {
             Self::Linked { dependencies, .. } => {
                 encode_set(dependencies.iter(), encode_fragment, into);
@@ -116,45 +128,43 @@ impl ContentAddressing {
     }
 }
 
-impl ProjectionIntentId {
-    /// Append this intent's canonical bytes: the kind's declared name, then the
-    /// owner content commitment.
-    ///
-    /// This is the whole preimage of the intent layer — the pair, written down —
-    /// and it is written the same way whether a reader compares the pair itself
-    /// or a later profile derives an identity over these bytes.
-    pub fn encode_into(&self, into: &mut Vec<u8>) {
-        encode_bytes(self.kind().as_bytes(), into);
-        self.content().encode_into(into);
-    }
-}
-
 impl<K: ProjectionKind> OwnerContentAccount<K> {
-    /// Append this account's canonical bytes: the kind's declared name, then the
-    /// addressing — whose own road writes the commitment first and the dependency
-    /// set after it.
+    /// Append this account's canonical bytes: the intent preimage — the kind's
+    /// declared name and the content's own commitment — then the dependency set
+    /// the addressing declares.
     ///
-    /// The account's bytes therefore BEGIN with exactly the intent's bytes — the
-    /// kind name and the commitment, in that order, through the same two roads
-    /// [`ProjectionIntentId::encode_into`] uses — and continue with what the
-    /// content declares it stands on.
+    /// The account's bytes therefore BEGIN with exactly the intent's preimage,
+    /// through the same road [`OwnerContentAccount::intent_bytes`] hands back,
+    /// rather than through a second spelling that happens to agree today.
     /// A plan transcript's first member is the intent, widened by the dependency
     /// set; it is not a second spelling of either.
     pub fn encode_into(&self, into: &mut Vec<u8>) {
-        encode_bytes(K::KIND_NAME.as_bytes(), into);
-        self.addressing().encode_into(into);
+        self.intent_preimage_into(into);
+        self.addressing().encode_dependencies_into(into);
     }
 
-    /// The intent's canonical bytes on their own — the preimage a derived intent
-    /// identity would be taken over.
+    /// Append the intent layer's canonical preimage: the kind's declared name,
+    /// then the owner content commitment at full width.
     ///
-    /// Written already, and written once, so admitting an intent subject and role
-    /// to the plane's sealed rosters is the whole of what a digested intent
-    /// identity costs.
+    /// The ONE spelling of the pair, and both readers take it — the account's
+    /// own encoding opens with it, and [`OwnerContentAccount::intent_bytes`] is
+    /// it.
+    fn intent_preimage_into(&self, into: &mut Vec<u8>) {
+        encode_bytes(K::KIND_NAME.as_bytes(), into);
+        self.commitment().encode_into(into);
+    }
+
+    /// The intent's canonical bytes on their own — the exact preimage
+    /// [`OwnerContentAccount::intent`] derives the intent identity over.
+    ///
+    /// Written from the PAIR and never read back off the identity.
+    /// A preimage road that spelled the digest would hand back thirty-two bytes
+    /// nobody can re-derive anything from, and the derivation it feeds would
+    /// then be defined in terms of its own output.
     #[must_use]
     pub fn intent_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
-        self.intent().encode_into(&mut bytes);
+        self.intent_preimage_into(&mut bytes);
         bytes
     }
 }

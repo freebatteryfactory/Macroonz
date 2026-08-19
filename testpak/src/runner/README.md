@@ -14,6 +14,27 @@ parameter and results are values. The runner touches no
 process boundary: it reads no arguments, prints nothing, and exits nothing,
 so the wall holds over it without a single exception.
 
+Two readings turn a report into a seat's answer: `seat_verdict` over a run
+report, `lens_verdict` over one trial report, both answering with
+`SeatRefusal` — the one refusal type a stamped test function returns. A
+construction refusal enters it unchanged through `From`, and everything else
+it says is lifted from typed fields the run already wrote, never matched out
+of anybody's prose. The readings live here rather than in the stamp because
+a fold written into every expansion is one calculator standing in as many
+places as there are invocations. A run that selected nothing refuses: that
+is the suite pairing a stamp cannot check without reading inside a row
+expression, answered from the census instead.
+
+The host facts a run stands on are declared, never read. The target triple
+and toolchain identity arrive as a `TargetBinding` the invoker states —
+nothing here can derive them, and a triple assembled out of `cfg!`
+predicates would be a plausible spelling entering a cache key that nothing
+verified. A duration is the difference of two readings from a `HostClock`
+the invoker hands in; `HostClock::unmeasured` is the named non-measurement
+for a caller with none, and every duration then reads zero because nothing
+was measured. The stamped test target is the caller's own hosting world and
+states both at the stamp.
+
 This is the harness's only semantic-trial execution engine: the compiler
 executes compile refusals, external mutation tooling runs its campaigns
 outside the wall, the bench executor measures, and the standard harness
@@ -41,7 +62,12 @@ report vocabulary, under its one typed-baseline statement — so the runner
 never grows memory. Selective re-run is designed-for now and arrives with
 the identity rails: skip trials whose execution key matches the last
 report, eligibility governed by the attachment postures per the report
-instrument's one statement.
+instrument's one statement. Today a seat's verdict refuses every skip,
+cache-satisfied included, because the conclusion a cache stood in for is not
+in the report being read and a seat may not pass on a verdict it never saw.
+Whether a cached stand-in discharges a seat is a ruling that lands with
+selective re-run, stated here so the strictness is a decision and not an
+oversight.
 
 Discovery is pure and in memory — a trial table is constructed from typed
 descriptors, so nothing scans and nothing spawns. A subject panic is CAUGHT

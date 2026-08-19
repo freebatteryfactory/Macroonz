@@ -1,6 +1,7 @@
 //! The runner's declarations: the typed invocation both engine calls take, what
-//! one invocation chooses from the complete world, and the concrete spellings of
-//! the generic seam this home instantiates.
+//! one invocation chooses from the complete world, the concrete spellings of
+//! the generic seam this home instantiates, and the one refusal a seat answers
+//! with.
 //!
 //! Declarations only. The roads that build an invocation and hand its seats back
 //! are this file's own child, `type_guard.rs`, so an invocation is born in one
@@ -16,10 +17,20 @@
 //! instantiated: the invocation facts are [`Invocation`] and the conclusion is
 //! [`TrialConclusion`]. The aliases below are that instantiation written once,
 //! so a caller building a table never spells the parameters by hand.
+//!
+//! # The seat's vocabulary
+//!
+//! A stamped seat is a test function returning a `Result`, so it needs one type
+//! to refuse with. [`SeatRefusal`] is it, and the readings that produce it are
+//! `verdict.rs`'s: the fold from a report to a verdict lives in this home once,
+//! rather than being written into every expansion that wants one.
 
-use crate::descriptor::{Binding, ClaimRef, ExecutionSuite, SubjectRoute, TableView};
+use crate::descriptor::{
+    AuthoredTable, Binding, ClaimRef, ExecutionSuite, SubjectRoute, TableView, TrialTableRefusal,
+};
 use crate::report::{
-    FindingCause, InvocationProfile, TargetBinding, TrialConclusion, TrialId, TrialSite,
+    FindingCause, InfrastructureFault, InvocationProfile, SkipReason, TargetBinding, TimeBudget,
+    TrialConclusion, TrialFinding, TrialId, TrialSite,
 };
 use std::collections::BTreeSet;
 
@@ -120,6 +131,9 @@ pub type TrialCall = fn(&Invocation) -> TrialConclusion;
 /// One row married to its callable, at the types this engine runs.
 pub type TrialBinding = Binding<Invocation, TrialConclusion>;
 
+/// The complete authored world, at the types this engine runs.
+pub type TrialTable = AuthoredTable<Invocation, TrialConclusion>;
+
 /// The sealed read surface an authored table and a staged view both present, at
 /// the types this engine runs.
 pub type TrialTableView<'view> = TableView<'view, Invocation, TrialConclusion>;
@@ -129,3 +143,106 @@ pub type TrialTableView<'view> = TableView<'view, Invocation, TrialConclusion>;
 /// The pair is this home's declaration, so a fingerprint over a subject panic
 /// names the boundary that caught it rather than any of the panic's own words.
 pub const SUBJECT_PANIC_CAUSE: FindingCause = FindingCause::named("runner", "subject-panic");
+
+/// What one selected trial did instead of concluding lawfully.
+///
+/// # Authority
+///
+/// A satisfied check has no arm here, so "this is why the seat refused" is
+/// unsayable about a trial that passed. Every arm carries a typed value lifted
+/// straight out of the record the run wrote — the check's own finding, the
+/// stated skip reason, the declared budget that was reached, the harness fault
+/// — so a seat describes a failure by CARRYING it. Nothing here reads a
+/// rendered sentence, and nothing here is matched on prose.
+///
+/// # Nonclaims
+///
+/// It says nothing about the subject beyond what the record already said. The
+/// harness-fault arm in particular is not evidence about the subject at all: it
+/// states that nothing was learned, which is why it refuses a seat rather than
+/// passing one.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum SeatFailure {
+    /// The check refused, and the refusal carries its own evidence.
+    CheckRefused(TrialFinding),
+    /// The trial was selected and did not run, for a stated reason.
+    ///
+    /// Every skip reason lands here, [`SkipReason::SatisfiedByCachedExecution`]
+    /// included: the conclusion a cached execution stood in for is not in the
+    /// report being read, so a seat that passed on it would be passing on a
+    /// verdict it never saw.
+    NotRun(SkipReason),
+    /// The trial ran past the budget it was given, which is carried so a reader
+    /// knows which bound was reached.
+    PastTimeBudget(TimeBudget),
+    /// The harness failed around the trial, so nothing was learned about the
+    /// subject.
+    HarnessFailed(InfrastructureFault),
+}
+
+/// One selected trial that did not conclude lawfully: both identity rails, and
+/// what it did instead.
+///
+/// # Authority
+///
+/// The two rails ride together because a reader needs both and neither stands
+/// in for the other — the semantic identity is the name the failure keeps
+/// across a refactor, and the site is the spelling a person filters on and
+/// jumps to.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FailedTrial {
+    trial: TrialId,
+    site: TrialSite,
+    failure: SeatFailure,
+}
+
+/// The seats' one refusal type: everything a stamped test function answers with
+/// instead of passing.
+///
+/// # Authority
+///
+/// A seat refuses; it does not panic. Because a seat is a test function
+/// returning a `Result`, its failure is a returned typed value carrying its own
+/// evidence, and this is the one family the whole stamped road ends in: a
+/// construction refusal enters unchanged through this type's [`From`] road over
+/// [`TrialTableRefusal`], and the run's own verdict is the other arms.
+///
+/// # Bounds
+///
+/// `Debug` is the entire rendering surface, deliberately. The test harness that
+/// hosts a seat prints the returned value with `Debug`, and a `Display` written
+/// here would be a second vocabulary for facts the typed fields already carry.
+#[must_use = "a refusal is the reason a seat did not pass"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SeatRefusal {
+    /// The world could not be built, and this is the construction that refused.
+    TableNotBuilt(TrialTableRefusal),
+    /// The selection named no row of the denominator, so the run exercised
+    /// nothing.
+    ///
+    /// A run that exercised nothing is not a run that passed. On the stamped
+    /// road this is exactly the pairing a stamp cannot check — a suite group
+    /// whose declared suite is no row's own — answered at run time from the
+    /// census the run wrote.
+    NothingSelected {
+        /// How many rows the run was stated over.
+        denominator: usize,
+    },
+    /// One trial did not conclude lawfully: the reading a named lens takes.
+    ///
+    /// The record rides behind a box because it is the largest thing this
+    /// family carries, and an unboxed arm would make every refusal — a name
+    /// that would not parse included — as large as the largest failure.
+    TrialFailed(Box<FailedTrial>),
+    /// Selected trials did not conclude lawfully: the reading an aggregate seat
+    /// takes.
+    RunFailed {
+        /// Every selected trial that did not conclude lawfully, in census
+        /// order.
+        failed: Vec<FailedTrial>,
+        /// How many rows of the denominator the selection named.
+        selected: usize,
+        /// How many rows the run was stated over.
+        denominator: usize,
+    },
+}

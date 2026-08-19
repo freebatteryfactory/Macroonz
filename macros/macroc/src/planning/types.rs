@@ -16,9 +16,10 @@ use crate::plane::{
     MeasuredSubject, MechanismProfileSubject, MembershipLimit, NonclaimLimit, ObligationSubject,
     OwnerFactRef, OwnerIdentityRef, PatternArgumentLimit, PatternArgumentSubject,
     PatternInstanceSubject, PatternSubject, PlanId, PortSubject, ProfileVersion,
-    ProjectionIdentity, ProjectionProfileSubject, ProjectionProvenance, ProjectionRole,
-    RenderedRole, SchemaSubject, SoleRenderedUnit, SourceDeclarationLimit, WireContractSubject,
-    WorkCurrencySubject, WorkFormulaSubject, WrapperComponentLimit, static_bytes,
+    ProjectionIdentity, ProjectionIntentSubject, ProjectionProfileSubject, ProjectionProvenance,
+    ProjectionRole, RenderedRole, SchemaSubject, SoleRenderedUnit, SourceDeclarationLimit,
+    WireContractSubject, WorkCurrencySubject, WorkFormulaSubject, WrapperComponentLimit,
+    static_bytes,
 };
 use crate::question::ExplanationQuestion;
 use crate::refusal::ProjectionPlanning;
@@ -191,37 +192,46 @@ pub struct OwnerContentAccount<K: ProjectionKind> {
     kind: PhantomData<K>,
 }
 
-/// The intent layer's identity: WHAT was meant, as the pair that means it — the
-/// kind's declared name and the owner content commitment it was meant over.
+/// The intent layer's identity: WHAT was meant — the kind's declared name and
+/// the owner content commitment it was meant over, derived into thirty-two bytes
+/// under the plane's own profile.
 ///
 /// The first of the three identity layers.
-/// The plan identity is derived over it and everything the plan decided beside
-/// it; the rendered-unit identity is derived over bytes that do not exist yet
-/// when this one does.
+/// The plan identity is derived over the entry account's bytes and everything
+/// the plan decided beside them; the rendered-unit identity is derived over
+/// bytes that do not exist yet when this one does.
 ///
 /// # Authority
 ///
-/// **The pair is carried exactly, and equality of the pair is equality of
-/// intent.** Two doors that meant the same thing carry one of these, which is
-/// what door equivalence compares — plan identities cannot be compared for that,
-/// since distinct doors are required to carry distinct origins.
+/// **Equality of the identity is equality of intent.** Two doors that meant the
+/// same thing derive one of these, which is what door equivalence compares —
+/// plan identities cannot be compared for that, since distinct doors are
+/// required to carry distinct origins.
+///
+/// It is a derived identity in the full sense the plane means: thirty-two bytes
+/// over a complete transcript, under the identity subject `projection-intent`
+/// at role [`ProjectionRole::ProjectionIntent`], both of them roster seats the
+/// plane declares. The preimage is [`OwnerContentAccount::intent_bytes`] — the
+/// pair, written once, by the one road an account's own canonical bytes open
+/// with — and the derivation is stated in full where it happens, on
+/// [`OwnerContentAccount::intent`].
 ///
 /// # Nonclaims
 ///
-/// **It is NOT a derived identity and never stands where one is required.**
-/// It is not thirty-two bytes, it is not a member of either identity family, and
-/// it never anchors a transcript: the plane's identity subjects and roles are
-/// sealed rosters, and neither carries a seat for the intent layer, so a
-/// digested spelling of this pair is unwritable here rather than approximated.
-/// [`OwnerContentAccount::intent_bytes`] is the canonical preimage a digested
-/// spelling would be derived over, written already, so admitting an intent
-/// subject and role to the plane's rosters is the whole of what that promotion
-/// costs.
+/// It commits to the PAIR and to nothing else: not to what the content declares
+/// it stands on, not to the context a plan was decided under, and not to any
+/// decision a plan recorded.
+/// An account's own bytes widen the pair by the dependency set and a plan's
+/// transcript widens it again, so neither is reachable from these thirty-two
+/// bytes — which is exactly why this is the layer two distinct doors are allowed
+/// to agree at.
+///
+/// It is never a machine commitment, on the same terms every plane identity
+/// states: where the machine needs one the machine mints it.
 #[must_use = "an intent identity is what door equivalence compares"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ProjectionIntentId {
-    kind: &'static str,
-    content: CauseAnchoring,
+    identity: ProjectionIdentity<ProjectionIntentSubject>,
 }
 
 /// The exact identities every plan shares, whatever its kind: what it was
@@ -799,6 +809,47 @@ kinds! {
 pub struct PlanDerivation {
     identity: PlanId,
     provenance: ProjectionProvenance,
+}
+
+/// Everything one plan DECIDED, as the one value those seats travel in.
+///
+/// Five seats, in the order a plan's transcript writes them: the complete
+/// logical membership, the watch set, the decision trace, the origin trail, and
+/// the nonclaims.
+/// They arrive together because they were decided together — a membership
+/// without the triggers that invalidate it, or a trail without the trace that
+/// walked it, is half a decision — and because the road that takes them takes
+/// the entry account and the shared context beside them.
+///
+/// # Authority
+///
+/// **Bundling settles nothing and defaults nothing.** Every field is required
+/// and public, so a construction that leaves one out stops compiling exactly
+/// where a missing argument used to, and a seat added to a plan is added here
+/// and breaks every construction again.
+/// What it removes is a call site stating eight positional facts, where seats of
+/// one shape in a row are told apart by counting commas — and which is past the
+/// arity the lint wall admits.
+///
+/// # Bounds
+///
+/// The kind-specific content is NOT one of these seats.
+/// A plan's transcript does not commit to it ([`PlanDerivation`]), so a value
+/// that grouped it with the seats the transcript does commit to would read as
+/// though it were one of them.
+#[must_use = "the decided seats are what one plan is planned from, whole"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PlanDecisions<R: RenderedRole> {
+    /// The complete declared output set — the output firewall.
+    pub membership: PlannedMembership<R>,
+    /// The identities whose change invalidates the plan.
+    pub invalidation: InvalidationSet,
+    /// The decisions that produced the plan, in selection order.
+    pub trace: DecisionTrace,
+    /// Where the plan itself came from, in walk order.
+    pub origin: OriginTrail,
+    /// What the plan explicitly does not claim.
+    pub nonclaims: Bounded<Nonclaim, NonclaimLimit>,
 }
 
 /// One projection plan: the shared spine on the generic.
