@@ -7,8 +7,8 @@ mod text;
 mod types;
 
 pub use types::{
-    CaptureBound, CaptureWalk, CapturedDelimiter, CapturedInput, CapturedPayload,
-    CapturedTokenTree, GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree,
-    SpanHandle, SpanResolutionRefusal, SpanTable, TextCapture, TextReadCause, TextReadRefusal,
-    TokenPath,
+    CaptureBound, CaptureWalk, CaptureWorkLimit, CapturedDelimiter, CapturedInput, CapturedPayload,
+    CapturedTokenTree, CapturedTreeTokenLimit, GeneratedDelimiter, GeneratedSpacing, GeneratedToken,
+    GeneratedTree, SpanHandle, SpanResolutionRefusal, SpanTable, TextCapture, TextReadCause,
+    TextReadRefusal, TokenPath, TokenPathDepthLimit,
 };

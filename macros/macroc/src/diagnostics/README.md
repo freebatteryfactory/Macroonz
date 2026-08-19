@@ -23,9 +23,10 @@ promised.
 
 ## The seats
 
-`types.rs` declares. Every seat of a diagnostic is readable, because a
-diagnostic that hid a seat would be a diagnostic that sometimes says less than
-it knows.
+`types.rs` declares, including the one magnitude row this home's capacity is
+governed by — meaning, number, and reason on one row, stamped through the plane's
+`limits!`. Every seat of a diagnostic is readable, because a diagnostic that hid
+a seat would be a diagnostic that sometimes says less than it knows.
 
 Readable is not the same as writable, and the difference is what earns this home
 its `type_guard.rs`. Two values here — `RelatedSet` and `RelatedSetTruncation` —

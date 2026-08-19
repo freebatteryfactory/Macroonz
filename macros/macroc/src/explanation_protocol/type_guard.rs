@@ -36,13 +36,12 @@ use super::super::encode::answered_seats;
 use super::super::establish::coverage_issues;
 use super::super::project::human_line;
 use super::{
-    ClosureProofSeal, ExplanationAnswer, ExplanationCoverageIssue, ProjectionExplanation,
-    ProjectionExplanationView, ProvedClosure,
+    ClosureProofSeal, ExplanationAnswer, ExplanationCoverageIssue, ExplanationSeatLimit,
+    ProjectionExplanation, ProjectionExplanationView, ProvedClosure,
 };
 use crate::plane::{
-    AuthoringLimitProfile, ClosureId, ExplanationId, ExplanationSeatLimit, HumanProjection,
-    HumanTextLimit, PlanId, ProjectionProvenance, ProjectionRole, ProjectionTranscript,
-    encode_bytes,
+    AuthoringLimitProfile, ClosureId, ExplanationId, HumanProjection, HumanTextLimit, PlanId,
+    ProjectionProvenance, ProjectionRole, ProjectionTranscript, encode_bytes,
 };
 use crate::planning::{ProjectionKind, ProjectionPlan};
 use crate::question::ExplanationQuestion;
@@ -67,8 +66,8 @@ fn refused(issues: Vec<ExplanationCoverageIssue>) -> Option<ExplanationCoverage>
 pub use seat::ExplanationCoverage;
 
 mod seat {
-    use super::super::ExplanationCoverageIssue;
-    use crate::plane::{AuthoringLimitProfile, ExplanationIssueLimit};
+    use super::super::{ExplanationCoverageIssue, ExplanationIssueLimit};
+    use crate::plane::AuthoringLimitProfile;
     use threadpak::refusal::{AdmittedPrefix, StopBound};
     use threadpak::types::PositiveLimit;
 

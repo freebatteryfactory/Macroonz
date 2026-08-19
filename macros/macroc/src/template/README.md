@@ -50,7 +50,9 @@ the obligation rather than pretending to run it.
 ## The seats
 
 `types.rs` declares: the category roster, the holes and the commitments that fill
-them, the three locks, the template, the application, and the invocation key. Its
+them, the three locks, the template, the application, the invocation key, and the
+five magnitude rows this home's capacities are governed by — meaning, number, and
+reason on one row, stamped through the plane's `limits!`. Its
 own child `type_guard.rs` holds every road that reaches a private field — the
 binding's two ends, the ceiling's axes, the template's holes, the application's
 bindings, and the refusal body's one seat — which is what makes the category

@@ -24,15 +24,15 @@ impl ContentionPosture {
     /// The arm spelling this posture is emitted under, exactly as the harness's
     /// schema declares the closed choice.
     ///
-    /// A constant answer over a closed roster, so a third posture admitted later
-    /// stops the compiler here until somebody says what it is called at the
-    /// address — and the schema's own roster has exactly two, so a third is a
-    /// change to the pin rather than a change to a rendering.
+    /// A constant answer over a closed roster, so a SECOND posture admitted
+    /// later stops the compiler here until somebody says what it is called at
+    /// the address — and the schema's own roster has exactly one, so a second is
+    /// a change to the schema's declared choice and to the identity derived from
+    /// it, not a change a rendering can absorb quietly.
     #[must_use]
     pub const fn arm(self) -> &'static str {
         match self {
-            Self::Uncontended => "Uncontended",
-            Self::Contended => "Contended",
+            Self::NoDeclaredContention => "NoDeclaredContention",
         }
     }
 }

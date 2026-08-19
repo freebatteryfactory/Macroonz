@@ -50,7 +50,7 @@
 //! type cannot state.
 
 use threadpak::types::ConstLimit;
-use threadpak_macroc::plane::RelatedIssueLimit;
+use threadpak_macroc::diagnostics::RelatedIssueLimit;
 use threadpak_macroc::{RelatedIdentity, RelatedSet, RelatedSetCompletion};
 
 // ---------------------------------------------------------------------------

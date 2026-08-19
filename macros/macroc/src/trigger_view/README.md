@@ -23,7 +23,9 @@ the second truth table this view exists to refuse.
 
 ## The seats
 
-`types.rs` declares. Its own child `type_guard.rs` holds every road that reaches
+`types.rs` declares, including the two magnitude rows this home's capacities are
+governed by — meaning, number, and reason on one row, stamped through the plane's
+`limits!`. Its own child `type_guard.rs` holds every road that reaches
 a private seat — the view's own, and the refusal body's — which is what makes
 exhaustive disposition structural: a view exists only where the disposition pass
 agreed, so there is no partial view for a reader to mistake for a complete one,

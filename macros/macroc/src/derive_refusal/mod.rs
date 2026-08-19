@@ -24,10 +24,10 @@ pub use render::{
 };
 pub use types::{
     CapturedCause, CapturedDocumentation, CauseOrderStanding, CrateBinding, DEFAULT_CRATE_BINDING,
-    DIAGNOSTIC_PREFIX, DerivedMembership, DocumentedDeclaration, RefusalCompileContext,
-    RefusalDerivationDraft, RefusalDeriveCapture, RefusalDeriveFact, RefusalDeriveRefusal,
-    RefusalDeriveSurface, RefusalFamilyExpansion, RefusalOwnerFacts, RefusalSite,
-    SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
+    DIAGNOSTIC_PREFIX, DeriveCauseLimit, DerivedMembership, DocumentedDeclaration,
+    RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveCapture, RefusalDeriveFact,
+    RefusalDeriveRefusal, RefusalDeriveSurface, RefusalFamilyExpansion, RefusalOwnerFacts,
+    RefusalSite, SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
 };
 
 use crate::closure::{ProjectionClosure, RenderedProjection, RenderedUnit};

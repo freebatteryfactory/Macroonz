@@ -1,6 +1,6 @@
 //! The diagnostics home's declarations: the act that was running, how what was
-//! observed differs from what was expected, where it sits, what repairs it, and
-//! how to reach it again.
+//! observed differs from what was expected, where it sits, what repairs it, how
+//! to reach it again, and the magnitude a related set is bounded by.
 //!
 //! Declarations only.
 //! Every seat of a diagnostic is readable; the two that a caller may not write
@@ -13,8 +13,7 @@
 use crate::plane::{
     ContractSubject, ExpansionSurfaceSubject, FixturePopulationSubject, HumanProjection,
     HumanTextLimit, OwnerFactRef, OwnerIdentityRef, ProjectionIdentity, RefusalFamilySubject,
-    RefusalReason, RelatedBodySubject, RelatedIssueLimit, RelatedIssueSubject, RepairLimit,
-    ServiceEntrySubject,
+    RefusalReason, RelatedBodySubject, RelatedIssueSubject, RepairLimit, ServiceEntrySubject,
 };
 use crate::token::{SpanHandle, SpanResolutionRefusal};
 use core::num::NonZeroUsize;
@@ -27,6 +26,35 @@ use threadpak::types::Bounded;
 
 #[path = "type_guard.rs"]
 mod guard;
+
+// ---------------------------------------------------------------------------
+// The magnitude.
+//
+// This home's own row, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on the row below
+// are this home's, declared beside the capacity it governs.
+// ---------------------------------------------------------------------------
+
+crate::plane::limits! {
+    /// The magnitude governing how many related issue identities one diagnostic
+    /// may point at.
+    ///
+    /// # Bounds
+    ///
+    /// Sixty-four. A diagnostic projects a refusal body ISSUE FOR ISSUE, so this
+    /// magnitude is how much of a body one report enumerates before it falls
+    /// back to the body's own coarser commitment — a narrower one would make the
+    /// projection drop established issues out of ordinary bodies.
+    ///
+    /// # Nonclaims
+    ///
+    /// It is this home's own family and is read off no refusal family's
+    /// magnitude. The services declare issue bodies wider than it, so a body
+    /// that outruns this set is a case the road MEETS rather than one the
+    /// magnitudes rule out: the body's own identity is carried alone with the
+    /// count that stands outside, stated rather than silently shortened.
+    RelatedIssueLimit = 64,
+}
 
 threadpak::closed_register! {
     /// Which act of the services was running when the disagreement was

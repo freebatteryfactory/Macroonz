@@ -28,7 +28,9 @@ facts by identity, and identities carry no spelling.
 
 ## The seats
 
-`types.rs` declares.
+`types.rs` declares, including the one magnitude row this home's capacity is
+governed by — meaning, number, and reason on one row, stamped through the plane's
+`limits!`.
 Its own child `type_guard.rs` holds every road that reaches a private field — the
 trail's edges and the trace's entries — which is what makes the orphan law and
 the selection-order law structural rather than reviewed: there is no other seam

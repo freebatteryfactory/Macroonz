@@ -28,12 +28,12 @@
 //! It is stated once, below, rather than at each seam that asks.
 
 use super::{
-    DiagnosticSite, RelatedIdentity, RelatedSet, RelatedSetCompletion, RelatedSetTruncation,
-    SiteCoordinate,
+    DiagnosticSite, RelatedIdentity, RelatedIssueLimit, RelatedSet, RelatedSetCompletion,
+    RelatedSetTruncation, SiteCoordinate,
 };
 use crate::plane::{
     AuthoringLimitProfile, ProjectionIdentity, ProjectionRole, ProjectionTranscript,
-    RelatedBodySubject, RelatedIssueLimit, RelatedIssueSubject, encode_bytes,
+    RelatedBodySubject, RelatedIssueSubject, encode_bytes,
 };
 use crate::token::SpanHandle;
 use core::num::NonZeroUsize;
@@ -164,11 +164,14 @@ impl RelatedSet {
     ///
     /// # Bounds
     ///
-    /// [`RelatedIssueLimit`] is declared at the widest refusal-body magnitude in
-    /// the plane, so a body built through the typed seams always fits — but the
-    /// widest body and the set are the same width, and the body's own identity
-    /// sits ahead of the per-issue ones, so a body at the magnitude overruns by
-    /// exactly one.
+    /// [`RelatedIssueLimit`] is this home's own magnitude and is read off no
+    /// refusal family's: the services declare issue bodies wider than it — the
+    /// surface-composition family at one hundred and twenty-eight, the
+    /// template-construction family at ninety-six — so a body this set cannot
+    /// enumerate is a case the road MEETS rather than one the magnitudes rule
+    /// out. It overruns at the boundary too, by exactly one: the body's own
+    /// identity sits ahead of the per-issue ones, so a body AT this magnitude
+    /// needs one seat more than the set has.
     ///
     /// Where that happens the body's own identity is carried alone — a coarser
     /// commitment to the same refusal, never a shorter commitment to a different

@@ -161,7 +161,9 @@ naming one member of a committed set is a claim about the others.
 ## The seats
 
 `types.rs` declares, including the `kinds!` roster whose sealed contract is part
-of each kind's declaration.
+of each kind's declaration, and the three magnitude rows this home's capacities
+are governed by — meaning, number, and reason on one row, stamped through the
+plane's `limits!`.
 Its own child `type_guard.rs` holds the output firewall and every other road
 that reaches a private field.
 `type_contract.rs` states the rendered-role roster an implementation projection

@@ -37,7 +37,7 @@ mod plane {
     /// law: plane.the-authoring-ceiling-is-this-plane-s-own — the services admit
     /// their declared magnitudes under a ceiling this plane wrote down, and the
     /// relation that justifies the number holds: the ceiling is sixteen times
-    /// the widest magnitude the plane's OWN rows declare.
+    /// the widest magnitude the plane's OWN REMAINING rows declare.
     ///
     /// The widest magnitude is DERIVED from the roster rather than named. The
     /// law used to compare the ceiling against one family by its Rust spelling,
@@ -46,11 +46,33 @@ mod plane {
     /// plane declares" — had quietly stopped being true. Reading the roster is
     /// what makes the relation the thing under test.
     ///
+    /// **The denominator moves when a row moves home, and the law says which
+    /// row it is standing on.** The plane's rows are the magnitudes MORE THAN
+    /// ONE home asks about; a magnitude only one home asks is declared in that
+    /// home through the same stamp, and the rehoming that emptied this roster of
+    /// its single-home rows took the capture-work magnitude — the row this
+    /// number was first argued from — into the token seam with it. What remains
+    /// widest here is `RenderedByteLimit`, at the same sixty-five thousand five
+    /// hundred and thirty-six, so the relation is unchanged in arithmetic and
+    /// changed in what it stands on. It stays falsifiable exactly as before:
+    /// moving `RenderedByteLimit` out, or seating a wider central row, breaks
+    /// this assertion rather than leaving it green against a roster it has
+    /// stopped describing.
+    ///
+    /// The named family below is a second assertion and never the comparison —
+    /// the ceiling is still checked against the DERIVED widest, and the naming
+    /// line exists so the sentence above ("what remains widest here is
+    /// `RenderedByteLimit`") is a claim the law breaks on rather than prose a
+    /// reader has to take on faith. Naming a family INSTEAD of folding the
+    /// roster is the retired posture, and it stays retired.
+    ///
     /// The claim ceiling: this is the positive control for the AUTHORING plane's
     /// policy and nothing about the machine's algebra. The roster it reads is
     /// the plane's own rows, which is where the ceiling's justifying relation
     /// was argued; a home's rows are admitted under the same profile and every
-    /// one of them stands far inside it, and no claim is made here about that.
+    /// one of them stands far inside it, and no claim is made here about that —
+    /// which is a wider disclaimer now than it was, because most of the
+    /// services' magnitudes live in homes.
     ///
     /// Owed reversal (red twin): a family declaring a magnitude past this
     /// ceiling must not compile — the fixture is testpak's.
@@ -59,6 +81,7 @@ mod plane {
         assert_eq!(AuthoringLimitProfile::MAX_DECLARED_LIMIT, 1_048_576);
         let widest = widest_declared_magnitude();
         assert!(widest > 0, "the plane declares no limit family at all");
+        assert_eq!(widest, crate::plane::RenderedByteLimit::MAX);
         assert_eq!(
             AuthoringLimitProfile::MAX_DECLARED_LIMIT,
             widest.saturating_mul(16)
@@ -76,6 +99,12 @@ mod plane {
     /// through its own `ConstLimit`, and the table's length is the count of rows
     /// the macro was given rather than a number anybody wrote down.
     ///
+    /// The length bound is a floor with headroom and never the exact count: an
+    /// exact number here would be a number somebody wrote down, which is the one
+    /// thing this law exists to rule out. It moved down with the roster when the
+    /// single-home rows went to their homes — the plane keeps the magnitudes
+    /// more than one home asks about, and there are twelve of them.
+    ///
     /// Owed reversal (red twin): a table authored beside the declarations rather
     /// than emitted from them must break this law — the fixture is testpak's.
     #[test]
@@ -85,7 +114,7 @@ mod plane {
             .find(|(name, _)| *name == "RenderedByteLimit")
             .map(|&(_, declared)| declared);
         assert_eq!(named, Some(crate::plane::RenderedByteLimit::MAX));
-        assert!(DECLARED_LIMITS.len() > 30);
+        assert!(DECLARED_LIMITS.len() > 8);
         assert!(
             DECLARED_LIMITS
                 .iter()
@@ -751,8 +780,9 @@ mod identity_profile {
 }
 
 mod refusal {
-    use crate::plane::PlanningIssueLimit;
-    use crate::refusal::{BoundAxis, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue};
+    use crate::refusal::{
+        BoundAxis, PlanSeat, PlanningIssueLimit, ProjectionPlanning, ProjectionPlanningIssue,
+    };
     use threadpak::refusal::{CompletionPosture, FamilyShape, RefusalFamily, StopBound};
     use threadpak::types::ConstLimit;
 
@@ -1150,9 +1180,10 @@ mod question {
 
 mod origin_graph {
     use crate::origin_graph::{
-        DecisionTrace, Nonclaim, OriginEdge, OriginRelation, OriginTrail, TraceDecision, TraceEntry,
+        DecisionTrace, Nonclaim, OriginEdge, OriginEdgeLimit, OriginRelation, OriginTrail,
+        TraceDecision, TraceEntry,
     };
-    use crate::plane::{OriginEdgeLimit, OwnerFactRef, OwnerIdentityRef, TraceEntryLimit};
+    use crate::plane::{OwnerFactRef, OwnerIdentityRef, TraceEntryLimit};
     use crate::refusal::{BoundAxis, ProjectionPlanningIssue};
     use threadpak::types::ConstLimit;
 
@@ -5577,7 +5608,8 @@ mod failure_path_closure {
 
         // The body's own identity rides ahead of the per-issue ones, so a body
         // AT the declared magnitude overruns the set by exactly one.
-        let magnitude = u32::try_from(crate::plane::RelatedIssueLimit::MAX).unwrap_or(u32::MAX);
+        let magnitude =
+            u32::try_from(crate::diagnostics::RelatedIssueLimit::MAX).unwrap_or(u32::MAX);
         let over: Vec<Vec<u8>> = (1..=magnitude).map(material).collect();
         let truncated_set = RelatedSet::derived_over(FAMILY, &over);
         assert_eq!(truncated_set.carried().len(), 1);
@@ -5585,7 +5617,7 @@ mod failure_path_closure {
         assert!(matches!(
             truncated_set.completion(),
             RelatedSetCompletion::ReportTruncated(truncation)
-                if truncation.omitted().get() == crate::plane::RelatedIssueLimit::MAX
+                if truncation.omitted().get() == crate::diagnostics::RelatedIssueLimit::MAX
                     && matches!(truncation.stopped_at(), StopBound::DeclaredIssueBound)
         ));
 
@@ -5660,7 +5692,7 @@ mod failure_path_closure {
         let said = diagnose::witnessed("planning refused", truncated_set.completion());
         assert!(said.starts_with("planning refused"));
         assert!(said.contains("the related set was truncated at the declared issue bound"));
-        assert!(said.contains(&crate::plane::RelatedIssueLimit::MAX.to_string()));
+        assert!(said.contains(&crate::diagnostics::RelatedIssueLimit::MAX.to_string()));
     }
 
     /// law: closure.a-capture-refuses-before-a-partial-tree — nesting past the
@@ -5691,7 +5723,7 @@ mod failure_path_closure {
 
         let mut counting = CaptureWalk::declared();
         let mut overran = false;
-        for _ in 0..=u32::try_from(crate::plane::CapturedTreeTokenLimit::MAX).unwrap_or(u32::MAX) {
+        for _ in 0..=u32::try_from(crate::token::CapturedTreeTokenLimit::MAX).unwrap_or(u32::MAX) {
             if counting.took().is_err() {
                 overran = true;
                 break;
@@ -5700,7 +5732,7 @@ mod failure_path_closure {
         assert!(overran);
         assert_eq!(
             usize::try_from(counting.taken()).unwrap_or(usize::MAX),
-            crate::plane::CapturedTreeTokenLimit::MAX
+            crate::token::CapturedTreeTokenLimit::MAX
         );
 
         // Every bound renders itself, so a producer reporting one composes no

@@ -15,7 +15,9 @@ reasons are registered, which is the machine's business, not the plane's.
 ## The seats
 
 `types.rs` declares: the two closed rosters this home states, the pair a
-contradiction stands between, the closed issue set, and the family body.
+contradiction stands between, the closed issue set, the one magnitude row that
+issue set's body is bounded by — meaning, number, and reason on one row, stamped
+through the plane's `limits!` — and the family body.
 The body's one seat is private, and its own child `type_guard.rs` is the
 invariant nucleus that holds every road reaching it: the one-issue seam, the
 co-establishing pass, the bounded seam's own spelling, and the borrow the seat is

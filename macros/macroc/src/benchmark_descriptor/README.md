@@ -33,10 +33,20 @@ Four of those seats are structural statements rather than shapes of convenience.
 the door: a growth class is read off a curve and never off a point, and a row
 measured at one size is a number rather than a class.
 
-**The posture is stated always.** [`ContentionPosture`] is a closed pair with no
-third arm, because a measurement taken with the host to itself and one taken with
-declared competing work present are different measurements — and a measurement
-under an undeclared posture is inadmissible, so "unstated" is not a value.
+**The posture is stated always.** A measurement under an undeclared contention
+posture is inadmissible, and the FIELD is what enforces that: every row states
+the seat, so "unstated" is not a value and never becomes one.
+
+[`ContentionPosture`] itself is a roster of ONE — `NoDeclaredContention` —
+because one arm is all the declared facts support, and a one-arm posture asks the
+author for nothing, so bench sugar forces it and elides it. A contended arm
+returns when the first real contended benchmark arrives carrying the facts its
+payload is designed from: what the competing work is, how much of it, and what
+the measurement reads against. It comes back as `Contended(plan)` over that
+payload, the schema identity moves because the bench member's closed choice grew
+an arm, and that movement is the compatibility mechanism working. A bare arm
+carrying nothing is what stays refused — it would be exactly the undeclared
+measurement this seat exists to rule out, wearing the word meant to rule it out.
 
 **The tolerances are spec, not vibes.** [`DeclaredBudgets`] is a record of three
 named seats rather than a roster of counts, because the schema's roster is
@@ -104,6 +114,6 @@ second body would be a second answer to one question. Its own child
 `type_guard.rs` holds every road that reaches a private seat — a work formula's
 bytes, an axis, a row's observations, a table's rows, the backend spelling, and
 the shell's composition. `type_contract.rs` states the declarative tables: the
-posture's emitted arm spellings, the budget order, and the crossing bill. `plan.rs` reads the plan
+posture's emitted arm spelling, the budget order, and the crossing bill. `plan.rs` reads the plan
 through its public surface. `render.rs` is the token half: the bench table, the
 one-file adapter, and the two typed literals it writes directly.

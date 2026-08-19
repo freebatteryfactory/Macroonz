@@ -5,5 +5,6 @@ mod type_contract;
 mod types;
 
 pub use types::{
-    BoundAxis, ContradictionPair, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue,
+    BoundAxis, ContradictionPair, PlanSeat, PlanningIssueLimit, ProjectionPlanning,
+    ProjectionPlanningIssue,
 };

@@ -1,19 +1,58 @@
 //! The composition home's declarations: the descriptor kinds a provider may
 //! compose, the declared providers themselves, how a root fails to be
-//! declarable, and the root.
+//! declarable, the root, and the two magnitudes this home's capacities are
+//! governed by.
 //!
 //! Declarations only. The roads that reach a private seat — the root's provider
 //! set and the refusal body's one seat — live in `type_guard.rs`, this file's own
 //! child, which is what makes the duplicate-free claim structural rather than
 //! reviewed.
 
-use crate::plane::{
-    DescriptorProviderLimit, DescriptorProviderSubject, OwnerFactRef, OwnerIdentityRef,
-};
+use crate::plane::{DescriptorProviderSubject, OwnerFactRef, OwnerIdentityRef};
 use threadpak::types::NonEmptyBounded;
 
 #[path = "type_guard.rs"]
 mod guard;
+
+// ---------------------------------------------------------------------------
+// The magnitudes.
+//
+// This home's own rows, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on every row below
+// are this home's, declared beside the capacities they govern.
+// ---------------------------------------------------------------------------
+
+crate::plane::limits! {
+    /// The magnitude governing how many descriptor providers one composition
+    /// root may declare.
+    ///
+    /// # Bounds
+    ///
+    /// Sixty-four. The root is the ONE place a global fact's providers are
+    /// declared, so this is how wide the declared surface of a workspace's
+    /// composed descriptors may be — and past sixty-four the root has stopped
+    /// being a list a reader audits in one sitting, which is the whole reason it
+    /// is a declaration rather than a scan.
+    DescriptorProviderLimit = 64,
+    /// The magnitude governing how many issues one composition-root refusal body
+    /// may carry.
+    ///
+    /// # Bounds
+    ///
+    /// Sixty-four — at most one issue per declared provider seat, because the
+    /// duplicate scan establishes one issue about the provider it found and
+    /// never two.
+    ///
+    /// # Nonclaims
+    ///
+    /// It is its own family and not [`DescriptorProviderLimit`], even though the
+    /// two numbers agree and one is sized off the other's seats. That one bounds
+    /// what a root DECLARES; this one bounds what a refused declaration
+    /// CARRIES, and one family standing for both would be one authority
+    /// answering two questions — the day the scan learns a second question per
+    /// seat is the day that would show.
+    CompositionIssueLimit = 64,
+}
 
 /// The closed roster of descriptor kinds a provider may compose.
 ///

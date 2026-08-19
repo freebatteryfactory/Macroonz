@@ -5,6 +5,6 @@ mod type_contract;
 mod types;
 
 pub use types::{
-    TriggerCitations, TriggerOmission, TriggerSelection, TriggerViewComposition, TriggerViewIssue,
-    WrapperTriggerView,
+    SelectionCitationLimit, TriggerCitations, TriggerOmission, TriggerSelection,
+    TriggerViewComposition, TriggerViewIssue, TriggerViewIssueLimit, WrapperTriggerView,
 };

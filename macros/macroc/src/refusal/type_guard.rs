@@ -59,8 +59,8 @@
 pub use seat::ProjectionPlanning;
 
 mod seat {
-    use super::super::{BoundAxis, ProjectionPlanningIssue};
-    use crate::plane::{AuthoringLimitProfile, PlanningIssueLimit};
+    use super::super::{BoundAxis, PlanningIssueLimit, ProjectionPlanningIssue};
+    use crate::plane::AuthoringLimitProfile;
     use threadpak::refusal::{AdmittedPrefix, StopBound};
     use threadpak::types::PositiveLimit;
 

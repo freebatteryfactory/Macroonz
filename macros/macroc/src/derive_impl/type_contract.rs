@@ -6,11 +6,12 @@
 //! There is no LIMIT FAMILY table here, and its absence is the point. The three
 //! magnitudes this home's capacities are governed by — the mutation points one
 //! evaluation surface may admit, the alternatives one point may admit, and the
-//! issues one surface-composition refusal body may carry — stand on the PLANE's
-//! own limit roster, beside every other magnitude the services declare, and the
-//! seats they govern name them by importing them. One roster is what keeps "the
-//! widest magnitude the plane declares" a question with one answer, and a family
-//! declared beside its own seats would be a magnitude that roster cannot see.
+//! issues one surface-composition refusal body may carry — are declared in
+//! `types.rs`, beside the capacities they govern, through the plane's own
+//! `limits!` stamp. That is one declaration per magnitude, in the home that owns
+//! the question, and the seats that stand under them read the family rather than
+//! a number. A table here would be a second reading of those rows, which is
+//! exactly the drift a stamped declaration exists to remove.
 //!
 //! The REFUSAL FAMILY's declared shape: an issue collection, because several
 //! points may be doubled while another claims the control's name, and a caller

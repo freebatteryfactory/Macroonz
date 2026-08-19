@@ -21,8 +21,9 @@
 
 use super::{
     CapturedCause, CapturedDocumentation, CauseOrderStanding, CrateBinding, DEFAULT_CRATE_BINDING,
-    DerivedMembership, DocumentedDeclaration, RefusalCompileContext, RefusalDerivationDraft,
-    RefusalDeriveFact, RefusalDeriveSurface, RefusalFamilyExpansion, RefusalOwnerFacts, RefusalSite,
+    DeriveCauseLimit, DerivedMembership, DocumentedDeclaration, RefusalCompileContext,
+    RefusalDerivationDraft, RefusalDeriveFact, RefusalDeriveSurface, RefusalFamilyExpansion,
+    RefusalOwnerFacts, RefusalSite,
 };
 use crate::closure::{
     ClosedExpansion, ExpansionBindingRefusal, PartitionCargo, ProjectionClosure, RenderedProjection,
@@ -37,8 +38,8 @@ use crate::diagnostics::{
 use crate::explanation_protocol::ProjectionExplanationView;
 use crate::plane::{
     CapturedDeclarationSubject, CapturedTokenLimit, ClosedExpansionId, ContractSubject,
-    DeriveCauseLimit, ProjectionIdentity, ProjectionProvenance, ProjectionRole,
-    ProjectionTranscript, ServiceEntrySubject, encode_bytes,
+    ProjectionIdentity, ProjectionProvenance, ProjectionRole, ProjectionTranscript,
+    ServiceEntrySubject, encode_bytes,
 };
 use crate::planning::{
     DeriveImplProjection, ProjectionDisposition, ProjectionPlan, RenderedImplementation,

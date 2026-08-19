@@ -88,13 +88,13 @@
 //! about a perfectly good enum goes looking for the wrong problem.
 
 use super::types::{
-    CapturedCause, CapturedDocumentation, CrateBinding, DocumentedDeclaration,
+    CapturedCause, CapturedDocumentation, CrateBinding, DeriveCauseLimit, DocumentedDeclaration,
     RefusalDeriveCapture, RefusalDeriveRefusal, RefusalDeriveSurface, RefusalSite,
     SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
 };
 use crate::plane::{
-    AuthoringLimitProfile, CapturedDeclarationSubject, CapturedTokenLimit, DeriveCauseLimit,
-    ProjectionIdentity, ProjectionRole, ProjectionTranscript, encode_length,
+    AuthoringLimitProfile, CapturedDeclarationSubject, CapturedTokenLimit, ProjectionIdentity,
+    ProjectionRole, ProjectionTranscript, encode_length,
 };
 use crate::token::{
     CapturedDelimiter, CapturedInput, CapturedTokenTree, SpanHandle, TextCapture, TextReadCause,

@@ -379,43 +379,15 @@ subjects! {
 
 limits! {
     roster DECLARED_LIMITS;
-    /// Source declarations one plan may name. A plan whose declared cause set
-    /// outgrows this bound refuses rather than narrating a partial cause.
-    SourceDeclarationLimit = 64,
     /// Outputs one plan may declare. The output firewall's bound: a plan
     /// declares its complete output set inside this magnitude or refuses.
     MembershipLimit = 32,
-    /// Invalidation triggers one plan may watch — the trigger roster's own
-    /// cardinality, since one trigger per kind is all that can be watched.
-    InvalidationLimit = 9,
     /// Entries one decision trace may record.
     TraceEntryLimit = 128,
-    /// Origin edges one trail may draw.
-    OriginEdgeLimit = 64,
     /// Nonclaims one plan may state.
     NonclaimLimit = 16,
-    /// Member plans one bundle may hold.
-    BundleMemberLimit = 32,
-    /// Issues one planning refusal body may carry: the roster's cardinality once
-    /// each multi-seat issue is counted per seat — five single-seat issues, the
-    /// missing-fact issue over its one plan seat, the discontinuity issue over
-    /// the one break a trail is refused at, the bound issue over its six axes,
-    /// and the doubled-output issue over the sixteen roles a membership at the
-    /// output magnitude could double.
-    PlanningIssueLimit = 29,
-    /// Issues one explanation-coverage refusal body may carry: each of the
-    /// fourteen questions may be unanswered, answered twice, or answered where
-    /// the kind does not admit it, and no two of those hold of one question at
-    /// once.
-    ExplanationIssueLimit = 14,
-    /// Explanation seats one view may hold — the question roster's cardinality.
-    ExplanationSeatLimit = 14,
     /// Bytes one human projection may carry.
     HumanTextLimit = 512,
-    /// Related issues one diagnostic may point at. A diagnostic projects a
-    /// refusal body issue for issue, so a narrower bound here would make the
-    /// projection drop established issues to fit.
-    RelatedIssueLimit = 64,
     /// Repair actions one diagnostic may carry.
     RepairLimit = 8,
     /// Wrapper components one host-wrapper plan may select.
@@ -427,114 +399,15 @@ limits! {
     /// Facets one documentation projection may cover — the machine's facet
     /// roster is six, and a documentation projection covers a subset of it.
     FacetLimit = 6,
-    /// Typed holes one template may declare, and therefore the bindings one
-    /// application of it may supply: one binding per declared hole, exactly.
-    TemplateParameterLimit = 32,
-    /// Validated input descriptors one bound formula stands over and one
-    /// invocation key commits to.
-    InputDescriptorLimit = 32,
-    /// Declaration fragments one invocation key names as a dependency.
-    FragmentDependencyLimit = 64,
-    /// Axis ceilings one profile ceiling carries — the meta bound-axis
-    /// roster's own cardinality, since a ceiling names each axis exactly once.
-    MetaBoundAxisLimit = 8,
-    /// Issues one template-construction refusal body may carry, sized by the
-    /// widest of the three passes rather than by the narrowest.
-    ///
-    /// The binding pass is that one, and it asks two independent questions per
-    /// declared hole: how many bindings name it, and whether one of them
-    /// disagrees with its declared category. Both can hold of one hole at once,
-    /// so the pass establishes up to two issues per declared parameter, plus one
-    /// unknown-parameter issue per supplied binding — three times the parameter
-    /// magnitude. The hole pass and the ceiling pass are narrower and fit
-    /// inside it.
-    TemplateIssueLimit = 96,
-    /// Owner facts one wrapper-trigger selection or omission may cite.
-    SelectionCitationLimit = 8,
-    /// Issues one trigger-view refusal body may carry — the wrapper-component
-    /// roster's cardinality, since a component is either undisposed or
-    /// doubled and never both.
-    TriggerViewIssueLimit = 8,
-    /// Descriptor providers one composition root may declare.
-    DescriptorProviderLimit = 64,
-    /// Issues one composition-root refusal body may carry — at most one per
-    /// declared provider seat.
-    CompositionIssueLimit = 64,
-    /// Bytes one captured derive surface may carry. Capture reads a declared
-    /// input, and a declared input has a declared magnitude: past this, the
-    /// capture refuses rather than parsing an unbounded body.
-    DeriveSourceLimit = 8192,
-    /// Causes one captured refusal family may declare. Past this the capture
-    /// refuses rather than truncating a family's cause set.
-    DeriveCauseLimit = 64,
     /// Token trees one captured input may carry at any one nesting level. A
     /// declared input has a declared magnitude; past this the capture refuses
     /// rather than walking an unbounded tree.
     CapturedTokenLimit = 4096,
-    /// Steps one token path may carry — how deeply a declared input may nest.
-    /// A level bound alone bounds the WIDTH of each level and nothing about the
-    /// depth, so an input nested a million groups deep satisfies it at every
-    /// level while the walk that reads it does not terminate in any useful time.
-    TokenPathDepthLimit = 32,
-    /// Tokens one captured input may carry ACROSS the whole tree. The level
-    /// bound and the depth bound multiply: four thousand tokens at each of
-    /// thirty-two levels is a tree nobody declared and nobody wants captured, so
-    /// the total is bounded in its own right rather than left as the product of
-    /// two other magnitudes.
-    CapturedTreeTokenLimit = 16384,
-    /// Units of capture work one walk may spend, one unit per examined token.
-    ///
-    /// Wider than the whole-tree magnitude, because a walk may LOOK at more than
-    /// it keeps: a budget at the tree magnitude exactly would refuse a lawful
-    /// input the moment its producer looked twice at anything.
-    /// Four units for every token [`CapturedTreeTokenLimit`] admits, which is
-    /// the room a producer that backtracks over an alternative or skips trivia
-    /// needs and no more.
-    /// That magnitude is the one this number stands over, so the two are moved
-    /// together or not at all: a wider tree under this budget would refuse
-    /// lawful declarations naming a bound they never approached, and this is the
-    /// number that would have to move to keep the tree magnitude reachable.
-    CaptureWorkLimit = 65536,
     /// Bytes one rendered unit may carry. A renderer that would emit past this
     /// refuses rather than materializing part of a unit.
     RenderedByteLimit = 65536,
     /// Tokens one generated token tree may carry at any one nesting level.
     GeneratedTokenLimit = 4096,
-    /// Issues one closure refusal body may carry: at most one per planned member
-    /// seat plus one per unplanned rendered unit, which is twice the membership
-    /// bound. Each pass of the check establishes at most one issue per role and
-    /// refuses before the next pass runs, so the passes do not add up.
-    ClosureIssueLimit = 64,
-    /// Mutation points one evaluation surface may admit.
-    ///
-    /// Sixty-four. What it rules out is a compile-once evaluation copy whose
-    /// selection roster has stopped being reviewable: every point is an arm in
-    /// every other point's `match`, so the rendered copy grows with the square
-    /// of the roster and a reader auditing which damages a surface admits is
-    /// reading a page rather than a list.
-    MutationPointLimit = 64,
-    /// Alternatives one mutation point may admit.
-    ///
-    /// Eight. A point names the admitted damages of ONE operation, and a point
-    /// offering more than eight has stopped being about one operation — the
-    /// repair is a second point at a second activation site, not a wider roster
-    /// at this one.
-    MutationAlternativeLimit = 8,
-    /// Issues one surface-composition refusal body may carry.
-    ///
-    /// Twice the mutation-point magnitude, sized by the widest pass rather than
-    /// the narrowest. That pass is the naming pass, and it asks TWO independent
-    /// questions of every admitted point — whether the point claims the
-    /// no-mutation control's reserved name, and whether it is the second point
-    /// under its own — and both can hold of one point at once. The passes
-    /// themselves do not add up: they are dependent, and each refuses before the
-    /// next one runs.
-    ///
-    /// Written as the number rather than as a product of the family above it: a
-    /// magnitude derived from another magnitude reads as a fact when it is a
-    /// choice, and this number would still be owed if the point magnitude moved
-    /// for its own reasons.
-    SurfaceIssueLimit = 128,
 }
 
 /// A reference to one exact machine identity, tagged by the subject it names.

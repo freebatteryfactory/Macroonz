@@ -18,7 +18,7 @@
 //! is a dependency key; it reads the account through the account's own readings,
 //! so the dependency set has exactly one holder; and it deduplicates, so the
 //! roster's own cardinality — which is what
-//! [`InvalidationLimit`](crate::plane::InvalidationLimit) is declared as — stays
+//! [`InvalidationLimit`](crate::planning::InvalidationLimit) is declared as — stays
 //! the honest bound.
 //!
 //! # Bounds
@@ -301,7 +301,7 @@ impl ProjectionContext {
     /// same capture, so its cause trigger and its graph trigger are the same
     /// trigger.
     /// Listed, that is one kind stated twice — which is what
-    /// [`InvalidationLimit`](crate::plane::InvalidationLimit) is declared to
+    /// [`InvalidationLimit`](crate::planning::InvalidationLimit) is declared to
     /// exclude, since its magnitude IS the trigger roster's cardinality.
     /// A duplicate would also be written twice by the plan transcript's set
     /// encoding, so two plans watching the same identities would carry two plan

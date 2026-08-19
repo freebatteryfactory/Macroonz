@@ -33,16 +33,19 @@ use super::super::render;
 use super::{
     EvaluationBinding, ImplementationSurface, ImplementationSurfaceIssue, ImplementationSurfaces,
     MutationClaimRef, MutationEvaluationSurface, MutationOperation, MutationPoint,
-    MutationPointName, MutationPointTable, NO_MUTATION_NAMESPACE, NO_MUTATION_STEM,
-    NoMutationControl, ProductionSurface, SurfaceDeclarationRefusal, SurfaceParity,
+    MutationPointLimit, MutationPointName, MutationPointTable, NO_MUTATION_NAMESPACE,
+    NO_MUTATION_STEM, NoMutationControl, ProductionSurface, SurfaceDeclarationRefusal,
+    SurfaceParity,
 };
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
-    AuthoringLimitProfile, GeneratedUnitSubject, GeneratorVersionSubject, MutationPointLimit,
-    ProfileVersion, ProjectionIdentity, ProjectionProfileSubject, ProjectionRole,
-    ProjectionTranscript, RenderedRole, RenderedUnitSubject,
+    AuthoringLimitProfile, GeneratedUnitSubject, GeneratorVersionSubject, ProfileVersion,
+    ProjectionIdentity, ProjectionProfileSubject, ProjectionRole, ProjectionTranscript,
+    RenderedRole, RenderedUnitSubject,
 };
-use crate::planning::{CauseAnchoring, DeriveImplProjection, ProjectionPlan, RenderedImplementation};
+use crate::planning::{
+    CauseAnchoring, DeriveImplProjection, ProjectionPlan, RenderedImplementation,
+};
 use crate::token::{GeneratedTree, TokenPath};
 use std::collections::BTreeSet;
 use threadpak::types::{AdmittedLimit, Bounded, ConstLimit, NonEmptyBounded, PositiveLimit};
@@ -655,8 +658,8 @@ fn evaluation_identity(
 pub use seat::ImplementationSurfaceComposition;
 
 mod seat {
-    use super::super::ImplementationSurfaceIssue;
-    use crate::plane::{AuthoringLimitProfile, SurfaceIssueLimit};
+    use super::super::{ImplementationSurfaceIssue, SurfaceIssueLimit};
+    use crate::plane::AuthoringLimitProfile;
     use threadpak::refusal::{AdmittedPrefix, StopBound};
     use threadpak::types::PositiveLimit;
 

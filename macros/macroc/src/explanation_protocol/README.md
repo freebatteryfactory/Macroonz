@@ -43,7 +43,9 @@ agreement. Nothing reads the rendering back.
 
 ## The seats
 
-`types.rs` declares, including the sealed proof contract a view is answered over.
+`types.rs` declares, including the sealed proof contract a view is answered over
+and the two magnitude rows this home's capacities are governed by — meaning,
+number, and reason on one row, stamped through the plane's `limits!`.
 Its own child `type_guard.rs` holds every road that reaches a private field,
 which is what makes "the question comes from the answer" structural — there is no
 seam anywhere that files a true answer under a question somebody supplied — and

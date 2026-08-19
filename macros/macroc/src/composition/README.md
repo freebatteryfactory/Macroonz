@@ -32,7 +32,9 @@ omission and phantom ends bind once the providers themselves exist.
 
 ## The seats
 
-`types.rs` declares. Its own child `type_guard.rs` holds every road that reaches
+`types.rs` declares, including the two magnitude rows this home's capacities are
+governed by — meaning, number, and reason on one row, stamped through the plane's
+`limits!`. Its own child `type_guard.rs` holds every road that reaches
 a private seat — the root's provider set and the refusal body's one seat — which
 is what makes the duplicate-free claim structural: there is no second seam that
 can build a root, so no root exists that the duplicate scan did not run over, and

@@ -9,5 +9,6 @@ mod types;
 pub use establish::kind_admits;
 pub use types::{
     ClosureProofSeal, ExplanationAnswer, ExplanationCoverage, ExplanationCoverageIssue,
-    ProjectionExplanation, ProjectionExplanationView, ProvedClosure,
+    ExplanationIssueLimit, ExplanationSeatLimit, ProjectionExplanation, ProjectionExplanationView,
+    ProvedClosure,
 };

@@ -26,11 +26,12 @@ published in-crate road and not a private one; a home reaching it is using the
 plane's mechanism, not borrowing the plane's authority.
 
 A magnitude belongs on the rows in THIS home when more than one home asks its
-question, and belongs in a semantic home when only that home asks it. Where a row
-here answers a question only one home asks, the row is that home's and the seat
-here is one it has not been moved out of: moving a row is a decision about which
-home owns the question — never an edit, and never something a home does to a
-neighbour's row.
+question, and belongs in a semantic home when only that home asks it. Every row
+still seated here answers a question at least two homes ask; the rows that
+answered one home's question have been moved to that home, carrying their numbers
+and their reasons unchanged. Moving a row is a decision about which home owns the
+question — never an edit, never a renumbering, and never something a home does to
+a neighbour's row.
 
 A magnitude index over the WHOLE crate, if one is ever wanted, is a generated
 projection over the home rows: `limits! { roster NAME; … }` emits one from the

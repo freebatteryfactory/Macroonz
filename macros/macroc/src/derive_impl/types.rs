@@ -1,7 +1,7 @@
 //! The derive-implementation home's declarations: the two surfaces one
 //! implementation meaning is delivered as, the mutation points the evaluation
-//! copy carries, the control that is never absent from it, and the parity
-//! between the two.
+//! copy carries, the control that is never absent from it, the parity between
+//! the two, and the three magnitudes this home's capacities are governed by.
 //!
 //! Declarations only.
 //! Every road that reaches a private field — a name's two parts, an operation's
@@ -14,8 +14,8 @@
 
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
-    GeneratedUnitSubject, GeneratorVersionSubject, MutationAlternativeLimit, MutationPointLimit,
-    ProfileVersion, ProjectionIdentity, ProjectionProfileSubject, RenderedUnitSubject,
+    GeneratedUnitSubject, GeneratorVersionSubject, ProfileVersion, ProjectionIdentity,
+    ProjectionProfileSubject, RenderedUnitSubject,
 };
 use crate::planning::{CauseAnchoring, RenderedImplementation};
 use crate::token::{GeneratedTree, TokenPath};
@@ -23,6 +23,58 @@ use threadpak::types::{Bounded, NonEmptyBounded};
 
 #[path = "type_guard.rs"]
 mod guard;
+
+// ---------------------------------------------------------------------------
+// The magnitudes.
+//
+// This home's own rows, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on every row below
+// are this home's, declared beside the capacities they govern.
+// ---------------------------------------------------------------------------
+
+crate::plane::limits! {
+    /// The magnitude governing how many mutation points one evaluation surface
+    /// may admit.
+    ///
+    /// # Bounds
+    ///
+    /// Sixty-four. What it rules out is a compile-once evaluation copy whose
+    /// selection roster has stopped being reviewable: every point is an arm in
+    /// every other point's `match`, so the rendered copy grows with the square
+    /// of the roster and a reader auditing which damages a surface admits is
+    /// reading a page rather than a list.
+    MutationPointLimit = 64,
+    /// The magnitude governing how many alternatives one mutation point may
+    /// admit.
+    ///
+    /// # Bounds
+    ///
+    /// Eight. A point names the admitted damages of ONE operation, and a point
+    /// offering more than eight has stopped being about one operation — the
+    /// repair is a second point at a second activation site, not a wider roster
+    /// at this one.
+    MutationAlternativeLimit = 8,
+    /// The magnitude governing how many issues one surface-composition refusal
+    /// body may carry.
+    ///
+    /// # Bounds
+    ///
+    /// One hundred and twenty-eight — twice the mutation-point magnitude, sized
+    /// by the WIDEST pass rather than the narrowest. That pass is the naming
+    /// pass, and it asks TWO independent questions of every admitted point —
+    /// whether the point claims the no-mutation control's reserved name, and
+    /// whether it is the second point under its own — and both can hold of one
+    /// point at once. The passes themselves do not add up: they are dependent,
+    /// and each refuses before the next one runs.
+    ///
+    /// # Nonclaims
+    ///
+    /// Written as the number rather than as a product of the family above it: a
+    /// magnitude derived from another magnitude reads as a fact when it is a
+    /// choice, and this number would still be owed if the point magnitude moved
+    /// for its own reasons.
+    SurfaceIssueLimit = 128,
+}
 
 // ---------------------------------------------------------------------------
 // The declaration refusal family.

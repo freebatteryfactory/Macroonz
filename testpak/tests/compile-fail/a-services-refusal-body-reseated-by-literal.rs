@@ -20,7 +20,7 @@
 //! halves closes neither, which is why the two stand together.
 
 use threadpak::refusal::AdmittedPrefix;
-use threadpak_macroc::plane::PlanningIssueLimit;
+use threadpak_macroc::refusal::PlanningIssueLimit;
 use threadpak_macroc::{PlanSeat, ProjectionPlanning, ProjectionPlanningIssue};
 
 fn main() {

@@ -102,8 +102,9 @@ oracle.
 ## The seats
 
 `types.rs` declares, including the two refusal families this home refuses
-through; the three magnitudes its capacities are governed by stand on the plane's
-own limit roster and are named here rather than declared again. Its own child
+through and the three magnitude rows its capacities are governed by — meaning,
+number, and reason on one row, stamped through the plane's `limits!`. Its own
+child
 `type_guard.rs` holds every road that reaches a private seat — a name's parts, an
 operation's tokens, a point's alternatives, the table's control, both surfaces'
 renderings, the parity, and the refusal body — which is what makes the control

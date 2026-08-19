@@ -1,5 +1,6 @@
 //! The refusal-family derive's public types: what was declared, what was
-//! refused, what was planned, and what one closed expansion binds.
+//! refused, what was planned, what one closed expansion binds, and the magnitude
+//! a captured family's cause set is bounded by.
 //!
 //! Declarations only, with two deliberate exceptions.
 //! `refusal_derive_facts!` declares every owner fact this home cites AND the
@@ -12,8 +13,8 @@ use crate::closure::ClosedExpansion;
 use crate::diagnostics::{MachineAnchoring, ObservedClassification};
 use crate::origin_graph::Nonclaim;
 use crate::plane::{
-    CapturedDeclarationSubject, CapturedTokenLimit, DeriveCauseLimit, HumanProjection,
-    HumanTextLimit, NonclaimLimit, OwnerFactRef, ProjectionIdentity, human_projection,
+    CapturedDeclarationSubject, CapturedTokenLimit, HumanProjection, HumanTextLimit, NonclaimLimit,
+    OwnerFactRef, ProjectionIdentity, human_projection,
 };
 use crate::planning::{DeriveImplProjection, ProjectionDisposition};
 use crate::token::{SpanHandle, SpanTable};
@@ -28,6 +29,36 @@ use threadpak::types::Bounded;
 mod guard;
 
 pub use guard::{callable_entry, expected_contract};
+
+// ---------------------------------------------------------------------------
+// The magnitude.
+//
+// This home's own row, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on the row below
+// are this home's, declared beside the capacity it governs.
+// ---------------------------------------------------------------------------
+
+crate::plane::limits! {
+    /// The magnitude governing how many causes one captured refusal family may
+    /// declare.
+    ///
+    /// # Bounds
+    ///
+    /// Sixty-four. A family's causes are the closed set a caller matches on, and
+    /// a family past sixty-four has stopped being one refusal a reader can hold
+    /// — the repair is a second family, not a longer cause list here. Past this
+    /// the capture REFUSES rather than truncating: a family carrying some of its
+    /// causes is a different family, and every contract rendered over it would
+    /// be written about a declaration nobody made.
+    ///
+    /// # Nonclaims
+    ///
+    /// It bounds the DECLARED causes this home reads out of a captured surface,
+    /// and it is not a bound on the token material that surface was read from —
+    /// that is the token seam's four magnitudes, which the capture spends before
+    /// this row is ever consulted.
+    DeriveCauseLimit = 64,
+}
 
 // ---------------------------------------------------------------------------
 // The authored grammar's vocabulary.

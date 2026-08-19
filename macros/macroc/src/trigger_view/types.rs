@@ -1,17 +1,52 @@
 //! The trigger-view home's declarations: what a selection and an omission
-//! carry, how a disposition fails, and the complete view itself.
+//! carry, how a disposition fails, the complete view itself, and the two
+//! magnitudes this home's capacities are governed by.
 //!
 //! Declarations only. Every road that reaches a private field — the view's plan,
 //! its selections, its omissions, and the refusal body's one seat — lives in
 //! `type_guard.rs`, this file's own child, which is what makes exhaustive
 //! disposition structural.
 
-use crate::plane::{OwnerFactRef, PlanId, SelectionCitationLimit, WrapperComponentLimit};
+use crate::plane::{OwnerFactRef, PlanId, WrapperComponentLimit};
 use crate::planning::WrapperComponent;
 use threadpak::types::{Bounded, NonEmptyBounded};
 
 #[path = "type_guard.rs"]
 mod guard;
+
+// ---------------------------------------------------------------------------
+// The magnitudes.
+//
+// This home's own rows, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on every row below
+// are this home's, declared beside the capacities they govern.
+// ---------------------------------------------------------------------------
+
+crate::plane::limits! {
+    /// The magnitude governing how many owner facts one wrapper-trigger
+    /// selection or omission may cite.
+    ///
+    /// # Bounds
+    ///
+    /// Eight. A citation set is the declared reason one component was composed
+    /// or left out, and a disposition standing on more than eight owner facts
+    /// has stopped being one reason a reader can check — the repair is the
+    /// owning home stating the fact the eight amount to, not a wider roster
+    /// here.
+    SelectionCitationLimit = 8,
+    /// The magnitude governing how many issues one trigger-view refusal body may
+    /// carry.
+    ///
+    /// # Bounds
+    ///
+    /// Eight — the wrapper-component roster's own cardinality
+    /// ([`WRAPPER_COMPONENTS`](crate::planning::WRAPPER_COMPONENTS)), because a
+    /// component is either undisposed or doubled and never both, so the pass
+    /// establishes at most one issue per component. It is not a number this home
+    /// chose out of taste: a ninth issue would have to be a ninth COMPONENT, and
+    /// the roster declares eight.
+    TriggerViewIssueLimit = 8,
+}
 
 /// The owner facts one disposition cites — at least one, by shape.
 pub type TriggerCitations = NonEmptyBounded<OwnerFactRef, SelectionCitationLimit>;

@@ -71,8 +71,8 @@ fn refused<R: RenderedRole>(issues: Vec<ClosureIssue<R>>) -> Option<ProjectionCl
 pub use seat::ProjectionClosureRefusal;
 
 mod seat {
-    use super::super::ClosureIssue;
-    use crate::plane::{AuthoringLimitProfile, ClosureIssueLimit, RenderedRole};
+    use super::super::{ClosureIssue, ClosureIssueLimit};
+    use crate::plane::{AuthoringLimitProfile, RenderedRole};
     use threadpak::refusal::{AdmittedPrefix, StopBound};
     use threadpak::types::PositiveLimit;
 

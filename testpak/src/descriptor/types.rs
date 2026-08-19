@@ -1018,11 +1018,12 @@ pub const MUTATION_POINT_FIELDS: &[SchemaField] = &[
 ///
 /// The declared budgets are the gate's own tolerances — sample counts, warmup,
 /// the ratio threshold — declared beside the row so a threshold is spec rather
-/// than a number somebody tuned. The contention posture is a closed pair,
-/// stated always: a measurement taken with the host to itself and a measurement
-/// taken with declared competing work present are different measurements, and
-/// an undeclared posture is inadmissible — which is why there is no third arm
-/// standing for "unstated".
+/// than a number somebody tuned. The contention posture is stated ALWAYS —
+/// a measurement under an undeclared posture is inadmissible, which is why the
+/// field is required and why no arm stands for "unstated". Its closed choice
+/// carries ONE arm today, `no-declared-contention`, because one arm is all the
+/// declared facts support; a contended arm arrives with the first benchmark
+/// that carries the facts a contended payload is designed from.
 ///
 /// The work formula is optional because only some operations declare one; where
 /// one is declared, the gate reads WORK COUNTS against it and wall time is the
@@ -1033,8 +1034,10 @@ pub const MUTATION_POINT_FIELDS: &[SchemaField] = &[
 /// # Nonclaims
 ///
 /// A roster of declared budgets carries counts and states nothing about what a
-/// run spent. Adding an arm to the contention posture moves the derived schema
-/// identity — which is the mechanism, not an accident of it.
+/// run spent. The posture's one arm claims no quiet machine: it says nothing was
+/// DECLARED beside the measurement, which is a fact about a declaration and
+/// never about a host. Adding an arm to the contention posture moves the derived
+/// schema identity — which is the mechanism, not an accident of it.
 pub const BENCH_FIELDS: &[SchemaField] = &[
     SchemaField::declared(
         "workload_identity",
@@ -1055,7 +1058,7 @@ pub const BENCH_FIELDS: &[SchemaField] = &[
     SchemaField::declared("declared_budgets", FieldShape::Count, FieldCardinality::ZeroOrMore),
     SchemaField::declared(
         "contention_posture",
-        FieldShape::ClosedChoice(&["uncontended", "contended"]),
+        FieldShape::ClosedChoice(&["no-declared-contention"]),
         FieldCardinality::ExactlyOne,
     ),
     SchemaField::declared("work_formula", FieldShape::Bytes, FieldCardinality::ZeroOrOne),

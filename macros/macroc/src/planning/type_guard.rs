@@ -20,22 +20,23 @@
 
 use super::super::encode::encode_set;
 use super::{
-    CapturedDependencies, CauseAnchoring, ContentAddressing, DeclaredBootstrap, DigestContract,
-    EmissionPartition, ExpectedGeneratedSupportSchemaId, GraphAnchoring, InvalidationSet,
-    InvalidationTrigger, KindSeal, OwnerContentAccount, PlanDecisions, PlanDerivation,
-    PlannedMember, PlannedMembership, ProjectionBundlePlan, ProjectionContext, ProjectionIntentId,
-    ProjectionKind, ProjectionPlan, SourceDeclarations, TargetBinding, TargetRequirement,
-    UNIVERSAL_QUESTIONS,
+    BundleMemberLimit, CapturedDependencies, CauseAnchoring, ContentAddressing, DeclaredBootstrap,
+    DigestContract, EmissionPartition, ExpectedGeneratedSupportSchemaId, GraphAnchoring,
+    InvalidationLimit, InvalidationSet, InvalidationTrigger, KindSeal, OwnerContentAccount,
+    PlanDecisions, PlanDerivation, PlannedMember, PlannedMembership, ProjectionBundlePlan,
+    ProjectionContext, ProjectionIntentId, ProjectionKind, ProjectionPlan, SourceDeclarationLimit,
+    SourceDeclarations, TargetBinding, TargetRequirement, UNIVERSAL_QUESTIONS,
 };
 use crate::origin_graph::{DecisionTrace, Nonclaim, OriginTrail};
 use crate::plane::{
-    AuthoringLimitProfile, BundleMemberLimit, BundleSubject, CapturedDeclarationSubject,
-    GeneratedUnitSubject, InvalidationLimit, MembershipLimit, NonclaimLimit, OwnerIdentityRef,
-    PlanId, ProjectionIdentity, ProjectionProvenance, ProjectionRole, ProjectionTranscript,
-    RenderedRole, SourceDeclarationLimit, encode_length,
+    AuthoringLimitProfile, BundleSubject, CapturedDeclarationSubject, GeneratedUnitSubject,
+    MembershipLimit, NonclaimLimit, OwnerIdentityRef, PlanId, ProjectionIdentity,
+    ProjectionProvenance, ProjectionRole, ProjectionTranscript, RenderedRole, encode_length,
 };
 use crate::question::ExplanationQuestion;
-use crate::refusal::{BoundAxis, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue};
+use crate::refusal::{
+    BoundAxis, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue,
+};
 use core::marker::PhantomData;
 use threadpak::declaration::DeclarationGraph;
 use threadpak::declaration::types::FragmentIdentityDomain;

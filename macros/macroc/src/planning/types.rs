@@ -2,8 +2,8 @@
 //! the shared context, the output firewall, the destination vocabulary and the
 //! emission roster every destination reads to, the invalidation roster, the
 //! sealed kind roster and its contents, the plan itself, the bundle, the
-//! disposition, and the services' own expectation of the generated-support
-//! schema identity.
+//! disposition, the services' own expectation of the generated-support schema
+//! identity, and the magnitudes this home's own capacities are governed by.
 //!
 //! Declarations only.
 //! Every road that reaches a private field — the account's addressing, the
@@ -12,16 +12,15 @@
 
 use crate::origin_graph::{DecisionTrace, Nonclaim, OriginTrail};
 use crate::plane::{
-    AssumptionLimit, BundleMemberLimit, BundleSubject, ByteRoleSubject, CapturedDeclarationSubject,
-    DerivedTypeSubject, DocumentedSubject, FacetLimit, FixturePopulationSubject,
-    GeneratedUnitSubject, GeneratorVersionSubject, ImplementedContractSubject, InvalidationLimit,
-    MeasuredSubject, MechanismProfileSubject, MembershipLimit, NonclaimLimit, ObligationSubject,
-    OwnerFactRef, OwnerIdentityRef, PatternArgumentLimit, PatternArgumentSubject,
-    PatternInstanceSubject, PatternSubject, PlanId, PortSubject, ProfileVersion,
-    ProjectionIdentity, ProjectionIntentSubject, ProjectionProfileSubject, ProjectionProvenance,
-    ProjectionRole, RenderedRole, SchemaSubject, SoleRenderedUnit, SourceDeclarationLimit,
-    WireContractSubject, WorkCurrencySubject, WorkFormulaSubject, WrapperComponentLimit,
-    static_bytes,
+    AssumptionLimit, BundleSubject, ByteRoleSubject, CapturedDeclarationSubject, DerivedTypeSubject,
+    DocumentedSubject, FacetLimit, FixturePopulationSubject, GeneratedUnitSubject,
+    GeneratorVersionSubject, ImplementedContractSubject, MeasuredSubject, MechanismProfileSubject,
+    MembershipLimit, NonclaimLimit, ObligationSubject, OwnerFactRef, OwnerIdentityRef,
+    PatternArgumentLimit, PatternArgumentSubject, PatternInstanceSubject, PatternSubject, PlanId,
+    PortSubject, ProfileVersion, ProjectionIdentity, ProjectionIntentSubject,
+    ProjectionProfileSubject, ProjectionProvenance, ProjectionRole, RenderedRole, SchemaSubject,
+    SoleRenderedUnit, WireContractSubject, WorkCurrencySubject, WorkFormulaSubject,
+    WrapperComponentLimit, static_bytes,
 };
 use crate::question::ExplanationQuestion;
 use crate::refusal::ProjectionPlanning;
@@ -36,6 +35,56 @@ use threadpak::types::{Bounded, NonEmptyBounded};
 
 #[path = "type_guard.rs"]
 mod guard;
+
+// ---------------------------------------------------------------------------
+// The magnitudes.
+//
+// This home's own rows, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on every row below
+// are this home's, declared beside the capacities they govern.
+// ---------------------------------------------------------------------------
+
+crate::plane::limits! {
+    /// The magnitude governing how many source declarations one plan may name.
+    ///
+    /// # Bounds
+    ///
+    /// Sixty-four. A plan whose declared cause set outgrows this refuses rather
+    /// than narrating a partial cause: a cause list cut to fit is byte-for-byte
+    /// the shape of a complete one, so a reader would take the first
+    /// sixty-four declarations for the whole account of what the plan stands on.
+    SourceDeclarationLimit = 64,
+    /// The magnitude governing how many invalidation triggers one plan may
+    /// watch.
+    ///
+    /// # Bounds
+    ///
+    /// Nine — the trigger roster's own cardinality, because one trigger per kind
+    /// is all that can be watched. It is not a number this home chose out of
+    /// taste: a tenth watched trigger would have to be a tenth KIND of trigger,
+    /// and the roster beside it declares nine.
+    InvalidationLimit = 9,
+    /// The magnitude governing how many member plans one bundle may hold.
+    ///
+    /// # Bounds
+    ///
+    /// Thirty-two. A bundle is what ONE publication boundary stages, checks, and
+    /// materializes as a unit, and a boundary past thirty-two member plans has
+    /// stopped being one publication — the repair is a second bundle, not a
+    /// wider roster here.
+    ///
+    /// # Nonclaims
+    ///
+    /// It is its own family and not [`MembershipLimit`], even though the two
+    /// numbers agree today. That one bounds the outputs ONE PLAN declares; this
+    /// one bounds the plans one publication carries, and one family standing for
+    /// both would be one authority answering two questions. The bound refusal
+    /// both roads raise names [`BoundAxis::Outputs`](crate::refusal::BoundAxis),
+    /// because in both cases what overran is what the road was going to
+    /// materialize — a shared axis in the refusal grammar is not a shared
+    /// magnitude.
+    BundleMemberLimit = 32,
+}
 
 /// What a plan binds itself to at its target end.
 ///

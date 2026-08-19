@@ -26,14 +26,14 @@
 
 use super::super::establish::{binding_issues, ceiling_issues, parameter_issues};
 use super::{
-    ApplicativeDistinctness, AxisCeiling, CheckedMeterPosture, DeclarationTemplate, ProfileCeiling,
-    SpliceCategory, SymbolicBoundFormula, TemplateApplication, TemplateArgument, TemplateBinding,
-    TemplateBindingIssue, TemplateConstructionIssue, TemplateParameter, TemplateSeat,
-    VersionedProfile,
+    ApplicativeDistinctness, AxisCeiling, CheckedMeterPosture, DeclarationTemplate,
+    MetaBoundAxisLimit, ProfileCeiling, SpliceCategory, SymbolicBoundFormula, TemplateApplication,
+    TemplateArgument, TemplateBinding, TemplateBindingIssue, TemplateConstructionIssue,
+    TemplateParameter, TemplateParameterLimit, TemplateSeat, VersionedProfile,
 };
 use crate::plane::{
-    AuthoringLimitProfile, LanguageProfileSubject, MetaBoundAxisLimit, MetaProfileSubject,
-    OwnerIdentityRef, TemplateParameterLimit, TemplateSubject,
+    AuthoringLimitProfile, LanguageProfileSubject, MetaProfileSubject, OwnerIdentityRef,
+    TemplateSubject,
 };
 use threadpak::declaration::Stage;
 use threadpak::types::{AdmittedLimit, Bounded, ConstLimit, NonEmptyBounded, PositiveLimit};
@@ -52,8 +52,8 @@ fn refused(issues: Vec<TemplateConstructionIssue>) -> Option<TemplateConstructio
 pub use seat::TemplateConstruction;
 
 mod seat {
-    use super::super::TemplateConstructionIssue;
-    use crate::plane::{AuthoringLimitProfile, TemplateIssueLimit};
+    use super::super::{TemplateConstructionIssue, TemplateIssueLimit};
+    use crate::plane::AuthoringLimitProfile;
     use threadpak::refusal::{AdmittedPrefix, StopBound};
     use threadpak::types::PositiveLimit;
 

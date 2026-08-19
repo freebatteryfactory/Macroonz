@@ -18,12 +18,15 @@ payload, a **stable [`TokenPath`]** naming exactly where it sits in the tree, an
 an opaque [`SpanHandle`] indexing the producer's own span table. Delimited groups
 stay groups; nothing is re-lexed and no balance is re-discovered.
 
-**Every producer walks under the same declared magnitudes.** Depth, level, and
-whole-tree token count are written down once in the compiler plane's limits
-roster; the capture-work budget is written down on [`CaptureWalk`], the walk that
-spends it. All four are spent by every producer — the compiler shell and the text
-reader alike — so "how big may a declared input be" has one answer rather than
-one per road.
+**Every producer walks under the same declared magnitudes.** Depth, whole-tree
+token count, and the capture-work budget are written down once in THIS home's own
+magnitude rows, beside the capacities they govern; the per-level count is the
+compiler plane's, because the refusal-family derive asks the same question of a
+captured level that this seam does. The capture-work budget is spent through
+[`CaptureWalk`], the walk that holds it, and that seat names the row rather than
+carrying a second copy of the number. All four are spent by every producer — the
+compiler shell and the text reader alike — so "how big may a declared input be"
+has one answer rather than one per road.
 
 Each magnitude bounds the thing it is about, and only that thing. The level
 bounds how wide one nesting level may be, the whole-tree count bounds how many
@@ -66,8 +69,12 @@ the location rail, and deeper span surfaces stay untouched.
 
 ## The seats
 
-`types.rs` declares; its own child `type_guard.rs` holds every road that reaches
-a private field, which is where all four magnitudes are settled. `text.rs` is the
+`types.rs` declares, including the three magnitude rows this seam's own
+capacities are governed by — meaning, number, and reason on one row, stamped
+through the plane's `limits!` — with the per-level row staying the plane's
+because a second home asks it. Its own child `type_guard.rs` holds every road
+that reaches a private field, which is where all four magnitudes are settled.
+`text.rs` is the
 callable text route end to end, `resolve.rs` composes every coordinate the seam
 hands out — a span handle's position and a refused read's byte — `encode.rs`
 writes the canonical bytes, and `inspect.rs` renders what a person is shown.

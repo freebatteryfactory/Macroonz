@@ -21,8 +21,8 @@
 //! testpak's compile-fail fixture.
 
 use super::super::establish::duplicate_issues;
-use super::{CompositionRoot, CompositionRootIssue, DescriptorProvider};
-use crate::plane::{AuthoringLimitProfile, DescriptorProviderLimit};
+use super::{CompositionRoot, CompositionRootIssue, DescriptorProvider, DescriptorProviderLimit};
+use crate::plane::AuthoringLimitProfile;
 use threadpak::types::{ConstLimit, NonEmptyBounded, PositiveLimit};
 
 pub use seat::CompositionRootDeclaration;
@@ -39,8 +39,8 @@ fn refused(issues: Vec<CompositionRootIssue>) -> Option<CompositionRootDeclarati
 }
 
 mod seat {
-    use super::super::CompositionRootIssue;
-    use crate::plane::{AuthoringLimitProfile, CompositionIssueLimit};
+    use super::super::{CompositionIssueLimit, CompositionRootIssue};
+    use crate::plane::AuthoringLimitProfile;
     use threadpak::refusal::{AdmittedPrefix, StopBound};
     use threadpak::types::PositiveLimit;
 

@@ -1,6 +1,7 @@
 //! The explanation-protocol home's declarations: the typed answers, one
 //! answered question, how a view fails to be complete, the sealed proof
-//! contract a view is answered over, and the complete view itself.
+//! contract a view is answered over, the complete view itself, and the two
+//! magnitudes this home's capacities are governed by.
 //!
 //! Declarations only.
 //! Every road that reaches a private field lives in `type_guard.rs`, this
@@ -11,11 +12,10 @@
 use crate::diagnostics::RepairAction;
 use crate::origin_graph::DecisionTrace;
 use crate::plane::{
-    AssumptionLimit, ClosureId, ExplanationId, ExplanationSeatLimit, GeneratedUnitSubject,
-    MembershipLimit, OutputBytesSubject, OwnerFactRef, OwnerIdentityRef, PatternInstanceSubject,
-    PatternSubject, PlanId, ProfileVersion, ProjectionIdentity, ProjectionKindSubject,
-    ProjectionProfileSubject, ProjectionProvenance, RenderedRole, RepairLimit, RuntimeTraceSubject,
-    TraceEntryLimit,
+    AssumptionLimit, ClosureId, ExplanationId, GeneratedUnitSubject, MembershipLimit,
+    OutputBytesSubject, OwnerFactRef, OwnerIdentityRef, PatternInstanceSubject, PatternSubject,
+    PlanId, ProfileVersion, ProjectionIdentity, ProjectionKindSubject, ProjectionProfileSubject,
+    ProjectionProvenance, RenderedRole, RepairLimit, RuntimeTraceSubject, TraceEntryLimit,
 };
 use crate::planning::{
     CauseAnchoring, GraphAnchoring, InvalidationSet, PlannedOutput, ProjectionDisposition,
@@ -27,6 +27,47 @@ use threadpak::types::Bounded;
 
 #[path = "type_guard.rs"]
 mod guard;
+
+// ---------------------------------------------------------------------------
+// The magnitudes.
+//
+// This home's own rows, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on every row below
+// are this home's, declared beside the capacities they govern.
+// ---------------------------------------------------------------------------
+
+crate::plane::limits! {
+    /// The magnitude governing how many explanation seats one view may hold.
+    ///
+    /// # Bounds
+    ///
+    /// Fourteen — the question roster's own cardinality
+    /// ([`ExplanationQuestion`]), because a view holds one answered seat per
+    /// question and a question is answered at most once. It is not a number this
+    /// home chose out of taste: a fifteenth seat would have to be a fifteenth
+    /// QUESTION, and the roster declares fourteen.
+    ExplanationSeatLimit = 14,
+    /// The magnitude governing how many issues one explanation-coverage refusal
+    /// body may carry.
+    ///
+    /// # Bounds
+    ///
+    /// Fourteen, and the same number for a different reason. Each of the
+    /// fourteen questions may be unanswered, answered twice, or answered where
+    /// the kind does not admit it — and no two of those hold of one question at
+    /// once, so the pass establishes at most one issue per question rather than
+    /// three.
+    ///
+    /// # Nonclaims
+    ///
+    /// It is its own family and not [`ExplanationSeatLimit`], even though the
+    /// two numbers agree and both are read off one roster. That one bounds what
+    /// a COMPLETE view holds; this one bounds what a REFUSED coverage body
+    /// carries, and one family standing for both would be one authority
+    /// answering two questions — the day a question becomes establishable two
+    /// ways is the day that would show.
+    ExplanationIssueLimit = 14,
+}
 
 /// The seal on the proved-closure contract.
 ///

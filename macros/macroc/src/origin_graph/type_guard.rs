@@ -10,8 +10,8 @@
 //! inventory is likewise not a value that exists.
 //! There is no other seam in the crate that can produce either one.
 
-use super::{DecisionTrace, OriginEdge, OriginTrail, TraceEntry};
-use crate::plane::{AuthoringLimitProfile, OriginEdgeLimit, TraceEntryLimit};
+use super::{DecisionTrace, OriginEdge, OriginEdgeLimit, OriginTrail, TraceEntry};
+use crate::plane::{AuthoringLimitProfile, TraceEntryLimit};
 use crate::refusal::{BoundAxis, ProjectionPlanning, ProjectionPlanningIssue};
 use threadpak::types::{ConstLimit, NonEmptyBounded, PositiveLimit};
 

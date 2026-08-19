@@ -142,18 +142,47 @@ threadpak::closed_register! {
 threadpak::closed_register! {
     /// The declared contention posture one measurement was taken under.
     ///
-    /// A closed pair, stated ALWAYS. A measurement taken with the host to itself
-    /// and a measurement taken with declared competing work present are different
-    /// measurements, and a measurement under an undeclared posture is
-    /// inadmissible — which is exactly why there is no third arm standing for
-    /// "unstated".
+    /// # Authority
+    ///
+    /// **A measurement under an undeclared posture is inadmissible, and the
+    /// FIELD is what enforces that.** Every bench row states this seat, so there
+    /// is no row whose posture is unstated and no arm standing for "unstated" —
+    /// which is the law, and it holds whatever the roster's width is.
+    ///
+    /// # Bounds
+    ///
+    /// ONE arm, because one arm is all the declared facts support. It is not a
+    /// placeholder and not an absence, on the terms
+    /// [`SoleRenderedUnit`](crate::plane::SoleRenderedUnit) states: a roster of
+    /// one is a roster, and a posture with one arm asks the author for nothing —
+    /// so wherever a row's posture is filled by sugar it is FORCED and ELIDED,
+    /// and an author writes nothing rather than writing the only answer there
+    /// is.
+    ///
+    /// [`NoDeclaredContention`](Self::NoDeclaredContention) says exactly what
+    /// every row this home can render says today: the measurement was taken with
+    /// no competing work DECLARED beside it. Nothing here claims the host was
+    /// quiet — that is a fact about a machine, and this is a fact about a
+    /// declaration.
+    ///
+    /// # The opening condition
+    ///
+    /// The contended arm returns when the first real contended benchmark arrives
+    /// CARRYING THE FACTS its payload is designed from — what the competing work
+    /// is, how much of it, and what the measurement is read against. It comes
+    /// back as `Contended(plan)` over that payload, at the moment there is a
+    /// declaration to design one from, and the schema identity moves then
+    /// because the bench member's closed choice grew an arm. That movement is
+    /// the compatibility mechanism working rather than a cost to route around.
+    ///
+    /// What is refused in the meantime is the EMPTY arm: a bare `Contended`
+    /// carrying nothing is a posture a row can state without declaring anything,
+    /// which is the undeclared measurement this seat exists to make
+    /// inadmissible, wearing the word that was supposed to rule it out.
     pub enum ContentionPosture {
-        /// The host was measured with no declared competing work present.
-        Uncontended = "uncontended",
-            "measured with the host to itself";
-        /// The host was measured with declared competing work present.
-        Contended = "contended",
-            "measured with declared competing work present";
+        /// The measurement was taken with no competing work declared beside it.
+        NoDeclaredContention = "no-declared-contention",
+            "measured with no declared competing work present";
     }
 }
 
@@ -224,6 +253,11 @@ pub struct BenchMeasurement {
     /// The gate's declared tolerances.
     pub budgets: DeclaredBudgets,
     /// The declared contention posture.
+    ///
+    /// Required, and required is the point: the inadmissibility law lives on
+    /// this FIELD rather than on the roster's width, so a measurement whose
+    /// posture is unstated stays unrepresentable however many arms the posture
+    /// admits.
     pub contention: ContentionPosture,
     /// The declared work formula, where the operation states one.
     ///

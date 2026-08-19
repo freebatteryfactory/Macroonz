@@ -45,7 +45,8 @@
 //! while their routes differ.
 
 use threadpak::types::ConstLimit;
-use threadpak_macroc::plane::{CapturedTokenLimit, CapturedTreeTokenLimit, TokenPathDepthLimit};
+use threadpak_macroc::plane::CapturedTokenLimit;
+use threadpak_macroc::token::{CapturedTreeTokenLimit, TokenPathDepthLimit};
 use threadpak_macroc::{
     CaptureBound, CaptureWalk, CapturedInput, CapturedPayload, CapturedTokenTree, SpanHandle,
     TextCapture, TextCompileRefusal, TextReadCause, TokenPath, compile_refusal_text,

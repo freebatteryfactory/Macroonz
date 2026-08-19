@@ -15,13 +15,11 @@
 use super::super::encode::{encode_captured, encode_generated};
 use super::super::inspect::inspect_token;
 use super::{
-    CaptureBound, CaptureWalk, CapturedDelimiter, CapturedInput, CapturedPayload,
-    CapturedTokenTree, GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree,
-    SpanHandle, TokenPath,
+    CaptureBound, CaptureWalk, CaptureWorkLimit, CapturedDelimiter, CapturedInput, CapturedPayload,
+    CapturedTokenTree, CapturedTreeTokenLimit, GeneratedDelimiter, GeneratedSpacing, GeneratedToken,
+    GeneratedTree, SpanHandle, TokenPath,
 };
-use crate::plane::{
-    AuthoringLimitProfile, CaptureWorkLimit, CapturedTokenLimit, CapturedTreeTokenLimit,
-};
+use crate::plane::{AuthoringLimitProfile, CapturedTokenLimit};
 use threadpak::types::{AdmittedLimit, Bounded, BoundedConstruction, ConstLimit};
 
 impl SpanHandle {
@@ -89,12 +87,12 @@ impl CaptureWalk {
     ///
     /// # Bounds
     ///
-    /// [`CaptureWorkLimit`] is the family that declares it, beside the tree
-    /// magnitude it stands over and under the same admitting ceiling; the number
-    /// itself and the relation that justifies it are stated there, where every
-    /// magnitude in the plane is stated.
+    /// [`CaptureWorkLimit`] is the family that declares it, in this home's own
+    /// magnitude rows and beside the tree magnitude it stands over; the number
+    /// itself and the relation that justifies it are stated there, where the
+    /// capacity it governs is declared.
     /// This seat NAMES that family and holds no second copy of its number: a
-    /// budget written here as well would agree with the roster until one of them
+    /// budget written here as well would agree with the row until one of them
     /// was moved.
     ///
     /// It is read at the counter width the walk holds

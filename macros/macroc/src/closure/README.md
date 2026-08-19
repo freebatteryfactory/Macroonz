@@ -90,7 +90,9 @@ the machine already owns; the terminal here is a closed expansion and carries
 
 ## The seats
 
-`types.rs` declares; its own child `type_guard.rs` takes the digests, owns the
+`types.rs` declares, including the one magnitude row this home's refusal body is
+bounded by — meaning, number, and reason on one row, stamped through the plane's
+`limits!`; its own child `type_guard.rs` takes the digests, owns the
 partitioning and the joins, builds the proof, builds the closed expansion, and
 builds the refusal body, which is what keeps every one of those roads unreachable
 from anywhere else. `prove.rs` is the per-role pass those roads consume, reaching

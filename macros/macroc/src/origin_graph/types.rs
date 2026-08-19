@@ -1,6 +1,6 @@
 //! The origin-graph home's declarations: the settled relations an edge may stand
 //! for, the edges and the trail they walk, what the plane decided and on whose
-//! fact, and what a plan leaves unclaimed.
+//! fact, what a plan leaves unclaimed, and the magnitude a trail is drawn under.
 //!
 //! Declarations only.
 //! Every road that reaches a private field — the trail's edges, the trace's
@@ -9,13 +9,34 @@
 //! that can draw a trail.
 
 use crate::plane::{
-    NonclaimSubject, OriginEdgeLimit, OriginNodeSubject, OwnerFactRef, ProjectionIdentity,
-    TraceEntryLimit, TracedSubject,
+    NonclaimSubject, OriginNodeSubject, OwnerFactRef, ProjectionIdentity, TraceEntryLimit,
+    TracedSubject,
 };
 use threadpak::types::NonEmptyBounded;
 
 #[path = "type_guard.rs"]
 mod guard;
+
+// ---------------------------------------------------------------------------
+// The magnitude.
+//
+// This home's own row, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on the row below
+// are this home's, declared beside the capacity it governs.
+// ---------------------------------------------------------------------------
+
+crate::plane::limits! {
+    /// The magnitude governing how many origin edges one trail may draw.
+    ///
+    /// # Bounds
+    ///
+    /// Sixty-four. A trail is the end-to-end walk from a generated unit back to
+    /// the authored material, one edge per act that stands between them, and a
+    /// walk longer than sixty-four acts has stopped being provenance a reader
+    /// can follow. A trail that does not fit refuses rather than truncating,
+    /// because a truncated walk is how an origin silently becomes a span.
+    OriginEdgeLimit = 64,
+}
 
 threadpak::closed_register! {
     /// The closed roster of origin relations — the settled categories an edge may

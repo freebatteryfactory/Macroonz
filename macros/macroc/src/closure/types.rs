@@ -1,7 +1,8 @@
 //! The closure home's declarations: what a renderer materialized, how a
 //! rendering and its plan can disagree, the proof that they do not, the
-//! partitioned emission that proof produces, and the closed expansion every
-//! projection kind's road ends at.
+//! partitioned emission that proof produces, the closed expansion every
+//! projection kind's road ends at, and the magnitude a closure refusal body is
+//! bounded by.
 //!
 //! Declarations only.
 //! Every road that reaches a private field lives in `type_guard.rs`, this
@@ -25,6 +26,35 @@ use threadpak::types::{Bounded, NonEmptyBounded};
 
 #[path = "type_guard.rs"]
 mod guard;
+
+// ---------------------------------------------------------------------------
+// The magnitude.
+//
+// This home's own row, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on the row below
+// are this home's, declared beside the capacity it governs.
+// ---------------------------------------------------------------------------
+
+crate::plane::limits! {
+    /// The magnitude governing how many issues one closure refusal body may
+    /// carry.
+    ///
+    /// # Bounds
+    ///
+    /// Sixty-four: at most one issue per planned member seat, plus one per
+    /// unplanned rendered unit — twice the membership magnitude, because those
+    /// are the two ways a rendering and its plan can disagree about one role.
+    /// Each pass of the check establishes at most one issue per role and refuses
+    /// before the next pass runs, so the passes do not add up.
+    ///
+    /// # Nonclaims
+    ///
+    /// It is written as the number rather than as a product of
+    /// [`MembershipLimit`]: a magnitude derived from another magnitude reads as
+    /// a fact when it is a choice, and this number would still be owed if the
+    /// membership magnitude moved for its own reasons.
+    ClosureIssueLimit = 64,
+}
 
 /// How one rendering failed to materialize a unit at all.
 ///

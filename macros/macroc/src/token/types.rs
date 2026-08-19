@@ -5,14 +5,72 @@
 //! Declarations only.
 //! The roads that reach a private field live in `type_guard.rs`, this file's
 //! own child, which is where all four declared magnitudes are settled.
+//!
+//! Three of those four are declared BELOW, because only this seam asks what they
+//! bound; the per-level magnitude is the compiler plane's, because the
+//! refusal-family derive asks it too.
 
-use crate::plane::{
-    CapturedTokenLimit, CapturedTreeTokenLimit, GeneratedTokenLimit, TokenPathDepthLimit,
-};
+use crate::plane::{CapturedTokenLimit, GeneratedTokenLimit};
 use threadpak::types::Bounded;
 
 #[path = "type_guard.rs"]
 mod guard;
+
+// ---------------------------------------------------------------------------
+// The magnitudes.
+//
+// This home's own rows, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on every row below
+// are this home's, declared beside the capacities they govern.
+// ---------------------------------------------------------------------------
+
+crate::plane::limits! {
+    /// The magnitude governing how many steps one token path may carry — how
+    /// deeply a declared input may nest.
+    ///
+    /// # Bounds
+    ///
+    /// Thirty-two. A level bound alone bounds the WIDTH of each level and
+    /// nothing about the depth, so an input nested a million groups deep
+    /// satisfies it at every level while the walk that reads it does not
+    /// terminate in any useful time. A route that would run past this refuses
+    /// rather than saturating: a saturated depth makes two different tokens
+    /// share one route.
+    TokenPathDepthLimit = 32,
+    /// The magnitude governing how many tokens one captured input may carry
+    /// ACROSS the whole tree.
+    ///
+    /// # Bounds
+    ///
+    /// Sixteen thousand three hundred and eighty-four. The level bound and the
+    /// depth bound MULTIPLY: four thousand tokens at each of thirty-two levels
+    /// is a tree nobody declared and nobody wants captured, so the total is
+    /// bounded in its own right rather than left as the product of two other
+    /// magnitudes.
+    ///
+    /// A producer's span table stands under this magnitude too — one entry per
+    /// handle it issued, across every level at once — because a table is not a
+    /// level.
+    CapturedTreeTokenLimit = 16384,
+    /// The magnitude governing how many units of capture work one walk may
+    /// spend, one unit per examined token.
+    ///
+    /// # Bounds
+    ///
+    /// Sixty-five thousand five hundred and thirty-six, and DELIBERATELY wider
+    /// than the whole-tree magnitude: a walk may LOOK at more than it keeps, and
+    /// a budget at the tree magnitude exactly would refuse a lawful input the
+    /// moment its producer looked twice at anything.
+    ///
+    /// Four units for every token [`CapturedTreeTokenLimit`] admits, which is
+    /// the room a producer that backtracks over an alternative or skips trivia
+    /// needs and no more. That magnitude is the one this number stands over, so
+    /// the two are moved together or not at all: a wider tree under this budget
+    /// would refuse lawful declarations naming a bound they never approached,
+    /// and this is the number that would have to move to keep the tree magnitude
+    /// reachable. The two rows sit side by side here for exactly that reason.
+    CaptureWorkLimit = 65536,
+}
 
 /// An opaque index into the producer's span table.
 ///

@@ -1,6 +1,7 @@
 //! The refusal home's declarations: the bound axes a plan can overrun, the plan
-//! seats a fact can be missing from, the closed planning issue set, and the
-//! family body they travel in.
+//! seats a fact can be missing from, the closed planning issue set, the
+//! magnitude a body of those issues is bounded by, and the family body they
+//! travel in.
 //!
 //! Declarations only.
 //! The body itself is DECLARED in `type_guard.rs`'s `seat` module — this file's
@@ -25,6 +26,34 @@ use crate::plane::{
 
 #[path = "type_guard.rs"]
 mod guard;
+
+// ---------------------------------------------------------------------------
+// The magnitude.
+//
+// This home's own row, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on the row below
+// are this home's, declared beside the capacity it governs.
+// ---------------------------------------------------------------------------
+
+crate::plane::limits! {
+    /// The magnitude governing how many issues one planning refusal body may
+    /// carry.
+    ///
+    /// # Bounds
+    ///
+    /// Twenty-nine — the closed issue roster's own cardinality once each
+    /// multi-seat issue is counted PER SEAT, because a body carries at most one
+    /// issue per seat a pass can establish one at. Five single-seat issues, the
+    /// missing-fact issue over its one plan seat, the discontinuity issue over
+    /// the one break a trail is refused at, the bound issue over its six axes,
+    /// and the doubled-output issue over the sixteen roles a membership at the
+    /// output magnitude could double.
+    ///
+    /// It is not a number chosen for room: a thirtieth issue would have to be a
+    /// thirtieth establishable seat, which is a change to the roster below
+    /// rather than to this magnitude.
+    PlanningIssueLimit = 29,
+}
 
 threadpak::closed_register! {
     /// The plan's declared bound axes.

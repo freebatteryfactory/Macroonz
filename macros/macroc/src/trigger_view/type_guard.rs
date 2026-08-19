@@ -39,8 +39,8 @@ fn refused(issues: Vec<TriggerViewIssue>) -> Option<TriggerViewComposition> {
 pub use seat::TriggerViewComposition;
 
 mod seat {
-    use super::super::TriggerViewIssue;
-    use crate::plane::{AuthoringLimitProfile, TriggerViewIssueLimit};
+    use super::super::{TriggerViewIssue, TriggerViewIssueLimit};
+    use crate::plane::AuthoringLimitProfile;
     use threadpak::refusal::{AdmittedPrefix, StopBound};
     use threadpak::types::PositiveLimit;
 

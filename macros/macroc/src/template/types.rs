@@ -1,5 +1,6 @@
 //! The template home's declarations: category-typed holes, the three locks, the
-//! template and its application, and the semantic invocation key.
+//! template and its application, the semantic invocation key, and the five
+//! magnitudes this home's capacities are governed by.
 //!
 //! Declarations only. Every road that reaches a private field lives in
 //! `type_guard.rs`, this file's own child, which is what makes a cross-category
@@ -8,10 +9,9 @@
 
 use crate::origin_graph::Nonclaim;
 use crate::plane::{
-    ApplicationDistinctnessSubject, BoundFormulaSubject, FragmentDependencyLimit,
-    InputDescriptorLimit, InputDescriptorSubject, LanguageProfileSubject, MetaBoundAxisLimit,
-    MetaProfileSubject, OwnerFactRef, OwnerIdentityRef, ProfileVersion, SourceSnapshotSubject,
-    TemplateArgumentSubject, TemplateParameterLimit, TemplateParameterSubject, TemplateSubject,
+    ApplicationDistinctnessSubject, BoundFormulaSubject, InputDescriptorSubject,
+    LanguageProfileSubject, MetaProfileSubject, OwnerFactRef, OwnerIdentityRef, ProfileVersion,
+    SourceSnapshotSubject, TemplateArgumentSubject, TemplateParameterSubject, TemplateSubject,
 };
 use threadpak::declaration::Stage;
 use threadpak::declaration::types::{FragmentIdentityDomain, ProjectionConfigurationDomain};
@@ -19,6 +19,81 @@ use threadpak::types::{Bounded, NonEmptyBounded};
 
 #[path = "type_guard.rs"]
 mod guard;
+
+// ---------------------------------------------------------------------------
+// The magnitudes.
+//
+// This home's own rows, stamped by the plane's magnitude stamp. The stamp is the
+// plane's mechanism; the meaning, the number, and the reason on every row below
+// are this home's, declared beside the capacities they govern.
+// ---------------------------------------------------------------------------
+
+crate::plane::limits! {
+    /// The magnitude governing how many typed holes one template may declare —
+    /// and therefore how many bindings one application of it may supply, since a
+    /// complete application binds one commitment per declared hole, exactly.
+    ///
+    /// # Bounds
+    ///
+    /// Thirty-two. Every hole is a category-typed seat an application must fill
+    /// and a reader must hold at once, and a template past thirty-two holes has
+    /// stopped being one declaration shape — the repair is a template that takes
+    /// an assembled fragment, not a longer hole roster here.
+    TemplateParameterLimit = 32,
+    /// The magnitude governing how many validated input descriptors one bound
+    /// formula stands over and one invocation key commits to.
+    ///
+    /// # Bounds
+    ///
+    /// Thirty-two. The descriptors are the population a meta evaluation ranges
+    /// over, and they enter an invocation key's commitment: a key committing to
+    /// more than thirty-two is a key nobody can read back against the
+    /// declaration it stands for.
+    ///
+    /// # Nonclaims
+    ///
+    /// It is its own family and not [`TemplateParameterLimit`], even though the
+    /// two numbers agree today. That one bounds the HOLES a template declares;
+    /// this one bounds the descriptors an evaluation ranges over, and one family
+    /// standing for both would be one authority answering two questions.
+    InputDescriptorLimit = 32,
+    /// The magnitude governing how many declaration fragments one invocation key
+    /// names as a dependency.
+    ///
+    /// # Bounds
+    ///
+    /// Sixty-four. A key's dependency set is what the invocation stands on, and
+    /// it is written whole into the key's own commitment: a key that named more
+    /// than sixty-four fragments would be committing to a graph rather than to
+    /// an invocation.
+    FragmentDependencyLimit = 64,
+    /// The magnitude governing how many axis ceilings one profile ceiling
+    /// carries.
+    ///
+    /// # Bounds
+    ///
+    /// Eight — the meta bound-axis roster's own cardinality
+    /// ([`META_BOUND_AXES`]), because a complete ceiling names each axis exactly
+    /// once. It is not a number this home chose out of taste: a ninth ceiling
+    /// would have to be a ninth AXIS, and the roster declares eight.
+    MetaBoundAxisLimit = 8,
+    /// The magnitude governing how many issues one template-construction refusal
+    /// body may carry.
+    ///
+    /// # Bounds
+    ///
+    /// Ninety-six, sized by the WIDEST of the three passes rather than by the
+    /// narrowest.
+    ///
+    /// The binding pass is that one, and it asks two independent questions per
+    /// declared hole: how many bindings name it, and whether one of them
+    /// disagrees with its declared category. Both can hold of one hole at once,
+    /// so the pass establishes up to two issues per declared parameter, plus one
+    /// unknown-parameter issue per supplied binding — three times the parameter
+    /// magnitude. The hole pass and the ceiling pass are narrower and fit inside
+    /// it.
+    TemplateIssueLimit = 96,
+}
 
 // ---------------------------------------------------------------------------
 // Category-typed holes.
