@@ -34,7 +34,10 @@ two reports.
 Three vocabularies ride beside the spine without being spine nouns: the
 Invocation (both engine calls take it; Selection remains its own argument),
 the TableView (the one sealed read surface an authored table and a staged
-candidate view share), and the identity family (`src/report/` owns it). Six
+candidate view share), and the identity family (`src/report/` owns it; the
+derivation SUBSTRATE — the one domain-separated profile every identity
+kind derives through — is root-admitted at `src/identity.rs` as generic
+mechanism, so no instrument grows an identity island). Six
 seats feed the spine: `generate/` (populations into rows), the depots and
 the error bank (facts into rows and diagnostics), `fault/` (adversity values
 into campaigns), `corpus/` (warm starts into the fuzz lane), the benches

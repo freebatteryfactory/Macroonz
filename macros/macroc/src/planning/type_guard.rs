@@ -5,29 +5,40 @@
 //! The output firewall is here: a membership's members are unreachable except
 //! through the roads below, so a plan's declared output set is whatever one of
 //! them admitted and nothing else.
+//! The entry account is here for the same reason: its addressing is unreachable
+//! except through the roads below, so the ONE account of owner content is
+//! whatever walked in one of these doors, and the four readings all read it.
 //! The total structural constructors — [`PlannedMembership::complete`] and the
 //! one-member roads — carry no refusal at all, because a set fixed by a shape has
 //! no runtime count to read and therefore no error branch for a caller to fill
 //! with a shorter set.
+//!
+//! The services' expectation of the generated-support schema identity is here
+//! too, and it has NO public constructor: the only value of that type anybody
+//! outside this crate can reach is the checked-in constant, which is exactly the
+//! independence the two-sided pin is made of.
 
 use super::super::encode::encode_set;
 use super::{
-    DigestContract, GraphAnchoring, InvalidationSet, InvalidationTrigger, KindSeal, PlanDerivation,
-    PlannedMember, PlannedMembership, ProjectionBundlePlan, ProjectionContext, ProjectionKind,
-    ProjectionPlan, SourceDeclarations, TargetBinding, TargetRequirement, UNIVERSAL_QUESTIONS,
+    CapturedDependencies, CauseAnchoring, ContentAddressing, DeclaredBootstrap, DigestContract,
+    ExpectedGeneratedSupportSchemaId, GraphAnchoring, InvalidationSet, InvalidationTrigger,
+    KindSeal, OwnerContentAccount, PlanDerivation, PlannedMember, PlannedMembership,
+    ProjectionBundlePlan, ProjectionContext, ProjectionIntentId, ProjectionKind, ProjectionPlan,
+    SourceDeclarations, TargetBinding, TargetRequirement, UNIVERSAL_QUESTIONS,
 };
 use crate::origin_graph::{DecisionTrace, Nonclaim, OriginTrail};
 use crate::plane::{
-    AuthoringLimitProfile, BundleMemberLimit, BundleSubject, GeneratedUnitSubject,
-    InvalidationLimit, MembershipLimit, NonclaimLimit, OwnerIdentityRef, PlanId,
-    ProjectionIdentity, ProjectionProvenance, ProjectionRole, ProjectionTranscript, RenderedRole,
-    SourceDeclarationLimit, encode_bytes, encode_length,
+    AuthoringLimitProfile, BundleMemberLimit, BundleSubject, CapturedDeclarationSubject,
+    GeneratedUnitSubject, InvalidationLimit, MembershipLimit, NonclaimLimit, OwnerIdentityRef,
+    PlanId, ProjectionIdentity, ProjectionProvenance, ProjectionRole, ProjectionTranscript,
+    RenderedRole, SourceDeclarationLimit, encode_length,
 };
 use crate::question::ExplanationQuestion;
 use crate::refusal::{BoundAxis, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue};
+use core::marker::PhantomData;
 use threadpak::declaration::DeclarationGraph;
 use threadpak::declaration::types::FragmentIdentityDomain;
-use threadpak::types::{Bounded, ConstLimit, NonEmptyBounded, PositiveLimit};
+use threadpak::types::{AdmittedLimit, Bounded, ConstLimit, NonEmptyBounded, PositiveLimit};
 
 impl ProjectionContext {
     /// Read the machine's own closed-graph commitment into the plane.
@@ -38,30 +49,69 @@ impl ProjectionContext {
     pub fn graph_of(graph: &DeclarationGraph) -> GraphAnchoring {
         GraphAnchoring::ClosedGraph(OwnerIdentityRef::of_commitment(graph.linked()))
     }
+}
 
-    /// The one-declaration cause set. Total: one cause always fits.
+impl ContentAddressing {
+    /// The ONE address this addressing names, whichever posture it stands under.
+    ///
+    /// The one place the posture is turned into an address, so the account's
+    /// reading, the plan's anchor, and the canonical encoding all take the same
+    /// answer from the same road rather than three matches that agree until one
+    /// of them is edited.
     #[must_use]
-    pub fn one_source(first: OwnerIdentityRef<FragmentIdentityDomain>) -> SourceDeclarations {
-        NonEmptyBounded::singleton(first)
+    pub const fn commitment(&self) -> CauseAnchoring {
+        match self {
+            Self::Linked { commitment, .. } => CauseAnchoring::Declaration(*commitment),
+            Self::Captured { commitment, .. } => CauseAnchoring::CapturedDeclaration(*commitment),
+        }
     }
 
-    /// Name several declarations as the cause of one plan.
+    /// How many commitments this addressing declares its content stands on.
+    #[must_use]
+    pub fn dependency_count(&self) -> usize {
+        match self {
+            Self::Linked { dependencies, .. } => dependencies.len(),
+            Self::Captured { dependencies, .. } => dependencies.len(),
+        }
+    }
+}
+
+impl<K: ProjectionKind> OwnerContentAccount<K> {
+    /// The linked account of content that stands on nothing.
+    ///
+    /// Total: the empty dependency set fits every declared magnitude, so there
+    /// is no count to read and no refusal to return.
+    /// Content that stands on nothing is a stated fact and not an absence — the
+    /// account is required either way, and a caller with no dependencies still
+    /// walks in one door rather than skipping the door.
+    #[must_use]
+    pub fn linked(commitment: OwnerIdentityRef<FragmentIdentityDomain>) -> Self {
+        Self {
+            addressing: ContentAddressing::Linked {
+                commitment,
+                dependencies: Bounded::empty(),
+            },
+            kind: PhantomData,
+        }
+    }
+
+    /// The linked account, over the dependency set the OWNER declared.
     ///
     /// # Errors
     ///
     /// Returns the planning family naming [`BoundAxis::Declarations`] when the
-    /// cause set outgrows the declared bound.
-    /// A partial cause set is refused, not trimmed: an explanation that names
-    /// some of its causes is wrong about all of them.
-    pub fn declared_sources(
-        first: OwnerIdentityRef<FragmentIdentityDomain>,
-        rest: Vec<OwnerIdentityRef<FragmentIdentityDomain>>,
-    ) -> Result<SourceDeclarations, ProjectionPlanning> {
-        let observed = rest.len().saturating_add(1);
-        NonEmptyBounded::admitted_const(
-            first,
-            rest,
-            &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
+    /// declared dependency set outgrows the source-declaration magnitude.
+    /// A partial dependency set is refused, not trimmed: an account that names
+    /// some of what its content stands on is wrong about all of it, and every
+    /// one of the four readings would then be reading a shorter world.
+    pub fn linked_over(
+        commitment: OwnerIdentityRef<FragmentIdentityDomain>,
+        dependencies: Vec<OwnerIdentityRef<FragmentIdentityDomain>>,
+    ) -> Result<Self, ProjectionPlanning> {
+        let observed = dependencies.len();
+        let dependencies: SourceDeclarations = Bounded::admitted_const(
+            dependencies,
+            &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
         )
         .map_err(|_| {
             ProjectionPlanning::bound_exceeded(
@@ -69,7 +119,154 @@ impl ProjectionContext {
                 SourceDeclarationLimit::MAX,
                 observed,
             )
+        })?;
+        Ok(Self {
+            addressing: ContentAddressing::Linked {
+                commitment,
+                dependencies,
+            },
+            kind: PhantomData,
         })
+    }
+
+    /// The expansion-time account of captured content that stands on nothing.
+    ///
+    /// Total, on the same terms as [`OwnerContentAccount::linked`].
+    #[must_use]
+    pub fn captured(commitment: ProjectionIdentity<CapturedDeclarationSubject>) -> Self {
+        Self {
+            addressing: ContentAddressing::Captured {
+                commitment,
+                dependencies: Bounded::empty(),
+            },
+            kind: PhantomData,
+        }
+    }
+
+    /// The expansion-time account, over the captures the owner declared it
+    /// stands on.
+    ///
+    /// # Errors
+    ///
+    /// Returns the planning family naming [`BoundAxis::Declarations`] when the
+    /// declared dependency set outgrows the source-declaration magnitude, on the
+    /// same terms as [`OwnerContentAccount::linked_over`].
+    pub fn captured_over(
+        commitment: ProjectionIdentity<CapturedDeclarationSubject>,
+        dependencies: Vec<ProjectionIdentity<CapturedDeclarationSubject>>,
+    ) -> Result<Self, ProjectionPlanning> {
+        let observed = dependencies.len();
+        let dependencies: CapturedDependencies = Bounded::admitted_const(
+            dependencies,
+            &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
+        )
+        .map_err(|_| {
+            ProjectionPlanning::bound_exceeded(
+                BoundAxis::Declarations,
+                SourceDeclarationLimit::MAX,
+                observed,
+            )
+        })?;
+        Ok(Self {
+            addressing: ContentAddressing::Captured {
+                commitment,
+                dependencies,
+            },
+            kind: PhantomData,
+        })
+    }
+
+    /// What this content is addressed by, and what it declares it stands on.
+    ///
+    /// The one road to both seats, borrowed: the account is read by everything
+    /// and rewritten by nothing.
+    #[must_use]
+    pub const fn addressing(&self) -> &ContentAddressing {
+        &self.addressing
+    }
+
+    /// The ONE address the owner supplied at the door.
+    ///
+    /// The reading a plan's anchor, its explanation's causing-declaration
+    /// answer, and its cause trigger are all taken from — one value, read three
+    /// times, rather than three seats that could disagree.
+    #[must_use]
+    pub const fn commitment(&self) -> CauseAnchoring {
+        self.addressing.commitment()
+    }
+
+    /// How many commitments this content declares it stands on.
+    ///
+    /// Read by the watch derivation, which compares it against what the trigger
+    /// roster can represent and refuses where the two disagree.
+    #[must_use]
+    pub fn dependency_count(&self) -> usize {
+        self.addressing.dependency_count()
+    }
+
+    /// How many commitments a watch set over this account would have to cover:
+    /// the content's own, plus every commitment it stands on.
+    ///
+    /// One number, so the derivation that compares it against the roster's
+    /// capacity and the refusal that reports it cannot disagree about what was
+    /// counted.
+    #[must_use]
+    pub fn watched_commitment_count(&self) -> usize {
+        self.dependency_count().saturating_add(1)
+    }
+
+    /// What was MEANT: the kind and the commitment, as the pair that means it.
+    #[must_use]
+    pub const fn intent(&self) -> ProjectionIntentId {
+        ProjectionIntentId {
+            kind: K::KIND_NAME,
+            content: self.commitment(),
+        }
+    }
+}
+
+impl ProjectionIntentId {
+    /// The kind's declared stable name.
+    #[must_use]
+    pub const fn kind(&self) -> &'static str {
+        self.kind
+    }
+
+    /// The owner content commitment this intent was meant over.
+    #[must_use]
+    pub const fn content(&self) -> CauseAnchoring {
+        self.content
+    }
+}
+
+impl<Posture> ExpectedGeneratedSupportSchemaId<Posture> {
+    /// The expectation's thirty-two bytes, borrowed for the one lawful use: the
+    /// generated support shell splices them into the tokens it carries across
+    /// the wall, and the harness's own gate compares them against its published
+    /// literal before releasing anything into type checking.
+    ///
+    /// One-way by the absence of its inverse: no road anywhere takes bytes and
+    /// returns an expectation, so a supplied identity can never become this
+    /// side's expectation of it.
+    #[must_use]
+    pub const fn as_bytes(&self) -> &[u8; 32] {
+        &self.bytes
+    }
+}
+
+impl ExpectedGeneratedSupportSchemaId<DeclaredBootstrap> {
+    /// The hand-authored first pair's road, crate-internal and const.
+    ///
+    /// Crate-internal because the value it makes is a CLAIM about a schema this
+    /// crate does not own: one checked-in constant states it, the publication
+    /// operation rewrites that constant under a receipt when the schema changes,
+    /// and a caller that could mint another would be making the same claim
+    /// somewhere nobody publishes.
+    pub(crate) const fn declared(bytes: [u8; 32]) -> Self {
+        Self {
+            bytes,
+            _posture: PhantomData,
+        }
     }
 }
 
@@ -349,7 +546,14 @@ impl PlanDerivation {
 }
 
 impl<K: ProjectionKind> ProjectionPlan<K> {
-    /// Plan one projection.
+    /// Plan one projection, over the entry account the content walked in with.
+    ///
+    /// The account arrives first because it is what was MEANT: the kind and the
+    /// owner content commitment are the intent, the context is what that intent
+    /// was decided under, and the plan is the record of the decision.
+    /// The account is moved in rather than read and dropped, so the plan's own
+    /// answer to "what were you planned over" is the value its identity, its
+    /// watch set, and its origin edges were all derived from.
     ///
     /// # Errors
     ///
@@ -359,6 +563,7 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
     /// The binding is not defaulted: guessing a host is how a wrapper ends up
     /// bound to a contract nobody declared.
     pub fn planned(
+        account: OwnerContentAccount<K>,
         context: ProjectionContext,
         kind_content: K::Content,
         membership: PlannedMembership<K::Rendered>,
@@ -375,7 +580,7 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
             ),
             (TargetRequirement::BoundHostContract | TargetRequirement::EitherBinding, _) => {
                 let mut claim = Vec::new();
-                encode_bytes(K::KIND_NAME.as_bytes(), &mut claim);
+                account.encode_into(&mut claim);
                 context.encode_into(&mut claim);
                 membership.encode_into(&mut claim);
                 encode_set(
@@ -389,7 +594,7 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
                 let (identity, provenance) =
                     PlanId::derived_with_provenance(ProjectionTranscript::under(
                         ProjectionRole::Plan,
-                        context.sources.anchoring(),
+                        account.anchoring(),
                         &claim,
                         0,
                     ));
@@ -398,6 +603,7 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
                         identity,
                         provenance,
                     },
+                    account,
                     context,
                     content: kind_content,
                     membership,
@@ -414,6 +620,25 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
     #[must_use]
     pub const fn identity(&self) -> PlanId {
         self.derivation.identity()
+    }
+
+    /// The entry account this plan was planned over.
+    ///
+    /// The plan's one account of its content, handed back whole: a reader asking
+    /// what invalidates it, what caused it, or what it stands on reads the seats
+    /// of this value rather than a summary of them.
+    #[must_use]
+    pub const fn account(&self) -> &OwnerContentAccount<K> {
+        &self.account
+    }
+
+    /// What this plan MEANT: the kind and the owner content commitment.
+    ///
+    /// The comparison door equivalence is stated over — never plan identity,
+    /// which contains origin and is required to differ between distinct doors.
+    #[must_use]
+    pub const fn intent(&self) -> ProjectionIntentId {
+        self.account.intent()
     }
 
     /// How this plan's identity was derived.

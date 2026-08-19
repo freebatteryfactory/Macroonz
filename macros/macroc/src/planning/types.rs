@@ -1,10 +1,12 @@
-//! The plan family's declarations: the shared context, the output firewall, the
-//! invalidation roster, the sealed kind roster and its contents, the plan itself,
-//! the bundle, and the disposition.
+//! The plan family's declarations: the entry account and the intent it names,
+//! the shared context, the output firewall, the invalidation roster, the sealed
+//! kind roster and its contents, the plan itself, the bundle, the disposition,
+//! and the services' own expectation of the generated-support schema identity.
 //!
 //! Declarations only.
-//! Every road that reaches a private field — the membership's members, a plan's
-//! seats, a bundle's member set — lives in `type_guard.rs`, this file's own child.
+//! Every road that reaches a private field — the account's addressing, the
+//! membership's members, a plan's seats, a bundle's member set, the schema
+//! expectation's bytes — lives in `type_guard.rs`, this file's own child.
 
 use crate::origin_graph::{DecisionTrace, Nonclaim, OriginTrail};
 use crate::plane::{
@@ -16,11 +18,12 @@ use crate::plane::{
     PatternInstanceSubject, PatternSubject, PlanId, PortSubject, ProfileVersion,
     ProjectionIdentity, ProjectionProfileSubject, ProjectionProvenance, ProjectionRole,
     RenderedRole, SchemaSubject, SoleRenderedUnit, SourceDeclarationLimit, WireContractSubject,
-    WorkCurrencySubject, WorkFormulaSubject, WrapperComponentLimit,
+    WorkCurrencySubject, WorkFormulaSubject, WrapperComponentLimit, static_bytes,
 };
 use crate::question::ExplanationQuestion;
 use crate::refusal::ProjectionPlanning;
 use core::fmt::Debug;
+use core::marker::PhantomData;
 use threadpak::declaration::Facet;
 use threadpak::declaration::types::{
     FragmentIdentityDomain, LinkedGraphDomain, ProjectionAudienceDomain,
@@ -46,9 +49,26 @@ pub enum TargetBinding {
     TargetFree,
 }
 
-/// The source declarations one plan names as its cause.
+/// The declaration fragments one piece of owner content declares it stands on.
+///
+/// Possibly empty, and empty is a STATED fact rather than a missing one:
+/// content that stands on nothing declares nothing, and the account carrying
+/// this seat is required either way.
+/// Bounded by the source-declaration magnitude — the magnitude a plan's causes
+/// were bounded by when the causes were listed beside the plan.
+/// The set moved into [`OwnerContentAccount`], and the bound moved with it,
+/// because a second magnitude for one capacity is a second authority.
 pub type SourceDeclarations =
-    NonEmptyBounded<OwnerIdentityRef<FragmentIdentityDomain>, SourceDeclarationLimit>;
+    Bounded<OwnerIdentityRef<FragmentIdentityDomain>, SourceDeclarationLimit>;
+
+/// The captured declarations one piece of captured owner content declares it
+/// stands on.
+///
+/// The expansion-time twin of [`SourceDeclarations`], under the same magnitude:
+/// where nothing has been linked, what content stands on is other captured token
+/// material, named by the capture identity the plane derived for it.
+pub type CapturedDependencies =
+    Bounded<ProjectionIdentity<CapturedDeclarationSubject>, SourceDeclarationLimit>;
 
 /// The triggers one plan watches.
 pub type InvalidationSet = NonEmptyBounded<InvalidationTrigger, InvalidationLimit>;
@@ -70,24 +90,151 @@ pub enum GraphAnchoring {
     CapturedDeclarationOnly(ProjectionIdentity<CapturedDeclarationSubject>),
 }
 
-/// What CAUSED a plan.
+/// The ONE address a piece of owner content walked in the door carrying.
 ///
-/// The same split, at the other end: the machine's declaration fragments where a
-/// caller holds them, and otherwise the exact token material one expansion was
-/// handed.
-/// A capture is a real cause and is named as one; it is never dressed up as a
+/// The same split, at the other end: the machine's declaration fragment where a
+/// caller holds the linker's mint, and otherwise the exact token material one
+/// expansion was handed.
+/// A capture is a real address and is named as one; it is never dressed up as a
 /// fragment the linker never minted.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+///
+/// The commitment is the OWNER's, at full width, and the services derive none of
+/// it: a content address is machine meaning, and the plane reads machine meaning
+/// rather than inventing an encoding for it.
+///
+/// # Bounds
+///
+/// It names ONE address and never a set.
+/// What content stands ON is the dependency seat of [`OwnerContentAccount`],
+/// which is the services' one account of content dependencies; a set here would
+/// be that account's duplicate, and the anchor question would then be answered
+/// by electing a member out of it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CauseAnchoring {
-    /// The machine's declaration fragments — at least one, by shape.
-    Declarations(SourceDeclarations),
+    /// The machine's declaration-fragment identity for the content.
+    Declaration(OwnerIdentityRef<FragmentIdentityDomain>),
     /// The captured declaration this plan was derived from.
     CapturedDeclaration(ProjectionIdentity<CapturedDeclarationSubject>),
 }
 
+/// What one piece of owner content is addressed by, together with what it
+/// declares it stands on.
+///
+/// The POSTURE is the outer sum and the two seats ride inside it, so a linked
+/// commitment can never be handed a captured dependency set and a captured one
+/// can never be handed linked fragments.
+/// At expansion time nothing has been linked, so there are no fragments for
+/// captured content to stand on; where a caller holds the linker's mints, token
+/// material is not what a fragment stands on.
+/// A mixed pair is meaningless in both directions, so it is unrepresentable
+/// rather than refused.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ContentAddressing {
+    /// The linked posture: the machine's fragment identities, at both seats.
+    Linked {
+        /// The content's own commitment, as the owner supplied it.
+        commitment: OwnerIdentityRef<FragmentIdentityDomain>,
+        /// The commitments it declares it stands on.
+        dependencies: SourceDeclarations,
+    },
+    /// The expansion-time posture: captured token material, at both seats.
+    Captured {
+        /// The captured declaration this content IS.
+        commitment: ProjectionIdentity<CapturedDeclarationSubject>,
+        /// The captures it declares it stands on.
+        dependencies: CapturedDependencies,
+    },
+}
+
+/// The typed entry account: the ONE account of owner content the services hold.
+///
+/// Three seats, and they arrive together because they are one fact about one
+/// piece of content: the COMMITMENT the owner supplied at the door, the
+/// DEPENDENCY SET that commitment declares it stands on — both carried by
+/// [`ContentAddressing`] under one posture — and the KIND the content is content
+/// for, carried as the type parameter so an account cannot be handed to a plan
+/// of another kind.
+///
+/// # Authority
+///
+/// **One account, four readings, and no second account anywhere.**
+/// Every one of the following reads THIS value; none of them keeps a copy of
+/// what it read, and nothing beside it holds a second answer to the same
+/// question:
+///
+/// 1. **semantic identity** — [`OwnerContentAccount::intent`] names what was
+///    meant, and the account's canonical bytes are the first member of a plan's
+///    transcript, so a plan over different content is a different plan;
+/// 2. **invalidation dependencies** — the watch derivation
+///    ([`ProjectionContext::watch_set`]) consumes the commitment and counts the
+///    dependency set, and refuses where the trigger roster cannot represent it;
+/// 3. **explanation facts** — [`OwnerContentAccount::commitment`] is what
+///    answers "which declaration caused you";
+/// 4. **origin edges** — [`OwnerContentAccount::origin_node`] and
+///    [`OwnerContentAccount::dependency_edges`] are the account's contribution
+///    to the origin graph.
+///
+/// A second list of what content depends on — beside a plan, inside a context,
+/// or at a call site — would be a value that agrees with this one until it does
+/// not, and nothing downstream could tell which of the two the plan was
+/// actually planned over.
+///
+/// # Nonclaims
+///
+/// It claims nothing about whether the commitment is CURRENT, available, or
+/// admitted: it is the address the owner handed over, read exactly, and the
+/// services neither derived it nor checked it.
+#[must_use = "the entry account is the one account of owner content, and every reading reads it"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct OwnerContentAccount<K: ProjectionKind> {
+    addressing: ContentAddressing,
+    kind: PhantomData<K>,
+}
+
+/// The intent layer's identity: WHAT was meant, as the pair that means it — the
+/// kind's declared name and the owner content commitment it was meant over.
+///
+/// The first of the three identity layers.
+/// The plan identity is derived over it and everything the plan decided beside
+/// it; the rendered-unit identity is derived over bytes that do not exist yet
+/// when this one does.
+///
+/// # Authority
+///
+/// **The pair is carried exactly, and equality of the pair is equality of
+/// intent.** Two doors that meant the same thing carry one of these, which is
+/// what door equivalence compares — plan identities cannot be compared for that,
+/// since distinct doors are required to carry distinct origins.
+///
+/// # Nonclaims
+///
+/// **It is NOT a derived identity and never stands where one is required.**
+/// It is not thirty-two bytes, it is not a member of either identity family, and
+/// it never anchors a transcript: the plane's identity subjects and roles are
+/// sealed rosters, and neither carries a seat for the intent layer, so a
+/// digested spelling of this pair is unwritable here rather than approximated.
+/// [`OwnerContentAccount::intent_bytes`] is the canonical preimage a digested
+/// spelling would be derived over, written already, so admitting an intent
+/// subject and role to the plane's rosters is the whole of what that promotion
+/// costs.
+#[must_use = "an intent identity is what door equivalence compares"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ProjectionIntentId {
+    kind: &'static str,
+    content: CauseAnchoring,
+}
+
 /// The exact identities every plan shares, whatever its kind: what it was
-/// decided against, which profile at which version, what caused it, which
-/// version of the services produced it, and what it is bound to.
+/// decided against, which profile at which version, which version of the
+/// services produced it, and what it is bound to.
+///
+/// # Bounds
+///
+/// The content a plan was planned OVER is not here.
+/// That is the entry account's fact ([`OwnerContentAccount`]) and it is stated
+/// once: a context that also named the content would be the second account of
+/// content dependencies, and the watch derivation would then be reading a copy
+/// rather than the account.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProjectionContext {
     /// What this plan was decided against.
@@ -96,8 +243,6 @@ pub struct ProjectionContext {
     pub profile: ProjectionIdentity<ProjectionProfileSubject>,
     /// That profile's version.
     pub profile_version: ProfileVersion,
-    /// What caused this plan.
-    pub sources: CauseAnchoring,
     /// The version of the services that produced this plan.
     pub generator: ProjectionIdentity<GeneratorVersionSubject>,
     /// What the plan binds to at its target end.
@@ -594,43 +739,62 @@ kinds! {
 
 /// One projection plan's own identity, and the record of how it was derived.
 ///
-/// A plan's identity is derived under [`ProjectionRole::Plan`], anchored on
-/// whatever CAUSED the plan ([`CauseAnchoring::anchoring`]), over a content
-/// transcript.
+/// A plan's identity is derived under [`ProjectionRole::Plan`], anchored on the
+/// entry account's own commitment ([`CauseAnchoring::anchoring`]), over a
+/// content transcript.
 ///
 /// # Ordering
 ///
 /// The transcript commits to, in this order:
 ///
-/// 1. the kind's declared name ([`ProjectionKind::KIND_NAME`]);
-/// 2. the shared context — graph anchoring, profile and version, cause
-///    anchoring, generator identity, target binding;
+/// 1. the INTENT — the kind's declared name ([`ProjectionKind::KIND_NAME`]), the
+///    owner content commitment, and the dependency set that commitment declares,
+///    exactly as [`OwnerContentAccount`] holds them;
+/// 2. the shared context — graph anchoring, profile and version, generator
+///    identity, target binding;
 /// 3. the complete logical membership, in role-roster order;
 /// 4. the watch set, canonicalized;
 /// 5. the decision trace, in selection order;
 /// 6. the origin trail, in walk order;
 /// 7. the nonclaims, canonicalized.
 ///
-/// The watch set and the nonclaims are SETS: each member is encoded, the
-/// encodings are sorted, and the sorted sequence is written, so the same members
-/// supplied in another order produce the same identity.
+/// The watch set, the dependency set, and the nonclaims are SETS: each member is
+/// encoded, the encodings are sorted, and the sorted sequence is written, so the
+/// same members supplied in another order produce the same identity.
 /// The trace and the trail are SEQUENCES — their order is their meaning — so they
 /// are written in the order they hold.
+///
+/// # Authority
+///
+/// **The transcript commits to the SEMANTIC origin projection and to nothing
+/// location-addressed.** Every member above is an owner identity, a plane
+/// identity, a declared stable name, a typed discriminant, or a declared
+/// magnitude. No span, no source coordinate, and no path is a member, and none
+/// is reachable from one: the origin trail's edges name origin NODES by
+/// identity, a decision trace's citations name a home and a fact by the names
+/// their owner declared, and the token home's span handles and the diagnostics
+/// home's site coordinates belong to the diagnostic rail, which no plan seat
+/// carries. Spans are ephemeral by nature, which is exactly why a semantic
+/// identity that admitted one would move for a reason nobody's meaning changed
+/// by.
 ///
 /// # Nonclaims
 ///
 /// The transcript does not commit to the kind-specific content's VALUES.
-/// The kind is named, and every plane-typed fact the content carries that a plan
-/// actually turns on — the derived type, the realized contract, the semantic
-/// keys — reaches the identity through the membership.
+/// The kind is named, the owner content commitment and its dependency set are
+/// carried at full width, and every plane-typed fact the kind content carries
+/// that a plan actually turns on — the derived type, the realized contract, the
+/// semantic keys — reaches the identity through the membership.
 /// But [`ProjectionKind::Content`] is an owner-typed record with no canonical
 /// byte encoding, and the plane declares none for it: an encoding of the
 /// machine's verification methods, semantic facets, and verified claims would be
 /// a second answer to the machine's own encoding question, which the services are
 /// forbidden to create.
-/// Two plans of one kind, over one context and one membership, differing only
-/// inside their kind content, therefore carry one plan identity — the one place a
-/// plan transcript is narrower than the plan.
+/// Two plans of one kind, over one account, one context, and one membership,
+/// differing only inside their kind content, therefore carry one plan identity —
+/// the one place a plan transcript is narrower than the plan, and it is now
+/// narrower by the kind content alone: the content a plan was planned OVER is
+/// committed to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PlanDerivation {
     identity: PlanId,
@@ -647,10 +811,16 @@ pub struct PlanDerivation {
 ///
 /// A plan carries its OWN identity, derived when it is planned; see
 /// [`PlanDerivation`] for the transcript that identity commits to.
+///
+/// The account seat is the plan's copy of nothing: it is the account the caller
+/// walked in with, moved into the plan, so the plan's own answer to "what were
+/// you planned over" is the value the watch set, the intent, and the origin
+/// edges were all read off.
 #[must_use = "a plan is the complete declared output set nothing may be rendered without"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProjectionPlan<K: ProjectionKind> {
     derivation: PlanDerivation,
+    account: OwnerContentAccount<K>,
     context: ProjectionContext,
     content: K::Content,
     membership: PlannedMembership<K::Rendered>,
@@ -713,3 +883,126 @@ pub enum ProjectionDisposition {
         configuration: OwnerIdentityRef<ProjectionConfigurationDomain>,
     },
 }
+
+/// The posture a checked-in schema expectation stands under while it is the
+/// AUTHOR's word: hand-authored on both sides of the wall, claiming pair
+/// coherence and nothing else.
+///
+/// A declared-bootstrap pair says "these two literals were written together by
+/// somebody who meant them to agree".
+/// It does not say the literal is the identity the harness's root schema
+/// declaration actually derives to — nothing has derived that yet, because the
+/// publication operation that derives it does not exist until a toolchain runs.
+/// What the comparison over a bootstrap pair still detects is real: a
+/// version-mixed consumer, a partial publication, and a hand edit to one side.
+/// What it cannot detect is stated where the expectation is declared.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DeclaredBootstrap;
+
+/// The posture a checked-in schema expectation stands under once the publication
+/// operation has DERIVED it from the harness's root schema declaration under a
+/// receipt.
+///
+/// Declared here because the type parameter it inhabits exists to tell the two
+/// postures apart at compile time, and a posture parameter with one inhabitant
+/// tells nothing apart.
+/// No value of this crate carries it yet: the flip from
+/// [`DeclaredBootstrap`] to this posture is itself a receipted, human-committed
+/// publication act at the first toolchain contact, and writing it before that
+/// act would be claiming the derivation happened.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct VerifiedDerived;
+
+/// The services' OWN expectation of the generated-support schema identity,
+/// tagged by the posture the value stands under.
+///
+/// This is the whole of what these services own about the harness's schema:
+/// **"I know how to emit against generated-support schema X."** The harness owns
+/// the schema, its root declaration, the identity derived from that
+/// declaration's canonical bytes, and every disposal route for a pair that does
+/// not agree. This side owns one fact and holds it independently.
+///
+/// # Authority
+///
+/// **Independence across upgrade time is the whole mechanism.** The two values
+/// live in two crates and are written by ONE explicit publication operation at
+/// schema-change time, git-visible and human-committed under a receipt. The
+/// comparison the harness's gate performs therefore detects a version-mixed
+/// consumer, a partial publication, or a hand edit to one side.
+///
+/// **It is NEVER derived during an invocation from the harness's supplied or
+/// current id.** There is no constructor that takes a supplied identity, and
+/// there is no public constructor at all: taking the harness's id as the input
+/// to this side's expectation would rebuild a comparison of a value with itself,
+/// which detects nothing at any cost.
+///
+/// # Nonclaims
+///
+/// A jointly stale pair — the schema changed and publication never ran, so two
+/// old literals still agree — is OUTSIDE this expectation's claim. It dies at
+/// the compiler, where a changed constructor shape is an ordinary type error, or
+/// in the harness's conformance lane, where the current schema's id is derived
+/// and checked against the published literal. The disposal routes belong to the
+/// side that owns the mailbox.
+///
+/// # Bounds
+///
+/// The posture parameter DEFAULTS to [`DeclaredBootstrap`], which is the posture
+/// this crate's one expectation actually stands in today, so the default states
+/// where the crate is rather than hiding a choice. Moving it to
+/// [`VerifiedDerived`] is part of the same receipted publication act that
+/// rewrites the literal, and a reader who wants the posture spelled at a use site
+/// writes it.
+#[must_use = "the expectation is the one fact these services hold about the harness's schema"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ExpectedGeneratedSupportSchemaId<Posture = DeclaredBootstrap> {
+    bytes: [u8; 32],
+    _posture: PhantomData<Posture>,
+}
+
+/// The phrase both sides of the wall spell their DECLARED-BOOTSTRAP literal
+/// from.
+///
+/// It is fifty-six bytes and an identity is thirty-two, so the literal is this
+/// phrase's first thirty-two bytes — the cut is stated here rather than left for
+/// a reader to infer, and both sides perform the same cut on the same phrase.
+///
+/// # Bounds
+///
+/// The cut drops the phrase's tail, so the LITERAL alone does not spell the
+/// version or the posture: the posture is carried by the type parameter
+/// [`DeclaredBootstrap`] and the version by this phrase. A later bootstrap
+/// phrase must therefore differ inside its first thirty-two bytes, or two
+/// versions' bootstrap pairs would be spelled identically and the comparison
+/// that exists to catch a version-mixed consumer would open for one.
+pub const GENERATED_SUPPORT_SCHEMA_DECLARED_BOOTSTRAP: &str =
+    "threadpak-generated-support-schema-v0-declared-bootstrap";
+
+/// The services' checked-in expectation of the generated-support schema
+/// identity, in the declared-bootstrap posture.
+///
+/// The bytes are the ASCII `threadpak-generated-support-sche` — the first
+/// thirty-two of [`GENERATED_SUPPORT_SCHEMA_DECLARED_BOOTSTRAP`], and the exact
+/// literal the harness's own published side carries until the first toolchain
+/// contact. Two hand-authored sides, one phrase, one cut: that is what "pair
+/// coherence" means while the posture is [`DeclaredBootstrap`].
+///
+/// Readable ASCII is deliberate. A reader who dumps these bytes sees a sentence
+/// rather than a digest and knows immediately that nothing derived them.
+///
+/// # Authority
+///
+/// **An all-zero address is forbidden here and is not what a bootstrap looks
+/// like.** Zeros are the value every uninitialized, defaulted, or forgotten seat
+/// also carries, so a zero expectation would compare equal to every other
+/// forgotten one and would read as a derived identity that happened to be
+/// unlucky. This value is unmistakably authored, which is exactly the claim the
+/// posture makes.
+///
+/// It is written by the publication operation and by nothing else once that
+/// operation exists; until then it is the hand-authored first pair, and the flip
+/// to [`VerifiedDerived`] is a receipted publication act rather than an edit.
+pub const EXPECTED_GENERATED_SUPPORT_SCHEMA_ID: ExpectedGeneratedSupportSchemaId =
+    ExpectedGeneratedSupportSchemaId::declared(static_bytes(
+        GENERATED_SUPPORT_SCHEMA_DECLARED_BOOTSTRAP,
+    ));

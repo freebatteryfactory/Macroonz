@@ -117,10 +117,12 @@ exists to abolish.
 
 ## A watch set covers its context or there is no plan
 
-A plan's watch set is derived from the context's own seats, and the derivation
+A plan's watch set is derived from the context's own seats and the entry
+account's commitments, and the derivation
 fails closed.
-Where a context carries a seat this watch profile cannot represent — a cause set
-naming more source declarations than the trigger roster can watch — the road
+Where the account names more commitments than this watch profile can
+represent — more watched declarations than the trigger roster can watch —
+the road
 refuses with a typed planning issue naming both counts, rather than emitting a
 set that covers the first declaration.
 A set watching one of three declarations is byte-for-byte the shape of a
@@ -128,7 +130,8 @@ complete one, so the plan over it would read as CURRENT after the other two
 changed, and nothing downstream could tell the two apart.
 
 The plan's ANCHOR is a different question and keeps naming one declaration: the
-transcript commits to the whole cause set, so two plans caused by different sets
+transcript commits to the whole account — the commitment and every
+dependency it declares — so two plans caused by different accounts
 reach different identities whatever they anchor at.
 An anchor naming one member of a committed set is a spelling rule; a watch
 naming one member of a committed set is a claim about the others.

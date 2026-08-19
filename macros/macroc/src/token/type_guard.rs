@@ -88,6 +88,16 @@ impl CaptureWalk {
     /// Wider than the whole-tree magnitude, because a walk may look at more
     /// than it keeps: a budget at the tree magnitude exactly would refuse a
     /// lawful input the moment its producer looked twice at anything.
+    ///
+    /// # Bounds
+    ///
+    /// Four units for every token [`CapturedTreeTokenLimit`] admits, which is
+    /// the room a producer that backtracks over an alternative or skips trivia
+    /// needs and no more.
+    /// That magnitude is the one this number stands over, so the two are moved
+    /// together or not at all: a wider tree under this budget would refuse
+    /// lawful declarations naming a bound they never approached, and this is
+    /// the number that would have to move to keep the tree magnitude reachable.
     pub const DECLARED_WORK: u32 = 65_536;
 
     /// A fresh walk, holding the whole declared budget and nothing taken.

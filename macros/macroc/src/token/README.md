@@ -18,10 +18,18 @@ payload, a **stable [`TokenPath`]** naming exactly where it sits in the tree, an
 an opaque [`SpanHandle`] indexing the producer's own span table. Delimited groups
 stay groups; nothing is re-lexed and no balance is re-discovered.
 
-**Every producer walks under the same declared magnitudes.** Depth, level,
-whole-tree token count, and a capture-work budget are declared here once and
-spent by every producer — the compiler shell and the text reader alike — so "how
-big may a declared input be" has one answer rather than one per road.
+**Every producer walks under the same declared magnitudes.** Depth, level, and
+whole-tree token count are written down once in the compiler plane's limits
+roster; the capture-work budget is written down on [`CaptureWalk`], the walk that
+spends it. All four are spent by every producer — the compiler shell and the text
+reader alike — so "how big may a declared input be" has one answer rather than
+one per road.
+
+Each magnitude bounds the thing it is about, and only that thing. The level
+bounds how wide one nesting level may be, the whole-tree count bounds how many
+tokens the declaration carries in total, and a producer's span table — one entry
+per handle it issued, across every level at once — stands under the whole-tree
+count, because a table is not a level.
 
 **Writing.** [`GeneratedTree`] is what a renderer produces. The human Rust text
 is [`GeneratedTree::inspected`] — a projection of the tree, produced for a person
@@ -44,5 +52,6 @@ the location rail, and deeper span surfaces stay untouched.
 
 `types.rs` declares; its own child `type_guard.rs` holds every road that reaches
 a private field, which is where all four magnitudes are settled. `text.rs` is the
-callable text route end to end, `resolve.rs` answers a span handle, `encode.rs`
+callable text route end to end, `resolve.rs` composes every coordinate the seam
+hands out — a span handle's position and a refused read's byte — `encode.rs`
 writes the canonical bytes, and `inspect.rs` renders what a person is shown.

@@ -35,6 +35,9 @@
 //! never depends on its judge. What this package asks for, and why, is the
 //! README's; which versions, the workspace manifest's.
 
+pub mod identity;
+
+pub mod depot;
 pub mod descriptor;
 pub mod fault;
 pub mod muterprater;

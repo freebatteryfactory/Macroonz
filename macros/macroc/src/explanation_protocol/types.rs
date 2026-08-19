@@ -44,7 +44,7 @@ pub enum ExplanationAnswer {
     },
     /// Which declarations caused you.
     CausingDeclarations {
-        /// The cause set.
+        /// The one anchored cause address.
         sources: CauseAnchoring,
     },
     /// Which pattern instance produced you.

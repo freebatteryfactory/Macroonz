@@ -23,6 +23,10 @@ impl TextCapture {
     ///
     /// Returns [`TextReadRefusal`] naming the established cause and the byte it
     /// sits at.
+    /// A cause established with the source read to its end sits at the source's
+    /// own length: that is where the read stood when it refused, and it is a
+    /// fact the caller can measure against the text it supplied rather than the
+    /// zero an absent position renders as.
     pub fn read(source: &str) -> Result<Self, TextReadRefusal> {
         let mut reader = TextReader {
             offsets: Vec::new(),
@@ -30,18 +34,28 @@ impl TextCapture {
         };
         let mut characters = source.char_indices().peekable();
         let trees = reader.read_group(&mut characters, None, &TokenPath::root())?;
+        // Every cause below is established with the source read to its end, so
+        // the byte each sits at is the source's own length — the one position an
+        // end-of-input refusal has, and a length the caller already holds.
+        let end = u64::try_from(source.len()).unwrap_or(u64::MAX);
         let issued = u32::try_from(reader.offsets.len()).unwrap_or(u32::MAX);
+        // The table carries one offset per token the walk kept, so it stands
+        // under the whole-tree magnitude the walk counted against, and names
+        // that magnitude rather than the width of any one level.
         let offsets = Bounded::admitted_const(
             reader.offsets,
             &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
         )
         .map_err(|_| TextReadRefusal {
             cause: TextReadCause::Unbounded(CaptureBound::TreeUnbounded),
-            at: 0,
+            at: end,
         })?;
+        // The top level is complete only once the source is, so this is where
+        // the per-level magnitude bites on the text route, and it names that
+        // magnitude at the byte the level closed at.
         let input = CapturedInput::taken(trees, issued).map_err(|bound| TextReadRefusal {
             cause: TextReadCause::Unbounded(bound),
-            at: 0,
+            at: end,
         })?;
         Ok(Self {
             input,
@@ -149,10 +163,10 @@ impl TextReader {
         character: char,
         path: TokenPath,
     ) -> Result<CapturedTokenTree, TextReadRefusal> {
-        if let Some(delimiter) = opening(character) {
+        if let Some((delimiter, closes)) = opening(character) {
             let span = self.issue(at);
             let _consumed = characters.next();
-            let inner = self.read_group(characters, Some((closing_of(delimiter), at)), &path)?;
+            let inner = self.read_group(characters, Some((closes, at)), &path)?;
             let trees = Bounded::admitted_const(
                 inner,
                 &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
@@ -279,21 +293,20 @@ fn read_quoted(characters: &mut Characters<'_>, at: u64) -> Result<String, TextR
     }
 }
 
-/// The delimiter one opening character writes, where it opens a group.
-const fn opening(character: char) -> Option<CapturedDelimiter> {
+/// The delimiter one opening character writes and the character that closes it,
+/// where it opens a group.
+///
+/// One row per delimiter this route can write, opener and closer together, so
+/// the two cannot drift apart and no delimiter outside the alphabet text spells
+/// can be named here at all.
+/// The invisible grouping a compiler inserts around a captured fragment has no
+/// written characters in either column, which is why it has no row: a reader of
+/// text can neither open one nor be looking for the character that closes one.
+const fn opening(character: char) -> Option<(CapturedDelimiter, char)> {
     match character {
-        '(' => Some(CapturedDelimiter::Parenthesis),
-        '[' => Some(CapturedDelimiter::Bracket),
-        '{' => Some(CapturedDelimiter::Brace),
+        '(' => Some((CapturedDelimiter::Parenthesis, ')')),
+        '[' => Some((CapturedDelimiter::Bracket, ']')),
+        '{' => Some((CapturedDelimiter::Brace, '}')),
         _ => None,
-    }
-}
-
-/// The character that closes one delimiter.
-const fn closing_of(delimiter: CapturedDelimiter) -> char {
-    match delimiter {
-        CapturedDelimiter::Parenthesis => ')',
-        CapturedDelimiter::Bracket => ']',
-        CapturedDelimiter::Brace | CapturedDelimiter::Bare => '}',
     }
 }

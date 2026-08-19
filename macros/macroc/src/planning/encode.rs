@@ -9,10 +9,15 @@
 //! ENCODINGS are sorted, and the sorted sequence is written.
 
 use super::{
-    CauseAnchoring, DigestContract, GraphAnchoring, InvalidationTrigger, MemberDestination,
-    PlannedMember, PlannedOutput, ProjectionContext, TargetBinding,
+    CauseAnchoring, ContentAddressing, DigestContract, GraphAnchoring, InvalidationTrigger,
+    MemberDestination, OwnerContentAccount, PlannedMember, PlannedOutput, ProjectionContext,
+    ProjectionIntentId, ProjectionKind, TargetBinding,
 };
-use crate::plane::{RenderedRole, encode_bytes, encode_length};
+use crate::plane::{
+    CapturedDeclarationSubject, OwnerIdentityRef, ProjectionIdentity, RenderedRole, encode_bytes,
+    encode_length,
+};
+use threadpak::declaration::types::FragmentIdentityDomain;
 
 impl TargetBinding {
     /// Append this binding's canonical bytes: the posture's discriminant, then
@@ -51,35 +56,121 @@ impl GraphAnchoring {
 }
 
 impl CauseAnchoring {
-    /// Append this cause's canonical bytes: the posture's discriminant, then
-    /// every declaration it names, in the order the cause set was declared.
+    /// Append this commitment's canonical bytes: the posture's discriminant,
+    /// then the one address it names, at full width.
     pub fn encode_into(&self, into: &mut Vec<u8>) {
         match self {
-            Self::Declarations(sources) => {
+            Self::Declaration(fragment) => {
                 into.push(0);
-                encode_length(sources.len(), into);
-                for source in sources.iter() {
-                    encode_bytes(source.as_bytes(), into);
-                }
+                encode_bytes(fragment.as_bytes(), into);
             }
             Self::CapturedDeclaration(captured) => {
                 into.push(1);
-                encode_length(1, into);
                 encode_bytes(captured.as_bytes(), into);
             }
         }
     }
 }
 
+/// Append one linked commitment's canonical bytes.
+///
+/// A named road rather than a closure at each call site, so the dependency set's
+/// canonicalization and the commitment's own spelling are the same spelling.
+fn encode_fragment(fragment: &OwnerIdentityRef<FragmentIdentityDomain>, into: &mut Vec<u8>) {
+    encode_bytes(fragment.as_bytes(), into);
+}
+
+/// Append one captured commitment's canonical bytes, on the same terms.
+fn encode_capture(captured: &ProjectionIdentity<CapturedDeclarationSubject>, into: &mut Vec<u8>) {
+    encode_bytes(captured.as_bytes(), into);
+}
+
+impl ContentAddressing {
+    /// Append this addressing's canonical bytes: the posture's discriminant, the
+    /// content's own commitment at full width, then the dependency set,
+    /// canonicalized.
+    ///
+    /// # Ordering
+    ///
+    /// The dependency set is a SET: the members are encoded, the ENCODINGS are
+    /// sorted, and the sorted sequence is written, so the same commitments
+    /// declared in another order produce the same bytes and therefore the same
+    /// plan identity.
+    /// The posture rides ahead of both seats, so a linked account and a captured
+    /// one never encode alike even where their thirty-two bytes coincide.
+    ///
+    /// The posture and the commitment are written by the COMMITMENT's own road
+    /// rather than spelled again here, which is what makes an account's bytes
+    /// begin with its intent's bytes structurally instead of by two spellings
+    /// that happen to agree today.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        self.commitment().encode_into(into);
+        match self {
+            Self::Linked { dependencies, .. } => {
+                encode_set(dependencies.iter(), encode_fragment, into);
+            }
+            Self::Captured { dependencies, .. } => {
+                encode_set(dependencies.iter(), encode_capture, into);
+            }
+        }
+    }
+}
+
+impl ProjectionIntentId {
+    /// Append this intent's canonical bytes: the kind's declared name, then the
+    /// owner content commitment.
+    ///
+    /// This is the whole preimage of the intent layer — the pair, written down —
+    /// and it is written the same way whether a reader compares the pair itself
+    /// or a later profile derives an identity over these bytes.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        encode_bytes(self.kind().as_bytes(), into);
+        self.content().encode_into(into);
+    }
+}
+
+impl<K: ProjectionKind> OwnerContentAccount<K> {
+    /// Append this account's canonical bytes: the kind's declared name, then the
+    /// addressing — whose own road writes the commitment first and the dependency
+    /// set after it.
+    ///
+    /// The account's bytes therefore BEGIN with exactly the intent's bytes — the
+    /// kind name and the commitment, in that order, through the same two roads
+    /// [`ProjectionIntentId::encode_into`] uses — and continue with what the
+    /// content declares it stands on.
+    /// A plan transcript's first member is the intent, widened by the dependency
+    /// set; it is not a second spelling of either.
+    pub fn encode_into(&self, into: &mut Vec<u8>) {
+        encode_bytes(K::KIND_NAME.as_bytes(), into);
+        self.addressing().encode_into(into);
+    }
+
+    /// The intent's canonical bytes on their own — the preimage a derived intent
+    /// identity would be taken over.
+    ///
+    /// Written already, and written once, so admitting an intent subject and role
+    /// to the plane's sealed rosters is the whole of what a digested intent
+    /// identity costs.
+    #[must_use]
+    pub fn intent_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        self.intent().encode_into(&mut bytes);
+        bytes
+    }
+}
+
 impl ProjectionContext {
     /// Append this context's canonical bytes: what it was decided against, the
-    /// profile and its version, what caused it, the generator identity, and the
-    /// target binding, each at full width and in that order.
+    /// profile and its version, the generator identity, and the target binding,
+    /// each at full width and in that order.
+    ///
+    /// What the plan was planned OVER is not written here and is not missing: it
+    /// is the entry account's fact, written ahead of this by the account's own
+    /// road, so no byte of a plan transcript states the content twice.
     pub fn encode_into(&self, into: &mut Vec<u8>) {
         self.graph.encode_into(into);
         encode_bytes(self.profile.as_bytes(), into);
         into.extend_from_slice(&self.profile_version.position().to_be_bytes());
-        self.sources.encode_into(into);
         encode_bytes(self.generator.as_bytes(), into);
         self.target.encode_into(into);
     }

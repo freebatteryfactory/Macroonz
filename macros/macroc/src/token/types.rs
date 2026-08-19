@@ -6,7 +6,9 @@
 //! The roads that reach a private field live in `type_guard.rs`, this file's
 //! own child, which is where all four declared magnitudes are settled.
 
-use crate::plane::{CapturedTokenLimit, GeneratedTokenLimit, TokenPathDepthLimit};
+use crate::plane::{
+    CapturedTokenLimit, CapturedTreeTokenLimit, GeneratedTokenLimit, TokenPathDepthLimit,
+};
 use threadpak::types::Bounded;
 
 #[path = "type_guard.rs"]
@@ -32,6 +34,12 @@ pub enum CapturedDelimiter {
     /// A group with no delimiter written — the invisible grouping a compiler
     /// inserts around a captured fragment. It is a real group and is never
     /// flattened away.
+    ///
+    /// The one producer that writes it is a compiler shell, which is handed the
+    /// grouping already made. A reader of text can never write one, because
+    /// there are no characters to read: text that carries no delimiter carries
+    /// no group, so the text route's alphabet has no row for this and needs
+    /// none.
     Bare,
 }
 
@@ -169,7 +177,16 @@ pub struct SpanResolutionRefusal {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SpanTable {
     /// Byte offsets into the declared input, one per issued handle.
-    ByteOffsets(Bounded<u64, CapturedTokenLimit>),
+    ///
+    /// Bounded by the WHOLE-TREE magnitude, because that is what the table
+    /// counts: a producer issues one handle per token it keeps, across every
+    /// level of the tree at once, so the table grows with the tree and never
+    /// with any one level of it.
+    /// Under the per-level magnitude the table would refuse a lawful
+    /// declaration of four thousand and ninety-seven tokens while naming a
+    /// magnitude that declaration never approached — a bound that bites is only
+    /// evidence when it is the bound the input actually overran.
+    ByteOffsets(Bounded<u64, CapturedTreeTokenLimit>),
     /// The producer holds the compiler's spans and resolves handles itself.
     ProducerHeld,
 }
