@@ -4,18 +4,21 @@
 //!
 //! `types.rs` declares this home's public vocabulary: the verdict chain's
 //! axes, the per-mutant record and its run, the mutation target and its owner
-//! mapping, the wrap lane's reading vocabulary, the interpreted lane's
-//! evaluation surface and trust gate, the rewrite lane's descriptors, the
-//! artifact-mutation seed roster, the survivor explanation and the check gap,
-//! the scope shapes and the proof plan, and the whole proposal road. Every road
-//! that reaches one of its private fields is its own child, `type_guard.rs`;
-//! the total maps its arms are read through are `type_contract.rs`.
+//! mapping, the wrap lane's adapter profile and reading vocabulary, the
+//! interpreted lane's evaluation surface and trust gate, the rewrite lane's
+//! descriptors, the artifact-mutation seed roster, the survivor explanation and
+//! the check gap, the scope shapes and the proof plan, and the whole proposal
+//! road. Every road that reaches one of its private fields is its own child,
+//! `type_guard.rs`; the total maps its arms are read through are
+//! `type_contract.rs`.
 //!
 //! The lanes are role-named pure-function modules. [`wrap`] reads a compiled
-//! mutation backend's output into the axis-composed record and plans its witness
-//! runs. [`interpret`] is the compile-once interpreter's rapid loop: selection
-//! over an evaluation surface, the mandatory no-mutation parity, and the typed
-//! availability that stands where a crippled fake interpreter would.
+//! mutation backend's console output into the axis-composed record — under the
+//! profile that states which grammar the reading stands on and what it may
+//! claim — and plans its witness runs. [`interpret`] is the compile-once
+//! interpreter's rapid loop: selection over an evaluation surface, the mandatory
+//! no-mutation parity, and the typed availability that stands where a crippled
+//! fake interpreter would.
 //! [`rewrite`] plans structural-rewrite descriptors as audit candidates, admitted
 //! last. [`propose`] is the proposal road end to end — survivor to candidate,
 //! candidate to demonstrated kill, opening to routed obligation, and the exit
@@ -39,24 +42,26 @@ mod types;
 
 pub use types::{
     ARTIFACT_MUTATIONS, ActivationAxis, ActivationDisposition, ActivationEvidence, ActivationSite,
-    ActiveMutant, ActiveSelection, AdmissionPatch, AlternativeIndex, AnnouncedRoster,
-    ArtifactMutation, BaselineAxis, BaselinePrecondition, BaselineQualification, BudgetRefusal,
-    CandidateSketch, CheckGap, CoordinateRefusal, DemonstratedRejection, Demonstration, DiffPath,
-    DiffPathRefusal, DischargeEvidence, DudPlant, DuplicateEvidence, DuplicateRefusal,
-    EquivalenceAxis, EvaluationSurface, ExecutionAxis, ExplanationRefusal, FamilyAttribution,
-    FamilyLookup, InconclusiveCause, InferredObligation, IntendedRejection, InterpreterAvailability,
-    KillProposalRefusal, KillRefusal, MUTATION_TARGET_TAG, MUTERPRATER_NAMESPACE, MappingPosture,
-    MaterializationAxis, MissingTrustEvidence, MutantId, MutationCensus, MutationIdentity,
-    MutationOutcome, MutationPoint, MutationReport, MutationRun, MutationSite, MutationTarget,
-    MutationVerdict, NO_MUTATION_PAIRING, NoComparisonReason, ObligationLane, OperatorFamilyRef,
-    OracleClass, OwedClaim, OwedClaimRefusal, OwedDeclaration, OwnerLookup,
-    PARITY_DECLARATION_SUBSTRATE, PARITY_RENDERING_SUBSTRATE, PROPOSAL_TAG, ParityRefusal,
-    ParityStanding, PlanRefusal, PlannedDamage, PlannedRun, PointRefusal, PressureBudget,
-    PressureLane, ProofDelta, ProofDeltaRefusal, ProofPlan, ProofRefusal, ProofShape, Proposal,
-    ProposalDestination, ProposalGround, ProposalRefusal, ProposalSink, RejectionIdentity,
+    ActiveMutant, ActiveSelection, AdapterProfile, AdmissionPatch, AlternativeIndex,
+    AnnouncedRoster, ArtifactMutation, BackendVersion, BackendVersionPosture,
+    BackendVersionRefusal, BaselineAxis, BaselinePrecondition, BaselineQualification,
+    BudgetRefusal, CandidateSketch, CheckGap, ClaimCeiling, CoordinateRefusal,
+    DemonstratedRejection, Demonstration, DiffPath, DiffPathRefusal, DischargeEvidence, DudPlant,
+    DuplicateEvidence, DuplicateRefusal, EquivalenceAxis, EvaluationSurface, ExecutionAxis,
+    ExplanationRefusal, FamilyAttribution, FamilyLookup, GrammarVersion, InconclusiveCause,
+    InferredObligation, IntendedRejection, InterpreterAvailability, KillProposalRefusal,
+    KillRefusal, MUTATION_TARGET_TAG, MUTERPRATER_NAMESPACE, MappingPosture, MaterializationAxis,
+    MissingTrustEvidence, MutantId, MutationCensus, MutationIdentity, MutationOutcome,
+    MutationPoint, MutationReport, MutationRun, MutationSite, MutationTarget, MutationVerdict,
+    NO_MUTATION_PAIRING, NoComparisonReason, ObligationLane, OperatorFamilyRef, OracleClass,
+    OwedClaim, OwedClaimRefusal, OwedDeclaration, OwnerLookup, PARITY_DECLARATION_SUBSTRATE,
+    PARITY_RENDERING_SUBSTRATE, PROPOSAL_TAG, ParityRefusal, ParityStanding, PlanRefusal,
+    PlannedDamage, PlannedRun, PointRefusal, PressureBudget, PressureLane, ProofDelta,
+    ProofDeltaRefusal, ProofPlan, ProofRefusal, ProofShape, Proposal, ProposalDestination,
+    ProposalGround, ProposalRefusal, ProposalSink, ReadingSource, RejectionIdentity,
     RewriteAdmission, RewriteCandidate, RewriteDescriptor, RewriteRefusal, RewriteRoster,
     RewriteTrust, RewriteWithheld, RosterRefusal, ScopeShape, ScopedInvocation, SelectionRefusal,
     SinkRefusal, SourceCoordinate, StoredProposalRef, SurfaceRefusal, SurvivalRefusal,
     SurvivorExplanation, SynthesisRefusal, UnparsedLine, WrapOutcomeWord, WrapReading, WrapRefusal,
-    WrapStanding,
+    WrapStanding, WrappedBackend,
 };

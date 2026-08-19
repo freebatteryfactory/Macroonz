@@ -7,8 +7,8 @@
 //! are their own pure-function modules.
 
 use crate::descriptor::{
-    AuthoredTableName, CheckRef, ClaimRef, GeneratedSupportSchemaId, PopulationRef, SubjectRoute,
-    TablePosture,
+    AuthoredTableName, CanonicalRowBytes, CheckRef, ClaimRef, GeneratedSupportSchemaId,
+    PopulationRef, SubjectRoute, TablePosture,
 };
 use crate::identity::{ContentAddress, DomainTag};
 
@@ -112,6 +112,14 @@ pub const ROW_REVISION_TAG: DomainTag = DomainTag::declared("row-revision");
 /// origin edit moves it, aggregation recomputes over the new value, and no
 /// execution is owed by the move: nothing about what the row EXECUTES has
 /// changed.
+///
+/// # Construction
+///
+/// Deriving it is TOTAL. The preimage is the row's own
+/// [`CanonicalRowBytes`](crate::descriptor::CanonicalRowBytes), written where
+/// the row was born, so by the time a report names a row the bytes exist and
+/// hashing them cannot fail. A row whose bytes could not be written is a row
+/// that was never constructed, and no census entry can be stated over one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct RowRevisionId(ContentAddress);
 
@@ -575,8 +583,90 @@ pub struct TrialAccounting {
     disposition: SelectionDisposition,
 }
 
+/// Why a caller stated in advance that a selection matching nothing is a lawful
+/// answer.
+///
+/// # Authority
+///
+/// Typed and closed, because an escape from the anti-vacuity law has to be
+/// readable: a reason nobody can enumerate is a reason nobody can review. Free
+/// text has no seat here — a rendering of one is [`ForeignText`], and it decides
+/// nothing.
+///
+/// # Nonclaims
+///
+/// A reason states why zero was admissible. It states nothing about whether the
+/// run was worth taking, and it never claims that anything was exercised.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum EmptySelectionReason {
+    /// The selection was carried over from a previous run's report, so a trial
+    /// the world no longer holds is a lawful absence rather than a failure.
+    CarriedOverFromAPreviousRun,
+    /// The run asks what the world holds under this selection. A claim with no
+    /// row serving it is the reading's own finding — the strongest opening a
+    /// coverage reading has — rather than a seat that could not run.
+    AskingWhatTheWorldHolds,
+}
+
+/// What one invocation expects its selection to match.
+///
+/// # Authority
+///
+/// [`SelectionExpectation::AtLeastOne`] is the standing expectation of every
+/// run, and it is what a caller gets without saying anything: a run that
+/// exercised nothing is not a run that passed, and a selection that named no row
+/// is the vacuity a harness exists to catch. The escape is DECLARED rather than
+/// discovered — a caller that means to admit zero says so in advance and says
+/// why.
+///
+/// It is this home's rather than the engine's for the reason
+/// [`InvocationProfile`] is: it is a declared input whose value the record has to
+/// carry, and the record vocabulary sits below the engine that reads it.
+///
+/// # Nonclaims
+///
+/// An expectation is not an outcome. What a run's selection actually matched,
+/// read against this, is [`SelectionOutcome`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SelectionExpectation {
+    /// The selection is expected to name at least one row of the denominator.
+    AtLeastOne,
+    /// The selection may name no row at all, for the stated reason.
+    AllowEmpty(EmptySelectionReason),
+}
+
+/// What one run's selection matched, read against what that run expected.
+///
+/// # Authority
+///
+/// A run-level fact, recorded on the report itself. An empty selection is not a
+/// trial that failed and not a harness that broke — nothing was exercised, and
+/// there is no row to hang either verdict on — so it is stated here, once, where
+/// a reading can find it without inventing a census entry nobody ran.
+///
+/// # Nonclaims
+///
+/// It says nothing about what any trial concluded. It is also not
+/// [`OutcomeClass`], which normalizes what happened to ONE row; this is what
+/// happened to the selection as a whole. No arm of it spells "passed": a run
+/// that exercised nothing has nothing to pass.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SelectionOutcome {
+    /// The selection named at least one row of the denominator, which is what
+    /// every expectation admits.
+    Satisfied,
+    /// The selection named no row of the denominator, and the run expected at
+    /// least one: it exercised nothing it meant to exercise.
+    UnsatisfiedByEmptySelection,
+    /// The selection named no row of the denominator, and the caller stated in
+    /// advance that zero is a lawful answer, for this reason. Zero work was
+    /// done, and this arm is how a reading says so without saying anything ran.
+    EmptyAsStated(EmptySelectionReason),
+}
+
 /// One run's complete-table accounting: the denominator, what happened to every
-/// row of it, the table posture, and the invocation profile it ran under.
+/// row of it, the table posture, the selection's own outcome, and the invocation
+/// profile it ran under.
 ///
 /// # Authority
 ///
@@ -585,6 +675,11 @@ pub struct TrialAccounting {
 /// than a hand count. The posture is the view's own
 /// ([`TablePosture`]), recorded rather than restated: coverage admits the
 /// authored arm only, and the comparison refuses a cross-posture pair.
+///
+/// The selection outcome is the run-level fact a census cannot carry: whether
+/// the selection matched anything, read against what the run expected of it.
+/// Recording it here is what lets a run that selected nothing still be a
+/// COMPLETE report rather than an absent one.
 ///
 /// # Nonclaims
 ///
@@ -595,6 +690,7 @@ pub struct TrialAccounting {
 pub struct RunReport {
     census: Vec<TrialAccounting>,
     posture: TablePosture,
+    selection: SelectionOutcome,
     invocation: InvocationProfile,
 }
 

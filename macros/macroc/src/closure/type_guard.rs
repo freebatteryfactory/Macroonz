@@ -5,10 +5,14 @@
 //! central claim structural.
 //! A rendered unit's digest is taken here, over the tree's own canonical bytes,
 //! so a renderer cannot hand in a digest of bytes it did not emit.
-//! A closure is built here, after the reconstruction agreed and over the joined
-//! tree this file builds and keeps, so the exact token stream a caller emits is
-//! inside what was proved rather than assembled afterwards.
-//! No other seam in the crate produces either value.
+//! A closure is built here, after the reconstruction agreed and over the
+//! emissions this file splits, joins, and keeps, so the exact token stream each
+//! build receives is inside what was proved rather than assembled afterwards.
+//! A receipt is built here too, and it is the only value that hands those
+//! emissions out: the closure's own road to them is crate-internal, so a caller
+//! reaches tokens through the account that binds the plan, the proof, and the
+//! explanation, or it does not reach them.
+//! No other seam in the crate produces any of these values.
 //! The refusal body is built here by the same permission: its seat is private,
 //! so this file is the only module in the workspace that can spell the literal,
 //! and every refusal that exists came off the per-role pass.
@@ -29,16 +33,22 @@
 //! compile-fail fixture testpak owns.
 
 use super::super::prove::examined;
-use super::{ClosureIssue, ProjectionClosure, RenderedProjection, RenderedUnit, RenderingRefusal};
+use super::{
+    CarriedTokens, ClosureIssue, DeliveryAddressing, PartitionCargo, PartitionedEmission,
+    ProjectionClosure, ProjectionReceipt, ReceiptBindingRefusal, RenderedProjection, RenderedUnit,
+    RenderingRefusal,
+};
+use crate::explanation_protocol::ProjectionExplanationView;
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
-    AuthoringLimitProfile, ClosureId, GeneratedUnitSubject, OutputBytesSubject, PlanId,
-    ProfileVersion, ProjectionIdentity, ProjectionProfileSubject, ProjectionProvenance,
-    ProjectionRole, ProjectionTranscript, RenderedRole, RenderedUnitSubject, encode_bytes,
-    encode_length,
+    AuthoringLimitProfile, ByteRoleSubject, ClosedExpansionId, ClosureId, GeneratedUnitSubject,
+    OutputBytesSubject, OwnerIdentityRef, PlanId, ProfileVersion, ProjectionIdentity,
+    ProjectionProfileSubject, ProjectionProvenance, ProjectionRole, ProjectionTranscript,
+    RenderedRole, RenderedUnitSubject, encode_bytes, encode_length,
 };
 use crate::planning::{
-    DigestContract, MemberDestination, PlannedMember, PlannedMembership, PlannedOutput,
+    DigestContract, EmissionPartition, MemberDestination, PlannedMember, PlannedMembership,
+    PlannedOutput, ProjectionKind, ProjectionPlan,
 };
 use crate::question::EXPLANATION_PROTOCOL_VERSION;
 use crate::token::GeneratedTree;
@@ -191,6 +201,17 @@ impl<R: RenderedRole> RenderedUnit<R> {
     #[must_use]
     pub const fn semantic_key(&self) -> ProjectionIdentity<GeneratedUnitSubject> {
         self.semantic_key
+    }
+
+    /// Which delivery this unit was rendered into.
+    ///
+    /// The renderer's own answer, taken from the role's constant answer at the
+    /// moment the unit was materialized, and the seat the emission is split by:
+    /// a unit reaches an emission through this value and through nothing else,
+    /// so no seam decides a delivery a second time.
+    #[must_use]
+    pub const fn destination(&self) -> MemberDestination {
+        self.destination
     }
 
     /// The digest over this unit's canonical bytes.
@@ -352,30 +373,273 @@ impl<R: RenderedRole> RenderedProjection<R> {
         self.units.iter().filter(|unit| unit.role() == role).count()
     }
 
-    /// The token tree the whole rendering is, in role-roster order.
+    /// Every unit this rendering materialized into one emission, in role-roster
+    /// order.
+    ///
+    /// The reading the join walks and a consumption target routes by. A unit's
+    /// emission is its DESTINATION's own constant answer, so this road elects
+    /// nothing and interprets nothing.
     ///
     /// # Ordering
     ///
     /// Role order, never rendering order: the roster is declared and the
     /// renderer's own sequencing is not, so what is emitted is stable under a
     /// renderer that happened to produce its units in another order.
+    /// EVERY unit standing under a role is yielded, not the first one — a
+    /// rendering that doubled a role is a rendering the proof refuses, and a
+    /// reading that quietly dropped the second unit would hide the doubling from
+    /// anybody looking here instead.
+    pub fn units_in(
+        &self,
+        partition: EmissionPartition,
+    ) -> impl Iterator<Item = &RenderedUnit<R>> {
+        R::ROLES.iter().flat_map(move |role| {
+            self.units.iter().filter(move |unit| {
+                unit.role() == *role && unit.destination().partition() == partition
+            })
+        })
+    }
+
+    /// How many units this rendering materialized into one emission.
+    #[must_use]
+    pub fn count_in(&self, partition: EmissionPartition) -> usize {
+        self.units_in(partition).count()
+    }
+}
+
+impl CarriedTokens {
+    /// The tokens one emission carries, with the digest taken here over exactly
+    /// those bytes.
     ///
-    /// Crate-internal, with one caller: [`ProjectionClosure::proved`].
-    /// The join is a step inside the proof, so there is no second road to a
-    /// joined tree the closure identity says nothing about.
+    /// Private to the guard, and the one road: no caller supplies a digest, so
+    /// an emission cannot carry the digest of bytes it does not carry.
+    ///
+    /// The digest is anchored on the PLAN and positioned at the emission's own
+    /// roster slot, so two emissions of one plan that happened to join to the
+    /// same bytes are still two digests — which is what keeps a receipt's
+    /// declaration-site answer from standing in for its carrier's.
+    fn joined(plan: PlanId, partition: EmissionPartition, tree: GeneratedTree) -> Self {
+        let raw = tree.canonical_bytes();
+        let digest = ProjectionIdentity::derived(ProjectionTranscript::under_projection(
+            ProjectionRole::OutputBytes,
+            &plan,
+            &raw,
+            u32::from(partition.slot()),
+        ));
+        Self { tree, digest }
+    }
+
+    /// The tokens themselves.
+    #[must_use]
+    pub const fn tree(&self) -> &GeneratedTree {
+        &self.tree
+    }
+
+    /// The digest of exactly these bytes, as the proving closure's identity
+    /// commits to it.
+    #[must_use]
+    pub const fn digest(&self) -> ProjectionIdentity<OutputBytesSubject> {
+        self.digest
+    }
+
+    /// Append these tokens' canonical bytes: the digest at full width.
+    ///
+    /// The tokens themselves are not written and do not need to be: the digest
+    /// is derived over them at full width, so a byte that changed changes the
+    /// digest and therefore this encoding.
+    fn encode_into(&self, into: &mut Vec<u8>) {
+        encode_bytes(self.digest.as_bytes(), into);
+    }
+}
+
+impl PartitionCargo {
+    /// The tokens this emission carries, where it carries any.
+    ///
+    /// # Nonclaims
+    ///
+    /// It answers with nothing where the plan declared no member into this
+    /// emission. That is a stated posture rather than a missing value: an empty
+    /// token tree is what an emission carries when a rendering produced no
+    /// bytes for it, and an unoccupied emission is one nothing was ever planned
+    /// into. This road never turns the second into the first.
+    #[must_use]
+    pub const fn tokens(&self) -> Option<&GeneratedTree> {
+        match self {
+            Self::NothingPlanned => None,
+            Self::Carried(carried) => Some(carried.tree()),
+        }
+    }
+
+    /// Append this cargo's canonical bytes: the posture's discriminant, then the
+    /// digest where tokens are carried.
+    ///
+    /// The posture rides ahead of the material, so an emission nothing was
+    /// planned into never encodes as one that carries bytes.
+    fn encode_into(&self, into: &mut Vec<u8>) {
+        match self {
+            Self::NothingPlanned => {
+                into.push(0);
+                encode_bytes(&[], into);
+            }
+            Self::Carried(carried) => {
+                into.push(1);
+                carried.encode_into(into);
+            }
+        }
+    }
+}
+
+/// The cargo one emission of one rendering carries.
+///
+/// Private to the guard, with one caller: the partitioning inside
+/// [`ProjectionClosure::proved`]. The join is a step inside the proof, so there
+/// is no second road to a joined tree the closure identity says nothing about.
+fn joined_cargo<R: RenderedRole>(
+    plan: PlanId,
+    rendered: &RenderedProjection<R>,
+    partition: EmissionPartition,
+) -> Result<PartitionCargo, ClosureIssue<R>> {
+    let mut tokens = Vec::new();
+    let mut occupied = false;
+    for unit in rendered.units_in(partition) {
+        occupied = true;
+        tokens.extend(unit.tree().tokens().cloned());
+    }
+    if !occupied {
+        return Ok(PartitionCargo::NothingPlanned);
+    }
+    let tree = GeneratedTree::assembled(tokens)
+        .map_err(|_| ClosureIssue::JoinedTreeUnbounded { partition })?;
+    Ok(PartitionCargo::Carried(CarriedTokens::joined(
+        plan, partition, tree,
+    )))
+}
+
+/// The address every published unit of one rendering stands at, checked for a
+/// collision.
+///
+/// One address, one artifact. Two units written under one byte role would put
+/// the second unit's bytes where the first unit's bytes are, and the address
+/// would then name two units while answering for one.
+///
+/// Private to the guard, with one caller, on the terms the join has: this is a
+/// step inside the proof.
+fn published_addresses_agree<R: RenderedRole>(
+    rendered: &RenderedProjection<R>,
+) -> Result<(), ClosureIssue<R>> {
+    let mut taken: Vec<OwnerIdentityRef<ByteRoleSubject>> = Vec::new();
+    for unit in rendered.units_in(EmissionPartition::PublicationArtifact) {
+        // The publication emission IS the units whose destination names an
+        // address — that is the reading that put them here — so the address is
+        // read off that same destination rather than looked up beside it. The
+        // other arms do not reach this emission, so there is no second case for
+        // this walk to answer.
+        if let MemberDestination::AsArtifact { byte_role } = unit.destination() {
+            if taken.contains(&byte_role) {
+                return Err(ClosureIssue::ArtifactAddressDoubled {
+                    role: unit.role(),
+                    byte_role,
+                });
+            }
+            taken.push(byte_role);
+        }
+    }
+    Ok(())
+}
+
+impl PartitionedEmission {
+    /// Split one proved rendering across the emissions its members declared.
+    ///
+    /// Private to the guard, with one caller: [`ProjectionClosure::proved`].
+    ///
+    /// # Ordering
+    ///
+    /// The partition roster is the quantifier: every joined emission is built,
+    /// in roster order, whether or not anything was planned into it — so an
+    /// emission that carries nothing says so rather than being left out of the
+    /// walk.
     ///
     /// # Errors
     ///
-    /// Returns [`RenderingRefusal::BytesUnbounded`] when the joined tree
-    /// outgrows the declared token magnitude.
-    pub(crate) fn joined_tree(&self) -> Result<GeneratedTree, RenderingRefusal> {
-        let mut tokens = Vec::new();
-        for role in R::ROLES {
-            if let Some(unit) = self.under(*role) {
-                tokens.extend(unit.tree().tokens().cloned());
+    /// Returns [`ClosureIssue::JoinedTreeUnbounded`] naming the emission whose
+    /// joined tree outgrew the declared token magnitude.
+    fn over<R: RenderedRole>(
+        plan: PlanId,
+        rendered: &RenderedProjection<R>,
+    ) -> Result<Self, ClosureIssue<R>> {
+        Ok(Self {
+            declaration_site: joined_cargo(plan, rendered, EmissionPartition::DeclarationSite)?,
+            test_carrier: joined_cargo(plan, rendered, EmissionPartition::TestCarrier)?,
+            bench_carrier: joined_cargo(plan, rendered, EmissionPartition::BenchCarrier)?,
+        })
+    }
+
+    /// What the declaration site expands into — the tokens the consumer's normal
+    /// build compiles.
+    #[must_use]
+    pub const fn declaration_site(&self) -> &PartitionCargo {
+        &self.declaration_site
+    }
+
+    /// The deferred cargo the consumer's test target invokes.
+    #[must_use]
+    pub const fn test_carrier(&self) -> &PartitionCargo {
+        &self.test_carrier
+    }
+
+    /// The deferred cargo the consumer's bench target invokes.
+    #[must_use]
+    pub const fn bench_carrier(&self) -> &PartitionCargo {
+        &self.bench_carrier
+    }
+
+    /// The cargo one joined emission carries.
+    ///
+    /// Exhaustive over the roster on purpose: a partition added to
+    /// [`EmissionPartition`] stops compiling HERE until somebody says what it
+    /// carries, so no emission can be admitted and left unrouted.
+    ///
+    /// # Nonclaims
+    ///
+    /// It answers with nothing for the publication emission, which is not
+    /// joined: a published artifact is its rendered unit at the address that
+    /// unit's destination names, and it is read as one
+    /// ([`ProjectionReceipt::published`]).
+    #[must_use]
+    pub const fn joined(&self, partition: EmissionPartition) -> Option<&PartitionCargo> {
+        match partition {
+            EmissionPartition::DeclarationSite => Some(&self.declaration_site),
+            EmissionPartition::TestCarrier => Some(&self.test_carrier),
+            EmissionPartition::BenchCarrier => Some(&self.bench_carrier),
+            EmissionPartition::PublicationArtifact => None,
+        }
+    }
+
+    /// Append this emission's canonical bytes: the joined emissions, in
+    /// partition-roster order, each written as its slot and its cargo.
+    ///
+    /// The published artifacts are not written here and are not missing: a
+    /// closure's transcript already commits to every rendered unit at full
+    /// width — its identity, its semantic key, its DESTINATION with the byte
+    /// role inside it, and its digest — so an artifact written to another
+    /// address is already a different closure.
+    fn encode_into(&self, into: &mut Vec<u8>) {
+        encode_length(EmissionPartition::ALL.len(), into);
+        for partition in EmissionPartition::ALL {
+            into.push(partition.slot());
+            match self.joined(partition) {
+                Some(cargo) => cargo.encode_into(into),
+                // An emission that is not joined at all is its own posture, and
+                // it is written as one: it must not encode as an emission
+                // nothing was planned into, because the publication emission
+                // carrying artifacts and the test carrier carrying nothing are
+                // different facts about different deliveries.
+                None => {
+                    into.push(2);
+                    encode_bytes(&[], into);
+                }
             }
         }
-        GeneratedTree::assembled(tokens).map_err(|_| RenderingRefusal::BytesUnbounded)
     }
 }
 
@@ -399,21 +663,27 @@ impl<R: RenderedRole> ProjectionClosure<R> {
     /// 4. for every role in roster order: the role slot, how many units stood
     ///    under it, and the unit that did — its identity, semantic key,
     ///    destination, profile and version, origin trail, and digest;
-    /// 5. the digest of the emitted joined tree, at full width.
+    /// 5. the partitioned emission — every joined emission, in partition-roster
+    ///    order, as its slot, its posture, and the digest of exactly the bytes
+    ///    it carries.
     ///
     /// So the identity names the whole agreement rather than a sample of it.
     ///
-    /// The last member is why the emission is inside the proof: the joined tree
-    /// is built here, from the rendered units in role-roster order, and the
-    /// closure keeps it.
-    /// The bytes a caller emits are the bytes this identity names.
+    /// The last member is why the emission is inside the proof: the emissions
+    /// are built here, from the rendered units in role-roster order and split by
+    /// the delivery each unit's destination declares, and the closure keeps
+    /// them.
+    /// The bytes a caller emits into any build are the bytes this identity
+    /// names, and a rendering that moved one member to another delivery is a
+    /// different closure rather than the same one emitted differently.
     ///
     /// # Errors
     ///
     /// Returns [`ProjectionClosureRefusal`] naming every role the two disagree
-    /// at.
-    /// All of them are reported together: a caller repairing a rendering one
-    /// role per attempt is a caller the check failed.
+    /// at, the emission whose joined tree outgrew its magnitude, or the address
+    /// two published units stand at.
+    /// Every disagreement of one pass is reported together: a caller repairing a
+    /// rendering one role per attempt is a caller the check failed.
     pub fn proved(
         plan: PlanId,
         planned: &PlannedMembership<R>,
@@ -453,16 +723,15 @@ impl<R: RenderedRole> ProjectionClosure<R> {
             return Err(refusal);
         }
 
-        let emitted = rendered.joined_tree().map_err(|_| {
-            ProjectionClosureRefusal::established(ClosureIssue::JoinedTreeUnbounded, Vec::new())
-        })?;
-        let emitted_bytes = emitted.canonical_bytes();
-        let emitted_digest = ProjectionIdentity::derived(ProjectionTranscript::under_projection(
-            ProjectionRole::OutputBytes,
-            &plan,
-            &emitted_bytes,
-            0,
-        ));
+        // The publication emission's occupancy is an occupancy by ADDRESS, so
+        // it is established here — after the roles agree and before anything is
+        // joined, because two units at one address is a defect in what the
+        // rendering would WRITE rather than in what it rendered.
+        published_addresses_agree(&rendered)
+            .map_err(|issue| ProjectionClosureRefusal::established(issue, Vec::new()))?;
+
+        let emission = PartitionedEmission::over(plan, &rendered)
+            .map_err(|issue| ProjectionClosureRefusal::established(issue, Vec::new()))?;
 
         let mut material: Vec<u8> = Vec::new();
         material.extend_from_slice(&EXPLANATION_PROTOCOL_VERSION.to_be_bytes());
@@ -475,7 +744,7 @@ impl<R: RenderedRole> ProjectionClosure<R> {
                 unit.encode_into(&mut material);
             }
         }
-        encode_bytes(emitted_digest.as_bytes(), &mut material);
+        emission.encode_into(&mut material);
         let (identity, provenance) = ClosureId::derived_with_provenance(
             ProjectionTranscript::under_projection(ProjectionRole::Closure, &plan, &material, 0),
         );
@@ -484,8 +753,7 @@ impl<R: RenderedRole> ProjectionClosure<R> {
             plan,
             reconstructed,
             rendered,
-            emitted,
-            emitted_digest,
+            emission,
             identity,
             provenance,
         })
@@ -503,22 +771,18 @@ impl<R: RenderedRole> ProjectionClosure<R> {
         &self.rendered
     }
 
-    /// The token tree this closure proved, joined in role-roster order and
-    /// owned here.
+    /// The emissions this closure proved, split by delivery, joined in
+    /// role-roster order, and owned here.
     ///
-    /// The one road to emitted tokens.
-    /// Nothing joins the rendered units a second time, and the digest this
-    /// closure's identity commits to is the digest of exactly these bytes.
-    #[must_use]
-    pub const fn emitted(&self) -> &GeneratedTree {
-        &self.emitted
-    }
-
-    /// The digest of the emitted joined tree, as this closure's identity commits
-    /// to it.
-    #[must_use]
-    pub const fn emitted_digest(&self) -> ProjectionIdentity<OutputBytesSubject> {
-        self.emitted_digest
+    /// Crate-internal, with one caller: [`ProjectionReceipt::bound`].
+    /// This is the closure's own proof material, not a road to tokens — a caller
+    /// that could read it here would be emitting off a proof without the plan it
+    /// was proved against or the explanation written over it, which is the
+    /// receipt's whole reason to exist.
+    /// Nothing joins the rendered units a second time, and the digests this
+    /// closure's identity commits to are the digests of exactly these bytes.
+    pub(crate) const fn emission(&self) -> &PartitionedEmission {
+        &self.emission
     }
 
     /// The plan this closure was proved against.
@@ -539,5 +803,164 @@ impl<R: RenderedRole> ProjectionClosure<R> {
     #[must_use]
     pub const fn provenance(&self) -> &ProjectionProvenance {
         &self.provenance
+    }
+}
+
+impl<K: ProjectionKind> ProjectionReceipt<K> {
+    /// Bind one closed expansion: the plan, the closure proved against it, and
+    /// the explanation written over the two.
+    ///
+    /// Public, and the road every projection kind's door terminates at. A caller
+    /// that walked the steps itself arrives here with three unforgeable values
+    /// and leaves with the one account emission is reachable from; a caller that
+    /// skipped a step has nothing to hand in.
+    ///
+    /// # The receipt transcript
+    ///
+    /// The identity is derived under [`ProjectionRole::ClosedExpansion`],
+    /// anchored on the CLOSURE's identity — because a receipt exists only where
+    /// a closure does — over a content transcript committing to, in this order:
+    ///
+    /// 1. the kind's declared name ([`ProjectionKind::KIND_NAME`]), so two kinds
+    ///    that bound the same material are two receipts;
+    /// 2. the plan's identity, which already commits to the entry account, the
+    ///    context, and the complete declared membership — so what was READ and
+    ///    what was DECIDED reach this transcript through the value that owns
+    ///    them rather than through a second spelling here;
+    /// 3. the partitioned emission, as the closure proved it: every joined
+    ///    emission's posture and digest, in partition-roster order, which is
+    ///    what was HANDED OVER and to which build;
+    /// 4. the delivery addressing posture's slot.
+    ///
+    /// # Nonclaims
+    ///
+    /// The transcript does not commit to the explanation. A view has no
+    /// canonical byte encoding and the plane declares none for one; what a
+    /// complete view establishes is its own coverage proof, which is a fact
+    /// about the view rather than a name for this receipt.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ReceiptBindingRefusal::ClosureProvedAgainstAnotherPlan`] where
+    /// the closure was proved against a plan other than the one handed in. The
+    /// pair is not reconciled and nothing is elected out of it: a receipt naming
+    /// one plan while carrying the proof of another would answer every question
+    /// correctly about the wrong expansion.
+    pub fn bound(
+        plan: ProjectionPlan<K>,
+        closure: ProjectionClosure<K::Rendered>,
+        explanation: ProjectionExplanationView<K>,
+    ) -> Result<Self, ReceiptBindingRefusal> {
+        let planned = plan.identity();
+        let proved = closure.plan();
+        if planned != proved {
+            return Err(ReceiptBindingRefusal::ClosureProvedAgainstAnotherPlan { planned, proved });
+        }
+        let mut content = Vec::new();
+        encode_bytes(K::KIND_NAME.as_bytes(), &mut content);
+        encode_bytes(planned.as_bytes(), &mut content);
+        closure.emission().encode_into(&mut content);
+        content.push(DeliveryAddressing::UnmintedAtThisSeam.slot());
+        let anchor = closure.identity();
+        let (identity, provenance) = ClosedExpansionId::derived_with_provenance(
+            ProjectionTranscript::under_projection(
+                ProjectionRole::ClosedExpansion,
+                &anchor,
+                &content,
+                0,
+            ),
+        );
+        Ok(Self {
+            identity,
+            provenance,
+            plan,
+            closure,
+            explanation,
+        })
+    }
+
+    /// This receipt's own identity: the name of the whole account.
+    #[must_use]
+    pub const fn identity(&self) -> ClosedExpansionId {
+        self.identity
+    }
+
+    /// How that identity was derived.
+    #[must_use]
+    pub const fn provenance(&self) -> &ProjectionProvenance {
+        &self.provenance
+    }
+
+    /// The complete plan: account, context, content, membership, invalidation
+    /// set, decision trace, origin trail, and nonclaims.
+    #[must_use]
+    pub const fn plan(&self) -> &ProjectionPlan<K> {
+        &self.plan
+    }
+
+    /// The proof that what was rendered is what was planned.
+    #[must_use]
+    pub const fn closure(&self) -> &ProjectionClosure<K::Rendered> {
+        &self.closure
+    }
+
+    /// The complete explanation over this kind's applicable questions.
+    #[must_use]
+    pub const fn explanation(&self) -> &ProjectionExplanationView<K> {
+        &self.explanation
+    }
+
+    /// The emissions this expansion delivers, split by delivery.
+    ///
+    /// The CLOSURE's own proved value, borrowed rather than copied: the receipt
+    /// keeps no second emission, so what is delivered is what was proved and
+    /// there is no pair of values to drift apart.
+    #[must_use]
+    pub const fn emission(&self) -> &PartitionedEmission {
+        self.closure.emission()
+    }
+
+    /// What the declaration site expands into — the tokens an expansion shell
+    /// hands the compiler, and the only ones the consumer's normal build
+    /// compiles.
+    #[must_use]
+    pub const fn declaration_site(&self) -> &PartitionCargo {
+        self.emission().declaration_site()
+    }
+
+    /// The deferred cargo the consumer's test target invokes.
+    #[must_use]
+    pub const fn test_carrier(&self) -> &PartitionCargo {
+        self.emission().test_carrier()
+    }
+
+    /// The deferred cargo the consumer's bench target invokes.
+    #[must_use]
+    pub const fn bench_carrier(&self) -> &PartitionCargo {
+        self.emission().bench_carrier()
+    }
+
+    /// Every unit this expansion publishes as a standalone artifact, in
+    /// role-roster order, each carrying the address its own destination names.
+    ///
+    /// Read off the proved rendering rather than copied into a record beside it:
+    /// a published artifact IS its rendered unit at an address, and a second
+    /// value restating that unit's tree, digest, and role would be a second
+    /// answer to one question.
+    pub fn published(&self) -> impl Iterator<Item = &RenderedUnit<K::Rendered>> {
+        self.closure
+            .rendered()
+            .units_in(EmissionPartition::PublicationArtifact)
+    }
+
+    /// What this receipt states about the addresses its delivery will eventually
+    /// be reached by.
+    ///
+    /// Read off the roster, which has one row: there is nothing here for a
+    /// caller to choose and nothing for this seam to invent. A second row is
+    /// admitted when the identity it names exists.
+    #[must_use]
+    pub const fn addressing(&self) -> DeliveryAddressing {
+        DeliveryAddressing::UnmintedAtThisSeam
     }
 }

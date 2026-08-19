@@ -1,4 +1,4 @@
-# closure — what was rendered, and the proof it is what was planned
+# closure — what was rendered, the proof it is what was planned, and the receipt that proof opens
 
 ## Two values: a plan and a rendering
 
@@ -34,23 +34,53 @@ role it disagreed at:
   ([`ClosureIssue::MaterializationMismatch`]);
 - a role the plan itself declared twice ([`ClosureIssue::MemberPlannedTwice`]);
 - a rebuild that is not the planned membership as a complete set
-  ([`ClosureIssue::MembershipDisagreement`]).
+  ([`ClosureIssue::MembershipDisagreement`]);
+- two published units standing at one address
+  ([`ClosureIssue::ArtifactAddressDoubled`]).
 
-**Tokens are emitted only from a closure.** The closure joins the rendered units
-in role-roster order, keeps the resulting tree, and commits to its digest inside
-its own identity — so the exact byte stream a caller emits is part of what was
-proved rather than something assembled afterwards. Holding a closure is the
-proof; there is no partial closure and no closure with a warning attached.
-The closure proves agreement among values that exist when it runs — plan,
-declared membership, rendering, origins, trace — never with an explanation
-not yet produced; the explanation reads the PROVED closure, and the closed
-expansion binds plan, closure, and explanation into the one complete
-account from which emission alone is reachable.
+## One emission per delivery
+
+An expansion does not hand a compiler one stream. What the consumer's normal
+build compiles, what a test target invokes, what a bench target invokes, and
+what a publication writes to a named address are four deliveries, and every
+planned member declares which one it is for. So the closure does not join a
+rendering; it PARTITIONS one. Each joined emission is built by walking the
+rendered units in role-roster order and reading each unit's own destination, and
+the emission a unit reaches is that destination's own constant answer — which is
+what makes a mutation-evaluation surface in the consumer's normal build
+unwritable rather than merely discouraged. A join that outgrows the token
+magnitude names the emission it overran at
+([`ClosureIssue::JoinedTreeUnbounded`]), because three builds are three byte
+streams and a caller cutting the wrong one has repaired nothing. Artifacts are
+never joined: two artifacts are two addresses, and one stream claiming to be both
+is what the address check refuses.
+
+**No token reaches a compiler except through a proof.** The closure builds every
+emission itself, keeps them, and commits to their digests inside its own identity
+— so the exact byte stream each build receives is part of what was proved rather
+than something assembled afterwards. Holding a closure is the proof; there is no
+partial closure and no closure with a warning attached. The closure proves
+agreement among values that exist when it runs — plan, declared membership,
+rendering, origins, trace — never with an explanation not yet produced.
+
+## The receipt is where every road ends
+
+The explanation reads the PROVED closure, and [`ProjectionReceipt`] binds plan,
+closure, and explanation into the one complete account emission is reachable
+from — for every projection kind, not for one family. The closure's own road to
+its emissions is crate-internal, so there is no way to emit off a proof without
+the plan it was proved against and the explanation written over it. Binding
+refuses where the closure proves a rendering against a different plan than the
+one handed in, and it states rather than invents what an expansion does not have:
+no carrier has been named and nothing has been published at this seam
+([`DeliveryAddressing`]), which is an absence a receipt carries and never a
+reason to refuse.
 
 ## The seats
 
 `types.rs` declares; its own child `type_guard.rs` takes the digests, owns the
-join, builds the proof, and builds the refusal body, which is what keeps every
-one of those roads unreachable from anywhere else. `prove.rs` is the per-role
-pass those roads consume, reaching no private seat, and `type_contract.rs`
-states the refusal family and the issue roster's own table.
+partitioning and the joins, builds the proof, builds the receipt, and builds the
+refusal body, which is what keeps every one of those roads unreachable from
+anywhere else. `prove.rs` is the per-role pass those roads consume, reaching no
+private seat, and `type_contract.rs` states the refusal family and the issue
+roster's own table.

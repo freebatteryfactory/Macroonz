@@ -47,9 +47,69 @@
 //!
 //! The row preimage is the COMPLETE descriptor content of one row: every field
 //! the row declares, including the arm its origin carries and everything that
-//! arm earns. It is stated completely in [`encode_row`], under the same two
-//! primitives and the same framing law, so no two rows this vocabulary considers
-//! different are cut into one byte string.
+//! arm earns. It is written under the same two primitives and the same framing
+//! law as the schema declaration, so no two rows this vocabulary considers
+//! different are cut into one byte string. A NAME is `bytes(namespace)` followed
+//! by `bytes(stem)`, two framed members rather than a joined spelling, so no
+//! pair of namespace and stem can be re-cut into a different pair that encodes
+//! identically.
+//!
+//! The members, in exactly this order, with no separators and no padding:
+//!
+//! | # | member | encoding |
+//! | - | ------ | -------- |
+//! | 1 | encoding version | `u32be`, the row encoding's own version |
+//! | 2 | claim | the reference's name |
+//! | 3 | execution suite | the reference's name |
+//! | 4 | roles | `u64be(count)`, then each role's name |
+//! | 5 | tags | `u64be(count)`, then each tag's name |
+//! | 6 | subject route | the reference's name |
+//! | 7 | check reference | the reference's name |
+//! | 8 | population | the reference's name |
+//! | 9 | origin | one byte, [`Origin::slot`], then the arm's own members |
+//!
+//! The order is the descriptor schema's declared reading order, so the roster a
+//! producer emits against and the bytes a row commits to are read the same way
+//! round.
+//!
+//! The origin's arms carry exactly what they earn, and nothing writes a seat an
+//! arm does not have:
+//!
+//! | slot | arm | members |
+//! | ---- | --- | ------- |
+//! | 1 | hand-written | nothing |
+//! | 2 | generated | the door's name, then the projection's name |
+//! | 3 | candidate | one byte, [`SynthesisFacts::slot`]; the survivor arm then writes the mutation point's name, the proof-gap arm writes nothing |
+//! | 4 | admitted-replay | `bytes(proposal address)`, one byte for the ground ([`AdmissionGround::slot`](super::AdmissionGround::slot)), the destination suite's name, `bytes(replay address)` |
+//! | 5 | admitted-discharge | `bytes(proposal address)`, the destination suite's name |
+//!
+//! The discharge arm writes no ground byte, and that is the elision law in the
+//! preimage: its ground is forced by the arm, so the arm's own slot already
+//! carries the fact and a second byte would state a value that could not have
+//! been anything else. The replay arm writes one, because two grounds open it.
+//!
+//! The roles and the tags are written in their STORAGE order — the set's, over
+//! the namespace and then the stem — rather than in the order a hand happened to
+//! author them. Two rows carrying the same labels therefore encode identically
+//! however they were written, which is right: the rosters are sets, a repeat is
+//! refused where the classification is built, and authoring order carries no
+//! meaning that a revision identity should move with.
+//!
+//! The generated-support schema identity, the producer's provenance, and the two
+//! revision bindings are absent, because none of them is a row field: they ride
+//! the binding and the table. A row revision therefore does not move when a
+//! producer-facing schema changes, and moving it is never evidence that anything
+//! the row EXECUTES has changed.
+//!
+//! # A row is encoded once
+//!
+//! The row road runs at CONSTRUCTION and nowhere else:
+//! [`Row::declared`](super::Row::declared) writes these bytes from the values it
+//! was handed, and the row carries them as its
+//! [`CanonicalRowBytes`](super::CanonicalRowBytes) for the rest of its life. No
+//! run re-encodes a row, so a report's revision identities are readings over
+//! bytes that already exist, and there is no second encoding of one row that
+//! could disagree with the first.
 //!
 //! The two preimages here are never compared with each other. They are derived
 //! under different domain tags, so a schema identity and a row revision identity
@@ -60,8 +120,9 @@
 //! two decisions, and one bump must not rename identities under the other.
 
 use super::types::{
-    AdmissionFacts, EncodeRefusal, FieldShape, GeneratedSupportSchema, NamespacedName, Origin, Row,
-    SchemaField, SynthesisFacts,
+    CheckRef, ClaimRef, Classification, DischargeAdmission, EncodeRefusal, ExecutionSuite,
+    FieldShape, GeneratedSupportSchema, NamespacedName, Origin, PopulationRef, ReplayAdmission,
+    SchemaField, SubjectRoute, SynthesisFacts,
 };
 use crate::identity::ContentAddress;
 
@@ -76,8 +137,11 @@ const SCHEMA_ENCODING_VERSION: u32 = 1;
 ///
 /// Its own constant rather than the schema encoding's, for the reason this
 /// file's page states: the two encodings move for separate reasons, and a bump
-/// to one must rename nothing derived under the other.
-const ROW_ENCODING_VERSION: u32 = 1;
+/// to one must rename nothing derived under the other. The number is a position
+/// in this encoding's own order — how a row's members are cut, including which
+/// members an origin arm writes at all — so a row cut at one position and a row
+/// cut at another are different preimages however alike the row is.
+const ROW_ENCODING_VERSION: u32 = 2;
 
 /// The tag the descriptor member is written under.
 const DESCRIPTOR_MEMBER_TAG: u8 = 1;
@@ -154,7 +218,7 @@ fn push_count(out: &mut Vec<u8>, count: usize) -> Result<(), EncodeRefusal> {
 // The row preimage.
 // ---------------------------------------------------------------------------
 
-/// The COMPLETE canonical bytes of one authored row.
+/// The COMPLETE canonical bytes of one row's declared content.
 ///
 /// # Authority
 ///
@@ -170,86 +234,42 @@ fn push_count(out: &mut Vec<u8>, count: usize) -> Result<(), EncodeRefusal> {
 /// different always encode differently, which is what makes a moved identity
 /// evidence that the row was edited.
 ///
-/// # The specification
-///
-/// The two primitives and the framing law are this file's, stated once at its
-/// page: `u32be(n)`, `u64be(n)`, and `bytes(x)` — `u64be(len(x))` then the
-/// bytes of `x`. A NAME is `bytes(namespace)` followed by `bytes(stem)`, two
-/// framed members rather than a joined spelling, so no pair of namespace and
-/// stem can be re-cut into a different pair that encodes identically.
-///
-/// The members, in exactly this order, with no separators and no padding:
-///
-/// | # | member | encoding |
-/// | - | ------ | -------- |
-/// | 1 | encoding version | `u32be`, the row encoding's own version |
-/// | 2 | claim | the reference's name |
-/// | 3 | execution suite | the reference's name |
-/// | 4 | roles | `u64be(count)`, then each role's name |
-/// | 5 | tags | `u64be(count)`, then each tag's name |
-/// | 6 | subject route | the reference's name |
-/// | 7 | check reference | the reference's name |
-/// | 8 | population | the reference's name |
-/// | 9 | origin | one byte, [`Origin::slot`], then the arm's own members |
-///
-/// The order is the descriptor schema's declared reading order, so the roster a
-/// producer emits against and the bytes a row commits to are read the same way
-/// round.
-///
-/// The origin's arms carry exactly what they earn, and nothing writes a seat an
-/// arm does not have:
-///
-/// | slot | arm | members |
-/// | ---- | --- | ------- |
-/// | 1 | hand-written | nothing |
-/// | 2 | generated | the door's name, then the projection's name |
-/// | 3 | candidate | one byte, [`SynthesisFacts::slot`]; the survivor arm then writes the mutation point's name, the proof-gap arm writes nothing |
-/// | 4 | admitted-replay | `bytes(proposal address)`, the admission facts, `bytes(replay address)` |
-/// | 5 | admitted-discharge | `bytes(proposal address)`, the admission facts |
-///
-/// The ADMISSION FACTS are one byte,
-/// [`AdmissionGround::slot`](crate::descriptor::AdmissionGround::slot),
-/// followed by the destination suite's name.
-///
-/// # Ordering
-///
-/// The roles and the tags are written in their STORAGE order — the set's, over
-/// the namespace and then the stem — rather than in the order a hand happened
-/// to author them. Two rows carrying the same labels therefore encode
-/// identically however they were written, which is right: the rosters are sets,
-/// a repeat is refused where the classification is built, and authoring order
-/// carries no meaning that a revision identity should move with.
-///
-/// # Nonclaims
-///
-/// The generated-support schema identity, the producer's provenance, and the
-/// two revision bindings are absent, because none of them is a row field: they
-/// ride the binding and the table. A row revision therefore does not move when
-/// a producer-facing schema changes, and moving it is never evidence that
-/// anything the row EXECUTES has changed.
+/// The road takes the row's declared VALUES rather than a row, because it runs
+/// while the row is being born: [`Row::declared`](super::Row::declared) is its
+/// one caller, and the bytes it answers with are what that row then owns. The
+/// complete specification — both primitives, the framing law, the member order,
+/// and every arm's own members — is this file's page.
 ///
 /// # Errors
 ///
 /// Refuses a length that does not fit the sixty-four bit width the encoding
 /// declares. The encoder states its widths rather than guessing at one; on
 /// every target this crate is built for the case is unreachable.
-pub fn encode_row(row: &Row) -> Result<Vec<u8>, EncodeRefusal> {
+pub(super) fn encode_row_content(
+    claim: ClaimRef,
+    execution_suite: ExecutionSuite,
+    classification: &Classification,
+    subject: SubjectRoute,
+    check: CheckRef,
+    population: PopulationRef,
+    origin: Origin,
+) -> Result<Vec<u8>, EncodeRefusal> {
     let mut bytes = Vec::new();
     bytes.extend_from_slice(&ROW_ENCODING_VERSION.to_be_bytes());
-    push_name(&mut bytes, row.claim().name())?;
-    push_name(&mut bytes, row.execution_suite().name())?;
-    push_count(&mut bytes, row.roles().len())?;
-    for role in row.roles() {
+    push_name(&mut bytes, claim.name())?;
+    push_name(&mut bytes, execution_suite.name())?;
+    push_count(&mut bytes, classification.roles().len())?;
+    for role in classification.roles() {
         push_name(&mut bytes, role.name())?;
     }
-    push_count(&mut bytes, row.tags().len())?;
-    for tag in row.tags() {
+    push_count(&mut bytes, classification.tags().len())?;
+    for tag in classification.tags() {
         push_name(&mut bytes, tag.name())?;
     }
-    push_name(&mut bytes, row.subject().name())?;
-    push_name(&mut bytes, row.check().name())?;
-    push_name(&mut bytes, row.population().name())?;
-    push_origin(&mut bytes, row.origin())
+    push_name(&mut bytes, subject.name())?;
+    push_name(&mut bytes, check.name())?;
+    push_name(&mut bytes, population.name())?;
+    push_origin(&mut bytes, origin)
 }
 
 /// One origin: its slot, then exactly what its arm earns.
@@ -262,22 +282,8 @@ fn push_origin(out: &mut Vec<u8>, origin: Origin) -> Result<(), EncodeRefusal> {
             push_name(out, facts.projection().name())
         }
         Origin::Candidate(facts) => push_synthesis(out, facts),
-        Origin::AdmittedReplay {
-            proposal,
-            admission,
-            replay,
-        } => {
-            push_address(out, proposal.address())?;
-            push_admission(out, admission)?;
-            push_address(out, replay.address())
-        }
-        Origin::AdmittedDischarge {
-            proposal,
-            admission,
-        } => {
-            push_address(out, proposal.address())?;
-            push_admission(out, admission)
-        }
+        Origin::AdmittedReplay(admitted) => push_replay_admission(out, admitted),
+        Origin::AdmittedDischarge(admitted) => push_discharge_admission(out, admitted),
     }
 }
 
@@ -290,10 +296,31 @@ fn push_synthesis(out: &mut Vec<u8>, facts: SynthesisFacts) -> Result<(), Encode
     }
 }
 
-/// One admission's stated facts: the ground's slot, then the destination suite.
-fn push_admission(out: &mut Vec<u8>, admission: AdmissionFacts) -> Result<(), EncodeRefusal> {
-    out.push(admission.ground().slot());
-    push_name(out, admission.destination().name())
+/// One replay-bearing admission: the proposal, the ground it stood on, the
+/// destination suite, and the capsule entry the act authored.
+///
+/// The ground is written at summary width, so one ground has one
+/// identity-bearing byte wherever it is encoded.
+fn push_replay_admission(
+    out: &mut Vec<u8>,
+    admitted: ReplayAdmission,
+) -> Result<(), EncodeRefusal> {
+    push_address(out, admitted.proposal().address())?;
+    out.push(admitted.admission().ground().slot());
+    push_name(out, admitted.destination().name())?;
+    push_address(out, admitted.replay().address())
+}
+
+/// One discharge admission: the proposal, then the destination suite.
+///
+/// No ground byte: the arm's own slot already states the one ground a discharge
+/// can stand on, and writing it again would put a forced value in the preimage.
+fn push_discharge_admission(
+    out: &mut Vec<u8>,
+    admitted: DischargeAdmission,
+) -> Result<(), EncodeRefusal> {
+    push_address(out, admitted.proposal().address())?;
+    push_name(out, admitted.destination().name())
 }
 
 /// One namespaced name: the namespace, then the stem, each framed.

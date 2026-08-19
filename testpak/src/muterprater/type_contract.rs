@@ -19,6 +19,13 @@
 //! and the two are declared apart because they are apart: an unviable mutant
 //! never ran, and a timed-out one built and then did not finish.
 //!
+//! # The claim ceiling
+//!
+//! What a reading of a backend's output may at most establish follows from the
+//! OUTPUT it was taken from, so the ceiling is a map over the sources and the
+//! verdicts it admits is a second one. Declared here rather than stated on a
+//! profile, so no reading is handed a ceiling wider than its source affords.
+//!
 //! # The routing table
 //!
 //! Which lane discharges an obligation follows from the SHAPE of proof its
@@ -32,9 +39,9 @@
 //! arm is a declaration. Nothing decides anything by it.
 
 use super::types::{
-    ActivationAxis, ActivationDisposition, AdmissionPatch, ArtifactMutation, ExecutionAxis,
-    MaterializationAxis, MutationOutcome, MutationVerdict, ObligationLane, ProofShape,
-    ProposalGround, WrapOutcomeWord,
+    ActivationAxis, ActivationDisposition, AdmissionPatch, ArtifactMutation, ClaimCeiling,
+    ExecutionAxis, MaterializationAxis, MutationOutcome, MutationVerdict, ObligationLane,
+    ProofShape, ProposalGround, ReadingSource, WrapOutcomeWord, WrappedBackend,
 };
 use crate::descriptor::{AdmissionGround, CapsulePosture};
 
@@ -98,6 +105,57 @@ impl From<WrapOutcomeWord> for ExecutionAxis {
             WrapOutcomeWord::Caught | WrapOutcomeWord::Missed => Self::Completed,
             WrapOutcomeWord::TimedOut => Self::TimedOut,
             WrapOutcomeWord::Unviable | WrapOutcomeWord::ToolFailed => Self::InfrastructureFailed,
+        }
+    }
+}
+
+impl WrappedBackend {
+    /// The backend's own name.
+    ///
+    /// A projection: a reader of a profile names the tool through it, and no
+    /// decision anywhere consults it.
+    #[must_use]
+    pub const fn spelling(self) -> &'static str {
+        match self {
+            Self::CargoMutants => "cargo-mutants",
+        }
+    }
+}
+
+impl From<ReadingSource> for ClaimCeiling {
+    /// The most a reading taken from one output can establish.
+    ///
+    /// A console stream states which of the backend's own mutants its command
+    /// rejected and carries no channel that could observe a damage firing, so
+    /// the reading it affords tops out at witness rejection.
+    fn from(source: ReadingSource) -> Self {
+        match source {
+            ReadingSource::ConsoleStream => Self::WitnessRejection,
+        }
+    }
+}
+
+impl ClaimCeiling {
+    /// The strongest verdict this ceiling grants.
+    #[must_use]
+    pub const fn strongest(self) -> MutationVerdict {
+        match self {
+            Self::WitnessRejection => MutationVerdict::Killed,
+        }
+    }
+
+    /// Whether one verdict stands inside this ceiling.
+    ///
+    /// A kill and an inconclusive both stand inside witness rejection; survived
+    /// stands outside it, because earning that word takes an activation the
+    /// source offers no channel to observe.
+    #[must_use]
+    pub const fn admits(self, verdict: MutationVerdict) -> bool {
+        match (self, verdict) {
+            (Self::WitnessRejection, MutationVerdict::Killed | MutationVerdict::Inconclusive) => {
+                true
+            }
+            (Self::WitnessRejection, MutationVerdict::Survived) => false,
         }
     }
 }

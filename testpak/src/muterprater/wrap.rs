@@ -8,6 +8,25 @@
 //! pure engine performs — this lane is a reader and a planner, never a second
 //! runner.
 //!
+//! # The profile a reading is stated under
+//!
+//! The grammar below is an ASSUMPTION about one tool's console rendering, and it
+//! is carried as a value rather than held in the air: every reading is stated
+//! under an [`AdapterProfile`] naming the backend, the version posture the party
+//! that ran it states, the output the reading was taken from, and this adapter's
+//! own grammar version. Three of those four are this file's own facts, so
+//! [`console_profile`] states them and only the backend version is the caller's
+//! word. The profile's ceiling is what the console stream affords, and
+//! [`WrapReading::read`] refuses a run that would stand past it.
+//!
+//! The console grammar is the BOOTSTRAP CONTRACT: the shapes stated below are
+//! coded against the backend's own rendering, and checking them against that
+//! backend's real output is the first item of the first toolchain contact, ahead
+//! of trusting the wrap-first pressure. A durable reading over a machine-readable
+//! output — and whatever mechanism such a reading asks for — is decided at the
+//! trust opening against the backend's own artifacts rather than against an
+//! imagined schema.
+//!
 //! # The output grammar this parser reads
 //!
 //! The grammar is line-oriented and this reading is DEFENSIVE: a line is read
@@ -39,6 +58,12 @@
 //! [`MutationRun::non_kills`](super::MutationRun::non_kills) is the roster a
 //! reader means by "what got through".
 //!
+//! That same fact is the profile's
+//! [`ClaimCeiling::WitnessRejection`](super::ClaimCeiling::WitnessRejection) at
+//! run width: the per-mutant axis says what one damage's firing established, the
+//! ceiling says what the whole reading may be stood on, and a reading whose run
+//! carries a survivor is refused rather than believed.
+//!
 //! The rejection a kill carries is the backend's WORD
 //! ([`IntendedRejection::ReportedByBackend`]), because the backend named neither
 //! a trial nor a cause: no fingerprint exists for it, and a proposal standing on
@@ -56,22 +81,32 @@
 //! accordingly.
 
 use super::types::{
-    ActivationDisposition, AnnouncedRoster, BaselineAxis, BaselineQualification, EquivalenceAxis,
-    ExecutionAxis, FamilyAttribution, FamilyLookup, InconclusiveCause, IntendedRejection,
-    MappingPosture, MaterializationAxis, MutantId, MutationIdentity, MutationReport, MutationRun,
-    MutationSite, MutationTarget, OwnerLookup, PlanRefusal, PlannedDamage, PlannedRun, PressureLane,
-    ProofPlan, ScopedInvocation, SourceCoordinate, UnparsedLine, WrapOutcomeWord, WrapReading,
-    WrapRefusal,
+    ActivationDisposition, AdapterProfile, AnnouncedRoster, BackendVersionPosture, BaselineAxis,
+    BaselineQualification, EquivalenceAxis, ExecutionAxis, FamilyAttribution, FamilyLookup,
+    GrammarVersion, InconclusiveCause, IntendedRejection, MappingPosture, MaterializationAxis,
+    MutantId, MutationIdentity, MutationReport, MutationRun, MutationSite, MutationTarget,
+    OwnerLookup, PlanRefusal, PlannedDamage, PlannedRun, PressureLane, ProofPlan, ReadingSource,
+    ScopedInvocation, SourceCoordinate, UnparsedLine, WrapOutcomeWord, WrapReading, WrapRefusal,
+    WrappedBackend,
 };
 use crate::report::ForeignText;
 use crate::runner::Selection;
 use std::collections::BTreeSet;
 
+/// The version of the console line grammar this file's page states.
+///
+/// Its own constant, moving when and only when those line shapes move. The
+/// backend's version is the running party's word and the mutant encoding's
+/// version is the identity's: three things move for three reasons, and a bump to
+/// one renames nothing under another.
+const CONSOLE_GRAMMAR_VERSION: u32 = 1;
+
 /// The activation every mutant this lane reads carries.
 ///
 /// A fact about the BACKEND: it mutates source and runs a command, and nothing
 /// in its output states whether a damaged expression was reached. Declared once
-/// here so the ceiling is applied uniformly rather than decided per line.
+/// here so every line is stamped from one place rather than decided at each one;
+/// the same fact at run width is the profile's claim ceiling.
 const WRAP_ACTIVATION: ActivationDisposition = ActivationDisposition::UnobservableUnderBackend;
 
 /// The equivalence every mutant this lane reads carries.
@@ -117,25 +152,51 @@ enum LineReading<'line> {
     Unread,
 }
 
-/// Read one compiled-mutation backend's output into this lane's record.
+/// What a console reading of the wrapped backend is stated under.
+///
+/// # Authority
+///
+/// The backend, the output, and the grammar are this file's own facts: it is
+/// this parser that reads that tool's console stream under the shapes its page
+/// states, so the only thing left for a caller to state is which version of the
+/// backend produced the text. The claim ceiling is read off the profile's
+/// source and is never stated into it.
+#[must_use]
+pub fn console_profile(version: BackendVersionPosture) -> AdapterProfile {
+    AdapterProfile::stated(
+        WrappedBackend::CargoMutants,
+        version,
+        ReadingSource::ConsoleStream,
+        GrammarVersion::adapter(CONSOLE_GRAMMAR_VERSION),
+    )
+}
+
+/// Read one compiled-mutation backend's console output into this lane's record.
 ///
 /// # Authority
 ///
 /// Two passes, and the order is the law: the baseline is established BEFORE any
 /// mutant line is read, so a kill can never be minted under a baseline the
 /// output did not qualify. The second pass is total over the remaining lines —
-/// every one of them lands in a report or in the unparsed roster.
+/// every one of them lands in a report or in the unparsed roster. The reading
+/// that comes back is stated under [`console_profile`], carrying the version
+/// posture the caller states for the run that wrote the text.
 ///
 /// # Errors
 ///
 /// Refuses an output stating no baseline at all, then a baseline that does not
 /// qualify, then a mutant line whose record the lawful-kill constructor refused
-/// — the last carrying which line and what the constructor refused.
+/// — the last carrying which line and what the constructor refused. The ceiling
+/// refusal [`WrapReading::read`] states belongs to a run assembled elsewhere:
+/// the records composed here are killed and inconclusive, and a console
+/// reading's ceiling admits both.
 pub fn read_output(
     text: &str,
+    version: BackendVersionPosture,
     owner: OwnerLookup,
     family: FamilyLookup,
 ) -> Result<WrapReading, WrapRefusal> {
+    let profile = console_profile(version);
     let baseline = read_baseline(text)?;
     let mut reports: Vec<MutationReport> = Vec::new();
     let mut unparsed: Vec<UnparsedLine> = Vec::new();
@@ -156,11 +217,12 @@ pub fn read_output(
             LineReading::Unread => unparsed.push(UnparsedLine::unread(ordinal, line.as_bytes())),
         }
     }
-    Ok(WrapReading::read(
+    WrapReading::read(
+        profile,
         MutationRun::recorded(baseline, reports),
         announced,
         unparsed,
-    ))
+    )
 }
 
 /// The qualified baseline the output states, if it states one that qualifies.

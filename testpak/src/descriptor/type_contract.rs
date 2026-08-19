@@ -15,6 +15,12 @@
 //! depot capsule entry with it or authors none at all, and the row's shape
 //! follows the ground rather than a caller's care.
 //!
+//! The narrowed ground is that table cut into a type: [`ReplayBearingGround`]
+//! is exactly the grounds this table answers `ReplayBearing` for, and the
+//! widening below is the one road back to the summary vocabulary. The discharge
+//! arm needs no such type, because the table leaves exactly one ground on that
+//! side and a seat with one lawful value is a seat nobody fills.
+//!
 //! # The slot tables
 //!
 //! [`FieldShape::slot`] and [`FieldCardinality::slot`] are identity-bearing:
@@ -26,12 +32,14 @@
 //!
 //! [`Origin::slot`], [`SynthesisFacts::slot`], and [`AdmissionGround::slot`]
 //! are identity-bearing in the same way and for a second consumer: the row
-//! preimage ([`crate::descriptor::encode_row`]) writes them, so a changed slot
+//! preimage ([`crate::descriptor::encode`]) writes them, so a changed slot
 //! renames every row revision derived under it. The origin's slots are the same
 //! arms, in the same order, that the descriptor schema's `origin` field
 //! declares as its closed choice — one reading order, written twice because the
 //! two are different kinds of statement, and held together by the conformance
-//! trial.
+//! trial. The ground's slot has no narrowed twin: a replay-bearing ground is
+//! widened here before it is written, so one ground has one byte wherever it
+//! appears.
 //!
 //! # The discharge table
 //!
@@ -45,8 +53,8 @@
 
 use super::types::{
     AdmissionGround, BindingRefusal, CapsulePosture, ClassificationRefusal, EncodeRefusal,
-    FieldCardinality, FieldShape, NameRefusal, Origin, RowRefusal, SchemaRefusal, SynthesisFacts,
-    TrialTableRefusal,
+    FieldCardinality, FieldShape, NameRefusal, Origin, ReplayBearingGround, RowRefusal,
+    SchemaRefusal, SynthesisFacts, TrialTableRefusal,
 };
 
 impl AdmissionGround {
@@ -76,6 +84,21 @@ impl AdmissionGround {
     }
 }
 
+impl From<ReplayBearingGround> for AdmissionGround {
+    /// The summary vocabulary one narrowed ground widens to.
+    ///
+    /// The narrowing exists so an arm cannot be handed a ground it does not
+    /// earn; the widening exists so the narrowing costs no second slot table, no
+    /// second spelling, and no second summary. Every replay-bearing ground has
+    /// exactly one image here, and it is the same word an admission act states.
+    fn from(ground: ReplayBearingGround) -> Self {
+        match ground {
+            ReplayBearingGround::MutantKilled => Self::MutantKilled,
+            ReplayBearingGround::ClaimPinned => Self::ClaimPinned,
+        }
+    }
+}
+
 impl Origin {
     /// The byte this arm is written as in a row's canonical preimage.
     ///
@@ -87,8 +110,8 @@ impl Origin {
             Self::HandWritten => 1,
             Self::Generated(_) => 2,
             Self::Candidate(_) => 3,
-            Self::AdmittedReplay { .. } => 4,
-            Self::AdmittedDischarge { .. } => 5,
+            Self::AdmittedReplay(_) => 4,
+            Self::AdmittedDischarge(_) => 5,
         }
     }
 }
@@ -155,6 +178,11 @@ macro_rules! discharged_into_trial_table {
 // it spells, the rosters it takes as authored, the row it declares, the root
 // schema declaration a produced row pins against and the identity derived from
 // it, and the binding that marries the row to what executes it.
+//
+// The encoding family appears once, for the schema identity. A row's own
+// encoding refusal travels inside the row's family instead, because a row whose
+// bytes could not be written is a row that was never built, and the arm a reader
+// wants is the one naming which construction refused.
 //
 // The authored-table refusal is deliberately absent: the only construction that
 // raises it stands in the stamp's tail position, where the arm is named where it

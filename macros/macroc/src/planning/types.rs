@@ -1,7 +1,9 @@
 //! The plan family's declarations: the entry account and the intent it names,
-//! the shared context, the output firewall, the invalidation roster, the sealed
-//! kind roster and its contents, the plan itself, the bundle, the disposition,
-//! and the services' own expectation of the generated-support schema identity.
+//! the shared context, the output firewall, the destination vocabulary and the
+//! emission roster every destination reads to, the invalidation roster, the
+//! sealed kind roster and its contents, the plan itself, the bundle, the
+//! disposition, and the services' own expectation of the generated-support
+//! schema identity.
 //!
 //! Declarations only.
 //! Every road that reaches a private field — the account's addressing, the
@@ -258,18 +260,101 @@ pub struct ProjectionContext {
     pub target: TargetBinding,
 }
 
-/// Where one planned member lands once it is rendered.
+/// Which emission one planned member's tokens belong to once it is rendered.
+///
+/// # Authority
+///
+/// **The destination decides which emission a member's bytes reach, and it is
+/// the only seat that decides it.** An expansion does not hand a compiler one
+/// stream: the tokens the consumer's NORMAL build compiles, the cargo a test
+/// target invokes later, the cargo a bench target invokes, and the bytes a
+/// publication writes to a named address are four deliveries with four
+/// audiences, and a member states which one it is for here.
+/// A vocabulary that could not tell them apart would put every rendered unit
+/// into the normal build whatever the delivery matrix said about it — which is
+/// exactly how a mutation-evaluation surface ends up compiled beside the
+/// implementation it is supposed to be evaluated against.
+///
+/// Every arm reads to exactly one [`EmissionPartition`]
+/// ([`MemberDestination::partition`]), and that reading is total: there is no
+/// member whose tokens belong nowhere and none whose tokens belong to two
+/// emissions.
+///
+/// # Bounds
+///
+/// A CARRIER destination says where the member's tokens are compiled, not where
+/// the carrier itself is written. The generated support shell is DEFINED at the
+/// declaration site — that is what makes it reachable — and the member's tokens
+/// ride inside it as deferred cargo the consumption target expands. Deferred
+/// cargo and a spliced item are two emissions, so they are two destinations;
+/// where the vehicle's own definition sits is the shell's fact and not this
+/// member's.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MemberDestination {
     /// Spliced into the declaration the plan was derived from — the expansion
     /// destination, where the rendered unit replaces or accompanies the
-    /// caller's own item.
+    /// caller's own item and the consumer's normal build compiles it.
     AtDeclarationSite,
     /// Written as a standalone artifact under the named byte role.
     AsArtifact {
         /// The byte role the artifact is written under.
         byte_role: OwnerIdentityRef<ByteRoleSubject>,
     },
+    /// Carried as deferred cargo into the consumer's TEST target, which invokes
+    /// the generated support shell and receives it.
+    /// The normal build compiles none of it.
+    IntoTestCarrier,
+    /// Carried as deferred cargo into the consumer's BENCH target, on the same
+    /// terms and through the same shell.
+    /// Separate from the test carrier because the two targets are separate
+    /// builds: a bench row delivered into a test target is a row nothing runs,
+    /// and the normal-build tax the wall exists to refuse is exactly what a
+    /// single carrier would reintroduce.
+    IntoBenchCarrier,
+}
+
+threadpak::closed_register! {
+    /// The closed roster of emissions one expansion partitions its rendered
+    /// units across.
+    ///
+    /// One row per delivery an expansion can make, and a member reaches exactly
+    /// one of them, through its own declared destination
+    /// ([`MemberDestination::partition`]).
+    ///
+    /// # Authority
+    ///
+    /// **The roster is the quantifier for emission, exactly as the rendered-role
+    /// roster is the quantifier for the membership proof.** A join that walked
+    /// the rendered units without walking this roster would produce one stream
+    /// out of members that belong to different builds, and every claim made
+    /// about that stream would be a claim about a value nobody delivers.
+    /// Adding a row is a law change here — and one the compiler collects, since
+    /// every reading over the roster is a `match` that stops compiling until the
+    /// new row says what it carries.
+    ///
+    /// # Nonclaims
+    ///
+    /// A row says which emission a member's tokens belong to. It says nothing
+    /// about whether that emission was requested, whether the carrier exists,
+    /// or whether anybody will invoke it: those are the consumption target's
+    /// facts, and an expansion that claimed them would be claiming something
+    /// about a build it has never seen.
+    pub enum EmissionPartition {
+        /// The tokens the declaration site expands into, which the consumer's
+        /// normal build compiles.
+        DeclarationSite = "declaration-site",
+            "the tokens the consumer's normal build compiles at the declaration site";
+        /// The deferred cargo the consumer's test target invokes.
+        TestCarrier = "test-carrier",
+            "the deferred cargo the consumer's test target invokes";
+        /// The deferred cargo the consumer's bench target invokes.
+        BenchCarrier = "bench-carrier",
+            "the deferred cargo the consumer's bench target invokes";
+        /// The standalone artifacts a publication writes, each under its own
+        /// byte role.
+        PublicationArtifact = "publication-artifact",
+            "the standalone artifacts a publication writes, each under its own byte role";
+    }
 }
 
 /// What the eventual rendered-byte digest of one member must satisfy — stated
@@ -764,12 +849,15 @@ macro_rules! kinds {
 ///
 /// # Bounds
 ///
-/// A member under an evaluation role LANDS at the declaration site
-/// ([`RenderedImplementation::destination`]) and is CONSUMED in the consumer's
-/// test target: the copy rides the generated support shell, which is emitted at
-/// the declaration site as deferred tokens and invoked by the consumption
-/// target. The landing and the consumption are different questions, and only the
-/// landing is a destination.
+/// A member under an evaluation role is delivered into the TEST CARRIER
+/// ([`RenderedImplementation::destination`]) and never into the declaration
+/// site: the copy rides the generated support shell as deferred cargo, and the
+/// build that compiles it is the consumer's test target. The shell's own
+/// definition is written at the declaration site — that is what makes it
+/// reachable — but the copy's tokens are not, and the difference is the whole
+/// point of the second paved road: an evaluation surface spliced beside the
+/// production implementation is a selector-bearing copy inside the consumer's
+/// normal build, which is the one delivery this pairing exists to avoid.
 ///
 /// The production seats name the REFUSAL family's two contracts, because the
 /// refusal-family derive is the one derive family admitted at the door today and

@@ -8,8 +8,7 @@
 //! the descriptor home owns, and this file adds only the pairing.
 
 use super::types::{Invocation, TrialBinding};
-use crate::descriptor::encode::encode_row;
-use crate::descriptor::{EncodeRefusal, Row};
+use crate::descriptor::Row;
 use crate::report::{
     CheckRevisionId, ExecutionKey, RowRevisionId, SubjectRevisionId, TrialId, TrialProfile,
 };
@@ -61,18 +60,14 @@ pub fn execution_key(binding: &TrialBinding, invocation: &Invocation) -> Executi
 
 /// The revision identity of one authored row.
 ///
-/// The bytes are the descriptor home's, taken from that home's own encoder: a
-/// row's canonical byte string has one author, and this engine derives an
-/// identity from it rather than encoding a row it does not own.
+/// # Authority
 ///
-/// # Errors
-///
-/// Refuses when that encoder refuses — a length past the width the row encoding
-/// declares, which is unreachable on every target this crate is built for. It is
-/// carried rather than swallowed because there is no honest stand-in: a census
-/// entry under an identity derived from bytes nobody wrote would be two rows'
-/// bookkeeping sharing one name, which is the exact thing a revision identity
-/// exists to prevent.
-pub(super) fn row_revision(row: &Row) -> Result<RowRevisionId, EncodeRefusal> {
-    Ok(RowRevisionId::over(&encode_row(row)?))
+/// Total, and the join is the whole of it. The bytes are the descriptor home's
+/// and the row already carries them — written once, where the row was born — so
+/// this engine neither encodes a row it does not own nor asks whether an
+/// encoding succeeded that already did. A row nothing could encode is a row that
+/// was never constructed, and no census entry can be stated over one.
+#[must_use]
+pub(super) fn row_revision(row: &Row) -> RowRevisionId {
+    RowRevisionId::over(row.canonical_bytes())
 }

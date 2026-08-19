@@ -1,12 +1,12 @@
 # runner — descriptor tables become runs
 
-The runner is a pure engine with two calls: `run_one` takes a binding and a
-typed invocation and returns one trial report; `run_all` takes the sealed
-table view, a selection, and a typed invocation and returns a run report, or
-the descriptor home's own encoding refusal where a row's canonical bytes
-could not be written — a census entry cannot name a revision derived from
-bytes nobody wrote, and a denominator missing one row is a smaller world
-wearing the shape of the complete one.
+The runner is a pure engine with two TOTAL calls: `run_one` takes a binding
+and a typed invocation and returns one trial report; `run_all` takes the
+sealed table view, a selection plan, and a typed invocation and returns a run
+report. Neither can decline to state one: a row commits to its canonical
+bytes where it is built, so no census entry can fail to name its row's
+revision, and a denominator missing a row is not a shape this engine can
+produce.
 The row is pure data and cannot execute — the binding carries the callable,
 so no hidden row-to-function registry can exist. The table is always the
 complete world; the selection chooses from it, and the run report accounts
@@ -18,17 +18,29 @@ parameter and results are values. The runner touches no
 process boundary: it reads no arguments, prints nothing, and exits nothing,
 so the wall holds over it without a single exception.
 
+A selection plan is what one invocation chooses joined to what it expects that
+choice to match. `SelectionPlan::of` is the whole of the ordinary road and it
+asks for nothing beyond the selection — a run expects at least one row unless
+somebody says otherwise, so the standing expectation costs a caller no
+ceremony. `SelectionPlan::allowing_empty` is the one escape, and it carries a
+typed reason the run's own report then records. The escape renders a zero-work
+result carrying that reason, and nothing anywhere calls it passed.
+
 Two readings turn a report into a seat's answer: `seat_verdict` over a run
-report, `lens_verdict` over one trial report, both answering with
+report, `lens_verdict` over one trial report, both refusing with
 `SeatRefusal` — the one refusal type a stamped test function returns. A
-construction refusal enters it unchanged through `From`, and so does the
-engine's own encoding refusal, so `?` is the whole ceremony at a seat;
+construction refusal enters it unchanged through `From`, and that is the only
+road in, so `?` is the whole ceremony at a seat;
 everything else it says is lifted from typed fields the run already wrote,
 never matched out of anybody's prose. The readings live here rather than in the stamp because
 a fold written into every expansion is one calculator standing in as many
-places as there are invocations. A run that selected nothing refuses: that
-is the suite pairing a stamp cannot check without reading inside a row
-expression, answered from the census instead.
+places as there are invocations. `seat_verdict` answers with a typed
+`SeatOutcome` where it does not refuse, so a run that deliberately exercised
+nothing is never read as a run whose trials concluded; `lens_verdict` has no
+such answer to give, because a lens has one binding, no selection, and no
+expectation. A run that selected nothing under the standing expectation
+refuses: that is the suite pairing a stamp cannot check without reading inside
+a row expression, answered from the fact the run recorded.
 
 The host facts a run stands on are declared, never read. The target triple
 and toolchain identity arrive as a `TargetBinding` the invoker states —

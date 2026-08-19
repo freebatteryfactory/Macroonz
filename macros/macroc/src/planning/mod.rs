@@ -9,7 +9,7 @@ pub use types::{
     BenchmarkDescriptorContent, BenchmarkDescriptorProjection, CapturedDependencies, CauseAnchoring,
     CodecContent, CodecDirection, CodecProjection, ContentAddressing, DeclaredBootstrap,
     DeriveImplContent, DeriveImplProjection, DigestContract, DocumentationContent,
-    DocumentationProjection, EXPECTED_GENERATED_SUPPORT_SCHEMA_ID,
+    DocumentationProjection, EXPECTED_GENERATED_SUPPORT_SCHEMA_ID, EmissionPartition,
     ExpectedGeneratedSupportSchemaId, GENERATED_SUPPORT_SCHEMA_DECLARED_BOOTSTRAP, GraphAnchoring,
     HostWrapperContent, HostWrapperProjection, InvalidationSet, InvalidationTrigger, KindSeal,
     MemberDestination, OwnerContentAccount, PatternStampContent, PatternStampProjection,

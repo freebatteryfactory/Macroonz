@@ -22,18 +22,23 @@ Table × Selection × Invocation     →  RunReport     (run_all)
 RunReport × RunReport              →  ReportDiff
 ```
 
-`run_all` is the one engine arrow that can refuse: a row whose canonical bytes
-cannot be written has no revision identity, the census cannot name it, and no
-report is stated at all.
+Both engine arrows are total. A row commits to its canonical bytes when it is
+built, so nothing at run time can fail to name a row's revision, and a selection
+that matched nothing is a fact the report STATES rather than a reason to state
+no report at all. A run carries what it expects its selection to match — at
+least one row, unless a caller declares otherwise and says why — and the seat
+reading turns an unmet expectation into a failing seat rather than a green one
+that ran nothing.
 
 Row is pure descriptor data — it carries a check reference, never a callable.
 Binding pairs one Row with one callable through the executable attachment,
 whose constructor structurally verifies the row's references match. Table is
 the complete set of Bindings — the world; its constructor refuses duplicate
 trial identities. Selection is what one invocation chooses FROM that world —
-the world itself never shrinks. TrialReport is one execution; RunReport is
-complete-table-plus-selection accounting; ReportDiff is a pure comparison of
-two reports.
+the world itself never shrinks; what a run hands the engine is that selection
+joined to what the run expects it to match. TrialReport is one execution;
+RunReport is complete-table-plus-selection accounting; ReportDiff is a pure
+comparison of two reports.
 
 Three vocabularies ride beside the spine without being spine nouns: the
 Invocation (both engine calls take it; Selection remains its own argument),

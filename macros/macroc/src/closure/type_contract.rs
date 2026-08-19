@@ -33,7 +33,8 @@ impl<R: RenderedRole> ClosureIssue<R> {
             Self::MembershipDisagreement { .. } => 8,
             Self::ReconstructionEmpty => 9,
             Self::ReconstructionUndeclarable { .. } => 10,
-            Self::JoinedTreeUnbounded => 11,
+            Self::JoinedTreeUnbounded { .. } => 11,
+            Self::ArtifactAddressDoubled { .. } => 12,
         }
     }
 
@@ -49,10 +50,11 @@ impl<R: RenderedRole> ClosureIssue<R> {
             | Self::SemanticKeyMismatch { role }
             | Self::MaterializationMismatch { role }
             | Self::MemberPlannedTwice { role, .. }
-            | Self::MembershipDisagreement { role } => Some(*role),
+            | Self::MembershipDisagreement { role }
+            | Self::ArtifactAddressDoubled { role, .. } => Some(*role),
             Self::ReconstructionEmpty
             | Self::ReconstructionUndeclarable { .. }
-            | Self::JoinedTreeUnbounded => None,
+            | Self::JoinedTreeUnbounded { .. } => None,
         }
     }
 
@@ -78,7 +80,10 @@ impl<R: RenderedRole> ClosureIssue<R> {
             Self::ReconstructionUndeclarable { .. } => {
                 "the rebuild will not declare as a complete output set"
             }
-            Self::JoinedTreeUnbounded => "the joined token tree outgrows its declared magnitude",
+            Self::JoinedTreeUnbounded { .. } => {
+                "one emission's joined token tree outgrows its declared magnitude"
+            }
+            Self::ArtifactAddressDoubled { .. } => "two published units stand at one address",
         }
     }
 }

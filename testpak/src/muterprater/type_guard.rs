@@ -13,28 +13,30 @@
 
 use super::{
     ActivationDisposition, ActivationEvidence, ActivationSite, ActiveMutant, ActiveSelection,
-    AlternativeIndex, AnnouncedRoster, BaselineAxis, BaselinePrecondition, BaselineQualification,
-    BudgetRefusal, CandidateSketch, CheckGap, CoordinateRefusal, Demonstration,
+    AdapterProfile, AlternativeIndex, AnnouncedRoster, BackendVersion, BackendVersionPosture,
+    BackendVersionRefusal, BaselineAxis, BaselinePrecondition, BaselineQualification,
+    BudgetRefusal, CandidateSketch, CheckGap, ClaimCeiling, CoordinateRefusal, Demonstration,
     DemonstratedRejection, DiffPath, DiffPathRefusal, DischargeEvidence, DudPlant,
     DuplicateEvidence, DuplicateRefusal, EquivalenceAxis, EvaluationSurface, ExecutionAxis,
-    ExplanationRefusal, FamilyAttribution, InconclusiveCause, InferredObligation, IntendedRejection,
-    KillRefusal, MUTATION_TARGET_TAG, MappingPosture, MaterializationAxis, MutantId, MutationCensus,
-    MutationIdentity, MutationOutcome, MutationPoint, MutationReport, MutationRun, MutationSite,
-    MutationTarget, MutationVerdict, NoComparisonReason, ObligationLane, OperatorFamilyRef,
-    OracleClass, OwedClaim, OwedClaimRefusal, OwedDeclaration, PROPOSAL_TAG, ParityStanding,
-    PlanRefusal, PlannedDamage, PlannedRun, PointRefusal, PressureBudget, PressureLane, ProofDelta,
-    ProofDeltaRefusal, ProofPlan, ProofRefusal, ProofShape, Proposal, ProposalDestination,
-    ProposalGround, ProposalRefusal, RejectionIdentity, RewriteCandidate, RewriteDescriptor,
-    RewriteRefusal, RewriteRoster, RewriteTrust, RosterRefusal, ScopeShape, ScopedInvocation,
-    SelectionRefusal, SinkRefusal, SourceCoordinate, StoredProposalRef, SurfaceRefusal,
-    SurvivalRefusal, SurvivorExplanation, UnparsedLine, WrapReading,
+    ExplanationRefusal, FamilyAttribution, GrammarVersion, InconclusiveCause, InferredObligation,
+    IntendedRejection, KillRefusal, MUTATION_TARGET_TAG, MappingPosture, MaterializationAxis,
+    MutantId, MutationCensus, MutationIdentity, MutationOutcome, MutationPoint, MutationReport,
+    MutationRun, MutationSite, MutationTarget, MutationVerdict, NoComparisonReason, ObligationLane,
+    OperatorFamilyRef, OracleClass, OwedClaim, OwedClaimRefusal, OwedDeclaration, PROPOSAL_TAG,
+    ParityStanding, PlanRefusal, PlannedDamage, PlannedRun, PointRefusal, PressureBudget,
+    PressureLane, ProofDelta, ProofDeltaRefusal, ProofPlan, ProofRefusal, ProofShape, Proposal,
+    ProposalDestination, ProposalGround, ProposalRefusal, ReadingSource, RejectionIdentity,
+    RewriteCandidate, RewriteDescriptor, RewriteRefusal, RewriteRoster, RewriteTrust,
+    RosterRefusal, ScopeShape, ScopedInvocation, SelectionRefusal, SinkRefusal, SourceCoordinate,
+    StoredProposalRef, SurfaceRefusal, SurvivalRefusal, SurvivorExplanation, UnparsedLine,
+    WrapReading, WrapRefusal, WrappedBackend,
 };
 use crate::depot::operator_families::OPERATOR_FAMILIES;
 use crate::depot::types::OperatorFamily;
 use crate::descriptor::{
-    AdmissionGround, CheckRef, ClaimRef, Classification, EncodeRefusal, ExecutionSuite,
-    MutationPointRef, NameRefusal, NamespacedName, Origin, PopulationRef, ProposalId, Row,
-    SubjectRoute, SynthesisFacts, TablePosture, encode_row,
+    AdmissionGround, CheckRef, ClaimRef, Classification, ExecutionSuite, MutationPointRef,
+    NameRefusal, NamespacedName, Origin, PopulationRef, ProposalId, Row, SubjectRoute,
+    SynthesisFacts, TablePosture,
 };
 use crate::identity::ContentAddress;
 use crate::report::{
@@ -680,6 +682,91 @@ impl MutationRun {
 // The wrap lane's reading vocabulary.
 // ---------------------------------------------------------------------------
 
+impl BackendVersion {
+    /// The version the party that ran the backend states.
+    ///
+    /// # Errors
+    ///
+    /// Refuses an empty spelling, which states no version.
+    pub fn stated(spelling: &str) -> Result<Self, BackendVersionRefusal> {
+        if spelling.is_empty() {
+            return Err(BackendVersionRefusal::EmptySpelling);
+        }
+        Ok(Self(spelling.to_owned()))
+    }
+
+    /// The spelling that party stated.
+    #[must_use]
+    pub fn spelling(&self) -> &str {
+        &self.0
+    }
+}
+
+impl GrammarVersion {
+    /// The version an adapter's own page states for its line grammar.
+    #[must_use]
+    pub const fn adapter(version: u32) -> Self {
+        Self(version)
+    }
+
+    /// The number the adapter states.
+    #[must_use]
+    pub const fn number(self) -> u32 {
+        self.0
+    }
+}
+
+impl AdapterProfile {
+    /// What one reading is stated under.
+    #[must_use]
+    pub fn stated(
+        backend: WrappedBackend,
+        version: BackendVersionPosture,
+        source: ReadingSource,
+        grammar: GrammarVersion,
+    ) -> Self {
+        Self {
+            backend,
+            version,
+            source,
+            grammar,
+        }
+    }
+
+    /// The backend the reading was taken from.
+    #[must_use]
+    pub const fn backend(&self) -> WrappedBackend {
+        self.backend
+    }
+
+    /// Whether the party that ran that backend stated its version.
+    #[must_use]
+    pub const fn version(&self) -> &BackendVersionPosture {
+        &self.version
+    }
+
+    /// Which of the backend's outputs the reading was taken from.
+    #[must_use]
+    pub const fn source(&self) -> ReadingSource {
+        self.source
+    }
+
+    /// The adapter grammar version the reading was taken under.
+    #[must_use]
+    pub const fn grammar(&self) -> GrammarVersion {
+        self.grammar
+    }
+
+    /// The most a reading under this profile can establish.
+    ///
+    /// Read from the source rather than stored, so a profile can never grant
+    /// more than the output it was taken from affords.
+    #[must_use]
+    pub fn ceiling(&self) -> ClaimCeiling {
+        ClaimCeiling::from(self.source)
+    }
+}
+
 impl UnparsedLine {
     /// One line of a backend's output this parser could not read.
     ///
@@ -708,18 +795,48 @@ impl UnparsedLine {
 }
 
 impl WrapReading {
-    /// What one reading of a backend's output recovered.
-    #[must_use]
+    /// What one reading of a backend's output recovered, stated under the
+    /// profile it was read through.
+    ///
+    /// # Authority
+    ///
+    /// The profile rides the reading, so there is no road to a wrap reading
+    /// that does not say which grammar it stands on and what it may claim.
+    ///
+    /// # Errors
+    ///
+    /// Refuses a run carrying a record whose verdict the profile's ceiling does
+    /// not admit, naming the record, its verdict, and the ceiling — so a
+    /// reading can never state more than its source affords.
     pub fn read(
+        profile: AdapterProfile,
         run: MutationRun,
         announced: AnnouncedRoster,
         unparsed: Vec<UnparsedLine>,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, WrapRefusal> {
+        let ceiling = profile.ceiling();
+        for (at, report) in run.reports().iter().enumerate() {
+            let verdict = report.verdict();
+            if !ceiling.admits(verdict) {
+                return Err(WrapRefusal::VerdictPastCeiling {
+                    at,
+                    verdict,
+                    ceiling,
+                });
+            }
+        }
+        Ok(Self {
+            profile,
             run,
             announced,
             unparsed,
-        }
+        })
+    }
+
+    /// What the reading is stated under.
+    #[must_use]
+    pub const fn profile(&self) -> &AdapterProfile {
+        &self.profile
     }
 
     /// The run the reading recovered.
@@ -1707,24 +1824,22 @@ impl Proposal {
     /// ground into one destination therefore share an identity by design, which
     /// is what makes an admitted origin's citation stable across a rerun.
     ///
-    /// # Errors
+    /// # Authority
     ///
-    /// Refuses when the row encoding refuses — a length past the width that
-    /// encoding declares, which is unreachable on every target this crate is
-    /// built for.
-    pub fn identity(&self) -> Result<ProposalId, EncodeRefusal> {
-        let row = encode_row(&self.candidate)?;
+    /// Total. The candidate row's canonical bytes were written where that row
+    /// was born, so this road reads them rather than encoding a row a second
+    /// time, and there is no shape of this call in which a proposal holds a row
+    /// it cannot name.
+    #[must_use]
+    pub fn identity(&self) -> ProposalId {
         let mut preimage = Vec::new();
         preimage.extend_from_slice(&PROPOSAL_ENCODING_VERSION.to_be_bytes());
-        encode_bytes(&row, &mut preimage);
+        encode_bytes(self.candidate.canonical_bytes().as_bytes(), &mut preimage);
         preimage.push(self.ground_summary().slot());
         let suite = self.destination.suite().name();
         encode_bytes(suite.namespace().as_bytes(), &mut preimage);
         encode_bytes(suite.stem().as_bytes(), &mut preimage);
-        Ok(ProposalId::over(ContentAddress::derived(
-            PROPOSAL_TAG,
-            &preimage,
-        )))
+        ProposalId::over(ContentAddress::derived(PROPOSAL_TAG, &preimage))
     }
 }
 
@@ -1734,8 +1849,8 @@ fn candidate_facts(candidate: &Row) -> Result<SynthesisFacts, ProposalRefusal> {
         Origin::Candidate(facts) => Ok(facts),
         Origin::HandWritten
         | Origin::Generated(_)
-        | Origin::AdmittedReplay { .. }
-        | Origin::AdmittedDischarge { .. } => Err(ProposalRefusal::NotACandidate),
+        | Origin::AdmittedReplay(_)
+        | Origin::AdmittedDischarge(_) => Err(ProposalRefusal::NotACandidate),
     }
 }
 

@@ -46,14 +46,17 @@
 //! - `runner::Selection`, with the arm
 //!   `ByExecutionSuite(BTreeSet<ExecutionSuite>)` — one aggregate seat names
 //!   exactly one suite and hands it in as the one-element set the arm is over.
-//! - `runner::run_all(&TrialTableView<'_>, &Selection, &Invocation) ->
-//!   Result<RunReport, EncodeRefusal>`.
+//! - `runner::SelectionPlan::of(Selection) -> SelectionPlan`, the road that
+//!   states a run expects its selection to match at least one row. A stamped
+//!   seat takes it and never the empty-tolerant one: a declared suite that pairs
+//!   with no row is the vacuity these seats exist to catch.
+//! - `runner::run_all(&TrialTableView<'_>, &SelectionPlan, &Invocation) ->
+//!   RunReport`, total.
 //! - `runner::run_one(&TrialBinding, &Invocation) -> TrialReport`.
 //! - `runner::SeatRefusal`, the seats' one refusal type, which is `Debug` and
-//!   carries `From<TrialTableRefusal>` and `From<EncodeRefusal>` so that every
-//!   construction refusal on this road, and the engine's own, reaches a seat
-//!   unchanged.
-//! - `runner::seat_verdict(&RunReport) -> Result<(), SeatRefusal>`.
+//!   carries `From<TrialTableRefusal>` so that every construction refusal on
+//!   this road reaches a seat unchanged.
+//! - `runner::seat_verdict(&RunReport) -> Result<SeatOutcome, SeatRefusal>`.
 //! - `runner::lens_verdict(&TrialReport) -> Result<(), SeatRefusal>`.
 //!
 //! The two verdict readings are the engine's rather than the stamp's on
@@ -510,13 +513,19 @@ macro_rules! trial_table {
                 /// descriptor row carries no site of its own for the engine to
                 /// read.
                 ///
+                /// The verdict's own outcome is bound and goes no further: a
+                /// test function's answer has exactly two channels, and what a
+                /// run DID beyond refusing is the report's to carry. The seat
+                /// takes the refusal channel and states nothing else.
+                ///
                 /// # Errors
                 ///
-                /// Refuses when the world could not be built, when this seat's
-                /// suite name could not be parsed, when a row's canonical bytes
-                /// could not be written, or when the run's own verdict refuses
-                /// — including the run that selected nothing, which is the
-                /// suite pairing the stamp cannot check.
+                /// Refuses when the world could not be built — which includes a
+                /// row whose canonical bytes could not be written, since a row
+                /// commits to them where it is born — when this seat's suite
+                /// name could not be parsed, or when the run's own verdict
+                /// refuses, including the run that selected nothing, which is
+                /// the suite pairing the stamp cannot check.
                 #[test]
                 fn $seat() -> ::core::result::Result<(), $crate::runner::SeatRefusal> {
                     let world = table()?;
@@ -526,8 +535,10 @@ macro_rules! trial_table {
                     )
                     .map_err($crate::descriptor::TrialTableRefusal::NameNotParsed)?;
                     let view = world.view();
-                    let selection = $crate::runner::Selection::ByExecutionSuite(
-                        ::std::collections::BTreeSet::from([suite]),
+                    let selection = $crate::runner::SelectionPlan::of(
+                        $crate::runner::Selection::ByExecutionSuite(
+                            ::std::collections::BTreeSet::from([suite]),
+                        ),
                     );
                     let invocation = $crate::runner::Invocation::declared(
                         INVOCATION,
@@ -540,8 +551,9 @@ macro_rules! trial_table {
                         ),
                         CLOCK,
                     );
-                    let report = $crate::runner::run_all(&view, &selection, &invocation)?;
-                    $crate::runner::seat_verdict(&report)
+                    let report = $crate::runner::run_all(&view, &selection, &invocation);
+                    let _outcome = $crate::runner::seat_verdict(&report)?;
+                    ::core::result::Result::Ok(())
                 }
             )+
 

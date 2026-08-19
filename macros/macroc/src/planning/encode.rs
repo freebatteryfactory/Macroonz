@@ -189,6 +189,15 @@ impl ProjectionContext {
 impl MemberDestination {
     /// Append this destination's canonical bytes: the discriminant, then the
     /// byte role where one is named.
+    ///
+    /// # Ordering
+    ///
+    /// A discriminant is APPENDED and never reused. The two deliveries written
+    /// first keep the positions they were written under, so every plan spellable
+    /// before the carrier arms encodes byte for byte as it did, and a carrier
+    /// can never encode as the artifact it was numbered after. Reusing a
+    /// position would make two different deliveries one preimage, which is the
+    /// one thing a discriminant ahead of its material exists to prevent.
     pub fn encode_into(&self, into: &mut Vec<u8>) {
         match self {
             Self::AtDeclarationSite => {
@@ -198,6 +207,14 @@ impl MemberDestination {
             Self::AsArtifact { byte_role } => {
                 into.push(1);
                 encode_bytes(byte_role.as_bytes(), into);
+            }
+            Self::IntoTestCarrier => {
+                into.push(2);
+                encode_bytes(&[], into);
+            }
+            Self::IntoBenchCarrier => {
+                into.push(3);
+                encode_bytes(&[], into);
             }
         }
     }

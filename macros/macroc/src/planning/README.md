@@ -110,6 +110,21 @@ Materializing a bundle is atomic at the publication boundary —
 [`ProjectionBundlePlan`] names its members, and a partial materialization is a
 refusal, never a partial success.
 
+## One member, one delivery
+
+An expansion hands a compiler no single stream. What the consumer's normal build
+compiles, what a consumption target invokes later, and what a publication writes
+to a named address are three different deliveries, and every planned member says
+which one it is for: [`MemberDestination`] is that seat, and
+[`EmissionPartition`] is the closed roster it reads to. The reading is total and
+it is the destination's own constant answer, so the join that emits, the proof
+that closes, and a consumption target routing cargo all take one answer instead
+of three that agree until one is edited. The production implementation is
+written at the declaration site; the mutation-evaluation copy is written into
+the test carrier and rides the shell as deferred cargo — a copy spliced beside
+the production implementation would be a selector-bearing surface inside the
+normal build, which is the tax the wall exists to refuse.
+
 ## Absence is explained
 
 Where a projection was not generated, [`ProjectionDisposition`] says which kind
@@ -146,8 +161,9 @@ Its own child `type_guard.rs` holds the output firewall and every other road
 that reaches a private field.
 `type_contract.rs` states the rendered-role roster an implementation projection
 materializes — each contract's production implementation, each production
-implementation's evaluation copy, which role pairs with which, and where a
-member under each one lands.
+implementation's evaluation copy, which role pairs with which, and which
+delivery a member under each one is written into — together with the destination
+roster's own constant answer, which is the emission each destination reads to.
 `anchor.rs` reads a plan's footing and DERIVES the shared watch set
 that follows from it, and `encode.rs` writes the bytes a plan's transcript is
 taken over.

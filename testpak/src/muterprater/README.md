@@ -68,6 +68,22 @@ Sequences are a mutation subject of their own: dropping,
 duplicating, reordering, or delaying commands in a generated history must
 trip the temporal laws — the cheapest event-order pressure there is.
 
+Every wrap reading is stated under an adapter profile: which backend was
+wrapped, the version posture the party that ran it states — declared, never
+observed, because this lane reads text a caller already holds and invokes
+nothing — which of the backend's outputs the reading was taken from, and the
+adapter grammar version that read it, that last one moving when and only when
+the stated line shapes move. The profile's claim ceiling is what its source
+affords: a console stream carries no channel that could observe a damage
+firing, so a reading over it tops out at witness rejection, and a run carrying
+a verdict past that ceiling is refused rather than believed. The console
+grammar is the bootstrap contract — the line shapes are coded against the
+backend's own rendering, and checking them against that backend's real output
+is the first item of the first toolchain contact, ahead of trusting the
+wrap-first pressure. A durable reading over a machine-readable output, and
+whatever mechanism such a reading asks for, is decided at the trust opening
+against the backend's own artifacts rather than against an imagined schema.
+
 The compile-once interpreter is the rapid loop this instrument is named
 for. The walk over the declaration happens at generation time over the
 services' own typed capture; one evaluation copy compiles once carrying

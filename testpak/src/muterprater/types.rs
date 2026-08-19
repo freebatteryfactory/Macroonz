@@ -1,9 +1,9 @@
 //! The proof-pressure engine's declarations: the verdict chain's axes, the
 //! per-mutant record and its run, the mutation target and its owner mapping, the
-//! wrap lane's reading vocabulary, the interpreted lane's evaluation surface and
-//! trust gate, the rewrite lane's descriptors, the artifact-mutation seed
-//! roster, the survivor explanation and the check gap, the scope shapes and the
-//! proof plan, and the whole proposal road.
+//! wrap lane's adapter profile and reading vocabulary, the interpreted lane's
+//! evaluation surface and trust gate, the rewrite lane's descriptors, the
+//! artifact-mutation seed roster, the survivor explanation and the check gap,
+//! the scope shapes and the proof plan, and the whole proposal road.
 //!
 //! Declarations only. Every road that reaches a private field is this file's own
 //! child, `type_guard.rs`; the declarative tables are `type_contract.rs`; the
@@ -22,9 +22,8 @@
 
 use crate::depot::types::OperatorFamily;
 use crate::descriptor::{
-    CheckRef, ClaimRef, Classification, EncodeRefusal, ExecutionSuite, MutationPointRef,
-    NameRefusal, NamespacedName, PopulationRef, ProposalId, Row, RowRefusal, StagedTableRefusal,
-    SubjectRoute,
+    CheckRef, ClaimRef, Classification, ExecutionSuite, MutationPointRef, NameRefusal,
+    NamespacedName, PopulationRef, ProposalId, Row, RowRefusal, StagedTableRefusal, SubjectRoute,
 };
 use crate::identity::{ContentAddress, DomainTag};
 use crate::properties::SubstrateRefusal;
@@ -559,6 +558,131 @@ pub struct MutationRun {
 // The wrap lane's reading vocabulary.
 // ---------------------------------------------------------------------------
 
+/// Which external mutation backend one reading was taken from.
+///
+/// # Bounds
+///
+/// One backend because one line grammar: the shapes the wrap lane reads are
+/// that tool's own rendering. A second backend is a second grammar, and it
+/// arrives as a second arm beside the line laws that read it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum WrappedBackend {
+    /// The `cargo-mutants` backend: it mutates the real source and invokes the
+    /// test command itself.
+    CargoMutants,
+}
+
+/// One backend's version, as the party that ran it states it.
+///
+/// # Bounds
+///
+/// The spelling is the party's own word rather than a name this harness
+/// authored, which is why it is owned text and deliberately not a
+/// [`NamespacedName`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct BackendVersion(String);
+
+/// Why one backend version was refused.
+#[must_use = "a refusal is the reason a backend version was not read"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum BackendVersionRefusal {
+    /// The spelling is empty, so it states no version.
+    EmptySpelling,
+}
+
+/// Whether the party that ran a backend stated which version of it produced the
+/// output a reading was taken from.
+///
+/// # Authority
+///
+/// The version is DECLARED rather than observed: the wrap lane reads text a
+/// caller already holds and invokes nothing, so what a version is here is the
+/// running party's own word about what wrote that text.
+/// [`BackendVersionPosture::Unstated`] is the bootstrap posture — the grammar
+/// assumption stands unbound to any version, and a reading under it is exactly
+/// as good as the assumption.
+///
+/// # Nonclaims
+///
+/// [`BackendVersionPosture::Stated`] records which version the party names. It
+/// is not a verification that the text matches that version's rendering, and
+/// nothing anywhere reads a backend's output to discover its version.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum BackendVersionPosture {
+    /// The party that ran the backend stated this version.
+    Stated(BackendVersion),
+    /// No party has stated a version, so the grammar assumption stands unbound.
+    Unstated,
+}
+
+/// Which of a backend's outputs one reading was taken from.
+///
+/// # Bounds
+///
+/// A console stream is a rendering a tool writes for a person, so the shapes it
+/// carries are the ones the reading's own page states and no schema stands
+/// behind them. A machine-readable output is a second arm, admitted beside the
+/// grammar that reads it and carrying whatever ceiling that output affords.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ReadingSource {
+    /// The line-oriented console stream the backend writes as it runs.
+    ConsoleStream,
+}
+
+/// Which version of an adapter's stated line grammar one reading was taken
+/// under.
+///
+/// # Authority
+///
+/// The adapter's own number, moving when and only when the line shapes its page
+/// states move. It is neither the backend's version nor an encoding version:
+/// three things move for three reasons, and a bump to one is never a bump to
+/// another.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct GrammarVersion(u32);
+
+/// The most one reading's evidence can establish, in the verdict vocabulary.
+///
+/// # Authority
+///
+/// A ceiling follows from what the reading's SOURCE carries, and it is applied
+/// where a reading is built: a run carrying a verdict outside its profile's
+/// ceiling is not a reading anybody can hold. Which verdicts a ceiling admits
+/// is declared in `type_contract.rs`, so the ceiling is read in one place
+/// rather than restated by each road that stands under it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ClaimCeiling {
+    /// The strongest verdict is a kill that asserts witness rejection and
+    /// states nothing about activation. The source carries no channel that
+    /// could observe a damage firing, so no mutant read under it earns
+    /// [`MutationVerdict::Survived`] and every non-kill is
+    /// [`MutationVerdict::Inconclusive`].
+    WitnessRejection,
+}
+
+/// What one reading of a backend's output is stated under: the backend, the
+/// version posture that backend's run carries, the output the reading was taken
+/// from, and the adapter grammar that read it.
+///
+/// # Authority
+///
+/// The reading's assumption, made a value. A [`WrapReading`] cannot be built
+/// without one, so "which grammar was this read under, and what may it claim"
+/// is answered at the reading rather than remembered around it.
+///
+/// # Construction
+///
+/// The claim ceiling is READ from the source ([`AdapterProfile::ceiling`])
+/// rather than stated into the profile, so no profile grants its reading more
+/// than its source affords.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct AdapterProfile {
+    backend: WrappedBackend,
+    version: BackendVersionPosture,
+    source: ReadingSource,
+    grammar: GrammarVersion,
+}
+
 /// The caller-supplied reading from one source coordinate to the claim that owns
 /// it.
 ///
@@ -632,8 +756,9 @@ pub enum AnnouncedRoster {
     Unstated,
 }
 
-/// What one reading of a compiled-mutation backend's output recovered: the run,
-/// the roster the backend announced, and every line the parser could not read.
+/// What one reading of a compiled-mutation backend's output recovered: the
+/// profile it was read under, the run, the roster the backend announced, and
+/// every line the parser could not read.
 ///
 /// # Nonclaims
 ///
@@ -641,8 +766,13 @@ pub enum AnnouncedRoster {
 /// difference between them says the parse and the backend disagree about how
 /// many mutants there were, which is a finding for a reader and never a number
 /// this value reconciles on its own.
+///
+/// The reading claims exactly what its profile's ceiling affords. A reader that
+/// wants to know what a reading may be stood on takes
+/// [`AdapterProfile::ceiling`], and no road anywhere widens it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WrapReading {
+    profile: AdapterProfile,
     run: MutationRun,
     announced: AnnouncedRoster,
     unparsed: Vec<UnparsedLine>,
@@ -652,7 +782,8 @@ pub struct WrapReading {
 ///
 /// Dependent checks in a declared order: the baseline is read before any mutant
 /// line, because a lane that minted kills under an unqualified baseline would be
-/// minting evidence it does not have.
+/// minting evidence it does not have, and the run is weighed against the
+/// profile's ceiling before a reading stands over it.
 #[must_use = "a refusal is the reason a wrap reading was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WrapRefusal {
@@ -667,6 +798,16 @@ pub enum WrapRefusal {
         ordinal: usize,
         /// What the constructor refused.
         cause: KillRefusal,
+    },
+    /// One record in the run carries a verdict the profile's ceiling does not
+    /// admit, so the reading would state more than its source affords.
+    VerdictPastCeiling {
+        /// The record's position in the run, counting from zero.
+        at: usize,
+        /// The verdict the record carries.
+        verdict: MutationVerdict,
+        /// What the profile's source affords.
+        ceiling: ClaimCeiling,
     },
 }
 
@@ -1426,16 +1567,13 @@ pub struct Demonstration {
 /// Why no kill was demonstrated.
 ///
 /// Dependent checks in a declared order: the view's posture, then the census,
-/// then the candidate's own disposition. The two construction arms stand first
-/// because there is no report to read until both of them have held.
+/// then the candidate's own disposition. The construction arm stands first
+/// because there is no report to read until the staged view has been built.
 #[must_use = "a refusal is the reason a kill was not demonstrated"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProofRefusal {
     /// The staged view could not be built.
     StagingRefused(StagedTableRefusal),
-    /// A row's canonical bytes could not be written, so the engine stated no
-    /// report at all. The descriptor home's own cause, carried unchanged.
-    RowNotEncoded(EncodeRefusal),
     /// The report stands over the authored world rather than a staged view, so
     /// no candidate was proven by it.
     NotStaged,

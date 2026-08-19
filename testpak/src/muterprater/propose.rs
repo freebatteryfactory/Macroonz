@@ -41,7 +41,7 @@ use super::types::{
 use super::wrap::mutant_scoped;
 use crate::descriptor::{CheckRef, ClaimRef, Origin, Row, StagedTableView, SynthesisFacts};
 use crate::report::{ClaimCoverage, ClaimExercise, Fingerprint, ReplayCapsule};
-use crate::runner::{Invocation, TrialBinding, TrialTable, run_all, trial_identity};
+use crate::runner::{Invocation, SelectionPlan, TrialBinding, TrialTable, run_all, trial_identity};
 use std::collections::BTreeSet;
 
 /// Synthesize the candidate row one survivor explanation asks for.
@@ -103,11 +103,13 @@ pub fn synthesize(
 ///
 /// # Errors
 ///
-/// Refuses a staging the descriptor vocabulary rejected, then a row whose
-/// canonical bytes the engine could not write, then every way the report can
-/// fail to demonstrate a kill — a report over the authored world, a census
-/// without the candidate, a candidate the selection passed over, one that did
-/// not execute, and one that executed and did not refuse.
+/// Refuses a staging the descriptor vocabulary rejected, then every way the
+/// report can fail to demonstrate a kill — a report over the authored world, a
+/// census without the candidate, a candidate the selection passed over, one that
+/// did not execute, and one that executed and did not refuse. The engine call
+/// between them refuses nothing: a candidate that reached this road is a row
+/// that was built, and a built row carries the bytes its census entry is named
+/// from.
 pub fn prove_candidate(
     parent: &TrialTable,
     candidate: TrialBinding,
@@ -117,9 +119,8 @@ pub fn prove_candidate(
     let trial = trial_identity(candidate.row());
     let staged =
         StagedTableView::staged(parent, vec![candidate]).map_err(ProofRefusal::StagingRefused)?;
-    let selection = mutant_scoped(target);
-    let report =
-        run_all(&staged.view(), &selection, invocation).map_err(ProofRefusal::RowNotEncoded)?;
+    let selection = SelectionPlan::of(mutant_scoped(target));
+    let report = run_all(&staged.view(), &selection, invocation);
     Demonstration::read(report, trial)
 }
 

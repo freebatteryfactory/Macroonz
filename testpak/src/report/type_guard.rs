@@ -14,13 +14,13 @@ use super::{
     GenerationProfile, InvocationProfile, MinimizationProfile, NotSelectedReason, OutcomeClass,
     REPLAY_CAPSULE_TAG, ROW_REVISION_TAG, RecordedDuration, ReplayCapsule, ReplayPosture,
     ReportDiff, RowRevisionChange, RowRevisionId, RunAttempt, RunReport, SelectionDisposition,
-    SubjectRevisionId, TRIAL_IDENTITY_TAG, TargetBinding, TargetTriple, TextFidelity, TimeBudget,
-    ToolchainIdentity, TrialAccounting, TrialConclusion, TrialCoordinates, TrialFinding, TrialId,
-    TrialProfile, TrialReport, TrialSite, Truncation,
+    SelectionExpectation, SelectionOutcome, SubjectRevisionId, TRIAL_IDENTITY_TAG, TargetBinding,
+    TargetTriple, TextFidelity, TimeBudget, ToolchainIdentity, TrialAccounting, TrialConclusion,
+    TrialCoordinates, TrialFinding, TrialId, TrialProfile, TrialReport, TrialSite, Truncation,
 };
 use crate::descriptor::{
-    CheckRef, ClaimRef, GeneratedSupportSchemaId, PopulationRef, RevisionBinding, SubjectRoute,
-    TablePosture, TrialKey,
+    CanonicalRowBytes, CheckRef, ClaimRef, GeneratedSupportSchemaId, PopulationRef, RevisionBinding,
+    SubjectRoute, TablePosture, TrialKey,
 };
 use crate::identity::ContentAddress;
 use crate::report::encode::{
@@ -174,12 +174,20 @@ impl TrialSite {
 impl RowRevisionId {
     /// Derive one row revision identity from the row's canonical bytes.
     ///
-    /// The bytes are the descriptor home's — the complete authored row, as that
-    /// home encodes it — and this seat derives the identity from them rather
-    /// than encoding a row it does not own.
+    /// The bytes are the descriptor home's — the complete row, as that home
+    /// encoded it when the row was born — and this seat derives the identity
+    /// from them rather than encoding a row it does not own.
+    ///
+    /// Total, and typed on the bytes rather than on a slice: a caller cannot
+    /// offer material that is not a row's own encoding, and holding those bytes
+    /// is holding everything the derivation needs, so there is nothing left here
+    /// to refuse.
     #[must_use]
-    pub fn over(canonical_row: &[u8]) -> Self {
-        Self(ContentAddress::derived(ROW_REVISION_TAG, canonical_row))
+    pub fn over(canonical_row: &CanonicalRowBytes) -> Self {
+        Self(ContentAddress::derived(
+            ROW_REVISION_TAG,
+            canonical_row.as_bytes(),
+        ))
     }
 
     /// The identity's address.
@@ -883,6 +891,24 @@ impl TrialAccounting {
     }
 }
 
+impl SelectionOutcome {
+    /// Read one run's selection against what the run expected of it.
+    ///
+    /// A total map over two facts the run already holds: how many rows the
+    /// selection named, and what the caller declared beforehand. Nothing else
+    /// enters it, and the same pair always reads the same way.
+    #[must_use]
+    pub const fn read(expectation: SelectionExpectation, selected: usize) -> Self {
+        if selected > 0_usize {
+            return Self::Satisfied;
+        }
+        match expectation {
+            SelectionExpectation::AtLeastOne => Self::UnsatisfiedByEmptySelection,
+            SelectionExpectation::AllowEmpty(reason) => Self::EmptyAsStated(reason),
+        }
+    }
+}
+
 impl RunReport {
     /// One run's complete-table accounting.
     ///
@@ -890,17 +916,30 @@ impl RunReport {
     /// stood over — because the denominator is the table itself and a report
     /// that dropped its unselected rows would be stating a smaller world than
     /// the one it ran in.
+    ///
+    /// The selection outcome arrives read rather than computed here: what a run
+    /// expected of its selection is the engine's parameter, and this seat
+    /// records the answer instead of re-deriving it from a census that cannot
+    /// state an expectation.
     #[must_use]
     pub fn recorded(
         census: Vec<TrialAccounting>,
         posture: TablePosture,
+        selection: SelectionOutcome,
         invocation: InvocationProfile,
     ) -> Self {
         Self {
             census,
             posture,
+            selection,
             invocation,
         }
+    }
+
+    /// What this run's selection matched, read against what it expected.
+    #[must_use]
+    pub const fn selection(&self) -> SelectionOutcome {
+        self.selection
     }
 
     /// Every row of the denominator, with its disposition.

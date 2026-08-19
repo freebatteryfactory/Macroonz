@@ -21,10 +21,11 @@
 use super::super::encode::encode_set;
 use super::{
     CapturedDependencies, CauseAnchoring, ContentAddressing, DeclaredBootstrap, DigestContract,
-    ExpectedGeneratedSupportSchemaId, GraphAnchoring, InvalidationSet, InvalidationTrigger,
-    KindSeal, OwnerContentAccount, PlanDecisions, PlanDerivation, PlannedMember, PlannedMembership,
-    ProjectionBundlePlan, ProjectionContext, ProjectionIntentId, ProjectionKind, ProjectionPlan,
-    SourceDeclarations, TargetBinding, TargetRequirement, UNIVERSAL_QUESTIONS,
+    EmissionPartition, ExpectedGeneratedSupportSchemaId, GraphAnchoring, InvalidationSet,
+    InvalidationTrigger, KindSeal, OwnerContentAccount, PlanDecisions, PlanDerivation,
+    PlannedMember, PlannedMembership, ProjectionBundlePlan, ProjectionContext, ProjectionIntentId,
+    ProjectionKind, ProjectionPlan, SourceDeclarations, TargetBinding, TargetRequirement,
+    UNIVERSAL_QUESTIONS,
 };
 use crate::origin_graph::{DecisionTrace, Nonclaim, OriginTrail};
 use crate::plane::{
@@ -452,6 +453,35 @@ impl<R: RenderedRole> PlannedMembership<R> {
         self.members
             .iter()
             .filter(move |member| member.role == role)
+    }
+
+    /// Every member this plan declared into one emission, in declaration order.
+    ///
+    /// The reading that routes: a consumption target asking which members its
+    /// carrier receives, and an emission asking which members its join walks,
+    /// both take this road rather than reading a destination and deciding what
+    /// it means. The partition of a member is its DESTINATION's own constant
+    /// answer ([`MemberDestination::partition`]), so this road elects nothing
+    /// and interprets nothing.
+    ///
+    /// [`MemberDestination::partition`]: super::MemberDestination::partition
+    pub fn members_in(
+        &self,
+        partition: EmissionPartition,
+    ) -> impl Iterator<Item = &PlannedMember<R>> {
+        self.members
+            .iter()
+            .filter(move |member| member.output.destination.partition() == partition)
+    }
+
+    /// How many members this plan declared into one emission.
+    ///
+    /// Zero is a stated answer and not an absence: a plan that declared nothing
+    /// into a partition has an unoccupied emission there, which is a different
+    /// fact from an emission that carries no bytes.
+    #[must_use]
+    pub fn count_in(&self, partition: EmissionPartition) -> usize {
+        self.members_in(partition).count()
     }
 
     /// Whether two memberships name the same members under one role, as sets:

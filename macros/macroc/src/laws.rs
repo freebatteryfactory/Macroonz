@@ -198,14 +198,14 @@ mod identity_profile {
     fn the_declared_version_is_pinned() {
         assert_eq!(
             PROJECTION_IDENTITY_PROFILE.version(),
-            IdentityProfileVersion::declared(4)
+            IdentityProfileVersion::declared(5)
         );
         assert_eq!(
             PROJECTION_IDENTITY_PROFILE.stem(),
             "threadpak/macroc/projection-identity"
         );
         assert_eq!(MACROC_GENERATOR.profile().spelling(), "threadpak-macroc");
-        assert_eq!(MACROC_GENERATOR.schema().position(), 2);
+        assert_eq!(MACROC_GENERATOR.schema().position(), 3);
     }
 
     /// law: identity-profile.the-domain-grammar-is-spelled-exactly — the
@@ -216,7 +216,7 @@ mod identity_profile {
     fn the_domain_grammar_is_spelled_exactly() {
         assert_eq!(
             PROJECTION_IDENTITY_PROFILE.context_for("generated-unit", ProjectionRole::OutputBytes),
-            "threadpak/macroc/projection-identity/v4/generated-unit/output-bytes"
+            "threadpak/macroc/projection-identity/v5/generated-unit/output-bytes"
         );
     }
 
@@ -304,7 +304,7 @@ mod identity_profile {
     /// of.
     #[test]
     fn golden_vectors_pin_the_derivation() {
-        // Predates profile v4: recomputed at the first toolchain contact's
+        // Predates profile v5: recomputed at the first toolchain contact's
         // corrective batch.
         assert_eq!(
             *ProjectionIdentity::<GeneratedUnitSubject>::derived(anchored_vector()).as_bytes(),
@@ -314,7 +314,7 @@ mod identity_profile {
                 0x57, 0x9a, 0x06, 0x98
             ]
         );
-        // Predates profile v4: recomputed at the first toolchain contact's
+        // Predates profile v5: recomputed at the first toolchain contact's
         // corrective batch.
         assert_eq!(
             *ProjectionIdentity::<RenderedUnitSubject>::derived(anchored_vector()).as_bytes(),
@@ -324,7 +324,7 @@ mod identity_profile {
                 0x31, 0x5c, 0x49, 0x07
             ]
         );
-        // Predates profile v4: recomputed at the first toolchain contact's
+        // Predates profile v5: recomputed at the first toolchain contact's
         // corrective batch.
         assert_eq!(
             *ProjectionIdentity::<PlanSubject>::derived(rooted_vector()).as_bytes(),
@@ -473,7 +473,7 @@ mod identity_profile {
         );
         assert_eq!(
             provenance.context(),
-            "threadpak/macroc/projection-identity/v4/generated-unit/generated-unit"
+            "threadpak/macroc/projection-identity/v5/generated-unit/generated-unit"
         );
     }
 }
@@ -3378,8 +3378,7 @@ mod derive_refusal {
 
     /// law: derive.the-one-road-closes-before-it-emits — the live road produces
     /// a plan, a rendering, a proved closure, and a complete explanation, and
-    /// the token tree is reachable only off the closed expansion those four
-    /// produced.
+    /// every emission is reachable only off the receipt those four produced.
     ///
     /// The counts are FOUR because one implementation meaning is delivered as two
     /// surfaces and this declaration carries two contracts: the family
@@ -3404,7 +3403,11 @@ mod derive_refusal {
                 && plan.invalidation().len() == 3
                 && plan.origin().len() == 1
                 && closed.explanation().len() == 9
-                && !closed.emitted().is_empty()
+                && closure
+                    .emission()
+                    .declaration_site()
+                    .tokens()
+                    .is_some_and(|tree| !tree.is_empty())
                 && matches!(
                     closed.cause_order(),
                     ProjectionDisposition::Generated { .. }
@@ -3413,10 +3416,10 @@ mod derive_refusal {
     }
 
     /// law: derive.inspection-and-emission-read-one-value — the text a caller
-    /// inspects is a projection of the same tree that is emitted, the tree the
-    /// receipt emits is the CLOSURE's own tree, and the closure's identity
-    /// commits to that tree's digest. There is no parallel plan, no synthetic
-    /// sibling, and no join performed past the proof.
+    /// inspects is a projection of the same tokens the declaration site
+    /// delivers, and those tokens are the CLOSURE's own proved cargo. There is
+    /// no parallel plan, no synthetic sibling, and no join performed past the
+    /// proof.
     /// Owed reversal (red twin): a second rendering built for inspection must
     /// break this law.
     #[test]
@@ -3424,19 +3427,12 @@ mod derive_refusal {
         let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
         assert!(compiled.is_ok_and(|(_, closed)| {
             let inspected = closed.inspected();
-            let emitted = closed.emitted().inspected();
-            let owned = closed.closure().emitted();
-            inspected == emitted
-                && closed.emitted() == owned
-                && closed.closure().emitted_digest()
-                    == crate::plane::ProjectionIdentity::derived(
-                        crate::plane::ProjectionTranscript::under_projection(
-                            crate::plane::ProjectionRole::OutputBytes,
-                            &closed.plan().identity(),
-                            &owned.canonical_bytes(),
-                            0,
-                        ),
-                    )
+            closed
+                .closure()
+                .emission()
+                .declaration_site()
+                .tokens()
+                .is_some_and(|tree| inspected == tree.inspected())
         }));
     }
 
@@ -3591,16 +3587,21 @@ mod derive_refusal {
 /// | a generic cause | five typed refusal families became one sentence |
 /// | a saturated coordinate | a depth that stopped counting made two tokens one |
 mod failure_path_closure {
-    use crate::closure::{ClosureIssue, ProjectionClosure, RenderedProjection, RenderedUnit};
+    use crate::closure::{
+        ClosureIssue, PartitionCargo, ProjectionClosure, ProjectionReceipt, ReceiptBindingRefusal,
+        RenderedProjection, RenderedUnit,
+    };
     use crate::derive_refusal::{
         ExplanationSeat, compile_refusal_text, diagnose, plan as derive_plan,
     };
     use crate::diagnostics::{ObservedClassification, RelatedSetCompletion};
     use crate::plane::{
-        HumanProjection, HumanTextLimit, RenderedRole, SoleRenderedUnit, human_projection,
+        HumanProjection, HumanTextLimit, PlanId, ProjectionIdentity, ProjectionRole,
+        ProjectionTranscript, RenderedRole, SoleRenderedUnit, human_projection,
     };
     use crate::planning::{
-        MemberDestination, PlannedMember, PlannedMembership, RenderedImplementation,
+        EmissionPartition, MemberDestination, PlannedMember, PlannedMembership,
+        RenderedImplementation,
     };
     use crate::refusal::{BoundAxis, ProjectionPlanning, ProjectionPlanningIssue};
     use crate::token::{
@@ -3615,6 +3616,12 @@ mod failure_path_closure {
     const SINGLE_CAUSE: &str = "#[refusal(family = \"demo.example\", shape = single_cause, \
         order(NotCanonical = \"not-canonical\", NotAdmitted = \"not-admitted\"))] \
         enum DemoFamily { NotCanonical, NotAdmitted, }";
+
+    /// A second lawful declaration, whose shape fixes ONE contract — so it plans
+    /// a different membership and therefore a different plan, which is what the
+    /// binding law needs two of.
+    const COLLECTION: &str = "#[refusal(family = \"demo.other\", shape = issue_collection)] \
+        enum DemoIssues { NotBound, NotCovered, }";
 
     /// law: closure.a-complete-set-is-never-shortened — a shape that fixes two
     /// contracts plans FOUR members, one under each rendered role, and the road
@@ -3733,23 +3740,154 @@ mod failure_path_closure {
         }));
     }
 
-    /// law: closure.the-emitted-tree-is-inside-the-proof — the closure joins the
-    /// rendered units itself, keeps the joined tree, and commits to its digest;
-    /// the receipt emits that same tree rather than a second concatenation. The
-    /// old road joined the units after the proof had already returned.
+    /// The digest one emission's cargo carries, re-derived from the tokens that
+    /// cargo holds.
+    ///
+    /// The laws below compare this against the digest the proof took, so what
+    /// they establish is that two derivations over one byte string agree — never
+    /// that a value equals itself.
+    fn digest_agrees(plan: PlanId, partition: EmissionPartition, cargo: &PartitionCargo) -> bool {
+        match cargo {
+            PartitionCargo::NothingPlanned => false,
+            PartitionCargo::Carried(carried) => {
+                carried.digest()
+                    == ProjectionIdentity::derived(ProjectionTranscript::under_projection(
+                        ProjectionRole::OutputBytes,
+                        &plan,
+                        &carried.tree().canonical_bytes(),
+                        u32::from(partition.slot()),
+                    ))
+            }
+        }
+    }
+
+    /// law: closure.every-emission-is-inside-the-proof — the closure splits the
+    /// rendering by delivery itself, joins each emission in role-roster order,
+    /// keeps them, and commits to each one's digest; a receipt delivers exactly
+    /// those rather than a second concatenation. The old road joined every unit
+    /// into one tree after the proof had already returned, which put every
+    /// delivery into the one build the declaration site compiles.
+    ///
+    /// The quantifier is the PARTITION roster and the assertion is per emission,
+    /// so this law does not restate a count: an emission admitted later makes
+    /// the walk below ask about it too.
+    ///
     /// Owed reversal (red twin): a public post-proof join must break this law.
     #[test]
-    fn the_emitted_tree_is_inside_the_proof() {
+    fn every_emission_is_inside_the_proof() {
         let compiled = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ());
         assert!(compiled.is_ok_and(|(_, closed)| {
-            let owned = closed.closure().emitted();
-            let roster: usize = RenderedImplementation::ROLES
-                .iter()
-                .filter_map(|role| closed.rendered().under(*role))
-                .map(|unit| unit.tree().len())
-                .sum();
-            !owned.is_empty() && owned.len() == roster && closed.emitted() == owned
+            let plan = closed.plan().identity();
+            let rendered = closed.rendered();
+            let emission = closed.closure().emission();
+            EmissionPartition::ALL.iter().all(|partition| {
+                let width: usize = rendered
+                    .units_in(*partition)
+                    .map(|unit| unit.tree().len())
+                    .sum();
+                match emission.joined(*partition) {
+                    // The publication emission is not joined at all: an artifact
+                    // is its own unit at its own address.
+                    None => rendered.count_in(*partition) == 0,
+                    Some(cargo) => match cargo {
+                        PartitionCargo::NothingPlanned => width == 0,
+                        PartitionCargo::Carried(carried) => {
+                            carried.tree().len() == width
+                                && digest_agrees(plan, *partition, cargo)
+                        }
+                    },
+                }
+            })
         }));
+    }
+
+    /// law: closure.the-evaluation-copy-never-reaches-the-normal-build — the
+    /// mutation-evaluation surface is delivered into the test carrier and the
+    /// production implementation to the declaration site, so no byte of a
+    /// selector-bearing copy stands in what the consumer's normal build
+    /// compiles. The seam this replaced concatenated every rendered unit into
+    /// one declaration-site tree, which compiled the copy beside the
+    /// implementation it exists to be evaluated against.
+    ///
+    /// Both halves are stated, because they are two different guarantees: the
+    /// roster's constant answer is what makes the wrong delivery unwritable, and
+    /// the proved emission is what makes it observed.
+    ///
+    /// Owed reversal (red twin): a roster answering with one destination for
+    /// both halves of a pair must break this law.
+    #[test]
+    fn the_evaluation_copy_never_reaches_the_normal_build() -> Result<(), ()> {
+        assert!(RenderedImplementation::ROLES.iter().all(|role| {
+            let partition = role.destination().partition();
+            if role.is_evaluation_copy() {
+                partition == EmissionPartition::TestCarrier
+                    && role.destination() == MemberDestination::IntoTestCarrier
+            } else {
+                partition == EmissionPartition::DeclarationSite
+            }
+        }));
+
+        let (_, closed) = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ())?;
+        let rendered = closed.rendered();
+        let emission = closed.closure().emission();
+        let width = |partition: EmissionPartition| -> usize {
+            rendered
+                .units_in(partition)
+                .map(|unit| unit.tree().len())
+                .sum()
+        };
+        let carried = width(EmissionPartition::TestCarrier);
+        let site = width(EmissionPartition::DeclarationSite);
+        assert!(
+            rendered.count_in(EmissionPartition::TestCarrier) == 2
+                && rendered.count_in(EmissionPartition::DeclarationSite) == 2
+                && carried > 0
+                && site > 0
+                && emission
+                    .test_carrier()
+                    .tokens()
+                    .is_some_and(|tree| tree.len() == carried)
+                && emission
+                    .declaration_site()
+                    .tokens()
+                    .is_some_and(|tree| tree.len() == site)
+                && matches!(emission.bench_carrier(), PartitionCargo::NothingPlanned)
+        );
+        Ok(())
+    }
+
+    /// law: closure.a-receipt-binds-the-plan-its-proof-was-taken-against — the
+    /// terminal every kind's door ends at refuses a closure proved against
+    /// another plan, and the refusal names both. A receipt that bound the pair
+    /// would answer every question correctly about the wrong expansion.
+    /// Owed reversal (red twin): a binding that trusts its arguments must break
+    /// this law.
+    #[test]
+    fn a_receipt_binds_the_plan_its_proof_was_taken_against() -> Result<(), ()> {
+        let (_, mine) = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ())?;
+        let (_, other) = compile_refusal_text(COLLECTION).map_err(|_| ())?;
+        let crossed = ProjectionReceipt::bound(
+            other.plan().clone(),
+            mine.closure().clone(),
+            other.explanation().clone(),
+        );
+        assert!(crossed.is_err_and(|refusal| {
+            refusal
+                == ReceiptBindingRefusal::ClosureProvedAgainstAnotherPlan {
+                    planned: other.plan().identity(),
+                    proved: mine.closure().plan(),
+                }
+        }));
+
+        // The agreeing triple binds, and the family's own view over it carries
+        // the receipt's identity rather than one of its own.
+        let bound = ProjectionReceipt::bound(
+            mine.plan().clone(),
+            mine.closure().clone(),
+            mine.explanation().clone(),
+        );
+        assert!(bound.is_ok_and(|receipt| receipt.identity() == mine.identity()));
+        Ok(())
     }
 
     /// law: closure.a-static-rendering-is-carried-whole — the proven road builds
@@ -4310,8 +4448,13 @@ mod failure_path_closure {
         );
 
         // The same theorem stated over the planning road directly: the profile,
-        // destination, and digest contract of every member come from the role,
-        // and every member's twin is planned beside it.
+        // destination, and digest contract of every member come from the ROLE,
+        // and every member's twin is planned beside it. The destination is
+        // compared against the roster's own constant answer rather than against
+        // a literal repeated here, so a plan and a rendering that both read that
+        // answer cannot disagree about a delivery — and the two halves of a pair
+        // are delivered differently, which is what the comparison catches when
+        // one of them stops being read from the roster.
         let read = TextCapture::read(SINGLE_CAUSE).map_err(|_| ())?;
         let surface = crate::derive_refusal::captured(read.input()).map_err(|_| ())?;
         let draft = surface.planned();
@@ -4319,11 +4462,11 @@ mod failure_path_closure {
         assert!(
             membership.len() == 4
                 && membership.iter().all(|member: &PlannedMember<_>| {
-                    matches!(
-                        member.output.destination,
-                        MemberDestination::AtDeclarationSite
-                    ) && membership.count_under(member.role.twin()) == 1
+                    member.output.destination == member.role.destination()
+                        && membership.count_under(member.role.twin()) == 1
                 })
+                && membership.count_in(EmissionPartition::DeclarationSite) == 2
+                && membership.count_in(EmissionPartition::TestCarrier) == 2
         );
         Ok(())
     }

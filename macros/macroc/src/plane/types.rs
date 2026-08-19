@@ -676,9 +676,15 @@ pub struct IdentityProfile {
 ///   the arms encodes byte for byte as it did, and the bump keeps the
 ///   profile's one promise — two identities under one version were derived
 ///   the same way — true of the widened grammar.
+/// - **5** — two transcript grammars widened at once: the member-delivery
+///   encoding grew the two carrier slots, and the closure transcript's
+///   emission member became the partitioned-emission encoding where it had
+///   been one joined-tree digest. A reader holding the earlier grammar cannot
+///   read either transcript, so the version moved for the same reason
+///   position 4 did.
 pub const PROJECTION_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
     "threadpak/macroc/projection-identity",
-    IdentityProfileVersion::declared(4),
+    IdentityProfileVersion::declared(5),
 );
 
 /// The stable name of the generator that derives plane identities.
@@ -746,9 +752,16 @@ pub struct GeneratorIdentity {
 ///   shape — which is the point, since a plan produced before the evaluation
 ///   copy was a declared member declared a smaller output set than the delivery
 ///   actually has.
+/// - **3** — the delivery shape changed: members whose meaning is evaluation
+///   ride a carrier into the consumption target where they were emitted into
+///   the declaration-site tree, and the emitted output is a partitioned value
+///   rather than one joined tree. "A different meaning attached to a token
+///   layout that already existed" is what this position exists to move for — a
+///   plan produced under the joined shape declared a delivery the output no
+///   longer has.
 pub const MACROC_GENERATOR: GeneratorIdentity = GeneratorIdentity::declared(
     GeneratorProfileId::declared("threadpak-macroc"),
-    GeneratorSchemaVersion::declared(2),
+    GeneratorSchemaVersion::declared(3),
     env!("CARGO_PKG_VERSION"),
 );
 

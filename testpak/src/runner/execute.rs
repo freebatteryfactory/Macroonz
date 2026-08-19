@@ -1,18 +1,19 @@
 //! The two engine calls: one binding and an invocation become one trial report;
-//! the complete view, a selection, and an invocation become one run report.
+//! the complete view, a selection plan, and an invocation become one run report.
 //!
-//! Both roads are pure over their parameters. Nothing is read that was not
-//! handed in, nothing is written anywhere, and nothing is kept: a report is a
-//! value that leaves, and the engine holds no memory of the run that produced
+//! Both roads are pure over their parameters and both are TOTAL: nothing is read
+//! that was not handed in, nothing is written anywhere, nothing is kept, and
+//! neither call has a shape in which it declines to state a report. A report is
+//! a value that leaves, and the engine holds no memory of the run that produced
 //! it.
 
 use super::catch::caught_conclusion;
 use super::resolve::{row_revision, trial_identity};
 use super::select::{Admission, admission};
-use super::types::{Invocation, Selection, TrialBinding, TrialTableView};
-use crate::descriptor::EncodeRefusal;
+use super::types::{Invocation, SelectionPlan, TrialBinding, TrialTableView};
 use crate::report::{
-    RecordedDuration, RunAttempt, RunReport, SelectionDisposition, TrialAccounting, TrialReport,
+    RecordedDuration, RunAttempt, RunReport, SelectionDisposition, SelectionOutcome,
+    TrialAccounting, TrialReport,
 };
 
 /// Run one bound trial under one invocation.
@@ -47,9 +48,16 @@ pub fn run_one(binding: &TrialBinding, invocation: &Invocation) -> TrialReport {
     )
 }
 
-/// Run one selection over the complete world a view presents.
+/// Run one selection plan over the complete world a view presents.
 ///
 /// # Authority
+///
+/// TOTAL: every world a caller can hand in produces a report. A row carries its
+/// canonical bytes from the moment it is built, so nothing on this road can fail
+/// to name a row's revision, and a selection that matched nothing is a fact the
+/// report STATES rather than a reason to state no report at all — a run that
+/// exercised nothing still ran over a denominator, and a reader is owed that
+/// census either way.
 ///
 /// The walk is over every binding the view presents, always, so the census
 /// carries one entry per row of the world whether this invocation named it or
@@ -57,49 +65,45 @@ pub fn run_one(binding: &TrialBinding, invocation: &Invocation) -> TrialReport {
 /// read first and an execution happens only where the selection admitted one,
 /// so a not-selected row can never be read as an attempt that failed.
 ///
-/// The posture the report records is the view's own and the profile is the
-/// invocation's, both recorded rather than restated. Comparing two reports and
-/// reading claim coverage are the record home's operations over what this one
-/// wrote.
-///
-/// # Errors
-///
-/// Refuses when a row's canonical bytes could not be written, so its revision
-/// identity could not be derived — a length past the width the descriptor
-/// home's row encoding declares, which is unreachable on every target this
-/// crate is built for. The refusal is the whole report's rather than one
-/// entry's: the census is the denominator, and a denominator carrying an entry
-/// that cannot name its own row is a smaller world wearing the shape of the
-/// complete one.
+/// The posture the report records is the view's own, the selection outcome is
+/// the plan's expectation read against what the walk actually selected, and the
+/// profile is the invocation's — all three recorded rather than restated.
+/// Comparing two reports and reading claim coverage are the record home's
+/// operations over what this one wrote.
+#[must_use]
 pub fn run_all(
     view: &TrialTableView<'_>,
-    selection: &Selection,
+    selection: &SelectionPlan,
     invocation: &Invocation,
-) -> Result<RunReport, EncodeRefusal> {
+) -> RunReport {
     let census: Vec<TrialAccounting> = view
         .bindings()
         .map(|binding| accounted(binding, selection, invocation))
-        .collect::<Result<_, _>>()?;
-    Ok(RunReport::recorded(census, view.posture(), invocation.profile()))
+        .collect();
+    let selected = census
+        .iter()
+        .filter(|entry| entry.disposition().report().is_some())
+        .count();
+    RunReport::recorded(
+        census,
+        view.posture(),
+        SelectionOutcome::read(selection.expects(), selected),
+        invocation.profile(),
+    )
 }
 
 /// One row of the denominator, and what this invocation did about it.
-///
-/// # Errors
-///
-/// Refuses exactly where [`row_revision`] does, and carries that refusal
-/// unchanged.
 fn accounted(
     binding: &TrialBinding,
-    selection: &Selection,
+    selection: &SelectionPlan,
     invocation: &Invocation,
-) -> Result<TrialAccounting, EncodeRefusal> {
+) -> TrialAccounting {
     let row = binding.row();
     let trial = trial_identity(row);
-    let revision = row_revision(row)?;
-    let disposition = match admission(selection, row, trial) {
+    let revision = row_revision(row);
+    let disposition = match admission(selection.chooses(), row, trial) {
         Admission::Selected => SelectionDisposition::selected(run_one(binding, invocation)),
         Admission::NotSelected(reason) => SelectionDisposition::not_selected(reason),
     };
-    Ok(TrialAccounting::recorded(trial, revision, row.claim(), disposition))
+    TrialAccounting::recorded(trial, revision, row.claim(), disposition)
 }

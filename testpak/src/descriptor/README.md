@@ -37,12 +37,28 @@ generated population supplies the row's inputs; and the origin, whose arms
 carry exactly what they earn: hand-written | generated, with producer
 facts | candidate, with synthesis facts — lawful only in a staged view,
 never authored | admitted-replay, citing its proposal's content identity,
-the admission facts, and the replay reference into the depot capsule the
-admission act authored | admitted-discharge, citing its proposal's content
-identity and the admission facts, with no replay seat at all. The schema
+the ground it was admitted on, the destination suite, and the replay
+reference into the depot capsule the admission act authored |
+admitted-discharge, citing its proposal's content identity and the
+destination suite, with no replay seat at all. The schema
 identity is not a row field: it rides the generated Binding and Table
 provenance, so hand-written rows never touch it and row identity never
 churns when a producer-facing schema changes.
+
+Every arm that earns a payload carries its OWN type for it, with one lawful
+constructor, and no two arms share a shape — which is what makes an incoherent
+origin unwritable rather than refused: the replay-bearing arm takes only the
+grounds that author a capsule, and the discharge arm takes no ground at all,
+because a discharge has exactly one and a forced value is never asked for. The
+hand-written arm earns nothing beyond having been written, so naming the arm is
+the whole of it. Each admitted payload still reads back at summary width, so an
+admission states its ground in one vocabulary wherever it is read.
+
+A row commits to its CANONICAL BYTES as it is born: the encoder runs once, at
+the constructor, and the row carries the result for its whole life. The
+revision identity a report derives is therefore a reading over bytes that
+already exist, nothing re-encodes a row per run, and the one refusal a row
+constructor has left is the encoding that could not be written.
 
 A Row is pure data and cannot execute. The EXECUTABLE ATTACHMENT carries the
 typed subject reference, the typed check reference, one posture-bearing

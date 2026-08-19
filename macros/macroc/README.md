@@ -5,7 +5,7 @@ planned, rendered, proved closed, and explainable — an expander that writes a
 record of every decision it makes. Each stage hands the next one
 a value the next one cannot forge.
 
-## The spine — the services in seven nouns
+## The spine — the services in eight nouns
 
 Meaning becomes planned artifacts. The arrows are honest constructors, and
 the products say what a value actually requires:
@@ -15,9 +15,10 @@ OwnerContentAccount              →  ProjectionIntent
 ProjectionIntent (+ context)     →  Plan
 Plan                             →  RenderedProjection
 Plan × RenderedProjection        →  ProjectionClosure
+                                    × PartitionedEmission
 Plan × ProjectionClosure         →  Explanation
 Plan × ProjectionClosure
-     × Explanation               →  ClosedExpansion   (the only value
+     × Explanation               →  ProjectionReceipt (the only value
                                                        emission reaches)
 ```
 
@@ -28,16 +29,23 @@ facts, and origin edges; no second account of content dependencies ever
 forms. The intent is what you meant — the kind plus the content commitment.
 The plan is the decision record of one expansion: it exists inside one
 service invocation, consulted by the closure and the explanation, then
-bound into the closed expansion. The law is precise: these services own no
+bound into the receipt. The law is precise: these services own no
 persistent plan store, no queue, no lifecycle, no ambient registry; an
 ordinary returned plan value may remain inspectable in caller memory — the
 architecture prohibits a planning institution, not ownership. The rendered
 projection's members carry their own rendered-unit identities, derived from
 the exact rendered bytes — a projection is not singularly identified by one
 member's id. The closure proves that plan, declared membership, rendering,
-origins, and trace agree — agreement among values that exist when it runs.
-The explanation reads the plan and the proved closure. The closed expansion
-binds all three and is the ONLY value from which emission is reachable.
+origins, and trace agree — agreement among values that exist when it runs —
+and then splits the rendering into the emissions its members declared: one
+joined byte stream per delivery, because what the consumer's normal build
+compiles, what a test target invokes, what a bench target invokes, and what a
+publication writes to an address are four deliveries and not one. Every planned
+member declares which one it is for, so a mutation-evaluation surface cannot
+reach the normal build at all. The explanation reads the plan and the proved
+closure. The receipt binds all three and is the ONLY value from which emission
+is reachable — for every projection kind, and the refusal family's own receipt
+type is a view over it rather than a second road around it.
 
 ## The doors
 
@@ -61,16 +69,20 @@ consumers mint their own sugar — their own declaration families, their own
 stamps — over this engine, and the equivalence law protects doors they
 build exactly as it protects ours. Test and bench targets are consumption
 sites, not doors: they invoke the declarations' generated support shells
-and receive the cargo; generating test rows at the product declaration site
+and receive the cargo — which is a receipt's carrier emission and never its
+declaration-site one, so nothing a consumption target invokes is in the normal
+build; generating test rows at the product declaration site
 is refused — a reverse dev dependency and a normal-build tax.
 
 ```mermaid
 flowchart LR
     CAP["capture — typed reading of the declaration"] --> PLAN["planning — the ProjectionPlan"]
     PLAN --> REN["rendering"]
-    REN --> CLO["closure — plan, origin graph, trace, rendering, and explanation agree"]
-    CLO --> TOK["tokens — emitted only from a closed expansion"]
+    REN --> CLO["closure — plan, origin graph, trace, and rendering agree; the emission is partitioned by delivery"]
     CLO --> EXP["explanation — inspectable answers"]
+    CLO --> REC["receipt — plan, proof, and explanation under one identity"]
+    EXP --> REC
+    REC --> TOK["the emission each build receives — reachable only from a receipt"]
 ```
 
 The crate's own doc comment carries the charter, the callable-without-a-proc-macro
@@ -120,16 +132,17 @@ flowchart TD
         BD --> OG
         BD --> PLAN
         BD --> TD
-        CLO["closure"] --> PLN
-        CLO --> OG
-        CLO --> PLAN
-        CLO --> QUE
-        CLO --> TOK
         EXP["explanation_protocol"] --> PLN
         EXP --> DIA
         EXP --> QUE
         EXP --> OG
         EXP --> PLAN
+        CLO["closure — the proof, and the receipt every kind's road ends at"] --> PLN
+        CLO --> OG
+        CLO --> PLAN
+        CLO --> QUE
+        CLO --> TOK
+        CLO --> EXP
         DOC["documentation"] --> PLN
         DOC --> TOK
         DOC --> DIA

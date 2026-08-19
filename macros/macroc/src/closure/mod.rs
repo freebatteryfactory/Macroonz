@@ -5,6 +5,7 @@ mod type_contract;
 mod types;
 
 pub use types::{
-    ClosureIssue, ProjectionClosure, ProjectionClosureRefusal, RenderedProjection, RenderedUnit,
-    RenderingRefusal,
+    CarriedTokens, ClosureIssue, DeliveryAddressing, PartitionCargo, PartitionedEmission,
+    ProjectionClosure, ProjectionClosureRefusal, ProjectionReceipt, ReceiptBindingRefusal,
+    RenderedProjection, RenderedUnit, RenderingRefusal,
 };

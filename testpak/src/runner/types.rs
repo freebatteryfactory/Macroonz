@@ -5,9 +5,12 @@
 //!
 //! Declarations only. The roads that build an invocation and hand its seats back
 //! are this file's own child, `type_guard.rs`, so an invocation is born in one
-//! place. A selection has no nucleus at all: every arm is a set over a shape the
-//! rows already carry, so there is no invariant a constructor could establish
-//! that the set itself does not.
+//! place. The selection itself has no nucleus at all: every arm is a set over a
+//! shape the rows already carry, so there is no invariant a constructor could
+//! establish that the set itself does not. What a run EXPECTS of that selection
+//! does have one, because the standing expectation is the one a caller gets for
+//! saying nothing and the escape from it is a statement somebody makes on
+//! purpose.
 //!
 //! # The generic seam
 //!
@@ -21,17 +24,18 @@
 //! # The seat's vocabulary
 //!
 //! A stamped seat is a test function returning a `Result`, so it needs one type
-//! to refuse with. [`SeatRefusal`] is it, and the readings that produce it are
-//! `verdict.rs`'s: the fold from a report to a verdict lives in this home once,
-//! rather than being written into every expansion that wants one.
+//! to refuse with. [`SeatRefusal`] is it, [`SeatOutcome`] is what the reading
+//! answers with when it does not refuse, and both readings are `verdict.rs`'s:
+//! the fold from a report to a verdict lives in this home once, rather than
+//! being written into every expansion that wants one.
 
 use crate::descriptor::{
-    AuthoredTable, Binding, ClaimRef, EncodeRefusal, ExecutionSuite, SubjectRoute, TableView,
-    TrialTableRefusal,
+    AuthoredTable, Binding, ClaimRef, ExecutionSuite, SubjectRoute, TableView, TrialTableRefusal,
 };
 use crate::report::{
-    FindingCause, InfrastructureFault, InvocationProfile, SkipReason, TargetBinding, TimeBudget,
-    TrialConclusion, TrialFinding, TrialId, TrialSite,
+    EmptySelectionReason, FindingCause, InfrastructureFault, InvocationProfile,
+    SelectionExpectation, SkipReason, TargetBinding, TimeBudget, TrialConclusion, TrialFinding,
+    TrialId, TrialSite,
 };
 use std::collections::BTreeSet;
 
@@ -109,6 +113,11 @@ pub struct Invocation {
 /// over every row of the world however few of them this invocation named. An
 /// empty roster is lawful and selects nothing, and the census still carries
 /// every row with its stated not-selected reason.
+///
+/// What a run EXPECTS its selection to match is not here. That is
+/// [`SelectionPlan`]'s, because it is a fact about the run rather than about
+/// which rows a roster names — two runs can choose identically and expect
+/// differently.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Selection {
     /// Every trial the view presents.
@@ -121,6 +130,35 @@ pub enum Selection {
     ByTrialIds(BTreeSet<TrialId>),
     /// The trials whose row exercises one of these subject routes.
     BySubjectRoute(BTreeSet<SubjectRoute>),
+}
+
+/// What one invocation chooses from the complete world, and what it expects
+/// that choice to match.
+///
+/// # Authority
+///
+/// The engine takes this rather than a bare [`Selection`], so every run states
+/// its anti-vacuity posture and no run is missing one. The expectation itself is
+/// the record vocabulary's ([`SelectionExpectation`]), because the report has to
+/// carry the answer it is read against.
+///
+/// # Construction
+///
+/// [`SelectionPlan::of`] is the ordinary road and it asks for nothing beyond the
+/// selection: a run expects at least one match unless somebody says otherwise,
+/// so the standing expectation costs a caller no ceremony at all.
+/// [`SelectionPlan::allowing_empty`] is the escape, and it is the only road that
+/// admits zero — a caller taking it states the reason in the same call.
+///
+/// # Nonclaims
+///
+/// A plan states what a run means to do. It never narrows the denominator, and
+/// admitting an empty selection admits exactly that and nothing more: no arm of
+/// it says a trial passed, because no trial ran.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SelectionPlan {
+    chooses: Selection,
+    expects: SelectionExpectation,
 }
 
 /// The callable one executable attachment carries at the types this engine
@@ -197,6 +235,43 @@ pub struct FailedTrial {
     failure: SeatFailure,
 }
 
+/// What one aggregate seat's reading found when it did not refuse.
+///
+/// # Authority
+///
+/// The two arms are two different facts and neither stands in for the other: a
+/// run that exercised every trial it named, and a run that deliberately
+/// exercised nothing. Naming them apart is what keeps the second from being read
+/// as the first — nothing here spells "passed", because a run under an admitted
+/// empty selection has no conclusion to pass on, and the reason it was admitted
+/// rides with it so a reader is never shown a silent zero.
+///
+/// # Nonclaims
+///
+/// The satisfied arm says every SELECTED trial concluded lawfully. It says
+/// nothing about the rows the selection passed over — the census states those,
+/// with their reasons, and narrowing a run has never been an outcome.
+#[must_use = "a seat's outcome states what the run did, and a run that did nothing says so"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SeatOutcome {
+    /// Every trial the selection named concluded lawfully.
+    EveryTrialConcluded {
+        /// How many rows of the denominator the selection named.
+        selected: usize,
+        /// How many rows the run was stated over.
+        denominator: usize,
+    },
+    /// The selection named no row, exactly as the caller stated in advance that
+    /// it might. Nothing was exercised, and the stated reason is why that was
+    /// admissible.
+    NoWorkAsStated {
+        /// The reason the caller stated for admitting an empty selection.
+        reason: EmptySelectionReason,
+        /// How many rows the run was stated over.
+        denominator: usize,
+    },
+}
+
 /// The seats' one refusal type: everything a stamped test function answers with
 /// instead of passing.
 ///
@@ -217,23 +292,20 @@ pub struct FailedTrial {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SeatRefusal {
     /// The world could not be built, and this is the construction that refused.
+    ///
+    /// A row whose canonical bytes could not be written arrives here too: the
+    /// bytes are written where the row is born, so a row that cannot be encoded
+    /// is a row the table was never able to hold.
     TableNotBuilt(TrialTableRefusal),
-    /// A row's canonical bytes could not be written, so the run's census could
-    /// not name that row's revision and no report was stated.
+    /// The selection named no row of the denominator, and the run expected at
+    /// least one, so it exercised nothing it meant to exercise.
     ///
-    /// The cause is the descriptor home's own and is carried unchanged. It is
-    /// unreachable on every target this crate is built for — the row encoder
-    /// states its widths rather than guessing at one — and it is a refusal
-    /// rather than a silence because a census entry under an identity derived
-    /// from bytes nobody wrote would be two rows' bookkeeping under one name.
-    RowNotEncoded(EncodeRefusal),
-    /// The selection named no row of the denominator, so the run exercised
-    /// nothing.
-    ///
-    /// A run that exercised nothing is not a run that passed. On the stamped
-    /// road this is exactly the pairing a stamp cannot check — a suite group
-    /// whose declared suite is no row's own — answered at run time from the
-    /// census the run wrote.
+    /// A run that exercised nothing is not a run that passed. The fact is the
+    /// run's own — the report records it as
+    /// [`SelectionOutcome::UnsatisfiedByEmptySelection`](crate::report::SelectionOutcome::UnsatisfiedByEmptySelection)
+    /// — and this arm is where that fact reaches the channel a test function
+    /// answers in. On the stamped road it is exactly the pairing a stamp cannot
+    /// check: a suite group whose declared suite is no row's own.
     NothingSelected {
         /// How many rows the run was stated over.
         denominator: usize,

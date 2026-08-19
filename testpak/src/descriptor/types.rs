@@ -262,6 +262,30 @@ pub enum CapsulePosture {
     NoCapsule,
 }
 
+/// The grounds a replay-bearing admission stands on.
+///
+/// # Authority
+///
+/// The roster is the capsule table read as a type: exactly the grounds whose
+/// [`AdmissionGround::capsule_posture`] is [`CapsulePosture::ReplayBearing`],
+/// and nothing else. A ground that authors no capsule has no spelling here, so
+/// the replay-bearing origin arm has no way to name one and a mismatched pair
+/// is not a value anybody can write.
+///
+/// # Nonclaims
+///
+/// It is not a second ground vocabulary. These are the same grounds, narrowed
+/// to the ones one arm admits, and [`AdmissionGround`] is what they widen back
+/// to — the widening is declared once, in this home's `type_contract.rs`, so a
+/// ground still has one identity-bearing slot and one summary spelling.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ReplayBearingGround {
+    /// The proposal killed a real mutant.
+    MutantKilled,
+    /// The proposal pinned a named claim.
+    ClaimPinned,
+}
+
 /// What one admission act stated about itself.
 ///
 /// # Authority
@@ -269,6 +293,11 @@ pub enum CapsulePosture {
 /// The ground summary and the destination suite are the whole of it. There is
 /// no admitter seat and no timestamp seat: who admitted is not identity-bearing
 /// here, and a clock is an ambient fact this vocabulary refuses to carry.
+///
+/// This is a READING rather than a seat an origin holds: each admitted arm's
+/// own payload answers with one ([`ReplayAdmission::admission`],
+/// [`DischargeAdmission::admission`]), so every admitted row states its
+/// admission at one width while the arms keep their own shapes.
 ///
 /// # Nonclaims
 ///
@@ -278,6 +307,41 @@ pub enum CapsulePosture {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AdmissionFacts {
     ground: AdmissionGround,
+    destination: ExecutionSuite,
+}
+
+/// What a human's admission on a replay-bearing ground earned one row.
+///
+/// # Authority
+///
+/// The ground seat is [`ReplayBearingGround`] rather than the wide vocabulary,
+/// so a capsule-bearing arm carrying a discharge ground is unrepresentable
+/// rather than refused. The replay reference is unconditional here for the same
+/// reason: the ground that opens this arm is exactly a ground that authored a
+/// capsule entry, so there is no shape of this value with an empty replay seat.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ReplayAdmission {
+    proposal: ProposalId,
+    ground: ReplayBearingGround,
+    destination: ExecutionSuite,
+    replay: ReplayRef,
+}
+
+/// What a human's admission on a discharge ground earned one row.
+///
+/// # Authority
+///
+/// A discharge stands on exactly one ground —
+/// [`AdmissionGround::ObligationDischarged`] — so the ground is FORCED and the
+/// constructor does not ask for it: a seat with one lawful value is a seat a
+/// caller cannot get wrong and should not have to fill. It reads back at
+/// summary width through [`DischargeAdmission::admission`].
+///
+/// There is no replay seat at all, because the ground authors no capsule: the
+/// admitted row IS the discharge's permanent record.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DischargeAdmission {
+    proposal: ProposalId,
     destination: ExecutionSuite,
 }
 
@@ -307,9 +371,17 @@ pub struct AdmissionFacts {
 ///
 /// # Construction
 ///
-/// The two admitted arms and the ground stated in their admission facts must
-/// agree, and [`Row::declared`] is where that agreement is checked: the arms
-/// are open shapes, so the coherence law is enforced where a row is born.
+/// Every arm carries its OWN payload type, and each payload has exactly one
+/// lawful constructor. An incoherent origin — a replay-bearing arm under a
+/// discharge ground, a discharge arm under a ground that authors a capsule — is
+/// therefore not a value that can be written, rather than one a row constructor
+/// reads back and refuses. [`ReplayAdmission`] takes the narrowed
+/// [`ReplayBearingGround`]; [`DischargeAdmission`] takes no ground at all,
+/// because a discharge has exactly one and a forced value is not asked for.
+///
+/// The hand-written arm's payload is the arm itself: there is nothing a hand
+/// earns beyond having written the row, so the seat has one lawful value and it
+/// is spelled by naming the arm.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Origin {
     /// A hand wrote this row.
@@ -319,33 +391,46 @@ pub enum Origin {
     /// A synthesis cut this row for an opening; lawful in a staged view only.
     Candidate(SynthesisFacts),
     /// A human admitted this row on a replay-bearing ground.
-    AdmittedReplay {
-        /// The admitted proposal's content identity.
-        proposal: ProposalId,
-        /// What the admission stated.
-        admission: AdmissionFacts,
-        /// The depot capsule entry the admission act authored.
-        replay: ReplayRef,
-    },
+    AdmittedReplay(ReplayAdmission),
     /// A human admitted this row on a discharge ground.
-    AdmittedDischarge {
-        /// The admitted proposal's content identity.
-        proposal: ProposalId,
-        /// What the admission stated.
-        admission: AdmissionFacts,
-    },
+    AdmittedDischarge(DischargeAdmission),
 }
+
+/// The canonical byte string one row commits to.
+///
+/// # Authority
+///
+/// These bytes are written ONCE, where the row is born, by the encoder this
+/// home owns ([`crate::descriptor::encode`]), and a row carries them for its
+/// whole life. They are the preimage the report instrument's
+/// [`RowRevisionId`](crate::report::RowRevisionId) is derived from, and holding
+/// this value is holding the row's own complete encoding rather than a summary
+/// of it.
+///
+/// # Nonclaims
+///
+/// It is not an identity, and nothing reads meaning out of it. A preimage is
+/// never "the id": the identity is derived from these bytes by the home that
+/// owns identities, under that kind's own domain tag.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CanonicalRowBytes(Vec<u8>);
 
 /// One row of the harness's denominator: one test, stated as data.
 ///
-/// The fields are closed — the claim served, the one execution suite, the open
-/// classification, the subject route, the check reference, the population, and
-/// the origin. A schema identity is not among them.
+/// The declared fields are closed — the claim served, the one execution suite,
+/// the open classification, the subject route, the check reference, the
+/// population, and the origin. A schema identity is not among them.
 ///
 /// # Authority
 ///
 /// A row is pure data and cannot execute. It names its check rather than
 /// carrying one, and the callable arrives only with [`Binding`].
+///
+/// Beside the declared fields the row owns its [`CanonicalRowBytes`], computed
+/// at construction from exactly those fields. The bytes are not an eighth
+/// declared field and no producer states them: they are what the seven ENCODE
+/// TO, which is why the producer-facing schema roster does not name them and a
+/// row's revision identity is a reading rather than a recomputation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Row {
     claim: ClaimRef,
@@ -355,6 +440,7 @@ pub struct Row {
     check: CheckRef,
     population: PopulationRef,
     origin: Origin,
+    canonical: CanonicalRowBytes,
 }
 
 /// Why one row was refused.
@@ -363,15 +449,21 @@ pub struct Row {
 ///
 /// This family is narrow on purpose: an empty claim, an empty suite name, and a
 /// repeated role are refused upstream, by the name parsers and by
-/// [`Classification`], so a row constructor that received typed values has one
-/// thing left to establish.
+/// [`Classification`], and an origin whose arm and ground disagree is not a
+/// value that reaches a constructor at all — each arm's payload admits only the
+/// grounds that arm earns. What is left is the one thing a row establishes for
+/// itself: that its canonical bytes could be written.
 #[must_use = "a refusal is the reason a row was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RowRefusal {
-    /// The origin's admitted arm and the ground its admission facts state
-    /// disagree: a replay-bearing arm under a discharge ground, or a discharge
-    /// arm under a ground that authors a capsule.
-    AdmissionGroundMismatch(AdmissionGround),
+    /// The row's canonical bytes could not be written, so the row has no
+    /// preimage to commit to and no revision identity anything could derive.
+    ///
+    /// The cause is the encoder's own, carried unchanged. It is unreachable on
+    /// every target this crate is built for — the encoder states its widths
+    /// rather than guessing at one — and it is a refusal rather than a silence
+    /// because a row without its bytes would be a row nothing can name.
+    NotEncoded(EncodeRefusal),
 }
 
 /// The semantic content two rows would have to share to be one trial: the
@@ -735,7 +827,15 @@ pub struct GeneratedSupportSchema {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GeneratedSupportSchemaId(ContentAddress);
 
-/// Why one schema encoding was refused.
+/// Why one encoding was refused.
+///
+/// # Authority
+///
+/// One family for both preimages this home writes: the root schema
+/// declaration's, and one row's. They travel differently — a refused schema
+/// encoding reaches the stamped road directly, while a refused row encoding is
+/// carried by [`RowRefusal`], because a row that cannot be encoded is a row that
+/// was never built.
 ///
 /// # Nonclaims
 ///

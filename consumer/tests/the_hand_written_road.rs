@@ -182,8 +182,8 @@ fn declared_revision(material: &[u8]) -> RevisionBinding {
 ///
 /// Refuses whatever the harness's own constructors refuse, each carried into
 /// the stamped road's one family by the discharge that family declares for it:
-/// a name that would not parse, a repeated label, or a row whose origin and
-/// admission do not cohere.
+/// a name that would not parse, a repeated label, or a row whose canonical
+/// bytes could not be written.
 fn hand_parts(
     claim_stem: &'static str,
     suite_stem: &'static str,

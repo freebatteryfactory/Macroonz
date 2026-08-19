@@ -3,12 +3,15 @@
 //!
 //! Declared inside `types.rs` as its own child, which is what makes the home's
 //! claims structural rather than remembered. A name is parsed HERE, so a
-//! reference that names nothing is not a value anybody can hold. A row is born
-//! HERE, so an admitted arm and its ground cannot disagree in a constructed
-//! row. A binding is married HERE, so a row's references and its callable's
-//! references are one pair. A table is closed HERE, so a duplicated trial and
-//! an authored candidate are not values that exist. The readers travel with the
-//! mints because they are the same private seats read back.
+//! reference that names nothing is not a value anybody can hold. An admitted
+//! origin's payload is admitted HERE, each arm taking only the grounds that arm
+//! earns, so an arm and its ground cannot disagree anywhere. A row is born
+//! HERE, and it commits to its canonical bytes as it is born, so a row that
+//! exists has exactly one encoding and nothing derives a second. A binding is
+//! married HERE, so a row's references and its callable's references are one
+//! pair. A table is closed HERE, so a duplicated trial and an authored
+//! candidate are not values that exist. The readers travel with the mints
+//! because they are the same private seats read back.
 //!
 //! Two hand-written `Clone` realizations sit here rather than in
 //! `type_contract.rs` for one mechanical reason: they read private seats, and
@@ -16,16 +19,16 @@
 
 use super::{
     AdmissionFacts, AdmissionGround, AuthoredTable, AuthoredTableName, AuthoredTableRefusal,
-    BENCH_FIELDS, BenchSchema, Binding, BindingRefusal, CapsulePosture, CheckRef, ClaimRef,
-    Classification, ClassificationRefusal, DESCRIPTOR_FIELDS, DescriptorSchema, DoorRef,
-    EncodeRefusal, ExecutableAttachment, ExecutionSuite, FieldCardinality, FieldShape,
+    BENCH_FIELDS, BenchSchema, Binding, BindingRefusal, CanonicalRowBytes, CheckRef, ClaimRef,
+    Classification, ClassificationRefusal, DESCRIPTOR_FIELDS, DescriptorSchema, DischargeAdmission,
+    DoorRef, EncodeRefusal, ExecutableAttachment, ExecutionSuite, FieldCardinality, FieldShape,
     GeneratedSupportSchema, GeneratedSupportSchemaId, MUTATION_POINT_FIELDS, MutationPointRef,
     MutationPointSchema, NameRefusal, NamespacedName, Origin, PopulationRef, ProducerFacts,
-    ProducerName, ProjectionRef, ProposalId, Provenance, ReplayRef, RevisionBinding,
-    RevisionPosture, Role, Row, RowRefusal, SchemaField, SchemaRefusal, StagedTableRefusal,
-    StagedTableView, SubjectRoute, TablePosture, TableView, Tag, TrialKey,
+    ProducerName, ProjectionRef, ProposalId, Provenance, ReplayAdmission, ReplayBearingGround,
+    ReplayRef, RevisionBinding, RevisionPosture, Role, Row, RowRefusal, SchemaField, SchemaRefusal,
+    StagedTableRefusal, StagedTableView, SubjectRoute, TablePosture, TableView, Tag, TrialKey,
 };
-use crate::descriptor::encode::encode_generated_support_schema;
+use crate::descriptor::encode::{encode_generated_support_schema, encode_row_content};
 use crate::identity::{ContentAddress, DomainTag};
 use std::collections::BTreeSet;
 
@@ -251,17 +254,118 @@ impl AdmissionFacts {
     }
 }
 
+impl ReplayAdmission {
+    /// What one admission on a replay-bearing ground earned a row.
+    ///
+    /// The ground is the narrowed one, so this constructor cannot be handed a
+    /// ground that authors no capsule — the seat has no spelling for one.
+    #[must_use]
+    pub const fn admitted(
+        proposal: ProposalId,
+        ground: ReplayBearingGround,
+        destination: ExecutionSuite,
+        replay: ReplayRef,
+    ) -> Self {
+        Self {
+            proposal,
+            ground,
+            destination,
+            replay,
+        }
+    }
+
+    /// The admitted proposal's content identity.
+    #[must_use]
+    pub const fn proposal(self) -> ProposalId {
+        self.proposal
+    }
+
+    /// The replay-bearing ground the admission stood on.
+    #[must_use]
+    pub const fn ground(self) -> ReplayBearingGround {
+        self.ground
+    }
+
+    /// The suite the admitted row lands in.
+    #[must_use]
+    pub const fn destination(self) -> ExecutionSuite {
+        self.destination
+    }
+
+    /// The depot capsule entry the admission act authored.
+    #[must_use]
+    pub const fn replay(self) -> ReplayRef {
+        self.replay
+    }
+
+    /// What the admission stated, at summary width.
+    ///
+    /// The ground widens to the vocabulary every admission is summarised in, so
+    /// a reader that wants the word rather than the arm reads it here.
+    #[must_use]
+    pub fn admission(self) -> AdmissionFacts {
+        AdmissionFacts::stated(AdmissionGround::from(self.ground), self.destination)
+    }
+}
+
+impl DischargeAdmission {
+    /// What one admission on a discharge ground earned a row.
+    ///
+    /// No ground is taken: a discharge stands on exactly one, so the value is
+    /// forced and a caller is not asked to supply what it cannot choose.
+    #[must_use]
+    pub const fn admitted(proposal: ProposalId, destination: ExecutionSuite) -> Self {
+        Self {
+            proposal,
+            destination,
+        }
+    }
+
+    /// The admitted proposal's content identity.
+    #[must_use]
+    pub const fn proposal(self) -> ProposalId {
+        self.proposal
+    }
+
+    /// The suite the admitted row lands in.
+    #[must_use]
+    pub const fn destination(self) -> ExecutionSuite {
+        self.destination
+    }
+
+    /// What the admission stated, at summary width — the forced ground, and the
+    /// destination this admission named.
+    #[must_use]
+    pub const fn admission(self) -> AdmissionFacts {
+        AdmissionFacts::stated(AdmissionGround::ObligationDischarged, self.destination)
+    }
+}
+
+impl CanonicalRowBytes {
+    /// The bytes, for the identity road that derives over them.
+    #[must_use]
+    pub fn as_bytes(&self) -> &[u8] {
+        &self.0
+    }
+}
+
 impl Row {
     /// One test's row, over the values it states.
     ///
+    /// The row's canonical bytes are written HERE, once, from exactly the values
+    /// this call was given, and the row carries them afterwards. Encoding at
+    /// birth is what makes a revision identity a reading later on: nothing
+    /// re-encodes a row per run, and no two encodings of one row can disagree
+    /// because only one is ever performed.
+    ///
     /// # Errors
     ///
-    /// Refuses an origin whose admitted arm and stated ground disagree: a
-    /// replay-bearing arm under a ground that authors no capsule, or a
-    /// discharge arm under a ground that does. Every other structural refusal
-    /// this row could earn was already spent upstream — the name parsers refuse
-    /// an empty reference, and [`Classification`] refuses a repeated label — so
-    /// what is left here is the coherence no single arm can state alone.
+    /// Refuses when those bytes could not be written — a length past the width
+    /// the row encoding declares, which is unreachable on every target this
+    /// crate is built for. Every other structural refusal this row could earn
+    /// was already spent upstream: the name parsers refuse an empty reference,
+    /// [`Classification`] refuses a repeated label, and an origin whose arm and
+    /// ground disagree is not a value that reaches this call.
     pub fn declared(
         claim: ClaimRef,
         execution_suite: ExecutionSuite,
@@ -271,19 +375,16 @@ impl Row {
         population: PopulationRef,
         origin: Origin,
     ) -> Result<Self, RowRefusal> {
-        match origin {
-            Origin::AdmittedReplay { admission, .. } => {
-                if admission.ground().capsule_posture() != CapsulePosture::ReplayBearing {
-                    return Err(RowRefusal::AdmissionGroundMismatch(admission.ground()));
-                }
-            }
-            Origin::AdmittedDischarge { admission, .. } => {
-                if admission.ground().capsule_posture() != CapsulePosture::NoCapsule {
-                    return Err(RowRefusal::AdmissionGroundMismatch(admission.ground()));
-                }
-            }
-            Origin::HandWritten | Origin::Generated(_) | Origin::Candidate(_) => {}
-        }
+        let canonical = encode_row_content(
+            claim,
+            execution_suite,
+            &classification,
+            subject,
+            check,
+            population,
+            origin,
+        )
+        .map_err(RowRefusal::NotEncoded)?;
         Ok(Self {
             claim,
             execution_suite,
@@ -292,6 +393,7 @@ impl Row {
             check,
             population,
             origin,
+            canonical: CanonicalRowBytes(canonical),
         })
     }
 
@@ -347,6 +449,15 @@ impl Row {
     #[must_use]
     pub const fn origin(&self) -> Origin {
         self.origin
+    }
+
+    /// The canonical bytes this row committed to when it was built.
+    ///
+    /// A read and never a computation: the encoding happened once, at
+    /// [`Row::declared`], and this hands back what was written there.
+    #[must_use]
+    pub const fn canonical_bytes(&self) -> &CanonicalRowBytes {
+        &self.canonical
     }
 
     /// The semantic content that decides whether two rows are one trial.
@@ -685,8 +796,8 @@ impl<'parent, Invocation, Conclusion> StagedTableView<'parent, Invocation, Concl
                 Origin::Candidate(_) => {}
                 Origin::HandWritten
                 | Origin::Generated(_)
-                | Origin::AdmittedReplay { .. }
-                | Origin::AdmittedDischarge { .. } => {
+                | Origin::AdmittedReplay(_)
+                | Origin::AdmittedDischarge(_) => {
                     return Err(StagedTableRefusal::NotACandidate(key));
                 }
             }
