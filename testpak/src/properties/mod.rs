@@ -49,6 +49,6 @@ pub use types::{
     LIVE_VERSUS_REPLAYED_DISAGREEMENT, MONOTONICITY_DISAGREEMENT, Measure, NEVER_BROKEN,
     NO_SEQUENCE_DRIVEN, ORDER_DECREASED, Order, PERMUTATION_DISAGREEMENT, ParitySuite,
     PoisonResponse, REFUSAL_EXPECTED, ROUNDTRIP_DISAGREEMENT, ResponseReading, Road, RoadPairing,
-    SharedSubstrate, StatePredicate, SubstrateRef, SubstrateRefusal, TemporalClaim, TemporalDemand,
-    TransitionContract,
+    SharedSubstrate, StatePredicate, SubstrateRef, SubstrateRefusal, SubstrateRoster, TemporalClaim,
+    TemporalDemand, TransitionContract,
 };

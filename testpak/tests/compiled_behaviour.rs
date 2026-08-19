@@ -36,7 +36,7 @@
 //! # What holds the fixtures to the renderer, and what does not
 //!
 //! The LAWFUL fixture's provenance is re-derived below on every run: it must
-//! still be, byte for byte, what the receipt-rich road produces from the
+//! still be, byte for byte, what the bound-expansion road produces from the
 //! declaration stated here. That is what makes renderer drift loud — when the
 //! rendering legitimately changes shape, this file says so by name.
 //!
@@ -51,7 +51,7 @@
 //! failing control is never read as evidence. The malformed fixture carries
 //! less than that: it proves a compiler refuses that text, and nothing here
 //! ties it to today's renderer. Full custody returns when the generator owns
-//! materialization and publishes each fixture with its receipt.
+//! materialization and publishes each fixture under a receipt of its own.
 
 use threadpak::refusal::{
     CauseId, CauseOrderDeclaration, DeclaredCauseOrder, FamilyShape, LocalCauseKey, RefusalFamily,
@@ -138,7 +138,7 @@ fn materialized_artifact(fixture: &str) -> &str {
     fixture.lines().last().unwrap_or_default()
 }
 
-/// The lawful rendering, as the receipt-rich road produced and closed over it:
+/// The lawful rendering, as the bound-expansion road produced and closed over it:
 /// the declaration-site cargo's projection, and empty where the road refused
 /// or the declaration site was planned nothing.
 fn lawful_rendering() -> String {
@@ -222,7 +222,7 @@ fn the_lawful_materialized_artifact_is_the_roads_own_output() {
     let lawful = lawful_rendering();
     assert!(
         !lawful.is_empty(),
-        "the lawful artifact did not compile through the receipt-rich road"
+        "the lawful artifact did not compile through the bound-expansion road"
     );
     assert_eq!(
         materialized_artifact(include_str!("compiled-mutant/lawful.rs")),

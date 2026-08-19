@@ -8,7 +8,7 @@
 //! expansion, because the whole point of either declaration is that a row is
 //! stated once and everything about it follows.
 
-use crate::closure::ProjectionReceipt;
+use crate::closure::ClosedExpansion;
 use crate::diagnostics::{MachineAnchoring, ObservedClassification};
 use crate::origin_graph::Nonclaim;
 use crate::plane::{
@@ -224,8 +224,9 @@ refusal_derive_facts! {
 
     /// This home's own charter fact: the terminal binds what it hands out.
     NothingIsHandedOutThatDidNotBind = "macroc", "nothing-is-handed-out-that-did-not-bind",
-        "a receipt binds the plan its proof was taken against, so a closure proved against another \
-         plan is refused rather than bound under one identity";
+        "a closed expansion binds the plan its proof was taken against and the explanation \
+         answered over the two, so a proof or an explanation belonging to another expansion is \
+         refused rather than bound under one identity";
 }
 
 /// How the consumer names the machine on its own dependency list.
@@ -277,13 +278,19 @@ pub enum DocumentedDeclaration {
 ///
 /// # Content
 ///
-/// **The text is inside the one content commitment, and it is inside it
-/// already.** A captured declaration's identity is derived over the token
-/// material at full length ([`RefusalDeriveSurface::identity`]), and these rows
-/// are cut from that same material — so a declaration whose documentation
-/// changed is a different capture, derives a different plan, and closes under a
-/// different receipt. There is no second commitment for prose and no seat that
-/// would exempt one.
+/// **The rows are what the DOCUMENTATION commitment stands over, and they are
+/// exactly what the semantic one sets aside.** A captured declaration is named
+/// twice: [`RefusalDeriveSurface::identity`] stands over the declaration's
+/// tokens with these attributes dropped, and
+/// [`RefusalDeriveSurface::documentation_identity`] stands over that name and
+/// these rows in order. So a declaration whose prose changed keeps the name an
+/// implementation projection is about and takes a new name a documentation
+/// projection is about — which is the difference between "the same contract,
+/// documented differently" and "a different contract".
+///
+/// Both are readings of ONE captured surface. The rows are cut from the same
+/// token material the semantic commitment was derived over, so nothing here is a
+/// second account of what the content is or of what it stands on.
 ///
 /// # Nonclaims
 ///
@@ -332,6 +339,32 @@ pub struct CapturedCause {
 /// captured attribute at one nesting level, and the trees at one nesting level
 /// are what that bound admits. A second magnitude here would be a second
 /// authority over one capacity.
+///
+/// # Two commitments, one surface, and which account carries which
+///
+/// **One captured surface, two authored facts, and no second account of content
+/// dependencies anywhere.** The surface carries the SEMANTIC commitment — the
+/// declaration with its documentation attributes set aside — and the
+/// DOCUMENTATION commitment, which stands over that semantic name and the
+/// ordered rows.
+///
+/// Each projection still receives exactly ONE
+/// [`OwnerContentAccount`](crate::planning::OwnerContentAccount), and which of
+/// the two commitments that account carries is decided by what the projection is
+/// ABOUT:
+///
+/// - an implementation, test, codec, or any other projection over what the
+///   declaration IS takes an account over the SEMANTIC commitment, with no
+///   dependency declared — captured token material stands on nothing that has
+///   been linked;
+/// - a DOCUMENTATION projection takes an account over the DOCUMENTATION
+///   commitment, and DECLARES the semantic commitment as its dependency, because
+///   what the prose says stands on what the declaration is.
+///
+/// That second account is not a second reading of dependencies: it is one
+/// account over one commitment, naming the one commitment it stands on, exactly
+/// as every other account does. Nothing in these services holds a second list of
+/// what content depends on.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RefusalDeriveSurface {
     family_name: String,
@@ -341,6 +374,7 @@ pub struct RefusalDeriveSurface {
     causes: Bounded<CapturedCause, DeriveCauseLimit>,
     documentation: Bounded<CapturedDocumentation, CapturedTokenLimit>,
     identity: ProjectionIdentity<CapturedDeclarationSubject>,
+    documentation_identity: ProjectionIdentity<CapturedDeclarationSubject>,
 }
 
 // ---------------------------------------------------------------------------
@@ -686,18 +720,18 @@ pub struct RefusalCompileContext {
 }
 
 // ---------------------------------------------------------------------------
-// The refusal family's view over the terminal.
+// The refusal family's view over the closed expansion.
 // ---------------------------------------------------------------------------
 
-/// One closed expansion: this family's view over the receipt one live
-/// compilation ended at, together with the two facts the receipt does not carry.
+/// This family's view over the closed expansion one live compilation ended at,
+/// together with the two facts the terminal does not carry.
 ///
 /// # A view, and not a second account
 ///
 /// The plan, the proof, the explanation, the identity, and every emission are
-/// the RECEIPT's — [`ProjectionReceipt`] is the terminal every projection kind's
-/// door ends at, and this value holds one and reads it. Every road below that
-/// answers about them delegates, so there is nothing here that could answer
+/// the CLOSED EXPANSION's — [`ClosedExpansion`] is the terminal every projection
+/// kind's door ends at, and this value holds one and reads it. Every road below
+/// that answers about them delegates, so there is nothing here that could answer
 /// differently from the terminal it stands over, and no second identity for one
 /// expansion.
 ///
@@ -707,30 +741,39 @@ pub struct RefusalCompileContext {
 /// Both are facts about this family's own declaration, so a terminal seat for
 /// either would be a seat every other kind carries empty.
 ///
+/// # The name
+///
+/// It is the REFUSAL FAMILY's expansion, and the terminal it stands over is the
+/// closed expansion. The two used to share the second name, which made "the
+/// closed expansion" mean one thing in this home and another everywhere else —
+/// and the family view is the narrower value, so it is the one that says whose
+/// view it is.
+///
 /// # The one road to emitted tokens
 ///
 /// A caller cannot hold this without the plan, the rendering, the proved
 /// closure, and the complete explanation all having been produced, having
-/// agreed, and having been bound: [`ClosedExpansion::bound`] is crate-internal
-/// and builds through [`ProjectionReceipt::bound`], which refuses a closure
-/// proved against another plan. There is no constructor that skips a step and
-/// no other public value in this home that carries a token tree.
+/// agreed, and having been bound: [`RefusalFamilyExpansion::bound`] is
+/// crate-internal and builds through [`ClosedExpansion::bound`], which refuses a
+/// closure proved against another plan and an explanation answered over another
+/// plan or another closure. There is no constructor that skips a step and no
+/// other public value in this home that carries a token tree.
 ///
 /// # Inspection and emission
 ///
-/// [`ClosedExpansion::plan`] and [`ClosedExpansion::closure`] are the SAME
-/// values [`ClosedExpansion::emitted`] is read off.
+/// [`RefusalFamilyExpansion::plan`] and [`RefusalFamilyExpansion::closure`] are
+/// the SAME values [`RefusalFamilyExpansion::emitted`] is read off.
 /// There is no parallel plan built for inspection and no synthetic sibling built
 /// for emission, so "what does it say it did" and "what did it do" cannot drift.
 ///
 /// This value holds no tokens of its own.
 /// The partitioned emission belongs to the CLOSURE, which built it as part of
 /// proving and committed to each emission's digest inside its own identity; the
-/// receipt borrows it and this view reads the receipt.
-#[must_use = "a closed expansion is this family's whole view over the receipt it ended at"]
+/// terminal borrows it and this view reads the terminal.
+#[must_use = "a refusal-family expansion is this family's whole view over the closed expansion it ended at"]
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ClosedExpansion {
+pub struct RefusalFamilyExpansion {
     surface: RefusalDeriveSurface,
-    receipt: ProjectionReceipt<DeriveImplProjection>,
+    expansion: ClosedExpansion<DeriveImplProjection>,
     cause_order: ProjectionDisposition,
 }

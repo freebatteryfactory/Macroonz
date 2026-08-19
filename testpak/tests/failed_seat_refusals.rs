@@ -18,8 +18,9 @@
 //!
 //! # The compiler's half
 //!
-//! Deleting a seat outright — a receipt without a closure, a rendering off the
-//! membership-only draft, a closure nobody proved, a join outside the proof —
+//! Deleting a seat outright — a closed expansion without a closure, a rendering
+//! off the membership-only draft, a closure nobody proved, a join outside the
+//! proof —
 //! does not compile at all, and the compile-fail fixtures beside this file carry
 //! that half. This file carries the seats that die by REFUSAL rather than by the
 //! compiler, which is the half a type cannot state.
@@ -56,8 +57,8 @@ const DECLARED_ROLE_COUNT: usize = 2;
 /// than read off the services. The over-long case is one byte past it.
 const DECLARED_HUMAN_TEXT_MAGNITUDE: usize = 512;
 
-/// One lawful closed expansion, or nothing where the road refused.
-fn lawful() -> Result<threadpak_macroc::ClosedExpansion, ()> {
+/// One lawful refusal-family expansion, or nothing where the road refused.
+fn lawful() -> Result<threadpak_macroc::RefusalFamilyExpansion, ()> {
     compile_refusal_text(DECLARATION)
         .map(|(_, closed)| closed)
         .map_err(|_| ())
@@ -81,8 +82,8 @@ fn level_and_bytes(identity: RelatedIdentity) -> (u8, [u8; 32]) {
 /// The lawful road binds every required seat and closes over what it rendered.
 ///
 /// Load-bearing in its own right. Every refusal below is only evidence because
-/// the same road, on a lawful declaration, produces a receipt with each seat
-/// occupied — a road that refused everything would satisfy every hostile
+/// the same road, on a lawful declaration, produces a bound expansion with each
+/// seat occupied — a road that refused everything would satisfy every hostile
 /// assertion here and be worthless.
 #[test]
 fn the_lawful_road_binds_every_required_seat() {

@@ -8,10 +8,10 @@
 //! A closure is built here, after the reconstruction agreed and over the
 //! emissions this file splits, joins, and keeps, so the exact token stream each
 //! build receives is inside what was proved rather than assembled afterwards.
-//! A receipt is built here too, and it is the only value that hands those
-//! emissions out: the closure's own road to them is crate-internal, so a caller
-//! reaches tokens through the account that binds the plan, the proof, and the
-//! explanation, or it does not reach them.
+//! A closed expansion is built here too, and it is the only value that hands
+//! those emissions out: the closure's own road to them is crate-internal, so a
+//! caller reaches tokens through the account that binds the plan, the proof, and
+//! the explanation, or it does not reach them.
 //! No other seam in the crate produces any of these values.
 //! The refusal body is built here by the same permission: its seat is private,
 //! so this file is the only module in the workspace that can spell the literal,
@@ -34,8 +34,8 @@
 
 use super::super::prove::examined;
 use super::{
-    CarriedTokens, ClosureIssue, DeliveryAddressing, PartitionCargo, PartitionedEmission,
-    ProjectionClosure, ProjectionReceipt, ReceiptBindingRefusal, RenderedProjection, RenderedUnit,
+    CarriedTokens, ClosedExpansion, ClosureIssue, DeliveryAddressing, ExpansionBindingRefusal,
+    PartitionCargo, PartitionedEmission, ProjectionClosure, RenderedProjection, RenderedUnit,
     RenderingRefusal,
 };
 use crate::explanation_protocol::ProjectionExplanationView;
@@ -416,7 +416,7 @@ impl CarriedTokens {
     ///
     /// The digest is anchored on the PLAN and positioned at the emission's own
     /// roster slot, so two emissions of one plan that happened to join to the
-    /// same bytes are still two digests — which is what keeps a receipt's
+    /// same bytes are still two digests — which is what keeps an expansion's
     /// declaration-site answer from standing in for its carrier's.
     fn joined(plan: PlanId, partition: EmissionPartition, tree: GeneratedTree) -> Self {
         let raw = tree.canonical_bytes();
@@ -604,7 +604,7 @@ impl PartitionedEmission {
     /// It answers with nothing for the publication emission, which is not
     /// joined: a published artifact is its rendered unit at the address that
     /// unit's destination names, and it is read as one
-    /// ([`ProjectionReceipt::published`]).
+    /// ([`ClosedExpansion::published`]).
     #[must_use]
     pub const fn joined(&self, partition: EmissionPartition) -> Option<&PartitionCargo> {
         match partition {
@@ -774,11 +774,11 @@ impl<R: RenderedRole> ProjectionClosure<R> {
     /// The emissions this closure proved, split by delivery, joined in
     /// role-roster order, and owned here.
     ///
-    /// Crate-internal, with one caller: [`ProjectionReceipt::bound`].
+    /// Crate-internal, with one caller: [`ClosedExpansion::bound`].
     /// This is the closure's own proof material, not a road to tokens — a caller
     /// that could read it here would be emitting off a proof without the plan it
     /// was proved against or the explanation written over it, which is the
-    /// receipt's whole reason to exist.
+    /// binding's whole reason to exist.
     /// Nothing joins the rendered units a second time, and the digests this
     /// closure's identity commits to are the digests of exactly these bytes.
     pub(crate) const fn emission(&self) -> &PartitionedEmission {
@@ -806,62 +806,95 @@ impl<R: RenderedRole> ProjectionClosure<R> {
     }
 }
 
-impl<K: ProjectionKind> ProjectionReceipt<K> {
+impl<K: ProjectionKind> ClosedExpansion<K> {
     /// Bind one closed expansion: the plan, the closure proved against it, and
-    /// the explanation written over the two.
+    /// the explanation answered over the two.
     ///
     /// Public, and the road every projection kind's door terminates at. A caller
     /// that walked the steps itself arrives here with three unforgeable values
     /// and leaves with the one account emission is reachable from; a caller that
     /// skipped a step has nothing to hand in.
     ///
-    /// # The receipt transcript
+    /// # The three identities agree, or nothing is bound
+    ///
+    /// The values were produced separately and each carries the parentage it was
+    /// produced under: the closure names the plan it was proved against, and the
+    /// explanation names the plan and the closure it was answered over. All
+    /// three comparisons are made here, in that order, and none of them is
+    /// reconciled — a disagreement is a typed refusal naming both identities
+    /// rather than an election between them.
+    ///
+    /// # The closed-expansion transcript
     ///
     /// The identity is derived under [`ProjectionRole::ClosedExpansion`],
-    /// anchored on the CLOSURE's identity — because a receipt exists only where
-    /// a closure does — over a content transcript committing to, in this order:
+    /// anchored on the CLOSURE's identity — because a closed expansion exists
+    /// only where a closure does — over a content transcript of exactly two
+    /// members:
     ///
-    /// 1. the kind's declared name ([`ProjectionKind::KIND_NAME`]), so two kinds
-    ///    that bound the same material are two receipts;
-    /// 2. the plan's identity, which already commits to the entry account, the
-    ///    context, and the complete declared membership — so what was READ and
-    ///    what was DECIDED reach this transcript through the value that owns
-    ///    them rather than through a second spelling here;
-    /// 3. the partitioned emission, as the closure proved it: every joined
-    ///    emission's posture and digest, in partition-roster order, which is
-    ///    what was HANDED OVER and to which build;
-    /// 4. the delivery addressing posture's slot.
+    /// 1. the plan's identity, which already commits to the entry account (and
+    ///    through it the kind), the context, and the complete declared
+    ///    membership — so what was READ and what was DECIDED reach this
+    ///    transcript through the value that owns them;
+    /// 2. the explanation's identity, which already commits to the plan and the
+    ///    closure it was answered over and to every typed answer it carries — so
+    ///    what was EXPLAINED reaches this transcript the same way.
     ///
-    /// # Nonclaims
+    /// Nothing else enters, and each absence is the no-double-entry law: the
+    /// partitioned emission is inside the anchor (a closure's identity commits
+    /// to its partition digests), and the kind is inside member one (a plan's
+    /// identity commits to its intent), so a second spelling of either here
+    /// would write one fact twice and let the two spellings drift.
     ///
-    /// The transcript does not commit to the explanation. A view has no
-    /// canonical byte encoding and the plane declares none for one; what a
-    /// complete view establishes is its own coverage proof, which is a fact
-    /// about the view rather than a name for this receipt.
+    /// The explanation member is the one this transcript used to be missing.
+    /// The explanation had no canonical name at all then, so a terminal could
+    /// not commit to it and stated the boundary instead; now it has one, the
+    /// boundary is closed, and two expansions differing only in which
+    /// explanation they bound are two names.
     ///
     /// # Errors
     ///
-    /// Returns [`ReceiptBindingRefusal::ClosureProvedAgainstAnotherPlan`] where
-    /// the closure was proved against a plan other than the one handed in. The
-    /// pair is not reconciled and nothing is elected out of it: a receipt naming
-    /// one plan while carrying the proof of another would answer every question
-    /// correctly about the wrong expansion.
+    /// Returns [`ExpansionBindingRefusal::ClosureProvedAgainstAnotherPlan`]
+    /// where the closure was proved against a plan other than the one handed in,
+    /// [`ExpansionBindingRefusal::ExplanationAnsweredOverAnotherPlan`] where the
+    /// explanation was answered over another plan of this kind, and
+    /// [`ExpansionBindingRefusal::ExplanationAnsweredOverAnotherClosure`] where
+    /// it was answered over another proof.
+    /// Nothing is elected out of any of the three pairs: an expansion naming one
+    /// plan while carrying another's proof, or another's explanation, would
+    /// answer every question correctly about the wrong expansion.
     pub fn bound(
         plan: ProjectionPlan<K>,
         closure: ProjectionClosure<K::Rendered>,
         explanation: ProjectionExplanationView<K>,
-    ) -> Result<Self, ReceiptBindingRefusal> {
+    ) -> Result<Self, ExpansionBindingRefusal> {
         let planned = plan.identity();
         let proved = closure.plan();
         if planned != proved {
-            return Err(ReceiptBindingRefusal::ClosureProvedAgainstAnotherPlan { planned, proved });
+            return Err(ExpansionBindingRefusal::ClosureProvedAgainstAnotherPlan {
+                planned,
+                proved,
+            });
+        }
+        let answered_over_plan = explanation.plan();
+        if planned != answered_over_plan {
+            return Err(ExpansionBindingRefusal::ExplanationAnsweredOverAnotherPlan {
+                planned,
+                answered: answered_over_plan,
+            });
+        }
+        let anchor = closure.identity();
+        let answered_over_closure = explanation.closure();
+        if anchor != answered_over_closure {
+            return Err(
+                ExpansionBindingRefusal::ExplanationAnsweredOverAnotherClosure {
+                    proved: anchor,
+                    answered: answered_over_closure,
+                },
+            );
         }
         let mut content = Vec::new();
-        encode_bytes(K::KIND_NAME.as_bytes(), &mut content);
         encode_bytes(planned.as_bytes(), &mut content);
-        closure.emission().encode_into(&mut content);
-        content.push(DeliveryAddressing::UnmintedAtThisSeam.slot());
-        let anchor = closure.identity();
+        encode_bytes(explanation.identity().as_bytes(), &mut content);
         let (identity, provenance) = ClosedExpansionId::derived_with_provenance(
             ProjectionTranscript::under_projection(
                 ProjectionRole::ClosedExpansion,
@@ -879,7 +912,7 @@ impl<K: ProjectionKind> ProjectionReceipt<K> {
         })
     }
 
-    /// This receipt's own identity: the name of the whole account.
+    /// This expansion's own identity: the name of the whole account.
     #[must_use]
     pub const fn identity(&self) -> ClosedExpansionId {
         self.identity
@@ -912,9 +945,9 @@ impl<K: ProjectionKind> ProjectionReceipt<K> {
 
     /// The emissions this expansion delivers, split by delivery.
     ///
-    /// The CLOSURE's own proved value, borrowed rather than copied: the receipt
-    /// keeps no second emission, so what is delivered is what was proved and
-    /// there is no pair of values to drift apart.
+    /// The CLOSURE's own proved value, borrowed rather than copied: this
+    /// expansion keeps no second emission, so what is delivered is what was
+    /// proved and there is no pair of values to drift apart.
     #[must_use]
     pub const fn emission(&self) -> &PartitionedEmission {
         self.closure.emission()
@@ -953,8 +986,8 @@ impl<K: ProjectionKind> ProjectionReceipt<K> {
             .units_in(EmissionPartition::PublicationArtifact)
     }
 
-    /// What this receipt states about the addresses its delivery will eventually
-    /// be reached by.
+    /// What this expansion states about the addresses its delivery will
+    /// eventually be reached by.
     ///
     /// Read off the roster, which has one row: there is nothing here for a
     /// caller to choose and nothing for this seam to invent. A second row is

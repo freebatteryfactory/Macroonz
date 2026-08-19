@@ -16,6 +16,39 @@ impl RefusalFamily for ExplanationCoverage {
 }
 
 impl ExplanationAnswer {
+    /// This answer's position in the declared roster, written ahead of the
+    /// answer's own material so two answers never encode alike.
+    ///
+    /// It is written into an explanation's preimage beside the question's own
+    /// slot, and the two are not one fact stated twice: the question is what was
+    /// ASKED and the discriminant is which answer SHAPE was given. They agree
+    /// today because [`ExplanationAnswer::question`] is one-to-one, and a roster
+    /// that ever admitted two answer shapes for one question would separate them
+    /// here rather than deriving one preimage for both.
+    ///
+    /// A position is APPENDED and never renumbered: renumbering an occupied
+    /// position re-encodes answers that were already encoded, which renames
+    /// every explanation derived over them.
+    #[must_use]
+    pub const fn slot(&self) -> u8 {
+        match self {
+            Self::Kind { .. } => 0,
+            Self::Owner { .. } => 1,
+            Self::CausingDeclarations { .. } => 2,
+            Self::PatternInstance { .. } => 3,
+            Self::GraphAndProfile { .. } => 4,
+            Self::SelectedWrappers { .. } => 5,
+            Self::AssumptionsAndSpecializations { .. } => 6,
+            Self::OutputAndDigest { .. } => 7,
+            Self::ChallengingTests { .. } => 8,
+            Self::MeasuringBenchmarks { .. } => 9,
+            Self::CorrespondingRuntimeTraces { .. } => 10,
+            Self::Invalidators { .. } => 11,
+            Self::RelatedProjectionDisposition { .. } => 12,
+            Self::Repairs { .. } => 13,
+        }
+    }
+
     /// The question this answer answers.
     ///
     /// Total, and the only road there is: a pairing between a question and an

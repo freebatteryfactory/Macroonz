@@ -1,19 +1,46 @@
 //! The closure home's declarative surface: the refusal family this home
-//! declares, and the closed table its issue roster is read through.
+//! declares, the closed table its issue roster is read through, and the proof
+//! contract a complete explanation is answered over.
 //!
-//! Both are declarations rather than computations.
+//! All three are declarations rather than computations.
 //! Nothing here decides anything — the deciding is `prove.rs`, and the proving
 //! is `type_guard.rs`.
 
 use super::ClosureIssue;
-use crate::plane::RenderedRole;
+use crate::explanation_protocol::{ClosureProofSeal, ProvedClosure};
+use crate::plane::{ClosureId, RenderedRole};
 use threadpak::refusal::{FamilyShape, RefusalFamily};
 
-use super::ProjectionClosureRefusal;
+use super::{ProjectionClosure, ProjectionClosureRefusal};
 
 impl<R: RenderedRole> RefusalFamily for ProjectionClosureRefusal<R> {
     const SHAPE: FamilyShape = FamilyShape::IssueCollection;
     const SELECTION_ORDER: &'static [&'static str] = &[];
+}
+
+/// The proof a complete explanation is answered over is THIS proof, and there is
+/// no other.
+///
+/// The explanation-protocol home declares the contract because it is declared
+/// earlier than this one — its terminal seat is what this home's binding
+/// consumes — and a home cannot name a type declared after it without the module
+/// order carrying a backward edge. The contract is sealed, so this
+/// implementation is the only one there can be: a view answered "over a closure"
+/// was answered over a value somebody proved.
+///
+/// It hands back the proof's own NAME and nothing else. What was proved, what it
+/// partitioned, and what it delivers are this home's surface, and a view reads
+/// none of them.
+impl<R: RenderedRole> ProvedClosure for ProjectionClosure<R> {
+    const SEAL: ClosureProofSeal = ClosureProofSeal::admitted();
+    type Rendered = R;
+
+    /// The inherent road, named explicitly: a closure's identity is stated once,
+    /// on the closure, and this contract is a reading of it rather than a second
+    /// answer.
+    fn identity(&self) -> ClosureId {
+        ProjectionClosure::<R>::identity(self)
+    }
 }
 
 impl<R: RenderedRole> ClosureIssue<R> {

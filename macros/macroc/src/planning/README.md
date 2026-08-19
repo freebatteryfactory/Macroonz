@@ -11,7 +11,12 @@ exactly why they may never leak into a semantic identity — and the origin
 graph is the join between the rails. Three layers: the intent identity
 (kind plus the owner-provided content commitment) → the plan identity
 (intent, context, membership, invalidation, trace, origin, nonclaims) →
-the rendered-unit identity (derived from the exact rendered bytes). The
+the rendered-unit identity (derived from the exact rendered bytes). Each
+layer derives under its OWN preimage family and its own version, so a
+grammar change at one layer renames nothing at another: an intent
+identity is what door equivalence compares, and a rendering shape that
+renamed it would report a change in the machinery as a change in what
+somebody meant. The
 plan identity commits only to the semantic origin projection — owner
 identities, relations, authored-fact identities; location-bearing origin
 data attaches beside it and never enters the transcript. Content walks in

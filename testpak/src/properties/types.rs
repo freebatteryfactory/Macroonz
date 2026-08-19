@@ -141,32 +141,77 @@ pub type ResponseReading<Response> = fn(&Response) -> PoisonResponse;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SubstrateRef(NamespacedName);
 
+/// The foundations two parity roads share, at least one of them named.
+///
+/// # Authority
+///
+/// A roster exists where there is something to name, and it is never empty. An
+/// empty roster is not a small roster: it is the OPPOSITE claim, and that claim
+/// is [`SharedSubstrate::DeclaredIndependent`] — written by an author who means
+/// it rather than reached by handing this constructor nothing.
+///
+/// # Construction
+///
+/// [`SubstrateRoster::declared`] is the only road. It refuses an empty roster,
+/// then a substrate the roster names twice.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SubstrateRoster {
+    standing: BTreeSet<SubstrateRef>,
+}
+
 /// What two parity roads share, stated in full.
 ///
 /// # Authority
 ///
-/// This is the parity honesty clause made structural. Agreement across a shared
-/// substrate is SILENCE about that substrate: two roads that both stand on one
-/// declaration, one parser, or one rendering engine agree with each other
-/// exactly as far as that shared thing is right, and no further. A parity suite
-/// cannot be built without stating this, so the ceiling travels with the value
-/// rather than living in whoever remembers to say it.
+/// The parity honesty clause made structural, and a SUM because its two arms
+/// are two different claims. Agreement across a shared substrate is SILENCE
+/// about that substrate: two roads that both stand on one declaration, one
+/// parser, or one rendering engine agree with each other exactly as far as that
+/// shared thing is right, and no further. A parity suite cannot be built
+/// without stating which of the two claims it makes, so the ceiling travels
+/// with the value rather than living in whoever remembers to say it.
+///
+/// # The claim ceiling
+///
+/// [`SharedSubstrate::DeclaredIndependent`] is the author's DECLARATION that
+/// the two roads stand on nothing in common. It is the loudest thing this
+/// vocabulary can say, and it is a declaration rather than a qualification:
+/// nothing here establishes independence, and a suite carrying this arm claims
+/// exactly what its author claimed and no more.
+/// [`SharedSubstrate::Standing`] yields parity evidence with the shared
+/// foundations named, which is the honest ceiling for two roads that share
+/// anything at all.
 ///
 /// # Construction
 ///
-/// [`SharedSubstrate::declared`] takes the roster and refuses a repeat.
-/// [`SharedSubstrate::independent`] is the empty roster, and it is the LOUDEST
-/// declaration here rather than the emptiest: it states that the two roads share
-/// nothing, so their agreement is evidence about both.
+/// The independent arm is reached by writing it and by no other road: there is
+/// no constructor that arrives at it from a roster, so an empty roster is a
+/// typed refusal ([`SubstrateRefusal::EmptyRoster`]) rather than the loudest
+/// claim in this vocabulary made without anybody saying it.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SharedSubstrate {
-    standing: BTreeSet<SubstrateRef>,
+pub enum SharedSubstrate {
+    /// The author declares that the two roads stand on nothing in common, so
+    /// their agreement is evidence about both of them.
+    DeclaredIndependent,
+    /// The two roads stand on these foundations, and the suite is silent about
+    /// every one of them.
+    Standing(SubstrateRoster),
 }
 
-/// Why one shared-substrate declaration was refused.
+/// Why one shared-substrate roster was refused.
+///
+/// Dependent checks in a declared order: the roster is read before its members
+/// are weighed against each other.
 #[must_use = "a refusal is the reason a shared substrate was not declared"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SubstrateRefusal {
+    /// The roster names nothing at all.
+    ///
+    /// An empty roster is not the independence declaration. That claim is
+    /// [`SharedSubstrate::DeclaredIndependent`], and reaching it by handing a
+    /// generic constructor no substrates would be the loudest claim here made
+    /// by a caller who never said it.
+    EmptyRoster,
     /// The roster names this substrate more than once.
     ///
     /// Refused rather than folded away, because collapsing a duplicate silently
@@ -215,7 +260,10 @@ pub enum RoadPairing {
 /// # Nonclaims
 ///
 /// Agreement is silence about everything the two roads share, which is why
-/// [`SharedSubstrate`] is a required field rather than an optional note.
+/// [`SharedSubstrate`] is a required field rather than an optional note — and
+/// why it is a sum rather than a roster that could arrive empty, so the claim
+/// that the roads share nothing is one an author states rather than one a
+/// caller reaches by passing nothing.
 pub struct ParitySuite<Input, Meaning> {
     pairing: RoadPairing,
     left: Road<Input, Meaning>,

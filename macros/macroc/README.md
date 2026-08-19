@@ -16,20 +16,25 @@ ProjectionIntent (+ context)     →  Plan
 Plan                             →  RenderedProjection
 Plan × RenderedProjection        →  ProjectionClosure
                                     × PartitionedEmission
-Plan × ProjectionClosure         →  Explanation
+Plan × ProjectionClosure         →  Explanation (which names both)
 Plan × ProjectionClosure
-     × Explanation               →  ProjectionReceipt (the only value
-                                                       emission reaches)
+     × Explanation               →  ClosedExpansion (the only value
+                                                     emission reaches)
 ```
 
 The owner content account is the typed entry account — content, its
 owner-supplied commitment, and its dependency set — the ONE account feeding
 four readings: semantic identity, invalidation dependencies, explanation
 facts, and origin edges; no second account of content dependencies ever
-forms. The intent is what you meant — the kind plus the content commitment.
+forms. One captured surface may be READ twice — what a declaration is, and
+what it says — and each reading is a commitment a projection's single account
+may stand over; the documentation reading declares the semantic one as its
+dependency, which is one account naming what it stands on rather than a second
+account of anything. The intent is what you meant — the kind plus the content
+commitment.
 The plan is the decision record of one expansion: it exists inside one
 service invocation, consulted by the closure and the explanation, then
-bound into the receipt. The law is precise: these services own no
+bound into the closed expansion. The law is precise: these services own no
 persistent plan store, no queue, no lifecycle, no ambient registry; an
 ordinary returned plan value may remain inspectable in caller memory — the
 architecture prohibits a planning institution, not ownership. The rendered
@@ -42,10 +47,14 @@ joined byte stream per delivery, because what the consumer's normal build
 compiles, what a test target invokes, what a bench target invokes, and what a
 publication writes to an address are four deliveries and not one. Every planned
 member declares which one it is for, so a mutation-evaluation surface cannot
-reach the normal build at all. The explanation reads the plan and the proved
-closure. The receipt binds all three and is the ONLY value from which emission
-is reachable — for every projection kind, and the refusal family's own receipt
-type is a view over it rather than a second road around it.
+reach the normal build at all. The explanation is answered OVER the plan and the
+proved closure and carries both their names, so it can never be a complete,
+well-formed account of a neighbouring expansion. The closed expansion binds all
+three — refusing unless the three names agree, and committing to all three under
+its own — and is the ONLY value from which emission is reachable, for every
+projection kind; the refusal family's own `RefusalFamilyExpansion` is a view over
+it rather than a second road around it. "Receipt" stays where an actual evidence
+or publication crossing is: no terminal here wears it.
 
 ## The doors
 
@@ -69,9 +78,9 @@ consumers mint their own sugar — their own declaration families, their own
 stamps — over this engine, and the equivalence law protects doors they
 build exactly as it protects ours. Test and bench targets are consumption
 sites, not doors: they invoke the declarations' generated support shells
-and receive the cargo — which is a receipt's carrier emission and never its
-declaration-site one, so nothing a consumption target invokes is in the normal
-build; generating test rows at the product declaration site
+and receive the cargo — which is a closed expansion's carrier emission and never
+its declaration-site one, so nothing a consumption target invokes is in the
+normal build; generating test rows at the product declaration site
 is refused — a reverse dev dependency and a normal-build tax.
 
 ```mermaid
@@ -79,10 +88,10 @@ flowchart LR
     CAP["capture — typed reading of the declaration"] --> PLAN["planning — the ProjectionPlan"]
     PLAN --> REN["rendering"]
     REN --> CLO["closure — plan, origin graph, trace, and rendering agree; the emission is partitioned by delivery"]
-    CLO --> EXP["explanation — inspectable answers"]
-    CLO --> REC["receipt — plan, proof, and explanation under one identity"]
-    EXP --> REC
-    REC --> TOK["the emission each build receives — reachable only from a receipt"]
+    CLO --> EXP["explanation — inspectable answers, naming the plan and the proof"]
+    CLO --> BIND["closed expansion — plan, proof, and explanation under one identity"]
+    EXP --> BIND
+    BIND --> TOK["the emission each build receives — reachable only from a closed expansion"]
 ```
 
 The crate's own doc comment carries the charter, the callable-without-a-proc-macro
@@ -145,7 +154,7 @@ flowchart TD
         EXP --> QUE
         EXP --> OG
         EXP --> PLAN
-        CLO["closure — the proof, and the receipt every kind's road ends at"] --> PLN
+        CLO["closure — the proof, and the closed expansion every kind's road ends at"] --> PLN
         CLO --> OG
         CLO --> PLAN
         CLO --> QUE
@@ -157,6 +166,7 @@ flowchart TD
         DOC --> OG
         DOC --> PLAN
         DOC --> EXP
+        DOC --> CLO
         TPL["template"] --> PLN
         TPL --> OG
         TV["trigger_view"] --> PLN
@@ -177,6 +187,7 @@ flowchart TD
     DR --> PLAN
     DR --> CLO
     DR --> EXP
+    DR --> DOC
 ```
 
 ## The publication road
@@ -193,11 +204,14 @@ sides written by one publication operation, under its receipt.
 
 ## The admitted digest, and what it is admitted for
 
-The services derive their own identities — plans, closures, rendered units,
-generated units, origin nodes, bundles, closed expansions — and those identities
-are handed out. A receipt that names a plan is only as good as the name, so the
-derivation is a **BLAKE3 identity profile**, versioned and domain-separated, over
-complete transcripts.
+The services derive their own identities — plans, closures, explanations,
+rendered units, generated units, origin nodes, bundles, closed expansions, the
+declared names this crate wrote down, and the relations a diagnostic points at —
+and those identities are handed out. A closed expansion that names a plan is only
+as good as the name, so the derivation is a **BLAKE3 identity profile**,
+versioned and domain-separated, over complete transcripts — one profile per
+canonical preimage grammar, so a version bump renames the identities of the
+grammar that moved and no others, and no preimage rides a neighbour's ladder.
 
 **The dependency.** `blake3`, at the exact version the workspace dependency table
 decides once for every member that names it, with `default-features = false`.

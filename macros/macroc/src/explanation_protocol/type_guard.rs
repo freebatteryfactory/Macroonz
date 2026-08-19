@@ -8,6 +8,11 @@
 //! sentence that contradicts its answer are values nobody can build.
 //! A view is completed here, after the coverage pass agreed, so there is no
 //! partial view for a reader to mistake for a complete one.
+//! A view's PARENTAGE is taken here too, off the plan and the proof themselves,
+//! and its own identity is minted over the three — so a view that names a plan
+//! or a closure it was not answered over is a value nobody can build either, and
+//! the terminal that binds one has a name to compare rather than a claim to
+//! trust.
 //! The refusal body is built here by the same permission: its seat is private,
 //! so this file is the only module in the workspace that can spell the literal,
 //! and every refusal that exists came off the coverage pass.
@@ -27,13 +32,19 @@
 //! construct as freely as these roads do, so the reversal for this seat is a
 //! compile-fail fixture testpak owns.
 
+use super::super::encode::answered_seats;
 use super::super::establish::coverage_issues;
 use super::super::project::human_line;
 use super::{
-    ExplanationAnswer, ExplanationCoverageIssue, ProjectionExplanation, ProjectionExplanationView,
+    ClosureProofSeal, ExplanationAnswer, ExplanationCoverageIssue, ProjectionExplanation,
+    ProjectionExplanationView, ProvedClosure,
 };
-use crate::plane::{AuthoringLimitProfile, ExplanationSeatLimit, HumanProjection, HumanTextLimit};
-use crate::planning::ProjectionKind;
+use crate::plane::{
+    AuthoringLimitProfile, ClosureId, ExplanationId, ExplanationSeatLimit, HumanProjection,
+    HumanTextLimit, PlanId, ProjectionProvenance, ProjectionRole, ProjectionTranscript,
+    encode_bytes,
+};
+use crate::planning::{ProjectionKind, ProjectionPlan};
 use crate::question::ExplanationQuestion;
 use core::marker::PhantomData;
 use threadpak::types::{AdmittedLimit, Bounded, ConstLimit};
@@ -159,8 +170,80 @@ impl ProjectionExplanation {
     }
 }
 
+impl ClosureProofSeal {
+    /// The seal, admitted only within the services.
+    pub(crate) const fn admitted() -> Self {
+        Self(())
+    }
+}
+
+/// The supplied answers, restated in the kind's own declared question order.
+///
+/// Reached only after the coverage pass agreed, which is what makes it TOTAL:
+/// every applicable question has exactly one answer and no answer stands outside
+/// the roster, so the walk below places every supplied answer exactly once and
+/// leaves none behind.
+///
+/// The roster is the quantifier, so the result's order is the protocol's rather
+/// than the caller's — which is what lets one set of answers be one explanation
+/// however a call site assembled it.
+fn in_declared_order<K: ProjectionKind>(
+    answers: Vec<ProjectionExplanation>,
+) -> Vec<ProjectionExplanation> {
+    let mut supplied: Vec<Option<ProjectionExplanation>> =
+        answers.into_iter().map(Some).collect();
+    let mut ordered: Vec<ProjectionExplanation> = Vec::with_capacity(supplied.len());
+    for question in ProjectionPlan::<K>::applicable_questions() {
+        let seated = supplied.iter_mut().find(|held| {
+            held.as_ref()
+                .is_some_and(|answer| answer.question() == question)
+        });
+        if let Some(answer) = seated.and_then(Option::take) {
+            ordered.push(answer);
+        }
+    }
+    ordered
+}
+
 impl<K: ProjectionKind> ProjectionExplanationView<K> {
-    /// Complete the view over the kind's applicable questions.
+    /// Complete the view over the kind's applicable questions, answered over one
+    /// plan and one proved closure.
+    ///
+    /// # The parentage is taken, never supplied
+    ///
+    /// The plan arrives as the PLAN and the closure as the PROOF, and their
+    /// identities are read off them here. A road that took two identities beside
+    /// the answers would take two values any caller can spell, and the view it
+    /// built would name a parentage it was never written over — which is a
+    /// complete, well-formed explanation about a different expansion.
+    ///
+    /// [`ProvedClosure`] is sealed, so the only value that satisfies the closure
+    /// end is a proof: a caller reaching this road has proved a rendering
+    /// against a plan, or it has nothing to hand in.
+    ///
+    /// # The explanation transcript
+    ///
+    /// This is a mint site, so its content grammar is stated here in full, the
+    /// way [`ProjectionTranscript`] requires of every mint site. The identity is
+    /// derived under [`ProjectionRole::Explanation`], anchored on the CLOSURE's
+    /// identity — an explanation is written after a closure and over it — at
+    /// roster position zero, over
+    ///
+    /// ```text
+    /// content = bytes(plan_identity) || u64be(seats) || seat*
+    /// ```
+    ///
+    /// where each `seat` is the question's roster slot, the answer's own
+    /// discriminant, and the answer's typed material length-framed, in the
+    /// kind's DECLARED question order. The seats' spelling is
+    /// `explanation_protocol::encode`, which writes each typed value through the
+    /// road its own home declares.
+    ///
+    /// Human prose is not a member: a rendered line is a projection of a typed
+    /// answer, composed when it is asked for, so a preimage carrying one would
+    /// commit to a rendering rather than to what was answered. The full
+    /// statement, including the one posture written narrower than it reads,
+    /// is [`EXPLANATION_IDENTITY_PROFILE`](crate::plane::EXPLANATION_IDENTITY_PROFILE).
     ///
     /// # Errors
     ///
@@ -168,17 +251,43 @@ impl<K: ProjectionKind> ProjectionExplanationView<K> {
     /// doubled question, and every question the kind does not admit.
     /// All of them are reported together: a caller repairing a view one
     /// question per attempt is a caller the protocol failed.
-    pub fn complete(answers: Vec<ProjectionExplanation>) -> Result<Self, ExplanationCoverage> {
+    pub fn complete<C>(
+        plan: &ProjectionPlan<K>,
+        closure: &C,
+        answers: Vec<ProjectionExplanation>,
+    ) -> Result<Self, ExplanationCoverage>
+    where
+        C: ProvedClosure<Rendered = K::Rendered>,
+    {
         if let Some(refusal) = refused(coverage_issues::<K>(&answers)) {
             return Err(refusal);
         }
         let observed = answers.len();
+        let ordered = in_declared_order::<K>(answers);
+
+        let plan_identity = plan.identity();
+        let closure_identity = closure.identity();
+        let mut content = Vec::new();
+        encode_bytes(plan_identity.as_bytes(), &mut content);
+        answered_seats(&ordered, &mut content);
+        let (identity, provenance) =
+            ExplanationId::derived_with_provenance(ProjectionTranscript::under_projection(
+                ProjectionRole::Explanation,
+                &closure_identity,
+                &content,
+                0,
+            ));
+
         Bounded::admitted_const(
-            answers,
+            ordered,
             &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
         )
         .map(|answers| Self {
+            plan: plan_identity,
+            closure: closure_identity,
             answers,
+            identity,
+            provenance,
             _kind: PhantomData,
         })
         .map_err(|_| {
@@ -190,6 +299,45 @@ impl<K: ProjectionKind> ProjectionExplanationView<K> {
                 Vec::new(),
             )
         })
+    }
+
+    /// This view's own identity — the name a terminal binds it under and
+    /// commits to.
+    #[must_use]
+    pub const fn identity(&self) -> ExplanationId {
+        self.identity
+    }
+
+    /// How that identity was derived.
+    #[must_use]
+    pub const fn provenance(&self) -> &ProjectionProvenance {
+        &self.provenance
+    }
+
+    /// The plan this view was answered over.
+    ///
+    /// Read back so a terminal can establish that the plan it is binding is the
+    /// plan the answers are about, rather than assuming it.
+    #[must_use]
+    pub const fn plan(&self) -> PlanId {
+        self.plan
+    }
+
+    /// The proved closure this view was answered over, on the same terms.
+    #[must_use]
+    pub const fn closure(&self) -> ClosureId {
+        self.closure
+    }
+
+    /// The answered seats, in the kind's declared question order.
+    ///
+    /// # Ordering
+    ///
+    /// The protocol's own order and never a caller's: it is what the identity
+    /// was derived over, so a reader walking these seats walks exactly what the
+    /// name commits to.
+    pub fn answers(&self) -> impl Iterator<Item = &ProjectionExplanation> {
+        self.answers.iter()
     }
 
     /// The number of seats filled.

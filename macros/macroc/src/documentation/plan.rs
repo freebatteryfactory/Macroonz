@@ -34,8 +34,15 @@
 //! are not a plan's to hold, and they arrive as
 //! [`DocumentationExplanationAnchors`]. A road that minted any of them would be
 //! answering the station with a value nobody computed.
+//!
+//! The PROVED CLOSURE travels beside the plan into the view, because a complete
+//! view carries the parentage it was answered over and reads both identities off
+//! the values themselves. It is read for its name and for nothing else: what it
+//! proved and what it partitioned are the closure home's surface, and this file
+//! consults neither.
 
 use super::{DocumentationExplanationAnchors, DocumentationIssue, DocumentationPlan};
+use crate::closure::ProjectionClosure;
 use crate::explanation_protocol::{
     ExplanationAnswer, ExplanationCoverage, ProjectionExplanation, ProjectionExplanationView,
 };
@@ -153,6 +160,20 @@ pub fn explanation_answers(
 /// The question each answer belongs to is taken from the ANSWER, so there is no
 /// seam here that files a true answer under a question somebody supplied.
 ///
+/// # The proof travels beside the plan
+///
+/// A complete view carries the PARENTAGE it was answered over, so the proved
+/// closure arrives here as itself rather than as a name somebody could supply.
+/// A kind is not an expansion: two documentation plans admit the same eight
+/// questions, so coverage alone never established which subject a view was
+/// about, and a terminal could bind one plan's proof beside another plan's
+/// explanation with every question answered correctly.
+///
+/// The digest seat is still the ANCHORS' and is not read off the closure here.
+/// The anchors are the four facts a plan does not hold, and which of the
+/// rendering's units this projection's digest is about is the caller's own
+/// reading; the closure travels for the view's parentage and for nothing else.
+///
 /// # Errors
 ///
 /// Returns the station's own coverage refusal where the answers do not cover this
@@ -161,6 +182,7 @@ pub fn explanation_answers(
 /// this home's.
 pub fn explanation_view(
     plan: &ProjectionPlan<DocumentationProjection>,
+    closure: &ProjectionClosure<SoleRenderedUnit>,
     stated: &DocumentationPlan,
     anchors: &DocumentationExplanationAnchors,
 ) -> Result<ProjectionExplanationView<DocumentationProjection>, ExplanationCoverage> {
@@ -168,5 +190,5 @@ pub fn explanation_view(
         .into_iter()
         .map(ProjectionExplanation::answered)
         .collect();
-    ProjectionExplanationView::<DocumentationProjection>::complete(answered)
+    ProjectionExplanationView::<DocumentationProjection>::complete(plan, closure, answered)
 }

@@ -78,10 +78,10 @@ pub fn determinism_run_twice<Domain, Image>(
 ///
 /// The subject the two pathways reach is what they share, and this law is silent
 /// about it. That is why it is not a parity suite: a parity suite's two roads
-/// are independently maintained meanings, so what they share has to be declared
-/// ([`SharedSubstrate`](crate::properties::SharedSubstrate)); here the shared
-/// thing is the subject itself, which is what the law is about rather than a
-/// silence hiding inside it.
+/// are two separately maintained roads to one meaning, so what they share is
+/// stated in full ([`SharedSubstrate`](crate::properties::SharedSubstrate));
+/// here the shared thing is the subject itself, which is what the law is about
+/// rather than a silence hiding inside it.
 #[must_use]
 #[track_caller]
 pub fn ambient_pathway_invariance<Domain, Image>(

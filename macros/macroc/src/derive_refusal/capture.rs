@@ -48,6 +48,30 @@
 //! refuses on the `#` that opens it, under the cause and at the site it always
 //! did. There is no bucket here for attributes nobody claimed.
 //!
+//! # One captured surface, two authored facts
+//!
+//! The declaration is read ONCE and named TWICE, and the two names are two
+//! readings rather than two accounts.
+//!
+//! - The **semantic commitment** stands over the declaration's tokens with every
+//!   documentation attribute dropped from the walk. It is what an implementation,
+//!   a test, or a codec projection is about: the family's shape, its identity,
+//!   its binding, and its causes, unmoved by a reworded sentence.
+//! - The **documentation commitment** stands over the semantic commitment and
+//!   the ordered documentation rows. It is what a documentation projection is
+//!   about, and it MOVES when the prose moves — which is the whole reason it is
+//!   its own fact.
+//!
+//! Neither is a fold of the other and neither is a second account of what the
+//! content stands on: the rows are cut from the same material the semantic
+//! commitment stands over. The normalization below reaches the token home's own
+//! canonical encoding through the token home's own roads, so nothing here is a
+//! second spelling of what a captured tree's bytes are.
+//!
+//! Spans enter neither. A handle is the producer's own table index, two
+//! producers reading one declaration issue different ones, and the diagnostic
+//! rail is where a handle belongs.
+//!
 //! # Tokens, not text
 //!
 //! Everything below walks [`CapturedTokenTree`] values.
@@ -69,8 +93,8 @@ use super::types::{
     SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
 };
 use crate::plane::{
-    AuthoringLimitProfile, CapturedTokenLimit, DeriveCauseLimit, ProjectionIdentity,
-    ProjectionRole, ProjectionTranscript,
+    AuthoringLimitProfile, CapturedDeclarationSubject, CapturedTokenLimit, DeriveCauseLimit,
+    ProjectionIdentity, ProjectionRole, ProjectionTranscript, encode_length,
 };
 use crate::token::{
     CapturedDelimiter, CapturedInput, CapturedTokenTree, SpanHandle, TextCapture, TextReadCause,
@@ -87,11 +111,6 @@ use threadpak::types::{AdmittedLimit, Bounded, ConstLimit};
 /// [`RefusalDeriveCapture`] cause and the token it was established at.
 pub fn captured(input: &CapturedInput) -> Result<RefusalDeriveSurface, RefusalDeriveRefusal> {
     let trees: Vec<&CapturedTokenTree> = input.trees().collect();
-    let identity = ProjectionIdentity::derived(ProjectionTranscript::rooted(
-        ProjectionRole::CapturedDeclaration,
-        &input.canonical_bytes(),
-        0,
-    ));
     if trees.len() > CapturedTokenLimit::MAX {
         return Err(refuse(RefusalDeriveCapture::Unbounded, first_span(&trees)));
     }
@@ -121,6 +140,13 @@ pub fn captured(input: &CapturedInput) -> Result<RefusalDeriveSurface, RefusalDe
     // The roster spans the declaration's own level and the body's, so the site
     // is the declaration's opening rather than either level's.
     .map_err(|_| refuse(RefusalDeriveCapture::Unbounded, first_span(&trees)))?;
+
+    // The two commitments, in the order they depend on each other: the semantic
+    // one stands over the declaration alone, and the documentation one stands
+    // over that name and the rows.
+    let semantic = semantic_commitment(input, &trees)?;
+    let documented = documentation_commitment(semantic, &documentation);
+
     Ok(RefusalDeriveSurface::assembled(
         family_name,
         attribute.family_id,
@@ -128,7 +154,133 @@ pub fn captured(input: &CapturedInput) -> Result<RefusalDeriveSurface, RefusalDe
         attribute.shape,
         causes,
         documentation,
-        identity,
+        semantic,
+        documented,
+    ))
+}
+
+/// The SEMANTIC commitment: what this declaration is, with its prose set aside.
+///
+/// # Construction
+///
+/// The declaration's trees are walked once with every documentation attribute
+/// dropped, the retained trees are handed back to the token home as a captured
+/// input, and the identity is derived under
+/// [`ProjectionRole::CapturedDeclaration`], rooted, at position zero, over that
+/// input's own canonical bytes.
+///
+/// The bytes are the TOKEN home's, through the token home's own roads. A byte
+/// spelling written here would be a second answer to what a captured tree
+/// encodes as, and the two would agree until either was edited.
+///
+/// # Errors
+///
+/// Returns [`RefusalDeriveCapture::Unbounded`] where a rebuilt level would not
+/// fit the declared magnitude. The normalization only ever REMOVES trees, so no
+/// level it rebuilds is wider than the level it read — the arm is the checked
+/// constructor's, carried honestly rather than assumed away.
+fn semantic_commitment(
+    input: &CapturedInput,
+    trees: &[&CapturedTokenTree],
+) -> Result<ProjectionIdentity<CapturedDeclarationSubject>, RefusalDeriveRefusal> {
+    let normalized = undocumented(trees)?;
+    // The producer's own handle count travels with the normalized view, so the
+    // value states what the producer issued rather than a number this road
+    // invented. Nothing reads it: the view is built here, read once for its
+    // canonical bytes, and dropped.
+    let material = CapturedInput::taken(normalized, input.issued())
+        .map_err(|_| refuse(RefusalDeriveCapture::Unbounded, first_span(trees)))?;
+    Ok(ProjectionIdentity::derived(ProjectionTranscript::rooted(
+        ProjectionRole::CapturedDeclaration,
+        &material.canonical_bytes(),
+        0,
+    )))
+}
+
+/// One level of the declaration with its documentation attributes dropped, and
+/// every group inside it normalized the same way.
+///
+/// The walk descends into groups because a variant's rows are written inside the
+/// enum body, which is ONE tree at the declaration's own level. A normalization
+/// that stopped at the top level would leave every variant's prose inside the
+/// semantic commitment, and the split would be true of the family's sentences
+/// alone.
+///
+/// # Bounds
+///
+/// It drops exactly what [`read_documentation`] reads: a `#` followed by a
+/// bracket whose body is the `doc = "…"` form. An attribute this grammar does
+/// not read is retained, because it is declaration material this home makes no
+/// claim about — and a normalization that swallowed it would be deciding that
+/// somebody else's attribute carries no meaning.
+///
+/// # Errors
+///
+/// Returns [`RefusalDeriveCapture::Unbounded`] at the group a rebuilt level
+/// would not fit.
+fn undocumented(
+    trees: &[&CapturedTokenTree],
+) -> Result<Vec<CapturedTokenTree>, RefusalDeriveRefusal> {
+    let mut kept: Vec<CapturedTokenTree> = Vec::new();
+    let mut at = 0usize;
+    while at < trees.len() {
+        if attribute_at(trees, at)
+            .is_some_and(|(bracketed, _)| documented_text(&bracketed).is_some())
+        {
+            at = at.saturating_add(2);
+            continue;
+        }
+        let Some(tree) = trees.get(at) else {
+            break;
+        };
+        kept.push(match tree.group() {
+            Some((delimiter, inner)) => {
+                let inside: Vec<&CapturedTokenTree> = inner.iter().collect();
+                CapturedTokenTree::group_of(
+                    delimiter,
+                    undocumented(&inside)?,
+                    tree.path().clone(),
+                    tree.span(),
+                )
+                .map_err(|_| refuse(RefusalDeriveCapture::Unbounded, tree.span()))?
+            }
+            None => (*tree).clone(),
+        });
+        at = at.saturating_add(1);
+    }
+    Ok(kept)
+}
+
+/// The DOCUMENTATION commitment: what this declaration SAYS, over the name of
+/// what it is.
+///
+/// # Construction
+///
+/// The identity is derived under [`ProjectionRole::DeclarationDocumentation`],
+/// anchored on the SEMANTIC commitment at its full thirty-two bytes, at position
+/// zero, over the roster's own length followed by every row in the order the
+/// walk read them — the family's own rows ahead of the variants', and each
+/// variant's in the order its lines were written.
+///
+/// Total: a declaration that wrote no prose carries an empty roster, which is a
+/// stated fact and derives a name of its own. It is not the semantic
+/// commitment's name and it is not an absence — two declarations that documented
+/// nothing agree here, which is exactly what a documentation projection over
+/// either of them should see.
+fn documentation_commitment(
+    semantic: ProjectionIdentity<CapturedDeclarationSubject>,
+    rows: &Bounded<CapturedDocumentation, CapturedTokenLimit>,
+) -> ProjectionIdentity<CapturedDeclarationSubject> {
+    let mut material = Vec::new();
+    encode_length(rows.len(), &mut material);
+    for row in rows.iter() {
+        row.encode_into(&mut material);
+    }
+    ProjectionIdentity::derived(ProjectionTranscript::under_projection(
+        ProjectionRole::DeclarationDocumentation,
+        &semantic,
+        &material,
+        0,
     ))
 }
 

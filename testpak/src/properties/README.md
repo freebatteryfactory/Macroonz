@@ -36,13 +36,24 @@ algebraic shapes.
 The suite vocabulary also carries panic-freedom and fail-closed behavior
 (refusal-family properties), fused-versus-separate and replay/cold-start
 equivalence (parity road pairs), and the differential reference
-implementation in its general form. Where an owner declares algebra, the
+implementation in its general form — a caller-supplied reference is a
+second road like any other, and calling it a reference never promotes it to
+an independent judge; the claim ceiling on that promotion is stated in the
+independence annex. Where an owner declares algebra, the
 generator projects the matching property descriptors — declared law only,
 never inferred. Two honesty clauses ride every suite: a declared-algebra
 property proves the subject honors the declared law — it can never falsify
-the declaration itself; and a parity suite names the substrate its two
-roads share, because agreement across a shared substrate is silence about
-that substrate. Suites are separate role-named files, each appearing only
+the declaration itself; and a parity suite states what its two roads
+share, because agreement across a shared substrate is silence about
+that substrate. The shared-substrate value is a sum, and its two arms are
+two claims: a non-empty roster of named foundations, which yields parity
+evidence worth exactly what those foundations are worth; or the author's
+own declaration that the roads share nothing, which is the loudest claim
+in the vocabulary and is a declaration rather than a qualification. An
+empty roster is a typed refusal, so the loud claim is never reached by a
+caller who passed nothing.
+
+Suites are separate role-named files, each appearing only
 when it has content, per the file grammar; the `ensure_*` typed-refusal
 sugar lives here beside the check combinators it wraps, a thin transparent
 stamp expanding to the typed call — and ambient provenance rides it for

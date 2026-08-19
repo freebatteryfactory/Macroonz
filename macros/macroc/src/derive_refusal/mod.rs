@@ -2,6 +2,7 @@
 
 pub mod capture;
 pub mod diagnose;
+pub mod document;
 pub mod explain;
 pub mod plan;
 pub mod render;
@@ -10,16 +11,17 @@ pub mod types;
 
 pub use capture::{captured, captured_text};
 pub use diagnose::{LineBody, LineSite, RefusalClass, RefusalLine, RenderedMagnitude, composed};
+pub use document::{CapturedDocumentationReading, documented};
 pub use explain::{ExplanationBindingRefusal, ExplanationSeat};
 pub use plan::DerivedPlan;
 pub use render::{
     CAUSE_ORDER_CONTRACT, EVALUATION_SUBJECT, FAMILY_CONTRACT, REFUSAL_MODULE, RenderRefusal,
 };
 pub use types::{
-    CapturedCause, CapturedDocumentation, CauseOrderStanding, ClosedExpansion, CrateBinding,
-    DEFAULT_CRATE_BINDING, DIAGNOSTIC_PREFIX, DerivedMembership, DocumentedDeclaration,
-    RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveCapture, RefusalDeriveFact,
-    RefusalDeriveRefusal, RefusalDeriveSurface, RefusalOwnerFacts, RefusalSite,
+    CapturedCause, CapturedDocumentation, CauseOrderStanding, CrateBinding, DEFAULT_CRATE_BINDING,
+    DIAGNOSTIC_PREFIX, DerivedMembership, DocumentedDeclaration, RefusalCompileContext,
+    RefusalDerivationDraft, RefusalDeriveCapture, RefusalDeriveFact, RefusalDeriveRefusal,
+    RefusalDeriveSurface, RefusalFamilyExpansion, RefusalOwnerFacts, RefusalSite,
     SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
 };
 
@@ -39,8 +41,8 @@ use threadpak::types::Bounded;
 /// grammar does not admit, a plan whose magnitudes are exceeded, a rendering
 /// that outgrows its bound or that cannot be copied over the evaluation
 /// subject, a closure the rendering does not satisfy, an explanation that does
-/// not cover its kind's questions, or a binding whose closure was proved
-/// against another plan.
+/// not cover its kind's questions, or a binding whose three values do not belong
+/// to one expansion.
 /// **Every one of those refusals happens BEFORE a token exists to emit**,
 /// because every emission is reachable only off the value this function returns
 /// on success.
@@ -51,7 +53,7 @@ use threadpak::types::Bounded;
 pub fn compile_refusal(
     input: &CapturedInput,
     context: &RefusalCompileContext,
-) -> Result<ClosedExpansion, MacrocDiagnostic> {
+) -> Result<RefusalFamilyExpansion, MacrocDiagnostic> {
     let surface = captured(input)
         .map_err(|refusal| refusal.diagnosed(&context.spans, context.machine.clone()))?;
     let draft = surface.planned();
@@ -77,14 +79,14 @@ pub fn compile_refusal(
         .map_err(|refusal| diagnose::explanation_refused(&refusal))?;
 
     let (plan_value, cause_order) = planned.into_parts();
-    ClosedExpansion::bound(
+    RefusalFamilyExpansion::bound(
         draft.surface().clone(),
         plan_value,
         closure,
         explanation,
         cause_order,
     )
-    .map_err(|refusal| diagnose::receipt_refused(&refusal))
+    .map_err(|refusal| diagnose::expansion_refused(&refusal))
 }
 
 /// How the callable text route refused.
@@ -118,7 +120,7 @@ pub enum TextCompileRefusal {
 /// refused.
 pub fn compile_refusal_text(
     source: &str,
-) -> Result<(TextCapture, ClosedExpansion), TextCompileRefusal> {
+) -> Result<(TextCapture, RefusalFamilyExpansion), TextCompileRefusal> {
     let read = TextCapture::read(source).map_err(TextCompileRefusal::NotReadable)?;
     let context = RefusalCompileContext {
         spans: read.spans().clone(),

@@ -3,24 +3,29 @@
 //!
 //! Two of the roads here are the home's whole structural claim.
 //! [`RefusalDeriveSurface::assembled`] is crate-internal, so the only way to
-//! hold a captured surface is to have captured one; [`ClosedExpansion::bound`]
-//! is crate-internal and binds through the generic terminal, which takes a plan,
-//! a closure proved against that plan, and a complete explanation — so the only
-//! way to hold this family's view, and therefore the only way to reach an
-//! emission, is to have walked the whole road.
+//! hold a captured surface is to have captured one;
+//! [`RefusalFamilyExpansion::bound`] is crate-internal and binds through the
+//! generic terminal, which takes a plan, a closure proved against that plan, and
+//! a complete explanation answered over the two — so the only way to hold this
+//! family's view, and therefore the only way to reach an emission, is to have
+//! walked the whole road.
 //! Neither can be written anywhere else, which is why deleting any step on that
 //! road deletes the emission rather than shortening it.
 //!
 //! The two projections of a capture refusal — the compiler-facing line and the
 //! structured diagnostic — read the refusal's own two private seats.
+//!
+//! One captured documentation row's canonical bytes are written here for the
+//! same reason: the row's text and the declaration it was written on are private
+//! seats, and the documentation commitment is derived over exactly them.
 
 use super::{
-    CapturedCause, CapturedDocumentation, CauseOrderStanding, ClosedExpansion, CrateBinding,
-    DEFAULT_CRATE_BINDING, DerivedMembership, DocumentedDeclaration, RefusalCompileContext,
-    RefusalDerivationDraft, RefusalDeriveFact, RefusalDeriveSurface, RefusalOwnerFacts, RefusalSite,
+    CapturedCause, CapturedDocumentation, CauseOrderStanding, CrateBinding, DEFAULT_CRATE_BINDING,
+    DerivedMembership, DocumentedDeclaration, RefusalCompileContext, RefusalDerivationDraft,
+    RefusalDeriveFact, RefusalDeriveSurface, RefusalFamilyExpansion, RefusalOwnerFacts, RefusalSite,
 };
 use crate::closure::{
-    PartitionCargo, ProjectionClosure, ProjectionReceipt, ReceiptBindingRefusal, RenderedProjection,
+    ClosedExpansion, ExpansionBindingRefusal, PartitionCargo, ProjectionClosure, RenderedProjection,
 };
 use crate::derive_refusal::diagnose::{
     LineBody, LineSite, RefusalClass, RefusalLine, composed, shown, witnessed,
@@ -33,7 +38,7 @@ use crate::explanation_protocol::ProjectionExplanationView;
 use crate::plane::{
     CapturedDeclarationSubject, CapturedTokenLimit, ClosedExpansionId, ContractSubject,
     DeriveCauseLimit, ProjectionIdentity, ProjectionProvenance, ProjectionRole,
-    ProjectionTranscript, ServiceEntrySubject,
+    ProjectionTranscript, ServiceEntrySubject, encode_bytes,
 };
 use crate::planning::{
     DeriveImplProjection, ProjectionDisposition, ProjectionPlan, RenderedImplementation,
@@ -129,6 +134,49 @@ impl CapturedDocumentation {
     pub const fn token(&self) -> SpanHandle {
         self.token
     }
+
+    /// Append this row's canonical bytes: which declaration it was written on,
+    /// then the text it carries.
+    ///
+    /// The SPAN is not written and is not missing. A handle is the producer's
+    /// own table index — two producers reading one declaration issue different
+    /// ones — so a commitment that carried it would move for a reason no
+    /// author's prose changed by. The handle belongs to the diagnostic rail,
+    /// which is where it stays.
+    ///
+    /// Crate-internal, with one caller: the documentation commitment's
+    /// derivation. A second road to these bytes would be a second spelling of
+    /// what a row is.
+    pub(crate) fn encode_into(&self, into: &mut Vec<u8>) {
+        self.declared_on.encode_into(into);
+        encode_bytes(self.text.as_bytes(), into);
+    }
+}
+
+impl DocumentedDeclaration {
+    /// The seat's discriminant byte, written ahead of whatever it names so a row
+    /// on the family never encodes as a row on a variant.
+    #[must_use]
+    pub const fn slot(&self) -> u8 {
+        match self {
+            Self::Family => 0,
+            Self::Variant(_) => 1,
+        }
+    }
+
+    /// Append this seat's canonical bytes: the discriminant, then the variant's
+    /// spelling where the seat names one.
+    ///
+    /// The family arm writes an empty material behind its discriminant rather
+    /// than nothing at all, so the two arms are cut at the same boundary and a
+    /// family row can never be read as a variant row with an empty name.
+    pub(crate) fn encode_into(&self, into: &mut Vec<u8>) {
+        into.push(self.slot());
+        match self {
+            Self::Family => encode_bytes(&[], into),
+            Self::Variant(spelling) => encode_bytes(spelling.as_bytes(), into),
+        }
+    }
 }
 
 impl RefusalDeriveSurface {
@@ -143,6 +191,7 @@ impl RefusalDeriveSurface {
         causes: Bounded<CapturedCause, DeriveCauseLimit>,
         documentation: Bounded<CapturedDocumentation, CapturedTokenLimit>,
         identity: ProjectionIdentity<CapturedDeclarationSubject>,
+        documentation_identity: ProjectionIdentity<CapturedDeclarationSubject>,
     ) -> Self {
         Self {
             family_name,
@@ -152,6 +201,7 @@ impl RefusalDeriveSurface {
             causes,
             documentation,
             identity,
+            documentation_identity,
         }
     }
 
@@ -198,22 +248,54 @@ impl RefusalDeriveSurface {
         self.documentation.iter()
     }
 
-    /// This captured declaration's own identity — derived from the token
-    /// material, so the same declaration captures to the same identity whoever
+    /// This captured declaration's SEMANTIC commitment — what the declaration
+    /// IS, derived from its token material with every documentation attribute
+    /// set aside, so the same declaration captures to the same identity whoever
     /// produced the tokens.
     ///
     /// # Content
     ///
-    /// **The token material is the whole of what this stands over, and the
-    /// documentation is part of it.** The derivation runs over the declared
-    /// input's canonical bytes at full length, and a documentation attribute is
-    /// declared input like any other token — so a declaration whose prose
-    /// changed captures to a different identity, plans differently, and closes
-    /// under a different receipt. The rows on this surface are a READING of that
-    /// same material, never a second thing to commit to.
+    /// The derivation runs over the declaration's own canonical bytes at full
+    /// length, minus the documentation attributes the walk drops. So a
+    /// declaration whose SHAPE, family identity, binding, or causes changed
+    /// captures to a different identity, plans differently, and closes under a
+    /// different expansion — and a declaration whose PROSE alone changed keeps
+    /// this name, which is what an implementation projection is entitled to.
+    ///
+    /// # Which account carries it
+    ///
+    /// Every projection over what the declaration IS — implementation, test,
+    /// codec — takes its one entry account over THIS commitment, standing on
+    /// nothing. The documentation projection takes its account over
+    /// [`RefusalDeriveSurface::documentation_identity`] instead and declares
+    /// this one as its dependency.
     #[must_use]
     pub const fn identity(&self) -> ProjectionIdentity<CapturedDeclarationSubject> {
         self.identity
+    }
+
+    /// This captured declaration's DOCUMENTATION commitment — what the
+    /// declaration SAYS, derived over the semantic commitment and the ordered
+    /// rows above it.
+    ///
+    /// # Content
+    ///
+    /// The semantic commitment stands at the anchor and the rows stand over it,
+    /// each written as the declaration it was written on and the text it
+    /// carries, in the order the walk read them. So this name moves when the
+    /// prose moves and stands still when it does not, which is exactly the
+    /// sensitivity a documentation projection needs and the one an
+    /// implementation projection must not have.
+    ///
+    /// # Bounds
+    ///
+    /// It is a second READING of one surface and never a second account of it.
+    /// It is derived FROM the semantic commitment, so it cannot name a
+    /// declaration the semantic commitment does not; and the rows it stands over
+    /// are cut from the material that commitment was taken over.
+    #[must_use]
+    pub const fn documentation_identity(&self) -> ProjectionIdentity<CapturedDeclarationSubject> {
+        self.documentation_identity
     }
 
     /// Fix the complete declared output set.
@@ -431,10 +513,18 @@ impl RefusalDeriveRefusal {
 }
 
 /// The compiler-plane contract this derive expects a declaration to satisfy.
+///
+/// # A declared name, under the declared-name family
+///
+/// The preimage is one thing: a stable name this home wrote down. It is not a
+/// closed expansion and it holds no member of that grammar, so it stands under
+/// [`ProjectionRole::DeclaredName`] and its own family's version ladder — where
+/// it used to ride the closed-expansion role and be renamed by every bump to
+/// what a terminal commits to.
 #[must_use]
 pub fn expected_contract() -> ProjectionIdentity<ContractSubject> {
     ProjectionIdentity::derived(ProjectionTranscript::rooted(
-        ProjectionRole::ClosedExpansion,
+        ProjectionRole::DeclaredName,
         b"macroc.derive_refusal.declaration-grammar",
         0,
     ))
@@ -442,10 +532,14 @@ pub fn expected_contract() -> ProjectionIdentity<ContractSubject> {
 
 /// The callable entry point that reproduces one observation without a
 /// proc-macro anywhere in the path.
+///
+/// A declared name on the same terms as [`expected_contract`], separated from it
+/// by its own SUBJECT and by its own content, and standing at roster position
+/// one because this home declares two such names.
 #[must_use]
 pub fn callable_entry() -> ProjectionIdentity<ServiceEntrySubject> {
     ProjectionIdentity::derived(ProjectionTranscript::rooted(
-        ProjectionRole::ClosedExpansion,
+        ProjectionRole::DeclaredName,
         b"macroc.derive_refusal.compile_refusal",
         1,
     ))
@@ -511,9 +605,9 @@ impl RefusalCompileContext {
     }
 }
 
-impl ClosedExpansion {
-    /// Bind one closed expansion: this family's two facts, over the receipt the
-    /// generic terminal binds.
+impl RefusalFamilyExpansion {
+    /// Bind one refusal-family expansion: this family's two facts, over the
+    /// closed expansion the generic terminal binds.
     ///
     /// Crate-internal: the only road to one is
     /// [`compile_refusal`](crate::derive_refusal::compile_refusal).
@@ -521,65 +615,66 @@ impl ClosedExpansion {
     /// # One binding, and no transcript of its own
     ///
     /// The plan, the proof, and the explanation are handed straight to
-    /// [`ProjectionReceipt::bound`], which derives the identity and refuses a
-    /// closure proved against another plan. This road derives nothing.
+    /// [`ClosedExpansion::bound`], which derives the identity and refuses a
+    /// closure proved against another plan or an explanation answered over
+    /// another plan or closure. This road derives nothing.
     /// A second transcript here would be a second name for one expansion — two
-    /// identities over one plan and one proof, agreeing until either derivation
-    /// was edited — and the terminal's is the one every projection kind's door
-    /// already ends at.
+    /// identities over one plan, one proof, and one explanation, agreeing until
+    /// either derivation was edited — and the terminal's is the one every
+    /// projection kind's door already ends at.
     ///
     /// # Errors
     ///
-    /// Returns [`ReceiptBindingRefusal`] exactly as the terminal returns it,
-    /// naming the plan handed in and the plan the closure was proved against.
+    /// Returns [`ExpansionBindingRefusal`] exactly as the terminal returns it,
+    /// naming the two identities the binding was asked to hold as one.
     /// It is handed through rather than folded into a diagnostic here, because
-    /// the road that projects it is [`diagnose::receipt_refused`], and this seat
-    /// composes no sentence of its own.
+    /// the road that projects it is [`diagnose::expansion_refused`], and this
+    /// seat composes no sentence of its own.
     ///
-    /// [`diagnose::receipt_refused`]: crate::derive_refusal::diagnose::receipt_refused
+    /// [`diagnose::expansion_refused`]: crate::derive_refusal::diagnose::expansion_refused
     pub(crate) fn bound(
         surface: RefusalDeriveSurface,
         plan: ProjectionPlan<DeriveImplProjection>,
         closure: ProjectionClosure<RenderedImplementation>,
         explanation: ProjectionExplanationView<DeriveImplProjection>,
         cause_order: ProjectionDisposition,
-    ) -> Result<Self, ReceiptBindingRefusal> {
-        let receipt = ProjectionReceipt::bound(plan, closure, explanation)?;
+    ) -> Result<Self, ExpansionBindingRefusal> {
+        let expansion = ClosedExpansion::bound(plan, closure, explanation)?;
         Ok(Self {
             surface,
-            receipt,
+            expansion,
             cause_order,
         })
     }
 
-    /// The receipt this view stands over — the terminal every projection kind's
-    /// door ends at.
+    /// The closed expansion this view stands over — the terminal every
+    /// projection kind's door ends at.
     ///
     /// Every road below that answers about the plan, the proof, the explanation,
     /// or an emission reads THIS value, so a caller that wants the terminal's own
     /// surface — its published artifacts, its delivery addressing — reads it here
     /// rather than through a copy of it seated beside one.
     #[must_use]
-    pub const fn receipt(&self) -> &ProjectionReceipt<DeriveImplProjection> {
-        &self.receipt
+    pub const fn expansion(&self) -> &ClosedExpansion<DeriveImplProjection> {
+        &self.expansion
     }
 
-    /// This closed expansion's own identity: the receipt's, and never a second
-    /// one derived beside it.
+    /// This expansion's own identity: the terminal's, and never a second one
+    /// derived beside it.
     #[must_use]
     pub const fn identity(&self) -> ClosedExpansionId {
-        self.receipt.identity()
+        self.expansion.identity()
     }
 
     /// How that identity was derived.
     #[must_use]
     pub const fn provenance(&self) -> &ProjectionProvenance {
-        self.receipt.provenance()
+        self.expansion.provenance()
     }
 
     /// The captured typed declaration this expansion was compiled from.
     ///
-    /// This family's own fact and the one seat the receipt does not carry: the
+    /// This family's own fact and the one seat the terminal does not carry: the
     /// terminal is generic over every projection kind, and a captured
     /// refusal-family surface is a value only this door produces.
     #[must_use]
@@ -590,24 +685,26 @@ impl ClosedExpansion {
     /// The complete plan: context, content, membership, invalidation set,
     /// decision trace, origin trail, and nonclaims.
     pub const fn plan(&self) -> &ProjectionPlan<DeriveImplProjection> {
-        self.receipt.plan()
+        self.expansion.plan()
     }
 
     /// The proof that what was rendered is what was planned.
     pub const fn closure(&self) -> &ProjectionClosure<RenderedImplementation> {
-        self.receipt.closure()
+        self.expansion.closure()
     }
 
-    /// The complete explanation over this kind's applicable questions.
+    /// The complete explanation over this kind's applicable questions, answered
+    /// over the plan and the proof above.
     pub const fn explanation(&self) -> &ProjectionExplanationView<DeriveImplProjection> {
-        self.receipt.explanation()
+        self.expansion.explanation()
     }
 
     /// What happened to the typed cause-order projection.
     ///
-    /// This family's other fact, and the second seat the receipt does not carry:
-    /// which related projection a shape declares is a question about a refusal
-    /// family's shape, and the explanation protocol asks it of this kind alone.
+    /// This family's other fact, and the second seat the terminal does not
+    /// carry: which related projection a shape declares is a question about a
+    /// refusal family's shape, and the explanation protocol asks it of this kind
+    /// alone.
     pub const fn cause_order(&self) -> &ProjectionDisposition {
         &self.cause_order
     }
@@ -621,11 +718,11 @@ impl ClosedExpansion {
     /// split — so a selector-bearing copy standing in what a normal build
     /// compiles is not a value this road can hand back.
     ///
-    /// It is the CLOSURE's own proved cargo, reached through the receipt: no
+    /// It is the CLOSURE's own proved cargo, reached through the terminal: no
     /// second join happens anywhere, so what is emitted is what was proved.
     #[must_use]
     pub const fn emitted(&self) -> &PartitionCargo {
-        self.receipt.declaration_site()
+        self.expansion.declaration_site()
     }
 
     /// What the declaration site's cargo looks like as Rust source text — an
@@ -648,6 +745,6 @@ impl ClosedExpansion {
     /// whichever delivery it was planned into.
     #[must_use]
     pub const fn rendered(&self) -> &RenderedProjection<RenderedImplementation> {
-        self.receipt.closure().rendered()
+        self.expansion.closure().rendered()
     }
 }

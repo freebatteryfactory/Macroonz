@@ -11,8 +11,19 @@
 //!
 //! Everything the two roads share. A pair that both stand on one declaration
 //! agrees exactly as far as that declaration is right, which is why a suite
-//! cannot be built without naming what it stands on — the honesty clause lives
+//! cannot be built without stating what it stands on — the honesty clause lives
 //! in the shape of the value rather than in whoever remembers to say it.
+//!
+//! # The two claims, and the ceiling on each
+//!
+//! [`SharedSubstrate`](crate::properties::SharedSubstrate) is a sum, so a suite
+//! makes one of two claims and never blurs them. Naming a non-empty roster of
+//! foundations yields parity evidence with those foundations declared: the
+//! agreement is worth exactly what they are worth. Declaring the two roads
+//! independent is the author's own statement that they share nothing, and it is
+//! a DECLARATION rather than a qualification — no road here establishes
+//! independence, and there is no constructor that reaches the declaration from
+//! an empty roster.
 //!
 //! # What a disagreement names
 //!

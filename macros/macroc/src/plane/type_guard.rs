@@ -7,10 +7,10 @@
 
 use super::{
     AuthoringLimitProfile, GeneratorIdentity, GeneratorProfileId, GeneratorSchemaVersion,
-    HumanProjection, IdentityProfile, IdentityProfileVersion, IdentitySubject, MACROC_GENERATOR,
-    OwnerFactName, OwnerFactRef, OwnerIdentityRef, PROJECTION_IDENTITY_PROFILE, ProfileVersion,
-    ProjectionIdentity, ProjectionProvenance, ProjectionRole, ProjectionTranscript, RefusalReason,
-    RenderedRoleSeal, SubjectSeal, TranscriptAnchoring,
+    HumanProjection, IDENTITY_PROFILE_STEM, IdentityProfile, IdentityProfileVersion,
+    IdentitySubject, MACROC_GENERATOR, OwnerFactName, OwnerFactRef, OwnerIdentityRef,
+    PreimageFamily, ProfileVersion, ProjectionIdentity, ProjectionProvenance, ProjectionRole,
+    ProjectionTranscript, RefusalReason, RenderedRoleSeal, SubjectSeal, TranscriptAnchoring,
 };
 use core::marker::PhantomData;
 use threadpak::identity::Commitment;
@@ -220,19 +220,24 @@ impl IdentityProfileVersion {
 }
 
 impl IdentityProfile {
-    /// The profile at one stem and one version.
+    /// One preimage family's profile at one version.
+    ///
+    /// The family arrives where a stem used to, and that is the whole of the
+    /// collision argument: a stem is a literal a declaration could repeat, and a
+    /// family is a row of a closed roster that cannot be.
     #[must_use]
-    pub const fn declared(stem: &'static str, version: IdentityProfileVersion) -> Self {
-        Self { stem, version }
+    pub const fn declared(family: PreimageFamily, version: IdentityProfileVersion) -> Self {
+        Self { family, version }
     }
 
-    /// The declared stem — everything of the context ahead of the version.
+    /// The preimage family this profile versions.
     #[must_use]
-    pub const fn stem(self) -> &'static str {
-        self.stem
+    pub const fn family(self) -> PreimageFamily {
+        self.family
     }
 
-    /// The declared version.
+    /// The declared version — this family's own position, and no other
+    /// family's.
     #[must_use]
     pub const fn version(self) -> IdentityProfileVersion {
         self.version
@@ -240,11 +245,16 @@ impl IdentityProfile {
 
     /// The derive-key context for one subject under one role, spelled by the
     /// domain grammar [`IdentityProfile`] states.
+    ///
+    /// The family segment sits ahead of the version, so one family's position
+    /// one and another's are two key spaces and a bump under either reaches
+    /// nothing under the other.
     #[must_use]
     pub fn context_for(self, subject: &str, role: ProjectionRole) -> String {
+        let family = self.family.stable_name();
         let version = self.version.position();
         let role = role.stable_name();
-        format!("{}/v{version}/{subject}/{role}", self.stem)
+        format!("{IDENTITY_PROFILE_STEM}/{family}/v{version}/{subject}/{role}")
     }
 }
 
@@ -292,22 +302,38 @@ impl GeneratorIdentity {
         }
     }
 
-    /// The generator's stable name. Load-bearing: it is in every transcript.
+    /// The generator's stable name. One of the two facts a staleness comparison
+    /// reads.
     #[must_use]
     pub const fn profile(self) -> GeneratorProfileId {
         self.profile
     }
 
-    /// The rendered shape's version. Load-bearing: it is in every transcript.
+    /// The rendered shape's version. The other fact a staleness comparison
+    /// reads.
     #[must_use]
     pub const fn schema(self) -> GeneratorSchemaVersion {
         self.schema
     }
 
-    /// The package version, recorded for a reader and load-bearing nowhere.
+    /// The package version, recorded for a reader and compared by nothing.
     #[must_use]
     pub const fn package_version(self) -> &'static str {
         self.package
+    }
+
+    /// Whether two generator identities name the same generator rendering the
+    /// same shape.
+    ///
+    /// The comparison a staleness reading wants, and the reason it is a named
+    /// road rather than `==`: equality compares the package version too, and the
+    /// package version moves for reasons no output noticed. A reader asking
+    /// "would this generator render what I am holding?" is asking about the
+    /// declared name and the schema position, which are the two facts that
+    /// answer it.
+    #[must_use]
+    pub fn same_rendered_shape(self, other: Self) -> bool {
+        self.profile == other.profile && self.schema == other.schema
     }
 }
 
@@ -365,8 +391,14 @@ impl<'material> ProjectionTranscript<'material> {
         Self::anchored(role, anchoring, content, position)
     }
 
-    /// The shared constructor: every transcript names the one declared profile
-    /// and the one declared generator, so neither can be varied per call site.
+    /// The shared constructor: the profile is READ OFF the role's own preimage
+    /// family and the generator is the one declared generator, so neither can be
+    /// varied per call site.
+    ///
+    /// A mint site names a role and gets the family's ladder with it. Nothing
+    /// here takes a profile, so a rendered unit cannot be derived under the plan
+    /// family's version by a caller that passed the wrong constant, and a family
+    /// added to the roster reaches every mint site of its role at once.
     #[must_use]
     fn anchored(
         role: ProjectionRole,
@@ -375,7 +407,7 @@ impl<'material> ProjectionTranscript<'material> {
         position: u32,
     ) -> Self {
         Self {
-            profile: PROJECTION_IDENTITY_PROFILE,
+            profile: role.family().profile(),
             generator: MACROC_GENERATOR,
             role,
             anchoring,
@@ -384,13 +416,16 @@ impl<'material> ProjectionTranscript<'material> {
         }
     }
 
-    /// The profile this transcript is written under.
+    /// The family profile this transcript is written under.
     #[must_use]
     pub const fn profile(&self) -> IdentityProfile {
         self.profile
     }
 
-    /// The generator this transcript names.
+    /// The generator this transcript records.
+    ///
+    /// Recorded and never written: [`ProjectionTranscript::encoded`] carries no
+    /// member for it, and this road exists so the derivation record can.
     #[must_use]
     pub const fn generator(&self) -> GeneratorIdentity {
         self.generator
@@ -448,7 +483,7 @@ impl ProjectionProvenance {
         self.role
     }
 
-    /// The profile and version it was derived under.
+    /// The family's profile and version it was derived under.
     #[must_use]
     pub const fn profile(&self) -> IdentityProfile {
         self.profile
@@ -458,6 +493,24 @@ impl ProjectionProvenance {
     #[must_use]
     pub const fn generator(&self) -> GeneratorIdentity {
         self.generator
+    }
+
+    /// Whether this derivation was recorded under the generator and rendered
+    /// shape these services declare today.
+    ///
+    /// The one reading the generator is FOR, now that it names nothing: a reader
+    /// holding an old record asks whether the producer has moved, and gets an
+    /// answer about the producer alone.
+    ///
+    /// # Nonclaims
+    ///
+    /// A `false` here says a different generator shape produced the record. It
+    /// says nothing about whether the material moved, whether the identity would
+    /// re-derive the same, or whether anything needs redoing: the identity is a
+    /// fact about the preimage, and the preimage does not contain this.
+    #[must_use]
+    pub fn under_current_shape(&self) -> bool {
+        self.generator.same_rendered_shape(MACROC_GENERATOR)
     }
 
     /// What it was anchored under, anchor commitment included.

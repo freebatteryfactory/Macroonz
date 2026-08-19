@@ -92,7 +92,9 @@ writes rows directly — equally lawful); rows land in tables; the stamp reads
 them into named lenses and one aggregate seat per execution suite; nextest
 runs the stamped names natively while each aggregate seat calls the engine
 in-process; claim coverage computes over the authored reports; mutation
-pressure runs outside the wall and its survivors are explained; a candidate
+pressure runs outside the wall, where a non-kill stays inconclusive — the
+word survivor is earned only where activation is observed, and every earned
+one is explained; a candidate
 that closes a gap executes in staging against the complete world, and only a
 proposal a human admits joins the authored table — the denominator grows and
 says so. Every semantic-trial run anywhere in that loop is the same engine

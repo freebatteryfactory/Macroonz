@@ -141,28 +141,31 @@ mod plane {
     }
 }
 
-/// The identity profile's proof surface: the golden vectors that pin the
+/// The identity profiles' proof surface: the golden vectors that pin the
 /// derivation, the mutation vectors that prove it is sensitive to its whole
-/// transcript, and the crossing vectors that prove domain separation bites.
+/// transcript, and the crossing vectors that prove domain separation bites —
+/// across families as well as across subjects and roles.
 ///
 /// # Why golden vectors and not only properties
 ///
 /// A property test says the derivation is self-consistent. A golden vector says
 /// WHICH derivation it is. Without one, a change to the field order, the length
-/// framing, the domain grammar, or the profile version would keep every property
-/// green while silently renaming every identity in the tree — and the rename
-/// would be discovered by whoever compared an old receipt to a new one, which is
-/// the worst possible time.
+/// framing, the domain grammar, or a family's version would keep every property
+/// green while silently renaming identities — and the rename would be discovered
+/// by whoever compared a name they were already holding against a freshly
+/// derived one, which is the worst possible time.
 ///
-/// These vectors are the profile's fingerprint at the version they pin. A vector
-/// that fails is a profile change, and a profile change is a version bump, not a
-/// fixed constant.
+/// These vectors are one family's fingerprint at the position they pin. A vector
+/// that fails is a change to that family's grammar, and such a change is a bump
+/// of that family's version, not a fixed constant.
 mod identity_profile {
     use crate::plane::{
-        GeneratedUnitSubject, IdentityProfileVersion, MACROC_GENERATOR,
-        PROJECTION_IDENTITY_PROFILE, PlanSubject, ProjectionIdentity, ProjectionRole,
-        ProjectionTranscript, RenderedUnitSubject, SUBJECT_NAMES, TranscriptAnchoring,
-        encode_bytes,
+        CAPTURED_DECLARATION_IDENTITY_PROFILE, CLOSED_EXPANSION_IDENTITY_PROFILE,
+        CLOSURE_IDENTITY_PROFILE, GENERATED_UNIT_IDENTITY_PROFILE, GeneratedUnitSubject,
+        GeneratorIdentity, GeneratorSchemaVersion, IDENTITY_PROFILE_STEM, IdentityProfileVersion,
+        MACROC_GENERATOR, PROJECTION_INTENT_IDENTITY_PROFILE, PlanSubject, PreimageFamily,
+        ProjectionIdentity, ProjectionRole, ProjectionTranscript, RENDERED_UNIT_IDENTITY_PROFILE,
+        RenderedUnitSubject, SUBJECT_NAMES, TranscriptAnchoring, encode_bytes,
     };
 
     /// The anchor every anchored vector below is taken under.
@@ -187,49 +190,157 @@ mod identity_profile {
     }
 
     /// The fixed rooted transcript: role `Plan`, no anchor, empty content, at
-    /// roster position zero — the narrowest transcript the profile admits.
+    /// roster position zero — the narrowest transcript any family admits.
     fn rooted_vector() -> ProjectionTranscript<'static> {
         ProjectionTranscript::rooted(ProjectionRole::Plan, &[], 0)
     }
 
-    /// law: identity-profile.the-declared-version-is-pinned — the profile's
-    /// version is a typed constant, and every vector below is a fingerprint OF
-    /// that version. Reading the vectors without reading the version they pin
-    /// would make a version bump look like a broken law.
-    /// Owed reversal: bumping the version without restating the vectors must
-    /// break this law.
+    /// law: identity-profile.the-declared-version-is-pinned — every family's
+    /// version is a typed constant of its own, and every vector below is a
+    /// fingerprint OF the family it is taken under. Reading the vectors without
+    /// reading the positions they pin would make a bump look like a broken law.
+    ///
+    /// Each family is read through the one road a derivation reaches it by, so
+    /// the pin is over the answer the plane actually uses rather than over a
+    /// constant a derivation might not consult.
+    ///
+    /// Owed reversal: bumping any family's version without restating that
+    /// family's vectors must break this law.
     #[test]
     fn the_declared_version_is_pinned() {
-        assert_eq!(
-            PROJECTION_IDENTITY_PROFILE.version(),
-            IdentityProfileVersion::declared(5)
+        assert_eq!(IDENTITY_PROFILE_STEM, "threadpak/macroc/projection-identity");
+        let first = IdentityProfileVersion::declared(1);
+        assert!(
+            PreimageFamily::ALL
+                .iter()
+                .copied()
+                .all(|family| family.profile().version() == first),
+            "every family stands at its own first position"
         );
-        assert_eq!(
-            PROJECTION_IDENTITY_PROFILE.stem(),
-            "threadpak/macroc/projection-identity"
+        assert!(
+            PreimageFamily::ALL
+                .iter()
+                .copied()
+                .all(|family| family.profile().family() == family),
+            "a profile carries the family that declared it"
         );
         assert_eq!(MACROC_GENERATOR.profile().spelling(), "threadpak-macroc");
         assert_eq!(MACROC_GENERATOR.schema().position(), 3);
     }
 
     /// law: identity-profile.the-domain-grammar-is-spelled-exactly — the
-    /// derive-key context is `<stem>/v<version>/<subject>/<role>`, and nothing
-    /// about it is inferred at a call site.
+    /// derive-key context is `<stem>/<family>/v<version>/<subject>/<role>`, and
+    /// nothing about it is inferred at a call site.
     /// Owed reversal: a context assembled in another order must break this law.
     #[test]
     fn the_domain_grammar_is_spelled_exactly() {
         assert_eq!(
-            PROJECTION_IDENTITY_PROFILE.context_for("generated-unit", ProjectionRole::OutputBytes),
-            "threadpak/macroc/projection-identity/v5/generated-unit/output-bytes"
+            RENDERED_UNIT_IDENTITY_PROFILE
+                .context_for("generated-unit", ProjectionRole::OutputBytes),
+            "threadpak/macroc/projection-identity/rendered-unit/v1/generated-unit/output-bytes"
         );
     }
 
-    /// law: identity-profile.every-subject-and-role-name-is-distinct-and-legal —
-    /// two subjects sharing a name would share a key space, and a name outside
-    /// the grammar would make the context unreadable.
+    /// law: identity-profile.families-never-share-a-derivation-namespace — two
+    /// families at one position, over one subject and one role, are two distinct
+    /// derive-key contexts and derive two distinct identities. That is what the
+    /// family segment ahead of the version buys, and it is the whole reason a
+    /// bump under one family reaches nothing under another.
+    ///
+    /// Owed reversal (red twin): folding the family segment out of the context,
+    /// or moving it behind the version, must break this law.
+    #[test]
+    fn families_never_share_a_derivation_namespace() {
+        let mut contexts: Vec<String> = PreimageFamily::ALL
+            .iter()
+            .copied()
+            .map(|family| {
+                family
+                    .profile()
+                    .context_for("generated-unit", ProjectionRole::GeneratedUnit)
+            })
+            .collect();
+        let counted = contexts.len();
+        contexts.sort_unstable();
+        contexts.dedup();
+        assert_eq!(contexts.len(), counted);
+        assert!(
+            contexts
+                .iter()
+                .all(|context| context.starts_with(IDENTITY_PROFILE_STEM))
+        );
+        // Every family stands at position one today, so the version segment
+        // separates none of them and the family segment separates all of them.
+        assert_ne!(
+            PROJECTION_INTENT_IDENTITY_PROFILE
+                .context_for("generated-unit", ProjectionRole::GeneratedUnit),
+            CLOSURE_IDENTITY_PROFILE
+                .context_for("generated-unit", ProjectionRole::GeneratedUnit)
+        );
+    }
+
+    /// law: identity-profile.every-role-stands-in-one-family — the answer from a
+    /// role to a family is total, and the two roles standing over ONE rendered
+    /// grammar share one family while every other role holds its own. A role
+    /// with no family would be a mint site with no version ladder.
+    ///
+    /// The last two readings are the other half of the same obligation, and they
+    /// are what the stand-in roles were added for: every declared family is
+    /// reached by a role, and no family is left standing for identities that are
+    /// minted under a neighbour's ladder instead. The explanation family in
+    /// particular used to be reached by nothing while explanations existed and
+    /// carried no name at all.
+    ///
+    /// Owed reversal (red twin): a role answering with a family whose grammar it
+    /// does not stand in — a rendered unit under the plan family — must break
+    /// this law, and so must a family declared with no role reaching it.
+    #[test]
+    fn every_role_stands_in_one_family() {
+        assert_eq!(
+            ProjectionRole::RenderedUnit.family(),
+            PreimageFamily::RenderedUnit
+        );
+        assert_eq!(
+            ProjectionRole::OutputBytes.family(),
+            PreimageFamily::RenderedUnit
+        );
+        assert_eq!(ProjectionRole::Plan.family(), PreimageFamily::Plan);
+        assert_eq!(
+            ProjectionRole::ProjectionIntent.family(),
+            PreimageFamily::ProjectionIntent
+        );
+        assert_eq!(
+            ProjectionRole::Explanation.family(),
+            PreimageFamily::Explanation
+        );
+        // One shared family and no other, so the roster of families the roles
+        // reach is one shorter than the roster of roles.
+        let mut reached: Vec<&str> = ProjectionRole::ALL
+            .iter()
+            .copied()
+            .map(|role| role.family().stable_name())
+            .collect();
+        reached.sort_unstable();
+        reached.dedup();
+        assert_eq!(reached.len(), ProjectionRole::ALL.len().saturating_sub(1));
+        // And every declared family is reached: a family no role stands in is a
+        // grammar with a version ladder nothing climbs, which is where an
+        // identity ends up riding a neighbour's.
+        assert_eq!(reached.len(), PreimageFamily::ALL.len());
+        assert!(
+            PreimageFamily::ALL
+                .iter()
+                .copied()
+                .all(|family| reached.contains(&family.stable_name()))
+        );
+    }
+
+    /// law: identity-profile.every-name-in-the-context-is-distinct-and-legal —
+    /// two subjects, two roles, or two families sharing a name would share a key
+    /// space, and a name outside the grammar would make the context unreadable.
     /// Owed reversal: two subjects declaring one name must break this law.
     #[test]
-    fn every_subject_and_role_name_is_distinct_and_legal() {
+    fn every_name_in_the_context_is_distinct_and_legal() {
         let legal = |name: &str| {
             !name.is_empty()
                 && !name.starts_with('-')
@@ -239,77 +350,153 @@ mod identity_profile {
                     .chars()
                     .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
         };
+        let distinct = |names: &[&str]| {
+            let mut seen: Vec<&str> = names.to_vec();
+            let counted = seen.len();
+            seen.sort_unstable();
+            seen.dedup();
+            seen.len() == counted
+        };
         assert!(SUBJECT_NAMES.iter().copied().all(legal));
-        let mut seen: Vec<&str> = SUBJECT_NAMES.to_vec();
-        seen.sort_unstable();
-        let counted = seen.len();
-        seen.dedup();
-        assert_eq!(seen.len(), counted);
-        assert!(
-            ProjectionRole::ALL
-                .iter()
-                .copied()
-                .all(|role| legal(role.stable_name()))
-        );
-        let mut roles: Vec<&str> = ProjectionRole::ALL
+        assert!(distinct(SUBJECT_NAMES));
+        let roles: Vec<&str> = ProjectionRole::ALL
             .iter()
             .copied()
             .map(ProjectionRole::stable_name)
             .collect();
-        roles.sort_unstable();
-        let role_count = roles.len();
-        roles.dedup();
-        assert_eq!(roles.len(), role_count);
+        assert!(roles.iter().copied().all(legal));
+        assert!(distinct(&roles));
+        let families: Vec<&str> = PreimageFamily::ALL
+            .iter()
+            .copied()
+            .map(PreimageFamily::stable_name)
+            .collect();
+        assert!(families.iter().copied().all(legal));
+        assert!(distinct(&families));
+    }
+
+    /// The anchored vector's ten members, spelled by hand from the
+    /// specification: the shared stem, the generated-unit family, that family's
+    /// position, the subject, the role and its slot, the anchoring posture and
+    /// its commitment, the content, and the roster position.
+    ///
+    /// Written once, here, because two laws read it — the one that pins the
+    /// spelling and the one that refuses the retired spelling — and two
+    /// hand-built strings would be two things that agree until one is edited.
+    fn spelled_members() -> Vec<u8> {
+        let mut spelled = Vec::new();
+        encode_bytes(b"threadpak/macroc/projection-identity", &mut spelled);
+        encode_bytes(b"generated-unit", &mut spelled);
+        spelled.extend_from_slice(&1_u32.to_be_bytes());
+        encode_bytes(b"generated-unit", &mut spelled);
+        encode_bytes(b"generated-unit", &mut spelled);
+        spelled.push(3);
+        spelled.push(2);
+        encode_bytes(&GOLDEN_ANCHOR, &mut spelled);
+        encode_bytes(GOLDEN_CONTENT, &mut spelled);
+        spelled.extend_from_slice(&GOLDEN_POSITION.to_be_bytes());
+        spelled
     }
 
     /// law: identity-profile.the-transcript-is-spelled-exactly — the transcript
-    /// is the eleven members of the specification, in order, with every
-    /// variable-length member length-prefixed. This law rebuilds the anchored
-    /// vector's bytes by hand from that specification and requires the
-    /// producer's own encoder to agree.
+    /// is the ten members of the specification, in order, with every
+    /// variable-length member length-prefixed. This law requires the producer's
+    /// own encoder to agree with the hand-built spelling.
     /// Owed reversal: dropping a member or a length prefix must break this law.
     #[test]
     fn the_transcript_is_spelled_exactly() {
-        let mut expected = Vec::new();
-        encode_bytes(b"threadpak/macroc/projection-identity", &mut expected);
-        expected.extend_from_slice(&4_u32.to_be_bytes());
-        encode_bytes(b"generated-unit", &mut expected);
-        encode_bytes(b"generated-unit", &mut expected);
-        expected.push(3);
-        expected.push(2);
-        encode_bytes(&GOLDEN_ANCHOR, &mut expected);
-        encode_bytes(GOLDEN_CONTENT, &mut expected);
-        expected.extend_from_slice(&GOLDEN_POSITION.to_be_bytes());
-        encode_bytes(b"threadpak-macroc", &mut expected);
-        expected.extend_from_slice(&2_u32.to_be_bytes());
-        assert_eq!(anchored_vector().encoded("generated-unit"), expected);
+        assert_eq!(
+            anchored_vector().encoded("generated-unit"),
+            spelled_members()
+        );
+    }
+
+    /// law: identity-profile.no-preimage-names-the-generator — the producer
+    /// writes the ten-member spelling and NOT the retired twelve-member one,
+    /// which appended the generator's declared name and its schema position
+    /// behind them. The generator is provenance now, so a rendered shape that
+    /// moved renames nothing, and an intent identity two doors agree on keeps
+    /// agreeing across the machinery that would realize it.
+    ///
+    /// The last reading is the one that states the size of the defect: the
+    /// retired spelling derives a DIFFERENT identity from the same ten members,
+    /// so every position the generator moved through renamed the whole tree.
+    ///
+    /// Owed reversal (red twin): writing the generator profile or schema back
+    /// into the preimage must break this law.
+    #[test]
+    fn no_preimage_names_the_generator() {
+        let mut retired = spelled_members();
+        encode_bytes(
+            MACROC_GENERATOR.profile().spelling().as_bytes(),
+            &mut retired,
+        );
+        retired.extend_from_slice(&MACROC_GENERATOR.schema().position().to_be_bytes());
+        let encoded = anchored_vector().encoded("generated-unit");
+        assert_eq!(encoded, spelled_members());
+        assert_ne!(encoded, retired);
+        assert_ne!(
+            *ProjectionIdentity::<GeneratedUnitSubject>::derived(anchored_vector()).as_bytes(),
+            blake3::derive_key(
+                &GENERATED_UNIT_IDENTITY_PROFILE
+                    .context_for("generated-unit", ProjectionRole::GeneratedUnit),
+                &retired,
+            ),
+            "the retired spelling named something else, which is what made every \
+             shape bump a rename"
+        );
+    }
+
+    /// law: identity-profile.a-mint-site-cannot-choose-its-family — the profile
+    /// a transcript is written under is read off the role, so the family, its
+    /// version, and the context all follow from the one fact a mint site states.
+    /// No constructor takes a profile, and this law reads the answer back off
+    /// three transcripts to say so.
+    ///
+    /// Owed reversal (red twin): a transcript constructor taking a profile
+    /// beside its role must break this law.
+    #[test]
+    fn a_mint_site_cannot_choose_its_family() {
+        assert_eq!(
+            anchored_vector().profile(),
+            GENERATED_UNIT_IDENTITY_PROFILE,
+            "the generated-unit role writes under the generated-unit family"
+        );
+        assert_eq!(
+            ProjectionTranscript::rooted(ProjectionRole::CapturedDeclaration, &[], 0).profile(),
+            CAPTURED_DECLARATION_IDENTITY_PROFILE
+        );
+        assert_eq!(
+            ProjectionTranscript::rooted(ProjectionRole::ClosedExpansion, &[], 0).profile(),
+            CLOSED_EXPANSION_IDENTITY_PROFILE
+        );
     }
 
     /// law: identity-profile.golden-vectors-pin-the-derivation — three fixed
-    /// transcripts derive three exact values, across two subjects and both
-    /// anchoring postures.
+    /// transcripts derive three exact values, across two families, two subjects,
+    /// and both anchoring postures.
     /// Owed reversal (red twin): any change to the field order, the length
     /// framing, the domain grammar, or the digest must break this law.
     ///
-    /// # The three values below PREDATE profile version 4
+    /// # The three values below PREDATE the per-family split
     ///
-    /// They were written as the fingerprint of an earlier profile position, and
-    /// every one of them is a BLAKE3 output — a value nobody can recompute by
-    /// reading, only by executing. The profile version is a member of the
-    /// transcript and a segment of the derive-key context, so all three moved
-    /// when the position did, and none of them can be restated in a phase where
-    /// no toolchain runs.
+    /// They were written as the fingerprint of the retired single profile at an
+    /// earlier position, and every one of them is a BLAKE3 output — a value
+    /// nobody can recompute by reading, only by executing. The family segment
+    /// and the version are both members of the transcript and both segments of
+    /// the derive-key context, so all three moved when the profiles split, and
+    /// none can be restated in a phase where no toolchain runs.
     ///
     /// Writing three plausible-looking constants in their place would be worse
     /// than leaving them: a fabricated vector is green against nothing and would
     /// pin a derivation nobody performed. So the authored values stand, stated
     /// stale, and recomputing all three is the first toolchain contact's
-    /// corrective batch — one act, under the version they are the fingerprint
-    /// of.
+    /// corrective batch — one act, each vector under the family it is the
+    /// fingerprint of.
     #[test]
     fn golden_vectors_pin_the_derivation() {
-        // Predates profile v5: recomputed at the first toolchain contact's
-        // corrective batch.
+        // Stale: awaits recompute under the generated-unit family at position
+        // one, at the first toolchain contact's corrective batch.
         assert_eq!(
             *ProjectionIdentity::<GeneratedUnitSubject>::derived(anchored_vector()).as_bytes(),
             [
@@ -318,8 +505,9 @@ mod identity_profile {
                 0x57, 0x9a, 0x06, 0x98
             ]
         );
-        // Predates profile v5: recomputed at the first toolchain contact's
-        // corrective batch.
+        // Stale: awaits recompute under the generated-unit family at position
+        // one — the same transcript under the other subject, which is what
+        // makes the pair a separation vector rather than a repeat.
         assert_eq!(
             *ProjectionIdentity::<RenderedUnitSubject>::derived(anchored_vector()).as_bytes(),
             [
@@ -328,8 +516,8 @@ mod identity_profile {
                 0x31, 0x5c, 0x49, 0x07
             ]
         );
-        // Predates profile v5: recomputed at the first toolchain contact's
-        // corrective batch.
+        // Stale: awaits recompute under the plan family at position one, at the
+        // same corrective batch.
         assert_eq!(
             *ProjectionIdentity::<PlanSubject>::derived(rooted_vector()).as_bytes(),
             [
@@ -420,6 +608,12 @@ mod identity_profile {
     /// roles, and one transcript under two subjects, derive different
     /// identities. The separation is a runtime fact and not only the compile-time
     /// one the `PhantomData` parameter already gives.
+    ///
+    /// The two roles here are `GeneratedUnit` and `RenderedUnit`, which stand in
+    /// two different families, so this vector proves the separation across a
+    /// family boundary as well. The pair that SHARES a family is the harder
+    /// case and has its own law below.
+    ///
     /// Owed reversal (red twin): a single context for every subject and role
     /// must break this law.
     #[test]
@@ -447,10 +641,47 @@ mod identity_profile {
         );
     }
 
+    /// law: identity-profile.one-family-separates-its-two-roles — the rendered
+    /// unit and the digest of its bytes share ONE family and derive different
+    /// identities over one transcript, because the role is a member of the
+    /// preimage and a segment of the context. Sharing a version ladder is not
+    /// sharing a name space.
+    ///
+    /// This is the case a family roster makes possible and therefore owes: two
+    /// roles that answer with one profile would collide if the role were only a
+    /// version's neighbour rather than a separator in its own right.
+    ///
+    /// Owed reversal (red twin): dropping the role from the preimage, or from
+    /// the derive-key context, must break this law.
+    #[test]
+    fn one_family_separates_its_two_roles() {
+        let under_role = |role: ProjectionRole| {
+            ProjectionTranscript::under(
+                role,
+                TranscriptAnchoring::UnderProjectionIdentity(GOLDEN_ANCHOR),
+                GOLDEN_CONTENT,
+                GOLDEN_POSITION,
+            )
+        };
+        let rendered = under_role(ProjectionRole::RenderedUnit);
+        let bytes = under_role(ProjectionRole::OutputBytes);
+        assert_eq!(rendered.profile(), bytes.profile());
+        assert_eq!(rendered.profile(), RENDERED_UNIT_IDENTITY_PROFILE);
+        assert_ne!(
+            rendered.encoded("rendered-unit"),
+            bytes.encoded("rendered-unit")
+        );
+        assert_ne!(
+            *ProjectionIdentity::<RenderedUnitSubject>::derived(rendered).as_bytes(),
+            *ProjectionIdentity::<RenderedUnitSubject>::derived(bytes).as_bytes()
+        );
+    }
+
     /// law: identity-profile.the-record-carries-the-anchor-whole — a derivation
-    /// record states its subject, role, profile, generator, position, and
-    /// content LENGTH, and carries its anchor at the full thirty-two bytes. The
-    /// retired design folded that anchor to eight.
+    /// record states its subject, role, the family profile at its position, the
+    /// generator, the position, and the content LENGTH, and carries its anchor
+    /// at the full thirty-two bytes. The retired design folded that anchor to
+    /// eight.
     /// Owed reversal (red twin): narrowing the recorded anchor must break this
     /// law.
     #[test]
@@ -463,7 +694,7 @@ mod identity_profile {
         );
         assert_eq!(provenance.subject(), "generated-unit");
         assert!(matches!(provenance.role(), ProjectionRole::GeneratedUnit));
-        assert_eq!(provenance.profile(), PROJECTION_IDENTITY_PROFILE);
+        assert_eq!(provenance.profile(), GENERATED_UNIT_IDENTITY_PROFILE);
         assert_eq!(provenance.generator(), MACROC_GENERATOR);
         assert_eq!(provenance.position(), GOLDEN_POSITION);
         assert_eq!(
@@ -477,8 +708,45 @@ mod identity_profile {
         );
         assert_eq!(
             provenance.context(),
-            "threadpak/macroc/projection-identity/v5/generated-unit/generated-unit"
+            "threadpak/macroc/projection-identity/generated-unit/v1/generated-unit/generated-unit"
         );
+    }
+
+    /// law: identity-profile.the-record-reads-the-generator-for-staleness — the
+    /// generator is on the RECORD and nowhere else, and the reading it exists
+    /// for is a comparison against the shape these services render today. The
+    /// comparison is over the two load-bearing facts, so a package version that
+    /// moved for its own reasons reports nothing.
+    ///
+    /// Owed reversal (red twin): a staleness reading that compared the package
+    /// version, or one taken off the identity instead of the record, must break
+    /// this law.
+    #[test]
+    fn the_record_reads_the_generator_for_staleness() {
+        let provenance = anchored_vector().provenance("generated-unit");
+        assert_eq!(provenance.generator(), MACROC_GENERATOR);
+        assert!(provenance.under_current_shape());
+        assert!(MACROC_GENERATOR.same_rendered_shape(MACROC_GENERATOR));
+        // Same declared name and shape, another package version: the same
+        // rendered shape, and a comparison that said otherwise would report a
+        // publication as a producer change.
+        let republished = GeneratorIdentity::declared(
+            MACROC_GENERATOR.profile(),
+            MACROC_GENERATOR.schema(),
+            "0.0.0-another-publication",
+        );
+        assert!(MACROC_GENERATOR.same_rendered_shape(republished));
+        assert_ne!(MACROC_GENERATOR, republished);
+        // A moved schema position IS a moved shape, and it still renames
+        // nothing: the preimage carries neither fact.
+        let reshaped = GeneratorIdentity::declared(
+            MACROC_GENERATOR.profile(),
+            GeneratorSchemaVersion::declared(
+                MACROC_GENERATOR.schema().position().saturating_add(1),
+            ),
+            MACROC_GENERATOR.package_version(),
+        );
+        assert!(!MACROC_GENERATOR.same_rendered_shape(reshaped));
     }
 }
 
@@ -1673,6 +1941,7 @@ mod test_descriptor {
 }
 
 mod explanation_protocol {
+    use crate::derive_refusal::{RefusalFamilyExpansion, compile_refusal_text};
     use crate::explanation_protocol::{
         ExplanationAnswer, ExplanationCoverageIssue, ProjectionExplanation,
         ProjectionExplanationView, kind_admits,
@@ -1688,6 +1957,23 @@ mod explanation_protocol {
     };
     use crate::question::{ExplanationQuestion, QuestionApplicability};
     use threadpak::types::Bounded;
+
+    /// One lawful declaration, so the laws below have a REAL plan and a REAL
+    /// proof to answer a view over.
+    ///
+    /// A complete view carries the parentage it was answered over and reads both
+    /// identities off the values themselves, so a law about coverage cannot
+    /// build one out of synthetic identities — which is exactly the property
+    /// under test.
+    const DECLARATION: &str = "#[refusal(family = \"demo.explanation\", \
+        shape = issue_collection)] enum DemoIssues { NotBound, NotCovered, }";
+
+    /// The plan and the proof every view below is answered over.
+    fn expansion() -> Option<RefusalFamilyExpansion> {
+        compile_refusal_text(DECLARATION)
+            .ok()
+            .map(|(_, closed)| closed)
+    }
 
     /// One owner fact.
     fn owner_fact() -> OwnerFactRef {
@@ -1818,32 +2104,153 @@ mod explanation_protocol {
     /// completes exactly when every applicable question has one answer.
     /// Owed reversal: a view accepting a subset must break this law.
     #[test]
-    fn a_complete_view_fills_every_applicable_seat() {
+    fn a_complete_view_fills_every_applicable_seat() -> Result<(), ()> {
+        let closed = expansion().ok_or(())?;
         let mut answers = universal_answers();
         answers.push(ProjectionExplanation::answered(
             ExplanationAnswer::AssumptionsAndSpecializations {
                 assumptions: Bounded::empty(),
             },
         ));
-        let view = ProjectionExplanationView::<DeriveImplProjection>::complete(answers);
+        let view = ProjectionExplanationView::<DeriveImplProjection>::complete(
+            closed.plan(),
+            closed.closure(),
+            answers,
+        );
         assert!(view.is_ok_and(|view| view.len() == 9 && !view.is_empty()));
+        Ok(())
     }
+
+    /// law: explanation.a-view-names-the-parentage-it-was-answered-over — a
+    /// complete view carries the plan and the proof it was written over, reads
+    /// both off the values themselves, and mints its own identity over the
+    /// three. A view that carried coverage alone was a value a terminal could
+    /// bind beside another expansion's plan and proof of the same kind: every
+    /// question answered correctly, about something else.
+    ///
+    /// Both directions. Two views over the SAME parentage and the same answers
+    /// are one identity; two views over the same answers and DIFFERENT
+    /// parentage are two, which is the whole of what the seats buy.
+    ///
+    /// Owed reversal (red twin): a constructor taking the answers alone, or one
+    /// taking two identities a caller supplies, must break this law.
+    #[test]
+    fn a_view_names_the_parentage_it_was_answered_over() -> Result<(), ()> {
+        let mine = expansion().ok_or(())?;
+        let other = compile_refusal_text(OTHER_DECLARATION)
+            .map_err(|_| ())
+            .map(|(_, closed)| closed)?;
+        let seats = || {
+            let mut answers = universal_answers();
+            answers.push(ProjectionExplanation::answered(
+                ExplanationAnswer::AssumptionsAndSpecializations {
+                    assumptions: Bounded::empty(),
+                },
+            ));
+            answers
+        };
+        let view = ProjectionExplanationView::<DeriveImplProjection>::complete(
+            mine.plan(),
+            mine.closure(),
+            seats(),
+        )
+        .map_err(|_| ())?;
+        let again = ProjectionExplanationView::<DeriveImplProjection>::complete(
+            mine.plan(),
+            mine.closure(),
+            seats(),
+        )
+        .map_err(|_| ())?;
+        let elsewhere = ProjectionExplanationView::<DeriveImplProjection>::complete(
+            other.plan(),
+            other.closure(),
+            seats(),
+        )
+        .map_err(|_| ())?;
+
+        assert_eq!(view.plan(), mine.plan().identity());
+        assert_eq!(view.closure(), mine.closure().identity());
+        assert_eq!(view.identity(), again.identity());
+        assert_ne!(view.identity(), elsewhere.identity());
+        Ok(())
+    }
+
+    /// law: explanation.the-seats-stand-in-the-declared-question-order — the
+    /// answers a view holds are the kind's roster order and never the order a
+    /// caller supplied, so one set of answers is one explanation however it was
+    /// assembled.
+    ///
+    /// Owed reversal (red twin): storing the caller's order must break this law
+    /// — the two views below would then carry two identities and read back in
+    /// two orders.
+    #[test]
+    fn the_seats_stand_in_the_declared_question_order() -> Result<(), ()> {
+        let closed = expansion().ok_or(())?;
+        let mut written = universal_answers();
+        written.push(ProjectionExplanation::answered(
+            ExplanationAnswer::AssumptionsAndSpecializations {
+                assumptions: Bounded::empty(),
+            },
+        ));
+        let mut shuffled = written.clone();
+        shuffled.reverse();
+
+        let view = ProjectionExplanationView::<DeriveImplProjection>::complete(
+            closed.plan(),
+            closed.closure(),
+            written,
+        )
+        .map_err(|_| ())?;
+        let backwards = ProjectionExplanationView::<DeriveImplProjection>::complete(
+            closed.plan(),
+            closed.closure(),
+            shuffled,
+        )
+        .map_err(|_| ())?;
+
+        let declared: Vec<ExplanationQuestion> =
+            crate::planning::ProjectionPlan::<DeriveImplProjection>::applicable_questions();
+        let held: Vec<ExplanationQuestion> =
+            view.answers().map(ProjectionExplanation::question).collect();
+        let held_backwards: Vec<ExplanationQuestion> = backwards
+            .answers()
+            .map(ProjectionExplanation::question)
+            .collect();
+        assert_eq!(held, declared);
+        assert_eq!(held_backwards, declared);
+        assert_eq!(view.identity(), backwards.identity());
+        Ok(())
+    }
+
+    /// A second lawful declaration, so a law that needs TWO parentages has two.
+    const OTHER_DECLARATION: &str = "#[refusal(family = \"demo.second\", \
+        shape = issue_collection)] enum SecondIssues { NotBound, }";
 
     /// law: explanation.an-incomplete-view-names-every-missing-seat — a view
     /// missing seats refuses and reports all of them at once, never one per
     /// attempt.
+    ///
+    /// The coverage pass runs BEFORE the parentage is read, which is why an
+    /// empty answer set refuses here rather than minting a name over nothing.
+    ///
     /// Owed reversal: reporting only the first unanswered question must break
     /// this law.
     #[test]
-    fn an_incomplete_view_names_every_missing_seat() {
-        let refused = ProjectionExplanationView::<HostWrapperProjection>::complete(Vec::new());
+    fn an_incomplete_view_names_every_missing_seat() -> Result<(), ()> {
+        let closed = expansion().ok_or(())?;
+        let refused = ProjectionExplanationView::<DeriveImplProjection>::complete(
+            closed.plan(),
+            closed.closure(),
+            Vec::new(),
+        );
         assert!(refused.is_err_and(|coverage| {
-            coverage.body().carried().len() == 10
+            coverage.body().carried().len() == 9
                 && matches!(
                     coverage.body().carried().first(),
                     ExplanationCoverageIssue::QuestionUnanswered(ExplanationQuestion::WhatAreYou)
                 )
         }));
+        Ok(())
     }
 
     /// law: explanation.a-doubled-or-foreign-seat-refuses — answering one
@@ -1851,7 +2258,8 @@ mod explanation_protocol {
     /// refuses under its own issue.
     /// Owed reversal: silently keeping the last answer must break this law.
     #[test]
-    fn a_doubled_or_foreign_seat_refuses() {
+    fn a_doubled_or_foreign_seat_refuses() -> Result<(), ()> {
+        let closed = expansion().ok_or(())?;
         let mut doubled = universal_answers();
         doubled.push(ProjectionExplanation::answered(
             ExplanationAnswer::AssumptionsAndSpecializations {
@@ -1861,7 +2269,11 @@ mod explanation_protocol {
         doubled.push(ProjectionExplanation::answered(ExplanationAnswer::Owner {
             owner: owner_fact(),
         }));
-        let refused = ProjectionExplanationView::<DeriveImplProjection>::complete(doubled);
+        let refused = ProjectionExplanationView::<DeriveImplProjection>::complete(
+            closed.plan(),
+            closed.closure(),
+            doubled,
+        );
         assert!(refused.is_err_and(|coverage| matches!(
             coverage.body().carried().first(),
             ExplanationCoverageIssue::QuestionAnsweredTwice(
@@ -1883,13 +2295,18 @@ mod explanation_protocol {
                 }),
             },
         ));
-        let rejected = ProjectionExplanationView::<DeriveImplProjection>::complete(foreign);
+        let rejected = ProjectionExplanationView::<DeriveImplProjection>::complete(
+            closed.plan(),
+            closed.closure(),
+            foreign,
+        );
         assert!(rejected.is_err_and(|coverage| matches!(
             coverage.body().carried().first(),
             ExplanationCoverageIssue::QuestionNotApplicableToKind(
                 ExplanationQuestion::WhichCapabilitiesSelectedWrappers
             )
         )));
+        Ok(())
     }
 
     /// law: explanation.applicability-is-answered-typed — whether a kind admits
@@ -3524,7 +3941,8 @@ mod derive_refusal {
 
     /// law: derive.the-one-road-closes-before-it-emits — the live road produces
     /// a plan, a rendering, a proved closure, and a complete explanation, and
-    /// every emission is reachable only off the receipt those four produced.
+    /// every emission is reachable only off the closed expansion those four
+    /// produced.
     ///
     /// The counts are FOUR because one implementation meaning is delivered as two
     /// surfaces and this declaration carries two contracts: the family
@@ -3747,17 +4165,26 @@ mod derive_refusal {
         Ok(())
     }
 
-    /// law: derive.documentation-is-captured-and-is-already-committed-to — a
+    /// law: derive.one-captured-surface-carries-two-authored-facts — a
     /// declaration carrying prose on the family and on its variants captures
     /// with those rows present, each row's declared-on seat and its text read
-    /// back as typed values; a declaration that writes none carries none; and a
-    /// declaration whose prose differs is a different capture.
+    /// back as typed values; a declaration that writes none carries none; and
+    /// the surface is named TWICE, once for what the declaration is and once for
+    /// what it says.
     ///
-    /// The last part is the one-commitment fact as it stands: a captured
-    /// declaration's identity is derived over the token material at full length,
-    /// and a documentation attribute is inside that material — so prose needs no
-    /// second commitment, and a seat that exempted it would be a way for a
-    /// declaration to change without its identity changing.
+    /// The two sensitivities are the point, and they are opposite. Two
+    /// declarations that differ ONLY in their prose carry ONE semantic
+    /// commitment — so an implementation projection over either is the same
+    /// projection, and a reworded sentence does not re-plan a contract. They
+    /// carry TWO documentation commitments — so a documentation projection sees
+    /// the change it exists to be about. A declaration that differs in its SHAPE
+    /// moves both, because the documentation commitment is derived over the
+    /// semantic one.
+    ///
+    /// The single commitment this replaced had one sensitivity for both
+    /// questions: prose moved everything, so a comment edit re-planned the
+    /// implementation, and there was no name a documentation projection could
+    /// stand on that was about the prose.
     ///
     /// The claim ceiling: a row states what was written and where it was
     /// written. Nothing here says what the text MEANS — no facet, no audience,
@@ -3766,10 +4193,10 @@ mod derive_refusal {
     /// deciding meaning it was handed as text.
     ///
     /// Owed reversal (red twin): a capture that skipped documentation
-    /// attributes, or an identity taken over anything less than the whole
-    /// material, must break this law.
+    /// attributes, one semantic commitment that still moved with prose, or one
+    /// documentation commitment that did not, must each break this law.
     #[test]
-    fn documentation_is_captured_and_is_already_committed_to() -> Result<(), ()> {
+    fn one_captured_surface_carries_two_authored_facts() -> Result<(), ()> {
         let written = surface(&documented(FAMILY_PROSE)).map_err(|_| ())?;
         let rows: Vec<&CapturedDocumentation> = written.documentation().collect();
         assert_eq!(rows.len(), 2);
@@ -3791,7 +4218,80 @@ mod derive_refusal {
                 .documentation()
                 .any(|row| row.text() == OTHER_FAMILY_PROSE)
         );
-        assert!(written.identity() == again.identity() && written.identity() != otherwise.identity());
+
+        // The same declaration twice: both names agree.
+        assert_eq!(written.identity(), again.identity());
+        assert_eq!(
+            written.documentation_identity(),
+            again.documentation_identity()
+        );
+
+        // The same declaration, different prose: the semantic name stands still
+        // and the documentation name moves.
+        assert_eq!(written.identity(), otherwise.identity());
+        assert_ne!(
+            written.documentation_identity(),
+            otherwise.documentation_identity()
+        );
+
+        // And the two names of ONE surface are never the same value: they are
+        // two families over two grammars, and one of them stands over the other.
+        assert_ne!(written.identity(), written.documentation_identity());
+        Ok(())
+    }
+
+    /// law: derive.the-documentation-rows-wire-as-far-as-the-grammar-admits —
+    /// the family seat's prose becomes the one plain sentence a documented item
+    /// opens with, carried unchanged; the item earns no section, because a
+    /// section is earned by a FACET and electing one is a reading of meaning
+    /// this profile does not offer; and that stop is a typed disposition naming
+    /// the profile and its version rather than a silence.
+    ///
+    /// A declaration that wrote no family-level prose reads as documented by
+    /// nobody, which is a stated posture and not a refusal: a lawful declaration
+    /// with no prose is lawful, and this home composes no summary on an author's
+    /// behalf. A declaration whose family line is not a SENTENCE refuses in the
+    /// documentation home's own family, unwrapped — this home states no second
+    /// opinion about what a sentence is.
+    ///
+    /// Owed reversal (red twin): a road that composed a summary out of typed
+    /// values, one that elected a facet, or one that repaired an unfinished
+    /// sentence, must break this law.
+    #[test]
+    fn the_documentation_rows_wire_as_far_as_the_grammar_admits() -> Result<(), ()> {
+        /// A family line that IS the one plain sentence the law admits.
+        const SUMMARY_PROSE: &str = "the family a reader is handed.";
+
+        let written = surface(&documented(SUMMARY_PROSE)).map_err(|_| ())?;
+        let reading = crate::derive_refusal::documented(&written).map_err(|_| ())?;
+        assert!(match reading {
+            crate::derive_refusal::CapturedDocumentationReading::Documented { item, facets } => {
+                item.summary().shown() == SUMMARY_PROSE
+                    && item.is_empty()
+                    && matches!(
+                        facets,
+                        crate::planning::ProjectionDisposition::UnavailableUnderProfile { .. }
+                    )
+            }
+            crate::derive_refusal::CapturedDocumentationReading::NotDocumented { .. } => false,
+        });
+
+        // A family line that is a fragment: the documentation home's own law
+        // refuses it, and this road hands that refusal through unchanged.
+        let fragment = surface(&documented(FAMILY_PROSE)).map_err(|_| ())?;
+        assert!(crate::derive_refusal::documented(&fragment).is_err_and(|refusal| matches!(
+            refusal,
+            crate::documentation::DocumentationDeclarationRefusal::SentenceNotEnded
+        )));
+
+        let plain = surface(ISSUE_COLLECTION).map_err(|_| ())?;
+        let none = crate::derive_refusal::documented(&plain).map_err(|_| ())?;
+        assert!(matches!(
+            none,
+            crate::derive_refusal::CapturedDocumentationReading::NotDocumented {
+                because: crate::planning::ProjectionDisposition::NotRequested
+            }
+        ));
         Ok(())
     }
 
@@ -3836,7 +4336,7 @@ mod derive_refusal {
 /// | a saturated coordinate | a depth that stopped counting made two tokens one |
 mod failure_path_closure {
     use crate::closure::{
-        ClosureIssue, PartitionCargo, ProjectionClosure, ProjectionReceipt, ReceiptBindingRefusal,
+        ClosedExpansion, ClosureIssue, ExpansionBindingRefusal, PartitionCargo, ProjectionClosure,
         RenderedProjection, RenderedUnit,
     };
     use crate::derive_refusal::{
@@ -4011,8 +4511,9 @@ mod failure_path_closure {
 
     /// law: closure.every-emission-is-inside-the-proof — the closure splits the
     /// rendering by delivery itself, joins each emission in role-roster order,
-    /// keeps them, and commits to each one's digest; a receipt delivers exactly
-    /// those rather than a second concatenation. The old road joined every unit
+    /// keeps them, and commits to each one's digest; a closed expansion delivers
+    /// exactly those rather than a second concatenation. The old road joined every
+    /// unit
     /// into one tree after the proof had already returned, which put every
     /// delivery into the one build the declaration site compiles.
     ///
@@ -4104,37 +4605,90 @@ mod failure_path_closure {
         Ok(())
     }
 
-    /// law: closure.a-receipt-binds-the-plan-its-proof-was-taken-against — the
-    /// terminal every kind's door ends at refuses a closure proved against
-    /// another plan, and the refusal names both. A receipt that bound the pair
-    /// would answer every question correctly about the wrong expansion.
-    /// Owed reversal (red twin): a binding that trusts its arguments must break
-    /// this law.
+    /// law: closure.an-expansion-binds-the-three-values-that-name-one-another —
+    /// the terminal every kind's door ends at refuses a closure proved against
+    /// another plan AND an explanation answered over another plan or another
+    /// proof, and every refusal names both identities. A binding that took any
+    /// of the three pairs on trust would answer every question correctly about
+    /// the wrong expansion.
+    ///
+    /// The explanation half is what the type parameter could never catch: a kind
+    /// is not an expansion, so two plans of one kind admit the same questions
+    /// and a view written over either covers the roster exactly.
+    ///
+    /// Owed reversal (red twin): a binding that trusts its arguments, or one
+    /// that compares the plan alone, must break this law.
     #[test]
-    fn a_receipt_binds_the_plan_its_proof_was_taken_against() -> Result<(), ()> {
+    fn an_expansion_binds_the_three_values_that_name_one_another() -> Result<(), ()> {
         let (_, mine) = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ())?;
         let (_, other) = compile_refusal_text(COLLECTION).map_err(|_| ())?;
-        let crossed = ProjectionReceipt::bound(
+
+        let crossed_proof = ClosedExpansion::bound(
             other.plan().clone(),
             mine.closure().clone(),
             other.explanation().clone(),
         );
-        assert!(crossed.is_err_and(|refusal| {
+        assert!(crossed_proof.is_err_and(|refusal| {
             refusal
-                == ReceiptBindingRefusal::ClosureProvedAgainstAnotherPlan {
+                == ExpansionBindingRefusal::ClosureProvedAgainstAnotherPlan {
                     planned: other.plan().identity(),
                     proved: mine.closure().plan(),
                 }
         }));
 
+        // The plan and the proof agree with each other and the EXPLANATION comes
+        // from the other expansion: coverage is perfect, the kind is the same,
+        // and the answers are about a different subject.
+        let crossed_explanation = ClosedExpansion::bound(
+            mine.plan().clone(),
+            mine.closure().clone(),
+            other.explanation().clone(),
+        );
+        assert!(crossed_explanation.is_err_and(|refusal| {
+            refusal
+                == ExpansionBindingRefusal::ExplanationAnsweredOverAnotherPlan {
+                    planned: mine.plan().identity(),
+                    answered: other.explanation().plan(),
+                }
+        }));
+
         // The agreeing triple binds, and the family's own view over it carries
-        // the receipt's identity rather than one of its own.
-        let bound = ProjectionReceipt::bound(
+        // the terminal's identity rather than one of its own.
+        let bound = ClosedExpansion::bound(
             mine.plan().clone(),
             mine.closure().clone(),
             mine.explanation().clone(),
         );
-        assert!(bound.is_ok_and(|receipt| receipt.identity() == mine.identity()));
+        assert!(bound.is_ok_and(|expansion| expansion.identity() == mine.identity()));
+        Ok(())
+    }
+
+    /// law: closure.an-expansion-commits-to-the-explanation-it-bound — the
+    /// terminal's own identity is derived over the explanation's identity as
+    /// well as the plan's and the proof's, so two expansions differing only in
+    /// which explanation they bound are two names.
+    ///
+    /// The transcript used to carry no member for the explanation at all and
+    /// said so, because a view had no canonical name to commit to. It has one
+    /// now, and this law is what says the terminal reads it.
+    ///
+    /// Owed reversal (red twin): dropping the explanation member from the
+    /// closed-expansion transcript must break this law.
+    #[test]
+    fn an_expansion_commits_to_the_explanation_it_bound() -> Result<(), ()> {
+        let (_, mine) = compile_refusal_text(SINGLE_CAUSE).map_err(|_| ())?;
+        let (_, other) = compile_refusal_text(COLLECTION).map_err(|_| ())?;
+        // Two live expansions, two explanations, two names — and the explanation
+        // identities are what differ where the plans and proofs do too.
+        assert_ne!(
+            mine.explanation().identity(),
+            other.explanation().identity()
+        );
+        assert_ne!(mine.identity(), other.identity());
+        // The explanation names the parentage it was answered over, which is
+        // what makes the terminal's comparison a comparison rather than a hope.
+        assert_eq!(mine.explanation().plan(), mine.plan().identity());
+        assert_eq!(mine.explanation().closure(), mine.closure().identity());
         Ok(())
     }
 
@@ -4557,10 +5111,13 @@ mod failure_path_closure {
         encode_bytes(&framing, &mut issue_content);
         assert_eq!(body_content, issue_content);
 
-        // One subject over that content is one identity — the defect.
+        // One subject over that content is one identity — the defect. The role
+        // is the one the two levels actually mint at, so the reconstruction is
+        // the services' own derivation with the subject split removed and
+        // nothing else changed.
         let under_one_subject = |content: &[u8]| {
             *ProjectionIdentity::<RelatedIssueSubject>::derived(ProjectionTranscript::rooted(
-                ProjectionRole::ClosedExpansion,
+                ProjectionRole::DiagnosticRelation,
                 content,
                 u32::from(FAMILY),
             ))

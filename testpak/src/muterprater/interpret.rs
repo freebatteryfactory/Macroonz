@@ -24,9 +24,12 @@
 //! inputs before any interpreted mutant is trusted. The trial is a
 //! [`ParitySuite`] over the properties vocabulary, and its shared substrate is
 //! stated rather than implied: the two roads stand on ONE DECLARATION and ONE
-//! RENDERING ENGINE, so the parity is silent about both. What it proves is that
-//! the evaluation copy is faithful to the rendered production surface — never
-//! that either matches the owner's intent.
+//! RENDERING ENGINE, named as the roster they are, so the parity is silent
+//! about both. Declaring these two roads independent would be a claim nobody
+//! could make honestly, and the property vocabulary keeps that claim a
+//! deliberate arm rather than a place an empty roster arrives at. What the
+//! parity proves is that the evaluation copy is faithful to the rendered
+//! production surface — never that either matches the owner's intent.
 //!
 //! The law itself is [`crate::properties::parity`]'s. This file builds the suite
 //! and reads the standing its conclusion states; it runs nothing.
@@ -34,20 +37,36 @@
 //! # Availability is typed
 //!
 //! Interpreted mutation is available exactly when a conforming surface exists
-//! and the trust order has opened — wrap-first evidence that the properties
-//! bite, then the parity. Absence is [`InterpreterAvailability`], never a
-//! crippled interpreter that answers anyway.
+//! and the trust order has opened — a witness rejection demonstrated under the
+//! adapter qualification trust is being opened under, then the parity. The two
+//! typed facts are what the gate consumes ([`AdapterQualification`],
+//! [`CompiledPressureWitness`]); a bare run is not evidence anybody can open
+//! trust with, because a run stripped of its profile no longer says which tool,
+//! which version posture, which output, and which grammar produced it at
+//! exactly the moment those facts decide something. Absence is
+//! [`InterpreterAvailability`], never a crippled interpreter that answers
+//! anyway.
+//!
+//! # Four axes stay four
+//!
+//! Whether the adapter reads its backend's output correctly is not whether a
+//! property bit; whether a property bit is not how many mutants a run pressed;
+//! and none of those three is the no-mutation parity. The qualification carries
+//! the first, the witness the second, the run's census the third, and
+//! [`ParityStanding`] the fourth — four facts on four seats, so no reader takes
+//! one of them for another.
 
 use super::types::{
-    ActiveMutant, EvaluationSurface, FamilyAttribution, InterpreterAvailability,
-    MUTERPRATER_NAMESPACE, MappingPosture, MissingTrustEvidence, MutationIdentity, MutationPoint,
-    MutationSite, MutationTarget, NO_MUTATION_PAIRING, PARITY_DECLARATION_SUBSTRATE,
-    PARITY_RENDERING_SUBSTRATE, ParityRefusal, ParityStanding, PlanRefusal, PlannedDamage,
-    PlannedRun, PressureLane, ProofPlan, ScopedInvocation, SelectionRefusal, WrapStanding,
+    ActiveMutant, AdapterQualification, CompiledPressureWitness, EvaluationSurface,
+    FamilyAttribution, InterpreterAvailability, MUTERPRATER_NAMESPACE, MappingPosture,
+    MissingTrustEvidence, MutationIdentity, MutationPoint, MutationSite, MutationTarget,
+    NO_MUTATION_PAIRING, PARITY_DECLARATION_SUBSTRATE, PARITY_RENDERING_SUBSTRATE, ParityRefusal,
+    ParityStanding, PlanRefusal, PlannedDamage, PlannedRun, PressureLane, ProofPlan,
+    ScopedInvocation, SelectionRefusal,
 };
 use crate::descriptor::{MutationPointRef, NamespacedName};
 use crate::properties::{
-    Equivalence, ParitySuite, Road, RoadPairing, SharedSubstrate, SubstrateRef,
+    Equivalence, ParitySuite, Road, RoadPairing, SharedSubstrate, SubstrateRef, SubstrateRoster,
 };
 use crate::runner::Selection;
 use std::collections::BTreeSet;
@@ -61,16 +80,23 @@ use std::collections::BTreeSet;
 /// are both projected from and the rendering engine that renders them, so their
 /// agreement is exactly as good as those two things are right and no better.
 ///
+/// The two roads are never declared independent here, and could not honestly
+/// be: they are projections of one declaration through one rendering engine, so
+/// this lane names both foundations and takes the parity evidence that naming
+/// affords.
+///
 /// # Errors
 ///
-/// Refuses a substrate name that would not parse, then a roster naming one
-/// substrate twice.
+/// Refuses a substrate name that would not parse, then a roster the property
+/// home refused — empty, or naming one substrate twice.
 pub fn no_mutation_substrate() -> Result<SharedSubstrate, ParityRefusal> {
     let declaration = SubstrateRef::named(MUTERPRATER_NAMESPACE, PARITY_DECLARATION_SUBSTRATE)
         .map_err(ParityRefusal::NameNotParsed)?;
     let rendering = SubstrateRef::named(MUTERPRATER_NAMESPACE, PARITY_RENDERING_SUBSTRATE)
         .map_err(ParityRefusal::NameNotParsed)?;
-    SharedSubstrate::declared(&[declaration, rendering]).map_err(ParityRefusal::SubstrateNotDeclared)
+    let roster = SubstrateRoster::declared(&[declaration, rendering])
+        .map_err(ParityRefusal::SubstrateNotDeclared)?;
+    Ok(SharedSubstrate::Standing(roster))
 }
 
 /// The suite the mandatory no-mutation parity is judged by.
@@ -111,28 +137,40 @@ pub fn no_mutation_parity<Input, Meaning>(
 /// # Authority
 ///
 /// The trust order, in its owner's order and no other: a conforming surface,
-/// then wrap-first evidence that the properties bite, then the mandatory
-/// parity. Each answer names itself, so a caller never has to infer why the
-/// lane declined.
+/// then a witness rejection demonstrated under the adapter qualification trust
+/// is being opened under, then the mandatory parity. Each answer names itself,
+/// so a caller never has to infer why the lane declined.
+///
+/// The evidence seat takes the two typed facts and never a bare run. A run
+/// carries counts; what opens trust is a rejection SHOWN by a suite under a
+/// tool somebody vouched for, and the qualification is what says which tool,
+/// which version posture, which output, and which grammar that was.
 ///
 /// # Nonclaims
 ///
-/// A wrap run that reported and killed nothing is NOT evidence that the
-/// properties bite — a pass that caught no mutant has shown no property biting —
-/// so it reads as [`MissingTrustEvidence::WrapEvidence`] exactly as a lane that
-/// never reported does.
+/// A wrap run that reported and killed nothing yields no witness at all — a
+/// pass that caught no mutant has shown no property biting — so it reads as
+/// [`MissingTrustEvidence::WrapEvidence`] exactly as a lane that never reported
+/// does. A witness shown under another qualification is evidence about that
+/// other adapter's reading, and it names itself rather than standing in.
 #[must_use]
 pub fn availability<'surface>(
     surface: Option<&'surface EvaluationSurface>,
-    wrap: WrapStanding<'_>,
+    qualification: &AdapterQualification,
+    witness: Option<&CompiledPressureWitness>,
     parity: ParityStanding,
 ) -> InterpreterAvailability<'surface> {
     let Some(conforming) = surface else {
         return InterpreterAvailability::NoConformingSurface;
     };
-    if !properties_bite(wrap) {
+    let Some(shown) = witness else {
         return InterpreterAvailability::TrustNotOpened {
             missing: MissingTrustEvidence::WrapEvidence,
+        };
+    };
+    if shown.qualification() != qualification {
+        return InterpreterAvailability::TrustNotOpened {
+            missing: MissingTrustEvidence::WitnessUnderAnotherQualification,
         };
     }
     match parity {
@@ -142,14 +180,6 @@ pub fn availability<'surface>(
         ParityStanding::Passed => InterpreterAvailability::Available {
             surface: conforming,
         },
-    }
-}
-
-/// Whether the wrap-first pressure has shown a property biting.
-fn properties_bite(wrap: WrapStanding<'_>) -> bool {
-    match wrap {
-        WrapStanding::Reported(run) => run.census().killed() > 0_u32,
-        WrapStanding::NotReported => false,
     }
 }
 

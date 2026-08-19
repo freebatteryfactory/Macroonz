@@ -34,3 +34,23 @@ a gap. Its anchors are generator-invalidation data: they belong to whoever
 AUTHORS the rendered form, so they arrive in the depot when the generator
 becomes their author, and a hand restating them beside the renderer would be
 maintaining a second spelling of somebody else's output.
+
+No comparison anywhere in the harness earns independence by being described
+as independent, and this is the annex's ceiling on the word. Author-declared
+independence — the parity vocabulary's loudest arm — is a DECLARATION: it
+records what an author claims about two roads and never that anything
+established the claim. Where the two roads share anything at all, the suite
+names those foundations and what comes back is parity evidence, good exactly
+as far as the named foundations are right. A caller-supplied reference
+implementation is a second road like any other: calling it a reference never
+promotes it to an independent judge, and a comparison against it is parity
+evidence under whatever it shares with the subject it judges.
+
+The route that would EARN independent-judgment status — binding a qualified
+implementation to the revision it was qualified at, and keeping the
+qualification history that binding stands on — is deliberately unbuilt. Its
+opening condition is the arrival of the first real independent route here: a
+judge this annex can qualify, rather than a road a caller named. Until then
+the annex's own readings are the independence there is, each stating its own
+method and its own ceiling, and the parity vocabulary states declarations
+and shared foundations without either one wearing the word "qualified".

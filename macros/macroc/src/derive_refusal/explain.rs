@@ -15,6 +15,14 @@
 //! `explanation_protocol::project` — so no sentence composed here can disagree
 //! with the typed answer beside it.
 //!
+//! # The parentage travels with the answers
+//!
+//! The view is completed over the PLAN and the PROOF themselves, not over two
+//! identities named beside the seats. That is what makes the view's own name a
+//! fact about this expansion: a caller reaching this road holds a plan it
+//! planned and a closure it proved, and the terminal that binds the three
+//! compares all of them.
+//!
 //! # Binding refusals
 //!
 //! Three seats here are bound to something the plan or the closure must already
@@ -113,9 +121,15 @@ pub fn explained(
         },
     )?;
 
-    ProjectionExplanationView::<DeriveImplProjection>::complete(seats(
-        planned, family, digest, owner,
-    ))
+    // The plan and the proof travel into the view as themselves, so the view
+    // records the parentage it was actually answered over rather than a pair of
+    // identities this seat could have named. The terminal compares all three
+    // afterwards, and a view built here can only agree.
+    ProjectionExplanationView::<DeriveImplProjection>::complete(
+        plan,
+        closure,
+        seats(planned, family, digest, owner),
+    )
     .map_err(ExplanationBindingRefusal::Coverage)
 }
 

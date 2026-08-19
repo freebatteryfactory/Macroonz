@@ -59,11 +59,17 @@ fn related_content(family: u8, material: &[u8]) -> Vec<u8> {
 ///
 /// The single derivation for this subject, private on purpose: an identity of
 /// this subject exists only as part of a set this file built.
-/// The role is the closed expansion the services were producing when the
-/// disagreement was observed.
+///
+/// # Its own role, and therefore its own ladder
+///
+/// The role is [`ProjectionRole::DiagnosticRelation`], which is what these two
+/// levels actually are. They stood under the CLOSED-EXPANSION role, which put
+/// every related identity in every diagnostic on the terminal's version ladder —
+/// so a widening of what a terminal commits to renamed them, and neither level
+/// holds a member of that grammar.
 fn related_issue_identity(family: u8, material: &[u8]) -> ProjectionIdentity<RelatedIssueSubject> {
     ProjectionIdentity::derived(ProjectionTranscript::rooted(
-        ProjectionRole::ClosedExpansion,
+        ProjectionRole::DiagnosticRelation,
         &related_content(family, material),
         u32::from(family),
     ))
@@ -78,7 +84,7 @@ fn related_issue_identity(family: u8, material: &[u8]) -> ProjectionIdentity<Rel
 /// disagree inside it as well.
 fn related_body_identity(family: u8, material: &[u8]) -> ProjectionIdentity<RelatedBodySubject> {
     ProjectionIdentity::derived(ProjectionTranscript::rooted(
-        ProjectionRole::ClosedExpansion,
+        ProjectionRole::DiagnosticRelation,
         &related_content(family, material),
         u32::from(family),
     ))
@@ -131,8 +137,8 @@ impl RelatedSet {
     ///
     /// This is a mint site, so its content grammar is stated here in full, the
     /// way [`crate::plane::ProjectionTranscript`] requires of every mint site.
-    /// Both levels derive at role `closed-expansion`, rooted, at roster position
-    /// `family`, over
+    /// Both levels derive at role `diagnostic-relation`, ROOTED, at roster
+    /// position `family`, over
     ///
     /// ```text
     /// content = family_byte || u64be(material.len()) || material
@@ -141,8 +147,20 @@ impl RelatedSet {
     /// where the material of an issue is that issue's own canonical bytes, and
     /// the material of the body is `u64be(issue.len()) || issue` for every issue
     /// in order, concatenated.
-    /// An independent reader holding the issues and this paragraph re-derives
-    /// both levels and needs nothing else.
+    ///
+    /// An independent reader re-derives both levels from the issues, this
+    /// paragraph, and the transcript specification on
+    /// [`ProjectionTranscript`](crate::plane::ProjectionTranscript) — which is
+    /// where the ten members are listed, and where the rooted posture's own
+    /// discriminant byte is published, on
+    /// [`TranscriptAnchoring`](crate::plane::TranscriptAnchoring). Nothing else
+    /// is needed and nothing else is held back: the two subjects are
+    /// `related-issue` and `related-body`, the family segment and version come
+    /// off [`DIAGNOSTIC_RELATION_IDENTITY_PROFILE`], and the derive-key context
+    /// is spelled by the domain grammar
+    /// [`IdentityProfile`](crate::plane::IdentityProfile) states.
+    ///
+    /// [`DIAGNOSTIC_RELATION_IDENTITY_PROFILE`]: crate::plane::DIAGNOSTIC_RELATION_IDENTITY_PROFILE
     ///
     /// # Bounds
     ///

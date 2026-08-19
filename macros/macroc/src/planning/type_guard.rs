@@ -239,6 +239,13 @@ impl<K: ProjectionKind> OwnerContentAccount<K> {
     /// An independent reader holding the pair and this paragraph re-derives
     /// these thirty-two bytes and needs nothing else.
     ///
+    /// The role reads to the intent's own preimage family, so the version in
+    /// that context is the kind-and-commitment grammar's own. Two accounts that
+    /// meant the same thing therefore keep deriving one identity across every
+    /// change to the machinery that would realize it — a rendered token roster,
+    /// a delivery, a generator's rendered shape — because none of those is a
+    /// member of this preimage or a segment of this context.
+    ///
     /// # Ordering
     ///
     /// Rooted, and deliberately so.

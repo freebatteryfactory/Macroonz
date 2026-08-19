@@ -217,11 +217,20 @@ pub struct OwnerContentAccount<K: ProjectionKind> {
 /// with — and the derivation is stated in full where it happens, on
 /// [`OwnerContentAccount::intent`].
 ///
+/// **The intent has its own version ladder and rides nobody else's.** The role
+/// reads to [`PreimageFamily::ProjectionIntent`], whose profile
+/// ([`PROJECTION_INTENT_IDENTITY_PROFILE`]) moves when the kind-and-commitment
+/// grammar moves and at no other time. That is what makes the equality above
+/// answerable across an upgrade: an intent that was renamed every time a
+/// rendering shape, a delivery, or a token roster widened would compare unequal
+/// between two doors that meant exactly the same thing, and the comparison would
+/// report a difference in the machinery as a difference in meaning.
+///
 /// # Nonclaims
 ///
 /// It commits to the PAIR and to nothing else: not to what the content declares
-/// it stands on, not to the context a plan was decided under, and not to any
-/// decision a plan recorded.
+/// it stands on, not to the context a plan was decided under, not to any
+/// decision a plan recorded, and not to the generator that would realize it.
 /// An account's own bytes widen the pair by the dependency set and a plan's
 /// transcript widens it again, so neither is reachable from these thirty-two
 /// bytes — which is exactly why this is the layer two distinct doors are allowed
@@ -229,6 +238,9 @@ pub struct OwnerContentAccount<K: ProjectionKind> {
 ///
 /// It is never a machine commitment, on the same terms every plane identity
 /// states: where the machine needs one the machine mints it.
+///
+/// [`PreimageFamily::ProjectionIntent`]: crate::plane::PreimageFamily::ProjectionIntent
+/// [`PROJECTION_INTENT_IDENTITY_PROFILE`]: crate::plane::PROJECTION_INTENT_IDENTITY_PROFILE
 #[must_use = "an intent identity is what door equivalence compares"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ProjectionIntentId {
@@ -932,6 +944,9 @@ kinds! {
 /// A plan's identity is derived under [`ProjectionRole::Plan`], anchored on the
 /// entry account's own commitment ([`CauseAnchoring::anchoring`]), over a
 /// content transcript.
+/// The role reads to [`PreimageFamily::Plan`], so a plan's version ladder is the
+/// plan grammar's own: it moves when the members below move, and a widening
+/// anywhere else in the plane reaches it not at all.
 ///
 /// # Ordering
 ///
@@ -968,6 +983,15 @@ kinds! {
 /// identity that admitted one would move for a reason nobody's meaning changed
 /// by.
 ///
+/// **The generator reaches this transcript through the seat a plan DECLARED it
+/// at and through nowhere else.** [`ProjectionContext::generator`] names the
+/// version of the services a plan was produced under, and member two above
+/// writes it, so a plan says which producer decided it. What no member carries
+/// is the generator as a transcript field every family would have shared: a
+/// producer's rendered shape moving is a fact about the producer, and a plan
+/// whose name moved with it would be a plan nobody could match against the one
+/// they already hold.
+///
 /// # Nonclaims
 ///
 /// The transcript does not commit to the kind-specific content's VALUES.
@@ -985,6 +1009,8 @@ kinds! {
 /// the one place a plan transcript is narrower than the plan, and it is now
 /// narrower by the kind content alone: the content a plan was planned OVER is
 /// committed to.
+///
+/// [`PreimageFamily::Plan`]: crate::plane::PreimageFamily::Plan
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PlanDerivation {
     identity: PlanId,

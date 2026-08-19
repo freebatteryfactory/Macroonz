@@ -1,18 +1,21 @@
 //! The explanation-protocol home's declarations: the typed answers, one
-//! answered question, how a view fails to be complete, and the complete view.
+//! answered question, how a view fails to be complete, the sealed proof
+//! contract a view is answered over, and the complete view itself.
 //!
 //! Declarations only.
 //! Every road that reaches a private field lives in `type_guard.rs`, this
 //! file's own child, which is what makes "the question is derived from the
-//! answer" structural rather than reviewed.
+//! answer" and "the parentage is taken rather than supplied" structural rather
+//! than reviewed.
 
 use crate::diagnostics::RepairAction;
 use crate::origin_graph::DecisionTrace;
 use crate::plane::{
-    AssumptionLimit, ExplanationSeatLimit, GeneratedUnitSubject, MembershipLimit,
-    OutputBytesSubject, OwnerFactRef, OwnerIdentityRef, PatternInstanceSubject, PatternSubject,
-    ProfileVersion, ProjectionIdentity, ProjectionKindSubject, ProjectionProfileSubject,
-    RepairLimit, RuntimeTraceSubject, TraceEntryLimit,
+    AssumptionLimit, ClosureId, ExplanationId, ExplanationSeatLimit, GeneratedUnitSubject,
+    MembershipLimit, OutputBytesSubject, OwnerFactRef, OwnerIdentityRef, PatternInstanceSubject,
+    PatternSubject, PlanId, ProfileVersion, ProjectionIdentity, ProjectionKindSubject,
+    ProjectionProfileSubject, ProjectionProvenance, RenderedRole, RepairLimit, RuntimeTraceSubject,
+    TraceEntryLimit,
 };
 use crate::planning::{
     CauseAnchoring, GraphAnchoring, InvalidationSet, PlannedOutput, ProjectionDisposition,
@@ -24,6 +27,50 @@ use threadpak::types::Bounded;
 
 #[path = "type_guard.rs"]
 mod guard;
+
+/// The seal on the proved-closure contract.
+///
+/// A value of this type is producible only inside the services, so nothing
+/// declared anywhere else can satisfy [`ProvedClosure`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ClosureProofSeal(());
+
+/// What a complete view is answered OVER at its closure end: a proof that a
+/// rendering is what a plan declared, read for its own name.
+///
+/// # Why a contract rather than the value
+///
+/// The proof lives in the closure home, and the closure home is declared AFTER
+/// this one because its terminal binds a complete view — so this home cannot
+/// name [`ProjectionClosure`](crate::closure::ProjectionClosure) without the
+/// module order carrying a backward edge, which is the one thing that order
+/// exists to make unwritable.
+///
+/// The contract closes that gap without loosening anything. It is SEALED, so the
+/// only implementation there can be is the proof itself: a caller handing a view
+/// its closure is handing over a value it could only have obtained by proving
+/// one, and there is no second type in the workspace that satisfies this
+/// contract.
+///
+/// # Bounds
+///
+/// It answers with the proof's own NAME and nothing else. What a closure proved,
+/// what it partitioned, and what it hands out are the closure's own surface, and
+/// a view reads none of them — a view is written over a proof, not out of one.
+pub trait ProvedClosure {
+    /// The seal. Only the services can produce a value of this type.
+    const SEAL: ClosureProofSeal;
+
+    /// The closed roster of rendered roles the proof stands over.
+    ///
+    /// Carried so a view over one kind can only be answered over a proof of that
+    /// kind's own rendering: a kind is not an expansion, and a proof of another
+    /// kind's roster is a proof of something else.
+    type Rendered: RenderedRole;
+
+    /// The proof's own identity.
+    fn identity(&self) -> ClosureId;
+}
 
 /// One typed answer.
 ///
@@ -157,15 +204,44 @@ pub enum ExplanationCoverageIssue {
 /// reach its seat.
 pub use guard::ExplanationCoverage;
 
-/// A complete explanation view over one kind's plans.
+/// A complete explanation view over one kind's plans, answered over one plan and
+/// one proved closure.
 ///
 /// Holding one is the proof: every applicable question has exactly one answer,
-/// and no question outside the kind's roster was answered.
+/// no question outside the kind's roster was answered, and the seats stand in
+/// the kind's own declared question order.
 /// There is no partial view — a view that could not be completed is a refusal
 /// instead.
-#[must_use = "a complete view is the proof every applicable question has exactly one answer"]
+///
+/// # Authority
+///
+/// **A view carries the parentage it was answered over, and its identity commits
+/// to it.** The plan and the closure are not decoration beside the answers: they
+/// are what the answers are ABOUT. A view that carried coverage alone was a
+/// value a terminal could bind under plan A and closure A while it had been
+/// written over another expansion of the same kind — every question answered
+/// correctly, about something else — and the type parameter could not catch it,
+/// because a kind is not an expansion.
+///
+/// So the seats below arrive together and none is supplied: the constructor is
+/// handed the ACTUAL plan and the ACTUAL closure and reads their identities off
+/// them, which is why a caller cannot name a parentage the view was not written
+/// over.
+///
+/// # Ordering
+///
+/// The answers are stored in the kind's DECLARED question order and never in the
+/// order a caller supplied them. That order is what the identity is derived
+/// over, so one set of answers is one explanation however it was assembled — and
+/// a reader walking the seats reads the protocol's own order rather than a
+/// call site's.
+#[must_use = "a complete view is the proof every applicable question has exactly one answer, over the plan and closure it names"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProjectionExplanationView<K: ProjectionKind> {
+    plan: PlanId,
+    closure: ClosureId,
     answers: Bounded<ProjectionExplanation, ExplanationSeatLimit>,
+    identity: ExplanationId,
+    provenance: ProjectionProvenance,
     _kind: PhantomData<K>,
 }

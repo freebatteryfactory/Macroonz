@@ -48,8 +48,8 @@ unsuffixed literal is typed by the position it lands in.
 the content a rendered unit's plane identity is derived over. An arm inserted
 among the existing ones renumbers every slot after it and renames identities
 already derived; an arm appended renames nothing. `encode.rs` carries the slot
-tables and the standing analysis of what appending does and does not do to the
-identity profile.
+tables, states which preimage family each table feeds, and holds the standing
+analysis of what appending does and does not do to that family's version.
 
 ## The opaque span handle
 

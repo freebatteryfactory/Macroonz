@@ -1,4 +1,4 @@
-# closure — what was rendered, the proof it is what was planned, and the receipt that proof opens
+# closure — what was rendered, the proof it is what was planned, and the closed expansion that proof opens
 
 ## Two values: a plan and a rendering
 
@@ -63,24 +63,37 @@ partial closure and no closure with a warning attached. The closure proves
 agreement among values that exist when it runs — plan, declared membership,
 rendering, origins, trace — never with an explanation not yet produced.
 
-## The receipt is where every road ends
+## The closed expansion is where every road ends
 
-The explanation reads the PROVED closure, and [`ProjectionReceipt`] binds plan,
-closure, and explanation into the one complete account emission is reachable
-from — for every projection kind, not for one family. The closure's own road to
-its emissions is crate-internal, so there is no way to emit off a proof without
-the plan it was proved against and the explanation written over it. Binding
-refuses where the closure proves a rendering against a different plan than the
-one handed in, and it states rather than invents what an expansion does not have:
-no carrier has been named and nothing has been published at this seam
-([`DeliveryAddressing`]), which is an absence a receipt carries and never a
-reason to refuse.
+The explanation is answered over the PLAN and the PROVED closure, and
+[`ClosedExpansion`] binds all three into the one complete account emission is
+reachable from — for every projection kind, not for one family. The closure's own
+road to its emissions is crate-internal, so there is no way to emit off a proof
+without the plan it was proved against and the explanation answered over it.
+
+**The three names agree or nothing binds.** Each value carries the parentage it
+was produced under — the closure names the plan it was proved against, the
+explanation names the plan and the closure it was answered over — and the binding
+compares all three, refusing under [`ExpansionBindingRefusal`] with both
+identities named. The expansion's own identity then commits to all three, so a
+terminal that bound one expansion's plan and proof with another expansion's
+explanation of the same kind is neither buildable nor silently identical to the
+honest one. A kind is not an expansion: two plans of one kind admit the same
+questions, so coverage alone never established which subject a view was about.
+
+It states rather than invents what an expansion does not have: no carrier has
+been named and nothing has been published at this seam ([`DeliveryAddressing`]),
+which is an absence the account carries and never a reason to refuse. The word
+"receipt" stays with that publication crossing and with the evidence crossings
+the machine already owns; the terminal here is a closed expansion and carries
+[`ClosedExpansionId`](crate::plane::ClosedExpansionId), which is its own name.
 
 ## The seats
 
 `types.rs` declares; its own child `type_guard.rs` takes the digests, owns the
-partitioning and the joins, builds the proof, builds the receipt, and builds the
-refusal body, which is what keeps every one of those roads unreachable from
-anywhere else. `prove.rs` is the per-role pass those roads consume, reaching no
-private seat, and `type_contract.rs` states the refusal family and the issue
-roster's own table.
+partitioning and the joins, builds the proof, builds the closed expansion, and
+builds the refusal body, which is what keeps every one of those roads unreachable
+from anywhere else. `prove.rs` is the per-role pass those roads consume, reaching
+no private seat, and `type_contract.rs` states the refusal family, the issue
+roster's own table, and the sealed proof contract a complete explanation is
+answered over.

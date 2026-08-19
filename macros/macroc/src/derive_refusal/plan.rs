@@ -5,11 +5,15 @@
 //! # Derived identities
 //!
 //! Nothing in this module is handed an identity by a caller.
-//! Each one is derived from a complete transcript that names the profile and its
-//! version, the role, the anchor it hangs off at full width, the material it
-//! stands over at full length, and the generator that produced it — so the whole
-//! plan is a deterministic function of the captured declaration, and two
-//! captures of the same declaration produce the same plan on every machine.
+//! Each one is derived from a complete transcript that names its preimage
+//! family and that family's version, the role, the anchor it hangs off at full
+//! width, and the material it stands over at full length — so the whole plan is
+//! a deterministic function of the captured declaration, and two captures of the
+//! same declaration produce the same plan on every machine.
+//!
+//! Which generator produced them is on the derivation records beside the
+//! identities and in no preimage, so a rendered shape that moved leaves every
+//! name here where it was.
 //!
 //! That is what makes the plan comparable to the rendering afterwards.
 //! A plan whose identities were supplied could be made to agree with any
@@ -37,10 +41,18 @@ use crate::refusal::ProjectionPlanning;
 use threadpak::types::Bounded;
 
 /// The projection profile a Rust-declaration expansion runs under.
+///
+/// # A declared name, under the declared-name family
+///
+/// The preimage is one declared stable name and nothing else, which is its own
+/// grammar and not a plan's. It stands under [`ProjectionRole::DeclaredName`],
+/// where it used to ride [`ProjectionRole::Plan`] — and a preimage on a
+/// neighbour's ladder is renamed by that neighbour's bumps, so a widening of
+/// what a PLAN commits to used to rename the profile every plan names.
 #[must_use]
 pub fn rust_declaration_profile() -> ProjectionIdentity<ProjectionProfileSubject> {
     ProjectionIdentity::derived(ProjectionTranscript::rooted(
-        ProjectionRole::Plan,
+        ProjectionRole::DeclaredName,
         b"macroc.profile.rust-declaration",
         0,
     ))
@@ -60,6 +72,14 @@ pub const fn rust_declaration_profile_version() -> ProfileVersion {
 /// The schema version is the fact that moves when the rendered shape moves, so
 /// it is the fact this identity turns on, and the package version is
 /// deliberately absent from it.
+///
+/// # Its own family
+///
+/// Two framed members are not one declared name, so this preimage does not share
+/// the declared-name grammar either: it stands under
+/// [`ProjectionRole::GeneratorVersion`] and its own version ladder, where it
+/// used to ride [`ProjectionRole::Plan`] while holding no member of a plan's
+/// grammar at all.
 #[must_use]
 pub fn generator_version() -> ProjectionIdentity<GeneratorVersionSubject> {
     let mut content = Vec::new();
@@ -69,17 +89,20 @@ pub fn generator_version() -> ProjectionIdentity<GeneratorVersionSubject> {
     );
     content.extend_from_slice(&MACROC_GENERATOR.schema().position().to_be_bytes());
     ProjectionIdentity::derived(ProjectionTranscript::rooted(
-        ProjectionRole::Plan,
+        ProjectionRole::GeneratorVersion,
         &content,
         0,
     ))
 }
 
 /// This projection kind's identity.
+///
+/// A declared name on the terms [`rust_declaration_profile`] states, separated
+/// from it by its own SUBJECT and by its own content.
 #[must_use]
 pub fn derive_impl_kind() -> ProjectionIdentity<ProjectionKindSubject> {
     ProjectionIdentity::derived(ProjectionTranscript::rooted(
-        ProjectionRole::Plan,
+        ProjectionRole::DeclaredName,
         b"macroc.kind.derive-impl-projection",
         0,
     ))

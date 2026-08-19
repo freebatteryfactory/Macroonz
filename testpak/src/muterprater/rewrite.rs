@@ -9,12 +9,12 @@
 //! # Trust-last, by the staging
 //!
 //! Rewrite-produced descriptors are admitted LAST. The trust order opens with
-//! baseline qualification, then wrap-first pressure, then the mandatory
-//! no-mutation parity — and only with the interpreted lane standing under all of
-//! that does this lane's material become evidence rather than a candidate.
-//! [`admission`] is that reading, taken over the interpreted lane's own
-//! availability so the order has ONE authority rather than two that could
-//! disagree.
+//! baseline qualification, then a witness rejection demonstrated under a
+//! qualified adapter, then the mandatory no-mutation parity — and only with the
+//! interpreted lane standing under all of that does this lane's material become
+//! evidence rather than a candidate. [`admission`] is that reading, taken over
+//! the interpreted lane's own availability so the order has ONE authority
+//! rather than two that could disagree.
 //!
 //! # Why the interpreter gates this lane
 //!
@@ -52,9 +52,9 @@ pub fn planned(roster: &RewriteRoster, scope: &ScopeShape) -> Vec<RewriteCandida
 /// # Authority
 ///
 /// Read over the interpreted lane's availability, which already folds the trust
-/// order in its owner's sequence. A second reading of wrap evidence and parity
-/// here would be the same law standing in two places, and the weaker copy would
-/// keep passing after the stronger one moved.
+/// order in its owner's sequence. A second reading of the pressure witness and
+/// the parity here would be the same law standing in two places, and the weaker
+/// copy would keep passing after the stronger one moved.
 #[must_use]
 pub fn admission(interpreter: &InterpreterAvailability<'_>) -> RewriteAdmission {
     match interpreter {

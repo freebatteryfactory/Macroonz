@@ -82,6 +82,14 @@ digest the closure proved over bytes that exist, and the related kind's
 disposition beside the repairs a refusal offers. A road that minted any of those
 four would be answering the station with a value nobody computed.
 
+The PROVED CLOSURE travels into the view beside the plan, because a complete
+view carries the parentage it was answered over and takes both identities off the
+values themselves rather than from a caller. A kind is not an expansion: two
+documentation plans admit the same eight questions, so a view that carried
+coverage alone could be bound beside another plan's proof with every question
+answered correctly about the wrong subject. The closure is read here for its
+NAME and nothing else.
+
 ## The seats
 
 `types.rs` declares, including the four magnitude rows this home's capacities are

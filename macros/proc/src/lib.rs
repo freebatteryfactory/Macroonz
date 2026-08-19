@@ -57,8 +57,9 @@
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 use threadpak_macroc::{
     CaptureBound, CaptureWalk, CapturedDelimiter, CapturedInput, CapturedPayload,
-    CapturedTokenTree, ClosedExpansion, GeneratedDelimiter, GeneratedSpacing, GeneratedToken,
-    GeneratedTree, MacrocDiagnostic, RefusalCompileContext, SpanHandle, TokenPath, compile_refusal,
+    CapturedTokenTree, GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree,
+    MacrocDiagnostic, RefusalCompileContext, RefusalFamilyExpansion, SpanHandle, TokenPath,
+    compile_refusal,
 };
 
 /// Derives a refusal family's declared facts from its declaration.
@@ -106,11 +107,11 @@ pub fn refusal_family(item: TokenStream) -> TokenStream {
     }
 }
 
-/// The closed expansion's declaration-site cargo, as the compiler's tokens —
+/// The expansion's declaration-site cargo, as the compiler's tokens —
 /// the shell's only act. A projection that plans nothing at the declaration
 /// site emits nothing there; the carrier cargo is the generated support
 /// shell's to deliver, not this shell's.
-fn emit(closed: &ClosedExpansion) -> TokenStream {
+fn emit(closed: &RefusalFamilyExpansion) -> TokenStream {
     closed
         .emitted()
         .tokens()

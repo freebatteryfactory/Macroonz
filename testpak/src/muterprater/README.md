@@ -21,11 +21,22 @@ The staging below is a TRUST order, never a construction order: all three
 lanes are written complete during the build-out, and nothing is trusted
 merely because its code exists. Trust opens after the first toolchain
 contact, in the owner's order: baseline qualification, then wrap-first
-pressure; interpreter results are admitted only once the wrap run's KILLS
-prove the properties bite — its non-kills are the inconclusive roster the
-interpreter's planning reads, never survivors, because that backend carries
-no activation channel to earn one — and the mandatory no-mutation parity
-passes; rewrite-produced descriptors are admitted last.
+pressure; interpreter results are admitted only once a QUALIFIED reading
+demonstrates a witness rejection and the mandatory no-mutation parity
+passes; rewrite-produced descriptors are admitted last. The gate consumes
+two typed facts — the adapter qualification, and the compiled-pressure
+witness shown under it — and never a bare run stripped of the profile that
+says which tool, which version posture, which output, and which grammar
+produced the evidence. A wrap reading's non-kills are the inconclusive
+roster the interpreter's planning reads, never survivors, because that
+backend carries no activation channel to earn one.
+
+Four axes stay four, and each keeps its own seat: whether the adapter reads
+its backend's output correctly is not whether a property bit; whether a
+property bit is not how many mutants a run pressed; and none of those three
+is the no-mutation parity, which is about the evaluation copy's faithfulness
+and about nothing else. Reading one of them as another is how a harness
+grades itself green on a question it never asked.
 
 ## The lanes
 
@@ -55,9 +66,13 @@ mutation target; where mapping is unavailable it runs a conservative
 witness selection and reports owner-unmapped, never inventing the claim.
 Mutant-scoped selection joins on shapes the rows already carry, executed as
 the pure engine over the complete table — the denominator survives every
-narrowed run. A survivor's explanation hands off directly into synthesis:
+narrowed run. Survivor explanation hands off directly into synthesis —
 survivor → owning claim → which oracle class is missing → the check
-reference that would close it. The artifact-mutation mode — damaging a
+reference that would close it — and it stands over a record that EARNED the
+word, which takes observed activation: this lane produces none, so the
+records it explains come from a lane whose backend can observe a damage
+firing, and what this lane hands a reader is its inconclusive roster.
+The artifact-mutation mode — damaging a
 rendered artifact to prove the readers notice — is the harness rehearsing
 its own alarm; its roster of damages is declared here as seed material,
 while the surgery that realizes one is authored where the anchors are
@@ -83,6 +98,17 @@ is the first item of the first toolchain contact, ahead of trusting the
 wrap-first pressure. A durable reading over a machine-readable output, and
 whatever mechanism such a reading asks for, is decided at the trust opening
 against the backend's own artifacts rather than against an imagined schema.
+
+That profile is what a reading's ADAPTER QUALIFICATION carries, beside the
+grammar standing — whether any party has checked the adapter's stated shapes
+against output the backend really wrote, which ahead of the first toolchain
+contact nobody has, so the honest posture is the unchecked one and a reading
+under it is worth exactly what the adapter's own page is worth. A COMPILED
+PRESSURE WITNESS is the second fact: at least one lawful witness rejection,
+read out of a qualified reading and carrying that reading's own
+qualification, so trust-opening evidence can never be married to a profile
+some other reading was taken under. A reading that reported no kill yields
+no witness, which is the absence it is.
 
 The compile-once interpreter is the rapid loop this instrument is named
 for. The walk over the declaration happens at generation time over the

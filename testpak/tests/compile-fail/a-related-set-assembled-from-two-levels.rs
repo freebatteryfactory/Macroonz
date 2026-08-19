@@ -20,6 +20,11 @@
 //! The fixture stays on that one shape on purpose. A second attempt failing
 //! earlier would swallow this error and leave the record attesting something
 //! else.
+//!
+//! The committed `.stderr` beside this file carries the one road in's own
+//! signature, so a change to what that road takes moves this snapshot and fails
+//! this test. The rendering was hand-adjusted for the role this fixture now
+//! mints at, under no toolchain, and is verified at first toolchain contact.
 
 use threadpak_macroc::RelatedSet;
 use threadpak_macroc::plane::{
@@ -31,7 +36,7 @@ fn main() {
     // much is lawful: a plane identity of a public subject is a value anybody
     // may derive.
     let issues = vec![ProjectionIdentity::<RelatedIssueSubject>::derived(
-        ProjectionTranscript::rooted(ProjectionRole::ClosedExpansion, b"an issue", 1),
+        ProjectionTranscript::rooted(ProjectionRole::DiagnosticRelation, b"an issue", 1),
     )];
 
     // Supplying that level as an input to the set. The one road in takes the

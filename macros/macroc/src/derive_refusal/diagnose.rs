@@ -8,7 +8,8 @@
 //! names every question that was unanswered, doubled, or inadmissible; a
 //! rendering refusal names the exact bound and the unit that overran it, or the
 //! role whose body observes the target its delivery must move it off; and a
-//! binding refusal names the two plans it was asked to hold under one identity.
+//! binding refusal names which of the three parentage pairs disagreed and the
+//! two identities it was asked to hold as one.
 //!
 //! Every function here projects the typed body it is handed and keeps what the
 //! body knew:
@@ -56,7 +57,7 @@ use super::explain::ExplanationBindingRefusal;
 use super::render::RenderRefusal;
 use super::types::{DIAGNOSTIC_PREFIX, RefusalDeriveFact, callable_entry, expected_contract};
 use crate::closure::{
-    ClosureIssue, ProjectionClosureRefusal, ReceiptBindingRefusal, RenderingRefusal,
+    ClosureIssue, ExpansionBindingRefusal, ProjectionClosureRefusal, RenderingRefusal,
 };
 use crate::diagnostics::{
     DiagnosticSite, MacrocDiagnostic, MacrocPhase, ObservedClassification, RelatedSet,
@@ -86,8 +87,12 @@ const COVERAGE_FAMILY: u8 = 2;
 /// The rendering family's tag.
 const RENDERING_FAMILY: u8 = 3;
 
-/// The receipt-binding family's tag.
-const RECEIPT_FAMILY: u8 = 4;
+/// The expansion-binding family's tag.
+///
+/// The NUMBER is not renamed with the constant: a family tag is preimage
+/// material, and every related identity already derived under this family stands
+/// over the byte four. Renaming the spelling renames nothing derived.
+const EXPANSION_FAMILY: u8 = 4;
 
 // ---------------------------------------------------------------------------
 // The one compiler-facing grammar.
@@ -122,8 +127,8 @@ threadpak::closed_register! {
         SubjectNotSubstitutable = "subject-not-substitutable",
             "the rendering does not stand over the subject its delivery requires";
         /// The three values the terminal binds do not belong to one expansion.
-        ReceiptNotBound = "receipt-not-bound",
-            "the receipt does not bind the plan its proof was taken against";
+        ExpansionNotBound = "expansion-not-bound",
+            "the three values do not belong to one expansion";
     }
 }
 
@@ -744,38 +749,70 @@ fn target_observed<R: RenderedRole>(role: R) -> MacrocDiagnostic {
     )
 }
 
-/// Project one receipt-binding refusal: the plan the binding was handed, and the
-/// plan the closure was actually proved against.
+/// Project one expansion-binding refusal: the two identities the binding was
+/// asked to hold as one.
 ///
-/// Both identities travel, and neither is elected: a receipt bound over the pair
-/// would name one plan while carrying the proof of another and would answer
-/// every question correctly about the wrong expansion, so the diagnostic carries
-/// what would have been bound rather than a summary of it.
+/// Both identities travel, and neither is elected: an expansion bound over any
+/// of the three disagreeing pairs would name one plan, one proof, or one
+/// explanation while carrying another's, and would answer every question
+/// correctly about the wrong expansion — so the diagnostic carries what would
+/// have been bound rather than a summary of it.
+///
+/// The three arms compose three different lines and three different materials,
+/// because they are three different repairs: a proof taken against another plan,
+/// an explanation answered over another plan, and an explanation answered over
+/// another proof. A shared sentence under a shared material would tell a caller
+/// that "something did not agree" and derive one related identity for all three.
 ///
 /// The line names the disagreement and the related set names the two identities.
 /// Spelling thirty-two bytes into a sentence rustc shows one line of would hand a
 /// reader a digest where a repair belongs; the identities are typed values and
 /// travel as the material this projection derives its related identities over.
-pub fn receipt_refused(refusal: &ReceiptBindingRefusal) -> MacrocDiagnostic {
-    let ReceiptBindingRefusal::ClosureProvedAgainstAnotherPlan { planned, proved } = refusal;
-    let mut material = vec![0];
-    encode_bytes(planned.as_bytes(), &mut material);
-    encode_bytes(proved.as_bytes(), &mut material);
+pub fn expansion_refused(refusal: &ExpansionBindingRefusal) -> MacrocDiagnostic {
+    // The arm's own discriminant leads the material, so two arms carrying two
+    // identities that happened to coincide are still two related identities.
+    let (line, material) = match refusal {
+        ExpansionBindingRefusal::ClosureProvedAgainstAnotherPlan { planned, proved } => (
+            "the closure proves a rendering against a plan other than the one bound beside it",
+            binding_material(0, planned.as_bytes(), proved.as_bytes()),
+        ),
+        ExpansionBindingRefusal::ExplanationAnsweredOverAnotherPlan { planned, answered } => (
+            "the explanation was answered over a plan other than the one bound beside it",
+            binding_material(1, planned.as_bytes(), answered.as_bytes()),
+        ),
+        ExpansionBindingRefusal::ExplanationAnsweredOverAnotherClosure { proved, answered } => (
+            "the explanation was answered over a proof other than the one bound beside it",
+            binding_material(2, proved.as_bytes(), answered.as_bytes()),
+        ),
+    };
     diagnosed(
         MacrocPhase::Inspection,
         ObservedClassification::IdentityDisagreement,
         &RefusalLine {
-            class: RefusalClass::ReceiptNotBound,
-            first: "the closure proves a rendering against a plan other than the one bound beside \
-                    it",
-            // One disagreement: the binding checks the one thing three
-            // separately produced values can disagree about, and refuses at it.
+            class: RefusalClass::ExpansionNotBound,
+            first: line,
+            // One disagreement: the binding checks each pair in turn and refuses
+            // at the first that disagrees, so there is no body behind it.
             body: LineBody::SingleCause,
         },
-        RECEIPT_FAMILY,
+        EXPANSION_FAMILY,
         &[material],
         RefusalDeriveFact::NothingIsHandedOutThatDidNotBind,
     )
+}
+
+/// One binding disagreement's complete canonical material: which pair
+/// disagreed, then the identity that was BOUND and the identity that was
+/// actually carried, each at full width.
+///
+/// The order is the refusal's own — what the binding was handed first, what the
+/// value it was handed turned out to name second — so a reader of the two
+/// identities knows which is which without the diagnostic saying so twice.
+fn binding_material(pair: u8, bound: &[u8; 32], carried: &[u8; 32]) -> Vec<u8> {
+    let mut material = vec![pair];
+    encode_bytes(bound, &mut material);
+    encode_bytes(carried, &mut material);
+    material
 }
 
 /// The shared body of both rendering projections: which magnitude, and which

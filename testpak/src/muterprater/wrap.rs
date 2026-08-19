@@ -69,6 +69,19 @@
 //! a trial nor a cause: no fingerprint exists for it, and a proposal standing on
 //! a kill is grounded on a demonstration this harness ran itself.
 //!
+//! # What a reading opens trust with
+//!
+//! Two typed facts, and the interpreted lane's gate consumes both. An
+//! [`AdapterQualification`](super::AdapterQualification) is this reading's own
+//! profile under a stated grammar standing — whether any party has checked the
+//! shapes this page declares against output the backend really wrote, which
+//! ahead of the first toolchain contact nobody has. A
+//! [`CompiledPressureWitness`](super::CompiledPressureWitness) is at least one
+//! lawful kill read out of a qualified reading, carrying that reading's own
+//! qualification. Neither is a bare run: what a run counts and what a suite
+//! demonstrated are two questions, and the profile is exactly what a reader
+//! needs at the moment the evidence starts deciding something.
+//!
 //! # The two caller-supplied seams
 //!
 //! External mutants arrive as source coordinates, not as claims. The origin

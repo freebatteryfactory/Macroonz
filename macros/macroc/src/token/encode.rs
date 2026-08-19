@@ -29,13 +29,22 @@
 //! byte-string and numeric arms appended at five and six behind the four already
 //! in use.
 //!
-//! # Whether appending is a profile bump
+//! # Which family a slot table moves, and whether appending moves it
 //!
-//! [`crate::plane::PROJECTION_IDENTITY_PROFILE`] states that a change to what a
+//! The two tables here feed two different preimage grammars, so they answer to
+//! two different version ladders. The generated table is the content a rendered
+//! unit's identity and its output-bytes digest are derived over, which is
+//! [`crate::plane::RENDERED_UNIT_IDENTITY_PROFILE`]; the captured table is the
+//! content a captured declaration's identity is derived over, which is
+//! [`crate::plane::CAPTURED_DECLARATION_IDENTITY_PROFILE`]. An arm added to one
+//! table is a question about that table's family alone, and no identity outside
+//! it is reachable from the answer.
+//!
+//! [`crate::plane::IdentityProfileVersion`] states that a change to what a
 //! transcript CONTAINS — the members, their order, or the content a mint site
-//! composes — is a version bump, and that a bump renames every identity the
-//! profile derives. The two arms appended here pull that law both ways, and the
-//! honest reading of each is:
+//! composes — is a bump of that family, and that a bump renames every identity
+//! the family derives. The two generated arms pulled that law both ways when
+//! they were appended, and the honest reading of each is:
 //!
 //! - **Nothing already derived moves.** Word, punct, text, and group keep slots
 //!   one through four, the framing is unchanged, and no group's inner encoding
@@ -48,14 +57,18 @@
 //!   contain now has two more rows, reachable only by trees no renderer could
 //!   build before. An independent reader holding the previous grammar and a tree
 //!   carrying a byte-string literal cannot read it, and "a reader handed two
-//!   identities under one version may assume both were derived the same way" is
-//!   the sentence the profile's own declaration makes.
+//!   identities of one family under one position may assume both were derived
+//!   the same way" is the sentence the version's own declaration makes.
 //!
-//! The version is one number and those two readings want different answers, so
-//! the call belongs to whoever owns the profile rather than to this file. It is
-//! recorded here UNBUMPED and stated rather than assumed, at the seat where the
-//! answer would be written, so the question is visible to the next reader
-//! instead of having been settled quietly in either direction.
+//! **The rendered-unit family settles it by standing over the table as it is.**
+//! Its position one was declared against the six-row generated grammar, arms
+//! included, so the promise that position makes is true of exactly what this
+//! file writes and there is no earlier position for a reader to be holding. The
+//! next arm appended is the next reader's question, at this seat, against that
+//! family's position and no other.
+//!
+//! The captured table is not part of that question: it stands at the five rows
+//! it was first declared with, so its family has nothing to decide.
 
 use super::{CapturedDelimiter, CapturedPayload, CapturedTokenTree, GeneratedDelimiter};
 use super::{GeneratedSpacing, GeneratedToken};

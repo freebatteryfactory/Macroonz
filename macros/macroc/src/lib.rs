@@ -30,7 +30,8 @@
 //! destination each member declared, so what the consumer's normal build
 //! compiles is exactly what was planned into it and nothing else.
 //! Nothing is handed out that did not bind: the emissions are reachable only
-//! off the receipt that joins the plan, the proof, and the explanation.
+//! off the closed expansion that joins the plan, the proof, and the
+//! explanation — and it joins them only where the three name one another.
 //!
 //! **No partial output.** A declared output set is materialized whole or not at
 //! all.
@@ -49,8 +50,8 @@
 //! owner content account → intent → plan (account + context + kind content +
 //! LOGICAL membership + invalidation + trace + origin + nonclaims) → rendered
 //! units (trees, bytes, digests) → proved closure (membership rebuilt, emission
-//! partitioned by delivery) → explanation → receipt → the emission each build
-//! receives
+//! partitioned by delivery) → explanation (over that plan and that closure) →
+//! closed expansion → the emission each build receives
 //! ```
 //!
 //! The account is where owner content walks in: the commitment the owner
@@ -123,32 +124,39 @@
 //! 7. **The explanation.** [`ProjectionExplanation::answered`] per seat — the
 //!    question is taken from the answer — and
 //!    [`ProjectionExplanationView::complete`] over the roster
-//!    [`ProjectionPlan::applicable_questions`] states. It is written after the
+//!    [`ProjectionPlan::applicable_questions`] states. It takes the PLAN and the
+//!    PROVED CLOSURE themselves, reads their identities off them, stores the
+//!    seats in the kind's declared question order, and mints the view's own
+//!    [`ExplanationId`] over the three — so a complete view names the parentage
+//!    it was answered over and cannot be handed one. It is written after the
 //!    closure, because one seat carries a digest of bytes that must exist.
-//! 8. **The receipt.** [`ProjectionReceipt::bound`] takes the plan, the closure
-//!    proved against it, and the explanation written over the two, and binds
-//!    them under one identity. This road is public and it is where the door
-//!    ends for EVERY projection kind: a caller that walked steps 1 through 7
-//!    arrives here with three unforgeable values and leaves holding the one
-//!    account emission is reachable from. The emissions are read off it —
-//!    [`ProjectionReceipt::declaration_site`] for the tokens an expansion shell
-//!    hands the compiler, [`ProjectionReceipt::test_carrier`] and
-//!    [`ProjectionReceipt::bench_carrier`] for the cargo a consumption target
-//!    invokes, [`ProjectionReceipt::published`] for the units a publication
+//! 8. **The closed expansion.** [`ClosedExpansion::bound`] takes the plan, the
+//!    closure proved against it, and the explanation answered over the two, and
+//!    binds them under one identity — after establishing that the three name one
+//!    another, and committing to all three inside that identity. This road is
+//!    public and it is where the door ends for EVERY projection kind: a caller
+//!    that walked steps 1 through 7 arrives here with three unforgeable values
+//!    and leaves holding the one account emission is reachable from. The
+//!    emissions are read off it —
+//!    [`ClosedExpansion::declaration_site`] for the tokens an expansion shell
+//!    hands the compiler, [`ClosedExpansion::test_carrier`] and
+//!    [`ClosedExpansion::bench_carrier`] for the cargo a consumption target
+//!    invokes, [`ClosedExpansion::published`] for the units a publication
 //!    writes to their own addresses. What an expansion does not have, it states:
-//!    [`ProjectionReceipt::addressing`] says no carrier has been named and
-//!    nothing has been published at this seam, which is an absence a receipt
+//!    [`ClosedExpansion::addressing`] says no carrier has been named and
+//!    nothing has been published at this seam, which is an absence the account
 //!    carries rather than a reason to refuse. [`compile_refusal`] and
 //!    [`compile_refusal_text`] are the refusal family's one-call road through
-//!    the whole of it, with the capture in front, and [`ClosedExpansion`] is
-//!    that family's own view over the receipt this step binds.
+//!    the whole of it, with the capture in front, and
+//!    [`RefusalFamilyExpansion`] is that family's own view over the closed
+//!    expansion this step binds.
 //!
 //! Every step refuses in its own vocabulary: [`ProjectionPlanning`] at the
 //! account, the watch set, and the plan; [`RenderingRefusal`] at a rendered
 //! unit; [`ProjectionClosureRefusal`] at the proof and at the emissions it
-//! splits; [`ExplanationCoverage`] at the view; [`ReceiptBindingRefusal`] at the
-//! binding, where a closure proved against another plan is the one disagreement
-//! three separately produced values can have.
+//! splits; [`ExplanationCoverage`] at the view; [`ExpansionBindingRefusal`] at
+//! the binding, where three separately produced values can disagree about their
+//! parentage in exactly three places and each of them is a different repair.
 //! A caller either matches each one or projects it into the plane's diagnostic,
 //! and those projections live where the derive door needed them —
 //! [`derive_refusal::diagnose`], whose planning, rendering, closure, and
@@ -162,20 +170,20 @@
 //! use threadpak::types::Bounded;
 //! use threadpak_macroc::derive_refusal::diagnose;
 //! use threadpak_macroc::{
-//!     DecisionTrace, DeriveImplContent, DeriveImplProjection, DigestContract, ExplanationAnswer,
-//!     ExplanationBindingRefusal, GeneratedDelimiter, GeneratedToken, GeneratedTree,
-//!     GraphAnchoring, MacrocDiagnostic, MemberDestination, OriginEdge, OriginRelation,
-//!     OriginTrail, OwnerContentAccount, OwnerFactRef, PlanDecisions, PlannedMember,
+//!     ClosedExpansion, DecisionTrace, DeriveImplContent, DeriveImplProjection, DigestContract,
+//!     ExplanationAnswer, ExplanationBindingRefusal, GeneratedDelimiter, GeneratedToken,
+//!     GeneratedTree, GraphAnchoring, MacrocDiagnostic, MemberDestination, OriginEdge,
+//!     OriginRelation, OriginTrail, OwnerContentAccount, OwnerFactRef, PlanDecisions, PlannedMember,
 //!     PlannedMembership, PlannedOutput, ProfileVersion, ProjectionClosure, ProjectionContext,
 //!     ProjectionDisposition, ProjectionExplanation, ProjectionExplanationView, ProjectionIdentity,
-//!     ProjectionPlan, ProjectionReceipt, ProjectionRole, ProjectionTranscript, RenderRefusal,
+//!     ProjectionPlan, ProjectionRole, ProjectionTranscript, RenderRefusal,
 //!     RenderedImplementation, RenderedProjection, RenderedRole, RenderedUnit, TargetBinding,
 //!     TraceDecision, TraceEntry,
 //! };
 //!
 //! /// Plan, render, close, explain, and bind one implementation projection, with
 //! /// every refusal on the road projected into the plane's own diagnostic.
-//! fn expand() -> Result<ProjectionReceipt<DeriveImplProjection>, MacrocDiagnostic> {
+//! fn expand() -> Result<ClosedExpansion<DeriveImplProjection>, MacrocDiagnostic> {
 //!     let role = RenderedImplementation::RenderedFamilyImpl;
 //!
 //!     // 1. The account. At expansion time the content IS the captured material.
@@ -193,7 +201,7 @@
 //!
 //!     // 3. The context, and the watch set derived from it and the account.
 //!     let profile = ProjectionIdentity::derived(ProjectionTranscript::rooted(
-//!         ProjectionRole::Plan,
+//!         ProjectionRole::DeclaredName,
 //!         b"example.profile.rust-declaration",
 //!         0,
 //!     ));
@@ -202,7 +210,7 @@
 //!         profile,
 //!         profile_version: ProfileVersion::declared(1),
 //!         generator: ProjectionIdentity::derived(ProjectionTranscript::rooted(
-//!             ProjectionRole::Plan,
+//!             ProjectionRole::GeneratorVersion,
 //!             b"example.generator.schema-1",
 //!             0,
 //!         )),
@@ -317,13 +325,17 @@
 //!     )
 //!     .map_err(|refusal| diagnose::closure_refused(&refusal))?;
 //!
-//!     // 7. The explanation: every seat this kind owes, answered once.
+//!     // 7. The explanation: every seat this kind owes, answered once, over the
+//!     //    plan and the proof themselves — so the view names its own parentage.
 //!     let kind = ProjectionIdentity::derived(ProjectionTranscript::rooted(
-//!         ProjectionRole::Plan,
+//!         ProjectionRole::DeclaredName,
 //!         b"example.kind.derive-impl-projection",
 //!         0,
 //!     ));
-//!     let explanation = ProjectionExplanationView::<DeriveImplProjection>::complete(vec![
+//!     let explanation = ProjectionExplanationView::<DeriveImplProjection>::complete(
+//!         &plan,
+//!         &closure,
+//!         vec![
 //!         ProjectionExplanation::answered(ExplanationAnswer::Kind { kind }),
 //!         ProjectionExplanation::answered(ExplanationAnswer::Owner { owner: assumed }),
 //!         ProjectionExplanation::answered(ExplanationAnswer::CausingDeclarations {
@@ -351,15 +363,17 @@
 //!         ProjectionExplanation::answered(ExplanationAnswer::Repairs {
 //!             repairs: Bounded::empty(),
 //!         }),
-//!     ])
+//!         ],
+//!     )
 //!     .map_err(|coverage| {
 //!         diagnose::explanation_refused(&ExplanationBindingRefusal::Coverage(coverage))
 //!     })?;
 //!
-//!     // 8. The receipt: the plan, the proof, and the explanation under one
-//!     //    identity — the one value the emissions are read off.
-//!     ProjectionReceipt::bound(plan, closure, explanation)
-//!         .map_err(|refusal| diagnose::receipt_refused(&refusal))
+//!     // 8. The closed expansion: the plan, the proof, and the explanation under
+//!     //    one identity — the one value the emissions are read off, bound only
+//!     //    where the three name one another.
+//!     ClosedExpansion::bound(plan, closure, explanation)
+//!         .map_err(|refusal| diagnose::expansion_refused(&refusal))
 //! }
 //! ```
 //!
@@ -429,8 +443,8 @@ pub mod pattern_stamp;
 pub mod derive_refusal;
 
 pub use closure::{
-    CarriedTokens, ClosureIssue, DeliveryAddressing, PartitionCargo, PartitionedEmission,
-    ProjectionClosure, ProjectionClosureRefusal, ProjectionReceipt, ReceiptBindingRefusal,
+    CarriedTokens, ClosedExpansion, ClosureIssue, DeliveryAddressing, ExpansionBindingRefusal,
+    PartitionCargo, PartitionedEmission, ProjectionClosure, ProjectionClosureRefusal,
     RenderedProjection, RenderedUnit, RenderingRefusal,
 };
 pub use composition::{
@@ -438,11 +452,12 @@ pub use composition::{
     DescriptorKind, DescriptorProvider,
 };
 pub use derive_refusal::{
-    CapturedCause, CauseOrderStanding, ClosedExpansion, CrateBinding, DEFAULT_CRATE_BINDING,
-    DerivedMembership, DerivedPlan, ExplanationBindingRefusal, ExplanationSeat,
-    RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveCapture, RefusalDeriveRefusal,
-    RefusalDeriveSurface, RefusalOwnerFacts, RenderRefusal, TextCompileRefusal, captured,
-    captured_text, compile_refusal, compile_refusal_text,
+    CapturedCause, CapturedDocumentationReading, CauseOrderStanding, CrateBinding,
+    DEFAULT_CRATE_BINDING, DerivedMembership, DerivedPlan, ExplanationBindingRefusal,
+    ExplanationSeat, RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveCapture,
+    RefusalDeriveRefusal, RefusalDeriveSurface, RefusalFamilyExpansion, RefusalOwnerFacts,
+    RenderRefusal, TextCompileRefusal, captured, captured_text, compile_refusal,
+    compile_refusal_text, documented,
 };
 pub use diagnostics::{
     DiagnosticSite, MachineAnchoring, MachineAnchors, MacrocDiagnostic, MacrocPhase,
@@ -450,20 +465,26 @@ pub use diagnostics::{
     RelatedSetTruncation, ReleasePosture, RepairAction, ReproductionRoute, SiteCoordinate,
 };
 pub use explanation_protocol::{
-    ExplanationAnswer, ExplanationCoverage, ExplanationCoverageIssue, ProjectionExplanation,
-    ProjectionExplanationView, kind_admits,
+    ClosureProofSeal, ExplanationAnswer, ExplanationCoverage, ExplanationCoverageIssue,
+    ProjectionExplanation, ProjectionExplanationView, ProvedClosure, kind_admits,
 };
 pub use origin_graph::{
     DecisionTrace, Nonclaim, OriginEdge, OriginRelation, OriginTrail, TraceDecision, TraceEntry,
 };
 pub use pattern_stamp::{ScopeGuardOwnerFacts, ScopeGuardStampAnchors, plan_scope_guard_stamp};
 pub use plane::{
-    AuthoringLimitProfile, ClosedExpansionId, ClosureId, GeneratorIdentity, GeneratorProfileId,
-    GeneratorSchemaVersion, HumanProjection, IdentityProfile, IdentityProfileVersion,
-    IdentitySubject, MACROC_GENERATOR, OwnerFactName, OwnerFactRef, OwnerIdentityRef,
-    PROJECTION_IDENTITY_PROFILE, PlanId, ProfileVersion, ProjectionIdentity, ProjectionProvenance,
-    ProjectionRole, ProjectionTranscript, RenderedRole, RenderedRoleSeal, SoleRenderedUnit,
-    SubjectSeal, TranscriptAnchoring, encode_bytes, encode_length,
+    AuthoringLimitProfile, BUNDLE_IDENTITY_PROFILE, CAPTURED_DECLARATION_IDENTITY_PROFILE,
+    CLOSED_EXPANSION_IDENTITY_PROFILE, CLOSURE_IDENTITY_PROFILE, ClosedExpansionId, ClosureId,
+    DECLARATION_DOCUMENTATION_IDENTITY_PROFILE, DECLARED_NAME_IDENTITY_PROFILE,
+    DIAGNOSTIC_RELATION_IDENTITY_PROFILE, EXPLANATION_IDENTITY_PROFILE, ExplanationId,
+    GENERATED_UNIT_IDENTITY_PROFILE, GENERATOR_VERSION_IDENTITY_PROFILE, GeneratorIdentity,
+    GeneratorProfileId, GeneratorSchemaVersion, HumanProjection, IDENTITY_PROFILE_STEM,
+    IdentityProfile, IdentityProfileVersion, IdentitySubject, MACROC_GENERATOR,
+    ORIGIN_NODE_IDENTITY_PROFILE, OwnerFactName, OwnerFactRef, OwnerIdentityRef,
+    PLAN_IDENTITY_PROFILE, PROJECTION_INTENT_IDENTITY_PROFILE, PlanId, PreimageFamily,
+    ProfileVersion, ProjectionIdentity, ProjectionProvenance, ProjectionRole, ProjectionTranscript,
+    RENDERED_UNIT_IDENTITY_PROFILE, RenderedRole, RenderedRoleSeal, SoleRenderedUnit, SubjectSeal,
+    TranscriptAnchoring, encode_bytes, encode_length,
 };
 pub use planning::{
     BenchmarkDescriptorContent, BenchmarkDescriptorProjection, CapturedDependencies, CauseAnchoring,

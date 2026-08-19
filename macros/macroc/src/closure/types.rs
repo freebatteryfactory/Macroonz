@@ -1,13 +1,13 @@
 //! The closure home's declarations: what a renderer materialized, how a
 //! rendering and its plan can disagree, the proof that they do not, the
-//! partitioned emission that proof produces, and the receipt every projection
-//! kind's road ends at.
+//! partitioned emission that proof produces, and the closed expansion every
+//! projection kind's road ends at.
 //!
 //! Declarations only.
 //! Every road that reaches a private field lives in `type_guard.rs`, this
 //! file's own child, which is what makes "tokens are emitted only from a
-//! closure, and only through the receipt that binds one" structural rather than
-//! reviewed.
+//! closure, and only through the closed expansion that binds one" structural
+//! rather than reviewed.
 
 use crate::explanation_protocol::ProjectionExplanationView;
 use crate::origin_graph::OriginTrail;
@@ -144,7 +144,7 @@ pub enum PartitionCargo {
 /// and one stream claiming to be both is the one thing a publication must not
 /// write. So a published artifact IS its rendered unit, at the address that
 /// unit's destination names, and it is read as one
-/// ([`ProjectionReceipt::published`]) rather than copied into a record that
+/// ([`ClosedExpansion::published`]) rather than copied into a record that
 /// would answer the same question a second time.
 ///
 /// # Nonclaims
@@ -152,8 +152,9 @@ pub enum PartitionCargo {
 /// It claims nothing about the vehicles. Whether a carrier's shell has been
 /// rendered, what it is named, and whether any target invokes it are the
 /// consumption side's facts; whether a publication ever wrote an artifact is the
-/// publication road's. This value is the proved cargo, and the receipt that
-/// binds it states the absence of those addresses rather than inventing them.
+/// publication road's. This value is the proved cargo, and the closed expansion
+/// that binds it states the absence of those addresses rather than inventing
+/// them.
 #[must_use = "a partitioned emission is what one proved rendering delivers, split by delivery"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PartitionedEmission {
@@ -291,10 +292,11 @@ pub use guard::ProjectionClosureRefusal;
 ///
 /// **No token reaches a compiler except through a value proved here.**
 /// The proved emission is this closure's material and is not handed out: the
-/// public road to tokens is [`ProjectionReceipt`], which binds this closure to
-/// the plan it was proved against and the explanation written over it, and reads
-/// the emissions off it. A road that handed the tokens back from here would be a
-/// road to emission that skips the receipt, which is the same as no receipt.
+/// public road to tokens is [`ClosedExpansion`], which binds this closure to the
+/// plan it was proved against and the explanation written over the two, and
+/// reads the emissions off it. A road that handed the tokens back from here
+/// would be a road to emission that skips the binding, which is the same as no
+/// binding.
 #[must_use = "a closure is the proof that what was rendered is what was planned"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProjectionClosure<R: RenderedRole> {
@@ -307,8 +309,8 @@ pub struct ProjectionClosure<R: RenderedRole> {
 }
 
 threadpak::closed_register! {
-    /// What a receipt states about the addresses a delivered emission will
-    /// eventually be reached by, at the seam a receipt is bound.
+    /// What a closed expansion states about the addresses a delivered emission
+    /// will eventually be reached by, at the seam the expansion is bound.
     ///
     /// # Authority
     ///
@@ -316,19 +318,21 @@ threadpak::closed_register! {
     /// no carrier name and no publication receipt, and neither absence is a gap
     /// somebody could fill: the shell a carrier's cargo rides is named where the
     /// shell is rendered, and a publication receipt is a human-committed act
-    /// outside any expansion. Writing the posture down rather than leaving it
-    /// implicit is what makes a second posture a law change at this roster
-    /// instead of a seat somebody adds to a receipt.
+    /// outside any expansion — which is the one crossing that word still names
+    /// in these services, and it is not this one.
+    /// Writing the posture down rather than leaving it implicit is what makes a
+    /// second posture a law change at this roster instead of a seat somebody
+    /// adds to a terminal.
     ///
-    /// A receipt therefore states the absence and STANDS. It does not refuse
-    /// over a value nobody at this seam could supply, and it does not mint a
-    /// stand-in — an invented carrier name reads exactly like a published one,
-    /// which is the substitution every posture roster in the plane exists to
-    /// remove.
+    /// A closed expansion therefore states the absence and STANDS. It does not
+    /// refuse over a value nobody at this seam could supply, and it does not
+    /// mint a stand-in — an invented carrier name reads exactly like a published
+    /// one, which is the substitution every posture roster in the plane exists
+    /// to remove.
     ///
-    /// The posture's slot rides in every receipt's transcript, so the day a
-    /// second posture is admitted the receipts derived under it stand in a
-    /// different name space from the receipts derived under this one.
+    /// The posture's slot rides in every closed expansion's transcript, so the
+    /// day a second posture is admitted the expansions derived under it stand in
+    /// a different name space from the expansions derived under this one.
     pub enum DeliveryAddressing {
         /// Neither address exists at this seam: no carrier has been named and
         /// nothing has been published. The cargo is proved and partitioned, and
@@ -338,24 +342,55 @@ threadpak::closed_register! {
     }
 }
 
-/// How binding one receipt refuses.
+/// How binding one closed expansion refuses.
 ///
-/// One way, because there is exactly one thing three values that were produced
-/// separately can disagree about and this seam can check: whether the closure
-/// was proved against the plan it is being bound to.
-#[must_use = "a binding refusal names the two plans a receipt was asked to bind under one identity"]
+/// Three ways, and they are three different disagreements rather than one with a
+/// different value in it. Three values produced separately can disagree about
+/// their PARENTAGE in exactly three places, and each of the three is a different
+/// repair: the proof may have been taken against another plan, the explanation
+/// may have been answered over another plan, and the explanation may have been
+/// answered over another proof.
+///
+/// Every arm names both identities it holds and elects neither. A caller told
+/// only that "the three do not agree" is a caller that has to find out which two.
+#[must_use = "a binding refusal names the two identities an expansion was asked to bind as one"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ReceiptBindingRefusal {
+pub enum ExpansionBindingRefusal {
     /// The closure proves a rendering against a DIFFERENT plan than the one
     /// handed in beside it.
-    /// A receipt bound over the pair would name one plan and carry the proof of
-    /// another, and every reading downstream would answer correctly about the
+    /// An expansion bound over the pair would name one plan and carry the proof
+    /// of another, and every reading downstream would answer correctly about the
     /// wrong expansion.
     ClosureProvedAgainstAnotherPlan {
         /// The plan handed to the binding.
         planned: PlanId,
         /// The plan the closure was actually proved against.
         proved: PlanId,
+    },
+    /// The explanation was answered over a DIFFERENT plan than the one handed in
+    /// beside it.
+    /// The type parameter ties the three values to one KIND, and a kind is not
+    /// an expansion: two plans of one kind admit the same questions, so an
+    /// explanation written over the other one covers its roster exactly and
+    /// answers every question correctly about the wrong subject.
+    ExplanationAnsweredOverAnotherPlan {
+        /// The plan handed to the binding.
+        planned: PlanId,
+        /// The plan the explanation was actually answered over.
+        answered: PlanId,
+    },
+    /// The explanation was answered over a DIFFERENT closure than the one handed
+    /// in beside it.
+    ///
+    /// Distinct from the plan disagreement, and reachable on its own: one plan
+    /// may be proved by two renderings, and an explanation carries the digest
+    /// the closure proved over bytes that exist — so an explanation over the
+    /// other proof states a digest of bytes this expansion never emitted.
+    ExplanationAnsweredOverAnotherClosure {
+        /// The proof handed to the binding.
+        proved: ClosureId,
+        /// The proof the explanation was actually answered over.
+        answered: ClosureId,
     },
 }
 
@@ -367,39 +402,48 @@ pub enum ReceiptBindingRefusal {
 /// binding them here is what turns those three into one account, and the account
 /// is the only value that hands tokens out.
 ///
+/// # The name
+///
+/// It is a closed EXPANSION, and it carries [`ClosedExpansionId`] because that
+/// is what it is. The word "receipt" is reserved in these services for an actual
+/// evidence or publication crossing — a human-committed act under a receipt,
+/// which is what [`DeliveryAddressing`] says an expansion has none of — and a
+/// terminal that wore it would be claiming an evidence crossing it never made.
+///
 /// # The one road to emitted tokens
 ///
-/// A receipt cannot be held without a plan, a proved closure over that plan, and
-/// a complete explanation view all having been produced and having agreed. The
-/// closure is unforgeable and the view is unforgeable, so the binding cannot
-/// assemble a receipt out of values that skipped a step — and the emissions are
-/// read off the closure's own proved partitions, so what a caller emits is what
-/// was proved rather than something joined afterwards.
+/// One cannot be held without a plan, a proved closure over that plan, and a
+/// complete explanation view answered over the two, all having been produced and
+/// having agreed. The closure is unforgeable and the view is unforgeable, so the
+/// binding cannot assemble an expansion out of values that skipped a step — and
+/// the emissions are read off the closure's own proved partitions, so what a
+/// caller emits is what was proved rather than something joined afterwards.
+///
+/// # One expansion, and the three names it binds
+///
+/// The three values agree about their parentage or the binding refuses
+/// ([`ExpansionBindingRefusal`]): the closure names the plan it was proved
+/// against, and the explanation names the plan and the closure it was answered
+/// over. All three are compared here, and this expansion's own identity commits
+/// to all three — so a terminal that bound plan A, closure A, and a different
+/// expansion's explanation of the same kind is neither buildable nor, if the
+/// comparison were removed, silently identical to the honest one.
 ///
 /// # Inspection and emission
 ///
-/// [`ProjectionReceipt::plan`] and [`ProjectionReceipt::closure`] are the SAME
+/// [`ClosedExpansion::plan`] and [`ClosedExpansion::closure`] are the SAME
 /// values the emissions are read from. There is no parallel plan built for
 /// inspection and no synthetic sibling built for emission, so "what does it say
 /// it did" and "what did it do" cannot drift.
 ///
-/// The receipt holds no tokens of its own. The partitioned emission belongs to
+/// This value holds no tokens of its own. The partitioned emission belongs to
 /// the CLOSURE, which built it as part of proving and committed to its digests
-/// inside its own identity; this value borrows it. A receipt that had been
+/// inside its own identity; this value borrows it. An expansion that had been
 /// handed an emission alongside a closure could have been handed one the closure
 /// never joined.
-///
-/// # Nonclaims
-///
-/// The explanation view carries no plan identity, so nothing here establishes
-/// that the view was written over THIS plan rather than over another plan of the
-/// same kind. The type parameter ties the three to one kind and the binding ties
-/// the closure to the plan; the view's own subject is what the coverage proof
-/// establishes, and this seat states the boundary rather than implying a
-/// comparison nobody performed.
-#[must_use = "a receipt is the whole account one projection produced, and the only road to tokens"]
+#[must_use = "a closed expansion is the whole account one projection produced, and the only road to tokens"]
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ProjectionReceipt<K: ProjectionKind> {
+pub struct ClosedExpansion<K: ProjectionKind> {
     identity: ClosedExpansionId,
     provenance: ProjectionProvenance,
     plan: ProjectionPlan<K>,

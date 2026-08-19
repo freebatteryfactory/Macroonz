@@ -7,29 +7,33 @@
 //! minted HERE, so a mutant nothing observed fire — and a mutant under a backend
 //! that cannot observe firing at all — can never earn the word. A dud plant is
 //! refused HERE, so activation evidence always has a firing behind it. A
-//! duplicate is refused HERE, so "not a duplicate" is a comparison rather than a
-//! paragraph. And a proposal is married to its ground HERE, so evidence that
-//! does not fit the ground is not a proposal anybody can offer.
+//! compiled-pressure witness is married to the qualification of the very
+//! reading it was read out of HERE, so trust-opening evidence can never arrive
+//! stripped of the profile that says which tool produced it. A duplicate is
+//! refused HERE, so "not a duplicate" is a comparison rather than a paragraph.
+//! And a proposal is married to its ground HERE, so evidence that does not fit
+//! the ground is not a proposal anybody can offer.
 
 use super::{
     ActivationDisposition, ActivationEvidence, ActivationSite, ActiveMutant, ActiveSelection,
-    AdapterProfile, AlternativeIndex, AnnouncedRoster, BackendVersion, BackendVersionPosture,
-    BackendVersionRefusal, BaselineAxis, BaselinePrecondition, BaselineQualification,
-    BudgetRefusal, CandidateSketch, CheckGap, ClaimCeiling, CoordinateRefusal, Demonstration,
-    DemonstratedRejection, DiffPath, DiffPathRefusal, DischargeEvidence, DudPlant,
-    DuplicateEvidence, DuplicateRefusal, EquivalenceAxis, EvaluationSurface, ExecutionAxis,
-    ExplanationRefusal, FamilyAttribution, GrammarVersion, InconclusiveCause, InferredObligation,
-    IntendedRejection, KillRefusal, MUTATION_TARGET_TAG, MappingPosture, MaterializationAxis,
-    MutantId, MutationCensus, MutationIdentity, MutationOutcome, MutationPoint, MutationReport,
-    MutationRun, MutationSite, MutationTarget, MutationVerdict, NoComparisonReason, ObligationLane,
+    AdapterProfile, AdapterQualification, AlternativeIndex, AnnouncedRoster, BackendVersion,
+    BackendVersionPosture, BackendVersionRefusal, BaselineAxis, BaselinePrecondition,
+    BaselineQualification, BudgetRefusal, CandidateSketch, CheckGap, ClaimCeiling,
+    CompiledPressureWitness, CoordinateRefusal, Demonstration, DemonstratedRejection, DiffPath,
+    DiffPathRefusal, DischargeEvidence, DudPlant, DuplicateEvidence, DuplicateRefusal,
+    EquivalenceAxis, EvaluationSurface, ExecutionAxis, ExplanationRefusal, FamilyAttribution,
+    GrammarStanding, GrammarVersion, InconclusiveCause, InferredObligation, IntendedRejection,
+    KillRefusal, MUTATION_TARGET_TAG, MappingPosture, MaterializationAxis, MutantId,
+    MutationCensus, MutationIdentity, MutationOutcome, MutationPoint, MutationReport, MutationRun,
+    MutationSite, MutationTarget, MutationVerdict, NoComparisonReason, ObligationLane,
     OperatorFamilyRef, OracleClass, OwedClaim, OwedClaimRefusal, OwedDeclaration, PROPOSAL_TAG,
     ParityStanding, PlanRefusal, PlannedDamage, PlannedRun, PointRefusal, PressureBudget,
-    PressureLane, ProofDelta, ProofDeltaRefusal, ProofPlan, ProofRefusal, ProofShape, Proposal,
-    ProposalDestination, ProposalGround, ProposalRefusal, ReadingSource, RejectionIdentity,
-    RewriteCandidate, RewriteDescriptor, RewriteRefusal, RewriteRoster, RewriteTrust,
-    RosterRefusal, ScopeShape, ScopedInvocation, SelectionRefusal, SinkRefusal, SourceCoordinate,
-    StoredProposalRef, SurfaceRefusal, SurvivalRefusal, SurvivorExplanation, UnparsedLine,
-    WrapReading, WrapRefusal, WrappedBackend,
+    PressureLane, PressureWitnessRefusal, ProofDelta, ProofDeltaRefusal, ProofPlan, ProofRefusal,
+    ProofShape, Proposal, ProposalDestination, ProposalGround, ProposalRefusal, ReadingSource,
+    RejectionIdentity, RewriteCandidate, RewriteDescriptor, RewriteRefusal, RewriteRoster,
+    RewriteTrust, RosterRefusal, ScopeShape, ScopedInvocation, SelectionRefusal, SinkRefusal,
+    SourceCoordinate, StoredProposalRef, SurfaceRefusal, SurvivalRefusal, SurvivorExplanation,
+    UnparsedLine, WrapReading, WrapRefusal, WrapStanding, WrappedBackend,
 };
 use crate::depot::operator_families::OPERATOR_FAMILIES;
 use crate::depot::types::OperatorFamily;
@@ -660,6 +664,17 @@ impl MutationRun {
         self.census
     }
 
+    /// Every mutant this run killed, in the order the run pressed them.
+    ///
+    /// The roster a trust-opening fact is read out of: a kill here is a witness
+    /// rejection this run demonstrated, and a run with none has shown no
+    /// property biting.
+    pub fn kills(&self) -> impl Iterator<Item = &MutationReport> {
+        self.reports
+            .iter()
+            .filter(|report| report.verdict() == MutationVerdict::Killed)
+    }
+
     /// Every mutant this run did not kill, whatever the reason.
     ///
     /// The roster a reader means by "what got through", which under a backend
@@ -855,6 +870,96 @@ impl WrapReading {
     #[must_use]
     pub fn unparsed(&self) -> &[UnparsedLine] {
         &self.unparsed
+    }
+}
+
+// ---------------------------------------------------------------------------
+// The two facts a reading opens trust with.
+// ---------------------------------------------------------------------------
+
+impl AdapterQualification {
+    /// The qualification one reading's own profile stands under.
+    ///
+    /// # Authority
+    ///
+    /// The profile is taken FROM the reading rather than stated beside it, so
+    /// there is no road to a qualification naming a profile some other reading
+    /// was taken under. What the caller states is the grammar standing — the
+    /// party's own word about whether the adapter's shapes were ever checked
+    /// against output the backend really wrote.
+    #[must_use]
+    pub fn of(reading: &WrapReading, standing: GrammarStanding) -> Self {
+        Self {
+            profile: reading.profile().clone(),
+            standing,
+        }
+    }
+
+    /// The profile the reading was taken under.
+    #[must_use]
+    pub const fn profile(&self) -> &AdapterProfile {
+        &self.profile
+    }
+
+    /// Whether that adapter's grammar has been checked against real output.
+    #[must_use]
+    pub const fn standing(&self) -> &GrammarStanding {
+        &self.standing
+    }
+
+    /// The most a reading under this qualification can establish.
+    ///
+    /// The profile's own ceiling, read through rather than restated: qualifying
+    /// an adapter never widens what its source affords.
+    #[must_use]
+    pub fn ceiling(&self) -> ClaimCeiling {
+        self.profile.ceiling()
+    }
+}
+
+impl CompiledPressureWitness {
+    /// The witness one wrap standing demonstrated, where it demonstrated one.
+    ///
+    /// # Authority
+    ///
+    /// Both halves come out of ONE reading: the qualification is that reading's
+    /// own profile under the stated grammar standing, and the kill is one its
+    /// run recorded. So a witness can never carry another adapter's
+    /// qualification, and a reading nobody qualified produces no witness at
+    /// all — the two facts are married here rather than downstream.
+    ///
+    /// # Errors
+    ///
+    /// Refuses, in a declared dependent order: a standing that has not
+    /// reported, then a reported reading whose run demonstrated no lawful kill
+    /// — a wrap pass that caught nothing has shown no property biting, and it
+    /// is the absence it is rather than a softer kind of evidence.
+    pub fn shown(
+        wrap: WrapStanding<'_>,
+        grammar: GrammarStanding,
+    ) -> Result<Self, PressureWitnessRefusal> {
+        let WrapStanding::Reported(reading) = wrap else {
+            return Err(PressureWitnessRefusal::WrapNotReported);
+        };
+        let Some(kill) = reading.run().kills().next() else {
+            return Err(PressureWitnessRefusal::NoKillDemonstrated);
+        };
+        Ok(Self {
+            qualification: AdapterQualification::of(reading, grammar),
+            kill: kill.clone(),
+        })
+    }
+
+    /// The qualification the witness was demonstrated under.
+    #[must_use]
+    pub const fn qualification(&self) -> &AdapterQualification {
+        &self.qualification
+    }
+
+    /// The kill it was demonstrated by.
+    #[must_use]
+    pub const fn kill(&self) -> &MutationReport {
+        &self.kill
     }
 }
 

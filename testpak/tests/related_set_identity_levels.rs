@@ -10,9 +10,19 @@
 //!
 //! So this file rebuilds the body's identity from the published content grammar
 //! with its own encoder — its own length framing, its own field order, its own
-//! domain-string assembly, its own subject and role spellings — and requires the
-//! produced identity to match. Not one encoding function, constant, or spelling
-//! is imported from `threadpak-macroc`.
+//! domain-string assembly, its own subject and role spellings, its own preimage
+//! family and version — and requires the produced identity to match. Not one
+//! encoding function, constant, or spelling is imported from
+//! `threadpak-macroc`.
+//!
+//! The prose this file is written from is the mint site's own construction
+//! paragraph on `RelatedSet::derived_over`, which states the content grammar in
+//! full and names the role, both subjects, and the profile constant the family
+//! segment and version come off — over the frame the transcript specification on
+//! `ProjectionTranscript` states, with the rooted posture's own discriminant
+//! byte read off the table published on `TranscriptAnchoring`, and the
+//! derive-key grammar spelled on `IdentityProfile`. Nothing here was read off an
+//! encoder body.
 //!
 //! `independent_identity_transcript.rs` judges the TRANSCRIPT grammar; this file
 //! judges the CONTENT one mint site composes.
@@ -48,19 +58,35 @@ use threadpak_macroc::{RelatedIdentity, RelatedSet, RelatedSetCompletion};
 // ---------------------------------------------------------------------------
 
 /// The profile stem, spelled out rather than imported.
+///
+/// One stem for every family. What separates two families is the family segment
+/// beside it, never a stem a family chose for itself.
 const PROFILE_STEM: &str = "threadpak/macroc/projection-identity";
 
-/// The profile version, spelled out rather than imported. It moves here
-/// deliberately when the published profile moves — this lane writes both the
-/// derive-key context and the transcript itself, so the constant is the whole
-/// of following a bump.
-const PROFILE_VERSION: u32 = 4;
+/// The PREIMAGE FAMILY both levels are derived under, spelled out rather than
+/// imported.
+///
+/// It is not passed anywhere: the mint site names the diagnostic-relation role
+/// and the family follows from the role, so this lane reads it off the same role
+/// and carries no second opinion about which grammar these preimages belong to.
+///
+/// Both levels stood under the CLOSED-EXPANSION role, which put every related
+/// identity in every diagnostic on the terminal's version ladder — so a widening
+/// of what a terminal commits to renamed them, and neither level holds a member
+/// of that grammar. This lane restates the family they stand in now, and the two
+/// names are two key spaces: a value derived under the old one is not reachable
+/// from this file at all.
+const PREIMAGE_FAMILY: &str = "diagnostic-relation";
 
-/// The generator's declared name, spelled out rather than imported.
-const GENERATOR_PROFILE: &str = "threadpak-macroc";
-
-/// The generator's schema version, spelled out rather than imported.
-const GENERATOR_SCHEMA: u32 = 1;
+/// That family's OWN version position, spelled out rather than imported.
+///
+/// One position per grammar, and this is the diagnostic-relation grammar's. It
+/// moves here deliberately when the published family moves — this lane writes
+/// both the derive-key context and the transcript itself, so the constant is
+/// the whole of following a bump — and a bump under any OTHER family, the
+/// terminal's included, moves nothing in this file. That independence is the
+/// point of the move and it is now a property this lane would notice losing.
+const PREIMAGE_FAMILY_VERSION: u32 = 1;
 
 /// The subject a related set's WHOLE-BODY commitment is derived under, spelled
 /// out rather than imported.
@@ -72,18 +98,35 @@ const BODY_SUBJECT: &str = "related-body";
 const ISSUE_SUBJECT: &str = "related-issue";
 
 /// The role both levels are derived at, spelled out rather than imported.
-const ROLE: &str = "closed-expansion";
+const ROLE: &str = "diagnostic-relation";
 
 /// That role's declared slot, read off the roster order the specification
-/// states rather than from the producer.
-const ROLE_SLOT: u8 = 8;
+/// states rather than from the producer: the diagnostic relation is the
+/// fifteenth row of the fifteen-row role roster, and a slot IS its row's place
+/// counted from the first.
+///
+/// A row is appended and never inserted, so this number moves only when a role
+/// is declared ahead of this one — which would renumber every slot from the move
+/// onward and rename every identity derived under them.
+const ROLE_SLOT: u8 = 14;
 
 /// The anchoring discriminant for a rooted transcript.
+///
+/// Read off the discriminant table published beside the postures themselves.
+/// This lane once had to assume the byte off the posture order and said so here;
+/// it is declared now, so the assumption is retired and this constant is a
+/// restatement like every other in this file.
 const ANCHORING_ROOTED: u8 = 0;
 
-/// The family tag every identity in this file is derived under. Any byte would
-/// do; it is stated once so the judge and the services are asked about the same
-/// family.
+/// The DIAGNOSTIC family tag every identity in this file is derived over. Any
+/// byte would do; it is stated once so the judge and the services are asked
+/// about the same family.
+///
+/// A different thing from the preimage family above, and the two are worth
+/// keeping apart: this byte is material — the first byte of the content one
+/// mint site composes, and the roster position that content's transcript
+/// carries. The preimage family is the GRAMMAR that transcript is written
+/// under, and it is a declared name rather than a byte a caller chose.
 const FAMILY: u8 = 3;
 
 /// This lane's own length framing: eight big-endian bytes.
@@ -116,17 +159,24 @@ fn judge_body_material(issues: &[Vec<u8>]) -> Vec<u8> {
     framed
 }
 
-/// This lane's own derive-key context, assembled by the published grammar.
+/// This lane's own derive-key context, assembled by the published grammar: the
+/// stem, the family, the family's version, the subject, the role.
 fn judge_context(subject: &str) -> String {
-    format!("{PROFILE_STEM}/v{PROFILE_VERSION}/{subject}/{ROLE}")
+    format!("{PROFILE_STEM}/{PREIMAGE_FAMILY}/v{PREIMAGE_FAMILY_VERSION}/{subject}/{ROLE}")
 }
 
-/// This lane's own transcript: the eleven members of the specification, in
-/// order, for a rooted derivation at the closed-expansion role.
+/// This lane's own transcript: the ten members of the specification, in order,
+/// for a rooted derivation at the diagnostic-relation role, at the roster
+/// position the mint site states — the family tag.
+///
+/// There is no generator member. The generator is provenance, no family's
+/// grammar names it, and a transcript carrying it would be a preimage this
+/// specification does not describe.
 fn judge_transcript(subject: &str, content: &[u8]) -> Vec<u8> {
     let mut bytes = Vec::new();
     judge_bytes(PROFILE_STEM.as_bytes(), &mut bytes);
-    bytes.extend_from_slice(&PROFILE_VERSION.to_be_bytes());
+    judge_bytes(PREIMAGE_FAMILY.as_bytes(), &mut bytes);
+    bytes.extend_from_slice(&PREIMAGE_FAMILY_VERSION.to_be_bytes());
     judge_bytes(subject.as_bytes(), &mut bytes);
     judge_bytes(ROLE.as_bytes(), &mut bytes);
     bytes.push(ROLE_SLOT);
@@ -134,8 +184,6 @@ fn judge_transcript(subject: &str, content: &[u8]) -> Vec<u8> {
     judge_bytes(&[], &mut bytes);
     judge_bytes(content, &mut bytes);
     bytes.extend_from_slice(&u32::from(FAMILY).to_be_bytes());
-    judge_bytes(GENERATOR_PROFILE.as_bytes(), &mut bytes);
-    bytes.extend_from_slice(&GENERATOR_SCHEMA.to_be_bytes());
     bytes
 }
 

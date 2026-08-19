@@ -1,9 +1,10 @@
 //! The proof-pressure engine's declarations: the verdict chain's axes, the
 //! per-mutant record and its run, the mutation target and its owner mapping, the
-//! wrap lane's adapter profile and reading vocabulary, the interpreted lane's
-//! evaluation surface and trust gate, the rewrite lane's descriptors, the
-//! artifact-mutation seed roster, the survivor explanation and the check gap,
-//! the scope shapes and the proof plan, and the whole proposal road.
+//! wrap lane's adapter profile and reading vocabulary, the two facts a reading
+//! opens trust with, the interpreted lane's evaluation surface and trust gate,
+//! the rewrite lane's descriptors, the artifact-mutation seed roster, the
+//! survivor explanation and the check gap, the scope shapes and the proof plan,
+//! and the whole proposal road.
 //!
 //! Declarations only. Every road that reaches a private field is this file's own
 //! child, `type_guard.rs`; the declarative tables are `type_contract.rs`; the
@@ -812,6 +813,136 @@ pub enum WrapRefusal {
 }
 
 // ---------------------------------------------------------------------------
+// The two facts a reading opens trust with.
+// ---------------------------------------------------------------------------
+
+/// Whether the wrap-first pressure has reported, and what it reported.
+///
+/// # Authority
+///
+/// The first half of the trust order, carried as the whole PROFILED reading
+/// rather than as a bare run. The backend, the version posture, the output the
+/// reading was taken from, the adapter grammar, and the ceiling that source
+/// affords all ride with the evidence — and they are exactly the facts the
+/// trust-opening road weighs, so dropping them at the moment provenance decides
+/// something is not a shape this vocabulary has.
+///
+/// # Nonclaims
+///
+/// A report is not the same fact as a report that killed something. A wrap pass
+/// with no kill is not evidence that the properties bite, and
+/// [`CompiledPressureWitness::shown`] reads it as the absence it is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WrapStanding<'reading> {
+    /// The wrap-first pressure reported, and this is the reading it reported.
+    Reported(&'reading WrapReading),
+    /// The wrap-first pressure has not reported.
+    NotReported,
+}
+
+/// Whether anybody has checked one adapter's stated line grammar against output
+/// the backend itself wrote.
+///
+/// # Authority
+///
+/// The [`BackendVersionPosture`] shape, for the same reason: what stands behind
+/// a reading is a party's own word, and the bare arm is the BOOTSTRAP posture
+/// rather than a value somebody forgot to fill in. Ahead of the first toolchain
+/// contact nothing has been checked against anything, so
+/// [`GrammarStanding::Unchecked`] is the only arm anybody can state honestly,
+/// and a reading under it is exactly as good as the adapter's own page.
+///
+/// # Nonclaims
+///
+/// [`GrammarStanding::Checked`] records that a party checked this adapter's
+/// stated shapes against output that version of the backend wrote. It is that
+/// party's word rather than a verification this crate performed: nothing here
+/// invokes a backend, and nothing here reads a backend's output to discover
+/// what that backend renders.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum GrammarStanding {
+    /// A party checked the adapter's stated line shapes against output this
+    /// version of the backend wrote, and states so.
+    Checked(BackendVersion),
+    /// Nobody has checked them against real output, so the adapter's grammar
+    /// stands as the assumption its own page states.
+    Unchecked,
+}
+
+/// That one reading's backend, output, and grammar profile stands qualified to
+/// open trust under — and how far that standing reaches.
+///
+/// # Authority
+///
+/// The typed fact the trust-opening road demands about the TOOL, carried as a
+/// value so that "which adapter produced this evidence, and what may a reading
+/// under it claim" is answered at the evidence rather than remembered around
+/// it. The profile is taken from the reading's own
+/// ([`AdapterQualification::of`]), so a qualification can never name a profile
+/// some other reading was taken under.
+///
+/// # Nonclaims
+///
+/// Parser correctness is not suite bite. A qualification says the adapter is
+/// fit to be read under; it says nothing about whether any property rejected
+/// anything, which is [`CompiledPressureWitness`]'s fact on a different axis.
+/// The claim ceiling rides with it unchanged: a qualified adapter over a
+/// console stream is still an adapter whose source carries no activation
+/// channel.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct AdapterQualification {
+    profile: AdapterProfile,
+    standing: GrammarStanding,
+}
+
+/// That one qualified reading demonstrated at least one lawful witness
+/// rejection.
+///
+/// # Authority
+///
+/// The typed fact the trust-opening road demands about the RUN: a suite
+/// rejected a damaged subject, under an adapter that stands qualified. The
+/// qualification rides inside, taken from the very reading the kill was read
+/// out of, so a witness over an unqualified reading is not a value anybody can
+/// hold and a witness can never be married to another adapter's profile.
+///
+/// # Construction
+///
+/// [`CompiledPressureWitness::shown`] is the only road, and it refuses a
+/// standing that never reported, then a reported reading whose run demonstrated
+/// no kill.
+///
+/// # Nonclaims
+///
+/// Suite bite is not campaign accounting. The witness states that at least one
+/// lawful rejection happened; how many mutants a run pressed and how they
+/// divide is the run's own census ([`MutationCensus`]), which answers a
+/// different question and is never read as this one. Neither of the two is the
+/// no-mutation parity ([`ParityStanding`]), which is about the evaluation
+/// copy's faithfulness to the rendered production surface and about nothing
+/// else.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CompiledPressureWitness {
+    qualification: AdapterQualification,
+    kill: MutationReport,
+}
+
+/// Why one wrap standing demonstrated no compiled-pressure witness.
+///
+/// Dependent checks in a declared order: whether the pressure reported at all,
+/// then whether what it reported carries a kill.
+#[must_use = "a refusal is the reason no compiled-pressure witness was shown"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PressureWitnessRefusal {
+    /// The wrap-first pressure has not reported, so there is no reading to
+    /// stand on.
+    WrapNotReported,
+    /// The reading's run demonstrated no lawful kill, so nothing in it has
+    /// shown a property biting.
+    NoKillDemonstrated,
+}
+
+// ---------------------------------------------------------------------------
 // The interpreted lane's evaluation surface.
 // ---------------------------------------------------------------------------
 
@@ -953,21 +1084,6 @@ pub enum ParityRefusal {
     SubstrateNotDeclared(SubstrateRefusal),
 }
 
-/// Whether the wrap-first pressure has reported, and what it reported.
-///
-/// # Authority
-///
-/// The first half of the trust order. A report is not the same fact as a report
-/// that killed something: a wrap pass with no kill is not evidence that the
-/// properties bite, and the availability reading treats it as the absence it is.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum WrapStanding<'run> {
-    /// The wrap-first pressure reported, and this is its run.
-    Reported(&'run MutationRun),
-    /// The wrap-first pressure has not reported.
-    NotReported,
-}
-
 /// Whether the mandatory no-mutation parity has passed.
 ///
 /// # Construction
@@ -982,12 +1098,16 @@ pub enum ParityStanding {
     NotPassed,
 }
 
-/// Which of the trust order's two facts the interpreted lane is still owed.
+/// Which of the trust order's facts the interpreted lane is still owed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MissingTrustEvidence {
-    /// The wrap-first pressure has not reported a kill, so nothing has shown the
-    /// properties bite.
+    /// No qualified reading has demonstrated a witness rejection, so nothing
+    /// has shown the properties bite.
     WrapEvidence,
+    /// A witness stands, and it was shown under a different adapter
+    /// qualification than the one trust is being opened under — so it is
+    /// evidence about another adapter's reading and opens nothing here.
+    WitnessUnderAnotherQualification,
     /// The mandatory no-mutation parity has not passed.
     NoMutationParity,
 }
@@ -1303,9 +1423,15 @@ pub enum SynthesisRefusal {
     /// The check the explanation names has no authored executable attachment, so
     /// the opening is a check gap.
     CheckGapFound(CheckGap),
-    /// The survivor is an external backend's mutant, which names no mutation
-    /// point, and the descriptor vocabulary's candidate arm carries a point or a
-    /// proof gap and nothing else.
+    /// The explained record's identity is an external backend's mutant, which
+    /// names a coordinate rather than a mutation point, and the descriptor
+    /// vocabulary's candidate arm carries a point or a proof gap and nothing
+    /// else.
+    ///
+    /// A guard on the IDENTITY shape rather than on a lane. No external reading
+    /// this crate declares can reach it today: earning the survived verdict
+    /// takes observed activation, and the one wrapped backend offers no channel
+    /// that could observe a damage firing.
     ExternalSurvivorNamesNoPoint,
     /// The row constructor refused the values the synthesis assembled.
     RowRefused(RowRefusal),

@@ -3,14 +3,19 @@
 //!
 //! Declared inside `types.rs` as its own child, so it sees the fields the
 //! declarations keep private and no sibling module does. A parity suite that
-//! never stated what its two roads share, a shared-substrate roster naming one
-//! substrate twice, and a transition contract demanding nothing of its histories
-//! are all refused HERE, which is what makes those claims structural rather than
-//! remembered.
+//! never stated what its two roads share, a shared-substrate roster naming no
+//! substrate at all, a roster naming one substrate twice, and a transition
+//! contract demanding nothing of its histories are all refused HERE, which is
+//! what makes those claims structural rather than remembered.
+//!
+//! The empty-roster refusal is the one that separates two claims. A roster
+//! naming nothing and the declaration that two roads share nothing are opposite
+//! statements, so no constructor here turns the first into the second.
 
 use super::{
     ComposedRoads, ContractRefusal, Equivalence, ParitySuite, Road, RoadPairing, SharedSubstrate,
-    SubstrateRef, SubstrateRefusal, TemporalClaim, TemporalDemand, TransitionContract,
+    SubstrateRef, SubstrateRefusal, SubstrateRoster, TemporalClaim, TemporalDemand,
+    TransitionContract,
 };
 use crate::descriptor::{NameRefusal, NamespacedName};
 use crate::report::FindingCause;
@@ -44,13 +49,20 @@ impl SubstrateRef {
     }
 }
 
-impl SharedSubstrate {
+impl SubstrateRoster {
     /// The substrates two roads both stand on.
     ///
     /// # Errors
     ///
-    /// Refuses a substrate the roster names more than once.
+    /// Refuses an empty roster, then a substrate the roster names more than
+    /// once. The empty refusal is what keeps the two meanings apart: an owner
+    /// whose roads stand on nothing in common writes
+    /// [`SharedSubstrate::DeclaredIndependent`], and there is no road from this
+    /// constructor to that claim.
     pub fn declared(standing: &[SubstrateRef]) -> Result<Self, SubstrateRefusal> {
+        if standing.is_empty() {
+            return Err(SubstrateRefusal::EmptyRoster);
+        }
         let mut roster: BTreeSet<SubstrateRef> = BTreeSet::new();
         for substrate in standing {
             if !roster.insert(*substrate) {
@@ -58,18 +70,6 @@ impl SharedSubstrate {
             }
         }
         Ok(Self { standing: roster })
-    }
-
-    /// The declaration two roads make when they stand on nothing in common.
-    ///
-    /// The strongest parity there is: agreement between roads that share nothing
-    /// is evidence about both of them, and this is how an owner says so without
-    /// naming a substrate that does not exist.
-    #[must_use]
-    pub const fn independent() -> Self {
-        Self {
-            standing: BTreeSet::new(),
-        }
     }
 
     /// Every substrate the pair stands on, in the roster's storage order.
