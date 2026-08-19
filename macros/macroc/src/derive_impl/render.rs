@@ -380,9 +380,11 @@ fn descended(
             let material: Vec<GeneratedToken> = tokens.iter().cloned().collect();
             GeneratedToken::group(*delimiter, substituted(&material, renderings)?)
         }
-        GeneratedToken::Word(_) | GeneratedToken::Punct { .. } | GeneratedToken::Text(_) => {
-            Ok(token.clone())
-        }
+        GeneratedToken::Word(_)
+        | GeneratedToken::Punct { .. }
+        | GeneratedToken::Text(_)
+        | GeneratedToken::ByteText(_)
+        | GeneratedToken::Number(_) => Ok(token.clone()),
     }
 }
 

@@ -134,7 +134,13 @@ The stamp battery lives here with the vocabulary it reads: `trial_table!`
 expands rows into the table, the named lenses, and one aggregate seat per
 execution suite — invoked by `generated_support!` on the generated road and
 directly by hand authors; `ensure_*` sugar lives with the property
-combinators it wraps. A macro body is tokens: `$crate` names the crate that
+combinators it wraps. One refusal family closes that road: a declared row
+expression builds its own parts through the public constructors and writes
+the language's own `?` on each, so every construction that can refuse — a
+name, a classification roster, a row, the published root schema declaration,
+its derived identity, the binding itself — has exactly one declared discharge
+into the stamp's family, stated once and never a variant a producer invented
+inside a vocabulary it does not own. A macro body is tokens: `$crate` names the crate that
 defined the macro, expansion occurs at the invocation site, and this home
 gains no dependency edge from either stamp.
 

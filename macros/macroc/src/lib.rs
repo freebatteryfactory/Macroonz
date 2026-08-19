@@ -77,10 +77,14 @@
 //!    of owner content: the intent, the watch set, the causing-declaration
 //!    answer, and the origin edges are all read off this one value.
 //! 2. **The intent.** [`OwnerContentAccount::intent`] hands back
-//!    [`ProjectionIntentId`] — the kind's declared name and the content
-//!    commitment — which is the pair door equivalence compares, since plan
-//!    identities carry origin and cannot be compared for it.
-//!    [`OwnerContentAccount::intent_bytes`] is that same pair as canonical bytes.
+//!    [`ProjectionIntentId`] — thirty-two bytes DERIVED over the kind's declared
+//!    name and the content commitment, which is what door equivalence compares,
+//!    since plan identities carry origin and cannot be compared for it.
+//!    [`ProjectionIntentId::as_bytes`] is that identity's whole public surface;
+//!    a digest hands back neither half of the pair it committed to, so a caller
+//!    that needs the pair itself reads the ACCOUNT, whose
+//!    [`OwnerContentAccount::intent_bytes`] is that pair as canonical bytes —
+//!    the exact preimage the identity was derived over.
 //! 3. **The context.** [`ProjectionContext`] is written as a literal: its seats
 //!    are public, and the identities seated in them are the caller's own or the
 //!    machine's, never minted here. [`ProjectionContext::graph_of`] reads a
@@ -92,9 +96,13 @@
 //! 4. **The plan.** [`PlannedMembership::complete`] for a roster a shape fixes
 //!    and [`PlannedMembership::declared`] for one decided at runtime;
 //!    [`OriginTrail::from_edge`] for the walk back to authored material;
-//!    [`DecisionTrace::from_entry`] for the decisions in selection order; then
-//!    [`ProjectionPlan::planned`], which takes the account FIRST, moves it in,
-//!    and derives the plan's own identity over it.
+//!    [`DecisionTrace::from_entry`] for the decisions in selection order. Those,
+//!    the watch set from step 3, and the nonclaims are the five DECIDED seats,
+//!    and they travel as one [`PlanDecisions`] value in the order a plan's
+//!    transcript writes them — every field required and public, so a
+//!    construction that leaves one out stops compiling exactly where a missing
+//!    argument used to. Then [`ProjectionPlan::planned`], which takes the
+//!    account FIRST, moves it in, and derives the plan's own identity over it.
 //! 5. **The rendering.** [`GeneratedToken`] spells target syntax as typed tokens
 //!    and [`GeneratedTree::assembled`] carries them;
 //!    [`RenderedUnit::materialized`] takes the digest over that tree's own
@@ -140,10 +148,10 @@
 //!     DecisionTrace, DeriveImplContent, DeriveImplProjection, DigestContract, ExplanationAnswer,
 //!     ExplanationBindingRefusal, GeneratedDelimiter, GeneratedToken, GeneratedTree,
 //!     GraphAnchoring, MacrocDiagnostic, MemberDestination, OriginEdge, OriginRelation,
-//!     OriginTrail, OwnerContentAccount, OwnerFactRef, PlannedMember, PlannedMembership,
-//!     PlannedOutput, ProfileVersion, ProjectionClosure, ProjectionContext, ProjectionDisposition,
-//!     ProjectionExplanation, ProjectionExplanationView, ProjectionIdentity, ProjectionPlan,
-//!     ProjectionRole, ProjectionTranscript, RenderRefusal, RenderedImplementation,
+//!     OriginTrail, OwnerContentAccount, OwnerFactRef, PlanDecisions, PlannedMember,
+//!     PlannedMembership, PlannedOutput, ProfileVersion, ProjectionClosure, ProjectionContext,
+//!     ProjectionDisposition, ProjectionExplanation, ProjectionExplanationView, ProjectionIdentity,
+//!     ProjectionPlan, ProjectionRole, ProjectionTranscript, RenderRefusal, RenderedImplementation,
 //!     RenderedProjection, RenderedRole, RenderedUnit, TargetBinding, TraceDecision, TraceEntry,
 //! };
 //!
@@ -160,8 +168,10 @@
 //!     ));
 //!     let account = OwnerContentAccount::<DeriveImplProjection>::captured(declaration);
 //!
-//!     // 2. The intent: the kind's declared name, and what it was meant over.
-//!     assert_eq!(account.intent().kind(), "derive-impl-projection");
+//!     // 2. The intent: thirty-two bytes over the kind's declared name and what
+//!     //    it was meant over. Two doors that meant the same thing derive one.
+//!     let same_intent = OwnerContentAccount::<DeriveImplProjection>::captured(declaration);
+//!     assert_eq!(account.intent().as_bytes(), same_intent.intent().as_bytes());
 //!
 //!     // 3. The context, and the watch set derived from it and the account.
 //!     let profile = ProjectionIdentity::derived(ProjectionTranscript::rooted(
@@ -225,32 +235,36 @@
 //!             )),
 //!             assumptions: Bounded::from_array([assumed]),
 //!         },
-//!         PlannedMembership::complete(
-//!             PlannedMember {
-//!                 role,
-//!                 output: PlannedOutput {
-//!                     semantic_key: key,
-//!                     destination: MemberDestination::AtDeclarationSite,
-//!                     origin: origin.clone(),
-//!                     expected_profile: profile,
-//!                     expected_profile_version: ProfileVersion::declared(1),
-//!                     digest_contract: DigestContract::over(key),
+//!         // The five decided seats, in the order a plan's transcript writes
+//!         // them. Every field is required, so none can be left unstated.
+//!         PlanDecisions {
+//!             membership: PlannedMembership::complete(
+//!                 PlannedMember {
+//!                     role,
+//!                     output: PlannedOutput {
+//!                         semantic_key: key,
+//!                         destination: MemberDestination::AtDeclarationSite,
+//!                         origin: origin.clone(),
+//!                         expected_profile: profile,
+//!                         expected_profile_version: ProfileVersion::declared(1),
+//!                         digest_contract: DigestContract::over(key),
+//!                     },
 //!                 },
-//!             },
-//!             [],
-//!         ),
-//!         invalidation,
-//!         DecisionTrace::from_entry(TraceEntry {
-//!             subject: ProjectionIdentity::derived(ProjectionTranscript::under_projection(
-//!                 ProjectionRole::Plan,
-//!                 &declaration,
-//!                 b"implementation-derivation",
-//!                 0,
-//!             )),
-//!             decision: TraceDecision::SelectedBecause(assumed),
-//!         }),
-//!         origin.clone(),
-//!         Bounded::empty(),
+//!                 [],
+//!             ),
+//!             invalidation,
+//!             trace: DecisionTrace::from_entry(TraceEntry {
+//!                 subject: ProjectionIdentity::derived(ProjectionTranscript::under_projection(
+//!                     ProjectionRole::Plan,
+//!                     &declaration,
+//!                     b"implementation-derivation",
+//!                     0,
+//!                 )),
+//!                 decision: TraceDecision::SelectedBecause(assumed),
+//!             }),
+//!             origin: origin.clone(),
+//!             nonclaims: Bounded::empty(),
+//!         },
 //!     )
 //!     .map_err(|refusal| diagnose::planning_refused(&refusal))?;
 //!
@@ -377,8 +391,12 @@ pub mod question;
 pub mod origin_graph;
 pub mod planning;
 pub mod derive_impl;
+pub mod codec;
+pub mod test_descriptor;
+pub mod benchmark_descriptor;
 pub mod closure;
 pub mod explanation_protocol;
+pub mod documentation;
 pub mod template;
 pub mod trigger_view;
 pub mod composition;
@@ -428,11 +446,13 @@ pub use planning::{
     DocumentationProjection, EXPECTED_GENERATED_SUPPORT_SCHEMA_ID, ExpectedGeneratedSupportSchemaId,
     GraphAnchoring, HostWrapperContent, HostWrapperProjection, InvalidationSet, InvalidationTrigger,
     KindSeal, MemberDestination, OwnerContentAccount, PatternStampContent, PatternStampProjection,
-    PlannedMember, PlannedMembership, PlannedOutput, ProjectionBundlePlan, ProjectionContext,
-    ProjectionDisposition, ProjectionIntentId, ProjectionKind, ProjectionPlan, RemoteSurfaceContent,
-    RemoteSurfaceProjection, RenderedImplementation, SourceDeclarations, SurfaceDirection,
-    TargetBinding, TargetRequirement, TestDescriptorContent, TestDescriptorProjection,
-    UNIVERSAL_QUESTIONS, VerifiedDerived, WRAPPER_COMPONENTS, WrapperComponent,
+    PlanDecisions, PlannedMember, PlannedMembership, PlannedOutput, ProjectionBundlePlan,
+    ProjectionContext, ProjectionDisposition, ProjectionIntentId, ProjectionKind, ProjectionPlan,
+    RemoteSurfaceContent, RemoteSurfaceProjection, RenderedImplementation, RowMaterialPosture,
+    SourceDeclarations,
+    SurfaceDirection, TargetBinding, TargetRequirement, TestDescriptorContent,
+    TestDescriptorProjection, UNIVERSAL_QUESTIONS, VerifiedDerived, WRAPPER_COMPONENTS,
+    WrapperComponent,
 };
 pub use question::{EXPLANATION_PROTOCOL_VERSION, ExplanationQuestion, QuestionApplicability};
 pub use refusal::{BoundAxis, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue};

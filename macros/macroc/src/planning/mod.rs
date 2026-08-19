@@ -16,7 +16,7 @@ pub use types::{
     PlanDecisions, PlanDerivation, PlannedMember, PlannedMembership, PlannedOutput,
     ProjectionBundlePlan, ProjectionContext, ProjectionDisposition, ProjectionIntentId,
     ProjectionKind, ProjectionPlan, RemoteSurfaceContent, RemoteSurfaceProjection,
-    RenderedImplementation, SourceDeclarations, SurfaceDirection, TargetBinding,
+    RenderedImplementation, RowMaterialPosture, SourceDeclarations, SurfaceDirection, TargetBinding,
     TargetRequirement, TestDescriptorContent, TestDescriptorProjection, UNIVERSAL_QUESTIONS,
     VerifiedDerived, WRAPPER_COMPONENTS, WrapperComponent,
 };

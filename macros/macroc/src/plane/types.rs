@@ -441,6 +441,36 @@ limits! {
     /// bound. Each pass of the check establishes at most one issue per role and
     /// refuses before the next pass runs, so the passes do not add up.
     ClosureIssueLimit = 64,
+    /// Mutation points one evaluation surface may admit.
+    ///
+    /// Sixty-four. What it rules out is a compile-once evaluation copy whose
+    /// selection roster has stopped being reviewable: every point is an arm in
+    /// every other point's `match`, so the rendered copy grows with the square
+    /// of the roster and a reader auditing which damages a surface admits is
+    /// reading a page rather than a list.
+    MutationPointLimit = 64,
+    /// Alternatives one mutation point may admit.
+    ///
+    /// Eight. A point names the admitted damages of ONE operation, and a point
+    /// offering more than eight has stopped being about one operation — the
+    /// repair is a second point at a second activation site, not a wider roster
+    /// at this one.
+    MutationAlternativeLimit = 8,
+    /// Issues one surface-composition refusal body may carry.
+    ///
+    /// Twice the mutation-point magnitude, sized by the widest pass rather than
+    /// the narrowest. That pass is the naming pass, and it asks TWO independent
+    /// questions of every admitted point — whether the point claims the
+    /// no-mutation control's reserved name, and whether it is the second point
+    /// under its own — and both can hold of one point at once. The passes
+    /// themselves do not add up: they are dependent, and each refuses before the
+    /// next one runs.
+    ///
+    /// Written as the number rather than as a product of the family above it: a
+    /// magnitude derived from another magnitude reads as a fact when it is a
+    /// choice, and this number would still be owed if the point magnitude moved
+    /// for its own reasons.
+    SurfaceIssueLimit = 128,
 }
 
 /// A reference to one exact machine identity, tagged by the subject it names.
@@ -640,9 +670,15 @@ pub struct IdentityProfile {
 ///   derived over the ONE account of the owner content it was planned over —
 ///   the commitment and the dependency set it declares it stands on — where the
 ///   content it stood on had been named nowhere in its own preimage.
+/// - **4** — the generated-token roster grew the byte-string and numeric
+///   literal arms (slots 5 and 6), so the grammar a reader must hold to read
+///   a generated tree's canonical bytes widened; every tree spellable before
+///   the arms encodes byte for byte as it did, and the bump keeps the
+///   profile's one promise — two identities under one version were derived
+///   the same way — true of the widened grammar.
 pub const PROJECTION_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
     "threadpak/macroc/projection-identity",
-    IdentityProfileVersion::declared(3),
+    IdentityProfileVersion::declared(4),
 );
 
 /// The stable name of the generator that derives plane identities.
@@ -690,9 +726,29 @@ pub struct GeneratorIdentity {
 }
 
 /// This generator, as every transcript in this crate names it.
+///
+/// # Versions
+///
+/// Each position below is the change to the RENDERED SHAPE that moved it,
+/// because that is the only thing this position may move for
+/// ([`GeneratorSchemaVersion`]).
+/// A position is never reused and never edited: the identities derived under an
+/// earlier one keep their names, in a name space nothing later can reach.
+///
+/// - **1** — the shape as first declared.
+/// - **2** — the derive-implementation projection's rendered-role roster gained
+///   the two mutation-evaluation roles, so one implementation meaning is
+///   delivered under four rendered roles where it was delivered under two. "A
+///   different set of rendered roles" is exactly what this position exists to
+///   move for, and it reaches identity through the membership: a plan's
+///   transcript writes its membership in ROLE-ROSTER order over the whole
+///   roster, so plans of that kind derive different identities under the new
+///   shape — which is the point, since a plan produced before the evaluation
+///   copy was a declared member declared a smaller output set than the delivery
+///   actually has.
 pub const MACROC_GENERATOR: GeneratorIdentity = GeneratorIdentity::declared(
     GeneratorProfileId::declared("threadpak-macroc"),
-    GeneratorSchemaVersion::declared(1),
+    GeneratorSchemaVersion::declared(2),
     env!("CARGO_PKG_VERSION"),
 );
 

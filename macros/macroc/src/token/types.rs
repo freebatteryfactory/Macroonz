@@ -267,6 +267,28 @@ pub enum GeneratedDelimiter {
 }
 
 /// One token a renderer writes.
+///
+/// A renderer states a literal's VALUE and never its spelling: a text literal is
+/// its text, a byte-string literal is its bytes, an integer literal is its
+/// number.
+/// The quoting, the escaping, and the absence of a suffix are the tree's
+/// business, which is what keeps a caller from composing `b"…"` out of a word
+/// and a quoted string — that pair is two tokens where the address reading it
+/// matches one.
+///
+/// # Ordering
+///
+/// The roster grows at its END and nowhere else.
+/// Each arm's slot is written in the seam's `encode.rs`, a slot is a byte of
+/// [`GeneratedTree::canonical_bytes`], and those bytes are the content a
+/// rendered unit's plane identity is derived over — so an arm inserted among the
+/// existing ones would renumber every slot after it and rename identities that
+/// were already derived.
+/// Appending renames nothing: a tree that was spellable before an arm was added
+/// encodes to the same bytes after it.
+/// The captured roster next door is ordered differently for the same reason it
+/// is ordered at all — it was declared once, in one act, and has never had to
+/// grow under material already encoded.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GeneratedToken {
     /// An identifier-shaped word.
@@ -289,6 +311,43 @@ pub enum GeneratedToken {
         /// The tokens inside.
         tokens: Bounded<GeneratedToken, GeneratedTokenLimit>,
     },
+    /// A BYTE-STRING literal: the material, written `b"…"`.
+    ///
+    /// Bytes rather than text, because the two are different literals at the
+    /// address they are written to.
+    /// A clause declared to take `b"…"` does not take `"…"`, and a text literal
+    /// carrying the same characters is a different value at that seat — so a
+    /// producer holding thirty-two bytes of a pinned identity has one arm that
+    /// says what it holds and one that says something else.
+    ///
+    /// The renderer states the material and never the spelling: the `b`, the
+    /// quotes, and every escape are the tree's, exactly as the quoting of
+    /// [`GeneratedToken::Text`] is.
+    ByteText(Vec<u8>),
+    /// An integer literal, written UNSUFFIXED: plain digits and nothing else.
+    ///
+    /// Unsuffixed because the consumer's type position is what types it.
+    /// The literal is written into a seat the address already declares — a
+    /// constructor parameter, a roster element, an attribute argument — and an
+    /// unsuffixed literal takes the type that seat demands, so one renderer
+    /// writes a count into a `u32` seat, a `u64` seat, and a `usize` seat
+    /// without being told which.
+    /// A suffix would state a second type beside the one the address declares,
+    /// and where the two disagreed the consumer would be shown a mismatch this
+    /// producer invented rather than a fact about its own declaration.
+    ///
+    /// The payload is a `u64` because that is the widest count the services
+    /// carry.
+    /// A value the destination seat cannot hold is refused at that seat, by the
+    /// consumer's own type, rather than by a narrower payload here that would
+    /// refuse it in this producer's name.
+    ///
+    /// # Nonclaims
+    ///
+    /// It carries no sign and no fraction: the arm is what the services actually
+    /// have to write — counts and byte magnitudes — and an arm that admitted
+    /// spellings no renderer produces would be a grammar nobody exercises.
+    Number(u64),
 }
 
 /// One generated token tree: the artifact a renderer produces.

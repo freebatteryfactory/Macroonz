@@ -96,7 +96,11 @@ pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] =
 ///   freely; a consumer's rename is an identifier, so nothing is lost.
 /// - Everything after those two clauses is the payload, forwarded verbatim. Its
 ///   grammar is [`trial_table!`](crate::trial_table)'s, exhaustively, and this
-///   gate neither reads nor rewrites one token of it.
+///   gate neither reads nor rewrites one token of it. All three crossings the
+///   wall declares pass this one pin, and the trial-table grammar is the only
+///   payload published today: a bench payload becomes expressible through this
+///   same door when the bench seat fills, and until it does this gate forwards
+///   that one grammar and nothing else.
 ///
 /// # Authority
 ///

@@ -35,6 +35,19 @@ mod guard;
 /// Both parts are refused empty, so a reference that names nothing is not a
 /// value anybody can hold.
 ///
+/// The road is CHECKED, and there is deliberately no total one beside it. A
+/// `const fn` that refused an empty part by panicking would refuse at COMPILE
+/// TIME only where it is evaluated in a `const` context, and the roads that
+/// spell names evaluate inside ordinary function bodies — a stamped row
+/// expression above all — where the same call is a runtime panic, which the
+/// stamped road admits nowhere. Nothing forces the evaluation into a `const`
+/// context either: a `&'static str` is not a const generic argument here, so
+/// there is no seat a spelling could be declared in. A total constructor is
+/// therefore not a smaller road but a dishonest one, and the honest road is the
+/// refusal: a name that would not parse travels as [`NameRefusal`], and the
+/// roads that build values out of names discharge it — [`TrialTableRefusal`]
+/// carries the discharge the stamped road stands on.
+///
 /// # Bounds
 ///
 /// A name is `'static` text. This vocabulary is AUTHORED — by a hand, by a
@@ -740,12 +753,32 @@ pub enum EncodeRefusal {
 /// # Authority
 ///
 /// This is the complete refusal family of the road
-/// [`trial_table!`](crate::trial_table) expands: every constructor the stamped
-/// module calls answers with one of these causes, so a seat that could not be
-/// built states WHICH construction refused rather than a single flattened
-/// failure. Each arm carries the owning constructor's own typed refusal
-/// unchanged — nothing is re-spelled here, so there is no second vocabulary for
-/// a cause that already has one.
+/// [`trial_table!`](crate::trial_table) expands, and it is the one family a
+/// declared ROW EXPRESSION refuses in. Every constructor the stamped module
+/// calls, and every construction a row expression performs on its own way to a
+/// binding, answers with one of these causes — so a seat that could not be built
+/// states WHICH construction refused rather than a single flattened failure.
+/// Each arm carries the owning constructor's own typed refusal unchanged —
+/// nothing is re-spelled here, so there is no second vocabulary for a cause that
+/// already has one.
+///
+/// # Construction
+///
+/// Every family a row expression's own `?` can raise has exactly one lawful
+/// discharge into this one, declared once as a [`From`] realization. That is
+/// what makes the `?` a generated expression writes total, and it is why a
+/// producer's expression never names an arm of this enum: the expression builds
+/// its parts through this home's public constructors, each of them refuses in a
+/// family this one already admits, and the language's own conversion carries the
+/// refusal across. An arm named in a rendering would be a producer legislating
+/// inside a vocabulary it does not own; the arms are named only by the roads
+/// this home writes for itself, where the target type is stated on the same
+/// line.
+///
+/// The authored-table refusal has no such road, and its absence is the same law
+/// read the other way: the only construction that raises it is the stamp's own
+/// final one, which stands in tail position and names the arm where it stands,
+/// so a conversion beside it would be that mapping written twice.
 ///
 /// # Nonclaims
 ///
@@ -755,11 +788,16 @@ pub enum EncodeRefusal {
 #[must_use = "a refusal is the reason a trial table was not stamped"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TrialTableRefusal {
-    /// A name the stamp declares — the table's, a suite's, or a producer's —
-    /// was refused by the name parser.
+    /// A name the road declares — the table's, a suite's, a producer's, or one
+    /// a row expression spells for itself — was refused by the name parser.
     NameNotParsed(NameRefusal),
-    /// The root schema declaration a produced table pins against was refused by
-    /// the roster law.
+    /// A row's two open rosters were refused by the classification
+    /// constructor: a role or a tag was stated twice.
+    ClassificationNotAuthored(ClassificationRefusal),
+    /// A row's own constructor refused the values it was given.
+    RowNotDeclared(RowRefusal),
+    /// The root schema declaration a produced table or a produced row pins
+    /// against was refused by the roster law.
     SchemaNotDeclared(SchemaRefusal),
     /// The root schema declaration's canonical bytes were refused, so no
     /// identity could be derived to pin against.

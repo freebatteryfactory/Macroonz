@@ -743,16 +743,22 @@ fn diagnosed(
         // The declaration's first token. The disagreement is about the
         // declaration as a whole rather than about one token inside it, and
         // pretending otherwise would send a reader to an arbitrary spot.
-        site: DiagnosticSite {
-            token: crate::token::SpanHandle::at(0),
+        //
+        // The AT-TOKEN arm, deliberately. Every refusal projected through here
+        // is established at or after planning, which is downstream of a capture
+        // that succeeded, so a table was built and a handle means something.
+        // The pre-capture arm belongs to a text read that refused before any of
+        // that, and no road into this function stands under it.
+        site: DiagnosticSite::at_token(
+            crate::token::SpanHandle::at(0),
             // Composed here rather than resolved: this seat names the
             // declaration itself, so the semantic-origin role at position zero
             // IS the claim, not a stand-in for a table that did not reach.
-            coordinate: SiteCoordinate::Resolved(threadpak::declaration::SourceCoordinate {
+            SiteCoordinate::Resolved(threadpak::declaration::SourceCoordinate {
                 role: CoordinateRole::SemanticOrigin,
                 position: 0,
             }),
-        },
+        ),
         expected: expected_contract(),
         observed,
         // The plane classifies what it observed and never elects the machine's

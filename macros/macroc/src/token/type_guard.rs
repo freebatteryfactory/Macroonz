@@ -354,6 +354,28 @@ impl GeneratedToken {
         Self::Text(content.to_owned())
     }
 
+    /// One byte-string literal, over the material a caller holds.
+    ///
+    /// The material is taken as bytes and stays bytes: nothing here decodes it,
+    /// so material that is not text — a pinned identity's thirty-two bytes, a
+    /// declared formula's encoding — crosses without a lossy road existing for
+    /// it to take.
+    #[must_use]
+    pub fn byte_text(material: &[u8]) -> Self {
+        Self::ByteText(material.to_vec())
+    }
+
+    /// One unsuffixed integer literal.
+    ///
+    /// Total: every `u64` is a lawful unsuffixed integer literal, so there is no
+    /// value to refuse and no refusal branch to invent.
+    /// Whether the value fits the seat it is written into is that seat's
+    /// question, answered by the consumer's own type at the address.
+    #[must_use]
+    pub const fn number(value: u64) -> Self {
+        Self::Number(value)
+    }
+
     /// One delimited group.
     ///
     /// # Errors

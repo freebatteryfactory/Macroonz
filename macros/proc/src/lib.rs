@@ -35,6 +35,12 @@
 //! A shell that reported at `token[0]` would send every reader of every refusal
 //! to the same wrong place.
 //!
+//! Not every diagnostic names a token. One established before any capture issued
+//! a handle has none to name, and the services say so rather than answering with
+//! handle zero — which would index this table and land on the declaration's
+//! first token, reading exactly like an answer. The shell reports such a refusal
+//! at the invocation, and looks nothing up.
+//!
 //! The services never resolve a handle themselves — they cannot, because
 //! `proc_macro` is a proc-macro-crate-only API and the services are ordinary
 //! callable Rust.
@@ -131,6 +137,8 @@ fn emit_token(token: &GeneratedToken) -> TokenTree {
             },
             tokens.iter().map(emit_token).collect(),
         )),
+        GeneratedToken::ByteText(material) => TokenTree::Literal(Literal::byte_string(material)),
+        GeneratedToken::Number(value) => TokenTree::Literal(Literal::u64_unsuffixed(*value)),
     }
 }
 
@@ -204,14 +212,27 @@ fn issue(span: Span, spans: &mut Vec<Span>) -> SpanHandle {
     SpanHandle::at(index)
 }
 
-/// The compiler span one diagnostic's handle names, or the call site where the
-/// table does not reach it.
+/// The compiler span one diagnostic points at.
+///
+/// A diagnostic about a captured token names a handle, and the handle indexes
+/// the table this shell built; where the table does not reach it, the
+/// declaration's own first span stands.
+///
+/// A diagnostic established BEFORE any capture names no handle, so there is
+/// nothing to look up and nothing in the table that corresponds to it. The
+/// invocation itself is the honest span for one: it is the only thing about the
+/// expansion that observation is a fact about.
 fn site(diagnostic: &MacrocDiagnostic, spans: &[Span]) -> Span {
-    let index = usize::try_from(diagnostic.site.token.index()).unwrap_or(usize::MAX);
-    spans
-        .get(index)
-        .copied()
-        .unwrap_or_else(|| call_site(spans))
+    match diagnostic.site.token() {
+        Some(handle) => {
+            let index = usize::try_from(handle.index()).unwrap_or(usize::MAX);
+            spans
+                .get(index)
+                .copied()
+                .unwrap_or_else(|| call_site(spans))
+        }
+        None => Span::call_site(),
+    }
 }
 
 /// The declaration's own first span, or the call site where nothing was

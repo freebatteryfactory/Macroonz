@@ -35,7 +35,7 @@ use crate::plane::{
 use crate::planning::{
     DeriveImplProjection, ProjectionDisposition, ProjectionPlan, RenderedImplementation,
 };
-use crate::token::{GeneratedTree, SpanHandle, SpanTable};
+use crate::token::{GeneratedTree, SpanTable};
 use threadpak::evidence::CauseDisposition;
 use threadpak::refusal::FamilyShape;
 use threadpak::types::Bounded;
@@ -237,40 +237,31 @@ mod seat {
 }
 
 impl RefusalDeriveRefusal {
-    /// Where this refusal's coordinate seat stands, as a typed answer.
+    /// Where this refusal sits, as the diagnostics home's own site.
     ///
-    /// Two roads and no third: a captured refusal asks the producer's table
-    /// about its handle and carries whatever the table answers, and a
-    /// pre-capture refusal carries the byte it was BORN at, which no table was
-    /// ever consulted for.
-    /// The second is [`SiteCoordinate::Resolved`] and honestly so — nothing was
-    /// resolved because nothing needed resolving, and the coordinate's own role
-    /// says which text the position counts into.
-    fn site_coordinate(self, spans: &SpanTable) -> SiteCoordinate {
-        match self.site() {
-            RefusalSite::AtToken(token) => SiteCoordinate::answered(spans.coordinate_of(token)),
-            RefusalSite::BeforeCapture(coordinate) => SiteCoordinate::Resolved(coordinate),
-        }
-    }
-
-    /// The handle seat [`DiagnosticSite`] requires.
+    /// [`RefusalSite`]'s two arms land on [`DiagnosticSite`]'s two arms, one
+    /// for one: a CAPTURED refusal names its handle and carries whatever the
+    /// producer's table answered about it — including the typed statement that
+    /// the table does not reach the handle, which is a fact about the TABLE and
+    /// leaves the observation standing — and a PRE-CAPTURE refusal carries the
+    /// byte it was born at, under an arm that has no handle seat at all.
     ///
     /// # Nonclaims
     ///
-    /// [`DiagnosticSite`] declares its handle seat as a required
-    /// [`SpanHandle`], so a refusal established before any capture — which has
-    /// no table and no handle — has nothing true to put in it, and handle zero
-    /// is what the shape forces rather than what this home observed.
-    /// The COORDINATE beside it is the seat that carries the whole of what is
-    /// known about a pre-capture refusal, and it is honest; a reader holding
-    /// both is told a byte position under the byte role, which no handle in an
-    /// unbuilt table could mean.
-    /// Closing the gap is a typed handle posture on [`DiagnosticSite`], which
-    /// belongs to the diagnostics home and is not this home's to write.
-    const fn site_handle(self) -> SpanHandle {
-        match self.token() {
-            Some(token) => token,
-            None => SpanHandle::at(0),
+    /// No handle is invented here, and none can be: the pre-capture arm
+    /// declares no [`SpanHandle`](crate::token::SpanHandle) seat, so there is
+    /// nothing for handle zero to be forced into and no branch in which this
+    /// home would write one.
+    /// Lifting that byte into the answered coordinate posture is
+    /// [`DiagnosticSite::coordinate`]'s statement to make, and it is made once,
+    /// there — this road repeats it nowhere.
+    fn diagnostic_site(self, spans: &SpanTable) -> DiagnosticSite {
+        match self.site() {
+            RefusalSite::AtToken(token) => DiagnosticSite::at_token(
+                token,
+                SiteCoordinate::answered(spans.coordinate_of(token)),
+            ),
+            RefusalSite::BeforeCapture(coordinate) => DiagnosticSite::before_capture(coordinate),
         }
     }
 
@@ -313,7 +304,7 @@ impl RefusalDeriveRefusal {
     /// means nothing.
     #[must_use]
     pub fn compiler_message(self, spans: &SpanTable) -> String {
-        self.compiler_line(self.site_coordinate(spans))
+        self.compiler_line(self.diagnostic_site(spans).coordinate())
     }
 
     /// Project this refusal into the services' structured diagnostic.
@@ -332,10 +323,11 @@ impl RefusalDeriveRefusal {
     /// One citation for the whole family would point a caller repairing a
     /// malformed local key at the rule about body shapes.
     pub fn diagnosed(self, spans: &SpanTable, machine: MachineAnchoring) -> MacrocDiagnostic {
-        // Read once and seated twice: the prose and the typed coordinate are
-        // projections of the SAME answer, so a line saying one position beside a
-        // seat holding another is unrepresentable here.
-        let coordinate = self.site_coordinate(spans);
+        // Built once and read twice: the prose and the diagnostic's own site
+        // are projections of the SAME value, so a line saying one position
+        // beside a seat holding another is unrepresentable here.
+        let site = self.diagnostic_site(spans);
+        let coordinate = site.coordinate();
         // The capture road establishes one cause and enumerates nothing, so
         // there is no per-issue set to stop short of: zero identities are
         // carried and zero are omitted.
@@ -348,10 +340,7 @@ impl RefusalDeriveRefusal {
                 related.completion(),
             )),
             phase: MacrocPhase::Capture,
-            site: DiagnosticSite {
-                token: self.site_handle(),
-                coordinate,
-            },
+            site,
             expected: expected_contract(),
             observed: self.cause().observed(),
             // The plane classifies what it observed and never elects the

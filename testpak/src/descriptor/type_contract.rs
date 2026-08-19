@@ -1,9 +1,12 @@
 //! The descriptor home's declarative surface: the closed tables its arms are
-//! read through.
+//! read through, and the one discharge table every refusal on the stamped road
+//! travels.
 //!
 //! Three tables, each a declaration rather than a computation — a constant
 //! answer per arm, stated here so it is read in one place instead of inferred
-//! from whichever road happened to need it.
+//! from whichever road happened to need it. The discharge table is a declaration
+//! in the same sense: which arm of the stamped road's family a given
+//! construction's refusal lands in, said once.
 //!
 //! # The capsule table
 //!
@@ -29,9 +32,21 @@
 //! declares as its closed choice — one reading order, written twice because the
 //! two are different kinds of statement, and held together by the conformance
 //! trial.
+//!
+//! # The discharge table
+//!
+//! A declared row expression builds its own parts through this home's public
+//! constructors and writes `?` on each one, which is the language's own
+//! conversion rather than a variant invented inside a vocabulary the writer does
+//! not own. What that `?` stands on is the roster at the foot of this file: one
+//! arm of [`TrialTableRefusal`] per family a construction on that road answers
+//! with. The roster reads back as the bill — a family listed there has a lawful
+//! discharge, and a family absent from it has none.
 
 use super::types::{
-    AdmissionGround, CapsulePosture, FieldCardinality, FieldShape, Origin, SynthesisFacts,
+    AdmissionGround, BindingRefusal, CapsulePosture, ClassificationRefusal, EncodeRefusal,
+    FieldCardinality, FieldShape, NameRefusal, Origin, RowRefusal, SchemaRefusal, SynthesisFacts,
+    TrialTableRefusal,
 };
 
 impl AdmissionGround {
@@ -115,3 +130,40 @@ impl FieldCardinality {
         }
     }
 }
+
+/// The one lawful discharge each construction's refusal has into the stamped
+/// road's family, written once and stamped over the roster.
+///
+/// Every realization is the same three lines over a different pair, and a
+/// hand-copied one per family would be that single law standing in six places —
+/// which is exactly the shape that lets one of them drift into naming a
+/// different arm than the rest. The roster below is therefore the statement, and
+/// the realizations are its transcription.
+macro_rules! discharged_into_trial_table {
+    ($($family:ident => $arm:ident),+ $(,)?) => {
+        $(
+            impl From<$family> for TrialTableRefusal {
+                fn from(refusal: $family) -> Self {
+                    Self::$arm(refusal)
+                }
+            }
+        )+
+    };
+}
+
+// The bill, in the order a row expression performs the constructions: the names
+// it spells, the rosters it takes as authored, the row it declares, the root
+// schema declaration a produced row pins against and the identity derived from
+// it, and the binding that marries the row to what executes it.
+//
+// The authored-table refusal is deliberately absent: the only construction that
+// raises it stands in the stamp's tail position, where the arm is named where it
+// stands, so a conversion here would be that mapping written twice.
+discharged_into_trial_table!(
+    NameRefusal => NameNotParsed,
+    ClassificationRefusal => ClassificationNotAuthored,
+    RowRefusal => RowNotDeclared,
+    SchemaRefusal => SchemaNotDeclared,
+    EncodeRefusal => SchemaNotEncoded,
+    BindingRefusal => BindingNotBound,
+);

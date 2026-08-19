@@ -74,8 +74,10 @@ carry typed attributes, surfaces state offers, a projection demand
 composes on top like overlays, and the matrix is computed with every cell
 self-explaining. The paved roads: the derive-implementation projection's
 production surface at the declaration site and its mutation-evaluation
-surface in the consumer test target — one implementation meaning, two
-surfaces, a direct parity relationship, and production carries no selector
+surface, planned as a member of the same plan under its own rendered role
+and consumed in the consumer test target after riding the shell — one
+implementation meaning, two surfaces, both inside the closure's membership
+proof, a direct parity relationship, and production carries no selector
 ever; codec at the declaration site or a visibly published module;
 documentation through rustdoc and the explanation station; test-descriptor
 rows in a consumer test target and benchmark rows in a bench target, both
@@ -143,6 +145,9 @@ of each kind's declaration.
 Its own child `type_guard.rs` holds the output firewall and every other road
 that reaches a private field.
 `type_contract.rs` states the rendered-role roster an implementation projection
-materializes, `anchor.rs` reads a plan's footing and DERIVES the shared watch set
+materializes — each contract's production implementation, each production
+implementation's evaluation copy, which role pairs with which, and where a
+member under each one lands.
+`anchor.rs` reads a plan's footing and DERIVES the shared watch set
 that follows from it, and `encode.rs` writes the bytes a plan's transcript is
 taken over.

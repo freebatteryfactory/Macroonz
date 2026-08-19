@@ -70,5 +70,41 @@ pub(super) fn inspect_token(token: &GeneratedToken, into: &mut String) {
             into.push(close);
             into.push(' ');
         }
+        GeneratedToken::ByteText(material) => {
+            into.push('b');
+            into.push('"');
+            for byte in material {
+                inspect_byte(*byte, into);
+            }
+            into.push('"');
+            into.push(' ');
+        }
+        GeneratedToken::Number(value) => {
+            into.push_str(&value.to_string());
+            into.push(' ');
+        }
+    }
+}
+
+/// Project one byte of a byte-string literal, as the escape Rust's own grammar
+/// admits for it.
+///
+/// One rule and not a table of shorthands.
+/// The quote and the backslash go behind a backslash, a printable ASCII byte
+/// writes itself, and every other byte writes as `\xHH` — which spells all two
+/// hundred and fifty-six values, so the projection is lawful Rust for any
+/// material a renderer holds without a second rule deciding which bytes earn a
+/// friendlier spelling.
+///
+/// A person reading a byte string is reading bytes, and `\x0A` says which byte
+/// is there where `\n` says which character somebody hoped was.
+fn inspect_byte(byte: u8, into: &mut String) {
+    match byte {
+        b'"' | b'\\' => {
+            into.push('\\');
+            into.push(char::from(byte));
+        }
+        0x20..=0x7E => into.push(char::from(byte)),
+        _ => into.push_str(&format!("\\x{byte:02X}")),
     }
 }

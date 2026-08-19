@@ -35,6 +35,22 @@ count, because a table is not a level.
 is [`GeneratedTree::inspected`] — a projection of the tree, produced for a person
 to read, never the artifact itself. The artifact is the tree.
 
+A renderer states a literal's VALUE and never its spelling: a text literal is its
+text, a byte-string literal is its bytes, an integer literal is its number, and
+the quoting, the escaping, and the absence of a suffix belong to the tree. That
+is what keeps `b"…"` from being assembled out of a word and a quoted string,
+which is two tokens where the address reading it matches one — and what lets one
+count be written into a `u32` seat, a `u64` seat, and a `usize` seat, because an
+unsuffixed literal is typed by the position it lands in.
+
+**The written roster grows only at its end.** Each arm's slot lives in
+`encode.rs`, a slot is a byte of the tree's canonical bytes, and those bytes are
+the content a rendered unit's plane identity is derived over. An arm inserted
+among the existing ones renumbers every slot after it and renames identities
+already derived; an arm appended renames nothing. `encode.rs` carries the slot
+tables and the standing analysis of what appending does and does not do to the
+identity profile.
+
 ## The opaque span handle
 
 A [`SpanHandle`] means "the token at this index of the table the producer built

@@ -30,7 +30,6 @@ use threadpak::declaration::types::{
     FragmentIdentityDomain, LinkedGraphDomain, ProjectionAudienceDomain,
     ProjectionConfigurationDomain, ProjectionTargetDomain,
 };
-use threadpak::evidence::{Method, VerifiedClaim};
 use threadpak::types::{Bounded, NonEmptyBounded};
 
 #[path = "type_guard.rs"]
@@ -577,25 +576,79 @@ pub struct RemoteSurfaceContent {
     pub direction: SurfaceDirection,
 }
 
+/// Where the row material one descriptor projection's crossing carries comes
+/// from.
+///
+/// A descriptor plan names the MACHINE's own facts — the obligation a descriptor
+/// challenges, the unit a benchmark measures, the currency its envelope is
+/// stated in — and stops there.
+/// Everything a rendered ROW states about itself is the harness's declaration:
+/// the claim, the aggregate seat, the roles and tags, the subject route, the
+/// check reference, the population, the callables, the input-size axis, the
+/// declared budgets, and the neutral complexity reference.
+/// Those arrive from the CALLER as the crossing's own payload, and this seat is
+/// where a plan says so.
+///
+/// # Authority
+///
+/// **A roster of one, and the roster IS the statement.** A generator that could
+/// state a second source is a generator that sometimes invents its own row
+/// material and then proves it, which is the one thing these services never do.
+/// Writing the posture down rather than leaving it implicit is what makes a
+/// second source a law change at this roster instead of a seat somebody adds to
+/// a content record.
+///
+/// # Nonclaims
+///
+/// It claims nothing ABOUT the material: not that a payload was supplied, not
+/// that one will be, and nothing about what any row in it says.
+/// It states whose declaration the rows are, and a plan holds no rows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RowMaterialPosture {
+    /// The rows arrive whole from the caller, as the crossing's own payload.
+    CallerSupplied,
+}
+
 /// What a test descriptor projection plans: the descriptor that challenges one
 /// declared obligation.
 ///
-/// It names the obligation and the method the challenge is made by.
-/// The method is the machine's own verification vocabulary — a compile refusal is
-/// one challenge kind among several, never the universal one.
+/// It names the obligation challenged, and it states where the descriptor's rows
+/// come from.
+///
+/// # Bounds
+///
+/// There is no challenge-METHOD seat, and the absence is the honest shape rather
+/// than a dropped fact.
+/// The harness's closed descriptor field set has no method seat at all: a row
+/// names its CHECK, and which mechanism that check runs under is the check's own
+/// fact.
+/// A method carried here would therefore reach no emitted seat of the crossing —
+/// a value the plan decided and nothing read, which reads as a decision the plan
+/// made about the rendering when the rendering never consults it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TestDescriptorContent {
     /// The obligation challenged.
     pub obligation: OwnerIdentityRef<ObligationSubject>,
-    /// The challenge method.
-    pub challenge: Method,
+    /// Where the descriptor's rows come from.
+    pub rows: RowMaterialPosture,
 }
 
 /// What a benchmark descriptor projection plans: the descriptor that measures one
 /// declared work formula.
 ///
-/// It names the unit measured, the work currency the envelope is stated in, and
-/// the claim the envelope stands for.
+/// It names the unit measured and the work currency the envelope is stated in,
+/// and it states where the bench rows come from.
+///
+/// # Bounds
+///
+/// There is no verified-CLAIM seat, on the same terms and for a second reason
+/// besides.
+/// The harness's bench row roster carries a NEUTRAL complexity reference —
+/// a standalone public vocabulary never names a product type — so the reference
+/// itself is part of the caller-supplied row material, and the claim a product's
+/// own evidence home declares is mapped onto it at the PRODUCT's integration.
+/// A product claim carried here would reach no emitted seat and would put the
+/// product's vocabulary inside the plan a neutral crossing is planned from.
 ///
 /// # Nonclaims
 ///
@@ -608,8 +661,8 @@ pub struct BenchmarkDescriptorContent {
     pub measured: OwnerIdentityRef<MeasuredSubject>,
     /// The named work currency the envelope is stated in.
     pub work_currency: OwnerIdentityRef<WorkCurrencySubject>,
-    /// The claim the envelope stands for.
-    pub claim: VerifiedClaim,
+    /// Where the bench rows come from.
+    pub rows: RowMaterialPosture,
 }
 
 /// What a documentation projection plans: declared meaning written as prose for
@@ -682,24 +735,63 @@ macro_rules! kinds {
     };
 }
 
-/// The rendered units one implementation projection materializes.
+/// The rendered units one implementation projection materializes: each
+/// contract's production implementation, and each production implementation's
+/// mutation-evaluation copy.
 ///
-/// The two seats are role-distinct rather than positions in a list.
+/// The seats are role-distinct rather than positions in a list.
 /// The machine's refusal home splits what a family declares across two
 /// contracts — the family's shape and textual order, and the typed cause order —
-/// so an implementation projection over such a declaration materializes one unit
-/// per contract, each under its own role.
+/// so an implementation projection over such a declaration materializes one
+/// production unit per contract, each under its own role; and one implementation
+/// meaning is delivered as TWO surfaces, so each production role carries an
+/// evaluation role beside it ([`RenderedImplementation::twin`]).
 ///
 /// A rendering that produced two units and swapped them is not "the same set in
 /// another order": it is two units under the wrong roles, and the closure check
 /// says so.
+///
+/// # Authority
+///
+/// **The evaluation copy is a planned member, on exactly the terms the
+/// production unit is.** The delivery matrix's second paved road carries the
+/// mutation-evaluation surface across the wall, and a surface that stood outside
+/// the declared membership would be material emitted past the output firewall:
+/// the closure rebuilds the membership role by role, so a copy no role planned
+/// is a copy the proof never looks at. Planning it here is what makes "nothing is
+/// emitted that did not close" true of that crossing rather than true of the
+/// production half alone.
+///
+/// # Bounds
+///
+/// A member under an evaluation role LANDS at the declaration site
+/// ([`RenderedImplementation::destination`]) and is CONSUMED in the consumer's
+/// test target: the copy rides the generated support shell, which is emitted at
+/// the declaration site as deferred tokens and invoked by the consumption
+/// target. The landing and the consumption are different questions, and only the
+/// landing is a destination.
+///
+/// The production seats name the REFUSAL family's two contracts, because the
+/// refusal-family derive is the one derive family admitted at the door today and
+/// a roster that named contracts nobody derives would be a roster the closure
+/// quantifies over for nothing. The GENERAL form — a role indexed by the contract
+/// it realizes, crossed with the surface it delivers — is owed, and its opening
+/// condition is named: the first derive family admitted beside the refusal
+/// family's, which is the point at which this roster would otherwise grow a
+/// second pair of family-specific spellings. Until then the specific roster is
+/// what is true, and a general one would be a vocabulary standing for
+/// declarations nobody makes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RenderedImplementation {
-    /// The family contract's implementation: the body shape and the textual
-    /// selection order.
+    /// The family contract's production implementation: the body shape and the
+    /// textual selection order.
     RenderedFamilyImpl,
-    /// The typed cause-order contract's implementation.
+    /// The typed cause-order contract's production implementation.
     RenderedCauseOrderImpl,
+    /// The family implementation's mutation-evaluation copy.
+    RenderedFamilyEvaluation,
+    /// The cause-order implementation's mutation-evaluation copy.
+    RenderedCauseOrderEvaluation,
 }
 
 kinds! {
@@ -797,9 +889,9 @@ kinds! {
 /// semantic keys — reaches the identity through the membership.
 /// But [`ProjectionKind::Content`] is an owner-typed record with no canonical
 /// byte encoding, and the plane declares none for it: an encoding of the
-/// machine's verification methods, semantic facets, and verified claims would be
-/// a second answer to the machine's own encoding question, which the services are
-/// forbidden to create.
+/// machine's semantic facets — the machine-owned vocabulary a kind content still
+/// carries — would be a second answer to the machine's own encoding question,
+/// which the services are forbidden to create.
 /// Two plans of one kind, over one account, one context, and one membership,
 /// differing only inside their kind content, therefore carry one plan identity —
 /// the one place a plan transcript is narrower than the plan, and it is now

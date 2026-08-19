@@ -191,11 +191,19 @@
 ///   At least one suite group is required, and each group requires at least one
 ///   row.
 /// - `<row>: <expression>` declares one row. `<row>` names its lens; the
-///   expression evaluates to `Result<runner::TrialBinding, BindingRefusal>` —
-///   a call to the public binding constructor, whatever built its parts, over
-///   the engine's own instantiation of the seam. The stamp never reads inside
-///   it: a row's internals are the producer's statement, and a macro that parsed
-///   them would be a second authority over this vocabulary.
+///   expression answers with one [`runner::TrialBinding`](crate::runner::TrialBinding)
+///   — the engine's own instantiation of the seam — or refuses in any family
+///   that discharges into
+///   [`TrialTableRefusal`](crate::descriptor::TrialTableRefusal), which is the
+///   family the stamp writes the `?` for. A bare call to the public binding
+///   constructor refuses in
+///   [`BindingRefusal`](crate::descriptor::BindingRefusal) and travels that
+///   road; an expression that builds its own parts writes `?` on each
+///   construction, and every one of those is governed by this same family,
+///   which is why the family carries a discharge for each construction on the
+///   road to a binding. The stamp never reads inside the expression: a row's
+///   internals are the producer's statement, and a macro that parsed them would
+///   be a second authority over this vocabulary.
 ///
 /// Both grammars end their clauses and their rows with a comma. The `@`-prefixed
 /// rule below is the stamp's internal transcription, not an invocation form.
@@ -235,8 +243,13 @@
 ///
 /// Every value the stamp builds is built through this home's public
 /// constructors, and every refusal they answer with is carried unchanged into
-/// [`TrialTableRefusal`](crate::descriptor::TrialTableRefusal). Nothing is
-/// unwrapped, asserted, or indexed anywhere in the expansion.
+/// [`TrialTableRefusal`](crate::descriptor::TrialTableRefusal). A declared row
+/// expression's own constructions travel the same road: the stamp puts each row
+/// in a function refusing in that one family, so the `?` a producer's expression
+/// writes on a name, a roster, a row, or a schema identity is discharged by the
+/// conversion the family declares rather than by a variant the producer
+/// invented. Nothing is unwrapped, asserted, or indexed anywhere in the
+/// expansion.
 ///
 /// # Bounds
 ///
@@ -398,12 +411,16 @@ macro_rules! trial_table {
                         ///
                         /// # Errors
                         ///
-                        /// Refuses whatever the binding constructor refuses.
+                        /// Refuses whatever the declaration's own constructions
+                        /// refuse, each carried into the stamp's one family by
+                        /// the discharge that family declares for it — the
+                        /// binding constructor's refusal included, which is what
+                        /// the `?` on the whole expression is.
                         pub(super) fn $row() -> ::core::result::Result<
                             $crate::runner::TrialBinding,
-                            $crate::descriptor::BindingRefusal,
+                            $crate::descriptor::TrialTableRefusal,
                         > {
-                            $binding
+                            ::core::result::Result::Ok($binding?)
                         }
                     )+
                 )+
@@ -472,9 +489,7 @@ macro_rules! trial_table {
                 let bindings = ::std::vec![
                     $(
                         $(
-                            row::$row().map_err(
-                                $crate::descriptor::TrialTableRefusal::BindingNotBound,
-                            )?,
+                            row::$row()?,
                         )+
                     )+
                 ];
@@ -548,9 +563,7 @@ macro_rules! trial_table {
                     #[test]
                     #[ignore = "lens"]
                     fn $row() -> ::core::result::Result<(), $crate::runner::SeatRefusal> {
-                        let binding = row::$row().map_err(
-                            $crate::descriptor::TrialTableRefusal::BindingNotBound,
-                        )?;
+                        let binding = row::$row()?;
                         let invocation = $crate::runner::Invocation::declared(
                             INVOCATION,
                             target(),

@@ -30,8 +30,8 @@ use crate::plane::{
 };
 use crate::planning::{
     DeriveImplContent, DeriveImplProjection, DigestContract, GraphAnchoring, MemberDestination,
-    OwnerContentAccount, PlannedMember, PlannedMembership, PlannedOutput, ProjectionContext,
-    ProjectionDisposition, ProjectionPlan, RenderedImplementation, TargetBinding,
+    OwnerContentAccount, PlanDecisions, PlannedMember, PlannedMembership, PlannedOutput,
+    ProjectionContext, ProjectionDisposition, ProjectionPlan, RenderedImplementation, TargetBinding,
 };
 use crate::refusal::ProjectionPlanning;
 use threadpak::types::Bounded;
@@ -320,6 +320,9 @@ pub fn planned(
         owner_facts.cause_key_grammar,
     ]);
 
+    // The five decided seats travel as ONE value, in the order a plan's
+    // transcript writes them. Every field of the bundle is required, so a seat
+    // added to it fails to compile here rather than arriving unwritten.
     let plan = ProjectionPlan::<DeriveImplProjection>::planned(
         account,
         context,
@@ -328,15 +331,17 @@ pub fn planned(
             contract,
             assumptions,
         },
-        membership(draft),
-        invalidation,
-        trace,
-        OriginTrail::from_edge(OriginEdge {
-            from: authored_node(draft),
-            relation: OriginRelation::AuthoredDeclaration,
-            to: member_node(draft, RenderedImplementation::RenderedFamilyImpl),
-        }),
-        nonclaims,
+        PlanDecisions {
+            membership: membership(draft),
+            invalidation,
+            trace,
+            origin: OriginTrail::from_edge(OriginEdge {
+                from: authored_node(draft),
+                relation: OriginRelation::AuthoredDeclaration,
+                to: member_node(draft, RenderedImplementation::RenderedFamilyImpl),
+            }),
+            nonclaims,
+        },
     )?;
 
     let cause_order = match standing {
