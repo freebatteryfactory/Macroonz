@@ -279,22 +279,29 @@ impl ProjectionDisposition {
     /// Every arm writes its material length-framed behind the discriminant, so a
     /// posture that carries nothing never encodes as one that carries bytes.
     ///
+    /// # Whose spelling the refused arm writes
+    ///
+    /// The REFUSED arm writes the body it carries, through the encoding the
+    /// REFUSAL home declares beside its own issue roster
+    /// ([`ProjectionPlanning::encode_into`]). This home spells no part of it: a
+    /// planning refusal is another home's value, and a spelling written here
+    /// would be a second answer to what a planning issue IS.
+    ///
+    /// That arm used to write its posture and no material at all, and the cost
+    /// was exact: two dispositions refused with two different bodies encoded
+    /// alike, so two explanations differing only in which planning refusal they
+    /// carried derived one identity — two accounts under one name. What closed
+    /// it is the encoding beside the roster, and this arm consuming it.
+    ///
     /// # Nonclaims
     ///
-    /// The REFUSED arm writes its posture and no material, and the absence is
-    /// stated rather than folded. A [`ProjectionPlanning`] body is the refusal
-    /// home's value, and the plane declares no canonical encoding for one:
-    /// writing a spelling here would be this home legislating another home's
-    /// encoding, and writing a partial one — a count, a first issue, a roster of
-    /// slots — would be a fold, which is exactly what a preimage may never
-    /// carry. So two dispositions refused with two different bodies encode
-    /// alike, and what separates them reaches a caller through the diagnostic
-    /// that projects the body rather than through these bytes.
+    /// What that encoding leaves out is its own statement rather than this
+    /// home's: the coverage posture a collection-shaped body carries is band
+    /// 00's value, band 00 declares no canonical form for one, and the refusal
+    /// home writes none. So two bodies carrying the same issues under two
+    /// coverage postures still encode alike.
     ///
-    /// The seat that closes it is a canonical encoding declared on the refusal
-    /// home's own issue roster, beside the roster.
-    ///
-    /// [`ProjectionPlanning`]: crate::refusal::ProjectionPlanning
+    /// [`ProjectionPlanning::encode_into`]: crate::refusal::ProjectionPlanning::encode_into
     pub fn encode_into(&self, into: &mut Vec<u8>) {
         into.push(self.slot());
         match self {
@@ -304,7 +311,12 @@ impl ProjectionDisposition {
                 encode_bytes(&material, into);
             }
             Self::NotApplicable { because } => encode_bytes(&because.citation_bytes(), into),
-            Self::Refused { .. } | Self::NotRequested => encode_bytes(&[], into),
+            Self::Refused { refusal } => {
+                let mut material = Vec::new();
+                refusal.encode_into(&mut material);
+                encode_bytes(&material, into);
+            }
+            Self::NotRequested => encode_bytes(&[], into),
             Self::UnavailableUnderProfile { profile, version } => {
                 encode_bytes(profile.as_bytes(), into);
                 into.extend_from_slice(&version.position().to_be_bytes());

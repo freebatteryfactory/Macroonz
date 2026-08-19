@@ -1,6 +1,7 @@
 #![doc = include_str!("README.md")]
 
 pub mod capture;
+pub mod carry;
 pub mod diagnose;
 pub mod document;
 pub mod explain;
@@ -10,6 +11,10 @@ mod type_contract;
 pub mod types;
 
 pub use capture::{captured, captured_text};
+pub use carry::{
+    assembly, bench_disposition, carrier_expansion, carrier_kind, carrier_node, carrier_origin,
+    carrier_plan, carrier_semantic_key, deferred_selectors, evaluation_axis, rows_disposition,
+};
 pub use diagnose::{LineBody, LineSite, RefusalClass, RefusalLine, RenderedMagnitude, composed};
 pub use document::{CapturedDocumentationReading, documented};
 pub use explain::{ExplanationBindingRefusal, ExplanationSeat};
@@ -28,6 +33,7 @@ pub use types::{
 use crate::closure::{ProjectionClosure, RenderedProjection, RenderedUnit};
 use crate::derive_impl::{EvaluationBinding, MutationPointTable, evaluation_copy};
 use crate::diagnostics::MacrocDiagnostic;
+use crate::generated_support::JoinedExpansion;
 use crate::planning::RenderedImplementation;
 use crate::token::{CapturedInput, GeneratedTree, TextCapture};
 use threadpak::types::Bounded;
@@ -87,6 +93,74 @@ pub fn compile_refusal(
         cause_order,
     )
     .map_err(|refusal| diagnose::expansion_refused(&refusal))
+}
+
+/// Capture, plan, render, close, and explain one refusal-family declaration AND
+/// the carrier that delivers what it deferred — the whole joined road, in one
+/// call.
+///
+/// # The same public steps, joined
+///
+/// This is not a second door and it is not a lobby. It walks
+/// [`compile_refusal`] whole for the implementation projection, and then the
+/// same eight public steps a second time for the CARRIER projection: an account
+/// over the same captured surface, a context, a plan, a rendering, a proved
+/// closure, an explanation, and the terminal that binds them. What sits between
+/// the two is the assembly, which is not a step of either road — it is the
+/// physical statement that the first road's proved cargo composes into the
+/// second road's vehicle.
+///
+/// # Why the impl-only road stays
+///
+/// [`compile_refusal`] is the projection road and its callers stand: a caller
+/// that wants the implementation projection and nothing else asks for exactly
+/// that and is handed a terminal. This road is what a caller asks for when it
+/// wants the declaration DELIVERED — the implementations at the declaration
+/// site, and a carrier a consumption target can invoke — and the difference
+/// between the two is a second terminal rather than a different first one.
+///
+/// # What comes back
+///
+/// [`JoinedExpansion`] over this family's own view: BOTH terminals and the
+/// assembly that joined them. Its two declaration-site cargos are exactly the
+/// two terminals' declaration-site partitions — the implementation members, and
+/// the shell definition — read off the terminals themselves. An emitter writes
+/// both; writing one would leave a carrier nobody defined or a declaration that
+/// never expands.
+///
+/// # Errors
+///
+/// Returns a [`MacrocDiagnostic`] wherever any step of either road refuses, and
+/// wherever the two roads' outputs do not compose into one carrier: cargo from a
+/// terminal planned over another declaration, a gate pinned against an
+/// expectation these services do not publish, one terminal's partition read
+/// twice, cargo read from a partition the axis does not deliver from, or tokens
+/// that are not the terminal's own.
+/// **Every one of those refusals happens BEFORE a token exists to emit**, on the
+/// same terms the impl-only road states.
+#[expect(
+    clippy::result_large_err,
+    reason = "the diagnostic is seat-complete by law, and the settled service signature returns it by value: boxing it here would move a required seat behind a pointer to satisfy a size lint"
+)]
+pub fn compile_declaration(
+    input: &CapturedInput,
+    context: &RefusalCompileContext,
+) -> Result<JoinedExpansion<RefusalFamilyExpansion>, MacrocDiagnostic> {
+    let implementation = compile_refusal(input, context)?;
+    // The draft is read off the terminal's own captured surface rather than
+    // captured a second time: two captures of one declaration produce one
+    // surface, and a second walk would be a second reading of the material the
+    // first road already stands on.
+    let draft = implementation.surface().clone().planned();
+
+    // The assembly stands between the two roads: it reads the implementation
+    // terminal's proved test-carrier cargo, states the trials and bench axes
+    // absent with the dispositions that say why, and verifies the whole before
+    // any carrier token exists.
+    let assembly = carry::assembly(&draft, implementation.expansion())?;
+    let plan = carry::carrier_plan(&draft)?;
+    let carrier = carry::carrier_expansion(plan, &assembly)?;
+    Ok(JoinedExpansion::joined(implementation, carrier, assembly))
 }
 
 /// How the callable text route refused.

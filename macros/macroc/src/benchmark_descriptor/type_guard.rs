@@ -377,7 +377,7 @@ impl BenchmarkShell {
     /// Render one benchmark shell over what the plan decided and what the caller
     /// declared.
     ///
-    /// The order is the road: the exported name from the plan's own semantic key,
+    /// The order is the road: the exported name from the plan's own identity,
     /// then the bench table the gate carries and the one-file adapter that rides
     /// beside it — attempted independently, because they are independent — then
     /// the gate's expectation, which is total, and the shell only after all of
@@ -401,14 +401,20 @@ impl BenchmarkShell {
         payload: &BenchTablePayload,
         adapter: &BenchReporterAdapter,
     ) -> Result<Self, ShellRendering> {
-        let name = ShellName::mangled(&stated.semantic_key);
+        let name = ShellName::mangled(stated.plan);
         let mut issues: Vec<ShellRenderIssue> = Vec::new();
         let cargo = collected(render::bench_table(payload), &mut issues);
         let reporter = collected(render::reporter_adapter(adapter, payload), &mut issues);
         let (Some(cargo), Some(reporter)) = (cargo, reporter) else {
             return Err(established(issues));
         };
-        let mut body = gate_invocation(expectation_literal(), cargo).map_err(sole)?;
+        // The bench table rides the TRIALS seat, which is the seat this
+        // crossing's payload has always ridden; the DEFERRED seat is rendered
+        // empty, because this crossing defers no cargo into the carrier — the
+        // reporter adapter is an item beside the gate rather than cargo through
+        // it.
+        let mut body =
+            gate_invocation(expectation_literal(), cargo, Vec::new()).map_err(sole)?;
         body.extend(reporter);
         let tokens = exported_shell(&name, body).map_err(sole)?;
         let tree = GeneratedTree::assembled(tokens).map_err(|_| sole(unbounded()))?;

@@ -20,16 +20,32 @@ travel as deferred tokens — and it travels INERT, naming no harness type until
 the consumption target expands it, executing nothing in a normal build, and
 touching no disk at either end.
 
-**The mangled name.** `__threadpak_generated_support_` followed by sixteen
-lowercase hexadecimal characters: the first eight bytes of the planned member's
-own semantic key ([`ShellName::mangled`]). The name lands at the root of whatever
-crate the declaration site sits in and shares one namespace with every other
-exported macro there, so it may not be a name anybody chose and may not be taken
-from the owner's own spelling. The key is content-addressed, so two distinct
-planned members reach two distinct spellings without this home keeping a register
-of what it has already emitted. A prefix of a derived identity is not the
-identity: nothing reads the spelling back, and every identity-bearing road uses
-the key itself.
+**The mangled name.** `__threadpak_generated_support_` followed by sixty-four
+lowercase hexadecimal characters: the PLAN's own identity at full width
+([`ShellName::mangled`]). The name lands at the root of whatever crate the
+declaration site sits in and shares one namespace with every other exported macro
+there, so it may not be a name anybody chose and may not be taken from the
+owner's own spelling.
+
+Two things make it collision-free as written rather than collision-free enough.
+The key is the PLAN's, not a planned member's: a member's semantic key is a value
+the planning caller supplies, so two plans handed one key would mint one exported
+name for two declarations, while a plan identity is derived by these services
+over the account, the context, the whole membership, the watch set, the trace,
+and the origin trail and cannot be handed in at all. And it is carried WHOLE:
+this name used to carry the first eight bytes, which is a width at which a
+collision is unlikely — a different claim than the one the sentence beside it
+made.
+
+That the key is plan-scoped is also what separates two DOORS over one
+declaration. A plan's transcript commits to the origins its members walk, and
+distinct doors are required to carry distinct origins — which is exactly why door
+equivalence compares the intent identity instead. Two textually identical
+declarations expanded at two sites therefore mint two names, where a
+content-addressed key would mint one name twice.
+
+A rendering of a derived identity is not the identity: nothing reads the spelling
+back, and every identity-bearing road uses the plan's own value.
 
 ## The rename-twin splice
 
@@ -39,7 +55,7 @@ declares — `$machine` and `$harness` — and the consumer's test target suppli
 both once, at the invocation:
 
 ```text
-__threadpak_generated_support_<hex>! {
+__threadpak_generated_support_<sixty-four hex characters>! {
     machine: <what the consumer calls the machine>,
     harness: <what the consumer calls the harness>,
     invocation: <the consumer's declared budgets>,
@@ -64,13 +80,40 @@ consumer's declaration — the stamp seats them in a `const` item precisely so a
 ambient fact cannot appear among them — and a producer that wrote its own would
 be declaring how long somebody else's machine may spend.
 
-## The carrier also carries what the expansion deferred
+## The carrier also carries what the expansion deferred — behind the same pin
 
-A shell body is two things side by side: the gate invocation, which carries the
-descriptor rows under the harness's own grammar, and a private module carrying
-the cargo an expansion deferred into this carrier. The module stands beside the
-gate rather than inside it, because what rides through the gate is the harness's
-and this module is not.
+A shell body is ONE gate invocation and nothing else, and the invocation carries
+two cargo seats:
+
+```text
+$harness::generated_support! {
+    expected: b"<the thirty-two published bytes>",
+    harness: $harness,
+    trials: { <the stamped payload, or nothing> },
+    deferred: { <the private module, or nothing> },
+}
+```
+
+`trials:` is the harness's own grammar, which the gate forwards to its stamp.
+`deferred:` is opaque token trees the gate never parses and emits verbatim. On a
+matched pin the gate releases BOTH; on a mismatch it emits its refusal and
+NEITHER.
+
+That the deferred module rides inside the seat rather than beside the invocation
+is the whole point of the second seat. Standing outside, it was released on a pin
+MISMATCH: a consumer whose published pair was incoherent got one refusal AND a
+module of evaluation copies compiled into its target — which is a gate that
+guards the rows and nothing else. Everything the carrier delivers is behind one
+pin or the carrier is not a gate.
+
+Both seats are always written, whichever posture fills them. A crossing whose
+caller declared no rows renders an EMPTY trials seat, and a carrier nothing was
+deferred into renders an empty deferred seat. An empty trials seat beside carried
+deferred cargo is an evaluation-only delivery and is lawful — it is exactly what
+the derive door produces, since the rows a descriptor states arrive whole from a
+caller and a derive door holds none. A seat left out instead of rendered empty
+would be a second clause shape one published arm has to match, and one pin would
+open two doors.
 
 The module holds three things: a LOCAL SUBJECT the deferred implementations
 stand over, the cargo's own tokens, and one constant per selection the cargo
@@ -79,17 +122,22 @@ copy of one the declaration site already carries, so a copy standing over the
 type the declaration named would be that implementation declared twice where the
 declaration is, and a foreign trait implemented for a foreign type once the copy
 reaches the consumer's test target. The module's own name is
-[`ShellName::deferred_module`], the shell's content-addressed spelling and a
-suffix, so nothing outside the expansion can reach the subject and two shells in
-one crate never collide.
+[`ShellName::deferred_module`], the shell's plan-keyed spelling and a suffix, so
+nothing outside the expansion can reach the subject and two shells in one crate
+never collide.
 
-The tokens are ONE emission's proved cargo, read off the receipt by the caller
-that holds one and handed over whole. Nothing here joins anything and nothing
-here decides which units belong to a carrier: the split by delivery is inside
-the proof, and this home is the vehicle's end of the same tokens. A carrier
-nothing was deferred into gets no module at all — an expansion that planned no
-member into it and one that sent it a cargo of no tokens are different facts,
-and [`DeferredDelivery`] keeps them apart.
+The tokens are ONE closed expansion's proved cargo, read off that TERMINAL by the
+caller that holds one and handed over whole. Nothing here joins anything and
+nothing here decides which units belong to a carrier: the split by delivery is
+inside the proof, and this home is the vehicle's end of the same tokens. A
+carrier nothing was deferred into gets no module — an expansion that planned no
+member into it and one that sent it a cargo of no tokens are different facts, and
+[`DeferredDelivery`] keeps them apart.
+
+Which cargo may enter at all is not decided here. Composing closed projection
+outputs into one carrier — one root, one expectation, every unit consumed once —
+is the ASSEMBLY home's question, and the shell's own composition road is
+crate-internal so the public road to a carrier runs through a verified assembly.
 
 ## Nothing of the harness is imported
 
@@ -149,8 +197,9 @@ ONE namespace, the mangling, and the shell's composition — which is what makes
 stamped module never declares one function twice" a shape rather than a rule.
 `type_contract.rs` states the declarative tables: the rendering family's declared
 shape, each twin's own metavariable spelling, and the row conversion record. `plan.rs` reads the
-plan through its public surface — the account, the context, the membership, the
-kind content — and states what the shell will be. `render.rs` is the token half:
-the exported carrier, the gate invocation inside it, the stamped payload inside
-that, the constructor-calling expression each row is, and the private module the
-deferred cargo is spliced into beside the gate.
+plan through its public surface — the plan's own identity, the account, the
+context, the membership, the kind content — and states what the shell will be.
+`render.rs` is the token half: the exported carrier, the ONE gate invocation
+inside it, the stamped payload inside the gate's trials seat, the
+constructor-calling expression each row is, and the private module spliced into
+the gate's deferred seat.

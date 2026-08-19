@@ -64,6 +64,10 @@ use crate::diagnostics::{
     RelatedSetCompletion, ReleasePosture, RepairAction, ReproductionRoute, SiteCoordinate,
 };
 use crate::explanation_protocol::{ExplanationCoverage, ExplanationCoverageIssue};
+use crate::generated_support::{AssemblyIssue, CarrierAssembly};
+use crate::test_descriptor::{
+    DescriptorPlanIssue, ShellDeclarationRefusal, ShellRenderIssue, ShellRendering,
+};
 use crate::plane::{
     GeneratedTokenLimit, HumanProjection, HumanTextLimit, MembershipLimit, RenderedByteLimit,
     RenderedRole, encode_bytes, human_projection,
@@ -93,6 +97,24 @@ const RENDERING_FAMILY: u8 = 3;
 /// material, and every related identity already derived under this family stands
 /// over the byte four. Renaming the spelling renames nothing derived.
 const EXPANSION_FAMILY: u8 = 4;
+
+/// The carrier-assembly family's tag.
+const ASSEMBLY_FAMILY: u8 = 5;
+
+/// The shell-rendering family's tag.
+///
+/// Its own tag rather than the rendering family's, because they are two
+/// families: a rendering refusal names a role that passed a plane magnitude,
+/// and a shell-rendering refusal names a token magnitude the CARRIER passed.
+/// One tag for both would derive one related identity for two bodies that
+/// happened to carry the same numbers.
+const SHELL_FAMILY: u8 = 6;
+
+/// The carrier-declaration family's tag.
+const DECLARATION_FAMILY: u8 = 7;
+
+/// The carrier plan-reading family's tag.
+const DESCRIPTOR_PLAN_FAMILY: u8 = 8;
 
 // ---------------------------------------------------------------------------
 // The one compiler-facing grammar.
@@ -129,6 +151,12 @@ threadpak::closed_register! {
         /// The three values the terminal binds do not belong to one expansion.
         ExpansionNotBound = "expansion-not-bound",
             "the three values do not belong to one expansion";
+        /// A set of closed outputs does not compose into one exported carrier.
+        CarrierNotAssembled = "carrier-not-assembled",
+            "the closed outputs do not compose into one carrier";
+        /// The carrier's own vocabulary was not declared.
+        CarrierNotDeclared = "carrier-not-declared",
+            "the carrier's own vocabulary was not declared";
     }
 }
 
@@ -842,6 +870,166 @@ fn bounded_rendering<R: RenderedRole>(magnitude: RenderedMagnitude, role: R) -> 
         &[material],
         RefusalDeriveFact::EveryRenderedSeatStandsUnderADeclaredMagnitude,
     )
+}
+
+/// Project one carrier-assembly refusal: every way a set of closed outputs does
+/// not compose into one exported shell.
+///
+/// The line names the first established disagreement in full and says how many
+/// stand behind it, and the axis rides in the line where the issue is about one:
+/// a caller told only that "the assembly failed" has three axes to inspect and
+/// no reason to prefer any of them.
+pub fn assembly_refused(refusal: &CarrierAssembly) -> MacrocDiagnostic {
+    let first = refusal.body().carried().first();
+    let material: Vec<Vec<u8>> = refusal.body().carried().iter().map(assembly_bytes).collect();
+    diagnosed(
+        MacrocPhase::Rendering,
+        assembly_observed(first),
+        &RefusalLine {
+            class: RefusalClass::CarrierNotAssembled,
+            first: &assembly_line(first),
+            body: LineBody::Body {
+                further: refusal.body().carried().len().saturating_sub(1),
+                posture: refusal.body().completion(),
+            },
+        },
+        ASSEMBLY_FAMILY,
+        &material,
+        RefusalDeriveFact::OneCarrierDeliversOneDeclarationsProvedCargo,
+    )
+}
+
+/// How one assembly issue reads for a person, naming the axis where it is about
+/// one.
+fn assembly_line(issue: &AssemblyIssue) -> String {
+    let described = issue.described();
+    match issue.axis() {
+        Some(axis) => format!("{described} — at {}", axis.described()),
+        None => String::from(described),
+    }
+}
+
+/// What one assembly issue observed, read off the issue rather than shared
+/// across the family.
+///
+/// The three classifications are three different observations: a root or a
+/// parentage that disagrees is an IDENTITY disagreement, a partition read where
+/// another was declared is a CONTRACT disagreement, and a seat the grammar does
+/// not write is one the profile does not offer.
+const fn assembly_observed(issue: &AssemblyIssue) -> ObservedClassification {
+    match issue {
+        AssemblyIssue::RootsDisagree { .. }
+        | AssemblyIssue::SchemaExpectationNotPublished { .. }
+        | AssemblyIssue::CargoNotTheSourcesOwn { .. } => ObservedClassification::IdentityDisagreement,
+        AssemblyIssue::CargoConsumedTwice { .. }
+        | AssemblyIssue::CargoReachesASecondDestination { .. } => {
+            ObservedClassification::ContractDisagreement
+        }
+        AssemblyIssue::BenchVehicleNotOpen => ObservedClassification::ProfileDisagreement,
+    }
+}
+
+/// One assembly issue's complete canonical encoding, through the road its own
+/// home declares beside the roster.
+fn assembly_bytes(issue: &AssemblyIssue) -> Vec<u8> {
+    let mut material = Vec::new();
+    issue.encode_into(&mut material);
+    material
+}
+
+/// Project one carrier-declaration refusal: the seat of the carrier's own
+/// vocabulary a declaration did not fill.
+///
+/// The carrier's declaration family is SINGLE-CAUSE — its checks are dependent
+/// and in a declared order, so exactly one cause is true of any refused
+/// declaration — which is why the line enumerates nothing behind it.
+pub fn carrier_declaration_refused(refusal: ShellDeclarationRefusal) -> MacrocDiagnostic {
+    diagnosed(
+        MacrocPhase::Rendering,
+        ObservedClassification::ContractDisagreement,
+        &RefusalLine {
+            class: RefusalClass::CarrierNotDeclared,
+            first: refusal.described(),
+            body: LineBody::SingleCause,
+        },
+        DECLARATION_FAMILY,
+        &[vec![refusal.slot()]],
+        RefusalDeriveFact::ACarrierSpellingIsOneRustIdentifier,
+    )
+}
+
+/// Project one plan-reading refusal: the carrier's own role the plan did not
+/// declare, or the delivery it declared instead.
+///
+/// The two are the plan's facts rather than the rendering's, so the class is the
+/// planning one and the cited fact is the output firewall's: a plan that states
+/// no member under its kind's one role has not stated its complete output set.
+pub fn descriptor_plan_refused(issue: DescriptorPlanIssue) -> MacrocDiagnostic {
+    let (described, slot, role_slot) = match issue {
+        DescriptorPlanIssue::RoleNotPlanned { role_slot } => (
+            "the plan declares no member under the carrier's one rendered role",
+            0_u8,
+            role_slot,
+        ),
+        DescriptorPlanIssue::DestinationNotDeclarationSite { role_slot } => (
+            "the planned carrier member lands somewhere other than the declaration site",
+            1_u8,
+            role_slot,
+        ),
+    };
+    let mut material = vec![slot];
+    material.extend_from_slice(&role_slot.to_be_bytes());
+    diagnosed(
+        MacrocPhase::Planning,
+        ObservedClassification::ContractDisagreement,
+        &RefusalLine {
+            class: RefusalClass::PlanNotStated,
+            first: described,
+            // The two checks are dependent — there is no destination to read
+            // until a member was found — so exactly one is ever established.
+            body: LineBody::SingleCause,
+        },
+        DESCRIPTOR_PLAN_FAMILY,
+        &[material],
+        RefusalDeriveFact::APlanStatesItsCompleteOutputSetOrRefuses,
+    )
+}
+
+/// Project one shell-rendering refusal: the token magnitude the carrier passed.
+///
+/// The carrier's own family, which both crossings of the wall refuse in, so this
+/// projection stands for the trial crossing and the bench crossing alike.
+pub fn shell_refused(refusal: &ShellRendering) -> MacrocDiagnostic {
+    let material: Vec<Vec<u8>> = refusal.body().carried().iter().map(shell_bytes).collect();
+    let bound = RenderedMagnitude::GeneratedTokens.declared();
+    let governs = RenderedMagnitude::GeneratedTokens.described();
+    diagnosed(
+        MacrocPhase::Rendering,
+        ObservedClassification::BoundExceeded,
+        &RefusalLine {
+            class: RefusalClass::MagnitudeNotHeld,
+            first: &format!("the generated support shell passed {governs}, declared {bound}"),
+            body: LineBody::Body {
+                further: refusal.body().carried().len().saturating_sub(1),
+                posture: refusal.body().completion(),
+            },
+        },
+        SHELL_FAMILY,
+        &material,
+        RefusalDeriveFact::EveryRenderedSeatStandsUnderADeclaredMagnitude,
+    )
+}
+
+/// One shell-rendering issue's complete canonical encoding: the declared bound
+/// it names, at the width the issue carries it.
+///
+/// Exhaustive over the roster on purpose: an issue added to
+/// [`ShellRenderIssue`] stops compiling here until somebody says what of it a
+/// related identity stands over.
+fn shell_bytes(issue: &ShellRenderIssue) -> Vec<u8> {
+    match issue {
+        ShellRenderIssue::ShellTreeUnbounded { bound } => bound.to_be_bytes().to_vec(),
+    }
 }
 
 // ---------------------------------------------------------------------------

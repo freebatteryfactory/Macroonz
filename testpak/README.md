@@ -59,14 +59,13 @@ testpak depends inward — on `threadpak`, `threadpak-macroc`, and
 nothing depends on testpak. Production never depends on its judge. It is
 never published onto a production dependency path.
 
-Outside-consumer parity is still a seat with no crate: no package in this
-workspace applies the expansion shell's derive as an ordinary outside
-consumer or reaches the machine under a renamed dependency binding, so no
-lane here claims any of that. The seat fills mid-phase as `consumer/` — a
-workspace member that renames BOTH crates (`tp` for the machine, `harness`
-for this one) and stays deliberately ordinary: no judge machinery inside it,
-consumer-shaped evidence during construction, and a packaged true-outsider
-proof at the blessing-day check.
+Outside-consumer parity has its crate: `consumer/` is a workspace member
+that renames BOTH crates (`tp` for the machine, `harness` for this one),
+applies the expansion shell's derive to a documented public family of its
+own, and reads the compiled surface back beside a hand-realized twin. It
+stays deliberately ordinary — no judge machinery inside it, consumer-shaped
+evidence during construction, and a packaged true-outsider proof at the
+blessing-day check.
 
 ## The uniform test model
 

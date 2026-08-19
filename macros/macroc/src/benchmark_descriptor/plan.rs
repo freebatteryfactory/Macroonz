@@ -79,6 +79,10 @@ pub fn benchmark_plan(
     }
     let content = plan.content();
     Ok(BenchmarkPlan {
+        // The plan's own identity, read off the plan: it is what the carrier
+        // keys its exported name on, and a key these services derived over the
+        // whole plan is one no planning caller can hand in.
+        plan: plan.identity(),
         role,
         semantic_key: member.output.semantic_key,
         profile: member.output.expected_profile,

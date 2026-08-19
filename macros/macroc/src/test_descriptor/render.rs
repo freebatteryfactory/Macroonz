@@ -1,7 +1,7 @@
-//! The token half of the road: the exported shell, the gate invocation inside
-//! it, the stamped payload inside that, the constructor-calling expression each
-//! row is, and the private module the shell splices its deferred cargo into
-//! beside the gate.
+//! The token half of the road: the exported shell, the ONE gate invocation
+//! inside it, the stamped payload inside the gate's trials seat, the
+//! constructor-calling expression each row is, and the private module the shell
+//! splices into the gate's deferred seat.
 //!
 //! # Tokens, not text
 //!
@@ -47,7 +47,8 @@
 
 use super::{
     BoundPath, CrateFacing, DeferredDelivery, DescriptorRow, RevisionReference, RevisionStanding,
-    RowAttachment, ShellName, ShellRenderIssue, SuiteGroup, TrialTablePayload, WallName,
+    RowAttachment, ShellName, ShellRenderIssue, SuiteGroup, TrialDelivery, TrialTablePayload,
+    WallName,
 };
 use crate::plane::GeneratedTokenLimit;
 use crate::planning::{EXPECTED_GENERATED_SUPPORT_SCHEMA_ID, ExpectedGeneratedSupportSchemaId};
@@ -69,6 +70,20 @@ pub const EXPECTED_CLAUSE: &str = "expected";
 
 /// The gate's clause carrying the harness binding.
 pub const HARNESS_CLAUSE: &str = "harness";
+
+/// The gate's clause carrying the trial material the gate forwards to the stamp.
+///
+/// One of the two cargo seats the published grammar always writes. Its content
+/// is the harness's own grammar, and the gate reads it as such.
+pub const TRIALS_CLAUSE: &str = "trials";
+
+/// The gate's clause carrying the token trees the gate never parses.
+///
+/// The other cargo seat, and the one that makes the gate a gate for everything
+/// the carrier delivers rather than for the rows alone: on a matched pin the
+/// gate emits this seat verbatim, and on a mismatch it emits its refusal and
+/// neither seat.
+pub const DEFERRED_CLAUSE: &str = "deferred";
 
 /// The stamp clause carrying the table's stated provenance.
 pub const PROVENANCE_CLAUSE: &str = "provenance";
@@ -668,16 +683,34 @@ pub fn stamped_module(
     Ok(tokens)
 }
 
-/// The gate invocation the shell's body is: the producer's expectation, the
-/// harness binding, and the cargo forwarded verbatim.
+/// The gate invocation the shell's body IS: the producer's expectation, the
+/// harness binding, the trials seat, and the deferred seat.
+///
+/// # Both cargo seats, always
+///
+/// The published grammar writes four clauses and the two cargo seats are the
+/// last of them, each a braced group. A seat may be EMPTY — a crossing that
+/// declared no rows renders `trials: {}`, and one that deferred nothing renders
+/// `deferred: {}` — and it is still written, because a gate arm that had to
+/// match two clause shapes would be two arms and one pin would open two doors.
+///
+/// # What each seat is for
+///
+/// `trials:` carries material under the HARNESS's own grammar, which the gate
+/// forwards to its stamp. `deferred:` carries token trees the gate never parses
+/// and emits verbatim. The two are separate seats because they are two
+/// vocabularies: folding the deferred trees in beside the rows would hand the
+/// stamp items it has no clause for, and standing them outside the invocation
+/// would release them on a pin MISMATCH — the exact leak the seat closes.
 ///
 /// # Errors
 ///
-/// Returns [`ShellRenderIssue::ShellTreeUnbounded`] where the invocation outgrows
-/// the declared token magnitude.
+/// Returns [`ShellRenderIssue::ShellTreeUnbounded`] where either seat, or the
+/// invocation around them, outgrows the declared token magnitude.
 pub fn gate_invocation(
     expectation: GeneratedToken,
-    cargo: Vec<GeneratedToken>,
+    trials: Vec<GeneratedToken>,
+    deferred: Vec<GeneratedToken>,
 ) -> Result<Vec<GeneratedToken>, ShellRenderIssue> {
     let mut clauses = vec![
         GeneratedToken::word(EXPECTED_CLAUSE),
@@ -689,24 +722,59 @@ pub fn gate_invocation(
     ];
     clauses.extend(metavariable(CrateFacing::Harness.parameter()));
     clauses.push(GeneratedToken::alone(','));
-    clauses.extend(cargo);
+    clauses.push(GeneratedToken::word(TRIALS_CLAUSE));
+    clauses.push(GeneratedToken::alone(':'));
+    clauses.push(group(GeneratedDelimiter::Brace, trials)?);
+    clauses.push(GeneratedToken::alone(','));
+    clauses.push(GeneratedToken::word(DEFERRED_CLAUSE));
+    clauses.push(GeneratedToken::alone(':'));
+    clauses.push(group(GeneratedDelimiter::Brace, deferred)?);
+    clauses.push(GeneratedToken::alone(','));
     let mut tokens = twin_path(CrateFacing::Harness, &[GATE_MACRO]);
     tokens.push(GeneratedToken::alone('!'));
     tokens.push(group(GeneratedDelimiter::Brace, clauses)?);
     Ok(tokens)
 }
 
-/// The private module one shell splices its deferred cargo into: the local
+/// What one shell writes into the gate's TRIALS seat: the stamped payload where
+/// the caller declared one, and nothing where it declared none.
+///
+/// # A carrier with no rows is not a carrier with nothing to carry
+///
+/// The rows a descriptor states about itself arrive whole from the caller, so a
+/// door holding no payload has no rows to declare — and it may still have cargo
+/// to defer. This road is what makes that delivery writable: the seat renders
+/// empty, the deferred seat renders full, and the gate carries one invocation
+/// exactly as it does for a crossing that declared both.
+///
+/// # Errors
+///
+/// Returns [`ShellRenderIssue::ShellTreeUnbounded`] where the stamped payload
+/// outgrows the declared token magnitude.
+pub fn trial_cargo(declared: &TrialDelivery) -> Result<Vec<GeneratedToken>, ShellRenderIssue> {
+    match declared {
+        TrialDelivery::NothingDeclared => Ok(Vec::new()),
+        TrialDelivery::Declared(payload) => stamped_module(payload),
+    }
+}
+
+/// The private module one shell splices into the gate's DEFERRED seat: the local
 /// subject the cargo's implementations stand over, the cargo itself, and one
 /// constant per selection the cargo reads.
 ///
 /// # Where it stands, and why there
 ///
-/// BESIDE the gate invocation rather than inside it. What rides through the gate
-/// is the harness's own cargo under the harness's own grammar, and this module
-/// is neither: it is a private module the consumption target expands, holding
-/// items the harness never sees. Splicing it through the gate would be this home
-/// writing into a grammar it does not own.
+/// INSIDE the gate invocation, in the seat the published grammar reserves for
+/// trees the gate never parses. It used to stand beside the invocation, and the
+/// cost was exact: a pin MISMATCH suppressed the rows while releasing this
+/// module, so a consumer whose published pair was incoherent was handed one
+/// refusal AND a module of evaluation copies to compile. Everything the carrier
+/// delivers rides behind the same pin or nothing does.
+///
+/// It is still not written into the harness's grammar, and that is what the two
+/// seats are for: the trials seat is the harness's vocabulary, the deferred seat
+/// is opaque token trees the gate forwards verbatim, and this module lands in
+/// the second.
 ///
 /// # What the module is for
 ///

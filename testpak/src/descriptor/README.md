@@ -106,6 +106,23 @@ invoke it: row expressions for crossing one and the evaluation copy land in
 the test target; bench rows land in the bench target. Nothing crosses
 unnamed.
 
+The shell's test-target body is ONE INVOCATION OF THE PIN, carrying two
+named seats: the trial payload and the deferred cargo. Both crossings that
+land in a test target are therefore inside the gate rather than beside it —
+the row constructors ride the trials seat, the mutation crossing's
+evaluation copy rides the deferred seat, and a mismatched pin withholds them
+together in one arm. That is the pin governing the live crossings
+PHYSICALLY: every schema-sensitive token a delivery carries into a test
+target is inside the door, so one refusal reaches all of it, and one match
+releases all of it. The trials seat may be empty and an empty one is a
+lawful delivery — a shell whose whole cargo was deferred stamps no table,
+and vacuity is judged at the selection, where a run can see it. The bench
+target's arm is the stated opening condition: one shell and one pin already
+cover the bench crossing — its field roster is a member of the same root
+declaration, so a change to it moves the same identity — and the invocation
+arm that carries a bench payload through the gate arrives when the reserved
+bench seat fills.
+
 The root schema declaration's canonical bytes are the PREIMAGE of the
 generated-support schema identity, which is derived from them — never
 hand-bumped, never a hash of source text, and bytes are never "the id"; a
@@ -135,12 +152,15 @@ Every drift dies; only the gate's own claim is narrow.
 The pre-typecheck gate makes the loud break a mechanism, not a hope: this
 instrument owns a local `generated_support!` gate that token-matches the
 producer's traveling expectation against the checked-in published literal
-BEFORE releasing the constructor body into type checking — a mismatch
-expands to one owned diagnostic and the constructors never reach the
-compiler. Admission's first check is producer-expected against the
-published harness id — one precise loud break when the two published ids
-disagree, never a cascade of field errors on that road; a jointly stale
-pair sits outside this comparison's claim. Generated expressions call
+BEFORE releasing either seat into type checking — a mismatch expands to one
+owned diagnostic, and neither the constructors nor the deferred cargo ever
+reaches the compiler. The gate reads the deferred seat's tokens at no point:
+it transports them or it withholds them, because a door that parsed the
+cargo would be a second authority over a vocabulary it does not own.
+Admission's first check is producer-expected against the published harness
+id — one precise loud break when the two published ids disagree, never a
+cascade of field errors on that road; a jointly stale pair sits outside this
+comparison's claim. Generated expressions call
 public constructors, never struct literals; the conformance lane is
 admission exercised as one executed trial, never a registry. The rename
 twins hold: a consumer may rename both crates, and generated code honors
@@ -148,9 +168,9 @@ both names.
 
 The stamp battery lives here with the vocabulary it reads: `trial_table!`
 expands rows into the table, the named lenses, and one aggregate seat per
-execution suite — invoked by `generated_support!` on the generated road and
-directly by hand authors; `ensure_*` sugar lives with the property
-combinators it wraps. One refusal family closes that road: a declared row
+execution suite — invoked from `generated_support!`'s trials seat on the
+generated road, and directly by hand authors; `ensure_*` sugar lives with
+the property combinators it wraps. One refusal family closes that road: a declared row
 expression builds its own parts through the public constructors and writes
 the language's own `?` on each, so every construction that can refuse — a
 name, a classification roster, a row, the published root schema declaration,

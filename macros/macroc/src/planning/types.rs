@@ -706,10 +706,43 @@ pub enum RowMaterialPosture {
     CallerSupplied,
 }
 
+/// What one test-descriptor projection challenges, at the end where the
+/// obligation is named.
+///
+/// Not an option, and the same split every other anchoring in this file states:
+/// a descriptor planned where a caller HOLDS the machine's obligation identity
+/// names it, and a descriptor planned at expansion time — where nothing has been
+/// linked and the machine has minted no obligation for anybody to name — says
+/// THAT, and names the captured declaration it was derived from instead.
+///
+/// # Authority
+///
+/// **An obligation identity is the MACHINE's mint, and an expansion holds
+/// none.** [`OwnerIdentityRef`] has one production road and it takes a
+/// commitment the machine already minted, so a seat that admitted only the
+/// machine's identity made a test-descriptor plan unbuildable inside a
+/// proc-macro — which made the wall's first crossing unreachable from the only
+/// door that exists. Writing the posture down is what lets the carrier be
+/// planned at expansion time without any seam inventing owner meaning to fill a
+/// required seat.
+///
+/// The two postures never read alike, and neither is a missing obligation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ObligationAnchoring {
+    /// The machine's own obligation identity, as the caller that holds it
+    /// supplied it.
+    Declared(OwnerIdentityRef<ObligationSubject>),
+    /// The captured declaration this descriptor was derived from, with no
+    /// obligation identity in existence yet. The expansion-time posture, stated
+    /// rather than implied.
+    CapturedDeclarationOnly(ProjectionIdentity<CapturedDeclarationSubject>),
+}
+
 /// What a test descriptor projection plans: the descriptor that challenges one
 /// declared obligation.
 ///
-/// It names the obligation challenged, and it states where the descriptor's rows
+/// It names what it challenges, under the posture the caller could honestly
+/// state ([`ObligationAnchoring`]), and it states where the descriptor's rows
 /// come from.
 ///
 /// # Bounds
@@ -724,8 +757,8 @@ pub enum RowMaterialPosture {
 /// made about the rendering when the rendering never consults it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TestDescriptorContent {
-    /// The obligation challenged.
-    pub obligation: OwnerIdentityRef<ObligationSubject>,
+    /// What is challenged, under the posture the planning caller could state.
+    pub obligation: ObligationAnchoring,
     /// Where the descriptor's rows come from.
     pub rows: RowMaterialPosture,
 }

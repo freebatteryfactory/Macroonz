@@ -1,12 +1,31 @@
 //! The pre-typecheck gate: the one place a producer's expected schema identity
-//! is compared against the identity this harness publishes, BEFORE any
-//! constructor the producer emitted reaches type checking.
+//! is compared against the identity this harness publishes, BEFORE any material
+//! the producer emitted reaches type checking.
 //!
 //! A mismatch here is one precise loud break — a single owned diagnostic naming
 //! both sides — rather than a cascade of field errors somewhere inside a
 //! generated table. That is the whole reason the comparison is a macro arm: a
 //! `macro_rules!` pattern matches TOKENS, so it can refuse before the tokens it
 //! guards are parsed as Rust at all.
+//!
+//! # Two named seats, one pin
+//!
+//! The gate is handed everything a delivery carries into a consumption target,
+//! in two named seats. `trials:` carries the row constructors, under
+//! [`trial_table!`](crate::trial_table)'s own grammar. `deferred:` carries the
+//! cargo an expansion deferred into the delivery, as opaque token trees. The
+//! matched arm releases BOTH; the refusing arm releases NEITHER.
+//!
+//! That is what makes the pin's reach a fact of the expansion rather than a
+//! description of where a producer chose to put things: everything a delivery
+//! carries into a consumption target is handed to this door, and the door
+//! answers for all of it in one act. The two seats share one arm, so they cross
+//! together or they stay together.
+//!
+//! The gate stays semantically ignorant of the deferred seat on purpose: it
+//! transports or it withholds, and it never reads. A door that parsed the cargo
+//! would be a second authority over a vocabulary it does not own, and the
+//! transport law is the same for cargo this home has never heard of.
 //!
 //! # The published side of the pin
 //!
@@ -72,9 +91,10 @@
 pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] =
     b"threadpak-generated-support-sche";
 
-/// Guards one generated support declaration: compares the producer's expected
-/// schema identity against the published one, and releases the payload to
-/// [`trial_table!`](crate::trial_table) only when the two agree.
+/// Guards one generated support delivery: compares the producer's expected
+/// schema identity against the published one, and releases BOTH of its seats —
+/// the trial payload to [`trial_table!`](crate::trial_table), and the deferred
+/// cargo verbatim — only when the two agree.
 ///
 /// # The grammar
 ///
@@ -82,7 +102,8 @@ pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] =
 /// generated_support! {
 ///     expected: b"<the thirty-two published bytes>",
 ///     harness: <identifier>,
-///     <the trial_table! payload, verbatim>
+///     trials: { <the trial_table! payload, verbatim> },
+///     deferred: { <opaque token trees, verbatim> },
 /// }
 /// ```
 ///
@@ -94,20 +115,48 @@ pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] =
 ///   general path because a captured path fragment cannot be extended with
 ///   further segments in an expansion, while an identifier composes into one
 ///   freely; a consumer's rename is an identifier, so nothing is lost.
-/// - Everything after those two clauses is the payload, forwarded verbatim. Its
-///   grammar is [`trial_table!`](crate::trial_table)'s, exhaustively, and this
-///   gate neither reads nor rewrites one token of it. All three crossings the
-///   wall declares pass this one pin, and the trial-table grammar is the only
-///   payload published today: a bench payload becomes expressible through this
-///   same door when the bench seat fills, and until it does this gate forwards
-///   that one grammar and nothing else.
+/// - `trials:` is the row road. Its grammar is
+///   [`trial_table!`](crate::trial_table)'s, exhaustively, and this gate neither
+///   reads nor rewrites one token of it. The seat may be EMPTY, and an empty one
+///   is a lawful delivery rather than a refusal: a producer whose whole cargo was
+///   deferred writes `trials: { }`, the matched arm stamps no table, and nothing
+///   is missing. Vacuity is judged where a run can see it — a declared suite that
+///   pairs with no row is caught at the SELECTION, by the seat the stamp writes —
+///   and a seat that was never declared has no run to be vacuous in.
+/// - `deferred:` is the opaque seat. Its token trees are forwarded verbatim on
+///   the matched road and withheld entirely on the refusing one, and this gate
+///   parses none of them. What rides there is whatever an expansion deferred into
+///   the delivery — today, the evaluation cargo the mutation crossing carries
+///   into a test target — and the gate's ignorance of that is the design rather
+///   than a gap. A delivery with nothing deferred writes `deferred: { }`.
+///
+/// Both seats are always written, in that order. Neither is optional, and that
+/// is the point: a seat a producer could omit is a seat a producer could place
+/// somewhere the pin does not reach.
+///
+/// # The crossings this door carries
+///
+/// Two of the wall's three crossings land in a test target, and both are inside
+/// this one invocation: the row constructors in `trials:`, the mutation
+/// crossing's evaluation cargo in `deferred:`. So one pin governs both of the
+/// live crossings physically — a mismatch withholds them together, in one arm.
+///
+/// The third crossing lands in a BENCH target. It rides the same one delivery
+/// and answers to the same one identity — the root declaration's members are the
+/// descriptor's, the mutation point's, and the bench's, so a change to the bench
+/// roster moves the pin like any other member — and the invocation arm that
+/// carries a bench payload through this door arrives when the reserved bench
+/// seat fills. Until it does, the two seats above are the two this door
+/// declares, and the bench crossing's own opening condition is stated rather
+/// than papered over.
 ///
 /// # Authority
 ///
 /// The opening arm carries the published literal in its PATTERN. A producer
-/// whose expectation is a different literal does not match that arm, so its
-/// constructors are never released into type checking and the reader gets one
-/// sentence instead of a field-error cascade.
+/// whose expectation is a different literal does not match that arm, so neither
+/// seat is released into type checking and the reader gets one sentence instead
+/// of a field-error cascade. One arm releases both seats and one arm withholds
+/// both, so there is no third outcome in which half the delivery got through.
 ///
 /// The declared harness identifier is load-bearing rather than decorative: the
 /// expansion writes one item that names this crate's own schema-identity type
@@ -123,7 +172,15 @@ pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] =
 /// conformance trial's. This page's module states the disposal routes for every
 /// drift the gate does not catch.
 ///
+/// Releasing the deferred seat is transport and never endorsement. The gate says
+/// the pin matched; it says nothing about what those tokens mean, because it
+/// never read them.
+///
 /// # Bounds
+///
+/// The `@`-prefixed rules below are the gate's internal transcription of the
+/// trials seat — the one place an empty seat is told from a carried one — and
+/// not invocation forms.
 ///
 /// The form above is shown as text rather than as a compiled example, for the
 /// reason [`trial_table!`](crate::trial_table)'s page gives: a compiled one needs
@@ -133,22 +190,33 @@ macro_rules! generated_support {
     (
         expected: b"threadpak-generated-support-sche",
         harness: $harness:ident,
-        $($payload:tt)*
+        trials: { $($trials:tt)* },
+        deferred: { $($deferred:tt)* },
     ) => {
         // The declared harness identifier, proven to name THIS crate: one type,
         // reached both ways, and a function pointer that exists only if the two
         // roads arrive at it. A wrong name refuses here, at the door, rather
-        // than as an unresolved path somewhere inside the payload.
+        // than as an unresolved path somewhere inside either seat.
         const _: fn(
             $harness::descriptor::GeneratedSupportSchemaId,
         ) -> $crate::descriptor::GeneratedSupportSchemaId = ::core::convert::identity;
 
-        $crate::trial_table! { $($payload)* }
+        // The trials seat, through the one transcription that tells an empty
+        // seat from a carried one: an empty seat stamps nothing, and a carried
+        // one is the stamp's own grammar, forwarded whole and unread.
+        $crate::generated_support! { @trials $($trials)* }
+
+        // The deferred seat, verbatim, released INSIDE the matched arm. Written
+        // once and released once, so the pin that governs the constructors above
+        // governs this cargo by the same act rather than by a second arm that
+        // agreed with the first.
+        $($deferred)*
     };
 
     // Pair incoherence: the producer's expectation is a literal, and it is not
-    // the published one. ONE diagnostic, both sides shown, and no payload
-    // forwarded — the constructors never reach the compiler.
+    // the published one. ONE diagnostic, both sides shown, and no seat
+    // forwarded — the constructors and the deferred cargo are bound here and
+    // dropped here, so neither reaches the compiler.
     //
     // The sentence names this macro and no crate path: a consumer may rename
     // this dependency, and a compiler message has no way to learn the name it
@@ -156,12 +224,15 @@ macro_rules! generated_support {
     (
         expected: $expected:literal,
         harness: $harness:ident,
-        $($payload:tt)*
+        trials: { $($trials:tt)* },
+        deferred: { $($deferred:tt)* },
     ) => {
         ::core::compile_error!(::core::concat!(
             "generated_support!: the producer's expected generated-support schema identity is \
-             not the one this harness publishes, so the published pair is incoherent and no \
-             constructor is released into type checking. Producer expected: ",
+             not the one this harness publishes, so the published pair is incoherent and \
+             nothing this door was handed reaches the compiler: the trial constructors and \
+             the deferred cargo are withheld together, because one arm releases both seats \
+             and this is not that arm. Producer expected: ",
             ::core::stringify!($expected),
             ". Published here: ",
             ::core::stringify!(b"threadpak-generated-support-sche"),
@@ -172,5 +243,17 @@ macro_rules! generated_support {
              together, under one receipt. A version-mixed consumer, a partial publication, \
              and a hand edit to one side are the three shapes this refusal has."
         ));
+    };
+
+    // THE TRANSCRIPTION of the trials seat. An empty seat is a delivery that
+    // carried no rows, so it stamps nothing at all — the alternative would be
+    // handing the stamp an empty declaration, which is not a form the stamp's
+    // grammar has.
+    (@trials) => {};
+
+    // A carried seat is the stamp's grammar, forwarded whole. One or more
+    // tokens, so this rule and the one above partition the seat between them.
+    (@trials $($trials:tt)+) => {
+        $crate::trial_table! { $($trials)* }
     };
 }

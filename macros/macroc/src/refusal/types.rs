@@ -8,6 +8,10 @@
 //! module-scoped and a seat declared in this file would be inside the wall with
 //! every other item this file declares.
 //!
+//! `encode.rs` beside them writes what an issue and a body ARE as canonical
+//! bytes, because a planning refusal travels inside a projection disposition and
+//! a disposition enters an identity's preimage.
+//!
 //! Readable is not the same as writable: a refusal body whose issues a caller
 //! could not read would be a refusal nobody can act on, so the seat is read back
 //! through a borrow — and a refusal a caller could WRITE would be a seam minting

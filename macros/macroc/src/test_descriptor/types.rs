@@ -1,8 +1,9 @@
 //! The test-descriptor home's declarations: the generated support shell every
 //! crossing of the wall rides, the descriptor row vocabulary in the harness's
-//! own field shape, the cargo an expansion defers into that shell, the two
-//! rename twins a rendered path is rooted at, and the magnitudes and refusal
-//! families this home answers with.
+//! own field shape, what the shell declares into the gate's TRIALS seat and what
+//! an expansion defers into its DEFERRED seat, the two rename twins a rendered
+//! path is rooted at, and the magnitudes and refusal families this home answers
+//! with.
 //!
 //! Declarations only.
 //! Every road that reaches a private field — a name's two parts, a path's
@@ -29,10 +30,10 @@
 
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
-    GeneratedUnitSubject, GeneratorVersionSubject, ObligationSubject, OwnerIdentityRef,
-    ProfileVersion, ProjectionIdentity, ProjectionProfileSubject, SoleRenderedUnit,
+    GeneratedUnitSubject, GeneratorVersionSubject, PlanId, ProfileVersion, ProjectionIdentity,
+    ProjectionProfileSubject, SoleRenderedUnit,
 };
-use crate::planning::CauseAnchoring;
+use crate::planning::{CauseAnchoring, ObligationAnchoring};
 use crate::token::GeneratedTree;
 use threadpak::types::{Bounded, NonEmptyBounded};
 
@@ -445,16 +446,35 @@ pub struct TrialTablePayload {
 ///
 /// # Authority
 ///
-/// **The spelling is DERIVED from the planned member's semantic key and from
-/// nothing else.** The shell is a `#[macro_export]` item, so it lands at the
-/// root of whatever crate the declaration site sits in and shares one namespace
-/// with every other exported macro there — a name a producer chose, or one taken
-/// from the owner's own spelling, would collide the first time two declarations
-/// in one crate wanted a shell. The semantic key is content-addressed, so two
-/// distinct planned members reach two distinct spellings without this home
-/// keeping a register of what it has already emitted.
+/// **The spelling is DERIVED from the PLAN's own identity, at full width, and
+/// from nothing else.** The shell is a `#[macro_export]` item, so it lands at
+/// the root of whatever crate the declaration site sits in and shares one
+/// namespace with every other exported macro there — a name a producer chose, or
+/// one taken from the owner's own spelling, would collide the first time two
+/// declarations in one crate wanted a shell.
+///
+/// The key is the PLAN's and not the planned member's, because a member's
+/// semantic key is a value the planning caller supplies while a plan's identity
+/// is one these services derive: two plans handed one semantic key would mint
+/// one exported name for two declarations, and nothing in the types would say
+/// so. A plan identity cannot be handed in at all.
+///
+/// It is also the identity that separates two DOORS over one declaration. A
+/// plan's transcript commits to the origin trail its members walk and to the
+/// trail the plan itself walks, and distinct doors are required to carry
+/// distinct origins — which is exactly why door equivalence compares the INTENT
+/// identity instead ([`ProjectionIntentId`](crate::planning::ProjectionIntentId)).
+/// So two textually identical declarations expanded at two sites plan two
+/// identities and mint two names, where an intent-scoped or content-scoped key
+/// would mint one name twice.
 ///
 /// # Bounds
+///
+/// The spelling carries the identity at FULL width — thirty-two bytes as
+/// sixty-four lowercase hexadecimal characters — so "collision-free" is true as
+/// written rather than true of a prefix. A shortened key is a different claim:
+/// it says two distinct plans are unlikely to collide, and the sentence beside
+/// it said they cannot.
 ///
 /// The spelling is a Rust identifier by construction: a fixed prefix and
 /// lowercase hexadecimal, which is exactly the alphabet an identifier admits
@@ -497,11 +517,17 @@ pub struct ActivePointSelector {
 ///
 /// # Where the tokens come from
 ///
-/// They are ONE emission's proved cargo, read off the receipt by the caller that
-/// holds one, and handed over whole. Nothing here joins anything, nothing here
-/// decides which units belong to a carrier, and nothing here holds a second copy
-/// of them: the split by delivery is inside the proof, the receipt is what the
-/// split is read from, and this seat is the vehicle's end of the same tokens.
+/// They are ONE closed expansion's proved cargo, read off that TERMINAL by the
+/// caller that holds one, and handed over whole. Nothing here joins anything,
+/// nothing here decides which units belong to a carrier, and nothing here holds
+/// a second copy of them: the split by delivery is inside the proof, the closed
+/// expansion is what the split is read from, and this seat is the vehicle's end
+/// of the same tokens.
+///
+/// The word "receipt" is not the one for it and never was: a receipt is a
+/// human-committed evidence or publication crossing, and a closed expansion
+/// states in the open that it has made none
+/// ([`DeliveryAddressing`](crate::closure::DeliveryAddressing)).
 ///
 /// # The subject
 ///
@@ -530,12 +556,43 @@ pub struct DeferredCargo {
     tokens: GeneratedTree,
 }
 
+/// What one shell declares into the gate's TRIALS seat.
+///
+/// Two postures, and they are different facts rather than one with a missing
+/// half. A crossing whose caller supplied row material declares the stamped
+/// payload; a crossing whose caller supplied none declares nothing, and the
+/// trials seat is rendered EMPTY rather than left out.
+///
+/// # Authority
+///
+/// **An empty trials seat is lawful and is what the rendering must admit.** The
+/// rows a descriptor states about itself are the harness's declarations and
+/// arrive whole from the caller
+/// ([`RowMaterialPosture`](crate::planning::RowMaterialPosture)), so a door that
+/// holds no caller-supplied payload has no rows to declare — and a carrier that
+/// still has cargo to defer is an EVALUATION-ONLY delivery, which is exactly the
+/// shape the derive door produces. A renderer that required a payload would make
+/// that delivery unwritable and would push the deferred cargo back outside the
+/// gate to reach a consumption target at all.
+///
+/// The seat is still rendered under the empty posture, because both seats are
+/// always present in the published grammar: a gate arm that had to match two
+/// shapes would be two arms, and one pin would open two doors.
+#[must_use = "a trial delivery either declares a stamped payload or states that no rows were declared"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum TrialDelivery {
+    /// The crossing declared no rows into this carrier.
+    NothingDeclared,
+    /// The payload the trials seat carries.
+    Declared(TrialTablePayload),
+}
+
 /// What one shell defers into its consumption target.
 ///
 /// Two postures, and they are different facts rather than one with a missing
 /// half. An expansion that planned members into this carrier defers their proved
 /// cargo; an expansion that planned none defers nothing, and the shell splices
-/// no module at all.
+/// no module into the deferred seat at all.
 /// A cargo of no tokens would be a module declaring a subject nothing implements
 /// and constants nothing reads, which is a different thing from an expansion
 /// that never sent this carrier anything — so the absence is a posture rather
@@ -607,6 +664,15 @@ pub struct GeneratedSupportShell {
 /// rendered role, and nothing about whether anything was rendered.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DescriptorPlan {
+    /// The plan's own identity — the key the exported shell name is derived
+    /// from.
+    ///
+    /// Read off the plan rather than composed here, and PLAN-scoped rather than
+    /// member-scoped, for the reason [`ShellName`] states: a member's semantic
+    /// key is the planning caller's value while this one is derived by these
+    /// services over the whole plan, so two plans cannot be made to mint one
+    /// exported name.
+    pub plan: PlanId,
     /// The rendered role the shell stands for.
     pub role: SoleRenderedUnit,
     /// The planned member's semantic key, exactly as the plan declared it.
@@ -621,8 +687,13 @@ pub struct DescriptorPlan {
     pub declaration: CauseAnchoring,
     /// The rendering engine the shell is written by.
     pub engine: ProjectionIdentity<GeneratorVersionSubject>,
-    /// The obligation the descriptor challenges.
-    pub obligation: OwnerIdentityRef<ObligationSubject>,
+    /// What the descriptor challenges, under the posture the planning caller
+    /// could honestly state.
+    ///
+    /// An obligation identity is the MACHINE's mint and an expansion holds none,
+    /// so the seat carries the anchoring rather than the identity — read exactly
+    /// as the plan stated it, and never elected here.
+    pub obligation: ObligationAnchoring,
 }
 
 /// How reading a plan into [`DescriptorPlan`] disagrees with the plan.

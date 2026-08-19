@@ -25,11 +25,12 @@ use super::{
     ActivePointSelector, BoundPath, CrateFacing, DeferredCargo, DeferredDelivery, DescriptorPlan,
     DescriptorRow, GeneratedSupportShell, PathSegmentLimit, ProducerOrigin, RoleLimit,
     RowAttachment, RowLimit, RowReferences, SelectorLimit, ShellDeclarationRefusal, ShellName,
-    ShellRenderIssue, SuiteGroup, SuiteGroupLimit, TagLimit, TrialTablePayload, WallName,
+    ShellRenderIssue, SuiteGroup, SuiteGroupLimit, TagLimit, TrialDelivery, TrialTablePayload,
+    WallName,
 };
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
-    AuthoringLimitProfile, GeneratedUnitSubject, ProfileVersion, ProjectionIdentity,
+    AuthoringLimitProfile, GeneratedUnitSubject, PlanId, ProfileVersion, ProjectionIdentity,
     ProjectionProfileSubject, SoleRenderedUnit,
 };
 use crate::planning::MemberDestination;
@@ -530,31 +531,41 @@ impl ShellName {
     /// machinery rather than as anything a consumer wrote.
     pub const PREFIX: &'static str = "__threadpak_generated_support_";
 
-    /// How many bytes of the semantic key the mangled spelling carries.
+    /// How many bytes of the plan identity the mangled spelling carries.
     ///
-    /// EIGHT, spelled as sixteen lowercase hexadecimal characters. The whole key
-    /// is thirty-two bytes and a sixty-four character suffix is a name nobody
-    /// reads; eight bytes is sixty-four bits of a content-addressed identity,
-    /// which is the width at which a collision inside one crate's macro namespace
-    /// stops being a thing anybody can arrange. The prefix carries the rest of
-    /// the distinctness: nothing else in a consumer's crate is spelled this way.
+    /// THIRTY-TWO — the whole identity — spelled as sixty-four lowercase
+    /// hexadecimal characters. It used to be eight, and eight bytes made every
+    /// "collision-free" sentence on this road a different claim than the one it
+    /// was written as: sixty-four bits of a derived identity is a width at which
+    /// a collision is unlikely, and the prose beside it said two distinct plans
+    /// CANNOT reach one spelling. A name at full width makes the sentence true
+    /// as written, and the cost is a suffix nobody reads — which is the cost a
+    /// mangled machinery name is supposed to have.
     ///
     /// # Nonclaims
     ///
-    /// A prefix of a derived identity is not the identity. Nothing derives
-    /// anything from this spelling, nothing reads it back into a key, and the
-    /// planned member's own semantic key is what every identity-bearing road
-    /// uses.
-    pub const KEY_BYTES: usize = 8;
+    /// The spelling is not the identity, and nothing reads it back. No road
+    /// parses hexadecimal into a plan identity, no decision consults the
+    /// spelling, and every identity-bearing road uses the plan's own value.
+    pub const KEY_BYTES: usize = 32;
 
-    /// The mangled name one planned member's shell is exported under.
+    /// The mangled name one plan's shell is exported under.
     ///
-    /// Total: the prefix is a constant and the suffix is hexadecimal over bytes
-    /// that always exist, so there is no count to read and no refusal to return.
+    /// The key is the PLAN's own identity, which is why the parameter is one:
+    /// a planned member's semantic key is a value the planning caller supplies,
+    /// and two plans handed one key would mint one exported name for two
+    /// declarations. A plan identity is derived by these services over the
+    /// account, the context, the whole membership, the watch set, the trace, and
+    /// the origin trail, so it cannot be handed in and it separates two doors
+    /// over one declaration.
+    ///
+    /// Total: the prefix is a constant and the suffix is hexadecimal over
+    /// thirty-two bytes that always exist, so there is no count to read and no
+    /// refusal to return.
     #[must_use]
-    pub fn mangled(semantic_key: &ProjectionIdentity<GeneratedUnitSubject>) -> Self {
+    pub fn mangled(plan: PlanId) -> Self {
         let mut spelling = String::from(Self::PREFIX);
-        for byte in semantic_key.as_bytes().iter().take(Self::KEY_BYTES) {
+        for byte in plan.as_bytes().iter().take(Self::KEY_BYTES) {
             spelling.push_str(&format!("{byte:02x}"));
         }
         Self { spelling }
@@ -569,13 +580,14 @@ impl ShellName {
     /// The suffix the shell's own deferred module wears.
     pub const DEFERRED_SUFFIX: &'static str = "_deferred";
 
-    /// The private module this shell splices its deferred cargo into.
+    /// The private module this shell splices its deferred cargo into, inside the
+    /// gate's deferred seat.
     ///
     /// The shell's own hex-keyed spelling and one suffix, so the module is
-    /// collision-free on exactly the terms the exported name is: the key is
-    /// content-addressed, so two distinct planned members reach two distinct
-    /// modules without this home keeping a register of what it has already
-    /// written.
+    /// collision-free on exactly the terms the exported name is: the key is the
+    /// plan's own identity at full width, so two distinct plans reach two
+    /// distinct modules without this home keeping a register of what it has
+    /// already written.
     ///
     /// A macro and a module stand in two of Rust's namespaces and could share
     /// one spelling, but a reader who trips over both at one crate root should
@@ -600,35 +612,51 @@ impl GeneratedSupportShell {
     pub const DESTINATION: MemberDestination = MemberDestination::AtDeclarationSite;
 
     /// Render one generated support shell over what the plan decided, what the
-    /// caller declared, and what the expansion deferred into this carrier.
+    /// caller declared into the trials seat, and what an expansion deferred into
+    /// the deferred seat.
     ///
-    /// The order is the road: the exported name from the plan's own semantic key,
-    /// then the payload's tokens, then the gate invocation the payload rides
-    /// inside, then the deferred module beside it, then the exported macro
-    /// definition that carries both — and the shell only after all five, so no
-    /// half-rendered carrier exists.
+    /// The order is the road: the exported name from the plan's own identity,
+    /// then the trials seat's tokens, then the deferred seat's, then the ONE
+    /// gate invocation that carries both, then the exported macro definition
+    /// around it — and the shell only after all five, so no half-rendered
+    /// carrier exists.
     ///
-    /// # What each part of the body is
+    /// # Everything the carrier delivers rides INSIDE the gate
     ///
-    /// The GATE INVOCATION carries the descriptor rows, and its grammar is the
-    /// harness's. The DEFERRED MODULE stands beside it rather than inside it,
-    /// because what rides through the gate is the harness's own cargo and this
-    /// module is not: it is the local subject the deferred implementations stand
-    /// over, those implementations, and one constant per selection they read.
-    /// Both are items at the invocation site and both are expanded by the
-    /// consumption target, which is what makes them one delivery.
+    /// The shell's body is one gate invocation and nothing else. Both cargo
+    /// seats are inside it: `trials:` carries the descriptor rows under the
+    /// harness's own grammar, and `deferred:` carries opaque token trees the
+    /// gate never parses — the private module holding the local subject the
+    /// deferred implementations stand over, those implementations, and one
+    /// constant per selection they read.
     ///
-    /// A delivery that deferred nothing splices no module: an expansion that
-    /// planned no member into this carrier and one that sent it a cargo of no
-    /// tokens are different facts, and only the second has a module to write.
+    /// That module used to stand BESIDE the gate, and the cost was exact: a pin
+    /// MISMATCH suppressed the trials while releasing the module, so a consumer
+    /// whose published pair was incoherent got the refusal AND a module full of
+    /// evaluation copies compiled into its target. Inside the seat the gate
+    /// releases both or neither, which is what a gate is for.
+    ///
+    /// Both seats are always rendered, whichever posture fills them: an empty
+    /// trials seat beside carried deferred cargo is an EVALUATION-ONLY delivery
+    /// and is lawful, and a seat left out would be a second shape one published
+    /// arm has to match.
+    ///
+    /// # Construction
+    ///
+    /// Crate-internal, and the carrier-assembly home declared later in the
+    /// module order is its one caller. A public road here would take a deferred
+    /// cargo anybody can declare, so unproved tokens would cross the wall
+    /// through the very carrier the assembly exists to keep them out of; the
+    /// public road to a shell runs through a verified assembly, which is where
+    /// the one root, the one published expectation, and the exactly-once
+    /// consumption are established.
     ///
     /// # Errors
     ///
     /// Returns the rendering family naming
-    /// [`ShellRenderIssue::ShellTreeUnbounded`] where the stamped payload, the
-    /// gate invocation around it, the deferred module beside it, the exported
-    /// carrier around both, or the assembled tree outgrows the declared token
-    /// magnitude.
+    /// [`ShellRenderIssue::ShellTreeUnbounded`] where the trials seat, the
+    /// deferred seat, the gate invocation around both, the exported carrier
+    /// around that, or the assembled tree outgrows the declared token magnitude.
     ///
     /// The gate's own expectation is not among them: thirty-two bytes are one
     /// literal token, so the road that writes it is total and there is no branch
@@ -637,19 +665,18 @@ impl GeneratedSupportShell {
     /// established on this crossing. The family's collection shape is the BENCH
     /// crossing's, which renders two independent parts — a bench table and a
     /// reporter adapter — either of which can overrun on its own.
-    pub fn rendered(
+    pub(crate) fn rendered(
         stated: &DescriptorPlan,
-        payload: &TrialTablePayload,
+        trials: &TrialDelivery,
         deferred: &DeferredDelivery,
     ) -> Result<Self, ShellRendering> {
-        let name = ShellName::mangled(&stated.semantic_key);
+        let name = ShellName::mangled(stated.plan);
         let pin = render::expectation_literal();
-        let cargo = render::stamped_module(payload).map_err(|issue| established(vec![issue]))?;
-        let mut body =
-            render::gate_invocation(pin, cargo).map_err(|issue| established(vec![issue]))?;
-        body.extend(
-            render::deferred_module(&name, deferred).map_err(|issue| established(vec![issue]))?,
-        );
+        let declared = render::trial_cargo(trials).map_err(|issue| established(vec![issue]))?;
+        let carried =
+            render::deferred_module(&name, deferred).map_err(|issue| established(vec![issue]))?;
+        let body = render::gate_invocation(pin, declared, carried)
+            .map_err(|issue| established(vec![issue]))?;
         let tokens = render::exported_shell(&name, body).map_err(|issue| established(vec![issue]))?;
         let tree = GeneratedTree::assembled(tokens)
             .map_err(|_| established(vec![render::unbounded()]))?;

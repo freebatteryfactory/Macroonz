@@ -151,6 +151,42 @@
 //!    [`RefusalFamilyExpansion`] is that family's own view over the closed
 //!    expansion this step binds.
 //!
+//! # The joined road: the same steps, a second time, for the carrier
+//!
+//! A projection that plans cargo into a CARRIER has said where those tokens are
+//! compiled and nothing about how they get there. The vehicle is a second
+//! projection — the generated support shell — and a door that wants its
+//! declaration delivered walks the same eight steps a second time for it.
+//!
+//! No new step, no station, and no lobby: the carrier's account is
+//! [`OwnerContentAccount::captured`] over the SAME captured surface, its plan is
+//! [`ProjectionPlan::planned`], its unit is [`RenderedUnit::materialized`], its
+//! proof is [`ProjectionClosure::proved`], its explanation is
+//! [`ProjectionExplanationView::complete`], and its terminal is
+//! [`ClosedExpansion::bound`]. Every one of those is the road above, called
+//! again.
+//!
+//! What sits BETWEEN the two roads is the one thing neither of them is: the
+//! physical assembly. [`ProvedCargo::carried`] reads one terminal's own proved
+//! carrier partition and refuses anything that is not that partition's own;
+//! [`SupportAssembly::assembled`] verifies that the axes compose — one root, one
+//! published expectation, every carried unit consumed once, no unit reaching a
+//! second destination — and [`assembled_shell`] is the ONE road from a verified
+//! assembly to a rendered carrier. The carrier's own composition road is
+//! crate-internal, so there is no way to an exported shell that skips the
+//! verification.
+//!
+//! [`compile_declaration`] is the refusal family's one-call road through both,
+//! and it hands back a [`JoinedExpansion`]: both terminals and the assembly that
+//! joined them. Its TWO declaration-site cargos are exactly the two terminals'
+//! declaration-site partitions — the implementation members, and the shell
+//! definition — read off the terminals themselves rather than joined into a
+//! third value nobody proved. An emitter writes both.
+//!
+//! [`compile_refusal`] is unchanged and its callers stand: a caller that wants
+//! the implementation projection alone asks for exactly that. The difference
+//! between the two roads is a second terminal, never a different first one.
+//!
 //! Every step refuses in its own vocabulary: [`ProjectionPlanning`] at the
 //! account, the watch set, and the plan; [`RenderingRefusal`] at a rendered
 //! unit; [`ProjectionClosureRefusal`] at the proof and at the emissions it
@@ -440,6 +476,7 @@ pub mod template;
 pub mod trigger_view;
 pub mod composition;
 pub mod pattern_stamp;
+pub mod generated_support;
 pub mod derive_refusal;
 
 pub use closure::{
@@ -456,8 +493,12 @@ pub use derive_refusal::{
     DEFAULT_CRATE_BINDING, DerivedMembership, DerivedPlan, ExplanationBindingRefusal,
     ExplanationSeat, RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveCapture,
     RefusalDeriveRefusal, RefusalDeriveSurface, RefusalFamilyExpansion, RefusalOwnerFacts,
-    RenderRefusal, TextCompileRefusal, captured, captured_text, compile_refusal,
-    compile_refusal_text, documented,
+    RenderRefusal, TextCompileRefusal, captured, captured_text, compile_declaration,
+    compile_refusal, compile_refusal_text, documented,
+};
+pub use generated_support::{
+    AssemblyIssue, AssemblyIssueLimit, AxisCargo, CargoAxis, CarrierAssembly, JoinedExpansion,
+    ProvedCargo, SupportAssembly, assembled_shell,
 };
 pub use diagnostics::{
     DiagnosticSite, MachineAnchoring, MachineAnchors, MacrocDiagnostic, MacrocPhase,
@@ -493,7 +534,7 @@ pub use planning::{
     DocumentationProjection, EXPECTED_GENERATED_SUPPORT_SCHEMA_ID, EmissionPartition,
     ExpectedGeneratedSupportSchemaId, GraphAnchoring, HostWrapperContent, HostWrapperProjection,
     InvalidationSet, InvalidationTrigger, KindSeal, MemberDestination, OwnerContentAccount,
-    PatternStampContent, PatternStampProjection,
+    ObligationAnchoring, PatternStampContent, PatternStampProjection,
     PlanDecisions, PlannedMember, PlannedMembership, PlannedOutput, ProjectionBundlePlan,
     ProjectionContext, ProjectionDisposition, ProjectionIntentId, ProjectionKind, ProjectionPlan,
     RemoteSurfaceContent, RemoteSurfaceProjection, RenderedImplementation, RowMaterialPosture,

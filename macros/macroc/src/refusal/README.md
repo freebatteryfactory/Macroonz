@@ -25,7 +25,13 @@ Readable and writable are different permissions and this home grants one of them
 caller can WRITE is a seam minting the plane's answer without running the pass
 that establishes it.
 `type_contract.rs` states the family's declared shape and the issue roster's own
-slot table.
+slot table. `encode.rs` writes the canonical bytes an issue and a body are —
+the slot ahead of the typed material, length-framed through the plane's one
+framing — so a refused disposition can enter an identity's preimage as the
+refusal it carries rather than as the posture alone. What those bytes leave out
+is stated where they are written: a coverage posture is band 00's value and band
+00 declares no encoding for one, so this home writes none rather than inventing
+a spelling inside a vocabulary it does not own.
 
 Both halves of "writable" are closed, because closing one of them is closing
 neither.

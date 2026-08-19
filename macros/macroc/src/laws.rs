@@ -1866,11 +1866,50 @@ mod planning {
 }
 
 mod test_descriptor {
-    use crate::plane::GeneratedUnitSubject;
+    use crate::plane::PlanId;
     use crate::test_descriptor::{
-        ActivePointSelector, DeferredCargo, DeferredDelivery, ShellName, deferred_module,
+        ActivePointSelector, DEFERRED_CLAUSE, DeferredCargo, DeferredDelivery, GATE_MACRO,
+        ShellName, TRIALS_CLAUSE, TrialDelivery, deferred_module, expectation_literal,
+        gate_invocation, trial_cargo,
     };
     use crate::token::{GeneratedToken, GeneratedTree};
+
+    /// One plan identity for the laws below to key a carrier name on.
+    fn plan(tag: u8) -> PlanId {
+        crate::plane::for_laws(tag)
+    }
+
+    /// One cargo, carrying the subject a deferred copy stands over and one
+    /// selection it reads.
+    fn cargo() -> Result<DeferredCargo, ()> {
+        let selector = ActivePointSelector::declared(
+            "REFUSAL_FAMILY_ACTIVE_POINT",
+            "RefusalFamilyActivePoint",
+            "NoMutation",
+        )
+        .map_err(|_| ())?;
+        let declared = GeneratedTree::assembled(vec![
+            GeneratedToken::word("enum"),
+            GeneratedToken::word("RefusalFamilyActivePoint"),
+        ])
+        .map_err(|_| ())?;
+        DeferredCargo::deferred("EvaluationSubject", vec![selector], declared).map_err(|_| ())
+    }
+
+    /// The clause a braced seat of one rendered gate invocation carries, read by
+    /// walking the invocation's own tokens rather than by matching a sentence.
+    fn seat<'body>(body: &'body [GeneratedToken], clause: &str) -> Option<&'body [GeneratedToken]> {
+        let Some(GeneratedToken::Group { tokens, .. }) = body.last() else {
+            return None;
+        };
+        let position = tokens
+            .iter()
+            .position(|token| token == &GeneratedToken::word(clause))?;
+        match tokens.get(position.saturating_add(2)) {
+            Some(GeneratedToken::Group { tokens, .. }) => Some(tokens.as_slice()),
+            _ => None,
+        }
+    }
 
     /// law: descriptor.the-deferred-module-stands-exactly-where-cargo-was-deferred
     /// — the shell splices its private module when, and only when, the expansion
@@ -1899,20 +1938,8 @@ mod test_descriptor {
     /// carrier nothing was deferred into must break this law.
     #[test]
     fn the_deferred_module_stands_exactly_where_cargo_was_deferred() -> Result<(), ()> {
-        let name = ShellName::mangled(&crate::plane::for_laws::<GeneratedUnitSubject>(7));
-        let selector = ActivePointSelector::declared(
-            "REFUSAL_FAMILY_ACTIVE_POINT",
-            "RefusalFamilyActivePoint",
-            "NoMutation",
-        )
-        .map_err(|_| ())?;
-        let declared = GeneratedTree::assembled(vec![
-            GeneratedToken::word("enum"),
-            GeneratedToken::word("RefusalFamilyActivePoint"),
-        ])
-        .map_err(|_| ())?;
-        let cargo = DeferredCargo::deferred("EvaluationSubject", vec![selector], declared)
-            .map_err(|_| ())?;
+        let name = ShellName::mangled(plan(7));
+        let cargo = cargo()?;
 
         let carried =
             deferred_module(&name, &DeferredDelivery::Carried(cargo.clone())).map_err(|_| ())?;
@@ -1937,6 +1964,111 @@ mod test_descriptor {
                 .is_ok_and(|spliced| spliced.is_empty())
         );
         Ok(())
+    }
+
+    /// law: descriptor.everything-the-carrier-delivers-rides-inside-one-gate —
+    /// a shell's body is ONE gate invocation, both cargo seats are inside it, and
+    /// nothing the carrier delivers stands outside it.
+    ///
+    /// The deferred module used to stand BESIDE the invocation, so a pin
+    /// MISMATCH suppressed the rows while releasing the module: a consumer whose
+    /// published pair was incoherent got one refusal and a module of evaluation
+    /// copies to compile. The law is structural rather than about a sentence —
+    /// the body's last token is the invocation's own braced group, and the
+    /// deferred module's tokens are found INSIDE the deferred seat and nowhere
+    /// else in the body.
+    ///
+    /// The claim ceiling: it says where the seats are, and nothing about what the
+    /// gate does with them. What a matched pin releases and what a mismatch
+    /// refuses is the harness's own arm, on the other side of the wall.
+    ///
+    /// Owed reversal (red twin): a shell that extended its body with the deferred
+    /// module after the invocation must break this law.
+    #[test]
+    fn everything_the_carrier_delivers_rides_inside_one_gate() -> Result<(), ()> {
+        let name = ShellName::mangled(plan(11));
+        let cargo = cargo()?;
+        let carried =
+            deferred_module(&name, &DeferredDelivery::Carried(cargo)).map_err(|_| ())?;
+        let body = gate_invocation(expectation_literal(), Vec::new(), carried.clone())
+            .map_err(|_| ())?;
+
+        // One invocation: the gate's own path, then `!`, then exactly one group,
+        // and nothing after it.
+        assert!(body.contains(&GeneratedToken::word(GATE_MACRO)));
+        assert!(matches!(body.last(), Some(GeneratedToken::Group { .. })));
+        assert_eq!(
+            body.iter()
+                .filter(|token| matches!(token, GeneratedToken::Group { .. }))
+                .count(),
+            1
+        );
+
+        // The module is inside the deferred seat, token for token.
+        assert_eq!(seat(&body, DEFERRED_CLAUSE), Some(carried.as_slice()));
+        Ok(())
+    }
+
+    /// law: descriptor.an-empty-trials-seat-is-lawful-and-still-written — a
+    /// carrier that declares no rows renders an EMPTY trials seat beside its
+    /// carried deferred cargo, and the seat is written rather than left out.
+    ///
+    /// That delivery is what a door holding no caller-supplied row material
+    /// produces, and a renderer that required a payload would make it unwritable
+    /// — which is what pushed the deferred cargo outside the gate to reach a
+    /// consumption target at all. The seat is still WRITTEN, because a gate arm
+    /// that had to match two clause shapes would be two arms and one pin would
+    /// open two doors.
+    ///
+    /// Owed reversal (red twin): a renderer that omitted the trials clause for a
+    /// carrier with no rows, or that refused such a carrier, must break this law.
+    #[test]
+    fn an_empty_trials_seat_is_lawful_and_still_written() -> Result<(), ()> {
+        let declared = trial_cargo(&TrialDelivery::NothingDeclared).map_err(|_| ())?;
+        assert!(declared.is_empty());
+
+        let name = ShellName::mangled(plan(12));
+        let cargo = cargo()?;
+        let carried =
+            deferred_module(&name, &DeferredDelivery::Carried(cargo)).map_err(|_| ())?;
+        let body =
+            gate_invocation(expectation_literal(), declared, carried.clone()).map_err(|_| ())?;
+
+        assert_eq!(seat(&body, TRIALS_CLAUSE), Some(&[] as &[GeneratedToken]));
+        assert_eq!(seat(&body, DEFERRED_CLAUSE), Some(carried.as_slice()));
+        Ok(())
+    }
+
+    /// law: descriptor.the-shell-name-carries-the-whole-plan-identity — the
+    /// exported name is the declared prefix and the PLAN identity at full width,
+    /// so "collision-free" is true as written rather than true of a prefix.
+    ///
+    /// Both halves are asserted, because both were false at once: the name used
+    /// to carry eight bytes of a MEMBER's semantic key. The width is read off the
+    /// identity itself rather than from a number written here, and the
+    /// distinctness is exercised over two plan identities that agree in their
+    /// first bytes — which is exactly the pair a truncated key mints one name
+    /// for.
+    ///
+    /// Owed reversal (red twin): a name keyed on a member's semantic key, or one
+    /// carrying a prefix of its key, must break this law.
+    #[test]
+    fn the_shell_name_carries_the_whole_plan_identity() {
+        let first = plan(21);
+        let spelling = ShellName::mangled(first);
+        assert!(spelling.spelling().starts_with(ShellName::PREFIX));
+        let suffix = spelling
+            .spelling()
+            .strip_prefix(ShellName::PREFIX)
+            .unwrap_or_default();
+        assert_eq!(suffix.len(), first.as_bytes().len() * 2);
+        assert_eq!(ShellName::KEY_BYTES, first.as_bytes().len());
+        assert!(suffix.chars().all(|character| character.is_ascii_hexdigit()));
+
+        let second = plan(22);
+        assert_ne!(first.as_bytes(), second.as_bytes());
+        assert_ne!(spelling, ShellName::mangled(second));
+        assert_ne!(spelling.deferred_module(), ShellName::mangled(second).deferred_module());
     }
 }
 
@@ -3576,6 +3708,395 @@ mod pattern_stamp {
     }
 }
 
+mod generated_support {
+    use crate::closure::{ClosedExpansion, PartitionCargo};
+    use crate::derive_refusal::{
+        EVALUATION_SUBJECT, RefusalCompileContext, RefusalDerivationDraft, RefusalFamilyExpansion,
+        RefusalOwnerFacts, carrier_expansion, carrier_plan, compile_declaration,
+        compile_refusal_text, deferred_selectors, evaluation_axis, rows_disposition,
+    };
+    use crate::diagnostics::MachineAnchoring;
+    use crate::generated_support::{
+        AssemblyIssue, AxisCargo, CargoAxis, JoinedExpansion, ProvedCargo, SupportAssembly,
+    };
+    use crate::planning::{
+        CauseAnchoring, DeriveImplProjection, EXPECTED_GENERATED_SUPPORT_SCHEMA_ID,
+        EmissionPartition, ExpectedGeneratedSupportSchemaId, ProjectionDisposition,
+    };
+    use crate::test_descriptor::DeferredCargo;
+    use crate::token::{GeneratedToken, GeneratedTree, TextCapture};
+    use threadpak::refusal::CompletionPosture;
+    use threadpak::types::Bounded;
+
+    /// One lawful declaration whose shape carries both contracts, so the
+    /// implementation terminal below really does plan members into the test
+    /// carrier.
+    const DECLARATION: &str = "#[refusal(family = \"demo.assembly\", shape = single_cause, \
+        order(NotCarried = \"not-carried\"))] enum DemoCarried { NotCarried, }";
+
+    /// The implementation terminal every law below reads cargo off.
+    fn implementation() -> Option<RefusalFamilyExpansion> {
+        compile_refusal_text(DECLARATION)
+            .ok()
+            .map(|(_, closed)| closed)
+    }
+
+    /// The joined value the door hands back for that same declaration.
+    fn joined() -> Option<JoinedExpansion<RefusalFamilyExpansion>> {
+        let read = TextCapture::read(DECLARATION).ok()?;
+        let context = RefusalCompileContext {
+            spans: read.spans().clone(),
+            machine: MachineAnchoring::UnmintedAtThisSeam,
+            owner_facts: RefusalOwnerFacts::declared(),
+            nonclaims: Bounded::empty(),
+        };
+        compile_declaration(read.input(), &context).ok()
+    }
+
+    /// The evaluation axis's proved cargo, read off one implementation terminal.
+    fn proved(
+        draft: &RefusalDerivationDraft,
+        terminal: &ClosedExpansion<DeriveImplProjection>,
+    ) -> Option<ProvedCargo> {
+        match evaluation_axis(draft, terminal).ok()? {
+            AxisCargo::Absent { .. } => None,
+            AxisCargo::Carried(proved) => Some(proved),
+        }
+    }
+
+    /// Whether one refusal body carries an issue matching a predicate.
+    fn carries(
+        refusal: &crate::generated_support::CarrierAssembly,
+        matching: impl Fn(&AssemblyIssue) -> bool,
+    ) -> bool {
+        refusal.body().carried().iter().any(matching)
+    }
+
+    /// law: assembly.cargo-enters-only-from-the-terminal-that-proved-it — the
+    /// only tokens an axis can carry are the tokens the named terminal's named
+    /// partition proved, and the partition must be the one that axis delivers
+    /// from.
+    ///
+    /// Both halves are exercised because both are ways unproved or twice-bound
+    /// material would cross the wall: a tree that is not the partition's own is
+    /// material nobody proved, and a partition the axis does not deliver from is
+    /// material already compiled by another build. The declaration-site
+    /// partition is the case that costs — its units are in the consumer's normal
+    /// build — and it is the one the second half hands in.
+    ///
+    /// The claim ceiling: it says which cargo may enter an axis and nothing
+    /// about what the cargo means. What a copy stands over and which selection
+    /// it reads were established where it was rendered.
+    ///
+    /// Owed reversal (red twin): a road that took a token tree on its own, or one
+    /// that read whichever partition it was handed, must break this law.
+    #[test]
+    fn cargo_enters_only_from_the_terminal_that_proved_it() -> Result<(), ()> {
+        let expansion = implementation().ok_or(())?;
+        let terminal = expansion.expansion();
+        let draft = expansion.surface().clone().planned();
+        let selectors = deferred_selectors(draft.declared_membership()).map_err(|_| ())?;
+
+        // A tree nobody proved: one token this declaration never rendered.
+        let invented = GeneratedTree::assembled(vec![GeneratedToken::word("Invented")])
+            .map_err(|_| ())?;
+        let doctored =
+            DeferredCargo::deferred(EVALUATION_SUBJECT, selectors.clone(), invented)
+                .map_err(|_| ())?;
+        let refusal = ProvedCargo::carried(
+            terminal,
+            CargoAxis::Evaluation,
+            EmissionPartition::TestCarrier,
+            doctored,
+        )
+        .err()
+        .ok_or(())?;
+        assert!(carries(&refusal, |issue| matches!(
+            issue,
+            AssemblyIssue::CargoNotTheSourcesOwn { .. }
+        )));
+
+        // The declaration-site partition, whose units the normal build already
+        // compiles.
+        let carried = terminal.test_carrier().tokens().ok_or(())?.clone();
+        let honest =
+            DeferredCargo::deferred(EVALUATION_SUBJECT, selectors, carried).map_err(|_| ())?;
+        let refusal = ProvedCargo::carried(
+            terminal,
+            CargoAxis::Evaluation,
+            EmissionPartition::DeclarationSite,
+            honest,
+        )
+        .err()
+        .ok_or(())?;
+        assert!(carries(&refusal, |issue| matches!(
+            issue,
+            AssemblyIssue::CargoReachesASecondDestination {
+                axis: CargoAxis::Evaluation,
+                partition: EmissionPartition::DeclarationSite,
+            }
+        )));
+        Ok(())
+    }
+
+    /// law: assembly.one-terminals-partition-is-consumed-exactly-once — two axes
+    /// reading one terminal's one partition is a refusal, and it co-establishes
+    /// with every other disagreement the same pass found.
+    ///
+    /// The doubled reading is what would deliver one proved cargo twice into one
+    /// exported shell. The bench axis is the one that can be made to read it, and
+    /// doing so establishes the vehicle refusal too — so the law also proves the
+    /// body carries BOTH rather than electing one, which is what an
+    /// issue-collection shape is for.
+    ///
+    /// Owed reversal (red twin): an assembly that deduplicated the second reading,
+    /// or that reported the first issue alone, must break this law.
+    #[test]
+    fn one_terminals_partition_is_consumed_exactly_once() -> Result<(), ()> {
+        let expansion = implementation().ok_or(())?;
+        let terminal = expansion.expansion();
+        let draft = expansion.surface().clone().planned();
+        let cargo = proved(&draft, terminal).ok_or(())?;
+        let refusal = SupportAssembly::assembled(
+            terminal.plan().account().commitment(),
+            EXPECTED_GENERATED_SUPPORT_SCHEMA_ID,
+            AxisCargo::Absent {
+                because: rows_disposition(),
+            },
+            AxisCargo::Carried(cargo.clone()),
+            AxisCargo::Carried(cargo),
+        )
+        .err()
+        .ok_or(())?;
+        assert!(carries(&refusal, |issue| matches!(
+            issue,
+            AssemblyIssue::CargoConsumedTwice {
+                partition: EmissionPartition::TestCarrier,
+                ..
+            }
+        )));
+        assert!(carries(&refusal, |issue| matches!(
+            issue,
+            AssemblyIssue::BenchVehicleNotOpen
+        )));
+        assert!(matches!(
+            refusal.body().completion(),
+            CompletionPosture::Complete
+        ));
+        Ok(())
+    }
+
+    /// law: assembly.every-carried-axis-stands-under-one-root — cargo from a
+    /// terminal planned over another declaration is refused, and the refusal
+    /// names both roots without electing either.
+    ///
+    /// One exported carrier delivering two declarations' material is one name at
+    /// a crate root answering for two things. Which root the caller meant is the
+    /// caller's own fact, so both travel.
+    ///
+    /// Owed reversal (red twin): an assembly that took the first carried axis's
+    /// root as the whole assembly's must break this law.
+    #[test]
+    fn every_carried_axis_stands_under_one_root() -> Result<(), ()> {
+        let expansion = implementation().ok_or(())?;
+        let terminal = expansion.expansion();
+        let draft = expansion.surface().clone().planned();
+        let cargo = proved(&draft, terminal).ok_or(())?;
+        let elsewhere = CauseAnchoring::CapturedDeclaration(crate::plane::for_laws(97));
+        assert_ne!(elsewhere, terminal.plan().account().commitment());
+        let refusal = SupportAssembly::assembled(
+            elsewhere,
+            EXPECTED_GENERATED_SUPPORT_SCHEMA_ID,
+            AxisCargo::Absent {
+                because: rows_disposition(),
+            },
+            AxisCargo::Carried(cargo),
+            AxisCargo::Absent {
+                because: ProjectionDisposition::NotRequested,
+            },
+        )
+        .err()
+        .ok_or(())?;
+        assert!(carries(&refusal, |issue| matches!(
+            issue,
+            AssemblyIssue::RootsDisagree {
+                axis: CargoAxis::Evaluation,
+                stated,
+                carried,
+            } if *stated == elsewhere && *carried == terminal.plan().account().commitment()
+        )));
+        Ok(())
+    }
+
+    /// law: assembly.the-gate-is-pinned-against-the-published-expectation — an
+    /// expectation minted beside the one these services publish is refused, at
+    /// full width.
+    ///
+    /// The pin the shell writes is what a consumer's gate matches, so a carrier
+    /// carrying a second expectation would ship a pin no publication act wrote —
+    /// and the refusal carries the observed bytes, because the repair is a
+    /// comparison rather than a posture.
+    ///
+    /// Owed reversal (red twin): an assembly that took whichever expectation it
+    /// was handed must break this law.
+    #[test]
+    fn the_gate_is_pinned_against_the_published_expectation() -> Result<(), ()> {
+        let expansion = implementation().ok_or(())?;
+        let terminal = expansion.expansion();
+        let invented = ExpectedGeneratedSupportSchemaId::declared([7; 32]);
+        let refusal = SupportAssembly::assembled(
+            terminal.plan().account().commitment(),
+            invented,
+            AxisCargo::Absent {
+                because: rows_disposition(),
+            },
+            AxisCargo::Absent {
+                because: ProjectionDisposition::NotRequested,
+            },
+            AxisCargo::Absent {
+                because: ProjectionDisposition::NotRequested,
+            },
+        )
+        .err()
+        .ok_or(())?;
+        assert!(carries(&refusal, |issue| matches!(
+            issue,
+            AssemblyIssue::SchemaExpectationNotPublished { stated } if *stated == [7; 32]
+        )));
+
+        // The published one assembles, with every axis absent under a stated
+        // disposition: an evaluation-only carrier is lawful and so is an empty
+        // one.
+        assert!(
+            SupportAssembly::assembled(
+                terminal.plan().account().commitment(),
+                EXPECTED_GENERATED_SUPPORT_SCHEMA_ID,
+                AxisCargo::Absent {
+                    because: rows_disposition(),
+                },
+                AxisCargo::Absent {
+                    because: ProjectionDisposition::NotRequested,
+                },
+                AxisCargo::Absent {
+                    because: ProjectionDisposition::NotRequested,
+                },
+            )
+            .is_ok()
+        );
+        Ok(())
+    }
+
+    /// law: assembly.the-joined-road-emits-exactly-the-two-terminals — a joined
+    /// door road ends at two terminals, and the two declaration-site cargos an
+    /// emitter writes are exactly those two terminals' declaration-site
+    /// partitions.
+    ///
+    /// Neither is joined into a third value: a stream an emitter assembled would
+    /// be bytes neither proof committed to. Both are occupied, because a door
+    /// that emitted one of them would leave a carrier nobody defined or a
+    /// declaration that never expands.
+    ///
+    /// Owed reversal (red twin): a door that joined the two cargos into one tree,
+    /// or one that returned a single terminal, must break this law.
+    #[test]
+    fn the_joined_road_emits_exactly_the_two_terminals() -> Result<(), ()> {
+        let joined = joined().ok_or(())?;
+        let projected = joined.projected().emitted();
+        let carrier = joined.carrier_declaration_site();
+
+        assert_eq!(projected, joined.projected().expansion().declaration_site());
+        assert_eq!(carrier, joined.carrier().declaration_site());
+        assert!(matches!(projected, PartitionCargo::Carried(_)));
+        assert!(matches!(carrier, PartitionCargo::Carried(_)));
+        assert_ne!(projected.tokens(), carrier.tokens());
+        Ok(())
+    }
+
+    /// law: assembly.the-deferred-seat-carries-exactly-the-test-carrier-cargo —
+    /// the evaluation axis of a joined road's assembly carries the
+    /// implementation terminal's TEST-CARRIER partition, token for token, and
+    /// names that terminal as its source.
+    ///
+    /// The trials axis is absent under a stated disposition, which is the
+    /// evaluation-only delivery this door produces: the rows a descriptor states
+    /// are the caller's declaration and a derive door holds none.
+    ///
+    /// Owed reversal (red twin): a door that carried the declaration-site cargo,
+    /// or that invented row material to fill the trials axis, must break this
+    /// law.
+    #[test]
+    fn the_deferred_seat_carries_exactly_the_test_carrier_cargo() -> Result<(), ()> {
+        let joined = joined().ok_or(())?;
+        let AxisCargo::Carried(proved) = joined.assembly().evaluation() else {
+            return Err(());
+        };
+        assert_eq!(proved.partition(), EmissionPartition::TestCarrier);
+        assert_eq!(proved.source(), joined.projected().identity());
+        assert_eq!(
+            Some(proved.cargo().tree()),
+            joined.projected().expansion().test_carrier().tokens()
+        );
+        assert_eq!(proved.root(), joined.assembly().root());
+        assert!(matches!(
+            joined.assembly().trial(),
+            AxisCargo::Absent { .. }
+        ));
+        assert!(matches!(
+            joined.assembly().bench(),
+            AxisCargo::Absent { .. }
+        ));
+        Ok(())
+    }
+
+    /// law: assembly.a-carrier-terminal-is-planned-rendered-and-closed — the
+    /// carrier is a projection with its own plan, its own proof, and its own
+    /// explanation, walked through the same public steps every other kind's road
+    /// walks.
+    ///
+    /// The carrier used to be a rendering nobody planned: the shell was tokens a
+    /// caller could compose, standing outside every membership the closure
+    /// rebuilds. Here the shell is the plan's ONE member and the terminal binds
+    /// the three, so "nothing is emitted that did not close" is true of the
+    /// vehicle as well as of its cargo.
+    ///
+    /// Owed reversal (red twin): a carrier rendered outside a closed expansion
+    /// must break this law.
+    #[test]
+    fn a_carrier_terminal_is_planned_rendered_and_closed() -> Result<(), ()> {
+        let expansion = implementation().ok_or(())?;
+        let draft = expansion.surface().clone().planned();
+        let assembly =
+            crate::derive_refusal::assembly(&draft, expansion.expansion()).map_err(|_| ())?;
+        let plan = carrier_plan(&draft).map_err(|_| ())?;
+        let identity = plan.identity();
+        let carrier = carrier_expansion(plan, &assembly).map_err(|_| ())?;
+
+        assert_eq!(carrier.plan().identity(), identity);
+        assert_eq!(carrier.closure().plan(), identity);
+        assert_eq!(carrier.explanation().plan(), identity);
+        assert_eq!(carrier.explanation().closure(), carrier.closure().identity());
+        assert_eq!(
+            carrier
+                .plan()
+                .membership()
+                .count_under(crate::plane::SoleRenderedUnit::Sole),
+            1
+        );
+        assert!(matches!(
+            carrier.declaration_site(),
+            PartitionCargo::Carried(_)
+        ));
+        // The carrier defers nothing of its own: what it delivers rides inside
+        // its own rendered tokens, behind the gate, rather than in a partition
+        // of its own plan.
+        assert!(matches!(
+            carrier.test_carrier(),
+            PartitionCargo::NothingPlanned
+        ));
+        Ok(())
+    }
+}
+
 mod derive_refusal {
     use crate::closure::ClosureIssue;
     use crate::derive_refusal::{
@@ -4719,12 +5240,10 @@ mod failure_path_closure {
     /// law.
     #[test]
     fn an_explanation_binds_its_own_subject() {
-        let seats = [
-            ExplanationSeat::PlannedFamilyMember,
-            ExplanationSeat::ProvedFamilyDigest,
-            ExplanationSeat::DeclaredAssumption,
-        ];
-        let mut slots: Vec<u8> = seats.iter().map(|seat| seat.slot()).collect();
+        // The roster itself, not a list written here: a seat added to
+        // `ExplanationSeat` and forgotten at this call site would leave the law
+        // green about a roster it no longer covers.
+        let mut slots: Vec<u8> = ExplanationSeat::ALL.iter().map(|seat| seat.slot()).collect();
         slots.sort_unstable();
         let counted = slots.len();
         slots.dedup();

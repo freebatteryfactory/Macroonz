@@ -61,6 +61,14 @@ threadpak::closed_register! {
             "the digest the closure proved over the family bytes";
         /// The first owner fact the plan declares as an assumption.
         DeclaredAssumption = "declared-assumption", "the first owner fact the plan declares";
+        /// The planned member standing under the carrier's one rendered role.
+        ///
+        /// Its own seat rather than the family implementation's, because the two
+        /// are members of two different plans: a caller told the family member is
+        /// absent while the carrier's is the one missing would repair the wrong
+        /// projection.
+        PlannedCarrierMember = "planned-carrier-member",
+            "the planned member under the carrier's one role";
     }
 }
 

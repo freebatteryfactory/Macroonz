@@ -222,6 +222,40 @@ refusal_derive_facts! {
          production body that observes `Self` or names the type it was derived for has no copy \
          this delivery renders";
 
+    /// This home's own charter fact: the row material a descriptor states about
+    /// itself is the caller's declaration.
+    ARowIsTheCallersDeclarationAndNeverTheProducers = "macroc",
+        "a-row-is-the-callers-declaration-and-never-the-producers",
+        "the claim, the suite, the roles, the tags, the subject, the check, the population, and \
+         the callable a descriptor row states are the caller's own declarations, so a door handed \
+         none declares no rows rather than inventing the material it would then prove";
+
+    /// This home's own charter fact: material is delivered into a seat the
+    /// carrier's published grammar actually writes.
+    ACarrierSeatIsWrittenBeforeItIsFilled = "macroc",
+        "a-carrier-seat-is-written-before-it-is-filled",
+        "material is delivered into a seat the carrier's published grammar writes, so a crossing \
+         whose seat is reserved and not yet written delivers nothing rather than riding another \
+         crossing's seat into a target that does not run it";
+
+    /// This home's own charter fact: every spelling a carrier renders in
+    /// identifier position is one Rust identifier, distinct inside its
+    /// namespace.
+    ACarrierSpellingIsOneRustIdentifier = "macroc",
+        "a-carrier-spelling-is-one-rust-identifier",
+        "every spelling a carrier renders in identifier position is one Rust identifier and is \
+         distinct inside the namespace it lands in, so an expansion never writes tokens a \
+         consumer's compiler reads as something else";
+
+    /// This home's own charter fact: one carrier carries one declaration's
+    /// proved cargo, behind one pin.
+    OneCarrierDeliversOneDeclarationsProvedCargo = "macroc",
+        "one-carrier-delivers-one-declarations-proved-cargo",
+        "every axis of one exported carrier carries cargo its own terminal proved, from the \
+         partition that axis delivers from, under one root and one published expectation — so no \
+         unproved tokens, no second declaration's material, and no unit already compiled by the \
+         normal build reach a consumption target";
+
     /// This home's own charter fact: the terminal binds what it hands out.
     NothingIsHandedOutThatDidNotBind = "macroc", "nothing-is-handed-out-that-did-not-bind",
         "a closed expansion binds the plan its proof was taken against and the explanation \

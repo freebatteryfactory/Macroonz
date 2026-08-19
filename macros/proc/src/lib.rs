@@ -7,11 +7,16 @@
 //!    [`threadpak_macroc::CapturedInput`], walking the compiler's own token trees
 //!    natively and issuing one [`SpanHandle`] per token into a table the shell
 //!    keeps.
-//! 2. **Call.** [`threadpak_macroc::compile_refusal`] does the work and returns
-//!    either a closed expansion or a diagnostic.
-//! 3. **Emit.** The closed expansion's token tree becomes a `TokenStream`, or the
-//!    diagnostic becomes a `compile_error!` at the exact token its span handle
-//!    names.
+//! 2. **Call.** [`threadpak_macroc::compile_declaration`] does the work and
+//!    returns either a joined expansion — both terminals a declaration ends at,
+//!    and the assembly that joined them — or a diagnostic.
+//! 3. **Emit.** The two terminals' declaration-site token trees become a
+//!    `TokenStream`, or the diagnostic becomes a `compile_error!` at the exact
+//!    token its span handle names.
+//!
+//! The shell does not decide that there are two. Which terminal expands where is
+//! the joined value's own answer, read off each terminal's proved partition;
+//! this shell converts what it is handed.
 //!
 //! # Semantic emptiness
 //!
@@ -58,8 +63,8 @@ use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenSt
 use threadpak_macroc::{
     CaptureBound, CaptureWalk, CapturedDelimiter, CapturedInput, CapturedPayload,
     CapturedTokenTree, GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree,
-    MacrocDiagnostic, RefusalCompileContext, RefusalFamilyExpansion, SpanHandle, TokenPath,
-    compile_refusal,
+    JoinedExpansion, MacrocDiagnostic, PartitionCargo, RefusalCompileContext,
+    RefusalFamilyExpansion, SpanHandle, TokenPath, compile_declaration,
 };
 
 /// Derives a refusal family's declared facts from its declaration.
@@ -101,21 +106,35 @@ pub fn refusal_family(item: TokenStream) -> TokenStream {
         Ok(input) => input,
         Err(bound) => return refused(bound.described(), call_site(&spans)),
     };
-    match compile_refusal(&input, &RefusalCompileContext::expanding()) {
-        Ok(closed) => emit(&closed),
+    match compile_declaration(&input, &RefusalCompileContext::expanding()) {
+        Ok(joined) => emit(&joined),
         Err(diagnostic) => refused(&message(&diagnostic), site(&diagnostic, &spans)),
     }
 }
 
-/// The expansion's declaration-site cargo, as the compiler's tokens —
-/// the shell's only act. A projection that plans nothing at the declaration
-/// site emits nothing there; the carrier cargo is the generated support
-/// shell's to deliver, not this shell's.
-fn emit(closed: &RefusalFamilyExpansion) -> TokenStream {
-    closed
-        .emitted()
-        .tokens()
-        .map_or_else(TokenStream::new, emit_tree)
+/// The joined expansion's TWO declaration-site cargos, as the compiler's
+/// tokens — the shell's only act.
+///
+/// A joined road ends at two terminals and both of them expand where the
+/// declaration is: the implementation members the consumer's normal build
+/// compiles, and the exported support shell a consumption target invokes. Both
+/// are read off their own terminal's proved partition, and neither is joined
+/// into a third stream here — a stream this shell assembled would be bytes
+/// neither proof committed to.
+///
+/// A terminal that planned nothing at the declaration site emits nothing for it.
+/// The cargo a carrier delivers is not among these: it rides INSIDE the shell,
+/// behind the gate, and reaches a compiler only when a consumption target
+/// invokes it.
+fn emit(joined: &JoinedExpansion<RefusalFamilyExpansion>) -> TokenStream {
+    let mut emitted = emit_cargo(joined.projected().emitted());
+    emitted.extend(emit_cargo(joined.carrier_declaration_site()));
+    emitted
+}
+
+/// One proved declaration-site cargo as the compiler's tokens.
+fn emit_cargo(cargo: &PartitionCargo) -> TokenStream {
+    cargo.tokens().map_or_else(TokenStream::new, emit_tree)
 }
 
 /// One generated tree as the compiler's tokens.

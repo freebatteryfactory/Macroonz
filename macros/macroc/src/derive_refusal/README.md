@@ -63,6 +63,41 @@ The relocation is established rather than assumed: the renderer walks the tree
 it produced and refuses a body that observes `Self` or names the declared type,
 so a copy whose meaning would move with its subject is a typed refusal.
 
+## The joined road: the vehicle is a second projection
+
+Planning cargo into a carrier says where the tokens are compiled and nothing
+about how they get there. The vehicle is the generated support shell, and it is a
+PROJECTION — its own plan, its own rendering, its own proof, its own explanation,
+its own terminal — so [`compile_declaration`] walks the same six steps a second
+time for it, over the same captured surface.
+
+```text
+capture → plan → render → close → explain → bind      (the implementation)
+                       ↓ the assembly
+         plan → render → close → explain → bind        (the carrier)
+```
+
+What sits between the two is not a step of either: `generated_support` reads the
+implementation terminal's proved test-carrier cargo, verifies that the axes
+compose into one carrier — one root, one published expectation, every carried
+unit consumed once, no unit reaching a second destination — and hands back the
+assembly the shell is rendered from. The carrier's own composition road is
+crate-internal, so there is no way to an exported shell that skips it.
+
+The trials axis is ABSENT here, under the disposition that says why: the claim,
+the suite, the roles, the tags, the subject, the check, the population, and the
+callable a descriptor row states are the caller's declarations, and this door
+holds none. So what this door delivers is an EVALUATION-ONLY carrier — an empty
+trials seat beside carried deferred cargo — which is exactly the delivery the
+carrier's grammar renders both seats for.
+
+[`compile_declaration`] hands back both terminals and the assembly. Its two
+declaration-site cargos are exactly the two terminals' declaration-site
+partitions — the implementations, and the shell definition — and an emitter
+writes both. [`compile_refusal`] is unchanged and its callers stand: the
+difference between the two roads is a second terminal, never a different first
+one.
+
 ## Refusal vocabulary, step by step
 
 Each `map_err` on the road is a projection rather than a collapse. A planning

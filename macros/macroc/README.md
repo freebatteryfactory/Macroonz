@@ -178,6 +178,10 @@ flowchart TD
         PS --> OG
         PS --> PLAN
         PS --> TD
+        GS["generated_support — how closed outputs compose into ONE carrier"] --> PLN
+        GS --> PLAN
+        GS --> TD
+        GS --> CLO
     end
     DR["derive_refusal — the working derive road"] --> PLN
     DR --> TOK
@@ -188,7 +192,16 @@ flowchart TD
     DR --> CLO
     DR --> EXP
     DR --> DOC
+    DR --> TD
+    DR --> GS
 ```
+
+`generated_support` is seated after `closure` and after `test_descriptor` because
+it reads both: the terminals cargo is read off, and the carrier the cargo is
+composed into. It is not a projection kind and it is not a provider registry —
+`composition` owns which providers of descriptor material exist, and this home
+owns whether a set of already-proved outputs physically belongs in one exported
+shell. Assembly is physical; composition is the registry.
 
 ## The publication road
 

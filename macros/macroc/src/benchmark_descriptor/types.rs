@@ -20,7 +20,7 @@
 
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
-    GeneratedUnitSubject, GeneratorVersionSubject, MeasuredSubject, OwnerIdentityRef,
+    GeneratedUnitSubject, GeneratorVersionSubject, MeasuredSubject, OwnerIdentityRef, PlanId,
     ProfileVersion, ProjectionIdentity, ProjectionProfileSubject, SoleRenderedUnit,
     WorkCurrencySubject,
 };
@@ -387,6 +387,9 @@ pub struct BenchmarkShell {
 /// nothing about what any realization must do.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BenchmarkPlan {
+    /// The plan's own identity — the key the exported shell name is derived
+    /// from, on exactly the carrier's declared terms.
+    pub plan: PlanId,
     /// The rendered role the shell stands for.
     pub role: SoleRenderedUnit,
     /// The planned member's semantic key, exactly as the plan declared it.

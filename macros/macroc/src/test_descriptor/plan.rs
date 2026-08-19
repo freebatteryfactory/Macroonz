@@ -5,8 +5,10 @@
 //! member's semantic key, its expected profile at its version, and its origin
 //! trail are the PLAN's answers, read exactly; the address the shell stands on is
 //! the entry account's one commitment; the rendering engine is the generator the
-//! plan's context names; and the obligation is the kind content's, read and not
-//! interpreted. Two readings and no third: the account answers what this was
+//! plan's context names; the plan's own identity — the key the exported shell
+//! name is derived from — is the plan's, read exactly; and what the descriptor
+//! challenges is the kind content's, read under the posture the planning caller
+//! stated and never interpreted. Two readings and no third: the account answers what this was
 //! planned over, the membership answers what will be materialized, and this file
 //! joins them without keeping a copy of either.
 //!
@@ -22,7 +24,8 @@
 //!
 //! # The rows are not here
 //!
-//! The plan's kind content names an obligation and states where the rows come
+//! The plan's kind content names what is challenged and states where the rows
+//! come
 //! from; it does not name a claim, a suite, roles, tags, a subject route, a check
 //! reference, a population, or a callable. Those are the harness's declarations,
 //! they arrive from the CALLER as
@@ -83,6 +86,10 @@ pub fn descriptor_plan(
     }
     let content = plan.content();
     Ok(DescriptorPlan {
+        // The plan's own identity, read off the plan. It is what the exported
+        // shell name is keyed on, so the key is a value these services derived
+        // over the whole plan rather than one a planning caller supplied.
+        plan: plan.identity(),
         role,
         semantic_key: member.output.semantic_key,
         profile: member.output.expected_profile,
