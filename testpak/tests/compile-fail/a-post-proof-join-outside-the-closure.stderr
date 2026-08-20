@@ -1,7 +1,7 @@
 error[E0624]: associated function `joined` is private
-  --> tests/compile-fail/a-post-proof-join-outside-the-closure.rs:24:32
+  --> tests/compile-fail/a-post-proof-join-outside-the-closure.rs:25:32
    |
-24 |     let _join = CarriedTokens::joined;
+25 |     let _join = CarriedTokens::joined;
    |                                ^^^^^^ private associated function
    |
   ::: $WORKSPACE/macros/macroc/src/closure/type_guard.rs

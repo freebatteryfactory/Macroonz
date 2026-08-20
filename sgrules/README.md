@@ -31,11 +31,13 @@ cannot is worse than a stated manual check:
   refactor? Owner-coupled tests get flagged.
 - **"promote" appears in no filename**; the proposal road's file is
   `propose.rs`.
-- **Test scaffolding as specification is a finding, anywhere** — no `laws.rs`,
-  no proof-surface module, no assertion file collecting claims across unrelated
-  homes, no `#[cfg(test)]` item inside a library. A structural claim is enforced
-  by a type; a lane in a crate's `tests/` observes behaviour a type cannot
-  state, named for that behaviour, reached through the public surface.
+- **Test scaffolding as specification is a finding, anywhere** —
+  no `laws.rs`, no proof-surface module,
+  no assertion file collecting claims across unrelated homes,
+  no `#[cfg(test)]` item inside a library.
+  A structural claim is enforced by a type;
+  a lane in a crate's `tests/` observes behavior a type cannot state,
+  named for that behavior, reached through the public surface.
 - **Hand-maintained population lists** are a finding — populations are
   depot data or generated.
 - **File-grammar conformance:** every semantic home is README + mod +

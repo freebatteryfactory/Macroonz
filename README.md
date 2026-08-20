@@ -59,12 +59,14 @@ flowchart LR
     CONS -.-> TP
 ```
 
-Arrows point at what each crate depends on; a dashed arrow is a dependency
-reached only from `tests/`. Edges run one way and inward, and no production
-edge points at testpak — production never depends on its judge, so the judge
-reaches its three subjects, and its one outside consumer reaches it, from
-`tests/` alone. Hosts are one step further out, in other repositories, so this
-repository has no `hosts/` directory.
+Arrows point at what each crate depends on;
+a dashed arrow is a dependency reached only from `tests/`.
+Edges run one way and inward, and no production edge points at testpak:
+production never depends on its judge,
+so the judge reaches its three subjects — and its one outside consumer reaches it —
+from `tests/` alone.
+Hosts are one step further out, in other repositories,
+so this repository has no `hosts/` directory.
 
 ## The band map
 

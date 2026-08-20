@@ -38,8 +38,8 @@ use threadpak_macroc::{
     ReproductionRoute, TextCompileRefusal, compile_refusal_text,
 };
 
-/// The declaration handed to the services: a single-cause family, whose shape
-/// fixes a four-role output set.
+/// The declaration handed to the services:
+/// a single-cause family, whose shape fixes a four-role output set.
 const DECLARATION: &str = "#[refusal(family = \"testpak.demo\", shape = single_cause, \
     order(NotCanonical = \"not-canonical\", NotAdmitted = \"not-admitted\", \
     Unbounded = \"unbounded\"))] enum DemoFamily { NotAdmitted, Unbounded, NotCanonical, }";
@@ -49,8 +49,9 @@ const DECLARATION: &str = "#[refusal(family = \"testpak.demo\", shape = single_c
 const SHAPE_NOT_ADMITTED: &str = "#[refusal(family = \"testpak.demo\", shape = tri_state)] \
     enum DemoFamily { NotAdmitted, }";
 
-/// How many rendered roles this declaration's shape fixes, stated here rather
-/// than counted off the plan: the family contract and the typed cause order,
+/// How many rendered roles this declaration's shape fixes,
+/// stated here rather than counted off the plan:
+/// the family contract and the typed cause order,
 /// each in its production implementation and its mutation-evaluation copy.
 const DECLARED_ROLE_COUNT: usize = 4;
 
@@ -103,10 +104,11 @@ fn the_lawful_road_binds_every_required_seat() {
 /// The shortened-complete-set repair, restored: it produces a membership that is
 /// honest about a plan nobody declared.
 ///
-/// The repair takes a complete set whose construction failed and hands back the
-/// first member alone. The mutant below builds exactly that value — a one-member
-/// membership over a declaration whose shape fixes four — and it is well-formed,
-/// complete-looking, and about a smaller claim.
+/// The repair takes a complete set whose construction failed,
+/// and hands back the first member alone.
+/// The mutant below builds exactly that value —
+/// a one-member membership over a declaration whose shape fixes four —
+/// and it is well-formed, complete-looking, and about a smaller claim.
 ///
 /// The closure refuses to close the real rendering over it, naming the role the
 /// smaller claim dropped.
