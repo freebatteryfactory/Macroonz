@@ -22,9 +22,13 @@ pin an exact ThreadPak revision; the machine never knows which host is running i
 
 - The repository is the specification. There is no separate book. No semantic fact is
   manually restated in two places — cite the owner, never copy.
-- The repository states what IS. Nothing polices what isn't: no ban lists, no
-  negative-space scanners, no ledgers of the forbidden or the pending. A dead decision
-  leaves the tree; git history is its only tombstone.
+- The specification states what IS. No home carries a ban list, a negative-space
+  ledger, or an inventory of the forbidden and the pending; a claim about what cannot
+  happen is carried by the type that makes it unwritable, not by a list of what to
+  avoid. A dead decision leaves the tree; git history is its only tombstone. This file
+  and the construction-phase rule pack are the two exceptions, and they are exceptions
+  because they address the author rather than describing the machine: a working law
+  states prohibitions, and it retires them when they stop being true.
 - Numbered directories are dependency bands: band N imports only bands lower than N.
   Numbers live on directories only; module names stay clean via `#[path]`.
 - The crate root owns generic composition shapes only. A semantic noun lives at the
