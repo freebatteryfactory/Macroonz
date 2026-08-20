@@ -1,0 +1,14 @@
+error[E0308]: mismatched types
+  --> tests/compile-fail/a-watch-set-read-as-a-fact.rs:37:5
+   |
+36 | ) -> InvalidationSet {
+   |      --------------- expected `threadpak::types::NonEmptyBounded<InvalidationTrigger, InvalidationLimit>` because of return type
+37 |     context.watch_set(content)
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `NonEmptyBounded<..., ...>`, found `Result<NonEmptyBounded<..., ...>, ...>`
+   |
+   = note: expected struct `threadpak::types::NonEmptyBounded<InvalidationTrigger, InvalidationLimit>`
+                found enum `Result<threadpak::types::NonEmptyBounded<InvalidationTrigger, InvalidationLimit>, ProjectionPlanning>`
+help: consider using `Result::expect` to unwrap the `Result<threadpak::types::NonEmptyBounded<InvalidationTrigger, InvalidationLimit>, ProjectionPlanning>` value, panicking if the value is a `Result::Err`
+   |
+37 |     context.watch_set(content).expect("REASON")
+   |                               +++++++++++++++++

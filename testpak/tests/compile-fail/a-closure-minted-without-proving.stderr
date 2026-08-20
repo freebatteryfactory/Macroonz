@@ -1,0 +1,7 @@
+error: cannot construct `ProjectionClosure<_>` with struct literal syntax due to private fields
+  --> tests/compile-fail/a-closure-minted-without-proving.rs:21:16
+   |
+21 |         |plan| ProjectionClosure { plan };
+   |                ^^^^^^^^^^^^^^^^^   ---- private field
+   |
+   = note: ...and other private fields `reconstructed`, `rendered`, `emission`, `identity` and `provenance` that were not provided

@@ -7,8 +7,8 @@ agent working in this repository. `AGENTS.md` and `CLAUDE.md` are twins kept
 byte-identical by hand: any edit lands in both files in the same commit.
 
 There is no CI and no gate. The enforcement surface is the toolchain at the root — the
-lint wall in `Cargo.toml`, `clippy.toml`, `deny.toml`, `.cargo/config.toml` — and the
-compiler itself, run locally. Checks report; a human decides.
+lint wall in `Cargo.toml`, `clippy.toml`, `deny.toml`, `.cargo/config.toml` — the
+compiler itself, and the executed lanes, run locally. Checks report; a human decides.
 
 ## The spine
 
@@ -52,10 +52,18 @@ pin an exact ThreadPak revision; the machine never knows which host is running i
   admits the seat is empty, states its question, and names the exact condition that
   fills it. No `mod.rs`, no placeholder types, no stubs dressing an empty seat as
   occupied.
-- No test corpus is specification. There is no `laws.rs`, no proof-surface module, no
-  test lane, no compile-fail fixture, and no `#[cfg(test)]` item anywhere in this
-  repository. A claim is enforced by the type that makes its violation unwritable, or
-  it is not claimed. Writing one is not a contribution; it is the defect.
+- No test corpus is specification. A structural invariant lives in the type and its
+  smart constructor: wherever a type can reach a claim, the type that makes its
+  violation unwritable is the only statement of it. A lane observes what no type can
+  state — behaviour, cross-crate composition, expansion under renamed dependencies,
+  diagnostics, encodings, external tools, and the compile refusal that shows a type's
+  violation really is unwritable from outside. There is no `laws.rs` and no
+  proof-surface module: a file collecting assertions across unrelated homes is the
+  defect, whatever it is called, and a lane never legislates meaning. Lanes are named
+  for the behaviour they exercise, live in the `tests/` of the crate that owns the
+  road, and are reached only through the public surface — a `#[cfg(test)]` item inside
+  the library is a road built for an audience of one and refuses. A claim that is
+  neither structural nor observed is not claimed.
 - No hand-maintained inventories: counts, dependency maps, status tables, and public
   surface listings are derived, never authored.
 - rustdoc is a spec surface: public items are documented at the declaration; the README
@@ -64,8 +72,9 @@ pin an exact ThreadPak revision; the machine never knows which host is running i
 ## The strongest seat
 
 Every claim lives at the strongest seat that can establish it, and no weaker seat
-restates it: types first, then the compiler's own lints, then generated registers. A
-claim no seat can establish is not claimed. A claim restated at a weaker seat is worse
+restates it: types first, then the compiler's own lints, then generated registers, then
+one executed lane observing what no seat above it can state. A claim no seat can
+establish is not claimed. A claim restated at a weaker seat is worse
 than one stated once, because the weaker statement keeps passing after the stronger one
 is removed. The drain runs downward only: a type that makes the wrong move
 unrepresentable retires the law that asserted the move was wrong, and the law goes.
@@ -74,9 +83,10 @@ unrepresentable retires the law that asserted the move was wrong, and the law go
 
 A new crate, subsystem, module family, macro family, generator, register, or public
 contract is not admitted merely because it compiles. The boundary carries: its exact
-owner; its claims and nonclaims; the types that make its violations unwritable; its
-dependency and trust posture. And it names what it deletes: a component that deletes
-nothing and retires nothing is refused until it says why it deserves to exist anyway.
+owner; its claims and nonclaims; the types that make its violations unwritable; where
+a type cannot reach, the lane that observes the behaviour instead; its dependency and
+trust posture. And it names what it deletes: a component that deletes nothing and
+retires nothing is refused until it says why it deserves to exist anyway.
 
 A structural claim may not be deferred when a type can make its violation unwritable
 now. A behavioral claim may remain owed only when the machinery does not yet exist and
@@ -182,16 +192,18 @@ declarative stamps are standing law (`closed_register!` and `scope_guard_version
 are the exemplars); generation beyond a stamp's reach lands in core as published
 source under a receipt; the derive is the outside consumer's door.
 
-The current phase builds the harness (testpak) and the generation services
-(macros) in parallel as one phase, with zero compilation: implementers write
-complete code end to end — no stubs, no placeholder bodies, no
-compiler-appeasement — and QA is ast-grep and read-only review. The toolchain
-corrects the work once, when the owner declares final production pre-approval;
-nothing runs cargo before that word. That first toolchain contact is quiet and
-corrective — it is not the ceremony. After it comes the trust opening (baseline
+The harness (testpak) and the generation services (macros) were built in
+parallel as one phase under zero compilation: implementers wrote complete code
+end to end — no stubs, no placeholder bodies, no compiler-appeasement — and QA
+was ast-grep and read-only review. That phase closed at first toolchain
+contact, which was quiet and corrective rather than a ceremony. The toolchain
+now stands and the lanes execute; a red lane is evidence about the code, never
+an instruction to edit the lane. Next comes the trust opening (baseline
 qualification, then wrap-first mutation pressure, then the mandatory
 no-mutation parity — only then are interpreted-mutation results and
-rewrite-produced descriptors admitted as evidence), then the migration pass
+rewrite-produced descriptors admitted as evidence), where the harness's own
+ladder runs against this repository, the one subject that costs something to
+grade; then the migration pass
 (the generator runs its own migration, never a hand), then the per-home source
 pass with the owner in the loop; the blessing-day ceremony — the native-clone
 dual-target runs and the packaged outsider check — crowns the COMPLETE machine

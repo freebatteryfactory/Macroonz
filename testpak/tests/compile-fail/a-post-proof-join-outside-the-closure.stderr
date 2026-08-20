@@ -1,0 +1,10 @@
+error[E0624]: associated function `joined` is private
+  --> tests/compile-fail/a-post-proof-join-outside-the-closure.rs:24:32
+   |
+24 |     let _join = CarriedTokens::joined;
+   |                                ^^^^^^ private associated function
+   |
+  ::: $WORKSPACE/macros/macroc/src/closure/type_guard.rs
+   |
+   |     fn joined(plan: PlanId, partition: EmissionPartition, tree: GeneratedTree) -> Self {
+   |     ---------------------------------------------------------------------------------- private associated function defined here

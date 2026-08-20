@@ -45,20 +45,26 @@ machine never knows which host is running it.
 | `macros/macroc` | the generation services — package `threadpak-macroc` |
 | `macros/proc`   | the Rust-facing expansion shell — `threadpak-macros` |
 | `testpak`       | the testing harness — package `threadpak-testpak`    |
+| `consumer`      | the outside consumer — package `threadpak-consumer`  |
 
 ```mermaid
 flowchart LR
     PROC["macros/proc (threadpak-macros)"] --> MC["macros/macroc (threadpak-macroc)"]
     MC --> CORE["threadpak — the machine"]
-    TP["testpak — the judge"] --> CORE
-    TP --> MC
-    TP --> PROC
+    CONS["consumer — the outside consumer"] --> CORE
+    CONS --> PROC
+    TP["testpak — the judge"] -.-> CORE
+    TP -.-> MC
+    TP -.-> PROC
+    CONS -.-> TP
 ```
 
-Arrows point at what each crate depends on: edges run one way and inward, and
-nothing depends on testpak — production never depends on its judge. Hosts are
-one step further out, in other repositories, so this repository has no `hosts/`
-directory.
+Arrows point at what each crate depends on; a dashed arrow is a dependency
+reached only from `tests/`. Edges run one way and inward, and no production
+edge points at testpak — production never depends on its judge, so the judge
+reaches its three subjects, and its one outside consumer reaches it, from
+`tests/` alone. Hosts are one step further out, in other repositories, so this
+repository has no `hosts/` directory.
 
 ## The band map
 
@@ -112,6 +118,7 @@ The toolchain is the enforcement surface, run locally:
 ```sh
 cargo check --workspace --all-targets   # the compiler, which is the enforcement
 cargo clippy --workspace --all-targets  # the lint wall
+cargo nextest run --workspace           # the lanes, which observe what types cannot
 cargo fmt --all -- --check
 cargo deny check                        # licenses, sources, feature pins
 ```

@@ -29,8 +29,8 @@
 //! beside it, anywhere else in the services, and any crate downstream — and the
 //! compiler says so with `E0451`.
 //! It does not exclude descendants: a module declared inside a guard would
-//! construct as freely as these roads do, which is why this file declares no
-//! child module of its own.
+//! construct as freely as these roads do, so the reversal for these seats is a
+//! compile-fail fixture testpak owns.
 
 use super::super::prove::examined;
 use super::{
