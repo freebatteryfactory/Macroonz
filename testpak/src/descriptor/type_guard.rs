@@ -512,9 +512,9 @@ impl RevisionPosture {
     pub const fn meet(self, other: Self) -> Self {
         match (self, other) {
             (Self::Derived, Self::Derived) => Self::Derived,
-            (Self::Derived, Self::Declared)
-            | (Self::Declared, Self::Derived)
-            | (Self::Declared, Self::Declared) => Self::Declared,
+            (Self::Derived | Self::Declared, Self::Declared) | (Self::Declared, Self::Derived) => {
+                Self::Declared
+            }
             (Self::Untracked, Self::Derived | Self::Declared | Self::Untracked)
             | (Self::Derived | Self::Declared, Self::Untracked) => Self::Untracked,
         }

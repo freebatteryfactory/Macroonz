@@ -185,6 +185,6 @@ and the stamp expands them into named test functions, which is also what
 gives every row an editor test lens. Both roads call the same engine, so
 verdict drift between them is unrepresentable by construction; the
 spellings-parity trial exercises what the roads do NOT share — selection,
-aggregation, and suite wiring — and names run_one as its shared substrate,
+aggregation, and suite wiring — and names `run_one` as its shared substrate,
 because agreement across a shared substrate is silence about that
 substrate. The tables are the single source of truth for both.

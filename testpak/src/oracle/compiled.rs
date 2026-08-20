@@ -44,7 +44,6 @@ use super::types::{
 /// read back as these values. It says nothing about how the artifact is
 /// WRITTEN — two artifacts spelled differently can read back identically, and
 /// naming the difference is the structural read's.
-#[must_use]
 pub fn compared(
     observed: &CompiledObservation,
     declared: &DeclaredBehaviour<'_>,

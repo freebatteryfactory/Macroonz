@@ -182,18 +182,14 @@ fn never_decreasing<State>(order: Order<State>, history: &[State]) -> Holding {
 const fn both(left: Holding, right: Holding) -> Holding {
     match (left, right) {
         (Holding::Holds, Holding::Holds) => Holding::Holds,
-        (Holding::Holds, Holding::Fails)
-        | (Holding::Fails, Holding::Holds)
-        | (Holding::Fails, Holding::Fails) => Holding::Fails,
+        (Holding::Fails, _) | (Holding::Holds, Holding::Fails) => Holding::Fails,
     }
 }
 
 /// The disjunction of two demand verdicts.
 const fn either(left: Holding, right: Holding) -> Holding {
     match (left, right) {
-        (Holding::Holds, Holding::Holds)
-        | (Holding::Holds, Holding::Fails)
-        | (Holding::Fails, Holding::Holds) => Holding::Holds,
+        (Holding::Holds, _) | (Holding::Fails, Holding::Holds) => Holding::Holds,
         (Holding::Fails, Holding::Fails) => Holding::Fails,
     }
 }

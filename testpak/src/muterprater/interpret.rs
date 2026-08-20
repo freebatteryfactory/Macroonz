@@ -248,7 +248,7 @@ pub fn point_reading(
     admitted
         .get(named)
         .copied()
-        .ok_or_else(|| SelectionRefusal::AlternativePastRoster {
+        .ok_or(SelectionRefusal::AlternativePastRoster {
             admitted: admitted.len(),
             named,
         })

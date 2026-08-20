@@ -3,7 +3,7 @@
 A report states what one run did: what ran, what was inspected, what was
 skipped and why, and what each trial concluded. The denominator a report is
 stated over is the descriptor table itself — one census, already typed. A
-RunReport records its denominator and names its table posture — authored,
+`RunReport` records its denominator and names its table posture — authored,
 or staged with its parent named — and the posture has consumers: claim
 coverage admits authored-posture reports only, and the comparison refuses a
 cross-posture pair, so a staged run cannot masquerade by refusal, not by
@@ -11,10 +11,10 @@ declaration.
 
 Beside the census the report carries one run-level fact a census cannot hold:
 what the run's selection matched, read against what it expected. The
-SelectionExpectation is AtLeastOne unless a caller declared otherwise —
+`SelectionExpectation` is `AtLeastOne` unless a caller declared otherwise —
 anti-vacuity is the standing law and it costs an author nothing to keep — and
-the escape, AllowEmpty, carries a typed EmptySelectionReason stating why zero
-is admissible here. The SelectionOutcome is that reading: satisfied,
+the escape, `AllowEmpty`, carries a typed `EmptySelectionReason` stating why zero
+is admissible here. The `SelectionOutcome` is that reading: satisfied,
 unsatisfied by an empty selection, or empty as stated with the reason. An
 empty run is a complete report, never an absent one, and no arm of that
 vocabulary spells "passed": a run that exercised nothing has nothing to pass.
@@ -24,29 +24,29 @@ road, over the fact recorded here.
 ## The identity rails
 
 Semantic identity is content-addressed; diagnostic identity is
-location-addressed; the two never mix. TrialId is semantic meaning — the
+location-addressed; the two never mix. `TrialId` is semantic meaning — the
 claim, the subject, the mechanism (the check contract the check reference
 names), the population, and the profile — and survives file and module
-moves. TrialSite is the locator: module path, file, line, display name.
+moves. `TrialSite` is the locator: module path, file, line, display name.
 Reports join both; the path-spelled name is a site, never the identity. The
 profile coordinate's sole lawful value today is `Unprofiled` — an honest
 present-tense value, not a fictional default; the first real feature split
 adds choices.
 
-Beside the semantic identity ride the revision identities: RowRevisionId
+Beside the semantic identity ride the revision identities: `RowRevisionId`
 pins the complete authored row, derived from the canonical bytes that row
 committed to when it was built — a reading, never a re-encoding, and total
-because the bytes already exist; SubjectRevisionId and CheckRevisionId pin
+because the bytes already exist; `SubjectRevisionId` and `CheckRevisionId` pin
 the exact implementation and check revisions. The keys split by job.
 ROWREVISIONID owns bookkeeping — census, aggregation, report diff; a
 suite-tag or origin edit changes it, aggregation recomputes, and no
-execution is owed. The EXECUTIONKEY owns execution — TrialId, the subject
+execution is owed. The EXECUTIONKEY owns execution — `TrialId`, the subject
 and check revisions, the invocation profile, and the target/toolchain
 binding, unconditionally: a cross-target cache hit is a claim nothing
 verifies, and refusing it costs only reruns — cost, never truth. The
 invocation profile is its own typed value — the invocation's
 conclusion-relevant facts, budgets included, declared as a typed subset on
-the invocation itself; it is not TrialId's profile component.
+the invocation itself; it is not `TrialId`'s profile component.
 
 Cache eligibility is governed by the attachment postures — the one owning
 statement: derived is fully eligible; declared skips only while the
@@ -59,7 +59,7 @@ image — a mixed attachment can never mint an exact-replay claim over an
 author's-word check revision. Every other mention of eligibility,
 anywhere, points here.
 
-The ReplayCapsule is a reproduction account: it binds the execution key,
+The `ReplayCapsule` is a reproduction account: it binds the execution key,
 the exact input bytes, the generation and minimization profiles and
 versions, and the generated-support schema identity — and it carries its
 replay posture: exact-derived, the one posture that earns the phrase
@@ -79,7 +79,7 @@ selection across refactors, and grouping many finds into few defects.
 
 Claim coverage is a reading of reports: did every declared claim, hostile
 case, and mutation row get exercised. It is computed, never hand-counted.
-A RunReport records its denominator; the comparison is what reports the
+A `RunReport` records its denominator; the comparison is what reports the
 change. The comparison takes a typed baseline — a previous report, a first
 run, or an unavailable baseline with its reason — because an optional input
 cannot distinguish two absences and a result may never claim knowledge

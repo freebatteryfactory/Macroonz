@@ -63,7 +63,6 @@ impl<'pack> VectorEntry<'pack> {
     /// producer rendered exactly the bytes the specification states for this
     /// input. It says nothing about any other input, and nothing about whether
     /// the specification is the right one.
-    #[must_use]
     pub fn compared(self, produced: &[u8]) -> VectorVerdict {
         if produced == self.expected {
             return VectorVerdict::Agrees;
@@ -426,7 +425,6 @@ impl DerivedIdentity {
     /// published specification, read independently and encoded independently,
     /// names the identity the producer minted. A disagreement says the two
     /// readings differ; which of them is right is a person's ruling.
-    #[must_use]
     pub fn compared(&self, published: &[u8; 32]) -> TranscriptVerdict {
         if self.0 == *published {
             TranscriptVerdict::Agrees

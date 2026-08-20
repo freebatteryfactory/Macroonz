@@ -1390,7 +1390,6 @@ impl SurvivorExplanation {
 
 impl CheckGap {
     /// The finding a synthesis raises where the closing check has no attachment.
-    #[must_use]
     pub const fn found(claim: ClaimRef, check: CheckRef, missing: OracleClass) -> Self {
         Self {
             claim,
