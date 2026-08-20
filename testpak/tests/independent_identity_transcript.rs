@@ -143,10 +143,15 @@ const PROJECTION_INTENT_FAMILY: JudgedFamily = JudgedFamily {
     version: 1,
 };
 
-/// The explanation family, at the position it was first declared with.
+/// The explanation family, at position two: the related-projection seat's
+/// disposition grammar widened when the profile-unavailable posture gained the
+/// owner-fact citation, and that citation is written into the disposition's
+/// canonical bytes — a member the position-one preimage did not carry. The
+/// widening sits inside the typed answers, which is why this family moved and
+/// no neighbouring one did.
 const EXPLANATION_FAMILY: JudgedFamily = JudgedFamily {
     name: "explanation",
-    version: 1,
+    version: 2,
 };
 
 /// The declaration-documentation family, at the position it was first declared
