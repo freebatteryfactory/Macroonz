@@ -53,10 +53,10 @@
 //! sentence beside it are one row rather than two arguments that happened to be
 //! passed together.
 
-use super::render::RenderRefusal;
 use super::types::{
     DIAGNOSTIC_PREFIX, ExplanationBindingRefusal, LineBody, LineSite, RefusalClass,
-    RefusalDeriveFact, RefusalLine, RenderedMagnitude, callable_entry, expected_contract,
+    RefusalDeriveFact, RefusalLine, RenderRefusal, RenderedMagnitude, callable_entry,
+    expected_contract,
 };
 use crate::closure::{
     ClosureIssue, ExpansionBindingRefusal, ProjectionClosureRefusal, RenderingRefusal,

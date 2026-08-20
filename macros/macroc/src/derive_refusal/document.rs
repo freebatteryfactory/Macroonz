@@ -46,42 +46,11 @@
 //! reads them, and they are inside the documentation commitment either way.
 
 use super::account::documentation_disposition;
-use super::types::{DocumentedDeclaration, RefusalDeriveSurface};
+use super::types::{CapturedDocumentationReading, DocumentedDeclaration, RefusalDeriveSurface};
 use crate::documentation::{DocumentationDeclarationRefusal, DocumentedItem, PlainSentence};
 use crate::planning::ProjectionDisposition;
 
 /// What one captured declaration's documentation rows read as.
-///
-/// Two postures, and they are different observations rather than one with a
-/// missing half. A declaration whose FAMILY seat carries an admissible sentence
-/// has documentation material a projection can be planned over; one that carries
-/// no family-seat row at all has none, and this home composes none — a summary
-/// invented here would be a claim about the owner's declaration the owner did
-/// not make.
-///
-/// Neither posture is a refusal. A declaration that documented nothing is a
-/// lawful declaration, and the derive's own road does not stop for it.
-#[must_use = "a documentation reading is either material a projection is planned over or the stated absence of it"]
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum CapturedDocumentationReading {
-    /// The family seat carried a line the one-plain-sentence law admits, so the
-    /// item is that sentence and no earned section.
-    Documented {
-        /// The documentation material, ready for a documentation projection's
-        /// composition.
-        item: DocumentedItem,
-        /// What happened to facet election, which decides what a section is
-        /// earned by.
-        facets: ProjectionDisposition,
-    },
-    /// The declaration carries no family-seat row, so there is no owner sentence
-    /// for an item to open with.
-    NotDocumented {
-        /// Why no item was read. Nobody asked for one: the author wrote no
-        /// family-level prose, and this home writes none on an author's behalf.
-        because: ProjectionDisposition,
-    },
-}
 
 /// Read one captured surface's documentation rows.
 ///

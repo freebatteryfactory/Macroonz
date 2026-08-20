@@ -42,7 +42,7 @@
 //! are BOTH emitted from the same captured rows, which is the whole point of
 //! band 00's split between a cause's identity and its spelling.
 
-use super::types::{CapturedCause, RefusalDeriveSurface};
+use super::types::{CapturedCause, RefusalDeriveSurface, RenderRefusal};
 use crate::token::{GeneratedDelimiter, GeneratedToken, GeneratedTree};
 use threadpak::refusal::FamilyShape;
 
@@ -174,24 +174,6 @@ fn cause_identity(
             .map_err(|_| RenderRefusal::Unbounded)?,
     );
     Ok(minted)
-}
-
-/// How one rendering failed to assemble.
-#[must_use = "a rendering refusal names what the tree could not be rendered under"]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum RenderRefusal {
-    /// The rendered tree exceeds the declared token magnitude.
-    Unbounded,
-    /// The implementation body observes the target it was derived for, so no
-    /// copy of it stands over another subject and the evaluation delivery has
-    /// nothing lawful to render.
-    ///
-    /// A typed answer rather than a silent rendering: a body that means
-    /// something different once its target changes, rendered against the
-    /// support shell's subject anyway, is an evaluation copy that is not the
-    /// production implementation — and the parity the copy exists to prove
-    /// would be a statement about two different meanings.
-    TargetObserved,
 }
 
 /// Render the `RefusalFamily` implementation, for the type the author declared.

@@ -10,7 +10,10 @@
 //! stated once and everything about it follows.
 
 use crate::closure::ClosedExpansion;
-use crate::diagnostics::{MachineAnchoring, ObservedClassification, SiteCoordinate};
+use crate::diagnostics::{
+    MachineAnchoring, MacrocDiagnostic, ObservedClassification, SiteCoordinate,
+};
+use crate::documentation::DocumentedItem;
 use crate::explanation_protocol::ExplanationCoverage;
 use crate::origin_graph::Nonclaim;
 use crate::plane::{
@@ -19,7 +22,7 @@ use crate::plane::{
     RenderedByteLimit, human_projection,
 };
 use crate::planning::{DeriveImplProjection, ProjectionDisposition};
-use crate::token::{SpanHandle, SpanTable};
+use crate::token::{SpanHandle, SpanTable, TextCapture};
 use threadpak::declaration::SourceCoordinate;
 use threadpak::refusal::{
     CauseId, CauseOrderDeclaration, CompletionPosture, DeclaredCause, DeclaredCauseOrder,
@@ -1088,4 +1091,80 @@ pub enum ExplanationBindingRefusal {
     },
     /// The written view does not cover the kind's applicable questions.
     Coverage(ExplanationCoverage),
+}
+
+// ---------------------------------------------------------------------------
+// What the road's own steps hand back.
+//
+// A step's outcome is vocabulary a caller names, so it belongs to the home's
+// registry rather than to the file that produces it.
+// ---------------------------------------------------------------------------
+
+///
+/// Two postures, and they are different observations rather than one with a
+/// missing half. A declaration whose FAMILY seat carries an admissible sentence
+/// has documentation material a projection can be planned over; one that carries
+/// no family-seat row at all has none, and this home composes none — a summary
+/// invented here would be a claim about the owner's declaration the owner did
+/// not make.
+///
+/// Neither posture is a refusal. A declaration that documented nothing is a
+/// lawful declaration, and the derive's own road does not stop for it.
+#[must_use = "a documentation reading is either material a projection is planned over or the stated absence of it"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CapturedDocumentationReading {
+    /// The family seat carried a line the one-plain-sentence law admits, so the
+    /// item is that sentence and no earned section.
+    Documented {
+        /// The documentation material, ready for a documentation projection's
+        /// composition.
+        item: DocumentedItem,
+        /// What happened to facet election, which decides what a section is
+        /// earned by.
+        facets: ProjectionDisposition,
+    },
+    /// The declaration carries no family-seat row, so there is no owner sentence
+    /// for an item to open with.
+    NotDocumented {
+        /// Why no item was read. Nobody asked for one: the author wrote no
+        /// family-level prose, and this home writes none on an author's behalf.
+        because: ProjectionDisposition,
+    },
+}
+
+/// How one rendering failed to assemble.
+#[must_use = "a rendering refusal names what the tree could not be rendered under"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RenderRefusal {
+    /// The rendered tree exceeds the declared token magnitude.
+    Unbounded,
+    /// The implementation body observes the target it was derived for, so no
+    /// copy of it stands over another subject and the evaluation delivery has
+    /// nothing lawful to render.
+    ///
+    /// A typed answer rather than a silent rendering: a body that means
+    /// something different once its target changes, rendered against the
+    /// support shell's subject anyway, is an evaluation copy that is not the
+    /// production implementation — and the parity the copy exists to prove
+    /// would be a statement about two different meanings.
+    TargetObserved,
+}
+
+/// How the callable text route refused.
+///
+/// Two postures, and they are genuinely different observations.
+/// A text that cannot be cut into tokens never reached the grammar at all and
+/// has no span table to point into; a text that cut fine and said the wrong
+/// thing has both.
+/// Folding them together would hand a caller a diagnostic whose site indexes a
+/// table that was never built.
+#[must_use = "a refusal names which of the two ways the callable text route refused"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TextCompileRefusal {
+    /// The text could not be cut into tokens.
+    NotReadable(crate::token::TextReadRefusal),
+    /// The text was read, and the compilation refused. The capture rides along
+    /// so the diagnostic's token handle resolves against the same table the read
+    /// issued.
+    Refused(Box<(TextCapture, MacrocDiagnostic)>),
 }
