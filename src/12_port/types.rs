@@ -49,14 +49,6 @@ impl IdentityRole for PortFamilyId {
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
 }
 
-impl PortFamilyId {
-    /// In-crate mint for laws. Test-gated until admission minting exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<PortFamilyRole>) -> Self {
-        Self(occurrence)
-    }
-}
-
 crate::scope_guard_version! {
     /// One version of a port family — Class C, scoped to its family: versions of
     /// different port families are incomparable by type.

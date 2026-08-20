@@ -71,9 +71,9 @@ not before; the gap is stated here rather than closed by a road with no caller.
 the rows generates every reading of them — what those readings are is documented
 at the stamp itself, in `src/lib.rs`, and no home restates the list — and that is
 a composition shape the whole repository instantiates rather than an authoring
-concept this home rules. The services crate stamps its rosters with it and the
-machine's own proof surface stamps another; while it sat here, every one of them
-reached across a band edge for a mechanism this home did not own. It is seated
+concept this home rules. The services crate stamps its rosters with it; while it
+sat here, every consumer reached across a band edge for a mechanism this home did
+not own. It is seated
 in `lib.rs`, the root calculus's module surface, on the precedent
 `scope_guard_version!` set in band 02's `mod.rs`. This home is one consumer.
 

@@ -111,14 +111,6 @@ impl IdentityRole for SchemaSemanticCommitment {
     const CREATION: CreationLaw = CreationLaw::DomainTaggedDigestOfMeaning;
 }
 
-impl SchemaSemanticCommitment {
-    /// In-crate mint for laws. Test-gated until digest derivation exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(commitment: Commitment<SchemaMeaningDomain>) -> Self {
-        Self(commitment)
-    }
-}
-
 /// The identity role marker for schema descriptors.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SchemaDescriptorRole;
@@ -804,15 +796,6 @@ pub struct RefinementConstruction {
 }
 
 impl RefinementConstruction {
-    /// In-crate mint for laws. Test-gated until this home's enumerating pass
-    /// exists — the gate comes off when a lawful minter does, never before.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(
-        body: AdmittedPrefix<RefinementConstructionIssue, RefinementIssueLimit>,
-    ) -> Self {
-        Self { body }
-    }
-
     /// The established issues — at least one, at most the declared bound.
     #[must_use]
     pub const fn issues(
@@ -1053,15 +1036,6 @@ pub struct SchemaConstruction {
 }
 
 impl SchemaConstruction {
-    /// In-crate mint for laws. Test-gated until this home's enumerating pass
-    /// exists — the gate comes off when a lawful minter does, never before.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(
-        body: AdmittedPrefix<SchemaConstructionIssue, SchemaIssueLimit>,
-    ) -> Self {
-        Self { body }
-    }
-
     /// The established issues — at least one, at most the declared bound.
     #[must_use]
     pub const fn issues(&self) -> &NonEmptyBounded<SchemaConstructionIssue, SchemaIssueLimit> {

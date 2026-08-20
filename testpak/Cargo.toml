@@ -21,26 +21,11 @@ arbitrary = { workspace = true }
 # The family identity substrate: schema identity, revision identities,
 # fingerprints, replay-capsule and proposal identities, the execution key and
 # its rerun-cache keys, seed-pack content addresses — one domain-separated,
-# versioned profile, and no identity island. The independent transcript lane
-# hashes with the same admitted mechanism the services do — a lane that
-# reimplemented BLAKE3 would be testing an arithmetic exercise rather than a
-# specification; the two crates differ in what they ENCODE and in nothing else.
+# versioned profile, and no identity island.
 blake3 = { workspace = true }
-# The structural read's decoder, admitted by the note in README.md. Its home is
-# the challenge side and the flip is owed, so the opening condition is stated
-# here rather than left to a later reader's judgement: `syn` moves to
-# [dev-dependencies] at the wave that moves `oracle::structural::declarations_in`
-# out of `src/` and into a `tests/` module — and that is the wave in which a
-# challenge-side caller exists to call it there. A decoder moved into `tests/`
-# with nothing calling it is not a move to the challenge side; it is unreachable
-# code wearing the shape of one. Until then this manifest states what the code
-# does today: the decoder is library code, so this is a library dependency.
+# The structural read's decoder, admitted by the note in README.md. It is
+# library code — the oracle's structural road is a library road — and this
+# manifest states what the code does today. The exit condition is the arrival
+# of a challenge-side caller in the qualification era; a decoder relocated
+# ahead of its caller would be unreachable code wearing the shape of a move.
 syn = { workspace = true }
-
-[dev-dependencies]
-# The three participants under judgment, reached only from tests/.
-threadpak = { path = ".." }
-threadpak-macroc = { path = "../macros/macroc" }
-threadpak-macros = { path = "../macros/proc" }
-# The compile-refusal harness, inherited exact from the workspace table.
-trybuild = { workspace = true }

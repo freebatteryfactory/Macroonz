@@ -71,7 +71,7 @@ and every crate may read; a fact has no band.
 
 ```mermaid
 flowchart TD
-    R["root — types.rs shape calculus · depot data bank · laws.rs proof residue"]
+    R["root — types.rs shape calculus · depot data bank"]
     R --> B00["00 refusal — envelope, families, handling, ReasonId"]
     B00 --> B01["01 logic — three-valued logic, truth tables, finality"]
     B01 --> B02["02 identity — six identity classes, minting, scope guards"]
@@ -110,7 +110,7 @@ built through them afterward, and the application compiler comes last.
 The toolchain is the enforcement surface, run locally:
 
 ```sh
-cargo test --workspace                  # tests, doctests, compile-fail fixtures
+cargo check --workspace --all-targets   # the compiler, which is the enforcement
 cargo clippy --workspace --all-targets  # the lint wall
 cargo fmt --all -- --check
 cargo deny check                        # licenses, sources, feature pins

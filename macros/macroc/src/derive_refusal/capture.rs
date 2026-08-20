@@ -568,9 +568,7 @@ fn attribute_at<'trees>(
     }
     let bracket = trees.get(index.saturating_add(1))?;
     match bracket.group() {
-        Some((CapturedDelimiter::Bracket, inner)) => {
-            Some((inner.iter().collect(), bracket.span()))
-        }
+        Some((CapturedDelimiter::Bracket, inner)) => Some((inner.iter().collect(), bracket.span())),
         Some(_) | None => None,
     }
 }

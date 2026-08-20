@@ -63,13 +63,6 @@ mod guard;
 pub struct ReasonId([u8; 32]);
 
 impl ReasonId {
-    /// In-crate mint for laws. Test-gated until the evidence home registers
-    /// reasons — the gate comes off when a lawful minter exists, never before.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(bytes: [u8; 32]) -> Self {
-        Self(bytes)
-    }
-
     /// The declared raw-byte storage order of this identity.
     #[must_use]
     pub fn as_bytes(&self) -> &[u8; 32] {

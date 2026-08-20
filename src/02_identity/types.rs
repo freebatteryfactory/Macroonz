@@ -253,15 +253,6 @@ pub struct Commitment<Domain> {
 }
 
 impl<Domain> Commitment<Domain> {
-    /// In-crate mint for laws. Test-gated until digest derivation exists.
-    #[cfg(test)]
-    pub(crate) const fn raw(bytes: [u8; 32]) -> Self {
-        Self {
-            bytes,
-            _domain: PhantomData,
-        }
-    }
-
     /// The declared raw-byte storage order of this identity.
     #[must_use]
     pub fn as_bytes(&self) -> &[u8; 32] {
@@ -279,15 +270,6 @@ pub struct ByteIdentity<Role> {
 }
 
 impl<Role> ByteIdentity<Role> {
-    /// In-crate mint for laws. Test-gated until digest derivation exists.
-    #[cfg(test)]
-    pub(crate) const fn raw(bytes: [u8; 32]) -> Self {
-        Self {
-            bytes,
-            _role: PhantomData,
-        }
-    }
-
     /// The declared raw-byte storage order of this identity.
     #[must_use]
     pub fn as_bytes(&self) -> &[u8; 32] {
@@ -323,14 +305,6 @@ pub struct AuthorityPosition<Scope> {
 }
 
 impl<Scope: Eq> AuthorityPosition<Scope> {
-    /// The authority-side mint: assigned by exactly one writer authority.
-    /// Test-gated until an owner home carries the real admission path — the gate
-    /// comes off the moment a lawful minter exists, never before.
-    #[cfg(test)]
-    pub(crate) const fn assigned(scope: Scope, position: u64) -> Self {
-        Self { scope, position }
-    }
-
     /// The one lawful comparison: total within one scope, refused across scopes.
     ///
     /// # Errors
@@ -371,15 +345,6 @@ pub struct Occurrence<Role> {
 }
 
 impl<Role> Occurrence<Role> {
-    /// In-crate mint for laws. Test-gated until lawful minters exist.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(form: OccurrenceForm) -> Self {
-        Self {
-            form,
-            _role: PhantomData,
-        }
-    }
-
     /// The identity's byte form.
     #[must_use]
     pub fn form(&self) -> &OccurrenceForm {
@@ -397,14 +362,6 @@ pub struct TypedRef<To> {
 }
 
 impl<To> TypedRef<To> {
-    /// Bound pointer construction. Test-gated until an owner home carries the
-    /// real admission path — the gate comes off the moment a lawful minter
-    /// exists, never before.
-    #[cfg(test)]
-    pub(crate) const fn bound(referent: To, version: u64) -> Self {
-        Self { referent, version }
-    }
-
     /// The referent this reference is bound to.
     #[must_use]
     pub fn referent(&self) -> &To {

@@ -67,12 +67,6 @@ pub trait Dimension {}
 pub struct DimensionId(u16);
 
 impl DimensionId {
-    /// In-crate mint for laws. Test-gated until the register exists.
-    #[cfg(test)]
-    pub(crate) const fn registered(id: u16) -> Self {
-        Self(id)
-    }
-
     /// The registered identity.
     #[must_use]
     pub fn value(&self) -> u16 {
@@ -118,17 +112,6 @@ pub struct Budget<D: Dimension> {
 }
 
 impl<D: Dimension> Budget<D> {
-    /// The admission-side mint. Test-gated until an owner home carries the real
-    /// admission path — the gate comes off when a lawful minter exists, never
-    /// before.
-    #[cfg(test)]
-    pub(crate) const fn admitted(remaining: u64) -> Self {
-        Self {
-            remaining,
-            _dimension: PhantomData,
-        }
-    }
-
     /// The remaining magnitude. Reading is not gaining.
     #[must_use]
     pub fn remaining(&self) -> u64 {

@@ -340,7 +340,10 @@ fn admitted_text(text: &str) -> Result<(), DocumentationDeclarationRefusal> {
     if text.is_empty() {
         return Err(DocumentationDeclarationRefusal::EmptyText);
     }
-    if text.chars().any(|character| character == '\n' || character == '\r') {
+    if text
+        .chars()
+        .any(|character| character == '\n' || character == '\r')
+    {
         return Err(DocumentationDeclarationRefusal::TextCarriesLineBreak);
     }
     if text.len() > DocumentationTextLimit::MAX {

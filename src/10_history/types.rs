@@ -52,14 +52,6 @@ impl IdentityRole for StoreId {
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
 }
 
-impl StoreId {
-    /// In-crate mint for laws. Test-gated until admission minting exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<StoreRole>) -> Self {
-        Self(occurrence)
-    }
-}
-
 /// The identity role marker for store lineages.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct StoreLineageRole;
@@ -73,37 +65,12 @@ impl IdentityRole for StoreLineageId {
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
 }
 
-impl StoreLineageId {
-    /// In-crate mint for laws. Test-gated until admission minting exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<StoreLineageRole>) -> Self {
-        Self(occurrence)
-    }
-}
-
 crate::scope_guard_version! {
     /// One authority generation — Class C, scoped to its lineage. The ordering
     /// contract is fixed per generation: any change that would make old and new
     /// sequence values incomparable mints a new generation, so the generation a
     /// value carries names its ordering contract.
     pub struct AuthorityGeneration over StoreLineageId, seated in mod authority_generation;
-}
-
-impl AuthorityGeneration {
-    /// In-crate mint for laws. Test-gated until admission minting exists.
-    ///
-    /// It goes through the stamp's own road in rather than through the tuple
-    /// form, because the tuple form is not reachable from here: the stamp seats
-    /// the position inside a module of its own and this file is outside it.
-    #[cfg(test)]
-    pub(crate) fn for_laws(seed: u8) -> Self {
-        Self::positioned(crate::identity::AuthorityPosition::assigned(
-            StoreLineageId::for_laws(Occurrence::for_laws(
-                crate::identity::OccurrenceForm::Fresh([seed; 16]),
-            )),
-            u64::from(seed),
-        ))
-    }
 }
 
 /// The identity role marker for partitions.
@@ -155,14 +122,6 @@ impl IdentityRole for EventCommitment {
     const CREATION: CreationLaw = CreationLaw::DomainTaggedDigestOfMeaning;
 }
 
-impl EventCommitment {
-    /// In-crate mint for laws. Test-gated until digest derivation exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(commitment: Commitment<EventCommitmentDomain>) -> Self {
-        Self(commitment)
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Exact local order and durable cuts.
 // ---------------------------------------------------------------------------
@@ -191,12 +150,6 @@ pub struct AuthoritySequence {
 }
 
 impl AuthoritySequence {
-    /// In-crate mint for laws. Test-gated until admission minting exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(scope: WriterOrderScope, order: u64) -> Self {
-        Self { scope, order }
-    }
-
     /// The writer-order scope.
     #[must_use]
     pub fn scope(&self) -> &WriterOrderScope {
@@ -222,12 +175,6 @@ pub struct CommitPoint {
 }
 
 impl CommitPoint {
-    /// In-crate mint for laws. Test-gated until publication minting exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(scope: WriterOrderScope, ceiling: u64) -> Self {
-        Self { scope, ceiling }
-    }
-
     /// The writer-order scope.
     #[must_use]
     pub fn scope(&self) -> &WriterOrderScope {

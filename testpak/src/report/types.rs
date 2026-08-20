@@ -7,8 +7,8 @@
 //! are their own pure-function modules.
 
 use crate::descriptor::{
-    AuthoredTableName, CanonicalRowBytes, CheckRef, ClaimRef, GeneratedSupportSchemaId,
-    PopulationRef, SubjectRoute, TablePosture,
+    AuthoredTableName, CheckRef, ClaimRef, GeneratedSupportSchemaId, PopulationRef, SubjectRoute,
+    TablePosture,
 };
 use crate::identity::{ContentAddress, DomainTag};
 

@@ -107,14 +107,6 @@ impl IdentityRole for ExecutionFormFamilyId {
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
 }
 
-impl ExecutionFormFamilyId {
-    /// In-crate mint for laws. Test-gated until admission minting exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<ExecutionFormFamilyRole>) -> Self {
-        Self(occurrence)
-    }
-}
-
 crate::scope_guard_version! {
     /// One Execution-Form version — Class C, scoped to its family. Adding,
     /// removing, or changing an operator advances this version; no version is
@@ -223,13 +215,6 @@ pub struct ExecutionForm {
 }
 
 impl ExecutionForm {
-    /// In-crate mint for laws. Test-gated until the checked constructor
-    /// exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(content: Commitment<ExecutionFormDomain>) -> Self {
-        Self { content }
-    }
-
     /// The content's commitment.
     #[must_use]
     pub fn content(&self) -> &Commitment<ExecutionFormDomain> {
@@ -768,14 +753,6 @@ impl IdentityRole for SemanticKernelFamilyId {
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
 }
 
-impl SemanticKernelFamilyId {
-    /// In-crate mint for laws. Test-gated until admission minting exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<SemanticKernelFamilyRole>) -> Self {
-        Self(occurrence)
-    }
-}
-
 crate::scope_guard_version! {
     /// One semantic-kernel version — Class C, ordered ONLY within its family; no
     /// version is bare.
@@ -824,14 +801,6 @@ pub struct KernelRealizationId(Occurrence<KernelRealizationRole>);
 impl IdentityRole for KernelRealizationId {
     const CLASS: IdentityClass = IdentityClass::Occurrence;
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
-}
-
-impl KernelRealizationId {
-    /// In-crate mint for laws. Test-gated until admission minting exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<KernelRealizationRole>) -> Self {
-        Self(occurrence)
-    }
 }
 
 /// Kernel qualification evidence — an evidence role, not a contract.

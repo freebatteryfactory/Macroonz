@@ -54,14 +54,6 @@ impl IdentityRole for ImageDigest {
     const CREATION: CreationLaw = CreationLaw::DigestOfExactBytes;
 }
 
-impl ImageDigest {
-    /// In-crate mint for laws. Test-gated until digest derivation exists.
-    #[cfg(test)]
-    pub(crate) const fn of(digest: ByteIdentity<ImageByteRole>) -> Self {
-        Self(digest)
-    }
-}
-
 /// The claim marker for program-image references.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ProgramImageClaim;
@@ -86,14 +78,6 @@ impl IdentityRole for ImageFamilyId {
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
 }
 
-impl ImageFamilyId {
-    /// In-crate mint for laws. Test-gated until admission minting exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<ImageFamilyRole>) -> Self {
-        Self(occurrence)
-    }
-}
-
 crate::scope_guard_version! {
     /// One image-family format version — Class C, ordered ONLY within its family.
     pub struct ImageFamilyFormatVersion over ImageFamilyId, seated in mod image_family_format_version;
@@ -110,14 +94,6 @@ pub struct ImageProfileId(Occurrence<ImageProfileRole>);
 impl IdentityRole for ImageProfileId {
     const CLASS: IdentityClass = IdentityClass::Occurrence;
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
-}
-
-impl ImageProfileId {
-    /// In-crate mint for laws. Test-gated until admission minting exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<ImageProfileRole>) -> Self {
-        Self(occurrence)
-    }
 }
 
 crate::scope_guard_version! {

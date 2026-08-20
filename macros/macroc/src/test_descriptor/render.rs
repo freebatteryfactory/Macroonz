@@ -298,7 +298,10 @@ pub fn parsed_name(
     name: &WallName,
 ) -> Result<Vec<GeneratedToken>, ShellRenderIssue> {
     let mut tokens = descriptor_path(&[reference, NAME_ROAD]);
-    tokens.push(group(GeneratedDelimiter::Parenthesis, name_arguments(name))?);
+    tokens.push(group(
+        GeneratedDelimiter::Parenthesis,
+        name_arguments(name),
+    )?);
     tokens.push(GeneratedToken::alone('?'));
     Ok(tokens)
 }

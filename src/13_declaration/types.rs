@@ -124,12 +124,6 @@ pub struct DeclarationGraph {
 }
 
 impl DeclarationGraph {
-    /// In-crate mint for laws. Test-gated until the linker seam exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(linked: Commitment<LinkedGraphDomain>) -> Self {
-        Self { linked }
-    }
-
     /// The linked fact set's commitment.
     #[must_use]
     pub fn linked(&self) -> &Commitment<LinkedGraphDomain> {
@@ -190,14 +184,6 @@ pub struct ProjectionProfileId(Occurrence<ProjectionProfileRole>);
 impl IdentityRole for ProjectionProfileId {
     const CLASS: IdentityClass = IdentityClass::Occurrence;
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
-}
-
-impl ProjectionProfileId {
-    /// In-crate mint for laws. Test-gated until admission minting exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<ProjectionProfileRole>) -> Self {
-        Self(occurrence)
-    }
 }
 
 crate::scope_guard_version! {

@@ -9,8 +9,8 @@
 
 use super::{
     ByteBudget, CaseBudget, CensusDelta, CensusDirection, CheckRevisionId, ClaimCoverage,
-    ClaimExercise, ConclusionFlip, EXECUTION_KEY_TAG, Exercise, ExecutionKey, FINGERPRINT_TAG,
-    FOREIGN_TEXT_MAX_BYTES, FailureClass, Fingerprint, FindingCause, FindingLocation, ForeignText,
+    ClaimExercise, ConclusionFlip, EXECUTION_KEY_TAG, ExecutionKey, Exercise, FINGERPRINT_TAG,
+    FOREIGN_TEXT_MAX_BYTES, FailureClass, FindingCause, FindingLocation, Fingerprint, ForeignText,
     GenerationProfile, InvocationProfile, MinimizationProfile, NotSelectedReason, OutcomeClass,
     REPLAY_CAPSULE_TAG, ROW_REVISION_TAG, RecordedDuration, ReplayCapsule, ReplayPosture,
     ReportDiff, RowRevisionChange, RowRevisionId, RunAttempt, RunReport, SelectionDisposition,
@@ -19,8 +19,8 @@ use super::{
     TrialCoordinates, TrialFinding, TrialId, TrialProfile, TrialReport, TrialSite, Truncation,
 };
 use crate::descriptor::{
-    CanonicalRowBytes, CheckRef, ClaimRef, GeneratedSupportSchemaId, PopulationRef, RevisionBinding,
-    SubjectRoute, TablePosture, TrialKey,
+    CanonicalRowBytes, CheckRef, ClaimRef, GeneratedSupportSchemaId, PopulationRef,
+    RevisionBinding, SubjectRoute, TablePosture, TrialKey,
 };
 use crate::identity::ContentAddress;
 use crate::report::encode::{
@@ -328,11 +328,7 @@ impl InvocationProfile {
     /// The invocation's conclusion-relevant facts.
     #[must_use]
     pub const fn declared(cases: CaseBudget, bytes: ByteBudget, time: TimeBudget) -> Self {
-        Self {
-            cases,
-            bytes,
-            time,
-        }
+        Self { cases, bytes, time }
     }
 
     /// The case budget.

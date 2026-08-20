@@ -254,7 +254,10 @@ pub fn declared_row(row: &BenchRow) -> Result<Vec<GeneratedToken>, ShellRenderIs
     arguments.push(GeneratedToken::alone(','));
     arguments.extend(axis(row)?);
     arguments.push(GeneratedToken::alone(','));
-    arguments.extend(parsed_name(PREFLIGHT_REF, &references.correctness_preflight)?);
+    arguments.extend(parsed_name(
+        PREFLIGHT_REF,
+        &references.correctness_preflight,
+    )?);
     arguments.push(GeneratedToken::alone(','));
     arguments.extend(parsed_name(PLANTED_WORSE_REF, &references.planted_worse)?);
     arguments.push(GeneratedToken::alone(','));

@@ -425,7 +425,9 @@ fn implementation(
 ) -> Result<GeneratedTree, RenderRefusal> {
     let mut tokens = vec![GeneratedToken::word("impl")];
     tokens.extend(GeneratedToken::absolute_path(&[
-        binding, REFUSAL_MODULE, contract,
+        binding,
+        REFUSAL_MODULE,
+        contract,
     ]));
     tokens.push(GeneratedToken::word("for"));
     tokens.push(GeneratedToken::word(target));

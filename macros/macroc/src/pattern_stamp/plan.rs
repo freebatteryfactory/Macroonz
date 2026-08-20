@@ -175,7 +175,9 @@ pub fn plan_scope_guard_stamp(
         role: SoleRenderedUnit::Sole,
         output: PlannedOutput {
             semantic_key: *stamped_unit,
-            destination: MemberDestination::AsArtifact { byte_role: *byte_role },
+            destination: MemberDestination::AsArtifact {
+                byte_role: *byte_role,
+            },
             origin: origin.clone(),
             expected_profile: context.profile,
             expected_profile_version: context.profile_version,

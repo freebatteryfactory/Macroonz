@@ -27,8 +27,7 @@
 //! A private seat excludes every SIBLING — `types.rs` above it, `establish.rs`
 //! and `render.rs` beside it, anywhere else in the services, and any crate
 //! downstream — and the compiler says so with `E0451`. It does not exclude
-//! DESCENDANTS, so the reversal for these seats is a compile-fail fixture
-//! testpak owns.
+//! DESCENDANTS, which is why this file declares no child module of its own.
 
 use super::super::establish::{consumption_issues, root_issues};
 use super::{

@@ -71,12 +71,6 @@ pub const FRAME_TRAILER_BYTES: usize = 32;
 pub struct FrameRoleId(u16);
 
 impl FrameRoleId {
-    /// In-crate mint for laws. Test-gated until the register emitter exists.
-    #[cfg(test)]
-    pub(crate) const fn registered(id: u16) -> Self {
-        Self(id)
-    }
-
     /// The registered identity.
     #[must_use]
     pub fn value(&self) -> u16 {
@@ -252,12 +246,6 @@ pub struct ContentRegionRole;
 pub struct ContentRegionId(ByteIdentity<ContentRegionRole>);
 
 impl ContentRegionId {
-    /// In-crate mint for laws. Test-gated until digest derivation exists.
-    #[cfg(test)]
-    pub(crate) const fn of(digest: ByteIdentity<ContentRegionRole>) -> Self {
-        Self(digest)
-    }
-
     /// The region digest.
     #[must_use]
     pub fn digest(&self) -> &ByteIdentity<ContentRegionRole> {

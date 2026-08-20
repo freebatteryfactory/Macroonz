@@ -29,8 +29,8 @@
 //! beside it, anywhere else in the services, and any crate downstream — and the
 //! compiler says so with `E0451`.
 //! It does not exclude descendants: a module declared inside a guard would
-//! construct as freely as these roads do, so the reversal for these seats is a
-//! compile-fail fixture testpak owns.
+//! construct as freely as these roads do, which is why this file declares no
+//! child module of its own.
 
 use super::super::prove::examined;
 use super::{
@@ -389,10 +389,7 @@ impl<R: RenderedRole> RenderedProjection<R> {
     /// rendering that doubled a role is a rendering the proof refuses, and a
     /// reading that quietly dropped the second unit would hide the doubling from
     /// anybody looking here instead.
-    pub fn units_in(
-        &self,
-        partition: EmissionPartition,
-    ) -> impl Iterator<Item = &RenderedUnit<R>> {
+    pub fn units_in(&self, partition: EmissionPartition) -> impl Iterator<Item = &RenderedUnit<R>> {
         R::ROLES.iter().flat_map(move |role| {
             self.units.iter().filter(move |unit| {
                 unit.role() == *role && unit.destination().partition() == partition
@@ -877,10 +874,12 @@ impl<K: ProjectionKind> ClosedExpansion<K> {
         }
         let answered_over_plan = explanation.plan();
         if planned != answered_over_plan {
-            return Err(ExpansionBindingRefusal::ExplanationAnsweredOverAnotherPlan {
-                planned,
-                answered: answered_over_plan,
-            });
+            return Err(
+                ExpansionBindingRefusal::ExplanationAnsweredOverAnotherPlan {
+                    planned,
+                    answered: answered_over_plan,
+                },
+            );
         }
         let anchor = closure.identity();
         let answered_over_closure = explanation.closure();
@@ -895,14 +894,13 @@ impl<K: ProjectionKind> ClosedExpansion<K> {
         let mut content = Vec::new();
         encode_bytes(planned.as_bytes(), &mut content);
         encode_bytes(explanation.identity().as_bytes(), &mut content);
-        let (identity, provenance) = ClosedExpansionId::derived_with_provenance(
-            ProjectionTranscript::under_projection(
+        let (identity, provenance) =
+            ClosedExpansionId::derived_with_provenance(ProjectionTranscript::under_projection(
                 ProjectionRole::ClosedExpansion,
                 &anchor,
                 &content,
                 0,
-            ),
-        );
+            ));
         Ok(Self {
             identity,
             provenance,

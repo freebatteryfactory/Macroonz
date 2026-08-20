@@ -7,8 +7,8 @@ agent working in this repository. `AGENTS.md` and `CLAUDE.md` are twins kept
 byte-identical by hand: any edit lands in both files in the same commit.
 
 There is no CI and no gate. The enforcement surface is the toolchain at the root — the
-lint wall in `Cargo.toml`, `clippy.toml`, `deny.toml`, `.cargo/config.toml` — plus
-`cargo test --workspace`, run locally. Checks report; a human decides.
+lint wall in `Cargo.toml`, `clippy.toml`, `deny.toml`, `.cargo/config.toml` — and the
+compiler itself, run locally. Checks report; a human decides.
 
 ## The spine
 
@@ -52,9 +52,10 @@ pin an exact ThreadPak revision; the machine never knows which host is running i
   admits the seat is empty, states its question, and names the exact condition that
   fills it. No `mod.rs`, no placeholder types, no stubs dressing an empty seat as
   occupied.
-- One root `laws.rs` carries the compile-time residue laws, sectioned by home,
-  non-public. It shrinks: a law that remains states why no stronger seat can hold its
-  claim, and the file ends when every claim has drained.
+- No test corpus is specification. There is no `laws.rs`, no proof-surface module, no
+  test lane, no compile-fail fixture, and no `#[cfg(test)]` item anywhere in this
+  repository. A claim is enforced by the type that makes its violation unwritable, or
+  it is not claimed. Writing one is not a contribution; it is the defect.
 - No hand-maintained inventories: counts, dependency maps, status tables, and public
   surface listings are derived, never authored.
 - rustdoc is a spec surface: public items are documented at the declaration; the README
@@ -63,25 +64,24 @@ pin an exact ThreadPak revision; the machine never knows which host is running i
 ## The strongest seat
 
 Every claim lives at the strongest seat that can establish it, and no weaker seat
-restates it: types first, then the compiler's own lints, then generated registers, then
-testpak's executed evidence. A claim restated at a weaker seat is worse than one stated
-once, because the weaker statement keeps passing after the stronger one is removed. The
-drain runs downward only: a type that makes the wrong move unrepresentable retires the
-law that asserted the move was wrong, and the law goes.
+restates it: types first, then the compiler's own lints, then generated registers. A
+claim no seat can establish is not claimed. A claim restated at a weaker seat is worse
+than one stated once, because the weaker statement keeps passing after the stronger one
+is removed. The drain runs downward only: a type that makes the wrong move
+unrepresentable retires the law that asserted the move was wrong, and the law goes.
 
 ## No naked surfaces
 
 A new crate, subsystem, module family, macro family, generator, register, or public
 contract is not admitted merely because it compiles. The boundary carries: its exact
-owner; its claims and nonclaims; a positive control; an independently owned challenge
-route; a planted reversal proven to activate; its dependency and trust posture. And it
-names what it deletes: a component that deletes nothing and retires nothing is refused
-until it says why it deserves to exist anyway.
+owner; its claims and nonclaims; the types that make its violations unwritable; its
+dependency and trust posture. And it names what it deletes: a component that deletes
+nothing and retires nothing is refused until it says why it deserves to exist anyway.
 
-A structural claim may not be deferred when its reversal is expressible now. A
-behavioral claim may remain owed only when the machinery does not yet exist and the
-exact opening condition is named. No boundary is described as complete, closed, or
-proven beyond what executed evidence supports.
+A structural claim may not be deferred when a type can make its violation unwritable
+now. A behavioral claim may remain owed only when the machinery does not yet exist and
+the exact opening condition is named. No boundary is described as complete, closed, or
+proven beyond what its types actually enforce.
 
 ## Reports and findings
 
@@ -125,7 +125,7 @@ agent edits code to silence a finding.
 - Canonical verbs: define, parse, decode, encode, validate, resolve, compile, lower,
   plan, execute, apply, commit, project, render, inspect, explain, dispose, sample,
   fork, merge, append, acknowledge, checkpoint, resume, pack.
-- Ordinary computer-science vocabulary stays ordinary: `law`, `lawful`, `laws.rs`. The
+- Ordinary computer-science vocabulary stays ordinary: `law`, `lawful`. The
   defect is never a noun; it is one claim holding two proof authorities, or a weaker
   proof outliving its owner.
 - Trust is owner-scoped, never ambient: a trust claim names its typed boundary,
@@ -144,8 +144,8 @@ agent edits code to silence a finding.
   rendering, inspection, explanation; `macros/proc/` is one thin, semantically empty,
   dependency-minimized expansion shell over it. Expansion is deterministic from its
   declared input: no network, no filesystem scan, no environment, no clock, no entropy.
-  Every macro family ships a planted defective expansion testpak must reject, and
-  composition is proven from an outside consumer, never from inside a participant.
+  Composition is proven from an outside consumer that compiles against the public
+  road, never from inside a participant.
 - testpak depends inward on core; nothing depends on testpak. Production never depends
   on its judge.
 - Probes (throwaway compiler experiments) never enter this repository.
@@ -194,9 +194,8 @@ no-mutation parity — only then are interpreted-mutation results and
 rewrite-produced descriptors admitted as evidence), then the migration pass
 (the generator runs its own migration, never a hand), then the per-home source
 pass with the owner in the loop; the blessing-day ceremony — the native-clone
-dual-target runs, the diagnostic-fixture thaw, the vectors born, the packaged
-outsider check — crowns the COMPLETE machine after all of that, and CI is
-designed fresh, last. Approvals and dial-downs are recorded in the
+dual-target runs and the packaged outsider check — crowns the COMPLETE machine
+after all of that, and CI is designed fresh, last. Approvals and dial-downs are recorded in the
 crates' own READMEs and types, because the repository is the spec.
 
 No product-runtime implementation opens in any home without explicit human

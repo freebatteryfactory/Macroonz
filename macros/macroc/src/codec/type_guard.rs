@@ -535,10 +535,7 @@ mod seat {
         ///
         /// Reaches the guard file and no further, so a body exists only where
         /// one of the passes beside it ran.
-        pub(super) fn established(
-            first: CodecSurfaceIssue,
-            rest: Vec<CodecSurfaceIssue>,
-        ) -> Self {
+        pub(super) fn established(first: CodecSurfaceIssue, rest: Vec<CodecSurfaceIssue>) -> Self {
             Self {
                 body: AdmittedPrefix::examined_completely(
                     first,

@@ -141,5 +141,9 @@ fn failed_trial(report: &TrialReport) -> Option<FailedTrial> {
         RunAttempt::TimedOut(budget) => SeatFailure::PastTimeBudget(*budget),
         RunAttempt::InfrastructureFailed(fault) => SeatFailure::HarnessFailed(*fault),
     };
-    Some(FailedTrial::recorded(report.trial(), report.site(), failure))
+    Some(FailedTrial::recorded(
+        report.trial(),
+        report.site(),
+        failure,
+    ))
 }

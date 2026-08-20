@@ -121,7 +121,8 @@ pub fn stage_contract() -> impl Iterator<Item = StageContract> {
 /// the whole of what this side knows. The flip to
 /// [`WrapperContractMint::Minted`] is an edit to this one constant and to nothing
 /// else in this home.
-pub const HOST_WRAPPER_CONTRACT_MINT: WrapperContractMint = WrapperContractMint::AwaitingOwnerMint {
-    home: "the machine's identity home",
-    seat: "a public mint for a domain-tagged commitment over a declaration target",
-};
+pub const HOST_WRAPPER_CONTRACT_MINT: WrapperContractMint =
+    WrapperContractMint::AwaitingOwnerMint {
+        home: "the machine's identity home",
+        seat: "a public mint for a domain-tagged commitment over a declaration target",
+    };

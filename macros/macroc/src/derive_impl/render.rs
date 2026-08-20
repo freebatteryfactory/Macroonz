@@ -193,7 +193,8 @@ pub fn evaluation_copy(
     production: &GeneratedTree,
 ) -> Result<GeneratedTree, (ImplementationSurfaceIssue, Vec<ImplementationSurfaceIssue>)> {
     let material: Vec<GeneratedToken> = production.tokens().cloned().collect();
-    if let Some(established) = ImplementationSurfaceIssue::established(site_issues(table, &material))
+    if let Some(established) =
+        ImplementationSurfaceIssue::established(site_issues(table, &material))
     {
         return Err(established);
     }

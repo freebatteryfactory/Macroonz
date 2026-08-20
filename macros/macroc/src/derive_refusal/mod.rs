@@ -173,14 +173,14 @@ pub fn compile_declaration(
     // terminal's proved test-carrier cargo, states the trials and bench axes
     // absent with the dispositions that say why, and verifies the whole before
     // any carrier token exists.
-    let assembly = carry::assembly(&draft, implementation.expansion())?;
-    let plan = carry::carrier_plan(&draft)?;
-    let carrier = carry::carrier_expansion(plan, &assembly)?;
+    let assembly = assembly(&draft, implementation.expansion())?;
+    let plan = carrier_plan(&draft)?;
+    let carrier = carrier_expansion(plan, &assembly)?;
 
     // Read BEFORE the two terminals move into the joined value, and read off
     // the terminals themselves: what a generated kind produced is its plan's
     // answer, and a disposition composed here would be a second one.
-    let dispositions = account::accounted(&implementation, &carrier);
+    let dispositions = accounted(&implementation, &carrier);
     Ok(AccountedExpansion::accounted(
         JoinedExpansion::joined(implementation, carrier, assembly),
         dispositions,

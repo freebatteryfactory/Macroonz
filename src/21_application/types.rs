@@ -92,14 +92,6 @@ impl IdentityRole for InstanceId {
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
 }
 
-impl InstanceId {
-    /// In-crate mint for laws. Test-gated until activation minting exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<InstanceRole>) -> Self {
-        Self(occurrence)
-    }
-}
-
 crate::scope_guard_version! {
     /// One activation generation — Class C, scoped to its instance, carrying
     /// scope and order ONLY (no image identity in the scope bytes): an image
@@ -340,14 +332,6 @@ impl IdentityRole for CarrierRequestId {
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
 }
 
-impl CarrierRequestId {
-    /// In-crate mint for laws. Test-gated until the protocol core exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<CarrierRequestRole>) -> Self {
-        Self(occurrence)
-    }
-}
-
 /// The identity role marker for sessions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SessionRole;
@@ -363,14 +347,6 @@ pub struct SessionId(Occurrence<SessionRole>);
 impl IdentityRole for SessionId {
     const CLASS: IdentityClass = IdentityClass::Occurrence;
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
-}
-
-impl SessionId {
-    /// In-crate mint for laws. Test-gated until negotiation exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<SessionRole>) -> Self {
-        Self(occurrence)
-    }
 }
 
 /// The session-direction fact itself — never a guarantee profile.

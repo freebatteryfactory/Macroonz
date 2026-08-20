@@ -528,14 +528,6 @@ impl SourceHlc {
 pub struct AcceptedHlc(HlcCoordinate);
 
 impl AcceptedHlc {
-    /// In-crate mint for laws. Test-gated until the admission clock's
-    /// advancement rule exists — the gate comes off when a lawful minter does,
-    /// never before.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(coordinate: HlcCoordinate) -> Self {
-        Self(coordinate)
-    }
-
     /// The admitted coordinate.
     #[must_use]
     pub const fn coordinate(self) -> HlcCoordinate {
@@ -581,12 +573,6 @@ pub trait ChronologyAdmission {
 pub struct ChronologyProfileId(u16);
 
 impl ChronologyProfileId {
-    /// In-crate mint for laws. Test-gated until the profile register exists.
-    #[cfg(test)]
-    pub(crate) const fn registered(id: u16) -> Self {
-        Self(id)
-    }
-
     /// The registered identity.
     #[must_use]
     pub fn value(&self) -> u16 {
@@ -636,7 +622,7 @@ impl RefusalFamily for ChronologyMerge {
 impl ChronologySummary {
     /// The immutable summary merge: total over validated same-profile
     /// summaries; commutative, associative, and idempotent under its stated
-    /// domain (proven in the laws). It consults no ambient wall time, mutates
+    /// domain. It consults no ambient wall time, mutates
     /// no admission clock, evaluates no source trust, clamps no observation,
     /// and stamps no event. It produces no order, cut, cursor, checkpoint,
     /// retry right, or deadline.

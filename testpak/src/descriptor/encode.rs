@@ -164,8 +164,16 @@ pub fn encode_generated_support_schema(
 ) -> Result<Vec<u8>, EncodeRefusal> {
     let mut bytes = Vec::new();
     bytes.extend_from_slice(&SCHEMA_ENCODING_VERSION.to_be_bytes());
-    push_member(&mut bytes, DESCRIPTOR_MEMBER_TAG, schema.descriptor().fields())?;
-    push_member(&mut bytes, MUTATION_POINT_MEMBER_TAG, schema.mutation_point().fields())?;
+    push_member(
+        &mut bytes,
+        DESCRIPTOR_MEMBER_TAG,
+        schema.descriptor().fields(),
+    )?;
+    push_member(
+        &mut bytes,
+        MUTATION_POINT_MEMBER_TAG,
+        schema.mutation_point().fields(),
+    )?;
     push_member(&mut bytes, BENCH_MEMBER_TAG, schema.bench().fields())?;
     Ok(bytes)
 }
@@ -269,7 +277,8 @@ pub(super) fn encode_row_content(
     push_name(&mut bytes, subject.name())?;
     push_name(&mut bytes, check.name())?;
     push_name(&mut bytes, population.name())?;
-    push_origin(&mut bytes, origin)
+    push_origin(&mut bytes, origin)?;
+    Ok(bytes)
 }
 
 /// One origin: its slot, then exactly what its arm earns.

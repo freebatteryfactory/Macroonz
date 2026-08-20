@@ -17,8 +17,8 @@ pub use resolve::{attachment_cache_eligibility, attachment_replay_posture};
 pub use types::{
     Baseline, ByteBudget, CacheEligibility, CaseBudget, CensusDelta, CensusDirection,
     CheckRevisionId, ClaimCoverage, ClaimExercise, ConclusionFlip, CoverageRefusal,
-    EXECUTION_KEY_TAG, EmptySelectionReason, Exercise, ExecutionKey, FINGERPRINT_TAG,
-    FOREIGN_TEXT_MAX_BYTES, FailureClass, Fingerprint, FindingCause, FindingLocation, ForeignText,
+    EXECUTION_KEY_TAG, EmptySelectionReason, ExecutionKey, Exercise, FINGERPRINT_TAG,
+    FOREIGN_TEXT_MAX_BYTES, FailureClass, FindingCause, FindingLocation, Fingerprint, ForeignText,
     GenerationProfile, InfrastructureFault, InvocationProfile, MinimizationProfile,
     NoBaselineReason, NotComparedReason, NotSelectedReason, OutcomeClass, REPLAY_CAPSULE_TAG,
     ROW_REVISION_TAG, RecordedDuration, ReplayCapsule, ReplayPosture, ReportComparison, ReportDiff,

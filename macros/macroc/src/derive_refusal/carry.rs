@@ -52,9 +52,9 @@ use crate::plane::{
     ProjectionKindSubject, ProjectionRole, ProjectionTranscript, RenderedRole, SoleRenderedUnit,
 };
 use crate::planning::{
-    DigestContract, EXPECTED_GENERATED_SUPPORT_SCHEMA_ID, EmissionPartition,
-    ObligationAnchoring, OwnerContentAccount, PlanDecisions, PlannedMember, PlannedMembership,
-    PlannedOutput, ProjectionDisposition, ProjectionKind, ProjectionPlan, RenderedImplementation,
+    DigestContract, EXPECTED_GENERATED_SUPPORT_SCHEMA_ID, EmissionPartition, ObligationAnchoring,
+    OwnerContentAccount, PlanDecisions, PlannedMember, PlannedMembership, PlannedOutput,
+    ProjectionDisposition, ProjectionKind, ProjectionPlan, RenderedImplementation,
     RowMaterialPosture, TestDescriptorContent, TestDescriptorProjection,
 };
 use crate::test_descriptor::{

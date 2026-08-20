@@ -237,8 +237,8 @@ impl<'pack> PackReading<'pack> {
         let expected = self.framed()?;
         let namespace = core::str::from_utf8(namespace_bytes)
             .map_err(|_| VectorPackRefusal::SubjectNotText { at })?;
-        let stem =
-            core::str::from_utf8(stem_bytes).map_err(|_| VectorPackRefusal::SubjectNotText { at })?;
+        let stem = core::str::from_utf8(stem_bytes)
+            .map_err(|_| VectorPackRefusal::SubjectNotText { at })?;
         if namespace.is_empty() {
             return Err(VectorPackRefusal::EmptyNamespace { at });
         }
@@ -331,7 +331,8 @@ impl TranscriptDerivation {
     /// Append one length-prefixed byte string.
     #[must_use]
     pub fn framed(mut self, material: &[u8]) -> Self {
-        self.members.push(TranscriptMember::Framed(material.to_vec()));
+        self.members
+            .push(TranscriptMember::Framed(material.to_vec()));
         self
     }
 

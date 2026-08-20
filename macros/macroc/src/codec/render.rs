@@ -1242,10 +1242,7 @@ pub fn read_one_byte(
     let mut body = bound(borrowed, first);
     body.extend(bound(
         CARRIED_BINDING,
-        vec![
-            GeneratedToken::alone('*'),
-            GeneratedToken::word(borrowed),
-        ],
+        vec![GeneratedToken::alone('*'), GeneratedToken::word(borrowed)],
     ));
     let mut rest = left(WIDTH_BINDING)?;
     rest.extend(absent(member_refusal(refusal, TRUNCATED_ARM, member)?)?);

@@ -610,7 +610,9 @@ impl<Invocation, Conclusion> ExecutableAttachment<Invocation, Conclusion> {
     /// reading of this attachment is stated over.
     #[must_use]
     pub const fn posture(&self) -> RevisionPosture {
-        self.subject_revision.posture().meet(self.check_revision.posture())
+        self.subject_revision
+            .posture()
+            .meet(self.check_revision.posture())
     }
 
     /// The callable, as the pure map it is.

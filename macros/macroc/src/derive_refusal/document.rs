@@ -47,9 +47,7 @@
 
 use super::account::documentation_disposition;
 use super::types::{DocumentedDeclaration, RefusalDeriveSurface};
-use crate::documentation::{
-    DocumentationDeclarationRefusal, DocumentedItem, PlainSentence,
-};
+use crate::documentation::{DocumentationDeclarationRefusal, DocumentedItem, PlainSentence};
 use crate::planning::ProjectionDisposition;
 
 /// What one captured declaration's documentation rows read as.

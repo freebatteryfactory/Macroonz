@@ -66,14 +66,6 @@ impl IdentityRole for MaterializationId {
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
 }
 
-impl MaterializationId {
-    /// In-crate mint for laws. Test-gated until publication minting exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<MaterializationRole>) -> Self {
-        Self(occurrence)
-    }
-}
-
 crate::scope_guard_version! {
     /// One materialization generation — Class C, scoped to its materialization;
     /// CHANGES on rematerialization.
@@ -112,14 +104,6 @@ pub struct OccurrenceId(Occurrence<DerivedOccurrenceRole>);
 impl IdentityRole for OccurrenceId {
     const CLASS: IdentityClass = IdentityClass::Occurrence;
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
-}
-
-impl OccurrenceId {
-    /// In-crate mint for laws. Test-gated until build minting exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<DerivedOccurrenceRole>) -> Self {
-        Self(occurrence)
-    }
 }
 
 /// The byte-role marker for occurrence digests.

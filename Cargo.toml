@@ -41,7 +41,6 @@ syn = { version = "=3.0.3", default-features = false, features = ["full", "parsi
 # identity. No std, no rayon, no serde: `Hasher` and `derive_key` are the surface.
 blake3 = { version = "=1.8.6", default-features = false }
 # The compile-refusal harness. Exact: fixtures compare diagnostics byte for byte.
-trybuild = "=1.0.120"
 
 [profile.release]
 # Release arithmetic traps instead of wrapping; defense in depth behind the

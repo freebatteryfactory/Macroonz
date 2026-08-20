@@ -88,14 +88,13 @@ the crate can build either half.
 and in the services.** Not this home's bodies and the tooling plane's six — all
 of them, the upper-band declaration families included. A family's body is one
 `AdmittedPrefix` seat read back through `issues()` and `posture()`, and the two
-seats those families used to spell are gone rather than deprecated. `laws.rs`
-`refusal::every_collection_family_carries_the_coupled_seat` is that claim's
-compile-time half, proving each family's reader pair.
+seats those families used to spell are gone rather than deprecated. The coupling
+is the declaration's own shape: one seat answers both readers, so there is no
+second seat for either half to drift from.
 
 What the reach does NOT include: a construction road for any upper-band family.
-No migrated family carries a public constructor, because none of them has an
-enumerating pass to build one from; two carry a test-gated in-crate mint that
-takes the coupled body and nothing else, for the laws that read a nested refusal.
+No migrated family carries a constructor of any kind, because none of them has an
+enumerating pass to build one from.
 Nine of them stand one step further back still: their limit families declare no
 compile-time magnitude, and every `AdmittedPrefix` mint consumes one, so those
 nine cannot produce the value their own seat holds until a magnitude is declared
@@ -105,8 +104,8 @@ coupling the road would fail.
 
 Writing a truncation posture by hand does not compile; neither does marrying one
 report's carry to another report's completion; and neither does assembling a
-migrated family out of a carry and a posture. All three reversals are proven
-outside the crate, as compile refusals.
+migrated family out of a carry and a posture. All three are unrepresentable: the
+seats are private and `type_guard.rs` owns every road that touches them.
 
 **What those three establish is representation privacy, and each says so at its
 own head.** The seats are not a caller's to write, so neither the cross-wired

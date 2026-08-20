@@ -88,8 +88,7 @@
 /// declared-bootstrap placeholder the first hand-authored pair stands on. Being
 /// unable to build the typed identity out of them is the point: nothing in this
 /// crate can mistake the bootstrap value for a derived one.
-pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] =
-    b"threadpak-generated-support-sche";
+pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] = b"threadpak-generated-support-sche";
 
 /// Guards one generated support delivery: compares the producer's expected
 /// schema identity against the published one, and releases BOTH of its seats —
@@ -254,6 +253,6 @@ macro_rules! generated_support {
     // A carried seat is the stamp's grammar, forwarded whole. One or more
     // tokens, so this rule and the one above partition the seat between them.
     (@trials $($trials:tt)+) => {
-        $crate::trial_table! { $($trials)* }
+        $crate::trial_table! { $($trials)+ }
     };
 }

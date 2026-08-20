@@ -59,13 +59,6 @@ pub struct SemanticForm {
 }
 
 impl SemanticForm {
-    /// In-crate mint for laws. Test-gated until the checked constructor
-    /// exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(content: Commitment<SemanticFormDomain>) -> Self {
-        Self { content }
-    }
-
     /// The normalized content's commitment.
     #[must_use]
     pub fn content(&self) -> &Commitment<SemanticFormDomain> {

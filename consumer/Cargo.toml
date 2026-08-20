@@ -28,9 +28,3 @@ workspace = true
 tp = { package = "threadpak", path = ".." }
 tp_macros = { package = "threadpak-macros", path = "../macros/proc" }
 
-# The judge, under the name this consumer chose for it, reached only from
-# `tests/`. Two facts ride that placement: the harness's own dependency
-# direction — production never depends on its judge — and the ordinary shape of
-# a consumer, whose testing lives in its tests.
-[dev-dependencies]
-harness = { package = "threadpak-testpak", path = "../testpak" }

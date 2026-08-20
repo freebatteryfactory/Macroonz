@@ -29,8 +29,8 @@
 //! above it, `establish.rs` beside it, anywhere else in the services, and any
 //! crate downstream — and the compiler says so with `E0451`.
 //! It does not exclude descendants: a module declared inside the seat would
-//! construct as freely as these roads do, so the reversal for this seat is a
-//! compile-fail fixture testpak owns.
+//! construct as freely as these roads do, which is why this file declares no
+//! child module of its own.
 
 use super::super::encode::answered_seats;
 use super::super::establish::coverage_issues;
@@ -189,8 +189,7 @@ impl ClosureProofSeal {
 fn in_declared_order<K: ProjectionKind>(
     answers: Vec<ProjectionExplanation>,
 ) -> Vec<ProjectionExplanation> {
-    let mut supplied: Vec<Option<ProjectionExplanation>> =
-        answers.into_iter().map(Some).collect();
+    let mut supplied: Vec<Option<ProjectionExplanation>> = answers.into_iter().map(Some).collect();
     let mut ordered: Vec<ProjectionExplanation> = Vec::with_capacity(supplied.len());
     for question in ProjectionPlan::<K>::applicable_questions() {
         let seated = supplied.iter_mut().find(|held| {

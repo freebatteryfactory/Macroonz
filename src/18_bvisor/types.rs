@@ -67,14 +67,6 @@ impl IdentityRole for AttemptId {
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
 }
 
-impl AttemptId {
-    /// In-crate mint for laws. Test-gated until the admission seam exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<AttemptRole>) -> Self {
-        Self(occurrence)
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Admission: inputs, order, the fourteen-issue family.
 // ---------------------------------------------------------------------------
@@ -432,9 +424,9 @@ impl RefusalFamily for AttemptAdmission {
 // so no rung substitutes for another; each live handle is non-`Clone` and
 // execution-context-local by its `PhantomData`, so it cannot be copied or sent;
 // and the persisted `AttemptState` is a separate type from every live handle, so
-// a decoded record cannot re-enter live custody by construction. The two
-// `for_laws` mints below are test-gated precisely so the missing seams stay
-// missing rather than being quietly opened for the proof surface.
+// a decoded record cannot re-enter live custody by construction. No rung below
+// carries a mint of any kind, so the three missing seams stay missing rather
+// than being quietly opened by a constructor written ahead of them.
 // ---------------------------------------------------------------------------
 
 /// A pre-Attempt value — no Attempt exists yet, no postcondition. Admission
@@ -458,15 +450,6 @@ pub struct AdmittedAttempt {
 }
 
 impl AdmittedAttempt {
-    /// In-crate mint for laws. Test-gated until the admission seam exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(attempt: AttemptId) -> Self {
-        Self {
-            attempt,
-            _execution_context_local: PhantomData,
-        }
-    }
-
     /// The Attempt's identity.
     #[must_use]
     pub fn attempt(&self) -> AttemptId {
@@ -525,15 +508,6 @@ pub struct TerminalAttempt {
 pub struct AttemptEvidenceClaim;
 
 impl TerminalAttempt {
-    /// In-crate mint for laws. Test-gated until the lifecycle seams exist.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(attempt: AttemptId) -> Self {
-        Self {
-            attempt,
-            _execution_context_local: PhantomData,
-        }
-    }
-
     /// Sealing CONSUMES the terminal Attempt and mints the immutable report —
     /// evidence produced at the boundary, never a later identity or phase of
     /// the Attempt it observed. Reconciliation is never an Attempt phase.
@@ -784,14 +758,6 @@ pub struct PortRequestId(Occurrence<PortRequestRole>);
 impl IdentityRole for PortRequestId {
     const CLASS: IdentityClass = IdentityClass::Occurrence;
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
-}
-
-impl PortRequestId {
-    /// In-crate mint for laws. Test-gated until the crossing seam exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<PortRequestRole>) -> Self {
-        Self(occurrence)
-    }
 }
 
 /// Request-payload domain marker.

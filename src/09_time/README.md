@@ -24,8 +24,9 @@ promised at band 05.
 
 `SourceHlc` ≠ `AcceptedHlc` ≠ `ChronologySummary` (an envelope, never an HLC
 value — its extrema are independent fields so it cannot even look like one; no
-morphism leads back). The summary merge is a real seam (`try_merge`), proven
-commutative/associative/idempotent in the laws. The stateful admission clock is
+morphism leads back). The summary merge is a real seam (`try_merge`),
+commutative/associative/idempotent under its stated domain. The stateful
+admission clock is
 a distinct owned object sharing no surface with the merge; its name
 (`ChronologyAdmissionClock`) is AUTHORED: the role and its nine-item roster
 are law here, the spelling is this home's. Logical counter u32: overflow

@@ -65,14 +65,14 @@ use crate::diagnostics::{
 };
 use crate::explanation_protocol::{ExplanationCoverage, ExplanationCoverageIssue};
 use crate::generated_support::{AssemblyIssue, CarrierAssembly};
-use crate::test_descriptor::{
-    DescriptorPlanIssue, ShellDeclarationRefusal, ShellRenderIssue, ShellRendering,
-};
 use crate::plane::{
     GeneratedTokenLimit, HumanProjection, HumanTextLimit, MembershipLimit, RenderedByteLimit,
     RenderedRole, encode_bytes, human_projection,
 };
 use crate::refusal::{ProjectionPlanning, ProjectionPlanningIssue};
+use crate::test_descriptor::{
+    DescriptorPlanIssue, ShellDeclarationRefusal, ShellRenderIssue, ShellRendering,
+};
 use threadpak::declaration::CoordinateRole;
 use threadpak::evidence::CauseDisposition;
 use threadpak::refusal::CompletionPosture;
@@ -888,7 +888,12 @@ fn bounded_rendering<R: RenderedRole>(magnitude: RenderedMagnitude, role: R) -> 
 /// would derive a second related identity for issues under one roster.
 pub fn assembly_refused(refusal: &CarrierAssembly) -> MacrocDiagnostic {
     let first = refusal.body().carried().first();
-    let material: Vec<Vec<u8>> = refusal.body().carried().iter().map(assembly_bytes).collect();
+    let material: Vec<Vec<u8>> = refusal
+        .body()
+        .carried()
+        .iter()
+        .map(assembly_bytes)
+        .collect();
     diagnosed(
         MacrocPhase::Rendering,
         assembly_observed(first),
@@ -935,7 +940,9 @@ const fn assembly_observed(issue: &AssemblyIssue) -> ObservedClassification {
         AssemblyIssue::RootsDisagree { .. }
         | AssemblyIssue::SchemaExpectationNotPublished { .. }
         | AssemblyIssue::CarrierRootIsNotTheAssemblys { .. }
-        | AssemblyIssue::CargoNotTheSourcesOwn { .. } => ObservedClassification::IdentityDisagreement,
+        | AssemblyIssue::CargoNotTheSourcesOwn { .. } => {
+            ObservedClassification::IdentityDisagreement
+        }
         AssemblyIssue::CargoConsumedTwice { .. }
         | AssemblyIssue::CargoReachesASecondDestination { .. } => {
             ObservedClassification::ContractDisagreement

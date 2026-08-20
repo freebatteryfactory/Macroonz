@@ -113,6 +113,5 @@ pub fn assembled_shell(
         AxisCargo::Absent { .. } => DeferredDelivery::NothingDeferred,
         AxisCargo::Carried(proved) => DeferredDelivery::Carried(proved.cargo().clone()),
     };
-    GeneratedSupportShell::rendered(stated, &trials, &deferred)
-        .map_err(ShellComposition::Rendering)
+    GeneratedSupportShell::rendered(stated, &trials, &deferred).map_err(ShellComposition::Rendering)
 }

@@ -677,9 +677,10 @@ impl GeneratedSupportShell {
             render::deferred_module(&name, deferred).map_err(|issue| established(vec![issue]))?;
         let body = render::gate_invocation(pin, declared, carried)
             .map_err(|issue| established(vec![issue]))?;
-        let tokens = render::exported_shell(&name, body).map_err(|issue| established(vec![issue]))?;
-        let tree = GeneratedTree::assembled(tokens)
-            .map_err(|_| established(vec![render::unbounded()]))?;
+        let tokens =
+            render::exported_shell(&name, body).map_err(|issue| established(vec![issue]))?;
+        let tree =
+            GeneratedTree::assembled(tokens).map_err(|_| established(vec![render::unbounded()]))?;
         Ok(Self {
             role: stated.role,
             semantic_key: stated.semantic_key,
@@ -784,7 +785,10 @@ fn names_doubled(names: &[WallName]) -> bool {
 ///
 /// Counted rather than walked with an early return, on the same terms.
 fn constants_doubled(selectors: &[ActivePointSelector]) -> bool {
-    let distinct: BTreeSet<&str> = selectors.iter().map(ActivePointSelector::constant).collect();
+    let distinct: BTreeSet<&str> = selectors
+        .iter()
+        .map(ActivePointSelector::constant)
+        .collect();
     distinct.len() != selectors.len()
 }
 
@@ -888,10 +892,7 @@ mod seat {
         /// rendering roads ran — the benchmark home rides the same carrier and
         /// refuses in the same family, and a body a consumer could mint would be a
         /// refusal nobody's pass established.
-        pub(crate) fn established(
-            first: ShellRenderIssue,
-            rest: Vec<ShellRenderIssue>,
-        ) -> Self {
+        pub(crate) fn established(first: ShellRenderIssue, rest: Vec<ShellRenderIssue>) -> Self {
             Self {
                 body: AdmittedPrefix::examined_completely(
                     first,

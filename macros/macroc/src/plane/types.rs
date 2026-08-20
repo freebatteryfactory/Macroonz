@@ -22,10 +22,7 @@ use threadpak::types::{Bounded, Limit, LimitAdmissionProfile};
 #[path = "type_guard.rs"]
 mod guard;
 
-pub(crate) use guard::{human_projection, static_bytes};
-
-#[cfg(test)]
-pub(crate) use guard::for_laws;
+pub(crate) use guard::{human_projection, names_are_separating, static_bytes};
 
 /// The seal on the identity-subject roster.
 ///
@@ -75,6 +72,17 @@ pub trait IdentitySubject {
 /// declared [`IdentitySubject`] name so no marker can exist without one.
 ///
 /// A subject exists because it was declared here, or it does not exist.
+///
+/// # The roster separates, or it does not compile
+///
+/// A declared name IS a derive-key domain separator, so the two things that
+/// would break the separation are settled in the expansion rather than checked
+/// afterwards: a name outside the closed grammar makes the context unreadable,
+/// and a name two subjects declare gives two semantic LEVELS one name space —
+/// the exact collision [`RelatedBodySubject`] was split out of
+/// [`RelatedIssueSubject`] to close. The `const` item below asks both questions
+/// of the whole roster at compile time, so neither is a mistake this file can
+/// hold.
 macro_rules! subjects {
     ($( $(#[$note:meta])* $name:ident = $declared:literal ),+ $(,)?) => {
         $(
@@ -88,9 +96,10 @@ macro_rules! subjects {
             }
         )+
 
-        /// Every declared subject name, in roster order, for the proof surface.
-        #[cfg(test)]
-        pub(crate) const SUBJECT_NAMES: &[&str] = &[$($declared),+];
+        const _: () = ::core::assert!(
+            $crate::plane::names_are_separating(&[$($declared),+]),
+            "a subject name outside the derive-key context grammar, or one two subjects declare",
+        );
     };
 }
 
@@ -162,39 +171,14 @@ impl LimitAdmissionProfile for AuthoringLimitProfile {
 /// whatever module invoked it and a relative path would make the stamp depend on
 /// what that module happened to import.
 ///
-/// # The two forms
+/// # One form
 ///
-/// The plain form stamps rows. The ROSTERED form stamps the same rows and emits
-/// one constant reading them back — `limits! { roster NAME; … }` — for a row set
-/// that has a reader with a question about the set as a whole rather than about
-/// one family. The rostered form delegates the rows to the plain one rather than
-/// spelling the emission twice, so there is exactly one transcriber for a
-/// family however it is declared.
+/// There is one form, and it stamps rows. A reader with a question about a row
+/// SET rather than about one family would need a second emission reading the
+/// rows back, and no reader in the services has one: what a magnitude admits is
+/// asked of the family that declares it, through its own `ConstLimit`, at the
+/// seam that is bounded by it.
 macro_rules! limits {
-    (
-        roster $roster:ident;
-        $( $(#[$note:meta])* $name:ident = $max:expr ),+ $(,)?
-    ) => {
-        $crate::plane::limits! { $( $(#[$note])* $name = $max ),+ }
-
-        /// Every limit family THIS row set declares, as its Rust spelling and
-        /// the magnitude it declares.
-        ///
-        /// Emitted from the SAME rows as the families themselves, in one
-        /// expansion, so it is not an inventory of the declarations — it is the
-        /// declarations, read a second way, with no row anybody could forget to
-        /// add or leave stale.
-        /// It exists for the proof surface, the one reader with a question about
-        /// this row set as a whole rather than about one family.
-        ///
-        /// It is a projection over one row set and never a second owner of any
-        /// row in it: a magnitude read here and a magnitude read through the
-        /// family's own `ConstLimit` are one number.
-        #[cfg(test)]
-        pub(crate) const $roster: &[(&str, usize)] = &[
-            $( (stringify!($name), <$name as ::threadpak::types::ConstLimit>::MAX) ),+
-        ];
-    };
     ( $( $(#[$note:meta])* $name:ident = $max:expr ),+ $(,)?) => {
         $(
             $(#[$note])*
@@ -378,7 +362,6 @@ subjects! {
 }
 
 limits! {
-    roster DECLARED_LIMITS;
     /// Outputs one plan may declare. The output firewall's bound: a plan
     /// declares its complete output set inside this magnitude or refuses.
     MembershipLimit = 32,
@@ -1051,10 +1034,8 @@ pub const RENDERED_UNIT_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::dec
 ///
 /// - **1** — the family as first declared. None of positions 2 through 5 would
 ///   have moved it.
-pub const BUNDLE_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
-    PreimageFamily::Bundle,
-    IdentityProfileVersion::declared(1),
-);
+pub const BUNDLE_IDENTITY_PROFILE: IdentityProfile =
+    IdentityProfile::declared(PreimageFamily::Bundle, IdentityProfileVersion::declared(1));
 
 /// The profile one proved closure's identity is derived under.
 ///
@@ -1076,10 +1057,8 @@ pub const BUNDLE_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
 ///   member and reaches a closure only through the plan identity at its anchor,
 ///   and the generated-token arms widen the material a digest is taken over
 ///   without widening this grammar.
-pub const CLOSURE_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
-    PreimageFamily::Closure,
-    IdentityProfileVersion::declared(1),
-);
+pub const CLOSURE_IDENTITY_PROFILE: IdentityProfile =
+    IdentityProfile::declared(PreimageFamily::Closure, IdentityProfileVersion::declared(1));
 
 /// The profile one explanation's identity is derived under.
 ///

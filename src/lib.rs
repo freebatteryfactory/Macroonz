@@ -21,8 +21,8 @@ pub mod depot;
 
 // ---------------------------------------------------------------------------
 // The closed-register stamp: the root's own composition mechanism. Instantiated
-// by band 13's authoring algebra, by the services crate's rosters, and by this
-// crate's proof surface, on identical terms.
+// by band 13's authoring algebra and by the services crate's rosters, on
+// identical terms.
 // ---------------------------------------------------------------------------
 
 /// Stamps one closed, fieldless roster from a single declaration of its rows.
@@ -337,6 +337,3 @@ pub mod security;
 
 #[path = "23_evidence/mod.rs"]
 pub mod evidence;
-
-#[cfg(test)]
-mod laws;

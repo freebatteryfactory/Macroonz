@@ -64,8 +64,8 @@ use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenSt
 use threadpak_macroc::{
     AccountedExpansion, CaptureBound, CaptureWalk, CapturedDelimiter, CapturedInput,
     CapturedPayload, CapturedTokenTree, GeneratedDelimiter, GeneratedSpacing, GeneratedToken,
-    GeneratedTree, MacrocDiagnostic, PartitionCargo, RefusalCompileContext,
-    RefusalFamilyExpansion, SpanHandle, TokenPath, compile_declaration,
+    GeneratedTree, MacrocDiagnostic, PartitionCargo, RefusalCompileContext, RefusalFamilyExpansion,
+    SpanHandle, TokenPath, compile_declaration,
 };
 
 /// Derives a refusal family's declared facts from its declaration.

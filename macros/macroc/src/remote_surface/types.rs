@@ -38,8 +38,8 @@
 
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
-    ByteRoleSubject, GeneratedUnitSubject, GeneratorVersionSubject, OwnerIdentityRef,
-    PortSubject, ProfileVersion, ProjectionIdentity, ProjectionProfileSubject, SoleRenderedUnit,
+    ByteRoleSubject, GeneratedUnitSubject, GeneratorVersionSubject, OwnerIdentityRef, PortSubject,
+    ProfileVersion, ProjectionIdentity, ProjectionProfileSubject, SoleRenderedUnit,
     WireContractSubject,
 };
 use crate::planning::{CauseAnchoring, SurfaceDirection};

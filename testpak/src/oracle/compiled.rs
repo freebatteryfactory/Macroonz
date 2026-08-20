@@ -32,8 +32,8 @@
 //! renderer.
 
 use super::types::{
-    CompiledDisagreement, CompiledObservation, CompiledVerdict, DeclaredBehaviour, DeclaredReadBack,
-    ObservedMember,
+    CompiledDisagreement, CompiledObservation, CompiledVerdict, DeclaredBehaviour,
+    DeclaredReadBack, ObservedMember,
 };
 
 /// Compare what a compiled artifact did against what the caller declared it

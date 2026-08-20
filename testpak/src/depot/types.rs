@@ -28,8 +28,7 @@ pub struct OperatorFamily {
 ///
 /// A row is material, not a case. The generator reads a row and emits the
 /// compile-refusal case that offers the substitute where the seat's type is
-/// required; the case's evidence is the compiler's own refusal, and the fixture
-/// it lands in is `tests/`'s.
+/// required; the case's evidence is the compiler's own refusal.
 ///
 /// # Ordering
 ///

@@ -17,9 +17,8 @@ pub use types::{
     PatternStampContent, PatternStampProjection, PlanDecisions, PlanDerivation, PlannedMember,
     PlannedMembership, PlannedOutput, ProjectionBundlePlan, ProjectionContext,
     ProjectionDisposition, ProjectionIntentId, ProjectionKind, ProjectionKindRow, ProjectionPlan,
-    RemoteSurfaceContent,
-    RemoteSurfaceProjection, RenderedImplementation, RowMaterialPosture, SourceDeclarationLimit,
-    SourceDeclarations, SurfaceDirection, TargetBinding, TargetRequirement, TestDescriptorContent,
-    TestDescriptorProjection, UNIVERSAL_QUESTIONS, VerifiedDerived, WRAPPER_COMPONENTS,
-    WrapperComponent,
+    RemoteSurfaceContent, RemoteSurfaceProjection, RenderedImplementation, RowMaterialPosture,
+    SourceDeclarationLimit, SourceDeclarations, SurfaceDirection, TargetBinding, TargetRequirement,
+    TestDescriptorContent, TestDescriptorProjection, UNIVERSAL_QUESTIONS, VerifiedDerived,
+    WRAPPER_COMPONENTS, WrapperComponent,
 };

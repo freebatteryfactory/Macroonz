@@ -26,9 +26,10 @@ pub(super) enum Admission {
 pub(super) fn admission(selection: &Selection, row: &Row, trial: TrialId) -> Admission {
     match selection {
         Selection::All => Admission::Selected,
-        Selection::ByClaim(claims) => {
-            admitted(claims.contains(&row.claim()), NotSelectedReason::OutsideSelection)
-        }
+        Selection::ByClaim(claims) => admitted(
+            claims.contains(&row.claim()),
+            NotSelectedReason::OutsideSelection,
+        ),
         Selection::ByExecutionSuite(suites) => admitted(
             suites.contains(&row.execution_suite()),
             NotSelectedReason::SuiteNotRun,
@@ -36,9 +37,10 @@ pub(super) fn admission(selection: &Selection, row: &Row, trial: TrialId) -> Adm
         Selection::ByTrialIds(trials) => {
             admitted(trials.contains(&trial), NotSelectedReason::OutsideSelection)
         }
-        Selection::BySubjectRoute(routes) => {
-            admitted(routes.contains(&row.subject()), NotSelectedReason::OutsideSelection)
-        }
+        Selection::BySubjectRoute(routes) => admitted(
+            routes.contains(&row.subject()),
+            NotSelectedReason::OutsideSelection,
+        ),
     }
 }
 

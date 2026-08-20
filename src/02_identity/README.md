@@ -133,8 +133,7 @@ beside it, and this home's own guard law was false of the machine while being
 true of the stamp. Writing them through the stamp is what closes that, and it is
 a deletion rather than an addition: twelve hand-written declarations and their
 derive lines are gone, and the shape they all now have is generated from one
-place. The hand-written twin survives only on the proof surface, where the law
-below needs something to compare the stamp against.
+place. No hand-written twin stands beside them.
 
 **The absence of a road out is now the compiler's statement, and no check makes
 it.** A repository law used to read every stamped guard and every implementation

@@ -14,15 +14,15 @@
 
 use crate::origin_graph::{DecisionTrace, Nonclaim, OriginTrail};
 use crate::plane::{
-    AssumptionLimit, BundleSubject, ByteRoleSubject, CapturedDeclarationSubject, DerivedTypeSubject,
-    DocumentedSubject, FacetLimit, FixturePopulationSubject, GeneratedUnitSubject,
-    GeneratorVersionSubject, ImplementedContractSubject, MeasuredSubject, MechanismProfileSubject,
-    MembershipLimit, NonclaimLimit, ObligationSubject, OwnerFactRef, OwnerIdentityRef,
-    PatternArgumentLimit, PatternArgumentSubject, PatternInstanceSubject, PatternSubject, PlanId,
-    PortSubject, ProfileVersion, ProjectionIdentity, ProjectionIntentSubject,
-    ProjectionProfileSubject, ProjectionProvenance, ProjectionRole, RenderedRole, SchemaSubject,
-    SoleRenderedUnit, WireContractSubject, WorkCurrencySubject, WorkFormulaSubject,
-    WrapperComponentLimit, static_bytes,
+    AssumptionLimit, BundleSubject, ByteRoleSubject, CapturedDeclarationSubject,
+    DerivedTypeSubject, DocumentedSubject, FacetLimit, FixturePopulationSubject,
+    GeneratedUnitSubject, GeneratorVersionSubject, ImplementedContractSubject, MeasuredSubject,
+    MechanismProfileSubject, MembershipLimit, NonclaimLimit, ObligationSubject, OwnerFactRef,
+    OwnerIdentityRef, PatternArgumentLimit, PatternArgumentSubject, PatternInstanceSubject,
+    PatternSubject, PlanId, PortSubject, ProfileVersion, ProjectionIdentity,
+    ProjectionIntentSubject, ProjectionProfileSubject, ProjectionProvenance, ProjectionRole,
+    RenderedRole, SchemaSubject, SoleRenderedUnit, WireContractSubject, WorkCurrencySubject,
+    WorkFormulaSubject, WrapperComponentLimit, static_bytes,
 };
 use crate::question::ExplanationQuestion;
 use crate::refusal::ProjectionPlanning;

@@ -31,7 +31,9 @@ cannot is worse than a stated manual check:
   refactor? Owner-coupled tests get flagged.
 - **"promote" appears in no filename**; the proposal road's file is
   `propose.rs`.
-- **laws.rs growth anywhere is a finding** — the files drain, never grow.
+- **Test scaffolding as specification is a finding, anywhere** — no `laws.rs`,
+  no proof-surface module, no test lane, no compile-fail fixture, no
+  `#[cfg(test)]`. A claim is enforced by a type or it is not claimed.
 - **Hand-maintained population lists** are a finding — populations are
   depot data or generated.
 - **File-grammar conformance:** every semantic home is README + mod +

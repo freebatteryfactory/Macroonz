@@ -16,8 +16,8 @@ use super::super::encode::{encode_captured, encode_generated};
 use super::super::inspect::inspect_token;
 use super::{
     CaptureBound, CaptureWalk, CaptureWorkLimit, CapturedDelimiter, CapturedInput, CapturedPayload,
-    CapturedTokenTree, CapturedTreeTokenLimit, GeneratedDelimiter, GeneratedSpacing, GeneratedToken,
-    GeneratedTree, SpanHandle, TokenPath,
+    CapturedTokenTree, CapturedTreeTokenLimit, GeneratedDelimiter, GeneratedSpacing,
+    GeneratedToken, GeneratedTree, SpanHandle, TokenPath,
 };
 use crate::plane::{AuthoringLimitProfile, CapturedTokenLimit};
 use threadpak::types::{AdmittedLimit, Bounded, BoundedConstruction, ConstLimit};

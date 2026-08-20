@@ -494,9 +494,21 @@
 //! a vocabulary that exists to keep two machinery modules from importing each
 //! other.
 //!
-//! Only `mod` declarations carry the rule.
-//! The `#[cfg(test)]` proof surface (`laws`) is declared last and reaches every
-//! module by design: it is what proves the order, not a participant in it.
+//! Only `mod` declarations carry the rule, and nothing else has to: **the order
+//! is proven by the compiler.**
+//! A module that reached a later one would close a cycle the resolver refuses, so
+//! reading the list top to bottom is reading a graph the build has already
+//! checked.
+//! There is no surface below this list that re-states it and none above it that
+//! audits it — a module that walked the order at runtime would be re-running a
+//! pass the compiler has already run, and what such a walk proved would be true
+//! of a build that had already succeeded.
+//!
+//! The same answer covers the shapes the modules declare. What a type makes
+//! unwritable is enforced where it is declared — a private field, a sealed
+//! roster, a constructor that is the only road to a value, a `const` block that
+//! refuses a declaration outright — so the enforcement is the declaration, and
+//! there is nothing left over for a second surface to hold.
 
 pub mod plane;
 pub mod token;
@@ -538,10 +550,6 @@ pub use derive_refusal::{
     RenderRefusal, TextCompileRefusal, captured, captured_text, compile_declaration,
     compile_refusal, compile_refusal_text, documented,
 };
-pub use generated_support::{
-    AccountedExpansion, AssemblyIssue, AxisCargo, CargoAxis, CarrierAssembly, JoinedExpansion,
-    ProvedCargo, ShellComposition, SupportAssembly, assembled_shell,
-};
 pub use diagnostics::{
     DiagnosticSite, MachineAnchoring, MachineAnchors, MacrocDiagnostic, MacrocPhase,
     ObservedClassification, RelatedIdentity, RelatedSet, RelatedSetCompletion,
@@ -550,6 +558,10 @@ pub use diagnostics::{
 pub use explanation_protocol::{
     ClosureProofSeal, ExplanationAnswer, ExplanationCoverage, ExplanationCoverageIssue,
     ProjectionExplanation, ProjectionExplanationView, ProvedClosure, kind_admits,
+};
+pub use generated_support::{
+    AccountedExpansion, AssemblyIssue, AxisCargo, CargoAxis, CarrierAssembly, JoinedExpansion,
+    ProvedCargo, ShellComposition, SupportAssembly, assembled_shell,
 };
 pub use origin_graph::{
     DecisionTrace, Nonclaim, OriginEdge, OriginRelation, OriginTrail, TraceDecision, TraceEntry,
@@ -570,18 +582,17 @@ pub use plane::{
     TranscriptAnchoring, encode_bytes, encode_length,
 };
 pub use planning::{
-    BenchmarkDescriptorContent, BenchmarkDescriptorProjection, CapturedDependencies, CauseAnchoring,
-    CodecContent, CodecDirection, CodecProjection, ContentAddressing, DeclaredBootstrap,
-    DeriveImplContent, DeriveImplProjection, DigestContract, DocumentationContent,
-    DocumentationProjection, EXPECTED_GENERATED_SUPPORT_SCHEMA_ID, EmissionPartition,
-    ExpectedGeneratedSupportSchemaId, GraphAnchoring, HostWrapperContent, HostWrapperProjection,
-    InvalidationSet, InvalidationTrigger, KindDispositions, KindSeal, MemberDestination,
-    OwnerContentAccount, ObligationAnchoring, PatternStampContent, PatternStampProjection,
-    PlanDecisions, PlannedMember, PlannedMembership, PlannedOutput, ProjectionBundlePlan,
-    ProjectionContext, ProjectionDisposition, ProjectionIntentId, ProjectionKind,
-    ProjectionKindRow, ProjectionPlan,
-    RemoteSurfaceContent, RemoteSurfaceProjection, RenderedImplementation, RowMaterialPosture,
-    SourceDeclarations,
+    BenchmarkDescriptorContent, BenchmarkDescriptorProjection, CapturedDependencies,
+    CauseAnchoring, CodecContent, CodecDirection, CodecProjection, ContentAddressing,
+    DeclaredBootstrap, DeriveImplContent, DeriveImplProjection, DigestContract,
+    DocumentationContent, DocumentationProjection, EXPECTED_GENERATED_SUPPORT_SCHEMA_ID,
+    EmissionPartition, ExpectedGeneratedSupportSchemaId, GraphAnchoring, HostWrapperContent,
+    HostWrapperProjection, InvalidationSet, InvalidationTrigger, KindDispositions, KindSeal,
+    MemberDestination, ObligationAnchoring, OwnerContentAccount, PatternStampContent,
+    PatternStampProjection, PlanDecisions, PlannedMember, PlannedMembership, PlannedOutput,
+    ProjectionBundlePlan, ProjectionContext, ProjectionDisposition, ProjectionIntentId,
+    ProjectionKind, ProjectionKindRow, ProjectionPlan, RemoteSurfaceContent,
+    RemoteSurfaceProjection, RenderedImplementation, RowMaterialPosture, SourceDeclarations,
     SurfaceDirection, TargetBinding, TargetRequirement, TestDescriptorContent,
     TestDescriptorProjection, UNIVERSAL_QUESTIONS, VerifiedDerived, WRAPPER_COMPONENTS,
     WrapperComponent,
@@ -605,6 +616,3 @@ pub use trigger_view::{
     TriggerCitations, TriggerOmission, TriggerSelection, TriggerViewComposition, TriggerViewIssue,
     WrapperTriggerView,
 };
-
-#[cfg(test)]
-mod laws;

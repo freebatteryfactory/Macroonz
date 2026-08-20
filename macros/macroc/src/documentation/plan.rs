@@ -124,9 +124,7 @@ pub fn explanation_answers(
     anchors: &DocumentationExplanationAnchors,
 ) -> Vec<ExplanationAnswer> {
     vec![
-        ExplanationAnswer::Kind {
-            kind: anchors.kind,
-        },
+        ExplanationAnswer::Kind { kind: anchors.kind },
         ExplanationAnswer::Owner {
             owner: anchors.owner,
         },

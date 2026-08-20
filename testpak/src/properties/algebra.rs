@@ -20,8 +20,8 @@
 
 use super::conclude::{agreement, ranking};
 use super::types::{
-    CONSERVATION_DISAGREEMENT, Equivalence, IDEMPOTENCE_DISAGREEMENT,
-    MONOTONICITY_DISAGREEMENT, Measure, Order, ROUNDTRIP_DISAGREEMENT, Road,
+    CONSERVATION_DISAGREEMENT, Equivalence, IDEMPOTENCE_DISAGREEMENT, MONOTONICITY_DISAGREEMENT,
+    Measure, Order, ROUNDTRIP_DISAGREEMENT, Road,
 };
 use crate::report::TrialConclusion;
 use core::cmp::Ordering;

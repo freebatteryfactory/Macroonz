@@ -54,10 +54,9 @@ into campaigns), `corpus/` (warm starts into the fuzz lane), the benches
 
 ## The dependency direction
 
-testpak depends inward — on `threadpak`, `threadpak-macroc`, and
-`threadpak-macros`, all as dev-dependencies reached only from `tests/` — and
-nothing depends on testpak. Production never depends on its judge. It is
-never published onto a production dependency path.
+testpak depends inward — its manifest names its own library bill and no
+participant — and nothing depends on testpak. Production never depends on
+its judge. It is never published onto a production dependency path.
 
 Outside-consumer parity has its crate: `consumer/` is a workspace member
 that renames BOTH crates (`tp` for the machine, `harness` for this one),
@@ -112,7 +111,6 @@ call with a differently selected subset of the one complete table.
 | `src/fault/` | refusing adapters — typed values implementing port contracts — and campaign shapes |
 | `src/generate/` | the generation contract: typed dispositions, generation and reduction plans, the shared sequence driver, fingerprint-preserving minimization |
 | `src/depot/` | the harness's own fact bank: doc-commented Rust-const rows — operator families, swap-pair populations, admitted replay capsules |
-| `tests/` | executable entry points, compile-refusal fixtures, compiled-behaviour seats |
 | `corpus/` | compressed seed-packs for warm-start fuzzing |
 
 The instruments form an honest acyclic graph over one vocabulary — the
@@ -185,13 +183,12 @@ repository nothing: `parsing`, without which there is no text-to-tree road,
 and `full`, without which items and their associated constants are not in the
 tree. The lane reads, never writes, and never runs inside a macro — and its
 home is the challenge side: structural decoding of this repository's rendered
-artifacts belongs to `tests/`, while the oracle library owns vocabulary and
-comparison. The decoder stands isolated in one oracle file today, so the move
-is a file's worth of work, and the manifest carries the opening condition
-exactly: it happens at the wave where a challenge-side caller exists to call
-it there, and that same wave retires this from a library dependency to a
-dev-dependency. A decoder parked in `tests/` with nothing calling it would be
-unreachable code wearing the shape of a move.
+artifacts is qualification-era work, while the oracle library owns vocabulary
+and comparison. The decoder stands isolated in one oracle file today, and the
+manifest carries the opening condition exactly: the move happens when a
+challenge-side caller exists to call it, and that same move retires this from
+the library's dependency table. A decoder relocated ahead of its caller would
+be unreachable code wearing the shape of a move.
 
 **And that reason settles less than it sounds like.** What a manifest ASKS
 FOR, what the resolved graph HOLDS, and what one compiled unit is HANDED are
@@ -219,9 +216,8 @@ of the admitted dependency, not a purity claim. Today an adopter inherits
 `syn` beside them, because the decoder above has not moved yet; the manifest
 states that as the present tense rather than as an aspiration.
 
-Dev-side mechanisms — `trybuild` for compile refusals, and the bench and
-snapshot tooling admitted at their first real use — never reach an adopter's
-tree.
+Dev-side mechanisms admitted at their first real use — bench tooling at the
+first bench surface — never reach an adopter's tree.
 
 ## Extending the harness
 

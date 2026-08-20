@@ -2,10 +2,10 @@
 
 The root is the floor under every band: the generic composition shapes the
 whole crate instantiates, and nothing else. It imports nothing; band 00 is its
-first consumer. `lib.rs` is its module surface (the root has no `mod.rs`),
-`types.rs` holds its shapes, and `laws.rs` is the crate's one compile-time
-proof surface, sectioned by home. It shrinks: a type that makes a wrong move
-unrepresentable retires the law that asserted the move was wrong.
+first consumer. `lib.rs` is its module surface (the root has no `mod.rs`) and
+`types.rs` holds its shapes. The shapes carry the guarantee themselves: a type
+that makes a wrong move unrepresentable leaves nothing for a separate assertion
+to say.
 
 ## What the root owns
 

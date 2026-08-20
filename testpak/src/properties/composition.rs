@@ -94,12 +94,7 @@ pub fn composed_return<Value, Middle>(
     value: &Value,
 ) -> TrialConclusion {
     let returned = composed(suite, value);
-    agreement(
-        suite.same(),
-        value,
-        &returned,
-        COMPOSED_RETURN_DISAGREEMENT,
-    )
+    agreement(suite.same(), value, &returned, COMPOSED_RETURN_DISAGREEMENT)
 }
 
 /// The idempotence law over a returning wiring: driving the composition over its

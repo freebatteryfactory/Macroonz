@@ -42,14 +42,6 @@ impl IdentityRole for ReferenceFrameId {
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
 }
 
-impl ReferenceFrameId {
-    /// In-crate mint for laws. Test-gated until admission minting exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<ReferenceFrameRole>) -> Self {
-        Self(occurrence)
-    }
-}
-
 crate::scope_guard_version! {
     /// One version of a reference frame — Class C, scoped to its frame. The
     /// frame is a VALUE inside the position rather than a type parameter, so two

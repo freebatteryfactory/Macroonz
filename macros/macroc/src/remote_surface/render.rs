@@ -31,7 +31,7 @@
 //! Nothing this home renders needs a count: a surface is three named calls, and
 //! three is the length of a token run rather than a value written into one.
 
-use super::super::type_contract::facing;
+use super::type_contract::facing;
 use super::{
     PairedCodecRoad, RemoteSurfaceIssue, RemoteSurfaceShape, SurfacePathRooting, SurfaceTypePath,
 };
@@ -62,8 +62,7 @@ pub const CLOSED_BINDING: &str = "closed";
 /// Every public item this home renders carries one, because a lint wall that
 /// denies an undocumented public item is the wall an integration target is most
 /// likely to be standing behind.
-pub const SURFACE_SENTENCE: &str =
-    "The remote surface this port speaks its wire contract over: one pairing road opens it, the \
+pub const SURFACE_SENTENCE: &str = "The remote surface this port speaks its wire contract over: one pairing road opens it, the \
      port's own road answers, and the pairing's other road closes it.";
 
 // ---------------------------------------------------------------------------

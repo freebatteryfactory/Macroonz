@@ -32,10 +32,8 @@
 //! it, anywhere else in the services, and any crate downstream cannot write the
 //! literal, and the compiler says so with `E0451`.
 //! It does not exclude DESCENDANTS — a module declared inside the seat would
-//! construct the body as freely as these roads do — which is why the reversals
-//! for this seat are compile-fail fixtures owned by testpak, outside the crate,
-//! where the exclusion is total, and why the shape stated above admits no nested
-//! module in a `seat` module.
+//! construct the body as freely as these roads do — which is why the shape
+//! stated above admits no nested module in a `seat` module.
 //!
 //! The seat closes the LITERAL and not the MINT.
 //! A public road that takes an issue and hands back a refusal would let any

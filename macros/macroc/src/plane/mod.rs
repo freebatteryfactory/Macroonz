@@ -7,11 +7,12 @@ mod types;
 
 pub use encode::{encode_bytes, encode_length};
 pub use types::{
-    ApplicationDistinctnessSubject, AssumptionLimit, AuthoringLimitProfile, BUNDLE_IDENTITY_PROFILE,
-    BoundFormulaSubject, BundleSubject, ByteRoleSubject, CAPTURED_DECLARATION_IDENTITY_PROFILE,
-    CLOSED_EXPANSION_IDENTITY_PROFILE, CLOSURE_IDENTITY_PROFILE, CapturedDeclarationSubject,
-    CapturedTokenLimit, ClosedExpansionId, ClosedExpansionSubject, ClosureId, ClosureSubject,
-    ContractSubject, DECLARATION_DOCUMENTATION_IDENTITY_PROFILE, DECLARED_NAME_IDENTITY_PROFILE,
+    ApplicationDistinctnessSubject, AssumptionLimit, AuthoringLimitProfile,
+    BUNDLE_IDENTITY_PROFILE, BoundFormulaSubject, BundleSubject, ByteRoleSubject,
+    CAPTURED_DECLARATION_IDENTITY_PROFILE, CLOSED_EXPANSION_IDENTITY_PROFILE,
+    CLOSURE_IDENTITY_PROFILE, CapturedDeclarationSubject, CapturedTokenLimit, ClosedExpansionId,
+    ClosedExpansionSubject, ClosureId, ClosureSubject, ContractSubject,
+    DECLARATION_DOCUMENTATION_IDENTITY_PROFILE, DECLARED_NAME_IDENTITY_PROFILE,
     DIAGNOSTIC_RELATION_IDENTITY_PROFILE, DerivedTypeSubject, DescriptorProviderSubject,
     DocumentedSubject, EXPLANATION_IDENTITY_PROFILE, ExpansionSurfaceSubject, ExplanationId,
     ExplanationSubject, FacetLimit, FixturePopulationSubject, GENERATED_UNIT_IDENTITY_PROFILE,
@@ -34,7 +35,4 @@ pub use types::{
     TemplateParameterSubject, TemplateSubject, TraceEntryLimit, TracedSubject, TranscriptAnchoring,
     WireContractSubject, WorkCurrencySubject, WorkFormulaSubject, WrapperComponentLimit,
 };
-pub(crate) use types::{human_projection, limits, static_bytes};
-
-#[cfg(test)]
-pub(crate) use types::{DECLARED_LIMITS, SUBJECT_NAMES, for_laws};
+pub(crate) use types::{human_projection, limits, names_are_separating, static_bytes};

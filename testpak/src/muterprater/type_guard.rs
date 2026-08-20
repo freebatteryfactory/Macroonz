@@ -22,7 +22,7 @@ use super::{
     AdapterProfile, AdapterQualification, AlternativeIndex, AnnouncedRoster, BackendVersion,
     BackendVersionPosture, BackendVersionRefusal, BaselineAxis, BaselinePrecondition,
     BaselineQualification, BudgetRefusal, CandidateSketch, CheckGap, ClaimCeiling,
-    CompiledPressureWitness, CoordinateRefusal, Demonstration, DemonstratedRejection, DiffPath,
+    CompiledPressureWitness, CoordinateRefusal, DemonstratedRejection, Demonstration, DiffPath,
     DiffPathRefusal, DischargeEvidence, DudPlant, DuplicateEvidence, DuplicateRefusal,
     EquivalenceAxis, EvaluationSurface, ExecutionAxis, ExplanationRefusal, FamilyAttribution,
     GrammarStanding, GrammarVersion, InconclusiveCause, InferredObligation, IntendedRejection,
@@ -415,8 +415,8 @@ impl MutationReport {
             return Err(KillRefusal::NotMaterialized(materialization));
         }
         match activation {
-            ActivationDisposition::Observed(_) | ActivationDisposition::UnobservableUnderBackend => {
-            }
+            ActivationDisposition::Observed(_)
+            | ActivationDisposition::UnobservableUnderBackend => {}
             ActivationDisposition::NotObserved => {
                 return Err(KillRefusal::ActivationNotObserved);
             }
@@ -1282,7 +1282,8 @@ impl RewriteRoster {
         }
         for (at, descriptor) in descriptors.iter().enumerate() {
             if descriptors.iter().take(at).any(|earlier| {
-                earlier.pattern() == descriptor.pattern() && earlier.rewrite() == descriptor.rewrite()
+                earlier.pattern() == descriptor.pattern()
+                    && earlier.rewrite() == descriptor.rewrite()
             }) {
                 return Err(RosterRefusal::DuplicateDescriptor { at });
             }

@@ -7,7 +7,9 @@
 //! call that declares them, and nothing reaches in afterwards to change what a
 //! report will say the run stood on.
 
-use super::{FailedTrial, HostClock, Invocation, SeatFailure, SeatRefusal, Selection, SelectionPlan};
+use super::{
+    FailedTrial, HostClock, Invocation, SeatFailure, SeatRefusal, Selection, SelectionPlan,
+};
 use crate::descriptor::TrialTableRefusal;
 use crate::report::{
     EmptySelectionReason, InvocationProfile, SelectionExpectation, TargetBinding, TrialId,

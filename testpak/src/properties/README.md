@@ -65,8 +65,9 @@ pair's ACCEPTANCE is a row in the same battery — a role separation that
 silently stops existing fails the battery instead of making every refusal
 pass for the wrong reason.
 
-Behavioral laws drain out of the machine's proof surface and land here as
-properties under mutation pressure; at end state the machine keeps no
-self-test corpus of its own. The suites drive declared transition systems;
+The machine keeps no self-test corpus of its own, so a behavioral claim about
+it lands here as a property under mutation pressure or it is carried by a type
+that makes its violation unwritable. The suites drive declared transition
+systems;
 the machine's own running history becomes a subject only once the machine
 can run one.

@@ -159,7 +159,9 @@ fn caused_by<K: ProjectionKind>(
     // reporting one.
     match content.commitment() {
         CauseAnchoring::Declaration(fragment) => {
-            Ok(InvalidationTrigger::watching_source_declarations([fragment]))
+            Ok(InvalidationTrigger::watching_source_declarations([
+                fragment,
+            ]))
         }
         CauseAnchoring::CapturedDeclaration(captured) => {
             Ok(InvalidationTrigger::CapturedDeclarationChanged { watched: captured })

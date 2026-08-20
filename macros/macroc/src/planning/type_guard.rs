@@ -34,9 +34,7 @@ use crate::plane::{
     ProjectionProvenance, ProjectionRole, ProjectionTranscript, RenderedRole, encode_length,
 };
 use crate::question::ExplanationQuestion;
-use crate::refusal::{
-    BoundAxis, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue,
-};
+use crate::refusal::{BoundAxis, PlanSeat, ProjectionPlanning, ProjectionPlanningIssue};
 use core::marker::PhantomData;
 use threadpak::declaration::DeclarationGraph;
 use threadpak::declaration::types::FragmentIdentityDomain;

@@ -323,8 +323,10 @@ fn targeted(
     owner: OwnerLookup,
     family: FamilyLookup,
 ) -> MutationTarget {
-    let attribution = family(coordinate, damage)
-        .map_or(FamilyAttribution::OutsideTheBank, FamilyAttribution::Declared);
+    let attribution = family(coordinate, damage).map_or(
+        FamilyAttribution::OutsideTheBank,
+        FamilyAttribution::Declared,
+    );
     let posture = owner(coordinate).map_or(MappingPosture::OwnerUnmapped, MappingPosture::Mapped);
     MutationTarget::pressed(
         MutationIdentity::External(MutantId::over(coordinate, damage)),

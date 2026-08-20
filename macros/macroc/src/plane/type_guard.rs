@@ -595,16 +595,82 @@ impl SubjectSeal {
     }
 }
 
-/// One plane identity minted for the proof surface alone.
+/// Whether a roster of declared names really separates: every name inside the
+/// context grammar, and no name declared twice.
 ///
-/// Test-gated on purpose: the laws need distinguishable identities without
-/// having a captured declaration to derive them from, and a production caller
-/// derives from a real transcript or has no identity at all.
-#[cfg(test)]
-pub(crate) fn for_laws<Subject: IdentitySubject>(tag: u8) -> ProjectionIdentity<Subject> {
-    ProjectionIdentity::derived(ProjectionTranscript::rooted(
-        ProjectionRole::Plan,
-        &[tag],
-        u32::from(tag),
-    ))
+/// Written for the `const` block [`subjects!`] emits, and evaluated at compile
+/// time for the same reason the projection width is — a name that would collapse
+/// two derive-key name spaces is a compile error rather than a defect a reader
+/// has to notice.
+///
+/// The grammar is the closed one [`IdentitySubject::SUBJECT_NAME`] declares:
+/// lowercase ASCII letters and digits in `-`-joined segments, with no leading,
+/// trailing, or doubled separator.
+#[expect(
+    clippy::indexing_slicing,
+    reason = "the walk is a const evaluation over the declared roster, so an index past it stops the compiler instead of reading at runtime"
+)]
+#[must_use]
+pub(crate) const fn names_are_separating(names: &[&str]) -> bool {
+    let mut at = 0usize;
+    while at < names.len() {
+        if !name_is_grammatical(names[at]) {
+            return false;
+        }
+        let mut earlier = 0usize;
+        while earlier < at {
+            if same_bytes(names[earlier].as_bytes(), names[at].as_bytes()) {
+                return false;
+            }
+            earlier = earlier.saturating_add(1);
+        }
+        at = at.saturating_add(1);
+    }
+    true
+}
+
+/// Whether one declared name stands inside the closed context grammar.
+#[expect(
+    clippy::indexing_slicing,
+    reason = "the walk is a const evaluation over one declared name, so an index past it stops the compiler instead of reading at runtime"
+)]
+const fn name_is_grammatical(name: &str) -> bool {
+    let bytes = name.as_bytes();
+    if bytes.is_empty() {
+        return false;
+    }
+    let last = bytes.len().saturating_sub(1);
+    let mut at = 0usize;
+    while at < bytes.len() {
+        let byte = bytes[at];
+        if byte == b'-' {
+            // No leading, trailing, or doubled separator.
+            if at == 0 || at == last || bytes[at.saturating_sub(1)] == b'-' {
+                return false;
+            }
+        } else if !byte.is_ascii_lowercase() && !byte.is_ascii_digit() {
+            return false;
+        }
+        at = at.saturating_add(1);
+    }
+    true
+}
+
+/// Whether two declared names are the same bytes.
+#[expect(
+    clippy::indexing_slicing,
+    reason = "the walk is a const evaluation over two declared names, so an index past either stops the compiler instead of reading at runtime"
+)]
+const fn same_bytes(left: &[u8], right: &[u8]) -> bool {
+    if left.len() != right.len() {
+        return false;
+    }
+    let mut at = 0usize;
+    while at < left.len() {
+        if left[at] != right[at] {
+            return false;
+        }
+        at = at.saturating_add(1);
+    }
+    true
 }

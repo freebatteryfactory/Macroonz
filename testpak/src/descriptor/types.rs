@@ -919,17 +919,41 @@ pub enum TrialTableRefusal {
 /// literal against it — a roster that drifts from the row is what that trial
 /// exists to catch.
 pub const DESCRIPTOR_FIELDS: &[SchemaField] = &[
-    SchemaField::declared("claim", FieldShape::NamespacedName, FieldCardinality::ExactlyOne),
+    SchemaField::declared(
+        "claim",
+        FieldShape::NamespacedName,
+        FieldCardinality::ExactlyOne,
+    ),
     SchemaField::declared(
         "execution_suite",
         FieldShape::NamespacedName,
         FieldCardinality::ExactlyOne,
     ),
-    SchemaField::declared("roles", FieldShape::NamespacedName, FieldCardinality::ZeroOrMore),
-    SchemaField::declared("tags", FieldShape::NamespacedName, FieldCardinality::ZeroOrMore),
-    SchemaField::declared("subject", FieldShape::NamespacedName, FieldCardinality::ExactlyOne),
-    SchemaField::declared("check", FieldShape::NamespacedName, FieldCardinality::ExactlyOne),
-    SchemaField::declared("population", FieldShape::NamespacedName, FieldCardinality::ExactlyOne),
+    SchemaField::declared(
+        "roles",
+        FieldShape::NamespacedName,
+        FieldCardinality::ZeroOrMore,
+    ),
+    SchemaField::declared(
+        "tags",
+        FieldShape::NamespacedName,
+        FieldCardinality::ZeroOrMore,
+    ),
+    SchemaField::declared(
+        "subject",
+        FieldShape::NamespacedName,
+        FieldCardinality::ExactlyOne,
+    ),
+    SchemaField::declared(
+        "check",
+        FieldShape::NamespacedName,
+        FieldCardinality::ExactlyOne,
+    ),
+    SchemaField::declared(
+        "population",
+        FieldShape::NamespacedName,
+        FieldCardinality::ExactlyOne,
+    ),
     SchemaField::declared(
         "origin",
         FieldShape::ClosedChoice(&[
@@ -978,9 +1002,21 @@ pub const DESCRIPTOR_FIELDS: &[SchemaField] = &[
 /// never that any of them was materialized, activated, or killed. Those are
 /// executed facts and they live in the mutation lane's own record.
 pub const MUTATION_POINT_FIELDS: &[SchemaField] = &[
-    SchemaField::declared("identity", FieldShape::NamespacedName, FieldCardinality::ExactlyOne),
-    SchemaField::declared("owner_claim", FieldShape::NamespacedName, FieldCardinality::ExactlyOne),
-    SchemaField::declared("original_operation", FieldShape::Bytes, FieldCardinality::ExactlyOne),
+    SchemaField::declared(
+        "identity",
+        FieldShape::NamespacedName,
+        FieldCardinality::ExactlyOne,
+    ),
+    SchemaField::declared(
+        "owner_claim",
+        FieldShape::NamespacedName,
+        FieldCardinality::ExactlyOne,
+    ),
+    SchemaField::declared(
+        "original_operation",
+        FieldShape::Bytes,
+        FieldCardinality::ExactlyOne,
+    ),
     SchemaField::declared(
         "admitted_alternatives",
         FieldShape::Bytes,
@@ -1044,7 +1080,11 @@ pub const BENCH_FIELDS: &[SchemaField] = &[
         FieldShape::NamespacedName,
         FieldCardinality::ExactlyOne,
     ),
-    SchemaField::declared("input_size_axis", FieldShape::Count, FieldCardinality::ZeroOrMore),
+    SchemaField::declared(
+        "input_size_axis",
+        FieldShape::Count,
+        FieldCardinality::ZeroOrMore,
+    ),
     SchemaField::declared(
         "correctness_preflight",
         FieldShape::NamespacedName,
@@ -1055,13 +1095,21 @@ pub const BENCH_FIELDS: &[SchemaField] = &[
         FieldShape::NamespacedName,
         FieldCardinality::ExactlyOne,
     ),
-    SchemaField::declared("declared_budgets", FieldShape::Count, FieldCardinality::ZeroOrMore),
+    SchemaField::declared(
+        "declared_budgets",
+        FieldShape::Count,
+        FieldCardinality::ZeroOrMore,
+    ),
     SchemaField::declared(
         "contention_posture",
         FieldShape::ClosedChoice(&["no-declared-contention"]),
         FieldCardinality::ExactlyOne,
     ),
-    SchemaField::declared("work_formula", FieldShape::Bytes, FieldCardinality::ZeroOrOne),
+    SchemaField::declared(
+        "work_formula",
+        FieldShape::Bytes,
+        FieldCardinality::ZeroOrOne,
+    ),
     SchemaField::declared(
         "complexity_claim",
         FieldShape::NamespacedName,

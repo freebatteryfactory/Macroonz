@@ -384,8 +384,7 @@ pub struct ComposedRoads<Entry, Middle, Exit> {
 pub const ROUNDTRIP_DISAGREEMENT: FindingCause = FindingCause::named(CAUSE_FAMILY, "roundtrip");
 
 /// The cause a broken idempotence law is cited under.
-pub const IDEMPOTENCE_DISAGREEMENT: FindingCause =
-    FindingCause::named(CAUSE_FAMILY, "idempotence");
+pub const IDEMPOTENCE_DISAGREEMENT: FindingCause = FindingCause::named(CAUSE_FAMILY, "idempotence");
 
 /// The cause a broken conservation law is cited under.
 pub const CONSERVATION_DISAGREEMENT: FindingCause =
@@ -400,8 +399,7 @@ pub const PERMUTATION_DISAGREEMENT: FindingCause =
     FindingCause::named(CAUSE_FAMILY, "permutation-insensitivity");
 
 /// The cause a broken run-twice determinism law is cited under.
-pub const DETERMINISM_DISAGREEMENT: FindingCause =
-    FindingCause::named(CAUSE_FAMILY, "determinism");
+pub const DETERMINISM_DISAGREEMENT: FindingCause = FindingCause::named(CAUSE_FAMILY, "determinism");
 
 /// The cause a broken ambient-pathway-invariance law is cited under.
 pub const AMBIENT_PATHWAY_DISAGREEMENT: FindingCause =

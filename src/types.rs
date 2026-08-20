@@ -125,31 +125,6 @@ pub trait LimitAdmissionProfile {
     const MAX_DECLARED_LIMIT: usize;
 }
 
-/// The profile the root's own laws stand under, and nothing else.
-///
-/// `cfg(test)`-gated on purpose: it does not exist in a built artifact, and
-/// nothing outside the crate's own proof surface can name it.
-/// The number leaves room above the widest family the laws instantiate; a law
-/// needing a wider one raises this number deliberately.
-#[cfg(test)]
-pub(crate) struct RootLawsProfile;
-
-#[cfg(test)]
-impl LimitAdmissionProfile for RootLawsProfile {
-    const MAX_DECLARED_LIMIT: usize = 1_024;
-}
-
-/// A second laws-only profile, deliberately narrower than [`RootLawsProfile`],
-/// so the proof surface can show that a witness names which profile admitted
-/// it.
-#[cfg(test)]
-pub(crate) struct NarrowLawsProfile;
-
-#[cfg(test)]
-impl LimitAdmissionProfile for NarrowLawsProfile {
-    const MAX_DECLARED_LIMIT: usize = 8;
-}
-
 /// Evidence that one limit family's declared magnitude stands under one
 /// profile's ceiling.
 ///
@@ -291,16 +266,6 @@ pub struct LimitWitness<L: EvidenceSelectedLimit> {
 }
 
 impl<L: EvidenceSelectedLimit> LimitWitness<L> {
-    /// In-crate mint for laws. Test-gated until the schema home carries the real
-    /// declaration path — the gate comes off when a lawful minter exists.
-    #[cfg(test)]
-    pub(crate) const fn declared(max: usize) -> Self {
-        Self {
-            max,
-            _family: PhantomData,
-        }
-    }
-
     /// The admitted maximum this witness carries.
     #[must_use]
     pub fn max(&self) -> usize {
@@ -778,12 +743,6 @@ pub struct Current<T> {
 }
 
 impl<T> Current<T> {
-    /// In-crate mint for laws. Test-gated until an evidence boundary exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(value: T) -> Self {
-        Self { value }
-    }
-
     /// The proven-fresh value.
     #[must_use]
     pub fn get(&self) -> &T {
@@ -803,12 +762,6 @@ pub struct Stale<T, Cut: EvidenceCut> {
 }
 
 impl<T, Cut: EvidenceCut> Stale<T, Cut> {
-    /// In-crate mint for laws. Test-gated until an evidence boundary exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(value: T, against: Cut) -> Self {
-        Self { value, against }
-    }
-
     /// The stale value, readable under disclosure.
     #[must_use]
     pub fn value(&self) -> &T {
@@ -918,24 +871,6 @@ pub struct EvidenceRef<Claim> {
 }
 
 impl<Claim> EvidenceRef<Claim> {
-    /// In-crate mint for laws. Test-gated until an evidence boundary carries the
-    /// real path — the gate comes off when a lawful minter exists.
-    #[cfg(test)]
-    pub(crate) const fn bound(
-        referent: [u8; 32],
-        version: u64,
-        availability: ReferentAvailability,
-        integrity: ReferentIntegrity,
-    ) -> Self {
-        Self {
-            referent,
-            version,
-            availability,
-            integrity,
-            _claim: PhantomData,
-        }
-    }
-
     /// The referent's identity digest.
     #[must_use]
     pub fn referent(&self) -> [u8; 32] {

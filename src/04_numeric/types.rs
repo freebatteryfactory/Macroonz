@@ -83,12 +83,6 @@ pub const CONSTRUCTOR_AXIS_LADDER: [ConstructorAxis; 4] = [
 pub struct ExactCoefficient(i128);
 
 impl ExactCoefficient {
-    /// In-crate mint for laws. Test-gated until a lawful minter exists.
-    #[cfg(test)]
-    pub(crate) const fn raw(value: i128) -> Self {
-        Self(value)
-    }
-
     /// The exact value under the day-one carrier.
     #[must_use]
     pub fn value(&self) -> i128 {
@@ -101,12 +95,6 @@ impl ExactCoefficient {
 pub struct DecimalScale(u32);
 
 impl DecimalScale {
-    /// In-crate mint for laws. Test-gated until a lawful minter exists.
-    #[cfg(test)]
-    pub(crate) const fn raw(value: u32) -> Self {
-        Self(value)
-    }
-
     /// The scale ordinal.
     #[must_use]
     pub fn value(&self) -> u32 {
@@ -163,14 +151,6 @@ pub struct DecimalProfileDomain;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DecimalProfileId(Commitment<DecimalProfileDomain>);
 
-impl DecimalProfileId {
-    /// In-crate mint for laws. Test-gated until profile declaration exists.
-    #[cfg(test)]
-    pub(crate) const fn default_for_laws() -> Self {
-        Self(Commitment::raw([3; 32]))
-    }
-}
-
 // ---------------------------------------------------------------------------
 // The exact families — role-distinct opaque newtypes with checked construction,
 // never one shared numeric type. Constructors land when schema profiles exist
@@ -199,12 +179,6 @@ pub struct FixedDecimal {
 }
 
 impl FixedDecimal {
-    /// In-crate mint for laws. Test-gated until a lawful minter exists.
-    #[cfg(test)]
-    pub(crate) const fn raw(coefficient: ExactCoefficient, scale: DecimalScale) -> Self {
-        Self { coefficient, scale }
-    }
-
     /// The coefficient.
     #[must_use]
     pub fn coefficient(&self) -> ExactCoefficient {
@@ -228,16 +202,6 @@ pub struct ExactRatio {
 }
 
 impl ExactRatio {
-    /// In-crate mint for laws (canonical form assumed by the caller).
-    /// Test-gated until a lawful minter exists.
-    #[cfg(test)]
-    pub(crate) const fn raw(numerator: ExactCoefficient, denominator: ExactCoefficient) -> Self {
-        Self {
-            numerator,
-            denominator,
-        }
-    }
-
     /// The canonical numerator.
     #[must_use]
     pub fn numerator(&self) -> ExactCoefficient {
@@ -861,12 +825,6 @@ impl RefusalFamily for QuantizeCrossing {
 pub struct FloatFormatId(u16);
 
 impl FloatFormatId {
-    /// In-crate mint for laws. Test-gated until the format register exists.
-    #[cfg(test)]
-    pub(crate) const fn registered(id: u16) -> Self {
-        Self(id)
-    }
-
     /// The registered identity.
     #[must_use]
     pub fn value(&self) -> u16 {
@@ -881,12 +839,6 @@ impl FloatFormatId {
 pub struct ApproximationProfileId(u16);
 
 impl ApproximationProfileId {
-    /// In-crate mint for laws. Test-gated until the profile register exists.
-    #[cfg(test)]
-    pub(crate) const fn registered(id: u16) -> Self {
-        Self(id)
-    }
-
     /// The registered identity.
     #[must_use]
     pub fn value(&self) -> u16 {
@@ -900,12 +852,6 @@ impl ApproximationProfileId {
 pub struct FloatBitPattern(u64);
 
 impl FloatBitPattern {
-    /// In-crate mint for laws. Test-gated until observation ingress exists.
-    #[cfg(test)]
-    pub(crate) const fn raw(bits: u64) -> Self {
-        Self(bits)
-    }
-
     /// The exact observed bits.
     #[must_use]
     pub fn bits(&self) -> u64 {

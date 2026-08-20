@@ -31,16 +31,16 @@
 //!
 //! [`declarations_in`] is the only road in this package that names `syn`, and
 //! its home is the challenge side: structural decoding of this repository's own
-//! rendered artifacts belongs to `tests/`, while the annex owns vocabulary and
-//! comparison. It stands here until that move, isolated in this one file so the
-//! move is a file's worth of work.
+//! rendered artifacts is qualification-era work, while the annex owns
+//! vocabulary and comparison. It stands here, isolated in this one file, until
+//! a challenge-side caller exists.
 //!
 //! The opening condition is exact, and the manifest carries the same sentence:
-//! the move happens at the wave where a challenge-side caller exists to call it
-//! there, and that same wave retires `syn` from the library's dependency table
-//! and leaves it a dev-dependency. Moving it sooner would put a decoder in
-//! `tests/` that nothing calls — unreachable code wearing the shape of a move —
-//! so the manifest states what the code does today rather than what it is owed.
+//! the move happens when a challenge-side caller exists to call it, and that
+//! same move retires `syn` from the library's dependency table. Relocating the
+//! decoder ahead of its caller would be unreachable code wearing the shape of
+//! a move, so the manifest states what the code does today rather than what it
+//! is owed.
 //!
 //! [`compared`] is what survives that move: it takes typed values on both
 //! sides, reads no text, and names no parser.
@@ -192,7 +192,10 @@ fn undeclared_member(
         match member {
             ImplementationMember::Other { described } => return Some((*described).to_owned()),
             ImplementationMember::Constant { name, .. } => {
-                if !declared.iter().any(|expected| expected.name == name.as_str()) {
+                if !declared
+                    .iter()
+                    .any(|expected| expected.name == name.as_str())
+                {
                     return Some(name.clone());
                 }
             }
@@ -275,9 +278,10 @@ fn named_constant<'read>(
 /// Where one trait-and-target pair is implemented a second time.
 fn duplicated(implementations: &[ImplementationStructure]) -> Option<usize> {
     for (at, found) in implementations.iter().enumerate() {
-        let earlier = implementations.iter().take(at).any(|other| {
-            other.target == found.target && other.trait_path == found.trait_path
-        });
+        let earlier = implementations
+            .iter()
+            .take(at)
+            .any(|other| other.target == found.target && other.trait_path == found.trait_path);
         if earlier {
             return Some(at);
         }

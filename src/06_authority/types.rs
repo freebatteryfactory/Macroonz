@@ -388,14 +388,6 @@ pub struct CapabilityGrantRole;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CapabilityGrantId(Occurrence<CapabilityGrantRole>);
 
-impl CapabilityGrantId {
-    /// In-crate mint for laws. Test-gated until grant minting exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<CapabilityGrantRole>) -> Self {
-        Self(occurrence)
-    }
-}
-
 impl IdentityRole for CapabilityGrantId {
     const CLASS: IdentityClass = IdentityClass::Occurrence;
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
@@ -469,12 +461,6 @@ pub struct ConstraintSourcePair<Source> {
 }
 
 impl<Source> ConstraintSourcePair<Source> {
-    /// In-crate mint for laws. Test-gated until the meet evaluator exists.
-    #[cfg(test)]
-    pub(crate) const fn named(left: Source, right: Source) -> Self {
-        Self { left, right }
-    }
-
     /// The first constraint source.
     #[must_use]
     pub fn left(&self) -> &Source {

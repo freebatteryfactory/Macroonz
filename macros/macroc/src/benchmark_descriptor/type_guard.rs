@@ -20,8 +20,8 @@
 use super::super::render;
 use super::{
     BenchAttachment, BenchBackend, BenchDeclarationRefusal, BenchMeasurement, BenchReferences,
-    BenchReporterAdapter, BenchRow, BenchRowLimit, BenchTablePayload, BenchmarkPlan, BenchmarkShell,
-    InputSizeLimit, WorkFormula, WorkFormulaLimit, WorkObservationLimit,
+    BenchReporterAdapter, BenchRow, BenchRowLimit, BenchTablePayload, BenchmarkPlan,
+    BenchmarkShell, InputSizeLimit, WorkFormula, WorkFormulaLimit, WorkObservationLimit,
 };
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
@@ -343,10 +343,7 @@ impl BenchReporterAdapter {
     ///
     /// Returns [`BenchDeclarationRefusal::SpellingNotAnIdentifier`] where the
     /// module spelling is not one Rust identifier.
-    pub fn declared(
-        module: &str,
-        backend: BenchBackend,
-    ) -> Result<Self, BenchDeclarationRefusal> {
+    pub fn declared(module: &str, backend: BenchBackend) -> Result<Self, BenchDeclarationRefusal> {
         if !is_rendered_identifier(module) {
             return Err(BenchDeclarationRefusal::SpellingNotAnIdentifier);
         }
@@ -413,8 +410,7 @@ impl BenchmarkShell {
         // empty, because this crossing defers no cargo into the carrier — the
         // reporter adapter is an item beside the gate rather than cargo through
         // it.
-        let mut body =
-            gate_invocation(expectation_literal(), cargo, Vec::new()).map_err(sole)?;
+        let mut body = gate_invocation(expectation_literal(), cargo, Vec::new()).map_err(sole)?;
         body.extend(reporter);
         let tokens = exported_shell(&name, body).map_err(sole)?;
         let tree = GeneratedTree::assembled(tokens).map_err(|_| sole(unbounded()))?;

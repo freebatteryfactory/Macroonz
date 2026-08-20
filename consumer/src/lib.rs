@@ -14,8 +14,6 @@
 //! the two refusal families those constructors refuse in. Nothing here is judge
 //! machinery, and nothing here is clever — the moment this package starts
 //! helping, it stops being evidence about what an ordinary consumer experiences.
-//! Everything about testing lives in `tests/`, which is where a consumer's
-//! testing lives.
 //!
 //! # The machine surface this library uses
 //!
@@ -32,20 +30,18 @@
 //! # The pair
 //!
 //! One family realized by hand and one derived, in one crate, under one pair of
-//! contracts. What the pair earns is a reading written ONCE over the contract
-//! and taken of both: `tests/the_derived_road.rs` reads each family's declared
-//! facts through a road generic in the contract, so a hand-realized family and a
-//! derived one stand in the same seat rather than in two seats that agree.
+//! contracts — so a hand-realized family and a derived one stand in the same
+//! seat, and the machine's contract vocabulary is what makes them comparable.
 //!
 //! # What the derived road delivers here, exactly
 //!
 //! A refusal-family declaration delivers its two production implementations at
-//! the declaration site, and this crate compiles them: they are what
-//! `tests/the_derived_road.rs` reads back as values. The derived family's test
-//! rows and its evaluation support arrive when the emission road delivers
-//! carrier cargo to a rendered support shell; until that delivery exists, this
-//! crate's derived-road evidence is the declaration-site surface read back as
-//! values, which is what that file states and the whole of what it claims.
+//! the declaration site, and this crate compiles them — the derive resolves
+//! under the renamed binding and the contracts are realized, or this package
+//! does not build. The derived family's evaluation support arrives when the
+//! emission road delivers carrier cargo to a rendered support shell; until
+//! that delivery exists, this crate's derived-road evidence is the
+//! declaration-site surface it compiles, and the whole of what it claims.
 //!
 //! # The seat's claim ceiling
 //!

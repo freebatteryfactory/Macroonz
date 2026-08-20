@@ -9,8 +9,8 @@
 
 use super::conclude::agreement;
 use super::types::{
-    AMBIENT_PATHWAY_DISAGREEMENT, DETERMINISM_DISAGREEMENT, Equivalence,
-    PERMUTATION_DISAGREEMENT, Road,
+    AMBIENT_PATHWAY_DISAGREEMENT, DETERMINISM_DISAGREEMENT, Equivalence, PERMUTATION_DISAGREEMENT,
+    Road,
 };
 use crate::report::TrialConclusion;
 

@@ -40,7 +40,7 @@
 //! and the number of them is the length of a token run rather than a value
 //! written into one.
 
-use super::super::type_contract::stage;
+use super::type_contract::stage;
 use super::{WrapperPathRooting, WrapperShape, WrapperSurfaceIssue, WrapperTypePath};
 use crate::plane::{GeneratedTokenLimit, WrapperComponentLimit};
 use crate::planning::{WRAPPER_COMPONENTS, WrapperComponent};
@@ -63,8 +63,7 @@ pub const ENTRY_PARAMETER: &str = "carried";
 /// Every public item this home renders carries one, because a lint wall that
 /// denies an undocumented public item is the wall a host target is most likely to
 /// be standing behind.
-pub const WRAPPER_SENTENCE: &str =
-    "The wrapper this host contract's declared capability composed, in the component roster's \
+pub const WRAPPER_SENTENCE: &str = "The wrapper this host contract's declared capability composed, in the component roster's \
      own order. Each stage calls one road the host declared and hands the next its answer.";
 
 // ---------------------------------------------------------------------------

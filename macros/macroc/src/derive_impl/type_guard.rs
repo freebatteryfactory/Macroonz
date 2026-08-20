@@ -25,8 +25,8 @@
 //! A private seat excludes every SIBLING: the rest of this file, `types.rs`
 //! above it, `plan.rs` and `render.rs` beside it, anywhere else in the services,
 //! and any crate downstream cannot write the literal, and the compiler says so
-//! with `E0451`. It does not exclude DESCENDANTS, so the reversal for this seat
-//! is a compile-fail fixture outside the crate.
+//! with `E0451`. It does not exclude DESCENDANTS, which is why this file
+//! declares no child module of its own.
 
 use super::super::plan::{SurfacePlan, surface_plan};
 use super::super::render;
@@ -330,10 +330,7 @@ impl EvaluationBinding {
     /// identifier renders tokens the consumer's compiler reads as something
     /// else, and the place that failure would surface is a consumer's build with
     /// no idea where the name came from.
-    pub fn declared(
-        active_enum: &str,
-        selector: &str,
-    ) -> Result<Self, SurfaceDeclarationRefusal> {
+    pub fn declared(active_enum: &str, selector: &str) -> Result<Self, SurfaceDeclarationRefusal> {
         if !is_identifier(active_enum) || !is_identifier(selector) {
             return Err(SurfaceDeclarationRefusal::SpellingNotAnIdentifier);
         }

@@ -140,14 +140,6 @@ impl IdentityRole for TurnId {
     const CREATION: CreationLaw = CreationLaw::DerivedFromAdmittedPreimage;
 }
 
-impl TurnId {
-    /// In-crate mint for laws. Test-gated until replay derivation exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<TurnRole>) -> Self {
-        Self(occurrence)
-    }
-}
-
 /// The Turn preimage's at-least list — a Turn freezes a scope-local exact
 /// cut per source, never a generic progress summary, HLC, page cursor,
 /// route, delivery sequence, or wall-clock instant; a missing source stays
@@ -174,14 +166,6 @@ pub struct EffectIntentId(Occurrence<EffectIntentRole>);
 impl IdentityRole for EffectIntentId {
     const CLASS: IdentityClass = IdentityClass::Occurrence;
     const CREATION: CreationLaw = CreationLaw::FreshOpaque;
-}
-
-impl EffectIntentId {
-    /// In-crate mint for laws. Test-gated until intent admission exists.
-    #[cfg(test)]
-    pub(crate) const fn for_laws(occurrence: Occurrence<EffectIntentRole>) -> Self {
-        Self(occurrence)
-    }
 }
 
 /// The fourteen Turn phases — semantic phases realized as a runtime state
