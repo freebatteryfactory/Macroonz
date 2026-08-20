@@ -2,9 +2,12 @@
 
 ThreadPak is an embedded, sync-first, event-native database and runtime in safe Rust,
 named for the logical thread it preserves; the README owns the full product statement
-and the machine-in-one-view. This file is the binding law for any person, model, or
-agent working in this repository. `AGENTS.md` and `CLAUDE.md` are twins kept
-byte-identical by hand: any edit lands in both files in the same commit.
+and the machine-in-one-view.
+This file is the binding law for any person, model, or agent working in this
+repository, and it is the only one.
+`CLAUDE.md` carries a pointer here and nothing semantic:
+a law stated twice is a law that can disagree with itself,
+and one that did is what cost this repository a week.
 
 There is no CI and no gate.
 The enforcement surface is the toolchain at the root, run locally:
