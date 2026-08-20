@@ -4,7 +4,9 @@
 //! Declared inside `types.rs` as its own child, which is what makes this home's
 //! central claim structural rather than reviewed. Proved cargo is read HERE, off
 //! a terminal's own partition and compared against what that partition carries,
-//! so a value carrying tokens nobody proved is not a value anybody can hold. An
+//! so a value carrying tokens nobody proved is not a value anybody can hold —
+//! and the reading road is CRATE-INTERNAL, so the envelope those tokens ride in
+//! is the source-owning road's declaration rather than any caller's. An
 //! assembly is built HERE, after the whole verification agreed, so there is no
 //! half-verified whole for a renderer to mistake for a verified one. A joined
 //! expansion is built HERE, over two terminals that were both bound, so a
@@ -163,7 +165,37 @@ impl ProvedCargo {
     /// The two checks are DEPENDENT — there is no cargo to compare until the
     /// partition is the axis's own — so exactly one of them is ever established,
     /// which is why this road answers with one issue rather than a body.
-    pub fn carried<K: ProjectionKind>(
+    ///
+    /// # Who may promote
+    ///
+    /// **Crate-internal, because promotion to proved cargo belongs to the road
+    /// that owns the source's rendering vocabulary.** The tree this road checks
+    /// is authenticated against the terminal that proved it; the ENVELOPE around
+    /// it — the local subject the copies stand over, and the selectors they read
+    /// their active points through — is not, and cannot be: those spellings are
+    /// declarations of the home that rendered the copies, and no terminal
+    /// carries them to be compared against. A public road here would therefore
+    /// let any caller wrap proved tokens in an envelope of its own choosing and
+    /// hand back a value whose whole claim is that its contents are one
+    /// terminal's own.
+    ///
+    /// So the one lawful promotion point is
+    /// [`evaluation_axis`](crate::derive_refusal::evaluation_axis), the road that
+    /// declares the subject and the selectors it then hands in. The deferred
+    /// cargo the envelope is built from stays PUBLIC and is unaffected: it is a
+    /// declaration value, refused seat by seat at the carrier's own door, and
+    /// holding one claims nothing about any terminal.
+    ///
+    /// # The opening condition
+    ///
+    /// A generic deferred-envelope contract is a stated OPENING CONDITION rather
+    /// than a gap. It opens when a second projection family needs to transport
+    /// independently declared envelope metadata around proved carrier tokens —
+    /// at which point the envelope has an owner beside the rendering home, and
+    /// the contract that admits it is that owner's to state. Until then the
+    /// specific road is what is true, and a public promotion point would be a
+    /// vehicle standing for declarations nobody makes.
+    pub(crate) fn carried<K: ProjectionKind>(
         expansion: &ClosedExpansion<K>,
         axis: CargoAxis,
         partition: EmissionPartition,
@@ -232,7 +264,8 @@ impl SupportAssembly {
     /// # What is verified here, and what was verified before
     ///
     /// Each carried axis's cargo was already proved to be its own terminal's by
-    /// [`ProvedCargo::carried`], which is why no tree reaches this road. What
+    /// this home's crate-internal promotion road (`ProvedCargo::carried`, which
+    /// the source-owning road walks), which is why no tree reaches this. What
     /// remains are the facts about the WHOLE: one root under every axis, one
     /// published expectation for the gate, every terminal's partition consumed
     /// once, and a bench axis whose vehicle is not yet open.

@@ -39,6 +39,19 @@ the road that reads it records which terminal and which partition it came from.
 That is what makes "no raw or unproved token crossing" a shape rather than a
 review note.
 
+**Promoting tokens to proved cargo belongs to the road that owns the source's
+rendering vocabulary.** The reading authenticates the TREE; the envelope around
+it — the local subject the deferred implementations stand over, and the
+selectors they read their active points through — is the rendering home's own
+declaration, and no terminal carries a copy of it to compare against. So the
+promotion road is crate-internal and the road that hands the envelope in is the
+road that declared it. The deferred cargo itself stays public: it is a
+declaration value, refused seat by seat at the carrier's own door, and holding
+one claims nothing about any terminal. A generic deferred-envelope contract is a
+stated opening condition — it opens when a second projection family needs to
+carry independently declared envelope metadata around proved carrier tokens, and
+admitting it is that owner's statement rather than a widened seam here.
+
 The output is a typed assembly, and the shell renderer consumes that and nothing
 else. The carrier's own composition road is crate-internal, so the public road to
 an exported shell runs through an assembly that verified.
@@ -66,6 +79,31 @@ Each with a typed refusal naming exactly what disagreed:
    seat at which the shell's eventual bytes commit to the source expansion
    identities: the assembly records the identity beside tokens it proved belong
    to it, and the shell is rendered from the assembly in one act.
+
+## The sixth thing, and why it is at the shell seam
+
+**The vehicle is this declaration's too.** The five above are what an assembly
+can answer while it is being built — it holds the cargo and the root it was
+handed, and nothing else. The CARRIER PLAN is a second value, and until the one
+road to a rendered shell is called nothing in the services has ever held both.
+
+That gap was reachable: a carrier plan for declaration B, handed declaration A's
+assembly, renders a shell that agrees with every reading downstream. The unit is
+born wearing B's plan, so B's key, B's origin, and B's expectation all match a
+tree built out of A's proved cargo, and one exported name delivers another
+declaration's material with nothing in the types disagreeing.
+
+So the join is established at the public seam itself — `render.rs` compares the
+plan's declared root against the assembly's before a seat is read — rather than
+in whichever caller joins the two. A check in a door's wrapper would leave the
+public road open to any caller holding a plan and somebody else's assembly.
+
+The refusal is this home's own composition body, naming both roots and electing
+neither. What comes back from that road is therefore a typed answer saying which
+home refused: this home's assembly body where the pair is not one declaration's,
+and the carrier's own rendering body where the tokens do not fit its declared
+magnitude. Two homes' facts, each carried whole, and never one roster invented
+here to hold both.
 
 ## The cargo is composed axes, never one product
 
@@ -117,8 +155,9 @@ value does.
 ## The seats
 
 `types.rs` declares: the axis roster, the axis cargo shape, one terminal's proved
-cargo, the closed issue set, the assembly itself, the joined value a door hands
-back, and the complete account it stands inside. Its own child `type_guard.rs`
+cargo, the closed issue set, the answer the one road to a rendered shell refuses
+with, the assembly itself, the joined value a door hands back, and the complete
+account it stands inside. Its own child `type_guard.rs`
 holds every road that reaches a private seat — reading cargo off a terminal,
 assembling the verified whole, the refusal body, and binding both door-level
 values — which is what makes "nothing unproved is in an assembly" structural:
@@ -126,4 +165,5 @@ there is no second seam that can build one. `establish.rs` is the verification
 pass itself, pure, reading axes through the same answers any caller gets.
 `type_contract.rs` states the declarative tables: the family's declared shape,
 and which carrier partition each axis delivers from. `render.rs` is the one road
-from a verified assembly to a rendered carrier.
+from a carrier plan and a verified assembly to a rendered carrier, and the seam
+that establishes the two name one declaration.

@@ -190,11 +190,12 @@ mod plane {
 mod identity_profile {
     use crate::plane::{
         CAPTURED_DECLARATION_IDENTITY_PROFILE, CLOSED_EXPANSION_IDENTITY_PROFILE,
-        CLOSURE_IDENTITY_PROFILE, GENERATED_UNIT_IDENTITY_PROFILE, GeneratedUnitSubject,
-        GeneratorIdentity, GeneratorSchemaVersion, IDENTITY_PROFILE_STEM, IdentityProfileVersion,
-        MACROC_GENERATOR, PROJECTION_INTENT_IDENTITY_PROFILE, PlanSubject, PreimageFamily,
-        ProjectionIdentity, ProjectionRole, ProjectionTranscript, RENDERED_UNIT_IDENTITY_PROFILE,
-        RenderedUnitSubject, SUBJECT_NAMES, TranscriptAnchoring, encode_bytes,
+        CLOSURE_IDENTITY_PROFILE, EXPLANATION_IDENTITY_PROFILE, GENERATED_UNIT_IDENTITY_PROFILE,
+        GeneratedUnitSubject, GeneratorIdentity, GeneratorSchemaVersion, IDENTITY_PROFILE_STEM,
+        IdentityProfileVersion, MACROC_GENERATOR, PROJECTION_INTENT_IDENTITY_PROFILE, PlanSubject,
+        PreimageFamily, ProjectionIdentity, ProjectionRole, ProjectionTranscript,
+        RENDERED_UNIT_IDENTITY_PROFILE, RenderedUnitSubject, SUBJECT_NAMES, TranscriptAnchoring,
+        encode_bytes,
     };
 
     /// The anchor every anchored vector below is taken under.
@@ -233,18 +234,44 @@ mod identity_profile {
     /// the pin is over the answer the plane actually uses rather than over a
     /// constant a derivation might not consult.
     ///
+    /// # The EXPLANATION family stands at 2, and every other family at 1
+    ///
+    /// The families are pinned individually rather than under one "all at their
+    /// first position" sweep, and the reason is what a version ladder is FOR: a
+    /// family moves when its own preimage grammar moves, and no neighbour moves
+    /// with it. The explanation family's grammar widened when the
+    /// profile-unavailable disposition gained the owner-fact citation naming what
+    /// the profile could not furnish — the related-projection seat writes that
+    /// disposition's bytes, so an explanation carrying that posture now commits
+    /// to a member it did not carry at position 1.
+    ///
+    /// Nothing else moved for it. A plan's transcript commits to no disposition
+    /// and a closure's identity is derived over partition digests, so neither
+    /// family reaches the widened member at all; the closed-expansion family
+    /// reaches it only THROUGH the explanation identity, which is a change in
+    /// that member's VALUE rather than in this grammar.
+    ///
     /// Owed reversal: bumping any family's version without restating that
-    /// family's vectors must break this law.
+    /// family's vectors must break this law, and so must widening the
+    /// explanation preimage again without moving the explanation position.
     #[test]
     fn the_declared_version_is_pinned() {
         assert_eq!(IDENTITY_PROFILE_STEM, "threadpak/macroc/projection-identity");
         let first = IdentityProfileVersion::declared(1);
+        let second = IdentityProfileVersion::declared(2);
+        assert_eq!(EXPLANATION_IDENTITY_PROFILE.version(), second);
         assert!(
             PreimageFamily::ALL
                 .iter()
                 .copied()
+                .filter(|family| *family != PreimageFamily::Explanation)
                 .all(|family| family.profile().version() == first),
-            "every family stands at its own first position"
+            "every family but the explanation stands at its own first position"
+        );
+        assert_eq!(
+            PreimageFamily::Explanation.profile().version(),
+            second,
+            "the explanation family moved when the disposition citation widened its preimage"
         );
         assert!(
             PreimageFamily::ALL
@@ -522,8 +549,44 @@ mod identity_profile {
     /// stale, and recomputing all three is the first toolchain contact's
     /// corrective batch — one act, each vector under the family it is the
     /// fingerprint of.
+    ///
+    /// # Three families are owed a vector and have none, and that is stated
+    ///
+    /// The three vectors below pin the generated-unit family and the plan
+    /// family. Three families carry claims no vector stands behind, and each is
+    /// reserved in this same comment grammar at the head of the body, as items
+    /// of the same first toolchain contact's corrective batch. They are
+    /// RESERVATIONS and not stubs: a vector is a BLAKE3 output and cannot be
+    /// written by reading, and the point of each one is what it must and must
+    /// not move for.
     #[test]
     fn golden_vectors_pin_the_derivation() {
+        // Owed, at the first toolchain contact: the INTENT vector. One account,
+        // one kind name, one commitment, taken under
+        // `PROJECTION_INTENT_IDENTITY_PROFILE`. Its whole worth is what it must
+        // NOT move for — a doc-only edit to the declaration leaves it fixed, and
+        // so does a generator change, because the intent preimage is the pair and
+        // the generator is provenance — and what it MUST move for: a different
+        // owner content commitment. That pair of readings is what makes door
+        // equivalence answerable across an upgrade, and no property test states
+        // it: a property says the derivation is self-consistent, and this says
+        // which derivation two doors are being compared under.
+        //
+        // Owed, at the same batch: the EXPLANATION vector, at position TWO. One
+        // complete view over one plan and one closure. It must NOT move when the
+        // caller supplies the same answers in another order, because the seats
+        // are written in the kind's declared question order; it MUST move when
+        // the plan identity, the closure identity, or any typed answer moves —
+        // the disposition citation included, which is the member position two
+        // exists for.
+        //
+        // Owed, at the same batch: the CLOSED-EXPANSION vector. Exactly two
+        // content members — the plan identity and the explanation identity —
+        // under the closure identity as the anchor, and nothing else. Its worth
+        // is the negative half: the partitioned emission must NOT appear as a
+        // member, because the anchor already commits to it, and a vector that
+        // admitted one would pin a preimage spelling one fact twice.
+
         // Stale: awaits recompute under the generated-unit family at position
         // one, at the first toolchain contact's corrective batch.
         assert_eq!(
@@ -1803,9 +1866,19 @@ mod planning {
     }
 
     /// law: planning.every-absence-has-a-named-disposition — all six
-    /// dispositions are constructible and pairwise distinct, and none of them
-    /// is silence.
-    /// Owed reversal: dropping a disposition must break this law.
+    /// dispositions are constructible and pairwise distinct, none of them is
+    /// silence, and the two postures caused by a fact carry a citation naming
+    /// it.
+    ///
+    /// The citation half is what keeps "an absence names whose fact caused it"
+    /// true of the profile-unavailable posture as well as of the inapplicable
+    /// one. A profile named alone says a decision happened without saying what
+    /// the profile could not furnish, and a reader asking why one kind is
+    /// unavailable under a profile that offers another would have nothing to
+    /// read.
+    ///
+    /// Owed reversal: dropping a disposition must break this law, and so must a
+    /// profile-unavailable posture constructible without a citation.
     #[test]
     fn every_absence_has_a_named_disposition() {
         let dispositions = [
@@ -1825,6 +1898,7 @@ mod planning {
             ProjectionDisposition::UnavailableUnderProfile {
                 profile: crate::plane::for_laws(26),
                 version: ProfileVersion::declared(1),
+                because: owner_fact(),
             },
             ProjectionDisposition::NotRequested,
             ProjectionDisposition::ExcludedByConfiguration {
@@ -1839,6 +1913,38 @@ mod planning {
                 .enumerate()
                 .all(|(position, index)| *index == position)
         );
+
+        // The two fact-bearing postures cite, and the citation is the SAME shape
+        // in both: an absence without one is a decision with no fact behind it.
+        assert!(dispositions.iter().any(|disposition| matches!(
+            disposition,
+            ProjectionDisposition::NotApplicable { because } if *because == owner_fact()
+        )));
+        assert!(dispositions.iter().any(|disposition| matches!(
+            disposition,
+            ProjectionDisposition::UnavailableUnderProfile { because, .. }
+                if *because == owner_fact()
+        )));
+
+        // And the citation is inside the bytes: two profile-unavailable postures
+        // agreeing on the profile and the version and citing two different facts
+        // are two encodings, so an explanation carrying one cannot stand where
+        // one carrying the other stands.
+        let mut cited = Vec::new();
+        ProjectionDisposition::UnavailableUnderProfile {
+            profile: crate::plane::for_laws(26),
+            version: ProfileVersion::declared(1),
+            because: owner_fact(),
+        }
+        .encode_into(&mut cited);
+        let mut otherwise = Vec::new();
+        ProjectionDisposition::UnavailableUnderProfile {
+            profile: crate::plane::for_laws(26),
+            version: ProfileVersion::declared(1),
+            because: OwnerFactRef::named("macroc", "another-declared-fact"),
+        }
+        .encode_into(&mut otherwise);
+        assert_ne!(cited, otherwise);
     }
 
     /// law: planning.a-bundle-names-its-members-and-refuses-a-partial-set — a
@@ -3853,21 +3959,22 @@ mod generated_support {
     use crate::closure::{ClosedExpansion, PartitionCargo};
     use crate::derive_refusal::plan::{rust_declaration_profile, rust_declaration_profile_version};
     use crate::derive_refusal::{
-        EVALUATION_SUBJECT, RefusalCompileContext, RefusalDerivationDraft, RefusalFamilyExpansion,
-        RefusalOwnerFacts, carrier_expansion, carrier_plan, compile_declaration,
-        compile_refusal_text, deferred_selectors, evaluation_axis, profile_does_not_offer,
-        rows_disposition,
+        EVALUATION_SUBJECT, RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveFact,
+        RefusalFamilyExpansion, RefusalOwnerFacts, carrier_expansion, carrier_plan,
+        compile_declaration, compile_refusal_text, deferred_selectors, documentation_disposition,
+        evaluation_axis, rows_disposition,
     };
     use crate::diagnostics::MachineAnchoring;
     use crate::generated_support::{
-        AccountedExpansion, AssemblyIssue, AxisCargo, CargoAxis, ProvedCargo, SupportAssembly,
+        AccountedExpansion, AssemblyIssue, AxisCargo, CargoAxis, ProvedCargo, ShellComposition,
+        SupportAssembly, assembled_shell,
     };
     use crate::planning::{
         CauseAnchoring, DeriveImplProjection, EXPECTED_GENERATED_SUPPORT_SCHEMA_ID,
         EmissionPartition, ExpectedGeneratedSupportSchemaId, ProjectionDisposition,
         ProjectionKindRow,
     };
-    use crate::test_descriptor::DeferredCargo;
+    use crate::test_descriptor::{DeferredCargo, DescriptorPlan, descriptor_plan};
     use crate::token::{GeneratedToken, GeneratedTree, TextCapture};
     use threadpak::refusal::CompletionPosture;
     use threadpak::types::Bounded;
@@ -4084,6 +4191,64 @@ mod generated_support {
                 carried,
             } if *stated == elsewhere && *carried == terminal.plan().account().commitment()
         )));
+        Ok(())
+    }
+
+    /// law: assembly.a-carrier-plan-renders-only-over-its-own-declarations-assembly
+    /// — the one road from a carrier plan and a verified assembly to a rendered
+    /// shell refuses where the plan's declared root is not the assembly's, and
+    /// the refusal names both roots without electing either.
+    ///
+    /// This is the seam the five assembly checks cannot reach. An assembly
+    /// proves its cargo is ONE declaration's, and it never sees the vehicle: a
+    /// carrier plan for a second declaration agrees with every reading
+    /// downstream, because the rendered unit is born wearing that plan's own
+    /// metadata — its key, its origin, its expected profile — over a tree built
+    /// out of the first declaration's proved cargo. One exported name would then
+    /// deliver another declaration's material with nothing in the types
+    /// disagreeing.
+    ///
+    /// The plan handed in is the real one with its declaration seat moved and
+    /// every other seat untouched, so what the law establishes is the ROOT and
+    /// nothing incidental: the honest plan over the same assembly renders, which
+    /// is the second half of the same statement.
+    ///
+    /// The claim ceiling: it says a carrier renders only over its own
+    /// declaration's assembly. It says nothing about what the shell then
+    /// contains — that is the two seats' own law.
+    ///
+    /// Owed reversal (red twin): a shell road that read the plan's seats without
+    /// comparing its root, or one that compared them only inside a door's
+    /// wrapper while the public road stayed open, must break this law.
+    #[test]
+    fn a_carrier_plan_renders_only_over_its_own_declarations_assembly() -> Result<(), ()> {
+        let expansion = implementation().ok_or(())?;
+        let draft = expansion.surface().clone().planned();
+        let assembly =
+            crate::derive_refusal::assembly(&draft, expansion.expansion()).map_err(|_| ())?;
+        let plan = carrier_plan(&draft).map_err(|_| ())?;
+        let honest = descriptor_plan(&plan).map_err(|_| ())?;
+        assert_eq!(honest.declaration, assembly.root());
+
+        let elsewhere = CauseAnchoring::CapturedDeclaration(crate::plane::for_laws(98));
+        assert_ne!(elsewhere, assembly.root());
+        let borrowed = DescriptorPlan {
+            declaration: elsewhere,
+            ..honest.clone()
+        };
+
+        let refusal = assembled_shell(&borrowed, &assembly).err().ok_or(())?;
+        let ShellComposition::NotOneDeclarations(body) = refusal else {
+            return Err(());
+        };
+        assert!(carries(&body, |issue| matches!(
+            issue,
+            AssemblyIssue::CarrierRootIsNotTheAssemblys { stated, planned }
+                if *stated == assembly.root() && *planned == elsewhere
+        )));
+
+        // The same assembly, under the plan that was planned over it, renders.
+        assert!(assembled_shell(&honest, &assembly).is_ok());
         Ok(())
     }
 
@@ -4379,34 +4544,98 @@ mod generated_support {
 
     /// law: account.a-non-generated-row-carries-a-readable-ground — every kind
     /// this door does not offer carries the standing of the profile the door
-    /// renders under, naming that profile and its version, and it is the same
-    /// value the documentation road records for the one election it stops at.
+    /// renders under, naming that profile, its version, and the fact that says
+    /// what the profile could not furnish; each of the six cites its OWN fact;
+    /// and it is the same value the documentation road records for the one
+    /// election it stops at.
     ///
     /// A reader asking why no bench arrived is handed a posture with a repair in
-    /// it — a profile that offers the kind — rather than "nobody asked", which
-    /// would invite a request this seam cannot honour, or silence, which is what
-    /// the disposition exists to abolish.
+    /// it — a profile that offers the kind — and with the blocked seat named,
+    /// rather than "nobody asked", which would invite a request this seam cannot
+    /// honour, or silence, which is what the disposition exists to abolish.
+    ///
+    /// The citations are checked EXACTLY and pairwise-distinctly, and both
+    /// halves matter. Exactly, because a citation drifting to a neighbouring
+    /// kind's fact would read as a correct answer about the wrong blockage.
+    /// Pairwise-distinct, because one shared "this profile offers nothing"
+    /// citation across the six would answer six different grounds with one word
+    /// — and the day one of the six grounds moved, the other five would move
+    /// with it silently.
     ///
     /// Owed reversal (red twin): a door that answered one of these six with a
     /// generated output, that minted a machine identity to fill a content seat,
-    /// or that left the posture unnamed, must break this law.
+    /// that left the posture unnamed, or that cited one fact for two kinds, must
+    /// break this law.
     #[test]
     fn a_non_generated_row_carries_a_readable_ground() -> Result<(), ()> {
         let accounted = accounted().ok_or(())?;
-        for row in NOT_OFFERED {
+
+        // The fact each row's ground is recorded under, written out one by one:
+        // a table computed from the roster would pass for a row nobody had ever
+        // said anything about, which is the same reason NOT_OFFERED is a list.
+        let cited: [(ProjectionKindRow, RefusalDeriveFact); 6] = [
+            (
+                ProjectionKindRow::CodecProjection,
+                RefusalDeriveFact::AByteRoleIsNotReadOutOfACapture,
+            ),
+            (
+                ProjectionKindRow::HostWrapperProjection,
+                RefusalDeriveFact::ABoundHostContractIsNotHeldByAnExpansion,
+            ),
+            (
+                ProjectionKindRow::RemoteSurfaceProjection,
+                RefusalDeriveFact::APortWireContractAndTargetAreNotHeldByAnExpansion,
+            ),
+            (
+                ProjectionKindRow::BenchmarkDescriptorProjection,
+                RefusalDeriveFact::AWorkCurrencyIsNotReadOutOfACapture,
+            ),
+            (
+                ProjectionKindRow::DocumentationProjection,
+                RefusalDeriveFact::AnAudienceAndAFacetElectionAreNotReadOutOfACapture,
+            ),
+            (
+                ProjectionKindRow::PatternStampProjection,
+                RefusalDeriveFact::APatternApplicationAndPublicationAreNotHeldByAnExpansion,
+            ),
+        ];
+        assert_eq!(cited.len(), NOT_OFFERED.len());
+        assert!(cited.iter().all(|(row, _)| NOT_OFFERED.contains(row)));
+
+        for (row, fact) in cited {
             assert!(matches!(
                 accounted.disposition(row),
-                ProjectionDisposition::UnavailableUnderProfile { profile, version }
-                    if *profile == rust_declaration_profile()
-                        && *version == rust_declaration_profile_version()
+                ProjectionDisposition::UnavailableUnderProfile {
+                    profile,
+                    version,
+                    because,
+                } if *profile == rust_declaration_profile()
+                    && *version == rust_declaration_profile_version()
+                    && *because == fact.citation()
             ));
         }
+
+        // Six grounds, six citations, and no two of them one value.
+        let citations: Vec<Vec<u8>> = cited
+            .iter()
+            .map(|(_, fact)| fact.citation().citation_bytes())
+            .collect();
+        for (position, citation) in citations.iter().enumerate() {
+            assert!(
+                citations
+                    .iter()
+                    .take(position)
+                    .all(|earlier| earlier != citation)
+            );
+        }
+
         // One construction, read twice: the standing a kind stands under and the
-        // standing the facet election stops at are the same value, so a profile
-        // bump moves both or neither.
+        // standing the facet election stops at are the same value — the same
+        // profile, the same version, and the same citation — so a profile bump
+        // or a re-citation moves both or neither.
         assert_eq!(
             *accounted.disposition(ProjectionKindRow::DocumentationProjection),
-            profile_does_not_offer()
+            documentation_disposition()
         );
         Ok(())
     }

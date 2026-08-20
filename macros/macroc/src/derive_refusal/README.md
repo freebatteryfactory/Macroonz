@@ -84,6 +84,19 @@ unit consumed once, no unit reaching a second destination — and hands back the
 assembly the shell is rendered from. The carrier's own composition road is
 crate-internal, so there is no way to an exported shell that skips it.
 
+The one road from a plan and an assembly to a shell establishes the join neither
+road holds alone: this carrier plan and this assembly name ONE declaration. A
+plan for a second declaration would agree with every reading downstream, because
+the unit is born wearing that plan's own metadata — so the comparison happens at
+the public seam and refuses in the assembly family, and this door projects that
+body through the assembly family's own projection rather than restating it.
+
+Reading a terminal's cargo into an axis is crate-internal for the matching
+reason: the promotion authenticates the tokens and cannot authenticate the
+envelope around them — the local subject and the selectors are THIS home's
+declarations — so `carry.rs` is the one lawful promotion point, and it is the
+road that declared what it hands in.
+
 The trials axis is ABSENT here, under the disposition that says why: the claim,
 the suite, the roles, the tags, the subject, the check, the population, and the
 callable a descriptor row states are the caller's declarations, and this door
@@ -104,8 +117,20 @@ Two kinds are produced here and the sealed roster names eight, so the six that
 produce nothing say so. [`compile_declaration`] hands back an account carrying
 one typed disposition per kind: the implementation projection and the carrier
 name the output they were planned as, and the other six carry the standing this
-door's declared compiler profile has for them, named at that profile and at its
-version.
+door's declared compiler profile has for them, named at that profile, at its
+version, and beside the fact that says what the profile could not furnish.
+
+The citation is what makes the answer readable without coming back here. Each of
+the six roads cites ONE door-owned fact whose declared stable name states the
+exact blocking conjunction for its kind — the byte role; the work currency; the
+audience and the facet election; the bound host contract; the port, the wire
+contract and the bound target; the authored pattern application and the
+publication posture. Where several seats are independently blocked the name says
+all of them, because electing one as the primary blocker would tell a caller
+that closing it opens the road. Six distinct facts and never one shared row: a
+byte role and an audience belong to different semantic owners, and one citation
+standing for both would be this home minting a shared word for facts it does not
+own.
 
 The ground is one fact wanted six different ways. A plan of any of those kinds
 names something the machine MINTS — a schema and the byte role its canonical
@@ -134,8 +159,10 @@ PLAN it still cannot make. `document.rs` wires the family seat's prose into a
 documented item through the documentation home's own door, and a caller that
 wants the material walks that road. The plan wants an audience beside the
 subject, and the facets it covers are the same election that road already stops
-at — under the same profile at the same version, from the one construction both
-readings share.
+at — under the same profile at the same version and citing the same fact, from
+the one construction both readings share: the facet election reads the
+documentation KIND's own disposition, so a profile bump or a re-citation moves
+both answers or neither.
 
 ## Refusal vocabulary, step by step
 
@@ -198,7 +225,8 @@ the documentation home's own grammar admits — the family seat's line becomes t
 one plain sentence an item opens with, carried unchanged — and stops at the
 election that has no lawful answer: which FACET a sentence covers is meaning, and
 this derive reads a declaration under a compiler profile that reads tokens. That
-stop is a typed disposition naming the profile and its version, not a silence.
+stop is a typed disposition naming the profile, its version, and the fact whose
+stable name states what the profile could not furnish — not a silence.
 
 Every other attribute is exactly as unread as it was: the refusal-attribute
 search passes over what it does not name, and an unrecognized attribute on a

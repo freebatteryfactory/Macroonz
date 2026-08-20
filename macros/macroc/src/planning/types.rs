@@ -1309,12 +1309,38 @@ pub enum ProjectionDisposition {
         /// The planning refusal.
         refusal: ProjectionPlanning,
     },
-    /// The selected profile does not offer it.
+    /// The selected profile does not offer it, and this is the fact naming what
+    /// that profile could not furnish.
+    ///
+    /// # Authority
+    ///
+    /// **The citation is the same shape [`ProjectionDisposition::NotApplicable`]
+    /// already carries, and it is here for the same reason.** A profile named
+    /// alone says that a decision happened without saying whose fact decided it,
+    /// and a reader asking why one kind is unavailable under a profile that
+    /// offers another kind is handed the standing and never the seat. The
+    /// profile and its version say WHICH standing; the fact says what that
+    /// standing could not fill.
+    ///
+    /// # Bounds
+    ///
+    /// One fact, and its own stable name states the CONJUNCTION where several
+    /// seats are independently blocked — so no blocker is elected as the primary
+    /// one and no seat is silently dropped.
+    ///
+    /// It is a citation and never a roster of blocked seats. A byte role, a work
+    /// currency, a host contract, an audience, and a wire contract belong to
+    /// five different semantic owners, and one enumerated seat vocabulary
+    /// standing for all of them would be this home minting a shared word for
+    /// facts it does not own — which is the second answer the citation shape
+    /// exists to avoid.
     UnavailableUnderProfile {
         /// The profile that does not offer it.
         profile: ProjectionIdentity<ProjectionProfileSubject>,
         /// That profile's version.
         version: ProfileVersion,
+        /// The fact naming what that profile could not furnish.
+        because: OwnerFactRef,
     },
     /// Nobody asked for it.
     NotRequested,

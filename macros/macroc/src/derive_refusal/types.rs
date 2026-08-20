@@ -280,12 +280,69 @@ refusal_derive_facts! {
 
     /// This home's own charter fact: one carrier carries one declaration's
     /// proved cargo, behind one pin.
+    ///
+    /// The VEHICLE is inside this fact and not beside it. A carrier plan for one
+    /// declaration closing around another declaration's assembly is the same
+    /// sentence read at the other end — one exported name delivering a second
+    /// declaration's material — so it cites this row rather than a second one
+    /// that would say half of what this already says.
     OneCarrierDeliversOneDeclarationsProvedCargo = "macroc",
         "one-carrier-delivers-one-declarations-proved-cargo",
         "every axis of one exported carrier carries cargo its own terminal proved, from the \
-         partition that axis delivers from, under one root and one published expectation — so no \
-         unproved tokens, no second declaration's material, and no unit already compiled by the \
-         normal build reach a consumption target";
+         partition that axis delivers from, under one root and one published expectation, and the \
+         carrier plan the shell is rendered from stands under that same root — so no unproved \
+         tokens, no second declaration's material, and no unit already compiled by the normal \
+         build reach a consumption target";
+
+    /// This home's own charter fact: the codec kind's blocking conjunction under
+    /// the declared compiler profile.
+    AByteRoleIsNotReadOutOfACapture = "macroc",
+        "a-byte-role-is-not-read-out-of-a-captured-declaration",
+        "a codec projection reads or writes one named byte role, which is the role an artifact's \
+         canonical bytes are read under and a fact no declaration's tokens stand for — so the \
+         repair is the machine's linked declaration path, where the byte role is minted";
+
+    /// This home's own charter fact: the benchmark-descriptor kind's blocking
+    /// conjunction under the declared compiler profile.
+    AWorkCurrencyIsNotReadOutOfACapture = "macroc",
+        "a-work-currency-is-not-read-out-of-a-captured-declaration",
+        "a benchmark descriptor states its envelope in one named work currency, which is the \
+         vocabulary a measurement is stated in and a fact no declaration's tokens stand for — so \
+         the repair is the machine's linked declaration path, where the currency is minted";
+
+    /// This home's own charter fact: the documentation kind's blocking
+    /// conjunction — two seats, both independently true.
+    AnAudienceAndAFacetElectionAreNotReadOutOfACapture = "macroc",
+        "an-audience-and-a-facet-election-are-not-read-out-of-a-captured-declaration",
+        "a documentation plan names the audience its prose is pitched at and the semantic facets \
+         it covers, and this profile reads tokens rather than what prose means — so neither the \
+         audience nor the facet election is answerable here, and both stand until a profile that \
+         reads meaning offers the kind";
+
+    /// This home's own charter fact: the host-wrapper kind's blocking
+    /// conjunction — the contract seat and the target binding, independently.
+    ABoundHostContractIsNotHeldByAnExpansion = "macroc",
+        "a-bound-host-contract-is-not-held-by-an-expansion",
+        "a host wrapper binds one named host contract and its kind requires the context to be \
+         bound to one, and an expansion's context is target-free — so the contract seat and the \
+         binding requirement are independently unmet and closing one would leave the other";
+
+    /// This home's own charter fact: the remote-surface kind's blocking
+    /// conjunction — three seats, all independently true.
+    APortWireContractAndTargetAreNotHeldByAnExpansion = "macroc",
+        "a-port-a-wire-contract-and-a-bound-target-are-not-held-by-an-expansion",
+        "a remote surface projects one declared port over one wire contract and its kind requires \
+         a bound host contract, and an expansion holds no port, no wire contract, and no target \
+         binding — so all three stand and none of them is the primary one";
+
+    /// This home's own charter fact: the pattern-stamp kind's blocking
+    /// conjunction — the authored application, and where its member would land.
+    APatternApplicationAndPublicationAreNotHeldByAnExpansion = "macroc",
+        "an-authored-pattern-application-and-a-publication-posture-are-not-held-by-an-expansion",
+        "a pattern stamp names an authored pattern, this instantiation of it, and its typed \
+         arguments, and its member lands as a publication artifact written under a receipt — so \
+         the application a caller supplies and the posture the delivery stands under are both \
+         outside what an expansion holds";
 
     /// This home's own charter fact: the terminal binds what it hands out.
     NothingIsHandedOutThatDidNotBind = "macroc", "nothing-is-handed-out-that-did-not-bind",

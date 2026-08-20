@@ -1134,9 +1134,22 @@ pub const CLOSURE_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
 ///
 /// - **1** — the family as first declared. It did not exist for any of the five
 ///   positions the retired single version moved through.
+/// - **2** — the RELATED-PROJECTION seat's disposition grammar widened. The
+///   profile-unavailable posture gained the owner-fact citation naming what the
+///   profile could not furnish, and that citation is written into the
+///   disposition's canonical bytes
+///   ([`ProjectionDisposition::encode_into`](crate::planning::ProjectionDisposition::encode_into))
+///   — so a seat answering
+///   "why was the related projection not generated" with that posture now
+///   carries a member this preimage did not carry at position 1, and a reader
+///   holding the earlier grammar cannot read the seat's material to its end.
+///   The widening is inside the third member above (the typed answers), which is
+///   why it moves this family and no other: the plan identity at member one and
+///   the closure identity at the anchor commit to no disposition, so neither of
+///   those families moves for it.
 pub const EXPLANATION_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
     PreimageFamily::Explanation,
-    IdentityProfileVersion::declared(1),
+    IdentityProfileVersion::declared(2),
 );
 
 /// The profile one closed expansion's identity is derived under.

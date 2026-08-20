@@ -27,9 +27,11 @@ passes; rewrite-produced descriptors are admitted last. The gate consumes
 two typed facts — the adapter qualification, and the compiled-pressure
 witness shown under it — and never a bare run stripped of the profile that
 says which tool, which version posture, which output, and which grammar
-produced the evidence. A wrap reading's non-kills are the inconclusive
-roster the interpreter's planning reads, never survivors, because that
-backend carries no activation channel to earn one.
+produced the evidence. Neither fact exists over an adapter nobody has
+checked, so what reaches the gate is either evidence somebody vouched for
+or nothing at all. A wrap reading's non-kills are the inconclusive roster
+the interpreter's planning reads, never survivors, because that backend
+carries no activation channel to earn one.
 
 Four axes stay four, and each keeps its own seat: whether the adapter reads
 its backend's output correctly is not whether a property bit; whether a
@@ -100,15 +102,20 @@ whatever mechanism such a reading asks for, is decided at the trust opening
 against the backend's own artifacts rather than against an imagined schema.
 
 That profile is what a reading's ADAPTER QUALIFICATION carries, beside the
-grammar standing — whether any party has checked the adapter's stated shapes
-against output the backend really wrote, which ahead of the first toolchain
-contact nobody has, so the honest posture is the unchecked one and a reading
-under it is worth exactly what the adapter's own page is worth. A COMPILED
+grammar standing — a party's statement that the adapter's stated shapes were
+checked against output the backend really wrote. One pairing qualifies: the
+reading's profile states a backend version, and the standing states a check
+against that same version. The unchecked standing is the honest bootstrap
+posture and is worth exactly what it says — nobody has checked, so nothing
+is qualified: a reading under it is lawful, inspectable, and worth what the
+adapter's own page is worth, and it opens no gate. A version nobody stated
+and a check made against some other version qualify nothing either, and each
+names itself, the version disagreement naming both versions. A COMPILED
 PRESSURE WITNESS is the second fact: at least one lawful witness rejection,
-read out of a qualified reading and carrying that reading's own
-qualification, so trust-opening evidence can never be married to a profile
-some other reading was taken under. A reading that reported no kill yields
-no witness, which is the absence it is.
+read out of a qualified reading and carrying the qualification of that very
+reading, so trust-opening evidence can never be married to a profile some
+other reading was taken under. A reading that reported no kill yields no
+witness, which is the absence it is.
 
 The compile-once interpreter is the rapid loop this instrument is named
 for. The walk over the declaration happens at generation time over the

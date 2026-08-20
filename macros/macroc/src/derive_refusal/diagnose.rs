@@ -873,12 +873,19 @@ fn bounded_rendering<R: RenderedRole>(magnitude: RenderedMagnitude, role: R) -> 
 }
 
 /// Project one carrier-assembly refusal: every way a set of closed outputs does
-/// not compose into one exported shell.
+/// not compose into one exported shell, and the way a carrier plan does not
+/// belong to the assembly it would close around.
 ///
 /// The line names the first established disagreement in full and says how many
 /// stand behind it, and the axis rides in the line where the issue is about one:
 /// a caller told only that "the assembly failed" has three axes to inspect and
 /// no reason to prefer any of them.
+///
+/// One projection for the whole family whichever seam established the body. The
+/// composing pass and the shell road both refuse in the assembly family because
+/// both are answering the same question — whether one carrier delivers one
+/// declaration's proved cargo — and a second projection for the second seam
+/// would derive a second related identity for issues under one roster.
 pub fn assembly_refused(refusal: &CarrierAssembly) -> MacrocDiagnostic {
     let first = refusal.body().carried().first();
     let material: Vec<Vec<u8>> = refusal.body().carried().iter().map(assembly_bytes).collect();
@@ -916,10 +923,18 @@ fn assembly_line(issue: &AssemblyIssue) -> String {
 /// parentage that disagrees is an IDENTITY disagreement, a partition read where
 /// another was declared is a CONTRACT disagreement, and a seat the grammar does
 /// not write is one the profile does not offer.
+///
+/// A carrier plan standing under another declaration is an identity
+/// disagreement on exactly the terms the axis-level root issue is: two roots
+/// were asked to be one, and neither is elected. That the two are established at
+/// different seams — one while the assembly is built, one at the road that
+/// renders the shell over it — is a fact about WHERE, and this reading answers
+/// WHAT.
 const fn assembly_observed(issue: &AssemblyIssue) -> ObservedClassification {
     match issue {
         AssemblyIssue::RootsDisagree { .. }
         | AssemblyIssue::SchemaExpectationNotPublished { .. }
+        | AssemblyIssue::CarrierRootIsNotTheAssemblys { .. }
         | AssemblyIssue::CargoNotTheSourcesOwn { .. } => ObservedClassification::IdentityDisagreement,
         AssemblyIssue::CargoConsumedTwice { .. }
         | AssemblyIssue::CargoReachesASecondDestination { .. } => {

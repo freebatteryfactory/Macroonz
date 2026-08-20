@@ -6,7 +6,10 @@
 //! standing on an unqualified baseline is not a value that exists. A survivor is
 //! minted HERE, so a mutant nothing observed fire — and a mutant under a backend
 //! that cannot observe firing at all — can never earn the word. A dud plant is
-//! refused HERE, so activation evidence always has a firing behind it. A
+//! refused HERE, so activation evidence always has a firing behind it. An
+//! adapter qualification is minted HERE, and only over a grammar somebody
+//! checked against the very backend version the reading names, so an unchecked
+//! adapter is a posture anybody can state and a credential nobody can hold. A
 //! compiled-pressure witness is married to the qualification of the very
 //! reading it was read out of HERE, so trust-opening evidence can never arrive
 //! stripped of the profile that says which tool produced it. A duplicate is
@@ -29,11 +32,12 @@ use super::{
     OperatorFamilyRef, OracleClass, OwedClaim, OwedClaimRefusal, OwedDeclaration, PROPOSAL_TAG,
     ParityStanding, PlanRefusal, PlannedDamage, PlannedRun, PointRefusal, PressureBudget,
     PressureLane, PressureWitnessRefusal, ProofDelta, ProofDeltaRefusal, ProofPlan, ProofRefusal,
-    ProofShape, Proposal, ProposalDestination, ProposalGround, ProposalRefusal, ReadingSource,
-    RejectionIdentity, RewriteCandidate, RewriteDescriptor, RewriteRefusal, RewriteRoster,
-    RewriteTrust, RosterRefusal, ScopeShape, ScopedInvocation, SelectionRefusal, SinkRefusal,
-    SourceCoordinate, StoredProposalRef, SurfaceRefusal, SurvivalRefusal, SurvivorExplanation,
-    UnparsedLine, WrapReading, WrapRefusal, WrapStanding, WrappedBackend,
+    ProofShape, Proposal, ProposalDestination, ProposalGround, ProposalRefusal,
+    QualificationRefusal, ReadingSource, RejectionIdentity, RewriteCandidate, RewriteDescriptor,
+    RewriteRefusal, RewriteRoster, RewriteTrust, RosterRefusal, ScopeShape, ScopedInvocation,
+    SelectionRefusal, SinkRefusal, SourceCoordinate, StoredProposalRef, SurfaceRefusal,
+    SurvivalRefusal, SurvivorExplanation, UnparsedLine, WrapReading, WrapRefusal, WrapStanding,
+    WrappedBackend,
 };
 use crate::depot::operator_families::OPERATOR_FAMILIES;
 use crate::depot::types::OperatorFamily;
@@ -885,14 +889,39 @@ impl AdapterQualification {
     /// The profile is taken FROM the reading rather than stated beside it, so
     /// there is no road to a qualification naming a profile some other reading
     /// was taken under. What the caller states is the grammar standing — the
-    /// party's own word about whether the adapter's shapes were ever checked
-    /// against output the backend really wrote.
-    #[must_use]
-    pub fn of(reading: &WrapReading, standing: GrammarStanding) -> Self {
-        Self {
+    /// party's own word about whether the adapter's shapes were checked against
+    /// output the backend really wrote — and the road weighs that word against
+    /// the reading before it hands back a value at all. One pairing qualifies:
+    /// the reading's profile states backend version `v`, and the standing is
+    /// [`GrammarStanding::Checked`] over `v`.
+    ///
+    /// # Errors
+    ///
+    /// Refuses, in a declared dependent order: a standing under which nobody
+    /// has checked anything, then a reading whose profile states no backend
+    /// version for a check to have been made against, then a check made against
+    /// a version other than the one the reading names — naming both versions,
+    /// because which two disagreed is the whole of that finding.
+    pub fn of(
+        reading: &WrapReading,
+        standing: GrammarStanding,
+    ) -> Result<Self, QualificationRefusal> {
+        let GrammarStanding::Checked(checked) = &standing else {
+            return Err(QualificationRefusal::GrammarUnchecked);
+        };
+        let BackendVersionPosture::Stated(stated) = reading.profile().version() else {
+            return Err(QualificationRefusal::BackendVersionUnstated);
+        };
+        if stated != checked {
+            return Err(QualificationRefusal::CheckedAgainstAnotherVersion {
+                stated: stated.clone(),
+                checked: checked.clone(),
+            });
+        }
+        Ok(Self {
             profile: reading.profile().clone(),
             standing,
-        }
+        })
     }
 
     /// The profile the reading was taken under.
@@ -922,30 +951,38 @@ impl CompiledPressureWitness {
     ///
     /// # Authority
     ///
-    /// Both halves come out of ONE reading: the qualification is that reading's
-    /// own profile under the stated grammar standing, and the kill is one its
-    /// run recorded. So a witness can never carry another adapter's
-    /// qualification, and a reading nobody qualified produces no witness at
-    /// all — the two facts are married here rather than downstream.
+    /// Both halves stand over ONE reading: the qualification is one that
+    /// already exists and names that reading's own profile, and the kill is one
+    /// its run recorded. The qualification arrives from
+    /// [`AdapterQualification::of`] rather than being minted here, so this road
+    /// vouches for nothing — it weighs a standing somebody already earned
+    /// against the reading in hand, and a reading nobody qualified produces no
+    /// witness at all.
     ///
     /// # Errors
     ///
     /// Refuses, in a declared dependent order: a standing that has not
-    /// reported, then a reported reading whose run demonstrated no lawful kill
-    /// — a wrap pass that caught nothing has shown no property biting, and it
-    /// is the absence it is rather than a softer kind of evidence.
+    /// reported, then a qualification naming a profile other than this
+    /// reading's — evidence about another adapter's reading, which stands
+    /// behind nothing here — then a reported reading whose run demonstrated no
+    /// lawful kill: a wrap pass that caught nothing has shown no property
+    /// biting, and it is the absence it is rather than a softer kind of
+    /// evidence.
     pub fn shown(
         wrap: WrapStanding<'_>,
-        grammar: GrammarStanding,
+        qualification: &AdapterQualification,
     ) -> Result<Self, PressureWitnessRefusal> {
         let WrapStanding::Reported(reading) = wrap else {
             return Err(PressureWitnessRefusal::WrapNotReported);
         };
+        if qualification.profile() != reading.profile() {
+            return Err(PressureWitnessRefusal::QualificationUnderAnotherProfile);
+        }
         let Some(kill) = reading.run().kills().next() else {
             return Err(PressureWitnessRefusal::NoKillDemonstrated);
         };
         Ok(Self {
-            qualification: AdapterQualification::of(reading, grammar),
+            qualification: qualification.clone(),
             kill: kill.clone(),
         })
     }

@@ -137,6 +137,17 @@ of absence it was and on whose fact.
 Silence is not one of the variants, because silence is what the disposition
 exists to abolish.
 
+Two of the postures carry a citation, and they carry the SAME citation shape: an
+absence caused by an owner fact names that fact, and a kind the selected profile
+does not offer names the profile, its version, and the fact whose declared stable
+name says what the profile could not furnish. A profile named alone would say a
+decision happened without saying whose fact decided it — which is precisely the
+half-answer the disposition vocabulary exists to end. What is deliberately NOT
+declared beside it is a universal roster of blocked seats: a byte role, a work
+currency, a host contract, an audience, and a wire contract belong to different
+semantic owners, and one enumerated word standing for all of them would be this
+home minting a vocabulary for facts it does not own.
+
 Abolishing silence needs a quantifier as well as a vocabulary, and the sealed
 roster is it. [`ProjectionKindRow`] enumerates the kinds — emitted by the same
 `kinds!` declaration that declares them, so the enumeration cannot be shorter

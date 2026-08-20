@@ -293,6 +293,26 @@ impl ProjectionDisposition {
     /// carried derived one identity — two accounts under one name. What closed
     /// it is the encoding beside the roster, and this arm consuming it.
     ///
+    /// # What the profile-unavailable arm writes
+    ///
+    /// The profile, its version, and then the CITATION naming what that profile
+    /// could not furnish, through the owner-fact spelling the plane declares —
+    /// the same road the not-applicable arm writes its citation through, so the
+    /// two arms cannot part company about what a citation IS.
+    ///
+    /// The citation is APPENDED behind the version rather than written ahead of
+    /// the profile. The two members that were already written keep their
+    /// positions, so what moved is the arm's LENGTH rather than its layout: a
+    /// reader holding the earlier grammar reads the profile and the version
+    /// correctly and then runs out of grammar, which is a widening and not a
+    /// re-encoding of what was already spelled.
+    ///
+    /// It is a widening all the same, and it is not free. This arm's bytes reach
+    /// an explanation's identity through the related-projection seat, so the
+    /// explanation preimage grammar widened with it — see
+    /// [`EXPLANATION_IDENTITY_PROFILE`], whose version moved to 2 for exactly
+    /// this member and states so at its own position.
+    ///
     /// # Nonclaims
     ///
     /// What that encoding leaves out is its own statement rather than this
@@ -302,6 +322,7 @@ impl ProjectionDisposition {
     /// coverage postures still encode alike.
     ///
     /// [`ProjectionPlanning::encode_into`]: crate::refusal::ProjectionPlanning::encode_into
+    /// [`EXPLANATION_IDENTITY_PROFILE`]: crate::plane::EXPLANATION_IDENTITY_PROFILE
     pub fn encode_into(&self, into: &mut Vec<u8>) {
         into.push(self.slot());
         match self {
@@ -317,9 +338,14 @@ impl ProjectionDisposition {
                 encode_bytes(&material, into);
             }
             Self::NotRequested => encode_bytes(&[], into),
-            Self::UnavailableUnderProfile { profile, version } => {
+            Self::UnavailableUnderProfile {
+                profile,
+                version,
+                because,
+            } => {
                 encode_bytes(profile.as_bytes(), into);
                 into.extend_from_slice(&version.position().to_be_bytes());
+                encode_bytes(&because.citation_bytes(), into);
             }
             Self::ExcludedByConfiguration { configuration } => {
                 encode_bytes(configuration.as_bytes(), into);

@@ -847,10 +847,9 @@ pub enum WrapStanding<'reading> {
 ///
 /// The [`BackendVersionPosture`] shape, for the same reason: what stands behind
 /// a reading is a party's own word, and the bare arm is the BOOTSTRAP posture
-/// rather than a value somebody forgot to fill in. Ahead of the first toolchain
-/// contact nothing has been checked against anything, so
-/// [`GrammarStanding::Unchecked`] is the only arm anybody can state honestly,
-/// and a reading under it is exactly as good as the adapter's own page.
+/// rather than a value somebody forgot to fill in. The standing is the whole of
+/// what a party states to [`AdapterQualification::of`], and it is weighed
+/// against the version the reading's own profile names.
 ///
 /// # Nonclaims
 ///
@@ -865,7 +864,10 @@ pub enum GrammarStanding {
     /// version of the backend wrote, and states so.
     Checked(BackendVersion),
     /// Nobody has checked them against real output, so the adapter's grammar
-    /// stands as the assumption its own page states.
+    /// stands as the assumption its own page states — the honest posture, and
+    /// worth exactly what it says. It states that nothing has been checked, so
+    /// nothing is qualified: [`AdapterQualification::of`] refuses it, and an
+    /// adapter under it is inspectable, statable, and reaches no gate.
     Unchecked,
 }
 
@@ -881,6 +883,17 @@ pub enum GrammarStanding {
 /// ([`AdapterQualification::of`]), so a qualification can never name a profile
 /// some other reading was taken under.
 ///
+/// # Construction
+///
+/// [`AdapterQualification::of`] is the only road, and exactly one pairing
+/// travels it: the reading's profile states a backend version, and the standing
+/// is [`GrammarStanding::Checked`] over that same version. Every other pairing
+/// is a [`QualificationRefusal`] — so an unchecked adapter, a reading whose
+/// version nobody stated, and a check made against another version each yield
+/// no qualification at all. A qualification is therefore a value that could
+/// only have come from somebody checking these shapes against the very version
+/// of the backend that wrote the text.
+///
 /// # Nonclaims
 ///
 /// Parser correctness is not suite bite. A qualification says the adapter is
@@ -895,6 +908,33 @@ pub struct AdapterQualification {
     standing: GrammarStanding,
 }
 
+/// Why one reading's profile was not qualified.
+///
+/// Dependent checks in a declared order: whether anybody checked the adapter's
+/// shapes at all, then whether the reading's profile states a version a check
+/// could be made against, then whether the check and the reading name one
+/// version. Each arm is an absent qualification and never a weaker one.
+#[must_use = "a refusal is the reason a reading's profile was not qualified"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum QualificationRefusal {
+    /// The standing is [`GrammarStanding::Unchecked`]: nobody has checked the
+    /// adapter's stated shapes against output the backend wrote, so there is
+    /// nothing to qualify the reading's profile on.
+    GrammarUnchecked,
+    /// The reading's profile states no backend version, so a check against a
+    /// version names nothing the reading stands under.
+    BackendVersionUnstated,
+    /// The reading was taken under one backend version and the shapes were
+    /// checked against another, so what was checked is a different version's
+    /// rendering than the one that wrote this text.
+    CheckedAgainstAnotherVersion {
+        /// The version the reading's own profile states wrote the text.
+        stated: BackendVersion,
+        /// The version the standing states the shapes were checked against.
+        checked: BackendVersion,
+    },
+}
+
 /// That one qualified reading demonstrated at least one lawful witness
 /// rejection.
 ///
@@ -902,15 +942,19 @@ pub struct AdapterQualification {
 ///
 /// The typed fact the trust-opening road demands about the RUN: a suite
 /// rejected a damaged subject, under an adapter that stands qualified. The
-/// qualification rides inside, taken from the very reading the kill was read
-/// out of, so a witness over an unqualified reading is not a value anybody can
-/// hold and a witness can never be married to another adapter's profile.
+/// qualification rides inside — one that already exists, weighed against the
+/// very reading the kill is read out of — so a witness over an unqualified
+/// reading is not a value anybody can hold and a witness can never be married
+/// to another adapter's profile.
 ///
 /// # Construction
 ///
 /// [`CompiledPressureWitness::shown`] is the only road, and it refuses a
-/// standing that never reported, then a reported reading whose run demonstrated
-/// no kill.
+/// standing that never reported, then a qualification naming another reading's
+/// profile, then a reported reading whose run demonstrated no kill. The
+/// qualification is the caller's to supply and [`AdapterQualification`]'s own
+/// road to build, so this road adds a kill to a standing already vouched for
+/// rather than vouching for anything itself.
 ///
 /// # Nonclaims
 ///
@@ -930,13 +974,18 @@ pub struct CompiledPressureWitness {
 /// Why one wrap standing demonstrated no compiled-pressure witness.
 ///
 /// Dependent checks in a declared order: whether the pressure reported at all,
-/// then whether what it reported carries a kill.
+/// then whether the qualification offered is the reading's own, then whether
+/// what it reported carries a kill.
 #[must_use = "a refusal is the reason no compiled-pressure witness was shown"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PressureWitnessRefusal {
     /// The wrap-first pressure has not reported, so there is no reading to
     /// stand on.
     WrapNotReported,
+    /// The qualification offered names a profile other than the reading's, so
+    /// it vouches for some other adapter's reading and stands behind nothing
+    /// here.
+    QualificationUnderAnotherProfile,
     /// The reading's run demonstrated no lawful kill, so nothing in it has
     /// shown a property biting.
     NoKillDemonstrated,
@@ -1099,6 +1148,15 @@ pub enum ParityStanding {
 }
 
 /// Which of the trust order's facts the interpreted lane is still owed.
+///
+/// # Authority
+///
+/// The roster of what the gate can be owed, and it is short because the two
+/// evidence types are strict: an [`AdapterQualification`] exists only over an
+/// adapter somebody checked against the backend version the reading names, and
+/// a [`CompiledPressureWitness`] only over a reading that qualification stands
+/// on. So every arm here names an ABSENT fact, and the gate has no arm for
+/// evidence that arrived weak.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MissingTrustEvidence {
     /// No qualified reading has demonstrated a witness rejection, so nothing
@@ -1106,7 +1164,9 @@ pub enum MissingTrustEvidence {
     WrapEvidence,
     /// A witness stands, and it was shown under a different adapter
     /// qualification than the one trust is being opened under — so it is
-    /// evidence about another adapter's reading and opens nothing here.
+    /// evidence about another adapter's reading and opens nothing here. This is
+    /// the gate's own comparison; whether a witness's qualification belongs to
+    /// the reading it was read out of is settled where the witness is built.
     WitnessUnderAnotherQualification,
     /// The mandatory no-mutation parity has not passed.
     NoMutationParity,

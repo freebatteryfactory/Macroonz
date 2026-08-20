@@ -47,6 +47,14 @@
 //! [`InterpreterAvailability`], never a crippled interpreter that answers
 //! anyway.
 //!
+//! The gate opens only on evidence somebody checked, and the vocabulary is what
+//! makes that so: a qualification exists only over an adapter whose grammar a
+//! party checked against the backend version its reading names, so an unchecked
+//! chain has no qualification to offer and reaches this road holding nothing.
+//! What the gate itself weighs is therefore the remaining question — whether
+//! the witness in hand was shown under the qualification trust is being opened
+//! under — and the answers name themselves.
+//!
 //! # Four axes stay four
 //!
 //! Whether the adapter reads its backend's output correctly is not whether a
@@ -144,7 +152,11 @@ pub fn no_mutation_parity<Input, Meaning>(
 /// The evidence seat takes the two typed facts and never a bare run. A run
 /// carries counts; what opens trust is a rejection SHOWN by a suite under a
 /// tool somebody vouched for, and the qualification is what says which tool,
-/// which version posture, which output, and which grammar that was.
+/// which version posture, which output, and which grammar that was. That
+/// vouching is settled before this road runs: an [`AdapterQualification`] is
+/// only ever built over a grammar checked against the backend version its
+/// reading names, so the qualification seat here cannot be filled by an
+/// unchecked chain and this road's whole question is whose evidence it is.
 ///
 /// # Nonclaims
 ///

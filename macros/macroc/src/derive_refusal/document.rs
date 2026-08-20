@@ -32,9 +32,12 @@
 //!   plain sentence, and that item is fully documented;
 //! - facet election is answered with
 //!   [`ProjectionDisposition::UnavailableUnderProfile`] over the declared
-//!   Rust-declaration profile, because that is what is true: this derive reads a
-//!   declaration under its declared compiler profile, and that profile reads
-//!   tokens rather than what prose MEANS.
+//!   Rust-declaration profile, citing the fact that names what the profile could
+//!   not furnish, because that is what is true: this derive reads a declaration
+//!   under its declared compiler profile, and that profile reads tokens rather
+//!   than what prose MEANS. The answer is the documentation KIND's own
+//!   disposition, read whole, so the election and the kind carry one profile,
+//!   one version, and one citation.
 //!
 //! The VARIANT rows are read and are not written into the item, and that is the
 //! same statement: a variant's prose is about one cause of the family, and the
@@ -42,7 +45,7 @@
 //! a facet. They stay on the captured surface, where a reader that wants them
 //! reads them, and they are inside the documentation commitment either way.
 
-use super::account::profile_does_not_offer;
+use super::account::documentation_disposition;
 use super::types::{DocumentedDeclaration, RefusalDeriveSurface};
 use crate::documentation::{
     DocumentationDeclarationRefusal, DocumentedItem, PlainSentence,
@@ -142,13 +145,21 @@ pub fn documented(
 ///
 /// # One construction, two readings
 ///
-/// The posture itself is [`profile_does_not_offer`] — the standing this door's
-/// declared compiler profile has for everything it does not offer — read rather
-/// than spelled a second time here. The two questions are genuinely different:
-/// that road answers what happened to a whole projection kind, and this one
-/// answers what happened to the election a section is earned by. The ANSWER is
-/// the same profile at the same version in both cases, and a profile bump that
-/// moved one of them and not the other would be two answers to one fact.
+/// The posture itself is [`documentation_disposition`] — what this door says
+/// happened to the documentation KIND — read rather than spelled a second time
+/// here. The two questions are genuinely different: that road answers what
+/// happened to a whole projection kind, and this one answers what happened to
+/// the election a section is earned by. The ANSWER is one value in both cases:
+/// the same profile, the same version, and the same cited fact, whose stable
+/// name states the conjunction the audience seat and this election both stand
+/// in. A profile bump, or a re-citation, that moved one of them and not the
+/// other would be two answers to one fact.
+///
+/// The kind's own road rather than the shared one beside it, and that is the
+/// second half of the same statement: the shared road takes the fact as a
+/// parameter, so reaching it directly from here would mean this seat naming the
+/// documentation kind's blocking conjunction a second time — and a second
+/// naming is exactly the drift a single construction exists to prevent.
 fn facet_election() -> ProjectionDisposition {
-    profile_does_not_offer()
+    documentation_disposition()
 }

@@ -42,7 +42,7 @@ use crate::explanation_protocol::{
     ExplanationAnswer, ProjectionExplanation, ProjectionExplanationView,
 };
 use crate::generated_support::{
-    AxisCargo, CargoAxis, ProvedCargo, SupportAssembly, assembled_shell,
+    AxisCargo, CargoAxis, ProvedCargo, ShellComposition, SupportAssembly, assembled_shell,
 };
 use crate::origin_graph::{
     DecisionTrace, OriginEdge, OriginRelation, OriginTrail, TraceDecision, TraceEntry,
@@ -282,11 +282,20 @@ pub fn carrier_plan(
 ///
 /// # What is read, and what is declared
 ///
-/// The TOKENS are the terminal's, read off its own proved partition by
-/// [`ProvedCargo::carried`], which refuses anything that is not that partition's
-/// own. The SUBJECT and the SELECTIONS are this home's declarations — the local
-/// type the copies stand over and the constants they read their active points
-/// through — and they travel as the data they are.
+/// The TOKENS are the terminal's, read off its own proved partition by the
+/// assembly home's crate-internal promotion road, which refuses anything that is
+/// not that partition's own. The SUBJECT and the SELECTIONS are this home's
+/// declarations — the local type the copies stand over and the constants they
+/// read their active points through — and they travel as the data they are.
+///
+/// # This road is the one lawful promotion point
+///
+/// The promotion road is crate-internal, and THIS is the road it exists for: the
+/// envelope it authenticates nothing about — the subject and the selectors — is
+/// declared here, three lines above the call, so the value that hands it in is
+/// the value that owns it. A public promotion road would let any caller wrap
+/// proved tokens in an envelope of its own and hand back cargo whose whole claim
+/// is that its contents are one terminal's own.
 ///
 /// # Errors
 ///
@@ -361,12 +370,15 @@ pub fn assembly<K: ProjectionKind>(
 /// # Errors
 ///
 /// Returns the plan-reading diagnostic where the plan does not state its one
-/// member at the declaration site, the rendering diagnostic where the shell
-/// passes the declared token magnitude, the materialization diagnostic where its
-/// bytes pass theirs, the closure diagnostic where the rendering and the plan
-/// disagree, the explanation diagnostic where a seat cannot be bound or the
-/// coverage is short, and the binding diagnostic where the three values do not
-/// name one another.
+/// member at the declaration site, the ASSEMBLY diagnostic where this plan's
+/// declared root is not the assembly's — the shell road establishes that join,
+/// and this seat projects the body it establishes through the assembly family's
+/// own projection rather than restating it — the rendering diagnostic where the
+/// shell passes the declared token magnitude, the materialization diagnostic
+/// where its bytes pass theirs, the closure diagnostic where the rendering and
+/// the plan disagree, the explanation diagnostic where a seat cannot be bound or
+/// the coverage is short, and the binding diagnostic where the three values do
+/// not name one another.
 #[expect(
     clippy::result_large_err,
     reason = "the same seat-complete diagnostic the settled service road returns; this helper hands \n              it straight through"
@@ -376,8 +388,15 @@ pub fn carrier_expansion(
     assembly: &SupportAssembly,
 ) -> Result<ClosedExpansion<TestDescriptorProjection>, MacrocDiagnostic> {
     let stated = descriptor_plan(&plan).map_err(diagnose::descriptor_plan_refused)?;
-    let shell =
-        assembled_shell(&stated, assembly).map_err(|refusal| diagnose::shell_refused(&refusal))?;
+    // Two homes refuse at this seam and each is projected by its own home's
+    // projection: a pair that is not one declaration's is a COMPOSITION fact and
+    // reads in the assembly family, and a tree past its bound is the CARRIER's
+    // fact and reads in the shell family. A single projection over both would
+    // compose one line about two unrelated observations.
+    let shell = assembled_shell(&stated, assembly).map_err(|refusal| match refusal {
+        ShellComposition::NotOneDeclarations(composed) => diagnose::assembly_refused(&composed),
+        ShellComposition::Rendering(rendering) => diagnose::shell_refused(&rendering),
+    })?;
     let unit = RenderedUnit::materialized(
         stated.role,
         stated.semantic_key,

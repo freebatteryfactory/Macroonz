@@ -1,7 +1,8 @@
 //! The assembly home's declarations: the axis roster, what one axis carries or
 //! why it carries nothing, one terminal's proved cargo, the closed issue set,
-//! the assembly itself, the joined value a door hands back, and the complete
-//! account that joined value stands inside.
+//! the answer the one road to a rendered shell refuses with, the assembly
+//! itself, the joined value a door hands back, and the complete account that
+//! joined value stands inside.
 //!
 //! Declarations only.
 //! Every road that reaches a private field — a proved cargo's provenance, the
@@ -23,7 +24,7 @@ use crate::planning::{
     CauseAnchoring, EmissionPartition, ExpectedGeneratedSupportSchemaId, KindDispositions,
     ProjectionDisposition, TestDescriptorProjection,
 };
-use crate::test_descriptor::{DeferredCargo, TrialTablePayload};
+use crate::test_descriptor::{DeferredCargo, ShellRendering, TrialTablePayload};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -46,6 +47,11 @@ crate::plane::limits! {
     /// once and states the number rather than deriving it from the axis roster
     /// beside it, because a magnitude derived from another magnitude reads as a
     /// fact when it is a choice.
+    ///
+    /// The vehicle-level issue does not widen it. That one is established alone,
+    /// by the road that holds a carrier plan and an assembly at once, so the body
+    /// it stands in carries exactly one issue — the bound governs the composing
+    /// pass's co-established set, which is what it was chosen for.
     AssemblyIssueLimit = 8,
 }
 
@@ -134,6 +140,27 @@ pub enum AxisCargo<Material> {
 /// the cargo that closed expansion proved — which is the whole of "no raw or
 /// unproved token crossing".
 ///
+/// **Promotion to proved cargo belongs to the road that owns the source's
+/// rendering vocabulary, and the promotion road is crate-internal.** What the
+/// reading authenticates is the TREE. The envelope around it — the local subject
+/// the deferred implementations stand over, and the selectors they read their
+/// active points through — is a declaration of the home that rendered them, and
+/// no terminal carries a copy of it for the reading to compare against. So the
+/// road that hands the envelope in is the road that declared it, and no caller
+/// can wrap proved tokens in an envelope of its own and hand back a value whose
+/// whole claim is that its contents are one terminal's own.
+///
+/// The deferred cargo an envelope is built from stays PUBLIC and is untouched by
+/// that: it is a declaration value, refused seat by seat at the carrier's own
+/// door, and holding one claims nothing about any terminal. What is closed is
+/// the promotion, not the declaration.
+///
+/// A generic deferred-envelope contract is a stated OPENING CONDITION. It opens
+/// when a second projection family needs to transport independently declared
+/// envelope metadata around proved carrier tokens — at which point the envelope
+/// has an owner beside the rendering home, and admitting it is that owner's
+/// statement to make rather than a seam somebody widens under pressure.
+///
 /// The source identity and the digest ride BESIDE the tokens because they are
 /// established by the same act that read them. A value carrying tokens from one
 /// terminal and an identity naming another would be a carrier claiming a
@@ -158,18 +185,29 @@ pub struct ProvedCargo {
 // The assembly refusal family.
 // ---------------------------------------------------------------------------
 
-/// How a set of closed outputs fails to compose into one carrier.
+/// How a set of closed outputs fails to compose into one carrier, and how a
+/// carrier plan fails to belong to the assembly it would close around.
 ///
 /// No issue is payload-free: every one names the axis, the terminal, the
-/// partition, or the material that disagreed, because "the assembly failed" is
-/// not an answer anybody can repair from.
+/// partition, the root, or the material that disagreed, because "the assembly
+/// failed" is not an answer anybody can repair from.
 ///
 /// # Authority
 ///
 /// **Every issue here is a fact about COMPOSITION and never about meaning.** What
 /// a row says, what a copy stands over, and which selection it reads were
 /// established where they were rendered; what this family establishes is that a
-/// set of already-proved outputs physically belongs in one exported shell.
+/// set of already-proved outputs physically belongs in one exported shell — and
+/// that the shell they belong in is the one this declaration planned.
+///
+/// # Bounds
+///
+/// The issues are established at TWO seams and they are one family, because they
+/// answer one question. The composing pass establishes the axis-level ones while
+/// an assembly is built; the road from a plan and an assembly to a shell
+/// establishes the vehicle-level one, because that is the first moment both
+/// values exist. Two families for one question would derive two related
+/// identities for one law's findings.
 #[must_use = "an assembly issue names exactly what did not compose"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AssemblyIssue {
@@ -241,6 +279,28 @@ pub enum AssemblyIssue {
     /// declared and refuses until then instead of pretending the material had
     /// somewhere to go.
     BenchVehicleNotOpen,
+    /// The CARRIER PLAN a shell would be rendered from stands under a different
+    /// root than the assembly it would close around.
+    ///
+    /// Not the axis issue above under another name. That one compares a carried
+    /// axis's SOURCE TERMINAL against the assembly, and it is established while
+    /// the assembly is built, before any plan is in hand. This one compares the
+    /// VEHICLE's own plan against the finished assembly, and nothing before the
+    /// rendering seam holds both values: an assembly proves that its cargo is one
+    /// declaration's, and a carrier plan for a second declaration agrees with
+    /// every reading it performs, because the rendered unit is born wearing that
+    /// plan's own metadata.
+    ///
+    /// Both roots are named and neither is elected, on the terms
+    /// [`AssemblyIssue::RootsDisagree`] states: which of the two a caller meant
+    /// is the caller's own fact, and either reading is one exported name
+    /// delivering another declaration's proved cargo.
+    CarrierRootIsNotTheAssemblys {
+        /// The root the assembly stands under.
+        stated: CauseAnchoring,
+        /// The root the carrier's own plan declares.
+        planned: CauseAnchoring,
+    },
 }
 
 /// The carrier-assembly refusal family body, published from this file and
@@ -251,6 +311,46 @@ pub enum AssemblyIssue {
 /// declared beside the rest of this home's declarations would put all of them
 /// inside the same wall.
 pub use guard::CarrierAssembly;
+
+/// How the ONE road from a carrier plan and a verified assembly to a rendered
+/// shell answers when it does not render.
+///
+/// Two questions are asked at that seam and they belong to two homes. Whether
+/// the plan and the assembly are ONE DECLARATION's is a COMPOSITION fact and it
+/// is this home's; whether the tokens fit the carrier's declared magnitude is
+/// the CARRIER's fact and it is the test-descriptor home's. This value says
+/// which of the two answered, and carries that home's own body whole.
+///
+/// # Authority
+///
+/// **It is not a third refusal family and it declares no shape of its own.**
+/// Each arm holds the family body its own home established, unwrapped and
+/// unsummarized, so nothing here is a second answer to either question: a reader
+/// holding this value reads exactly what one of the two homes said, and the
+/// projection that turns it into a diagnostic is that home's projection.
+///
+/// A single family covering both would have to give a root disagreement and a
+/// token magnitude one issue roster, one shape, and one related-identity tag —
+/// and two homes' facts under one tag derive one related identity for two
+/// unrelated observations.
+///
+/// # Bounds
+///
+/// It says the shell was not rendered and which home refused. It says nothing
+/// about which of the two would have refused had the other not: the composition
+/// question is answered first because a shell rendered over the wrong
+/// declaration is not made lawful by fitting its bound, so a plan that disagrees
+/// with its assembly never reaches the rendering at all.
+#[must_use = "a shell composition refusal names which home refused and carries that home's body"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ShellComposition {
+    /// The carrier plan and the assembly are not one declaration's, so there is
+    /// no lawful shell for this pair. This home's own body.
+    NotOneDeclarations(CarrierAssembly),
+    /// The carrier's own rendering refused. The test-descriptor home's own body,
+    /// carried exactly as that home's composition road returned it.
+    Rendering(ShellRendering),
+}
 
 // ---------------------------------------------------------------------------
 // The assembly.

@@ -32,6 +32,7 @@ impl AssemblyIssue {
             Self::CargoReachesASecondDestination { .. } => 3,
             Self::CargoNotTheSourcesOwn { .. } => 4,
             Self::BenchVehicleNotOpen => 5,
+            Self::CarrierRootIsNotTheAssemblys { .. } => 6,
         }
     }
 
@@ -65,22 +66,28 @@ impl AssemblyIssue {
                 "the bench axis carries material and the carrier's published grammar writes no \
                  seat for it"
             }
+            Self::CarrierRootIsNotTheAssemblys { .. } => {
+                "the carrier's own plan stands under a declaration other than the one this \
+                 assembly composed"
+            }
         }
     }
 
     /// Which axis this issue is about, where it is about one.
     ///
     /// Answers with nothing for the issues about the assembly as a WHOLE — the
-    /// expectation it stands under, and the terminal partition two axes read —
-    /// because there is no axis to name and electing one would be a stand-in
-    /// nobody established.
+    /// expectation it stands under, the terminal partition two axes read, and
+    /// the carrier plan the whole assembly would be rendered under — because
+    /// there is no axis to name and electing one would be a stand-in nobody
+    /// established.
     #[must_use]
     pub const fn axis(&self) -> Option<CargoAxis> {
         match self {
             Self::RootsDisagree { axis, .. }
             | Self::CargoReachesASecondDestination { axis, .. } => Some(*axis),
             Self::CargoConsumedTwice { .. } | Self::CargoNotTheSourcesOwn { .. } => None,
-            Self::SchemaExpectationNotPublished { .. } => None,
+            Self::SchemaExpectationNotPublished { .. }
+            | Self::CarrierRootIsNotTheAssemblys { .. } => None,
             Self::BenchVehicleNotOpen => Some(CargoAxis::Bench),
         }
     }
@@ -114,6 +121,14 @@ impl AssemblyIssue {
                 into.push(partition.slot());
             }
             Self::BenchVehicleNotOpen => {}
+            // Both roots, in the order the issue holds them — the assembly's
+            // first, the plan's second — each through the anchoring's own
+            // spelling, so a reader of the two knows which is which without the
+            // encoding saying so twice.
+            Self::CarrierRootIsNotTheAssemblys { stated, planned } => {
+                stated.encode_into(into);
+                planned.encode_into(into);
+            }
         }
     }
 }

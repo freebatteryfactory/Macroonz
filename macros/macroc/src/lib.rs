@@ -167,14 +167,26 @@
 //! again.
 //!
 //! What sits BETWEEN the two roads is the one thing neither of them is: the
-//! physical assembly. [`ProvedCargo::carried`] reads one terminal's own proved
-//! carrier partition and refuses anything that is not that partition's own;
+//! physical assembly. The assembly home's crate-internal promotion road reads
+//! one terminal's own proved carrier partition and refuses anything that is not
+//! that partition's own — promotion belongs to the road that owns the source's
+//! rendering vocabulary, because the envelope the tokens ride in is that road's
+//! declaration and no terminal carries a copy of it to check against;
 //! [`SupportAssembly::assembled`] verifies that the axes compose — one root, one
 //! published expectation, every carried unit consumed once, no unit reaching a
-//! second destination — and [`assembled_shell`] is the ONE road from a verified
-//! assembly to a rendered carrier. The carrier's own composition road is
-//! crate-internal, so there is no way to an exported shell that skips the
-//! verification.
+//! second destination — and [`assembled_shell`] is the ONE road from a carrier
+//! plan and a verified assembly to a rendered carrier. The carrier's own
+//! composition road is crate-internal, so there is no way to an exported shell
+//! that skips the verification.
+//!
+//! That road establishes the join the assembly cannot: the carrier PLAN's
+//! declared root against the assembly's. An assembly proves its cargo is one
+//! declaration's, and a plan for a second declaration agrees with every reading
+//! downstream, because the rendered unit is born wearing that plan's own
+//! metadata. So the comparison is made at the public seam, where both values
+//! exist, and what comes back is [`ShellComposition`] — this home's composition
+//! body where the pair is not one declaration's, the carrier's own rendering
+//! body where the tokens pass their bound, each carried whole.
 //!
 //! [`compile_declaration`] is the refusal family's one-call road through both,
 //! and inside what it hands back stands a [`JoinedExpansion`]: both terminals
@@ -528,7 +540,7 @@ pub use derive_refusal::{
 };
 pub use generated_support::{
     AccountedExpansion, AssemblyIssue, AxisCargo, CargoAxis, CarrierAssembly, JoinedExpansion,
-    ProvedCargo, SupportAssembly, assembled_shell,
+    ProvedCargo, ShellComposition, SupportAssembly, assembled_shell,
 };
 pub use diagnostics::{
     DiagnosticSite, MachineAnchoring, MachineAnchors, MacrocDiagnostic, MacrocPhase,

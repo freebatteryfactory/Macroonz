@@ -22,10 +22,13 @@
 //! The console grammar is the BOOTSTRAP CONTRACT: the shapes stated below are
 //! coded against the backend's own rendering, and checking them against that
 //! backend's real output is the first item of the first toolchain contact, ahead
-//! of trusting the wrap-first pressure. A durable reading over a machine-readable
-//! output — and whatever mechanism such a reading asks for — is decided at the
-//! trust opening against the backend's own artifacts rather than against an
-//! imagined schema.
+//! of trusting the wrap-first pressure. That order is structural rather than
+//! remembered — a reading under this grammar is lawful and inspectable from the
+//! first day, and it qualifies the adapter for nothing until a party states the
+//! check against the very backend version the reading names. A durable reading
+//! over a machine-readable output — and whatever mechanism such a reading asks
+//! for — is decided at the trust opening against the backend's own artifacts
+//! rather than against an imagined schema.
 //!
 //! # The output grammar this parser reads
 //!
@@ -73,12 +76,15 @@
 //!
 //! Two typed facts, and the interpreted lane's gate consumes both. An
 //! [`AdapterQualification`](super::AdapterQualification) is this reading's own
-//! profile under a stated grammar standing — whether any party has checked the
-//! shapes this page declares against output the backend really wrote, which
-//! ahead of the first toolchain contact nobody has. A
+//! profile under a grammar standing that qualifies it: a party states that the
+//! shapes this page declares were checked against output the backend really
+//! wrote, and the version they name is the version the reading's profile names.
+//! A standing under which nobody has checked anything is an honest thing to
+//! hold and produces no qualification, so the bootstrap posture is inspectable
+//! rather than admissible. A
 //! [`CompiledPressureWitness`](super::CompiledPressureWitness) is at least one
-//! lawful kill read out of a qualified reading, carrying that reading's own
-//! qualification. Neither is a bare run: what a run counts and what a suite
+//! lawful kill read out of a qualified reading, carrying the qualification of
+//! that very reading. Neither is a bare run: what a run counts and what a suite
 //! demonstrated are two questions, and the profile is exactly what a reader
 //! needs at the moment the evidence starts deciding something.
 //!
