@@ -833,11 +833,8 @@ impl<Invocation, Conclusion> TableView<'_, Invocation, Conclusion> {
     /// Every binding this view presents: the authored world in authored order,
     /// then the overlay in staged order.
     pub fn bindings(&self) -> impl Iterator<Item = &Binding<Invocation, Conclusion>> {
-        let (authored, overlay): (
-            &[Binding<Invocation, Conclusion>],
-            &[Binding<Invocation, Conclusion>],
-        ) = match self {
-            Self::Authored(table) => (table.bindings(), &[]),
+        let (authored, overlay) = match self {
+            Self::Authored(table) => (table.bindings(), &[][..]),
             Self::Staged(staged) => (staged.parent().bindings(), staged.candidates()),
         };
         authored.iter().chain(overlay.iter())

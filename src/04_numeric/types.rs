@@ -97,7 +97,7 @@ pub struct DecimalScale(u32);
 impl DecimalScale {
     /// The scale ordinal.
     #[must_use]
-    pub fn value(&self) -> u32 {
+    pub fn value(self) -> u32 {
         self.0
     }
 }
@@ -298,7 +298,7 @@ pub struct Count(u64);
 impl Count {
     /// The count value.
     #[must_use]
-    pub fn value(&self) -> u64 {
+    pub fn value(self) -> u64 {
         self.0
     }
 }
@@ -827,7 +827,7 @@ pub struct FloatFormatId(u16);
 impl FloatFormatId {
     /// The registered identity.
     #[must_use]
-    pub fn value(&self) -> u16 {
+    pub fn value(self) -> u16 {
         self.0
     }
 }
@@ -841,7 +841,7 @@ pub struct ApproximationProfileId(u16);
 impl ApproximationProfileId {
     /// The registered identity.
     #[must_use]
-    pub fn value(&self) -> u16 {
+    pub fn value(self) -> u16 {
         self.0
     }
 }
@@ -854,7 +854,7 @@ pub struct FloatBitPattern(u64);
 impl FloatBitPattern {
     /// The exact observed bits.
     #[must_use]
-    pub fn bits(&self) -> u64 {
+    pub fn bits(self) -> u64 {
         self.0
     }
 }

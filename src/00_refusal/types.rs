@@ -785,6 +785,10 @@ impl<F: RefusalFamily, Coverage: ShapeAdmission> AdmittedRefusalFamily<F, Covera
     /// no stored field to disagree with the parameter, so what a reader reads is
     /// what the compiler enforced.
     #[must_use]
+    #[expect(
+        clippy::unused_self,
+        reason = "the receiver is the permission, not the storage: the answer is read off the coverage parameter, and an associated function would let a caller name a coverage no admission road ever minted a witness for"
+    )]
     pub const fn coverage(&self) -> FamilyAdmissionCoverage {
         Coverage::INSPECTION
     }
@@ -846,6 +850,10 @@ impl<F: CauseOrderDeclaration, Coverage: OrderAdmission> AdmittedRefusalFamily<F
     /// family's own declared constant, read off the type, so there is no second
     /// copy kept here to drift from the declaration it came from.
     #[must_use]
+    #[expect(
+        clippy::unused_self,
+        reason = "the receiver is the permission, not the storage: holding the witness is what the stronger bound establishes, and an associated function would hand the declared order to a caller who never passed the projection join"
+    )]
     pub fn cause_order(&self) -> DeclaredCauseOrder {
         F::DECLARED_ORDER
     }

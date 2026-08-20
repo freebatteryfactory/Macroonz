@@ -174,7 +174,7 @@ impl DurationLimit {
 
     /// The limit in carrier units.
     #[must_use]
-    pub fn nanos(&self) -> u64 {
+    pub fn nanos(self) -> u64 {
         self.0
     }
 }
@@ -575,7 +575,7 @@ pub struct ChronologyProfileId(u16);
 impl ChronologyProfileId {
     /// The registered identity.
     #[must_use]
-    pub fn value(&self) -> u16 {
+    pub fn value(self) -> u16 {
         self.0
     }
 }

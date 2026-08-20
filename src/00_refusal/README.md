@@ -94,13 +94,12 @@ second seat for either half to drift from.
 
 What the reach does NOT include: a construction road for any upper-band family.
 No migrated family carries a constructor of any kind, because none of them has an
-enumerating pass to build one from.
-Nine of them stand one step further back still: their limit families declare no
-compile-time magnitude, and every `AdmittedPrefix` mint consumes one, so those
-nine cannot produce the value their own seat holds until a magnitude is declared
-or a runtime-witnessed prefix road exists. Coupled seats with no road to them is
-the honest state of a declaration nobody has written a pass for; it is not a
-coupling the road would fail.
+enumerating pass to build one from. Seven of them stand one step further back
+still: their limit families declare no compile-time magnitude, and every
+`AdmittedPrefix` mint consumes one, so those seven cannot produce the value their
+own seat holds until a magnitude is declared or a runtime-witnessed prefix road
+exists. Coupled seats with no road to them is the honest state of a declaration
+nobody has written a pass for; it is not a coupling the road would fail.
 
 Writing a truncation posture by hand does not compile; neither does marrying one
 report's carry to another report's completion; and neither does assembling a

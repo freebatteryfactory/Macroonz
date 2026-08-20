@@ -69,7 +69,7 @@ pub struct DimensionId(u16);
 impl DimensionId {
     /// The registered identity.
     #[must_use]
-    pub fn value(&self) -> u16 {
+    pub fn value(self) -> u16 {
         self.0
     }
 }
