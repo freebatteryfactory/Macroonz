@@ -47,6 +47,11 @@
 //! first token, reading exactly like an answer. The shell reports such a refusal
 //! at the invocation, and looks nothing up.
 //!
+//! A capture refused for exceeding a magnitude is the same admission from the
+//! other direction: the bound is a fact about the whole declaration and no one
+//! token overran it, so that refusal is reported at the invocation too.
+//! Nowhere does this shell answer with `token[0]`.
+//!
 //! The services never resolve a handle themselves — they cannot, because
 //! `proc_macro` is a proc-macro-crate-only API and the services are ordinary
 //! callable Rust.
@@ -100,12 +105,12 @@ pub fn refusal_family(item: TokenStream) -> TokenStream {
     let mut walk = CaptureWalk::declared();
     let trees = match capture_stream(item, &TokenPath::root(), &mut walk, &mut spans) {
         Ok(trees) => trees,
-        Err(bound) => return refused(bound.described(), call_site(&spans)),
+        Err(bound) => return refused(bound.described(), Span::call_site()),
     };
     let issued = u32::try_from(spans.len()).unwrap_or(u32::MAX);
     let input = match CapturedInput::taken(trees, issued) {
         Ok(input) => input,
-        Err(bound) => return refused(bound.described(), call_site(&spans)),
+        Err(bound) => return refused(bound.described(), Span::call_site()),
     };
     match compile_declaration(&input, &RefusalCompileContext::expanding()) {
         Ok(accounted) => emit(&accounted),
@@ -247,30 +252,23 @@ fn issue(span: Span, spans: &mut Vec<Span>) -> SpanHandle {
 /// The compiler span one diagnostic points at.
 ///
 /// A diagnostic about a captured token names a handle, and the handle indexes
-/// the table this shell built; where the table does not reach it, the
-/// declaration's own first span stands.
+/// the table this shell built.
+/// Where the table does not reach it, the invocation stands — never the
+/// declaration's first span, which is a real token this observation is not
+/// about and would read exactly like an answer.
 ///
 /// A diagnostic established BEFORE any capture names no handle, so there is
-/// nothing to look up and nothing in the table that corresponds to it. The
-/// invocation itself is the honest span for one: it is the only thing about the
+/// nothing to look up and nothing in the table that corresponds to it.
+/// The invocation is the honest span for one: it is the only thing about the
 /// expansion that observation is a fact about.
+/// Both roads therefore end in the same place, because both are the same
+/// admission — this shell cannot say which token, so it does not point at one.
 fn site(diagnostic: &MacrocDiagnostic, spans: &[Span]) -> Span {
-    match diagnostic.site.token() {
-        Some(handle) => {
-            let index = usize::try_from(handle.index()).unwrap_or(usize::MAX);
-            spans
-                .get(index)
-                .copied()
-                .unwrap_or_else(|| call_site(spans))
-        }
-        None => Span::call_site(),
-    }
-}
-
-/// The declaration's own first span, or the call site where nothing was
-/// captured.
-fn call_site(spans: &[Span]) -> Span {
-    spans.first().copied().unwrap_or_else(Span::call_site)
+    diagnostic
+        .site
+        .token()
+        .and_then(|handle| spans.get(usize::try_from(handle.index()).ok()?).copied())
+        .unwrap_or_else(Span::call_site)
 }
 
 /// The one line a `compile_error!` carries. Composed inside the services and
