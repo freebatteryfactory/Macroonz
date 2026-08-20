@@ -37,60 +37,14 @@
 use super::plan::DerivedPlan;
 use crate::closure::{ProjectionClosure, RenderedUnit};
 use crate::explanation_protocol::{
-    ExplanationAnswer, ExplanationCoverage, ProjectionExplanation, ProjectionExplanationView,
+    ExplanationAnswer, ProjectionExplanation, ProjectionExplanationView,
 };
 use crate::plane::OwnerFactRef;
 use crate::planning::{DeriveImplProjection, RenderedImplementation};
 use threadpak::types::Bounded;
 
 use super::plan::derive_impl_kind;
-
-threadpak::closed_register! {
-    /// The seat one explanation could not bind its subject to.
-    ///
-    /// Named seats rather than one "something was missing": a caller repairing
-    /// a derivation needs to know whether the PLAN failed to declare the member,
-    /// the CLOSURE failed to prove its bytes, or the plan cited no owner fact at
-    /// all, and those are three different repairs.
-    pub enum ExplanationSeat {
-        /// The planned member standing under the family implementation's role.
-        PlannedFamilyMember = "planned-family-member",
-            "the planned member under the family role";
-        /// The digest the closure proved over that member's rendered bytes.
-        ProvedFamilyDigest = "proved-family-digest",
-            "the digest the closure proved over the family bytes";
-        /// The first owner fact the plan declares as an assumption.
-        DeclaredAssumption = "declared-assumption", "the first owner fact the plan declares";
-        /// The planned member standing under the carrier's one rendered role.
-        ///
-        /// Its own seat rather than the family implementation's, because the two
-        /// are members of two different plans: a caller told the family member is
-        /// absent while the carrier's is the one missing would repair the wrong
-        /// projection.
-        PlannedCarrierMember = "planned-carrier-member",
-            "the planned member under the carrier's one role";
-    }
-}
-
-/// How writing one explanation refuses.
-///
-/// Two postures, and they are different observations.
-/// A view that could not be BOUND never reached the coverage check — there was
-/// no subject to write nine seats about.
-/// A view that was written and does not cover its kind's questions reached it
-/// and failed it.
-#[must_use = "a refusal carries the unbound seat or the coverage the view failed"]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum ExplanationBindingRefusal {
-    /// A required seat's subject is absent. The explanation refuses rather than
-    /// answering about a neighbouring value.
-    RequiredOutputAbsent {
-        /// Which seat had no subject.
-        seat: ExplanationSeat,
-    },
-    /// The written view does not cover the kind's applicable questions.
-    Coverage(ExplanationCoverage),
-}
+use super::types::{ExplanationBindingRefusal, ExplanationSeat};
 
 /// Answer the explanation protocol over one planned and closed derivation.
 ///

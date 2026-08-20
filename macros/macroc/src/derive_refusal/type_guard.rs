@@ -28,9 +28,8 @@ use super::{
 use crate::closure::{
     ClosedExpansion, ExpansionBindingRefusal, PartitionCargo, ProjectionClosure, RenderedProjection,
 };
-use crate::derive_refusal::diagnose::{
-    LineBody, LineSite, RefusalClass, RefusalLine, composed, shown, witnessed,
-};
+use crate::derive_refusal::diagnose::{composed, shown, witnessed};
+use crate::derive_refusal::types::{LineBody, LineSite, RefusalClass, RefusalLine};
 use crate::diagnostics::{
     DiagnosticSite, MachineAnchoring, MacrocDiagnostic, MacrocPhase, RelatedSet, ReleasePosture,
     RepairAction, ReproductionRoute, SiteCoordinate,

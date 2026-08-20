@@ -35,7 +35,7 @@ use super::plan::{
 };
 use super::render::EVALUATION_SUBJECT;
 use super::types::{DerivedMembership, RefusalDerivationDraft, RefusalDeriveFact};
-use super::{diagnose, evaluation_spellings, explain};
+use super::{diagnose, evaluation_spellings, types};
 use crate::closure::{ClosedExpansion, ProjectionClosure, RenderedProjection, RenderedUnit};
 use crate::diagnostics::MacrocDiagnostic;
 use crate::explanation_protocol::{
@@ -447,11 +447,9 @@ fn carrier_explanation(
         .membership()
         .under(SoleRenderedUnit::Sole)
         .ok_or_else(|| {
-            diagnose::explanation_refused(
-                &explain::ExplanationBindingRefusal::RequiredOutputAbsent {
-                    seat: explain::ExplanationSeat::PlannedCarrierMember,
-                },
-            )
+            diagnose::explanation_refused(&types::ExplanationBindingRefusal::RequiredOutputAbsent {
+                seat: types::ExplanationSeat::PlannedCarrierMember,
+            })
         })?;
     let owner = RefusalDeriveFact::AnEvaluationCopyStandsOverALocalSubject.citation();
     let answers = vec![
@@ -487,7 +485,7 @@ fn carrier_explanation(
     ];
     ProjectionExplanationView::<TestDescriptorProjection>::complete(plan, closure, answers).map_err(
         |coverage| {
-            diagnose::explanation_refused(&explain::ExplanationBindingRefusal::Coverage(coverage))
+            diagnose::explanation_refused(&types::ExplanationBindingRefusal::Coverage(coverage))
         },
     )
 }

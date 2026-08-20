@@ -21,9 +21,8 @@ pub use carry::{
     assembly, bench_disposition, carrier_expansion, carrier_kind, carrier_node, carrier_origin,
     carrier_plan, carrier_semantic_key, deferred_selectors, evaluation_axis, rows_disposition,
 };
-pub use diagnose::{LineBody, LineSite, RefusalClass, RefusalLine, RenderedMagnitude, composed};
+pub use diagnose::composed;
 pub use document::{CapturedDocumentationReading, documented};
-pub use explain::{ExplanationBindingRefusal, ExplanationSeat};
 pub use plan::DerivedPlan;
 pub use render::{
     CAUSE_ORDER_CONTRACT, EVALUATION_SUBJECT, FAMILY_CONTRACT, REFUSAL_MODULE, RenderRefusal,
@@ -31,9 +30,11 @@ pub use render::{
 pub use types::{
     CapturedCause, CapturedDocumentation, CauseOrderStanding, CrateBinding, DEFAULT_CRATE_BINDING,
     DIAGNOSTIC_PREFIX, DeriveCauseLimit, DerivedMembership, DocumentedDeclaration,
+    ExplanationBindingRefusal, ExplanationSeat, LineBody, LineSite, RefusalClass,
     RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveCapture, RefusalDeriveFact,
-    RefusalDeriveRefusal, RefusalDeriveSurface, RefusalFamilyExpansion, RefusalOwnerFacts,
-    RefusalSite, SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
+    RefusalDeriveRefusal, RefusalDeriveSurface, RefusalFamilyExpansion, RefusalLine,
+    RefusalOwnerFacts, RefusalSite, RenderedMagnitude, SHAPE_WORD_INSEPARABLE_PAIR,
+    SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
 };
 
 use crate::closure::{ProjectionClosure, RenderedProjection, RenderedUnit};

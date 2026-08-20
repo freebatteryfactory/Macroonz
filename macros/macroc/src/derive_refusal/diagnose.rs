@@ -53,9 +53,11 @@
 //! sentence beside it are one row rather than two arguments that happened to be
 //! passed together.
 
-use super::explain::ExplanationBindingRefusal;
 use super::render::RenderRefusal;
-use super::types::{DIAGNOSTIC_PREFIX, RefusalDeriveFact, callable_entry, expected_contract};
+use super::types::{
+    DIAGNOSTIC_PREFIX, ExplanationBindingRefusal, LineBody, LineSite, RefusalClass,
+    RefusalDeriveFact, RefusalLine, RenderedMagnitude, callable_entry, expected_contract,
+};
 use crate::closure::{
     ClosureIssue, ExpansionBindingRefusal, ProjectionClosureRefusal, RenderingRefusal,
 };
@@ -65,10 +67,7 @@ use crate::diagnostics::{
 };
 use crate::explanation_protocol::{ExplanationCoverage, ExplanationCoverageIssue};
 use crate::generated_support::{AssemblyIssue, CarrierAssembly};
-use crate::plane::{
-    GeneratedTokenLimit, HumanProjection, HumanTextLimit, MembershipLimit, RenderedByteLimit,
-    RenderedRole, encode_bytes, human_projection,
-};
+use crate::plane::{HumanProjection, HumanTextLimit, RenderedRole, encode_bytes, human_projection};
 use crate::refusal::{ProjectionPlanning, ProjectionPlanningIssue};
 use crate::test_descriptor::{
     DescriptorPlanIssue, ShellDeclarationRefusal, ShellRenderIssue, ShellRendering,
@@ -76,7 +75,7 @@ use crate::test_descriptor::{
 use threadpak::declaration::CoordinateRole;
 use threadpak::evidence::CauseDisposition;
 use threadpak::refusal::CompletionPosture;
-use threadpak::types::{Bounded, BoundedConstruction, ConstLimit};
+use threadpak::types::{Bounded, BoundedConstruction};
 
 /// The family tag written ahead of every related issue's material, so two
 /// families' issues never encode alike.
@@ -119,138 +118,6 @@ const DESCRIPTOR_PLAN_FAMILY: u8 = 8;
 // ---------------------------------------------------------------------------
 // The one compiler-facing grammar.
 // ---------------------------------------------------------------------------
-
-threadpak::closed_register! {
-    /// Which class of refusal one composed line is about.
-    ///
-    /// The class is the second clause of every line this home composes, and it
-    /// is READ off this roster rather than written at the seam that refused.
-    /// A class phrase spelled at a seam is a phrase only that seam knows about:
-    /// two seams reporting one class then read as two classes, and a reader
-    /// grouping a build log by what went wrong groups them apart.
-    pub enum RefusalClass {
-        /// The declared input was not read into a captured surface.
-        DeclarationNotRead = "declaration-not-read", "the declaration was not read";
-        /// Planning refused before a token of Rust existed.
-        PlanNotStated = "plan-not-stated", "planning refused";
-        /// The rendering does not close over the plan it claims to materialize.
-        RenderingNotClosed = "rendering-not-closed",
-            "the rendering does not close over the plan it claims to materialize";
-        /// The written explanation does not cover its kind's questions.
-        ExplanationNotCovered = "explanation-not-covered",
-            "the explanation does not cover its kind's questions";
-        /// The explanation had no subject to write its seats about.
-        ExplanationNotBound = "explanation-not-bound",
-            "the explanation cannot bind its subject";
-        /// A rendering would have passed a declared magnitude.
-        MagnitudeNotHeld = "magnitude-not-held", "a rendering would pass a declared magnitude";
-        /// The rendering cannot be delivered under the subject its delivery
-        /// stands over.
-        SubjectNotSubstitutable = "subject-not-substitutable",
-            "the rendering does not stand over the subject its delivery requires";
-        /// The three values the terminal binds do not belong to one expansion.
-        ExpansionNotBound = "expansion-not-bound",
-            "the three values do not belong to one expansion";
-        /// A set of closed outputs does not compose into one exported carrier.
-        CarrierNotAssembled = "carrier-not-assembled",
-            "the closed outputs do not compose into one carrier";
-        /// The carrier's own vocabulary was not declared.
-        CarrierNotDeclared = "carrier-not-declared",
-            "the carrier's own vocabulary was not declared";
-    }
-}
-
-/// What a composed line is a summary OF.
-///
-/// Two shapes, and they are different facts rather than one with the numbers
-/// zeroed out.
-/// A single-cause refusal establishes one cause and enumerates nothing: there is
-/// no remainder to count and no examination bound anything could have stopped
-/// at, so a line reporting "and 0 further issues, examination complete" would be
-/// answering a question that was never asked of it.
-/// A collection-shaped body has both, and the line carries both.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum LineBody {
-    /// One established cause, with nothing enumerated beside it.
-    SingleCause,
-    /// A refusal body: how many further issues it established beyond the first,
-    /// and whether it examined everything it could.
-    Body {
-        /// Established issues past the one the line states in full.
-        further: usize,
-        /// Whether the body examined every site, and what it did with what did
-        /// not fit.
-        posture: CompletionPosture,
-    },
-}
-
-/// The typed parts one compiler line is composed from.
-///
-/// They travel as one value because they are one line: a class handed to
-/// [`composed`] beside another refusal's first established issue would compose a
-/// sentence that is well formed, complete-looking, and about nothing in
-/// particular.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct RefusalLine<'issue> {
-    /// Which class of refusal the line is about.
-    pub class: RefusalClass,
-    /// The first established issue, stated in full.
-    pub first: &'issue str,
-    /// What the line is a summary of.
-    pub body: LineBody,
-}
-
-/// Whether a composed line says where the refusal sits.
-///
-/// Not an option: a whole-declaration refusal is a STATED posture, not a site
-/// somebody forgot to supply.
-/// A refusal about the declaration as a whole has nowhere narrower to point, and
-/// its typed [`DiagnosticSite`] already carries that; adding a position to its
-/// line would send a reader to an arbitrary spot inside a declaration the
-/// refusal is not about.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum LineSite {
-    /// The refusal is about the declaration as a whole, and the line adds
-    /// nothing.
-    WholeDeclaration,
-    /// The refusal sits at one place the producer can name, and the line says
-    /// where — or says that the producer's table does not reach it.
-    At(SiteCoordinate),
-}
-
-threadpak::closed_register! {
-    /// One declared magnitude a rendering can pass, and the thing it governs.
-    ///
-    /// The prose belongs to the MAGNITUDE rather than to whichever refusal named
-    /// it: two refusal families reach the same magnitudes, and a phrase written
-    /// at each of them is a phrase that can disagree with itself about what one
-    /// number bounds.
-    pub enum RenderedMagnitude {
-        /// The rendered-byte magnitude one materialized unit stands under.
-        RenderedBytes = "rendered-bytes", "the bytes one rendered unit may carry";
-        /// The membership magnitude one rendering stands under.
-        RenderedUnits = "rendered-units", "the units one rendering may carry";
-        /// The generated-token magnitude one tree level stands under.
-        GeneratedTokens = "generated-tokens",
-            "the tokens one generated tree may carry at one nesting level";
-    }
-}
-
-impl RenderedMagnitude {
-    /// The declared magnitude itself, read off the plane's limits roster.
-    ///
-    /// Read rather than restated: a number written here would be a second
-    /// authority on a bound the plane already declares, and a diagnostic naming
-    /// a bound the code does not enforce is evidence about nothing.
-    #[must_use]
-    pub const fn declared(self) -> usize {
-        match self {
-            Self::RenderedBytes => RenderedByteLimit::MAX,
-            Self::RenderedUnits => MembershipLimit::MAX,
-            Self::GeneratedTokens => GeneratedTokenLimit::MAX,
-        }
-    }
-}
 
 /// The word one coordinate role counts its positions in.
 ///
