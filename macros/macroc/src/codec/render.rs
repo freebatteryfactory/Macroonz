@@ -43,6 +43,7 @@
 //! "the decode road returned one", and there is no second pass to run.
 
 use super::type_contract::covers;
+use super::types::DecodeRefusalArm;
 use super::{
     AssemblyPosture, CodecMember, CodecMemberShape, CodecPlacement, CodecRoad, CodecShape,
     CodecSurfaceIssue, CodecTypePath, PathRooting,
@@ -126,20 +127,6 @@ pub const SLOT_ROAD: &str = "slot";
 /// head brings that scope with it. One import and no more: a module that reached
 /// further would be deciding what else a consumer's generated module can see.
 pub const MODULE_PRELUDE_ROOT: &str = "super";
-
-/// One arm of the decode refusal this home declares, and the sentence it carries
-/// for a reader.
-///
-/// Every arm here names the MEMBER it refused at, because a caller told only that
-/// decoding failed has nothing to look at — and the member's spelling is a text
-/// literal, which is the one literal arm the generated-token roster carries.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DecodeRefusalArm {
-    /// The variant's rendered spelling.
-    pub spelling: &'static str,
-    /// The sentence the variant documents itself with.
-    pub sentence: &'static str,
-}
 
 /// The complete member-bearing roster of the decode refusal this home renders.
 ///

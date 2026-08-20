@@ -28,8 +28,9 @@
 //! with `E0451`. It does not exclude DESCENDANTS, so the reversal for this seat
 //! is a compile-fail fixture outside the crate.
 
-use super::super::plan::{SurfacePlan, surface_plan};
+use super::super::plan::surface_plan;
 use super::super::render;
+use super::SurfacePlan;
 use super::{
     EvaluationBinding, ImplementationSurface, ImplementationSurfaceIssue, ImplementationSurfaces,
     MutationClaimRef, MutationEvaluationSurface, MutationOperation, MutationPoint,

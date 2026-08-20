@@ -34,54 +34,11 @@
 //! a caller holding one half cannot compose the two surfaces backwards, and
 //! there is no precondition a reader has to keep.
 
-use super::types::ImplementationSurfaceIssue;
-use crate::origin_graph::OriginTrail;
-use crate::plane::{
-    GeneratedUnitSubject, GeneratorVersionSubject, ProfileVersion, ProjectionIdentity,
-    ProjectionProfileSubject, RenderedRole,
-};
+use super::types::{ImplementationSurfaceIssue, SurfacePlan};
+use crate::plane::RenderedRole;
 use crate::planning::{
-    CauseAnchoring, DeriveImplProjection, PlannedMember, ProjectionPlan, RenderedImplementation,
+    DeriveImplProjection, PlannedMember, ProjectionPlan, RenderedImplementation,
 };
-
-/// What one planned member's two surfaces will be, stated before either is
-/// rendered.
-///
-/// Every seat is public and required, because a statement that could omit its
-/// engine, its declaration, or its identity contract would be an account that
-/// sometimes says less than it knows. There is no private field here and this
-/// home's invariant nucleus holds nothing of it.
-///
-/// # Nonclaims
-///
-/// Holding one claims that these are the facts the plan carries under this role,
-/// and nothing about whether anything was rendered. The seats are copies of the
-/// plan's answers taken at one moment; the plan remains the value they were read
-/// from.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct SurfacePlan {
-    /// The rendered role the production surface stands for.
-    pub role: RenderedImplementation,
-    /// The production member's semantic key, exactly as the plan declared it.
-    pub production_key: ProjectionIdentity<GeneratedUnitSubject>,
-    /// The rendered role the evaluation copy stands for — the production role's
-    /// twin, read from the roster rather than chosen here.
-    pub evaluation_role: RenderedImplementation,
-    /// The evaluation member's OWN semantic key, exactly as the plan declared
-    /// it. The copy is identified over this and never over the production
-    /// member's key, so two members never answer to one identity.
-    pub evaluation_key: ProjectionIdentity<GeneratedUnitSubject>,
-    /// The profile the plan expects to render the production member.
-    pub profile: ProjectionIdentity<ProjectionProfileSubject>,
-    /// That profile's version.
-    pub profile_version: ProfileVersion,
-    /// The production member's origin trail, walked back to authored material.
-    pub origin: OriginTrail,
-    /// The ONE address the entry account walked in the door carrying.
-    pub declaration: CauseAnchoring,
-    /// The rendering engine both surfaces are written by.
-    pub engine: ProjectionIdentity<GeneratorVersionSubject>,
-}
 
 /// Read one planned PAIR into the statement of what its two surfaces will be.
 ///
