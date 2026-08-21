@@ -756,11 +756,21 @@ pub struct IdentityProfile {
 /// - **1** — the family as first declared. Of the five positions the retired
 ///   single version moved through ([`PreimageFamily`]), none touched this
 ///   grammar: position 4 widened the GENERATED token roster, which is the
-///   rendered side, and the captured table stands at the five rows it was first
+///   rendered side, and the captured table stood at the five rows it was first
 ///   declared with.
+/// - **2** — the captured token roster gained the literal forms it had been
+///   answering with a neighbour's row. A byte string, a raw text, a character,
+///   and a byte were every one of them lawful declaration material before, and
+///   every one of them was encoded under the NUMERIC row carrying its own
+///   spelling as the framed content; a text carrying an escape was encoded with
+///   the escape's characters rather than the value they name. Those are
+///   declarations that already existed, so their content moves and the names
+///   derived over them move with it — which is the case this position is bumped
+///   for, and the reason the appended rows on the GENERATED side did not bump
+///   theirs.
 pub const CAPTURED_DECLARATION_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
     PreimageFamily::CapturedDeclaration,
-    IdentityProfileVersion::declared(1),
+    IdentityProfileVersion::declared(2),
 );
 
 /// The profile one captured declaration's DOCUMENTATION commitment is derived

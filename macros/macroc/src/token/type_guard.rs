@@ -196,7 +196,11 @@ impl CapturedTokenTree {
             CapturedPayload::Punct(_)
             | CapturedPayload::Text(_)
             | CapturedPayload::Number(_)
-            | CapturedPayload::Group { .. } => None,
+            | CapturedPayload::Group { .. }
+            | CapturedPayload::ByteText(_)
+            | CapturedPayload::Character(_)
+            | CapturedPayload::Byte(_)
+            | CapturedPayload::NulTerminatedText(_) => None,
         }
     }
 
@@ -208,11 +212,27 @@ impl CapturedTokenTree {
             CapturedPayload::Word(_)
             | CapturedPayload::Text(_)
             | CapturedPayload::Number(_)
-            | CapturedPayload::Group { .. } => None,
+            | CapturedPayload::Group { .. }
+            | CapturedPayload::ByteText(_)
+            | CapturedPayload::Character(_)
+            | CapturedPayload::Byte(_)
+            | CapturedPayload::NulTerminatedText(_) => None,
         }
     }
 
     /// The text this token carries, where it is a text literal.
+    ///
+    /// The TEXT and never the spelling, so a caller reading a declared name or
+    /// a line of prose is handed what the declaration says rather than the
+    /// characters it was written with. A raw text answers here on the same
+    /// terms as a quoted one, and the escape a quoted one carried is already
+    /// read.
+    ///
+    /// # Nonclaims
+    ///
+    /// A byte string, a C string, a character, and a byte are not text and do
+    /// not answer here. Each is a different value at the seat it is written to,
+    /// and a road wanting one of them asks for it by name.
     #[must_use]
     pub fn text(&self) -> Option<&str> {
         match &self.payload {
@@ -220,7 +240,11 @@ impl CapturedTokenTree {
             CapturedPayload::Word(_)
             | CapturedPayload::Punct(_)
             | CapturedPayload::Number(_)
-            | CapturedPayload::Group { .. } => None,
+            | CapturedPayload::Group { .. }
+            | CapturedPayload::ByteText(_)
+            | CapturedPayload::Character(_)
+            | CapturedPayload::Byte(_)
+            | CapturedPayload::NulTerminatedText(_) => None,
         }
     }
 
@@ -260,7 +284,11 @@ impl CapturedTokenTree {
             CapturedPayload::Word(_)
             | CapturedPayload::Punct(_)
             | CapturedPayload::Text(_)
-            | CapturedPayload::Number(_) => None,
+            | CapturedPayload::Number(_)
+            | CapturedPayload::ByteText(_)
+            | CapturedPayload::Character(_)
+            | CapturedPayload::Byte(_)
+            | CapturedPayload::NulTerminatedText(_) => None,
         }
     }
 }
