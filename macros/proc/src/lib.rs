@@ -107,7 +107,12 @@ pub fn refusal_family(item: TokenStream) -> TokenStream {
         Ok(trees) => trees,
         Err(bound) => return refused(bound.described(), Span::call_site()),
     };
-    let issued = u32::try_from(spans.len()).unwrap_or(u32::MAX);
+    let issued = match u32::try_from(spans.len()) {
+        Ok(issued) => issued,
+        Err(_) => {
+            return refused(CaptureBound::TreeUnbounded.described(), Span::call_site());
+        }
+    };
     let input = match CapturedInput::taken(trees, issued) {
         Ok(input) => input,
         Err(bound) => return refused(bound.described(), Span::call_site()),
@@ -211,7 +216,7 @@ fn capture_tree(
     walk: &mut CaptureWalk,
     spans: &mut Vec<Span>,
 ) -> Result<CapturedTokenTree, CaptureBound> {
-    let handle = issue(tree.span(), spans);
+    let handle = issue(tree.span(), spans)?;
     let payload = match tree {
         TokenTree::Ident(ident) => CapturedPayload::Word(ident.to_string()),
         TokenTree::Punct(punct) => CapturedPayload::Punct(punct.as_char()),
@@ -243,10 +248,17 @@ fn literal_payload(spelling: &str) -> CapturedPayload {
 }
 
 /// Issue the next handle for one span.
-fn issue(span: Span, spans: &mut Vec<Span>) -> SpanHandle {
-    let index = u32::try_from(spans.len()).unwrap_or(u32::MAX);
+///
+/// # Errors
+///
+/// Refuses where the table has already run past the width a handle is carried
+/// in. An index that saturated instead would hand two tokens one handle, and
+/// the shell would report a refusal at whichever of them the table reached
+/// first — which is the invented position this crate's own page refuses.
+fn issue(span: Span, spans: &mut Vec<Span>) -> Result<SpanHandle, CaptureBound> {
+    let index = u32::try_from(spans.len()).map_err(|_| CaptureBound::TreeUnbounded)?;
     spans.push(span);
-    SpanHandle::at(index)
+    Ok(SpanHandle::at(index))
 }
 
 /// The compiler span one diagnostic points at.
