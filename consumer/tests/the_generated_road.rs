@@ -50,8 +50,9 @@ use harness::descriptor::{
     PopulationRef, Provenance, RevisionBinding, Role, Row, SubjectRoute, Tag, TrialTableRefusal,
 };
 use harness::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
-use harness::report::{FindingCause, TrialConclusion};
+use harness::report::{OutcomeClass, TrialConclusion, TrialId};
 use harness::runner::{Invocation, TrialCall};
+use std::collections::BTreeMap;
 use threadpak_consumer::{CountRequest, Lot};
 
 /// The executable attachment at the two types the engine instantiates.
@@ -107,11 +108,6 @@ const OVER_LIMIT_PAIR: MergeRequest = MergeRequest {
     left: CountRequest::stated("north-yard", Lot::CEILING),
     right: CountRequest::stated("north-yard", 1u32),
 };
-
-/// The cause this consumer cites when the generated road and the hand road do
-/// not state one trial.
-const NOT_ONE_TRIAL: FindingCause =
-    FindingCause::named(CONSUMER, "generated-row-is-not-the-hand-row");
 
 // ---------------------------------------------------------------------------
 // The owner-supplied seams.
@@ -401,23 +397,24 @@ fn every_generated_binding_carries_the_producers_own_act() -> Result<(), TrialTa
     Ok(())
 }
 
-/// One selection over the generated world and over the hand-written twin of it
-/// selects the same trial and reaches the same verdict.
+/// One selection over the generated world and its hand-written twin selects the
+/// same semantic trials and reaches the same normalized outcomes.
 ///
 /// # What this seat adds over the key comparison
 ///
 /// That two roads state one TRIAL is a fact about a derivation. That one
-/// SELECTION reaches the same row through both is a fact about a RUN, and it is
-/// the one a consumer actually depends on: a generated row whose suite, whose
-/// classification, or whose binding differed in a way selection reads would carry
-/// the right key and be run by nothing.
+/// SELECTION reaches the same semantic trials through both is a fact about a RUN,
+/// and it is the one a consumer actually depends on:
+/// a generated row whose suite, whose semantic coordinates, or whose binding
+/// differed could leave the intended trial unselected or record another trial or outcome.
 ///
 /// Both worlds run through the same engine, under the same invocation, against
 /// the same one-suite selection. The generated world's census and the hand
-/// world's agree on how many rows the seat selected and on the verdict it
-/// reached.
+/// world's complete censuses agree on the semantic trials and their normalized
+/// outcomes. Origins, classifications, provenances, and row revisions remain
+/// truthful properties of their own roads and are deliberately not compared.
 #[test]
-fn one_selection_reaches_one_trial_down_both_roads() -> Result<(), TrialTableRefusal> {
+fn one_selection_reaches_same_trials_down_both_roads() -> Result<(), TrialTableRefusal> {
     let invocation = Invocation::declared(
         generated_merge_refusal_trials::INVOCATION,
         generated_merge_refusal_trials::target(),
@@ -425,7 +422,7 @@ fn one_selection_reaches_one_trial_down_both_roads() -> Result<(), TrialTableRef
             core::module_path!(),
             core::file!(),
             core::line!(),
-            "one_selection_reaches_one_trial_down_both_roads",
+            "one_selection_reaches_same_trials_down_both_roads",
         ),
         generated_merge_refusal_trials::CLOCK,
     );
@@ -435,20 +432,33 @@ fn one_selection_reaches_one_trial_down_both_roads() -> Result<(), TrialTableRef
         ));
 
     let generated = generated_world()?;
-    let (row, attachment) = hand_twin(
+    let mismatched_twin = hand_twin(
         "mismatched-lots-refuse",
         "fail-closed-mismatched",
         "mismatched-lots",
         mismatched_lots_refuse,
     )?;
+    let over_limit_twin = hand_twin(
+        "merged-count-past-limit-refuses",
+        "fail-closed-over-limit",
+        "over-limit-pair",
+        merged_count_past_limit_refuses,
+    )?;
     let hand = harness::descriptor::AuthoredTable::authored(
         harness::descriptor::AuthoredTableName::named(CONSUMER, "the-hand-twin-world")?,
         Provenance::Unproduced,
-        vec![harness::descriptor::Binding::bound(
-            row,
-            attachment,
-            Provenance::Unproduced,
-        )?],
+        vec![
+            harness::descriptor::Binding::bound(
+                mismatched_twin.0,
+                mismatched_twin.1,
+                Provenance::Unproduced,
+            )?,
+            harness::descriptor::Binding::bound(
+                over_limit_twin.0,
+                over_limit_twin.1,
+                Provenance::Unproduced,
+            )?,
+        ],
     )
     .map_err(TrialTableRefusal::TableNotAuthored)?;
 
@@ -456,10 +466,33 @@ fn one_selection_reaches_one_trial_down_both_roads() -> Result<(), TrialTableRef
         harness::runner::run_all(&generated.view(), &selection, &invocation);
     let down_the_hand_road = harness::runner::run_all(&hand.view(), &selection, &invocation);
 
-    // The generated world declares two rows under this suite and the hand twin
-    // declares one, so the counts are not the comparison. What IS compared is
-    // that each road's seat reached a verdict at all and that the one trial both
-    // roads state was selected by both.
+    let generated_outcomes: BTreeMap<TrialId, OutcomeClass> = down_the_generated_road
+        .census()
+        .iter()
+        .map(|accounting| (accounting.trial(), accounting.disposition().outcome()))
+        .collect();
+    let hand_outcomes: BTreeMap<TrialId, OutcomeClass> = down_the_hand_road
+        .census()
+        .iter()
+        .map(|accounting| (accounting.trial(), accounting.disposition().outcome()))
+        .collect();
+
+    assert_eq!(
+        down_the_generated_road.selection(),
+        harness::report::SelectionOutcome::Satisfied
+    );
+    assert_eq!(
+        down_the_generated_road.selection(),
+        down_the_hand_road.selection()
+    );
+    assert_eq!(
+        down_the_generated_road.denominator(),
+        down_the_hand_road.denominator()
+    );
+    assert_eq!(generated_outcomes, hand_outcomes);
+
+    // The aggregate verdict remains the intentionally coarse reading over each
+    // run after the per-trial parity comparison above.
     assert!(harness::runner::seat_verdict(&down_the_generated_road).is_ok());
     assert!(harness::runner::seat_verdict(&down_the_hand_road).is_ok());
     Ok(())
@@ -508,6 +541,5 @@ fn the_generated_attachment_reaches_this_targets_own_check() -> Result<(), Trial
         *through_the_delivery.attempt(),
         harness::report::RunAttempt::Executed(directly)
     );
-    let _ = NOT_ONE_TRIAL;
     Ok(())
 }
