@@ -38,10 +38,12 @@ crate = "blake3"
 allow = []
 exact = true
 
-# The generation vocabulary: `derive` and nothing else.
+# The generation vocabulary: the trait and nothing else. `derive` is refused
+# here rather than merely unused, because it is the edge that carried a second
+# decoder into the graph.
 [[bans.features]]
 crate = "arbitrary"
-allow = ["derive"]
+allow = []
 exact = true
 
 [sources]

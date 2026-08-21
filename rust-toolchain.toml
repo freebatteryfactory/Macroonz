@@ -1,4 +1,8 @@
 [toolchain]
 channel = "1.97.1"
 components = ["rustfmt", "clippy", "rust-src"]
+# The browser is a target the machine is built for: Bvisor's containment is
+# semantic rather than an operating system's, so it holds in-process and in a
+# browser. The target is installed because that is where the machine runs, not
+# because a run is scheduled.
 targets = ["wasm32-unknown-unknown"]

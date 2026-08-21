@@ -219,9 +219,10 @@ The harness (testpak) and the generation services (macros) were built in paralle
 as one phase under zero compilation:
 implementers wrote complete code end to end —
 no stubs, no placeholder bodies, no compiler-appeasement —
-and QA was ast-grep and read-only review.
+and QA was read-only review.
 That phase closed at first toolchain contact,
 which was quiet and corrective rather than a ceremony.
+The instrumentation that phase leaned on retired with it.
 The toolchain now stands and the lanes execute;
 a red lane is evidence about the code, never an instruction to edit the lane.
 
