@@ -85,17 +85,10 @@ struct JudgedFamily {
     version: u32,
 }
 
-/// The captured-declaration family, at position two: the captured token roster
-/// gained the literal forms it had been answering with a neighbour's row, so a
-/// declaration carrying a byte string, a raw text, a character, or a byte —
-/// every one of them lawful before and every one of them encoded under the
-/// numeric row carrying its own spelling — encodes to different content now, as
-/// does a text whose escapes are read rather than carried. The material moved,
-/// so the names derived over it moved, and this is where following that bump is
-/// an edit to one family's number.
+/// The captured-declaration family, at the position it was first declared with.
 const CAPTURED_DECLARATION_FAMILY: JudgedFamily = JudgedFamily {
     name: "captured-declaration",
-    version: 2,
+    version: 1,
 };
 
 /// The plan family, at the position it was first declared with.

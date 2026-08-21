@@ -132,26 +132,15 @@ impl IdentityProfile {
 
 /// The profile every content address in this crate is derived under.
 ///
-/// # Versions
+/// # Bounds
 ///
-/// - **1** — the profile as first declared.
-/// - **2** — the trial rail split into a descriptor-owned key over the four
-///   semantic coordinates and a report-owned identity over that key beside the
-///   profile coordinate. A trial identity's preimage carries two members where
-///   it carried five, and the key is a preimage that did not exist, so what is
-///   derived under `trial-identity` moved.
-///
-///   **Every address in the crate is renamed by that move, and most of them for
-///   nothing.** One position stands over every domain tag here, so a row
-///   revision, a replay capsule, a fingerprint, and an execution key are all
-///   renamed by a change to a grammar none of them holds a member of. That is
-///   the cost of one position for every tag, and it is paid in full at this
-///   bump. A position per tag would have moved the trial rail alone; the
-///   compiler plane next door carries one per preimage family for exactly this
-///   reason.
+/// The position moves when an address derived under it is held by somebody this
+/// repository cannot edit. Nothing is: no preimage here reaches a published
+/// artifact, a stored report, or a consumer, so a grammar that moves renames
+/// names nobody holds and the position stands.
 pub const HARNESS_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
     "threadpak/testpak/harness-identity",
-    IdentityProfileVersion::declared(2),
+    IdentityProfileVersion::declared(1),
 );
 
 /// One thirty-two byte content address.

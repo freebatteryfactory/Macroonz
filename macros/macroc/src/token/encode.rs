@@ -68,21 +68,20 @@
 //! next arm appended is the next reader's question, at this seat, against that
 //! family's position and no other.
 //!
-//! **The captured table reaches the opposite answer, and the difference is what
-//! the two readings above are for.** Its four appended rows are not reachable
+//! **The captured table's four appended rows are a different case, and the
+//! difference is what the two readings above are for.** They are not reachable
 //! only by declarations that could not exist before. A declaration carrying
-//! `b"x"`, `r"x"`, or `'x'` was always lawful and was always captured — it was
-//! captured under the numeric row, whose framed content was the spelling — and a
-//! text carrying an escape was captured with the escape's own characters in it.
-//! Those declarations encode to different bytes now, so identities already
-//! derived over them re-derive to different values.
+//! `b"x"`, `r"x"`, or `'x'` was always lawful and was always captured — under
+//! the numeric row, whose framed content was the spelling — and a text carrying
+//! an escape was captured with the escape's own characters in it. Those
+//! declarations encode to different bytes now.
 //!
-//! That is the case [`crate::plane::IdentityProfileVersion`] describes rather
-//! than the case the two arms above argued their way out of, so the
-//! captured-declaration family is bumped and the renaming is the bump doing
-//! exactly what it is for. Its position is stated on
-//! [`crate::plane::CAPTURED_DECLARATION_IDENTITY_PROFILE`], where the reason
-//! sits beside the number.
+//! That is content moving rather than a grammar reaching further, so it is a
+//! position that WOULD move for a reader holding an earlier one. There is no
+//! such reader: nothing derived under this family is held outside this
+//! repository. The position therefore stands, and
+//! [`crate::plane::CAPTURED_DECLARATION_IDENTITY_PROFILE`] states the condition
+//! that moves it.
 
 use super::{CapturedDelimiter, CapturedPayload, CapturedTokenTree, GeneratedDelimiter};
 use super::{GeneratedSpacing, GeneratedToken};
