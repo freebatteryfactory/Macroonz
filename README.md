@@ -106,14 +106,14 @@ flowchart TD
     B22 --> B23["23 evidence — receipts, verification, denominators, the evidence graph"]
 ```
 
-## State
+## Construction
 
-Architecture closure: the homes carry their typed specifications, and product
-runtime is deliberately absent — it opens per home only by explicit owner
-authorization. The generation system is the product line: families are authored
-through front doors and their contracts are generated. The current phase builds
-the harness and the generation services in parallel; the machine's features are
-built through them afterward, and the application compiler comes last.
+Product-runtime code enters a home only through explicit owner authorization.
+The generation system is the product line: families are authored through front
+doors and their contracts are generated. TestPak and the generation services are
+constructed before per-home machine-source realization; the application compiler
+follows the machine. That is construction order, not Cargo dependency order; the
+workspace graph above remains authoritative.
 
 The toolchain is the enforcement surface, run locally:
 

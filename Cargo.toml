@@ -48,8 +48,7 @@ trybuild = "=1.0.120"
 overflow-checks = true
 
 [profile.bench]
-# The same trap, pre-declared. No bench target exists, so this profile governs
-# nothing today; it stands so the first bench to land cannot quietly measure
+# The same trap, pre-declared so the first bench target cannot quietly measure
 # wrapping arithmetic and call the number a measurement.
 overflow-checks = true
 

@@ -17,13 +17,10 @@ obligation may discharge as a test row, a fuzz seed, or a chaos scenario —
 lane choice is a planning decision, and "where is proof missing" is claim
 coverage over reports, never a structural scan.
 
-The staging below is a TRUST order, never a construction order: all three
-lanes are written complete during the build-out, and nothing is trusted
-merely because its code exists. Trust opens after the first toolchain
-contact, in the owner's order: baseline qualification, then wrap-first
-pressure; interpreter results are admitted only once a QUALIFIED reading
-demonstrates a witness rejection and the mandatory no-mutation parity
-passes; rewrite-produced descriptors are admitted last. The gate consumes
+Code existence carries no trust. Interpreter results are admitted only when a
+QUALIFIED reading demonstrates a witness rejection and the mandatory
+no-mutation parity passes; rewrite-produced descriptors additionally cross the
+human proposal-admission boundary. The gate consumes
 two typed facts — the adapter qualification, and the compiled-pressure
 witness shown under it — and never a bare run stripped of the profile that
 says which tool, which version posture, which output, and which grammar
@@ -96,10 +93,10 @@ firing, so a reading over it tops out at witness rejection, and a run carrying
 a verdict past that ceiling is refused rather than believed. The console
 grammar is the bootstrap contract — the line shapes are coded against the
 backend's own rendering, and checking them against that backend's real output
-is the first item of the first toolchain contact, ahead of trusting the
-wrap-first pressure. A durable reading over a machine-readable output, and
-whatever mechanism such a reading asks for, is decided at the trust opening
-against the backend's own artifacts rather than against an imagined schema.
+must be qualified against that backend's real output. A durable reading over a
+machine-readable output, and whatever mechanism such a reading asks for, must
+be owner-ruled against the backend's own artifacts rather than against an
+imagined schema.
 
 That profile is what a reading's ADAPTER QUALIFICATION carries, beside the
 grammar standing — a party's statement that the adapter's stated shapes were
@@ -189,8 +186,8 @@ record, and rerunning it regenerates the behavioral evidence — with the
 guardrail that any non-reconstructible semantic fact a discharge requires
 must live in an authored owner; if a future discharge mechanism mints
 genuinely non-reconstructible evidence, that evidence earns
-content-addressed custody when it exists, and no universal evidence vault
-exists today. Decline is
+content-addressed custody when it exists. This contract admits evidence
+custody per mechanism, never a universal vault. Decline is
 the disposal of the candidate. Runtime evidence never writes authored
 specification, anywhere. The file carrying this road is `propose.rs`.
 
