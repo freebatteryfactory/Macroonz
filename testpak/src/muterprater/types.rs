@@ -23,8 +23,9 @@
 
 use crate::depot::types::OperatorFamily;
 use crate::descriptor::{
-    CheckRef, ClaimRef, Classification, ExecutionSuite, MutationPointRef, NameRefusal,
-    NamespacedName, PopulationRef, ProposalId, Row, RowRefusal, StagedTableRefusal, SubjectRoute,
+    AdmissionGround, CheckRef, ClaimRef, Classification, ExecutionSuite, MutationPointRef,
+    NameRefusal, NamespacedName, PopulationRef, ProposalId, Row, RowRefusal, StagedTableRefusal,
+    SubjectRoute,
 };
 use crate::identity::{ContentAddress, DomainTag};
 use crate::properties::SubstrateRefusal;
@@ -1801,50 +1802,43 @@ pub enum ProofDeltaRefusal {
     },
 }
 
-/// The structural ground one proposal stands on, carrying exactly what that
-/// ground possesses.
-///
-/// # The grounds
-///
-/// [`ProposalGround::MutantKilled`] carries the target, its activation
-/// disposition, the replay capsule, and the demonstration — a kill shown on the
-/// surface with the mutant active.
-///
-/// [`ProposalGround::ClaimPinned`] carries the claim, the replay capsule, and
-/// the proof delta the pin moved.
-///
-/// [`ProposalGround::ObligationDischarged`] carries the owed claim's identity
-/// and the discharge evidence, and no capsule at all: the admitted row is the
-/// discharge's permanent record.
+/// The ground a mutant-killed proposal stands on: a kill shown on the surface
+/// with the mutant active.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ProposalGround {
-    /// The proposal killed a real mutant.
-    MutantKilled {
-        /// What was damaged.
-        target: MutationTarget,
-        /// What the damage's activation was.
-        activation: ActivationDisposition,
-        /// The reproduction account of the demonstrating run.
-        capsule: ReplayCapsule,
-        /// The demonstrated kill.
-        demonstration: Demonstration,
-    },
-    /// The proposal pinned a named claim.
-    ClaimPinned {
-        /// The claim pinned.
-        claim: ClaimRef,
-        /// The reproduction account of the pinning run.
-        capsule: ReplayCapsule,
-        /// What the pin added to the claim's proof.
-        delta: ProofDelta,
-    },
-    /// The proposal discharged a claim declared owed.
-    ObligationDischarged {
-        /// The owed claim's identity.
-        owed: OwedClaim,
-        /// What discharged it.
-        discharge: DischargeEvidence,
-    },
+pub struct MutantKilledGround {
+    /// What was damaged.
+    target: MutationTarget,
+    /// What the damage's activation was.
+    activation: ActivationDisposition,
+    /// The reproduction account of the demonstrating run.
+    capsule: ReplayCapsule,
+    /// The demonstrated kill.
+    demonstration: Demonstration,
+}
+
+/// The ground a claim-pinned proposal stands on.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ClaimPinnedGround {
+    /// The claim pinned.
+    claim: ClaimRef,
+    /// The reproduction account of the pinning run.
+    capsule: ReplayCapsule,
+    /// What the pin added to the claim's proof.
+    delta: ProofDelta,
+}
+
+/// The ground an obligation-discharged proposal stands on.
+///
+/// No capsule at all, and no seat for one: the admitted row is the discharge's
+/// permanent record. The two grounds that DO author a capsule each carry it as
+/// a field, so nothing here reads a capsule out of an option that one ground
+/// would always answer empty.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ObligationDischargedGround {
+    /// The owed claim's identity.
+    owed: OwedClaim,
+    /// What discharged it.
+    discharge: DischargeEvidence,
 }
 
 /// Why one comparison had no subject.
@@ -1857,35 +1851,36 @@ pub enum NoComparisonReason {
     NoKnownMaterial,
 }
 
-/// The typed, ground-aware evidence that one proposal is not a duplicate.
+/// The evidence a failure-bearing proposal is not a duplicate: the candidate's
+/// fingerprint, against every fingerprint already known.
 ///
 /// # Authority
 ///
-/// Never persuasive prose. A failure-bearing ground compares fingerprints, a
-/// discharge ground compares the owed claim's known discharges, and anything
-/// else states its reason. The comparison is performed where the value is built,
+/// Never persuasive prose. The comparison is performed where the value is built,
 /// so a duplicate is a refusal rather than a paragraph a reader has to check.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum DuplicateEvidence {
-    /// The candidate's fingerprint, against every fingerprint already known.
-    FailureCompared {
-        /// The fingerprint this candidate carries.
-        candidate: Fingerprint,
-        /// The fingerprints already known, in the order they were compared.
-        known: Vec<Fingerprint>,
-    },
-    /// The owed claim, against the discharges already recorded for it.
-    ObligationCompared {
-        /// The owed claim.
-        owed: ClaimRef,
-        /// The trials already recorded as discharging it.
-        discharges: Vec<TrialId>,
-    },
-    /// Neither comparison has a subject, for this reason.
-    NotApplicable {
-        /// Why nothing was compared.
-        reason: NoComparisonReason,
-    },
+pub struct FailureComparison {
+    /// The fingerprint this candidate carries.
+    candidate: Fingerprint,
+    /// The fingerprints already known, in the order they were compared.
+    known: Vec<Fingerprint>,
+}
+
+/// The evidence a discharge proposal is not a duplicate: the owed claim,
+/// against the discharges already recorded for it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ObligationComparison {
+    /// The owed claim.
+    owed: ClaimRef,
+    /// The trials already recorded as discharging it.
+    discharges: Vec<TrialId>,
+}
+
+/// The statement a proposal with no comparable subject makes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct NoComparison {
+    /// Why nothing was compared.
+    reason: NoComparisonReason,
 }
 
 /// Why one duplicate comparison refused its candidate.
@@ -1917,8 +1912,73 @@ pub struct ProposalDestination {
 /// The domain tag every proposal identity is derived under.
 pub const PROPOSAL_TAG: DomainTag = DomainTag::declared("proposal");
 
-/// One proposal: a candidate row, the typed ground it stands on, the evidence it
-/// is not a duplicate, and where it would land.
+/// What every proposal is, whichever ground it stands on: a candidate row, a
+/// ground word an admission act can state, a destination, and the identity those
+/// three derive.
+///
+/// # The sealed shape
+///
+/// Sealed, so the proposals are the three this crate declares and no outside
+/// crate can add a fourth by implementing anything. A road that stores or reports
+/// a proposal takes one of these rather than a sum type every ground would have
+/// to fit inside — which is what keeps a discharge proposal from being as large
+/// as a kill's demonstration.
+///
+/// # Nonclaims
+///
+/// It reaches no ground's own contents. What a kill demonstrated and what a pin
+/// moved are read off the concrete proposal that holds them, because they are
+/// exactly the facts the three do not share.
+pub trait ProposalDocument: sealed::Sealed {
+    /// The candidate row.
+    fn candidate(&self) -> &Row;
+
+    /// The ground at summary width — the word an admission act states.
+    fn ground_summary(&self) -> AdmissionGround;
+
+    /// Where it would land.
+    fn destination(&self) -> ProposalDestination;
+
+    /// The proposal's content identity — permanent provenance.
+    ///
+    /// # The specification
+    ///
+    /// Two primitives: `u32be(n)`, and `bytes(x)` — `u64be(len(x))` followed by
+    /// the bytes of `x`.
+    ///
+    /// The members, in exactly this order:
+    ///
+    /// | # | member | encoding |
+    /// | - | ------ | -------- |
+    /// | 1 | encoding version | `u32be` |
+    /// | 2 | candidate row | `bytes(…)` of the descriptor home's canonical row bytes |
+    /// | 3 | ground | one byte, [`AdmissionGround::slot`] |
+    /// | 4 | destination namespace | `bytes(utf8)` |
+    /// | 5 | destination stem | `bytes(utf8)` |
+    ///
+    /// # Nonclaims
+    ///
+    /// The evidence is deliberately absent: the replay capsule, the
+    /// demonstration, and the duplicate comparison are what STANDS BEHIND the
+    /// proposal rather than what it proposes. Two offers of one row on one
+    /// ground into one destination therefore share an identity by design, which
+    /// is what makes an admitted origin's citation stable across a rerun.
+    ///
+    /// Every member is one of the three readings above, so the three proposals
+    /// derive their identity by one road rather than by three that agree.
+    fn identity(&self) -> ProposalId;
+}
+
+pub(super) mod sealed {
+    /// The seal. Implemented for this home's three proposals and nothing else.
+    #[expect(
+        unnameable_types,
+        reason = "a seal is a bound that is reachable and not nameable: reachable so the public trait can require it, unnameable so no outside crate can satisfy it, and a seal an outsider could name would be the closure this roster has instead of an open sum"
+    )]
+    pub trait Sealed {}
+}
+
+/// One proposal on the mutant-killed ground.
 ///
 /// # Authority
 ///
@@ -1926,34 +1986,61 @@ pub const PROPOSAL_TAG: DomainTag = DomainTag::declared("proposal");
 /// nothing about admission: a human admits, and admission is a two-part
 /// human-authored patch this crate never performs.
 ///
-/// # Construction
-///
-/// [`Proposal::offered`] refuses a row that does not carry the candidate origin
-/// arm, refuses duplicate evidence that does not match the ground, and refuses a
-/// survivor synthesis fact that names a different point than the ground's
-/// target.
+/// The comparison seat takes a [`FailureComparison`] and admits nothing else, so
+/// "is this evidence the comparison this ground owes?" is not a question that can
+/// be asked of a built value or of one being built.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Proposal {
+pub struct MutantKilledProposal {
     candidate: Row,
-    ground: ProposalGround,
-    duplicate: DuplicateEvidence,
+    ground: MutantKilledGround,
+    duplicate: FailureComparison,
+    destination: ProposalDestination,
+}
+
+/// One proposal on the claim-pinned ground.
+///
+/// The comparison seat takes a [`NoComparison`]: a pin carries no failure to
+/// fingerprint and discharges no obligation, so what it offers is the stated
+/// reason nothing was compared.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ClaimPinnedProposal {
+    candidate: Row,
+    ground: ClaimPinnedGround,
+    duplicate: NoComparison,
+    destination: ProposalDestination,
+}
+
+/// One proposal on the obligation-discharged ground.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ObligationDischargedProposal {
+    candidate: Row,
+    ground: ObligationDischargedGround,
+    duplicate: ObligationComparison,
     destination: ProposalDestination,
 }
 
 /// Why one proposal was refused.
 ///
-/// Dependent checks in a declared order: the row's origin, then the ground
-/// against its evidence, then the survivor point against the target.
+/// Dependent checks in a declared order: the row's origin, then — where the
+/// ground names a mutation point — the survivor point against the target.
+///
+/// # Nonclaims
+///
+/// There is no evidence-against-ground cause, because there is no such
+/// disagreement to establish: each proposal's comparison seat admits exactly the
+/// comparison its ground owes, so a mismatched pair is not a value that can be
+/// written.
+///
+/// [`ProposalRefusal::SurvivorPointMismatch`] is reachable from the mutant-killed
+/// road alone. The other two grounds name no mutation point for a synthesis fact
+/// to disagree with, and their roads establish [`ProposalRefusal::NotACandidate`]
+/// or nothing.
 #[must_use = "a refusal is the reason a proposal was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ProposalRefusal {
     /// The row does not carry the candidate origin arm, so it is an authored row
     /// entering by the proposal door.
     NotACandidate,
-    /// The duplicate evidence does not match the ground: a failure-bearing
-    /// ground was offered a comparison that compares no failure, or a discharge
-    /// ground was offered anything but a discharge comparison.
-    EvidenceDoesNotMatchGround,
     /// The row's synthesis facts name one mutation point and the ground's target
     /// names another.
     SurvivorPointMismatch {
@@ -2041,7 +2128,14 @@ pub trait ProposalSink {
     ///
     /// The sink's own refusal: unavailable, already stored under this identity,
     /// an empty location, or a destination that is not durable.
-    fn store(&mut self, proposal: &Proposal) -> Result<StoredProposalRef, SinkRefusal>;
+    /// Generic over the sealed proposal roster rather than over one sum type: a
+    /// sink stores what every proposal is — a row, a ground word, a destination,
+    /// and the identity those derive — and a discharge proposal reaching this
+    /// seam does not have to be as large as a kill's demonstration to get here.
+    fn store<Document: ProposalDocument>(
+        &mut self,
+        proposal: &Document,
+    ) -> Result<StoredProposalRef, SinkRefusal>;
 }
 
 /// The two parts a human's admission act authors, named so the proposal road's

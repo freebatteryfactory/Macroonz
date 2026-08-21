@@ -34,9 +34,10 @@
 
 use super::types::{
     ActivationDisposition, AdmissionPatch, CandidateSketch, CheckGap, Demonstration,
-    DuplicateEvidence, InferredObligation, KillProposalRefusal, MutationTarget, ObligationLane,
-    OwedDeclaration, ProofDelta, ProofDeltaRefusal, ProofRefusal, Proposal, ProposalDestination,
-    ProposalGround, SurvivorExplanation, SynthesisRefusal,
+    FailureComparison, InferredObligation, KillProposalRefusal, MutantKilledGround,
+    MutantKilledProposal, MutationTarget, ObligationLane, OwedDeclaration, ProofDelta,
+    ProofDeltaRefusal, ProofRefusal, ProposalDestination, ProposalDocument, SurvivorExplanation,
+    SynthesisRefusal,
 };
 use super::wrap::mutant_scoped;
 use crate::descriptor::{CheckRef, ClaimRef, Origin, Row, StagedTableView, SynthesisFacts};
@@ -146,17 +147,12 @@ pub fn offer_mutant_kill(
     demonstration: Demonstration,
     known: Vec<Fingerprint>,
     destination: ProposalDestination,
-) -> Result<Proposal, KillProposalRefusal> {
+) -> Result<MutantKilledProposal, KillProposalRefusal> {
     let fingerprint = demonstration.rejection().fingerprint();
-    let duplicate = DuplicateEvidence::failure_compared(fingerprint, known)
-        .map_err(KillProposalRefusal::Duplicate)?;
-    let ground = ProposalGround::MutantKilled {
-        target,
-        activation,
-        capsule,
-        demonstration,
-    };
-    Proposal::offered(candidate, ground, duplicate, destination)
+    let duplicate =
+        FailureComparison::compared(fingerprint, known).map_err(KillProposalRefusal::Duplicate)?;
+    let ground = MutantKilledGround::shown(target, activation, capsule, demonstration);
+    MutantKilledProposal::offered(candidate, ground, duplicate, destination)
         .map_err(KillProposalRefusal::Refused)
 }
 
@@ -257,6 +253,6 @@ pub fn route(obligation: &InferredObligation) -> ObligationLane {
 /// the admission act itself authors, with the row's replay reference pointing at
 /// it.
 #[must_use]
-pub fn admission_patch(proposal: &Proposal) -> AdmissionPatch {
+pub fn admission_patch(proposal: &impl ProposalDocument) -> AdmissionPatch {
     AdmissionPatch::from(proposal.ground_summary().capsule_posture())
 }

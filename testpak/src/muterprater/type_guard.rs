@@ -22,22 +22,23 @@ use super::{
     AdapterProfile, AdapterQualification, AlternativeIndex, AnnouncedRoster, BackendVersion,
     BackendVersionPosture, BackendVersionRefusal, BaselineAxis, BaselinePrecondition,
     BaselineQualification, BudgetRefusal, CandidateSketch, CheckGap, ClaimCeiling,
-    CompiledPressureWitness, CoordinateRefusal, DemonstratedRejection, Demonstration, DiffPath,
-    DiffPathRefusal, DischargeEvidence, DudPlant, DuplicateEvidence, DuplicateRefusal,
-    EquivalenceAxis, EvaluationSurface, ExecutionAxis, ExplanationRefusal, FamilyAttribution,
-    GrammarStanding, GrammarVersion, InconclusiveCause, InferredObligation, IntendedRejection,
-    KillRefusal, MUTATION_TARGET_TAG, MappingPosture, MaterializationAxis, MutantId,
-    MutationCensus, MutationIdentity, MutationOutcome, MutationPoint, MutationReport, MutationRun,
-    MutationSite, MutationTarget, MutationVerdict, NoComparisonReason, ObligationLane,
-    OperatorFamilyRef, OracleClass, OwedClaim, OwedClaimRefusal, OwedDeclaration, PROPOSAL_TAG,
-    ParityStanding, PlanRefusal, PlannedDamage, PlannedRun, PointRefusal, PressureBudget,
-    PressureLane, PressureWitnessRefusal, ProofDelta, ProofDeltaRefusal, ProofPlan, ProofRefusal,
-    ProofShape, Proposal, ProposalDestination, ProposalGround, ProposalRefusal,
-    QualificationRefusal, ReadingSource, RejectionIdentity, RewriteCandidate, RewriteDescriptor,
-    RewriteRefusal, RewriteRoster, RewriteTrust, RosterRefusal, ScopeShape, ScopedInvocation,
-    SelectionRefusal, SinkRefusal, SourceCoordinate, StoredProposalRef, SurfaceRefusal,
-    SurvivalRefusal, SurvivorExplanation, UnparsedLine, WrapReading, WrapRefusal, WrapStanding,
-    WrappedBackend,
+    ClaimPinnedGround, ClaimPinnedProposal, CompiledPressureWitness, CoordinateRefusal,
+    DemonstratedRejection, Demonstration, DiffPath, DiffPathRefusal, DischargeEvidence, DudPlant,
+    DuplicateRefusal, EquivalenceAxis, EvaluationSurface, ExecutionAxis, ExplanationRefusal,
+    FailureComparison, FamilyAttribution, GrammarStanding, GrammarVersion, InconclusiveCause,
+    InferredObligation, IntendedRejection, KillRefusal, MUTATION_TARGET_TAG, MappingPosture,
+    MaterializationAxis, MutantId, MutantKilledGround, MutantKilledProposal, MutationCensus,
+    MutationIdentity, MutationOutcome, MutationPoint, MutationReport, MutationRun, MutationSite,
+    MutationTarget, MutationVerdict, NoComparison, NoComparisonReason, ObligationComparison,
+    ObligationDischargedGround, ObligationDischargedProposal, ObligationLane, OperatorFamilyRef,
+    OracleClass, OwedClaim, OwedClaimRefusal, OwedDeclaration, PROPOSAL_TAG, ParityStanding,
+    PlanRefusal, PlannedDamage, PlannedRun, PointRefusal, PressureBudget, PressureLane,
+    PressureWitnessRefusal, ProofDelta, ProofDeltaRefusal, ProofPlan, ProofRefusal, ProofShape,
+    ProposalDestination, ProposalDocument, ProposalRefusal, QualificationRefusal, ReadingSource,
+    RejectionIdentity, RewriteCandidate, RewriteDescriptor, RewriteRefusal, RewriteRoster,
+    RewriteTrust, RosterRefusal, ScopeShape, ScopedInvocation, SelectionRefusal, SinkRefusal,
+    SourceCoordinate, StoredProposalRef, SurfaceRefusal, SurvivalRefusal, SurvivorExplanation,
+    UnparsedLine, WrapReading, WrapRefusal, WrapStanding, WrappedBackend, sealed,
 };
 use crate::depot::operator_families::OPERATOR_FAMILIES;
 use crate::depot::types::OperatorFamily;
@@ -1824,7 +1825,7 @@ impl ProofDelta {
     }
 }
 
-impl DuplicateEvidence {
+impl FailureComparison {
     /// The comparison a failure-bearing ground offers.
     ///
     /// # Errors
@@ -1832,36 +1833,157 @@ impl DuplicateEvidence {
     /// Refuses a candidate whose fingerprint the known roster already carries:
     /// the comparison is performed here, so a duplicate is a refusal rather than
     /// a paragraph a reader has to check.
-    pub fn failure_compared(
+    pub fn compared(
         candidate: Fingerprint,
         known: Vec<Fingerprint>,
     ) -> Result<Self, DuplicateRefusal> {
         if known.contains(&candidate) {
             return Err(DuplicateRefusal::FingerprintAlreadyKnown(candidate));
         }
-        Ok(Self::FailureCompared { candidate, known })
+        Ok(Self { candidate, known })
     }
 
+    /// The fingerprint this candidate carries.
+    #[must_use]
+    pub const fn candidate(&self) -> Fingerprint {
+        self.candidate
+    }
+
+    /// The fingerprints already known, in the order they were compared.
+    pub fn known(&self) -> impl Iterator<Item = &Fingerprint> {
+        self.known.iter()
+    }
+}
+
+impl ObligationComparison {
     /// The comparison a discharge ground offers.
     ///
     /// # Errors
     ///
     /// Refuses an owed claim that already carries a discharge, naming the first
     /// discharge already recorded for it.
-    pub fn obligation_compared(
-        owed: ClaimRef,
-        discharges: Vec<TrialId>,
-    ) -> Result<Self, DuplicateRefusal> {
+    pub fn compared(owed: ClaimRef, discharges: Vec<TrialId>) -> Result<Self, DuplicateRefusal> {
         if let Some(first) = discharges.first() {
             return Err(DuplicateRefusal::ObligationAlreadyDischarged(*first));
         }
-        Ok(Self::ObligationCompared { owed, discharges })
+        Ok(Self { owed, discharges })
     }
 
+    /// The owed claim.
+    #[must_use]
+    pub const fn owed(&self) -> ClaimRef {
+        self.owed
+    }
+
+    /// The trials already recorded as discharging it.
+    pub fn discharges(&self) -> impl Iterator<Item = &TrialId> {
+        self.discharges.iter()
+    }
+}
+
+impl NoComparison {
     /// The statement a ground with no comparable subject makes.
     #[must_use]
-    pub const fn not_applicable(reason: NoComparisonReason) -> Self {
-        Self::NotApplicable { reason }
+    pub const fn stated(reason: NoComparisonReason) -> Self {
+        Self { reason }
+    }
+
+    /// Why nothing was compared.
+    #[must_use]
+    pub const fn reason(self) -> NoComparisonReason {
+        self.reason
+    }
+}
+
+impl MutantKilledGround {
+    /// The ground a demonstrated kill stands on.
+    #[must_use]
+    pub const fn shown(
+        target: MutationTarget,
+        activation: ActivationDisposition,
+        capsule: ReplayCapsule,
+        demonstration: Demonstration,
+    ) -> Self {
+        Self {
+            target,
+            activation,
+            capsule,
+            demonstration,
+        }
+    }
+
+    /// What was damaged.
+    #[must_use]
+    pub const fn target(&self) -> &MutationTarget {
+        &self.target
+    }
+
+    /// What the damage's activation was.
+    #[must_use]
+    pub const fn activation(&self) -> ActivationDisposition {
+        self.activation
+    }
+
+    /// The reproduction account of the demonstrating run.
+    #[must_use]
+    pub const fn capsule(&self) -> &ReplayCapsule {
+        &self.capsule
+    }
+
+    /// The demonstrated kill.
+    #[must_use]
+    pub const fn demonstration(&self) -> &Demonstration {
+        &self.demonstration
+    }
+}
+
+impl ClaimPinnedGround {
+    /// The ground a pin stands on.
+    #[must_use]
+    pub const fn moved(claim: ClaimRef, capsule: ReplayCapsule, delta: ProofDelta) -> Self {
+        Self {
+            claim,
+            capsule,
+            delta,
+        }
+    }
+
+    /// The claim pinned.
+    #[must_use]
+    pub const fn claim(&self) -> ClaimRef {
+        self.claim
+    }
+
+    /// The reproduction account of the pinning run.
+    #[must_use]
+    pub const fn capsule(&self) -> &ReplayCapsule {
+        &self.capsule
+    }
+
+    /// What the pin added to the claim's proof.
+    #[must_use]
+    pub const fn delta(&self) -> ProofDelta {
+        self.delta
+    }
+}
+
+impl ObligationDischargedGround {
+    /// The ground a discharge stands on.
+    #[must_use]
+    pub const fn discharged(owed: OwedClaim, discharge: DischargeEvidence) -> Self {
+        Self { owed, discharge }
+    }
+
+    /// The owed claim's identity.
+    #[must_use]
+    pub const fn owed(&self) -> &OwedClaim {
+        &self.owed
+    }
+
+    /// What discharged it.
+    #[must_use]
+    pub const fn discharge(&self) -> &DischargeEvidence {
+        &self.discharge
     }
 }
 
@@ -1885,24 +2007,22 @@ impl ProposalDestination {
     }
 }
 
-impl Proposal {
-    /// One proposal, offered.
+impl MutantKilledProposal {
+    /// One proposal on the mutant-killed ground, offered.
     ///
     /// # Errors
     ///
     /// Refuses, in a declared dependent order: a row that does not carry the
-    /// candidate origin arm, duplicate evidence that does not match the ground,
-    /// and a survivor synthesis fact naming a different point than the ground's
-    /// target names.
+    /// candidate origin arm, and a survivor synthesis fact naming a different
+    /// point than the ground's target names.
     pub fn offered(
         candidate: Row,
-        ground: ProposalGround,
-        duplicate: DuplicateEvidence,
+        ground: MutantKilledGround,
+        duplicate: FailureComparison,
         destination: ProposalDestination,
     ) -> Result<Self, ProposalRefusal> {
         let facts = candidate_facts(&candidate)?;
-        evidence_fits_ground(&ground, &duplicate)?;
-        survivor_point_agrees(facts, &ground)?;
+        survivor_point_agrees(facts, ground.target())?;
         Ok(Self {
             candidate,
             ground,
@@ -1911,78 +2031,174 @@ impl Proposal {
         })
     }
 
-    /// The candidate row.
-    #[must_use]
-    pub const fn candidate(&self) -> &Row {
-        &self.candidate
-    }
-
     /// The ground it stands on.
     #[must_use]
-    pub const fn ground(&self) -> &ProposalGround {
+    pub const fn ground(&self) -> &MutantKilledGround {
         &self.ground
     }
 
     /// The evidence it is not a duplicate.
     #[must_use]
-    pub const fn duplicate(&self) -> &DuplicateEvidence {
+    pub const fn duplicate(&self) -> &FailureComparison {
         &self.duplicate
     }
+}
 
-    /// Where it would land.
-    #[must_use]
-    pub const fn destination(&self) -> ProposalDestination {
-        self.destination
+impl ClaimPinnedProposal {
+    /// One proposal on the claim-pinned ground, offered.
+    ///
+    /// # Errors
+    ///
+    /// Refuses a row that does not carry the candidate origin arm. This ground
+    /// names no mutation point, so there is no target for a survivor synthesis
+    /// fact to disagree with and that cause is not reachable from here.
+    pub fn offered(
+        candidate: Row,
+        ground: ClaimPinnedGround,
+        duplicate: NoComparison,
+        destination: ProposalDestination,
+    ) -> Result<Self, ProposalRefusal> {
+        let _candidate = candidate_facts(&candidate)?;
+        Ok(Self {
+            candidate,
+            ground,
+            duplicate,
+            destination,
+        })
     }
 
-    /// The ground at summary width — the word an admission act states.
+    /// The ground it stands on.
     #[must_use]
-    pub fn ground_summary(&self) -> AdmissionGround {
+    pub const fn ground(&self) -> &ClaimPinnedGround {
+        &self.ground
+    }
+
+    /// The stated reason nothing was compared.
+    #[must_use]
+    pub const fn duplicate(&self) -> NoComparison {
+        self.duplicate
+    }
+}
+
+impl ObligationDischargedProposal {
+    /// One proposal on the obligation-discharged ground, offered.
+    ///
+    /// # Errors
+    ///
+    /// Refuses a row that does not carry the candidate origin arm, on the terms
+    /// [`ClaimPinnedProposal::offered`] states.
+    pub fn offered(
+        candidate: Row,
+        ground: ObligationDischargedGround,
+        duplicate: ObligationComparison,
+        destination: ProposalDestination,
+    ) -> Result<Self, ProposalRefusal> {
+        let _candidate = candidate_facts(&candidate)?;
+        Ok(Self {
+            candidate,
+            ground,
+            duplicate,
+            destination,
+        })
+    }
+
+    /// The ground it stands on.
+    #[must_use]
+    pub const fn ground(&self) -> &ObligationDischargedGround {
+        &self.ground
+    }
+
+    /// The evidence it is not a duplicate.
+    #[must_use]
+    pub const fn duplicate(&self) -> &ObligationComparison {
+        &self.duplicate
+    }
+}
+
+impl sealed::Sealed for MutantKilledProposal {}
+impl sealed::Sealed for ClaimPinnedProposal {}
+impl sealed::Sealed for ObligationDischargedProposal {}
+
+impl ProposalDocument for MutantKilledProposal {
+    fn candidate(&self) -> &Row {
+        &self.candidate
+    }
+
+    fn ground_summary(&self) -> AdmissionGround {
         AdmissionGround::from(&self.ground)
     }
 
-    /// The proposal's content identity — permanent provenance.
-    ///
-    /// # The specification
-    ///
-    /// Two primitives: `u32be(n)`, and `bytes(x)` — `u64be(len(x))` followed by
-    /// the bytes of `x`.
-    ///
-    /// The members, in exactly this order:
-    ///
-    /// | # | member | encoding |
-    /// | - | ------ | -------- |
-    /// | 1 | encoding version | `u32be` |
-    /// | 2 | candidate row | `bytes(…)` of the descriptor home's canonical row bytes |
-    /// | 3 | ground | one byte, [`AdmissionGround::slot`] |
-    /// | 4 | destination namespace | `bytes(utf8)` |
-    /// | 5 | destination stem | `bytes(utf8)` |
-    ///
-    /// # Nonclaims
-    ///
-    /// The evidence is deliberately absent: the replay capsule, the
-    /// demonstration, and the duplicate comparison are what STANDS BEHIND the
-    /// proposal rather than what it proposes. Two offers of one row on one
-    /// ground into one destination therefore share an identity by design, which
-    /// is what makes an admitted origin's citation stable across a rerun.
-    ///
-    /// # Authority
-    ///
-    /// Total. The candidate row's canonical bytes were written where that row
-    /// was born, so this road reads them rather than encoding a row a second
-    /// time, and there is no shape of this call in which a proposal holds a row
-    /// it cannot name.
-    #[must_use]
-    pub fn identity(&self) -> ProposalId {
-        let mut preimage = Vec::new();
-        preimage.extend_from_slice(&PROPOSAL_ENCODING_VERSION.to_be_bytes());
-        encode_bytes(self.candidate.canonical_bytes().as_bytes(), &mut preimage);
-        preimage.push(self.ground_summary().slot());
-        let suite = self.destination.suite().name();
-        encode_bytes(suite.namespace().written().as_bytes(), &mut preimage);
-        encode_bytes(suite.stem().written().as_bytes(), &mut preimage);
-        ProposalId::over(ContentAddress::derived(PROPOSAL_TAG, &preimage))
+    fn destination(&self) -> ProposalDestination {
+        self.destination
     }
+
+    fn identity(&self) -> ProposalId {
+        proposal_identity(&self.candidate, self.ground_summary(), self.destination)
+    }
+}
+
+impl ProposalDocument for ClaimPinnedProposal {
+    fn candidate(&self) -> &Row {
+        &self.candidate
+    }
+
+    fn ground_summary(&self) -> AdmissionGround {
+        AdmissionGround::from(&self.ground)
+    }
+
+    fn destination(&self) -> ProposalDestination {
+        self.destination
+    }
+
+    fn identity(&self) -> ProposalId {
+        proposal_identity(&self.candidate, self.ground_summary(), self.destination)
+    }
+}
+
+impl ProposalDocument for ObligationDischargedProposal {
+    fn candidate(&self) -> &Row {
+        &self.candidate
+    }
+
+    fn ground_summary(&self) -> AdmissionGround {
+        AdmissionGround::from(&self.ground)
+    }
+
+    fn destination(&self) -> ProposalDestination {
+        self.destination
+    }
+
+    fn identity(&self) -> ProposalId {
+        proposal_identity(&self.candidate, self.ground_summary(), self.destination)
+    }
+}
+
+/// The one road every proposal's identity is derived by, over the three
+/// readings the three of them share.
+///
+/// # Authority
+///
+/// Total. The candidate row's canonical bytes were written where that row was
+/// born, so this road reads them rather than encoding a row a second time, and
+/// there is no shape of this call in which a proposal holds a row it cannot
+/// name.
+///
+/// Written once rather than per proposal: three copies of one preimage agree
+/// until one of them is edited, and the specification this composes is stated on
+/// [`ProposalDocument::identity`] where a reader looks for it.
+fn proposal_identity(
+    candidate: &Row,
+    ground: AdmissionGround,
+    destination: ProposalDestination,
+) -> ProposalId {
+    let mut preimage = Vec::new();
+    preimage.extend_from_slice(&PROPOSAL_ENCODING_VERSION.to_be_bytes());
+    encode_bytes(candidate.canonical_bytes().as_bytes(), &mut preimage);
+    preimage.push(ground.slot());
+    let suite = destination.suite().name();
+    encode_bytes(suite.namespace().written().as_bytes(), &mut preimage);
+    encode_bytes(suite.stem().written().as_bytes(), &mut preimage);
+    ProposalId::over(ContentAddress::derived(PROPOSAL_TAG, &preimage))
 }
 
 /// The synthesis facts a candidate row carries, or the refusal it earns.
@@ -1996,46 +2212,19 @@ fn candidate_facts(candidate: &Row) -> Result<SynthesisFacts, ProposalRefusal> {
     }
 }
 
-/// Whether the duplicate evidence is the comparison the ground owes.
-fn evidence_fits_ground(
-    ground: &ProposalGround,
-    duplicate: &DuplicateEvidence,
-) -> Result<(), ProposalRefusal> {
-    match (ground, duplicate) {
-        (ProposalGround::MutantKilled { .. }, DuplicateEvidence::FailureCompared { .. })
-        | (ProposalGround::ClaimPinned { .. }, DuplicateEvidence::NotApplicable { .. })
-        | (
-            ProposalGround::ObligationDischarged { .. },
-            DuplicateEvidence::ObligationCompared { .. },
-        ) => Ok(()),
-        (
-            ProposalGround::MutantKilled { .. },
-            DuplicateEvidence::ObligationCompared { .. } | DuplicateEvidence::NotApplicable { .. },
-        )
-        | (
-            ProposalGround::ClaimPinned { .. },
-            DuplicateEvidence::FailureCompared { .. }
-            | DuplicateEvidence::ObligationCompared { .. },
-        )
-        | (
-            ProposalGround::ObligationDischarged { .. },
-            DuplicateEvidence::FailureCompared { .. } | DuplicateEvidence::NotApplicable { .. },
-        ) => Err(ProposalRefusal::EvidenceDoesNotMatchGround),
-    }
-}
-
 /// Whether the row's survivor point and the ground's target name one point.
 ///
 /// The check is possible only where both name a point: an external target names
 /// a coordinate, and a proof-gap synthesis names no point at all.
+///
+/// It takes the TARGET rather than a ground, because the target is the whole of
+/// what it reads and only one ground has one — so the two grounds that name no
+/// point do not call this and have no arm here to fall through.
 fn survivor_point_agrees(
     facts: SynthesisFacts,
-    ground: &ProposalGround,
+    target: &MutationTarget,
 ) -> Result<(), ProposalRefusal> {
     let SynthesisFacts::Survivor(synthesis) = facts else {
-        return Ok(());
-    };
-    let ProposalGround::MutantKilled { target, .. } = ground else {
         return Ok(());
     };
     let Some(point) = target.identity().point() else {
@@ -2069,20 +2258,5 @@ impl StoredProposalRef {
     #[must_use]
     pub fn token(&self) -> &str {
         &self.token
-    }
-}
-
-impl ProposalGround {
-    /// The replay capsule this ground carries, where it carries one.
-    ///
-    /// A discharge ground authors no capsule at all — the admitted row is the
-    /// discharge's permanent record — which is why this is a reading over the
-    /// arms rather than a field every ground would have to leave empty.
-    #[must_use]
-    pub const fn capsule(&self) -> Option<&ReplayCapsule> {
-        match self {
-            Self::MutantKilled { capsule, .. } | Self::ClaimPinned { capsule, .. } => Some(capsule),
-            Self::ObligationDischarged { .. } => None,
-        }
     }
 }
