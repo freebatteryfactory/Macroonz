@@ -32,15 +32,19 @@ use super::{
 use crate::descriptor::encode::{
     encode_generated_support_schema, encode_row_content, encode_trial_coordinates,
 };
-use crate::identity::{ContentAddress, DomainTag};
+use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use std::collections::BTreeSet;
 
 /// The domain this home declares for the generated-support schema identity.
 ///
-/// The tag is this kind's segment of the derivation context; the profile stem
-/// and its version are the identity substrate's. Two kinds derived over
-/// identical preimages under different tags are unrelated values.
-const GENERATED_SUPPORT_SCHEMA_DOMAIN: DomainTag = DomainTag::declared("generated-support-schema");
+/// The tag is this kind's segment of the derivation context and carries this
+/// family's own position; the profile stem is the identity substrate's. Two
+/// kinds derived over identical preimages under different tags are unrelated
+/// values.
+const GENERATED_SUPPORT_SCHEMA_DOMAIN: DomainTag = DomainTag::declared(
+    "generated-support-schema",
+    IdentityProfileVersion::declared(1),
+);
 
 /// The domain this home declares for a trial key.
 ///
@@ -48,7 +52,8 @@ const GENERATED_SUPPORT_SCHEMA_DOMAIN: DomainTag = DomainTag::declared("generate
 /// coordinates and a row's seven fields are different preimages answering
 /// different questions, and two kinds derived under one tag would be reachable
 /// from each other's bytes.
-const TRIAL_KEY_DOMAIN: DomainTag = DomainTag::declared("trial-key");
+const TRIAL_KEY_DOMAIN: DomainTag =
+    DomainTag::declared("trial-key", IdentityProfileVersion::declared(1));
 
 impl Namespace {
     /// The owner one authored text declares.

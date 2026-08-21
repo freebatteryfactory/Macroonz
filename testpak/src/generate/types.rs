@@ -16,7 +16,7 @@
 //! BINDS those values, and what they mean is written where they are declared.
 
 use crate::descriptor::{NamespacedName, PopulationRef};
-use crate::identity::{ContentAddress, DomainTag};
+use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use crate::report::{ByteBudget, CaseBudget, Fingerprint, GenerationProfile, MinimizationProfile};
 use arbitrary::Unstructured;
 use std::collections::BTreeSet;
@@ -246,14 +246,20 @@ pub enum GenerationPlanRefusal {
 // ---------------------------------------------------------------------------
 
 /// The domain tag every generation byte-source address is derived under.
-pub const GENERATION_SOURCE_TAG: DomainTag = DomainTag::declared("generation-byte-source");
+pub const GENERATION_SOURCE_TAG: DomainTag = DomainTag::declared(
+    "generation-byte-source",
+    IdentityProfileVersion::declared(1),
+);
 
 /// The domain tag every derived stream chunk is derived under.
 ///
 /// Its own tag rather than the address's: an address and a chunk are different
 /// kinds, and two kinds derived over preimages that could coincide must not
 /// share a derivation context.
-pub const GENERATION_CHUNK_TAG: DomainTag = DomainTag::declared("generation-stream-chunk");
+pub const GENERATION_CHUNK_TAG: DomainTag = DomainTag::declared(
+    "generation-stream-chunk",
+    IdentityProfileVersion::declared(1),
+);
 
 /// How many bytes one chunk of a byte stream carries.
 ///

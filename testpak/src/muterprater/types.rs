@@ -27,7 +27,7 @@ use crate::descriptor::{
     NameRefusal, NamespacedName, PopulationRef, ProposalId, Row, RowRefusal, StagedTableRefusal,
     SubjectRoute,
 };
-use crate::identity::{ContentAddress, DomainTag};
+use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use crate::properties::SubstrateRefusal;
 use crate::report::{
     ClaimExercise, ExecutionKey, Fingerprint, ForeignText, InvocationProfile, ReplayCapsule,
@@ -161,7 +161,8 @@ pub enum EquivalenceAxis {
 // ---------------------------------------------------------------------------
 
 /// The domain tag every external mutant identity is derived under.
-pub const MUTATION_TARGET_TAG: DomainTag = DomainTag::declared("mutation-target");
+pub const MUTATION_TARGET_TAG: DomainTag =
+    DomainTag::declared("mutation-target", IdentityProfileVersion::declared(1));
 
 /// Where in a source text an external backend placed one damage.
 ///
@@ -1910,7 +1911,8 @@ pub struct ProposalDestination {
 }
 
 /// The domain tag every proposal identity is derived under.
-pub const PROPOSAL_TAG: DomainTag = DomainTag::declared("proposal");
+pub const PROPOSAL_TAG: DomainTag =
+    DomainTag::declared("proposal", IdentityProfileVersion::declared(1));
 
 /// What every proposal is, whichever ground it stands on: a candidate row, a
 /// ground word an admission act can state, a destination, and the identity those

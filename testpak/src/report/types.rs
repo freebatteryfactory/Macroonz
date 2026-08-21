@@ -9,7 +9,7 @@
 use crate::descriptor::{
     AuthoredTableName, ClaimRef, GeneratedSupportSchemaId, TablePosture, TrialKey,
 };
-use crate::identity::{ContentAddress, DomainTag};
+use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -66,17 +66,19 @@ pub struct ProfiledTrial {
 }
 
 /// The domain tag every trial identity is derived under.
-pub const TRIAL_IDENTITY_TAG: DomainTag = DomainTag::declared("trial-identity");
+pub const TRIAL_IDENTITY_TAG: DomainTag =
+    DomainTag::declared("trial-identity", IdentityProfileVersion::declared(1));
 
 /// One trial's semantic identity.
 ///
 /// # Authority
 ///
 /// Holding one means the harness derived these thirty-two bytes from a complete
-/// [`TrialCoordinates`] under [`TRIAL_IDENTITY_TAG`], and would derive the same
-/// ones again from the same coordinates anywhere. Two rows with one identity
-/// are two spellings of one measurement, which is why the table constructor
-/// refuses the pair.
+/// [`ProfiledTrial`] under [`TRIAL_IDENTITY_TAG`], and would derive the same
+/// ones again from the same key under the same profile anywhere. The four
+/// coordinates behind that key reach this identity through the key and never
+/// beside it. Two rows with one identity are two spellings of one measurement,
+/// which is why the table constructor refuses the pair.
 ///
 /// # Nonclaims
 ///
@@ -104,7 +106,8 @@ pub struct TrialSite {
 // ---------------------------------------------------------------------------
 
 /// The domain tag every row revision identity is derived under.
-pub const ROW_REVISION_TAG: DomainTag = DomainTag::declared("row-revision");
+pub const ROW_REVISION_TAG: DomainTag =
+    DomainTag::declared("row-revision", IdentityProfileVersion::declared(1));
 
 /// The identity of one complete authored row.
 ///
@@ -205,7 +208,8 @@ pub struct InvocationProfile {
 }
 
 /// The domain tag every execution key is derived under.
-pub const EXECUTION_KEY_TAG: DomainTag = DomainTag::declared("execution-key");
+pub const EXECUTION_KEY_TAG: DomainTag =
+    DomainTag::declared("execution-key", IdentityProfileVersion::declared(1));
 
 /// What one execution of one trial was actually keyed by.
 ///
@@ -301,7 +305,8 @@ pub struct MinimizationProfile {
 }
 
 /// The domain tag every replay capsule identity is derived under.
-pub const REPLAY_CAPSULE_TAG: DomainTag = DomainTag::declared("replay-capsule");
+pub const REPLAY_CAPSULE_TAG: DomainTag =
+    DomainTag::declared("replay-capsule", IdentityProfileVersion::declared(1));
 
 /// One reproduction account: everything a second run needs, and the ceiling of
 /// what reproducing it proves.
@@ -440,7 +445,8 @@ pub enum TrialConclusion {
 }
 
 /// The domain tag every failure fingerprint is derived under.
-pub const FINGERPRINT_TAG: DomainTag = DomainTag::declared("failure-fingerprint");
+pub const FINGERPRINT_TAG: DomainTag =
+    DomainTag::declared("failure-fingerprint", IdentityProfileVersion::declared(1));
 
 /// One failure's identity: the trial's semantic identity joined with the typed
 /// cause and the normalized failure class.

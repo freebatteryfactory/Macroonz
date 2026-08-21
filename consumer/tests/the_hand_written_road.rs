@@ -33,7 +33,7 @@ use harness::descriptor::{
     CheckRef, ClaimRef, Classification, ExecutableAttachment, ExecutionSuite, Origin,
     PopulationRef, RevisionBinding, Role, Row, SubjectRoute, Tag, TrialTableRefusal,
 };
-use harness::identity::{ContentAddress, DomainTag};
+use harness::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use harness::properties::{Agreement, PoisonResponse};
 use harness::report::{FindingCause, TrialConclusion};
 use harness::runner::{Invocation, TrialCall};
@@ -54,7 +54,10 @@ const CONSUMER: &str = "consumer";
 ///
 /// Declared by the home that owns the kind, which here is this test target: the
 /// harness's identity substrate knows nothing about what is being named.
-const REVISION_TAG: DomainTag = DomainTag::declared("consumer-hand-revision");
+const REVISION_TAG: DomainTag = DomainTag::declared(
+    "consumer-hand-revision",
+    IdentityProfileVersion::declared(1),
+);
 
 /// The subject revision this consumer commits to by hand.
 const SUBJECT_REVISION: &[u8] = b"threadpak-consumer/lot-counted/r1";

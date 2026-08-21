@@ -49,7 +49,7 @@ use harness::descriptor::{
     CheckRef, ClaimRef, Classification, ExecutableAttachment, ExecutionSuite, Origin,
     PopulationRef, RevisionBinding, Role, Row, SubjectRoute, Tag, TrialTableRefusal,
 };
-use harness::identity::{ContentAddress, DomainTag};
+use harness::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use harness::properties::Agreement;
 use harness::report::{FindingCause, TrialConclusion};
 use harness::runner::{Invocation, TrialCall};
@@ -70,7 +70,10 @@ const CONSUMER: &str = "consumer";
 ///
 /// Its own, and not the hand road's: two files committing to revisions of two
 /// different subjects under one domain derive addresses nobody can tell apart.
-const REVISION_TAG: DomainTag = DomainTag::declared("consumer-derived-revision");
+const REVISION_TAG: DomainTag = DomainTag::declared(
+    "consumer-derived-revision",
+    IdentityProfileVersion::declared(1),
+);
 
 /// The subject revision this consumer commits to by hand.
 const SUBJECT_REVISION: &[u8] = b"threadpak-consumer/refusal-family-declarations/r1";
