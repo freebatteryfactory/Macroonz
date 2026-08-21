@@ -78,15 +78,8 @@ impl OriginTrail {
 
     /// The number of edges drawn; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.edges.len()
-    }
-
-    /// Always `false`: a trail holds at least one edge.
-    /// The constant answer is the orphan law stated as a method.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.edges.is_empty()
     }
 
     /// The edges, in the order the trail walks them.
@@ -164,14 +157,8 @@ impl DecisionTrace {
 
     /// The number of entries recorded; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.entries.len()
-    }
-
-    /// Always `false`: a plan that decided nothing is not a plan.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.entries.is_empty()
     }
 
     /// The entries, in selection order.

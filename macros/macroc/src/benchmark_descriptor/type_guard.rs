@@ -74,14 +74,8 @@ impl WorkFormula {
 
     /// How many bytes the formula carries; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.encoded.len()
-    }
-
-    /// Always `false`: a formula carrying no bytes is refused at its door.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.encoded.is_empty()
     }
 }
 
@@ -192,14 +186,8 @@ impl BenchRow {
 
     /// How many points the axis states; structurally at least two.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.axis.len()
-    }
-
-    /// Always `false`: an axis of fewer than two points is refused at its door.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.axis.is_empty()
     }
 
     /// What this row declares about how it is measured.
@@ -282,14 +270,8 @@ impl BenchTablePayload {
 
     /// How many rows this table declares; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.rows.len()
-    }
-
-    /// Always `false`: a table declaring no row is unrepresentable.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.rows.is_empty()
     }
 }
 

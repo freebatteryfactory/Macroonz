@@ -159,13 +159,7 @@ impl CompositionRoot {
 
     /// The number of providers declared; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.providers.len()
-    }
-
-    /// Always `false`: a root with no provider is unrepresentable.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.providers.is_empty()
     }
 }

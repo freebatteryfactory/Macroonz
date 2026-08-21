@@ -98,18 +98,8 @@ impl WrapperTypePath {
 
     /// How many segments the path carries; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.segments.len()
-    }
-
-    /// Always `false`: a path with no segment is unrepresentable.
-    #[must_use]
-    #[expect(
-        clippy::unused_self,
-        reason = "the receiver is the question's subject, not its source: the seat is structurally non-empty, so the answer is settled where the value is made and an associated function would split the len/is_empty pair a caller reaches for"
-    )]
-    pub const fn is_empty(&self) -> bool {
-        false
     }
 }
 
@@ -256,18 +246,8 @@ impl WrapperShape {
 
     /// How many stages the shape declares; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.stages.len()
-    }
-
-    /// Always `false`: a shape with no stage is unrepresentable.
-    #[must_use]
-    #[expect(
-        clippy::unused_self,
-        reason = "the receiver is the question's subject, not its source: the seat is structurally non-empty, so the answer is settled where the value is made and an associated function would split the len/is_empty pair a caller reaches for"
-    )]
-    pub const fn is_empty(&self) -> bool {
-        false
     }
 }
 

@@ -166,18 +166,8 @@ impl DocumentedSection {
 
     /// How many lines the section carries; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.lines.len()
-    }
-
-    /// Always `false`: a section with no line is unrepresentable.
-    #[must_use]
-    #[expect(
-        clippy::unused_self,
-        reason = "the receiver is the question's subject, not its source: the seat is structurally non-empty, so the answer is settled where the value is made and an associated function would split the len/is_empty pair a caller reaches for"
-    )]
-    pub const fn is_empty(&self) -> bool {
-        false
     }
 }
 

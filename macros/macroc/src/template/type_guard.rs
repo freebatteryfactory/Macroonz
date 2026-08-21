@@ -214,14 +214,8 @@ impl ProfileCeiling {
 
     /// The number of axes bounded — the roster's cardinality, by construction.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.axes.len()
-    }
-
-    /// Always `false`: a ceiling covers every axis or does not exist.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.axes.is_empty()
     }
 }
 

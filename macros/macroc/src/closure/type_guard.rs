@@ -351,14 +351,8 @@ impl<R: RenderedRole> RenderedProjection<R> {
 
     /// How many units were rendered; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.units.len()
-    }
-
-    /// Always `false`: an empty rendering is unrepresentable.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.units.is_empty()
     }
 
     /// The one unit rendered under a role, where exactly one was.

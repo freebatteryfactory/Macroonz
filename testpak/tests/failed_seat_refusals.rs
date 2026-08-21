@@ -90,9 +90,9 @@ fn level_and_bytes(identity: RelatedIdentity) -> (u8, [u8; 32]) {
 #[test]
 fn the_lawful_road_binds_every_required_seat() {
     assert!(lawful().is_ok_and(|closed| {
-        closed.plan().membership().len() == DECLARED_ROLE_COUNT
-            && closed.rendered().len() == DECLARED_ROLE_COUNT
-            && closed.closure().reconstructed().len() == DECLARED_ROLE_COUNT
+        closed.plan().membership().count() == DECLARED_ROLE_COUNT
+            && closed.rendered().count() == DECLARED_ROLE_COUNT
+            && closed.closure().reconstructed().count() == DECLARED_ROLE_COUNT
             && closed.explanation().len() == 9
             && closed
                 .emitted()
@@ -123,7 +123,7 @@ fn a_shortened_complete_set_proves_a_smaller_claim() {
         family.is_some_and(|member| {
             let shortened = PlannedMembership::complete(member, []);
             let smaller =
-                shortened.len() == 1 && closed.plan().membership().len() == DECLARED_ROLE_COUNT;
+                shortened.count() == 1 && closed.plan().membership().count() == DECLARED_ROLE_COUNT;
             let refused = ProjectionClosure::proved(
                 closed.plan().identity(),
                 &shortened,

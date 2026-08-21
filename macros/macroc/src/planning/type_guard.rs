@@ -504,14 +504,8 @@ impl<R: RenderedRole> PlannedMembership<R> {
 
     /// The number of members declared; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.members.len()
-    }
-
-    /// Always `false`: a plan declaring no output is unrepresentable.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.members.is_empty()
     }
 
     /// Read the declared members, the guaranteed first one ahead of the rest.
@@ -862,13 +856,7 @@ impl ProjectionBundlePlan {
 
     /// The number of member plans; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.members.len()
-    }
-
-    /// Always `false`: an empty bundle is unrepresentable.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.members.is_empty()
     }
 }

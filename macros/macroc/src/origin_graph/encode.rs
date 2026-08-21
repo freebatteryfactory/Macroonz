@@ -25,7 +25,7 @@ impl OriginTrail {
     /// Append this trail's canonical bytes: the edge count, then every edge in
     /// walk order.
     pub fn encode_into(&self, into: &mut Vec<u8>) {
-        encode_length(self.len(), into);
+        encode_length(self.count(), into);
         for edge in self.iter() {
             edge.encode_into(into);
         }
@@ -58,7 +58,7 @@ impl DecisionTrace {
     /// Append this trace's canonical bytes: the entry count, then every entry in
     /// selection order.
     pub fn encode_into(&self, into: &mut Vec<u8>) {
-        encode_length(self.len(), into);
+        encode_length(self.count(), into);
         for entry in self.iter() {
             entry.encode_into(into);
         }

@@ -134,14 +134,8 @@ impl BoundPath {
 
     /// How many segments follow the crate binding; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.segments.len()
-    }
-
-    /// Always `false`: a path naming no segment is unrepresentable.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.segments.is_empty()
     }
 }
 
@@ -303,14 +297,8 @@ impl SuiteGroup {
 
     /// How many rows this seat declares; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.rows.len()
-    }
-
-    /// Always `false`: a seat over no row is unrepresentable.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.rows.is_empty()
     }
 }
 
@@ -388,14 +376,8 @@ impl TrialTablePayload {
 
     /// How many aggregate seats this payload declares; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.groups.len()
-    }
-
-    /// Always `false`: a payload declaring no seat is unrepresentable.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.groups.is_empty()
     }
 }
 

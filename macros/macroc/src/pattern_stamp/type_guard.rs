@@ -80,14 +80,8 @@ impl SeatPath {
 
     /// How many segments the path carries; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.segments.len()
-    }
-
-    /// Always `false`: a path naming no segment is unrepresentable.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.segments.is_empty()
     }
 }
 
@@ -279,14 +273,8 @@ impl StampCoverage {
 
     /// How many seats this coverage declares; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.seats.len()
-    }
-
-    /// Always `false`: a coverage declaring no seat is unrepresentable.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.seats.is_empty()
     }
 }
 
@@ -474,15 +462,8 @@ impl PublishedSeatStamp {
 
     /// How many seatings this artifact carries; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.seatings.len()
-    }
-
-    /// Always `false`: an artifact covering no seat is unrepresentable, because
-    /// the coverage it is rendered from is structurally non-empty.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.seatings.is_empty()
     }
 
     /// This side's record of the publication act, in the machine receipt's field
