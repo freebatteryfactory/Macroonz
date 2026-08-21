@@ -54,10 +54,15 @@ into campaigns), `corpus/` (warm starts into the fuzz lane), the benches
 
 ## The dependency direction
 
-testpak depends inward — on `threadpak`, `threadpak-macroc`, and
-`threadpak-macros`, all as dev-dependencies reached only from `tests/` — and
-nothing depends on testpak. Production never depends on its judge. It is
-never published onto a production dependency path.
+testpak's production library is standalone: `arbitrary`, `blake3`, and `syn`,
+and no crate of this workspace. It depends inward — on `threadpak`,
+`threadpak-macroc`, and `threadpak-macros` — only as dev-dependencies reached
+from `tests/`, where its own qualification runs.
+
+Nothing in production depends on testpak. Production never depends on its
+judge, and it is never published onto a production dependency path. The
+consumer crate dev-depends on it under a rename, which is a road that proves
+the public surface rather than one that ships.
 
 Outside-consumer parity has its crate: `consumer/` is a workspace member
 that renames BOTH crates (`tp` for the machine, `harness` for this one),
@@ -174,9 +179,9 @@ root manifest's `[workspace.dependencies]` table. What this package owes is
 the reason it reaches for each mechanism.
 
 **`arbitrary`, for generation** — admitted with the instruments that consume
-it: the shared vocabulary for structure-aware input generation, derivable for
-closed algebraic types, and the same vocabulary a coverage-guided fuzzer
-consumes.
+it: the shared vocabulary for structure-aware input generation — the trait
+alone, with no derive feature admitted — and the same vocabulary a
+coverage-guided fuzzer consumes.
 
 **`syn`, for the structural oracle.** Whether an artifact DECLARES an
 implementation, what it targets, and whether a constant is a member of it are

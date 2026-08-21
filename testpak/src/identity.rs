@@ -28,9 +28,9 @@
 /// One kind's declared derivation domain.
 ///
 /// The tag is a segment of the derive-key context, so two kinds derived over
-/// identical preimages never share an address. Changing a kind's spelling
-/// renames every address that kind ever derived, which is a profile version
-/// bump and never an edit.
+/// identical preimages never share an address. It carries its family's own
+/// position beside the spelling, and the terms that position moves on are
+/// stated on [`IdentityProfileVersion`].
 ///
 /// # Bounds
 ///
@@ -38,7 +38,7 @@
 /// spelling is a compile-time literal written by the owning home, so the
 /// grammar is a declaration discipline rather than a runtime check: there is no
 /// road here that reads a tag from data.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DomainTag {
     spelling: &'static str,
     version: IdentityProfileVersion,
@@ -92,8 +92,9 @@ impl DomainTag {
 /// from that point a change to what the family's transcript contains moves that
 /// family's position and no other's.
 ///
-/// There is no `Ord`: positions are not ranked, they are matched.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+/// There is no `Ord`: positions are not ranked, they are matched. A later
+/// position is not a better one, and nothing here sorts by it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct IdentityProfileVersion(u32);
 
 impl IdentityProfileVersion {
@@ -182,8 +183,8 @@ pub const HARNESS_IDENTITY_PROFILE: IdentityProfile =
 /// # Authority
 ///
 /// Collision resistance is claimed AS BLAKE3's, over the preimage the minting
-/// home wrote, under the [`DomainTag`] that home declared, and at the version
-/// [`HARNESS_IDENTITY_PROFILE`] pins — and nothing broader. Finding two
+/// home wrote, under the [`DomainTag`] that home declared, at the position that
+/// tag carries ([`DomainTag::version`]) — and nothing broader. Finding two
 /// different preimages under one tag that derive one address is as hard as
 /// finding a BLAKE3 collision.
 ///

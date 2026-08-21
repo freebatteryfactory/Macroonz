@@ -16,12 +16,13 @@ workspace = true
 # `arbitrary` and `blake3` — and the third is a lodger whose exit condition is
 # stated with it. All are admitted by the notes in README.md and inherited from
 # the root manifest's `[workspace.dependencies]` table rather than restated here.
-# The generation vocabulary: structure-aware input generation, derivable.
+# The generation vocabulary: structure-aware input generation, the trait alone.
 arbitrary = { workspace = true }
 # The family identity substrate: schema identity, revision identities,
 # fingerprints, replay-capsule and proposal identities, the execution key and
-# its rerun-cache keys, seed-pack content addresses — one domain-separated,
-# versioned profile, and no identity island. The independent transcript lane
+# its rerun-cache keys, seed-pack content addresses — one mechanism under one
+# shared stem, with an independently positioned domain per preimage family, and
+# no identity island. The independent transcript lane
 # hashes with the same admitted mechanism the services do — a lane that
 # reimplemented BLAKE3 would be testing an arithmetic exercise rather than a
 # specification; the two crates differ in what they ENCODE and in nothing else.

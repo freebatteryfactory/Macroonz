@@ -32,8 +32,8 @@ pin an exact ThreadPak revision; the machine never knows which host is running i
   or an inventory of the forbidden and the pending:
   what cannot happen is carried by the type that makes it unwritable.
   A dead decision leaves the tree; git history is its only tombstone.
-  This file and the construction-phase rule pack are the two exceptions,
-  because they address the author rather than the machine.
+  This file is the one exception, because it addresses the author rather than
+  the machine.
   A working law states prohibitions, and retires them when they stop being true.
 - Numbered directories are dependency bands: band N imports only bands lower than N.
   Numbers live on directories only; module names stay clean via `#[path]`.
@@ -53,9 +53,13 @@ pin an exact ThreadPak revision; the machine never knows which host is running i
   - `type_contract.rs` — declarative trait implementations: refusal families, identity
     roles, register participation.
 
-  Everything else is a role-named pure-function module — `validate.rs`, `encode.rs`,
-  `decode.rs`, `project.rs`, `transition.rs` — consuming types already informed, so no
-  function re-establishes what its argument's type already promised. A file about types
+  Everything else is a role-named pure-function module — `encode.rs`, `decode.rs`,
+  `project.rs`, `transition.rs` — consuming types already informed, so no
+  function re-establishes what its argument's type already promised.
+  There is no `validate.rs` role: a check over raw input returns an informed type
+  or a refusal, and never a boolean that leaves the unchecked input standing.
+  A predicate over an already-informed value stays lawful where yes and no are
+  the complete answer. A file about types
   takes the `type_` prefix and sorts beside `types.rs`; sort order is reading order.
   Files exist only when they have content.
 - A reserved architectural coordinate is a directory carrying exactly one README that
@@ -179,8 +183,10 @@ agent edits code to silence a finding.
   declared input: no network, no filesystem scan, no environment, no clock, no entropy.
   Composition is proven from an outside consumer that compiles against the public
   road, never from inside a participant.
-- testpak depends inward on core; nothing depends on testpak. Production never depends
-  on its judge.
+- testpak's production library is standalone. Its qualification targets depend inward
+  on the machine and the generation services; the consumer crate dev-depends on testpak
+  under a rename. Production never depends on its judge, and a consumer proving the
+  public road is not production.
 - Probes (throwaway compiler experiments) never enter this repository.
 - LF everywhere; no symlinks; no `build.rs`.
 - Semantic compilation, projection, identity construction, and generated meaning are
