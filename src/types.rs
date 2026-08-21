@@ -696,6 +696,10 @@ impl<T, L: Limit> NonEmptyBounded<T, L> {
     /// Present because the `len`/`is_empty` pair is conventional; the
     /// constant answer *is* the law.
     #[must_use]
+    #[expect(
+        clippy::unused_self,
+        reason = "the receiver is the question's subject, not its source: non-emptiness is settled by the shape and never by the value, and an associated function would split the len/is_empty pair so that one of them is asked of a value and the other of a type"
+    )]
     pub fn is_empty(&self) -> bool {
         false
     }
