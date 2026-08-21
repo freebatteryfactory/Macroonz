@@ -222,7 +222,7 @@ pub struct SpanResolutionRefusal {
     pub handle: SpanHandle,
     /// How many positions the table carries.
     /// A handle at or past this index names no position in it.
-    pub reaches: u32,
+    pub reaches: usize,
 }
 
 /// How a producer answers "where is the token this handle names?".

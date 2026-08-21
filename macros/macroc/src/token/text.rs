@@ -88,10 +88,20 @@ type Characters<'source> = core::iter::Peekable<core::str::CharIndices<'source>>
 
 impl TextReader {
     /// Issue the next handle for a token starting at one byte offset.
-    fn issue(&mut self, at: u64) -> SpanHandle {
-        let index = u32::try_from(self.offsets.len()).unwrap_or(u32::MAX);
+    ///
+    /// # Errors
+    ///
+    /// Refuses where the table has already run past the width a handle is
+    /// carried in. An index that saturated instead would hand two tokens one
+    /// handle, and a handle naming two tokens resolves to whichever the table
+    /// reaches first — a position indistinguishable from an honest answer.
+    fn issue(&mut self, at: u64) -> Result<SpanHandle, TextReadRefusal> {
+        let index = u32::try_from(self.offsets.len()).map_err(|_| TextReadRefusal {
+            cause: TextReadCause::Unbounded(CaptureBound::TreeUnbounded),
+            at,
+        })?;
         self.offsets.push(at);
-        SpanHandle::at(index)
+        Ok(SpanHandle::at(index))
     }
 
     /// Read the tokens of one group, stopping at `closing` where one is given.
@@ -164,7 +174,7 @@ impl TextReader {
         path: TokenPath,
     ) -> Result<CapturedTokenTree, TextReadRefusal> {
         if let Some((delimiter, closes)) = opening(character) {
-            let span = self.issue(at);
+            let span = self.issue(at)?;
             let _consumed = characters.next();
             let inner = self.read_group(characters, Some((closes, at)), &path)?;
             let trees = Bounded::admitted_const(
@@ -182,7 +192,7 @@ impl TextReader {
             ));
         }
         if character.is_alphabetic() || character == '_' {
-            let span = self.issue(at);
+            let span = self.issue(at)?;
             let word = read_run(characters, |next| next.is_alphanumeric() || next == '_');
             return Ok(CapturedTokenTree::captured(
                 CapturedPayload::Word(word),
@@ -191,7 +201,7 @@ impl TextReader {
             ));
         }
         if character.is_ascii_digit() {
-            let span = self.issue(at);
+            let span = self.issue(at)?;
             let number = read_run(characters, |next| {
                 next.is_alphanumeric() || next == '_' || next == '.'
             });
@@ -202,7 +212,7 @@ impl TextReader {
             ));
         }
         if character == '"' {
-            let span = self.issue(at);
+            let span = self.issue(at)?;
             let _consumed = characters.next();
             let text = read_quoted(characters, at)?;
             return Ok(CapturedTokenTree::captured(
@@ -211,7 +221,7 @@ impl TextReader {
                 span,
             ));
         }
-        let span = self.issue(at);
+        let span = self.issue(at)?;
         let _consumed = characters.next();
         Ok(CapturedTokenTree::captured(
             CapturedPayload::Punct(character),
