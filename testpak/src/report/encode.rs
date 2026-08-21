@@ -42,8 +42,8 @@ pub fn encode_bytes(material: &[u8], into: &mut Vec<u8>) {
 /// Two framed members rather than a joined spelling, so no pair of namespace
 /// and stem can be re-cut into a different pair that encodes identically.
 fn encode_name(name: NamespacedName, into: &mut Vec<u8>) {
-    encode_bytes(name.namespace().as_bytes(), into);
-    encode_bytes(name.stem().as_bytes(), into);
+    encode_bytes(name.namespace().written().as_bytes(), into);
+    encode_bytes(name.stem().written().as_bytes(), into);
 }
 
 impl TrialProfile {

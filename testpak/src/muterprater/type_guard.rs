@@ -43,7 +43,7 @@ use crate::depot::operator_families::OPERATOR_FAMILIES;
 use crate::depot::types::OperatorFamily;
 use crate::descriptor::{
     AdmissionGround, CheckRef, ClaimRef, Classification, ExecutionSuite, MutationPointRef,
-    NameRefusal, NamespacedName, Origin, PopulationRef, ProposalId, Row, SubjectRoute,
+    NameRefusal, Namespace, NamespacedName, Origin, PopulationRef, ProposalId, Row, SubjectRoute,
     SynthesisFacts, TablePosture,
 };
 use crate::identity::ContentAddress;
@@ -1880,7 +1880,7 @@ impl ProposalDestination {
 
     /// The semantic owner: the suite's own namespace.
     #[must_use]
-    pub const fn owner(self) -> &'static str {
+    pub const fn owner(self) -> Namespace {
         self.suite.name().namespace()
     }
 }
@@ -1979,8 +1979,8 @@ impl Proposal {
         encode_bytes(self.candidate.canonical_bytes().as_bytes(), &mut preimage);
         preimage.push(self.ground_summary().slot());
         let suite = self.destination.suite().name();
-        encode_bytes(suite.namespace().as_bytes(), &mut preimage);
-        encode_bytes(suite.stem().as_bytes(), &mut preimage);
+        encode_bytes(suite.namespace().written().as_bytes(), &mut preimage);
+        encode_bytes(suite.stem().written().as_bytes(), &mut preimage);
         ProposalId::over(ContentAddress::derived(PROPOSAL_TAG, &preimage))
     }
 }

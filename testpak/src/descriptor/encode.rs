@@ -334,8 +334,8 @@ fn push_discharge_admission(
 
 /// One namespaced name: the namespace, then the stem, each framed.
 fn push_name(out: &mut Vec<u8>, name: NamespacedName) -> Result<(), EncodeRefusal> {
-    push_text(out, name.namespace())?;
-    push_text(out, name.stem())
+    push_text(out, name.namespace().written())?;
+    push_text(out, name.stem().written())
 }
 
 /// One content address, framed at its own length like every other

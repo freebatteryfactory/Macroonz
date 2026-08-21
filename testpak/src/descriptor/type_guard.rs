@@ -23,10 +23,11 @@ use super::{
     Classification, ClassificationRefusal, DESCRIPTOR_FIELDS, DescriptorSchema, DischargeAdmission,
     DoorRef, EncodeRefusal, ExecutableAttachment, ExecutionSuite, FieldCardinality, FieldShape,
     GeneratedSupportSchema, GeneratedSupportSchemaId, MUTATION_POINT_FIELDS, MutationPointRef,
-    MutationPointSchema, NameRefusal, NamespacedName, Origin, PopulationRef, ProducerFacts,
-    ProducerName, ProjectionRef, ProposalId, Provenance, ReplayAdmission, ReplayBearingGround,
-    ReplayRef, RevisionBinding, RevisionPosture, Role, Row, RowRefusal, SchemaField, SchemaRefusal,
-    StagedTableRefusal, StagedTableView, SubjectRoute, TablePosture, TableView, Tag, TrialKey,
+    MutationPointSchema, NameRefusal, Namespace, NamespacedName, Origin, PopulationRef,
+    ProducerFacts, ProducerName, ProjectionRef, ProposalId, Provenance, ReplayAdmission,
+    ReplayBearingGround, ReplayRef, RevisionBinding, RevisionPosture, Role, Row, RowRefusal,
+    SchemaField, SchemaRefusal, StagedTableRefusal, StagedTableView, Stem, SubjectRoute,
+    TablePosture, TableView, Tag, TrialKey,
 };
 use crate::descriptor::encode::{encode_generated_support_schema, encode_row_content};
 use crate::identity::{ContentAddress, DomainTag};
@@ -39,32 +40,81 @@ use std::collections::BTreeSet;
 /// identical preimages under different tags are unrelated values.
 const GENERATED_SUPPORT_SCHEMA_DOMAIN: DomainTag = DomainTag::declared("generated-support-schema");
 
+impl Namespace {
+    /// The owner one authored text declares.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`NameRefusal::EmptyNamespace`] where the text is empty.
+    pub const fn declared(text: &'static str) -> Result<Self, NameRefusal> {
+        if text.is_empty() {
+            return Err(NameRefusal::EmptyNamespace);
+        }
+        Ok(Self(text))
+    }
+
+    /// The owner's text.
+    ///
+    /// The one road out to characters, and it exists for the two places
+    /// characters are what is wanted: an encoder writing a preimage, and a
+    /// rendering writing a line for a person. A road that means to compare two
+    /// owners compares the values.
+    #[must_use]
+    pub const fn written(self) -> &'static str {
+        self.0
+    }
+}
+
+impl Stem {
+    /// The spelling one authored text declares.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`NameRefusal::EmptyStem`] where the text is empty.
+    pub const fn declared(text: &'static str) -> Result<Self, NameRefusal> {
+        if text.is_empty() {
+            return Err(NameRefusal::EmptyStem);
+        }
+        Ok(Self(text))
+    }
+
+    /// The spelling's text, on the terms [`Namespace::written`] states.
+    #[must_use]
+    pub const fn written(self) -> &'static str {
+        self.0
+    }
+}
+
 impl NamespacedName {
     /// This name, parsed from the owner that declares it and the spelling it
     /// carries.
     ///
     /// # Errors
     ///
-    /// Refuses an empty namespace, then an empty stem.
-    pub fn named(namespace: &'static str, stem: &'static str) -> Result<Self, NameRefusal> {
-        if namespace.is_empty() {
-            return Err(NameRefusal::EmptyNamespace);
-        }
-        if stem.is_empty() {
-            return Err(NameRefusal::EmptyStem);
-        }
+    /// Refuses an empty namespace, then an empty stem. The order is the
+    /// dependent one each part's own road establishes, so exactly one cause is
+    /// true of any refused name.
+    pub const fn named(namespace: &'static str, stem: &'static str) -> Result<Self, NameRefusal> {
+        let namespace = match Namespace::declared(namespace) {
+            Ok(namespace) => namespace,
+            Err(refusal) => return Err(refusal),
+        };
+        let stem = match Stem::declared(stem) {
+            Ok(stem) => stem,
+            Err(refusal) => return Err(refusal),
+        };
         Ok(Self { namespace, stem })
     }
 
     /// The owner that declares the spelling.
     #[must_use]
-    pub const fn namespace(self) -> &'static str {
+    pub const fn namespace(self) -> Namespace {
         self.namespace
     }
 
     /// The spelling itself.
     #[must_use]
-    pub const fn stem(self) -> &'static str {
+    pub const fn stem(self) -> Stem {
         self.stem
     }
 }

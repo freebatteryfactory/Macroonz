@@ -58,6 +58,8 @@ fn cited(pairing: RoadPairing) -> FindingCause {
     match pairing {
         RoadPairing::FusedVersusSeparate => FUSED_VERSUS_SEPARATE_DISAGREEMENT,
         RoadPairing::LiveVersusReplayed => LIVE_VERSUS_REPLAYED_DISAGREEMENT,
-        RoadPairing::Declared(name) => FindingCause::named(name.namespace(), name.stem()),
+        RoadPairing::Declared(name) => {
+            FindingCause::named(name.namespace().written(), name.stem().written())
+        }
     }
 }

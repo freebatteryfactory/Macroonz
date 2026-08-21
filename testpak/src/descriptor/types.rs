@@ -61,9 +61,34 @@ mod guard;
 /// every run, over the namespace and then the stem. It ranks nothing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NamespacedName {
-    namespace: &'static str,
-    stem: &'static str,
+    namespace: Namespace,
+    stem: Stem,
 }
+
+/// The owner half of a namespaced name: who declares a spelling.
+///
+/// Its own type rather than a `&'static str`, so a road that wants an owner
+/// cannot be handed a spelling, and a caller reading one back is handed the
+/// fact rather than the characters. The text comes out at
+/// [`Namespace::written`], which is what an encoder and a rendering call and
+/// what nothing else has a reason to.
+///
+/// # Construction
+///
+/// Refused empty: an owner nobody named is not an owner.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Namespace(&'static str);
+
+/// The spelling half of a namespaced name: what the owner calls it.
+///
+/// Its own type on the same terms as [`Namespace`], and the pair is what makes
+/// a namespaced name two facts rather than one string with a convention in it.
+///
+/// # Construction
+///
+/// Refused empty: a name with no spelling states nothing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Stem(&'static str);
 
 /// Why one namespaced name was refused.
 ///
