@@ -1,10 +1,10 @@
 # testpak — ThreadPak's testing harness
 
 testpak is a property-based, descriptor-driven, mutation-pressured testing
-harness. It is ThreadPak's own judge and a standalone product by
-architecture now: workspace and path use during construction, and `publish`
-flips at release — at which point any crate adopts it with
-`cargo add threadpak-testpak`. The library's inherited dependency
+harness. It is ThreadPak's own judge and a standalone product by architecture:
+workspace and path use during construction do not make it part of the machine,
+and publication is the release mechanism through which another crate adopts it
+with `cargo add threadpak-testpak`. The library's inherited dependency
 tree stays deliberately tiny — the manifest is the roster. Hand-written
 descriptors are a lawful producer; the generation services are an optional
 producer of the same inputs. No secret second language, pointed at ourselves.
@@ -68,9 +68,9 @@ Outside-consumer parity has its crate: `consumer/` is a workspace member
 that renames BOTH crates (`tp` for the machine, `harness` for this one),
 applies the expansion shell's derive to a documented public family of its
 own, and reads the compiled surface back beside a hand-realized twin. It
-stays deliberately ordinary — no judge machinery inside it, consumer-shaped
-evidence during construction, and a packaged true-outsider proof at the
-blessing-day check.
+stays deliberately ordinary — no judge machinery inside it and only
+consumer-shaped evidence. A packaged true-outsider proof is required before the
+stronger outsider claim is admitted.
 
 ## The uniform test model
 
@@ -191,12 +191,10 @@ and `full`, without which items and their associated constants are not in the
 tree. The lane reads, never writes, and never runs inside a macro — and its
 home is the challenge side: structural decoding of this repository's rendered
 artifacts belongs to `tests/`, while the oracle library owns vocabulary and
-comparison. The decoder stands isolated in one oracle file today, so the move
-is a file's worth of work, and the manifest carries the opening condition
-exactly: it happens at the wave where a challenge-side caller exists to call
-it there, and that same wave retires this from a library dependency to a
-dev-dependency. A decoder parked in `tests/` with nothing calling it would be
-unreachable code wearing the shape of a move.
+comparison. The decoder remains in one oracle library file until a
+challenge-side caller owns it in `tests/`; that same change retires `syn` from
+a library dependency to a dev-dependency. A decoder parked in `tests/` with
+nothing calling it would be unreachable code wearing the shape of a move.
 
 **And that reason settles less than it sounds like.** What a manifest ASKS
 FOR, what the resolved graph HOLDS, and what one compiled unit is HANDED are
@@ -218,11 +216,9 @@ a published identity from its published specification, writing out every
 encoding decision itself and importing none — the digest is the one thing
 it shares with the producer, deliberately, because whether the
 specification says enough for somebody else to re-derive the value is what
-is under judgement. The adopter's standing bill is two library dependencies,
-`arbitrary` and `blake3` — blake3's build machinery is a disclosed mechanism
-of the admitted dependency, not a purity claim. Today an adopter inherits
-`syn` beside them, because the decoder above has not moved yet; the manifest
-states that as the present tense rather than as an aspiration.
+is under judgement. `blake3`'s build machinery is a disclosed mechanism of the
+admitted dependency, not a purity claim. `syn` remains a library dependency
+while the decoder above remains library code.
 
 Dev-side mechanisms — `trybuild` for compile refusals, and the bench and
 snapshot tooling admitted at their first real use — never reach an adopter's

@@ -5,9 +5,7 @@ named for the logical thread it preserves; the README owns the full product stat
 and the machine-in-one-view.
 This file is the binding law for any person, model, or agent working in this
 repository, and it is the only one.
-`CLAUDE.md` carries a pointer here and nothing semantic:
-a law stated twice is a law that can disagree with itself,
-and one that did is what cost this repository a week.
+`CLAUDE.md` is a literal pointer here and carries nothing semantic.
 
 There is no CI and no gate.
 The enforcement surface is the toolchain at the root, run locally:
@@ -22,6 +20,15 @@ The README owns the machine in one view — both columns: the program pipeline
 Bvisor) and the data authority (accepted events → durable history → derived
 projections → receipts, replay, reconciliation). Hosts live in other repositories and
 pin an exact ThreadPak revision; the machine never knows which host is running it.
+
+## Work routing
+
+The repository's semantic owners carry accepted product truth.
+The root toolchain and executed lanes report mechanical and observed facts.
+A bounded task or review surface carries temporary goal, scope, evidence, risk,
+and work order. Git carries how accepted truth came to exist.
+No active phase queue, task status, or campaign history belongs in this file or
+in product owner prose.
 
 ## Format law
 
@@ -197,54 +204,28 @@ agent edits code to silence a finding.
   changes. If a frontend needs a core change to exist, the declaration contract is
   wrong.
 
-## Phase gate
+## Construction constraints
 
-**Under construction — the concrete is not hard yet.** During the build-out, the
-spec files carry two kinds of text and say which is which: ground rules and
-mental models (the door law, the process arrow, the depot pattern, the zero-
-compile phase — hard enough to keep anyone from walking into an already-walked
-rake), and drying structure that hardens only at the owner's blessing. Text
-describing machinery mid-absorption is read as the standing state, not as
-finished law; the hard-law versions land when the things they govern exist.
-While the concrete dries, authority runs one way: the landed READMEs and
-types are the spec, and standing code that disagrees with them is the defect
-being drained — never a counterexample to the spec, and never a precedent to
-imitate.
+The generation system is the product line: families are authored through front
+doors and their contracts are generated. Every door is a thin shell over the one
+callable engine, and equivalent declarations through different doors produce
+equivalent contracts. Core never carries a compile-time dependency edge to the
+proc-macro crate. Core-local declarative stamps are standing law
+(`closed_register!` and `scope_guard_version!` are the exemplars); generation
+beyond a stamp's reach lands in core as published source under a receipt; the
+derive is the outside consumer's door.
 
-The generation system is the product line: families are authored through front doors
-and their contracts are generated. The hand-written contract code standing in `src/`
-today is scaffolding awaiting re-authoring once the doors exist. The door law is
-settled: every door is a thin shell over the one callable engine, and equivalent
-declarations through different doors produce equivalent contracts. Core never
-carries a compile-time dependency edge to the proc-macro crate. Core-local
-declarative stamps are standing law (`closed_register!` and `scope_guard_version!`
-are the exemplars); generation beyond a stamp's reach lands in core as published
-source under a receipt; the derive is the outside consumer's door.
+The README owns the [construction order](README.md#construction).
+That authoring order is not Cargo dependency order and never authorizes a cycle
+or a production dependency on the judge.
 
-The harness (testpak) and the generation services (macros) were built in parallel
-as one phase under zero compilation:
-implementers wrote complete code end to end —
-no stubs, no placeholder bodies, no compiler-appeasement —
-and QA was read-only review.
-That phase closed at first toolchain contact,
-which was quiet and corrective rather than a ceremony.
-The toolchain now stands and the lanes execute;
-a red lane is evidence about the code, never an instruction to edit the lane.
+Built-ahead code is not dead code. `unused`, `uncalled`, and `unreached` are
+wiring facts, never deletion authority. Only the owner may rule a behavior dead,
+and only after it is superseded and has no current product path, ruled future
+consumer, public contract, or external holder.
 
-Next comes the trust opening:
-baseline qualification, then wrap-first mutation pressure,
-then the mandatory no-mutation parity —
-only then are interpreted-mutation results and rewrite-produced descriptors
-admitted as evidence.
-The harness's ladder runs against this repository there,
-the one subject that costs something to grade.
-Then the migration pass, where the generator runs its own migration, never a hand;
-then the per-home source pass with the owner in the loop.
-The blessing-day ceremony — the native-clone dual-target runs
-and the packaged outsider check — crowns the COMPLETE machine after all of that,
-and CI is designed fresh, last.
-Approvals and dial-downs are recorded in the crates' own READMEs and types,
-because the repository is the spec.
+A red lane, lint, metric, or search result is a sensor, not a repair order.
+The owner rules the substance before code changes to answer it.
 
 No product-runtime implementation opens in any home without explicit human
 authorization. Commits are decided by a human — never initiated by an agent.

@@ -53,10 +53,10 @@
 //!
 //! # The seat's claim ceiling
 //!
-//! The seat's law is the harness README's and is not restated here. What this
-//! package establishes today is CONSUMER-SHAPED: it is a workspace member, so it
-//! shares this workspace's resolution and its lint wall. A true outsider shares
-//! neither, and the packaged check that stands one up is the blessing day's.
+//! The seat's law is the harness README's and is not restated here. This package
+//! establishes CONSUMER-SHAPED evidence: it is a workspace member, so it shares
+//! this workspace's resolution and its lint wall. A true outsider shares neither,
+//! and only a packaged check can establish that stronger claim.
 
 /// What one caller states when it asks for a lot to be counted.
 ///
