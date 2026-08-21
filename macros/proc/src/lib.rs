@@ -108,7 +108,20 @@ use threadpak_macroc::{
 ///     NotCanonical,
 /// }
 /// ```
-#[proc_macro_derive(RefusalFamily, attributes(refusal))]
+///
+/// A declaration may state its own trial rows beside that, with the
+/// `#[threadpak_trials(...)]` helper attribute. The two are one item and two
+/// readings: the refusal declaration is what the family IS, and the trial
+/// declaration is what a consumer's TEST target runs against it, so editing one
+/// leaves the other's identity where it was. The grammar, the four syntax-facing
+/// identifiers, and every refusal it answers with live in
+/// `threadpak_macroc::test_descriptor`, which is the home that owns the carrier
+/// the rows cross the wall inside.
+///
+/// A declaration that states no trial attribute is the declaration this derive
+/// has always compiled, unchanged: the same two contract implementations at the
+/// declaration site, and a carrier whose trials seat is empty.
+#[proc_macro_derive(RefusalFamily, attributes(refusal, threadpak_trials))]
 pub fn refusal_family(item: TokenStream) -> TokenStream {
     let mut spans: Vec<Span> = Vec::new();
     let mut walk = CaptureWalk::declared();

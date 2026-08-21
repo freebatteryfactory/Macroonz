@@ -54,9 +54,9 @@
 //! passed together.
 
 use super::types::{
-    DIAGNOSTIC_PREFIX, ExplanationBindingRefusal, LineBody, LineSite, RefusalClass,
-    RefusalDeriveFact, RefusalLine, RenderRefusal, RenderedMagnitude, callable_entry,
-    expected_contract,
+    CarrierRoadRefusal, DIAGNOSTIC_PREFIX, ExplanationBindingRefusal, LineBody, LineSite,
+    MemberRenderCause, MemberRenderRefusal, RefusalClass, RefusalDeriveFact, RefusalLine,
+    RenderRefusal, RenderedMagnitude, callable_entry, expected_contract,
 };
 use crate::closure::{
     ClosureIssue, ExpansionBindingRefusal, ProjectionClosureRefusal, RenderingRefusal,
@@ -66,12 +66,14 @@ use crate::diagnostics::{
     RelatedSetCompletion, ReleasePosture, RepairAction, ReproductionRoute, SiteCoordinate,
 };
 use crate::explanation_protocol::{ExplanationCoverage, ExplanationCoverageIssue};
-use crate::generated_support::{AssemblyIssue, CarrierAssembly};
+use crate::generated_support::{AssemblyIssue, CarrierAssembly, ShellComposition};
 use crate::plane::{HumanProjection, HumanTextLimit, RenderedRole, encode_bytes, human_projection};
 use crate::refusal::{ProjectionPlanning, ProjectionPlanningIssue};
 use crate::test_descriptor::{
     DescriptorPlanIssue, ShellDeclarationRefusal, ShellRenderIssue, ShellRendering,
+    TrialDeclarationCause, TrialDeclarationRefusal,
 };
+use crate::token::{SpanHandle, SpanTable};
 use threadpak::declaration::CoordinateRole;
 use threadpak::evidence::CauseDisposition;
 use threadpak::refusal::CompletionPosture;
@@ -114,6 +116,15 @@ const DECLARATION_FAMILY: u8 = 7;
 
 /// The carrier plan-reading family's tag.
 const DESCRIPTOR_PLAN_FAMILY: u8 = 8;
+
+/// The trial-declaration grammar's tag.
+///
+/// Its own tag rather than the carrier-declaration family's, because they are two
+/// families: a carrier-declaration refusal names a seat of the carrier's own
+/// vocabulary, and a trial-declaration refusal names a clause of the authored
+/// grammar that vocabulary is read out of. One tag for both would derive one
+/// related identity for two bodies that happened to carry the same slot.
+const TRIAL_DECLARATION_FAMILY: u8 = 9;
 
 // ---------------------------------------------------------------------------
 // The one compiler-facing grammar.
@@ -241,6 +252,7 @@ pub fn planning_refused(refusal: &ProjectionPlanning) -> MacrocDiagnostic {
         PLANNING_FAMILY,
         &material,
         RefusalDeriveFact::APlanStatesItsCompleteOutputSetOrRefuses,
+        &Placement::WholeDeclaration,
     )
 }
 
@@ -399,6 +411,7 @@ pub fn closure_refused<R: RenderedRole>(refusal: &ProjectionClosureRefusal<R>) -
         CLOSURE_FAMILY,
         &material,
         RefusalDeriveFact::NothingIsEmittedThatDidNotClose,
+        &Placement::WholeDeclaration,
     )
 }
 
@@ -499,6 +512,7 @@ pub fn explanation_refused(refusal: &ExplanationBindingRefusal) -> MacrocDiagnos
             COVERAGE_FAMILY,
             &[vec![u8::MAX, seat.slot()]],
             RefusalDeriveFact::EveryKindAnswersTheExplanationProtocol,
+            &Placement::WholeDeclaration,
         ),
         ExplanationBindingRefusal::Coverage(coverage) => coverage_refused(coverage),
     }
@@ -527,6 +541,7 @@ fn coverage_refused(coverage: &ExplanationCoverage) -> MacrocDiagnostic {
         COVERAGE_FAMILY,
         &material,
         RefusalDeriveFact::EveryKindAnswersTheExplanationProtocol,
+        &Placement::WholeDeclaration,
     )
 }
 
@@ -585,6 +600,54 @@ pub fn rendering_refused<R: RenderedRole>(refusal: RenderingRefusal, role: R) ->
     bounded_rendering(materialization_magnitude(refusal), role)
 }
 
+/// Project one MEMBER-RENDER refusal, through the projection its own home owns.
+///
+/// The value names the role and which home refused, so this road dispatches and
+/// composes nothing: a renderer's refusal reaches [`render_refused`] and a
+/// materialization reaches [`rendering_refused`], each with the role the member
+/// stands under. A projection that flattened the two would give a body observing
+/// its own target and a byte count one sentence and one related identity.
+pub fn member_render_refused<R: RenderedRole>(refusal: MemberRenderRefusal<R>) -> MacrocDiagnostic {
+    match refusal.cause {
+        MemberRenderCause::Rendered(cause) => render_refused(cause, refusal.role),
+        MemberRenderCause::Materialized(cause) => rendering_refused(cause, refusal.role),
+    }
+}
+
+/// Project one CARRIER-ROAD refusal, through the projection its own home owns.
+///
+/// # One boundary, nine homes
+///
+/// Every step of the carrier road refuses in the vocabulary of the home that owns
+/// it, and this is the seam where those bodies become the one line a compiler
+/// shows. It composes nothing of its own: each arm hands its body to the road
+/// that already projects that home, so a reader of a diagnostic reads what the
+/// step said rather than a summary this seat wrote.
+///
+/// Exhaustive on purpose. A step added to the carrier road stops compiling here
+/// until somebody says which projection its refusal reaches, which is the whole
+/// reason the road answers in a typed sum rather than in the diagnostic itself.
+pub fn carrier_road_refused(refusal: CarrierRoadRefusal) -> MacrocDiagnostic {
+    match refusal {
+        CarrierRoadRefusal::Planned(body) => planning_refused(&body),
+        CarrierRoadRefusal::Declared(body) => carrier_declaration_refused(body),
+        CarrierRoadRefusal::Assembled(body) => assembly_refused(&body),
+        CarrierRoadRefusal::PlanNotRead(issue) => descriptor_plan_refused(issue),
+        CarrierRoadRefusal::Composed(body) => match *body {
+            // Two homes answer at the composition seam and each is projected by
+            // its own: a pair that is not one declaration's is a COMPOSITION fact
+            // and reads in the assembly family, and a tree past its bound is the
+            // CARRIER's fact and reads in the shell family.
+            ShellComposition::NotOneDeclarations(composed) => assembly_refused(&composed),
+            ShellComposition::Rendering(rendering) => shell_refused(&rendering),
+        },
+        CarrierRoadRefusal::Rendered(body) => member_render_refused(body),
+        CarrierRoadRefusal::Closed(body) => closure_refused(&body),
+        CarrierRoadRefusal::Explained(body) => explanation_refused(&body),
+        CarrierRoadRefusal::Bound(body) => expansion_refused(&body),
+    }
+}
+
 /// The declared magnitude one materialization refusal names.
 ///
 /// A projection of the foreign typed value onto this home's magnitude roster,
@@ -641,6 +704,7 @@ fn target_observed<R: RenderedRole>(role: R) -> MacrocDiagnostic {
         RENDERING_FAMILY,
         &[material],
         RefusalDeriveFact::AnEvaluationCopyStandsOverALocalSubject,
+        &Placement::WholeDeclaration,
     )
 }
 
@@ -693,6 +757,7 @@ pub fn expansion_refused(refusal: &ExpansionBindingRefusal) -> MacrocDiagnostic 
         EXPANSION_FAMILY,
         &[material],
         RefusalDeriveFact::NothingIsHandedOutThatDidNotBind,
+        &Placement::WholeDeclaration,
     )
 }
 
@@ -736,6 +801,7 @@ fn bounded_rendering<R: RenderedRole>(magnitude: RenderedMagnitude, role: R) -> 
         RENDERING_FAMILY,
         &[material],
         RefusalDeriveFact::EveryRenderedSeatStandsUnderADeclaredMagnitude,
+        &Placement::WholeDeclaration,
     )
 }
 
@@ -775,6 +841,7 @@ pub fn assembly_refused(refusal: &CarrierAssembly) -> MacrocDiagnostic {
         ASSEMBLY_FAMILY,
         &material,
         RefusalDeriveFact::OneCarrierDeliversOneDeclarationsProvedCargo,
+        &Placement::WholeDeclaration,
     )
 }
 
@@ -844,6 +911,7 @@ pub fn carrier_declaration_refused(refusal: ShellDeclarationRefusal) -> MacrocDi
         DECLARATION_FAMILY,
         &[vec![refusal.slot()]],
         RefusalDeriveFact::ACarrierSpellingIsOneRustIdentifier,
+        &Placement::WholeDeclaration,
     )
 }
 
@@ -881,7 +949,91 @@ pub fn descriptor_plan_refused(issue: DescriptorPlanIssue) -> MacrocDiagnostic {
         DESCRIPTOR_PLAN_FAMILY,
         &[material],
         RefusalDeriveFact::APlanStatesItsCompleteOutputSetOrRefuses,
+        &Placement::WholeDeclaration,
     )
+}
+
+/// Project one trial-declaration refusal: the clause of the authored grammar
+/// that was not read, or the seat of the carrier's own vocabulary the value it
+/// read did not fill — at the token the clause sits at.
+///
+/// # Two homes, two bodies, one projection
+///
+/// The refusal names which grammar refused and carries that grammar's body whole,
+/// so this road unwraps rather than summarizes: the trial grammar's cause is
+/// shown under the CAPTURE class, because a trial declaration is read out of the
+/// declaration's own tokens, and the carrier's cause is shown under the
+/// carrier-declaration class it already answers in. Two family tags, so a
+/// malformed clause and a doubled role never derive one related identity.
+///
+/// # The site
+///
+/// A TOKEN, in both arms. Every refusal on this road is a fact about one clause
+/// an author wrote, and the reader is sent to that clause rather than to the
+/// declaration's opening. Where the producer's table does not reach the handle
+/// the line says THAT rather than a position, exactly as the capture family's own
+/// projection does.
+pub fn trial_declaration_refused(
+    refusal: TrialDeclarationRefusal,
+    spans: &SpanTable,
+) -> MacrocDiagnostic {
+    match refusal {
+        TrialDeclarationRefusal::Grammar { cause, at } => diagnosed(
+            MacrocPhase::Capture,
+            trial_observed(cause),
+            &RefusalLine {
+                class: RefusalClass::DeclarationNotRead,
+                first: cause.described(),
+                // The trial grammar is single-cause: the reader refuses at the
+                // first clause it cannot read and enumerates nothing behind it.
+                body: LineBody::SingleCause,
+            },
+            TRIAL_DECLARATION_FAMILY,
+            &[vec![cause.slot()]],
+            RefusalDeriveFact::ATrialDeclarationStatesDescriptorMeaningAlone,
+            &Placement::AtToken { token: at, spans },
+        ),
+        TrialDeclarationRefusal::Carrier {
+            refusal: carried,
+            at,
+        } => diagnosed(
+            MacrocPhase::Capture,
+            ObservedClassification::ContractDisagreement,
+            &RefusalLine {
+                class: RefusalClass::CarrierNotDeclared,
+                first: carried.described(),
+                body: LineBody::SingleCause,
+            },
+            DECLARATION_FAMILY,
+            &[vec![carried.slot()]],
+            RefusalDeriveFact::ACarrierSpellingIsOneRustIdentifier,
+            &Placement::AtToken { token: at, spans },
+        ),
+    }
+}
+
+/// What one trial-grammar cause observed.
+///
+/// A clause the grammar does not declare and a value whose shape it cannot read
+/// are CONTRACT disagreements: the declaration is well formed Rust and says
+/// something this grammar does not admit. A clause that is absent is a SEAT that
+/// was not filled, and a clause stated twice is an IDENTITY disagreement — one
+/// key answering for two values.
+const fn trial_observed(cause: TrialDeclarationCause) -> ObservedClassification {
+    match cause {
+        TrialDeclarationCause::NotCovered | TrialDeclarationCause::NotBodied => {
+            ObservedClassification::SeatAbsent
+        }
+        TrialDeclarationCause::NotDeclaredOnce | TrialDeclarationCause::NotDistinct => {
+            ObservedClassification::IdentityDisagreement
+        }
+        TrialDeclarationCause::NotAClause
+        | TrialDeclarationCause::NotADeclarableClause
+        | TrialDeclarationCause::NotANamedReference
+        | TrialDeclarationCause::NotARoster
+        | TrialDeclarationCause::NotASuiteGroup
+        | TrialDeclarationCause::NotARow => ObservedClassification::ContractDisagreement,
+    }
 }
 
 /// Project one shell-rendering refusal: the token magnitude the carrier passed.
@@ -906,6 +1058,7 @@ pub fn shell_refused(refusal: &ShellRendering) -> MacrocDiagnostic {
         SHELL_FAMILY,
         &material,
         RefusalDeriveFact::EveryRenderedSeatStandsUnderADeclaredMagnitude,
+        &Placement::WholeDeclaration,
     )
 }
 
@@ -925,12 +1078,70 @@ fn shell_bytes(issue: &ShellRenderIssue) -> Vec<u8> {
 // The shared shape.
 // ---------------------------------------------------------------------------
 
+/// Where one projected refusal sits.
+///
+/// Two placements, and they are different observations rather than one with a
+/// number left out. A refusal about the DECLARATION — a plan's output set, a
+/// rendering's closure, an explanation's coverage, a magnitude a role passed —
+/// has nowhere narrower to point, and a line that named a position inside it
+/// would send a reader to an arbitrary spot. A refusal about one CLAUSE of an
+/// authored attribute has exactly one place, and the reader is sent there.
+enum Placement<'table> {
+    /// The refusal is about the declaration as a whole.
+    WholeDeclaration,
+    /// The refusal sits at one token, resolved through the producer's own table.
+    AtToken {
+        /// The token it sits at.
+        token: SpanHandle,
+        /// The table the producer resolves handles through.
+        spans: &'table SpanTable,
+    },
+}
+
+impl Placement<'_> {
+    /// The diagnostics home's own site for this placement.
+    ///
+    /// The whole-declaration placement answers with the AT-TOKEN arm at the
+    /// declaration's first token, deliberately: every refusal that reaches it is
+    /// established at or after planning, which is downstream of a capture that
+    /// succeeded, so a table was built and a handle means something. The
+    /// pre-capture arm belongs to a text read that refused before any of that,
+    /// and no road into this function stands under it.
+    fn site(&self) -> DiagnosticSite {
+        match *self {
+            Self::WholeDeclaration => DiagnosticSite::at_token(
+                SpanHandle::at(0),
+                // Composed here rather than resolved: this seat names the
+                // declaration itself, so the semantic-origin role at position
+                // zero IS the claim, not a stand-in for a table that did not
+                // reach.
+                SiteCoordinate::Resolved(threadpak::declaration::SourceCoordinate {
+                    role: CoordinateRole::SemanticOrigin,
+                    position: 0,
+                }),
+            ),
+            Self::AtToken { token, spans } => DiagnosticSite::at_token(
+                token,
+                SiteCoordinate::answered(spans.coordinate_of(token)),
+            ),
+        }
+    }
+
+    /// What the composed line says about where the refusal sits.
+    fn line_site(&self, site: &DiagnosticSite) -> LineSite {
+        match *self {
+            Self::WholeDeclaration => LineSite::WholeDeclaration,
+            Self::AtToken { .. } => LineSite::At(site.coordinate()),
+        }
+    }
+}
+
 /// One diagnostic over one refusal body's projected material.
 ///
 /// Every seat that could be written two ways is written once here: the line
 /// through [`composed`], the citation and its repair through one
-/// [`RefusalDeriveFact`] row, and the site through the whole-declaration posture
-/// this road is for.
+/// [`RefusalDeriveFact`] row, and the site through the placement the caller
+/// states.
 fn diagnosed(
     phase: MacrocPhase,
     observed: ObservedClassification,
@@ -938,40 +1149,24 @@ fn diagnosed(
     family: u8,
     material: &[Vec<u8>],
     fact: RefusalDeriveFact,
+    placement: &Placement<'_>,
 ) -> MacrocDiagnostic {
     // The material goes over, and the set derives both identity levels itself.
     // This seam holds one refusal family's issue material and nothing else, so
     // there is no body identity here to pair with somebody else's issues.
     let related = RelatedSet::derived_over(family, material);
-    // The refusals on this road are about the declaration as a whole — a plan's
-    // output set, a rendering's closure, an explanation's coverage, a magnitude
-    // a role passed — so the line names no position inside it.
-    let composed_line = composed(line, LineSite::WholeDeclaration);
+    // Built once and read twice: the prose and the diagnostic's own site are
+    // projections of the SAME value, so a line saying one position beside a seat
+    // holding another is unrepresentable here.
+    let site = placement.site();
+    let composed_line = composed(line, placement.line_site(&site));
     MacrocDiagnostic {
         // The one line says which of the two sets stands behind it, because the
         // typed posture beside it is not what rustc shows.
         summary: shown(&witnessed(&composed_line, related.completion())),
         machine: crate::diagnostics::MachineAnchoring::UnmintedAtThisSeam,
         phase,
-        // The declaration's first token. The disagreement is about the
-        // declaration as a whole rather than about one token inside it, and
-        // pretending otherwise would send a reader to an arbitrary spot.
-        //
-        // The AT-TOKEN arm, deliberately. Every refusal projected through here
-        // is established at or after planning, which is downstream of a capture
-        // that succeeded, so a table was built and a handle means something.
-        // The pre-capture arm belongs to a text read that refused before any of
-        // that, and no road into this function stands under it.
-        site: DiagnosticSite::at_token(
-            crate::token::SpanHandle::at(0),
-            // Composed here rather than resolved: this seat names the
-            // declaration itself, so the semantic-origin role at position zero
-            // IS the claim, not a stand-in for a table that did not reach.
-            SiteCoordinate::Resolved(threadpak::declaration::SourceCoordinate {
-                role: CoordinateRole::SemanticOrigin,
-                position: 0,
-            }),
-        ),
+        site,
         expected: expected_contract(),
         observed,
         // The plane classifies what it observed and never elects the machine's

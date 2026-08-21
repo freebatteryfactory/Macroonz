@@ -29,15 +29,39 @@ use super::{
     DeclaredBudgets, WorkFormula,
 };
 use crate::test_descriptor::{
-    BoundPath, INVOCATION_CLAUSE, PROVENANCE_CLAUSE, ShellRenderIssue, bound_path, descriptor_path,
-    documentation, group, metavariable, name_arguments, named_clause, parsed_name, roster,
-    table_schema_identity,
+    BoundPath, CrateFacing, INVOCATION_CLAUSE, PROVENANCE_CLAUSE, ShellRenderIssue, bound_path,
+    descriptor_path, documentation, group, matched_clause, metavariable, name_arguments,
+    named_clause, parsed_name, roster, table_schema_identity,
 };
 use crate::token::{GeneratedDelimiter, GeneratedToken};
 
 // ---------------------------------------------------------------------------
 // The spellings the emission names at the address it writes to.
 // ---------------------------------------------------------------------------
+
+/// The bench crossing's own matcher: the two rename twins and the consumer's
+/// declared budgets, each named at the invocation so a reader of the call site
+/// sees what it supplies.
+///
+/// # Why this crossing declares its own
+///
+/// A carrier's matcher is exactly the facts the delivery it guards CONSUMES, and
+/// the two crossings consume different ones. This one spells both twins: a bench
+/// row points at machine callables — the measured operation, the planted-worse
+/// falsifier, the correctness preflight, and every work observation — through
+/// paths rooted at the machine binding, and its constructors are rooted at the
+/// harness binding. An argument a consumer supplies that nothing spells is a
+/// value the plan decided and nothing read, so neither crossing asks for the
+/// other's.
+#[must_use]
+pub(super) fn matcher() -> Vec<GeneratedToken> {
+    let mut tokens = Vec::new();
+    for facing in CrateFacing::ALL {
+        tokens.extend(matched_clause(facing.parameter(), "ident"));
+    }
+    tokens.extend(matched_clause(INVOCATION_CLAUSE, "expr"));
+    tokens
+}
 
 /// The stamp whose grammar the rendered bench payload is written in.
 pub const BENCH_TABLE_STAMP: &str = "bench_table";

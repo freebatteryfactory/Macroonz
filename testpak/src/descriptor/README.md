@@ -154,7 +154,7 @@ narrow.
 
 The pre-typecheck gate makes the loud break a mechanism, not a hope: this
 instrument owns a local `generated_support!` gate that token-matches the
-producer's traveling expectation against the checked-in published literal
+producer's traveling expectation against the checked-in published roster
 BEFORE releasing either seat into type checking — a mismatch expands to one
 owned diagnostic, and neither the constructors nor the deferred cargo ever
 reaches the compiler. The gate reads the deferred seat's tokens at no point:
@@ -163,10 +163,25 @@ cargo would be a second authority over a vocabulary it does not own.
 Admission's first check is producer-expected against the published harness
 id — one precise loud break when the two published ids disagree, never a
 cascade of field errors on that road; a jointly stale pair sits outside this
-comparison's claim. Generated expressions call
-public constructors, never struct literals. The rename
-twins hold: a consumer may rename both crates, and generated code honors
-both names.
+comparison's claim.
+
+The pin crosses as a bracketed roster of thirty-two DECIMAL byte values, and
+the base is what makes the comparison sound rather than merely conventional:
+an arm matches TOKENS, a byte string has many spellings of one value, and the
+producer's side is spelled by the compiler's own literal writer rather than
+by any declaration. An unsuffixed integer has exactly one rendering, so the
+two sides are one token by construction. The first producer to reach this
+door rendered a byte string and was refused there, over a value both sides
+agreed on — the gate working, and the reason the form is what it is.
+
+Generated expressions call public constructors, never struct literals. A row
+and its attachment are built over ONE parsed subject and ONE parsed check, so
+the binding constructor's pairing check compares two consumers of one value
+rather than two separate parses of one spelling. The rename twins hold: a
+consumer may rename both crates, and generated code honors the name it is
+handed — the trial crossing spells the harness alone, because its callables
+arrive as expressions from the target that owns them, and the bench crossing
+spells both.
 
 The stamp battery lives here with the vocabulary it reads: `trial_table!`
 expands rows into the table, the named lenses, and one aggregate seat per

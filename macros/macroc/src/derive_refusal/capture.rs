@@ -88,13 +88,18 @@
 //! about a perfectly good enum goes looking for the wrong problem.
 
 use super::types::{
-    CapturedCause, CapturedCommitments, CapturedDocumentation, CrateBinding, DeriveCauseLimit,
-    DocumentedDeclaration, RefusalDeriveCapture, RefusalDeriveRefusal, RefusalDeriveSurface,
-    RefusalSite, SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
+    CapturedCause, CapturedCommitments, CapturedDocumentation, CapturedFamilyFacts, CrateBinding,
+    DeclaredTrials, DeriveCauseLimit, DocumentedDeclaration, RefusalDeriveCapture,
+    RefusalDeriveRefusal, RefusalDeriveSurface, RefusalSite, SHAPE_WORD_INSEPARABLE_PAIR,
+    SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE, SurfaceCaptureRefusal,
+    TrialDeclarationPosture,
 };
 use crate::plane::{
     AuthoringLimitProfile, CapturedDeclarationSubject, CapturedTokenLimit, ProjectionIdentity,
     ProjectionRole, ProjectionTranscript, encode_length,
+};
+use crate::test_descriptor::{
+    TRIAL_ATTRIBUTE, TrialDeclarationCause, TrialDeclarationRefusal, captured_trials,
 };
 use crate::token::{
     CapturedDelimiter, CapturedInput, CapturedTokenTree, SpanHandle, TextCapture, TextReadCause,
@@ -109,10 +114,10 @@ use threadpak::types::{AdmittedLimit, Bounded, ConstLimit};
 ///
 /// Returns [`RefusalDeriveRefusal`] carrying the established
 /// [`RefusalDeriveCapture`] cause and the token it was established at.
-pub fn captured(input: &CapturedInput) -> Result<RefusalDeriveSurface, RefusalDeriveRefusal> {
+pub fn captured(input: &CapturedInput) -> Result<RefusalDeriveSurface, SurfaceCaptureRefusal> {
     let trees: Vec<&CapturedTokenTree> = input.trees().collect();
     if trees.len() > CapturedTokenLimit::MAX {
-        return Err(refuse(RefusalDeriveCapture::Unbounded, first_span(&trees)));
+        return Err(refuse(RefusalDeriveCapture::Unbounded, first_span(&trees)).into());
     }
     let declared = read_enum(&trees)?;
     let attribute = read_attribute(&trees)?;
@@ -141,20 +146,133 @@ pub fn captured(input: &CapturedInput) -> Result<RefusalDeriveSurface, RefusalDe
     // is the declaration's opening rather than either level's.
     .map_err(|_| refuse(RefusalDeriveCapture::Unbounded, first_span(&trees)))?;
 
-    // The two commitments, in the order they depend on each other: the semantic
-    // one stands over the declaration alone, and the documentation one stands
-    // over that name and the rows.
+    // The three commitments, in the order they depend on each other: the
+    // semantic one stands over the declaration alone, and the documentation and
+    // trial ones each stand over that name and their own material.
     let semantic = semantic_commitment(input, &trees)?;
     let documented = documentation_commitment(semantic, &documentation);
+    let trials = read_trials(&trees, semantic, input.issued())?;
 
     Ok(RefusalDeriveSurface::assembled(
-        family_name,
-        attribute.family_id,
-        attribute.binding,
-        attribute.shape,
+        CapturedFamilyFacts {
+            family_name,
+            family_id: attribute.family_id,
+            binding: attribute.binding,
+            shape: attribute.shape,
+        },
         causes,
         documentation,
+        trials,
         CapturedCommitments::derived(semantic, documented),
+    ))
+}
+
+/// Read the `#[threadpak_trials(...)]` attribute, where one is declared, into the
+/// posture the surface carries.
+///
+/// # Where the reading happens
+///
+/// The ATTRIBUTE is found here, because a helper attribute is a fact about the
+/// derive's own grammar and this is the road that walks a declaration's
+/// attributes. What is INSIDE it is read by the home that owns the vocabulary it
+/// states, through [`captured_trials`] — so the door owns the door and the
+/// carrier owns the carrier, and neither home carries a copy of the other's law.
+///
+/// # Errors
+///
+/// Returns [`TrialDeclarationCause::NotDeclaredOnce`] where the declaration
+/// carries the attribute twice — two declarations of one carrier's rows stand
+/// beside each other and neither is the one — and
+/// [`TrialDeclarationCause::NotBodied`] where the attribute states no
+/// parenthesized body at all. Everything past that is the trial grammar's own
+/// refusal, carried whole.
+fn read_trials(
+    trees: &[&CapturedTokenTree],
+    semantic: ProjectionIdentity<CapturedDeclarationSubject>,
+    issued: u32,
+) -> Result<TrialDeclarationPosture, SurfaceCaptureRefusal> {
+    let mut found: Option<(&CapturedTokenTree, SpanHandle)> = None;
+    for index in 0..trees.len() {
+        let Some((bracketed, token)) = attribute_at(trees, index) else {
+            continue;
+        };
+        if bracketed.first().and_then(|head| head.word()) != Some(TRIAL_ATTRIBUTE) {
+            continue;
+        }
+        if found.is_some() {
+            return Err(TrialDeclarationRefusal::Grammar {
+                cause: TrialDeclarationCause::NotDeclaredOnce,
+                at: token,
+            }
+            .into());
+        }
+        let Some(body) = bracketed.get(1).copied() else {
+            return Err(TrialDeclarationRefusal::Grammar {
+                cause: TrialDeclarationCause::NotBodied,
+                at: token,
+            }
+            .into());
+        };
+        found = Some((body, token));
+    }
+    let Some((body, token)) = found else {
+        return Ok(TrialDeclarationPosture::NotDeclared);
+    };
+    let Some((CapturedDelimiter::Parenthesis, inner)) = body.group() else {
+        return Err(TrialDeclarationRefusal::Grammar {
+            cause: TrialDeclarationCause::NotBodied,
+            at: token,
+        }
+        .into());
+    };
+    let declared: Vec<&CapturedTokenTree> = inner.iter().collect();
+    let payload = captured_trials(&declared, token)?;
+    let commitment = trial_commitment(semantic, &declared, issued, token)?;
+    Ok(TrialDeclarationPosture::Declared(Box::new(
+        DeclaredTrials::read(commitment, payload),
+    )))
+}
+
+/// The TRIAL commitment: what this declaration states about a consumer's test
+/// target, over the name of what the declaration IS.
+///
+/// # Construction
+///
+/// The identity is derived under [`ProjectionRole::TrialDeclaration`], anchored
+/// on the SEMANTIC commitment at its full thirty-two bytes, at position zero,
+/// over the trial attribute's own body as one captured tree's canonical bytes.
+///
+/// The material is the TOKEN home's, through the token home's own encoding, for
+/// the reason the semantic commitment's material is: a byte spelling written here
+/// would be a second answer to what a captured tree encodes as, and the two would
+/// agree until either was edited. Nothing here re-encodes the typed payload the
+/// grammar read, because the payload is a READING of exactly these bytes and a
+/// second encoding of it would be a second thing to keep true.
+///
+/// # Errors
+///
+/// Returns [`RefusalDeriveCapture::Unbounded`] where the attribute's own level
+/// would not fit the declared magnitude. The trees came out of a capture that
+/// already fit it, so the arm is the checked constructor's, carried honestly
+/// rather than assumed away.
+fn trial_commitment(
+    semantic: ProjectionIdentity<CapturedDeclarationSubject>,
+    declared: &[&CapturedTokenTree],
+    issued: u32,
+    at: SpanHandle,
+) -> Result<ProjectionIdentity<CapturedDeclarationSubject>, RefusalDeriveRefusal> {
+    let material = CapturedInput::taken(
+        declared.iter().map(|tree| (*tree).clone()).collect(),
+        issued,
+    )
+    .map_err(|_| refuse(RefusalDeriveCapture::Unbounded, at))?;
+    Ok(ProjectionIdentity::derived(
+        ProjectionTranscript::under_projection(
+            ProjectionRole::TrialDeclaration,
+            &semantic,
+            &material.canonical_bytes(),
+            0,
+        ),
     ))
 }
 
@@ -207,11 +325,22 @@ fn semantic_commitment(
 ///
 /// # Bounds
 ///
-/// It drops exactly what [`read_documentation`] reads: a `#` followed by a
-/// bracket whose body is the `doc = "…"` form. An attribute this grammar does
-/// not read is retained, because it is declaration material this home makes no
-/// claim about — and a normalization that swallowed it would be deciding that
-/// somebody else's attribute carries no meaning.
+/// It drops exactly the two attributes this grammar reads as a SECOND fact about
+/// the declaration: a `#` followed by a bracket whose body is the `doc = "…"`
+/// form, and the trial attribute. Both are declaration material whose meaning is
+/// its own reading — what the declaration SAYS, and what it states about a
+/// consumer's test target — and each is named under its own commitment instead,
+/// so a reworded sentence and an edited trial row both leave the implementation
+/// projection's name where it was.
+///
+/// The `#[refusal(...)]` attribute is RETAINED, because it is what the
+/// declaration IS: the family identity, the binding, the shape, and the canonical
+/// cause order are the semantic commitment's whole subject.
+///
+/// An attribute this grammar does not read is retained too, because it is
+/// declaration material this home makes no claim about — and a normalization that
+/// swallowed it would be deciding that somebody else's attribute carries no
+/// meaning.
 ///
 /// # Errors
 ///
@@ -223,9 +352,7 @@ fn undocumented(
     let mut kept: Vec<CapturedTokenTree> = Vec::new();
     let mut at = 0usize;
     while at < trees.len() {
-        if attribute_at(trees, at)
-            .is_some_and(|(bracketed, _)| documented_text(&bracketed).is_some())
-        {
+        if attribute_at(trees, at).is_some_and(|(bracketed, _)| read_as_a_second_fact(&bracketed)) {
             at = at.saturating_add(2);
             continue;
         }
@@ -298,7 +425,7 @@ fn documentation_commitment(
 /// a handle into. See [`RefusalSite`].
 pub fn captured_text(
     source: &str,
-) -> Result<(TextCapture, RefusalDeriveSurface), RefusalDeriveRefusal> {
+) -> Result<(TextCapture, RefusalDeriveSurface), SurfaceCaptureRefusal> {
     let read = TextCapture::read(source).map_err(text_refusal)?;
     let surface = captured(read.input())?;
     Ok((read, surface))
@@ -570,6 +697,17 @@ fn attribute_at<'trees>(
         Some((CapturedDelimiter::Bracket, inner)) => Some((inner.iter().collect(), bracket.span())),
         Some(_) | None => None,
     }
+}
+
+/// Whether one attribute body is material this grammar names under a commitment
+/// of its own rather than inside the semantic one.
+///
+/// Exactly two: a documentation row, and the trial declaration. Both are
+/// declaration material the semantic commitment sets aside, and both are read
+/// back through the seat that carries them.
+fn read_as_a_second_fact(bracketed: &[&CapturedTokenTree]) -> bool {
+    documented_text(bracketed).is_some()
+        || bracketed.first().and_then(|head| head.word()) == Some(TRIAL_ATTRIBUTE)
 }
 
 /// The text one attribute body states as documentation, where the body is the

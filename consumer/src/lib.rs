@@ -39,13 +39,17 @@
 //!
 //! # What the derived road delivers here, exactly
 //!
-//! A refusal-family declaration delivers its two production implementations at
-//! the declaration site, and this crate compiles them: they are what
-//! `tests/the_derived_road.rs` reads back as values. The derived family's test
-//! rows and its evaluation support arrive when the emission road delivers
-//! carrier cargo to a rendered support shell; until that delivery exists, this
-//! crate's derived-road evidence is the declaration-site surface read back as
-//! values, which is what that file states and the whole of what it claims.
+//! Two deliveries, to two builds, from one declaration.
+//!
+//! At the DECLARATION SITE, which this crate's normal build compiles: the two
+//! production contract implementations. They are what
+//! `tests/the_derived_road.rs` reads back as values.
+//!
+//! Into a CONSUMPTION TARGET, which the normal build compiles none of: the trial
+//! rows [`MergeRefusal`]'s declaration states, and the evaluation copies of its
+//! two implementations, both behind one schema pin inside one exported carrier.
+//! `tests/the_generated_road.rs` is the target that invokes it, supplies the
+//! facts only a test target holds, and runs the rows.
 //!
 //! # The seat's claim ceiling
 //!
@@ -192,6 +196,25 @@ pub enum LotRefusal {
 /// `over-limit` is a word this family and [`LotRefusal`] both spell, and the two
 /// causes are different identities because their family seats differ — which is
 /// exactly what a shared word buys, and no more.
+///
+/// # The trials this declaration states
+///
+/// One declaration, two readings. `#[refusal(...)]` states what the family IS,
+/// and `#[threadpak_trials(...)]` states what a TEST target runs against it: the
+/// exported name that target invokes, the module the stamp writes, the authored
+/// table's name, and one aggregate seat whose rows name a claim, a
+/// classification, a subject, a check, and a population apiece.
+///
+/// What it does not state is as load-bearing as what it does. There is no origin
+/// clause, no producer clause, no projection clause, and no schema clause,
+/// because those are acts the SERVICES perform; and there is no revision clause,
+/// no callable clause, and no budget, target, or clock clause, because those are
+/// facts the test target holds and are supplied where that target invokes the
+/// carrier. `tests/the_generated_road.rs` is the target that supplies them.
+///
+/// The suite is stated once, at the seat, and every row under it runs there. A
+/// row that named its own would be one fact written twice, and two lawful
+/// spellings that disagree would produce a seat that selects none of its rows.
 #[must_use = "a refusal is the reason two lots were not merged"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, tp_macros::RefusalFamily)]
 #[refusal(
@@ -199,6 +222,30 @@ pub enum LotRefusal {
     family = "consumer.lot-merge",
     shape = single_cause,
     order(NotTheSameLot = "not-the-same-lot", OverLimit = "over-limit")
+)]
+#[threadpak_trials(
+    support = merge_refusal_trials,
+    module = generated_merge_refusal_trials,
+    table = named("consumer", "merge-refusal-trials"),
+
+    suite construction = named("consumer", "construction") {
+        mismatched_lots_refuse {
+            claim = named("consumer", "mismatched-lots-refuse"),
+            roles = [named("consumer", "fail-closed"), named("consumer", "regression")],
+            tags = [named("consumer", "generated")],
+            subject = named("consumer", "lot-merged"),
+            check = named("consumer", "fail-closed-mismatched"),
+            population = named("consumer", "mismatched-lots"),
+        },
+        merged_count_past_limit_refuses {
+            claim = named("consumer", "merged-count-past-limit-refuses"),
+            roles = [named("consumer", "boundary"), named("consumer", "fail-closed")],
+            tags = [named("consumer", "generated")],
+            subject = named("consumer", "lot-merged"),
+            check = named("consumer", "fail-closed-over-limit"),
+            population = named("consumer", "over-limit-pair"),
+        },
+    },
 )]
 pub enum MergeRefusal {
     /// The two counts name different lots, so there is nothing to add.

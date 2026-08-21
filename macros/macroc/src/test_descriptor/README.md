@@ -47,38 +47,78 @@ content-addressed key would mint one name twice.
 A rendering of a derived identity is not the identity: nothing reads the spelling
 back, and every identity-bearing road uses the plan's own value.
 
-## The rename-twin splice
+## The caller-named alias
+
+Nobody can know a sixty-four-character plan key before the expansion runs, and
+Rust has no road from a runtime string to a macro invocation — so a carrier with
+only its mangled name is a carrier nobody can invoke. A delivery that carries
+ROWS therefore renders a second definition inside the same proved tree: an
+ordinary exported `macro_rules!` under the spelling the declaration chose, whose
+one rule forwards every token to the hidden name through `$crate`.
+
+The alias declares no grammar of its own. The hidden carrier's matcher is the
+grammar, and a caller whose input does not match reads that carrier's own
+refusal. Two declarations in one crate choosing one alias spelling collide as an
+ordinary duplicate macro definition, at the consumer's own compiler, in the
+consumer's own words — which is why nothing here keeps a register of what it has
+exported.
+
+A delivery that declared no rows renders no alias: the support spelling rides the
+trial payload, and a carrier with an empty trials seat carries nothing a person
+invokes it for.
+
+## What the consumption target supplies
 
 Nothing this home renders spells a crate name. Every path the emission writes
-begins with the shell's own metavariable for one of the two twins the wall
-declares — `$machine` and `$harness` — and the consumer's test target supplies
-both once, at the invocation:
+begins with the shell's own metavariable for the HARNESS twin, and the consumer's
+test target supplies it once, at the invocation, together with everything else
+the producer cannot honestly state:
 
 ```text
-__threadpak_generated_support_<sixty-four hex characters>! {
-    machine: <what the consumer calls the machine>,
+<the name the declaration chose>! {
     harness: <what the consumer calls the harness>,
     invocation: <the consumer's declared budgets>,
+    target: <the target triple and toolchain the runs stand on>,
+    clock: <the clock a duration is the difference of two readings from>,
+    attachments: {
+        <lens> {
+            subject_revision: <the consumer's own commitment>,
+            check_revision: <the consumer's own commitment>,
+            call: <the callable that reaches this row's conclusion>,
+        },
+    },
 }
 ```
 
-Both twins are load-bearing. The HARNESS name spells every descriptor
-constructor, the gate itself, and the gate's own `harness:` clause — which is
-what proves the name the consumer passed reaches the same schema-identity type
-the harness's `$crate` reaches, so a wrong name refuses at the door rather than
-as an unresolved path somewhere inside the payload. The MACHINE name spells what
-a generated row points AT: the callable that reaches its conclusion, and the
-revision identities its subject and check are bound under.
+The HARNESS name is load-bearing: it spells every descriptor constructor, the
+gate itself, and the gate's own `harness:` clause — which is what proves the name
+the consumer passed reaches the same schema-identity type the harness's `$crate`
+reaches, so a wrong name refuses at the door rather than as an unresolved path
+somewhere inside the payload.
 
-[`CrateFacing`] is a closed roster of exactly two, and the absence of a third is
-stated rather than worked around: a callable living in the consumer's own crate
-has no root here, and admitting one is a change to the wall rather than a change
-to the roster.
+The MACHINE name is not asked for by this crossing, and the absence is a fact
+about the delivery rather than a change to the wall. A generated row points at a
+check function the CONSUMPTION target owns, which arrives as an expression; and
+the evaluation cargo the deferred seat carries spells the binding the
+DECLARATION stated, rendered by the home that renders those implementations. So
+nothing this crossing writes is machine-rooted, and an argument a consumer
+supplies that nothing spells is a value the plan decided and nothing read.
+[`CrateFacing`] keeps both twins because the BENCH crossing rides this same
+carrier and its rows do point at machine callables.
 
-The budgets are the third argument and they are not a twin. They are the
-consumer's declaration — the stamp seats them in a `const` item precisely so an
-ambient fact cannot appear among them — and a producer that wrote its own would
-be declaring how long somebody else's machine may spend.
+The three host clauses and the attachment roster are the consumer's declarations,
+and each is a shell parameter for its own reason: budgets, because a producer
+that wrote them would be declaring how long somebody else's machine may spend; a
+target binding, because nothing in the harness derives a triple or a toolchain
+identity and both enter a cache key; a clock, because what a nanosecond reading
+is worth is a fact about a host; and the attachments, because the callable and
+the two revision commitments live in a crate that is neither the declaration's
+nor either twin, and no rendered path could name one.
+
+The matcher names one attachment clause per declared row, in declared order, so a
+delivery that is short one — or that attaches a callable to a lens nobody
+declared — does not match the carrier at all rather than expanding into a row
+nothing runs.
 
 ## The carrier also carries what the expansion deferred — behind the same pin
 
@@ -87,7 +127,7 @@ two cargo seats:
 
 ```text
 $harness::generated_support! {
-    expected: b"<the thirty-two published bytes>",
+    expected: [<the thirty-two published bytes, in decimal>],
     harness: $harness,
     trials: { <the stamped payload, or nothing> },
     deferred: { <the private module, or nothing> },
@@ -142,23 +182,42 @@ crate-internal so the public road to a carrier runs through a verified assembly.
 ## Nothing of the harness is imported
 
 Not one type in `types.rs` is the harness's. What crosses is conforming DATA in
-the harness's declared field shape: [`WallName`] mirrors the namespaced name,
-[`DescriptorRow`] mirrors the closed row field set, and [`ProducerOrigin`]
-mirrors exactly ONE arm of the origin roster. That last one is a structural
-statement rather than a convenience — the harness's roster carries five arms and
-four of them are somebody else's act, so a producer able to emit `hand-written`
-or an admitted arm would be claiming an act it did not perform. The arm is fixed
-by the type, which is why there is no origin selector anywhere in this
-vocabulary.
+the harness's declared field shape: [`WallName`] mirrors the namespaced name and
+[`DescriptorRow`] mirrors the closed row field set, minus the two seats no
+declaration may fill.
 
-## The rows arrive from the caller
+There is no ORIGIN seat at all, and that is the strongest form of the statement
+the origin roster needs. The harness carries five arms and four of them are
+somebody else's act — a hand wrote it, a synthesis cut it, a human admitted it —
+so a producer able to express one would be claiming an act it did not perform.
+What the rendering writes is the generated arm and its two producer facts, one
+composed from the payload's own [`DeclarationDoor`] row and one from this home's
+declared projection spelling: a row that cannot express an origin cannot express
+the wrong one.
 
-The plan's kind content names an OBLIGATION and states where the rows come from.
-It does not name a claim, a suite, roles, tags, a subject route, a check
-reference, a population, or a callable — so [`TrialTablePayload`] arrives from the
-caller and `plan.rs` reads only what the plan actually decided. A generator that
-invented a row's claim or elected its check would be producing its own facts and
-then proving them, which is the one thing these services never do.
+There is no ATTACHMENT seat either. A `Row` and an `ExecutableAttachment` meet at
+a `Binding` and nowhere earlier, and the attachment's three parts belong to the
+consumption target — so they arrive as expressions at the carrier's invocation
+rather than as paths this side would have to root somewhere it cannot name.
+
+## Where each fact comes from
+
+The plan's kind content names an OBLIGATION and states where the rows come from;
+it names no claim, no suite, no roles, no tags, no subject route, no check, and
+no population. [`TrialTablePayload`] therefore arrives from the caller, and
+`plan.rs` reads only what the plan actually decided.
+
+What the caller states is descriptor MEANING and exactly that: the support name a
+consumption target invokes, the stamped module, the authored table, each
+aggregate seat with the one suite it selects on, and each row's lens, claim,
+roles, tags, subject, check, and population. `capture.rs` is the grammar that
+reads it, and a clause outside that set — a producer's act on one side, a host
+fact on the other — refuses at the key rather than being read as something else.
+
+The SUITE is stated once, at the seat, and every row under it inherits it
+structurally. Two spellings of one suite were two lawful values that could
+disagree, and a seat whose rows carry a different one selects none of them —
+a disagreement no constructor could refuse, because both spellings parsed.
 
 There is no CHALLENGE METHOD anywhere on this road, and the absence is the honest
 shape rather than a dropped fact: the harness's closed field set has no method
@@ -179,22 +238,33 @@ record is the join between the two sides; the roster that settles it belongs to
 the address, and which arm each refusal becomes is stated there and never copied
 here.
 
-The gate's `expected:` clause takes a BYTE STRING literal, and the generated
-token roster has the arm that writes one — [`expectation_literal`] states the
-thirty-two bytes and the tree owns the `b`, the quotes, and the escaping. There
-is no unspellable-literal refusal on this road, because there is no unspellable
-literal: composing the identifier `b` beside a text literal was never the road,
-since that pair is two tokens where the gate's pattern matches one.
+The gate's `expected:` clause takes a bracketed roster of thirty-two DECIMAL byte
+values, and [`expectation_roster`] writes it from the services' own checked-in
+expectation. The base is the whole of what makes the comparison sound: the gate
+matches TOKENS, a byte string has many spellings of one value — `b"\x71"` and
+`b"q"` are one value and two tokens — and the spelling on this side is the
+compiler's own literal writer's choice rather than a declaration anybody made. An
+unsuffixed integer has exactly one rendering, so the two sides are one token by
+construction.
+
+That is not a preference discovered on paper. The first producer to walk through
+that door rendered a byte string and was refused there, with both spellings
+printed, over a value both sides agreed on — the gate working exactly as designed,
+and the reason the form moved.
 
 ## The seats
 
 `types.rs` declares, including the seven magnitude rows this home's capacities
 are governed by — meaning, number, and reason on one row, stamped through the
-plane's `limits!` — and the two refusal families it refuses through. Its own
+plane's `limits!` — the four syntax-facing identifiers a trial declaration spells,
+and the three refusal families it refuses through. Its own
 child `type_guard.rs` holds every road that reaches a private seat — a name's
-parts, a path's segments, a row's rosters, a group's rows, the stamped module's
+parts, a path's segments, an identifier's spelling, a row's rosters, a group's
+rows, the stamped module's
 ONE namespace, the mangling, and the shell's composition — which is what makes "a
 stamped module never declares one function twice" a shape rather than a rule.
+`capture.rs` is the authored grammar: it reads the trial attribute's body into
+this home's own vocabulary, and refuses at the clause it could not read.
 `type_contract.rs` states the declarative tables: the rendering family's declared
 shape, each twin's own metavariable spelling, and the row conversion record. `plan.rs` reads the
 plan through its public surface — the plan's own identity, the account, the

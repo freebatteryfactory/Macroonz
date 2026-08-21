@@ -20,6 +20,7 @@ pub use capture::{captured, captured_text};
 pub use carry::{
     assembly, bench_disposition, carrier_expansion, carrier_kind, carrier_node, carrier_origin,
     carrier_plan, carrier_semantic_key, deferred_selectors, evaluation_axis, rows_disposition,
+    trials_axis,
 };
 pub use diagnose::composed;
 pub use document::documented;
@@ -27,13 +28,14 @@ pub use plan::DerivedPlan;
 pub use render::{CAUSE_ORDER_CONTRACT, EVALUATION_SUBJECT, FAMILY_CONTRACT, REFUSAL_MODULE};
 pub use types::{
     CapturedCause, CapturedCommitments, CapturedDocumentation, CapturedDocumentationReading,
-    CauseOrderStanding, CrateBinding, DEFAULT_CRATE_BINDING, DIAGNOSTIC_PREFIX, DeriveCauseLimit,
-    DerivedMembership, DocumentedDeclaration, ExplanationBindingRefusal, ExplanationSeat, LineBody,
-    LineSite, RefusalClass, RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveCapture,
-    RefusalDeriveFact, RefusalDeriveRefusal, RefusalDeriveSurface, RefusalFamilyExpansion,
-    RefusalLine, RefusalOwnerFacts, RefusalSite, RenderRefusal, RenderedMagnitude,
-    SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
-    TextCompileRefusal,
+    CapturedFamilyFacts, CarrierRoadRefusal, CauseOrderStanding, CrateBinding,
+    DEFAULT_CRATE_BINDING, DIAGNOSTIC_PREFIX, DeclaredTrials, DeriveCauseLimit, DerivedMembership,
+    DocumentedDeclaration, ExplanationBindingRefusal, ExplanationSeat, LineBody, LineSite,
+    MemberRenderCause, MemberRenderRefusal, RefusalClass, RefusalCompileContext,
+    RefusalDerivationDraft, RefusalDeriveCapture, RefusalDeriveFact, RefusalDeriveRefusal,
+    RefusalDeriveSurface, RefusalFamilyExpansion, RefusalLine, RefusalOwnerFacts, RefusalSite,
+    RenderRefusal, RenderedMagnitude, SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION,
+    SHAPE_WORD_SINGLE_CAUSE, SurfaceCaptureRefusal, TextCompileRefusal, TrialDeclarationPosture,
 };
 
 use crate::closure::{ProjectionClosure, RenderedProjection, RenderedUnit};
@@ -66,26 +68,32 @@ pub fn compile_refusal(
     input: &CapturedInput,
     context: &RefusalCompileContext,
 ) -> Result<RefusalFamilyExpansion, MacrocDiagnostic> {
-    let surface = captured(input)
-        .map_err(|refusal| refusal.diagnosed(&context.spans, context.machine.clone()))?;
+    // Two grammars answer at the capture, and each is projected by the road its
+    // own home owns: a declaration the derive grammar could not read is this
+    // home's diagnostic, and a trial declaration the carrier's grammar could not
+    // read is projected at the exact clause it was established at.
+    let surface = captured(input).map_err(|refusal| match refusal {
+        SurfaceCaptureRefusal::Declaration(read) => {
+            read.diagnosed(&context.spans, context.machine.clone())
+        }
+        SurfaceCaptureRefusal::Trials(trials) => {
+            diagnose::trial_declaration_refused(trials, &context.spans)
+        }
+    })?;
     let draft = surface.planned();
 
     let planned = plan::planned(&draft, context.owner_facts, context.nonclaims.clone())
         .map_err(|refusal| diagnose::planning_refused(&refusal))?;
 
-    let rendered = render_units(&draft)?;
+    let rendered = render_units(&draft).map_err(diagnose::member_render_refused)?;
 
     // The closure SPLITS the rendered units across the deliveries their members
     // declared, joins each emission in role-roster order, keeps them, and
     // commits to each one's digest — so there is nothing left to assemble on
     // this road after the proof returns, and the tokens each build receives are
     // inside what was proved rather than concatenated behind it.
-    let closure = ProjectionClosure::proved(
-        planned.plan().identity(),
-        planned.plan().membership(),
-        rendered,
-    )
-    .map_err(|refusal| diagnose::closure_refused(&refusal))?;
+    let closure = ProjectionClosure::proved(planned.plan(), rendered)
+        .map_err(|refusal| diagnose::closure_refused(&refusal))?;
 
     let explanation = explain::explained(&planned, &closure)
         .map_err(|refusal| diagnose::explanation_refused(&refusal))?;
@@ -173,9 +181,15 @@ pub fn compile_declaration(
     // terminal's proved test-carrier cargo, states the trials and bench axes
     // absent with the dispositions that say why, and verifies the whole before
     // any carrier token exists.
-    let assembly = assembly(&draft, implementation.expansion())?;
-    let plan = carrier_plan(&draft)?;
-    let carrier = carrier_expansion(plan, &assembly)?;
+    // Each step of the carrier road answers in the vocabulary of the home that
+    // owns it, and this door is where those bodies become one line. The
+    // projection is the same road for every arm, so no step's answer is
+    // summarized on the way here.
+    let assembly =
+        assembly(&draft, implementation.expansion()).map_err(diagnose::carrier_road_refused)?;
+    let plan = carrier_plan(&draft).map_err(|refusal| diagnose::planning_refused(&refusal))?;
+    let carrier =
+        carrier_expansion(&draft, plan, &assembly).map_err(diagnose::carrier_road_refused)?;
 
     // Read BEFORE the two terminals move into the joined value, and read off
     // the terminals themselves: what a generated kind produced is its plan's
@@ -285,7 +299,8 @@ const fn evaluation_spellings(role: RenderedImplementation) -> (&'static str, &'
 ///
 /// # Errors
 ///
-/// Returns the token-magnitude diagnostic naming the role that overran it.
+/// Returns [`RenderRefusal::Unbounded`], which is the token-magnitude
+/// observation and the only one this seat can establish.
 ///
 /// The three roads below refuse in the derive-implementation home's own
 /// families, and at THIS seat all three reduce to that one observation. The
@@ -298,19 +313,15 @@ const fn evaluation_spellings(role: RenderedImplementation) -> (&'static str, &'
 /// [`RenderRefusal::Unbounded`] names. A seat that ever admitted a caller's
 /// points would owe [`diagnose`] a projection of the composition family; this
 /// one admits none.
-#[expect(
-    clippy::result_large_err,
-    reason = "the same seat-complete diagnostic the settled service road returns; this helper hands \n              it straight through"
-)]
 fn evaluation_tree(
     production: &GeneratedTree,
     role: RenderedImplementation,
-) -> Result<GeneratedTree, MacrocDiagnostic> {
-    let unbounded = || diagnose::render_refused(RenderRefusal::Unbounded, role);
+) -> Result<GeneratedTree, RenderRefusal> {
     let (active_enum, selector) = evaluation_spellings(role);
-    let binding = EvaluationBinding::declared(active_enum, selector).map_err(|_| unbounded())?;
-    let table = MutationPointTable::over(Vec::new()).map_err(|_| unbounded())?;
-    evaluation_copy(&binding, &table, production).map_err(|_| unbounded())
+    let binding =
+        EvaluationBinding::declared(active_enum, selector).map_err(|_| RenderRefusal::Unbounded)?;
+    let table = MutationPointTable::over(Vec::new()).map_err(|_| RenderRefusal::Unbounded)?;
+    evaluation_copy(&binding, &table, production).map_err(|_| RenderRefusal::Unbounded)
 }
 
 /// Render every planned role into a rendered unit.
@@ -329,13 +340,17 @@ fn evaluation_tree(
 /// The twin is READ from the roster rather than named here
 /// ([`RenderedImplementation::twin`]), exactly as the plan reads it, so a
 /// roster that paired its seats differently pairs these units differently too.
-#[expect(
-    clippy::result_large_err,
-    reason = "the same seat-complete diagnostic the settled service road returns; this helper hands \n              it straight through"
-)]
+///
+/// # Errors
+///
+/// Returns [`MemberRenderRefusal`], which names the ROLE it was refused at and
+/// the home that refused. A road that answered in the compiler-facing diagnostic
+/// here would decide, at the first helper, that which member failed is a sentence
+/// rather than a value.
 fn render_units(
     draft: &RefusalDerivationDraft,
-) -> Result<RenderedProjection<RenderedImplementation>, MacrocDiagnostic> {
+) -> Result<RenderedProjection<RenderedImplementation>, MemberRenderRefusal<RenderedImplementation>>
+{
     let family = RenderedImplementation::RenderedFamilyImpl;
     let cause_order = RenderedImplementation::RenderedCauseOrderImpl;
     let family_implementation = rendered_unit(draft, family)?;
@@ -356,9 +371,8 @@ fn render_units(
     }
 }
 
-/// Render one role into one materialized unit, projecting either refusal into a
-/// diagnostic that names what the rendering could not be done under and the
-/// role it was refused at.
+/// Render one role into one materialized unit, answering with the role it was
+/// refused at and the home that refused.
 ///
 /// Total in the role it is handed, and the four seats are written out one by
 /// one because they are four renderings rather than two: both halves of a pair
@@ -375,14 +389,16 @@ fn render_units(
 /// depends on another member's having been rendered first — which is the
 /// ordering the roster exists to remove — and the copy's head names a subject
 /// the production member's head does not.
-#[expect(
-    clippy::result_large_err,
-    reason = "the same seat-complete diagnostic the settled service road returns; this helper hands \n              it straight through"
-)]
+///
+/// # Errors
+///
+/// Returns [`MemberRenderRefusal`] carrying this role and the body of whichever
+/// home refused: the renderer's, or the closure home's materialization.
 fn rendered_unit(
     draft: &RefusalDerivationDraft,
     role: RenderedImplementation,
-) -> Result<RenderedUnit<RenderedImplementation>, MacrocDiagnostic> {
+) -> Result<RenderedUnit<RenderedImplementation>, MemberRenderRefusal<RenderedImplementation>> {
+    let refused = |cause: MemberRenderCause| MemberRenderRefusal { role, cause };
     let implemented = match role {
         RenderedImplementation::RenderedFamilyImpl => {
             render::family_implementation(draft.surface())
@@ -397,9 +413,10 @@ fn rendered_unit(
             render::cause_order_evaluation_implementation(draft.surface())
         }
     }
-    .map_err(|refusal| diagnose::render_refused(refusal, role))?;
+    .map_err(|cause| refused(MemberRenderCause::Rendered(cause)))?;
     let tree = if role.is_evaluation_copy() {
-        evaluation_tree(&implemented, role)?
+        evaluation_tree(&implemented, role)
+            .map_err(|cause| refused(MemberRenderCause::Rendered(cause)))?
     } else {
         implemented
     };
@@ -415,5 +432,5 @@ fn rendered_unit(
         plan::member_origin(draft, role),
         tree,
     )
-    .map_err(|refusal| diagnose::rendering_refused(refusal, role))
+    .map_err(|cause| refused(MemberRenderCause::Materialized(cause)))
 }

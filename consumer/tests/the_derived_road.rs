@@ -35,11 +35,11 @@
 //!
 //! # What this file does not establish
 //!
-//! The declaration site is the whole of what it reads. A derived family's test
-//! rows and its evaluation support arrive when the emission road delivers
-//! carrier cargo to a rendered support shell; until that delivery exists, this
-//! crate's derived-road evidence is the declaration-site surface read back as
-//! values, and no seat below reaches for anything else.
+//! The declaration site is the whole of what it reads. The same declaration also
+//! delivers trial rows and evaluation support into a CONSUMPTION target, and
+//! that delivery is `tests/the_generated_road.rs`'s to invoke and to observe —
+//! no seat below reaches for it, so what this file establishes stays exactly
+//! what an ordinary build compiles.
 //!
 //! Nothing about a true outsider, either. This package is a workspace member, so
 //! it shares this workspace's resolution and its lint wall; the packaged check

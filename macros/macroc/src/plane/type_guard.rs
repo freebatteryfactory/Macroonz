@@ -243,14 +243,35 @@ impl IdentityProfile {
         self.version
     }
 
-    /// The derive-key context for one subject under one role, spelled by the
-    /// domain grammar [`IdentityProfile`] states.
+    /// The derive-key context one SUBJECT derives under, at one role, spelled by
+    /// the domain grammar [`IdentityProfile`] states.
     ///
     /// The family segment sits ahead of the version, so one family's position
     /// one and another's are two key spaces and a bump under either reaches
     /// nothing under the other.
+    ///
+    /// # Authority
+    ///
+    /// **The subject is the TYPE's and never an argument.** A road that took the
+    /// subject as text would let a caller derive under any name space it could
+    /// spell — including one another subject already occupies — and the typed
+    /// identity above it would be a promise the encoder never had to keep. Here
+    /// the subject arrives as a parameter of the sealed [`IdentitySubject`]
+    /// roster, so asking for the wrong name space is unwritable rather than
+    /// discouraged.
     #[must_use]
-    pub fn context_for(self, subject: &str, role: ProjectionRole) -> String {
+    pub fn context_for<Subject: IdentitySubject>(self, role: ProjectionRole) -> String {
+        self.context_over(Subject::SUBJECT_NAME, role)
+    }
+
+    /// The same context, over a subject NAME a derivation record already
+    /// carries.
+    ///
+    /// Crate-internal, with one caller: [`ProjectionProvenance::context`], which
+    /// renders what a derivation recorded rather than performing one. The record
+    /// stores the declared name because that is what it observed; nothing here
+    /// derives anything, and no public road reaches this one.
+    pub(crate) fn context_over(self, subject: &str, role: ProjectionRole) -> String {
         let family = self.family.stable_name();
         let version = self.version.position();
         let role = role.stable_name();
@@ -456,10 +477,16 @@ impl<'material> ProjectionTranscript<'material> {
     }
 
     /// The derivation record this transcript leaves for one identity subject.
+    ///
+    /// # Authority
+    ///
+    /// The subject is the TYPE's, on exactly
+    /// [`IdentityProfile::context_for`]'s terms: a record that could be handed a
+    /// subject name would be a record of a derivation that did not happen.
     #[must_use]
-    pub fn provenance(&self, subject: &'static str) -> ProjectionProvenance {
+    pub fn provenance<Subject: IdentitySubject>(&self) -> ProjectionProvenance {
         ProjectionProvenance {
-            subject,
+            subject: Subject::SUBJECT_NAME,
             role: self.role,
             profile: self.profile,
             generator: self.generator,
@@ -535,7 +562,7 @@ impl ProjectionProvenance {
     /// grammar.
     #[must_use]
     pub fn context(&self) -> String {
-        self.profile.context_for(self.subject, self.role)
+        self.profile.context_over(self.subject, self.role)
     }
 }
 
@@ -546,9 +573,9 @@ impl<Subject: IdentitySubject> ProjectionIdentity<Subject> {
     pub fn derived(transcript: ProjectionTranscript<'_>) -> Self {
         let context = transcript
             .profile()
-            .context_for(Subject::SUBJECT_NAME, transcript.role());
+            .context_for::<Subject>(transcript.role());
         Self {
-            bytes: blake3::derive_key(&context, &transcript.encoded(Subject::SUBJECT_NAME)),
+            bytes: blake3::derive_key(&context, &transcript.encoded::<Subject>()),
             _subject: PhantomData,
         }
     }
@@ -566,7 +593,7 @@ impl<Subject: IdentitySubject> ProjectionIdentity<Subject> {
     ) -> (Self, ProjectionProvenance) {
         (
             Self::derived(transcript),
-            transcript.provenance(Subject::SUBJECT_NAME),
+            transcript.provenance::<Subject>(),
         )
     }
 }

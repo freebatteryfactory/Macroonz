@@ -24,32 +24,52 @@
 //!
 //! It states no obligation, no row, and no owner meaning. What the descriptor
 //! challenges is carried under the posture an expansion can honestly state
-//! ([`ObligationAnchoring::CapturedDeclarationOnly`]), and the trials axis is
-//! ABSENT under the disposition that says why: the row material a descriptor
-//! states about itself is the caller's declaration, and a derive door holds
-//! none. That absence is exactly the evaluation-only delivery the carrier
-//! renders an empty trials seat for.
+//! ([`ObligationAnchoring::CapturedDeclarationOnly`]), and the trials axis
+//! carries exactly what the DECLARATION states and nothing else: the claim, the
+//! suite, the roles, the tags, the subject, the check, and the population a row
+//! names are the caller's own words, read by the home that owns the vocabulary
+//! they are spelled in and handed over unchanged. A declaration that states none
+//! leaves the axis ABSENT under the disposition that says why, which is exactly
+//! the evaluation-only delivery the carrier renders an empty trials seat for.
+//!
+//! # What moves when a trial row moves
+//!
+//! The carrier's own member identities stand under the CARRIER ANCHOR, which is
+//! the declaration's trial commitment where it states rows and its semantic
+//! commitment where it does not. So a declaration whose rows were edited plans a
+//! different carrier and mints a different exported name, while every
+//! implementation member beside it keeps the name it had — which is the whole of
+//! what the third reading of a captured surface is for.
+//!
+//! The carrier plan's own ACCOUNT stays over the semantic commitment on both
+//! postures, because the assembly's one-root check compares it against the root
+//! the implementation terminal stands under: the two terminals are one
+//! declaration's, or the carrier is delivering somebody else's cargo.
 
+use super::evaluation_spellings;
 use super::plan::{
     authored_node, expansion_context, rust_declaration_profile, rust_declaration_profile_version,
 };
 use super::render::EVALUATION_SUBJECT;
-use super::types::{DerivedMembership, RefusalDerivationDraft, RefusalDeriveFact};
-use super::{diagnose, evaluation_spellings, types};
+use super::types::{
+    CarrierRoadRefusal, DerivedMembership, ExplanationBindingRefusal, ExplanationSeat,
+    MemberRenderCause, MemberRenderRefusal, RefusalDerivationDraft, RefusalDeriveFact,
+    TrialDeclarationPosture,
+};
 use crate::closure::{ClosedExpansion, ProjectionClosure, RenderedProjection, RenderedUnit};
-use crate::diagnostics::MacrocDiagnostic;
 use crate::explanation_protocol::{
     ExplanationAnswer, ProjectionExplanation, ProjectionExplanationView,
 };
 use crate::generated_support::{
-    AxisCargo, CargoAxis, ProvedCargo, ShellComposition, SupportAssembly, assembled_shell,
+    AxisCargo, CargoAxis, ProvedCargo, SupportAssembly, assembled_shell,
 };
 use crate::origin_graph::{
     DecisionTrace, OriginEdge, OriginRelation, OriginTrail, TraceDecision, TraceEntry,
 };
 use crate::plane::{
-    GeneratedUnitSubject, OriginNodeSubject, OutputBytesSubject, ProjectionIdentity,
-    ProjectionKindSubject, ProjectionRole, ProjectionTranscript, RenderedRole, SoleRenderedUnit,
+    GeneratedUnitSubject, MembershipLimit, OriginNodeSubject, OutputBytesSubject,
+    ProjectionIdentity, ProjectionKindSubject, ProjectionRole, ProjectionTranscript, RenderedRole,
+    SoleRenderedUnit,
 };
 use crate::planning::{
     DigestContract, EXPECTED_GENERATED_SUPPORT_SCHEMA_ID, EmissionPartition, ObligationAnchoring,
@@ -57,9 +77,10 @@ use crate::planning::{
     ProjectionDisposition, ProjectionKind, ProjectionPlan, RenderedImplementation,
     RowMaterialPosture, TestDescriptorContent, TestDescriptorProjection,
 };
+use crate::refusal::ProjectionPlanning;
 use crate::test_descriptor::{
     ActivePointSelector, DeferredCargo, GeneratedSupportShell, ShellDeclarationRefusal,
-    descriptor_plan,
+    TrialTablePayload, descriptor_plan,
 };
 use threadpak::types::Bounded;
 
@@ -115,16 +136,21 @@ fn deferred_contracts(membership: DerivedMembership) -> Vec<RenderedImplementati
 
 /// The carrier member's semantic key.
 ///
-/// Derived from the captured declaration and this member's own material, so the
-/// carrier and every implementation member of one declaration are distinct
-/// identities by construction.
+/// Derived from the CARRIER ANCHOR and this member's own material, so the carrier
+/// and every implementation member of one declaration are distinct identities by
+/// construction — and so a declaration whose trial rows moved plans a different
+/// carrier while every implementation member keeps the name it had. What the
+/// anchor is under each posture, and why the account's own commitment is not it,
+/// is [`RefusalDeriveSurface::carrier_anchor`]'s statement.
+///
+/// [`RefusalDeriveSurface::carrier_anchor`]: super::RefusalDeriveSurface::carrier_anchor
 #[must_use]
 pub fn carrier_semantic_key(
     draft: &RefusalDerivationDraft,
 ) -> ProjectionIdentity<GeneratedUnitSubject> {
     ProjectionIdentity::derived(ProjectionTranscript::under_projection(
         ProjectionRole::GeneratedUnit,
-        &draft.surface().identity(),
+        &draft.surface().carrier_anchor(),
         CARRIER_MEMBER,
         SoleRenderedUnit::Sole.slot(),
     ))
@@ -135,7 +161,7 @@ pub fn carrier_semantic_key(
 pub fn carrier_node(draft: &RefusalDerivationDraft) -> ProjectionIdentity<OriginNodeSubject> {
     ProjectionIdentity::derived(ProjectionTranscript::under_projection(
         ProjectionRole::OriginNode,
-        &draft.surface().identity(),
+        &draft.surface().carrier_anchor(),
         CARRIER_MEMBER,
         SoleRenderedUnit::Sole.slot(),
     ))
@@ -180,17 +206,66 @@ pub fn deferred_selectors(
         .collect()
 }
 
-/// What happened to the descriptor rows this carrier would have declared.
+/// What happened to the descriptor rows this carrier declares.
 ///
-/// NOT APPLICABLE, citing the fact that says why: the claim, the suite, the
-/// roles, the tags, the subject, the check, the population, and the callable a
-/// row states are the caller's declarations, and a derive door is handed a
-/// declaration and an expansion context — neither of which carries one. A door
-/// that answered otherwise would be producing its own row material and then
-/// proving it.
-pub fn rows_disposition() -> ProjectionDisposition {
-    ProjectionDisposition::NotApplicable {
-        because: RefusalDeriveFact::ARowIsTheCallersDeclarationAndNeverTheProducers.citation(),
+/// # Two answers, and the declaration decides which
+///
+/// GENERATED where the declaration states trial rows: the author wrote them, the
+/// grammar read them, and the carrier's own member carries them across the wall.
+/// The output the disposition names is the carrier's, read off the plan, because
+/// the rows are rendered INSIDE that one unit rather than as units of their own.
+///
+/// NOT APPLICABLE where it states none, citing the fact that says why: the claim,
+/// the suite, the roles, the tags, the subject, the check, and the population a
+/// row states are the caller's declarations, and a door handed none declares no
+/// rows rather than inventing the material it would then prove.
+///
+/// The two never read alike, and neither is a refusal: a refusal-family
+/// declaration that states no trials is exactly the declaration this derive has
+/// always compiled.
+pub fn rows_disposition(
+    draft: &RefusalDerivationDraft,
+    plan: &ProjectionPlan<TestDescriptorProjection>,
+) -> ProjectionDisposition {
+    match draft.surface().trials() {
+        TrialDeclarationPosture::NotDeclared => ProjectionDisposition::NotApplicable {
+            because: RefusalDeriveFact::ARowIsTheCallersDeclarationAndNeverTheProducers.citation(),
+        },
+        TrialDeclarationPosture::Declared(_) => ProjectionDisposition::Generated {
+            output: Box::new(plan.membership().first().output.clone()),
+        },
+    }
+}
+
+/// What the caller declared into this carrier's TRIALS axis.
+///
+/// # What is read, and what is declared
+///
+/// Everything. The payload is the declaration's own, read by the home that owns
+/// the vocabulary it states and carried here unchanged — this road elects no
+/// row, no name, and no suite. Where the declaration states none the axis is
+/// ABSENT under the disposition that says why, which is exactly the
+/// evaluation-only delivery the carrier renders an empty trials seat for.
+///
+/// # Bounds
+///
+/// The trial axis carries a DECLARED payload rather than one terminal's proved
+/// cargo, and the two are different materials for a reason: a row's meaning is
+/// the author's statement and was never rendered by anybody, so there is no
+/// partition for a promotion road to read it off. What keeps it honest is the
+/// grammar that read it and the carrier vocabulary that admitted it, both of
+/// which refuse before this seat is reached.
+pub fn trials_axis(draft: &RefusalDerivationDraft) -> AxisCargo<TrialTablePayload> {
+    match draft.surface().trials() {
+        TrialDeclarationPosture::NotDeclared => AxisCargo::Absent {
+            because: ProjectionDisposition::NotApplicable {
+                because: RefusalDeriveFact::ARowIsTheCallersDeclarationAndNeverTheProducers
+                    .citation(),
+            },
+        },
+        TrialDeclarationPosture::Declared(declared) => {
+            AxisCargo::Carried(declared.payload().clone())
+        }
     }
 }
 
@@ -210,22 +285,17 @@ pub fn bench_disposition() -> ProjectionDisposition {
 ///
 /// # Errors
 ///
-/// Returns the planning diagnostic where the watch set cannot represent what the
-/// entry account declares, or where a declared magnitude is passed while the
-/// plan's seats are assembled.
-#[expect(
-    clippy::result_large_err,
-    reason = "the same seat-complete diagnostic the settled service road returns; this helper hands \n              it straight through"
-)]
+/// Returns the PLANNING home's own body where the watch set cannot represent
+/// what the entry account declares, or where a declared magnitude is passed while
+/// the plan's seats are assembled — narrow, because planning is the only home
+/// this road reaches.
 pub fn carrier_plan(
     draft: &RefusalDerivationDraft,
-) -> Result<ProjectionPlan<TestDescriptorProjection>, MacrocDiagnostic> {
+) -> Result<ProjectionPlan<TestDescriptorProjection>, ProjectionPlanning> {
     let account =
         OwnerContentAccount::<TestDescriptorProjection>::captured(draft.surface().identity());
     let context = expansion_context(draft);
-    let invalidation = context
-        .watch_set(&account)
-        .map_err(|refusal| diagnose::planning_refused(&refusal))?;
+    let invalidation = context.watch_set(&account)?;
     let key = carrier_semantic_key(draft);
     let origin = carrier_origin(draft);
     let trace = DecisionTrace::from_entry(TraceEntry {
@@ -272,7 +342,6 @@ pub fn carrier_plan(
             nonclaims: Bounded::empty(),
         },
     )
-    .map_err(|refusal| diagnose::planning_refused(&refusal))
 }
 
 /// Read one implementation terminal's test-carrier cargo into the evaluation
@@ -297,17 +366,14 @@ pub fn carrier_plan(
 ///
 /// # Errors
 ///
-/// Returns the carrier's declaration diagnostic where a spelling this home
-/// declared is not one the cargo admits, and the assembly diagnostic where the
-/// tokens are not the terminal's own.
-#[expect(
-    clippy::result_large_err,
-    reason = "the same seat-complete diagnostic the settled service road returns; this helper hands \n              it straight through"
-)]
+/// Returns the CARRIER-DECLARATION home's body where a spelling this home
+/// declared is not one the cargo admits, and the ASSEMBLY home's body where the
+/// tokens are not the terminal's own — each carried whole, under the arm of the
+/// carrier road that names which home refused.
 pub fn evaluation_axis<K: ProjectionKind>(
     draft: &RefusalDerivationDraft,
     implementation: &ClosedExpansion<K>,
-) -> Result<AxisCargo<ProvedCargo>, MacrocDiagnostic> {
+) -> Result<AxisCargo<ProvedCargo>, CarrierRoadRefusal> {
     let Some(tree) = implementation.test_carrier().tokens() else {
         // Nothing was planned into the carrier at all — a stated fact about the
         // plan rather than an empty cargo, and the disposition says which.
@@ -315,34 +381,27 @@ pub fn evaluation_axis<K: ProjectionKind>(
             because: ProjectionDisposition::NotRequested,
         });
     };
-    let selectors = deferred_selectors(draft.declared_membership())
-        .map_err(diagnose::carrier_declaration_refused)?;
-    let cargo = DeferredCargo::deferred(EVALUATION_SUBJECT, selectors, tree.clone())
-        .map_err(diagnose::carrier_declaration_refused)?;
-    ProvedCargo::carried(
+    let selectors = deferred_selectors(draft.declared_membership())?;
+    let cargo = DeferredCargo::deferred(EVALUATION_SUBJECT, selectors, tree.clone())?;
+    Ok(AxisCargo::Carried(ProvedCargo::carried(
         implementation,
         CargoAxis::Evaluation,
         EmissionPartition::TestCarrier,
         cargo,
-    )
-    .map(AxisCargo::Carried)
-    .map_err(|refusal| diagnose::assembly_refused(&refusal))
+    )?))
 }
 
 /// Assemble the carrier over one implementation terminal.
 ///
 /// # Errors
 ///
-/// Returns the assembly diagnostic naming every way the outputs do not compose
-/// into one exported shell.
-#[expect(
-    clippy::result_large_err,
-    reason = "the same seat-complete diagnostic the settled service road returns; this helper hands \n              it straight through"
-)]
+/// Returns the ASSEMBLY home's own body naming every way the outputs do not
+/// compose into one exported shell, and whatever the evaluation axis refused
+/// with.
 pub fn assembly<K: ProjectionKind>(
     draft: &RefusalDerivationDraft,
     implementation: &ClosedExpansion<K>,
-) -> Result<SupportAssembly, MacrocDiagnostic> {
+) -> Result<SupportAssembly, CarrierRoadRefusal> {
     let evaluation = evaluation_axis(draft, implementation)?;
     SupportAssembly::assembled(
         // The root is the IMPLEMENTATION terminal's own entry account, read off
@@ -350,15 +409,13 @@ pub fn assembly<K: ProjectionKind>(
         // a root composed here would be a second account of it.
         implementation.plan().account().commitment(),
         EXPECTED_GENERATED_SUPPORT_SCHEMA_ID,
-        AxisCargo::Absent {
-            because: rows_disposition(),
-        },
+        trials_axis(draft),
         evaluation,
         AxisCargo::Absent {
             because: bench_disposition(),
         },
     )
-    .map_err(|refusal| diagnose::assembly_refused(&refusal))
+    .map_err(CarrierRoadRefusal::from)
 }
 
 /// Close the carrier: render the shell from the verified assembly, materialize
@@ -367,34 +424,25 @@ pub fn assembly<K: ProjectionKind>(
 ///
 /// # Errors
 ///
-/// Returns the plan-reading diagnostic where the plan does not state its one
-/// member at the declaration site, the ASSEMBLY diagnostic where this plan's
-/// declared root is not the assembly's — the shell road establishes that join,
-/// and this seat projects the body it establishes through the assembly family's
-/// own projection rather than restating it — the rendering diagnostic where the
-/// shell passes the declared token magnitude, the materialization diagnostic
-/// where its bytes pass theirs, the closure diagnostic where the rendering and
-/// the plan disagree, the explanation diagnostic where a seat cannot be bound or
-/// the coverage is short, and the binding diagnostic where the three values do
-/// not name one another.
-#[expect(
-    clippy::result_large_err,
-    reason = "the same seat-complete diagnostic the settled service road returns; this helper hands \n              it straight through"
-)]
+/// Returns the arm of the carrier road that names which STEP refused, carrying
+/// that step's own body whole: the plan reading where the plan does not state its
+/// one member at the declaration site, the composition where this plan's declared
+/// root is not the assembly's or the shell's tokens pass their magnitude, the
+/// materialization where the shell's bytes pass theirs, the closure where the
+/// rendering and the plan disagree, the explanation where a seat cannot be bound
+/// or the coverage is short, and the binding where the three values do not name
+/// one another.
+///
+/// Nothing here composes a line. Which step failed is a value the caller holds,
+/// and [`diagnose::carrier_road_refused`] is the one seam that turns it into the
+/// one line a compiler shows.
 pub fn carrier_expansion(
+    draft: &RefusalDerivationDraft,
     plan: ProjectionPlan<TestDescriptorProjection>,
     assembly: &SupportAssembly,
-) -> Result<ClosedExpansion<TestDescriptorProjection>, MacrocDiagnostic> {
-    let stated = descriptor_plan(&plan).map_err(diagnose::descriptor_plan_refused)?;
-    // Two homes refuse at this seam and each is projected by its own home's
-    // projection: a pair that is not one declaration's is a COMPOSITION fact and
-    // reads in the assembly family, and a tree past its bound is the CARRIER's
-    // fact and reads in the shell family. A single projection over both would
-    // compose one line about two unrelated observations.
-    let shell = assembled_shell(&stated, assembly).map_err(|refusal| match refusal {
-        ShellComposition::NotOneDeclarations(composed) => diagnose::assembly_refused(&composed),
-        ShellComposition::Rendering(rendering) => diagnose::shell_refused(&rendering),
-    })?;
+) -> Result<ClosedExpansion<TestDescriptorProjection>, CarrierRoadRefusal> {
+    let stated = descriptor_plan(&plan)?;
+    let shell = assembled_shell(&stated, assembly)?;
     let unit = RenderedUnit::materialized(
         stated.role,
         stated.semantic_key,
@@ -404,17 +452,14 @@ pub fn carrier_expansion(
         stated.origin.clone(),
         shell.tree().clone(),
     )
-    .map_err(|refusal| diagnose::rendering_refused(refusal, stated.role))?;
+    .map_err(|cause| MemberRenderRefusal {
+        role: stated.role,
+        cause: MemberRenderCause::Materialized(cause),
+    })?;
     let digest = unit.digest();
-    let closure = ProjectionClosure::proved(
-        plan.identity(),
-        plan.membership(),
-        RenderedProjection::of_one(unit),
-    )
-    .map_err(|refusal| diagnose::closure_refused(&refusal))?;
-    let explanation = carrier_explanation(&plan, &closure, digest)?;
-    ClosedExpansion::bound(plan, closure, explanation)
-        .map_err(|refusal| diagnose::expansion_refused(&refusal))
+    let closure = ProjectionClosure::proved(&plan, RenderedProjection::of_one(unit))?;
+    let explanation = carrier_explanation(draft, &plan, &closure, digest)?;
+    Ok(ClosedExpansion::bound(plan, closure, explanation)?)
 }
 
 /// Answer the explanation protocol over the carrier's plan and proof.
@@ -422,34 +467,46 @@ pub fn carrier_expansion(
 /// Nine seats: the eight every kind owes, plus the one this kind declares —
 /// which tests challenge the subject.
 ///
-/// The challenging-tests seat answers with an EMPTY roster and the answer is
-/// true: this carrier declares no descriptor rows, because the rows are the
-/// caller's declaration and this door holds none. The why-not-generated seat
-/// carries that same absence as the disposition that states it, so the two seats
-/// agree by construction rather than by care.
+/// # The challenging-tests seat
+///
+/// The roster names GENERATED UNITS, and this projection materializes exactly
+/// one: the carrier. So the seat answers with that one member's semantic key
+/// where the declaration states trial rows, and with an EMPTY roster where it
+/// states none — a carrier that delivers no rows challenges nothing, and one that
+/// delivers them challenges through the single unit they are rendered inside.
+///
+/// The rows themselves are not named here and cannot be: a row is declaration
+/// material rendered inside the carrier's one unit rather than a unit of its own,
+/// and a roster that listed them would be naming values the plane never minted.
+///
+/// The why-not-generated seat carries the same posture as the disposition that
+/// states it ([`rows_disposition`]), read off the same declaration, so the two
+/// seats agree by construction rather than by care.
 ///
 /// # Errors
 ///
-/// Returns the explanation diagnostic where the plan's one member cannot be
-/// bound, or where the written view does not cover this kind's questions.
-#[expect(
-    clippy::result_large_err,
-    reason = "the same seat-complete diagnostic the settled service road returns; this helper hands \n              it straight through"
-)]
+/// Returns the EXPLANATION home's own body where the plan's one member cannot be
+/// bound, or where the written view does not cover this kind's questions —
+/// narrow, because that is the only home this road reaches.
 fn carrier_explanation(
+    draft: &RefusalDerivationDraft,
     plan: &ProjectionPlan<TestDescriptorProjection>,
     closure: &ProjectionClosure<SoleRenderedUnit>,
     digest: ProjectionIdentity<OutputBytesSubject>,
-) -> Result<ProjectionExplanationView<TestDescriptorProjection>, MacrocDiagnostic> {
-    let member = plan
-        .membership()
-        .under(SoleRenderedUnit::Sole)
-        .ok_or_else(|| {
-            diagnose::explanation_refused(&types::ExplanationBindingRefusal::RequiredOutputAbsent {
-                seat: types::ExplanationSeat::PlannedCarrierMember,
-            })
-        })?;
+) -> Result<ProjectionExplanationView<TestDescriptorProjection>, ExplanationBindingRefusal> {
+    let member = plan.membership().under(SoleRenderedUnit::Sole).ok_or(
+        ExplanationBindingRefusal::RequiredOutputAbsent {
+            seat: ExplanationSeat::PlannedCarrierMember,
+        },
+    )?;
     let owner = RefusalDeriveFact::AnEvaluationCopyStandsOverALocalSubject.citation();
+    let challenging: Bounded<ProjectionIdentity<GeneratedUnitSubject>, MembershipLimit> =
+        match draft.surface().trials() {
+            TrialDeclarationPosture::NotDeclared => Bounded::empty(),
+            TrialDeclarationPosture::Declared(_) => {
+                Bounded::from_array([member.output.semantic_key])
+            }
+        };
     let answers = vec![
         ProjectionExplanation::answered(ExplanationAnswer::Kind {
             kind: carrier_kind(),
@@ -472,18 +529,15 @@ fn carrier_explanation(
         }),
         ProjectionExplanation::answered(ExplanationAnswer::RelatedProjectionDisposition {
             related: carrier_kind(),
-            disposition: rows_disposition(),
+            disposition: rows_disposition(draft, plan),
         }),
         ProjectionExplanation::answered(ExplanationAnswer::Repairs {
             repairs: Bounded::empty(),
         }),
         ProjectionExplanation::answered(ExplanationAnswer::ChallengingTests {
-            descriptors: Bounded::empty(),
+            descriptors: challenging,
         }),
     ];
-    ProjectionExplanationView::<TestDescriptorProjection>::complete(plan, closure, answers).map_err(
-        |coverage| {
-            diagnose::explanation_refused(&types::ExplanationBindingRefusal::Coverage(coverage))
-        },
-    )
+    ProjectionExplanationView::<TestDescriptorProjection>::complete(plan, closure, answers)
+        .map_err(ExplanationBindingRefusal::Coverage)
 }

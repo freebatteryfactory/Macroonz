@@ -1,15 +1,31 @@
 //! The test-descriptor home's declarations: the generated support shell every
-//! crossing of the wall rides, the descriptor row vocabulary in the harness's
-//! own field shape, what the shell declares into the gate's TRIALS seat and what
-//! an expansion defers into its DEFERRED seat, the two rename twins a rendered
-//! path is rooted at, and the magnitudes and refusal families this home answers
-//! with.
+//! crossing of the wall rides, the four syntax-facing identifiers a trial
+//! declaration spells, the descriptor row vocabulary in the harness's own field
+//! shape, what the shell declares into the gate's TRIALS seat and what an
+//! expansion defers into its DEFERRED seat, the two rename twins a rendered path
+//! is rooted at, and the magnitudes and refusal families this home answers with.
 //!
 //! Declarations only.
 //! Every road that reaches a private field — a name's two parts, a path's
-//! segments, a row's rosters, a group's rows, a payload's groups, a cargo's
-//! subject and selectors, the shell's mangled name and its tree, and the
-//! refusal body's one seat — lives in `type_guard.rs`, this file's own child.
+//! segments, an identifier's spelling, a row's rosters, a group's rows, a
+//! payload's groups, a cargo's subject and selectors, the shell's mangled name
+//! and its tree, and the refusal body's one seat — lives in `type_guard.rs`,
+//! this file's own child.
+//!
+//! # What an author states, and what a producer states
+//!
+//! The vocabulary below is cut along that line and the cut is structural rather
+//! than documented. A declaration author states descriptor MEANING: the support
+//! name a consumption target invokes, the module the stamp writes, the table's
+//! name, each aggregate seat and the suite it selects on, and each row's lens,
+//! claim, roles, tags, subject, check, and population. Nothing else has a seat.
+//!
+//! The producer's own act — the door, the projection, the producer's name, and
+//! the schema identity a produced table pins against — is fixed by construction
+//! or composed inside the rendering. The consumption target's host facts — the
+//! two revision commitments, the callable, the invocation budgets, the target
+//! binding, and the clock — have no seat here at all: they arrive as expressions
+//! at the carrier's own invocation, inside the test target that owns them.
 //!
 //! # Nothing of the harness is imported
 //!
@@ -34,7 +50,7 @@ use crate::plane::{
     ProjectionProfileSubject, SoleRenderedUnit,
 };
 use crate::planning::{CauseAnchoring, ObligationAnchoring};
-use crate::token::GeneratedTree;
+use crate::token::{GeneratedTree, SpanHandle};
 use threadpak::types::{Bounded, NonEmptyBounded};
 
 #[path = "type_guard.rs"]
@@ -201,6 +217,113 @@ threadpak::closed_register! {
 }
 
 // ---------------------------------------------------------------------------
+// The trial-declaration grammar's refusal family.
+// ---------------------------------------------------------------------------
+
+threadpak::closed_register! {
+    /// How one authored trial declaration is not read.
+    ///
+    /// Dependent checks in a declared order, so exactly one cause is true of any
+    /// refused declaration: the attribute is found before its body is read, the
+    /// body's clauses before their values, and a value's shape before the
+    /// vocabulary that value states.
+    ///
+    /// # Authority
+    ///
+    /// **The grammar is CLOSED and states descriptor meaning alone.** Every seat
+    /// a producer performs — the origin, the producer's name, the projection, the
+    /// schema a produced table pins against — and every seat a consumption target
+    /// supplies — the two revision commitments, the callable, the declared
+    /// budgets, the target binding, the clock — reaches
+    /// [`TrialDeclarationCause::NotADeclarableClause`], because none of them is a
+    /// thing the declaration author is the one to state.
+    #[must_use = "a trial-declaration refusal names the exact seat the declaration did not fill"]
+    #[expect(
+        clippy::enum_variant_names,
+        reason = "the shared word is the axis: this is a single-cause family whose every row names a thing the reading did NOT establish, and a roster without it would read as a roster of clauses rather than of what was missing from them"
+    )]
+    pub enum TrialDeclarationCause {
+        /// The declaration carries the trial attribute more than once, so two
+        /// declarations of one carrier's rows stand beside each other and neither
+        /// is the one.
+        NotDeclaredOnce = "not-declared-once",
+            "the declaration carries the trial attribute more than once";
+        /// The trial attribute states no parenthesized body, so it declares no
+        /// rows at all.
+        NotBodied = "not-bodied",
+            "the trial attribute states no body";
+        /// A clause of the body is not `<key> = <value>` shaped.
+        NotAClause = "not-a-clause",
+            "a clause of the trial declaration is not one key and one value";
+        /// A clause's key is not one this grammar declares.
+        NotADeclarableClause = "not-a-declarable-clause",
+            "the clause is not one the trial grammar declares";
+        /// One clause key is stated twice, so the declaration says two things
+        /// where the grammar admits one.
+        NotDistinct = "not-distinct",
+            "one clause of the trial declaration is stated twice";
+        /// A required clause is absent.
+        NotCovered = "not-covered",
+            "a required clause of the trial declaration is absent";
+        /// A value written where `named(<namespace>, <stem>)` is required is not
+        /// one.
+        NotANamedReference = "not-a-named-reference",
+            "a value is not one `named(<namespace>, <stem>)` reference";
+        /// A value written where a bracketed roster is required is not one.
+        NotARoster = "not-a-roster",
+            "a value is not one bracketed roster";
+        /// A suite clause is not `suite <seat> = named(<namespace>, <stem>) {
+        /// <rows> }` shaped.
+        NotASuiteGroup = "not-a-suite-group",
+            "a suite clause is not one seat, one suite reference, and one row body";
+        /// A row is not `<lens> { <clauses> }` shaped.
+        NotARow = "not-a-row",
+            "a row is not one lens and one clause body";
+    }
+}
+
+/// How one authored trial declaration was not read: which of the two homes
+/// refused, and the token it was established at.
+///
+/// # Authority
+///
+/// **Two homes answer at this seam and each answer is carried whole.** Whether
+/// the tokens SAY a trial declaration is this grammar's question; whether the
+/// values they say are a lawful carrier declaration is the carrier vocabulary's,
+/// and its constructors answer in their own family. A single roster covering both
+/// would give a malformed clause and a doubled role one shape and one
+/// related-identity tag, and two homes' facts under one tag derive one related
+/// identity for two unrelated observations.
+///
+/// # Bounds
+///
+/// Both arms name a TOKEN. A trial declaration is read out of an attribute a
+/// person wrote, so every refusal on this road is a fact about one clause of it
+/// and the reader is sent to that clause rather than to the declaration's
+/// opening.
+#[must_use = "a trial-declaration refusal names which home refused and the token it was established at"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TrialDeclarationRefusal {
+    /// The authored grammar refused: this home's own cause, at the token the
+    /// clause it was established at sits at.
+    Grammar {
+        /// The established cause.
+        cause: TrialDeclarationCause,
+        /// The token it was established at.
+        at: SpanHandle,
+    },
+    /// The carrier's own declaration vocabulary refused a value the grammar read:
+    /// that family's own cause, carried exactly as its constructor returned it,
+    /// at the token the clause the value was read from sits at.
+    Carrier {
+        /// The carrier vocabulary's own refusal.
+        refusal: ShellDeclarationRefusal,
+        /// The token the clause it was read from sits at.
+        at: SpanHandle,
+    },
+}
+
+// ---------------------------------------------------------------------------
 // The two rename twins.
 // ---------------------------------------------------------------------------
 
@@ -214,10 +337,18 @@ threadpak::closed_register! {
     ///
     /// # Bounds
     ///
-    /// A callable living in the consumer's OWN crate has no arm here, and that
-    /// absence is stated rather than worked around: the shell's argument list is
-    /// what the wall declared, and admitting a third root is a change to the
-    /// wall rather than a change to this roster.
+    /// A callable living in the consumer's OWN crate has no arm here, and it
+    /// needs none. A generated trial row points at a check function the
+    /// CONSUMPTION target owns, and that value arrives as an EXPRESSION at the
+    /// carrier's own invocation — where the target's own hygiene reaches its own
+    /// items — rather than as a path this side would have to root somewhere. A
+    /// third twin would be the wall admitting a crate it cannot name; supplying
+    /// the expression is the target naming its own.
+    ///
+    /// Which twins a delivery ASKS for is the carrier's own fact and not this
+    /// roster's. The trial crossing spells only the harness, because nothing it
+    /// renders is machine-rooted; the bench crossing spells both, because its
+    /// rows point at machine callables.
     pub enum CrateFacing {
         /// The machine — the crate whose declarations the projection was planned
         /// over.
@@ -280,97 +411,106 @@ pub struct BoundPath {
 }
 
 // ---------------------------------------------------------------------------
+// The four syntax-facing identifiers a trial declaration spells.
+//
+// Four types rather than one, because a support macro is not a row lens and the
+// compiler is the seat that should say so: a road that wants the name a
+// consumption target invokes cannot be handed the name a lens is declared under,
+// and no call site is told the two apart by argument position.
+// ---------------------------------------------------------------------------
+
+/// The exported name a consumption target invokes one declaration's support
+/// carrier by.
+///
+/// # Authority
+///
+/// **The author chooses it, and rustc collision-checks it.** The physical
+/// carrier is exported under a plan-keyed spelling nobody can know before
+/// expansion ([`ShellName`]), so a declaration whose support nobody can address
+/// is a declaration whose rows nobody can run. This is the address, and it is the
+/// author's because a name a producer composed would be a name the author has to
+/// discover.
+///
+/// A second declaration in one crate choosing this spelling is an ordinary
+/// duplicate-macro refusal at the consumer's own compiler. Nothing here keeps a
+/// register of what it has already exported.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct SupportMacroName(String);
+
+/// The module the stamp writes one declaration's trial table into, at the
+/// consumption target.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct TrialModuleName(String);
+
+/// The aggregate seat one suite group is declared under — the ordinary test
+/// function that runs by default.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct TrialSeatName(String);
+
+/// The named lens one row is declared under — the ignored-by-default test
+/// function a person runs by name.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct TrialLensName(String);
+
+// ---------------------------------------------------------------------------
 // The descriptor row vocabulary, in the harness's field shape.
 // ---------------------------------------------------------------------------
 
 threadpak::closed_register! {
-    /// What one revision identity is worth, stated by the party that bound it.
+    /// The declaration doors a generated descriptor row may be authored through.
     ///
-    /// The harness's own posture roster, mirrored as data. A producer states
-    /// which posture the identity it names is held under; it never decides what a
-    /// posture MEANS for a cache or for replay, which is the report instrument's
-    /// one statement.
-    pub enum RevisionStanding {
-        /// Generated from an owned declaration.
-        Derived = "derived",
-            "generated from an owned declaration";
-        /// A hand author's explicit commitment.
-        Declared = "declared",
-            "a hand author's explicit commitment";
-        /// No stable commitment at all, and lawful.
-        Untracked = "untracked",
-            "no stable commitment";
+    /// # Authority
+    ///
+    /// **A door is the PRODUCER's fact and this roster is closed, so a
+    /// declaration author cannot state one.** Which door a row came through is
+    /// something these services performed; a seat that took a spelling would let
+    /// an authored declaration sign an act it did not perform.
+    ///
+    /// A second door is a law change here, and one the compiler collects: every
+    /// reading over this roster is a `match` that stops compiling until the new
+    /// row says what it is called.
+    pub enum DeclarationDoor {
+        /// The refusal-family derive.
+        RefusalFamilyDerive = "refusal-family-derive",
+            "the refusal-family derive";
     }
 }
 
-/// One revision identity a rendered attachment names, and the posture it is held
+/// The owner every name these services declare about their OWN act is spelled
 /// under.
 ///
-/// # Authority
-///
-/// **The identity is NAMED and never minted here.** A revision identity is
-/// minted by the act that authored it and arrives already made, so what this seat
-/// carries is the path the consumer's target reaches that identity by — never
-/// thirty-two bytes this home invented for it.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct RevisionReference {
-    /// The posture the identity is held under.
-    pub standing: RevisionStanding,
-    /// The path the identity is reached by.
-    pub address: BoundPath,
-}
+/// The producer, the door, and the projection a generated row carries are the
+/// services' facts, so they are spelled under the machine's own owner and never
+/// under the declaration author's.
+pub const PRODUCER_NAMESPACE: &str = "threadpak";
 
-/// What makes one generated row executable: the two revision bindings and the
-/// callable, each named as a path rather than carried as a value.
+/// The producer that emits a generated trial table, by its declared spelling.
+pub const GENERATED_TABLE_PRODUCER: &str = "macroc";
+
+/// The projection that emits a generated descriptor row, by its declared
+/// spelling.
+pub const GENERATED_ROW_PROJECTION: &str = "test-descriptor-projection";
+
+/// The four namespaced references one descriptor row states about itself.
+///
+/// Every seat is public and required, because a row that could omit its claim,
+/// its subject, its check, or its population is a row the harness's closed field
+/// set would refuse — and a shape that can express the refused row is a shape
+/// that defers the refusal to somebody else's compiler.
 ///
 /// # Bounds
 ///
-/// The callable is a path to a function item, and the harness's attachment takes
-/// a function POINTER — so what the emission writes is the item's name and the
-/// coercion is the consumer's compiler's. A closure is unwritable here for the
-/// reason it is unwritable there: a closure carries captured state, and nothing
-/// ambient rides into a trial.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct RowAttachment {
-    /// The subject's revision binding.
-    pub subject_revision: RevisionReference,
-    /// The check's revision binding.
-    pub check_revision: RevisionReference,
-    /// The callable that reaches this row's conclusion.
-    pub call: BoundPath,
-}
-
-/// What a producer's own act contributed to one generated row: the declaration
-/// door it was authored through, and the projection that emitted it.
-///
-/// # Authority
-///
-/// **This is the ONLY origin arm this home renders.** The harness's origin roster
-/// carries five arms and four of them are somebody else's fact — a hand wrote it,
-/// a synthesis cut it, a human admitted it — so a producer that could emit one of
-/// those would be claiming an act it did not perform. The arm is fixed by the
-/// TYPE rather than chosen at a call site, which is why there is no origin
-/// selector anywhere in this vocabulary.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ProducerOrigin {
-    /// The declaration door this row was authored through.
-    pub door: WallName,
-    /// The projection that emitted it.
-    pub projection: WallName,
-}
-
-/// The five namespaced references one descriptor row states about itself.
-///
-/// Every seat is public and required, because a row that could omit its claim,
-/// its suite, its subject, its check, or its population is a row the harness's
-/// closed field set would refuse — and a shape that can express the refused row
-/// is a shape that defers the refusal to somebody else's compiler.
+/// The EXECUTION SUITE is not among them, and its absence is the whole of what
+/// keeps one suite from being authored twice. A row runs under exactly one
+/// aggregate seat, the seat is what a suite group declares, and a seat carrying
+/// rows whose own suite is a different name is a seat that selects none of them —
+/// a disagreement no constructor could have refused, because both spellings were
+/// lawful. The suite is stated once, at [`SuiteGroup`], and every row under it
+/// inherits that one.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RowReferences {
     /// The claim this row serves.
     pub claim: WallName,
-    /// The one aggregate seat this row runs under by default.
-    pub execution_suite: WallName,
     /// What this row exercises.
     pub subject: WallName,
     /// The check that judges the subject.
@@ -388,36 +528,64 @@ pub struct RowReferences {
 /// it — and it is carried here because the stamp's grammar demands one: a row
 /// arrives at `trial_table!` as `<lens>: <expression>`, and a producer that did
 /// not name its lens would be handing the stamp an unnamable row.
+///
+/// **There is no attachment seat.** A [`Row`] and an `ExecutableAttachment` meet
+/// at a `Binding` and nowhere earlier, and the attachment's three parts — the two
+/// revision commitments and the callable that reaches the conclusion — are the
+/// CONSUMPTION target's: the check functions a generated row points at live in
+/// the test target that invokes the carrier, which is not the crate the
+/// declaration sits in and has no crate binding a rendered path could be rooted
+/// at. So the attachment arrives as expressions at the carrier's invocation,
+/// where the test target's own hygiene reaches its own items, and this side
+/// declares descriptor meaning only.
+///
+/// **There is no origin seat either.** The harness's origin roster carries five
+/// arms and four of them are somebody else's act — a hand wrote it, a synthesis
+/// cut it, a human admitted it — so a producer able to express one of those would
+/// be claiming an act it did not perform. What the rendering writes is the
+/// generated arm and its two producer facts, composed from the payload's own
+/// [`DeclarationDoor`] and this home's declared projection spelling; a row that
+/// cannot express an origin at all cannot express the wrong one.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DescriptorRow {
-    lens: String,
+    lens: TrialLensName,
     references: RowReferences,
     roles: Bounded<WallName, RoleLimit>,
     tags: Bounded<WallName, TagLimit>,
-    origin: ProducerOrigin,
-    attachment: RowAttachment,
 }
 
 /// One aggregate seat's group: the seat the stamp declares, the execution suite
 /// that seat selects on, and the rows declared under it.
 ///
-/// # Nonclaims
+/// # Authority
 ///
-/// The grouping decides which aggregate seat EXISTS; it never decides which rows
-/// the world holds, and it makes no claim that a row grouped here carries this
-/// suite. The selection reads each ROW's own suite, so a row grouped under a
-/// seat whose suite is not the row's own is simply not selected by that seat —
-/// and the run's census says so in the open.
+/// **The suite is stated HERE and inherited by every row under it.** One seat
+/// selects on one suite and every row it runs carries that suite, so the two
+/// spellings a row and its seat used to carry were one fact written twice — and
+/// two lawful spellings that disagree produce a seat that runs nothing while
+/// every constructor on the road admits them. A row grouped here IS a row of this
+/// suite, structurally.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SuiteGroup {
-    seat: String,
+    seat: TrialSeatName,
     suite: WallName,
     rows: NonEmptyBounded<DescriptorRow, RowLimit>,
 }
 
-/// The complete payload one stamped trial table is declared from: the module the
-/// stamp writes, the table's own name, the producer that emitted it, and the
-/// aggregate seats with their rows.
+/// The complete payload one stamped trial table is declared from: the exported
+/// name a consumption target invokes, the module the stamp writes, the table's
+/// own name, the producer that emitted it, and the aggregate seats with their
+/// rows.
+///
+/// # Authority
+///
+/// **The author states descriptor MEANING and the producer states its own act.**
+/// The support name, the module, the table's name, each seat's name and suite,
+/// and every row's lens, claim, roles, tags, subject, check, and population are
+/// the declaration's. The door is a row of a closed roster no declaration can
+/// reach; the producer's own name and the projection's are this home's declared
+/// spellings; and the schema a produced table pins against is derived inside the
+/// rendering. None of the four has a clause an author could fill.
 ///
 /// # Bounds
 ///
@@ -425,15 +593,16 @@ pub struct SuiteGroup {
 /// a table this home rendered was emitted by a producer by construction, and a
 /// shell claiming otherwise would be a producer denying its own act.
 ///
-/// The invocation profile is deliberately absent. It is a `const` item at the
-/// consumer's site carrying declared budgets, and budgets are the consumer's
-/// declaration rather than the producer's — so it travels as one of the shell's
-/// arguments and this home neither invents one nor names its parts.
+/// The invocation profile, the target binding, and the clock are deliberately
+/// absent. They are the consumer's own host facts, declared at the carrier's
+/// invocation inside its own test target — so they travel as the shell's
+/// arguments and this home neither invents them nor names their parts.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TrialTablePayload {
-    module: String,
+    support: SupportMacroName,
+    module: TrialModuleName,
     table: WallName,
-    producer: WallName,
+    door: DeclarationDoor,
     groups: NonEmptyBounded<SuiteGroup, SuiteGroupLimit>,
 }
 

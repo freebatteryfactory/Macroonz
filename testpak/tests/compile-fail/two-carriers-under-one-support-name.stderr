@@ -1,0 +1,11 @@
+error[E0428]: the name `shared_trials` is defined multiple times
+  --> tests/compile-fail/two-carriers-under-one-support-name.rs:36:10
+   |
+12 | #[derive(RefusalFamily)]
+   |          ------------- previous definition of the macro `shared_trials` here
+...
+36 | #[derive(RefusalFamily)]
+   |          ^^^^^^^^^^^^^ `shared_trials` redefined here
+   |
+   = note: `shared_trials` must be defined only once in the macro namespace of this module
+   = note: this error originates in the derive macro `RefusalFamily` (in Nightly builds, run with -Z macro-backtrace for more info)

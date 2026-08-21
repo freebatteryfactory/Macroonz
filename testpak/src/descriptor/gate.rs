@@ -82,39 +82,53 @@
 //! constructor shape dies at the compiler as ordinary type errors before any
 //! trial runs.
 //!
-//! # The two spellings must be one TOKEN
+//! # The two sides must be one TOKEN, so the form is one nobody chooses
 //!
-//! A `macro_rules!` arm matches a literal by its token, so the pattern below and
-//! the literal a producer writes have to be spelled the same way and not merely
-//! carry the same bytes. The published value is a derived identity now rather
-//! than the readable phrase the first hand-authored pair used, so both sides
-//! spell every byte as `\xNN`: one uniform form, chosen because it is the one a
-//! writer cannot get subtly different.
+//! A `macro_rules!` arm matches a literal by its TOKEN, so the pattern below and
+//! what a producer writes have to be spelled the same way and not merely carry
+//! the same bytes.
 //!
-//! The producer renders its literal from the expectation's VALUE
-//! (`GeneratedToken::ByteText`), so the spelling on that side is the token
-//! tree's. Where the two forms disagree, this gate refuses and its own
-//! diagnostic prints both — a visible refusal at the first invocation rather
-//! than a silent mismatch.
+//! The pin therefore crosses as a bracketed roster of thirty-two DECIMAL byte
+//! values, and that form is the whole of what makes the comparison sound. A
+//! byte-string literal has many spellings of one value — `b"\x71"` and `b"q"`
+//! are one value and two tokens — and the producer's side is rendered by the
+//! compiler's own literal writer, whose escaping is its choice rather than
+//! anybody's declaration. An unsuffixed integer has exactly one rendering, so the
+//! two sides agree by construction rather than by a human matching an escaping
+//! convention they do not control.
+//!
+//! That is not a preference discovered on paper. The first producer to walk
+//! through this door rendered its expectation as a byte string and was refused
+//! here, with both spellings printed, over a value both sides agreed on — which
+//! is the gate working exactly as designed and the reason the form moved.
 //!
 //! # Bounds
 //!
-//! **No caller invokes this gate today.** The crossing it guards is the row road
-//! a generated support delivery carries, and the declaration family that would
-//! emit one has not been admitted at the derive's door yet. The pin is current
-//! and the gate is written; what it is waiting for is the producer that walks
-//! through it.
+//! The roster is the PRODUCER-facing form and the published constant below is the
+//! reading a person and the currency lane take. Two spellings of one fact, stated
+//! rather than hidden, held together by the lane that re-derives the identity and
+//! requires both to equal it.
 
 /// The generated-support schema identity this harness PUBLISHES, as raw bytes.
 ///
 /// # Authority
 ///
 /// This is one side of the two-sided pin, and it is the same thirty-two bytes
-/// the gate's own arm carries as a literal token. Two spellings of one published
+/// the gate's own arms carry as literal tokens. Three spellings of one published
 /// fact, stated rather than hidden: a `macro_rules!` arm matches tokens and
-/// cannot read a constant, so the comparison must carry the literal itself. The
-/// currency lane is what holds the two spellings together, along with holding
-/// both against the identity the current declaration actually derives.
+/// cannot read a constant, so both the opening arm and the refusing arm's
+/// printed roster must carry the digits themselves. The currency lane is what
+/// holds this constant against the identity the current declaration actually
+/// derives.
+///
+/// # Bounds
+///
+/// Written in DECIMAL, in the same order and the same layout the two arms below
+/// use, so the three spellings are character-identical and a reader compares them
+/// by eye. A hexadecimal array here would read as a digest and would be
+/// uncomparable against the decimal roster the wire form requires — and the arms
+/// have no choice about their base, because an unsuffixed integer is the one
+/// literal form with exactly one rendering.
 ///
 /// # Nonclaims
 ///
@@ -126,8 +140,10 @@
 /// wear the typed identity would let a stale copy pass as a fresh derivation
 /// anywhere the type is accepted. What holds the copy current is the currency
 /// lane, which re-derives and compares.
-pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] =
-    b"\x71\x16\xd7\x1b\xc9\x53\x2d\xb1\xe4\x7b\x9a\xff\xef\x11\x63\x38\x96\x2d\x4e\x91\x90\xfa\x4b\x0a\x3c\x21\x4a\x93\x11\xbb\x4d\x93";
+pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] = &[
+    113, 22, 215, 27, 201, 83, 45, 177, 228, 123, 154, 255, 239, 17, 99, 56, 150, 45, 78, 145, 144,
+    250, 75, 10, 60, 33, 74, 147, 17, 187, 77, 147,
+];
 
 /// Guards one generated support delivery: compares the producer's expected
 /// schema identity against the published one, and releases BOTH of its seats —
@@ -138,7 +154,7 @@ pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] =
 ///
 /// ```text
 /// generated_support! {
-///     expected: b"<the thirty-two published bytes>",
+///     expected: [<the thirty-two published bytes, in decimal>],
 ///     harness: <identifier>,
 ///     trials: { <the trial_table! payload, verbatim> },
 ///     deferred: { <opaque token trees, verbatim> },
@@ -146,8 +162,11 @@ pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] =
 /// ```
 ///
 /// - `expected:` is the producer's own copy of the published identity, as a
-///   literal. Exactly one literal opens the gate; every other literal reaches
-///   the refusing arm.
+///   bracketed roster of thirty-two unsuffixed decimal byte values. Exactly one
+///   roster opens the gate; every other roster reaches the refusing arm. The form
+///   is decimal because an unsuffixed integer has ONE rendering and a byte string
+///   has many, and the producer's side is spelled by the compiler's own literal
+///   writer rather than by a declaration.
 /// - `harness:` is the identifier this crate is reached by at the invocation
 ///   site — the rename twin's own name. It is an identifier rather than a
 ///   general path because a captured path fragment cannot be extended with
@@ -226,7 +245,10 @@ pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] =
 #[macro_export]
 macro_rules! generated_support {
     (
-        expected: b"\x71\x16\xd7\x1b\xc9\x53\x2d\xb1\xe4\x7b\x9a\xff\xef\x11\x63\x38\x96\x2d\x4e\x91\x90\xfa\x4b\x0a\x3c\x21\x4a\x93\x11\xbb\x4d\x93",
+        expected: [
+            113, 22, 215, 27, 201, 83, 45, 177, 228, 123, 154, 255, 239, 17, 99, 56,
+            150, 45, 78, 145, 144, 250, 75, 10, 60, 33, 74, 147, 17, 187, 77, 147,
+        ],
         harness: $harness:ident,
         trials: { $($trials:tt)* },
         deferred: { $($deferred:tt)* },
@@ -260,7 +282,7 @@ macro_rules! generated_support {
     // this dependency, and a compiler message has no way to learn the name it
     // was renamed to.
     (
-        expected: $expected:literal,
+        expected: [$($expected:literal),* $(,)?],
         harness: $harness:ident,
         trials: { $($trials:tt)* },
         deferred: { $($deferred:tt)* },
@@ -271,9 +293,12 @@ macro_rules! generated_support {
              nothing this door was handed reaches the compiler: the trial constructors and \
              the deferred cargo are withheld together, because one arm releases both seats \
              and this is not that arm. Producer expected: ",
-            ::core::stringify!($expected),
+            ::core::stringify!([$($expected),*]),
             ". Published here: ",
-            ::core::stringify!(b"\x71\x16\xd7\x1b\xc9\x53\x2d\xb1\xe4\x7b\x9a\xff\xef\x11\x63\x38\x96\x2d\x4e\x91\x90\xfa\x4b\x0a\x3c\x21\x4a\x93\x11\xbb\x4d\x93"),
+            ::core::stringify!([
+                113, 22, 215, 27, 201, 83, 45, 177, 228, 123, 154, 255, 239, 17, 99, 56,
+                150, 45, 78, 145, 144, 250, 75, 10, 60, 33, 74, 147, 17, 187, 77, 147,
+            ]),
             ". Declared harness: ",
             ::core::stringify!($harness),
             ". Both sides are rewritten together, in one change: derive the current value \

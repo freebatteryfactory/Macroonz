@@ -1,0 +1,13 @@
+error[E0433]: cannot find `descriptor` in `threadpak`
+  --> tests/compile-fail/a-generated-support-under-another-crates-name.rs:17:1
+   |
+17 | / threadpak_testpak::generated_support! {
+18 | |     expected: [
+19 | |         113, 22, 215, 27, 201, 83, 45, 177, 228, 123, 154, 255, 239, 17, 99, 56,
+20 | |         150, 45, 78, 145, 144, 250, 75, 10, 60, 33, 74, 147, 17, 187, 77, 147,
+...  |
+24 | |     deferred: { },
+25 | | }
+   | |_^ could not find `descriptor` in `threadpak`
+   |
+   = note: this error originates in the macro `threadpak_testpak::generated_support` (in Nightly builds, run with -Z macro-backtrace for more info)

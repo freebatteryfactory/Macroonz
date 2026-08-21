@@ -543,12 +543,13 @@ pub use composition::{
     DescriptorKind, DescriptorProvider,
 };
 pub use derive_refusal::{
-    CapturedCause, CapturedDocumentationReading, CauseOrderStanding, CrateBinding,
-    DEFAULT_CRATE_BINDING, DerivedMembership, DerivedPlan, ExplanationBindingRefusal,
-    ExplanationSeat, RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveCapture,
-    RefusalDeriveRefusal, RefusalDeriveSurface, RefusalFamilyExpansion, RefusalOwnerFacts,
-    RenderRefusal, TextCompileRefusal, captured, captured_text, compile_declaration,
-    compile_refusal, compile_refusal_text, documented,
+    CapturedCause, CapturedDocumentationReading, CapturedFamilyFacts, CauseOrderStanding,
+    CrateBinding, DEFAULT_CRATE_BINDING, DeclaredTrials, DerivedMembership, DerivedPlan,
+    ExplanationBindingRefusal, ExplanationSeat, RefusalCompileContext, RefusalDerivationDraft,
+    RefusalDeriveCapture, RefusalDeriveRefusal, RefusalDeriveSurface, RefusalFamilyExpansion,
+    RefusalOwnerFacts, RenderRefusal, SurfaceCaptureRefusal, TextCompileRefusal,
+    TrialDeclarationPosture, captured, captured_text, compile_declaration, compile_refusal,
+    compile_refusal_text, documented,
 };
 pub use diagnostics::{
     DiagnosticSite, MachineAnchoring, MachineAnchors, MacrocDiagnostic, MacrocPhase,
@@ -579,7 +580,7 @@ pub use plane::{
     PLAN_IDENTITY_PROFILE, PROJECTION_INTENT_IDENTITY_PROFILE, PlanId, PreimageFamily,
     ProfileVersion, ProjectionIdentity, ProjectionProvenance, ProjectionRole, ProjectionTranscript,
     RENDERED_UNIT_IDENTITY_PROFILE, RenderedRole, RenderedRoleSeal, SoleRenderedUnit, SubjectSeal,
-    TranscriptAnchoring, encode_bytes, encode_length,
+    TRIAL_DECLARATION_IDENTITY_PROFILE, TranscriptAnchoring, encode_bytes, encode_length,
 };
 pub use planning::{
     BenchmarkDescriptorContent, BenchmarkDescriptorProjection, CapturedDependencies,

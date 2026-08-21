@@ -97,12 +97,22 @@ envelope around them — the local subject and the selectors are THIS home's
 declarations — so `carry.rs` is the one lawful promotion point, and it is the
 road that declared what it hands in.
 
-The trials axis is ABSENT here, under the disposition that says why: the claim,
-the suite, the roles, the tags, the subject, the check, the population, and the
-callable a descriptor row states are the caller's declarations, and this door
-holds none. So what this door delivers is an EVALUATION-ONLY carrier — an empty
-trials seat beside carried deferred cargo — which is exactly the delivery the
-carrier's grammar renders both seats for.
+The trials axis carries what the DECLARATION states. A declaration may write its
+own trial rows beside its refusal declaration, in the `#[threadpak_trials(...)]`
+helper attribute this door declares and the carrier's own home reads — the claim,
+the suite, the roles, the tags, the subject, the check, and the population being
+the caller's words throughout, and none of the producer's act or the consumption
+target's host facts having a clause at all. A declaration that states none leaves
+the axis ABSENT under the disposition that says why, and what the door delivers
+is then an EVALUATION-ONLY carrier: an empty trials seat beside carried deferred
+cargo, which is exactly the delivery the carrier's grammar renders both seats
+for.
+
+One declaration, three readings, and the third is why a trial edit is cheap. The
+semantic commitment sets both the prose and the trial attribute aside, so
+rewording a sentence moves the documentation name alone and editing a row moves
+the CARRIER's name alone — every implementation member keeps the name it had, and
+the carrier's own exported spelling moves because what it delivers moved.
 
 Inside what [`compile_declaration`] hands back stand both terminals and the
 assembly. Their two declaration-site cargos are exactly the two terminals'

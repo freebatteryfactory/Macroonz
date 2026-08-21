@@ -547,6 +547,10 @@ threadpak::closed_register! {
         /// it.
         DiagnosticRelation = "diagnostic-relation",
             "one refusal body or one established issue a diagnostic points at";
+        /// The trial rows one captured declaration carries, read as a third fact
+        /// over the surface its semantic commitment already names.
+        TrialDeclaration = "trial-declaration",
+            "the trial rows one captured declaration carries";
     }
 }
 
@@ -657,6 +661,10 @@ threadpak::closed_register! {
         /// at under it.
         DiagnosticRelation = "diagnostic-relation",
             "one refusal family's tag and the framed material it points at";
+        /// The trial rows one captured declaration carries, over the semantic
+        /// commitment they were cut from.
+        TrialDeclaration = "trial-declaration",
+            "one captured declaration's trial rows over its semantic commitment";
     }
 }
 
@@ -917,6 +925,48 @@ pub const GENERATOR_VERSION_IDENTITY_PROFILE: IdentityProfile = IdentityProfile:
 /// - **1** — the family as first declared.
 pub const DIAGNOSTIC_RELATION_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
     PreimageFamily::DiagnosticRelation,
+    IdentityProfileVersion::declared(1),
+);
+
+/// The profile one captured declaration's TRIAL commitment is derived under.
+///
+/// # Preimage
+///
+/// The SEMANTIC commitment at the anchor, at its full thirty-two bytes, and over
+/// it the canonical bytes of the trial attribute's own captured token trees, at
+/// position zero.
+///
+/// The material is the TOKEN home's, through the token home's own encoding, on
+/// exactly the terms the semantic commitment's material is: a second byte
+/// spelling written beside the typed declaration would be a second answer to what
+/// a captured tree encodes as, and the two would agree until either was edited.
+///
+/// # Authority
+///
+/// **A third READING of one surface, never a third account of it.** The trial
+/// attribute is declaration material like any other token, and it is exactly the
+/// material whose meaning is a statement about a consumer's TEST target rather
+/// than about the production contract the declaration realizes — so it is dropped
+/// from the semantic walk and enters here instead. A declaration whose trial rows
+/// changed keeps the name its implementation projection is about and takes a new
+/// name its CARRIER is about, which is the difference between "the same contract,
+/// exercised differently" and "a different contract".
+///
+/// # Bounds
+///
+/// It shares [`CapturedDeclarationSubject`] with the semantic and documentation
+/// commitments, and the sharing is safe on the terms
+/// [`DECLARATION_DOCUMENTATION_IDENTITY_PROFILE`] states: three families are
+/// three segments of the derive-key context AND three members of every transcript
+/// written under them, so identical preimage bytes at the three levels are
+/// unrelated values before a byte of content is read.
+///
+/// # Versions
+///
+/// - **1** — the family as first declared. It did not exist for any of the five
+///   positions the retired single version moved through.
+pub const TRIAL_DECLARATION_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
+    PreimageFamily::TrialDeclaration,
     IdentityProfileVersion::declared(1),
 );
 
@@ -1280,9 +1330,18 @@ pub struct GeneratorIdentity {
 ///   it too reaches identity through the seats that state it — a member's
 ///   destination inside a plan's membership, and the emission member of a
 ///   closure's own preimage.
+/// - **4** — the carrier's own token layout changed, in four places at once: the
+///   shell renders a caller-named alias beside its hidden definition; its matcher
+///   is a function of the delivery rather than one fixed argument list, and grew
+///   the two host clauses the stamp requires and one attachment clause per
+///   declared row; a row expression became a BLOCK that parses its subject and
+///   its check once and hands both to the row and the attachment; and the gate's
+///   expectation crosses as a roster of decimal byte values where it was one
+///   byte-string literal. "A different token layout" is the plainest reading of
+///   this position, and every part of it is one.
 pub const MACROC_GENERATOR: GeneratorIdentity = GeneratorIdentity::declared(
     GeneratorProfileId::declared("threadpak-macroc"),
-    GeneratorSchemaVersion::declared(3),
+    GeneratorSchemaVersion::declared(4),
     env!("CARGO_PKG_VERSION"),
 );
 

@@ -20,10 +20,11 @@
 //! seats, and the documentation commitment is derived over exactly them.
 
 use super::{
-    CapturedCause, CapturedCommitments, CapturedDocumentation, CauseOrderStanding, CrateBinding,
-    DEFAULT_CRATE_BINDING, DeriveCauseLimit, DerivedMembership, DocumentedDeclaration,
-    RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveFact, RefusalDeriveSurface,
-    RefusalFamilyExpansion, RefusalOwnerFacts, RefusalSite,
+    CapturedCause, CapturedCommitments, CapturedDocumentation, CapturedFamilyFacts,
+    CauseOrderStanding, CrateBinding, DEFAULT_CRATE_BINDING, DeclaredTrials, DeriveCauseLimit,
+    DerivedMembership, DocumentedDeclaration, RefusalCompileContext, RefusalDerivationDraft,
+    RefusalDeriveFact, RefusalDeriveSurface, RefusalFamilyExpansion, RefusalOwnerFacts,
+    RefusalSite, TrialDeclarationPosture,
 };
 use crate::closure::{
     ClosedExpansion, ExpansionBindingRefusal, PartitionCargo, ProjectionClosure, RenderedProjection,
@@ -43,6 +44,7 @@ use crate::plane::{
 use crate::planning::{
     DeriveImplProjection, ProjectionDisposition, ProjectionPlan, RenderedImplementation,
 };
+use crate::test_descriptor::TrialTablePayload;
 use crate::token::{GeneratedTree, SpanHandle, SpanTable};
 use threadpak::evidence::CauseDisposition;
 use threadpak::refusal::FamilyShape;
@@ -178,19 +180,53 @@ impl DocumentedDeclaration {
     }
 }
 
+impl DeclaredTrials {
+    /// The rows one declaration states, under the commitment the capture named
+    /// them by.
+    ///
+    /// Crate-internal, on the terms every other captured seat stands under: the
+    /// commitment is derived over the exact token material the payload was read
+    /// from, and the only party that can say so is the walk that read it.
+    pub(crate) const fn read(
+        commitment: ProjectionIdentity<CapturedDeclarationSubject>,
+        payload: TrialTablePayload,
+    ) -> Self {
+        Self {
+            commitment,
+            payload,
+        }
+    }
+
+    /// The commitment these rows are named under.
+    #[must_use]
+    pub const fn commitment(&self) -> ProjectionIdentity<CapturedDeclarationSubject> {
+        self.commitment
+    }
+
+    /// The rows themselves, as the carrier's own payload.
+    #[must_use]
+    pub const fn payload(&self) -> &TrialTablePayload {
+        &self.payload
+    }
+}
+
 impl RefusalDeriveSurface {
     /// Assemble one captured surface.
     ///
     /// Crate-internal: the only road to one is the capture itself.
-    pub(crate) const fn assembled(
-        family_name: String,
-        family_id: String,
-        binding: CrateBinding,
-        shape: FamilyShape,
+    pub(crate) fn assembled(
+        facts: CapturedFamilyFacts,
         causes: Bounded<CapturedCause, DeriveCauseLimit>,
         documentation: Bounded<CapturedDocumentation, CapturedTokenLimit>,
+        trials: TrialDeclarationPosture,
         commitments: CapturedCommitments,
     ) -> Self {
+        let CapturedFamilyFacts {
+            family_name,
+            family_id,
+            binding,
+            shape,
+        } = facts;
         Self {
             family_name,
             family_id,
@@ -198,6 +234,7 @@ impl RefusalDeriveSurface {
             shape,
             causes,
             documentation,
+            trials,
             commitments,
         }
     }
@@ -293,6 +330,47 @@ impl RefusalDeriveSurface {
     #[must_use]
     pub const fn documentation_identity(&self) -> ProjectionIdentity<CapturedDeclarationSubject> {
         self.commitments.documentation()
+    }
+
+    /// Whether this declaration states trial rows, and the rows where it does.
+    pub const fn trials(&self) -> &TrialDeclarationPosture {
+        &self.trials
+    }
+
+    /// The commitment the CARRIER's own member identities stand under.
+    ///
+    /// # Content
+    ///
+    /// The TRIAL commitment where the declaration states rows, and the semantic
+    /// commitment where it states none.
+    ///
+    /// A carrier is the vehicle for what a declaration DELIVERS, and what it
+    /// delivers moves when a trial row moves: the exported name is derived from
+    /// the plan's identity, the plan's identity commits to its membership, and
+    /// the membership carries the semantic key this anchor is derived under. So a
+    /// declaration whose rows were edited plans a different carrier, mints a
+    /// different exported name, and renames nothing about the implementation
+    /// projection standing beside it — which is the whole of what the third
+    /// commitment is for.
+    ///
+    /// # Bounds
+    ///
+    /// It anchors the carrier's MEMBER identities and never the carrier plan's
+    /// account. The account's commitment is the semantic one on both postures,
+    /// because the assembly's one-root check compares it against the root the
+    /// IMPLEMENTATION terminal stands under — and the two terminals are one
+    /// declaration's or the carrier is delivering somebody else's cargo.
+    ///
+    /// The invalidation set therefore watches the semantic commitment on both
+    /// postures too, which is the trigger roster's own reach: a roster seat
+    /// watches one commitment, and watching a second is a wider roster with its
+    /// own declared magnitude rather than a thing this seat can arrange.
+    #[must_use]
+    pub const fn carrier_anchor(&self) -> ProjectionIdentity<CapturedDeclarationSubject> {
+        match &self.trials {
+            TrialDeclarationPosture::NotDeclared => self.commitments.semantic(),
+            TrialDeclarationPosture::Declared(declared) => declared.commitment(),
+        }
     }
 
     /// Fix the complete declared output set.
