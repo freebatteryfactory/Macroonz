@@ -77,7 +77,7 @@ const DECLARED_TARGET_TRIPLE: &str = "x86_64-pc-windows-msvc";
 
 /// The toolchain this seat's runs are DECLARED to stand on: the channel the
 /// workspace pins, stated here because nothing in the harness can read one.
-const DECLARED_TOOLCHAIN: &str = "1.97.1";
+const DECLARED_TOOLCHAIN: &str = "1.98.0";
 
 /// A request this crate admits.
 const A_LAWFUL_REQUEST: CountRequest = CountRequest::stated("north-yard", 12u32);

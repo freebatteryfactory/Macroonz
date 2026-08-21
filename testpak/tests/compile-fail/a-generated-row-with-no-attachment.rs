@@ -68,7 +68,7 @@ demo_trials! {
 
     target: threadpak_testpak::report::TargetBinding::bound(
         threadpak_testpak::report::TargetTriple::declared("x86_64-pc-windows-msvc"),
-        threadpak_testpak::report::ToolchainIdentity::declared("1.97.1"),
+        threadpak_testpak::report::ToolchainIdentity::declared("1.98.0"),
     ),
 
     clock: threadpak_testpak::runner::HostClock::unmeasured(),
