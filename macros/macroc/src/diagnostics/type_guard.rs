@@ -280,7 +280,6 @@ impl DiagnosticSite {
     /// including the typed statement that the table does not reach the handle —
     /// which is a fact about the TABLE and leaves the observation itself
     /// standing.
-    #[must_use]
     pub const fn at_token(token: SpanHandle, coordinate: SiteCoordinate) -> Self {
         Self::AtToken { token, coordinate }
     }
@@ -291,7 +290,6 @@ impl DiagnosticSite {
     /// It takes no [`SpanHandle`], which is the whole point of the road: there
     /// is no seat here for a caller to fill with handle zero, and no branch in
     /// which one is invented.
-    #[must_use]
     pub const fn before_capture(coordinate: SourceCoordinate) -> Self {
         Self::BeforeCapture { coordinate }
     }

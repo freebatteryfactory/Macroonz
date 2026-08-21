@@ -223,7 +223,6 @@ pub const OPAQUE_REACH_REFUSAL: &str = "this coupled-seat stamp requires visibil
 /// The issue a tree that outgrew the declared token magnitude amounts to.
 ///
 /// One bound, read from one place, by every road in this home.
-#[must_use]
 pub fn unbounded() -> StampRenderIssue {
     StampRenderIssue::StampTreeUnbounded {
         bound: u64::try_from(GeneratedTokenLimit::MAX).unwrap_or(u64::MAX),

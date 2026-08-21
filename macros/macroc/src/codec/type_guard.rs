@@ -73,13 +73,16 @@ impl CodecTypePath {
         {
             return Err(CodecDeclarationRefusal::SegmentNotAnIdentifier);
         }
-        let segments = NonEmptyBounded::admitted_const(
+        let admitted = NonEmptyBounded::admitted_const(
             first,
             rest,
             &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
         )
         .map_err(|_| CodecDeclarationRefusal::PathSegmentsUnbounded)?;
-        Ok(Self { rooting, segments })
+        Ok(Self {
+            rooting,
+            segments: admitted,
+        })
     }
 
     /// Where this path is rooted.
@@ -101,6 +104,10 @@ impl CodecTypePath {
 
     /// Always `false`: a path with no segment is unrepresentable.
     #[must_use]
+    #[expect(
+        clippy::unused_self,
+        reason = "the receiver is the question's subject, not its source: the seat is structurally non-empty, so the answer is settled where the value is made and an associated function would split the len/is_empty pair a caller reaches for"
+    )]
     pub const fn is_empty(&self) -> bool {
         false
     }
@@ -304,6 +311,10 @@ impl CodecShape {
 
     /// Always `false`: a shape with no member is unrepresentable.
     #[must_use]
+    #[expect(
+        clippy::unused_self,
+        reason = "the receiver is the question's subject, not its source: the seat is structurally non-empty, so the answer is settled where the value is made and an associated function would split the len/is_empty pair a caller reaches for"
+    )]
     pub const fn is_empty(&self) -> bool {
         false
     }

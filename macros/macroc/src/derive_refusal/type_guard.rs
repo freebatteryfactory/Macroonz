@@ -110,7 +110,6 @@ impl CapturedDocumentation {
     }
 
     /// Which declaration this row was written on.
-    #[must_use]
     pub const fn declared_on(&self) -> &DocumentedDeclaration {
         &self.declared_on
     }
@@ -654,7 +653,6 @@ impl RefusalFamilyExpansion {
     /// or an emission reads THIS value, so a caller that wants the terminal's own
     /// surface — its published artifacts, its delivery addressing — reads it here
     /// rather than through a copy of it seated beside one.
-    #[must_use]
     pub const fn expansion(&self) -> &ClosedExpansion<DeriveImplProjection> {
         &self.expansion
     }
@@ -720,7 +718,6 @@ impl RefusalFamilyExpansion {
     ///
     /// It is the CLOSURE's own proved cargo, reached through the terminal: no
     /// second join happens anywhere, so what is emitted is what was proved.
-    #[must_use]
     pub const fn emitted(&self) -> &PartitionCargo {
         self.expansion.declaration_site()
     }

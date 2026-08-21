@@ -188,7 +188,6 @@ pub fn deferred_selectors(
 /// declaration and an expansion context — neither of which carries one. A door
 /// that answered otherwise would be producing its own row material and then
 /// proving it.
-#[must_use]
 pub fn rows_disposition() -> ProjectionDisposition {
     ProjectionDisposition::NotApplicable {
         because: RefusalDeriveFact::ARowIsTheCallersDeclarationAndNeverTheProducers.citation(),
@@ -201,7 +200,6 @@ pub fn rows_disposition() -> ProjectionDisposition {
 /// a trials seat and a deferred seat, and neither is the bench seat. The bench
 /// crossing renders real material and rides its own shell today; this axis opens
 /// when the reserved seat is written.
-#[must_use]
 pub fn bench_disposition() -> ProjectionDisposition {
     ProjectionDisposition::NotApplicable {
         because: RefusalDeriveFact::ACarrierSeatIsWrittenBeforeItIsFilled.citation(),

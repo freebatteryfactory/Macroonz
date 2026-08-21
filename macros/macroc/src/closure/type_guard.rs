@@ -573,19 +573,16 @@ impl PartitionedEmission {
 
     /// What the declaration site expands into — the tokens the consumer's normal
     /// build compiles.
-    #[must_use]
     pub const fn declaration_site(&self) -> &PartitionCargo {
         &self.declaration_site
     }
 
     /// The deferred cargo the consumer's test target invokes.
-    #[must_use]
     pub const fn test_carrier(&self) -> &PartitionCargo {
         &self.test_carrier
     }
 
     /// The deferred cargo the consumer's bench target invokes.
-    #[must_use]
     pub const fn bench_carrier(&self) -> &PartitionCargo {
         &self.bench_carrier
     }
@@ -924,19 +921,16 @@ impl<K: ProjectionKind> ClosedExpansion<K> {
 
     /// The complete plan: account, context, content, membership, invalidation
     /// set, decision trace, origin trail, and nonclaims.
-    #[must_use]
     pub const fn plan(&self) -> &ProjectionPlan<K> {
         &self.plan
     }
 
     /// The proof that what was rendered is what was planned.
-    #[must_use]
     pub const fn closure(&self) -> &ProjectionClosure<K::Rendered> {
         &self.closure
     }
 
     /// The complete explanation over this kind's applicable questions.
-    #[must_use]
     pub const fn explanation(&self) -> &ProjectionExplanationView<K> {
         &self.explanation
     }
@@ -946,7 +940,6 @@ impl<K: ProjectionKind> ClosedExpansion<K> {
     /// The CLOSURE's own proved value, borrowed rather than copied: this
     /// expansion keeps no second emission, so what is delivered is what was
     /// proved and there is no pair of values to drift apart.
-    #[must_use]
     pub const fn emission(&self) -> &PartitionedEmission {
         self.closure.emission()
     }
@@ -954,19 +947,16 @@ impl<K: ProjectionKind> ClosedExpansion<K> {
     /// What the declaration site expands into — the tokens an expansion shell
     /// hands the compiler, and the only ones the consumer's normal build
     /// compiles.
-    #[must_use]
     pub const fn declaration_site(&self) -> &PartitionCargo {
         self.emission().declaration_site()
     }
 
     /// The deferred cargo the consumer's test target invokes.
-    #[must_use]
     pub const fn test_carrier(&self) -> &PartitionCargo {
         self.emission().test_carrier()
     }
 
     /// The deferred cargo the consumer's bench target invokes.
-    #[must_use]
     pub const fn bench_carrier(&self) -> &PartitionCargo {
         self.emission().bench_carrier()
     }

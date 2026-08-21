@@ -316,6 +316,10 @@ impl MutationPointTable {
 
     /// Always `false`: a table without its control is unrepresentable.
     #[must_use]
+    #[expect(
+        clippy::unused_self,
+        reason = "the receiver is the question's subject, not its source: the seat is structurally non-empty, so the answer is settled where the value is made and an associated function would split the len/is_empty pair a caller reaches for"
+    )]
     pub const fn is_empty(&self) -> bool {
         false
     }
@@ -535,19 +539,16 @@ impl ImplementationSurfaces {
     }
 
     /// The implementation the normal build compiles.
-    #[must_use]
     pub const fn production(&self) -> &ProductionSurface {
         &self.production
     }
 
     /// The copy every admitted mutation point is selected from.
-    #[must_use]
     pub const fn evaluation(&self) -> &MutationEvaluationSurface {
         &self.evaluation
     }
 
     /// What the two share, and what that sharing is silent about.
-    #[must_use]
     pub const fn parity(&self) -> &SurfaceParity {
         &self.parity
     }

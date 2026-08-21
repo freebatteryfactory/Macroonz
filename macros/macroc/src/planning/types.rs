@@ -1006,7 +1006,6 @@ macro_rules! kinds {
             /// Total over the closed roster: every row reads to exactly one seat,
             /// and a row admitted later stops the compiler here until somebody
             /// says which seat carries it.
-            #[must_use]
             pub const fn under(&self, row: ProjectionKindRow) -> &ProjectionDisposition {
                 match row {
                     $( ProjectionKindRow::$name => &self.$seat ),+

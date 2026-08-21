@@ -84,7 +84,6 @@ impl<K: ProjectionKind> OwnerContentAccount<K> {
     /// Content that stands on nothing is a stated fact and not an absence — the
     /// account is required either way, and a caller with no dependencies still
     /// walks in one door rather than skipping the door.
-    #[must_use]
     pub fn linked(commitment: OwnerIdentityRef<FragmentIdentityDomain>) -> Self {
         Self {
             addressing: ContentAddressing::Linked {
@@ -132,7 +131,6 @@ impl<K: ProjectionKind> OwnerContentAccount<K> {
     /// The expansion-time account of captured content that stands on nothing.
     ///
     /// Total, on the same terms as [`OwnerContentAccount::linked`].
-    #[must_use]
     pub fn captured(commitment: ProjectionIdentity<CapturedDeclarationSubject>) -> Self {
         Self {
             addressing: ContentAddressing::Captured {
@@ -260,7 +258,6 @@ impl<K: ProjectionKind> OwnerContentAccount<K> {
     /// evaluation. The road this replaced carried the pair by value and could
     /// be; what a reader is handed instead is thirty-two bytes that stand
     /// wherever a derived identity is required.
-    #[must_use]
     pub fn intent(&self) -> ProjectionIntentId {
         ProjectionIntentId::derived_over(&self.intent_bytes())
     }
@@ -736,7 +733,6 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
     /// The plan's one account of its content, handed back whole: a reader asking
     /// what invalidates it, what caused it, or what it stands on reads the seats
     /// of this value rather than a summary of them.
-    #[must_use]
     pub const fn account(&self) -> &OwnerContentAccount<K> {
         &self.account
     }
@@ -751,7 +747,6 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
     /// intent its transcript opened with are one derivation rather than two.
     /// Not `const`, for the reason [`OwnerContentAccount::intent`] states: the
     /// identity is derived, and the digest is not a const evaluation.
-    #[must_use]
     pub fn intent(&self) -> ProjectionIntentId {
         self.account.intent()
     }

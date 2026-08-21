@@ -332,7 +332,6 @@ impl SeatSeating {
 
 impl StampPublicationRecord {
     /// Why neither of the lighter roads can express this output.
-    #[must_use]
     pub const fn ground(&self) -> InsufficiencyGround {
         self.ground
     }
@@ -488,7 +487,6 @@ impl PublishedSeatStamp {
 
     /// This side's record of the publication act, in the machine receipt's field
     /// shape.
-    #[must_use]
     pub const fn record(&self) -> &StampPublicationRecord {
         &self.record
     }
