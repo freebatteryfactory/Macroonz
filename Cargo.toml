@@ -32,8 +32,7 @@ repository = "https://github.com/freebatteryfactory/ThreadPak"
 # buys. `deny.toml` settles what the resolved graph actually enables.
 [workspace.dependencies]
 # Structure-aware input generation: the harness library's shared generation
-# vocabulary. The trait alone — the `derive` feature carried a second `syn` into
-# the graph for a macro no crate here writes, and one decoder is the policy.
+# vocabulary, the trait alone.
 arbitrary = { version = "=1.4.2", default-features = false }
 # The Rust decoder for the judge's structural lane: `parsing` + `full`, nothing else.
 syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }

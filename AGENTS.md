@@ -222,7 +222,6 @@ no stubs, no placeholder bodies, no compiler-appeasement —
 and QA was read-only review.
 That phase closed at first toolchain contact,
 which was quiet and corrective rather than a ceremony.
-The instrumentation that phase leaned on retired with it.
 The toolchain now stands and the lanes execute;
 a red lane is evidence about the code, never an instruction to edit the lane.
 
