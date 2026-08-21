@@ -377,8 +377,8 @@ impl GenerationPlan {
 fn source_preimage(plan: &GenerationPlan) -> Vec<u8> {
     let mut preimage: Vec<u8> = Vec::new();
     let population = plan.population().name();
-    encode_bytes(population.namespace().as_bytes(), &mut preimage);
-    encode_bytes(population.stem().as_bytes(), &mut preimage);
+    encode_bytes(population.namespace().written().as_bytes(), &mut preimage);
+    encode_bytes(population.stem().written().as_bytes(), &mut preimage);
     encode_bytes(plan.profile().name().as_bytes(), &mut preimage);
     preimage.extend_from_slice(&plan.profile().version().to_be_bytes());
     preimage.push(plan.origin().slot());

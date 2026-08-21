@@ -73,7 +73,7 @@ pub struct FrameRoleId(u16);
 impl FrameRoleId {
     /// The registered identity.
     #[must_use]
-    pub fn value(&self) -> u16 {
+    pub fn value(self) -> u16 {
         self.0
     }
 }
@@ -86,7 +86,7 @@ pub struct DigestFamilyId(u16);
 impl DigestFamilyId {
     /// The registered identity.
     #[must_use]
-    pub fn value(&self) -> u16 {
+    pub fn value(self) -> u16 {
         self.0
     }
 }

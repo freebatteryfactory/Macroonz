@@ -88,9 +88,9 @@
 //! about a perfectly good enum goes looking for the wrong problem.
 
 use super::types::{
-    CapturedCause, CapturedDocumentation, CrateBinding, DeriveCauseLimit, DocumentedDeclaration,
-    RefusalDeriveCapture, RefusalDeriveRefusal, RefusalDeriveSurface, RefusalSite,
-    SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
+    CapturedCause, CapturedCommitments, CapturedDocumentation, CrateBinding, DeriveCauseLimit,
+    DocumentedDeclaration, RefusalDeriveCapture, RefusalDeriveRefusal, RefusalDeriveSurface,
+    RefusalSite, SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
 };
 use crate::plane::{
     AuthoringLimitProfile, CapturedDeclarationSubject, CapturedTokenLimit, ProjectionIdentity,
@@ -154,8 +154,7 @@ pub fn captured(input: &CapturedInput) -> Result<RefusalDeriveSurface, RefusalDe
         attribute.shape,
         causes,
         documentation,
-        semantic,
-        documented,
+        CapturedCommitments::derived(semantic, documented),
     ))
 }
 

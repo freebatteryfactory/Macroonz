@@ -24,7 +24,8 @@
 //! identity derived from them; appending re-encodes nothing, because a tree that
 //! could not carry the new arm encodes exactly as it did before.
 //!
-//! The captured table stands at five rows, in the order it was first declared.
+//! The captured table stands at nine rows: five as first declared, and the four
+//! literal forms appended at six through nine behind them.
 //! The generated table stands at six: four as first declared, and the
 //! byte-string and numeric arms appended at five and six behind the four already
 //! in use.
@@ -67,8 +68,20 @@
 //! next arm appended is the next reader's question, at this seat, against that
 //! family's position and no other.
 //!
-//! The captured table is not part of that question: it stands at the five rows
-//! it was first declared with, so its family has nothing to decide.
+//! **The captured table's four appended rows are a different case, and the
+//! difference is what the two readings above are for.** They are not reachable
+//! only by declarations that could not exist before. A declaration carrying
+//! `b"x"`, `r"x"`, or `'x'` was always lawful and was always captured — under
+//! the numeric row, whose framed content was the spelling — and a text carrying
+//! an escape was captured with the escape's own characters in it. Those
+//! declarations encode to different bytes now.
+//!
+//! That is content moving rather than a grammar reaching further, so it is a
+//! position that WOULD move for a reader holding an earlier one. There is no
+//! such reader: nothing derived under this family is held outside this
+//! repository. The position therefore stands, and
+//! [`crate::plane::CAPTURED_DECLARATION_IDENTITY_PROFILE`] states the condition
+//! that moves it.
 
 use super::{CapturedDelimiter, CapturedPayload, CapturedTokenTree, GeneratedDelimiter};
 use super::{GeneratedSpacing, GeneratedToken};
@@ -106,6 +119,36 @@ pub(super) fn encode_captured(tree: &CapturedTokenTree, into: &mut Vec<u8>) {
             for inner in trees.iter() {
                 encode_captured(inner, into);
             }
+        }
+        // Appended at six: the material is written through the one framing as
+        // raw bytes rather than through `encode_text`, exactly as the generated
+        // side's byte string is — a byte string is not text and there is no
+        // decode on the road to its encoding.
+        CapturedPayload::ByteText(material) => {
+            into.push(6);
+            encode_bytes(material, into);
+        }
+        // Appended at seven: the character's own UTF-8, framed. A character
+        // literal and a one-character text are different tokens at the seat they
+        // are written to, and the slot is what says so — the framed bytes behind
+        // it are the same either way.
+        CapturedPayload::Character(character) => {
+            into.push(7);
+            let mut buffer = [0u8; 4];
+            encode_text(character.encode_utf8(&mut buffer), into);
+        }
+        // Appended at eight: one byte, unframed. The width is fixed, so there is
+        // no boundary a reader could cut at differently.
+        CapturedPayload::Byte(byte) => {
+            into.push(8);
+            into.push(*byte);
+        }
+        // Appended at nine: the material without its terminator, framed. The
+        // terminating NUL is the literal form's and never the value's, and the
+        // slot already says which form this is.
+        CapturedPayload::NulTerminatedText(material) => {
+            into.push(9);
+            encode_bytes(material, into);
         }
     }
 }

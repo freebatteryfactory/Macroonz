@@ -26,13 +26,11 @@ promised at band 05.
 value — its extrema are independent fields so it cannot even look like one; no
 morphism leads back). The summary merge is a real seam (`try_merge`),
 commutative/associative/idempotent under its stated domain. The stateful
-admission clock is
-a distinct owned object sharing no surface with the merge; its name
-(`ChronologyAdmissionClock`) is AUTHORED: the role and its nine-item roster
-are law here, the spelling is this home's. Logical counter u32: overflow
-refuses,
-never wraps — the smallest width whose overflow can only mean broken clock
-physics.
+admission clock is a distinct owned object sharing no surface with the merge;
+its name (`ChronologyAdmissionClock`) is AUTHORED: the role and its nine-item
+roster are law here, the spelling is this home's. Logical counter u32: overflow
+refuses, never wraps — the smallest width whose overflow can only mean broken
+clock physics.
 
 The two roles are made of the same payload and are no longer cross-constructible
 from it. `HlcCoordinate` carries no role, `SourceHlc::observed` is the open end

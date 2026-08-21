@@ -128,7 +128,7 @@ impl DocumentedSection {
             return Err(DocumentationDeclarationRefusal::LinesAbsent);
         };
         let rest: Vec<SectionLine> = supplied.collect();
-        let lines = NonEmptyBounded::admitted_const(
+        let admitted = NonEmptyBounded::admitted_const(
             first,
             rest,
             &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
@@ -137,7 +137,7 @@ impl DocumentedSection {
         Ok(Self {
             facet,
             heading,
-            lines,
+            lines: admitted,
         })
     }
 
@@ -166,14 +166,8 @@ impl DocumentedSection {
 
     /// How many lines the section carries; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.lines.len()
-    }
-
-    /// Always `false`: a section with no line is unrepresentable.
-    #[must_use]
-    pub const fn is_empty(&self) -> bool {
-        false
     }
 }
 

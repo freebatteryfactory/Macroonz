@@ -71,7 +71,6 @@ use super::types::{
 /// artifact DECLARES these implementations, of these traits, for these targets,
 /// written this way, carrying these members and no others. It says nothing
 /// about whether any of it compiles.
-#[must_use]
 pub fn verdict(rendered: &str, declared: &DeclaredArtifact<'_>) -> StructuralVerdict {
     let Some(structure) = declarations_in(rendered) else {
         return StructuralVerdict::Unparsable;
@@ -87,7 +86,6 @@ pub fn verdict(rendered: &str, declared: &DeclaredArtifact<'_>) -> StructuralVer
 ///
 /// It never states [`StructuralVerdict::Unparsable`]. That arm belongs to the
 /// read, and a caller holding a reading is holding the proof a parse happened.
-#[must_use]
 pub fn compared(
     structure: &ArtifactStructure,
     declared: &DeclaredArtifact<'_>,

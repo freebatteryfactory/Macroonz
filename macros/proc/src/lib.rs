@@ -6,7 +6,11 @@
 //! 1. **Convert.** `proc_macro::TokenStream` becomes
 //!    [`threadpak_macroc::CapturedInput`], walking the compiler's own token trees
 //!    natively and issuing one [`SpanHandle`] per token into a table the shell
-//!    keeps.
+//!    keeps. Which value a literal's spelling names is asked of
+//!    [`threadpak_macroc::capture_literal`]: the forms, the value each one names,
+//!    and the two ways reading one refuses are the services' grammar, and a shell
+//!    deciding them here would be a second grammar nobody ever compared against
+//!    the first.
 //! 2. **Call.** [`threadpak_macroc::compile_declaration`] does the work and
 //!    returns either the declaration's complete account — the terminals its
 //!    generated kinds ended at, the assembly that joined them, and one typed
@@ -47,6 +51,16 @@
 //! first token, reading exactly like an answer. The shell reports such a refusal
 //! at the invocation, and looks nothing up.
 //!
+//! A capture refused for exceeding a magnitude is the same admission from the
+//! other direction: the bound is a fact about the whole declaration and no one
+//! token overran it, so that refusal is reported at the invocation too.
+//!
+//! A capture refused on one literal is the conversion's other outcome, and it is
+//! the case that DOES name a token: a handle is issued before the payload behind
+//! it is read, so the shell holds the span of the exact literal the services
+//! could not read and reports there.
+//! Nowhere does this shell answer with `token[0]`.
+//!
 //! The services never resolve a handle themselves — they cannot, because
 //! `proc_macro` is a proc-macro-crate-only API and the services are ordinary
 //! callable Rust.
@@ -64,8 +78,8 @@ use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenSt
 use threadpak_macroc::{
     AccountedExpansion, CaptureBound, CaptureWalk, CapturedDelimiter, CapturedInput,
     CapturedPayload, CapturedTokenTree, GeneratedDelimiter, GeneratedSpacing, GeneratedToken,
-    GeneratedTree, MacrocDiagnostic, PartitionCargo, RefusalCompileContext, RefusalFamilyExpansion,
-    SpanHandle, TokenPath, compile_declaration,
+    GeneratedTree, LiteralReadCause, MacrocDiagnostic, PartitionCargo, RefusalCompileContext,
+    RefusalFamilyExpansion, SpanHandle, TokenPath, capture_literal, compile_declaration,
 };
 
 /// Derives a refusal family's declared facts from its declaration.
@@ -100,12 +114,14 @@ pub fn refusal_family(item: TokenStream) -> TokenStream {
     let mut walk = CaptureWalk::declared();
     let trees = match capture_stream(item, &TokenPath::root(), &mut walk, &mut spans) {
         Ok(trees) => trees,
-        Err(bound) => return refused(bound.described(), call_site(&spans)),
+        Err(refusal) => return refused_capture(&refusal, &spans),
     };
-    let issued = u32::try_from(spans.len()).unwrap_or(u32::MAX);
+    let Ok(issued) = u32::try_from(spans.len()) else {
+        return refused(CaptureBound::TreeUnbounded.described(), Span::call_site());
+    };
     let input = match CapturedInput::taken(trees, issued) {
         Ok(input) => input,
-        Err(bound) => return refused(bound.described(), call_site(&spans)),
+        Err(bound) => return refused(bound.described(), Span::call_site()),
     };
     match compile_declaration(&input, &RefusalCompileContext::expanding()) {
         Ok(accounted) => emit(&accounted),
@@ -186,7 +202,7 @@ fn capture_stream(
     path: &TokenPath,
     walk: &mut CaptureWalk,
     spans: &mut Vec<Span>,
-) -> Result<Vec<CapturedTokenTree>, CaptureBound> {
+) -> Result<Vec<CapturedTokenTree>, CaptureRefusal> {
     let mut captured = Vec::new();
     for (index, tree) in stream.into_iter().enumerate() {
         walk.examined()?;
@@ -205,12 +221,13 @@ fn capture_tree(
     path: TokenPath,
     walk: &mut CaptureWalk,
     spans: &mut Vec<Span>,
-) -> Result<CapturedTokenTree, CaptureBound> {
-    let handle = issue(tree.span(), spans);
+) -> Result<CapturedTokenTree, CaptureRefusal> {
+    let handle = issue(tree.span(), spans)?;
     let payload = match tree {
         TokenTree::Ident(ident) => CapturedPayload::Word(ident.to_string()),
         TokenTree::Punct(punct) => CapturedPayload::Punct(punct.as_char()),
-        TokenTree::Literal(literal) => literal_payload(&literal.to_string()),
+        TokenTree::Literal(literal) => capture_literal(&literal.to_string())
+            .map_err(|cause| CaptureRefusal::Literal { cause, at: handle })?,
         TokenTree::Group(group) => {
             let inner = capture_stream(group.stream(), &path, walk, spans)?;
             let delimiter = match group.delimiter() {
@@ -219,58 +236,93 @@ fn capture_tree(
                 Delimiter::Bracket => CapturedDelimiter::Bracket,
                 Delimiter::None => CapturedDelimiter::Bare,
             };
-            return CapturedTokenTree::group_of(delimiter, inner, path, handle);
+            return Ok(CapturedTokenTree::group_of(delimiter, inner, path, handle)?);
         }
     };
     Ok(CapturedTokenTree::captured(payload, path, handle))
 }
 
-/// The payload one literal token carries. A quoted text becomes a text payload
-/// with its quotes removed; anything else is a number as written.
-fn literal_payload(spelling: &str) -> CapturedPayload {
-    match spelling
-        .strip_prefix('"')
-        .and_then(|rest| rest.strip_suffix('"'))
-    {
-        Some(inner) => CapturedPayload::Text(inner.to_owned()),
-        None => CapturedPayload::Number(spelling.to_owned()),
+/// Why one conversion stopped, and where the shell reports it.
+///
+/// Two arms because the two are facts about different things. A magnitude is a
+/// fact about the whole declaration and no one token overran it, so the shell
+/// reports it at the invocation. A literal this crate could not read is a fact
+/// about exactly one token, and that token's handle was issued before its
+/// payload was read — so the shell has the span and reports there, which is what
+/// this crate's own page requires of every diagnostic that names a token.
+enum CaptureRefusal {
+    /// The capture ran past one of the declared magnitudes.
+    Bound(CaptureBound),
+    /// One literal's spelling could not be read into the value it names.
+    Literal {
+        /// Why it could not be read.
+        cause: LiteralReadCause,
+        /// The token it is about.
+        at: SpanHandle,
+    },
+}
+
+impl From<CaptureBound> for CaptureRefusal {
+    fn from(bound: CaptureBound) -> Self {
+        Self::Bound(bound)
     }
 }
 
 /// Issue the next handle for one span.
-fn issue(span: Span, spans: &mut Vec<Span>) -> SpanHandle {
-    let index = u32::try_from(spans.len()).unwrap_or(u32::MAX);
+///
+/// # Errors
+///
+/// Refuses where the table has already run past the width a handle is carried
+/// in. An index that saturated instead would hand two tokens one handle, and
+/// the shell would report a refusal at whichever of them the table reached
+/// first — which is the invented position this crate's own page refuses.
+fn issue(span: Span, spans: &mut Vec<Span>) -> Result<SpanHandle, CaptureBound> {
+    let index = u32::try_from(spans.len()).map_err(|_| CaptureBound::TreeUnbounded)?;
     spans.push(span);
-    SpanHandle::at(index)
+    Ok(SpanHandle::at(index))
 }
 
 /// The compiler span one diagnostic points at.
 ///
 /// A diagnostic about a captured token names a handle, and the handle indexes
-/// the table this shell built; where the table does not reach it, the
-/// declaration's own first span stands.
+/// the table this shell built.
+/// Where the table does not reach it, the invocation stands — never the
+/// declaration's first span, which is a real token this observation is not
+/// about and would read exactly like an answer.
 ///
 /// A diagnostic established BEFORE any capture names no handle, so there is
-/// nothing to look up and nothing in the table that corresponds to it. The
-/// invocation itself is the honest span for one: it is the only thing about the
+/// nothing to look up and nothing in the table that corresponds to it.
+/// The invocation is the honest span for one: it is the only thing about the
 /// expansion that observation is a fact about.
+/// Both roads therefore end in the same place, because both are the same
+/// admission — this shell cannot say which token, so it does not point at one.
 fn site(diagnostic: &MacrocDiagnostic, spans: &[Span]) -> Span {
-    match diagnostic.site.token() {
-        Some(handle) => {
-            let index = usize::try_from(handle.index()).unwrap_or(usize::MAX);
-            spans
-                .get(index)
-                .copied()
-                .unwrap_or_else(|| call_site(spans))
-        }
-        None => Span::call_site(),
-    }
+    diagnostic
+        .site
+        .token()
+        .map_or_else(Span::call_site, |handle| at_handle(handle, spans))
 }
 
-/// The declaration's own first span, or the call site where nothing was
-/// captured.
-fn call_site(spans: &[Span]) -> Span {
-    spans.first().copied().unwrap_or_else(Span::call_site)
+/// The compiler span one handle names, or the invocation where this shell's
+/// table does not reach it.
+///
+/// One lookup for both roads that hold a handle, so a diagnostic the services
+/// composed and a conversion this shell refused point at their token the same
+/// way and neither can drift into answering with the declaration's first span.
+fn at_handle(handle: SpanHandle, spans: &[Span]) -> Span {
+    usize::try_from(handle.index())
+        .ok()
+        .and_then(|index| spans.get(index).copied())
+        .unwrap_or_else(Span::call_site)
+}
+
+/// One `compile_error!` for a conversion that stopped, at the position the
+/// refusal is a fact about.
+fn refused_capture(refusal: &CaptureRefusal, spans: &[Span]) -> TokenStream {
+    match refusal {
+        CaptureRefusal::Bound(bound) => refused(bound.described(), Span::call_site()),
+        CaptureRefusal::Literal { cause, at } => refused(cause.described(), at_handle(*at, spans)),
+    }
 }
 
 /// The one line a `compile_error!` carries. Composed inside the services and

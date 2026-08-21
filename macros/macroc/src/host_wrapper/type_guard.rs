@@ -73,13 +73,16 @@ impl WrapperTypePath {
         {
             return Err(WrapperDeclarationRefusal::SegmentNotAnIdentifier);
         }
-        let segments = NonEmptyBounded::admitted_const(
+        let admitted = NonEmptyBounded::admitted_const(
             first,
             rest,
             &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
         )
         .map_err(|_| WrapperDeclarationRefusal::PathSegmentsUnbounded)?;
-        Ok(Self { rooting, segments })
+        Ok(Self {
+            rooting,
+            segments: admitted,
+        })
     }
 
     /// Where this path is rooted.
@@ -95,14 +98,8 @@ impl WrapperTypePath {
 
     /// How many segments the path carries; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.segments.len()
-    }
-
-    /// Always `false`: a path with no segment is unrepresentable.
-    #[must_use]
-    pub const fn is_empty(&self) -> bool {
-        false
     }
 }
 
@@ -184,7 +181,7 @@ impl WrapperShape {
             return Err(WrapperDeclarationRefusal::StagesAbsent);
         };
         let rest: Vec<WrapperStage> = supplied.collect();
-        let stages = NonEmptyBounded::admitted_const(
+        let admitted = NonEmptyBounded::admitted_const(
             first,
             rest,
             &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
@@ -195,7 +192,7 @@ impl WrapperShape {
             carried,
             refusal,
             entry: entry.to_owned(),
-            stages,
+            stages: admitted,
         })
     }
 
@@ -249,14 +246,8 @@ impl WrapperShape {
 
     /// How many stages the shape declares; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.stages.len()
-    }
-
-    /// Always `false`: a shape with no stage is unrepresentable.
-    #[must_use]
-    pub const fn is_empty(&self) -> bool {
-        false
     }
 }
 

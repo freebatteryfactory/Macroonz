@@ -54,9 +54,15 @@ into campaigns), `corpus/` (warm starts into the fuzz lane), the benches
 
 ## The dependency direction
 
-testpak depends inward — its manifest names its own library bill and no
-participant — and nothing depends on testpak. Production never depends on
-its judge. It is never published onto a production dependency path.
+testpak's production library is standalone: `arbitrary`, `blake3`, and `syn`,
+and no crate of this workspace. It depends inward — on `threadpak`,
+`threadpak-macroc`, and `threadpak-macros` — only as dev-dependencies reached
+from `tests/`, where its own qualification runs.
+
+Nothing in production depends on testpak. Production never depends on its
+judge, and it is never published onto a production dependency path. The
+consumer crate dev-depends on it under a rename, which is a road that proves
+the public surface rather than one that ships.
 
 Outside-consumer parity has its crate: `consumer/` is a workspace member
 that renames BOTH crates (`tp` for the machine, `harness` for this one),
@@ -112,6 +118,7 @@ call with a differently selected subset of the one complete table.
 | `src/generate/` | the generation contract: typed dispositions, generation and reduction plans, the shared sequence driver, fingerprint-preserving minimization |
 | `src/depot/` | the harness's own fact bank: doc-commented Rust-const rows — operator families, swap-pair populations, admitted replay capsules |
 | `corpus/` | compressed seed-packs for warm-start fuzzing |
+| `tests/` | executable entry points, compile-refusal fixtures, compiled-behaviour seats |
 
 The instruments form an honest acyclic graph over one vocabulary — the
 descriptor vocabulary at the bottom, report beside it, the runner using
@@ -172,9 +179,9 @@ root manifest's `[workspace.dependencies]` table. What this package owes is
 the reason it reaches for each mechanism.
 
 **`arbitrary`, for generation** — admitted with the instruments that consume
-it: the shared vocabulary for structure-aware input generation, derivable for
-closed algebraic types, and the same vocabulary a coverage-guided fuzzer
-consumes.
+it: the shared vocabulary for structure-aware input generation — the trait
+alone, with no derive feature admitted — and the same vocabulary a
+coverage-guided fuzzer consumes.
 
 **`syn`, for the structural oracle.** Whether an artifact DECLARES an
 implementation, what it targets, and whether a constant is a member of it are
@@ -183,12 +190,13 @@ repository nothing: `parsing`, without which there is no text-to-tree road,
 and `full`, without which items and their associated constants are not in the
 tree. The lane reads, never writes, and never runs inside a macro — and its
 home is the challenge side: structural decoding of this repository's rendered
-artifacts is qualification-era work, while the oracle library owns vocabulary
-and comparison. The decoder stands isolated in one oracle file today, and the
-manifest carries the opening condition exactly: the move happens when a
-challenge-side caller exists to call it, and that same move retires this from
-the library's dependency table. A decoder relocated ahead of its caller would
-be unreachable code wearing the shape of a move.
+artifacts belongs to `tests/`, while the oracle library owns vocabulary and
+comparison. The decoder stands isolated in one oracle file today, so the move
+is a file's worth of work, and the manifest carries the opening condition
+exactly: it happens at the wave where a challenge-side caller exists to call
+it there, and that same wave retires this from a library dependency to a
+dev-dependency. A decoder parked in `tests/` with nothing calling it would be
+unreachable code wearing the shape of a move.
 
 **And that reason settles less than it sounds like.** What a manifest ASKS
 FOR, what the resolved graph HOLDS, and what one compiled unit is HANDED are
@@ -216,8 +224,9 @@ of the admitted dependency, not a purity claim. Today an adopter inherits
 `syn` beside them, because the decoder above has not moved yet; the manifest
 states that as the present tense rather than as an aspiration.
 
-Dev-side mechanisms admitted at their first real use — bench tooling at the
-first bench surface — never reach an adopter's tree.
+Dev-side mechanisms — `trybuild` for compile refusals, and the bench and
+snapshot tooling admitted at their first real use — never reach an adopter's
+tree.
 
 ## Extending the harness
 

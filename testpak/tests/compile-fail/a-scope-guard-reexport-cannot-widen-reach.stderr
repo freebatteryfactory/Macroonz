@@ -1,0 +1,736 @@
+error: scope_guard_version! requires visibility tokens at its public front door; an opaque forwarded `vis` fragment cannot be transported one module deeper
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:138:13
+    |
+138 | /             threadpak::scope_guard_version! {
+139 | |                 $visibility struct Guard over Scope, seated in mod guard;
+140 | |             }
+    | |_____________^
+...
+145 |   forward_opaque_visibility!(pub(super));
+    |   -------------------------------------- in this macro invocation
+    |
+    = note: this error originates in the macro `threadpak::scope_guard_version` which comes from the expansion of the macro `forward_opaque_visibility` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0365]: `PrivateGuard` is private, and cannot be re-exported
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:46:24
+   |
+46 |         pub(crate) use private_guard::PrivateGuard as WiderPrivate;
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of private `PrivateGuard`
+   |
+   = note: consider declaring type or module `PrivateGuard` with `pub`
+
+error[E0365]: `SelfGuard` is private, and cannot be re-exported
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:48:24
+   |
+48 |         pub(crate) use self_guard::SelfGuard as WiderSelf;
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of private `SelfGuard`
+   |
+   = note: consider declaring type or module `SelfGuard` with `pub`
+
+error[E0365]: `InSelfGuard` is private, and cannot be re-exported
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:50:24
+   |
+50 |         pub(crate) use in_self_guard::InSelfGuard as WiderInSelf;
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of private `InSelfGuard`
+   |
+   = note: consider declaring type or module `InSelfGuard` with `pub`
+
+error[E0365]: `SuperGuard` is private, and cannot be re-exported
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:52:24
+   |
+52 |         pub(crate) use super_guard::SuperGuard as WiderSuper;
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of private `SuperGuard`
+   |
+   = note: consider declaring type or module `SuperGuard` with `pub`
+
+error[E0365]: `InSuperGuard` is private, and cannot be re-exported
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:54:24
+   |
+54 |         pub(crate) use in_super_guard::InSuperGuard as WiderInSuper;
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of private `InSuperGuard`
+   |
+   = note: consider declaring type or module `InSuperGuard` with `pub`
+
+error[E0365]: `RelativeGuard` is only public within the crate, and cannot be re-exported outside
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:56:17
+   |
+56 |         pub use relative_guard::RelativeGuard as WiderRelative;
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of crate public `RelativeGuard`
+   |
+   = note: consider declaring type or module `RelativeGuard` with `pub`
+
+error[E0365]: `CrateGuard` is only public within the crate, and cannot be re-exported outside
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:58:17
+   |
+58 |         pub use crate_guard::CrateGuard as WiderCrate;
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of crate public `CrateGuard`
+   |
+   = note: consider declaring type or module `CrateGuard` with `pub`
+
+error[E0365]: `InCrateGuard` is only public within the crate, and cannot be re-exported outside
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:60:17
+   |
+60 |         pub use in_crate_guard::InCrateGuard as WiderInCrate;
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of crate public `InCrateGuard`
+   |
+   = note: consider declaring type or module `InCrateGuard` with `pub`
+
+error[E0365]: `AbsoluteGuard` is private, and cannot be re-exported
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:62:24
+   |
+62 |         pub(crate) use absolute_guard::AbsoluteGuard as WiderAbsolute;
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of private `AbsoluteGuard`
+   |
+   = note: consider declaring type or module `AbsoluteGuard` with `pub`
+
+error[E0365]: `DollarGuard` is private, and cannot be re-exported
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:64:24
+   |
+64 |         pub(crate) use dollar_guard::DollarGuard as WiderDollar;
+   |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of private `DollarGuard`
+   |
+   = note: consider declaring type or module `DollarGuard` with `pub`
+
+error[E0365]: `PrivateGuard` is private, and cannot be re-exported
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:96:28
+   |
+96 |             pub(crate) use private_guard::PrivateGuard as WiderPrivate;
+   |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of private `PrivateGuard`
+   |
+   = note: consider declaring type or module `PrivateGuard` with `pub`
+
+error[E0365]: `SelfGuard` is private, and cannot be re-exported
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:98:28
+   |
+98 |             pub(crate) use self_guard::SelfGuard as WiderSelf;
+   |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of private `SelfGuard`
+   |
+   = note: consider declaring type or module `SelfGuard` with `pub`
+
+error[E0365]: `InSelfGuard` is private, and cannot be re-exported
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:100:28
+    |
+100 |             pub(crate) use in_self_guard::InSelfGuard as WiderInSelf;
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of private `InSelfGuard`
+    |
+    = note: consider declaring type or module `InSelfGuard` with `pub`
+
+error[E0365]: `SuperGuard` is private, and cannot be re-exported
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:102:28
+    |
+102 |             pub(crate) use super_guard::SuperGuard as WiderSuper;
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of private `SuperGuard`
+    |
+    = note: consider declaring type or module `SuperGuard` with `pub`
+
+error[E0365]: `InSuperGuard` is private, and cannot be re-exported
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:104:28
+    |
+104 |             pub(crate) use in_super_guard::InSuperGuard as WiderInSuper;
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of private `InSuperGuard`
+    |
+    = note: consider declaring type or module `InSuperGuard` with `pub`
+
+error[E0365]: `RelativeGuard` is private, and cannot be re-exported
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:106:28
+    |
+106 |             pub(crate) use relative_guard::RelativeGuard as WiderRelative;
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of private `RelativeGuard`
+    |
+    = note: consider declaring type or module `RelativeGuard` with `pub`
+
+error[E0365]: `CrateGuard` is only public within the crate, and cannot be re-exported outside
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:108:21
+    |
+108 |             pub use crate_guard::CrateGuard as WiderCrate;
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of crate public `CrateGuard`
+    |
+    = note: consider declaring type or module `CrateGuard` with `pub`
+
+error[E0365]: `InCrateGuard` is only public within the crate, and cannot be re-exported outside
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:110:21
+    |
+110 |             pub use in_crate_guard::InCrateGuard as WiderInCrate;
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of crate public `InCrateGuard`
+    |
+    = note: consider declaring type or module `InCrateGuard` with `pub`
+
+error[E0365]: `AbsoluteGuard` is private, and cannot be re-exported
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:112:28
+    |
+112 |             pub(crate) use absolute_guard::AbsoluteGuard as WiderAbsolute;
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of private `AbsoluteGuard`
+    |
+    = note: consider declaring type or module `AbsoluteGuard` with `pub`
+
+error[E0365]: `DollarGuard` is private, and cannot be re-exported
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:114:28
+    |
+114 |             pub(crate) use dollar_guard::DollarGuard as WiderDollar;
+    |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ re-export of private `DollarGuard`
+    |
+    = note: consider declaring type or module `DollarGuard` with `pub`
+
+error[E0603]: struct import `PrivateGuard` is private
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:68:24
+   |
+68 |         let _ = owner::PrivateGuard::positioned;
+   |                        ^^^^^^^^^^^^ private struct import
+   |
+note: the struct import `PrivateGuard` is defined here...
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:30:9
+   |
+30 |         threadpak::scope_guard_version! { struct PrivateGuard over Scope, seated in mod private_guard; }
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: ...and refers to the struct `PrivateGuard` which is defined here
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:30:9
+   |
+30 |         threadpak::scope_guard_version! { struct PrivateGuard over Scope, seated in mod private_guard; }
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: import `PrivateGuard` directly
+   |
+68 -         let _ = owner::PrivateGuard::positioned;
+68 +         let _ = private_guard::PrivateGuard;
+   |
+
+error[E0603]: struct import `SelfGuard` is private
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:69:24
+   |
+69 |         let _ = owner::SelfGuard::try_cmp_same_scope;
+   |                        ^^^^^^^^^ private struct import
+   |
+note: the struct import `SelfGuard` is defined here...
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:31:9
+   |
+31 |         threadpak::scope_guard_version! { pub(self) struct SelfGuard over Scope, seated in mod self_guard; }
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: ...and refers to the struct `SelfGuard` which is defined here
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:31:9
+   |
+31 |         threadpak::scope_guard_version! { pub(self) struct SelfGuard over Scope, seated in mod self_guard; }
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: import `SelfGuard` directly
+   |
+69 -         let _ = owner::SelfGuard::try_cmp_same_scope;
+69 +         let _ = self_guard::SelfGuard;
+   |
+
+error[E0603]: struct import `InSelfGuard` is private
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:70:24
+   |
+70 |         let _ = owner::InSelfGuard::positioned;
+   |                        ^^^^^^^^^^^ private struct import
+   |
+note: the struct import `InSelfGuard` is defined here...
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:32:9
+   |
+32 |         threadpak::scope_guard_version! { pub(in self) struct InSelfGuard over Scope, seated in mod in_self_guard; }
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: ...and refers to the struct `InSelfGuard` which is defined here
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:32:9
+   |
+32 |         threadpak::scope_guard_version! { pub(in self) struct InSelfGuard over Scope, seated in mod in_self_guard; }
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: import `InSelfGuard` directly
+   |
+70 -         let _ = owner::InSelfGuard::positioned;
+70 +         let _ = in_self_guard::InSelfGuard;
+   |
+
+error[E0603]: struct import `PrivateGuard` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:118:28
+    |
+118 |             let _ = owner::PrivateGuard::positioned;
+    |                            ^^^^^^^^^^^^ private struct import
+    |
+note: the struct import `PrivateGuard` is defined here...
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:80:13
+    |
+ 80 |             threadpak::scope_guard_version! { struct PrivateGuard over Scope, seated in mod private_guard; }
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: ...and refers to the struct `PrivateGuard` which is defined here
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:80:13
+    |
+ 80 |             threadpak::scope_guard_version! { struct PrivateGuard over Scope, seated in mod private_guard; }
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: import `PrivateGuard` directly
+    |
+118 -             let _ = owner::PrivateGuard::positioned;
+118 +             let _ = private_guard::PrivateGuard;
+    |
+
+error[E0603]: struct import `SelfGuard` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:119:28
+    |
+119 |             let _ = owner::SelfGuard::try_cmp_same_scope;
+    |                            ^^^^^^^^^ private struct import
+    |
+note: the struct import `SelfGuard` is defined here...
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:81:13
+    |
+ 81 |             threadpak::scope_guard_version! { pub(self) struct SelfGuard over Scope, seated in mod self_guard; }
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: ...and refers to the struct `SelfGuard` which is defined here
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:81:13
+    |
+ 81 |             threadpak::scope_guard_version! { pub(self) struct SelfGuard over Scope, seated in mod self_guard; }
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: import `SelfGuard` directly
+    |
+119 -             let _ = owner::SelfGuard::try_cmp_same_scope;
+119 +             let _ = self_guard::SelfGuard;
+    |
+
+error[E0603]: struct import `InSelfGuard` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:120:28
+    |
+120 |             let _ = owner::InSelfGuard::positioned;
+    |                            ^^^^^^^^^^^ private struct import
+    |
+note: the struct import `InSelfGuard` is defined here...
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:82:13
+    |
+ 82 |             threadpak::scope_guard_version! { pub(in self) struct InSelfGuard over Scope, seated in mod in_self_guard; }
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: ...and refers to the struct `InSelfGuard` which is defined here
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:82:13
+    |
+ 82 |             threadpak::scope_guard_version! { pub(in self) struct InSelfGuard over Scope, seated in mod in_self_guard; }
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: import `InSelfGuard` directly
+    |
+120 -             let _ = owner::InSelfGuard::positioned;
+120 +             let _ = in_self_guard::InSelfGuard;
+    |
+
+error[E0603]: struct import `SuperGuard` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:125:34
+    |
+125 |         let _ = ancestor::owner::SuperGuard::positioned;
+    |                                  ^^^^^^^^^^ private struct import
+    |
+note: the struct import `SuperGuard` is defined here...
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:83:13
+    |
+ 83 |             threadpak::scope_guard_version! { pub(super) struct SuperGuard over Scope, seated in mod super_guard; }
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: ...and refers to the struct `SuperGuard` which is defined here
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:83:13
+    |
+ 83 |             threadpak::scope_guard_version! { pub(super) struct SuperGuard over Scope, seated in mod super_guard; }
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: import `SuperGuard` directly
+    |
+125 -         let _ = ancestor::owner::SuperGuard::positioned;
+125 +         let _ = super_guard::SuperGuard;
+    |
+
+error[E0603]: struct import `InSuperGuard` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:126:34
+    |
+126 |         let _ = ancestor::owner::InSuperGuard::try_cmp_same_scope;
+    |                                  ^^^^^^^^^^^^ private struct import
+    |
+note: the struct import `InSuperGuard` is defined here...
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:84:13
+    |
+ 84 |             threadpak::scope_guard_version! { pub(in super) struct InSuperGuard over Scope, seated in mod in_super_guard; }
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: ...and refers to the struct `InSuperGuard` which is defined here
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:84:13
+    |
+ 84 |             threadpak::scope_guard_version! { pub(in super) struct InSuperGuard over Scope, seated in mod in_super_guard; }
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: import `InSuperGuard` directly
+    |
+126 -         let _ = ancestor::owner::InSuperGuard::try_cmp_same_scope;
+126 +         let _ = in_super_guard::InSuperGuard;
+    |
+
+error[E0603]: struct import `AbsoluteGuard` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:127:34
+    |
+127 |         let _ = ancestor::owner::AbsoluteGuard::positioned;
+    |                                  ^^^^^^^^^^^^^ private struct import
+    |
+note: the struct import `AbsoluteGuard` is defined here...
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:88:13
+    |
+ 88 | /             threadpak::scope_guard_version! {
+ 89 | |                 pub(in crate::deep::ancestor) struct AbsoluteGuard over Scope,
+ 90 | |                     seated in mod absolute_guard;
+ 91 | |             }
+    | |_____________^
+note: ...and refers to the struct `AbsoluteGuard` which is defined here
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:88:13
+    |
+ 88 | /             threadpak::scope_guard_version! {
+ 89 | |                 pub(in crate::deep::ancestor) struct AbsoluteGuard over Scope,
+ 90 | |                     seated in mod absolute_guard;
+ 91 | |             }
+    | |_____________^
+    = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: import `AbsoluteGuard` directly
+    |
+127 -         let _ = ancestor::owner::AbsoluteGuard::positioned;
+127 +         let _ = absolute_guard::AbsoluteGuard;
+    |
+
+error[E0603]: struct import `DollarGuard` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:128:34
+    |
+128 |         let _ = ancestor::owner::DollarGuard::try_cmp_same_scope;
+    |                                  ^^^^^^^^^^^ private struct import
+    |
+note: the struct import `DollarGuard` is defined here...
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:18:9
+    |
+ 18 | /         threadpak::scope_guard_version! {
+ 19 | |             pub(in $crate::deep::ancestor) struct DollarGuard over Scope,
+ 20 | |                 seated in mod dollar_guard;
+ 21 | |         }
+    | |_________^
+...
+ 92 |               deep_dollar_guard!();
+    |               -------------------- in this macro invocation
+note: ...and refers to the struct `DollarGuard` which is defined here
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:18:9
+    |
+ 18 | /         threadpak::scope_guard_version! {
+ 19 | |             pub(in $crate::deep::ancestor) struct DollarGuard over Scope,
+ 20 | |                 seated in mod dollar_guard;
+ 21 | |         }
+    | |_________^
+...
+ 92 |               deep_dollar_guard!();
+    |               -------------------- in this macro invocation
+    = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `deep_dollar_guard` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: import `DollarGuard` directly
+    |
+128 -         let _ = ancestor::owner::DollarGuard::try_cmp_same_scope;
+128 +         let _ = dollar_guard::DollarGuard;
+    |
+
+error[E0603]: struct import `SuperGuard` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:148:38
+    |
+148 |     let _ = shallow_ancestor::owner::SuperGuard::positioned;
+    |                                      ^^^^^^^^^^ private struct import
+    |
+note: the struct import `SuperGuard` is defined here...
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:33:9
+    |
+ 33 |         threadpak::scope_guard_version! { pub(super) struct SuperGuard over Scope, seated in mod super_guard; }
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: ...and refers to the struct `SuperGuard` which is defined here
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:33:9
+    |
+ 33 |         threadpak::scope_guard_version! { pub(super) struct SuperGuard over Scope, seated in mod super_guard; }
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: import `SuperGuard` directly
+    |
+148 -     let _ = shallow_ancestor::owner::SuperGuard::positioned;
+148 +     let _ = super_guard::SuperGuard;
+    |
+
+error[E0603]: struct import `InSuperGuard` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:149:38
+    |
+149 |     let _ = shallow_ancestor::owner::InSuperGuard::try_cmp_same_scope;
+    |                                      ^^^^^^^^^^^^ private struct import
+    |
+note: the struct import `InSuperGuard` is defined here...
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:34:9
+    |
+ 34 |         threadpak::scope_guard_version! { pub(in super) struct InSuperGuard over Scope, seated in mod in_super_guard; }
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: ...and refers to the struct `InSuperGuard` which is defined here
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:34:9
+    |
+ 34 |         threadpak::scope_guard_version! { pub(in super) struct InSuperGuard over Scope, seated in mod in_super_guard; }
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: import `InSuperGuard` directly
+    |
+149 -     let _ = shallow_ancestor::owner::InSuperGuard::try_cmp_same_scope;
+149 +     let _ = in_super_guard::InSuperGuard;
+    |
+
+error[E0603]: struct import `AbsoluteGuard` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:150:38
+    |
+150 |     let _ = shallow_ancestor::owner::AbsoluteGuard::positioned;
+    |                                      ^^^^^^^^^^^^^ private struct import
+    |
+note: the struct import `AbsoluteGuard` is defined here...
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:38:9
+    |
+ 38 | /         threadpak::scope_guard_version! {
+ 39 | |             pub(in crate::shallow_ancestor) struct AbsoluteGuard over Scope,
+ 40 | |                 seated in mod absolute_guard;
+ 41 | |         }
+    | |_________^
+note: ...and refers to the struct `AbsoluteGuard` which is defined here
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:38:9
+    |
+ 38 | /         threadpak::scope_guard_version! {
+ 39 | |             pub(in crate::shallow_ancestor) struct AbsoluteGuard over Scope,
+ 40 | |                 seated in mod absolute_guard;
+ 41 | |         }
+    | |_________^
+    = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: import `AbsoluteGuard` directly
+    |
+150 -     let _ = shallow_ancestor::owner::AbsoluteGuard::positioned;
+150 +     let _ = absolute_guard::AbsoluteGuard;
+    |
+
+error[E0603]: struct import `DollarGuard` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:151:38
+    |
+151 |     let _ = shallow_ancestor::owner::DollarGuard::try_cmp_same_scope;
+    |                                      ^^^^^^^^^^^ private struct import
+    |
+note: the struct import `DollarGuard` is defined here...
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:9:9
+    |
+  9 | /         threadpak::scope_guard_version! {
+ 10 | |             pub(in $crate::shallow_ancestor) struct DollarGuard over Scope,
+ 11 | |                 seated in mod dollar_guard;
+ 12 | |         }
+    | |_________^
+...
+ 42 |           shallow_dollar_guard!();
+    |           ----------------------- in this macro invocation
+note: ...and refers to the struct `DollarGuard` which is defined here
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:9:9
+    |
+  9 | /         threadpak::scope_guard_version! {
+ 10 | |             pub(in $crate::shallow_ancestor) struct DollarGuard over Scope,
+ 11 | |                 seated in mod dollar_guard;
+ 12 | |         }
+    | |_________^
+...
+ 42 |           shallow_dollar_guard!();
+    |           ----------------------- in this macro invocation
+    = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `shallow_dollar_guard` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: import `DollarGuard` directly
+    |
+151 -     let _ = shallow_ancestor::owner::DollarGuard::try_cmp_same_scope;
+151 +     let _ = dollar_guard::DollarGuard;
+    |
+
+error[E0603]: module `public_guard` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:152:38
+    |
+152 |     let _ = shallow_ancestor::owner::public_guard::PublicGuard::positioned;
+    |                                      ^^^^^^^^^^^^ private module
+    |
+note: the module `public_guard` is defined here
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:43:9
+    |
+ 43 |         threadpak::scope_guard_version! { pub struct PublicGuard over Scope, seated in mod public_guard; }
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider importing this struct through its public re-export instead
+    |
+152 -     let _ = shallow_ancestor::owner::public_guard::PublicGuard::positioned;
+152 +     let _ = shallow_ancestor::owner::PublicGuard::positioned;
+    |
+
+error[E0603]: struct import `RelativeGuard` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:153:36
+    |
+153 |     let _ = deep::ancestor::owner::RelativeGuard::try_cmp_same_scope;
+    |                                    ^^^^^^^^^^^^^ private struct import
+    |
+note: the struct import `RelativeGuard` is defined here...
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:85:13
+    |
+ 85 |             threadpak::scope_guard_version! { pub(in super::super) struct RelativeGuard over Scope, seated in mod relative_guard; }
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+note: ...and refers to the struct `RelativeGuard` which is defined here
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:85:13
+    |
+ 85 |             threadpak::scope_guard_version! { pub(in super::super) struct RelativeGuard over Scope, seated in mod relative_guard; }
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: import `RelativeGuard` directly
+    |
+153 -     let _ = deep::ancestor::owner::RelativeGuard::try_cmp_same_scope;
+153 +     let _ = relative_guard::RelativeGuard;
+    |
+
+error[E0603]: module `public_guard` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:154:36
+    |
+154 |     let _ = deep::ancestor::owner::public_guard::PublicGuard::try_cmp_same_scope;
+    |                                    ^^^^^^^^^^^^ private module
+    |
+note: the module `public_guard` is defined here
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:93:13
+    |
+ 93 |             threadpak::scope_guard_version! { pub struct PublicGuard over Scope, seated in mod public_guard; }
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    = note: this error originates in the macro `$crate::scope_guard_version` which comes from the expansion of the macro `threadpak::scope_guard_version` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider importing this struct through its public re-export instead
+    |
+154 -     let _ = deep::ancestor::owner::public_guard::PublicGuard::try_cmp_same_scope;
+154 +     let _ = deep::ancestor::owner::PublicGuard::try_cmp_same_scope;
+    |
+
+error[E0624]: associated function `positioned` is private
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:68:38
+   |
+30 |         threadpak::scope_guard_version! { struct PrivateGuard over Scope, seated in mod private_guard; }
+   |         ------------------------------------------------------------------------------------------------ private associated function defined here
+...
+68 |         let _ = owner::PrivateGuard::positioned;
+   |                                      ^^^^^^^^^^ private associated function
+
+error[E0624]: method `try_cmp_same_scope` is private
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:69:35
+   |
+31 |         threadpak::scope_guard_version! { pub(self) struct SelfGuard over Scope, seated in mod self_guard; }
+   |         ---------------------------------------------------------------------------------------------------- private method defined here
+...
+69 |         let _ = owner::SelfGuard::try_cmp_same_scope;
+   |                                   ^^^^^^^^^^^^^^^^^^ private method
+
+error[E0624]: associated function `positioned` is private
+  --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:70:37
+   |
+32 |         threadpak::scope_guard_version! { pub(in self) struct InSelfGuard over Scope, seated in mod in_self_guard; }
+   |         ------------------------------------------------------------------------------------------------------------ private associated function defined here
+...
+70 |         let _ = owner::InSelfGuard::positioned;
+   |                                     ^^^^^^^^^^ private associated function
+
+error[E0624]: associated function `positioned` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:118:42
+    |
+ 80 |             threadpak::scope_guard_version! { struct PrivateGuard over Scope, seated in mod private_guard; }
+    |             ------------------------------------------------------------------------------------------------ private associated function defined here
+...
+118 |             let _ = owner::PrivateGuard::positioned;
+    |                                          ^^^^^^^^^^ private associated function
+
+error[E0624]: method `try_cmp_same_scope` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:119:39
+    |
+ 81 |             threadpak::scope_guard_version! { pub(self) struct SelfGuard over Scope, seated in mod self_guard; }
+    |             ---------------------------------------------------------------------------------------------------- private method defined here
+...
+119 |             let _ = owner::SelfGuard::try_cmp_same_scope;
+    |                                       ^^^^^^^^^^^^^^^^^^ private method
+
+error[E0624]: associated function `positioned` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:120:41
+    |
+ 82 |             threadpak::scope_guard_version! { pub(in self) struct InSelfGuard over Scope, seated in mod in_self_guard; }
+    |             ------------------------------------------------------------------------------------------------------------ private associated function defined here
+...
+120 |             let _ = owner::InSelfGuard::positioned;
+    |                                         ^^^^^^^^^^ private associated function
+
+error[E0624]: associated function `positioned` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:125:46
+    |
+ 83 |             threadpak::scope_guard_version! { pub(super) struct SuperGuard over Scope, seated in mod super_guard; }
+    |             ------------------------------------------------------------------------------------------------------- private associated function defined here
+...
+125 |         let _ = ancestor::owner::SuperGuard::positioned;
+    |                                              ^^^^^^^^^^ private associated function
+
+error[E0624]: method `try_cmp_same_scope` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:126:48
+    |
+ 84 |             threadpak::scope_guard_version! { pub(in super) struct InSuperGuard over Scope, seated in mod in_super_guard; }
+    |             --------------------------------------------------------------------------------------------------------------- private method defined here
+...
+126 |         let _ = ancestor::owner::InSuperGuard::try_cmp_same_scope;
+    |                                                ^^^^^^^^^^^^^^^^^^ private method
+
+error[E0624]: associated function `positioned` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:127:49
+    |
+ 88 | /             threadpak::scope_guard_version! {
+ 89 | |                 pub(in crate::deep::ancestor) struct AbsoluteGuard over Scope,
+ 90 | |                     seated in mod absolute_guard;
+ 91 | |             }
+    | |_____________- private associated function defined here
+...
+127 |           let _ = ancestor::owner::AbsoluteGuard::positioned;
+    |                                                   ^^^^^^^^^^ private associated function
+
+error[E0624]: method `try_cmp_same_scope` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:128:47
+    |
+ 18 | /         threadpak::scope_guard_version! {
+ 19 | |             pub(in $crate::deep::ancestor) struct DollarGuard over Scope,
+ 20 | |                 seated in mod dollar_guard;
+ 21 | |         }
+    | |_________- private method defined here
+...
+128 |           let _ = ancestor::owner::DollarGuard::try_cmp_same_scope;
+    |                                                 ^^^^^^^^^^^^^^^^^^ private method
+
+error[E0624]: associated function `positioned` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:148:50
+    |
+ 33 |         threadpak::scope_guard_version! { pub(super) struct SuperGuard over Scope, seated in mod super_guard; }
+    |         ------------------------------------------------------------------------------------------------------- private associated function defined here
+...
+148 |     let _ = shallow_ancestor::owner::SuperGuard::positioned;
+    |                                                  ^^^^^^^^^^ private associated function
+
+error[E0624]: method `try_cmp_same_scope` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:149:52
+    |
+ 34 |         threadpak::scope_guard_version! { pub(in super) struct InSuperGuard over Scope, seated in mod in_super_guard; }
+    |         --------------------------------------------------------------------------------------------------------------- private method defined here
+...
+149 |     let _ = shallow_ancestor::owner::InSuperGuard::try_cmp_same_scope;
+    |                                                    ^^^^^^^^^^^^^^^^^^ private method
+
+error[E0624]: associated function `positioned` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:150:53
+    |
+ 38 | /         threadpak::scope_guard_version! {
+ 39 | |             pub(in crate::shallow_ancestor) struct AbsoluteGuard over Scope,
+ 40 | |                 seated in mod absolute_guard;
+ 41 | |         }
+    | |_________- private associated function defined here
+...
+150 |       let _ = shallow_ancestor::owner::AbsoluteGuard::positioned;
+    |                                                       ^^^^^^^^^^ private associated function
+
+error[E0624]: method `try_cmp_same_scope` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:151:51
+    |
+  9 | /         threadpak::scope_guard_version! {
+ 10 | |             pub(in $crate::shallow_ancestor) struct DollarGuard over Scope,
+ 11 | |                 seated in mod dollar_guard;
+ 12 | |         }
+    | |_________- private method defined here
+...
+151 |       let _ = shallow_ancestor::owner::DollarGuard::try_cmp_same_scope;
+    |                                                     ^^^^^^^^^^^^^^^^^^ private method
+
+error[E0624]: method `try_cmp_same_scope` is private
+   --> tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs:153:51
+    |
+ 85 |             threadpak::scope_guard_version! { pub(in super::super) struct RelativeGuard over Scope, seated in mod relative_guard; }
+    |             ----------------------------------------------------------------------------------------------------------------------- private method defined here
+...
+153 |     let _ = deep::ancestor::owner::RelativeGuard::try_cmp_same_scope;
+    |                                                   ^^^^^^^^^^^^^^^^^^ private method

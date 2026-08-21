@@ -71,13 +71,16 @@ impl SurfaceTypePath {
         {
             return Err(RemoteSurfaceDeclarationRefusal::SegmentNotAnIdentifier);
         }
-        let segments = NonEmptyBounded::admitted_const(
+        let admitted = NonEmptyBounded::admitted_const(
             first,
             rest,
             &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
         )
         .map_err(|_| RemoteSurfaceDeclarationRefusal::PathSegmentsUnbounded)?;
-        Ok(Self { rooting, segments })
+        Ok(Self {
+            rooting,
+            segments: admitted,
+        })
     }
 
     /// Where this path is rooted.
@@ -93,14 +96,8 @@ impl SurfaceTypePath {
 
     /// How many segments the path carries; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.segments.len()
-    }
-
-    /// Always `false`: a path with no segment is unrepresentable.
-    #[must_use]
-    pub const fn is_empty(&self) -> bool {
-        false
     }
 }
 

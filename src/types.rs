@@ -687,17 +687,21 @@ impl<T, L: Limit> NonEmptyBounded<T, L> {
     }
 
     /// Number of items held; structurally at least one.
+    ///
+    /// # Nonclaims
+    ///
+    /// There is no `is_empty` beside it, and the absence is the shape rather
+    /// than an omission. This seat holds a first item beside the rest, so the
+    /// only answer such a road could give is `false` — a question whose answer
+    /// is settled by the type is a question no caller should be able to ask,
+    /// and one that CAN be asked is one a reader eventually branches on.
     #[must_use]
+    #[expect(
+        clippy::len_without_is_empty,
+        reason = "the pair is conventional for a collection that may be empty; this one may not, so the missing half is the guarantee and adding it back would hand every caller a branch with one reachable arm"
+    )]
     pub fn len(&self) -> usize {
         self.rest.len().saturating_add(1)
-    }
-
-    /// Always `false`: the shape holds at least one item.
-    /// Present because the `len`/`is_empty` pair is conventional; the
-    /// constant answer *is* the law.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        false
     }
 
     /// Read the held values, the guaranteed first item ahead of the rest.

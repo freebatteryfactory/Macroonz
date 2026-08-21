@@ -15,18 +15,22 @@ pub use render::{
     PROVENANCE_SCHEMA_SEAT, REVISION_BINDING, ROLE_REF, ROW, ROW_ROAD, SCHEMA_IDENTITY,
     SCHEMA_NOT_DECLARED, SCHEMA_NOT_ENCODED, SCHEMA_PUBLISHED, SCHEMA_TYPE, SUBJECT_ROUTE,
     TABLE_REFUSAL, TAG_REF, TRIALS_CLAUSE, attachment, attribute, bound_path, classification,
-    declared_row, deferred_module, descriptor_path, documentation, expectation_literal,
-    expectation_literal_of, exported_shell, gate_invocation, group, matcher, metavariable,
-    name_arguments, named_clause, origin, parsed_name, provenance, revision_binding, roster,
-    row_expression, row_schema_identity, stamped_module, suite_group, table_schema_identity,
-    trial_cargo, twin_path, unbounded,
+    declared_row, descriptor_path, documentation, expectation_literal, expectation_literal_of,
+    exported_shell, gate_invocation, group, matcher, metavariable, name_arguments, named_clause,
+    origin, parsed_name, provenance, revision_binding, roster, row_expression, row_schema_identity,
+    stamped_module, suite_group, table_schema_identity, twin_path, unbounded,
 };
 pub use type_contract::{ROW_CONVERSIONS, RowConversion};
+// The two delivery views the shell rendering reads its seats through. Borrowed
+// and crate-internal: the road that consumes them is this crate's own carrier
+// rendering, and a caller outside it holds an assembly rather than a view of
+// one.
 pub use types::{
-    ActivePointSelector, BoundPath, CrateFacing, DeferredCargo, DeferredDelivery, DescriptorPlan,
+    ActivePointSelector, BoundPath, CrateFacing, DeferredCargo, DescriptorPlan,
     DescriptorPlanIssue, DescriptorRow, GeneratedSupportShell, PathSegmentLimit, ProducerOrigin,
     RevisionReference, RevisionStanding, RoleLimit, RowAttachment, RowLimit, RowReferences,
     SelectorLimit, ShellDeclarationRefusal, ShellIssueLimit, ShellName, ShellRenderIssue,
-    ShellRendering, SuiteGroup, SuiteGroupLimit, TagLimit, TrialDelivery, TrialTablePayload,
-    WallName, is_rendered_identifier,
+    ShellRendering, SuiteGroup, SuiteGroupLimit, TagLimit, TrialTablePayload, WallName,
+    is_rendered_identifier,
 };
+pub(crate) use types::{DeferredDelivery, TrialDelivery};

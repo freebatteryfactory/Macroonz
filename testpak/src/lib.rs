@@ -20,7 +20,8 @@
 //! adapters. [`identity`] is the derivation substrate every identity kind in
 //! this crate derives through.
 //!
-//! Seed-packs sit under `corpus/`.
+//! Executable challenge material sits under `tests/`, where cargo requires
+//! it to live; seed-packs sit under `corpus/`.
 //!
 //! # The instruments are reached at their own homes
 //!
@@ -32,9 +33,11 @@
 //! # The dependency direction
 //!
 //! testpak depends inward, and production never depends on its judge: no
-//! dependency table in this workspace names it at all. What this package
-//! asks for, and why, is the README's; which versions, the workspace
-//! manifest's.
+//! production dependency table in this workspace names it. The one manifest
+//! that names it at all is the consumer parity seat's, as a dev-dependency
+//! under a consumer-chosen name — which is that seat's whole point. What
+//! this package asks for, and why, is the README's; which versions, the
+//! workspace manifest's.
 
 pub mod identity;
 

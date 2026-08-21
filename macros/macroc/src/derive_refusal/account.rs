@@ -107,7 +107,6 @@ use crate::planning::{
 /// here would be one seam deciding what six different blockages are, and the
 /// stable names would then be this function's vocabulary rather than each
 /// kind's recorded ground.
-#[must_use]
 pub fn profile_does_not_offer(because: OwnerFactRef) -> ProjectionDisposition {
     ProjectionDisposition::UnavailableUnderProfile {
         profile: rust_declaration_profile(),
@@ -138,7 +137,6 @@ pub fn profile_does_not_offer(because: OwnerFactRef) -> ProjectionDisposition {
 /// role alone is what stands — the schema seat is fillable in principle, and a
 /// citation that named it too would report a blockage this ground does not
 /// establish.
-#[must_use]
 pub fn codec_disposition() -> ProjectionDisposition {
     profile_does_not_offer(RefusalDeriveFact::AByteRoleIsNotReadOutOfACapture.citation())
 }
@@ -169,7 +167,6 @@ pub fn codec_disposition() -> ProjectionDisposition {
 /// [`TargetRequirement::BoundHostContract`]: crate::planning::TargetRequirement::BoundHostContract
 /// [`TargetBinding::TargetFree`]: crate::planning::TargetBinding::TargetFree
 /// [`WrapperAvailability`]: crate::host_wrapper::WrapperAvailability
-#[must_use]
 pub fn host_wrapper_disposition() -> ProjectionDisposition {
     profile_does_not_offer(RefusalDeriveFact::ABoundHostContractIsNotHeldByAnExpansion.citation())
 }
@@ -194,7 +191,6 @@ pub fn host_wrapper_disposition() -> ProjectionDisposition {
 /// head.
 ///
 /// [`TargetRequirement::BoundHostContract`]: crate::planning::TargetRequirement::BoundHostContract
-#[must_use]
 pub fn remote_surface_disposition() -> ProjectionDisposition {
     profile_does_not_offer(
         RefusalDeriveFact::APortWireContractAndTargetAreNotHeldByAnExpansion.citation(),
@@ -231,7 +227,6 @@ pub fn remote_surface_disposition() -> ProjectionDisposition {
 /// states the currency alone — the measured seat is a subject a captured
 /// declaration could stand in for, so naming it beside the currency would report
 /// a blockage this ground does not establish.
-#[must_use]
 pub fn benchmark_disposition() -> ProjectionDisposition {
     profile_does_not_offer(RefusalDeriveFact::AWorkCurrencyIsNotReadOutOfACapture.citation())
 }
@@ -276,7 +271,6 @@ pub fn benchmark_disposition() -> ProjectionDisposition {
 /// its answer off THIS road, so the standing a kind stands under and the
 /// standing an election stops at are one value carrying one citation — a profile
 /// bump or a re-citation moves both or neither.
-#[must_use]
 pub fn documentation_disposition() -> ProjectionDisposition {
     profile_does_not_offer(
         RefusalDeriveFact::AnAudienceAndAFacetElectionAreNotReadOutOfACapture.citation(),
@@ -304,7 +298,6 @@ pub fn documentation_disposition() -> ProjectionDisposition {
 /// and the publication posture the member's delivery stands under. Two blockers,
 /// independently true, and the name carries the conjunction so neither reads as
 /// the whole of it.
-#[must_use]
 pub fn pattern_stamp_disposition() -> ProjectionDisposition {
     profile_does_not_offer(
         RefusalDeriveFact::APatternApplicationAndPublicationAreNotHeldByAnExpansion.citation(),
@@ -338,7 +331,6 @@ fn generated<K: ProjectionKind>(plan: &ProjectionPlan<K>) -> ProjectionDispositi
 /// six it does not each state their own ground. A kind admitted to the roster
 /// stops the compiler here until somebody says what this door does about it,
 /// which is the whole reason the record has a seat per kind rather than a list.
-#[must_use]
 pub fn accounted(
     implementation: &RefusalFamilyExpansion,
     carrier: &ClosedExpansion<TestDescriptorProjection>,

@@ -170,7 +170,6 @@ impl SeatRefusal {
     ///
     /// The box is the arm's own, stated once here, so no caller spells the
     /// allocation that keeps every other arm of this family small.
-    #[must_use]
     pub fn trial_failed(failed: FailedTrial) -> Self {
         Self::TrialFailed(Box::new(failed))
     }

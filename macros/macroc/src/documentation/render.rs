@@ -132,6 +132,10 @@ pub fn heading_line(heading: &AuthoredLine) -> String {
 /// A rendering and only a rendering: nothing reads it back, and every road that
 /// compares identities compares the identities.
 #[must_use]
+#[expect(
+    clippy::format_push_string,
+    reason = "the lint is about an allocation per turn of a hot loop; this turns thirty-two times to render one identity for a person to read, and the alternative writes through a `Result` that cannot fail into a road that would then discard it"
+)]
 pub fn hex(material: &[u8; 32]) -> String {
     let mut rendered = String::new();
     for byte in material {

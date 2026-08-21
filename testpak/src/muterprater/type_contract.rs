@@ -40,8 +40,9 @@
 
 use super::types::{
     ActivationAxis, ActivationDisposition, AdmissionPatch, ArtifactMutation, ClaimCeiling,
-    ExecutionAxis, MaterializationAxis, MutationOutcome, MutationVerdict, ObligationLane,
-    ProofShape, ProposalGround, ReadingSource, WrapOutcomeWord, WrappedBackend,
+    ClaimPinnedGround, ExecutionAxis, MaterializationAxis, MutantKilledGround, MutationOutcome,
+    MutationVerdict, ObligationDischargedGround, ObligationLane, ProofShape, ReadingSource,
+    WrapOutcomeWord, WrappedBackend,
 };
 use crate::descriptor::{AdmissionGround, CapsulePosture};
 
@@ -160,17 +161,32 @@ impl ClaimCeiling {
     }
 }
 
-impl From<&ProposalGround> for AdmissionGround {
+impl From<&MutantKilledGround> for AdmissionGround {
     /// The ground at summary width — the word an admission act states.
     ///
     /// The typed ground with its evidence stays on the proposal, and the
     /// admitted row cites the proposal by identity rather than copying it.
-    fn from(ground: &ProposalGround) -> Self {
-        match ground {
-            ProposalGround::MutantKilled { .. } => Self::MutantKilled,
-            ProposalGround::ClaimPinned { .. } => Self::ClaimPinned,
-            ProposalGround::ObligationDischarged { .. } => Self::ObligationDischarged,
-        }
+    ///
+    /// One row per ground, and the row is a constant rather than a match: which
+    /// word a ground states is settled by which ground it IS, and there is no
+    /// second ground here for a branch to choose between.
+    fn from(_ground: &MutantKilledGround) -> Self {
+        Self::MutantKilled
+    }
+}
+
+impl From<&ClaimPinnedGround> for AdmissionGround {
+    /// The word a pin's admission act states, on the terms
+    /// [`MutantKilledGround`]'s row states.
+    fn from(_ground: &ClaimPinnedGround) -> Self {
+        Self::ClaimPinned
+    }
+}
+
+impl From<&ObligationDischargedGround> for AdmissionGround {
+    /// The word a discharge's admission act states, on the same terms.
+    fn from(_ground: &ObligationDischargedGround) -> Self {
+        Self::ObligationDischarged
     }
 }
 

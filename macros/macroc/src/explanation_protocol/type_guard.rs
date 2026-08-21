@@ -29,8 +29,8 @@
 //! above it, `establish.rs` beside it, anywhere else in the services, and any
 //! crate downstream — and the compiler says so with `E0451`.
 //! It does not exclude descendants: a module declared inside the seat would
-//! construct as freely as these roads do, which is why this file declares no
-//! child module of its own.
+//! construct as freely as these roads do, so the reversal for this seat is a
+//! compile-fail fixture testpak owns.
 
 use super::super::encode::answered_seats;
 use super::super::establish::coverage_issues;
@@ -280,10 +280,10 @@ impl<K: ProjectionKind> ProjectionExplanationView<K> {
             ordered,
             &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
         )
-        .map(|answers| Self {
+        .map(|admitted| Self {
             plan: plan_identity,
             closure: closure_identity,
-            answers,
+            answers: admitted,
             identity,
             provenance,
             _kind: PhantomData,

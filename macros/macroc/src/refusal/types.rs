@@ -41,18 +41,23 @@ crate::plane::limits! {
     ///
     /// # Bounds
     ///
-    /// Twenty-nine — the closed issue roster's own cardinality once each
-    /// multi-seat issue is counted PER SEAT, because a body carries at most one
-    /// issue per seat a pass can establish one at. Five single-seat issues, the
+    /// Thirty — the closed issue roster's own cardinality once each multi-seat
+    /// issue is counted PER SEAT, because a body carries at most one issue per
+    /// seat a pass can establish one at. Six single-seat issues, the
     /// missing-fact issue over its one plan seat, the discontinuity issue over
     /// the one break a trail is refused at, the bound issue over its six axes,
     /// and the doubled-output issue over the sixteen roles a membership at the
     /// output magnitude could double.
     ///
-    /// It is not a number chosen for room: a thirtieth issue would have to be a
-    /// thirtieth establishable seat, which is a change to the roster below
+    /// It is not a number chosen for room: a thirty-first issue would have to be
+    /// a thirty-first establishable seat, which is a change to the roster below
     /// rather than to this magnitude.
-    PlanningIssueLimit = 29,
+    ///
+    /// The roster and this number are two statements of one fact, held together
+    /// by whoever edits them. The sixth single-seat issue arrived after this
+    /// number was written and the number did not move, so a body could carry one
+    /// issue per seat and be refused at the last of them.
+    PlanningIssueLimit = 30,
 }
 
 threadpak::closed_register! {

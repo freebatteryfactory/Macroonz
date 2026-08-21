@@ -20,12 +20,12 @@
 
 use super::super::encode::encode_set;
 use super::{
-    BundleMemberLimit, CapturedDependencies, CauseAnchoring, ContentAddressing, DeclaredBootstrap,
-    DigestContract, EmissionPartition, ExpectedGeneratedSupportSchemaId, GraphAnchoring,
-    InvalidationLimit, InvalidationSet, InvalidationTrigger, KindSeal, OwnerContentAccount,
-    PlanDecisions, PlanDerivation, PlannedMember, PlannedMembership, ProjectionBundlePlan,
-    ProjectionContext, ProjectionIntentId, ProjectionKind, ProjectionPlan, SourceDeclarationLimit,
-    SourceDeclarations, TargetBinding, TargetRequirement, UNIVERSAL_QUESTIONS,
+    BundleMemberLimit, CapturedDependencies, CauseAnchoring, ContentAddressing, DigestContract,
+    EmissionPartition, ExpectedGeneratedSupportSchemaId, GraphAnchoring, InvalidationLimit,
+    InvalidationSet, InvalidationTrigger, KindSeal, OwnerContentAccount, PlanDecisions,
+    PlanDerivation, PlannedMember, PlannedMembership, ProjectionBundlePlan, ProjectionContext,
+    ProjectionIntentId, ProjectionKind, ProjectionPlan, SourceDeclarationLimit, SourceDeclarations,
+    TargetBinding, TargetRequirement, UNIVERSAL_QUESTIONS, VerifiedDerived,
 };
 use crate::origin_graph::{DecisionTrace, Nonclaim, OriginTrail};
 use crate::plane::{
@@ -84,7 +84,6 @@ impl<K: ProjectionKind> OwnerContentAccount<K> {
     /// Content that stands on nothing is a stated fact and not an absence — the
     /// account is required either way, and a caller with no dependencies still
     /// walks in one door rather than skipping the door.
-    #[must_use]
     pub fn linked(commitment: OwnerIdentityRef<FragmentIdentityDomain>) -> Self {
         Self {
             addressing: ContentAddressing::Linked {
@@ -132,7 +131,6 @@ impl<K: ProjectionKind> OwnerContentAccount<K> {
     /// The expansion-time account of captured content that stands on nothing.
     ///
     /// Total, on the same terms as [`OwnerContentAccount::linked`].
-    #[must_use]
     pub fn captured(commitment: ProjectionIdentity<CapturedDeclarationSubject>) -> Self {
         Self {
             addressing: ContentAddressing::Captured {
@@ -260,7 +258,6 @@ impl<K: ProjectionKind> OwnerContentAccount<K> {
     /// evaluation. The road this replaced carried the pair by value and could
     /// be; what a reader is handed instead is thirty-two bytes that stand
     /// wherever a derived identity is required.
-    #[must_use]
     pub fn intent(&self) -> ProjectionIntentId {
         ProjectionIntentId::derived_over(&self.intent_bytes())
     }
@@ -316,15 +313,21 @@ impl<Posture> ExpectedGeneratedSupportSchemaId<Posture> {
     }
 }
 
-impl ExpectedGeneratedSupportSchemaId<DeclaredBootstrap> {
-    /// The hand-authored first pair's road, crate-internal and const.
+impl ExpectedGeneratedSupportSchemaId<VerifiedDerived> {
+    /// The road for an expectation copied from a derived identity,
+    /// crate-internal and const.
     ///
     /// Crate-internal because the value it makes is a CLAIM about a schema this
-    /// crate does not own: one checked-in constant states it, the publication
-    /// operation rewrites that constant under a receipt when the schema changes,
-    /// and a caller that could mint another would be making the same claim
-    /// somewhere nobody publishes.
-    pub(crate) const fn declared(bytes: [u8; 32]) -> Self {
+    /// crate does not own: one checked-in constant states it, and a caller that
+    /// could mint another would be making the same claim somewhere nobody
+    /// publishes.
+    ///
+    /// The posture is [`VerifiedDerived`] because the bytes came off the owning
+    /// home's derivation rather than off a hand. What holds them current is the
+    /// harness's own currency lane, not this constructor: a road here that
+    /// checked anything would be this crate re-deriving a declaration it cannot
+    /// see.
+    pub(crate) const fn derived(bytes: [u8; 32]) -> Self {
         Self {
             bytes,
             _posture: PhantomData,
@@ -501,14 +504,8 @@ impl<R: RenderedRole> PlannedMembership<R> {
 
     /// The number of members declared; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.members.len()
-    }
-
-    /// Always `false`: a plan declaring no output is unrepresentable.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.members.is_empty()
     }
 
     /// Read the declared members, the guaranteed first one ahead of the rest.
@@ -736,7 +733,6 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
     /// The plan's one account of its content, handed back whole: a reader asking
     /// what invalidates it, what caused it, or what it stands on reads the seats
     /// of this value rather than a summary of them.
-    #[must_use]
     pub const fn account(&self) -> &OwnerContentAccount<K> {
         &self.account
     }
@@ -751,7 +747,6 @@ impl<K: ProjectionKind> ProjectionPlan<K> {
     /// intent its transcript opened with are one derivation rather than two.
     /// Not `const`, for the reason [`OwnerContentAccount::intent`] states: the
     /// identity is derived, and the digest is not a const evaluation.
-    #[must_use]
     pub fn intent(&self) -> ProjectionIntentId {
         self.account.intent()
     }
@@ -861,13 +856,7 @@ impl ProjectionBundlePlan {
 
     /// The number of member plans; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.members.len()
-    }
-
-    /// Always `false`: an empty bundle is unrepresentable.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.members.is_empty()
     }
 }

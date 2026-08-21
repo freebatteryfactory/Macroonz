@@ -23,21 +23,82 @@ use super::{
     Classification, ClassificationRefusal, DESCRIPTOR_FIELDS, DescriptorSchema, DischargeAdmission,
     DoorRef, EncodeRefusal, ExecutableAttachment, ExecutionSuite, FieldCardinality, FieldShape,
     GeneratedSupportSchema, GeneratedSupportSchemaId, MUTATION_POINT_FIELDS, MutationPointRef,
-    MutationPointSchema, NameRefusal, NamespacedName, Origin, PopulationRef, ProducerFacts,
-    ProducerName, ProjectionRef, ProposalId, Provenance, ReplayAdmission, ReplayBearingGround,
-    ReplayRef, RevisionBinding, RevisionPosture, Role, Row, RowRefusal, SchemaField, SchemaRefusal,
-    StagedTableRefusal, StagedTableView, SubjectRoute, TablePosture, TableView, Tag, TrialKey,
+    MutationPointSchema, NameRefusal, Namespace, NamespacedName, Origin, PopulationRef,
+    ProducerFacts, ProducerName, ProjectionRef, ProposalId, Provenance, ReplayAdmission,
+    ReplayBearingGround, ReplayRef, RevisionBinding, RevisionPosture, Role, Row, RowRefusal,
+    SchemaField, SchemaRefusal, StagedTableRefusal, StagedTableView, Stem, SubjectRoute,
+    TablePosture, TableView, Tag, TrialCoordinates, TrialKey,
 };
-use crate::descriptor::encode::{encode_generated_support_schema, encode_row_content};
-use crate::identity::{ContentAddress, DomainTag};
+use crate::descriptor::encode::{
+    encode_generated_support_schema, encode_row_content, encode_trial_coordinates,
+};
+use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use std::collections::BTreeSet;
 
 /// The domain this home declares for the generated-support schema identity.
 ///
-/// The tag is this kind's segment of the derivation context; the profile stem
-/// and its version are the identity substrate's. Two kinds derived over
-/// identical preimages under different tags are unrelated values.
-const GENERATED_SUPPORT_SCHEMA_DOMAIN: DomainTag = DomainTag::declared("generated-support-schema");
+/// The tag is this kind's segment of the derivation context and carries this
+/// family's own position; the profile stem is the identity substrate's. Two
+/// kinds derived over identical preimages under different tags are unrelated
+/// values.
+const GENERATED_SUPPORT_SCHEMA_DOMAIN: DomainTag = DomainTag::declared(
+    "generated-support-schema",
+    IdentityProfileVersion::declared(1),
+);
+
+/// The domain this home declares for a trial key.
+///
+/// Its own tag rather than the row-revision one beside it: a trial's four
+/// coordinates and a row's seven fields are different preimages answering
+/// different questions, and two kinds derived under one tag would be reachable
+/// from each other's bytes.
+const TRIAL_KEY_DOMAIN: DomainTag =
+    DomainTag::declared("trial-key", IdentityProfileVersion::declared(1));
+
+impl Namespace {
+    /// The owner one authored text declares.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`NameRefusal::EmptyNamespace`] where the text is empty.
+    pub const fn declared(text: &'static str) -> Result<Self, NameRefusal> {
+        if text.is_empty() {
+            return Err(NameRefusal::EmptyNamespace);
+        }
+        Ok(Self(text))
+    }
+
+    /// The owner's text.
+    ///
+    /// The one road out to characters, and it exists for the two places
+    /// characters are what is wanted: an encoder writing a preimage, and a
+    /// rendering writing a line for a person. A road that means to compare two
+    /// owners compares the values.
+    #[must_use]
+    pub const fn written(self) -> &'static str {
+        self.0
+    }
+}
+
+impl Stem {
+    /// The spelling one authored text declares.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`NameRefusal::EmptyStem`] where the text is empty.
+    pub const fn declared(text: &'static str) -> Result<Self, NameRefusal> {
+        if text.is_empty() {
+            return Err(NameRefusal::EmptyStem);
+        }
+        Ok(Self(text))
+    }
+
+    /// The spelling's text, on the terms [`Namespace::written`] states.
+    #[must_use]
+    pub const fn written(self) -> &'static str {
+        self.0
+    }
+}
 
 impl NamespacedName {
     /// This name, parsed from the owner that declares it and the spelling it
@@ -45,26 +106,30 @@ impl NamespacedName {
     ///
     /// # Errors
     ///
-    /// Refuses an empty namespace, then an empty stem.
-    pub fn named(namespace: &'static str, stem: &'static str) -> Result<Self, NameRefusal> {
-        if namespace.is_empty() {
-            return Err(NameRefusal::EmptyNamespace);
-        }
-        if stem.is_empty() {
-            return Err(NameRefusal::EmptyStem);
-        }
+    /// Refuses an empty namespace, then an empty stem. The order is the
+    /// dependent one each part's own road establishes, so exactly one cause is
+    /// true of any refused name.
+    pub const fn named(namespace: &'static str, stem: &'static str) -> Result<Self, NameRefusal> {
+        let namespace = match Namespace::declared(namespace) {
+            Ok(namespace) => namespace,
+            Err(refusal) => return Err(refusal),
+        };
+        let stem = match Stem::declared(stem) {
+            Ok(stem) => stem,
+            Err(refusal) => return Err(refusal),
+        };
         Ok(Self { namespace, stem })
     }
 
     /// The owner that declares the spelling.
     #[must_use]
-    pub const fn namespace(self) -> &'static str {
+    pub const fn namespace(self) -> Namespace {
         self.namespace
     }
 
     /// The spelling itself.
     #[must_use]
-    pub const fn stem(self) -> &'static str {
+    pub const fn stem(self) -> Stem {
         self.stem
     }
 }
@@ -385,22 +450,28 @@ impl Row {
             origin,
         )
         .map_err(RowRefusal::NotEncoded)?;
+        let coordinates = TrialCoordinates::over(claim, subject, check, population);
+        let trial_key = TrialKey::over(coordinates).map_err(RowRefusal::NotEncoded)?;
         Ok(Self {
-            claim,
+            coordinates,
+            trial_key,
             execution_suite,
             classification,
-            subject,
-            check,
-            population,
             origin,
             canonical: CanonicalRowBytes(canonical),
         })
     }
 
+    /// Where this row's trial sits.
+    #[must_use]
+    pub const fn coordinates(&self) -> TrialCoordinates {
+        self.coordinates
+    }
+
     /// The claim this row serves.
     #[must_use]
     pub const fn claim(&self) -> ClaimRef {
-        self.claim
+        self.coordinates.claim()
     }
 
     /// The one aggregate seat this row runs under by default.
@@ -430,19 +501,19 @@ impl Row {
     /// What this row exercises.
     #[must_use]
     pub const fn subject(&self) -> SubjectRoute {
-        self.subject
+        self.coordinates.subject()
     }
 
     /// The check that judges this row's subject.
     #[must_use]
     pub const fn check(&self) -> CheckRef {
-        self.check
+        self.coordinates.check()
     }
 
     /// The population that supplies this row's inputs.
     #[must_use]
     pub const fn population(&self) -> PopulationRef {
-        self.population
+        self.coordinates.population()
     }
 
     /// Where this row came from.
@@ -460,19 +531,34 @@ impl Row {
         &self.canonical
     }
 
-    /// The semantic content that decides whether two rows are one trial.
+    /// The compact identity that decides whether two rows are one trial.
+    ///
+    /// A read and never a computation, on the same terms as
+    /// [`Row::canonical_bytes`]: the derivation happened once, at
+    /// [`Row::declared`], and this hands back what was derived there.
     #[must_use]
     pub const fn trial_key(&self) -> TrialKey {
-        TrialKey {
-            claim: self.claim,
-            subject: self.subject,
-            check: self.check,
-            population: self.population,
-        }
+        self.trial_key
     }
 }
 
-impl TrialKey {
+impl TrialCoordinates {
+    /// The four coordinates one trial sits at.
+    #[must_use]
+    pub const fn over(
+        claim: ClaimRef,
+        subject: SubjectRoute,
+        check: CheckRef,
+        population: PopulationRef,
+    ) -> Self {
+        Self {
+            claim,
+            subject,
+            check,
+            population,
+        }
+    }
+
     /// The claim the trial serves.
     #[must_use]
     pub const fn claim(self) -> ClaimRef {
@@ -498,6 +584,34 @@ impl TrialKey {
     }
 }
 
+impl TrialKey {
+    /// Derive one trial's compact identity from its coordinates.
+    ///
+    /// The one place the four coordinates are encoded. Everything downstream
+    /// that needs to name this trial — a table's uniqueness check, a duplicate
+    /// refusal, the report instrument's `TrialId` — stands on these bytes rather
+    /// than encoding the four again, so there is no second preimage to drift
+    /// from this one.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EncodeRefusal`] where the coordinates' preimage could not be
+    /// written — a length past the width this home's encoding declares, which is
+    /// unreachable on every target this crate is built for and is a refusal
+    /// rather than a silence because a trial without its bytes is a trial
+    /// nothing can name.
+    pub fn over(coordinates: TrialCoordinates) -> Result<Self, EncodeRefusal> {
+        encode_trial_coordinates(coordinates)
+            .map(|preimage| Self(ContentAddress::derived(TRIAL_KEY_DOMAIN, &preimage)))
+    }
+
+    /// The content address this key carries.
+    #[must_use]
+    pub const fn address(self) -> ContentAddress {
+        self.0
+    }
+}
+
 impl RevisionPosture {
     /// The weaker of two postures.
     ///
@@ -512,9 +626,9 @@ impl RevisionPosture {
     pub const fn meet(self, other: Self) -> Self {
         match (self, other) {
             (Self::Derived, Self::Derived) => Self::Derived,
-            (Self::Derived, Self::Declared)
-            | (Self::Declared, Self::Derived)
-            | (Self::Declared, Self::Declared) => Self::Declared,
+            (Self::Derived | Self::Declared, Self::Declared) | (Self::Declared, Self::Derived) => {
+                Self::Declared
+            }
             (Self::Untracked, Self::Derived | Self::Declared | Self::Untracked)
             | (Self::Derived | Self::Declared, Self::Untracked) => Self::Untracked,
         }
@@ -833,11 +947,8 @@ impl<Invocation, Conclusion> TableView<'_, Invocation, Conclusion> {
     /// Every binding this view presents: the authored world in authored order,
     /// then the overlay in staged order.
     pub fn bindings(&self) -> impl Iterator<Item = &Binding<Invocation, Conclusion>> {
-        let (authored, overlay): (
-            &[Binding<Invocation, Conclusion>],
-            &[Binding<Invocation, Conclusion>],
-        ) = match self {
-            Self::Authored(table) => (table.bindings(), &[]),
+        let (authored, overlay) = match self {
+            Self::Authored(table) => (table.bindings(), &[][..]),
             Self::Staged(staged) => (staged.parent().bindings(), staged.candidates()),
         };
         authored.iter().chain(overlay.iter())

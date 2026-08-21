@@ -32,15 +32,15 @@ repository = "https://github.com/freebatteryfactory/ThreadPak"
 # buys. `deny.toml` settles what the resolved graph actually enables.
 [workspace.dependencies]
 # Structure-aware input generation: the harness library's shared generation
-# vocabulary, derivable for closed algebraic types, and the same vocabulary a
-# coverage-guided fuzzer consumes.
-arbitrary = { version = "=1.4.2", default-features = false, features = ["derive"] }
+# vocabulary, the trait alone.
+arbitrary = { version = "=1.4.2", default-features = false }
 # The Rust decoder for the judge's structural lane: `parsing` + `full`, nothing else.
 syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }
 # The digest. Exact because one changed output byte silently renames every
 # identity. No std, no rayon, no serde: `Hasher` and `derive_key` are the surface.
 blake3 = { version = "=1.8.6", default-features = false }
 # The compile-refusal harness. Exact: fixtures compare diagnostics byte for byte.
+trybuild = "=1.0.120"
 
 [profile.release]
 # Release arithmetic traps instead of wrapping; defense in depth behind the
@@ -48,6 +48,9 @@ blake3 = { version = "=1.8.6", default-features = false }
 overflow-checks = true
 
 [profile.bench]
+# The same trap, pre-declared. No bench target exists, so this profile governs
+# nothing today; it stands so the first bench to land cannot quietly measure
+# wrapping arithmetic and call the number a measurement.
 overflow-checks = true
 
 # The lint wall, declared once and inherited by every member; no member weakens

@@ -21,19 +21,19 @@ pub use carry::{
     assembly, bench_disposition, carrier_expansion, carrier_kind, carrier_node, carrier_origin,
     carrier_plan, carrier_semantic_key, deferred_selectors, evaluation_axis, rows_disposition,
 };
-pub use diagnose::{LineBody, LineSite, RefusalClass, RefusalLine, RenderedMagnitude, composed};
-pub use document::{CapturedDocumentationReading, documented};
-pub use explain::{ExplanationBindingRefusal, ExplanationSeat};
+pub use diagnose::composed;
+pub use document::documented;
 pub use plan::DerivedPlan;
-pub use render::{
-    CAUSE_ORDER_CONTRACT, EVALUATION_SUBJECT, FAMILY_CONTRACT, REFUSAL_MODULE, RenderRefusal,
-};
+pub use render::{CAUSE_ORDER_CONTRACT, EVALUATION_SUBJECT, FAMILY_CONTRACT, REFUSAL_MODULE};
 pub use types::{
-    CapturedCause, CapturedDocumentation, CauseOrderStanding, CrateBinding, DEFAULT_CRATE_BINDING,
-    DIAGNOSTIC_PREFIX, DeriveCauseLimit, DerivedMembership, DocumentedDeclaration,
-    RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveCapture, RefusalDeriveFact,
-    RefusalDeriveRefusal, RefusalDeriveSurface, RefusalFamilyExpansion, RefusalOwnerFacts,
-    RefusalSite, SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
+    CapturedCause, CapturedCommitments, CapturedDocumentation, CapturedDocumentationReading,
+    CauseOrderStanding, CrateBinding, DEFAULT_CRATE_BINDING, DIAGNOSTIC_PREFIX, DeriveCauseLimit,
+    DerivedMembership, DocumentedDeclaration, ExplanationBindingRefusal, ExplanationSeat, LineBody,
+    LineSite, RefusalClass, RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveCapture,
+    RefusalDeriveFact, RefusalDeriveRefusal, RefusalDeriveSurface, RefusalFamilyExpansion,
+    RefusalLine, RefusalOwnerFacts, RefusalSite, RenderRefusal, RenderedMagnitude,
+    SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
+    TextCompileRefusal,
 };
 
 use crate::closure::{ProjectionClosure, RenderedProjection, RenderedUnit};
@@ -185,25 +185,6 @@ pub fn compile_declaration(
         JoinedExpansion::joined(implementation, carrier, assembly),
         dispositions,
     ))
-}
-
-/// How the callable text route refused.
-///
-/// Two postures, and they are genuinely different observations.
-/// A text that cannot be cut into tokens never reached the grammar at all and
-/// has no span table to point into; a text that cut fine and said the wrong
-/// thing has both.
-/// Folding them together would hand a caller a diagnostic whose site indexes a
-/// table that was never built.
-#[must_use = "a refusal names which of the two ways the callable text route refused"]
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TextCompileRefusal {
-    /// The text could not be cut into tokens.
-    NotReadable(crate::token::TextReadRefusal),
-    /// The text was read, and the compilation refused. The capture rides along
-    /// so the diagnostic's token handle resolves against the same table the read
-    /// issued.
-    Refused(Box<(TextCapture, MacrocDiagnostic)>),
 }
 
 /// The callable route: read one declaration from TEXT and compile it.

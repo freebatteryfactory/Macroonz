@@ -73,9 +73,9 @@ at the stamp itself, in `src/lib.rs`, and no home restates the list — and that
 a composition shape the whole repository instantiates rather than an authoring
 concept this home rules. The services crate stamps its rosters with it; while it
 sat here, every consumer reached across a band edge for a mechanism this home did
-not own. It is seated
-in `lib.rs`, the root calculus's module surface, on the precedent
-`scope_guard_version!` set in band 02's `mod.rs`. This home is one consumer.
+not own. It is seated in `lib.rs`, the root calculus's module surface, on the
+precedent `scope_guard_version!` set in band 02's `mod.rs`. This home is one
+consumer.
 
 What it retires is the hand-kept pair: a roster array beside a `match`
 returning numbers. Those are two statements of one fact, and the second drifts

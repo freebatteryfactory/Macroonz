@@ -85,8 +85,9 @@ impl AssemblyIssue {
         match self {
             Self::RootsDisagree { axis, .. }
             | Self::CargoReachesASecondDestination { axis, .. } => Some(*axis),
-            Self::CargoConsumedTwice { .. } | Self::CargoNotTheSourcesOwn { .. } => None,
-            Self::SchemaExpectationNotPublished { .. }
+            Self::CargoConsumedTwice { .. }
+            | Self::CargoNotTheSourcesOwn { .. }
+            | Self::SchemaExpectationNotPublished { .. }
             | Self::CarrierRootIsNotTheAssemblys { .. } => None,
             Self::BenchVehicleNotOpen => Some(CargoAxis::Bench),
         }

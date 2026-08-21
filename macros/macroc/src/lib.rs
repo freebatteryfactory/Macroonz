@@ -609,8 +609,8 @@ pub use template::{
 pub use token::{
     CaptureBound, CaptureWalk, CapturedDelimiter, CapturedInput, CapturedPayload,
     CapturedTokenTree, GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree,
-    SpanHandle, SpanResolutionRefusal, SpanTable, TextCapture, TextReadCause, TextReadRefusal,
-    TokenPath,
+    LiteralReadCause, SpanHandle, SpanResolutionRefusal, SpanTable, TextCapture, TextReadCause,
+    TextReadRefusal, TokenPath, capture_literal,
 };
 pub use trigger_view::{
     TriggerCitations, TriggerOmission, TriggerSelection, TriggerViewComposition, TriggerViewIssue,

@@ -27,7 +27,8 @@
 //! A private seat excludes every SIBLING — `types.rs` above it, `establish.rs`
 //! and `render.rs` beside it, anywhere else in the services, and any crate
 //! downstream — and the compiler says so with `E0451`. It does not exclude
-//! DESCENDANTS, which is why this file declares no child module of its own.
+//! DESCENDANTS, so the reversal for these seats is a compile-fail fixture
+//! testpak owns.
 
 use super::super::establish::{consumption_issues, root_issues};
 use super::{
@@ -251,7 +252,6 @@ impl ProvedCargo {
     }
 
     /// The cargo itself: the local subject, the selections, and the tokens.
-    #[must_use]
     pub const fn cargo(&self) -> &DeferredCargo {
         &self.cargo
     }
@@ -344,20 +344,17 @@ impl SupportAssembly {
     }
 
     /// The published expectation the carrier's gate is pinned against.
-    #[must_use]
     pub const fn expectation(&self) -> &ExpectedGeneratedSupportSchemaId {
         &self.expectation
     }
 
     /// What the trials axis carries, or what happened to the projection that
     /// would have filled it.
-    #[must_use]
     pub const fn trial(&self) -> &AxisCargo<TrialTablePayload> {
         &self.trial
     }
 
     /// What the evaluation axis carries, on the same terms.
-    #[must_use]
     pub const fn evaluation(&self) -> &AxisCargo<ProvedCargo> {
         &self.evaluation
     }
@@ -368,7 +365,6 @@ impl SupportAssembly {
     /// would stand in refuses: the seat exists so the day the bench seat is
     /// declared, the material has a home to arrive in rather than a shape
     /// somebody adds under pressure.
-    #[must_use]
     pub const fn bench(&self) -> &AxisCargo<ProvedCargo> {
         &self.bench
     }
@@ -420,13 +416,11 @@ impl<Projected> JoinedExpansion<Projected> {
 
     /// The carrier terminal — the closed expansion whose one member is the
     /// exported support shell.
-    #[must_use]
     pub const fn carrier(&self) -> &ClosedExpansion<TestDescriptorProjection> {
         &self.carrier
     }
 
     /// The verified assembly the carrier was rendered from.
-    #[must_use]
     pub const fn assembly(&self) -> &SupportAssembly {
         &self.assembly
     }
@@ -438,7 +432,6 @@ impl<Projected> JoinedExpansion<Projected> {
     /// terminal's declaration-site cargo is read off the projected terminal, and
     /// the two are what a door emits — never a third value joining them, which
     /// would be a stream neither proof committed to.
-    #[must_use]
     pub const fn carrier_declaration_site(&self) -> &PartitionCargo {
         self.carrier.declaration_site()
     }
@@ -473,7 +466,6 @@ impl<Projected> AccountedExpansion<Projected> {
     /// [`JoinedExpansion::carrier_declaration_site`] — and a seat here that
     /// repeated one of them would be a second answer to a question this value
     /// already answers.
-    #[must_use]
     pub const fn joined(&self) -> &JoinedExpansion<Projected> {
         &self.joined
     }
@@ -482,7 +474,6 @@ impl<Projected> AccountedExpansion<Projected> {
     ///
     /// Total over the sealed roster: every row has exactly one answer, and a
     /// generated row's answer names the one output a disposition names.
-    #[must_use]
     pub const fn disposition(&self, kind: ProjectionKindRow) -> &ProjectionDisposition {
         self.dispositions.under(kind)
     }

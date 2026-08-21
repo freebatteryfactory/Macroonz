@@ -384,10 +384,12 @@ pub struct HostWrapperPlan {
 ///
 /// [`WrapperContractMint::Minted`] has no inhabitant in this crate today, and
 /// declaring it anyway is deliberate on exactly the terms
-/// [`VerifiedDerived`](crate::planning::VerifiedDerived) is declared: the type
-/// parameter that tells two postures apart is worthless with one posture in it,
-/// and writing the second arm before the mint lands is a declaration of what
-/// will be true rather than a claim that it already is.
+/// [`VerifiedDerived`](crate::planning::VerifiedDerived) was declared on: an arm
+/// written before it lands is a declaration of what will be true rather than a
+/// claim that it already is, and the type that tells the two apart is what makes
+/// the landing a change of type rather than an edit. That posture has since
+/// landed, which is what the precedent is worth: the seat written ahead was the
+/// seat the arrival went into.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WrapperContractMint {
     /// Callers hold the machine's own minted identity for host contracts, so the

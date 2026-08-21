@@ -20,17 +20,16 @@
 //! seats, and the documentation commitment is derived over exactly them.
 
 use super::{
-    CapturedCause, CapturedDocumentation, CauseOrderStanding, CrateBinding, DEFAULT_CRATE_BINDING,
-    DeriveCauseLimit, DerivedMembership, DocumentedDeclaration, RefusalCompileContext,
-    RefusalDerivationDraft, RefusalDeriveFact, RefusalDeriveSurface, RefusalFamilyExpansion,
-    RefusalOwnerFacts, RefusalSite,
+    CapturedCause, CapturedCommitments, CapturedDocumentation, CauseOrderStanding, CrateBinding,
+    DEFAULT_CRATE_BINDING, DeriveCauseLimit, DerivedMembership, DocumentedDeclaration,
+    RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveFact, RefusalDeriveSurface,
+    RefusalFamilyExpansion, RefusalOwnerFacts, RefusalSite,
 };
 use crate::closure::{
     ClosedExpansion, ExpansionBindingRefusal, PartitionCargo, ProjectionClosure, RenderedProjection,
 };
-use crate::derive_refusal::diagnose::{
-    LineBody, LineSite, RefusalClass, RefusalLine, composed, shown, witnessed,
-};
+use crate::derive_refusal::diagnose::{composed, shown, witnessed};
+use crate::derive_refusal::types::{LineBody, LineSite, RefusalClass, RefusalLine};
 use crate::diagnostics::{
     DiagnosticSite, MachineAnchoring, MacrocDiagnostic, MacrocPhase, RelatedSet, ReleasePosture,
     RepairAction, ReproductionRoute, SiteCoordinate,
@@ -111,7 +110,6 @@ impl CapturedDocumentation {
     }
 
     /// Which declaration this row was written on.
-    #[must_use]
     pub const fn declared_on(&self) -> &DocumentedDeclaration {
         &self.declared_on
     }
@@ -191,8 +189,7 @@ impl RefusalDeriveSurface {
         shape: FamilyShape,
         causes: Bounded<CapturedCause, DeriveCauseLimit>,
         documentation: Bounded<CapturedDocumentation, CapturedTokenLimit>,
-        identity: ProjectionIdentity<CapturedDeclarationSubject>,
-        documentation_identity: ProjectionIdentity<CapturedDeclarationSubject>,
+        commitments: CapturedCommitments,
     ) -> Self {
         Self {
             family_name,
@@ -201,8 +198,7 @@ impl RefusalDeriveSurface {
             shape,
             causes,
             documentation,
-            identity,
-            documentation_identity,
+            commitments,
         }
     }
 
@@ -272,7 +268,7 @@ impl RefusalDeriveSurface {
     /// this one as its dependency.
     #[must_use]
     pub const fn identity(&self) -> ProjectionIdentity<CapturedDeclarationSubject> {
-        self.identity
+        self.commitments.semantic()
     }
 
     /// This captured declaration's DOCUMENTATION commitment — what the
@@ -296,7 +292,7 @@ impl RefusalDeriveSurface {
     /// are cut from the material that commitment was taken over.
     #[must_use]
     pub const fn documentation_identity(&self) -> ProjectionIdentity<CapturedDeclarationSubject> {
-        self.documentation_identity
+        self.commitments.documentation()
     }
 
     /// Fix the complete declared output set.
@@ -655,7 +651,6 @@ impl RefusalFamilyExpansion {
     /// or an emission reads THIS value, so a caller that wants the terminal's own
     /// surface — its published artifacts, its delivery addressing — reads it here
     /// rather than through a copy of it seated beside one.
-    #[must_use]
     pub const fn expansion(&self) -> &ClosedExpansion<DeriveImplProjection> {
         &self.expansion
     }
@@ -721,7 +716,6 @@ impl RefusalFamilyExpansion {
     ///
     /// It is the CLOSURE's own proved cargo, reached through the terminal: no
     /// second join happens anywhere, so what is emitted is what was proved.
-    #[must_use]
     pub const fn emitted(&self) -> &PartitionCargo {
         self.expansion.declaration_site()
     }
@@ -747,5 +741,34 @@ impl RefusalFamilyExpansion {
     #[must_use]
     pub const fn rendered(&self) -> &RenderedProjection<RenderedImplementation> {
         self.expansion.closure().rendered()
+    }
+}
+
+impl CapturedCommitments {
+    /// The pair one capture derived, in the order they depend on each other.
+    ///
+    /// The semantic one first, because the documentation one stands over it:
+    /// the signature is the order, so a caller cannot seat the pair backwards.
+    #[must_use]
+    pub(crate) const fn derived(
+        semantic: ProjectionIdentity<CapturedDeclarationSubject>,
+        documentation: ProjectionIdentity<CapturedDeclarationSubject>,
+    ) -> Self {
+        Self {
+            semantic,
+            documentation,
+        }
+    }
+
+    /// The declaration's own semantic commitment.
+    #[must_use]
+    pub const fn semantic(self) -> ProjectionIdentity<CapturedDeclarationSubject> {
+        self.semantic
+    }
+
+    /// The commitment over the prose written on that declaration.
+    #[must_use]
+    pub const fn documentation(self) -> ProjectionIdentity<CapturedDeclarationSubject> {
+        self.documentation
     }
 }

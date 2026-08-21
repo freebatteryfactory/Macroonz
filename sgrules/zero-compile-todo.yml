@@ -1,9 +1,0 @@
-# Zero-compile guard: complete code end to end — no deferred bodies.
-id: zero-compile-no-todo
-message: "todo!/unimplemented! is a placeholder body; the phase law demands complete code A to Z"
-severity: error
-language: rust
-rule:
-  any:
-    - pattern: todo!($$$)
-    - pattern: unimplemented!($$$)

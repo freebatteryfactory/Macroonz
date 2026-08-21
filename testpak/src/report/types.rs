@@ -7,10 +7,9 @@
 //! are their own pure-function modules.
 
 use crate::descriptor::{
-    AuthoredTableName, CheckRef, ClaimRef, GeneratedSupportSchemaId, PopulationRef, SubjectRoute,
-    TablePosture,
+    AuthoredTableName, ClaimRef, GeneratedSupportSchemaId, TablePosture, TrialKey,
 };
-use crate::identity::{ContentAddress, DomainTag};
+use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -38,45 +37,48 @@ pub enum TrialProfile {
     Unprofiled,
 }
 
-/// The COMPLETE preimage one [`TrialId`] is derived from: the five semantic
-/// coordinates of one trial.
+/// The COMPLETE preimage one [`TrialId`] is derived from: one trial's compact
+/// key, and the profile coordinate this home adds to it.
 ///
 /// A trial's identity is what it MEANS — the claim it serves, the subject it
 /// exercises, the check contract that judges it, the population that supplies
-/// its inputs, and its profile. Nothing about where it lives is here, which is
-/// why the identity survives a file move, a module move, and a rename.
+/// its inputs, and its profile. The first four are what a [`TrialKey`] is
+/// derived over, in the descriptor home where a row is born and where they are
+/// encoded exactly once; this value adds the fifth and nothing else.
 ///
-/// The mechanism coordinate is the check CONTRACT the check reference names,
-/// which is what a [`CheckRef`] is — a typed selection of a judging contract,
-/// never a function pointer and never a path. The check's REVISION is a
-/// different fact and rides [`ExecutionKey`].
+/// The mechanism coordinate is the check CONTRACT a check reference names — a
+/// typed selection of a judging contract, never a function pointer and never a
+/// path. The check's REVISION is a different fact and rides [`ExecutionKey`].
 ///
-/// # Construction
+/// # Authority
 ///
-/// [`TrialCoordinates::of_key`] is the road from a descriptor row: the
-/// descriptor-side trial key carries the four semantic references, and the
-/// profile is the coordinate this home adds.
+/// **The four coordinates are encoded once, and not here.** A preimage that
+/// re-encoded the claim, the subject, the check, and the population beside the
+/// key would be a second implementation of the descriptor's own framing, and two
+/// implementations of one encoding agree until one of them is edited.
+///
+/// Nothing about where a trial lives is in either half, which is why the
+/// identity survives a file move, a module move, and a rename.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct TrialCoordinates {
-    claim: ClaimRef,
-    subject: SubjectRoute,
-    mechanism: CheckRef,
-    population: PopulationRef,
+pub struct ProfiledTrial {
+    key: TrialKey,
     profile: TrialProfile,
 }
 
 /// The domain tag every trial identity is derived under.
-pub const TRIAL_IDENTITY_TAG: DomainTag = DomainTag::declared("trial-identity");
+pub const TRIAL_IDENTITY_TAG: DomainTag =
+    DomainTag::declared("trial-identity", IdentityProfileVersion::declared(1));
 
 /// One trial's semantic identity.
 ///
 /// # Authority
 ///
 /// Holding one means the harness derived these thirty-two bytes from a complete
-/// [`TrialCoordinates`] under [`TRIAL_IDENTITY_TAG`], and would derive the same
-/// ones again from the same coordinates anywhere. Two rows with one identity
-/// are two spellings of one measurement, which is why the table constructor
-/// refuses the pair.
+/// [`ProfiledTrial`] under [`TRIAL_IDENTITY_TAG`], and would derive the same
+/// ones again from the same key under the same profile anywhere. The four
+/// coordinates behind that key reach this identity through the key and never
+/// beside it. Two rows with one identity are two spellings of one measurement,
+/// which is why the table constructor refuses the pair.
 ///
 /// # Nonclaims
 ///
@@ -104,7 +106,8 @@ pub struct TrialSite {
 // ---------------------------------------------------------------------------
 
 /// The domain tag every row revision identity is derived under.
-pub const ROW_REVISION_TAG: DomainTag = DomainTag::declared("row-revision");
+pub const ROW_REVISION_TAG: DomainTag =
+    DomainTag::declared("row-revision", IdentityProfileVersion::declared(1));
 
 /// The identity of one complete authored row.
 ///
@@ -205,7 +208,8 @@ pub struct InvocationProfile {
 }
 
 /// The domain tag every execution key is derived under.
-pub const EXECUTION_KEY_TAG: DomainTag = DomainTag::declared("execution-key");
+pub const EXECUTION_KEY_TAG: DomainTag =
+    DomainTag::declared("execution-key", IdentityProfileVersion::declared(1));
 
 /// What one execution of one trial was actually keyed by.
 ///
@@ -301,7 +305,8 @@ pub struct MinimizationProfile {
 }
 
 /// The domain tag every replay capsule identity is derived under.
-pub const REPLAY_CAPSULE_TAG: DomainTag = DomainTag::declared("replay-capsule");
+pub const REPLAY_CAPSULE_TAG: DomainTag =
+    DomainTag::declared("replay-capsule", IdentityProfileVersion::declared(1));
 
 /// One reproduction account: everything a second run needs, and the ceiling of
 /// what reproducing it proves.
@@ -440,7 +445,8 @@ pub enum TrialConclusion {
 }
 
 /// The domain tag every failure fingerprint is derived under.
-pub const FINGERPRINT_TAG: DomainTag = DomainTag::declared("failure-fingerprint");
+pub const FINGERPRINT_TAG: DomainTag =
+    DomainTag::declared("failure-fingerprint", IdentityProfileVersion::declared(1));
 
 /// One failure's identity: the trial's semantic identity joined with the typed
 /// cause and the normalized failure class.

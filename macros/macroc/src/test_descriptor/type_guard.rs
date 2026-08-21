@@ -134,14 +134,8 @@ impl BoundPath {
 
     /// How many segments follow the crate binding; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.segments.len()
-    }
-
-    /// Always `false`: a path naming no segment is unrepresentable.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.segments.is_empty()
     }
 }
 
@@ -303,14 +297,8 @@ impl SuiteGroup {
 
     /// How many rows this seat declares; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.rows.len()
-    }
-
-    /// Always `false`: a seat over no row is unrepresentable.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.rows.is_empty()
     }
 }
 
@@ -388,14 +376,8 @@ impl TrialTablePayload {
 
     /// How many aggregate seats this payload declares; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.groups.len()
-    }
-
-    /// Always `false`: a payload declaring no seat is unrepresentable.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.groups.is_empty()
     }
 }
 
@@ -563,6 +545,10 @@ impl ShellName {
     /// thirty-two bytes that always exist, so there is no count to read and no
     /// refusal to return.
     #[must_use]
+    #[expect(
+        clippy::format_push_string,
+        reason = "the lint is about an allocation per turn of a hot loop; this turns once per key byte to spell one shell's name at expansion time, and the alternative writes through a `Result` that cannot fail into a road that would then discard it"
+    )]
     pub fn mangled(plan: PlanId) -> Self {
         let mut spelling = String::from(Self::PREFIX);
         for byte in plan.as_bytes().iter().take(Self::KEY_BYTES) {
@@ -667,8 +653,8 @@ impl GeneratedSupportShell {
     /// reporter adapter — either of which can overrun on its own.
     pub(crate) fn rendered(
         stated: &DescriptorPlan,
-        trials: &TrialDelivery,
-        deferred: &DeferredDelivery,
+        trials: TrialDelivery<'_>,
+        deferred: DeferredDelivery<'_>,
     ) -> Result<Self, ShellRendering> {
         let name = ShellName::mangled(stated.plan);
         let pin = render::expectation_literal();

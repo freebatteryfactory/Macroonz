@@ -19,8 +19,8 @@
 //! A private seat excludes every SIBLING: `types.rs` above it, `establish.rs`
 //! beside it, anywhere else in the services, and any crate downstream cannot
 //! write the literal, and the compiler says so with `E0451`. It does not exclude
-//! DESCENDANTS, which is why this file declares no child module of its own.
-//! And it excludes the literal only, which is why the body's two mints
+//! DESCENDANTS, so the reversals for these seats are testpak's compile-fail
+//! fixtures. And it excludes the literal only, which is why the body's two mints
 //! reach this file and no further: a private seat reached by a public generic
 //! constructor lets any holder of an issue produce a body no pass established.
 
@@ -214,14 +214,8 @@ impl ProfileCeiling {
 
     /// The number of axes bounded — the roster's cardinality, by construction.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.axes.len()
-    }
-
-    /// Always `false`: a ceiling covers every axis or does not exist.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.axes.is_empty()
     }
 }
 

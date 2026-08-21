@@ -256,14 +256,16 @@ macro_rules! closed_register {
 /// versioned encoding profile for positions and the identities written under
 /// them, arriving with its own version, migration, and qualification.
 ///
-/// # Examples
+/// # Bounds
 ///
-/// The recorded value is deliberate: extending the supply fails here, once,
-/// where a reader of the diff sees the profile move.
+/// The value is READ off the declared supply and is never written here. A
+/// second spelling of the number — in an assertion, a comment, or a constant
+/// beside it — would be a value that agrees with the supply until somebody
+/// extends one of them, which is the drift this constant exists instead of.
 ///
-/// ```
-/// assert_eq!(threadpak::CLOSED_REGISTER_ROW_CEILING, 64);
-/// ```
+/// What extending the supply costs is stated above and is paid where the supply
+/// is declared. Nothing observes the number itself, because a number observed
+/// against a copy of itself observes nothing.
 pub const CLOSED_REGISTER_ROW_CEILING: usize = crate::closed_register!(@supply length);
 
 #[path = "00_refusal/mod.rs"]

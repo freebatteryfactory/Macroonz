@@ -45,6 +45,10 @@ pub(super) fn admission(selection: &Selection, row: &Row, trial: TrialId) -> Adm
 }
 
 /// One membership answer, as the typed admission it stands for.
+#[expect(
+    clippy::fn_params_excessive_bools,
+    reason = "a membership test over an already-informed set is the case where yes and no are the complete answer rather than two states wearing one name; the states this home does name are what the road hands back"
+)]
 fn admitted(named: bool, otherwise: NotSelectedReason) -> Admission {
     if named {
         Admission::Selected

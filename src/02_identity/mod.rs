@@ -134,19 +134,12 @@ pub use types::{
 /// refuses a requested re-export that exceeds the hand-authored internal item.
 ///
 /// A direct arm call that asks the re-export to exceed the internal reach is
-/// refused by rustc:
-///
-/// ```compile_fail
-/// # #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-/// # pub struct DemoScopeId;
-/// threadpak::scope_guard_version! {
-///     @transcribe
-///     [pub(crate)]
-///     [pub]
-///     /// No public re-export can widen this crate-confined item.
-///     struct TooWideVersion over DemoScopeId, seated in mod too_wide_version;
-/// }
-/// ```
+/// refused by rustc. That refusal has an owner, and it is not this page: the
+/// behaviour-named lane
+/// `testpak/tests/compile-fail/a-scope-guard-reexport-cannot-widen-reach.rs`
+/// observes it from OUTSIDE this crate, which is where a consumer meets it, and
+/// records the compiler's own message. Demonstrating it a second time here would
+/// put one refusal in two seats, and the two would agree until one was edited.
 ///
 /// # The invocation
 ///

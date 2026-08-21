@@ -28,9 +28,9 @@
 /// One kind's declared derivation domain.
 ///
 /// The tag is a segment of the derive-key context, so two kinds derived over
-/// identical preimages never share an address. Changing a kind's spelling
-/// renames every address that kind ever derived, which is a profile version
-/// bump and never an edit.
+/// identical preimages never share an address. It carries its family's own
+/// position beside the spelling, and the terms that position moves on are
+/// stated on [`IdentityProfileVersion`].
 ///
 /// # Bounds
 ///
@@ -38,33 +38,62 @@
 /// spelling is a compile-time literal written by the owning home, so the
 /// grammar is a declaration discipline rather than a runtime check: there is no
 /// road here that reads a tag from data.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct DomainTag(&'static str);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DomainTag {
+    spelling: &'static str,
+    version: IdentityProfileVersion,
+}
 
 impl DomainTag {
-    /// The tag its owning home declared.
+    /// The tag its owning home declared, at that family's own position.
+    ///
+    /// The position travels WITH the tag, because a position belongs to one
+    /// preimage family and to no other. A tag declared here and a position
+    /// declared somewhere else would be two facts that agree until one of them
+    /// is moved, and moving the wrong one renames addresses under a grammar
+    /// that never changed.
     #[must_use]
-    pub const fn declared(spelling: &'static str) -> Self {
-        Self(spelling)
+    pub const fn declared(spelling: &'static str, version: IdentityProfileVersion) -> Self {
+        Self { spelling, version }
     }
 
     /// The declared spelling, as it appears in a derivation context.
     #[must_use]
     pub const fn spelling(self) -> &'static str {
-        self.0
+        self.spelling
+    }
+
+    /// This family's own position.
+    #[must_use]
+    pub const fn version(self) -> IdentityProfileVersion {
+        self.version
     }
 }
 
-/// One version of the harness identity profile: a position in that profile's
-/// own order.
+/// One position in ONE preimage family's own order.
 ///
 /// The version is a real segment of every derivation context, not a comment
-/// about one. Changing what any preimage in this crate contains, what order its
-/// members are written in, or what the context grammar spells is a bump, and a
-/// bump renames every address the profile derives — which is exactly what it is
-/// for.
+/// about one. It belongs to the family whose [`DomainTag`] it is declared
+/// beside: a position under one tag and a position under another are two
+/// orders, and moving one leaves every address under the other with its name.
 ///
-/// There is no `Ord`: versions are not ranked, they are matched.
+/// # When a position moves
+///
+/// **Not when a grammar changes. When a grammar changes AND somebody holds an
+/// address derived under the old one.** A position exists so a reader holding
+/// two addresses of one family can assume both were derived the same way; where
+/// no reader holds one, there is nothing for a second position to distinguish
+/// and a move renames names nobody has.
+///
+/// So while no address under a family is held outside this repository —
+/// persisted, published, promised, or reached by an adopter — a change to that
+/// family's preimage is an edit to position one IN PLACE. The first externally
+/// held address is what activates compatibility history for its family, and
+/// from that point a change to what the family's transcript contains moves that
+/// family's position and no other's.
+///
+/// There is no `Ord`: positions are not ranked, they are matched. A later
+/// position is not a better one, and nothing here sorts by it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct IdentityProfileVersion(u32);
 
@@ -82,67 +111,80 @@ impl IdentityProfileVersion {
     }
 }
 
-/// The versioned, domain-separated profile a content address is derived under.
+/// The domain-separated profile a content address is derived under: the one
+/// stem every preimage family in this crate shares.
 ///
 /// One derivation context per domain tag, spelled exactly:
 ///
 /// ```text
-/// <stem>/v<version>/<tag>
+/// <stem>/<tag>/v<version>
 /// ```
 ///
-/// with `<stem>` the profile's declared stem, `<version>` the decimal
-/// [`IdentityProfileVersion::position`], and `<tag>` the
-/// [`DomainTag::spelling`]. Every segment is lowercase ASCII letters, digits,
-/// and `-`, joined by `/`.
+/// with `<stem>` the profile's declared stem, `<tag>` the
+/// [`DomainTag::spelling`], and `<version>` the decimal
+/// [`IdentityProfileVersion::position`] THAT TAG carries. Every segment is
+/// lowercase ASCII letters, digits, and `-`, joined by `/`.
+///
+/// # Authority
+///
+/// **The tag sits ahead of the version, so a position belongs to the family it
+/// is written beside.** Position one of `trial-identity` and position one of
+/// `row-revision` are two key spaces rather than one reached twice, and a family
+/// that moves moves alone. A version segment ahead of the tag would read as the
+/// stem's, which is the shape this crate carried when one number stood over
+/// every family and a change to any preimage renamed them all.
+///
+/// The profile itself carries no version, because there is no fact left for one
+/// to be about: what varies between two families is which family, and the tag
+/// says that and carries its own order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct IdentityProfile {
     stem: &'static str,
-    version: IdentityProfileVersion,
 }
 
 impl IdentityProfile {
-    /// The profile at one stem and one version.
+    /// The profile at one stem.
     #[must_use]
-    pub const fn declared(stem: &'static str, version: IdentityProfileVersion) -> Self {
-        Self { stem, version }
+    pub const fn declared(stem: &'static str) -> Self {
+        Self { stem }
     }
 
-    /// The declared stem — everything of the context ahead of the version.
+    /// The declared stem — everything of the context ahead of the family.
     #[must_use]
     pub const fn stem(self) -> &'static str {
         self.stem
     }
 
-    /// The declared version.
-    #[must_use]
-    pub const fn version(self) -> IdentityProfileVersion {
-        self.version
-    }
-
     /// The derivation context for one domain tag, spelled by the grammar
     /// [`IdentityProfile`] states.
+    ///
+    /// The version comes off the TAG, so a caller cannot assemble one family's
+    /// context while naming another family's position.
     #[must_use]
     pub fn context_for(self, tag: DomainTag) -> String {
         let stem = self.stem;
-        let version = self.version.position();
-        let tag = tag.spelling();
-        format!("{stem}/v{version}/{tag}")
+        let family = tag.spelling();
+        let version = tag.version().position();
+        format!("{stem}/{family}/v{version}")
     }
 }
 
-/// The profile every content address in this crate is derived under.
-pub const HARNESS_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
-    "threadpak/testpak/harness-identity",
-    IdentityProfileVersion::declared(1),
-);
+/// The stem every content address in this crate is derived under.
+///
+/// One stem for every family, and the family segment beside it is what
+/// separates them — never a stem a family chose for itself. Each family's
+/// position rides its own [`DomainTag`], and the terms one moves on are stated
+/// on [`IdentityProfileVersion`].
+pub const HARNESS_IDENTITY_PROFILE: IdentityProfile =
+    IdentityProfile::declared("threadpak/testpak/harness-identity");
 
 /// One thirty-two byte content address.
 ///
 /// # Authority
 ///
 /// Collision resistance is claimed AS BLAKE3's, over the preimage the minting
-/// home wrote, under the [`DomainTag`] that home declared, and at the version
-/// [`HARNESS_IDENTITY_PROFILE`] pins — and nothing broader. Finding two
+/// home wrote, under the [`DomainTag`] that home declared, at the position that
+/// tag carries ([`DomainTag::version`]) — and nothing broader. Finding two
 /// different preimages under one tag that derive one address is as hard as
 /// finding a BLAKE3 collision.
 ///

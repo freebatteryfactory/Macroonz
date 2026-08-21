@@ -1,0 +1,13 @@
+error[E0599]: the method `cause_order` exists for struct `AdmittedRefusalFamily<DemoFamily, ShapeCoherent>`, but its trait bounds were not satisfied
+  --> tests/compile-fail/a-weak-admission-at-a-strong-consumer.rs:38:27
+   |
+38 |         let _order = weak.cause_order();
+   |                           ^^^^^^^^^^^ method cannot be called on `AdmittedRefusalFamily<DemoFamily, ShapeCoherent>` due to unsatisfied trait bounds
+   |
+  ::: $WORKSPACE/src/00_refusal/types.rs
+   |
+   | pub struct ShapeCoherent;
+   | ------------------------ doesn't satisfy `ShapeCoherent: OrderAdmission`
+   |
+   = note: the following trait bounds were not satisfied:
+           `ShapeCoherent: OrderAdmission`

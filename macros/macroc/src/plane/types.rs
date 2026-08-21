@@ -674,9 +674,6 @@ pub const IDENTITY_PROFILE_STEM: &str = "threadpak/macroc/projection-identity";
 ///
 /// The version is a typed constant and a real segment of every derive-key
 /// context, not a comment about one.
-/// Changing what a transcript under a family contains, what order it is written
-/// in, or what the domain grammar spells is a bump OF THAT FAMILY, and a bump
-/// renames every identity the family derives — which is exactly what it is for.
 ///
 /// The members [`ProjectionTranscript`] specifies are one half of what a
 /// transcript contains; the other half is the CONTENT each mint site composes
@@ -686,8 +683,27 @@ pub const IDENTITY_PROFILE_STEM: &str = "threadpak/macroc/projection-identity";
 /// derived the same way.
 ///
 /// A position belongs to one family and to no other. Two families at position
-/// one are two key spaces rather than one reached twice, and a bump under
+/// one are two key spaces rather than one reached twice, and a move under
 /// either renames nothing under the other.
+///
+/// # When a position moves
+///
+/// **Not when a transcript changes. When a transcript changes AND somebody
+/// holds an identity derived under the old one.** The promise a position makes
+/// is to a READER — that two identities of one family under one position were
+/// derived the same way — and where no reader holds one there is nothing for a
+/// second position to distinguish.
+///
+/// So while no identity under a family is held outside this repository —
+/// persisted, published, promised, or reached by an adopter — a change to what
+/// that family's transcript contains is an edit to position one IN PLACE. The
+/// first externally held identity activates compatibility history for its
+/// family, and from that point a change moves that family's position and no
+/// other's, which is exactly what the per-family split is for.
+///
+/// The same law governs the harness crate's own domains
+/// (`threadpak_testpak::identity`), so the two planes answer one question one
+/// way.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct IdentityProfileVersion(u32);
 
@@ -756,8 +772,14 @@ pub struct IdentityProfile {
 /// - **1** — the family as first declared. Of the five positions the retired
 ///   single version moved through ([`PreimageFamily`]), none touched this
 ///   grammar: position 4 widened the GENERATED token roster, which is the
-///   rendered side, and the captured table stands at the five rows it was first
-///   declared with.
+///   rendered side.
+///
+///   The captured token roster has since grown the literal forms it was
+///   answering with a neighbour's row, which is content that moves rather than
+///   content that was unreachable — so this is a position that WOULD move for a
+///   reader holding an earlier one. There is none: nothing derived under this
+///   family is held outside this repository, so the widening renames no name
+///   anybody has and the position stands. The first held name is what moves it.
 pub const CAPTURED_DECLARATION_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
     PreimageFamily::CapturedDeclaration,
     IdentityProfileVersion::declared(1),
@@ -1111,24 +1133,23 @@ pub const CLOSURE_IDENTITY_PROFILE: IdentityProfile =
 ///
 /// # Versions
 ///
-/// - **1** — the family as first declared. It did not exist for any of the five
-///   positions the retired single version moved through.
-/// - **2** — the RELATED-PROJECTION seat's disposition grammar widened. The
-///   profile-unavailable posture gained the owner-fact citation naming what the
-///   profile could not furnish, and that citation is written into the
+/// - **1** — the family as first declared, and the position the grammar stands
+///   at. The related-projection seat's disposition grammar has since widened:
+///   the profile-unavailable posture gained the owner-fact citation naming what
+///   the profile could not furnish, and that citation is written into the
 ///   disposition's canonical bytes
-///   ([`ProjectionDisposition::encode_into`](crate::planning::ProjectionDisposition::encode_into))
-///   — so a seat answering
-///   "why was the related projection not generated" with that posture now
-///   carries a member this preimage did not carry at position 1, and a reader
-///   holding the earlier grammar cannot read the seat's material to its end.
-///   The widening is inside the third member above (the typed answers), which is
-///   why it moves this family and no other: the plan identity at member one and
-///   the closure identity at the anchor commit to no disposition, so neither of
-///   those families moves for it.
+///   ([`ProjectionDisposition::encode_into`](crate::planning::ProjectionDisposition::encode_into)).
+///   That is content moving inside the third member above, so it is a widening
+///   this family WOULD move for once a reader holds an earlier name — and it
+///   would move this family alone, because the plan identity at member one and
+///   the closure identity at the anchor commit to no disposition.
+///
+///   No reader holds one. Nothing derived under this family leaves this
+///   repository, so the widening renames no name anybody has and the position
+///   stands; [`IdentityProfileVersion`] states the condition that moves it.
 pub const EXPLANATION_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
     PreimageFamily::Explanation,
-    IdentityProfileVersion::declared(2),
+    IdentityProfileVersion::declared(1),
 );
 
 /// The profile one closed expansion's identity is derived under.

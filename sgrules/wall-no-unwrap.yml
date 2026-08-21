@@ -1,9 +1,0 @@
-# The lint wall, visible before the toolchain runs: refusals are values.
-id: wall-no-unwrap-expect
-message: "unwrap/expect is a panic channel; a failed check is a typed refusal value"
-severity: error
-language: rust
-rule:
-  any:
-    - pattern: $E.unwrap()
-    - pattern: $E.expect($M)

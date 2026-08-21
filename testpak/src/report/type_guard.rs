@@ -12,15 +12,15 @@ use super::{
     ClaimExercise, ConclusionFlip, EXECUTION_KEY_TAG, ExecutionKey, Exercise, FINGERPRINT_TAG,
     FOREIGN_TEXT_MAX_BYTES, FailureClass, FindingCause, FindingLocation, Fingerprint, ForeignText,
     GenerationProfile, InvocationProfile, MinimizationProfile, NotSelectedReason, OutcomeClass,
-    REPLAY_CAPSULE_TAG, ROW_REVISION_TAG, RecordedDuration, ReplayCapsule, ReplayPosture,
-    ReportDiff, RowRevisionChange, RowRevisionId, RunAttempt, RunReport, SelectionDisposition,
-    SelectionExpectation, SelectionOutcome, SubjectRevisionId, TRIAL_IDENTITY_TAG, TargetBinding,
-    TargetTriple, TextFidelity, TimeBudget, ToolchainIdentity, TrialAccounting, TrialConclusion,
-    TrialCoordinates, TrialFinding, TrialId, TrialProfile, TrialReport, TrialSite, Truncation,
+    ProfiledTrial, REPLAY_CAPSULE_TAG, ROW_REVISION_TAG, RecordedDuration, ReplayCapsule,
+    ReplayPosture, ReportDiff, RowRevisionChange, RowRevisionId, RunAttempt, RunReport,
+    SelectionDisposition, SelectionExpectation, SelectionOutcome, SubjectRevisionId,
+    TRIAL_IDENTITY_TAG, TargetBinding, TargetTriple, TextFidelity, TimeBudget, ToolchainIdentity,
+    TrialAccounting, TrialConclusion, TrialFinding, TrialId, TrialProfile, TrialReport, TrialSite,
+    Truncation,
 };
 use crate::descriptor::{
-    CanonicalRowBytes, CheckRef, ClaimRef, GeneratedSupportSchemaId, PopulationRef,
-    RevisionBinding, SubjectRoute, TablePosture, TrialKey,
+    CanonicalRowBytes, ClaimRef, GeneratedSupportSchemaId, RevisionBinding, TablePosture, TrialKey,
 };
 use crate::identity::ContentAddress;
 use crate::report::encode::{
@@ -32,65 +32,23 @@ use core::cmp::Ordering;
 // The semantic rail.
 // ---------------------------------------------------------------------------
 
-impl TrialCoordinates {
-    /// The five semantic coordinates of one trial.
-    #[must_use]
-    pub const fn over(
-        claim: ClaimRef,
-        subject: SubjectRoute,
-        check: CheckRef,
-        population: PopulationRef,
-        profile: TrialProfile,
-    ) -> Self {
-        Self {
-            claim,
-            subject,
-            mechanism: check,
-            population,
-            profile,
-        }
-    }
-
-    /// The coordinates of the trial one descriptor row declares.
+impl ProfiledTrial {
+    /// One trial's key under one profile.
     ///
-    /// The descriptor-side trial key carries the four semantic references — the
-    /// structural fact that home can establish on its own — and the profile is
-    /// the coordinate this home adds. Reading them from the key rather than
-    /// from the row is what keeps the execution suite, the roles, and the tags
-    /// out of a trial's identity.
+    /// The key is the descriptor home's own derivation over the four semantic
+    /// coordinates — the structural fact that home establishes where a row is
+    /// born — and the profile is the coordinate this home adds. Standing on the
+    /// key rather than on the row is what keeps the execution suite, the roles,
+    /// and the tags out of a trial's identity.
     #[must_use]
     pub const fn of_key(key: TrialKey, profile: TrialProfile) -> Self {
-        Self::over(
-            key.claim(),
-            key.subject(),
-            key.check(),
-            key.population(),
-            profile,
-        )
+        Self { key, profile }
     }
 
-    /// The claim this trial serves.
+    /// The trial's compact key.
     #[must_use]
-    pub const fn claim(self) -> ClaimRef {
-        self.claim
-    }
-
-    /// The subject this trial exercises.
-    #[must_use]
-    pub const fn subject(self) -> SubjectRoute {
-        self.subject
-    }
-
-    /// The check contract that judges this trial.
-    #[must_use]
-    pub const fn mechanism(self) -> CheckRef {
-        self.mechanism
-    }
-
-    /// The population that supplies this trial's inputs.
-    #[must_use]
-    pub const fn population(self) -> PopulationRef {
-        self.population
+    pub const fn key(self) -> TrialKey {
+        self.key
     }
 
     /// The profile coordinate.
@@ -101,21 +59,21 @@ impl TrialCoordinates {
 }
 
 impl TrialId {
-    /// Derive one trial's semantic identity from its complete coordinates.
+    /// Derive one trial's semantic identity from its complete preimage.
     ///
-    /// Deterministic and total: every set of coordinates names a trial.
+    /// Deterministic and total: every key under every profile names a trial.
     #[must_use]
-    pub fn over(coordinates: TrialCoordinates) -> Self {
+    pub fn over(profiled: ProfiledTrial) -> Self {
         Self(ContentAddress::derived(
             TRIAL_IDENTITY_TAG,
-            &trial_preimage(coordinates),
+            &trial_preimage(profiled),
         ))
     }
 
     /// Derive the identity of the trial one descriptor row declares.
     #[must_use]
     pub fn of_key(key: TrialKey, profile: TrialProfile) -> Self {
-        Self::over(TrialCoordinates::of_key(key, profile))
+        Self::over(ProfiledTrial::of_key(key, profile))
     }
 
     /// The identity's address, for comparison and for rendering.

@@ -10,20 +10,25 @@
 //! stated once and everything about it follows.
 
 use crate::closure::ClosedExpansion;
-use crate::diagnostics::{MachineAnchoring, ObservedClassification};
+use crate::diagnostics::{
+    MachineAnchoring, MacrocDiagnostic, ObservedClassification, SiteCoordinate,
+};
+use crate::documentation::DocumentedItem;
+use crate::explanation_protocol::ExplanationCoverage;
 use crate::origin_graph::Nonclaim;
 use crate::plane::{
-    CapturedDeclarationSubject, CapturedTokenLimit, HumanProjection, HumanTextLimit, NonclaimLimit,
-    OwnerFactRef, ProjectionIdentity, human_projection,
+    CapturedDeclarationSubject, CapturedTokenLimit, GeneratedTokenLimit, HumanProjection,
+    HumanTextLimit, MembershipLimit, NonclaimLimit, OwnerFactRef, ProjectionIdentity,
+    RenderedByteLimit, human_projection,
 };
 use crate::planning::{DeriveImplProjection, ProjectionDisposition};
-use crate::token::{SpanHandle, SpanTable};
+use crate::token::{SpanHandle, SpanTable, TextCapture};
 use threadpak::declaration::SourceCoordinate;
 use threadpak::refusal::{
-    CauseId, CauseOrderDeclaration, DeclaredCause, DeclaredCauseOrder, FamilyShape, LocalCauseKey,
-    RefusalFamily, RefusalFamilyId,
+    CauseId, CauseOrderDeclaration, CompletionPosture, DeclaredCause, DeclaredCauseOrder,
+    FamilyShape, LocalCauseKey, RefusalFamily, RefusalFamilyId,
 };
-use threadpak::types::Bounded;
+use threadpak::types::{Bounded, ConstLimit};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -495,8 +500,20 @@ pub struct RefusalDeriveSurface {
     shape: FamilyShape,
     causes: Bounded<CapturedCause, DeriveCauseLimit>,
     documentation: Bounded<CapturedDocumentation, CapturedTokenLimit>,
-    identity: ProjectionIdentity<CapturedDeclarationSubject>,
-    documentation_identity: ProjectionIdentity<CapturedDeclarationSubject>,
+    commitments: CapturedCommitments,
+}
+
+/// The two commitments one captured declaration derives, together.
+///
+/// They are ONE account and not two arguments that happen to arrive side by
+/// side: the documentation commitment stands over the semantic one and names it
+/// as its dependency, so a road holding either alone holds half of a pair whose
+/// halves are ordered. Carrying them as a value is what makes the order a fact
+/// about the type rather than a convention at every call site.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CapturedCommitments {
+    semantic: ProjectionIdentity<CapturedDeclarationSubject>,
+    documentation: ProjectionIdentity<CapturedDeclarationSubject>,
 }
 
 // ---------------------------------------------------------------------------
@@ -898,4 +915,268 @@ pub struct RefusalFamilyExpansion {
     surface: RefusalDeriveSurface,
     expansion: ClosedExpansion<DeriveImplProjection>,
     cause_order: ProjectionDisposition,
+}
+
+// ---------------------------------------------------------------------------
+// The compiler-facing line, and the seats an explanation binds.
+//
+// These stand here because a public type belongs to its home's declaration
+// registry, not to the pure-function file that is their only reader today.
+// `diagnose.rs` composes lines and `explain.rs` writes explanations; neither
+// owns a vocabulary a caller outside this home can name.
+// ---------------------------------------------------------------------------
+
+threadpak::closed_register! {
+    /// Which class of refusal one composed line is about.
+    ///
+    /// The class is the second clause of every line this home composes, and it
+    /// is READ off this roster rather than written at the seam that refused.
+    /// A class phrase spelled at a seam is a phrase only that seam knows about:
+    /// two seams reporting one class then read as two classes, and a reader
+    /// grouping a build log by what went wrong groups them apart.
+    pub enum RefusalClass {
+        /// The declared input was not read into a captured surface.
+        DeclarationNotRead = "declaration-not-read", "the declaration was not read";
+        /// Planning refused before a token of Rust existed.
+        PlanNotStated = "plan-not-stated", "planning refused";
+        /// The rendering does not close over the plan it claims to materialize.
+        RenderingNotClosed = "rendering-not-closed",
+            "the rendering does not close over the plan it claims to materialize";
+        /// The written explanation does not cover its kind's questions.
+        ExplanationNotCovered = "explanation-not-covered",
+            "the explanation does not cover its kind's questions";
+        /// The explanation had no subject to write its seats about.
+        ExplanationNotBound = "explanation-not-bound",
+            "the explanation cannot bind its subject";
+        /// A rendering would have passed a declared magnitude.
+        MagnitudeNotHeld = "magnitude-not-held", "a rendering would pass a declared magnitude";
+        /// The rendering cannot be delivered under the subject its delivery
+        /// stands over.
+        SubjectNotSubstitutable = "subject-not-substitutable",
+            "the rendering does not stand over the subject its delivery requires";
+        /// The three values the terminal binds do not belong to one expansion.
+        ExpansionNotBound = "expansion-not-bound",
+            "the three values do not belong to one expansion";
+        /// A set of closed outputs does not compose into one exported carrier.
+        CarrierNotAssembled = "carrier-not-assembled",
+            "the closed outputs do not compose into one carrier";
+        /// The carrier's own vocabulary was not declared.
+        CarrierNotDeclared = "carrier-not-declared",
+            "the carrier's own vocabulary was not declared";
+    }
+}
+
+/// What a composed line is a summary OF.
+///
+/// Two shapes, and they are different facts rather than one with the numbers
+/// zeroed out.
+/// A single-cause refusal establishes one cause and enumerates nothing: there is
+/// no remainder to count and no examination bound anything could have stopped
+/// at, so a line reporting "and 0 further issues, examination complete" would be
+/// answering a question that was never asked of it.
+/// A collection-shaped body has both, and the line carries both.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum LineBody {
+    /// One established cause, with nothing enumerated beside it.
+    SingleCause,
+    /// A refusal body: how many further issues it established beyond the first,
+    /// and whether it examined everything it could.
+    Body {
+        /// Established issues past the one the line states in full.
+        further: usize,
+        /// Whether the body examined every site, and what it did with what did
+        /// not fit.
+        posture: CompletionPosture,
+    },
+}
+
+/// The typed parts one compiler line is composed from.
+///
+/// They travel as one value because they are one line: a class handed to
+/// [`composed`](super::composed) beside another refusal's first established
+/// issue would compose a sentence that is well formed, complete-looking, and
+/// about nothing in particular.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct RefusalLine<'issue> {
+    /// Which class of refusal the line is about.
+    pub class: RefusalClass,
+    /// The first established issue, stated in full.
+    pub first: &'issue str,
+    /// What the line is a summary of.
+    pub body: LineBody,
+}
+
+/// Whether a composed line says where the refusal sits.
+///
+/// Not an option: a whole-declaration refusal is a STATED posture, not a site
+/// somebody forgot to supply.
+/// A refusal about the declaration as a whole has nowhere narrower to point, and
+/// its typed [`DiagnosticSite`](crate::diagnostics::DiagnosticSite) already
+/// carries that; adding a position to its line would send a reader to an
+/// arbitrary spot inside a declaration the refusal is not about.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum LineSite {
+    /// The refusal is about the declaration as a whole, and the line adds
+    /// nothing.
+    WholeDeclaration,
+    /// The refusal sits at one place the producer can name, and the line says
+    /// where — or says that the producer's table does not reach it.
+    At(SiteCoordinate),
+}
+
+threadpak::closed_register! {
+    /// One declared magnitude a rendering can pass, and the thing it governs.
+    ///
+    /// The prose belongs to the MAGNITUDE rather than to whichever refusal named
+    /// it: two refusal families reach the same magnitudes, and a phrase written
+    /// at each of them is a phrase that can disagree with itself about what one
+    /// number bounds.
+    pub enum RenderedMagnitude {
+        /// The rendered-byte magnitude one materialized unit stands under.
+        RenderedBytes = "rendered-bytes", "the bytes one rendered unit may carry";
+        /// The membership magnitude one rendering stands under.
+        RenderedUnits = "rendered-units", "the units one rendering may carry";
+        /// The generated-token magnitude one tree level stands under.
+        GeneratedTokens = "generated-tokens",
+            "the tokens one generated tree may carry at one nesting level";
+    }
+}
+
+impl RenderedMagnitude {
+    /// The declared magnitude itself, read off the plane's limits roster.
+    ///
+    /// Read rather than restated: a number written here would be a second
+    /// authority on a bound the plane already declares, and a diagnostic naming
+    /// a bound the code does not enforce is evidence about nothing.
+    #[must_use]
+    pub const fn declared(self) -> usize {
+        match self {
+            Self::RenderedBytes => RenderedByteLimit::MAX,
+            Self::RenderedUnits => MembershipLimit::MAX,
+            Self::GeneratedTokens => GeneratedTokenLimit::MAX,
+        }
+    }
+}
+
+threadpak::closed_register! {
+    /// The seat one explanation could not bind its subject to.
+    ///
+    /// Named seats rather than one "something was missing": a caller repairing
+    /// a derivation needs to know whether the PLAN failed to declare the member,
+    /// the CLOSURE failed to prove its bytes, or the plan cited no owner fact at
+    /// all, and those are three different repairs.
+    pub enum ExplanationSeat {
+        /// The planned member standing under the family implementation's role.
+        PlannedFamilyMember = "planned-family-member",
+            "the planned member under the family role";
+        /// The digest the closure proved over that member's rendered bytes.
+        ProvedFamilyDigest = "proved-family-digest",
+            "the digest the closure proved over the family bytes";
+        /// The first owner fact the plan declares as an assumption.
+        DeclaredAssumption = "declared-assumption", "the first owner fact the plan declares";
+        /// The planned member standing under the carrier's one rendered role.
+        ///
+        /// Its own seat rather than the family implementation's, because the two
+        /// are members of two different plans: a caller told the family member is
+        /// absent while the carrier's is the one missing would repair the wrong
+        /// projection.
+        PlannedCarrierMember = "planned-carrier-member",
+            "the planned member under the carrier's one role";
+    }
+}
+
+/// How writing one explanation refuses.
+///
+/// Two postures, and they are different observations.
+/// A view that could not be BOUND never reached the coverage check — there was
+/// no subject to write nine seats about.
+/// A view that was written and does not cover its kind's questions reached it
+/// and failed it.
+#[must_use = "a refusal carries the unbound seat or the coverage the view failed"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum ExplanationBindingRefusal {
+    /// A required seat's subject is absent. The explanation refuses rather than
+    /// answering about a neighbouring value.
+    RequiredOutputAbsent {
+        /// Which seat had no subject.
+        seat: ExplanationSeat,
+    },
+    /// The written view does not cover the kind's applicable questions.
+    Coverage(ExplanationCoverage),
+}
+
+// ---------------------------------------------------------------------------
+// What the road's own steps hand back.
+//
+// A step's outcome is vocabulary a caller names, so it belongs to the home's
+// registry rather than to the file that produces it.
+// ---------------------------------------------------------------------------
+
+///
+/// Two postures, and they are different observations rather than one with a
+/// missing half. A declaration whose FAMILY seat carries an admissible sentence
+/// has documentation material a projection can be planned over; one that carries
+/// no family-seat row at all has none, and this home composes none — a summary
+/// invented here would be a claim about the owner's declaration the owner did
+/// not make.
+///
+/// Neither posture is a refusal. A declaration that documented nothing is a
+/// lawful declaration, and the derive's own road does not stop for it.
+#[must_use = "a documentation reading is either material a projection is planned over or the stated absence of it"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CapturedDocumentationReading {
+    /// The family seat carried a line the one-plain-sentence law admits, so the
+    /// item is that sentence and no earned section.
+    Documented {
+        /// The documentation material, ready for a documentation projection's
+        /// composition.
+        item: DocumentedItem,
+        /// What happened to facet election, which decides what a section is
+        /// earned by.
+        facets: ProjectionDisposition,
+    },
+    /// The declaration carries no family-seat row, so there is no owner sentence
+    /// for an item to open with.
+    NotDocumented {
+        /// Why no item was read. Nobody asked for one: the author wrote no
+        /// family-level prose, and this home writes none on an author's behalf.
+        because: ProjectionDisposition,
+    },
+}
+
+/// How one rendering failed to assemble.
+#[must_use = "a rendering refusal names what the tree could not be rendered under"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RenderRefusal {
+    /// The rendered tree exceeds the declared token magnitude.
+    Unbounded,
+    /// The implementation body observes the target it was derived for, so no
+    /// copy of it stands over another subject and the evaluation delivery has
+    /// nothing lawful to render.
+    ///
+    /// A typed answer rather than a silent rendering: a body that means
+    /// something different once its target changes, rendered against the
+    /// support shell's subject anyway, is an evaluation copy that is not the
+    /// production implementation — and the parity the copy exists to prove
+    /// would be a statement about two different meanings.
+    TargetObserved,
+}
+
+/// How the callable text route refused.
+///
+/// Two postures, and they are genuinely different observations.
+/// A text that cannot be cut into tokens never reached the grammar at all and
+/// has no span table to point into; a text that cut fine and said the wrong
+/// thing has both.
+/// Folding them together would hand a caller a diagnostic whose site indexes a
+/// table that was never built.
+#[must_use = "a refusal names which of the two ways the callable text route refused"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TextCompileRefusal {
+    /// The text could not be cut into tokens.
+    NotReadable(crate::token::TextReadRefusal),
+    /// The text was read, and the compilation refused. The capture rides along
+    /// so the diagnostic's token handle resolves against the same table the read
+    /// issued.
+    Refused(Box<(TextCapture, MacrocDiagnostic)>),
 }

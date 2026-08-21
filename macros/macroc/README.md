@@ -223,7 +223,8 @@ identifier minting that neither declaration-site generation nor a
 core-local stamp can express, and the plan RECORDS why the lighter roads
 are insufficient — the road held narrow by rule, never by a reader's mood.
 The generated-support schema pair is this road's own case: both checked-in
-sides written by one publication operation, under its receipt.
+sides rewritten together in one committed change, and held current by the
+harness's own currency lane.
 
 ## The admitted digest, and what it is admitted for
 

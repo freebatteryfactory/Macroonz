@@ -110,6 +110,10 @@ threadpak::closed_register! {
     /// capture is a different declaration, and capturing one would put the whole
     /// road downstream to work on material nobody wrote.
     #[must_use = "a bound refusal names which declared magnitude the capture would have passed"]
+    #[expect(
+        clippy::enum_variant_names,
+        reason = "the shared word is the fact each row states: a row is not the magnitude, it is the magnitude having been RUN PAST, and a roster spelled without it would read as the four bounds rather than as the four ways of exceeding one"
+    )]
     pub enum CaptureBound {
         /// The declared input nests deeper than the declared magnitude.
         DepthUnbounded = "depth-unbounded",
@@ -172,15 +176,36 @@ pub struct CaptureWalk {
 }
 
 /// What one captured token carries.
+///
+/// A literal arm carries the literal's VALUE and never the characters it was
+/// spelled with: `"a\nb"` and `"a` + a real line break + `b"` are one text, and
+/// `"x"` and `r"x"` are one text, because the quoting and the escaping are the
+/// spelling's business exactly as they are on the generated side.
+/// What separates two arms is what the value IS — text, bytes, one character,
+/// one byte — and never which prefix a producer read.
+///
+/// # Ordering
+///
+/// The roster grows at its END and nowhere else, for the reason the seam's
+/// `encode.rs` states: each arm's slot is a byte of
+/// [`CapturedInput::canonical_bytes`], and those bytes are what a captured
+/// declaration's plane identity is derived over.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CapturedPayload {
     /// An identifier-shaped word.
     Word(String),
     /// One punctuation character.
     Punct(char),
-    /// A text literal, with its quotes removed.
+    /// A text literal's text: `"…"` and `r"…"` alike, escapes read and quotes
+    /// removed.
     Text(String),
     /// A numeric literal, exactly as written.
+    ///
+    /// The spelling and not a value: an integer's base, its digit separators,
+    /// and the suffix that types it are all part of what the declaration says,
+    /// and no road in the services reads a captured number back as a number.
+    /// A decoded arm would have to pick a width and a sign to decode INTO, and
+    /// would then be answering a question this seam has never been asked.
     Number(String),
     /// A delimited group and the tokens inside it.
     Group {
@@ -189,6 +214,50 @@ pub enum CapturedPayload {
         /// The tokens inside, in the order they were written.
         trees: Bounded<CapturedTokenTree, CapturedTokenLimit>,
     },
+    /// A byte-string literal's material: `b"…"` and `br"…"`.
+    ///
+    /// Bytes rather than text, for the reason [`GeneratedToken::ByteText`]
+    /// states on the other side — the two are different literals at the seat
+    /// they are written to, and material that is not text crosses without a
+    /// lossy road existing for it to take.
+    ByteText(Vec<u8>),
+    /// One character literal's character: `'…'`.
+    Character(char),
+    /// One byte literal's byte: `b'…'`.
+    Byte(u8),
+    /// A C string literal's material: `c"…"` and `cr"…"`.
+    ///
+    /// The material is the body. The terminating NUL is the literal form's and
+    /// not the value's, exactly as the quotes are, so nothing here carries a
+    /// byte the declaration did not write.
+    NulTerminatedText(Vec<u8>),
+}
+
+threadpak::closed_register! {
+    /// Why one literal spelling could not be read into the value it names.
+    ///
+    /// Two causes, because they are two different facts about this grammar and
+    /// each names a different repair: a form with no row here is a row this
+    /// seam owes, and a body a known form could not read is a reader here that
+    /// does not reach as far as the form does.
+    ///
+    /// Neither is the caller's mistake. Every spelling that reaches this road
+    /// was already lexed by a compiler, so a refusal on one is this crate
+    /// saying it does not read what the compiler admitted — which is the one
+    /// honest answer available, and is why filing an unread spelling under a
+    /// row that means something else is the thing this grammar exists to stop.
+    #[must_use = "a literal refusal names why the spelling could not be read into a value"]
+    pub enum LiteralReadCause {
+        /// The spelling opens with no literal form this grammar has a row for.
+        NotAKnownForm = "not-a-known-form",
+            "threadpak refusal-family derive: the declared input carries a literal written in \
+             a form this grammar has no row for";
+        /// The form is one this grammar reads, and its body carries material
+        /// this grammar could not read the value of.
+        NotReadable = "not-readable",
+            "threadpak refusal-family derive: the declared input carries a literal this \
+             grammar could not read the value of";
+    }
 }
 
 /// One captured token: what it carries, where it sits, and how to reach the
@@ -222,7 +291,7 @@ pub struct SpanResolutionRefusal {
     pub handle: SpanHandle,
     /// How many positions the table carries.
     /// A handle at or past this index names no position in it.
-    pub reaches: u32,
+    pub reaches: usize,
 }
 
 /// How a producer answers "where is the token this handle names?".
@@ -259,8 +328,12 @@ pub enum TextReadCause {
     /// A text literal was never closed.
     NotTerminated,
     /// A text literal carries an escape sequence.
-    /// The grammar admits none, so what is captured renders back without a
-    /// quoting question ever arising.
+    /// THIS ROUTE admits none, so a body it captures is the text that body
+    /// spells and no reading stands between the two.
+    /// The captured grammar is wider than the route: a compiler shell hands
+    /// escaped spellings over and [`crate::capture_literal`] reads them, so what
+    /// this cause bounds is the hand-rolled reader's own alphabet and never what
+    /// a captured text may hold.
     NotEscapeFree,
     /// A delimited group was never closed.
     NotBalanced,

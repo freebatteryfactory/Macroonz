@@ -169,13 +169,7 @@ impl WrapperTriggerView {
     /// The number of components disposed of — the component roster's
     /// cardinality, by construction.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.selections.len().saturating_add(self.omissions.len())
-    }
-
-    /// Always `false`: a view disposes of every component or does not exist.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.selections.is_empty() && self.omissions.is_empty()
     }
 }

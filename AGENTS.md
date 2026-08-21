@@ -2,13 +2,18 @@
 
 ThreadPak is an embedded, sync-first, event-native database and runtime in safe Rust,
 named for the logical thread it preserves; the README owns the full product statement
-and the machine-in-one-view. This file is the binding law for any person, model, or
-agent working in this repository. `AGENTS.md` and `CLAUDE.md` are twins kept
-byte-identical by hand: any edit lands in both files in the same commit.
+and the machine-in-one-view.
+This file is the binding law for any person, model, or agent working in this
+repository, and it is the only one.
+`CLAUDE.md` carries a pointer here and nothing semantic:
+a law stated twice is a law that can disagree with itself,
+and one that did is what cost this repository a week.
 
-There is no CI and no gate. The enforcement surface is the toolchain at the root — the
-lint wall in `Cargo.toml`, `clippy.toml`, `deny.toml`, `.cargo/config.toml` — and the
-compiler itself, run locally. Checks report; a human decides.
+There is no CI and no gate.
+The enforcement surface is the toolchain at the root, run locally:
+the lint wall in `Cargo.toml`, `clippy.toml`, `deny.toml`, `.cargo/config.toml`,
+the compiler itself, and the executed lanes.
+Checks report; a human decides.
 
 ## The spine
 
@@ -22,9 +27,14 @@ pin an exact ThreadPak revision; the machine never knows which host is running i
 
 - The repository is the specification. There is no separate book. No semantic fact is
   manually restated in two places — cite the owner, never copy.
-- The repository states what IS. Nothing polices what isn't: no ban lists, no
-  negative-space scanners, no ledgers of the forbidden or the pending. A dead decision
-  leaves the tree; git history is its only tombstone.
+- The specification states what IS.
+  No home carries a ban list, a negative-space ledger,
+  or an inventory of the forbidden and the pending:
+  what cannot happen is carried by the type that makes it unwritable.
+  A dead decision leaves the tree; git history is its only tombstone.
+  This file is the one exception, because it addresses the author rather than
+  the machine.
+  A working law states prohibitions, and retires them when they stop being true.
 - Numbered directories are dependency bands: band N imports only bands lower than N.
   Numbers live on directories only; module names stay clean via `#[path]`.
 - The crate root owns generic composition shapes only. A semantic noun lives at the
@@ -43,19 +53,36 @@ pin an exact ThreadPak revision; the machine never knows which host is running i
   - `type_contract.rs` — declarative trait implementations: refusal families, identity
     roles, register participation.
 
-  Everything else is a role-named pure-function module — `validate.rs`, `encode.rs`,
-  `decode.rs`, `project.rs`, `transition.rs` — consuming types already informed, so no
-  function re-establishes what its argument's type already promised. A file about types
+  Everything else is a role-named pure-function module — `encode.rs`, `decode.rs`,
+  `project.rs`, `transition.rs` — consuming types already informed, so no
+  function re-establishes what its argument's type already promised.
+  There is no `validate.rs` role: a check over raw input returns an informed type
+  or a refusal, and never a boolean that leaves the unchecked input standing.
+  A predicate over an already-informed value stays lawful where yes and no are
+  the complete answer. A file about types
   takes the `type_` prefix and sorts beside `types.rs`; sort order is reading order.
   Files exist only when they have content.
 - A reserved architectural coordinate is a directory carrying exactly one README that
   admits the seat is empty, states its question, and names the exact condition that
   fills it. No `mod.rs`, no placeholder types, no stubs dressing an empty seat as
   occupied.
-- No test corpus is specification. There is no `laws.rs`, no proof-surface module, no
-  test lane, no compile-fail fixture, and no `#[cfg(test)]` item anywhere in this
-  repository. A claim is enforced by the type that makes its violation unwritable, or
-  it is not claimed. Writing one is not a contribution; it is the defect.
+- No test corpus is specification.
+  A structural invariant lives in the type and its smart constructor:
+  where a type can reach a claim,
+  the type that makes its violation unwritable is the only statement of it.
+  A lane observes what no type can state —
+  behavior, cross-crate composition, expansion under renamed dependencies,
+  encodings, diagnostics, external tools,
+  and the compile refusal showing a violation really is unwritable from outside.
+  There is no `laws.rs` and no proof-surface module:
+  a file collecting assertions across unrelated homes is the defect,
+  whatever it is called, and a lane never legislates meaning.
+  Lanes are named for the behavior they exercise,
+  live in the `tests/` of the crate that owns the road,
+  and are reached only through the public surface.
+  A `#[cfg(test)]` item inside the library is a road with an audience of one,
+  and it refuses.
+  A claim that is neither structural nor observed is not claimed.
 - No hand-maintained inventories: counts, dependency maps, status tables, and public
   surface listings are derived, never authored.
 - rustdoc is a spec surface: public items are documented at the declaration; the README
@@ -63,25 +90,35 @@ pin an exact ThreadPak revision; the machine never knows which host is running i
 
 ## The strongest seat
 
-Every claim lives at the strongest seat that can establish it, and no weaker seat
-restates it: types first, then the compiler's own lints, then generated registers. A
-claim no seat can establish is not claimed. A claim restated at a weaker seat is worse
-than one stated once, because the weaker statement keeps passing after the stronger one
-is removed. The drain runs downward only: a type that makes the wrong move
-unrepresentable retires the law that asserted the move was wrong, and the law goes.
+Every claim lives at the strongest seat that can establish it,
+and no weaker seat restates it:
+types first, then the compiler's own lints, then generated registers,
+then one executed lane observing what no seat above it can state.
+A claim no seat can establish is not claimed.
+A claim restated at a weaker seat is worse than one stated once,
+because the weaker statement keeps passing after the stronger one is removed.
+The drain runs downward only:
+a type that makes the wrong move unrepresentable retires the law that asserted it,
+and the law goes.
 
 ## No naked surfaces
 
-A new crate, subsystem, module family, macro family, generator, register, or public
-contract is not admitted merely because it compiles. The boundary carries: its exact
-owner; its claims and nonclaims; the types that make its violations unwritable; its
-dependency and trust posture. And it names what it deletes: a component that deletes
-nothing and retires nothing is refused until it says why it deserves to exist anyway.
+A new crate, subsystem, module family, macro family, generator, register,
+or public contract is not admitted merely because it compiles.
+The boundary carries: its exact owner; its claims and nonclaims;
+the types that make its violations unwritable;
+where a type cannot reach, the lane that observes the behavior instead;
+its dependency and trust posture.
+And it names what it deletes:
+a component that deletes nothing and retires nothing
+is refused until it says why it deserves to exist anyway.
 
-A structural claim may not be deferred when a type can make its violation unwritable
-now. A behavioral claim may remain owed only when the machinery does not yet exist and
-the exact opening condition is named. No boundary is described as complete, closed, or
-proven beyond what its types actually enforce.
+A structural claim may not be deferred
+when a type can make its violation unwritable now.
+A behavioral claim may remain owed only when the machinery does not yet exist,
+and the exact opening condition is named.
+No boundary is described as complete, closed, or proven
+beyond what its types actually enforce.
 
 ## Reports and findings
 
@@ -146,8 +183,10 @@ agent edits code to silence a finding.
   declared input: no network, no filesystem scan, no environment, no clock, no entropy.
   Composition is proven from an outside consumer that compiles against the public
   road, never from inside a participant.
-- testpak depends inward on core; nothing depends on testpak. Production never depends
-  on its judge.
+- testpak's production library is standalone. Its qualification targets depend inward
+  on the machine and the generation services; the consumer crate dev-depends on testpak
+  under a rename. Production never depends on its judge, and a consumer proving the
+  public road is not production.
 - Probes (throwaway compiler experiments) never enter this repository.
 - LF everywhere; no symlinks; no `build.rs`.
 - Semantic compilation, projection, identity construction, and generated meaning are
@@ -182,21 +221,30 @@ declarative stamps are standing law (`closed_register!` and `scope_guard_version
 are the exemplars); generation beyond a stamp's reach lands in core as published
 source under a receipt; the derive is the outside consumer's door.
 
-The current phase builds the harness (testpak) and the generation services
-(macros) in parallel as one phase, with zero compilation: implementers write
-complete code end to end — no stubs, no placeholder bodies, no
-compiler-appeasement — and QA is ast-grep and read-only review. The toolchain
-corrects the work once, when the owner declares final production pre-approval;
-nothing runs cargo before that word. That first toolchain contact is quiet and
-corrective — it is not the ceremony. After it comes the trust opening (baseline
-qualification, then wrap-first mutation pressure, then the mandatory
-no-mutation parity — only then are interpreted-mutation results and
-rewrite-produced descriptors admitted as evidence), then the migration pass
-(the generator runs its own migration, never a hand), then the per-home source
-pass with the owner in the loop; the blessing-day ceremony — the native-clone
-dual-target runs and the packaged outsider check — crowns the COMPLETE machine
-after all of that, and CI is designed fresh, last. Approvals and dial-downs are recorded in the
-crates' own READMEs and types, because the repository is the spec.
+The harness (testpak) and the generation services (macros) were built in parallel
+as one phase under zero compilation:
+implementers wrote complete code end to end —
+no stubs, no placeholder bodies, no compiler-appeasement —
+and QA was read-only review.
+That phase closed at first toolchain contact,
+which was quiet and corrective rather than a ceremony.
+The toolchain now stands and the lanes execute;
+a red lane is evidence about the code, never an instruction to edit the lane.
+
+Next comes the trust opening:
+baseline qualification, then wrap-first mutation pressure,
+then the mandatory no-mutation parity —
+only then are interpreted-mutation results and rewrite-produced descriptors
+admitted as evidence.
+The harness's ladder runs against this repository there,
+the one subject that costs something to grade.
+Then the migration pass, where the generator runs its own migration, never a hand;
+then the per-home source pass with the owner in the loop.
+The blessing-day ceremony — the native-clone dual-target runs
+and the packaged outsider check — crowns the COMPLETE machine after all of that,
+and CI is designed fresh, last.
+Approvals and dial-downs are recorded in the crates' own READMEs and types,
+because the repository is the spec.
 
 No product-runtime implementation opens in any home without explicit human
 authorization. Commits are decided by a human — never initiated by an agent.

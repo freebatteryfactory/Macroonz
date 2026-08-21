@@ -25,11 +25,12 @@
 //! A private seat excludes every SIBLING: the rest of this file, `types.rs`
 //! above it, `plan.rs` and `render.rs` beside it, anywhere else in the services,
 //! and any crate downstream cannot write the literal, and the compiler says so
-//! with `E0451`. It does not exclude DESCENDANTS, which is why this file
-//! declares no child module of its own.
+//! with `E0451`. It does not exclude DESCENDANTS, so the reversal for this seat
+//! is a compile-fail fixture outside the crate.
 
-use super::super::plan::{SurfacePlan, surface_plan};
+use super::super::plan::surface_plan;
 use super::super::render;
+use super::SurfacePlan;
 use super::{
     EvaluationBinding, ImplementationSurface, ImplementationSurfaceIssue, ImplementationSurfaces,
     MutationClaimRef, MutationEvaluationSurface, MutationOperation, MutationPoint,
@@ -309,14 +310,8 @@ impl MutationPointTable {
 
     /// How many rows the table carries: the control, plus every admitted point.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.admitted.len().saturating_add(1)
-    }
-
-    /// Always `false`: a table without its control is unrepresentable.
-    #[must_use]
-    pub const fn is_empty(&self) -> bool {
-        false
     }
 }
 
@@ -534,19 +529,16 @@ impl ImplementationSurfaces {
     }
 
     /// The implementation the normal build compiles.
-    #[must_use]
     pub const fn production(&self) -> &ProductionSurface {
         &self.production
     }
 
     /// The copy every admitted mutation point is selected from.
-    #[must_use]
     pub const fn evaluation(&self) -> &MutationEvaluationSurface {
         &self.evaluation
     }
 
     /// What the two share, and what that sharing is silent about.
-    #[must_use]
     pub const fn parity(&self) -> &SurfaceParity {
         &self.parity
     }

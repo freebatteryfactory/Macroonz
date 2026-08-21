@@ -43,7 +43,11 @@ impl SpanTable {
     ) -> Result<SourceCoordinate, SpanResolutionRefusal> {
         match self {
             Self::ByteOffsets(offsets) => {
-                let index = usize::try_from(span.index()).unwrap_or(usize::MAX);
+                let unreached = SpanResolutionRefusal {
+                    handle: span,
+                    reaches: offsets.len(),
+                };
+                let index = usize::try_from(span.index()).map_err(|_| unreached)?;
                 offsets
                     .iter()
                     .nth(index)
@@ -51,10 +55,7 @@ impl SpanTable {
                         role: CoordinateRole::Byte,
                         position: *offset,
                     })
-                    .ok_or(SpanResolutionRefusal {
-                        handle: span,
-                        reaches: u32::try_from(offsets.len()).unwrap_or(u32::MAX),
-                    })
+                    .ok_or(unreached)
             }
             Self::ProducerHeld => Ok(SourceCoordinate {
                 role: CoordinateRole::SemanticOrigin,

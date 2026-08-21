@@ -65,13 +65,7 @@ impl DerivedMembership {
     /// The number of declared roles; structurally at least two, because the
     /// smallest delivery this home admits is one contract's two surfaces.
     #[must_use]
-    pub const fn len(self) -> usize {
+    pub const fn count(self) -> usize {
         self.roles().len()
-    }
-
-    /// Always `false`: an empty declared output set is unrepresentable here.
-    #[must_use]
-    pub const fn is_empty(self) -> bool {
-        false
     }
 }

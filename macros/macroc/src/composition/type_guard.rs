@@ -17,8 +17,8 @@
 //! A private seat excludes every SIBLING: the rest of this file, `types.rs`
 //! above it, `establish.rs` beside it, anywhere else in the services, and any
 //! crate downstream cannot write the literal, and the compiler says so with
-//! `E0451`. It does not exclude DESCENDANTS, which is why this file declares
-//! no child module of its own.
+//! `E0451`. It does not exclude DESCENDANTS, so the reversal for this seat is
+//! testpak's compile-fail fixture.
 
 use super::super::establish::duplicate_issues;
 use super::{CompositionRoot, CompositionRootIssue, DescriptorProvider, DescriptorProviderLimit};
@@ -159,13 +159,7 @@ impl CompositionRoot {
 
     /// The number of providers declared; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.providers.len()
-    }
-
-    /// Always `false`: a root with no provider is unrepresentable.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.providers.is_empty()
     }
 }

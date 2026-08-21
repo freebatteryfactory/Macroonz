@@ -70,7 +70,6 @@ pub const SURFACE_SENTENCE: &str = "The remote surface this port speaks its wire
 // ---------------------------------------------------------------------------
 
 /// The issue a tree that outgrew the declared token magnitude amounts to.
-#[must_use]
 pub fn unbounded() -> RemoteSurfaceIssue {
     RemoteSurfaceIssue::SurfaceTreeUnbounded {
         bound: u64::try_from(GeneratedTokenLimit::MAX).unwrap_or(u64::MAX),

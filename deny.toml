@@ -38,10 +38,10 @@ crate = "blake3"
 allow = []
 exact = true
 
-# The generation vocabulary: `derive` and nothing else.
+# The generation vocabulary: the trait, and nothing else.
 [[bans.features]]
 crate = "arbitrary"
-allow = ["derive"]
+allow = []
 exact = true
 
 [sources]

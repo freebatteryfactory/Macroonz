@@ -61,9 +61,34 @@ mod guard;
 /// every run, over the namespace and then the stem. It ranks nothing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NamespacedName {
-    namespace: &'static str,
-    stem: &'static str,
+    namespace: Namespace,
+    stem: Stem,
 }
+
+/// The owner half of a namespaced name: who declares a spelling.
+///
+/// Its own type rather than a `&'static str`, so a road that wants an owner
+/// cannot be handed a spelling, and a caller reading one back is handed the
+/// fact rather than the characters. The text comes out at
+/// [`Namespace::written`], which is what an encoder and a rendering call and
+/// what nothing else has a reason to.
+///
+/// # Construction
+///
+/// Refused empty: an owner nobody named is not an owner.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Namespace(&'static str);
+
+/// The spelling half of a namespaced name: what the owner calls it.
+///
+/// Its own type on the same terms as [`Namespace`], and the pair is what makes
+/// a namespaced name two facts rather than one string with a convention in it.
+///
+/// # Construction
+///
+/// Refused empty: a name with no spelling states nothing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Stem(&'static str);
 
 /// Why one namespaced name was refused.
 ///
@@ -431,14 +456,17 @@ pub struct CanonicalRowBytes(Vec<u8>);
 /// declared field and no producer states them: they are what the seven ENCODE
 /// TO, which is why the producer-facing schema roster does not name them and a
 /// row's revision identity is a reading rather than a recomputation.
+/// Beside those it owns BOTH readings of the trial it states: the typed
+/// [`TrialCoordinates`] a reader wants, and the [`TrialKey`] derived over them
+/// once at construction. The key is a reading afterwards on the same terms the
+/// canonical bytes are, so nothing re-derives it per run and no two derivations
+/// of one row's key can disagree.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Row {
-    claim: ClaimRef,
+    coordinates: TrialCoordinates,
+    trial_key: TrialKey,
     execution_suite: ExecutionSuite,
     classification: Classification,
-    subject: SubjectRoute,
-    check: CheckRef,
-    population: PopulationRef,
     origin: Origin,
     canonical: CanonicalRowBytes,
 }
@@ -466,26 +494,53 @@ pub enum RowRefusal {
     NotEncoded(EncodeRefusal),
 }
 
-/// The semantic content two rows would have to share to be one trial: the
-/// claim, the subject, the check, and the population.
+/// Where one trial sits: the claim it serves, the subject it exercises, the
+/// check that judges it, and the population that supplies its inputs.
+///
+/// The READABLE account. A road that wants to say which trial it is talking
+/// about reads these four typed references, and each of them stays its own
+/// envelope — nothing here is flattened into text so that the four fit
+/// somewhere smaller.
+///
+/// The execution suite is deliberately outside, because two rows differing only
+/// by suite are one trial run under two seats.
 ///
 /// # Nonclaims
 ///
-/// This is NOT the trial identity. The report instrument derives `TrialId` from
-/// semantic meaning — the claim, the subject, the mechanism the check reference
-/// names, the population, and the profile — and this home cannot compute it
-/// without importing that vocabulary. This key is the descriptor-side shadow of
-/// it: the structural fact a table constructor can establish on its own, so a
-/// duplicated trial cannot exist in a constructed table. The execution suite is
-/// deliberately outside the key, because two rows differing only by suite are
-/// one trial run under two seats.
+/// It is not an identity and nothing is derived under it directly. What is
+/// derived over it is [`TrialKey`], once, where a row is born.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct TrialKey {
+pub struct TrialCoordinates {
     claim: ClaimRef,
     subject: SubjectRoute,
     check: CheckRef,
     population: PopulationRef,
 }
+
+/// The compact identity of one trial's coordinates.
+///
+/// The COMPARABLE account, and the only one that travels. A table compares
+/// these thirty-two bytes to decide whether two bindings state one trial, a
+/// duplicate refusal carries them, and the report instrument derives
+/// `TrialId` over them beside the profile coordinate it adds.
+///
+/// # Authority
+///
+/// **The key is not the suitcase.** It carries no claim, no subject, no check,
+/// and no population, and has no road back to them: a caller that wants the
+/// coordinates reads them off the row that holds both, where they are already
+/// present and already typed. A key that also carried the four would be a
+/// hundred and twenty-eight bytes riding every refusal that names a trial, and a
+/// reverse lookup from a key to its coordinates would be the hidden registry
+/// this vocabulary refuses everywhere else.
+///
+/// # Bounds
+///
+/// Derived once, where a [`Row`] is built, from that row's coordinates alone.
+/// The four are encoded in exactly one place, so no second preimage exists to
+/// drift from the first.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct TrialKey(ContentAddress);
 
 /// What a revision identity is worth, stated by the party that bound it.
 ///
@@ -580,8 +635,8 @@ pub struct ExecutableAttachment<Invocation, Conclusion> {
 ///
 /// A pin records which schema identity a producer emitted against. It is not
 /// evidence that the pin is current: a jointly stale pair — a schema that moved
-/// while publication never ran — agrees with itself and says nothing. Pair
-/// currency is the conformance trial's job.
+/// while neither literal was rewritten — agrees with itself and says nothing.
+/// Pair currency is the currency lane's job.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Provenance {
     /// No producer stands behind this binding.

@@ -29,8 +29,8 @@
 //! beside it, anywhere else in the services, and any crate downstream — and the
 //! compiler says so with `E0451`.
 //! It does not exclude descendants: a module declared inside a guard would
-//! construct as freely as these roads do, which is why this file declares no
-//! child module of its own.
+//! construct as freely as these roads do, so the reversal for these seats is a
+//! compile-fail fixture testpak owns.
 
 use super::super::prove::examined;
 use super::{
@@ -351,14 +351,8 @@ impl<R: RenderedRole> RenderedProjection<R> {
 
     /// How many units were rendered; structurally at least one.
     #[must_use]
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.units.len()
-    }
-
-    /// Always `false`: an empty rendering is unrepresentable.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.units.is_empty()
     }
 
     /// The one unit rendered under a role, where exactly one was.
@@ -573,19 +567,16 @@ impl PartitionedEmission {
 
     /// What the declaration site expands into — the tokens the consumer's normal
     /// build compiles.
-    #[must_use]
     pub const fn declaration_site(&self) -> &PartitionCargo {
         &self.declaration_site
     }
 
     /// The deferred cargo the consumer's test target invokes.
-    #[must_use]
     pub const fn test_carrier(&self) -> &PartitionCargo {
         &self.test_carrier
     }
 
     /// The deferred cargo the consumer's bench target invokes.
-    #[must_use]
     pub const fn bench_carrier(&self) -> &PartitionCargo {
         &self.bench_carrier
     }
@@ -624,17 +615,16 @@ impl PartitionedEmission {
         encode_length(EmissionPartition::ALL.len(), into);
         for partition in EmissionPartition::ALL {
             into.push(partition.slot());
-            match self.joined(partition) {
-                Some(cargo) => cargo.encode_into(into),
+            if let Some(cargo) = self.joined(partition) {
+                cargo.encode_into(into);
+            } else {
                 // An emission that is not joined at all is its own posture, and
                 // it is written as one: it must not encode as an emission
                 // nothing was planned into, because the publication emission
                 // carrying artifacts and the test carrier carrying nothing are
                 // different facts about different deliveries.
-                None => {
-                    into.push(2);
-                    encode_bytes(&[], into);
-                }
+                into.push(2);
+                encode_bytes(&[], into);
             }
         }
     }
@@ -924,19 +914,16 @@ impl<K: ProjectionKind> ClosedExpansion<K> {
 
     /// The complete plan: account, context, content, membership, invalidation
     /// set, decision trace, origin trail, and nonclaims.
-    #[must_use]
     pub const fn plan(&self) -> &ProjectionPlan<K> {
         &self.plan
     }
 
     /// The proof that what was rendered is what was planned.
-    #[must_use]
     pub const fn closure(&self) -> &ProjectionClosure<K::Rendered> {
         &self.closure
     }
 
     /// The complete explanation over this kind's applicable questions.
-    #[must_use]
     pub const fn explanation(&self) -> &ProjectionExplanationView<K> {
         &self.explanation
     }
@@ -946,7 +933,6 @@ impl<K: ProjectionKind> ClosedExpansion<K> {
     /// The CLOSURE's own proved value, borrowed rather than copied: this
     /// expansion keeps no second emission, so what is delivered is what was
     /// proved and there is no pair of values to drift apart.
-    #[must_use]
     pub const fn emission(&self) -> &PartitionedEmission {
         self.closure.emission()
     }
@@ -954,19 +940,16 @@ impl<K: ProjectionKind> ClosedExpansion<K> {
     /// What the declaration site expands into — the tokens an expansion shell
     /// hands the compiler, and the only ones the consumer's normal build
     /// compiles.
-    #[must_use]
     pub const fn declaration_site(&self) -> &PartitionCargo {
         self.emission().declaration_site()
     }
 
     /// The deferred cargo the consumer's test target invokes.
-    #[must_use]
     pub const fn test_carrier(&self) -> &PartitionCargo {
         self.emission().test_carrier()
     }
 
     /// The deferred cargo the consumer's bench target invokes.
-    #[must_use]
     pub const fn bench_carrier(&self) -> &PartitionCargo {
         self.emission().bench_carrier()
     }
@@ -991,6 +974,10 @@ impl<K: ProjectionKind> ClosedExpansion<K> {
     /// caller to choose and nothing for this seam to invent. A second row is
     /// admitted when the identity it names exists.
     #[must_use]
+    #[expect(
+        clippy::unused_self,
+        reason = "a method rather than an associated function because the roster it reads has a second row coming: an expansion whose delivery reaches a minted address answers from its own seats, and moving to a method then would move every call site for a reason none of them is about"
+    )]
     pub const fn addressing(&self) -> DeliveryAddressing {
         DeliveryAddressing::UnmintedAtThisSeam
     }

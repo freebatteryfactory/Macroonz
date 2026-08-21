@@ -98,6 +98,10 @@ pub(super) fn inspect_token(token: &GeneratedToken, into: &mut String) {
 ///
 /// A person reading a byte string is reading bytes, and `\x0A` says which byte
 /// is there where `\n` says which character somebody hoped was.
+#[expect(
+    clippy::format_push_string,
+    reason = "the lint is about an allocation per turn of a hot loop; this turns once per byte a person is being shown, and the alternative writes through a `Result` that cannot fail into a road that would then discard it"
+)]
 fn inspect_byte(byte: u8, into: &mut String) {
     match byte {
         b'"' | b'\\' => {

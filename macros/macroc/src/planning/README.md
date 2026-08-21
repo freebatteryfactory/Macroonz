@@ -58,14 +58,15 @@ invocation from the harness's supplied or current id, because collapsing
 the two ids into one input rebuilds a comparison of a value with itself.
 The two values live in two crates and their independence is across
 upgrade time: the comparison detects a version-mixed consumer, a partial
-publication, or a hand edit to one side; a jointly stale pair is outside
+rewrite, or a hand edit to one side; a jointly stale pair is outside
 the comparison's claim and dies at the compiler or in the harness's
-conformance lane — the mailbox side owns the disposal routes. Both
-checked-in sides are written by one explicit publication operation at
-schema-change time, under a receipt; the first pair is hand-authored
-under the declared-bootstrap posture and becomes verified-derived at the
-first toolchain contact, the flip itself a receipted publication act. The
-expectation updates only as an explicit compatibility change. Ownership
+currency lane — the mailbox side owns the disposal routes. Both
+checked-in sides are rewritten together in one git-visible
+human-committed change when the harness's declaration moves; the value
+this side holds was derived in the home that owns that declaration and
+copied here, which is what its verified-derived posture says. The
+declared-bootstrap posture the first hand-authored pair stood under is
+spent and has no road back. Ownership
 stays clean: the harness owns the schema; these services own exactly one
 fact — "I know how to emit against generated-support schema X."
 

@@ -35,7 +35,7 @@ use super::plan::{
 };
 use super::render::EVALUATION_SUBJECT;
 use super::types::{DerivedMembership, RefusalDerivationDraft, RefusalDeriveFact};
-use super::{diagnose, evaluation_spellings, explain};
+use super::{diagnose, evaluation_spellings, types};
 use crate::closure::{ClosedExpansion, ProjectionClosure, RenderedProjection, RenderedUnit};
 use crate::diagnostics::MacrocDiagnostic;
 use crate::explanation_protocol::{
@@ -188,7 +188,6 @@ pub fn deferred_selectors(
 /// declaration and an expansion context — neither of which carries one. A door
 /// that answered otherwise would be producing its own row material and then
 /// proving it.
-#[must_use]
 pub fn rows_disposition() -> ProjectionDisposition {
     ProjectionDisposition::NotApplicable {
         because: RefusalDeriveFact::ARowIsTheCallersDeclarationAndNeverTheProducers.citation(),
@@ -201,7 +200,6 @@ pub fn rows_disposition() -> ProjectionDisposition {
 /// a trials seat and a deferred seat, and neither is the bench seat. The bench
 /// crossing renders real material and rides its own shell today; this axis opens
 /// when the reserved seat is written.
-#[must_use]
 pub fn bench_disposition() -> ProjectionDisposition {
     ProjectionDisposition::NotApplicable {
         because: RefusalDeriveFact::ACarrierSeatIsWrittenBeforeItIsFilled.citation(),
@@ -447,11 +445,9 @@ fn carrier_explanation(
         .membership()
         .under(SoleRenderedUnit::Sole)
         .ok_or_else(|| {
-            diagnose::explanation_refused(
-                &explain::ExplanationBindingRefusal::RequiredOutputAbsent {
-                    seat: explain::ExplanationSeat::PlannedCarrierMember,
-                },
-            )
+            diagnose::explanation_refused(&types::ExplanationBindingRefusal::RequiredOutputAbsent {
+                seat: types::ExplanationSeat::PlannedCarrierMember,
+            })
         })?;
     let owner = RefusalDeriveFact::AnEvaluationCopyStandsOverALocalSubject.citation();
     let answers = vec![
@@ -487,7 +483,7 @@ fn carrier_explanation(
     ];
     ProjectionExplanationView::<TestDescriptorProjection>::complete(plan, closure, answers).map_err(
         |coverage| {
-            diagnose::explanation_refused(&explain::ExplanationBindingRefusal::Coverage(coverage))
+            diagnose::explanation_refused(&types::ExplanationBindingRefusal::Coverage(coverage))
         },
     )
 }

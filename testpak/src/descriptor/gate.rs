@@ -32,41 +32,78 @@
 //! Two values in two crates hold the same identity: the producer's own
 //! expectation travels with the code it emits, and this crate's published
 //! literal sits here. Their independence is across UPGRADE TIME — both sides are
-//! written by one explicit publication operation at schema-change time,
-//! git-visible, human-committed, under a receipt.
+//! rewritten together, git-visible and human-committed, when the declaration
+//! moves.
 //!
-//! # The bootstrap posture
+//! # Rewriting the pin
 //!
-//! The first pair is HAND-AUTHORED, and this side of it says so out loud: the
-//! bytes below are not a derived address and do not pretend to be one. They
-//! spell a sentence rather than a digest, they are declared as raw bytes rather
-//! than as a [`GeneratedSupportSchemaId`](crate::descriptor::GeneratedSupportSchemaId)
-//! — whose only construction road is derivation — and the type system therefore
-//! refuses to let a bootstrap placeholder impersonate a derived identity.
+//! There is no command to run. The act is three steps and they are named here
+//! because a reader following a schema change needs them: derive the current
+//! value through [`GeneratedSupportSchema::published`] and
+//! [`GeneratedSupportSchema::identity`](crate::descriptor::GeneratedSupportSchema::identity),
+//! rewrite both crates' literals to it, and commit the pair in one change. The
+//! currency lane is what says whether the act has been performed.
 //!
-//! What the pair claims under this posture is exactly one thing: the two sides
-//! were written coherently by one hand. At the first toolchain contact the pair
-//! becomes VERIFIED-DERIVED — the current declaration's identity is derived, both
-//! sides are rewritten to it, and that flip is itself a receipted,
-//! human-committed publication act rather than an edit somebody made.
+//! # The derived posture
+//!
+//! The bytes below came off that derivation. They are declared as raw bytes
+//! rather than as a
+//! [`GeneratedSupportSchemaId`](crate::descriptor::GeneratedSupportSchemaId) —
+//! whose only construction road is derivation performed at the moment it is
+//! asked for — so a checked-in COPY cannot pass as a fresh derivation anywhere
+//! that type is accepted.
+//!
+//! The first pair was hand-authored, spelled a sentence, and stood under a
+//! declared-bootstrap posture. It does not any more, and neither side has a road
+//! back to one.
 //!
 //! # What the gate's comparison claims, and what it cannot
 //!
-//! It detects PAIR INCOHERENCE: a version-mixed consumer, a partial publication,
-//! or a hand edit to one side. Inside one workspace, where both sides move
+//! It detects PAIR INCOHERENCE: a version-mixed consumer, a partial rewrite, or
+//! a hand edit to one side. Inside one workspace, where both sides move
 //! together, the live protection is the last two — and that limit is stated
 //! rather than hidden.
 //!
-//! It cannot detect a JOINTLY STALE PAIR: the declaration changed and
-//! publication never ran, so two old literals still agree and the gate opens.
-//! Pair currency is the conformance trial's job, which derives the current
-//! declaration's identity and checks the published literal against it.
+//! It cannot detect a JOINTLY STALE PAIR: the declaration changed and neither
+//! literal was rewritten, so two old values still agree and the gate opens. That
+//! is the currency lane's job, and the lane exists —
+//! `testpak/tests/published_schema_currency.rs` derives the identity from the
+//! current declaration and requires both published spellings to equal it.
+//!
+//! **The lane owns currency and nothing else.** It does not establish that
+//! `Row`, `DESCRIPTOR_FIELDS`, `Origin`, the encoder's slots, and the schema's
+//! field rosters are one structural declaration. They are parallel facts, a
+//! master declaration is what would join them, and no lane here pretends to.
 //!
 //! Every drift still dies; only this gate's own claim is narrow. The routes,
-//! exactly: pair incoherence dies here, at the gate. Joint staleness dies at
-//! whichever tripwire the drift reaches first — a changed constructor shape is
-//! rejected by the compiler as ordinary type errors before any trial runs, and a
-//! stale surface that still typechecks is rejected by the conformance trial.
+//! exactly: pair incoherence dies here, at the gate. Joint staleness dies in the
+//! harness's own currency lane, which derives the identity from the current
+//! declaration and requires both published spellings to equal it, and a changed
+//! constructor shape dies at the compiler as ordinary type errors before any
+//! trial runs.
+//!
+//! # The two spellings must be one TOKEN
+//!
+//! A `macro_rules!` arm matches a literal by its token, so the pattern below and
+//! the literal a producer writes have to be spelled the same way and not merely
+//! carry the same bytes. The published value is a derived identity now rather
+//! than the readable phrase the first hand-authored pair used, so both sides
+//! spell every byte as `\xNN`: one uniform form, chosen because it is the one a
+//! writer cannot get subtly different.
+//!
+//! The producer renders its literal from the expectation's VALUE
+//! (`GeneratedToken::ByteText`), so the spelling on that side is the token
+//! tree's. Where the two forms disagree, this gate refuses and its own
+//! diagnostic prints both — a visible refusal at the first invocation rather
+//! than a silent mismatch.
+//!
+//! # Bounds
+//!
+//! **No caller invokes this gate today.** The crossing it guards is the row road
+//! a generated support delivery carries, and the declaration family that would
+//! emit one has not been admitted at the derive's door yet. The pin is current
+//! and the gate is written; what it is waiting for is the producer that walks
+//! through it.
 
 /// The generated-support schema identity this harness PUBLISHES, as raw bytes.
 ///
@@ -76,19 +113,21 @@
 /// the gate's own arm carries as a literal token. Two spellings of one published
 /// fact, stated rather than hidden: a `macro_rules!` arm matches tokens and
 /// cannot read a constant, so the comparison must carry the literal itself. The
-/// conformance trial is what holds the two spellings together, along with
-/// holding both against the identity the current declaration actually derives.
+/// currency lane is what holds the two spellings together, along with holding
+/// both against the identity the current declaration actually derives.
 ///
 /// # Nonclaims
 ///
 /// It is deliberately NOT a
-/// [`GeneratedSupportSchemaId`](crate::descriptor::GeneratedSupportSchemaId).
-/// The only road to that type is derivation from a declaration's canonical
-/// bytes, and these bytes were not derived from anything — they are the
-/// declared-bootstrap placeholder the first hand-authored pair stands on. Being
-/// unable to build the typed identity out of them is the point: nothing in this
-/// crate can mistake the bootstrap value for a derived one.
-pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] = b"threadpak-generated-support-sche";
+/// [`GeneratedSupportSchemaId`](crate::descriptor::GeneratedSupportSchemaId),
+/// even though these bytes were derived. That type's only road is derivation
+/// from a declaration's canonical bytes, performed at the moment it is asked
+/// for; this is a checked-in COPY of one such derivation, and a copy that could
+/// wear the typed identity would let a stale copy pass as a fresh derivation
+/// anywhere the type is accepted. What holds the copy current is the currency
+/// lane, which re-derives and compares.
+pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] =
+    b"\x71\x16\xd7\x1b\xc9\x53\x2d\xb1\xe4\x7b\x9a\xff\xef\x11\x63\x38\x96\x2d\x4e\x91\x90\xfa\x4b\x0a\x3c\x21\x4a\x93\x11\xbb\x4d\x93";
 
 /// Guards one generated support delivery: compares the producer's expected
 /// schema identity against the published one, and releases BOTH of its seats —
@@ -166,9 +205,9 @@ pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] = b"threadpak-generat
 /// # Nonclaims
 ///
 /// Agreement here means the two published sides are COHERENT. It is not evidence
-/// that either side is current: a pair that agrees because publication never ran
-/// is exactly what this comparison cannot see, and pair currency is the
-/// conformance trial's. This page's module states the disposal routes for every
+/// that either side is current: a pair that agrees because neither literal was
+/// rewritten is exactly what this comparison cannot see, and pair currency is
+/// the currency lane's. This page's module states the disposal routes for every
 /// drift the gate does not catch.
 ///
 /// Releasing the deferred seat is transport and never endorsement. The gate says
@@ -187,7 +226,7 @@ pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] = b"threadpak-generat
 #[macro_export]
 macro_rules! generated_support {
     (
-        expected: b"threadpak-generated-support-sche",
+        expected: b"\x71\x16\xd7\x1b\xc9\x53\x2d\xb1\xe4\x7b\x9a\xff\xef\x11\x63\x38\x96\x2d\x4e\x91\x90\xfa\x4b\x0a\x3c\x21\x4a\x93\x11\xbb\x4d\x93",
         harness: $harness:ident,
         trials: { $($trials:tt)* },
         deferred: { $($deferred:tt)* },
@@ -234,13 +273,14 @@ macro_rules! generated_support {
              and this is not that arm. Producer expected: ",
             ::core::stringify!($expected),
             ". Published here: ",
-            ::core::stringify!(b"threadpak-generated-support-sche"),
+            ::core::stringify!(b"\x71\x16\xd7\x1b\xc9\x53\x2d\xb1\xe4\x7b\x9a\xff\xef\x11\x63\x38\x96\x2d\x4e\x91\x90\xfa\x4b\x0a\x3c\x21\x4a\x93\x11\xbb\x4d\x93"),
             ". Declared harness: ",
             ::core::stringify!($harness),
-            ". Exactly one act writes both sides: re-run the publication operation that \
-             rewrites the producer's expectation and this harness's published literal \
-             together, under one receipt. A version-mixed consumer, a partial publication, \
-             and a hand edit to one side are the three shapes this refusal has."
+            ". Both sides are rewritten together, in one change: derive the current value \
+             from the harness's own published schema declaration, write it into the \
+             producer's expectation and into this harness's published literal, and commit \
+             the pair. A version-mixed consumer, a partial rewrite, and a hand edit to one \
+             side are the three shapes this refusal has."
         ));
     };
 

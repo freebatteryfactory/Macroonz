@@ -22,7 +22,7 @@ use crate::plane::{
     PatternSubject, PlanId, PortSubject, ProfileVersion, ProjectionIdentity,
     ProjectionIntentSubject, ProjectionProfileSubject, ProjectionProvenance, ProjectionRole,
     RenderedRole, SchemaSubject, SoleRenderedUnit, WireContractSubject, WorkCurrencySubject,
-    WorkFormulaSubject, WrapperComponentLimit, static_bytes,
+    WorkFormulaSubject, WrapperComponentLimit,
 };
 use crate::question::ExplanationQuestion;
 use crate::refusal::ProjectionPlanning;
@@ -500,6 +500,10 @@ pub struct PlannedMembership<R: RenderedRole> {
 /// An irrelevant change — formatting, declaration order, an alias — matches no
 /// trigger and touches nothing, because no trigger watches those.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[expect(
+    clippy::enum_variant_names,
+    reason = "the shared word is the axis: every row names a thing that MOVED, and a roster of watched things without it would read as the things rather than as what happened to them"
+)]
 pub enum InvalidationTrigger {
     /// A source declaration this plan was derived from changed.
     SourceDeclarationChanged {
@@ -951,6 +955,10 @@ macro_rules! kinds {
         /// happened to it anywhere: those are a door's answers, and
         /// [`KindDispositions`] is where a door carries them.
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        #[expect(
+            clippy::enum_variant_names,
+            reason = "the rows are the projection kinds themselves and carry the kinds' own type names, so the shared word is the vocabulary this roster is a roster OF rather than a prefix anybody chose for it"
+        )]
         pub enum ProjectionKindRow {
             $( $(#[$note])* $name ),+
         }
@@ -1006,7 +1014,6 @@ macro_rules! kinds {
             /// Total over the closed roster: every row reads to exactly one seat,
             /// and a row admitted later stops the compiler here until somebody
             /// says which seat carries it.
-            #[must_use]
             pub const fn under(&self, row: ProjectionKindRow) -> &ProjectionDisposition {
                 match row {
                     $( ProjectionKindRow::$name => &self.$seat ),+
@@ -1066,6 +1073,10 @@ macro_rules! kinds {
 /// what is true, and a general one would be a vocabulary standing for
 /// declarations nobody makes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[expect(
+    clippy::enum_variant_names,
+    reason = "the shared word is this crate's central distinction: a RENDERED member is what a planned one answers to, the two rosters stand side by side, and dropping the word here would make a row of this one read as a row of that one"
+)]
 pub enum RenderedImplementation {
     /// The family contract's production implementation: the body shape and the
     /// textual selection order.
@@ -1356,27 +1367,29 @@ pub enum ProjectionDisposition {
 /// coherence and nothing else.
 ///
 /// A declared-bootstrap pair says "these two literals were written together by
-/// somebody who meant them to agree".
-/// It does not say the literal is the identity the harness's root schema
-/// declaration actually derives to — nothing has derived that yet, because the
-/// publication operation that derives it does not exist until a toolchain runs.
-/// What the comparison over a bootstrap pair still detects is real: a
-/// version-mixed consumer, a partial publication, and a hand edit to one side.
-/// What it cannot detect is stated where the expectation is declared.
+/// somebody who meant them to agree". It does not say the literal is the
+/// identity the harness's root schema declaration derives to.
+///
+/// # Bounds
+///
+/// **No value of this crate carries it.** It is the posture the first pair
+/// stood under before anything had been derived, and there is no road back to
+/// it: a pin is rewritten from a derivation from here on, so a hand-authored
+/// expectation is a value the seat that takes [`VerifiedDerived`] cannot hold.
+/// It is declared because the parameter it inhabits tells two postures apart at
+/// compile time, and that is what made the flip a change of type rather than an
+/// edit of bytes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DeclaredBootstrap;
 
-/// The posture a checked-in schema expectation stands under once the publication
-/// operation has DERIVED it from the harness's root schema declaration under a
-/// receipt.
+/// The posture a checked-in schema expectation stands under once it has been
+/// DERIVED from the harness's root schema declaration and copied here.
 ///
-/// Declared here because the type parameter it inhabits exists to tell the two
-/// postures apart at compile time, and a posture parameter with one inhabitant
-/// tells nothing apart.
-/// No value of this crate carries it yet: the flip from
-/// [`DeclaredBootstrap`] to this posture is itself a receipted, human-committed
-/// publication act at the first toolchain contact, and writing it before that
-/// act would be claiming the derivation happened.
+/// This crate's one expectation stands here. The bytes came off
+/// `GeneratedSupportSchema::published()?.identity()?` in the home that owns the
+/// declaration, and what keeps them current is that home's own currency lane
+/// rather than anything on this side — these services cannot derive the value,
+/// because the declaration lives in a crate they do not depend on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct VerifiedDerived;
 
@@ -1392,10 +1405,10 @@ pub struct VerifiedDerived;
 /// # Authority
 ///
 /// **Independence across upgrade time is the whole mechanism.** The two values
-/// live in two crates and are written by ONE explicit publication operation at
-/// schema-change time, git-visible and human-committed under a receipt. The
-/// comparison the harness's gate performs therefore detects a version-mixed
-/// consumer, a partial publication, or a hand edit to one side.
+/// live in two crates and are rewritten together, in one git-visible
+/// human-committed change, when the harness's declaration moves. The comparison
+/// the harness's gate performs therefore detects a version-mixed consumer, a
+/// partial rewrite, or a hand edit to one side.
 ///
 /// **It is NEVER derived during an invocation from the harness's supplied or
 /// current id.** There is no constructor that takes a supplied identity, and
@@ -1405,71 +1418,50 @@ pub struct VerifiedDerived;
 ///
 /// # Nonclaims
 ///
-/// A jointly stale pair — the schema changed and publication never ran, so two
-/// old literals still agree — is OUTSIDE this expectation's claim. It dies at
-/// the compiler, where a changed constructor shape is an ordinary type error, or
-/// in the harness's conformance lane, where the current schema's id is derived
-/// and checked against the published literal. The disposal routes belong to the
-/// side that owns the mailbox.
+/// A jointly stale pair — the schema changed and neither literal was rewritten,
+/// so two old values still agree — is OUTSIDE this expectation's claim. It dies
+/// at the compiler, where a changed constructor shape is an ordinary type error,
+/// or in the harness's currency lane, where the current schema's id is derived
+/// and both published spellings are required to equal it. The disposal routes
+/// belong to the side that owns the mailbox.
 ///
 /// # Bounds
 ///
-/// The posture parameter DEFAULTS to [`DeclaredBootstrap`], which is the posture
-/// this crate's one expectation actually stands in today, so the default states
-/// where the crate is rather than hiding a choice. Moving it to
-/// [`VerifiedDerived`] is part of the same receipted publication act that
-/// rewrites the literal, and a reader who wants the posture spelled at a use site
-/// writes it.
+/// The posture parameter DEFAULTS to [`VerifiedDerived`], which is the posture
+/// this crate's one expectation actually stands in, so the default states where
+/// the crate is rather than hiding a choice. [`DeclaredBootstrap`] has no
+/// inhabitant and no road back, so a seat spelled without a posture takes a
+/// derived expectation and cannot be handed a hand-authored one.
 #[must_use = "the expectation is the one fact these services hold about the harness's schema"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ExpectedGeneratedSupportSchemaId<Posture = DeclaredBootstrap> {
+pub struct ExpectedGeneratedSupportSchemaId<Posture = VerifiedDerived> {
     bytes: [u8; 32],
     _posture: PhantomData<Posture>,
 }
 
-/// The phrase both sides of the wall spell their DECLARED-BOOTSTRAP literal
-/// from.
-///
-/// It is fifty-six bytes and an identity is thirty-two, so the literal is this
-/// phrase's first thirty-two bytes — the cut is stated here rather than left for
-/// a reader to infer, and both sides perform the same cut on the same phrase.
-///
-/// # Bounds
-///
-/// The cut drops the phrase's tail, so the LITERAL alone does not spell the
-/// version or the posture: the posture is carried by the type parameter
-/// [`DeclaredBootstrap`] and the version by this phrase. A later bootstrap
-/// phrase must therefore differ inside its first thirty-two bytes, or two
-/// versions' bootstrap pairs would be spelled identically and the comparison
-/// that exists to catch a version-mixed consumer would open for one.
-pub const GENERATED_SUPPORT_SCHEMA_DECLARED_BOOTSTRAP: &str =
-    "threadpak-generated-support-schema-v0-declared-bootstrap";
-
 /// The services' checked-in expectation of the generated-support schema
-/// identity, in the declared-bootstrap posture.
+/// identity.
 ///
-/// The bytes are the ASCII `threadpak-generated-support-sche` — the first
-/// thirty-two of [`GENERATED_SUPPORT_SCHEMA_DECLARED_BOOTSTRAP`], and the exact
-/// literal the harness's own published side carries until the first toolchain
-/// contact. Two hand-authored sides, one phrase, one cut: that is what "pair
-/// coherence" means while the posture is [`DeclaredBootstrap`].
-///
-/// Readable ASCII is deliberate. A reader who dumps these bytes sees a sentence
-/// rather than a digest and knows immediately that nothing derived them.
+/// These thirty-two bytes were DERIVED, from the harness's own published
+/// declaration through that home's own road, and copied here. They are not a
+/// sentence and do not read as one: a reader who dumps them sees a digest, which
+/// is what a value nobody authored looks like.
 ///
 /// # Authority
 ///
-/// **An all-zero address is forbidden here and is not what a bootstrap looks
-/// like.** Zeros are the value every uninitialized, defaulted, or forgotten seat
-/// also carries, so a zero expectation would compare equal to every other
-/// forgotten one and would read as a derived identity that happened to be
-/// unlucky. This value is unmistakably authored, which is exactly the claim the
-/// posture makes.
+/// **An all-zero address is forbidden here.** Zeros are the value every
+/// uninitialized, defaulted, or forgotten seat also carries, so a zero
+/// expectation would compare equal to every other forgotten one.
 ///
-/// It is written by the publication operation and by nothing else once that
-/// operation exists; until then it is the hand-authored first pair, and the flip
-/// to [`VerifiedDerived`] is a receipted publication act rather than an edit.
-pub const EXPECTED_GENERATED_SUPPORT_SCHEMA_ID: ExpectedGeneratedSupportSchemaId =
-    ExpectedGeneratedSupportSchemaId::declared(static_bytes(
-        GENERATED_SUPPORT_SCHEMA_DECLARED_BOOTSTRAP,
-    ));
+/// This side cannot derive the value itself — the declaration it names lives in
+/// a crate these services do not depend on — so what stands behind it is the
+/// harness's currency lane, which derives the identity from the current
+/// declaration and requires both published spellings to equal it. That lane is
+/// the reason this constant can be trusted as CURRENT rather than merely
+/// coherent with its twin.
+pub const EXPECTED_GENERATED_SUPPORT_SCHEMA_ID: ExpectedGeneratedSupportSchemaId<VerifiedDerived> =
+    ExpectedGeneratedSupportSchemaId::derived([
+        0x71, 0x16, 0xd7, 0x1b, 0xc9, 0x53, 0x2d, 0xb1, 0xe4, 0x7b, 0x9a, 0xff, 0xef, 0x11, 0x63,
+        0x38, 0x96, 0x2d, 0x4e, 0x91, 0x90, 0xfa, 0x4b, 0x0a, 0x3c, 0x21, 0x4a, 0x93, 0x11, 0xbb,
+        0x4d, 0x93,
+    ]);

@@ -507,3 +507,17 @@ pub use guard::CodecComposition;
 /// admitted by, published from the nucleus every road here already reads it
 /// through.
 pub use guard::is_codec_identifier;
+
+/// One arm of the decode refusal this home declares, and the sentence it carries
+/// for a reader.
+///
+/// Every arm here names the MEMBER it refused at, because a caller told only that
+/// decoding failed has nothing to look at — and the member's spelling is a text
+/// literal, which is the one literal arm the generated-token roster carries.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DecodeRefusalArm {
+    /// The variant's rendered spelling.
+    pub spelling: &'static str,
+    /// The sentence the variant documents itself with.
+    pub sentence: &'static str,
+}
