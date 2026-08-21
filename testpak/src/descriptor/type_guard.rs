@@ -27,9 +27,11 @@ use super::{
     ProducerFacts, ProducerName, ProjectionRef, ProposalId, Provenance, ReplayAdmission,
     ReplayBearingGround, ReplayRef, RevisionBinding, RevisionPosture, Role, Row, RowRefusal,
     SchemaField, SchemaRefusal, StagedTableRefusal, StagedTableView, Stem, SubjectRoute,
-    TablePosture, TableView, Tag, TrialKey,
+    TablePosture, TableView, Tag, TrialCoordinates, TrialKey,
 };
-use crate::descriptor::encode::{encode_generated_support_schema, encode_row_content};
+use crate::descriptor::encode::{
+    encode_generated_support_schema, encode_row_content, encode_trial_coordinates,
+};
 use crate::identity::{ContentAddress, DomainTag};
 use std::collections::BTreeSet;
 
@@ -39,6 +41,14 @@ use std::collections::BTreeSet;
 /// and its version are the identity substrate's. Two kinds derived over
 /// identical preimages under different tags are unrelated values.
 const GENERATED_SUPPORT_SCHEMA_DOMAIN: DomainTag = DomainTag::declared("generated-support-schema");
+
+/// The domain this home declares for a trial key.
+///
+/// Its own tag rather than the row-revision one beside it: a trial's four
+/// coordinates and a row's seven fields are different preimages answering
+/// different questions, and two kinds derived under one tag would be reachable
+/// from each other's bytes.
+const TRIAL_KEY_DOMAIN: DomainTag = DomainTag::declared("trial-key");
 
 impl Namespace {
     /// The owner one authored text declares.
@@ -435,22 +445,28 @@ impl Row {
             origin,
         )
         .map_err(RowRefusal::NotEncoded)?;
+        let coordinates = TrialCoordinates::over(claim, subject, check, population);
+        let trial_key = TrialKey::over(coordinates).map_err(RowRefusal::NotEncoded)?;
         Ok(Self {
-            claim,
+            coordinates,
+            trial_key,
             execution_suite,
             classification,
-            subject,
-            check,
-            population,
             origin,
             canonical: CanonicalRowBytes(canonical),
         })
     }
 
+    /// Where this row's trial sits.
+    #[must_use]
+    pub const fn coordinates(&self) -> TrialCoordinates {
+        self.coordinates
+    }
+
     /// The claim this row serves.
     #[must_use]
     pub const fn claim(&self) -> ClaimRef {
-        self.claim
+        self.coordinates.claim()
     }
 
     /// The one aggregate seat this row runs under by default.
@@ -480,19 +496,19 @@ impl Row {
     /// What this row exercises.
     #[must_use]
     pub const fn subject(&self) -> SubjectRoute {
-        self.subject
+        self.coordinates.subject()
     }
 
     /// The check that judges this row's subject.
     #[must_use]
     pub const fn check(&self) -> CheckRef {
-        self.check
+        self.coordinates.check()
     }
 
     /// The population that supplies this row's inputs.
     #[must_use]
     pub const fn population(&self) -> PopulationRef {
-        self.population
+        self.coordinates.population()
     }
 
     /// Where this row came from.
@@ -510,19 +526,34 @@ impl Row {
         &self.canonical
     }
 
-    /// The semantic content that decides whether two rows are one trial.
+    /// The compact identity that decides whether two rows are one trial.
+    ///
+    /// A read and never a computation, on the same terms as
+    /// [`Row::canonical_bytes`]: the derivation happened once, at
+    /// [`Row::declared`], and this hands back what was derived there.
     #[must_use]
     pub const fn trial_key(&self) -> TrialKey {
-        TrialKey {
-            claim: self.claim,
-            subject: self.subject,
-            check: self.check,
-            population: self.population,
-        }
+        self.trial_key
     }
 }
 
-impl TrialKey {
+impl TrialCoordinates {
+    /// The four coordinates one trial sits at.
+    #[must_use]
+    pub const fn over(
+        claim: ClaimRef,
+        subject: SubjectRoute,
+        check: CheckRef,
+        population: PopulationRef,
+    ) -> Self {
+        Self {
+            claim,
+            subject,
+            check,
+            population,
+        }
+    }
+
     /// The claim the trial serves.
     #[must_use]
     pub const fn claim(self) -> ClaimRef {
@@ -545,6 +576,34 @@ impl TrialKey {
     #[must_use]
     pub const fn population(self) -> PopulationRef {
         self.population
+    }
+}
+
+impl TrialKey {
+    /// Derive one trial's compact identity from its coordinates.
+    ///
+    /// The one place the four coordinates are encoded. Everything downstream
+    /// that needs to name this trial — a table's uniqueness check, a duplicate
+    /// refusal, the report instrument's `TrialId` — stands on these bytes rather
+    /// than encoding the four again, so there is no second preimage to drift
+    /// from this one.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`EncodeRefusal`] where the coordinates' preimage could not be
+    /// written — a length past the width this home's encoding declares, which is
+    /// unreachable on every target this crate is built for and is a refusal
+    /// rather than a silence because a trial without its bytes is a trial
+    /// nothing can name.
+    pub fn over(coordinates: TrialCoordinates) -> Result<Self, EncodeRefusal> {
+        encode_trial_coordinates(coordinates)
+            .map(|preimage| Self(ContentAddress::derived(TRIAL_KEY_DOMAIN, &preimage)))
+    }
+
+    /// The content address this key carries.
+    #[must_use]
+    pub const fn address(self) -> ContentAddress {
+        self.0
     }
 }
 

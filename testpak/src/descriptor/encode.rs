@@ -122,7 +122,7 @@
 use super::types::{
     CheckRef, ClaimRef, Classification, DischargeAdmission, EncodeRefusal, ExecutionSuite,
     FieldShape, GeneratedSupportSchema, NamespacedName, Origin, PopulationRef, ReplayAdmission,
-    SchemaField, SubjectRoute, SynthesisFacts,
+    SchemaField, SubjectRoute, SynthesisFacts, TrialCoordinates,
 };
 use crate::identity::ContentAddress;
 
@@ -330,6 +330,37 @@ fn push_discharge_admission(
 ) -> Result<(), EncodeRefusal> {
     push_address(out, admitted.proposal().address())?;
     push_name(out, admitted.destination().name())
+}
+
+/// The COMPLETE preimage one [`TrialKey`](super::TrialKey) is derived from: the
+/// four coordinates, each as its reference's namespaced name, in exactly this
+/// order and with no separators and no padding.
+///
+/// | # | member | encoding |
+/// | - | ------ | -------- |
+/// | 1 | claim | the reference's namespaced name |
+/// | 2 | subject route | the reference's namespaced name |
+/// | 3 | check | the reference's namespaced name |
+/// | 4 | population | the reference's namespaced name |
+///
+/// The execution suite is absent for the reason the coordinates leave it out:
+/// two rows differing only by suite are one trial run under two seats. Nothing
+/// about where the row is written appears either, so the key survives a file
+/// move, a module move, and a rename.
+///
+/// # Errors
+///
+/// Returns [`EncodeRefusal`] where a member is longer than the width this
+/// home's framing declares.
+pub(super) fn encode_trial_coordinates(
+    coordinates: TrialCoordinates,
+) -> Result<Vec<u8>, EncodeRefusal> {
+    let mut out = Vec::new();
+    push_name(&mut out, coordinates.claim().name())?;
+    push_name(&mut out, coordinates.subject().name())?;
+    push_name(&mut out, coordinates.check().name())?;
+    push_name(&mut out, coordinates.population().name())?;
+    Ok(out)
 }
 
 /// One namespaced name: the namespace, then the stem, each framed.

@@ -18,5 +18,6 @@ pub use types::{
     NamespacedName, Origin, PopulationRef, ProducerFacts, ProducerName, ProjectionRef, ProposalId,
     Provenance, ReplayAdmission, ReplayBearingGround, ReplayRef, RevisionBinding, RevisionPosture,
     Role, Row, RowRefusal, SchemaField, SchemaRefusal, StagedTableRefusal, StagedTableView, Stem,
-    SubjectRoute, SynthesisFacts, TablePosture, TableView, Tag, TrialKey, TrialTableRefusal,
+    SubjectRoute, SynthesisFacts, TablePosture, TableView, Tag, TrialCoordinates, TrialKey,
+    TrialTableRefusal,
 };

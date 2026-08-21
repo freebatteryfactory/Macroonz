@@ -456,14 +456,17 @@ pub struct CanonicalRowBytes(Vec<u8>);
 /// declared field and no producer states them: they are what the seven ENCODE
 /// TO, which is why the producer-facing schema roster does not name them and a
 /// row's revision identity is a reading rather than a recomputation.
+/// Beside those it owns BOTH readings of the trial it states: the typed
+/// [`TrialCoordinates`] a reader wants, and the [`TrialKey`] derived over them
+/// once at construction. The key is a reading afterwards on the same terms the
+/// canonical bytes are, so nothing re-derives it per run and no two derivations
+/// of one row's key can disagree.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Row {
-    claim: ClaimRef,
+    coordinates: TrialCoordinates,
+    trial_key: TrialKey,
     execution_suite: ExecutionSuite,
     classification: Classification,
-    subject: SubjectRoute,
-    check: CheckRef,
-    population: PopulationRef,
     origin: Origin,
     canonical: CanonicalRowBytes,
 }
@@ -491,26 +494,53 @@ pub enum RowRefusal {
     NotEncoded(EncodeRefusal),
 }
 
-/// The semantic content two rows would have to share to be one trial: the
-/// claim, the subject, the check, and the population.
+/// Where one trial sits: the claim it serves, the subject it exercises, the
+/// check that judges it, and the population that supplies its inputs.
+///
+/// The READABLE account. A road that wants to say which trial it is talking
+/// about reads these four typed references, and each of them stays its own
+/// envelope — nothing here is flattened into text so that the four fit
+/// somewhere smaller.
+///
+/// The execution suite is deliberately outside, because two rows differing only
+/// by suite are one trial run under two seats.
 ///
 /// # Nonclaims
 ///
-/// This is NOT the trial identity. The report instrument derives `TrialId` from
-/// semantic meaning — the claim, the subject, the mechanism the check reference
-/// names, the population, and the profile — and this home cannot compute it
-/// without importing that vocabulary. This key is the descriptor-side shadow of
-/// it: the structural fact a table constructor can establish on its own, so a
-/// duplicated trial cannot exist in a constructed table. The execution suite is
-/// deliberately outside the key, because two rows differing only by suite are
-/// one trial run under two seats.
+/// It is not an identity and nothing is derived under it directly. What is
+/// derived over it is [`TrialKey`], once, where a row is born.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct TrialKey {
+pub struct TrialCoordinates {
     claim: ClaimRef,
     subject: SubjectRoute,
     check: CheckRef,
     population: PopulationRef,
 }
+
+/// The compact identity of one trial's coordinates.
+///
+/// The COMPARABLE account, and the only one that travels. A table compares
+/// these thirty-two bytes to decide whether two bindings state one trial, a
+/// duplicate refusal carries them, and the report instrument derives
+/// `TrialId` over them beside the profile coordinate it adds.
+///
+/// # Authority
+///
+/// **The key is not the suitcase.** It carries no claim, no subject, no check,
+/// and no population, and has no road back to them: a caller that wants the
+/// coordinates reads them off the row that holds both, where they are already
+/// present and already typed. A key that also carried the four would be a
+/// hundred and twenty-eight bytes riding every refusal that names a trial, and a
+/// reverse lookup from a key to its coordinates would be the hidden registry
+/// this vocabulary refuses everywhere else.
+///
+/// # Bounds
+///
+/// Derived once, where a [`Row`] is built, from that row's coordinates alone.
+/// The four are encoded in exactly one place, so no second preimage exists to
+/// drift from the first.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct TrialKey(ContentAddress);
 
 /// What a revision identity is worth, stated by the party that bound it.
 ///

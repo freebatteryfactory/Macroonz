@@ -16,10 +16,9 @@
 //! own two declared parts rather than from anything this file invents.
 
 use super::{
-    CheckRevisionId, FailureClass, FindingCause, InvocationProfile, ReplayCapsule, ReplayPosture,
-    SubjectRevisionId, TargetBinding, TrialCoordinates, TrialId, TrialProfile,
+    CheckRevisionId, FailureClass, FindingCause, InvocationProfile, ProfiledTrial, ReplayCapsule,
+    ReplayPosture, SubjectRevisionId, TargetBinding, TrialId, TrialProfile,
 };
-use crate::descriptor::NamespacedName;
 
 /// Append one length as eight big-endian bytes.
 ///
@@ -35,15 +34,6 @@ pub fn encode_length(length: usize, into: &mut Vec<u8>) {
 pub fn encode_bytes(material: &[u8], into: &mut Vec<u8>) {
     encode_length(material.len(), into);
     into.extend_from_slice(material);
-}
-
-/// Append one namespaced name: its namespace, then its stem, each framed.
-///
-/// Two framed members rather than a joined spelling, so no pair of namespace
-/// and stem can be re-cut into a different pair that encodes identically.
-fn encode_name(name: NamespacedName, into: &mut Vec<u8>) {
-    encode_bytes(name.namespace().written().as_bytes(), into);
-    encode_bytes(name.stem().written().as_bytes(), into);
 }
 
 impl TrialProfile {
@@ -93,31 +83,28 @@ impl ReplayPosture {
 /// - `u32be(n)` / `u64be(n)` — the integer in four or eight big-endian bytes.
 /// - `bytes(x)` — `u64be(x.len())` followed by the bytes of `x`.
 ///
-/// A namespaced name is `bytes(namespace)` followed by `bytes(stem)`.
-///
 /// The members, in exactly this order, with no separators and no padding:
 ///
 /// | # | member | encoding |
 /// | - | ------ | -------- |
-/// | 1 | claim | the reference's namespaced name |
-/// | 2 | subject route | the reference's namespaced name |
-/// | 3 | mechanism | the check reference's namespaced name |
-/// | 4 | population | the reference's namespaced name |
-/// | 5 | profile | one byte, [`TrialProfile::slot`] |
+/// | 1 | trial key | `bytes(…)` of the full thirty-two |
+/// | 2 | profile | one byte, [`TrialProfile::slot`] |
 ///
-/// Nothing about where the trial is written appears anywhere in it, which is
+/// **Two members and not five.** The claim, the subject route, the check, and
+/// the population reach this preimage through the key, which the descriptor home
+/// derived over them where the row was born — so those four are encoded in one
+/// place in this crate and a reader following the chain reaches one framing
+/// rather than two that agree until one is edited.
+///
+/// Nothing about where the trial is written appears in either member, which is
 /// the encoding half of the promise that a trial identity survives a move. The
-/// execution suite is absent for the same reason the descriptor-side trial key
-/// leaves it out: two rows differing only by suite are one trial under two
-/// seats.
+/// execution suite is absent for the same reason the key leaves it out: two rows
+/// differing only by suite are one trial under two seats.
 #[must_use]
-pub fn trial_preimage(coordinates: TrialCoordinates) -> Vec<u8> {
+pub fn trial_preimage(profiled: ProfiledTrial) -> Vec<u8> {
     let mut bytes = Vec::new();
-    encode_name(coordinates.claim().name(), &mut bytes);
-    encode_name(coordinates.subject().name(), &mut bytes);
-    encode_name(coordinates.mechanism().name(), &mut bytes);
-    encode_name(coordinates.population().name(), &mut bytes);
-    bytes.push(coordinates.profile().slot());
+    encode_bytes(profiled.key().address().as_bytes(), &mut bytes);
+    bytes.push(profiled.profile().slot());
     bytes
 }
 
