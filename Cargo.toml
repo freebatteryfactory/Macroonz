@@ -22,8 +22,8 @@ members = [
 [workspace.package]
 version = "0.0.0"
 edition = "2024"
-# The floor is the pin: 1.97.1 is the version every build actually stands on.
-rust-version = "1.97.1"
+# The floor is the pin: 1.98.0 is the version every build actually stands on.
+rust-version = "1.98.0"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/freebatteryfactory/ThreadPak"
 
