@@ -323,8 +323,8 @@ pub fn roster(items: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, ShellRe
 /// the literal token the gate's opening arm matches.
 ///
 /// The value is read from the services' one checked-in expectation and from
-/// nowhere else, so the literal this emission carries and the constant the
-/// publication operation rewrites are one fact rather than two.
+/// nowhere else, so the literal this emission carries and the constant a schema
+/// rewrite moves are one fact rather than two.
 ///
 /// Total: thirty-two bytes are one literal token whatever they are, so there is
 /// no count to read, nothing to admit, and no error branch for a caller to fill
@@ -334,9 +334,9 @@ pub fn expectation_literal() -> GeneratedToken {
     expectation_literal_of(&EXPECTED_GENERATED_SUPPORT_SCHEMA_ID)
 }
 
-/// The same literal, over an expectation a caller holds — the road the
-/// publication operation's own posture flip travels, since a verified-derived
-/// expectation is a different type and the same rendering.
+/// The same literal, over an expectation a caller holds — the road a posture
+/// flip travels, since an expectation under another posture is a different type
+/// and the same rendering.
 ///
 /// The expectation's thirty-two bytes are stated as the literal's VALUE and
 /// never as a spelling: the `b`, the quotes, and every escape are the tree's, so

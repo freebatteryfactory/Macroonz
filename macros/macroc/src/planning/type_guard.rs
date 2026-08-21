@@ -20,12 +20,12 @@
 
 use super::super::encode::encode_set;
 use super::{
-    BundleMemberLimit, CapturedDependencies, CauseAnchoring, ContentAddressing, DeclaredBootstrap,
-    DigestContract, EmissionPartition, ExpectedGeneratedSupportSchemaId, GraphAnchoring,
-    InvalidationLimit, InvalidationSet, InvalidationTrigger, KindSeal, OwnerContentAccount,
-    PlanDecisions, PlanDerivation, PlannedMember, PlannedMembership, ProjectionBundlePlan,
-    ProjectionContext, ProjectionIntentId, ProjectionKind, ProjectionPlan, SourceDeclarationLimit,
-    SourceDeclarations, TargetBinding, TargetRequirement, UNIVERSAL_QUESTIONS,
+    BundleMemberLimit, CapturedDependencies, CauseAnchoring, ContentAddressing, DigestContract,
+    EmissionPartition, ExpectedGeneratedSupportSchemaId, GraphAnchoring, InvalidationLimit,
+    InvalidationSet, InvalidationTrigger, KindSeal, OwnerContentAccount, PlanDecisions,
+    PlanDerivation, PlannedMember, PlannedMembership, ProjectionBundlePlan, ProjectionContext,
+    ProjectionIntentId, ProjectionKind, ProjectionPlan, SourceDeclarationLimit, SourceDeclarations,
+    TargetBinding, TargetRequirement, UNIVERSAL_QUESTIONS, VerifiedDerived,
 };
 use crate::origin_graph::{DecisionTrace, Nonclaim, OriginTrail};
 use crate::plane::{
@@ -313,15 +313,21 @@ impl<Posture> ExpectedGeneratedSupportSchemaId<Posture> {
     }
 }
 
-impl ExpectedGeneratedSupportSchemaId<DeclaredBootstrap> {
-    /// The hand-authored first pair's road, crate-internal and const.
+impl ExpectedGeneratedSupportSchemaId<VerifiedDerived> {
+    /// The road for an expectation copied from a derived identity,
+    /// crate-internal and const.
     ///
     /// Crate-internal because the value it makes is a CLAIM about a schema this
-    /// crate does not own: one checked-in constant states it, the publication
-    /// operation rewrites that constant under a receipt when the schema changes,
-    /// and a caller that could mint another would be making the same claim
-    /// somewhere nobody publishes.
-    pub(crate) const fn declared(bytes: [u8; 32]) -> Self {
+    /// crate does not own: one checked-in constant states it, and a caller that
+    /// could mint another would be making the same claim somewhere nobody
+    /// publishes.
+    ///
+    /// The posture is [`VerifiedDerived`] because the bytes came off the owning
+    /// home's derivation rather than off a hand. What holds them current is the
+    /// harness's own currency lane, not this constructor: a road here that
+    /// checked anything would be this crate re-deriving a declaration it cannot
+    /// see.
+    pub(crate) const fn derived(bytes: [u8; 32]) -> Self {
         Self {
             bytes,
             _posture: PhantomData,

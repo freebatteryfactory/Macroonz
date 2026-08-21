@@ -635,8 +635,8 @@ pub struct ExecutableAttachment<Invocation, Conclusion> {
 ///
 /// A pin records which schema identity a producer emitted against. It is not
 /// evidence that the pin is current: a jointly stale pair — a schema that moved
-/// while publication never ran — agrees with itself and says nothing. Pair
-/// currency is the conformance trial's job.
+/// while neither literal was rewritten — agrees with itself and says nothing.
+/// Pair currency is the currency lane's job.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Provenance {
     /// No producer stands behind this binding.

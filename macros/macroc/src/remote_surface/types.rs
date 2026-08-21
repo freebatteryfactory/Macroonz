@@ -389,7 +389,8 @@ pub struct RemoteSurfacePlan {
 ///
 /// [`SurfaceContractMint::Minted`] has no inhabitant in this crate today, and
 /// declaring it anyway is deliberate on exactly the terms
-/// [`VerifiedDerived`](crate::planning::VerifiedDerived) is declared.
+/// [`VerifiedDerived`](crate::planning::VerifiedDerived) was declared on — a
+/// posture that has since landed into the seat written ahead of it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SurfaceContractMint {
     /// Callers hold the machine's own minted identity for host contracts, so the

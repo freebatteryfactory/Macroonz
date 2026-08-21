@@ -129,25 +129,28 @@ hand-bumped, never a hash of source text, and bytes are never "the id"; a
 change to ANY member moves the id, so the one pin governs all three
 crossings mechanically. The producer holds its own independently held
 expectation of that identity — two values in two crates, whose independence
-is across upgrade time. Both checked-in sides are written by one explicit
-publication operation at schema-change time, git-visible, human-committed,
-under a receipt; the first pair is hand-authored under a declared-bootstrap
-posture (the author's word, claiming pair coherence only) and becomes
-verified-derived at the first toolchain contact, the flip itself a
-receipted, human-committed publication act. What the pin's comparison
-detects is pair-coherence failure: a version-mixed consumer, a partial
-publication, or a hand edit to one side. Inside one workspace, where both
-sides move together, the pin's live protection is the last two only — that
+is across upgrade time. Both checked-in sides are rewritten together, in one
+git-visible human-committed change: derive the current value through the
+schema's own `published()` and `identity()` roads, write it into both
+literals, commit the pair. There is no command; the three steps are the
+whole of the act, and the first pair's hand-authored declared-bootstrap
+posture is spent and has no road back. What the pin's comparison detects is
+pair-coherence failure: a version-mixed consumer, a partial rewrite, or a
+hand edit to one side. Inside one workspace, where both sides move
+together, the pin's live protection is the last two only — that
 limit is stated, not hidden. What it cannot detect, stated: a
-jointly stale pair — the schema changed and publication never ran, so the
-two old literals still agree and the gate opens. Pair currency is the
-conformance trial's job: the executed admission trial derives the current
-schema's id and checks the published literal against it. The disposal
-routes, exactly: pair incoherence dies at the gate; joint staleness dies by
-whichever tripwire the drift reaches first — changed constructor shape is
-rejected by the compiler as ordinary type errors before any trial runs; a
-stale surface that still typechecks is rejected by the conformance trial.
-Every drift dies; only the gate's own claim is narrow.
+jointly stale pair — the schema changed and neither literal was rewritten,
+so the two old values still agree and the gate opens. Pair currency is the
+currency lane's job: `tests/published_schema_currency.rs` derives the
+current schema's id and requires both published spellings to equal it. That
+lane owns currency and nothing more — it does not establish that `Row`,
+`DESCRIPTOR_FIELDS`, `Origin`, the encoder's slots and the field rosters are
+one structural declaration, because they are parallel facts and a master
+declaration is what would join them. The disposal routes, exactly: pair
+incoherence dies at the gate; joint staleness dies in the currency lane; a
+changed constructor shape dies at the compiler as ordinary type errors
+before any trial runs. Every drift dies; only the gate's own claim is
+narrow.
 
 The pre-typecheck gate makes the loud break a mechanism, not a hope: this
 instrument owns a local `generated_support!` gate that token-matches the
@@ -161,8 +164,7 @@ Admission's first check is producer-expected against the published harness
 id — one precise loud break when the two published ids disagree, never a
 cascade of field errors on that road; a jointly stale pair sits outside this
 comparison's claim. Generated expressions call
-public constructors, never struct literals; the conformance lane is
-admission exercised as one executed trial, never a registry. The rename
+public constructors, never struct literals. The rename
 twins hold: a consumer may rename both crates, and generated code honors
 both names.
 
