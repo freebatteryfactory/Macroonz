@@ -30,7 +30,7 @@ use crate::plane::{
 };
 use crate::planning::MemberDestination;
 use crate::test_descriptor::{
-    BoundPath, ShellName, ShellRenderIssue, ShellRendering, WallName, expectation_literal,
+    BoundPath, ShellName, ShellRenderIssue, ShellRendering, WallName, expectation_roster,
     exported_shell, gate_invocation, is_rendered_identifier, unbounded,
 };
 use crate::token::GeneratedTree;
@@ -392,9 +392,10 @@ impl BenchmarkShell {
         // empty, because this crossing defers no cargo into the carrier — the
         // reporter adapter is an item beside the gate rather than cargo through
         // it.
-        let mut body = gate_invocation(expectation_literal(), cargo, Vec::new()).map_err(sole)?;
+        let pin = expectation_roster().map_err(sole)?;
+        let mut body = gate_invocation(pin, cargo, Vec::new()).map_err(sole)?;
         body.extend(reporter);
-        let tokens = exported_shell(&name, body).map_err(sole)?;
+        let tokens = exported_shell(&name, render::matcher(), body).map_err(sole)?;
         let tree = GeneratedTree::assembled(tokens).map_err(|_| sole(unbounded()))?;
         Ok(Self {
             role: stated.role,

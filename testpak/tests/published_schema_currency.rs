@@ -32,8 +32,12 @@ fn derived() -> Option<[u8; 32]> {
 /// The harness's published literal is the identity the current declaration
 /// derives.
 ///
-/// This is the side the gate's own arm carries as a pattern token, so a stale
-/// value here is a gate that opens on a declaration that has moved.
+/// The gate's own arms carry these digits as pattern tokens — an arm matches
+/// tokens and cannot read a constant — so a stale value here is a gate that opens
+/// on a declaration that has moved. The constant and the arms are written in one
+/// base, in one order, in one layout, so the three spellings are compared by eye
+/// where no lane can reach them; what this seat holds is the constant against the
+/// derivation.
 #[test]
 fn the_harness_published_literal_is_current() {
     let derived = derived();

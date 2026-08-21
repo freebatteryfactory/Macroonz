@@ -20,6 +20,7 @@ pub use capture::{captured, captured_text};
 pub use carry::{
     assembly, bench_disposition, carrier_expansion, carrier_kind, carrier_node, carrier_origin,
     carrier_plan, carrier_semantic_key, deferred_selectors, evaluation_axis, rows_disposition,
+    trials_axis,
 };
 pub use diagnose::composed;
 pub use document::documented;
@@ -27,13 +28,14 @@ pub use plan::DerivedPlan;
 pub use render::{CAUSE_ORDER_CONTRACT, EVALUATION_SUBJECT, FAMILY_CONTRACT, REFUSAL_MODULE};
 pub use types::{
     CapturedCause, CapturedCommitments, CapturedDocumentation, CapturedDocumentationReading,
-    CauseOrderStanding, CrateBinding, DEFAULT_CRATE_BINDING, DIAGNOSTIC_PREFIX, DeriveCauseLimit,
-    DerivedMembership, DocumentedDeclaration, ExplanationBindingRefusal, ExplanationSeat, LineBody,
-    LineSite, RefusalClass, RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveCapture,
-    RefusalDeriveFact, RefusalDeriveRefusal, RefusalDeriveSurface, RefusalFamilyExpansion,
-    RefusalLine, RefusalOwnerFacts, RefusalSite, RenderRefusal, RenderedMagnitude,
-    SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,
-    TextCompileRefusal,
+    CapturedFamilyFacts, CauseOrderStanding, CrateBinding, DEFAULT_CRATE_BINDING,
+    DIAGNOSTIC_PREFIX, DeclaredTrials, DeriveCauseLimit, DerivedMembership, DocumentedDeclaration,
+    ExplanationBindingRefusal, ExplanationSeat, LineBody, LineSite, RefusalClass,
+    RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveCapture, RefusalDeriveFact,
+    RefusalDeriveRefusal, RefusalDeriveSurface, RefusalFamilyExpansion, RefusalLine,
+    RefusalOwnerFacts, RefusalSite, RenderRefusal, RenderedMagnitude, SHAPE_WORD_INSEPARABLE_PAIR,
+    SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE, SurfaceCaptureRefusal,
+    TextCompileRefusal, TrialDeclarationPosture,
 };
 
 use crate::closure::{ProjectionClosure, RenderedProjection, RenderedUnit};
@@ -66,8 +68,18 @@ pub fn compile_refusal(
     input: &CapturedInput,
     context: &RefusalCompileContext,
 ) -> Result<RefusalFamilyExpansion, MacrocDiagnostic> {
-    let surface = captured(input)
-        .map_err(|refusal| refusal.diagnosed(&context.spans, context.machine.clone()))?;
+    // Two grammars answer at the capture, and each is projected by the road its
+    // own home owns: a declaration the derive grammar could not read is this
+    // home's diagnostic, and a trial declaration the carrier's grammar could not
+    // read is projected at the exact clause it was established at.
+    let surface = captured(input).map_err(|refusal| match refusal {
+        SurfaceCaptureRefusal::Declaration(read) => {
+            read.diagnosed(&context.spans, context.machine.clone())
+        }
+        SurfaceCaptureRefusal::Trials(trials) => {
+            diagnose::trial_declaration_refused(trials, &context.spans)
+        }
+    })?;
     let draft = surface.planned();
 
     let planned = plan::planned(&draft, context.owner_facts, context.nonclaims.clone())
@@ -175,7 +187,7 @@ pub fn compile_declaration(
     // any carrier token exists.
     let assembly = assembly(&draft, implementation.expansion())?;
     let plan = carrier_plan(&draft)?;
-    let carrier = carrier_expansion(plan, &assembly)?;
+    let carrier = carrier_expansion(&draft, plan, &assembly)?;
 
     // Read BEFORE the two terminals move into the joined value, and read off
     // the terminals themselves: what a generated kind produced is its plan's

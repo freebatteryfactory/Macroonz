@@ -31,8 +31,9 @@ pub use types::{
     ProjectionTranscript, RENDERED_UNIT_IDENTITY_PROFILE, RefusalFamilySubject, RefusalReason,
     RelatedBodySubject, RelatedIssueSubject, RenderedByteLimit, RenderedRole, RenderedRoleSeal,
     RenderedUnitSubject, RepairLimit, RuntimeTraceSubject, SchemaSubject, ServiceEntrySubject,
-    SoleRenderedUnit, SourceSnapshotSubject, SubjectSeal, TemplateArgumentSubject,
-    TemplateParameterSubject, TemplateSubject, TraceEntryLimit, TracedSubject, TranscriptAnchoring,
-    WireContractSubject, WorkCurrencySubject, WorkFormulaSubject, WrapperComponentLimit,
+    SoleRenderedUnit, SourceSnapshotSubject, SubjectSeal, TRIAL_DECLARATION_IDENTITY_PROFILE,
+    TemplateArgumentSubject, TemplateParameterSubject, TemplateSubject, TraceEntryLimit,
+    TracedSubject, TranscriptAnchoring, WireContractSubject, WorkCurrencySubject,
+    WorkFormulaSubject, WrapperComponentLimit,
 };
 pub(crate) use types::{human_projection, limits, names_are_separating, static_bytes};

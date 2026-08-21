@@ -1,0 +1,15 @@
+error: no rules expected `}`
+  --> tests/compile-fail/a-generated-row-with-no-attachment.rs:82:5
+   |
+15 | #[derive(RefusalFamily)]
+   |          ------------- when calling this macro
+...
+82 |     },
+   |     ^ no rules expected this token in macro call
+   |
+note: while trying to match `the_second_row`
+  --> tests/compile-fail/a-generated-row-with-no-attachment.rs:15:10
+   |
+15 | #[derive(RefusalFamily)]
+   |          ^^^^^^^^^^^^^
+   = note: this error originates in the derive macro `RefusalFamily` (in Nightly builds, run with -Z macro-backtrace for more info)

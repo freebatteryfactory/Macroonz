@@ -22,11 +22,11 @@
 
 use super::super::render;
 use super::{
-    ActivePointSelector, BoundPath, CrateFacing, DeferredCargo, DeferredDelivery, DescriptorPlan,
-    DescriptorRow, GeneratedSupportShell, PathSegmentLimit, ProducerOrigin, RoleLimit,
-    RowAttachment, RowLimit, RowReferences, SelectorLimit, ShellDeclarationRefusal, ShellName,
-    ShellRenderIssue, SuiteGroup, SuiteGroupLimit, TagLimit, TrialDelivery, TrialTablePayload,
-    WallName,
+    ActivePointSelector, BoundPath, CrateFacing, DeclarationDoor, DeferredCargo, DeferredDelivery,
+    DescriptorPlan, DescriptorRow, GeneratedSupportShell, PathSegmentLimit, RoleLimit, RowLimit,
+    RowReferences, SelectorLimit, ShellDeclarationRefusal, ShellName, ShellRenderIssue, SuiteGroup,
+    SuiteGroupLimit, SupportMacroName, TagLimit, TrialDelivery, TrialLensName, TrialModuleName,
+    TrialSeatName, TrialTablePayload, WallName,
 };
 use crate::origin_graph::OriginTrail;
 use crate::plane::{
@@ -139,14 +139,77 @@ impl BoundPath {
     }
 }
 
+// ---------------------------------------------------------------------------
+// The four syntax-facing identifiers.
+//
+// One road each, and each of them the same road: a spelling written in
+// identifier position is admitted by the one alphabet every crossing renders
+// through, or it is refused before a token exists. The four types are four seats
+// rather than one, so a road that wants an exported support name cannot be
+// handed a lens.
+// ---------------------------------------------------------------------------
+
+/// Declares one identifier newtype's checked constructor and its reading.
+///
+/// One expansion per row rather than four hand-written pairs: the CHECK and the
+/// refusal are the same fact for all four spellings — each is written into a
+/// consumer's target in identifier position — and four copies of it would be four
+/// things to keep true. What differs between the rows is the seat, which is the
+/// type the row declares, and the sentence a reader is shown.
+macro_rules! rendered_identifiers {
+    ($(
+        $name:ident, $reading:literal
+    );+ $(;)?) => {
+        $(
+            impl $name {
+                #[doc = concat!("This ", $reading, ", read from the spelling an author wrote.")]
+                ///
+                /// # Errors
+                ///
+                /// Returns [`ShellDeclarationRefusal::SpellingNotAnIdentifier`]
+                /// where the spelling is not one Rust identifier: it is written
+                /// into a consumer's target in identifier position, and a
+                /// spelling that is not one renders tokens that compiler reads as
+                /// something else.
+                pub fn declared(spelling: &str) -> Result<Self, ShellDeclarationRefusal> {
+                    if is_rendered_identifier(spelling) {
+                        Ok(Self(spelling.to_owned()))
+                    } else {
+                        Err(ShellDeclarationRefusal::SpellingNotAnIdentifier)
+                    }
+                }
+
+                #[doc = concat!("The spelling this ", $reading, " carries.")]
+                #[must_use]
+                pub fn spelling(&self) -> &str {
+                    self.0.as_str()
+                }
+            }
+        )+
+    };
+}
+
+rendered_identifiers! {
+    SupportMacroName, "exported support name";
+    TrialModuleName, "stamped module name";
+    TrialSeatName, "aggregate seat name";
+    TrialLensName, "row lens name";
+}
+
 impl DescriptorRow {
     /// Declare one descriptor row.
     ///
+    /// # Bounds
+    ///
+    /// There is no suite parameter and no origin parameter, and neither absence
+    /// is a dropped fact. A row's execution suite is its GROUP's, stated once at
+    /// [`SuiteGroup`] and inherited structurally; a row's origin is the
+    /// producer's own act, composed inside the rendering from the payload's door
+    /// and this home's declared projection spelling.
+    ///
     /// # Errors
     ///
-    /// Returns [`ShellDeclarationRefusal::SpellingNotAnIdentifier`] where the
-    /// lens spelling is not one Rust identifier,
-    /// [`ShellDeclarationRefusal::RoleDoubled`] and
+    /// Returns [`ShellDeclarationRefusal::RoleDoubled`] and
     /// [`ShellDeclarationRefusal::TagDoubled`] where a roster states one label
     /// twice — refused rather than folded away, because collapsing a duplicate
     /// silently would be this side normalizing an authoring defect the harness
@@ -156,16 +219,11 @@ impl DescriptorRow {
     /// The checks are dependent and in that order, so exactly one cause is true
     /// of any refused row.
     pub fn declared(
-        lens: &str,
+        lens: TrialLensName,
         references: RowReferences,
         roles: Vec<WallName>,
         tags: Vec<WallName>,
-        origin: ProducerOrigin,
-        attachment: RowAttachment,
     ) -> Result<Self, ShellDeclarationRefusal> {
-        if !is_rendered_identifier(lens) {
-            return Err(ShellDeclarationRefusal::SpellingNotAnIdentifier);
-        }
         if names_doubled(&roles) {
             return Err(ShellDeclarationRefusal::RoleDoubled);
         }
@@ -183,22 +241,20 @@ impl DescriptorRow {
         )
         .map_err(|_| ShellDeclarationRefusal::TagsUnbounded)?;
         Ok(Self {
-            lens: lens.to_owned(),
+            lens,
             references,
             roles: admitted_roles,
             tags: admitted_tags,
-            origin,
-            attachment,
         })
     }
 
-    /// The lens spelling the stamp declares this row's named test function under.
+    /// The lens the stamp declares this row's named test function under.
     #[must_use]
-    pub fn lens(&self) -> &str {
-        self.lens.as_str()
+    pub const fn lens(&self) -> &TrialLensName {
+        &self.lens
     }
 
-    /// The five namespaced references this row states about itself.
+    /// The four namespaced references this row states about itself.
     #[must_use]
     pub const fn references(&self) -> &RowReferences {
         &self.references
@@ -213,29 +269,21 @@ impl DescriptorRow {
     pub fn tags(&self) -> impl Iterator<Item = &WallName> {
         self.tags.iter()
     }
-
-    /// What this producer's own act contributed to this row.
-    #[must_use]
-    pub const fn origin(&self) -> &ProducerOrigin {
-        &self.origin
-    }
-
-    /// What makes this row executable.
-    #[must_use]
-    pub const fn attachment(&self) -> &RowAttachment {
-        &self.attachment
-    }
 }
 
 impl SuiteGroup {
     /// Declare one aggregate seat's group.
     ///
+    /// # Authority
+    ///
+    /// The suite is stated here and NOWHERE ELSE on this road: every row grouped
+    /// under this seat runs under this suite by construction, so the pairing the
+    /// stamp cannot check at expansion is one no declaration can get wrong.
+    ///
     /// # Errors
     ///
-    /// Returns [`ShellDeclarationRefusal::SpellingNotAnIdentifier`] where the
-    /// seat spelling is not one Rust identifier,
-    /// [`ShellDeclarationRefusal::RowsAbsent`] where no row was supplied — a seat
-    /// over no row is a seat that measures nothing — and
+    /// Returns [`ShellDeclarationRefusal::RowsAbsent`] where no row was supplied
+    /// — a seat over no row is a seat that measures nothing — and
     /// [`ShellDeclarationRefusal::RowsUnbounded`] where the rows outgrow the
     /// declared magnitude.
     ///
@@ -246,13 +294,10 @@ impl SuiteGroup {
     /// visible at the payload and nowhere else — and a uniqueness law standing in
     /// two homes is one law that agrees with itself until one home is edited.
     pub fn declared(
-        seat: &str,
+        seat: TrialSeatName,
         suite: WallName,
         rows: Vec<DescriptorRow>,
     ) -> Result<Self, ShellDeclarationRefusal> {
-        if !is_rendered_identifier(seat) {
-            return Err(ShellDeclarationRefusal::SpellingNotAnIdentifier);
-        }
         let mut supplied = rows.into_iter();
         let Some(first) = supplied.next() else {
             return Err(ShellDeclarationRefusal::RowsAbsent);
@@ -265,16 +310,16 @@ impl SuiteGroup {
         )
         .map_err(|_| ShellDeclarationRefusal::RowsUnbounded)?;
         Ok(Self {
-            seat: seat.to_owned(),
+            seat,
             suite,
             rows: admitted,
         })
     }
 
-    /// The aggregate seat's spelling.
+    /// The aggregate seat this group declares.
     #[must_use]
-    pub fn seat(&self) -> &str {
-        self.seat.as_str()
+    pub const fn seat(&self) -> &TrialSeatName {
+        &self.seat
     }
 
     /// The execution suite this seat selects on.
@@ -305,11 +350,19 @@ impl SuiteGroup {
 impl TrialTablePayload {
     /// Declare the complete payload one stamped trial table is written from.
     ///
+    /// # Bounds
+    ///
+    /// There is no producer parameter and no projection parameter. Which producer
+    /// emitted a table and which projection emitted its rows are facts about
+    /// THESE SERVICES, so they are this home's declared spellings
+    /// ([`GENERATED_TABLE_PRODUCER`](super::GENERATED_TABLE_PRODUCER),
+    /// [`GENERATED_ROW_PROJECTION`](super::GENERATED_ROW_PROJECTION)) rather than
+    /// seats an authored declaration could fill; the door is a row of a closed
+    /// roster for the same reason.
+    ///
     /// # Errors
     ///
-    /// Returns [`ShellDeclarationRefusal::SpellingNotAnIdentifier`] where the
-    /// module spelling is not one Rust identifier,
-    /// [`ShellDeclarationRefusal::SuiteGroupsAbsent`] where no group was
+    /// Returns [`ShellDeclarationRefusal::SuiteGroupsAbsent`] where no group was
     /// supplied, [`ShellDeclarationRefusal::SeatSpellingDoubled`] and
     /// [`ShellDeclarationRefusal::LensSpellingDoubled`] where two items of the
     /// stamped module's ONE namespace carry a single spelling — seats and lenses
@@ -321,14 +374,12 @@ impl TrialTablePayload {
     /// a defect in what was declared, and a caller repairing a magnitude first
     /// would repair the collision second.
     pub fn declared(
-        module: &str,
+        support: SupportMacroName,
+        module: TrialModuleName,
         table: WallName,
-        producer: WallName,
+        door: DeclarationDoor,
         groups: Vec<SuiteGroup>,
     ) -> Result<Self, ShellDeclarationRefusal> {
-        if !is_rendered_identifier(module) {
-            return Err(ShellDeclarationRefusal::SpellingNotAnIdentifier);
-        }
         let mut supplied = groups.into_iter();
         let Some(first) = supplied.next() else {
             return Err(ShellDeclarationRefusal::SuiteGroupsAbsent);
@@ -343,17 +394,25 @@ impl TrialTablePayload {
             )
             .map_err(|_| ShellDeclarationRefusal::SuiteGroupsUnbounded)?;
         Ok(Self {
-            module: module.to_owned(),
+            support,
+            module,
             table,
-            producer,
+            door,
             groups: admitted,
         })
     }
 
-    /// The stamped module's spelling.
+    /// The exported name a consumption target invokes this declaration's support
+    /// carrier by.
     #[must_use]
-    pub fn module(&self) -> &str {
-        self.module.as_str()
+    pub const fn support(&self) -> &SupportMacroName {
+        &self.support
+    }
+
+    /// The module the stamp writes this table into.
+    #[must_use]
+    pub const fn module(&self) -> &TrialModuleName {
+        &self.module
     }
 
     /// The authored table's own namespaced name.
@@ -362,10 +421,10 @@ impl TrialTablePayload {
         &self.table
     }
 
-    /// The producer that emitted this table.
+    /// The declaration door these rows were authored through.
     #[must_use]
-    pub const fn producer(&self) -> &WallName {
-        &self.producer
+    pub const fn door(&self) -> DeclarationDoor {
+        self.door
     }
 
     /// The aggregate seats, in the order they were declared; structurally at
@@ -604,8 +663,24 @@ impl GeneratedSupportShell {
     /// The order is the road: the exported name from the plan's own identity,
     /// then the trials seat's tokens, then the deferred seat's, then the ONE
     /// gate invocation that carries both, then the exported macro definition
-    /// around it — and the shell only after all five, so no half-rendered
-    /// carrier exists.
+    /// around it, then the caller-named alias that forwards to it — and the shell
+    /// only after all six, so no half-rendered carrier exists.
+    ///
+    /// # Two definitions, one tree
+    ///
+    /// The physical carrier is exported under a plan-keyed spelling nobody can
+    /// know before expansion, so a delivery that carries ROWS also renders the
+    /// PUBLIC ALIAS its author declared: an ordinary exported `macro_rules!` whose
+    /// one rule forwards its whole input to the hidden name through `$crate`. The
+    /// alias is a member of THIS tree rather than a second emission appended
+    /// afterwards, because everything a closed expansion hands out is inside what
+    /// was proved.
+    ///
+    /// A delivery that declared no rows renders no alias, and that is the honest
+    /// shape rather than an omission: the alias exists so a person can invoke the
+    /// carrier, and a carrier with an empty trials seat carries nothing a person
+    /// invokes it for — the evaluation cargo behind the same pin reaches its
+    /// target through whichever delivery does carry rows.
     ///
     /// # Everything the carrier delivers rides INSIDE the gate
     ///
@@ -657,14 +732,17 @@ impl GeneratedSupportShell {
         deferred: DeferredDelivery<'_>,
     ) -> Result<Self, ShellRendering> {
         let name = ShellName::mangled(stated.plan);
-        let pin = render::expectation_literal();
+        let pin = render::expectation_roster().map_err(|issue| established(vec![issue]))?;
         let declared = render::trial_cargo(trials).map_err(|issue| established(vec![issue]))?;
         let carried =
             render::deferred_module(&name, deferred).map_err(|issue| established(vec![issue]))?;
         let body = render::gate_invocation(pin, declared, carried)
             .map_err(|issue| established(vec![issue]))?;
-        let tokens =
-            render::exported_shell(&name, body).map_err(|issue| established(vec![issue]))?;
+        let matched = render::matcher(trials).map_err(|issue| established(vec![issue]))?;
+        let mut tokens = render::exported_shell(&name, matched, body)
+            .map_err(|issue| established(vec![issue]))?;
+        tokens
+            .extend(render::public_alias(&name, trials).map_err(|issue| established(vec![issue]))?);
         let tree =
             GeneratedTree::assembled(tokens).map_err(|_| established(vec![render::unbounded()]))?;
         Ok(Self {
@@ -791,13 +869,13 @@ fn stamped_namespace_closed(
 ) -> Result<(), ShellDeclarationRefusal> {
     let mut taken: BTreeSet<&str> = BTreeSet::new();
     for group in core::iter::once(first).chain(rest.iter()) {
-        if !taken.insert(group.seat()) {
+        if !taken.insert(group.seat().spelling()) {
             return Err(ShellDeclarationRefusal::SeatSpellingDoubled);
         }
     }
     for group in core::iter::once(first).chain(rest.iter()) {
         for row in group.rows() {
-            if !taken.insert(row.lens()) {
+            if !taken.insert(row.lens().spelling()) {
                 return Err(ShellDeclarationRefusal::LensSpellingDoubled);
             }
         }

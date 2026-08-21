@@ -1,0 +1,5 @@
+error: threadpak refusal-family derive: the declaration was not read: the clause is not one the trial grammar declares (at semantic-origin position 80)
+  --> tests/compile-fail/a-trial-clause-the-grammar-does-not-declare.rs:33:13
+   |
+33 |             call = named("fixture", "demo-check"),
+   |             ^^^^

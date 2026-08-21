@@ -1447,6 +1447,12 @@ pub struct ExpectedGeneratedSupportSchemaId<Posture = VerifiedDerived> {
 /// sentence and do not read as one: a reader who dumps them sees a digest, which
 /// is what a value nobody authored looks like.
 ///
+/// Written in DECIMAL, which is the base the harness's gate matches in and the
+/// base its own published constant is written in. The rendering road turns these
+/// bytes into the roster the gate's arm carries, and an unsuffixed integer has
+/// exactly one rendering — so the base here is what makes the two crates'
+/// spellings comparable by eye as well as by the currency lane.
+///
 /// # Authority
 ///
 /// **An all-zero address is forbidden here.** Zeros are the value every
@@ -1461,7 +1467,6 @@ pub struct ExpectedGeneratedSupportSchemaId<Posture = VerifiedDerived> {
 /// coherent with its twin.
 pub const EXPECTED_GENERATED_SUPPORT_SCHEMA_ID: ExpectedGeneratedSupportSchemaId<VerifiedDerived> =
     ExpectedGeneratedSupportSchemaId::derived([
-        0x71, 0x16, 0xd7, 0x1b, 0xc9, 0x53, 0x2d, 0xb1, 0xe4, 0x7b, 0x9a, 0xff, 0xef, 0x11, 0x63,
-        0x38, 0x96, 0x2d, 0x4e, 0x91, 0x90, 0xfa, 0x4b, 0x0a, 0x3c, 0x21, 0x4a, 0x93, 0x11, 0xbb,
-        0x4d, 0x93,
+        113, 22, 215, 27, 201, 83, 45, 177, 228, 123, 154, 255, 239, 17, 99, 56, 150, 45, 78, 145,
+        144, 250, 75, 10, 60, 33, 74, 147, 17, 187, 77, 147,
     ]);

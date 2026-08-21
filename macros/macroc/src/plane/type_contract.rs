@@ -22,7 +22,7 @@ use super::{
     GENERATED_UNIT_IDENTITY_PROFILE, GENERATOR_VERSION_IDENTITY_PROFILE, IdentityProfile,
     ORIGIN_NODE_IDENTITY_PROFILE, PLAN_IDENTITY_PROFILE, PROJECTION_INTENT_IDENTITY_PROFILE,
     PreimageFamily, ProjectionRole, RENDERED_UNIT_IDENTITY_PROFILE, RenderedRole, RenderedRoleSeal,
-    SoleRenderedUnit,
+    SoleRenderedUnit, TRIAL_DECLARATION_IDENTITY_PROFILE,
 };
 
 impl RenderedRole for SoleRenderedUnit {
@@ -71,6 +71,7 @@ impl PreimageFamily {
             Self::DeclaredName => DECLARED_NAME_IDENTITY_PROFILE,
             Self::GeneratorVersion => GENERATOR_VERSION_IDENTITY_PROFILE,
             Self::DiagnosticRelation => DIAGNOSTIC_RELATION_IDENTITY_PROFILE,
+            Self::TrialDeclaration => TRIAL_DECLARATION_IDENTITY_PROFILE,
         }
     }
 }
@@ -124,6 +125,7 @@ impl ProjectionRole {
             Self::DeclaredName => PreimageFamily::DeclaredName,
             Self::GeneratorVersion => PreimageFamily::GeneratorVersion,
             Self::DiagnosticRelation => PreimageFamily::DiagnosticRelation,
+            Self::TrialDeclaration => PreimageFamily::TrialDeclaration,
         }
     }
 }

@@ -22,6 +22,7 @@ use crate::plane::{
     RenderedByteLimit, human_projection,
 };
 use crate::planning::{DeriveImplProjection, ProjectionDisposition};
+use crate::test_descriptor::{TrialDeclarationRefusal, TrialTablePayload};
 use crate::token::{SpanHandle, SpanTable, TextCapture};
 use threadpak::declaration::SourceCoordinate;
 use threadpak::refusal::{
@@ -266,6 +267,17 @@ refusal_derive_facts! {
          the callable a descriptor row states are the caller's own declarations, so a door handed \
          none declares no rows rather than inventing the material it would then prove";
 
+    /// This home's own charter fact: what a trial declaration states, and the two
+    /// sets of facts it does not.
+    ATrialDeclarationStatesDescriptorMeaningAlone = "macroc",
+        "a-trial-declaration-states-descriptor-meaning-alone",
+        "a trial declaration states the support name, the stamped module, the authored table, and \
+         one closed set of seats and rows — each seat naming its suite once, each row naming its \
+         claim, roles, tags, subject, check, and population — and nothing else: the door, the \
+         producer, the projection, and the schema are the producer's own act, and the revisions, \
+         the callable, the budgets, the target, and the clock are the consumption target's host \
+         facts, stated where that target invokes the carrier";
+
     /// This home's own charter fact: material is delivered into a seat the
     /// carrier's published grammar actually writes.
     ACarrierSeatIsWrittenBeforeItIsFilled = "macroc",
@@ -492,6 +504,21 @@ pub struct CapturedCause {
 /// account over one commitment, naming the one commitment it stands on, exactly
 /// as every other account does. Nothing in these services holds a second list of
 /// what content depends on.
+///
+/// # The trial declaration
+///
+/// A third reading, and the same shape the documentation reading has: the
+/// `threadpak_trials` attribute is declaration material like any other token and
+/// is exactly the material whose meaning is a statement about a consumer's TEST
+/// target rather than about the production contract, so it is dropped from the
+/// semantic walk and named under its own commitment. A declaration whose trial
+/// rows moved keeps the name its implementation projection is about and takes a
+/// new name its CARRIER is about.
+///
+/// It is a POSTURE rather than a roster, because the two are different facts: a
+/// declaration that states no trials has no rows for a carrier to declare, and a
+/// declaration that states an empty set of them is a shape the grammar refuses at
+/// the payload's own door.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RefusalDeriveSurface {
     family_name: String,
@@ -500,7 +527,109 @@ pub struct RefusalDeriveSurface {
     shape: FamilyShape,
     causes: Bounded<CapturedCause, DeriveCauseLimit>,
     documentation: Bounded<CapturedDocumentation, CapturedTokenLimit>,
+    trials: TrialDeclarationPosture,
     commitments: CapturedCommitments,
+}
+
+/// What one refusal-family declaration's HEAD and its attribute state: the Rust
+/// name the enum carries, the stable family identity, the binding the consumer
+/// reaches the machine by, and the declared body shape.
+///
+/// Four seats that travel as one value because they were read from one head and
+/// one attribute, and because the road that takes them takes the declaration's
+/// rosters, its trial posture, and its commitments beside them — which is past
+/// the arity the lint wall admits, and past the arity a reader tells apart by
+/// counting commas.
+///
+/// Every field is public and required, so a construction that leaves one out
+/// stops compiling exactly where a missing argument used to.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CapturedFamilyFacts {
+    /// The declared family's Rust name.
+    pub family_name: String,
+    /// The declared family's stable identity, as `<domain>.<family>`.
+    pub family_id: String,
+    /// How the consumer names the machine.
+    pub binding: CrateBinding,
+    /// The declared body shape.
+    pub shape: FamilyShape,
+}
+
+/// One declaration's trial rows, and the commitment they are named under.
+///
+/// The two travel together because they are one reading: the commitment stands
+/// over the exact token material the payload was read from, so a value holding
+/// one without the other would be a name for rows nobody can see or rows with no
+/// name of their own.
+#[must_use = "declared trials carry the payload the carrier delivers and the commitment it is named under"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DeclaredTrials {
+    commitment: ProjectionIdentity<CapturedDeclarationSubject>,
+    payload: TrialTablePayload,
+}
+
+/// Whether one captured declaration states trial rows.
+///
+/// Two postures, and they are different facts rather than one with a missing
+/// half. A declaration that wrote no trial attribute has no rows for a carrier to
+/// declare and no material for a third commitment to stand over; one that wrote
+/// an EMPTY set of them is refused at the payload's own door, so the absent
+/// posture is never a stand-in for a roster somebody left empty.
+///
+/// # Bounds
+///
+/// Neither posture is a refusal. A refusal-family declaration that states no
+/// trials is exactly the declaration this derive has always compiled, and its
+/// carrier renders an empty trials seat beside whatever it defers.
+#[must_use = "a trial posture either carries a declaration's rows or states that it declared none"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum TrialDeclarationPosture {
+    /// The declaration wrote no trial attribute.
+    NotDeclared,
+    /// The rows the declaration states, under the commitment they are named
+    /// by.
+    ///
+    /// Boxed because a posture travels by value on every captured surface, and
+    /// the largest answer must not set the size of the smaller one: a
+    /// declaration that states no trials would otherwise pay a whole trial
+    /// payload for a seat it does not fill.
+    Declared(Box<DeclaredTrials>),
+}
+
+/// How one declaration was not captured into a surface.
+///
+/// Two homes answer at this seam and each answer is carried whole, on exactly the
+/// terms [`ShellComposition`](crate::generated_support::ShellComposition) sets:
+/// whether the tokens say a lawful refusal-family declaration is the derive
+/// grammar's question, and whether the trial attribute inside it says a lawful
+/// carrier declaration belongs to the home that owns that vocabulary.
+///
+/// # Authority
+///
+/// **It is not a third refusal family and it declares no shape of its own.** Each
+/// arm holds the body its own home established, unwrapped and unsummarized, so
+/// nothing here is a second answer to either question — and the projection that
+/// turns each into a diagnostic is that home's own.
+#[must_use = "a capture refusal names which grammar refused and carries that grammar's body"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SurfaceCaptureRefusal {
+    /// The refusal-family grammar refused. This home's own body, whole.
+    Declaration(RefusalDeriveRefusal),
+    /// The trial grammar refused, or the carrier's own vocabulary refused a value
+    /// it read. The test-descriptor home's own body, whole.
+    Trials(TrialDeclarationRefusal),
+}
+
+impl From<RefusalDeriveRefusal> for SurfaceCaptureRefusal {
+    fn from(refusal: RefusalDeriveRefusal) -> Self {
+        Self::Declaration(refusal)
+    }
+}
+
+impl From<TrialDeclarationRefusal> for SurfaceCaptureRefusal {
+    fn from(refusal: TrialDeclarationRefusal) -> Self {
+        Self::Trials(refusal)
+    }
 }
 
 /// The two commitments one captured declaration derives, together.
