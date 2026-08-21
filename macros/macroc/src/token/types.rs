@@ -110,6 +110,10 @@ threadpak::closed_register! {
     /// capture is a different declaration, and capturing one would put the whole
     /// road downstream to work on material nobody wrote.
     #[must_use = "a bound refusal names which declared magnitude the capture would have passed"]
+    #[expect(
+        clippy::enum_variant_names,
+        reason = "the shared word is the fact each row states: a row is not the magnitude, it is the magnitude having been RUN PAST, and a roster spelled without it would read as the four bounds rather than as the four ways of exceeding one"
+    )]
     pub enum CaptureBound {
         /// The declared input nests deeper than the declared magnitude.
         DepthUnbounded = "depth-unbounded",

@@ -26,10 +26,10 @@ pub use document::documented;
 pub use plan::DerivedPlan;
 pub use render::{CAUSE_ORDER_CONTRACT, EVALUATION_SUBJECT, FAMILY_CONTRACT, REFUSAL_MODULE};
 pub use types::{
-    CapturedCause, CapturedDocumentation, CapturedDocumentationReading, CauseOrderStanding,
-    CrateBinding, DEFAULT_CRATE_BINDING, DIAGNOSTIC_PREFIX, DeriveCauseLimit, DerivedMembership,
-    DocumentedDeclaration, ExplanationBindingRefusal, ExplanationSeat, LineBody, LineSite,
-    RefusalClass, RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveCapture,
+    CapturedCause, CapturedCommitments, CapturedDocumentation, CapturedDocumentationReading,
+    CauseOrderStanding, CrateBinding, DEFAULT_CRATE_BINDING, DIAGNOSTIC_PREFIX, DeriveCauseLimit,
+    DerivedMembership, DocumentedDeclaration, ExplanationBindingRefusal, ExplanationSeat, LineBody,
+    LineSite, RefusalClass, RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveCapture,
     RefusalDeriveFact, RefusalDeriveRefusal, RefusalDeriveSurface, RefusalFamilyExpansion,
     RefusalLine, RefusalOwnerFacts, RefusalSite, RenderRefusal, RenderedMagnitude,
     SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE,

@@ -99,10 +99,10 @@ pub fn surface_plan(
 /// One road for both halves of the pair, so the two are read under one rule: a
 /// second reading written per half is a second rule that agrees until one of
 /// them is edited.
-fn planned_member<'plan>(
-    plan: &'plan ProjectionPlan<DeriveImplProjection>,
+fn planned_member(
+    plan: &ProjectionPlan<DeriveImplProjection>,
     role: RenderedImplementation,
-) -> Result<&'plan PlannedMember<RenderedImplementation>, ImplementationSurfaceIssue> {
+) -> Result<&PlannedMember<RenderedImplementation>, ImplementationSurfaceIssue> {
     let Some(member) = plan.membership().under(role) else {
         return Err(ImplementationSurfaceIssue::RoleNotPlanned {
             role_slot: role.slot(),

@@ -500,6 +500,10 @@ pub struct PlannedMembership<R: RenderedRole> {
 /// An irrelevant change — formatting, declaration order, an alias — matches no
 /// trigger and touches nothing, because no trigger watches those.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[expect(
+    clippy::enum_variant_names,
+    reason = "the shared word is the axis: every row names a thing that MOVED, and a roster of watched things without it would read as the things rather than as what happened to them"
+)]
 pub enum InvalidationTrigger {
     /// A source declaration this plan was derived from changed.
     SourceDeclarationChanged {
@@ -951,6 +955,10 @@ macro_rules! kinds {
         /// happened to it anywhere: those are a door's answers, and
         /// [`KindDispositions`] is where a door carries them.
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        #[expect(
+            clippy::enum_variant_names,
+            reason = "the rows are the projection kinds themselves and carry the kinds' own type names, so the shared word is the vocabulary this roster is a roster OF rather than a prefix anybody chose for it"
+        )]
         pub enum ProjectionKindRow {
             $( $(#[$note])* $name ),+
         }
@@ -1065,6 +1073,10 @@ macro_rules! kinds {
 /// what is true, and a general one would be a vocabulary standing for
 /// declarations nobody makes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[expect(
+    clippy::enum_variant_names,
+    reason = "the shared word is this crate's central distinction: a RENDERED member is what a planned one answers to, the two rosters stand side by side, and dropping the word here would make a row of this one read as a row of that one"
+)]
 pub enum RenderedImplementation {
     /// The family contract's production implementation: the body shape and the
     /// textual selection order.

@@ -223,6 +223,10 @@ threadpak::closed_register! {
     /// in. Two rosters rather than one, because the transported set is not the
     /// declared set — nothing lands private, and the parent-facing reach lands as
     /// a parameterized path the declared roster deliberately does not carry.
+    #[expect(
+        clippy::enum_variant_names,
+        reason = "the shared word is what these rows ARE: each names a reach, the alternative spellings collide with Rust's own `super`, and this roster stands beside a second one whose rows are visibilities rather than reaches"
+    )]
     pub enum TransportedReach {
         /// `pub(super)` — the reach a private or `pub(self)` declaration becomes.
         SuperReach = "super-reach",

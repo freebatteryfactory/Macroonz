@@ -328,8 +328,8 @@ fn judge_identity(
     position: u32,
 ) -> Option<[u8; 32]> {
     let transcript = judge_transcript(subject, role, anchoring, anchor, content, position)?;
-    let context = judge_context(subject, role)?;
-    Some(blake3::derive_key(&context, &transcript))
+    let key_context = judge_context(subject, role)?;
+    Some(blake3::derive_key(&key_context, &transcript))
 }
 
 // ---------------------------------------------------------------------------

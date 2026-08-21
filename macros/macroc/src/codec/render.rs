@@ -1514,8 +1514,8 @@ pub fn codec_surface(
     direction: CodecDirection,
 ) -> Result<GeneratedTree, CodecSurfaceIssue> {
     let mut tokens: Vec<GeneratedToken> = Vec::new();
-    let reads = covers(direction, CodecRoad::Decode);
-    if reads {
+    let decodes = covers(direction, CodecRoad::Decode);
+    if decodes {
         tokens.extend(refusal_declaration(shape)?);
         tokens.extend(refusal_conversion(shape)?);
     }
@@ -1523,7 +1523,7 @@ pub fn codec_surface(
     if covers(direction, CodecRoad::Encode) {
         roads.extend(encode_road(shape)?);
     }
-    if reads {
+    if decodes {
         roads.extend(decode_road(shape)?);
     }
     tokens.push(GeneratedToken::word("impl"));

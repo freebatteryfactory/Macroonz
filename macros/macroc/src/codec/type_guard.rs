@@ -249,7 +249,7 @@ impl CodecShape {
         if spellings_doubled(&first, &rest) {
             return Err(CodecDeclarationRefusal::MemberSpellingDoubled);
         }
-        let members = NonEmptyBounded::admitted_const(
+        let admitted = NonEmptyBounded::admitted_const(
             first,
             rest,
             &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
@@ -259,7 +259,7 @@ impl CodecShape {
             owner,
             refusal: refusal.to_owned(),
             assembly,
-            members,
+            members: admitted,
         })
     }
 

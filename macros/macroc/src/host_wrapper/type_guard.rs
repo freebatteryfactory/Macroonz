@@ -181,7 +181,7 @@ impl WrapperShape {
             return Err(WrapperDeclarationRefusal::StagesAbsent);
         };
         let rest: Vec<WrapperStage> = supplied.collect();
-        let stages = NonEmptyBounded::admitted_const(
+        let admitted = NonEmptyBounded::admitted_const(
             first,
             rest,
             &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
@@ -192,7 +192,7 @@ impl WrapperShape {
             carried,
             refusal,
             entry: entry.to_owned(),
-            stages,
+            stages: admitted,
         })
     }
 

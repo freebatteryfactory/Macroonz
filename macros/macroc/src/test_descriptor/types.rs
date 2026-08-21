@@ -578,13 +578,21 @@ pub struct DeferredCargo {
 /// The seat is still rendered under the empty posture, because both seats are
 /// always present in the published grammar: a gate arm that had to match two
 /// shapes would be two arms, and one pin would open two doors.
+///
+/// # Bounds
+///
+/// A borrowed VIEW of the assembly's own seat, and crate-internal. The payload
+/// lives in the assembly for as long as the rendering reads it, so a view that
+/// owned a copy would clone the largest thing this home carries to hand it
+/// straight back as a reference — and would make every posture of this roster
+/// as large as the payload, including the one that declares nothing.
 #[must_use = "a trial delivery either declares a stamped payload or states that no rows were declared"]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum TrialDelivery {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum TrialDelivery<'payload> {
     /// The crossing declared no rows into this carrier.
     NothingDeclared,
     /// The payload the trials seat carries.
-    Declared(TrialTablePayload),
+    Declared(&'payload TrialTablePayload),
 }
 
 /// What one shell defers into its consumption target.
@@ -597,13 +605,17 @@ pub enum TrialDelivery {
 /// and constants nothing reads, which is a different thing from an expansion
 /// that never sent this carrier anything — so the absence is a posture rather
 /// than an empty tree.
+///
+/// # Bounds
+///
+/// A borrowed view and crate-internal, on exactly [`TrialDelivery`]'s terms.
 #[must_use = "a deferred delivery either carries proved cargo or states that nothing was planned"]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum DeferredDelivery {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum DeferredDelivery<'cargo> {
     /// The expansion planned no member into this carrier.
     NothingDeferred,
     /// The cargo the carrier receives.
-    Carried(DeferredCargo),
+    Carried(&'cargo DeferredCargo),
 }
 
 /// The generated support shell: the ONE physical carrier every crossing of the

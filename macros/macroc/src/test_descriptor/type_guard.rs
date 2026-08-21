@@ -545,6 +545,10 @@ impl ShellName {
     /// thirty-two bytes that always exist, so there is no count to read and no
     /// refusal to return.
     #[must_use]
+    #[expect(
+        clippy::format_push_string,
+        reason = "the lint is about an allocation per turn of a hot loop; this turns once per key byte to spell one shell's name at expansion time, and the alternative writes through a `Result` that cannot fail into a road that would then discard it"
+    )]
     pub fn mangled(plan: PlanId) -> Self {
         let mut spelling = String::from(Self::PREFIX);
         for byte in plan.as_bytes().iter().take(Self::KEY_BYTES) {
@@ -649,8 +653,8 @@ impl GeneratedSupportShell {
     /// reporter adapter — either of which can overrun on its own.
     pub(crate) fn rendered(
         stated: &DescriptorPlan,
-        trials: &TrialDelivery,
-        deferred: &DeferredDelivery,
+        trials: TrialDelivery<'_>,
+        deferred: DeferredDelivery<'_>,
     ) -> Result<Self, ShellRendering> {
         let name = ShellName::mangled(stated.plan);
         let pin = render::expectation_literal();

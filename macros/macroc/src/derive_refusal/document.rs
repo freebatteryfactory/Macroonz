@@ -50,8 +50,6 @@ use super::types::{CapturedDocumentationReading, DocumentedDeclaration, RefusalD
 use crate::documentation::{DocumentationDeclarationRefusal, DocumentedItem, PlainSentence};
 use crate::planning::ProjectionDisposition;
 
-/// What one captured declaration's documentation rows read as.
-
 /// Read one captured surface's documentation rows.
 ///
 /// # The summary road

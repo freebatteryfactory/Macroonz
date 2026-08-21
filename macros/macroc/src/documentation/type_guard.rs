@@ -128,7 +128,7 @@ impl DocumentedSection {
             return Err(DocumentationDeclarationRefusal::LinesAbsent);
         };
         let rest: Vec<SectionLine> = supplied.collect();
-        let lines = NonEmptyBounded::admitted_const(
+        let admitted = NonEmptyBounded::admitted_const(
             first,
             rest,
             &PositiveLimit::<_, AuthoringLimitProfile>::inhabited_under_profile(),
@@ -137,7 +137,7 @@ impl DocumentedSection {
         Ok(Self {
             facet,
             heading,
-            lines,
+            lines: admitted,
         })
     }
 

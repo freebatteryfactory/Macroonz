@@ -48,7 +48,7 @@ fn every_literal_form_reads_to_the_value_it_names() {
         Some(CapturedPayload::Text(String::from("a\nb")))
     );
     assert_eq!(
-        read(r####"r#"a"b"#"####),
+        read("r#\"a\"b\"#"),
         Some(CapturedPayload::Text(String::from("a\"b")))
     );
     assert_eq!(
@@ -89,7 +89,7 @@ fn a_raw_text_carries_what_a_quoted_one_reads() {
         Some(CapturedPayload::Text(String::from("a\nb")))
     );
     assert_eq!(
-        read(r##"r"a\nb""##),
+        read(r#"r"a\nb""#),
         Some(CapturedPayload::Text(String::from(r"a\nb")))
     );
 }
@@ -130,7 +130,7 @@ fn four_literal_forms_are_four_answers() {
 /// characters, and a seat declared to take one does not take the other.
 #[test]
 fn a_value_survives_its_spelling_and_a_form_survives_its_characters() {
-    assert_eq!(read(r#""x""#), read(r##"r"x""##));
+    assert_eq!(read(r#""x""#), read(r#"r"x""#));
     assert_ne!(read(r#""x""#), read(r#"b"x""#));
 }
 

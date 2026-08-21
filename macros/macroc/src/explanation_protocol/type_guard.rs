@@ -280,10 +280,10 @@ impl<K: ProjectionKind> ProjectionExplanationView<K> {
             ordered,
             &AdmittedLimit::<_, AuthoringLimitProfile>::under_profile(),
         )
-        .map(|answers| Self {
+        .map(|admitted| Self {
             plan: plan_identity,
             closure: closure_identity,
-            answers,
+            answers: admitted,
             identity,
             provenance,
             _kind: PhantomData,

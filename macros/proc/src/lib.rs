@@ -116,11 +116,8 @@ pub fn refusal_family(item: TokenStream) -> TokenStream {
         Ok(trees) => trees,
         Err(refusal) => return refused_capture(&refusal, &spans),
     };
-    let issued = match u32::try_from(spans.len()) {
-        Ok(issued) => issued,
-        Err(_) => {
-            return refused(CaptureBound::TreeUnbounded.described(), Span::call_site());
-        }
+    let Ok(issued) = u32::try_from(spans.len()) else {
+        return refused(CaptureBound::TreeUnbounded.described(), Span::call_site());
     };
     let input = match CapturedInput::taken(trees, issued) {
         Ok(input) => input,

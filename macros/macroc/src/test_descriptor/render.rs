@@ -754,7 +754,9 @@ pub fn gate_invocation(
 ///
 /// Returns [`ShellRenderIssue::ShellTreeUnbounded`] where the stamped payload
 /// outgrows the declared token magnitude.
-pub fn trial_cargo(declared: &TrialDelivery) -> Result<Vec<GeneratedToken>, ShellRenderIssue> {
+pub(crate) fn trial_cargo(
+    declared: TrialDelivery<'_>,
+) -> Result<Vec<GeneratedToken>, ShellRenderIssue> {
     match declared {
         TrialDelivery::NothingDeclared => Ok(Vec::new()),
         TrialDelivery::Declared(payload) => stamped_module(payload),
@@ -802,9 +804,9 @@ pub fn trial_cargo(declared: &TrialDelivery) -> Result<Vec<GeneratedToken>, Shel
 ///
 /// Returns [`ShellRenderIssue::ShellTreeUnbounded`] where the module outgrows
 /// the declared token magnitude.
-pub fn deferred_module(
+pub(crate) fn deferred_module(
     name: &ShellName,
-    deferred: &DeferredDelivery,
+    deferred: DeferredDelivery<'_>,
 ) -> Result<Vec<GeneratedToken>, ShellRenderIssue> {
     let cargo = match deferred {
         // An expansion that planned no member into this carrier splices no

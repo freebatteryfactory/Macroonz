@@ -68,10 +68,11 @@ fn a_family_that_moves_leaves_its_neighbour_where_it_was() {
     let before = ContentAddress::derived(neighbour, PREIMAGE);
 
     let moved = DomainTag::declared("lane-moving-family", IdentityProfileVersion::declared(7));
-    let _ = ContentAddress::derived(moved, PREIMAGE);
+    let elsewhere = ContentAddress::derived(moved, PREIMAGE);
 
     let after = ContentAddress::derived(neighbour, PREIMAGE);
     assert_eq!(before.as_bytes(), after.as_bytes());
+    assert_ne!(before.as_bytes(), elsewhere.as_bytes());
 }
 
 /// The derivation context is spelled stem, then family, then position.

@@ -107,11 +107,11 @@ pub fn assembled_shell(
     }
     let trials = match assembly.trial() {
         AxisCargo::Absent { .. } => TrialDelivery::NothingDeclared,
-        AxisCargo::Carried(payload) => TrialDelivery::Declared(payload.clone()),
+        AxisCargo::Carried(payload) => TrialDelivery::Declared(payload),
     };
     let deferred = match assembly.evaluation() {
         AxisCargo::Absent { .. } => DeferredDelivery::NothingDeferred,
-        AxisCargo::Carried(proved) => DeferredDelivery::Carried(proved.cargo().clone()),
+        AxisCargo::Carried(proved) => DeferredDelivery::Carried(proved.cargo()),
     };
-    GeneratedSupportShell::rendered(stated, &trials, &deferred).map_err(ShellComposition::Rendering)
+    GeneratedSupportShell::rendered(stated, trials, deferred).map_err(ShellComposition::Rendering)
 }

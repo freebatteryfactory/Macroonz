@@ -500,8 +500,20 @@ pub struct RefusalDeriveSurface {
     shape: FamilyShape,
     causes: Bounded<CapturedCause, DeriveCauseLimit>,
     documentation: Bounded<CapturedDocumentation, CapturedTokenLimit>,
-    identity: ProjectionIdentity<CapturedDeclarationSubject>,
-    documentation_identity: ProjectionIdentity<CapturedDeclarationSubject>,
+    commitments: CapturedCommitments,
+}
+
+/// The two commitments one captured declaration derives, together.
+///
+/// They are ONE account and not two arguments that happen to arrive side by
+/// side: the documentation commitment stands over the semantic one and names it
+/// as its dependency, so a road holding either alone holds half of a pair whose
+/// halves are ordered. Carrying them as a value is what makes the order a fact
+/// about the type rather than a convention at every call site.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CapturedCommitments {
+    semantic: ProjectionIdentity<CapturedDeclarationSubject>,
+    documentation: ProjectionIdentity<CapturedDeclarationSubject>,
 }
 
 // ---------------------------------------------------------------------------

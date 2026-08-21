@@ -615,17 +615,16 @@ impl PartitionedEmission {
         encode_length(EmissionPartition::ALL.len(), into);
         for partition in EmissionPartition::ALL {
             into.push(partition.slot());
-            match self.joined(partition) {
-                Some(cargo) => cargo.encode_into(into),
+            if let Some(cargo) = self.joined(partition) {
+                cargo.encode_into(into);
+            } else {
                 // An emission that is not joined at all is its own posture, and
                 // it is written as one: it must not encode as an emission
                 // nothing was planned into, because the publication emission
                 // carrying artifacts and the test carrier carrying nothing are
                 // different facts about different deliveries.
-                None => {
-                    into.push(2);
-                    encode_bytes(&[], into);
-                }
+                into.push(2);
+                encode_bytes(&[], into);
             }
         }
     }
@@ -975,6 +974,10 @@ impl<K: ProjectionKind> ClosedExpansion<K> {
     /// caller to choose and nothing for this seam to invent. A second row is
     /// admitted when the identity it names exists.
     #[must_use]
+    #[expect(
+        clippy::unused_self,
+        reason = "a method rather than an associated function because the roster it reads has a second row coming: an expansion whose delivery reaches a minted address answers from its own seats, and moving to a method then would move every call site for a reason none of them is about"
+    )]
     pub const fn addressing(&self) -> DeliveryAddressing {
         DeliveryAddressing::UnmintedAtThisSeam
     }

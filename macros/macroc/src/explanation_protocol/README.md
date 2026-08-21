@@ -1,4 +1,4 @@
-# explanation_protocol — the typed answers, the parentage they were answered over, and the coverage that admits no partial view
+# `explanation_protocol` — the typed answers, the parentage they were answered over, and the coverage that admits no partial view
 
 The question roster itself is a leaf vocabulary and lives in [`crate::question`],
 which both this home and the planning home import. Nothing here restates it.
