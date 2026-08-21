@@ -32,10 +32,11 @@ use threadpak::types::ConstLimit;
 use threadpak_macroc::derive_refusal::diagnose;
 use threadpak_macroc::plane::HumanTextLimit;
 use threadpak_macroc::{
-    ClosureIssue, ExplanationBindingRefusal, ExplanationSeat, HumanProjection, MacrocPhase,
-    ObservedClassification, PlannedMembership, ProjectionClosure, ProjectionPlanningIssue,
-    RelatedIdentity, RenderedImplementation, RenderedProjection, RenderedRole, RenderedUnit,
-    ReproductionRoute, TextCompileRefusal, compile_refusal_text,
+    ClosureIssue, DeriveImplProjection, ExplanationBindingRefusal, ExplanationSeat,
+    HumanProjection, MacrocPhase, ObservedClassification, PlanDecisions, PlannedMembership,
+    ProjectionClosure, ProjectionPlan, ProjectionPlanningIssue, RelatedIdentity,
+    RenderedImplementation, RenderedProjection, RenderedRole, RenderedUnit, ReproductionRoute,
+    TextCompileRefusal, compile_refusal_text,
 };
 
 /// The declaration handed to the services:
@@ -64,6 +65,42 @@ fn lawful() -> Result<threadpak_macroc::RefusalFamilyExpansion, ()> {
     compile_refusal_text(DECLARATION)
         .map(|(_, closed)| closed)
         .map_err(|_| ())
+}
+
+/// One plan with a substituted membership, re-planned through the same public
+/// road the lawful one walked.
+///
+/// # Why the repair is made HERE
+///
+/// The two seats below restore a repair that produces a membership nobody
+/// declared. That repair used to be performable at the CLOSURE, because `proved`
+/// took a plan identity beside a loose membership and the two were separable —
+/// which is exactly the hole this road no longer has. A membership now reaches a
+/// proof only inside the plan that declares it, so the repair is made where a
+/// membership actually lives.
+///
+/// Every other seat is read off the lawful plan and moved across unchanged, so
+/// what differs between the two plans is the declared output set and nothing
+/// beside it. The second plan derives its own identity, because a plan's
+/// transcript commits to its membership — which is the same fact the old
+/// separable pair could hide.
+fn replanned(
+    plan: &ProjectionPlan<DeriveImplProjection>,
+    membership: PlannedMembership<RenderedImplementation>,
+) -> Result<ProjectionPlan<DeriveImplProjection>, ()> {
+    ProjectionPlan::planned(
+        plan.account().clone(),
+        plan.context().clone(),
+        plan.content().clone(),
+        PlanDecisions {
+            membership,
+            invalidation: plan.invalidation().clone(),
+            trace: plan.trace().clone(),
+            origin: plan.origin().clone(),
+            nonclaims: plan.nonclaims().clone(),
+        },
+    )
+    .map_err(|_| ())
 }
 
 /// The identities one diagnostic's related set carries, in order.
@@ -110,34 +147,32 @@ fn the_lawful_road_binds_every_required_seat() {
 /// a one-member membership over a declaration whose shape fixes four —
 /// and it is well-formed, complete-looking, and about a smaller claim.
 ///
-/// The closure refuses to close the real rendering over it, naming the role the
-/// smaller claim dropped.
+/// The closure refuses to close the real rendering over the PLAN that declares
+/// it, naming the role the smaller claim dropped — and the two plans carry two
+/// identities, because a plan's transcript commits to its membership.
 #[test]
-fn a_shortened_complete_set_proves_a_smaller_claim() {
-    assert!(lawful().is_ok_and(|closed| {
-        let family = closed
-            .plan()
-            .membership()
-            .under(RenderedImplementation::RenderedFamilyImpl)
-            .cloned();
-        family.is_some_and(|member| {
-            let shortened = PlannedMembership::complete(member, []);
-            let smaller =
-                shortened.count() == 1 && closed.plan().membership().count() == DECLARED_ROLE_COUNT;
-            let refused = ProjectionClosure::proved(
-                closed.plan().identity(),
-                &shortened,
-                closed.closure().rendered().clone(),
-            )
-            .is_err_and(|refusal| {
-                *refusal.body().carried().first()
-                    == ClosureIssue::MemberUnplanned {
-                        role: RenderedImplementation::RenderedCauseOrderImpl,
-                    }
-            });
-            smaller && refused
-        })
-    }));
+fn a_shortened_complete_set_proves_a_smaller_claim() -> Result<(), ()> {
+    let closed = lawful()?;
+    let member = closed
+        .plan()
+        .membership()
+        .under(RenderedImplementation::RenderedFamilyImpl)
+        .cloned()
+        .ok_or(())?;
+    let shortened = PlannedMembership::complete(member, []);
+    assert!(shortened.count() == 1 && closed.plan().membership().count() == DECLARED_ROLE_COUNT);
+    let smaller = replanned(closed.plan(), shortened)?;
+    assert_ne!(smaller.identity(), closed.plan().identity());
+    let refused = ProjectionClosure::proved(&smaller, closed.closure().rendered().clone())
+        .err()
+        .ok_or(())?;
+    assert_eq!(
+        *refused.body().carried().first(),
+        ClosureIssue::MemberUnplanned {
+            role: RenderedImplementation::RenderedCauseOrderImpl,
+        }
+    );
+    Ok(())
 }
 
 /// The neighbouring-digest repair, restored: the first rendered unit's digest is
@@ -178,11 +213,8 @@ fn a_neighbouring_digest_answers_about_another_value() -> Result<(), ()> {
     // The live road refuses one seat earlier: with no unit under the family role
     // there is nothing to close over, so the explanation is never asked its
     // question.
-    let closed_earlier = ProjectionClosure::proved(
-        closed.plan().identity(),
-        closed.plan().membership(),
-        RenderedProjection::of_one(neighbour),
-    );
+    let closed_earlier =
+        ProjectionClosure::proved(closed.plan(), RenderedProjection::of_one(neighbour));
     assert!(closed_earlier.is_err_and(|refusal| {
         *refusal.body().carried().first()
             == ClosureIssue::MemberMissing {
@@ -266,13 +298,10 @@ fn a_doubled_role_refuses_at_the_declaration_and_at_the_closure() -> Result<(), 
     let planning = PlannedMembership::declared(member.clone(), vec![member])
         .err()
         .ok_or(())?;
-    let closure = ProjectionClosure::proved(
-        closed.plan().identity(),
-        &doubled,
-        RenderedProjection::of_one(unit),
-    )
-    .err()
-    .ok_or(())?;
+    let twice = replanned(closed.plan(), doubled)?;
+    let closure = ProjectionClosure::proved(&twice, RenderedProjection::of_one(unit))
+        .err()
+        .ok_or(())?;
     assert!(
         *planning.body().carried().first()
             == ProjectionPlanningIssue::MembershipDoubled {
@@ -317,33 +346,27 @@ fn two_families_observing_one_classification_are_still_two_refusals() {
             .under(RenderedImplementation::RenderedFamilyImpl)
             .cloned();
         unit.is_some_and(|unit| {
-            ProjectionClosure::proved(
-                closed.plan().identity(),
-                closed.plan().membership(),
-                RenderedProjection::of_one(unit),
+            ProjectionClosure::proved(closed.plan(), RenderedProjection::of_one(unit)).is_err_and(
+                |refusal| {
+                    let from_closure = diagnose::closure_refused(&refusal);
+                    let from_explanation = diagnose::explanation_refused(
+                        &ExplanationBindingRefusal::RequiredOutputAbsent {
+                            seat: ExplanationSeat::ProvedFamilyDigest,
+                        },
+                    );
+                    matches!(from_closure.observed, ObservedClassification::SeatAbsent)
+                        && matches!(from_explanation.observed, ObservedClassification::SeatAbsent)
+                        && from_closure.summary != from_explanation.summary
+                        && related(&from_closure) != related(&from_explanation)
+                        // The closure's line names the role it was established
+                        // at, which is the distinction a shared sentence lost
+                        // first.
+                        && from_closure
+                            .summary
+                            .shown()
+                            .contains(RenderedImplementation::RenderedCauseOrderImpl.described())
+                },
             )
-            .is_err_and(|refusal| {
-                let from_closure = diagnose::closure_refused(&refusal);
-                let from_explanation = diagnose::explanation_refused(
-                    &ExplanationBindingRefusal::RequiredOutputAbsent {
-                        seat: ExplanationSeat::ProvedFamilyDigest,
-                    },
-                );
-                matches!(
-                    from_closure.observed,
-                    ObservedClassification::SeatAbsent
-                ) && matches!(
-                    from_explanation.observed,
-                    ObservedClassification::SeatAbsent
-                ) && from_closure.summary != from_explanation.summary
-                    && related(&from_closure) != related(&from_explanation)
-                    // The closure's line names the role it was established at,
-                    // which is the distinction a shared sentence lost first.
-                    && from_closure
-                        .summary
-                        .shown()
-                        .contains(RenderedImplementation::RenderedCauseOrderImpl.described())
-            })
         })
     }));
 }

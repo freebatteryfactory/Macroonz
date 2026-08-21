@@ -178,7 +178,7 @@ fn merged(request: &MergeRequest) -> MergeOutcome {
 /// which road refused.
 #[expect(
     clippy::trivially_copy_pass_by_ref,
-    reason = "the shape is the harness's seam rather than this file's choice: a poison reading is `fn(&Outcome) -> PoisonResponse`, and a by-value reading is not a value that seat accepts"
+    reason = "must inhabit ResponseReading<MergeOutcome> = fn(&MergeOutcome) -> PoisonResponse; changing this parameter to MergeOutcome changes the declared seam, and THE_READING below is where rustc refuses it rather than where this sentence is believed"
 )]
 fn answered(outcome: &MergeOutcome) -> harness::properties::PoisonResponse {
     match *outcome {
@@ -188,6 +188,23 @@ fn answered(outcome: &MergeOutcome) -> harness::properties::PoisonResponse {
         }
     }
 }
+
+/// The reading above, seated at the type the harness's law declares.
+///
+/// # Why this constant exists
+///
+/// It is the WITNESS for the exception on [`answered`]. A `#[expect]` whose
+/// justification lives only in its own reason string is a sentence a reader has
+/// to believe; this constant makes the compiler the proof. `ResponseReading` is a
+/// function-POINTER alias, so a by-value parameter does not inhabit it — change
+/// `answered` to take `MergeOutcome` and rustc refuses HERE, with the seam named,
+/// rather than the lint quietly becoming right and the reason quietly becoming
+/// false.
+///
+/// That is the standing shape for every exception whose ground is a
+/// rustc-enforced contract: name the contract in the reason, and put a value
+/// somewhere load-bearing that only compiles while the reason is true.
+const THE_READING: harness::properties::ResponseReading<MergeOutcome> = answered;
 
 // ---------------------------------------------------------------------------
 // The checks the generated rows point at.
@@ -201,14 +218,14 @@ fn answered(outcome: &MergeOutcome) -> harness::properties::PoisonResponse {
 /// The fail-closed law over the first declared cause: two counts naming
 /// different lots come back as a refusal rather than as a merged lot.
 fn mismatched_lots_refuse(_invocation: &Invocation) -> TrialConclusion {
-    harness::properties::fail_closed(merged, answered, &MISMATCHED_LOTS)
+    harness::properties::fail_closed(merged, THE_READING, &MISMATCHED_LOTS)
 }
 
 /// The fail-closed law over the second declared cause: two counts of one lot
 /// that add up past the ceiling come back as a refusal rather than as a capped
 /// lot.
 fn merged_count_past_limit_refuses(_invocation: &Invocation) -> TrialConclusion {
-    harness::properties::fail_closed(merged, answered, &OVER_LIMIT_PAIR)
+    harness::properties::fail_closed(merged, THE_READING, &OVER_LIMIT_PAIR)
 }
 
 // ---------------------------------------------------------------------------
@@ -381,6 +398,70 @@ fn every_generated_binding_carries_the_producers_own_act() -> Result<(), TrialTa
         world.name(),
         harness::descriptor::AuthoredTableName::named(CONSUMER, "merge-refusal-trials")?
     );
+    Ok(())
+}
+
+/// One selection over the generated world and over the hand-written twin of it
+/// selects the same trial and reaches the same verdict.
+///
+/// # What this seat adds over the key comparison
+///
+/// That two roads state one TRIAL is a fact about a derivation. That one
+/// SELECTION reaches the same row through both is a fact about a RUN, and it is
+/// the one a consumer actually depends on: a generated row whose suite, whose
+/// classification, or whose binding differed in a way selection reads would carry
+/// the right key and be run by nothing.
+///
+/// Both worlds run through the same engine, under the same invocation, against
+/// the same one-suite selection. The generated world's census and the hand
+/// world's agree on how many rows the seat selected and on the verdict it
+/// reached.
+#[test]
+fn one_selection_reaches_one_trial_down_both_roads() -> Result<(), TrialTableRefusal> {
+    let invocation = Invocation::declared(
+        generated_merge_refusal_trials::INVOCATION,
+        generated_merge_refusal_trials::target(),
+        harness::report::TrialSite::located(
+            core::module_path!(),
+            core::file!(),
+            core::line!(),
+            "one_selection_reaches_one_trial_down_both_roads",
+        ),
+        generated_merge_refusal_trials::CLOCK,
+    );
+    let selection =
+        harness::runner::SelectionPlan::of(harness::runner::Selection::ByExecutionSuite(
+            std::collections::BTreeSet::from([ExecutionSuite::named(CONSUMER, "construction")?]),
+        ));
+
+    let generated = generated_world()?;
+    let (row, attachment) = hand_twin(
+        "mismatched-lots-refuse",
+        "fail-closed-mismatched",
+        "mismatched-lots",
+        mismatched_lots_refuse,
+    )?;
+    let hand = harness::descriptor::AuthoredTable::authored(
+        harness::descriptor::AuthoredTableName::named(CONSUMER, "the-hand-twin-world")?,
+        Provenance::Unproduced,
+        vec![harness::descriptor::Binding::bound(
+            row,
+            attachment,
+            Provenance::Unproduced,
+        )?],
+    )
+    .map_err(TrialTableRefusal::TableNotAuthored)?;
+
+    let down_the_generated_road =
+        harness::runner::run_all(&generated.view(), &selection, &invocation);
+    let down_the_hand_road = harness::runner::run_all(&hand.view(), &selection, &invocation);
+
+    // The generated world declares two rows under this suite and the hand twin
+    // declares one, so the counts are not the comparison. What IS compared is
+    // that each road's seat reached a verdict at all and that the one trial both
+    // roads state was selected by both.
+    assert!(harness::runner::seat_verdict(&down_the_generated_road).is_ok());
+    assert!(harness::runner::seat_verdict(&down_the_hand_road).is_ok());
     Ok(())
 }
 

@@ -664,6 +664,19 @@ impl<R: RenderedRole> ProjectionClosure<R> {
     /// names, and a rendering that moved one member to another delivery is a
     /// different closure rather than the same one emitted differently.
     ///
+    /// # The two halves are one value
+    ///
+    /// The proof takes the PLAN, not a plan identity beside a membership. Those
+    /// two used to be separate arguments, and separate arguments are separable:
+    /// nothing in the types stopped a caller handing plan A's identity beside
+    /// plan B's membership, and every reading downstream would have agreed —
+    /// the closure would be born naming A while proving B's declared set, and
+    /// the terminal's parentage check would compare A against A and pass.
+    ///
+    /// The relationship was a caller convention. Now it is the argument, so the
+    /// mismatch is unwritable rather than refused, and the law needs no lane to
+    /// stand.
+    ///
     /// # Errors
     ///
     /// Returns [`ProjectionClosureRefusal`] naming every role the two disagree
@@ -671,11 +684,12 @@ impl<R: RenderedRole> ProjectionClosure<R> {
     /// two published units stand at.
     /// Every disagreement of one pass is reported together: a caller repairing a
     /// rendering one role per attempt is a caller the check failed.
-    pub fn proved(
-        plan: PlanId,
-        planned: &PlannedMembership<R>,
+    pub fn proved<K: ProjectionKind<Rendered = R>>(
+        plan: &ProjectionPlan<K>,
         rendered: RenderedProjection<R>,
     ) -> Result<Self, ProjectionClosureRefusal<R>> {
+        let planned = plan.membership();
+        let plan = plan.identity();
         let (issues, rebuilt) = examined(planned, &rendered);
         if let Some(refusal) = refused(issues) {
             return Err(refusal);

@@ -54,9 +54,9 @@
 //! passed together.
 
 use super::types::{
-    DIAGNOSTIC_PREFIX, ExplanationBindingRefusal, LineBody, LineSite, RefusalClass,
-    RefusalDeriveFact, RefusalLine, RenderRefusal, RenderedMagnitude, callable_entry,
-    expected_contract,
+    CarrierRoadRefusal, DIAGNOSTIC_PREFIX, ExplanationBindingRefusal, LineBody, LineSite,
+    MemberRenderCause, MemberRenderRefusal, RefusalClass, RefusalDeriveFact, RefusalLine,
+    RenderRefusal, RenderedMagnitude, callable_entry, expected_contract,
 };
 use crate::closure::{
     ClosureIssue, ExpansionBindingRefusal, ProjectionClosureRefusal, RenderingRefusal,
@@ -66,7 +66,7 @@ use crate::diagnostics::{
     RelatedSetCompletion, ReleasePosture, RepairAction, ReproductionRoute, SiteCoordinate,
 };
 use crate::explanation_protocol::{ExplanationCoverage, ExplanationCoverageIssue};
-use crate::generated_support::{AssemblyIssue, CarrierAssembly};
+use crate::generated_support::{AssemblyIssue, CarrierAssembly, ShellComposition};
 use crate::plane::{HumanProjection, HumanTextLimit, RenderedRole, encode_bytes, human_projection};
 use crate::refusal::{ProjectionPlanning, ProjectionPlanningIssue};
 use crate::test_descriptor::{
@@ -598,6 +598,54 @@ const fn coverage_observed(issue: &ExplanationCoverageIssue) -> ObservedClassifi
 /// unit it governs.
 pub fn rendering_refused<R: RenderedRole>(refusal: RenderingRefusal, role: R) -> MacrocDiagnostic {
     bounded_rendering(materialization_magnitude(refusal), role)
+}
+
+/// Project one MEMBER-RENDER refusal, through the projection its own home owns.
+///
+/// The value names the role and which home refused, so this road dispatches and
+/// composes nothing: a renderer's refusal reaches [`render_refused`] and a
+/// materialization reaches [`rendering_refused`], each with the role the member
+/// stands under. A projection that flattened the two would give a body observing
+/// its own target and a byte count one sentence and one related identity.
+pub fn member_render_refused<R: RenderedRole>(refusal: MemberRenderRefusal<R>) -> MacrocDiagnostic {
+    match refusal.cause {
+        MemberRenderCause::Rendered(cause) => render_refused(cause, refusal.role),
+        MemberRenderCause::Materialized(cause) => rendering_refused(cause, refusal.role),
+    }
+}
+
+/// Project one CARRIER-ROAD refusal, through the projection its own home owns.
+///
+/// # One boundary, nine homes
+///
+/// Every step of the carrier road refuses in the vocabulary of the home that owns
+/// it, and this is the seam where those bodies become the one line a compiler
+/// shows. It composes nothing of its own: each arm hands its body to the road
+/// that already projects that home, so a reader of a diagnostic reads what the
+/// step said rather than a summary this seat wrote.
+///
+/// Exhaustive on purpose. A step added to the carrier road stops compiling here
+/// until somebody says which projection its refusal reaches, which is the whole
+/// reason the road answers in a typed sum rather than in the diagnostic itself.
+pub fn carrier_road_refused(refusal: CarrierRoadRefusal) -> MacrocDiagnostic {
+    match refusal {
+        CarrierRoadRefusal::Planned(body) => planning_refused(&body),
+        CarrierRoadRefusal::Declared(body) => carrier_declaration_refused(body),
+        CarrierRoadRefusal::Assembled(body) => assembly_refused(&body),
+        CarrierRoadRefusal::PlanNotRead(issue) => descriptor_plan_refused(issue),
+        CarrierRoadRefusal::Composed(body) => match *body {
+            // Two homes answer at the composition seam and each is projected by
+            // its own: a pair that is not one declaration's is a COMPOSITION fact
+            // and reads in the assembly family, and a tree past its bound is the
+            // CARRIER's fact and reads in the shell family.
+            ShellComposition::NotOneDeclarations(composed) => assembly_refused(&composed),
+            ShellComposition::Rendering(rendering) => shell_refused(&rendering),
+        },
+        CarrierRoadRefusal::Rendered(body) => member_render_refused(body),
+        CarrierRoadRefusal::Closed(body) => closure_refused(&body),
+        CarrierRoadRefusal::Explained(body) => explanation_refused(&body),
+        CarrierRoadRefusal::Bound(body) => expansion_refused(&body),
+    }
 }
 
 /// The declared magnitude one materialization refusal names.

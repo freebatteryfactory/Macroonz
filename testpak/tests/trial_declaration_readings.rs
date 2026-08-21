@@ -21,10 +21,10 @@
 //! checked that it refused; each seat below names the cause it establishes and
 //! the home that established it.
 
-use threadpak_macroc::captured_text;
 use threadpak_macroc::derive_refusal::{SurfaceCaptureRefusal, TrialDeclarationPosture};
 use threadpak_macroc::plane::{CapturedDeclarationSubject, ProjectionIdentity};
 use threadpak_macroc::test_descriptor::{TrialDeclarationCause, TrialDeclarationRefusal};
+use threadpak_macroc::{captured_text, compile_refusal_text};
 
 /// The three names one captured declaration is read under.
 ///
@@ -138,6 +138,33 @@ fn a_declaration_with_no_trials_anchors_its_carrier_on_itself() {
         TrialDeclarationPosture::Declared(_)
     )));
     assert!(readings(&stated).is_some_and(|read| read.semantic != read.carrier));
+}
+
+/// A trial edit leaves the implementation projection's rendered OUTPUT
+/// byte-for-byte where it was.
+///
+/// The identity seat above says the two declarations plan the same
+/// implementation. This one says the two declarations EMIT the same
+/// implementation, which is the fact a consumer's normal build actually
+/// receives — and the two are different claims: a name that agreed while the
+/// bytes moved would be a name that had stopped tracking what it named.
+///
+/// The comparison is over the declaration-site partition, which is exactly the
+/// cargo an ordinary build compiles. What the two declarations DO differ in is
+/// the carrier, and the seat above states that.
+#[test]
+fn a_trial_edit_leaves_the_declaration_sites_own_bytes() {
+    let one = compile_refusal_text(&declaration(&lawful_trials("a-demo-claim"))).ok();
+    let other = compile_refusal_text(&declaration(&lawful_trials("another-demo-claim"))).ok();
+    let emitted = |closed: &Option<(_, threadpak_macroc::RefusalFamilyExpansion)>| {
+        closed
+            .as_ref()
+            .and_then(|(_, expansion)| expansion.inspected())
+    };
+    let first = emitted(&one);
+    let second = emitted(&other);
+    assert!(first.is_some());
+    assert_eq!(first, second);
 }
 
 /// The prose reading and the trial reading are three separate names over one

@@ -9,20 +9,26 @@
 //! expansion, because the whole point of either declaration is that a row is
 //! stated once and everything about it follows.
 
-use crate::closure::ClosedExpansion;
+use crate::closure::{
+    ClosedExpansion, ExpansionBindingRefusal, ProjectionClosureRefusal, RenderingRefusal,
+};
 use crate::diagnostics::{
     MachineAnchoring, MacrocDiagnostic, ObservedClassification, SiteCoordinate,
 };
 use crate::documentation::DocumentedItem;
 use crate::explanation_protocol::ExplanationCoverage;
+use crate::generated_support::{CarrierAssembly, ShellComposition};
 use crate::origin_graph::Nonclaim;
 use crate::plane::{
     CapturedDeclarationSubject, CapturedTokenLimit, GeneratedTokenLimit, HumanProjection,
     HumanTextLimit, MembershipLimit, NonclaimLimit, OwnerFactRef, ProjectionIdentity,
-    RenderedByteLimit, human_projection,
+    RenderedByteLimit, RenderedRole, SoleRenderedUnit, human_projection,
 };
 use crate::planning::{DeriveImplProjection, ProjectionDisposition};
-use crate::test_descriptor::{TrialDeclarationRefusal, TrialTablePayload};
+use crate::refusal::ProjectionPlanning;
+use crate::test_descriptor::{
+    DescriptorPlanIssue, ShellDeclarationRefusal, TrialDeclarationRefusal, TrialTablePayload,
+};
 use crate::token::{SpanHandle, SpanTable, TextCapture};
 use threadpak::declaration::SourceCoordinate;
 use threadpak::refusal::{
@@ -1271,6 +1277,164 @@ pub enum CapturedDocumentationReading {
         /// family-level prose, and this home writes none on an author's behalf.
         because: ProjectionDisposition,
     },
+}
+
+/// How one PLANNED MEMBER was not materialized: the role it was refused at, and
+/// the home that refused.
+///
+/// # Authority
+///
+/// **A helper answers in the vocabulary of what it did, and the diagnostic is
+/// composed once at the door.** Every road on the rendering half used to return
+/// [`MacrocDiagnostic`] — a seat-complete value the size of the whole
+/// compiler-facing account — merely because the public door eventually returns
+/// one. That flattened error ownership at the first helper: which layer refused
+/// became prose inside a large record rather than a fact the type carried, and
+/// four separate seats each needed the same lint exemption to say so.
+///
+/// The role travels with the cause because a refusal on this road is always
+/// about one member: a caller told only that "the rendering failed" has four
+/// roles to inspect and no reason to prefer any of them.
+///
+/// # Bounds
+///
+/// Generic in the ROLE, because the two roads that reach it have two rosters: an
+/// implementation projection materializes four roles and the carrier
+/// materializes one. A refusal fixed to either roster would have to name the
+/// other's member under a role it does not stand at, which is the neighbouring
+/// value this whole home refuses to answer with.
+#[must_use = "a member-render refusal names the role and the home that refused"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct MemberRenderRefusal<R: RenderedRole> {
+    /// The role the member stands under.
+    pub role: R,
+    /// Which home refused, carrying that home's own body.
+    pub cause: MemberRenderCause,
+}
+
+/// Which home refused while one planned member was being materialized.
+///
+/// Two homes, two bodies, each carried whole: the DERIVE's renderer states what a
+/// tree could not be rendered under, and the CLOSURE home's materialization
+/// states which declared magnitude a unit's bytes passed. A single roster over
+/// both would give a body that observes its own target and a byte count one shape
+/// and one related-identity tag.
+#[must_use = "a member-render cause names which home refused and carries that home's body"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MemberRenderCause {
+    /// The renderer refused. This home's own body.
+    Rendered(RenderRefusal),
+    /// Materializing the rendered tree refused. The closure home's own body.
+    Materialized(RenderingRefusal),
+}
+
+/// How the CARRIER road refuses, with each home's own body carried whole.
+///
+/// # Authority
+///
+/// **Nine arms, nine homes, and not one summary.** The carrier road walks the
+/// same eight public steps the implementation road walks — an account, a context,
+/// a plan, a rendering, a proof, an explanation, a terminal — with the physical
+/// assembly between them, and every one of those steps refuses in the vocabulary
+/// of the home that owns it. A road that answered in one global diagnostic at
+/// every step would be deciding, at the first helper, that which step failed is a
+/// sentence rather than a value.
+///
+/// The projection into a diagnostic happens ONCE, at the door
+/// ([`compile_declaration`](super::compile_declaration)), through each home's own
+/// projection. Nothing here composes a line.
+///
+/// # Bounds
+///
+/// It says which step of the carrier road refused and carries what that step
+/// said. It says nothing about the implementation road beside it, which ends at
+/// its own terminal and refuses in its own vocabulary.
+#[must_use = "a carrier-road refusal names which step refused and carries that step's body"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CarrierRoadRefusal {
+    /// Planning the carrier refused.
+    Planned(ProjectionPlanning),
+    /// The carrier's own declaration vocabulary refused a spelling this home
+    /// declared.
+    Declared(ShellDeclarationRefusal),
+    /// The proved outputs do not compose into one carrier.
+    ///
+    /// Boxed because the composition body carries a bounded issue roster, and the
+    /// largest answer on this road must not set the size of the smallest.
+    Assembled(Box<CarrierAssembly>),
+    /// Reading the carrier's plan disagreed with the plan.
+    PlanNotRead(DescriptorPlanIssue),
+    /// The carrier plan and the assembly are not one declaration's, or the
+    /// carrier's tokens do not fit its declared magnitude.
+    ///
+    /// Boxed on exactly [`CarrierRoadRefusal::Assembled`]'s terms: each arm of
+    /// the composition answer carries a home's own bounded body.
+    Composed(Box<ShellComposition>),
+    /// Materializing the shell as the plan's one member refused.
+    Rendered(MemberRenderRefusal<SoleRenderedUnit>),
+    /// The rendering does not close over the plan it claims to materialize.
+    ///
+    /// Boxed on the same terms.
+    Closed(Box<ProjectionClosureRefusal<SoleRenderedUnit>>),
+    /// The explanation could not bind its subject, or does not cover this kind's
+    /// questions.
+    Explained(ExplanationBindingRefusal),
+    /// The three values the terminal binds do not belong to one expansion.
+    Bound(ExpansionBindingRefusal),
+}
+
+impl From<ProjectionPlanning> for CarrierRoadRefusal {
+    fn from(refusal: ProjectionPlanning) -> Self {
+        Self::Planned(refusal)
+    }
+}
+
+impl From<ShellDeclarationRefusal> for CarrierRoadRefusal {
+    fn from(refusal: ShellDeclarationRefusal) -> Self {
+        Self::Declared(refusal)
+    }
+}
+
+impl From<CarrierAssembly> for CarrierRoadRefusal {
+    fn from(refusal: CarrierAssembly) -> Self {
+        Self::Assembled(Box::new(refusal))
+    }
+}
+
+impl From<DescriptorPlanIssue> for CarrierRoadRefusal {
+    fn from(issue: DescriptorPlanIssue) -> Self {
+        Self::PlanNotRead(issue)
+    }
+}
+
+impl From<ShellComposition> for CarrierRoadRefusal {
+    fn from(refusal: ShellComposition) -> Self {
+        Self::Composed(Box::new(refusal))
+    }
+}
+
+impl From<MemberRenderRefusal<SoleRenderedUnit>> for CarrierRoadRefusal {
+    fn from(refusal: MemberRenderRefusal<SoleRenderedUnit>) -> Self {
+        Self::Rendered(refusal)
+    }
+}
+
+impl From<ProjectionClosureRefusal<SoleRenderedUnit>> for CarrierRoadRefusal {
+    fn from(refusal: ProjectionClosureRefusal<SoleRenderedUnit>) -> Self {
+        Self::Closed(Box::new(refusal))
+    }
+}
+
+impl From<ExplanationBindingRefusal> for CarrierRoadRefusal {
+    fn from(refusal: ExplanationBindingRefusal) -> Self {
+        Self::Explained(refusal)
+    }
+}
+
+impl From<ExpansionBindingRefusal> for CarrierRoadRefusal {
+    fn from(refusal: ExpansionBindingRefusal) -> Self {
+        Self::Bound(refusal)
+    }
 }
 
 /// How one rendering failed to assemble.

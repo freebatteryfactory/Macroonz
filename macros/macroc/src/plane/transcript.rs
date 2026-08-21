@@ -16,7 +16,7 @@
 //! [`PreimageFamily`]: super::PreimageFamily
 
 use super::encode::encode_bytes;
-use super::{IDENTITY_PROFILE_STEM, ProjectionTranscript, TranscriptAnchoring};
+use super::{IDENTITY_PROFILE_STEM, IdentitySubject, ProjectionTranscript, TranscriptAnchoring};
 
 impl TranscriptAnchoring {
     /// The discriminant byte the transcript carries for this posture.
@@ -44,13 +44,24 @@ impl TranscriptAnchoring {
 impl ProjectionTranscript<'_> {
     /// The transcript's bytes for one identity subject, exactly as the
     /// specification on [`ProjectionTranscript`] states them.
+    ///
+    /// # Authority
+    ///
+    /// **The subject is the TYPE's and never an argument.** Member four of the
+    /// preimage is the subject's declared name, and it is what separates one
+    /// subject's identities from another's — so an encoder that took the name as
+    /// text would let a caller write member four to any name space it could
+    /// spell, and the typed identity above it would be a promise this road never
+    /// had to keep. The subject arrives as a parameter of the sealed
+    /// [`IdentitySubject`](super::IdentitySubject) roster instead, so encoding
+    /// under the wrong subject is unwritable rather than discouraged.
     #[must_use]
-    pub fn encoded(&self, subject: &str) -> Vec<u8> {
+    pub fn encoded<Subject: IdentitySubject>(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
         encode_bytes(IDENTITY_PROFILE_STEM.as_bytes(), &mut bytes);
         encode_bytes(self.profile().family().stable_name().as_bytes(), &mut bytes);
         bytes.extend_from_slice(&self.profile().version().position().to_be_bytes());
-        encode_bytes(subject.as_bytes(), &mut bytes);
+        encode_bytes(Subject::SUBJECT_NAME.as_bytes(), &mut bytes);
         encode_bytes(self.role().stable_name().as_bytes(), &mut bytes);
         bytes.push(self.role().slot());
         bytes.push(self.anchoring().slot());
