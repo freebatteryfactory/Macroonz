@@ -99,7 +99,7 @@ The toolchain is the enforcement surface, run locally:
 ```sh
 cargo check --workspace --all-targets   # the compiler, which is the enforcement
 cargo clippy --workspace --all-targets  # the lint wall
-cargo nextest run --workspace           # the lanes, which observe what types cannot
+cargo nextest run --workspace --run-ignored all # the lanes, which observe what types cannot
 cargo fmt --all -- --check
 cargo deny --workspace check             # licenses, sources, feature pins
 ```
