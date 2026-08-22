@@ -47,13 +47,14 @@ use threadpak_testpak::report::{
 use threadpak_testpak::runner::{Invocation, TrialBinding, TrialTable, trial_identity};
 
 const OWNER: &str = "testpak.mutation.receiver";
-const BACKEND_CONSOLE: &str = "Found 1 mutant to test\n\
-    ok Unmutated baseline in 3.1s\n\
-    caught src/subject/lane.rs:41:9: replace is_qualified -> bool with true in 4.0s";
+const BACKEND_CONSOLE: &str =
+    include_str!("compiled-pressure-artifact/cargo-mutants-27.0.0-console.txt");
 const BACKEND_NO_KILL: &str = "Found 1 mutant to test\n\
     ok Unmutated baseline in 3.1s\n\
     missed src/subject/lane.rs:41:9: replace is_qualified -> bool with true in 4.0s";
-const BACKEND_VERSION: &str = "25.0.0";
+const BACKEND_VERSION: &str = "27.0.0";
+const COMPILED_MUTANT_FILE: &str = "testpak/src/muterprater/wrap.rs";
+const COMPILED_MUTANT_DAMAGE: &[u8] = b"replace != with == in roster_count";
 const MEANING_DISAGREEMENT: FindingCause = FindingCause::named(OWNER, "meaning-disagreement");
 const REVISION_TAG: DomainTag = DomainTag::declared(
     "mutation-receiver-revision",
@@ -106,6 +107,14 @@ enum InterpretedFailureStage {
     WitnessClaim,
     DudPlant,
     Report,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CompiledRosterMeaning {
+    Stated(u32),
+    Unstated,
+    SetupRefused,
+    ReadingRefused(WrapRefusal),
 }
 
 impl From<PermissionRefusal> for MutationRoadFailure {
@@ -293,7 +302,7 @@ fn point(
         policy,
         MutationPointRef::named(OWNER, stem).map_err(|_| MutationRoadFailure::Name)?,
         claim()?,
-        b"a < b".to_vec(),
+        b"word != ROSTER_MARKER".to_vec(),
         declarations,
         threadpak_testpak::muterprater::ActivationSite::named(OWNER, stem)
             .map_err(|_| MutationRoadFailure::Name)?,
@@ -309,29 +318,43 @@ fn surface_with(
     Ok(EvaluationSurface::conforming(&policy, vec![point])?)
 }
 
-fn production(input: &[u32; 3]) -> [u32; 3] {
-    let [value, padding, sentinel] = *input;
-    [value.saturating_add(1), padding, sentinel]
+fn production(_input: &[u32; 3]) -> CompiledRosterMeaning {
+    match family("comparison-family").and_then(compiled_reading) {
+        Ok(reading) => match reading.announced() {
+            threadpak_testpak::muterprater::AnnouncedRoster::Stated(count) => {
+                CompiledRosterMeaning::Stated(count)
+            }
+            threadpak_testpak::muterprater::AnnouncedRoster::Unstated => {
+                CompiledRosterMeaning::Unstated
+            }
+        },
+        Err(MutationRoadFailure::Wrap(refusal)) => CompiledRosterMeaning::ReadingRefused(refusal),
+        Err(_) => CompiledRosterMeaning::SetupRefused,
+    }
 }
 
-fn evaluation(input: &[u32; 3], control: EvaluationControl) -> EvaluationObservation<[u32; 3]> {
-    let [value, padding, sentinel] = *input;
+fn evaluation(
+    input: &[u32; 3],
+    control: EvaluationControl,
+) -> EvaluationObservation<CompiledRosterMeaning> {
     match control {
         EvaluationControl::NoMutation => EvaluationObservation::observed(production(input), 0),
         EvaluationControl::Active(_) => {
-            EvaluationObservation::observed([value.saturating_add(2), padding, sentinel], 1)
+            EvaluationObservation::observed(CompiledRosterMeaning::Unstated, 1)
         }
     }
 }
 
-fn parity_broken(input: &[u32; 3], control: EvaluationControl) -> EvaluationObservation<[u32; 3]> {
-    let [value, padding, sentinel] = *input;
+fn parity_broken(
+    _input: &[u32; 3],
+    control: EvaluationControl,
+) -> EvaluationObservation<CompiledRosterMeaning> {
     match control {
         EvaluationControl::NoMutation => {
-            EvaluationObservation::observed([value.saturating_add(2), padding, sentinel], 0)
+            EvaluationObservation::observed(CompiledRosterMeaning::Unstated, 0)
         }
         EvaluationControl::Active(_) => {
-            EvaluationObservation::observed([value.saturating_add(2), padding, sentinel], 1)
+            EvaluationObservation::observed(CompiledRosterMeaning::Unstated, 1)
         }
     }
 }
@@ -339,12 +362,11 @@ fn parity_broken(input: &[u32; 3], control: EvaluationControl) -> EvaluationObse
 fn activation_missing(
     input: &[u32; 3],
     control: EvaluationControl,
-) -> EvaluationObservation<[u32; 3]> {
-    let [value, padding, sentinel] = *input;
+) -> EvaluationObservation<CompiledRosterMeaning> {
     match control {
         EvaluationControl::NoMutation => EvaluationObservation::observed(production(input), 0),
         EvaluationControl::Active(_) => {
-            EvaluationObservation::observed([value.saturating_add(2), padding, sentinel], 0)
+            EvaluationObservation::observed(CompiledRosterMeaning::Unstated, 0)
         }
     }
 }
@@ -352,7 +374,7 @@ fn activation_missing(
 fn no_mutation_activates(
     input: &[u32; 3],
     control: EvaluationControl,
-) -> EvaluationObservation<[u32; 3]> {
+) -> EvaluationObservation<CompiledRosterMeaning> {
     match control {
         EvaluationControl::NoMutation | EvaluationControl::Active(_) => {
             EvaluationObservation::observed(production(input), 1)
@@ -363,7 +385,7 @@ fn no_mutation_activates(
 fn activation_survives(
     input: &[u32; 3],
     control: EvaluationControl,
-) -> EvaluationObservation<[u32; 3]> {
+) -> EvaluationObservation<CompiledRosterMeaning> {
     match control {
         EvaluationControl::NoMutation => EvaluationObservation::observed(production(input), 0),
         EvaluationControl::Active(_) => EvaluationObservation::observed(production(input), 1),
@@ -373,12 +395,12 @@ fn activation_survives(
 fn evaluation_counted(
     input: &[u32; 3],
     control: EvaluationControl,
-) -> EvaluationObservation<[u32; 3]> {
+) -> EvaluationObservation<CompiledRosterMeaning> {
     CLAIM_MISMATCH_EVALUATION_CALLS.fetch_add(1, Ordering::SeqCst);
     evaluation(input, control)
 }
 
-fn same(left: &[u32; 3], right: &[u32; 3]) -> Agreement {
+fn same(left: &CompiledRosterMeaning, right: &CompiledRosterMeaning) -> Agreement {
     if left == right {
         Agreement::Agrees
     } else {
@@ -386,23 +408,33 @@ fn same(left: &[u32; 3], right: &[u32; 3]) -> Agreement {
     }
 }
 
-fn check(meaning: &[u32; 3]) -> TrialConclusion {
-    agreement(same, meaning, &[2u32, 0, 0], MEANING_DISAGREEMENT)
-}
-
-fn check_passes(_meaning: &[u32; 3]) -> TrialConclusion {
-    TrialConclusion::Passed
-}
-
-fn check_evaluation_meaning(meaning: &[u32; 3]) -> TrialConclusion {
-    agreement(same, meaning, &[3u32, 0, 0], MEANING_DISAGREEMENT)
-}
-
-fn check_refuses(meaning: &[u32; 3]) -> TrialConclusion {
+fn check(meaning: &CompiledRosterMeaning) -> TrialConclusion {
     agreement(
         same,
         meaning,
-        &[u32::MAX, u32::MAX, u32::MAX],
+        &CompiledRosterMeaning::Stated(1),
+        MEANING_DISAGREEMENT,
+    )
+}
+
+fn check_passes(_meaning: &CompiledRosterMeaning) -> TrialConclusion {
+    TrialConclusion::Passed
+}
+
+fn check_evaluation_meaning(meaning: &CompiledRosterMeaning) -> TrialConclusion {
+    agreement(
+        same,
+        meaning,
+        &CompiledRosterMeaning::Unstated,
+        MEANING_DISAGREEMENT,
+    )
+}
+
+fn check_refuses(meaning: &CompiledRosterMeaning) -> TrialConclusion {
+    agreement(
+        same,
+        meaning,
+        &CompiledRosterMeaning::SetupRefused,
         MEANING_DISAGREEMENT,
     )
 }
@@ -440,7 +472,7 @@ fn trial_binding() -> Result<TrialBinding, TrialTableRefusal> {
 }
 
 fn candidate_trial_call(_invocation: &Invocation) -> TrialConclusion {
-    check(&[3u32, 0, 0])
+    check(&CompiledRosterMeaning::Unstated)
 }
 
 fn candidate_binding(point: MutationPointRef) -> Result<TrialBinding, TrialTableRefusal> {
@@ -716,17 +748,17 @@ fn foreign_invocation() -> Invocation {
 fn pair(
     family: EvaluationFamilyRef,
     surface: &EvaluationSurface,
-    evaluated: fn(&[u32; 3], EvaluationControl) -> EvaluationObservation<[u32; 3]>,
-) -> Result<EvaluationPair<[u32; 3], [u32; 3]>, MutationRoadFailure> {
+    evaluated: fn(&[u32; 3], EvaluationControl) -> EvaluationObservation<CompiledRosterMeaning>,
+) -> Result<EvaluationPair<[u32; 3], CompiledRosterMeaning>, MutationRoadFailure> {
     pair_with_evaluation_revision(family, surface, evaluated, b"evaluation")
 }
 
 fn pair_with_evaluation_revision(
     family: EvaluationFamilyRef,
     surface: &EvaluationSurface,
-    evaluated: fn(&[u32; 3], EvaluationControl) -> EvaluationObservation<[u32; 3]>,
+    evaluated: fn(&[u32; 3], EvaluationControl) -> EvaluationObservation<CompiledRosterMeaning>,
     evaluation_revision_bytes: &[u8],
-) -> Result<EvaluationPair<[u32; 3], [u32; 3]>, MutationRoadFailure> {
+) -> Result<EvaluationPair<[u32; 3], CompiledRosterMeaning>, MutationRoadFailure> {
     let production_revision =
         RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, b"production"));
     let evaluation_revision = RevisionBinding::declared(ContentAddress::derived(
@@ -740,12 +772,16 @@ fn pair_with_evaluation_revision(
     )?)
 }
 
-fn no_owner(_coordinate: &SourceCoordinate) -> Option<ClaimRef> {
-    None
+fn compiled_owner(coordinate: &SourceCoordinate) -> Option<ClaimRef> {
+    (coordinate.file() == COMPILED_MUTANT_FILE)
+        .then(claim)
+        .and_then(Result::ok)
 }
 
-fn no_family(_coordinate: &SourceCoordinate, _damage: &[u8]) -> Option<OperatorFamilyRef> {
-    None
+fn compiled_family(coordinate: &SourceCoordinate, damage: &[u8]) -> Option<OperatorFamilyRef> {
+    (coordinate.file() == COMPILED_MUTANT_FILE && damage == COMPILED_MUTANT_DAMAGE)
+        .then(operator)
+        .and_then(Result::ok)
 }
 
 fn compiled_reading(family: EvaluationFamilyRef) -> Result<WrapReading, MutationRoadFailure> {
@@ -754,8 +790,8 @@ fn compiled_reading(family: EvaluationFamilyRef) -> Result<WrapReading, Mutation
         family,
         BACKEND_CONSOLE,
         BackendVersionPosture::Stated(version),
-        no_owner,
-        no_family,
+        compiled_owner,
+        compiled_family,
     )?)
 }
 
@@ -1054,17 +1090,17 @@ fn mutation_identity_preimages_are_independently_read() -> Result<(), MutationRo
     Ok(())
 }
 
-/// A qualified supplied compiled reading and exact no-mutation parity open one active execution that is admitted through both report spines.
+/// Captured cargo-mutants pressure and exact no-mutation parity open one active execution that is admitted through both report spines.
 #[test]
 fn compiled_and_interpreted_evidence_join_without_flattening() -> Result<(), MutationRoadFailure> {
     let family = family("comparison-family")?;
-    let surface = surface_with(family, vec![b"a <= b", b"a > b"])?;
+    let surface = surface_with(family, vec![COMPILED_MUTANT_DAMAGE])?;
     let pair = pair(family, &surface, evaluation)?;
     let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check)?;
     let input = [1u32, 0, 0];
     let reading = observe_no_mutation(&pair, witness, &input, &invocation())?;
-    assert_eq!(*reading.production(), [2u32, 0, 0]);
-    assert_eq!(*reading.evaluation(), [2u32, 0, 0]);
+    assert_eq!(reading.production(), &CompiledRosterMeaning::Stated(1));
+    assert_eq!(reading.evaluation(), &CompiledRosterMeaning::Stated(1));
     assert_eq!(reading.evaluation_firings(), 0u32);
     assert_eq!(
         reading.production_report().trial(),
@@ -1086,6 +1122,18 @@ fn compiled_and_interpreted_evidence_join_without_flattening() -> Result<(), Mut
                 ParityQualificationRefusal::MeaningsDisagreed,
             ))?;
     let compiled = compiled_witness(pair.standing())?;
+    assert_eq!(compiled.kill().target().owning_claim(), Some(claim()?));
+    assert_eq!(
+        compiled.kill().target().family(),
+        threadpak_testpak::muterprater::FamilyAttribution::Declared(operator()?)
+    );
+    assert!(matches!(
+        compiled.kill().target().site(),
+        threadpak_testpak::muterprater::MutationSite::Reported(coordinate)
+            if coordinate.file() == COMPILED_MUTANT_FILE
+                && coordinate.line() == 360
+                && coordinate.column() == 13
+    ));
     let trust = match availability(Some(&surface), Some(&compiled), Some(qualification)) {
         InterpreterAvailability::Available(trust) => trust,
         InterpreterAvailability::NoConformingSurface => {
@@ -1100,7 +1148,7 @@ fn compiled_and_interpreted_evidence_join_without_flattening() -> Result<(), Mut
     let selection = active_selection(&surface)?;
     let evidence = execute_active(&trust, selection, &invocation())?;
     assert_eq!(evidence.selection(), selection);
-    assert_eq!(*evidence.meaning(), [3u32, 0, 0]);
+    assert_eq!(evidence.meaning(), &CompiledRosterMeaning::Unstated);
     assert_eq!(
         evidence.report().trial(),
         qualification.reading().production_report().trial()
@@ -1482,8 +1530,8 @@ fn a_compiled_witness_refuses_another_profile() -> Result<(), MutationRoadFailur
         family,
         BACKEND_CONSOLE,
         BackendVersionPosture::Stated(other_version.clone()),
-        no_owner,
-        no_family,
+        compiled_owner,
+        compiled_family,
     )?;
     let borrowed = AdapterQualification::of(&elsewhere, GrammarStanding::Checked(other_version))?;
     assert_eq!(
@@ -1508,8 +1556,8 @@ fn adapter_qualification_requires_one_checked_profile_version() -> Result<(), Mu
         family,
         BACKEND_CONSOLE,
         BackendVersionPosture::Unstated,
-        no_owner,
-        no_family,
+        compiled_owner,
+        compiled_family,
     )?;
     assert_eq!(
         AdapterQualification::of(&unstated, GrammarStanding::Checked(checked.clone())),
@@ -1535,6 +1583,16 @@ fn compiled_pressure_requires_a_reported_kill() -> Result<(), MutationRoadFailur
     let pair = pair(evaluation_family, &surface, evaluation)?;
     let version = BackendVersion::stated(BACKEND_VERSION).map_err(|_| MutationRoadFailure::Name)?;
     let killed = compiled_reading(evaluation_family)?;
+    assert_eq!(
+        killed.announced(),
+        threadpak_testpak::muterprater::AnnouncedRoster::Stated(1)
+    );
+    assert!(matches!(
+        killed.unparsed(),
+        [summary]
+            if summary.ordinal() == 3
+                && summary.text().bytes() == b"1 mutant tested: 1 caught"
+    ));
     let killed_qualification =
         AdapterQualification::of(&killed, GrammarStanding::Checked(version.clone()))?;
     assert_eq!(
@@ -1550,8 +1608,8 @@ fn compiled_pressure_requires_a_reported_kill() -> Result<(), MutationRoadFailur
         evaluation_family,
         BACKEND_NO_KILL,
         BackendVersionPosture::Stated(version.clone()),
-        no_owner,
-        no_family,
+        compiled_owner,
+        compiled_family,
     )?;
     let missed_qualification =
         AdapterQualification::of(&missed, GrammarStanding::Checked(version))?;
