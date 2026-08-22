@@ -33,7 +33,7 @@ The repository's semantic owners carry accepted product truth. The root toolchai
 
 - A home's README is owner prose: why the boundary exists, what it claims, what it does not. No yaml blocks, no machine-parsed ledgers, no status tables.
 
-- **Markdown source is a reading surface.** A README keeps each prose paragraph on one source line, however long that honest paragraph is; it never column-wraps prose or breaks a sentence merely to satisfy a width. Separate paragraphs with one blank line. Use real Markdown structure for real structure: `-` for list items, `>` for quotations, and fenced blocks for code or diagrams. Leading spaces never simulate hierarchy, and prose never uses four-space indentation because Markdown renders it as code. Preserve inline-code spans, links, emphasis, and complete thoughts without splitting them across source lines.
+- **Markdown source is a reading surface.** When prose in a Markdown file is authored or reformatted, keep each complete prose paragraph on one source line; do not column-wrap it or split it merely to satisfy a width. Separate paragraphs with one blank line. Use real Markdown structure for real structure: `-` for list items, `>` for quotations, and fenced blocks for code or diagrams. Leading spaces never simulate hierarchy, and prose never uses four-space indentation because Markdown renders it as code. Preserve inline-code spans, links, emphasis, and complete thoughts without splitting them across source lines.
 
 - **Formatting is not rewriting.** A formatting-only change preserves every word, punctuation mark, heading, link target, code span, fence, and semantic grouping. Wording, punctuation, or hierarchy changes are semantic edits and are reviewed as such. Before handoff, run `git diff --check` and inspect the rendered structure or an equivalent Markdown parse; balanced source characters alone do not prove that prose did not become a code block or the child of the wrong list item.
 
@@ -55,7 +55,7 @@ The repository's semantic owners carry accepted product truth. The root toolchai
 
 - A `#[cfg(test)]` item inside the library is a road with an audience of one, and it refuses. A claim that is neither structural nor observed is not claimed.
 
-- No hand-maintained inventories: counts, dependency maps, status tables, and public surface listings are derived, never authored.
+- Mechanical inventories used as authority or as a completeness denominator are derived rather than authored. Explanatory architecture maps, diagrams, and tables may be authored, but they are non-authoritative, non-exhaustive, and never used as a mechanical denominator. Manifests, types, and generated registers remain authoritative for the facts they own.
 
 - rustdoc is a spec surface: public items are documented at the declaration; the README carries the home narrative; nothing is written twice.
 
