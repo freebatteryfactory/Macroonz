@@ -1,12 +1,12 @@
 # muterprater — the proof-pressure engine
 
-Muterprater is a mutation interpreter and the brain over every adversarial lane: it builds facts about what exists, plans which pressure is worth running, runs it under declared budgets, explains every survivor, synthesizes candidate descriptors, and proposes the ones that earn it. It is a planner and an explainer, never a second runner — the brain never grows its own hands; every semantic run it needs is the pure engine over the one complete table with a selection. Planning is a pure function: a proof plan is inspectable before any budget is spent.
+Muterprater owns mutation policy, evaluation-pair custody, evaluation-only controls, qualified compiled-pressure readings, admitted interpreted evidence, proof planning, survivor explanation, and proposals. It reuses `TestPak`'s trial binding and report vocabulary instead of creating a second general runner; its interpreted receiver invokes the exact production/evaluation pair and joins each meaning to the exact trial binding that judged it. Planning is inspectable before any budget is spent.
 
 Synthesis is scoped to already-authored executable attachments — descriptors, never programs:
 
-  - a missing check implementation is a typed check-gap finding, never a fake candidate, so candidates are constructible in memory and proposals never serialize executable code.
+- a missing check implementation is a typed check-gap finding, never a fake candidate, so candidates are constructible in memory and proposals never serialize executable code.
 
-  - An inferred obligation may discharge as a test row, a fuzz seed, or a chaos scenario — lane choice is a planning decision, and "where is proof missing" is claim coverage over reports, never a structural scan.
+- An inferred obligation may discharge as a test row, a fuzz seed, or a chaos scenario — lane choice is a planning decision, and "where is proof missing" is claim coverage over reports, never a structural scan.
 
 Code existence carries no trust. Interpreter results are admitted only when a QUALIFIED reading demonstrates a witness rejection and the mandatory no-mutation parity passes; rewrite-produced descriptors additionally cross the human proposal-admission boundary.
 
@@ -22,19 +22,19 @@ Reading one of them as another is how a harness grades itself green on a questio
 
 **mutation** — compiled mutation wraps `cargo-mutants`, retained for high-assurance passes: external, it mutates the real source and invokes the test command itself, outside the wall. Its raw output parses into the composed verdict-chain axes, and the lane's parsed, axis-composed record is the MUTATION REPORT:
 
-  - baseline (qualified / failed / not-run — an unchanged PASSING baseline is a precondition for any kill; a mutant "caught" by an already-failing suite proves nothing);
+- baseline (qualified / failed / not-run — an unchanged PASSING baseline is a precondition for any kill; a mutant "caught" by an already-failing suite proves nothing);
 
-  - materialization (built / unviable / tool-failed); activation (observed / not-observed / unobservable-under-backend — an unactivated mutant is not a survivor, and a planted thing must be PROVEN to fire: a dud plant is a finding, never a silent pass);
+- materialization (built / unviable / tool-failed); activation (observed / not-observed / unobservable-under-backend — an unactivated mutant is not a survivor, and an observation-capable road must report a positive firing count: a dud plant is a finding, never a silent pass);
 
-  - execution (completed / timed-out / crashed / infrastructure-failed);
+- execution (completed / not-executed / timed-out / crashed / infrastructure-failed);
 
-  - the mutation verdict (killed / survived / inconclusive — a mutant unobservable under the backend can never earn survived; its non-kill result is inconclusive); and
+- the mutation verdict (killed / survived / inconclusive — a mutant unobservable under the backend can never earn survived; its non-kill result is inconclusive); and
 
-  - equivalence (not-assessed / proven-in-scope / refuted / inconclusive). A lawful KILLED structurally requires a qualified unchanged baseline, correct materialization, observed activation — or the typed unobservable-under-backend arm, whose claim ceiling is stated: a kill under it asserts witness rejection, never observed activation — witness execution, and the intended rejection. External mutants arrive as source coordinates, not claims:
+- equivalence (not-assessed / proven-in-scope / refuted / inconclusive). A lawful KILLED structurally requires a qualified unchanged baseline, correct materialization, observed activation — or the typed unobservable-under-backend arm, whose claim ceiling is stated: a kill under it asserts witness rejection, never observed activation — witness execution, and the intended rejection. External mutants arrive as source coordinates, not claims:
 
-  - the wrap lane reads the origin graph — a reading of the one join, never a second structure — to map them into a typed mutation target; where mapping is unavailable it runs a conservative witness selection and reports owner-unmapped, never inventing the claim.
+- the wrap lane reads the origin graph — a reading of the one join, never a second structure — to map them into a typed mutation target; where mapping is unavailable it runs a conservative witness selection and reports owner-unmapped, never inventing the claim.
 
-Mutant-scoped selection joins on shapes the rows already carry, executed as the pure engine over the complete table — the denominator survives every narrowed run. Survivor explanation hands off directly into synthesis — survivor → owning claim → which oracle class is missing → the check reference that would close it — and it stands over a record that EARNED the word, which takes observed activation: this lane produces none, so the records it explains come from a lane whose backend can observe a damage firing, and what this lane hands a reader is its inconclusive roster.
+Mutant-scoped selection joins on shapes the rows already carry, executed by the report engine over the complete table — the denominator survives every narrowed run. Survivor explanation hands off directly into synthesis — survivor → owning claim → which oracle class is missing → the check reference that would close it — and it stands over a record that EARNED the word, which takes observed activation: this lane produces none, so the records it explains come from a lane whose backend can observe a damage firing, and what this lane hands a reader is its inconclusive roster.
 
 The artifact-mutation mode — damaging a rendered artifact to prove the readers notice — is the harness rehearsing its own alarm; its roster of damages is declared here as seed material, while the surgery that realizes one is authored where the anchors are authored, so a damage is cut against a generator's own anchors rather than against spellings a hand restated beside them, and which reader catches which damage is stated by the readers that exist rather than by the roster.
 
@@ -48,23 +48,25 @@ A durable reading over a machine-readable output, and whatever mechanism such a 
 
 That profile is what a reading's ADAPTER QUALIFICATION carries, beside the grammar standing — a party's statement that the adapter's stated shapes were checked against output the backend really wrote. One pairing qualifies: the reading's profile states a backend version, and the standing states a check against that same version. The unchecked standing is the honest bootstrap posture and is worth exactly what it says — nobody has checked, so nothing is qualified: a reading under it is lawful, inspectable, and worth what the adapter's own page is worth, and it opens no gate.
 
-A version nobody stated and a check made against some other version qualify nothing either, and each names itself, the version disagreement naming both versions. A COMPILED PRESSURE WITNESS is the second fact: at least one lawful witness rejection, read out of a qualified reading and carrying the qualification of that very reading, so trust-opening evidence can never be married to a profile some other reading was taken under. A reading that reported no kill yields no witness, which is the absence it is.
+A version nobody stated and a check made against some other version qualify nothing either, and each names itself, the version disagreement naming both versions. A COMPILED PRESSURE WITNESS is the second fact: at least one lawful witness rejection read out of a reported reading whose exact adapter profile stands qualified, scoped explicitly to one production/evaluation pair. A qualification is reusable across readings carrying that same profile; it does not prove one reading instance or that a backend ran. A reading that reported no kill yields no witness, which is the absence it is.
 
-The compile-once interpreter is the rapid loop this instrument is named for. The walk over the declaration happens at generation time over the services' own typed capture; one evaluation copy compiles once carrying every admitted mutation point;
+The compile-once interpreter is the rapid loop this instrument is named for. One evaluation copy compiles once carrying a producer-shaped surface of admitted mutation points; the current public contract also permits an equivalent hand-authored surface, while macroc adoption remains a separate producer crossing. A lawful point-free copy states only that no active selection is available.
 
-runtime is selection among them — never interpretation of arbitrary source, which would mint a second meaning authority. Every evaluation surface contains the no-mutation mutant, and the evaluation copy with no-mutation selected must agree with production — same inputs, same outputs and refusals, same declared work where stated — before any interpreted mutant is trusted; per the parity-substrate clause, this parity names what its two roads share — the one declaration and the rendering engine — and is silent about both: it proves the evaluation copy faithful to the rendered production surface, never that either matches the owner's intent.
+Production has no mutation-control seat. The evaluation binding alone accepts `NoMutation` or an active selection issued by its exact surface, and runtime selects among already-admitted meanings rather than interpreting arbitrary source, which would mint a second meaning authority.
 
-Interpreted mutation is available exactly when a conforming evaluation surface exists — the services', or a hand-authored one under the same contract; absence is a typed unavailability disposition, never a crippled fake interpreter.
+Point-catalog posture and parity qualification are independent. The exact production/evaluation pair must agree under `NoMutation` for the exact input, trial binding, and declared shared substrate before any interpreted result from that surface is admitted; this parity proves scoped behavioral agreement between the paired roads and never proves that either matches the owner's intent.
 
-**fuzz** — structure-aware generation over `arbitrary` with budgeted minimization. A minimized find rides the proposal road below; the seed-packs under `corpus/` warm-start the search and hold nothing the proposal road has not already made durable.
+Interpreted mutation is available only when the conforming surface, compiled-pressure witness, and scoped no-mutation qualification name the same exact production/evaluation pair: family, both revisions, and surface identity. The compiled and interpreted roads remain complementary: a compiled reading may carry real-source compiler pressure within its narrower activation ceiling when its external provenance establishes that event, while the interpreted road binds the evaluation callback's positive firing report to an exact selection and witness after the evaluation pair earned parity; `TestPak` does not independently instrument the callback.
 
-**chaos** — campaigns over the fault adapters: schedules, stacked faults, and budgets. The adapters are the fault instrument's typed values; this lane only orchestrates them. A schedule is a fault placed at a sequence position, so the strongest claim in the harness is one campaign: the temporal laws hold under the faults.
+**fuzz** — structure-aware generation over `arbitrary` with budgeted minimization. Content-addressed seed packs warm-start the search but establish no judgment or replay authority; a find stops at the ordinary run report and fingerprint unless a separately lawful proposal ground exists.
 
-Mutation families expressed as rewrite descriptors join the plan once the interpreter is the execution substrate that makes them cheap.
+**chaos** — the fault instrument owns typed behavior/postcondition pairs, named schedules, validated campaign selection, and injection into command sequences. Muterprater owns no mutation or budget orchestrator for that road; a consumer earns the behavioral claim by driving the injected sequence through its temporal contract.
+
+Mutation families expressed as rewrite descriptors may enter the interpreted audit road once trust is open over a mutable surface. They remain audit candidates rather than evidence until an actual execution earns a later evidence claim.
 
 ## The proposal road
 
-Candidate proving is in memory: the candidate binding stages in the staged view and executes against it via the pure engine — no scratch directory exists, and the proposal sink is the only storage seam anywhere on this road; a claimed mutant kill is demonstrated on the evaluation surface with that mutant active, never asserted; only then does the lane propose.
+Candidate proving is in memory: the candidate binding stages in the staged view and executes against it via the report engine — no scratch directory exists, and the proposal sink is the only storage seam anywhere on this road; a claimed mutant kill is demonstrated on the evaluation surface with that mutant active, never asserted; only then does the lane propose.
 
 A proposal is a typed value: a candidate row plus a typed ground carrying exactly what its ground possesses — mutant-killed (target, activation evidence, replay capsule, kill evidence); claim-pinned (claim, replay capsule, proof delta); obligation-discharged (the owed claim's identity and discharge evidence, where "owed" is a posture on a claim under the constitution's named-opening-condition rule, never a genus — the row type enforces the claim, and the compiler refuses a citation to nothing).
 
@@ -76,7 +78,7 @@ A human admits.
 
 Admission is a two-part human-authored patch: the authored row, plus — for replay-bearing grounds — the capsule entering the harness's own depot as an entry the admission act itself authors, the row's replay reference pointing at it. An obligation-discharge ground creates no capsule entry: the admitted row is the discharge's permanent record, and rerunning it regenerates the behavioral evidence — with the guardrail that any non-reconstructible semantic fact a discharge requires must live in an authored owner; if a future discharge mechanism mints genuinely non-reconstructible evidence, that evidence earns content-addressed custody when it exists.
 
-  - This contract admits evidence custody per mechanism, never a universal vault.
-  - Decline is the disposal of the candidate. Runtime evidence never writes authored specification, anywhere. The file carrying this road is `propose.rs`.
+- This contract admits evidence custody per mechanism, never a universal vault.
+- Decline is the disposal of the candidate. Runtime evidence never writes authored specification, anywhere. The file carrying this road is `propose.rs`.
 
 Scope shapes are invocation parameters — seam-scoped, repo-wide, and diff-scoped runs, each carrying its own budget; mutation runs may feed back into the sequence corpus.

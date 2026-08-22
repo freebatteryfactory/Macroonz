@@ -6,6 +6,7 @@
 //! `encode.rs`; the posture readings, the comparison, and the coverage reading
 //! are their own pure-function modules.
 
+use crate::clock::MeasurementReading;
 use crate::descriptor::{
     AuthoredTableName, ClaimRef, GeneratedSupportSchemaId, TablePosture, TrialKey,
 };
@@ -181,8 +182,8 @@ pub struct ByteBudget(u64);
 
 /// How long one invocation admits one trial to run, in nanoseconds.
 ///
-/// A declared bound, not a measurement: what a run actually spent is a
-/// [`RecordedDuration`].
+/// A declared bound, not a measurement: what a run actually observed is a
+/// [`MeasurementReading`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct TimeBudget(u64);
 
@@ -308,12 +309,15 @@ pub struct MinimizationProfile {
 pub const REPLAY_CAPSULE_TAG: DomainTag =
     DomainTag::declared("replay-capsule", IdentityProfileVersion::declared(1));
 
-/// One reproduction account: everything a second run needs, and the ceiling of
-/// what reproducing it proves.
+/// The closed output shape of one run-bound reproduction account.
 ///
 /// It binds the execution key, the exact input bytes, the generation and
 /// minimization profiles with their versions, the generated-support schema
 /// identity, and the replay posture the attachment's meet produced.
+///
+/// # Construction
+///
+/// No public constructor accepts these seats independently. Run capture must bind recorded input to the execution standing that derives the posture before it can mint this account; that custody is not claimed by this report vocabulary alone, and human admission is a later act.
 ///
 /// # Nonclaims
 ///
@@ -499,16 +503,6 @@ pub enum InfrastructureFault {
     CaptureFailed,
 }
 
-/// How long an execution took, in nanoseconds, as the caller recorded it.
-///
-/// # Authority
-///
-/// A recorded fact and never a reading: nothing in this crate consults a clock,
-/// so a duration arrives from the caller that measured it or does not arrive at
-/// all. Timing is reported, never concluded from.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct RecordedDuration(u64);
-
 /// What became of one selected trial.
 ///
 /// The conclusion rides the executed arm, so a conclusion without an execution
@@ -526,14 +520,39 @@ pub enum RunAttempt {
     InfrastructureFailed(InfrastructureFault),
 }
 
+/// One external host's typed input about a selected trial.
+///
+/// # Authority
+///
+/// A host may establish an attempt and a wall-measurement reading the in-process runner cannot, but this input is not report evidence by itself. The runner joins it to one bound trial and one invocation before any [`TrialReport`] exists.
+///
+/// The semantic trial, execution standing, site, table census, selection outcome, and table posture are not parallel input seats here. They are derived at the join that admits this value.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct HostTrialRecord {
+    trial: TrialId,
+    attempt: RunAttempt,
+    measurement: MeasurementReading,
+}
+
+/// The exact semantic and revision standing one admitted trial report ran under.
+///
+/// # Authority
+///
+/// The runner derives the execution key from the bound row, attachment, invocation profile, and target, and derives replay posture from the attachment's two revision postures. Neither fact is accepted from a host record.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TrialRunStanding {
+    key: ExecutionKey,
+    replay: ReplayPosture,
+}
+
 /// One execution's record: the two identity rails joined, what became of the
-/// attempt, and how long it took.
+/// attempt, and the wall-measurement posture recorded around it.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TrialReport {
-    trial: TrialId,
+    standing: TrialRunStanding,
     site: TrialSite,
     attempt: RunAttempt,
-    elapsed: RecordedDuration,
+    measurement: MeasurementReading,
 }
 
 // ---------------------------------------------------------------------------
@@ -562,6 +581,8 @@ pub enum SelectionDisposition {
     Selected(Box<TrialReport>),
     /// Not selected, for a stated reason.
     NotSelected {
+        /// The table-derived semantic identity of the row that was not selected.
+        trial: TrialId,
         /// Why the selection passed it over.
         reason: NotSelectedReason,
     },
@@ -583,7 +604,6 @@ pub enum Exercise {
 /// One row of the denominator, and what this invocation did about it.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TrialAccounting {
-    trial: TrialId,
     row: RowRevisionId,
     claim: ClaimRef,
     disposition: SelectionDisposition,
@@ -687,11 +707,6 @@ pub enum SelectionOutcome {
 /// Recording it here is what lets a run that selected nothing still be a
 /// COMPLETE report rather than an absent one.
 ///
-/// # Nonclaims
-///
-/// Trial uniqueness across the census is the table constructor's refusal, not
-/// this seat's. Restating it here would keep passing after the stronger seat
-/// was removed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RunReport {
     census: Vec<TrialAccounting>,

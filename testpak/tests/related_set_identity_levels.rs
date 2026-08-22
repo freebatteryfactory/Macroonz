@@ -8,12 +8,11 @@
 //! asking itself: a producer comparing its own value against its own helper
 //! agrees for the same reason it exists.
 //!
-//! So this file rebuilds the body's identity from the published content grammar
-//! with its own encoder — its own length framing, its own field order, its own
-//! domain-string assembly, its own subject and role spellings, its own preimage
-//! family and version — and requires the produced identity to match. Not one
-//! encoding function, constant, or spelling is imported from
-//! `threadpak-macroc`.
+//! So this file rebuilds the body's identity from independently authored
+//! content facts and `TestPak`'s transcript oracle, then requires the produced
+//! identity to match. The related-set content framing remains local because it
+//! is the mint site's grammar; generic transcript framing and derivation have
+//! one implementation in `TestPak`.
 //!
 //! The prose this file is written from is the mint site's own construction
 //! paragraph on `RelatedSet::derived_over`, which states the content grammar in
@@ -52,16 +51,19 @@
 use threadpak::types::ConstLimit;
 use threadpak_macroc::diagnostics::RelatedIssueLimit;
 use threadpak_macroc::{RelatedIdentity, RelatedSet, RelatedSetCompletion};
+use threadpak_testpak::oracle::{
+    DerivedIdentity, ORACLE_CAUSE_FAMILY, SpecifiedContext, TranscriptDerivation, TranscriptVerdict,
+};
+use threadpak_testpak::report::{FailureClass, FindingCause, FindingLocation, TrialConclusion};
 
 // ---------------------------------------------------------------------------
 // The specification, restated here in full.
 // ---------------------------------------------------------------------------
 
-/// The profile stem, spelled out rather than imported.
+/// The profile stem's published context segments.
 ///
-/// One stem for every family. What separates two families is the family segment
-/// beside it, never a stem a family chose for itself.
-const PROFILE_STEM: &str = "threadpak/macroc/projection-identity";
+/// One stem for every family. What separates two families is the family segment beside it, never a stem a family chose for itself.
+const PROFILE_STEM_SEGMENTS: [&str; 3] = ["threadpak", "macroc", "projection-identity"];
 
 /// The PREIMAGE FAMILY both levels are derived under, spelled out rather than
 /// imported.
@@ -159,38 +161,57 @@ fn judge_body_material(issues: &[Vec<u8>]) -> Vec<u8> {
     framed
 }
 
-/// This lane's own derive-key context, assembled by the published grammar: the
-/// stem, the family, the family's version, the subject, the role.
-fn judge_context(subject: &str) -> String {
-    format!("{PROFILE_STEM}/{PREIMAGE_FAMILY}/v{PREIMAGE_FAMILY_VERSION}/{subject}/{ROLE}")
+/// The independently specified derive-key context for one related-set subject.
+fn specified_context(subject: &str) -> Option<SpecifiedContext> {
+    let mut stem_and_family = PROFILE_STEM_SEGMENTS.to_vec();
+    stem_and_family.push(PREIMAGE_FAMILY);
+    SpecifiedContext::under_version(&stem_and_family, PREIMAGE_FAMILY_VERSION, &[subject, ROLE])
+        .ok()
 }
 
-/// This lane's own transcript: the ten members of the specification, in order,
-/// for a rooted derivation at the diagnostic-relation role, at the roster
-/// position the mint site states — the family tag.
+/// The independent transcript for a rooted diagnostic-relation derivation.
 ///
 /// There is no generator member. The generator is provenance, no family's
 /// grammar names it, and a transcript carrying it would be a preimage this
 /// specification does not describe.
-fn judge_transcript(subject: &str, content: &[u8]) -> Vec<u8> {
-    let mut bytes = Vec::new();
-    judge_bytes(PROFILE_STEM.as_bytes(), &mut bytes);
-    judge_bytes(PREIMAGE_FAMILY.as_bytes(), &mut bytes);
-    bytes.extend_from_slice(&PREIMAGE_FAMILY_VERSION.to_be_bytes());
-    judge_bytes(subject.as_bytes(), &mut bytes);
-    judge_bytes(ROLE.as_bytes(), &mut bytes);
-    bytes.push(ROLE_SLOT);
-    bytes.push(ANCHORING_ROOTED);
-    judge_bytes(&[], &mut bytes);
-    judge_bytes(content, &mut bytes);
-    bytes.extend_from_slice(&u32::from(FAMILY).to_be_bytes());
-    bytes
+fn specified_transcript(subject: &str, content: &[u8]) -> TranscriptDerivation {
+    let profile_stem = PROFILE_STEM_SEGMENTS.join("/");
+    TranscriptDerivation::opened()
+        .framed_text(&profile_stem)
+        .framed_text(PREIMAGE_FAMILY)
+        .fixed32(PREIMAGE_FAMILY_VERSION)
+        .framed_text(subject)
+        .framed_text(ROLE)
+        .discriminant(ROLE_SLOT)
+        .discriminant(ANCHORING_ROOTED)
+        .framed(&[])
+        .framed(content)
+        .fixed32(u32::from(FAMILY))
 }
 
-/// The identity this lane derives, by the published specification and nothing
-/// else.
-fn judge_identity(subject: &str, content: &[u8]) -> [u8; 32] {
-    blake3::derive_key(&judge_context(subject), &judge_transcript(subject, content))
+/// The identity `TestPak` derives from this lane's independently authored facts.
+fn specified_identity(subject: &str, content: &[u8]) -> Option<DerivedIdentity> {
+    Some(specified_transcript(subject, content).derived(&specified_context(subject)?))
+}
+
+/// The class and cause carried by one normalized transcript refusal.
+fn refusal_signature(conclusion: &TrialConclusion) -> Option<(FailureClass, FindingCause)> {
+    match conclusion {
+        TrialConclusion::Passed => None,
+        TrialConclusion::Refused(finding) => Some((finding.class(), finding.cause())),
+    }
+}
+
+/// Require one hostile derivation to disagree under the transcript oracle's exact cause.
+fn asserts_transcript_disagreement(verdict: &TranscriptVerdict) {
+    assert!(matches!(verdict, TranscriptVerdict::Disagrees(_)));
+    assert_eq!(
+        refusal_signature(&verdict.concluded(FindingLocation::at(file!(), line!()))),
+        Some((
+            FailureClass::OracleDisagreement,
+            FindingCause::named(ORACLE_CAUSE_FAMILY, "transcript-derivation-disagreement"),
+        ))
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -301,17 +322,29 @@ fn the_specification_re_derives_the_produced_body_identity() {
     let issues: Vec<Vec<u8>> = (1..=4).map(material).collect();
     let set = RelatedSet::derived_over(FAMILY, &issues);
 
-    let rebuilt = judge_identity(BODY_SUBJECT, &judge_content(&judge_body_material(&issues)));
-    assert_eq!(produced_body(&set), Some(rebuilt));
+    let rebuilt = specified_identity(BODY_SUBJECT, &judge_content(&judge_body_material(&issues)));
+    assert!(rebuilt.is_some_and(|identity| {
+        produced_body(&set).is_some_and(|published| {
+            let verdict = identity.compared(&published);
+            verdict == TranscriptVerdict::Agrees
+                && verdict.concluded(FindingLocation::at(file!(), line!()))
+                    == TrialConclusion::Passed
+        })
+    }));
 
     // The per-issue level re-derives too, each over its own framed material and
     // under its own subject, so the match above is not one lucky member of a
     // grammar this lane read wrong everywhere else.
-    let rebuilt_issues: Vec<[u8; 32]> = issues
-        .iter()
-        .map(|issue| judge_identity(ISSUE_SUBJECT, &judge_content(issue)))
-        .collect();
-    assert_eq!(produced_issues(&set), rebuilt_issues);
+    let produced = produced_issues(&set);
+    assert_eq!(produced.len(), issues.len());
+    assert!(issues.iter().zip(produced).all(|(issue, published)| {
+        specified_identity(ISSUE_SUBJECT, &judge_content(issue)).is_some_and(|identity| {
+            let verdict = identity.compared(&published);
+            verdict == TranscriptVerdict::Agrees
+                && verdict.concluded(FindingLocation::at(file!(), line!()))
+                    == TrialConclusion::Passed
+        })
+    }));
 }
 
 /// Rehearsed reversal, first form: an encoder that concatenates the issues
@@ -330,8 +363,12 @@ fn an_encoder_that_drops_the_issue_framing_disagrees() {
     for issue in &issues {
         unframed.extend_from_slice(issue);
     }
-    let rebuilt = judge_identity(BODY_SUBJECT, &judge_content(&unframed));
-    assert_ne!(produced_body(&set), Some(rebuilt));
+    let verdict = specified_identity(BODY_SUBJECT, &judge_content(&unframed))
+        .and_then(|identity| produced_body(&set).map(|published| identity.compared(&published)));
+    assert!(verdict.as_ref().is_some_and(|read| {
+        asserts_transcript_disagreement(read);
+        true
+    }));
 }
 
 /// Rehearsed reversal, second form: an encoder that derives the whole-body
@@ -346,14 +383,19 @@ fn an_encoder_that_derives_the_body_under_the_issue_subject_disagrees() {
     let set = RelatedSet::derived_over(FAMILY, &issues);
 
     let content = judge_content(&judge_body_material(&issues));
-    assert_ne!(
-        judge_identity(BODY_SUBJECT, &content),
-        judge_identity(ISSUE_SUBJECT, &content)
+    let body = specified_identity(BODY_SUBJECT, &content);
+    let issue = specified_identity(ISSUE_SUBJECT, &content);
+    assert!(
+        body.as_ref()
+            .zip(issue.as_ref())
+            .is_some_and(|(body, issue)| { body.as_bytes() != issue.as_bytes() })
     );
-    assert_ne!(
-        produced_body(&set),
-        Some(judge_identity(ISSUE_SUBJECT, &content))
-    );
+    let verdict = issue
+        .and_then(|identity| produced_body(&set).map(|published| identity.compared(&published)));
+    assert!(verdict.as_ref().is_some_and(|read| {
+        asserts_transcript_disagreement(read);
+        true
+    }));
 }
 
 /// The crafted collision: material that derives ONE identity at both levels
@@ -379,21 +421,49 @@ fn crafted_aliasing_material_derives_two_identities_now() {
     assert_eq!(body_content, aliasing_issue_content);
 
     // One subject over those bytes was one identity.
-    assert_eq!(
-        judge_identity(ISSUE_SUBJECT, &body_content),
-        judge_identity(ISSUE_SUBJECT, &aliasing_issue_content)
+    let body_as_issue = specified_identity(ISSUE_SUBJECT, &body_content);
+    let aliasing_issue = specified_identity(ISSUE_SUBJECT, &aliasing_issue_content);
+    assert!(
+        body_as_issue
+            .as_ref()
+            .zip(aliasing_issue.as_ref())
+            .is_some_and(|(left, right)| left.as_bytes() == right.as_bytes())
+    );
+
+    let split_body = specified_identity(BODY_SUBJECT, &body_content);
+    assert!(
+        split_body
+            .as_ref()
+            .zip(aliasing_issue.as_ref())
+            .is_some_and(|(body, issue)| body.as_bytes() != issue.as_bytes())
     );
 
     // Two subjects over those same bytes are two, and the services' own produced
     // values are the two.
     let inner_set = RelatedSet::derived_over(FAMILY, &inner);
     let aliasing_set = RelatedSet::derived_over(FAMILY, &[framing]);
-    let aliasing_issue = produced_issues(&aliasing_set);
-    assert_eq!(aliasing_issue.len(), 1);
-    assert!(produced_body(&inner_set).is_some());
+    let produced_inner_body = produced_body(&inner_set);
+    let produced_aliasing_issues = produced_issues(&aliasing_set);
+    assert_eq!(produced_aliasing_issues.len(), 1);
+    let body_verdict = split_body
+        .as_ref()
+        .zip(produced_inner_body.as_ref())
+        .map(|(specified, published)| specified.compared(published));
+    assert_eq!(body_verdict, Some(TranscriptVerdict::Agrees));
+    assert!(body_verdict.is_some_and(|verdict| {
+        verdict.concluded(FindingLocation::at(file!(), line!())) == TrialConclusion::Passed
+    }));
+    let issue_verdict = aliasing_issue
+        .as_ref()
+        .zip(produced_aliasing_issues.first())
+        .map(|(specified, published)| specified.compared(published));
+    assert_eq!(issue_verdict, Some(TranscriptVerdict::Agrees));
+    assert!(issue_verdict.is_some_and(|verdict| {
+        verdict.concluded(FindingLocation::at(file!(), line!())) == TrialConclusion::Passed
+    }));
     assert_ne!(
-        produced_body(&inner_set).as_ref(),
-        aliasing_issue.first(),
+        produced_inner_body.as_ref(),
+        produced_aliasing_issues.first(),
         "a crafted issue still aliases the body it was framed from"
     );
 }
@@ -447,8 +517,8 @@ fn every_family_tag_reaches_one_empty_relation() {
 ///
 /// Named rather than described. A road without the routing frames no issues, so
 /// its body material is empty, and by the published content rule its whole-body
-/// commitment is the derivation over `family_byte || u64be(0)` — which this file
-/// composes with its own encoder below.
+/// commitment is the derivation over `family_byte || u64be(0)` — whose content
+/// grammar this file authors before the transcript oracle derives it below.
 ///
 /// That value is perfectly well-formed and that is the point: it is not a corrupt
 /// identity a check could notice, it is an honest commitment to no issues, and a
@@ -460,13 +530,13 @@ fn every_family_tag_reaches_one_empty_relation() {
 #[test]
 fn the_body_identity_over_empty_material_is_reachable_by_no_road() {
     let none: [Vec<u8>; 0] = [];
-    let over_empty = judge_identity(BODY_SUBJECT, &judge_content(&judge_body_material(&none)));
+    let over_empty = specified_identity(BODY_SUBJECT, &judge_content(&judge_body_material(&none)));
 
     let derived = RelatedSet::derived_over(FAMILY, &none);
-    assert_ne!(
-        produced_body(&derived),
-        Some(over_empty),
-        "the derived road still carries a whole-body commitment over empty material"
+    assert!(
+        over_empty
+            .as_ref()
+            .is_some_and(|identity| { produced_body(&derived) != Some(*identity.as_bytes()) })
     );
     assert!(produced_body(&derived).is_none());
     assert!(produced_issues(&derived).is_empty());
@@ -480,5 +550,7 @@ fn the_body_identity_over_empty_material_is_reachable_by_no_road() {
     let framing_of_nothing = judge_body_material(&none);
     let aliasing = RelatedSet::derived_over(FAMILY, &[framing_of_nothing]);
     assert_eq!(produced_issues(&aliasing).len(), 1);
-    assert_ne!(produced_issues(&aliasing).first(), Some(&over_empty));
+    assert!(over_empty.as_ref().is_some_and(|identity| {
+        produced_issues(&aliasing).first() != Some(identity.as_bytes())
+    }));
 }

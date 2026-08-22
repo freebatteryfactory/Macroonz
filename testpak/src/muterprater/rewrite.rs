@@ -8,13 +8,7 @@
 //!
 //! # Trust-last, by the staging
 //!
-//! Rewrite-produced descriptors are admitted LAST. The trust order opens with
-//! baseline qualification, then a witness rejection demonstrated under a
-//! qualified adapter, then the mandatory no-mutation parity — and only with the
-//! interpreted lane standing under all of that does this lane's material become
-//! evidence rather than a candidate. [`admission`] is that reading, taken over
-//! the interpreted lane's own availability so the order has ONE authority
-//! rather than two that could disagree.
+//! Rewrite-produced descriptors enter the interpreted audit road LAST. The trust order opens with baseline qualification, then a witness rejection demonstrated under a qualified adapter, then mandatory no-mutation parity; a mutable surface must also provide an executable point. [`admission`] reads that execution availability once. The descriptor remains an audit candidate, not evidence, until an actual execution earns a later evidence claim.
 //!
 //! # Why the interpreter gates this lane
 //!
@@ -24,11 +18,37 @@
 //! the lane's whole reason for existing is that it is not.
 
 use super::types::{
-    InterpreterAvailability, RewriteAdmission, RewriteCandidate, RewriteRoster, RewriteWithheld,
-    ScopeShape,
+    ArtifactMutation, InterpreterAvailability, PointCatalogPosture, RewriteAdmission,
+    RewriteCandidate, RewriteRoster, RewriteWithheld, ScopeShape,
 };
 use crate::depot::operator_families::OPERATOR_FAMILIES;
 use crate::depot::types::OperatorFamily;
+
+impl ArtifactMutation {
+    /// The damage rendered for a person.
+    ///
+    /// A projection: a plan and a survivor explanation name a row through it, and no decision anywhere consults it.
+    #[must_use]
+    pub const fn described(self) -> &'static str {
+        match self {
+            Self::OrderPermuted => "the textual selection order is reversed",
+            Self::IdentityRecycled => "every cause is emitted under one local key",
+            Self::PlannedOutputOmitted => "a planned output is deleted",
+            Self::UnplannedOutputAdded => "an unplanned output is appended",
+            Self::ImplTargetAltered => "the implementation targets a different type",
+            Self::ShapeAltered => "the declared body shape is changed",
+            Self::OutputDuplicated => "a planned output is emitted twice",
+            Self::TraitPathWrong => "the trait path names a different contract",
+            Self::DecoyInComment => "the anchored bytes are planted in a comment",
+            Self::ImplMemberDuplicated => "one member constant is emitted twice",
+            Self::ImplMemberUnexpected => "a member nobody planned joins the implementation",
+            Self::ConstructorPathAltered => "a row is built through another constructor",
+            Self::ImplPostureAltered => "the implementation is written under another posture",
+            Self::MeaningBearingAttributeAdded => "an attribute that decides something is added",
+            Self::MalformedRust => "the artifact stops being well-formed Rust",
+        }
+    }
+}
 
 /// Plan one roster's descriptors as audit candidates under one scope.
 ///
@@ -47,18 +67,22 @@ pub fn planned(roster: &RewriteRoster, scope: &ScopeShape) -> Vec<RewriteCandida
         .collect()
 }
 
-/// Whether this lane's descriptors are admitted as evidence yet.
+/// Whether this lane's descriptors may enter the interpreted audit road.
 ///
 /// # Authority
 ///
-/// Read over the interpreted lane's availability, which already folds the trust
-/// order in its owner's sequence. A second reading of the pressure witness and
-/// the parity here would be the same law standing in two places, and the weaker
-/// copy would keep passing after the stronger one moved.
+/// Read over the interpreted lane's availability, which already folds the trust order in its owner's sequence. A trusted point-free surface still withholds this road because it offers no active execution; an admitted descriptor remains [`super::RewriteTrust::AuditPending`], not evidence.
 #[must_use]
-pub fn admission(interpreter: &InterpreterAvailability<'_>) -> RewriteAdmission {
+pub fn admission<Input, Meaning>(
+    interpreter: &InterpreterAvailability<'_, '_, '_, '_, '_, Input, Meaning>,
+) -> RewriteAdmission {
     match interpreter {
-        InterpreterAvailability::Available { surface: _ } => RewriteAdmission::Admitted,
+        InterpreterAvailability::Available(trust) => match trust.surface().catalog_posture() {
+            PointCatalogPosture::NoAdmittedPoints => {
+                RewriteAdmission::Withheld(RewriteWithheld::NoAdmittedPoint)
+            }
+            PointCatalogPosture::Mutable => RewriteAdmission::Admitted,
+        },
         InterpreterAvailability::NoConformingSurface => {
             RewriteAdmission::Withheld(RewriteWithheld::InterpreterUnavailable)
         }
@@ -85,7 +109,7 @@ pub fn unrealized_families(roster: &RewriteRoster) -> Vec<OperatorFamily> {
             !roster
                 .descriptors()
                 .iter()
-                .any(|descriptor| descriptor.family().slug() == family.slug)
+                .any(|descriptor| descriptor.family().slug() == family.slug())
         })
         .collect()
 }

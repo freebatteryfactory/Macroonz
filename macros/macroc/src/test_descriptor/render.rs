@@ -120,12 +120,11 @@ pub const INVOCATION_CLAUSE: &str = "invocation";
 /// consumer a cache hit nothing verified.
 pub const TARGET_CLAUSE: &str = "target";
 
-/// The stamp clause carrying the clock a duration is the difference of two
-/// readings from.
+/// The stamp clause carrying the harness wall-measurement source.
 ///
 /// A shell parameter on the same terms. A caller with no measurement to offer
-/// declares the harness's own unmeasured clock, which is a named
-/// non-measurement rather than a silent zero.
+/// declares the harness's unavailable clock, whose reading stays distinct
+/// from an observed zero.
 pub const CLOCK_CLAUSE: &str = "clock";
 
 /// The shell clause carrying one executable attachment per declared row.

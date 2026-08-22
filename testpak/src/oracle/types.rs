@@ -4,9 +4,9 @@
 //! what each of these readings may conclude.
 //!
 //! Declarations only. Every road that reaches a private field is in this
-//! module's own child `type_guard.rs`; the closed cause tables and the roads
-//! into the record vocabulary are `type_contract.rs`; the structural read and
-//! the compiled read-back are their own pure-function modules. Nothing here
+//! module's own child `type_guard.rs`; the causes and the roads into the record
+//! vocabulary are in `conclude.rs`; the structural read and the compiled
+//! read-back are their own pure-function modules. Nothing here
 //! decides anything, so a reader of this file learns exactly what the annex can
 //! say and never how it says it.
 
@@ -628,20 +628,16 @@ pub struct ObservedMember {
     pub value: ObservedValue,
 }
 
-/// What a compiler did with one artifact, as a reader that ran it brings the
-/// observation back.
+/// What a caller reports observing after presenting one artifact to a compiler.
 ///
 /// # Authority
 ///
-/// The two arms make the wrong move unrepresentable: values without a
-/// compilation cannot be built, because a refused artifact has no constants for
-/// anybody to read.
+/// The two arms make refusal and value read-back mutually exclusive. This value does not establish that a compiler ran; the effectful challenge that constructs it owns that provenance.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CompiledObservation {
-    /// The compiler refused the artifact, so nothing was read back.
+    /// The caller reports that the compiler refused the artifact, so nothing was read back.
     RefusedByCompiler,
-    /// The artifact compiled, and these are the members the reader read back,
-    /// in the order it read them.
+    /// The caller reports that the artifact compiled and supplies the members it read back, in read order.
     ReadBack(Vec<ObservedMember>),
 }
 
@@ -663,42 +659,41 @@ pub enum DeclaredBehaviour<'spec> {
     ReadsBack(&'spec [DeclaredReadBack<'spec>]),
 }
 
-/// Which observable fact the compiled artifact and the declaration disagree
-/// about.
+/// Which supplied observation and declared behavior disagree.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CompiledDisagreement {
-    /// The compiler accepted an artifact the declaration says it must refuse.
+    /// The caller reported acceptance where the declaration requires refusal.
     AcceptedWhereRefusalDeclared,
-    /// The compiler refused an artifact the declaration says it must accept.
+    /// The caller reported refusal where the declaration requires acceptance.
     RefusedWhereAcceptanceDeclared,
-    /// The artifact handed back a member the declaration did not name.
+    /// The supplied read-back carries a member the declaration did not name.
     UnexpectedMember {
         /// The member's name.
         member: String,
     },
-    /// The artifact handed one member back more than once.
+    /// The supplied read-back carries one member more than once.
     DuplicateMember {
         /// The member's name.
         member: String,
     },
-    /// The artifact did not hand back a member the declaration names.
+    /// The supplied read-back omits a member the declaration names.
     MissingMember {
         /// The member's name.
         member: String,
     },
-    /// A member read back as a value the declaration did not state.
+    /// A supplied member value differs from the declaration.
     MemberValue {
         /// The member's name.
         member: String,
     },
 }
 
-/// What one compiled read-back concluded.
-#[must_use = "a verdict is what the compiled read-back concluded"]
+/// What one compiled-observation comparison concluded.
+#[must_use = "a verdict is what the compiled-observation comparison concluded"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CompiledVerdict {
-    /// The compiled artifact behaves exactly as the caller declared it would.
+    /// The supplied observation agrees with the declared behavior.
     Conforms,
-    /// The compiled artifact and the declaration disagree, about this.
+    /// The supplied observation and declared behavior disagree, about this.
     Deviates(CompiledDisagreement),
 }

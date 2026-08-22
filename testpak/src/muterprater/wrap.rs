@@ -5,7 +5,7 @@
 //! The backend is EXTERNAL and it runs outside the wall: it mutates the real
 //! source and invokes the test command itself. Nothing in this file executes
 //! anything. It reads text a caller already holds, and it plans runs the one
-//! pure engine performs — this lane is a reader and a planner, never a second
+//! report engine performs — this lane is a reader and a planner, never a second
 //! runner.
 //!
 //! # The profile a reading is stated under
@@ -16,19 +16,11 @@
 //! that ran it states, the output the reading was taken from, and this adapter's
 //! own grammar version. Three of those four are this file's own facts, so
 //! [`console_profile`] states them and only the backend version is the caller's
-//! word. The profile's ceiling is what the console stream affords, and
-//! [`WrapReading::read`] refuses a run that would stand past it.
+//! word. The profile's ceiling is what the console stream affords, and the reading guard refuses a run that would stand past it.
 //!
-//! The console grammar is the BOOTSTRAP CONTRACT: the shapes stated below are
-//! coded against the backend's own rendering, and checking them against that
-//! backend's real output is the first item of the first toolchain contact, ahead
-//! of trusting the wrap-first pressure. That order is structural rather than
-//! remembered — a reading under this grammar is lawful and inspectable from the
-//! first day, and it qualifies the adapter for nothing until a party states the
-//! check against the very backend version the reading names. A durable reading
-//! over a machine-readable output — and whatever mechanism such a reading asks
-//! for — is decided at the trust opening against the backend's own artifacts
-//! rather than against an imagined schema.
+//! The console grammar is an inspectable assumption about the backend's own rendering.
+//! A reading under it qualifies the adapter for nothing until a party states that this grammar was checked against real output from the exact backend and version the reading names.
+//! A different machine-readable backend surface, if adopted, earns its own adapter profile and qualification rather than inheriting this grammar's standing.
 //!
 //! # The output grammar this parser reads
 //!
@@ -75,20 +67,19 @@
 //! # What a reading opens trust with
 //!
 //! Two typed facts, and the interpreted lane's gate consumes both. An
-//! [`AdapterQualification`](super::AdapterQualification) is this reading's own
-//! profile under a grammar standing that qualifies it: a party states that the
+//! [`AdapterQualification`](super::AdapterQualification) is the reading's exact adapter profile under a grammar standing that qualifies that profile: a party states that the
 //! shapes this page declares were checked against output the backend really
 //! wrote, and the version they name is the version the reading's profile names.
 //! A standing under which nobody has checked anything is an honest thing to
 //! hold and produces no qualification, so the bootstrap posture is inspectable
 //! rather than admissible. A
-//! [`CompiledPressureWitness`](super::CompiledPressureWitness) is at least one
-//! lawful kill read out of a qualified reading, carrying the qualification of
-//! that very reading. Neither is a bare run: what a run counts and what a suite
+//! [`CompiledPressureWitness`](super::CompiledPressureWitness) is at least one lawful kill read out of a reported reading, carrying a qualification for its exact adapter profile and an explicit evaluation-pair scope. Neither is a bare run: what a run counts and what a suite
 //! demonstrated are two questions, and the profile is exactly what a reader
 //! needs at the moment the evidence starts deciding something.
 //!
-//! # The two caller-supplied seams
+//! # The caller-supplied seams
+//!
+//! The caller scopes the raw output to an [`EvaluationFamilyRef`]. That reference is a declaration ceiling: console text cannot prove which evaluation family produced it, so trust opens only after later evidence names the same family.
 //!
 //! External mutants arrive as source coordinates, not as claims. The origin
 //! graph is read on the generator side — a reading of the one join, never a
@@ -101,12 +92,12 @@
 
 use super::types::{
     ActivationDisposition, AdapterProfile, AnnouncedRoster, BackendVersionPosture, BaselineAxis,
-    BaselineQualification, EquivalenceAxis, ExecutionAxis, FamilyAttribution, FamilyLookup,
-    GrammarVersion, InconclusiveCause, IntendedRejection, MappingPosture, MaterializationAxis,
-    MutantId, MutationIdentity, MutationReport, MutationRun, MutationSite, MutationTarget,
-    OwnerLookup, PlanRefusal, PlannedDamage, PlannedRun, PressureLane, ProofPlan, ReadingSource,
-    ScopedInvocation, SourceCoordinate, UnparsedLine, WrapOutcomeWord, WrapReading, WrapRefusal,
-    WrappedBackend,
+    BaselineQualification, EquivalenceAxis, EvaluationFamilyRef, ExecutionAxis, FamilyAttribution,
+    FamilyLookup, GrammarVersion, InconclusiveCause, IntendedRejection, MappingPosture,
+    MaterializationAxis, MutantId, MutationIdentity, MutationReport, MutationRun, MutationSite,
+    MutationTarget, OwnerLookup, PlanRefusal, PlannedDamage, PlannedRun, PressureLane, ProofPlan,
+    ReadingSource, ScopedInvocation, SourceCoordinate, UnparsedLine, WrapOutcomeWord, WrapReading,
+    WrapRefusal, WrappedBackend,
 };
 use crate::report::ForeignText;
 use crate::runner::Selection;
@@ -145,6 +136,18 @@ const ROSTER_SUBJECT: &str = "mutant";
 
 /// The outcome word a qualified baseline is stated under.
 const BASELINE_QUALIFIED_WORD: &str = "ok";
+
+impl WrappedBackend {
+    /// The backend's own name.
+    ///
+    /// A projection: a reader of a profile names the tool through it, and no decision anywhere consults it.
+    #[must_use]
+    pub const fn spelling(self) -> &'static str {
+        match self {
+            Self::CargoMutants => "cargo-mutants",
+        }
+    }
+}
 
 /// What one line of the backend's output states.
 ///
@@ -206,14 +209,13 @@ pub fn console_profile(version: BackendVersionPosture) -> AdapterProfile {
 /// Refuses an output stating no baseline at all, then a baseline that does not
 /// qualify, then a mutant line whose record the lawful-kill constructor refused
 /// — the last carrying which line and what the constructor refused. The ceiling
-/// refusal [`WrapReading::read`] states belongs to a run assembled elsewhere:
-/// the records composed here are killed and inconclusive, and a console
-/// reading's ceiling admits both.
+/// The ceiling refusal belongs to a run assembled elsewhere: the records composed here are killed and inconclusive, and a console reading's ceiling admits both.
 pub fn read_output(
+    evaluation_family: EvaluationFamilyRef,
     text: &str,
     version: BackendVersionPosture,
     owner: OwnerLookup,
-    family: FamilyLookup,
+    family_lookup: FamilyLookup,
 ) -> Result<WrapReading, WrapRefusal> {
     let profile = console_profile(version);
     let baseline = read_baseline(text)?;
@@ -230,13 +232,14 @@ pub fn read_output(
                 damage,
                 line: whole,
             } => {
-                let target = targeted(&coordinate, damage.as_bytes(), owner, family);
+                let target = targeted(&coordinate, damage.as_bytes(), owner, family_lookup);
                 reports.push(recorded(ordinal, word, target, whole, baseline)?);
             }
             LineReading::Unread => unparsed.push(UnparsedLine::unread(ordinal, line.as_bytes())),
         }
     }
     WrapReading::read(
+        evaluation_family,
         profile,
         MutationRun::recorded(baseline, reports),
         announced,

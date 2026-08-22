@@ -1,5 +1,5 @@
 // MATERIALIZED DAMAGED ARTIFACT — the lawful rendering of the declaration
-// stated in `../compiled_behaviour.rs`, with one word changed by this harness.
+// stated in `../refusal_artifact_readings.rs`, with one word changed by this harness.
 // It COMPILES, and declares a body shape the declaration did not name, which is
 // why the compiled read-back is the seat of the claim: the disagreement is a
 // value, and only a compiler hands back values.

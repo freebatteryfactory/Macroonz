@@ -16,7 +16,7 @@ Generation has its owning values. A generation plan binds the population identit
 
 A reduction plan binds the reduction profile and version, the generic byte reducer, optional semantic reducers, the required fingerprint preservation, and the reduction budget. The paved recommendation, realization free: a deterministic counter-addressed byte source over the admitted identity substrate.
 
-The replay capsule binds the report instrument's complete contract — that home is the one owner and nothing is restated here — and is never a naked integer seed.
+The replay capsule is the report instrument's run-bound output shape and is never a naked integer seed. The current reduction road does not bind the semantic-reducer identifiers a plan carries to executable passes, so neither a plan nor a reduced input alone can claim the complete reduction custody a future capsule mint must establish.
 
 Declared bounds yield generated boundary populations for free:
 

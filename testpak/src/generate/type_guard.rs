@@ -35,112 +35,71 @@ use std::collections::BTreeSet;
 // The generation axis.
 // ---------------------------------------------------------------------------
 
-impl GenerationCensus {
-    /// An accounting opened over one population, with every seat at zero.
-    #[must_use]
-    pub const fn over(population: PopulationRef) -> Self {
-        Self {
-            population,
-            generated: 0,
-            bytes_insufficient: 0,
-            precondition_rejected: 0,
-            generator_refused: 0,
-            generator_contract_violated: 0,
-            budget_exhausted: 0,
+macro_rules! implement_generation_census {
+    ($($(#[$variant_meta:meta])* $variant:ident => $seat:ident),+ $(,)?) => {
+        impl GenerationCensus {
+            /// An accounting opened over one population, with every seat at zero.
+            #[must_use]
+            pub const fn over(population: PopulationRef) -> Self {
+                Self {
+                    population,
+                    counts: [0; GENERATION_DISPOSITION_SEATS],
+                }
+            }
+
+            /// The population this accounting stands over.
+            #[must_use]
+            pub const fn population(&self) -> PopulationRef {
+                self.population
+            }
+
+            /// Count one case under its disposition.
+            ///
+            /// Saturating rather than wrapping: a count that rolled over would read as a smaller denominator than the one that was actually reached.
+            pub fn count(&mut self, disposition: GenerationDisposition) {
+                let [$($seat),+] = &mut self.counts;
+                match disposition {
+                    $(GenerationDisposition::$variant => {
+                        *$seat = $seat.saturating_add(1);
+                    }),+
+                }
+            }
+
+            /// How many cases fell under one disposition.
+            #[must_use]
+            pub const fn count_of(&self, disposition: GenerationDisposition) -> u32 {
+                let [$($seat),+] = &self.counts;
+                match disposition {
+                    $(GenerationDisposition::$variant => *$seat),+
+                }
+            }
+
+            /// Every seat with its count, in the disposition roster's declared order.
+            ///
+            /// A renderer walks this rather than reading the seats it happens to know about, so a disposition added to the roster cannot be silently left out of a report.
+            #[must_use]
+            pub const fn entries(&self) -> [(GenerationDisposition, u32); GENERATION_DISPOSITION_SEATS] {
+                let [$($seat),+] = self.counts;
+                [$(
+                    (GenerationDisposition::$variant, $seat)
+                ),+]
+            }
+
+            /// How many cases the drive reached, over every seat.
+            ///
+            /// The sum of the parts rather than a total kept beside them, so there is no second number that could disagree with the seats it is made of.
+            #[must_use]
+            pub fn attempted(&self) -> u32 {
+                self.entries()
+                    .into_iter()
+                    .map(|(_, count)| count)
+                    .fold(0u32, u32::saturating_add)
+            }
         }
-    }
-
-    /// The population this accounting stands over.
-    #[must_use]
-    pub const fn population(&self) -> PopulationRef {
-        self.population
-    }
-
-    /// Count one case under its disposition.
-    ///
-    /// Saturating rather than wrapping: a count that rolled over would read as
-    /// a smaller denominator than the one that was actually reached.
-    pub fn count(&mut self, disposition: GenerationDisposition) {
-        match disposition {
-            GenerationDisposition::Generated => {
-                self.generated = self.generated.saturating_add(1);
-            }
-            GenerationDisposition::BytesInsufficient => {
-                self.bytes_insufficient = self.bytes_insufficient.saturating_add(1);
-            }
-            GenerationDisposition::PreconditionRejected => {
-                self.precondition_rejected = self.precondition_rejected.saturating_add(1);
-            }
-            GenerationDisposition::GeneratorRefused => {
-                self.generator_refused = self.generator_refused.saturating_add(1);
-            }
-            GenerationDisposition::GeneratorContractViolated => {
-                self.generator_contract_violated =
-                    self.generator_contract_violated.saturating_add(1);
-            }
-            GenerationDisposition::GenerationBudgetExhausted => {
-                self.budget_exhausted = self.budget_exhausted.saturating_add(1);
-            }
-        }
-    }
-
-    /// How many cases fell under one disposition.
-    #[must_use]
-    pub const fn count_of(&self, disposition: GenerationDisposition) -> u32 {
-        match disposition {
-            GenerationDisposition::Generated => self.generated,
-            GenerationDisposition::BytesInsufficient => self.bytes_insufficient,
-            GenerationDisposition::PreconditionRejected => self.precondition_rejected,
-            GenerationDisposition::GeneratorRefused => self.generator_refused,
-            GenerationDisposition::GeneratorContractViolated => self.generator_contract_violated,
-            GenerationDisposition::GenerationBudgetExhausted => self.budget_exhausted,
-        }
-    }
-
-    /// Every seat with its count, in the disposition roster's declared order.
-    ///
-    /// A renderer walks this rather than reading the seats it happens to know
-    /// about, so a disposition added to the roster cannot be silently left out
-    /// of a report.
-    #[must_use]
-    pub const fn entries(&self) -> [(GenerationDisposition, u32); GENERATION_DISPOSITION_SEATS] {
-        [
-            (GenerationDisposition::Generated, self.generated),
-            (
-                GenerationDisposition::BytesInsufficient,
-                self.bytes_insufficient,
-            ),
-            (
-                GenerationDisposition::PreconditionRejected,
-                self.precondition_rejected,
-            ),
-            (
-                GenerationDisposition::GeneratorRefused,
-                self.generator_refused,
-            ),
-            (
-                GenerationDisposition::GeneratorContractViolated,
-                self.generator_contract_violated,
-            ),
-            (
-                GenerationDisposition::GenerationBudgetExhausted,
-                self.budget_exhausted,
-            ),
-        ]
-    }
-
-    /// How many cases the drive reached, over every seat.
-    ///
-    /// The sum of the parts rather than a total kept beside them, so there is
-    /// no second number that could disagree with the seats it is made of.
-    #[must_use]
-    pub fn attempted(&self) -> u32 {
-        self.entries()
-            .into_iter()
-            .map(|(_, count)| count)
-            .fold(0u32, u32::saturating_add)
     }
 }
+
+with_generation_dispositions!(implement_generation_census);
 
 // ---------------------------------------------------------------------------
 // The generation plan.
@@ -540,8 +499,7 @@ fn supplied_draw(material: &[u8], cursor: StreamCursor, width: usize) -> ByteDra
 impl ByteSource {
     /// The source one plan draws from.
     ///
-    /// A seeded origin builds the paved counter-addressed stream over the
-    /// plan's own address; a supplied origin builds the exact bytes.
+    /// A seeded origin builds the paved counter-addressed stream over the plan's own address; a supplied origin builds the exact caller-supplied bytes without assigning them replay authority.
     #[must_use]
     pub fn of_plan(plan: &GenerationPlan) -> Self {
         match plan.origin() {
@@ -851,8 +809,7 @@ impl ReductionOutcome {
         self.halt
     }
 
-    /// The reduced input, taken by a caller that consumes it — the exact bytes
-    /// a [`crate::report::ReplayCapsule`] records.
+    /// The reduced input, taken by a caller that consumes it — the exact bytes a future run-bound [`crate::report::ReplayCapsule`] may carry once its execution custody is established.
     #[must_use]
     pub fn into_input(self) -> Vec<u8> {
         self.input

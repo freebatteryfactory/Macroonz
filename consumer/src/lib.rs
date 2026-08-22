@@ -229,6 +229,14 @@ pub enum LotRefusal {
     table = named("consumer", "merge-refusal-trials"),
 
     suite construction = named("consumer", "construction") {
+        lawful_lots_merge {
+            claim = named("consumer", "lawful-lots-merge"),
+            roles = [named("consumer", "lawful-twin"), named("consumer", "regression")],
+            tags = [named("consumer", "generated")],
+            subject = named("consumer", "lot-merged"),
+            check = named("consumer", "admits-lawful-merge"),
+            population = named("consumer", "lawful-merge-pair"),
+        },
         mismatched_lots_refuse {
             claim = named("consumer", "mismatched-lots-refuse"),
             roles = [named("consumer", "fail-closed"), named("consumer", "regression")],

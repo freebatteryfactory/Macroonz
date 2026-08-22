@@ -1,0 +1,18 @@
+error[E0061]: this function takes 3 arguments but 4 arguments were supplied
+  --> tests/compile-fail/an-evaluation-binding-cannot-relabel-its-surface.rs:20:13
+   |
+20 |     let _ = EvaluationBinding::declared(family, revision, surface.identity(), evaluated);
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^ ------            ------------------ unexpected argument #3 of type `EvaluationSurfaceId`
+   |                                         |
+   |                                         expected `&EvaluationSurface`, found `EvaluationFamilyRef`
+   |
+note: associated function defined here
+  --> src/muterprater/type_guard.rs
+   |
+   |     pub const fn declared(
+   |                  ^^^^^^^^
+help: remove the extra argument
+   |
+20 -     let _ = EvaluationBinding::declared(family, revision, surface.identity(), evaluated);
+20 +     let _ = EvaluationBinding::declared(/* &EvaluationSurface */, revision, evaluated);
+   |

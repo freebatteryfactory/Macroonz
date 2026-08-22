@@ -1,0 +1,63 @@
+//! The one report assembler shared by in-process execution and external host recording.
+//!
+//! A complete table view and one selection plan are walked here once. The caller supplies only how a selected binding reaches its admitted trial report; this operation derives every census seat, row revision, claim, table posture, selection outcome, and invocation profile.
+
+use super::resolve::{execution_key, row_revision, trial_identity};
+use super::select::{Admission, admission};
+use super::types::{Invocation, SelectionPlan, TrialBinding, TrialTableView};
+use crate::clock::MeasurementReading;
+use crate::report::{
+    RunAttempt, RunReport, SelectionDisposition, SelectionOutcome, TrialAccounting, TrialReport,
+    TrialRunStanding, attachment_replay_posture,
+};
+
+/// Admit one attempt under the standing derived from its binding and invocation.
+pub(super) fn trial_report(
+    binding: &TrialBinding,
+    invocation: &Invocation,
+    attempt: RunAttempt,
+    measurement: MeasurementReading,
+) -> TrialReport {
+    let attachment = binding.attachment();
+    let standing = TrialRunStanding::derived(
+        execution_key(binding, invocation),
+        attachment_replay_posture(
+            attachment.subject_revision().posture(),
+            attachment.check_revision().posture(),
+        ),
+    );
+    TrialReport::recorded(standing, invocation.site(), attempt, measurement)
+}
+
+/// Assemble one complete report through the selected-row adapter supplied by its caller.
+pub(super) fn run_report<E>(
+    view: &TrialTableView<'_>,
+    selection: &SelectionPlan,
+    invocation: &Invocation,
+    mut selected_report: impl FnMut(&TrialBinding) -> Result<TrialReport, E>,
+) -> Result<RunReport, E> {
+    let mut census = Vec::new();
+    let mut selected = 0usize;
+    for binding in view.bindings() {
+        let row = binding.row();
+        let trial = trial_identity(row);
+        let disposition = match admission(selection.chooses(), row, trial) {
+            Admission::Selected => {
+                selected = selected.saturating_add(1);
+                SelectionDisposition::selected(selected_report(binding)?)
+            }
+            Admission::NotSelected(reason) => SelectionDisposition::not_selected(trial, reason),
+        };
+        census.push(TrialAccounting::recorded(
+            row_revision(row),
+            row.claim(),
+            disposition,
+        ));
+    }
+    Ok(RunReport::recorded(
+        census,
+        view.posture(),
+        SelectionOutcome::read(selection.expects(), selected),
+        invocation.profile(),
+    ))
+}

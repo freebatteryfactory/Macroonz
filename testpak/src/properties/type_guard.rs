@@ -13,12 +13,13 @@
 //! statements, so no constructor here turns the first into the second.
 
 use super::{
-    ComposedRoads, ContractRefusal, Equivalence, ParitySuite, Road, RoadPairing, SharedSubstrate,
-    SubstrateRef, SubstrateRefusal, SubstrateRoster, TemporalClaim, TemporalDemand,
-    TransitionContract,
+    ComposedRoads, ContractRefusal, Equivalence, ParityReading, ParitySuite, Road, RoadPairing,
+    SharedSubstrate, SubstrateRef, SubstrateRefusal, SubstrateRoster, TemporalClaim,
+    TemporalDemand, TemporalDriveReading, TemporalDriveStanding, TransitionContract,
 };
 use crate::descriptor::{NameRefusal, NamespacedName};
-use crate::report::FindingCause;
+use crate::generate::GeneratedSequences;
+use crate::report::{FindingCause, TrialConclusion};
 use std::collections::BTreeSet;
 
 // ---------------------------------------------------------------------------
@@ -168,6 +169,56 @@ impl<Input, Meaning> ParitySuite<Input, Meaning> {
     }
 }
 
+impl<'suite, 'input, Input, Meaning> ParityReading<'suite, 'input, Input, Meaning> {
+    /// One comparison result over the exact suite and input that produced it.
+    #[must_use]
+    pub(crate) fn from_run(
+        suite: &'suite ParitySuite<Input, Meaning>,
+        input: &'input Input,
+        left: Meaning,
+        right: Meaning,
+        conclusion: TrialConclusion,
+    ) -> Self {
+        Self {
+            suite,
+            input,
+            left,
+            right,
+            conclusion,
+        }
+    }
+
+    /// The suite that owns the road pair, equivalence, and shared-substrate ceiling.
+    #[must_use]
+    pub const fn suite(&self) -> &'suite ParitySuite<Input, Meaning> {
+        self.suite
+    }
+
+    /// The exact input supplied to both roads.
+    #[must_use]
+    pub const fn input(&self) -> &'input Input {
+        self.input
+    }
+
+    /// The left road's result.
+    #[must_use]
+    pub const fn left(&self) -> &Meaning {
+        &self.left
+    }
+
+    /// The right road's result.
+    #[must_use]
+    pub const fn right(&self) -> &Meaning {
+        &self.right
+    }
+
+    /// The conclusion reached under the suite's declared equivalence.
+    #[must_use]
+    pub const fn conclusion(&self) -> &TrialConclusion {
+        &self.conclusion
+    }
+}
+
 // ---------------------------------------------------------------------------
 // The temporal suite.
 // ---------------------------------------------------------------------------
@@ -230,6 +281,40 @@ impl<State, Command> TransitionContract<State, Command> {
     #[must_use]
     pub fn claims(&self) -> &[TemporalClaim<State>] {
         &self.claims
+    }
+}
+
+impl<Command> TemporalDriveReading<Command> {
+    /// One temporal reading over the exact generation result it evaluated.
+    #[must_use]
+    pub(crate) const fn from_drive(
+        generated: GeneratedSequences<Command>,
+        evaluated: usize,
+        standing: TemporalDriveStanding,
+    ) -> Self {
+        Self {
+            generated,
+            evaluated,
+            standing,
+        }
+    }
+
+    /// The admitted sequences, complete generation census, and halt supplied to temporal evaluation.
+    #[must_use]
+    pub const fn generated(&self) -> &GeneratedSequences<Command> {
+        &self.generated
+    }
+
+    /// How many admitted sequences temporal evaluation actually read.
+    #[must_use]
+    pub const fn evaluated(&self) -> usize {
+        self.evaluated
+    }
+
+    /// What the retained generation and evaluation evidence can establish.
+    #[must_use]
+    pub const fn standing(&self) -> &TemporalDriveStanding {
+        &self.standing
     }
 }
 

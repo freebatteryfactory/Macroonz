@@ -238,7 +238,7 @@ harness::trial_table! {
             harness::report::TargetTriple::declared(crate::DECLARED_TARGET_TRIPLE),
             harness::report::ToolchainIdentity::declared(crate::DECLARED_TOOLCHAIN),
         ),
-        clock: harness::runner::HostClock::unmeasured(),
+        clock: harness::clock::HarnessClock::unavailable(),
 
         suite construction named("consumer", "construction") {
             a_lawful_request_is_counted: {

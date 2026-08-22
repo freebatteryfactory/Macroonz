@@ -17,7 +17,7 @@
 //!
 //! # The execution is somewhere else
 //!
-//! Running a compiler is an effect, and this package's library is pure. What
+//! Running a compiler is an effect, and this comparison module performs no such effect. What
 //! stands here is the vocabulary and the comparison: a caller on the challenge
 //! side compiles the artifact, reads the constants back as values, states the
 //! observation as a [`CompiledObservation`], and hands it here beside the
@@ -36,14 +36,9 @@ use super::types::{
     DeclaredReadBack, ObservedMember,
 };
 
-/// Compare what a compiled artifact did against what the caller declared it
-/// would do.
+/// Compare one caller-stated compiled observation against its declared behavior.
 ///
-/// **The claim this supports** is this lane's and only this lane's: a compiler
-/// accepted or refused this artifact, and where it accepted it, these members
-/// read back as these values. It says nothing about how the artifact is
-/// WRITTEN — two artifacts spelled differently can read back identically, and
-/// naming the difference is the structural read's.
+/// **The claim this supports** is this lane's and only this lane's: the supplied observation agrees with the declared acceptance posture and member values. The effectful challenge owns evidence that a compiler actually produced the observation. This comparison says nothing about how the artifact is WRITTEN — two artifacts spelled differently can read back identically, and naming the difference is the structural read's.
 pub fn compared(
     observed: &CompiledObservation,
     declared: &DeclaredBehaviour<'_>,

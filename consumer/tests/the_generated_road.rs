@@ -47,16 +47,41 @@
 
 use harness::descriptor::{
     CheckRef, ClaimRef, Classification, ExecutableAttachment, ExecutionSuite, Origin,
-    PopulationRef, Provenance, RevisionBinding, Role, Row, SubjectRoute, Tag, TrialTableRefusal,
+    PopulationRef, Provenance, RevisionBinding, Role, Row, SubjectRoute, Tag, TrialKey,
+    TrialTableRefusal,
 };
 use harness::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use harness::report::{OutcomeClass, TrialConclusion, TrialId};
-use harness::runner::{Invocation, TrialCall};
+use harness::runner::{Invocation, TrialBinding, TrialCall, TrialTable};
 use std::collections::BTreeMap;
+use std::fmt;
 use threadpak_consumer::{CountRequest, Lot};
 
 /// The executable attachment at the two types the engine instantiates.
 type TrialAttachment = ExecutableAttachment<Invocation, TrialConclusion>;
+
+enum GeneratedRoadFailure {
+    Harness(TrialTableRefusal),
+    MissingGeneratedTwin { trial: TrialKey },
+}
+
+impl fmt::Debug for GeneratedRoadFailure {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Harness(refusal) => formatter.debug_tuple("Harness").field(refusal).finish(),
+            Self::MissingGeneratedTwin { trial } => formatter
+                .debug_struct("MissingGeneratedTwin")
+                .field("trial", trial)
+                .finish(),
+        }
+    }
+}
+
+impl From<TrialTableRefusal> for GeneratedRoadFailure {
+    fn from(refusal: TrialTableRefusal) -> Self {
+        Self::Harness(refusal)
+    }
+}
 
 // ---------------------------------------------------------------------------
 // What this consumer declares about itself.
@@ -81,7 +106,7 @@ const SUBJECT_REVISION: &[u8] = b"threadpak-consumer/lot-merged/r1";
 
 /// The check revision this consumer commits to by hand, for every check in this
 /// file at once.
-const CHECK_REVISION: &[u8] = b"threadpak-consumer/generated-checks/r1";
+const CHECK_REVISION: &[u8] = b"threadpak-consumer/generated-checks/r2";
 
 /// The compilation target this seat's runs are DECLARED to stand on.
 ///
@@ -106,6 +131,12 @@ const MISMATCHED_LOTS: MergeRequest = MergeRequest {
 /// owes a refusal.
 const OVER_LIMIT_PAIR: MergeRequest = MergeRequest {
     left: CountRequest::stated("north-yard", Lot::CEILING),
+    right: CountRequest::stated("north-yard", 1u32),
+};
+
+/// A pair of lawful lots whose counts fit under the merge ceiling.
+const LAWFUL_MERGE_PAIR: MergeRequest = MergeRequest {
+    left: CountRequest::stated("north-yard", 1u32),
     right: CountRequest::stated("north-yard", 1u32),
 };
 
@@ -211,17 +242,19 @@ const THE_READING: harness::properties::ResponseReading<MergeOutcome> = answered
 // rendered path could name it.
 // ---------------------------------------------------------------------------
 
-/// The fail-closed law over the first declared cause: two counts naming
-/// different lots come back as a refusal rather than as a merged lot.
+/// Two counts naming different lots come back refusal-shaped rather than answer-shaped.
 fn mismatched_lots_refuse(_invocation: &Invocation) -> TrialConclusion {
     harness::properties::fail_closed(merged, THE_READING, &MISMATCHED_LOTS)
 }
 
-/// The fail-closed law over the second declared cause: two counts of one lot
-/// that add up past the ceiling come back as a refusal rather than as a capped
-/// lot.
+/// Two counts of one lot that add up past the ceiling come back refusal-shaped rather than answer-shaped.
 fn merged_count_past_limit_refuses(_invocation: &Invocation) -> TrialConclusion {
     harness::properties::fail_closed(merged, THE_READING, &OVER_LIMIT_PAIR)
+}
+
+/// Two lawful lots that fit under the ceiling come back answer-shaped rather than refusal-shaped.
+fn lawful_lots_merge(_invocation: &Invocation) -> TrialConclusion {
+    harness::properties::admits_lawful(merged, THE_READING, &LAWFUL_MERGE_PAIR)
 }
 
 // ---------------------------------------------------------------------------
@@ -257,9 +290,14 @@ threadpak_consumer::merge_refusal_trials! {
         harness::report::ToolchainIdentity::declared(crate::DECLARED_TOOLCHAIN),
     ),
 
-    clock: harness::runner::HostClock::unmeasured(),
+    clock: harness::clock::HarnessClock::unavailable(),
 
     attachments: {
+        lawful_lots_merge {
+            subject_revision: crate::declared_revision(crate::SUBJECT_REVISION),
+            check_revision: crate::declared_revision(crate::CHECK_REVISION),
+            call: crate::lawful_lots_merge,
+        },
         mismatched_lots_refuse {
             subject_revision: crate::declared_revision(crate::SUBJECT_REVISION),
             check_revision: crate::declared_revision(crate::CHECK_REVISION),
@@ -325,8 +363,19 @@ fn hand_twin(
 /// Refuses exactly as the stamped table's own construction refuses: the road
 /// this reads is the one the seats run, so a table a seat could not build is a
 /// table this reading cannot either.
-fn generated_world() -> Result<harness::runner::TrialTable, TrialTableRefusal> {
+fn generated_world() -> Result<TrialTable, TrialTableRefusal> {
     generated_merge_refusal_trials::table()
+}
+
+fn generated_twin(
+    world: &TrialTable,
+    trial: TrialKey,
+) -> Result<&TrialBinding, GeneratedRoadFailure> {
+    world
+        .bindings()
+        .iter()
+        .find(|binding| binding.trial_key() == trial)
+        .ok_or(GeneratedRoadFailure::MissingGeneratedTwin { trial })
 }
 
 /// Two roads over one trial state the same TRIAL and different ORIGINS.
@@ -345,7 +394,7 @@ fn generated_world() -> Result<harness::runner::TrialTable, TrialTableRefusal> {
 /// requiring those to agree would be requiring the producer to have written what
 /// a hand wrote.
 #[test]
-fn a_generated_row_and_a_hand_row_state_one_trial() -> Result<(), TrialTableRefusal> {
+fn a_generated_row_and_a_hand_row_state_one_trial() -> Result<(), GeneratedRoadFailure> {
     let world = generated_world()?;
     let (hand, _) = hand_twin(
         "mismatched-lots-refuse",
@@ -353,15 +402,7 @@ fn a_generated_row_and_a_hand_row_state_one_trial() -> Result<(), TrialTableRefu
         "mismatched-lots",
         mismatched_lots_refuse,
     )?;
-    let generated = world
-        .bindings()
-        .iter()
-        .find(|binding| binding.trial_key() == hand.trial_key());
-    let Some(generated) = generated else {
-        return Err(TrialTableRefusal::NameNotParsed(
-            harness::descriptor::NameRefusal::EmptyStem,
-        ));
-    };
+    let generated = generated_twin(&world, hand.trial_key())?;
     assert_eq!(generated.row().coordinates(), hand.coordinates());
     assert_ne!(generated.row().origin(), hand.origin());
     assert!(matches!(generated.row().origin(), Origin::Generated(_)));
@@ -394,6 +435,37 @@ fn every_generated_binding_carries_the_producers_own_act() -> Result<(), TrialTa
         world.name(),
         harness::descriptor::AuthoredTableName::named(CONSUMER, "merge-refusal-trials")?
     );
+    Ok(())
+}
+
+/// A table's emitter and one binding's emitter are independent facts.
+///
+/// A producer may assemble a table containing a hand-written row it did not emit. The table truthfully names the producer of the assembly while the binding truthfully remains unproduced; neither seat speaks for the other.
+#[test]
+fn a_produced_table_may_hold_an_unproduced_hand_binding() -> Result<(), TrialTableRefusal> {
+    let generated = generated_world()?;
+    let (row, attachment) = hand_twin(
+        "mismatched-lots-refuse",
+        "mismatched-lots-refuse",
+        "mismatched-lots",
+        mismatched_lots_refuse,
+    )?;
+    let binding = harness::descriptor::Binding::bound(row, attachment, Provenance::Unproduced)?;
+    let world = harness::descriptor::AuthoredTable::authored(
+        harness::descriptor::AuthoredTableName::named(CONSUMER, "produced-mixed-emitter-world")?,
+        generated.provenance(),
+        vec![binding],
+    )
+    .map_err(TrialTableRefusal::TableNotAuthored)?;
+
+    assert!(matches!(world.provenance(), Provenance::Produced { .. }));
+    assert!(matches!(
+        world
+            .bindings()
+            .first()
+            .map(harness::descriptor::Binding::provenance),
+        Some(Provenance::Unproduced)
+    ));
     Ok(())
 }
 
@@ -432,6 +504,12 @@ fn one_selection_reaches_same_trials_down_both_roads() -> Result<(), TrialTableR
         ));
 
     let generated = generated_world()?;
+    let lawful_twin = hand_twin(
+        "lawful-lots-merge",
+        "admits-lawful-merge",
+        "lawful-merge-pair",
+        lawful_lots_merge,
+    )?;
     let mismatched_twin = hand_twin(
         "mismatched-lots-refuse",
         "fail-closed-mismatched",
@@ -448,6 +526,11 @@ fn one_selection_reaches_same_trials_down_both_roads() -> Result<(), TrialTableR
         harness::descriptor::AuthoredTableName::named(CONSUMER, "the-hand-twin-world")?,
         Provenance::Unproduced,
         vec![
+            harness::descriptor::Binding::bound(
+                lawful_twin.0,
+                lawful_twin.1,
+                Provenance::Unproduced,
+            )?,
             harness::descriptor::Binding::bound(
                 mismatched_twin.0,
                 mismatched_twin.1,
@@ -507,7 +590,7 @@ fn one_selection_reaches_same_trials_down_both_roads() -> Result<(), TrialTableR
 /// stamped module's own, so the facts the trial runs under are the ones the
 /// delivery carries rather than ones this seat composed.
 #[test]
-fn the_generated_attachment_reaches_this_targets_own_check() -> Result<(), TrialTableRefusal> {
+fn the_generated_attachment_reaches_this_targets_own_check() -> Result<(), GeneratedRoadFailure> {
     let world = generated_world()?;
     let invocation = Invocation::declared(
         generated_merge_refusal_trials::INVOCATION,
@@ -526,15 +609,7 @@ fn the_generated_attachment_reaches_this_targets_own_check() -> Result<(), Trial
         "mismatched-lots",
         mismatched_lots_refuse,
     )?;
-    let Some(binding) = world
-        .bindings()
-        .iter()
-        .find(|binding| binding.trial_key() == hand.trial_key())
-    else {
-        return Err(TrialTableRefusal::NameNotParsed(
-            harness::descriptor::NameRefusal::EmptyStem,
-        ));
-    };
+    let binding = generated_twin(&world, hand.trial_key())?;
     let through_the_delivery = harness::runner::run_one(binding, &invocation);
     let directly = mismatched_lots_refuse(&invocation);
     assert_eq!(

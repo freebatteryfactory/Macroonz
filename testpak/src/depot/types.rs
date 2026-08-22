@@ -4,6 +4,9 @@
 //! Declarations only. The entries themselves are the family files beside this
 //! one, and what the bank is for is this home's README.
 
+#[path = "type_guard.rs"]
+mod guard;
+
 /// One family of mutation operators the proof-pressure engine draws from.
 ///
 /// A row states which family it is and what one of that family's operators
@@ -17,19 +20,18 @@ pub struct OperatorFamily {
     ///
     /// Declared rather than taken from the Rust spelling beside it, so renaming
     /// the constant moves the spelling and moves nothing named under the slug.
-    pub slug: &'static str,
+    slug: &'static str,
     /// What one operator of this family damages in the subject it is applied
     /// to.
-    pub attacks: &'static str,
+    attacks: &'static str,
 }
 
 /// One anti-substitution swap pair: the type a position requires, the type that
 /// must never be accepted in its place, and the boundary the two stand across.
 ///
-/// A row is material, not a case. The generator reads a row and emits the
-/// compile-refusal case that offers the substitute where the seat's type is
-/// required; the case's evidence is the compiler's own refusal, and the fixture
-/// it lands in is `tests/`'s.
+/// A row is material, not a case. A future anti-substitution consumer may read a
+/// row and emit a compile-refusal case that offers the substitute where the
+/// seat's type is required. No current generator consumes these rows.
 ///
 /// # Ordering
 ///

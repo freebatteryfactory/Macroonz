@@ -7,29 +7,29 @@
 //! borrowed body clones its issues out and reseats them through the same road.
 //! The record either produces is indistinguishable from one a seam returned.
 //!
-//! # This fixture names the roads; the LAW holds the population
+//! # This fixture names exact roads
 //!
-//! What is written below is every mint the seven families declare today — three
-//! for `ProjectionPlanning`, two for `TemplateConstruction`, one each for
-//! `ProjectionClosureRefusal`, `ExplanationCoverage`, `TriggerViewComposition`,
-//! `CompositionRootDeclaration` and `RefusalDeriveRefusal`. Ten roads, and
-//! restoring `pub` on ANY one of them makes that line resolve, changes this
-//! file's diagnostics, and fails the fixture. That is a real refusal and it is
-//! what a compile-fail fixture is for.
+//! The ten references below are the exact construction spellings this fixture attempts.
+//! Making any one public changes this file's diagnostics and fails the fixture.
+//! The lane proves those spellings are inaccessible; it does not prove that no alternate or later mint could exist.
 //!
-//! It is not the universal statement, and it never could be: a list names the
-//! roads that exist, so a family added tomorrow with a public mint leaves this
-//! file compiling exactly as it does now. A repository law used to try to close
-//! that gap by deriving the population — every closed record some road refuses
-//! with, joined against every road handing one back — and it was wrong
-//! repeatedly, because answering it means resolving types, following aliases,
-//! deciding what a receiver stands for, and inferring reachability. It is
-//! deleted.
-//!
-//! What stands in its place is structural. Each body is DECLARED in a `seat`
+//! Each body is declared in a `seat`
 //! module inside its home's `type_guard.rs`, whose entire content is that
 //! record and inherent implementations of it and nothing else — the module is
 //! the complete set of roads to the private seat.
+//!
+//! # Claim ceiling
+//!
+//! A compile-fail fixture observes name resolution at the exact paths it writes.
+//! It does not enumerate methods the source never names.
+//! It does not follow aliases to infer another construction road.
+//! It does not infer that a receiver can or cannot be obtained.
+//! It does not infer reachability from caller counts.
+//! Those are separate source and owner questions.
+//!
+//! The structural privacy of each attempted method is still real.
+//! The narrow claim keeps that evidence without turning this file into a complete public-surface census.
+//! No wider capability closure follows.
 //! So the set of code that can reach a private seat is
 //! a module read in one screen rather than a file of dozens of types, and every
 //! road outside it is `E0451` or `E0616` from the compiler.

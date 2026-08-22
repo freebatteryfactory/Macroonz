@@ -23,13 +23,7 @@
 //! # The unwind-safety assertion
 //!
 //! [`AssertUnwindSafe`] is asserted over the call, and what it asserts is
-//! narrow. The subject is a pure map taken by shared reference — a function
-//! pointer with no captured state, over values this home only reads — so no
-//! value visible across the catch is mutated on the way to the panic, and
-//! nothing here can observe a half-updated invariant afterwards. The assertion
-//! claims nothing about state the subject reaches on its own: a subject that
-//! mutates a global or its own interior mutability leaves that state exactly as
-//! its panic left it, and this boundary neither inspects nor repairs it.
+//! narrow. The closure environment contains shared references to the attachment and invocation, and the subject is a function pointer with no captured state, so this boundary mutates no captured value across the catch. The assertion claims no semantic purity for the subject and nothing about state the subject reaches on its own: a subject that mutates a global or its own interior mutability leaves that state exactly as its panic left it, and this boundary neither inspects nor repairs it.
 //!
 //! # Nonclaims
 //!
@@ -67,9 +61,7 @@ thread_local! {
 /// The conclusion one attachment reaches, with a subject panic caught at the
 /// boundary and returned as a refusal.
 ///
-/// The road has no panic of its own: the payload is read only in the two shapes
-/// it is safely readable in, the origin slot is reached through a fallible
-/// borrow, and every absence has its own arm.
+/// The caught-payload mapping reads the payload only in the two shapes it is safely readable in, reaches the origin slot through a fallible borrow, and gives every absence its own arm. This is a claim about the mapping after hook operations return, not panic-freedom of process-global hook installation, the chained prior hook, or allocation.
 pub(super) fn caught_conclusion(
     attachment: &ExecutableAttachment<Invocation, TrialConclusion>,
     invocation: &Invocation,

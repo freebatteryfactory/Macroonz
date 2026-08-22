@@ -8,12 +8,9 @@
 //!
 //! # Neutrality
 //!
-//! Nothing here names a product type. The state and the command are type
-//! parameters carrying no bound, the claims are the owner's carriers over the
-//! owner's predicates, and what comes back is the harness's own conclusion — so
-//! a product integrates by mapping its vocabulary into
-//! [`TransitionContract`](crate::properties::TransitionContract) at its own
-//! layer, and this home never learns what a state means.
+//! Nothing here names a product type.
+//! The state and command are unbounded type parameters, and a generated drive returns an evidence reading that carries a conclusion only when earned and otherwise carries [`TemporalDriveStanding::Incomplete`].
+//! A product integrates by mapping its vocabulary into [`TransitionContract`](crate::properties::TransitionContract) at its own layer, and this home never learns what a state means.
 //!
 //! # What a break does not carry
 //!
@@ -26,9 +23,12 @@
 
 use super::conclude::concluded;
 use super::types::{
-    Holding, NO_SEQUENCE_DRIVEN, Order, StatePredicate, TemporalDemand, TransitionContract,
+    Holding, NO_SEQUENCE_DRIVEN, Order, StatePredicate, TemporalDemand, TemporalDriveReading,
+    TemporalDriveStanding, TransitionContract,
 };
-use crate::generate::{ByteSource, CommandDecode, GenerationPlan, SequencePrecondition, drive};
+use crate::generate::{
+    ByteSource, CommandDecode, GenerationHalt, GenerationPlan, SequencePrecondition, drive,
+};
 use crate::report::{FailureClass, TrialConclusion};
 use core::cmp::Ordering;
 
@@ -58,8 +58,7 @@ pub fn holds_over_history<State, Command>(
     TrialConclusion::Passed
 }
 
-/// Drive a whole generation plan through a contract, reading every claim over
-/// every sequence the plan admitted.
+/// Drive a whole generation plan through a contract and retain the evidence behind its temporal standing.
 ///
 /// # Authority
 ///
@@ -70,11 +69,8 @@ pub fn holds_over_history<State, Command>(
 ///
 /// # Bounds
 ///
-/// A drive that admitted no sequence REFUSES rather than passing. A temporal law
-/// over an empty world is unexercised, and reporting it as satisfied would be
-/// the harness manufacturing evidence out of a generator that gave it nothing —
-/// the halt and the census the drive recorded are where the reason for the
-/// emptiness is read.
+/// A drive that admitted no sequence refuses rather than passing.
+/// One counterexample refuses even under a partial halt, but an all-pass prefix remains incomplete unless generation reached the declared case budget.
 #[must_use]
 #[track_caller]
 pub fn holds_over_drive<State, Command>(
@@ -83,22 +79,36 @@ pub fn holds_over_drive<State, Command>(
     source: &ByteSource,
     decode: CommandDecode<Command>,
     precondition: SequencePrecondition<Command>,
-) -> TrialConclusion {
-    let produced = drive(plan, source, decode, precondition);
-    if produced.sequences().is_empty() {
-        return concluded(
+) -> TemporalDriveReading<Command> {
+    let generated = drive(plan, source, decode, precondition);
+    let mut evaluated = 0usize;
+    let standing = if generated.sequences().is_empty() {
+        TemporalDriveStanding::Concluded(concluded(
             Holding::Fails,
             FailureClass::RefusedByCheck,
             NO_SEQUENCE_DRIVEN,
-        );
-    }
-    for sequence in produced.sequences() {
-        match holds_over_history(contract, sequence.commands()) {
-            TrialConclusion::Passed => {}
-            refused @ TrialConclusion::Refused(_) => return refused,
+        ))
+    } else {
+        let mut refusal = None;
+        for sequence in generated.sequences() {
+            evaluated = evaluated.saturating_add(1usize);
+            match holds_over_history(contract, sequence.commands()) {
+                TrialConclusion::Passed => {}
+                refused @ TrialConclusion::Refused(_) => {
+                    refusal = Some(refused);
+                    break;
+                }
+            }
         }
-    }
-    TrialConclusion::Passed
+        match refusal {
+            Some(refused) => TemporalDriveStanding::Concluded(refused),
+            None if generated.halt() == GenerationHalt::CaseBudgetMet => {
+                TemporalDriveStanding::Concluded(TrialConclusion::Passed)
+            }
+            None => TemporalDriveStanding::Incomplete,
+        }
+    };
+    TemporalDriveReading::from_drive(generated, evaluated, standing)
 }
 
 /// The history one command sequence drives: the opening state, and the state

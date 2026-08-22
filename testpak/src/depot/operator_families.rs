@@ -31,10 +31,8 @@ use super::types::OperatorFamily;
 /// contract owns that ladder. A survivor here therefore names a declared bound
 /// whose edge no row in the table stands on, and the candidate that closes it
 /// is an input, not a new check.
-pub const COMPARISON_BOUNDARIES: OperatorFamily = OperatorFamily {
-    slug: "comparison-boundaries",
-    attacks: "the exact edge a comparison draws",
-};
+pub const COMPARISON_BOUNDARIES: OperatorFamily =
+    OperatorFamily::declared("comparison-boundaries", "the exact edge a comparison draws");
 
 /// Rewrites the connective a decision is made through.
 ///
@@ -47,10 +45,8 @@ pub const COMPARISON_BOUNDARIES: OperatorFamily = OperatorFamily {
 /// condition no input ever made the deciding one — so the explanation is
 /// specific enough to author against: which condition, and which combination of
 /// values the table never carries.
-pub const BOOLEAN_OPERATORS: OperatorFamily = OperatorFamily {
-    slug: "boolean-operators",
-    attacks: "the shape of a decision",
-};
+pub const BOOLEAN_OPERATORS: OperatorFamily =
+    OperatorFamily::declared("boolean-operators", "the shape of a decision");
 
 /// Answers a refusal as a success: the `Err` road rewritten into the `Ok` one.
 ///
@@ -62,10 +58,8 @@ pub const BOOLEAN_OPERATORS: OperatorFamily = OperatorFamily {
 /// A survivor here means the subject was only ever handed inputs it accepts:
 /// the refusal arm is prose, its typed cause is carried by nobody, and every
 /// downstream claim about how the subject says no rests on a road no row walks.
-pub const RESULT_COLLAPSE: OperatorFamily = OperatorFamily {
-    slug: "result-collapse",
-    attacks: "the road a refusal travels",
-};
+pub const RESULT_COLLAPSE: OperatorFamily =
+    OperatorFamily::declared("result-collapse", "the road a refusal travels");
 
 /// Answers an absence as a presence: the `None` road rewritten into a `Some`.
 ///
@@ -78,10 +72,8 @@ pub const RESULT_COLLAPSE: OperatorFamily = OperatorFamily {
 /// the closed direction is the only one that carries evidence: an open road
 /// that opens establishes nothing about what the road does when the value is
 /// not there.
-pub const OPTION_COLLAPSE: OperatorFamily = OperatorFamily {
-    slug: "option-collapse",
-    attacks: "the road an absence travels",
-};
+pub const OPTION_COLLAPSE: OperatorFamily =
+    OperatorFamily::declared("option-collapse", "the road an absence travels");
 
 /// Drops a returned value at a call site written to read it.
 ///
@@ -94,10 +86,10 @@ pub const OPTION_COLLAPSE: OperatorFamily = OperatorFamily {
 /// A survivor here names a call whose result the table never observes, so the
 /// producer's refusal contract — however well proven at the producer — is
 /// unproven from the outside, where every consumer of it lives.
-pub const IGNORED_RESULTS: OperatorFamily = OperatorFamily {
-    slug: "ignored-results",
-    attacks: "the fate of a value a caller was written to read",
-};
+pub const IGNORED_RESULTS: OperatorFamily = OperatorFamily::declared(
+    "ignored-results",
+    "the fate of a value a caller was written to read",
+);
 
 /// Replaces an owner-declared input with a fact taken straight off the host — a
 /// clock, an environment value, an entropy source, a filesystem answer.
@@ -118,10 +110,10 @@ pub const IGNORED_RESULTS: OperatorFamily = OperatorFamily {
 /// reads the host facts it needs in order to run; what the law forbids is a
 /// host fact entering a semantic identity or decision, and a row of this family
 /// is a damage aimed at that entry.
-pub const DIRECT_MACHINE_CONTACT: OperatorFamily = OperatorFamily {
-    slug: "direct-machine-contact",
-    attacks: "the seam between a declared input and the host it was declared instead of",
-};
+pub const DIRECT_MACHINE_CONTACT: OperatorFamily = OperatorFamily::declared(
+    "direct-machine-contact",
+    "the seam between a declared input and the host it was declared instead of",
+);
 
 /// Replaces a constructor's body with a default value, or with a call back into
 /// itself.
@@ -136,10 +128,10 @@ pub const DIRECT_MACHINE_CONTACT: OperatorFamily = OperatorFamily {
 /// promise is being carried by the discipline of whoever calls the constructor
 /// rather than by the construction, and every later claim that reads the type as
 /// already-informed is reading a promise nothing enforces.
-pub const CONSTRUCTOR_AND_DEFAULT_RECURSION: OperatorFamily = OperatorFamily {
-    slug: "constructor-and-default-recursion",
-    attacks: "the invariant nucleus a smart constructor holds",
-};
+pub const CONSTRUCTOR_AND_DEFAULT_RECURSION: OperatorFamily = OperatorFamily::declared(
+    "constructor-and-default-recursion",
+    "the invariant nucleus a smart constructor holds",
+);
 
 /// The declared operator families, in the order this bank states them.
 pub const OPERATOR_FAMILIES: [OperatorFamily; 7] = [

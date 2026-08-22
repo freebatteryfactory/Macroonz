@@ -7,47 +7,13 @@
 //! call that declares them, and nothing reaches in afterwards to change what a
 //! report will say the run stood on.
 
-use super::{
-    FailedTrial, HostClock, Invocation, SeatFailure, SeatRefusal, Selection, SelectionPlan,
-};
+use super::{FailedTrial, Invocation, SeatFailure, SeatRefusal, Selection, SelectionPlan};
+use crate::clock::HarnessClock;
 use crate::descriptor::TrialTableRefusal;
 use crate::report::{
     EmptySelectionReason, InvocationProfile, SelectionExpectation, TargetBinding, TrialId,
     TrialSite,
 };
-
-/// The reading that does not move, for a caller with no measurement to offer.
-const fn unmoving() -> u64 {
-    0
-}
-
-impl HostClock {
-    /// The clock, over the caller's own nanosecond reading.
-    #[must_use]
-    pub const fn reading(read: fn() -> u64) -> Self {
-        Self(read)
-    }
-
-    /// The clock a caller with no measurement to offer declares.
-    ///
-    /// # Nonclaims
-    ///
-    /// It is not a measurement and never becomes one. The reading does not
-    /// move, so every [`RecordedDuration`](crate::report::RecordedDuration)
-    /// taken over it reads zero — and zero here means NO MEASUREMENT WAS TAKEN,
-    /// never an execution that took no time. A rendering that reads it as speed
-    /// is reading a number nobody produced.
-    #[must_use]
-    pub const fn unmeasured() -> Self {
-        Self(unmoving)
-    }
-
-    /// One reading, in nanoseconds on the caller's own origin.
-    #[must_use]
-    pub fn nanoseconds(self) -> u64 {
-        (self.0)()
-    }
-}
 
 impl Invocation {
     /// The invocation, over the facts a caller declares for one run.
@@ -56,7 +22,7 @@ impl Invocation {
         profile: InvocationProfile,
         target: TargetBinding,
         site: TrialSite,
-        clock: HostClock,
+        clock: HarnessClock,
     ) -> Self {
         Self {
             profile,
@@ -87,7 +53,7 @@ impl Invocation {
 
     /// The caller's clock.
     #[must_use]
-    pub const fn clock(&self) -> HostClock {
+    pub const fn clock(&self) -> HarnessClock {
         self.clock
     }
 }

@@ -1,6 +1,4 @@
-//! The annex's declarative surface: the closed tables that name every finding
-//! it can raise, and the one road from each lane's verdict into the record
-//! vocabulary.
+//! The annex's conclusion operation: the causes each lane owns and the one road from each lane's verdict into the record vocabulary.
 //!
 //! # A finding names its cause, and every lane names it the same way
 //!

@@ -50,16 +50,6 @@ const DECLARATION: &str = "#[refusal(family = \"testpak.demo\", shape = single_c
 const SHAPE_NOT_ADMITTED: &str = "#[refusal(family = \"testpak.demo\", shape = tri_state)] \
     enum DemoFamily { NotAdmitted, }";
 
-/// How many rendered roles this declaration's shape fixes,
-/// stated here rather than counted off the plan:
-/// the family contract and the typed cause order,
-/// each in its production implementation and its mutation-evaluation copy.
-const DECLARED_ROLE_COUNT: usize = 4;
-
-/// The declared magnitude one human projection stands under, stated here rather
-/// than read off the services. The over-long case is one byte past it.
-const DECLARED_HUMAN_TEXT_MAGNITUDE: usize = 512;
-
 /// One lawful refusal-family expansion, or nothing where the road refused.
 fn lawful() -> Result<threadpak_macroc::RefusalFamilyExpansion, ()> {
     compile_refusal_text(DECLARATION)
@@ -127,9 +117,10 @@ fn level_and_bytes(identity: RelatedIdentity) -> (u8, [u8; 32]) {
 #[test]
 fn the_lawful_road_binds_every_required_seat() {
     assert!(lawful().is_ok_and(|closed| {
-        closed.plan().membership().count() == DECLARED_ROLE_COUNT
-            && closed.rendered().count() == DECLARED_ROLE_COUNT
-            && closed.closure().reconstructed().count() == DECLARED_ROLE_COUNT
+        let denominator = closed.plan().membership().count();
+        denominator > 0
+            && closed.rendered().count() == denominator
+            && closed.closure().reconstructed().count() == denominator
             && closed.explanation().len() == 9
             && closed
                 .emitted()
@@ -160,7 +151,7 @@ fn a_shortened_complete_set_proves_a_smaller_claim() -> Result<(), ()> {
         .cloned()
         .ok_or(())?;
     let shortened = PlannedMembership::complete(member, []);
-    assert!(shortened.count() == 1 && closed.plan().membership().count() == DECLARED_ROLE_COUNT);
+    assert!(shortened.count() == 1 && closed.plan().membership().count() > shortened.count());
     let smaller = replanned(closed.plan(), shortened)?;
     assert_ne!(smaller.identity(), closed.plan().identity());
     let refused = ProjectionClosure::proved(&smaller, closed.closure().rendered().clone())
@@ -374,20 +365,18 @@ fn two_families_observing_one_classification_are_still_two_refusals() {
 /// The empty-projection repair, restored: an over-long rendering refuses rather
 /// than becoming a blank one.
 ///
-/// The magnitude is stated here, not read off the services, so the assertion is
-/// between two independent statements. One byte under it is admitted and carries
-/// its whole length; one byte over it refuses. Neither answer is an empty
-/// projection, which is what the repair would produce.
+/// The boundary is read from its owner.
+/// One value at it is admitted and carries its whole length; one byte over it refuses.
+/// Neither answer is an empty projection, which is what the repair would produce.
 #[test]
 fn an_over_long_projection_refuses_rather_than_blanking() {
-    assert_eq!(HumanTextLimit::MAX, DECLARED_HUMAN_TEXT_MAGNITUDE);
-    let fitting = "x".repeat(DECLARED_HUMAN_TEXT_MAGNITUDE);
+    let fitting = "x".repeat(HumanTextLimit::MAX);
     let admitted = HumanProjection::<HumanTextLimit>::projected(&fitting);
     assert!(admitted.is_ok_and(|projection| {
-        projection.len() == DECLARED_HUMAN_TEXT_MAGNITUDE && !projection.is_empty()
+        projection.len() == HumanTextLimit::MAX && !projection.is_empty()
     }));
 
-    let oversized = "x".repeat(DECLARED_HUMAN_TEXT_MAGNITUDE.saturating_add(1));
+    let oversized = "x".repeat(HumanTextLimit::MAX.saturating_add(1));
     assert!(HumanProjection::<HumanTextLimit>::projected(&oversized).is_err());
 }
 

@@ -7,8 +7,8 @@
 //! and the whole proposal road.
 //!
 //! Declarations only. Every road that reaches a private field is this file's own
-//! child, `type_guard.rs`; the declarative tables are `type_contract.rs`; the
-//! four lanes are the role-named modules beside them.
+//! child, `type_guard.rs`; declarative trait participation is in
+//! `type_contract.rs`; the four lanes are the role-named modules beside them.
 //!
 //! # The borrowed vocabularies
 //!
@@ -24,16 +24,16 @@
 use crate::depot::types::OperatorFamily;
 use crate::descriptor::{
     AdmissionGround, CheckRef, ClaimRef, Classification, ExecutionSuite, MutationPointRef,
-    NameRefusal, NamespacedName, PopulationRef, ProposalId, Row, RowRefusal, StagedTableRefusal,
-    SubjectRoute,
+    NameRefusal, NamespacedName, PopulationRef, ProposalId, RevisionBinding, Row, RowRefusal,
+    StagedTableRefusal, SubjectRoute,
 };
 use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
-use crate::properties::SubstrateRefusal;
+use crate::properties::{Equivalence, SharedSubstrate, SubstrateRefusal};
 use crate::report::{
     ClaimExercise, ExecutionKey, Fingerprint, ForeignText, InvocationProfile, ReplayCapsule,
-    RunReport, TrialFinding, TrialId,
+    RunReport, TrialConclusion, TrialFinding, TrialId, TrialReport,
 };
-use crate::runner::Selection;
+use crate::runner::{ReportRecordingRefusal, Selection, TrialBinding};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -73,7 +73,7 @@ pub enum MaterializationAxis {
     ToolFailed,
 }
 
-/// Whether the planted damage was PROVEN to fire.
+/// What the backend or evaluation copy reported about one planted damage firing.
 ///
 /// # Authority
 ///
@@ -88,9 +88,9 @@ pub enum MaterializationAxis {
 /// all, so nothing about this mutant's activation was established either way.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ActivationAxis {
-    /// An execution observed the damage fire.
+    /// An execution channel reported a positive firing count for the damage.
     Observed,
-    /// The backend can observe firing, and nothing observed this damage fire.
+    /// The backend exposes an activation channel and supplied no positive activation observation.
     NotObserved,
     /// The backend offers no activation channel, so firing is unobservable under
     /// it.
@@ -102,6 +102,8 @@ pub enum ActivationAxis {
 pub enum ExecutionAxis {
     /// The witness ran to a conclusion.
     Completed,
+    /// The witness was not executed.
+    NotExecuted,
     /// The witness passed the time bound it was given.
     TimedOut,
     /// The witness process died.
@@ -129,7 +131,7 @@ pub enum ExecutionAxis {
 pub enum MutationVerdict {
     /// The suite rejected the damaged subject.
     Killed,
-    /// The suite accepted a damage that was proven to fire.
+    /// The suite accepted a damage whose evaluation copy reported a positive firing count under the exact selection and witness.
     Survived,
     /// Nothing was learned about the suite from this mutant.
     Inconclusive,
@@ -213,7 +215,12 @@ pub enum MutationIdentity {
     External(MutantId),
     /// A point on an evaluation surface, addressed by the reference its producer
     /// authored.
-    Interpreted(MutationPointRef),
+    Interpreted {
+        /// The stable point the producer discovered.
+        point: MutationPointRef,
+        /// The stable mutation meaning selected at that point.
+        alternative: AlternativeId,
+    },
 }
 
 /// Where one damage lives, as the lane that placed it can say.
@@ -281,32 +288,27 @@ pub struct MutationTarget {
 // Activation evidence, and the dud plant.
 // ---------------------------------------------------------------------------
 
-/// That one planted damage was proven to fire, and what proved it.
+/// A positive firing count reported for one exact active selection and witness trial.
 ///
 /// # Construction
 ///
-/// [`ActivationEvidence::observed`] refuses a firing count of zero, so evidence
-/// of a plant that never fired is not a value that exists. What comes back
-/// instead is a [`DudPlant`] — a finding, never a silent pass.
+/// The receiver guard returns no activation value for a firing count of zero, so a zero-count plant cannot enter the observed arm. The receiver returns the exact [`DudPlant`] instead. The count is caller-callback output: this type binds it to selection and witness but does not independently instrument the callback.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ActivationEvidence {
-    point: MutationPointRef,
+    selection: ActiveSelection,
     witness: TrialId,
     firings: u32,
 }
 
-/// A plant that never fired: the damage was selected and no execution reached
-/// it.
+/// A plant whose evaluation callback reported zero firings for one exact active selection and witness trial.
 ///
 /// # Authority
 ///
-/// A finding in its own right. A harness that planted a damage, observed nothing
-/// fire, and reported the run as ordinary would be grading itself on an alarm
-/// that never rang.
+/// A zero-count callback report is a finding in its own right and cannot enter the positive-count activation arm. The receiver binds the reported count to the exact selection and witness but does not independently instrument the callback.
 #[must_use = "a dud plant is a finding, never a silent pass"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DudPlant {
-    point: MutationPointRef,
+    selection: ActiveSelection,
     witness: TrialId,
 }
 
@@ -314,14 +316,12 @@ pub struct DudPlant {
 ///
 /// # Authority
 ///
-/// Observed activation without evidence is unrepresentable: the arm carries the
-/// proof. The axis alone is [`ActivationAxis`], and the projection between them
-/// is declared once in `type_contract.rs`.
+/// A positive-count activation observation without its bound reading is unrepresentable: the arm carries the exact selection, witness, and count. The axis alone is [`ActivationAxis`], and the projection between them is declared once in `type_contract.rs`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ActivationDisposition {
-    /// The damage was observed to fire, and this is the evidence.
+    /// The evaluation callback or backend reported a positive activation observation, and this is its bound reading.
     Observed(ActivationEvidence),
-    /// The backend can observe firing, and nothing observed this damage fire.
+    /// The backend exposes an activation channel and supplied no positive activation observation.
     NotObserved,
     /// The backend offers no activation channel at all.
     UnobservableUnderBackend,
@@ -400,8 +400,7 @@ pub enum InconclusiveCause {
     BaselineNotQualified,
     /// The damage never became a thing that could be executed.
     NotMaterialized,
-    /// The backend can observe firing and nothing observed this damage fire, so
-    /// the suite was never asked about it.
+    /// The backend exposes an activation channel but supplied no positive activation observation, so the suite was never asked about it.
     NotActivated,
     /// The witness execution did not complete.
     WitnessIncomplete,
@@ -418,14 +417,12 @@ pub enum InconclusiveCause {
 /// # Authority
 ///
 /// The killed arm carries the rejection that killed it, so a kill asserted
-/// without a rejection is unrepresentable. The survived arm carries nothing
-/// BECAUSE it is the absence of a rejection under an activation that was proven
-/// — and the constructor is what establishes that proof.
+/// without a rejection is unrepresentable. The survived arm carries nothing because it is the absence of a rejection after the evaluation callback reported positive activation under the exact bound selection and witness.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum MutationOutcome {
     /// The witness rejected the damaged subject, and this is the rejection.
     Killed(IntendedRejection),
-    /// A damage that was proven to fire was accepted by the witness.
+    /// A damage with a positive firing count bound to the exact selection and witness was accepted by that witness.
     Survived,
     /// Nothing was learned about the suite from this mutant.
     Inconclusive(InconclusiveCause),
@@ -436,14 +433,11 @@ pub enum MutationOutcome {
 ///
 /// # Construction
 ///
-/// Three roads, and each one is a law. [`MutationReport::killed`] demands a
-/// qualified unchanged baseline, correct materialization, activation that was
-/// observed or a backend that cannot observe it, a witness that completed, and
-/// the rejection itself. [`MutationReport::survived`] demands all of that plus
-/// OBSERVED activation and refuses the unobservable arm outright, so a survivor
-/// under a backend with no activation channel is not a value anybody can build.
-/// [`MutationReport::inconclusive`] is total, because any chain can fail to
-/// establish anything.
+/// The compiled adapter reaches the private killed/inconclusive roads under its
+/// output ceiling. The interpreted receiver derives killed or survived only
+/// from an active execution admitted through its exact pair, firing evidence,
+/// trial report, and no-mutation qualification. No loose public constructor can
+/// assemble these axes from neighboring values.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MutationReport {
     target: MutationTarget,
@@ -468,36 +462,11 @@ pub enum KillRefusal {
     /// The damage never materialized, so there was nothing for a witness to
     /// reject.
     NotMaterialized(MaterializationAxis),
-    /// The backend can observe firing and nothing observed this damage fire.
+    /// The backend exposes an activation channel and supplied no positive activation observation.
     ActivationNotObserved,
     /// The witness execution did not complete, so its rejection is not the
     /// suite's answer.
     WitnessDidNotComplete(ExecutionAxis),
-}
-
-/// Why one mutant's record could not be minted as a survivor.
-///
-/// Dependent checks in a declared order — baseline, materialization, activation,
-/// execution, equivalence.
-#[must_use = "a refusal is the reason a survivor was not minted"]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SurvivalRefusal {
-    /// The unchanged baseline did not qualify, so the suite's acceptance says
-    /// nothing.
-    BaselineNotQualified(BaselineAxis),
-    /// The damage never materialized, so nothing was accepted.
-    NotMaterialized(MaterializationAxis),
-    /// Nothing observed the damage fire. An unactivated mutant is not a
-    /// survivor.
-    ActivationNotObserved,
-    /// The backend offers no activation channel, so this mutant can never earn
-    /// survived — its non-kill result is inconclusive.
-    ActivationUnobservable,
-    /// The witness execution did not complete, so the suite never answered.
-    WitnessDidNotComplete(ExecutionAxis),
-    /// The damaged subject was proven equivalent in scope, so no suite could
-    /// have rejected it.
-    ProvenEquivalentInScope,
 }
 
 /// The honest accounting over one pressure run's mutants.
@@ -526,7 +495,7 @@ pub struct MutationCensus {
 ///
 /// The typed precondition every kill stands on, carried as a value so that "was
 /// the baseline good" is not a question anywhere downstream.
-/// [`BaselineQualification::read`] is the only road, and it refuses every
+/// The baseline guard is the only construction road, and it refuses every
 /// reading but [`BaselineAxis::Qualified`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BaselineQualification {
@@ -651,8 +620,8 @@ pub struct GrammarVersion(u32);
 /// A ceiling follows from what the reading's SOURCE carries, and it is applied
 /// where a reading is built: a run carrying a verdict outside its profile's
 /// ceiling is not a reading anybody can hold. Which verdicts a ceiling admits
-/// is declared in `type_contract.rs`, so the ceiling is read in one place
-/// rather than restated by each road that stands under it.
+/// is enforced by the type's invariant readings, so every road that stands
+/// under it reaches the same answer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ClaimCeiling {
     /// The strongest verdict is a kill that asserts witness rejection and
@@ -775,6 +744,7 @@ pub enum AnnouncedRoster {
 /// [`AdapterProfile::ceiling`], and no road anywhere widens it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WrapReading {
+    family: EvaluationFamilyRef,
     profile: AdapterProfile,
     run: MutationRun,
     announced: AnnouncedRoster,
@@ -873,17 +843,14 @@ pub enum GrammarStanding {
     Unchecked,
 }
 
-/// That one reading's backend, output, and grammar profile stands qualified to
-/// open trust under — and how far that standing reaches.
+/// One adapter profile qualified for readings taken under that exact profile — and how far that standing reaches.
 ///
 /// # Authority
 ///
 /// The typed fact the trust-opening road demands about the TOOL, carried as a
 /// value so that "which adapter produced this evidence, and what may a reading
 /// under it claim" is answered at the evidence rather than remembered around
-/// it. The profile is taken from the reading's own
-/// ([`AdapterQualification::of`]), so a qualification can never name a profile
-/// some other reading was taken under.
+/// it. The profile is taken from a reading ([`AdapterQualification::of`]); the qualification is reusable only for readings carrying the same profile and does not identify one reading instance.
 ///
 /// # Construction
 ///
@@ -937,26 +904,17 @@ pub enum QualificationRefusal {
     },
 }
 
-/// That one qualified reading demonstrated at least one lawful witness
-/// rejection.
+/// One reported reading under a qualified adapter profile demonstrated at least one lawful witness rejection for an explicitly scoped evaluation pair.
 ///
 /// # Authority
 ///
 /// The typed fact the trust-opening road demands about the RUN: a suite
 /// rejected a damaged subject, under an adapter that stands qualified. The
-/// qualification rides inside — one that already exists, weighed against the
-/// very reading the kill is read out of — so a witness over an unqualified
-/// reading is not a value anybody can hold and a witness can never be married
-/// to another adapter's profile.
+/// qualification rides inside — one that already exists for the reading's exact profile and is weighed against the reported reading the kill is read out of — so a witness over an unqualified adapter profile is not a value anybody can hold.
 ///
 /// # Construction
 ///
-/// [`CompiledPressureWitness::shown`] is the only road, and it refuses a
-/// standing that never reported, then a qualification naming another reading's
-/// profile, then a reported reading whose run demonstrated no kill. The
-/// qualification is the caller's to supply and [`AdapterQualification`]'s own
-/// road to build, so this road adds a kill to a standing already vouched for
-/// rather than vouching for anything itself.
+/// [`CompiledPressureWitness::shown`] is the only road, and it refuses a standing that never reported, a qualification naming another adapter profile, a caller-scoped reading naming another family than the exact pair, then a reported reading whose run demonstrated no kill. The qualification is the caller's to supply and [`AdapterQualification`]'s own road to build, so this road adds a kill and an explicit pair scope to a standing already vouched for rather than vouching for backend execution or pair provenance itself.
 ///
 /// # Nonclaims
 ///
@@ -964,30 +922,35 @@ pub enum QualificationRefusal {
 /// lawful rejection happened; how many mutants a run pressed and how they
 /// divide is the run's own census ([`MutationCensus`]), which answers a
 /// different question and is never read as this one. Neither of the two is the
-/// no-mutation parity ([`ParityStanding`]), which is about the evaluation
-/// copy's faithfulness to the rendered production surface and about nothing
-/// else.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// no-mutation parity ([`NoMutationParityQualification`]), which is about the
+/// exact evaluation pair's faithfulness for one retained input and about
+/// nothing else.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompiledPressureWitness {
+    pair: EvaluationPairStanding,
     qualification: AdapterQualification,
     kill: MutationReport,
 }
 
 /// Why one wrap standing demonstrated no compiled-pressure witness.
 ///
-/// Dependent checks in a declared order: whether the pressure reported at all,
-/// then whether the qualification offered is the reading's own, then whether
-/// what it reported carries a kill.
+/// Dependent checks in a declared order: whether the pressure reported at all, whether the qualification carries the reading's exact adapter profile, whether the caller-scoped reading names the exact pair's family, then whether what it reported carries a kill.
 #[must_use = "a refusal is the reason no compiled-pressure witness was shown"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PressureWitnessRefusal {
     /// The wrap-first pressure has not reported, so there is no reading to
     /// stand on.
     WrapNotReported,
-    /// The qualification offered names a profile other than the reading's, so
-    /// it vouches for some other adapter's reading and stands behind nothing
-    /// here.
+    /// The qualification offered names another adapter profile and therefore stands behind nothing here.
     QualificationUnderAnotherProfile,
+    /// The caller-scoped reading names another evaluation family than the
+    /// exact production/evaluation pair offered for this witness.
+    ReadingForAnotherFamily {
+        /// The family retained by the exact evaluation pair.
+        expected: EvaluationFamilyRef,
+        /// The family the external reading was scoped to.
+        found: EvaluationFamilyRef,
+    },
     /// The reading's run demonstrated no lawful kill, so nothing in it has
     /// shown a property biting.
     NoKillDemonstrated,
@@ -997,12 +960,91 @@ pub enum PressureWitnessRefusal {
 // The interpreted lane's evaluation surface.
 // ---------------------------------------------------------------------------
 
+/// The domain tag of an owner-authored mutation policy.
+pub const MUTATION_POLICY_TAG: DomainTag =
+    DomainTag::declared("mutation-policy", IdentityProfileVersion::declared(1));
+
+/// The domain tag of one admitted alternative's stable identity.
+pub const MUTATION_ALTERNATIVE_TAG: DomainTag =
+    DomainTag::declared("mutation-alternative", IdentityProfileVersion::declared(1));
+
+/// The domain tag of one complete evaluation surface.
+pub const EVALUATION_SURFACE_TAG: DomainTag =
+    DomainTag::declared("evaluation-surface", IdentityProfileVersion::declared(1));
+
+/// The owner-declared family that binds one production road, evaluation copy, policy, and evidence chain.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct EvaluationFamilyRef(NamespacedName);
+
+/// The content identity of one owner-authored mutation policy.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct MutationPolicyId(ContentAddress);
+
+/// One claim's permission to use a nonempty roster of operator families.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MutationPermission {
+    owner_claim: ClaimRef,
+    admitted_families: Vec<OperatorFamilyRef>,
+}
+
+/// Why one mutation permission was refused.
+#[must_use = "a refusal is the reason a mutation permission was not built"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PermissionRefusal {
+    /// The permission names no operator family, so it permits no executable damage.
+    NoOperatorFamily,
+    /// One operator family appears twice in the permission.
+    DuplicateOperatorFamily(OperatorFamilyRef),
+}
+
+/// One evaluation family's owner-authored mutation policy.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MutationPolicy {
+    family: EvaluationFamilyRef,
+    permissions: Vec<MutationPermission>,
+    identity: MutationPolicyId,
+}
+
+/// Why one mutation policy was refused.
+#[must_use = "a refusal is the reason a mutation policy was not built"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PolicyRefusal {
+    /// Two permission rows name one owner claim.
+    DuplicateClaim(ClaimRef),
+}
+
+/// The policy-issued membership carried by one admitted mutation point.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PolicyMembership {
+    policy: MutationPolicyId,
+    owner_claim: ClaimRef,
+}
+
 /// Where a selected alternative fires, named rather than path-spelled.
 ///
 /// The reason a trial's identity is not its site holds here too: a file move
 /// must rename nothing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ActivationSite(NamespacedName);
+
+/// One producer-discovered operator family and producer-declared canonical mutation meaning before owner-policy admission at a point.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct AlternativeDeclaration {
+    family: OperatorFamilyRef,
+    operation: Vec<u8>,
+}
+
+/// The stable identity of one point's admitted mutation meaning.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct AlternativeId(ContentAddress);
+
+/// One executable operator family and producer-declared canonical mutation meaning admitted under a point's policy membership.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct AdmittedAlternative {
+    identity: AlternativeId,
+    family: OperatorFamilyRef,
+    operation: Vec<u8>,
+}
 
 /// One mutation point on an evaluation surface, as a producer states it.
 ///
@@ -1020,48 +1062,67 @@ pub struct ActivationSite(NamespacedName);
 /// A roster of admitted alternatives states which damages the point ADMITS, and
 /// never that any of them was materialized, activated, or killed. Those are
 /// executed facts and they live in [`MutationReport`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MutationPoint {
     identity: MutationPointRef,
-    owner_claim: ClaimRef,
-    original_operation: &'static [u8],
-    admitted_alternatives: &'static [&'static [u8]],
+    membership: PolicyMembership,
+    original_operation: Vec<u8>,
+    admitted_alternatives: Vec<AdmittedAlternative>,
     activation_site: ActivationSite,
 }
 
 /// Why one mutation point was refused.
 ///
-/// Dependent checks in a declared order — the original operation is read, then
-/// each alternative against it, then each alternative against its predecessors.
+/// Dependent checks in a declared order: original operation, nonempty alternative roster, owner-claim permission, then each alternative's family, bytes, difference from the original, and difference from earlier meanings under the same family.
 #[must_use = "a refusal is the reason a mutation point was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PointRefusal {
     /// The point states no original operation, so its no-mutation reading is
     /// empty.
     EmptyOriginalOperation,
+    /// The discovery carries no executable alternative, so it is not a mutation point.
+    NoAdmittedAlternative,
+    /// The policy carries no permission row for the point's owner claim.
+    ClaimNotPermitted(ClaimRef),
+    /// One alternative's operator family is outside the owner permission.
+    FamilyNotPermitted {
+        /// The alternative's position in the supplied roster.
+        at: usize,
+        /// The family the owner policy did not admit for this claim.
+        family: OperatorFamilyRef,
+    },
+    /// One alternative states no mutation meaning.
+    EmptyAlternative {
+        /// The alternative's position in the supplied roster.
+        at: usize,
+    },
     /// An admitted alternative is byte-identical to the original operation, so
     /// selecting it would be the no-mutation reading under another name.
     AlternativeIsOriginal {
         /// The alternative's position in the roster.
         at: usize,
     },
-    /// Two admitted alternatives carry one damage.
-    DuplicateAlternative {
+    /// Two admitted alternatives carry one operator family and canonical mutation meaning.
+    DuplicateAlternativeMeaning {
         /// The second alternative's position in the roster.
         at: usize,
     },
 }
 
+/// The content identity of one complete evaluation surface.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct EvaluationSurfaceId(ContentAddress);
+
 /// One evaluation copy's complete point table.
 ///
 /// # Authority
 ///
-/// The walk over the declaration happened at generation time; this is the table
-/// that walk produced, arriving as conforming DATA. Runtime is selection among
-/// these points and never interpretation of arbitrary source, which would mint a
-/// second meaning authority.
+/// This is producer-shaped conforming data: a hand author may build the same public shape, and macroc may later emit it from one declaration walk. Runtime is selection among these points and never interpretation of arbitrary source, which would mint a second meaning authority.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct EvaluationSurface {
+    family: EvaluationFamilyRef,
+    policy: MutationPolicyId,
+    identity: EvaluationSurfaceId,
     points: Vec<MutationPoint>,
 }
 
@@ -1069,39 +1130,44 @@ pub struct EvaluationSurface {
 #[must_use = "a refusal is the reason an evaluation surface was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SurfaceRefusal {
-    /// The table states no point at all, so nothing on this surface could ever
-    /// be selected.
-    EmptyPointTable,
+    /// A point carries membership issued by another policy.
+    PointUnderAnotherPolicy {
+        /// The point whose membership does not belong here.
+        point: MutationPointRef,
+        /// The policy the surface requires.
+        expected: MutationPolicyId,
+        /// The policy that issued the point's membership.
+        found: MutationPolicyId,
+    },
     /// Two points state one identity.
     DuplicatePoint(MutationPointRef),
 }
 
-/// Which admitted alternative of one point a selection names.
-///
-/// # Construction
-///
-/// Minted only by [`EvaluationSurface::select`], so an index that names no
-/// admitted alternative is not a value anybody can hold.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct AlternativeIndex(usize);
+/// Whether a complete evaluation surface admits executable points.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PointCatalogPosture {
+    /// The evaluation copy is lawful but admits no active mutation control.
+    NoAdmittedPoints,
+    /// The evaluation copy admits at least one executable mutation point.
+    Mutable,
+}
 
 /// One point selected into one of the damages it admits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ActiveSelection {
+    surface: EvaluationSurfaceId,
     point: MutationPointRef,
-    alternative: AlternativeIndex,
+    alternative: AlternativeId,
 }
 
 /// What one run of the evaluation copy selects among the surface's points.
 ///
 /// # Authority
 ///
-/// Every evaluation surface contains the no-mutation mutant, and it is this
-/// arm rather than a point: no point is damaged, so the copy reads exactly what
-/// the declaration says. It is the road the mandatory parity is driven over.
+/// The no-mutation control is an evaluation-call posture rather than a point in the surface catalog. A point-free surface can therefore run parity without pretending it admits active mutation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ActiveMutant {
-    /// No point is damaged — the no-mutation mutant every surface contains.
+pub enum EvaluationControl {
+    /// No point is damaged; the evaluation copy reads its unmodified meaning.
     NoMutation,
     /// One point reads as one of its admitted alternatives.
     Active(ActiveSelection),
@@ -1111,14 +1177,21 @@ pub enum ActiveMutant {
 #[must_use = "a refusal is the reason a mutant was not selected"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SelectionRefusal {
+    /// The selection was minted by another evaluation surface.
+    SelectionFromAnotherSurface {
+        /// The surface reading the selection.
+        expected: EvaluationSurfaceId,
+        /// The surface that issued the selection.
+        found: EvaluationSurfaceId,
+    },
     /// The surface states no point under this identity.
     NoSuchPoint(MutationPointRef),
-    /// The point admits fewer alternatives than this index names.
-    AlternativePastRoster {
-        /// How many alternatives the point admits.
-        admitted: usize,
-        /// The index that was named.
-        named: usize,
+    /// The point does not admit this mutation meaning.
+    NoSuchAlternative {
+        /// The point whose roster was read.
+        point: MutationPointRef,
+        /// The alternative identity absent from that roster.
+        alternative: AlternativeId,
     },
 }
 
@@ -1135,18 +1208,163 @@ pub enum ParityRefusal {
     SubstrateNotDeclared(SubstrateRefusal),
 }
 
-/// Whether the mandatory no-mutation parity has passed.
+/// The production callable of one evaluation family.
+pub type ProductionCall<Input, Meaning> = fn(&Input) -> Meaning;
+
+/// The evaluation-copy callable of one evaluation family.
+pub type EvaluationCall<Input, Meaning> =
+    fn(&Input, EvaluationControl) -> EvaluationObservation<Meaning>;
+
+/// The check that judges one meaning under the exact trial binding it is joined to.
+pub type MeaningCheck<Meaning> = fn(&Meaning) -> TrialConclusion;
+
+/// Raw output from one evaluation-copy call.
 ///
-/// # Construction
+/// # Authority
 ///
-/// [`ParityStanding::of`] reads it from the trial's own conclusion, so nobody
-/// records this by hand from a run they remember.
+/// This is caller output, not admitted evidence. The receiver validates the control, firing count, trial binding, report, and trust facts before a mutation evidence value exists.
+pub struct EvaluationObservation<Meaning> {
+    meaning: Meaning,
+    firings: u32,
+}
+
+/// The production callable and revision an owner declares for one evaluation family.
+pub struct ProductionBinding<Input, Meaning> {
+    family: EvaluationFamilyRef,
+    revision: RevisionBinding,
+    call: ProductionCall<Input, Meaning>,
+}
+
+/// The evaluation callable and revision bound to one exact evaluation surface.
+pub struct EvaluationBinding<Input, Meaning> {
+    family: EvaluationFamilyRef,
+    revision: RevisionBinding,
+    surface: EvaluationSurfaceId,
+    call: EvaluationCall<Input, Meaning>,
+}
+
+/// One production/evaluation pair under a shared owner declaration and equivalence.
+///
+/// # Nonclaims
+///
+/// Matching family references prove the declared relationship, not behavioral agreement. Only an executed no-mutation parity reading can establish that agreement for its exact input.
+pub struct EvaluationPair<Input, Meaning> {
+    production: ProductionBinding<Input, Meaning>,
+    evaluation: EvaluationBinding<Input, Meaning>,
+    same: Equivalence<Meaning>,
+}
+
+/// Why one production/evaluation pair was refused.
+#[must_use = "a refusal is the reason an evaluation pair was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ParityStanding {
-    /// The parity trial ran and both roads agreed.
-    Passed,
-    /// The parity trial has not passed.
-    NotPassed,
+pub enum EvaluationPairRefusal {
+    /// The production and evaluation bindings name different owner families.
+    FamilyMismatch {
+        /// The production binding's family.
+        production: EvaluationFamilyRef,
+        /// The evaluation binding's family.
+        evaluation: EvaluationFamilyRef,
+    },
+}
+
+/// The identity and revision facts retained by every reading over one evaluation pair.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EvaluationPairStanding {
+    family: EvaluationFamilyRef,
+    production_revision: RevisionBinding,
+    evaluation_revision: RevisionBinding,
+    surface: EvaluationSurfaceId,
+}
+
+/// One trial binding joined to the declared check identity and callable that judge mutation executions through it.
+pub struct MutationWitness<Meaning> {
+    binding: TrialBinding,
+    check: MeaningCheck<Meaning>,
+}
+
+/// Why one mutation witness could not bind its check identity to its trial.
+#[must_use = "a refusal is the reason a mutation witness was not bound"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MutationWitnessRefusal {
+    /// The offered check identity is not the check identity retained by the trial row.
+    CheckMismatch {
+        /// The check identity retained by the row.
+        expected: CheckRef,
+        /// The check identity offered with the callable.
+        found: CheckRef,
+    },
+}
+
+/// The three returned facts compared by one no-mutation observation.
+pub struct NoMutationResults<Meaning> {
+    production: Meaning,
+    evaluation: Meaning,
+    evaluation_firings: u32,
+}
+
+/// The production and evaluation reports retained in their semantic roles for one no-mutation comparison.
+pub(in crate::muterprater) struct NoMutationReports {
+    production: TrialReport,
+    evaluation: TrialReport,
+}
+
+/// The exact input, results, substrate, conclusions, and reports of one no-mutation comparison.
+pub struct NoMutationParityReading<'pair, 'input, Input, Meaning> {
+    pair: &'pair EvaluationPair<Input, Meaning>,
+    witness: MutationWitness<Meaning>,
+    input: &'input Input,
+    results: NoMutationResults<Meaning>,
+    substrate: SharedSubstrate,
+    conclusion: TrialConclusion,
+    reports: NoMutationReports,
+}
+
+/// Why one no-mutation observation could not be recorded.
+#[must_use = "a refusal is the reason no no-mutation reading was recorded"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum NoMutationObservationRefusal {
+    /// The shared-substrate declaration could not be built.
+    Substrate(ParityRefusal),
+    /// The production observation could not join its trial binding.
+    ProductionReport(ReportRecordingRefusal),
+    /// The evaluation observation could not join its trial binding.
+    EvaluationReport(ReportRecordingRefusal),
+}
+
+/// Why one complete no-mutation reading did not qualify interpreted evidence.
+#[must_use = "a refusal is the reason no-mutation parity did not qualify"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ParityQualificationRefusal {
+    /// The production report did not earn a lawful lens verdict.
+    ProductionDidNotQualify,
+    /// The evaluation report did not earn a lawful lens verdict.
+    EvaluationDidNotQualify,
+    /// The no-mutation control reported an activation.
+    NoMutationActivated {
+        /// How many firings the evaluation callable reported.
+        firings: u32,
+    },
+    /// The owner-declared equivalence refused the two meanings.
+    MeaningsDisagreed,
+}
+
+/// One no-mutation reading that earned scoped parity qualification.
+pub struct NoMutationParityQualification<'pair, 'input, Input, Meaning> {
+    reading: NoMutationParityReading<'pair, 'input, Input, Meaning>,
+}
+
+/// One complete no-mutation reading that did not earn qualification.
+pub struct RejectedNoMutationParity<'pair, 'input, Input, Meaning> {
+    cause: ParityQualificationRefusal,
+    reading: NoMutationParityReading<'pair, 'input, Input, Meaning>,
+}
+
+/// The qualification disposition of one complete no-mutation reading.
+pub enum NoMutationParityStanding<'pair, 'input, Input, Meaning> {
+    /// The reading earned parity qualification for its exact pair and input.
+    Qualified(NoMutationParityQualification<'pair, 'input, Input, Meaning>),
+    /// The reading remains available with the exact reason it did not qualify.
+    Rejected(RejectedNoMutationParity<'pair, 'input, Input, Meaning>),
 }
 
 /// Which of the trust order's facts the interpreted lane is still owed.
@@ -1163,32 +1381,30 @@ pub enum ParityStanding {
 pub enum MissingTrustEvidence {
     /// No qualified reading has demonstrated a witness rejection, so nothing
     /// has shown the properties bite.
-    WrapEvidence,
-    /// A witness stands, and it was shown under a different adapter
-    /// qualification than the one trust is being opened under — so it is
-    /// evidence about another adapter's reading and opens nothing here. This is
-    /// the gate's own comparison; whether a witness's qualification belongs to
-    /// the reading it was read out of is settled where the witness is built.
-    WitnessUnderAnotherQualification,
+    CompiledPressure,
+    /// The compiled-pressure witness belongs to another exact evaluation pair.
+    CompiledPressureForAnotherPair,
     /// The mandatory no-mutation parity has not passed.
     NoMutationParity,
+    /// The parity qualification belongs to another pair or evaluation surface.
+    ParityForAnotherSurface,
 }
 
-/// What the interpreted lane is available for right now.
+/// The exact compiled and parity evidence that opens interpreted execution for one surface.
+pub struct InterpretedTrust<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning> {
+    surface: &'surface EvaluationSurface,
+    compiled: &'compiled CompiledPressureWitness,
+    parity: &'parity NoMutationParityQualification<'pair, 'input, Input, Meaning>,
+}
+
+/// The availability of interpreted evidence for one evaluation surface.
 ///
 /// # Authority
 ///
-/// Absence is a typed disposition and never a crippled fake interpreter:
-/// interpreted mutation is available exactly when a conforming evaluation
-/// surface exists and the trust order has opened, and every other state names
-/// itself.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum InterpreterAvailability<'surface> {
+/// A surface alone earns no trust. Availability requires a compiled-pressure witness and no-mutation qualification scoped to the same exact evaluation-pair standing: family, production revision, evaluation revision, and surface identity. Every absent fact names itself.
+pub enum InterpreterAvailability<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning> {
     /// A conforming evaluation surface exists and trust has opened.
-    Available {
-        /// The surface selection runs over.
-        surface: &'surface EvaluationSurface,
-    },
+    Available(InterpretedTrust<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning>),
     /// No conforming evaluation surface exists — neither a producer's nor a
     /// hand-authored one under the same contract.
     NoConformingSurface,
@@ -1197,6 +1413,35 @@ pub enum InterpreterAvailability<'surface> {
         /// What the staging is still owed.
         missing: MissingTrustEvidence,
     },
+}
+
+/// The admitted interpreted result of one active selection under an opened trust boundary.
+pub struct InterpretedMutationEvidence<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning>
+{
+    trust: InterpretedTrust<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning>,
+    selection: ActiveSelection,
+    meaning: Meaning,
+    report: TrialReport,
+    mutation: MutationReport,
+}
+
+/// Why one interpreted execution produced no admitted mutation evidence.
+#[must_use = "a refusal is the reason interpreted mutation evidence was not built"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum InterpretedExecutionRefusal {
+    /// The active selection does not belong to the opened surface.
+    Selection(SelectionRefusal),
+    /// The witness trial belongs to a claim other than the selected point's owner claim.
+    WitnessForAnotherClaim {
+        /// The claim that owns the selected point.
+        expected: ClaimRef,
+        /// The claim carried by the offered trial binding.
+        found: ClaimRef,
+    },
+    /// The evaluation callback reported zero firings for the selected damage.
+    DudPlant(DudPlant),
+    /// The host observation could not join its exact trial binding.
+    Report(ReportRecordingRefusal),
 }
 
 // ---------------------------------------------------------------------------
@@ -1279,24 +1524,29 @@ pub struct RewriteCandidate {
     trust: RewriteTrust,
 }
 
-/// Why the rewrite lane's descriptors may not be admitted as evidence yet.
-#[must_use = "a refusal is the reason the rewrite lane was withheld"]
+/// Why rewrite descriptors may not enter the interpreted audit road.
+#[must_use = "a refusal is the reason the rewrite audit road was withheld"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RewriteWithheld {
     /// The interpreted lane — the execution substrate that makes rewrite
     /// families cheap — is not available.
     InterpreterUnavailable,
+    /// The trusted evaluation surface carries no executable mutation point.
+    NoAdmittedPoint,
     /// The trust order still owes this evidence.
     TrustNotOpened(MissingTrustEvidence),
 }
 
-/// Whether the rewrite lane's descriptors are admitted as evidence.
+/// Whether rewrite descriptors may enter the interpreted audit road.
+///
+/// # Nonclaims
+///
+/// Admission here is execution availability, not evidence. A descriptor remains [`RewriteTrust::AuditPending`] until an actual execution establishes whatever a later evidence owner requires.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RewriteAdmission {
-    /// Admitted last, after the wrap report and the parity, with the interpreted
-    /// lane standing under them.
+    /// The interpreted audit road is available under compiled pressure, parity, and a mutable surface.
     Admitted,
-    /// Not yet, for a stated reason.
+    /// The audit road is unavailable for a stated reason.
     Withheld(RewriteWithheld),
 }
 
@@ -1592,7 +1842,7 @@ pub enum PlannedDamage {
     /// The backend's own damage, already named by the mutant identity.
     BackendChosen,
     /// One admitted alternative of an interpreted point.
-    Alternative(AlternativeIndex),
+    Alternative(AlternativeId),
 }
 
 /// One intended run: which lane presses which damage of which target, what the

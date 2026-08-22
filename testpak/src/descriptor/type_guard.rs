@@ -19,15 +19,15 @@
 
 use super::{
     AdmissionFacts, AdmissionGround, AuthoredTable, AuthoredTableName, AuthoredTableRefusal,
-    BENCH_FIELDS, BenchSchema, Binding, BindingRefusal, CanonicalRowBytes, CheckRef, ClaimRef,
-    Classification, ClassificationRefusal, DESCRIPTOR_FIELDS, DescriptorSchema, DischargeAdmission,
-    DoorRef, EncodeRefusal, ExecutableAttachment, ExecutionSuite, FieldCardinality, FieldShape,
-    GeneratedSupportSchema, GeneratedSupportSchemaId, MUTATION_POINT_FIELDS, MutationPointRef,
-    MutationPointSchema, NameRefusal, Namespace, NamespacedName, Origin, PopulationRef,
-    ProducerFacts, ProducerName, ProjectionRef, ProposalId, Provenance, ReplayAdmission,
-    ReplayBearingGround, ReplayRef, RevisionBinding, RevisionPosture, Role, Row, RowRefusal,
-    SchemaField, SchemaRefusal, StagedTableRefusal, StagedTableView, Stem, SubjectRoute,
-    TablePosture, TableView, Tag, TrialCoordinates, TrialKey,
+    BENCH_FIELDS, BenchSchema, Binding, BindingRefusal, CanonicalRowBytes, CapsulePosture,
+    CheckRef, ClaimRef, Classification, ClassificationRefusal, DESCRIPTOR_FIELDS, DescriptorSchema,
+    DischargeAdmission, DoorRef, EncodeRefusal, ExecutableAttachment, ExecutionSuite,
+    FieldCardinality, FieldShape, GeneratedSupportSchema, GeneratedSupportSchemaId,
+    MUTATION_POINT_FIELDS, MutationPointRef, MutationPointSchema, NameRefusal, Namespace,
+    NamespacedName, Origin, PopulationRef, ProducerFacts, ProducerName, ProjectionRef, ProposalId,
+    Provenance, ReplayAdmission, ReplayBearingGround, ReplayRef, RevisionBinding, RevisionPosture,
+    Role, Row, RowRefusal, SchemaField, SchemaRefusal, StagedTableRefusal, StagedTableView, Stem,
+    SubjectRoute, TablePosture, TableView, Tag, TrialCoordinates, TrialKey,
 };
 use crate::descriptor::encode::{
     encode_generated_support_schema, encode_row_content, encode_trial_coordinates,
@@ -54,6 +54,20 @@ const GENERATED_SUPPORT_SCHEMA_DOMAIN: DomainTag = DomainTag::declared(
 /// from each other's bytes.
 const TRIAL_KEY_DOMAIN: DomainTag =
     DomainTag::declared("trial-key", IdentityProfileVersion::declared(1));
+
+impl AdmissionGround {
+    /// Whether admitting on this ground authors a depot capsule entry.
+    ///
+    /// The two replay-bearing grounds carry a reproduction account.
+    /// A discharge stands on the admitted row itself, so there is nothing for a capsule to hold.
+    #[must_use]
+    pub const fn capsule_posture(self) -> CapsulePosture {
+        match self {
+            Self::MutantKilled | Self::ClaimPinned => CapsulePosture::ReplayBearing,
+            Self::ObligationDischarged => CapsulePosture::NoCapsule,
+        }
+    }
+}
 
 impl Namespace {
     /// The owner one authored text declares.
@@ -219,8 +233,11 @@ impl ReplayRef {
 }
 
 impl GeneratedSupportSchemaId {
-    /// This identity, over a content address already derived — the road a
-    /// published literal is read back through.
+    /// Reify a content address whose generated-support-schema derivation the caller already established.
+    ///
+    /// # Authority
+    ///
+    /// This operation preserves an already-derived address; it does not prove the address came from the current declaration. The gate establishes published-pair coherence, and the currency reading compares the published address with a fresh declaration derivation.
     #[must_use]
     pub const fn over(address: ContentAddress) -> Self {
         Self(address)
@@ -729,7 +746,7 @@ impl<Invocation, Conclusion> ExecutableAttachment<Invocation, Conclusion> {
             .meet(self.check_revision.posture())
     }
 
-    /// The callable, as the pure map it is.
+    /// The capture-free callable.
     #[must_use]
     pub const fn call(&self) -> fn(&Invocation) -> Conclusion {
         self.call
@@ -1074,73 +1091,52 @@ impl BenchSchema {
     }
 }
 
-impl GeneratedSupportSchema {
-    /// The root declaration, over three members already parsed.
-    #[must_use]
-    pub const fn declared(
-        descriptor: DescriptorSchema,
-        mutation_point: MutationPointSchema,
-        bench: BenchSchema,
-    ) -> Self {
-        Self {
-            descriptor,
-            mutation_point,
-            bench,
+macro_rules! implement_generated_support_members {
+    ([]; $( $member:ident: $member_type:ty => $fields:ident => $tag:literal, )+) => {
+        impl GeneratedSupportSchema {
+            /// The root declaration over the members already parsed under their roster law.
+            #[must_use]
+            pub const fn declared($( $member: $member_type, )+) -> Self {
+                Self {
+                    $(
+                        $member,
+                    )+
+                }
+            }
+
+            $(
+                #[doc = concat!("The generated-support root's `", stringify!($member), "` member.")]
+                #[must_use]
+                pub const fn $member(self) -> $member_type {
+                    self.$member
+                }
+            )+
+
+            /// The root declaration this harness publishes, with every member parsed in declared order.
+            ///
+            /// # Authority
+            ///
+            /// The focused root roster projects this assembly and the canonical traversal, so neither can omit a member the root accepts.
+            /// Its canonical bytes are [`encode_generated_support_schema()`](crate::descriptor::encode_generated_support_schema) over this value, and its identity is [`identity`](Self::identity) over those bytes.
+            ///
+            /// # Errors
+            ///
+            /// Refuses when any member's roster refuses an empty roster, an unnamed field, or a repeated field name, in root-member order.
+            /// The cause names the offending field; a reader that needs the member reads which roster carries that name.
+            pub fn published() -> Result<Self, SchemaRefusal> {
+                Ok(Self::declared(
+                    $(
+                        <$member_type>::declared($fields)?,
+                    )+
+                ))
+            }
         }
-    }
+    };
+}
 
-    /// The descriptor member.
-    #[must_use]
-    pub const fn descriptor(self) -> DescriptorSchema {
-        self.descriptor
-    }
+generated_support_members!(implement_generated_support_members);
 
-    /// The mutation-point member.
-    #[must_use]
-    pub const fn mutation_point(self) -> MutationPointSchema {
-        self.mutation_point
-    }
-
-    /// The bench member.
-    #[must_use]
-    pub const fn bench(self) -> BenchSchema {
-        self.bench
-    }
-
-    /// THE root declaration this harness publishes: the three rosters this home
-    /// states, each parsed under the one roster law.
-    ///
-    /// # Authority
-    ///
-    /// One assembled value, in one place. Everything downstream reads it rather
-    /// than rebuilding it from the rosters, so there is no second assembly that
-    /// could pin a different set of members than this one.
-    ///
-    /// Its canonical bytes are
-    /// [`encode_generated_support_schema`](crate::descriptor::encode_generated_support_schema)
-    /// over this value, and its identity is [`identity`](Self::identity) over
-    /// those bytes. The two steps are separate calls rather than one, because
-    /// they refuse for separate reasons and folding them would put one cause
-    /// where two are true.
-    ///
-    /// # Errors
-    ///
-    /// Refuses when any member's roster refuses — an empty roster, an unnamed
-    /// field, or a repeated field name — in the declared member order:
-    /// descriptor, then mutation-point, then bench.
-    ///
-    /// # Nonclaims
-    ///
-    /// The cause names the offending FIELD and not the member it was found in.
-    /// A reader that needs the member reads which roster carries the name.
-    pub fn published() -> Result<Self, SchemaRefusal> {
-        Ok(Self::declared(
-            DescriptorSchema::declared(DESCRIPTOR_FIELDS)?,
-            MutationPointSchema::declared(MUTATION_POINT_FIELDS)?,
-            BenchSchema::declared(BENCH_FIELDS)?,
-        ))
-    }
-
+impl GeneratedSupportSchema {
     /// The identity derived from this declaration's canonical bytes.
     ///
     /// This is the one derivation this home performs. The bytes

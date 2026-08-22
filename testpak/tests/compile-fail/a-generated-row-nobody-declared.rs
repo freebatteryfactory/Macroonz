@@ -66,7 +66,7 @@ demo_trials! {
         threadpak_testpak::report::ToolchainIdentity::declared("1.98.0"),
     ),
 
-    clock: threadpak_testpak::runner::HostClock::unmeasured(),
+    clock: threadpak_testpak::clock::HarnessClock::unavailable(),
 
     attachments: {
         the_only_row {

@@ -4,7 +4,7 @@
 //! suite, and the typed causes this home cites.
 //!
 //! Declarations only. Every road that reaches a private field is this file's own
-//! child, `type_guard.rs`; the laws themselves are the role-named pure-function
+//! child, `type_guard.rs`; the laws themselves are the role-named function
 //! modules beside it.
 //!
 //! # The neutrality law
@@ -24,6 +24,7 @@
 //! never share one.
 
 use crate::descriptor::NamespacedName;
+use crate::generate::GeneratedSequences;
 use crate::report::{FindingCause, TrialConclusion};
 use core::cmp::Ordering;
 use std::collections::BTreeSet;
@@ -38,21 +39,21 @@ const CAUSE_FAMILY: &str = "properties";
 // The check shape and the owner-supplied seams.
 // ---------------------------------------------------------------------------
 
-/// One check: a pure map from the material a trial supplies to what it
-/// concluded.
+/// One owner-supplied check over the material a trial supplies.
 ///
 /// # Authority
 ///
-/// This is the whole shape of a check. A check reads its argument, computes, and
-/// answers with a [`TrialConclusion`]; it never asserts, never panics, and never
-/// reaches anything its argument did not carry in.
+/// This is the callable shape of a check: one borrowed input and one
+/// [`TrialConclusion`] output. The owner remains responsible for the function's
+/// effects and unwind behavior.
 ///
 /// # Bounds
 ///
 /// A function pointer rather than a closure, so a check carries no captured
-/// state and nothing ambient rides in with it. Every law in this home is written
-/// to be called FROM one of these: an owner's check is the thin function that
-/// binds its subject to a law and hands the conclusion back.
+/// state. That shape does not prevent the function from reaching globals, I/O,
+/// or another ambient source. Every law in this home is written to be called
+/// FROM one of these: an owner's check is the thin function that binds its
+/// subject to a law and hands the conclusion back.
 pub type Check<Input> = fn(&Input) -> TrialConclusion;
 
 /// One owner-supplied road from a value to its image.
@@ -272,6 +273,20 @@ pub struct ParitySuite<Input, Meaning> {
     substrate: SharedSubstrate,
 }
 
+/// The exact suite, input, results, and conclusion from one parity comparison.
+///
+/// # Authority
+///
+/// The retained [`ParitySuite`] remains the sole owner of the road pairing, equivalence, and shared-substrate ceiling.
+/// This reading records what those roads returned for one exact input without copying or widening any suite claim.
+pub struct ParityReading<'suite, 'input, Input, Meaning> {
+    suite: &'suite ParitySuite<Input, Meaning>,
+    input: &'input Input,
+    left: Meaning,
+    right: Meaning,
+    conclusion: TrialConclusion,
+}
+
 // ---------------------------------------------------------------------------
 // The temporal suite.
 // ---------------------------------------------------------------------------
@@ -338,6 +353,27 @@ pub struct TransitionContract<State, Command> {
     opening: fn() -> State,
     apply: fn(&State, &Command) -> State,
     claims: Vec<TemporalClaim<State>>,
+}
+
+/// Whether a temporal generation drive earned a conclusion or stopped before an all-pass claim could be established.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TemporalDriveStanding {
+    /// The generated evidence establishes the carried trial conclusion.
+    Concluded(TrialConclusion),
+    /// Every evaluated sequence passed, but generation stopped before completing the declared case budget.
+    Incomplete,
+}
+
+/// The generation result and evaluated prefix behind one temporal-drive standing.
+///
+/// # Authority
+///
+/// The retained [`GeneratedSequences`] owns the admitted sequences, census, and halt; this reading adds only how far temporal evaluation reached and what that evidence can conclude.
+/// A universal claim passes only after generation reaches its complete halt, while one concrete counterexample remains a refusal even when generation stopped early.
+pub struct TemporalDriveReading<Command> {
+    generated: GeneratedSequences<Command>,
+    evaluated: usize,
+    standing: TemporalDriveStanding,
 }
 
 /// Why one transition contract was refused.

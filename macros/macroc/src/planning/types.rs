@@ -1467,6 +1467,6 @@ pub struct ExpectedGeneratedSupportSchemaId<Posture = VerifiedDerived> {
 /// coherent with its twin.
 pub const EXPECTED_GENERATED_SUPPORT_SCHEMA_ID: ExpectedGeneratedSupportSchemaId<VerifiedDerived> =
     ExpectedGeneratedSupportSchemaId::derived([
-        113, 22, 215, 27, 201, 83, 45, 177, 228, 123, 154, 255, 239, 17, 99, 56, 150, 45, 78, 145,
-        144, 250, 75, 10, 60, 33, 74, 147, 17, 187, 77, 147,
+        64, 247, 209, 126, 39, 187, 123, 191, 55, 210, 86, 156, 252, 110, 235, 212, 119, 194, 33,
+        206, 138, 125, 70, 120, 179, 212, 187, 59, 69, 188, 29, 250,
     ]);

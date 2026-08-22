@@ -1,6 +1,6 @@
 error: generated_support!: the producer's expected generated-support schema identity is not the one this harness publishes, so the published pair is incoherent and nothing this door was handed reaches the compiler: the trial constructors and the deferred cargo are withheld together, because one arm releases both seats and this is not that arm. Producer expected: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-       0, 0, 0, 0, 0, 0]. Published here: [113, 22, 215, 27, 201, 83, 45, 177, 228, 123, 154, 255, 239, 17, 99, 56, 150,
-       45, 78, 145, 144, 250, 75, 10, 60, 33, 74, 147, 17, 187, 77, 147,]. Declared harness: threadpak_testpak. Both sides are rewritten together, in one change: derive the current value from the harness's own published schema declaration, write it into the producer's expectation and into this harness's published literal, and commit the pair. A version-mixed consumer, a partial rewrite, and a hand edit to one side are the three shapes this refusal has.
+       0, 0, 0, 0, 0, 0]. Published here: [64, 247, 209, 126, 39, 187, 123, 191, 55, 210, 86, 156, 252, 110, 235, 212,
+       119, 194, 33, 206, 138, 125, 70, 120, 179, 212, 187, 59, 69, 188, 29, 250,]. Declared harness: threadpak_testpak. Both sides are rewritten together, in one change: derive the current value from the harness's own published schema declaration, write it into the producer's expectation and into this harness's published literal, and commit the pair. A version-mixed consumer, a partial rewrite, and a hand edit to one side are the three shapes this refusal has.
   --> tests/compile-fail/a-pin-mismatch-refuses-with-both-sides-shown.rs:25:1
    |
 25 | / threadpak_testpak::generated_support! {

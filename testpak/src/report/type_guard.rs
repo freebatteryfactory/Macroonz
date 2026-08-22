@@ -11,14 +11,15 @@ use super::{
     ByteBudget, CaseBudget, CensusDelta, CensusDirection, CheckRevisionId, ClaimCoverage,
     ClaimExercise, ConclusionFlip, EXECUTION_KEY_TAG, ExecutionKey, Exercise, FINGERPRINT_TAG,
     FOREIGN_TEXT_MAX_BYTES, FailureClass, FindingCause, FindingLocation, Fingerprint, ForeignText,
-    GenerationProfile, InvocationProfile, MinimizationProfile, NotSelectedReason, OutcomeClass,
-    ProfiledTrial, REPLAY_CAPSULE_TAG, ROW_REVISION_TAG, RecordedDuration, ReplayCapsule,
+    GenerationProfile, HostTrialRecord, InvocationProfile, MinimizationProfile, NotSelectedReason,
+    OutcomeClass, ProfiledTrial, REPLAY_CAPSULE_TAG, ROW_REVISION_TAG, ReplayCapsule,
     ReplayPosture, ReportDiff, RowRevisionChange, RowRevisionId, RunAttempt, RunReport,
     SelectionDisposition, SelectionExpectation, SelectionOutcome, SubjectRevisionId,
     TRIAL_IDENTITY_TAG, TargetBinding, TargetTriple, TextFidelity, TimeBudget, ToolchainIdentity,
-    TrialAccounting, TrialConclusion, TrialFinding, TrialId, TrialProfile, TrialReport, TrialSite,
-    Truncation,
+    TrialAccounting, TrialConclusion, TrialFinding, TrialId, TrialProfile, TrialReport,
+    TrialRunStanding, TrialSite, Truncation,
 };
+use crate::clock::MeasurementReading;
 use crate::descriptor::{
     CanonicalRowBytes, ClaimRef, GeneratedSupportSchemaId, RevisionBinding, TablePosture, TrialKey,
 };
@@ -422,30 +423,6 @@ impl MinimizationProfile {
 }
 
 impl ReplayCapsule {
-    /// The reproduction account of one execution.
-    ///
-    /// The posture is taken rather than computed here: it is the attachment's
-    /// meet image, and the reading that produces it is the one owning statement
-    /// about postures.
-    #[must_use]
-    pub fn recorded(
-        key: ExecutionKey,
-        input: Vec<u8>,
-        generation: GenerationProfile,
-        minimization: MinimizationProfile,
-        schema: GeneratedSupportSchemaId,
-        posture: ReplayPosture,
-    ) -> Self {
-        Self {
-            key,
-            input,
-            generation,
-            minimization,
-            schema,
-            posture,
-        }
-    }
-
     /// The execution this capsule reproduces.
     #[must_use]
     pub const fn key(&self) -> &ExecutionKey {
@@ -691,41 +668,87 @@ impl Fingerprint {
 // One execution's record.
 // ---------------------------------------------------------------------------
 
-impl RecordedDuration {
-    /// The duration the caller measured, in nanoseconds.
+impl HostTrialRecord {
+    /// One host's typed input about one selected trial.
     #[must_use]
-    pub const fn recorded(nanoseconds: u64) -> Self {
-        Self(nanoseconds)
+    pub fn recorded(trial: TrialId, attempt: RunAttempt, measurement: MeasurementReading) -> Self {
+        Self {
+            trial,
+            attempt,
+            measurement,
+        }
     }
 
-    /// The recorded nanoseconds.
+    /// The semantic trial the host says this input belongs to.
     #[must_use]
-    pub const fn nanoseconds(self) -> u64 {
-        self.0
+    pub const fn trial(&self) -> TrialId {
+        self.trial
+    }
+
+    /// What the host says became of the attempt.
+    #[must_use]
+    pub const fn attempt(&self) -> &RunAttempt {
+        &self.attempt
+    }
+
+    /// The wall-measurement posture the host recorded.
+    pub const fn measurement(&self) -> MeasurementReading {
+        self.measurement
+    }
+
+    /// The three host-authored seats, for the runner join that admits them.
+    pub(crate) fn into_parts(self) -> (TrialId, RunAttempt, MeasurementReading) {
+        (self.trial, self.attempt, self.measurement)
+    }
+}
+
+impl TrialRunStanding {
+    /// The standing derived from one binding and invocation.
+    #[must_use]
+    pub(crate) fn derived(key: ExecutionKey, replay: ReplayPosture) -> Self {
+        Self { key, replay }
+    }
+
+    /// The exact execution key this trial ran under.
+    #[must_use]
+    pub const fn key(&self) -> &ExecutionKey {
+        &self.key
+    }
+
+    /// The replay ceiling derived from the attachment's revision posture meet.
+    #[must_use]
+    pub const fn replay(&self) -> ReplayPosture {
+        self.replay
     }
 }
 
 impl TrialReport {
     /// One execution's record.
     #[must_use]
-    pub fn recorded(
-        trial: TrialId,
+    pub(crate) fn recorded(
+        standing: TrialRunStanding,
         site: TrialSite,
         attempt: RunAttempt,
-        elapsed: RecordedDuration,
+        measurement: MeasurementReading,
     ) -> Self {
         Self {
-            trial,
+            standing,
             site,
             attempt,
-            elapsed,
+            measurement,
         }
     }
 
     /// The trial's semantic identity.
     #[must_use]
     pub const fn trial(&self) -> TrialId {
-        self.trial
+        self.standing.key().trial()
+    }
+
+    /// The exact execution standing this report was admitted under.
+    #[must_use]
+    pub const fn standing(&self) -> &TrialRunStanding {
+        &self.standing
     }
 
     /// Where the trial is written.
@@ -740,24 +763,32 @@ impl TrialReport {
         &self.attempt
     }
 
-    /// How long it took, as recorded.
-    #[must_use]
-    pub const fn elapsed(&self) -> RecordedDuration {
-        self.elapsed
+    /// The wall-measurement posture recorded around the attempt.
+    pub const fn measurement(&self) -> MeasurementReading {
+        self.measurement
     }
 }
 
 impl SelectionDisposition {
     /// Selected, carrying its execution record.
     #[must_use]
-    pub fn selected(report: TrialReport) -> Self {
+    pub(crate) fn selected(report: TrialReport) -> Self {
         Self::Selected(Box::new(report))
     }
 
     /// Not selected, for a stated reason.
     #[must_use]
-    pub const fn not_selected(reason: NotSelectedReason) -> Self {
-        Self::NotSelected { reason }
+    pub(crate) const fn not_selected(trial: TrialId, reason: NotSelectedReason) -> Self {
+        Self::NotSelected { trial, reason }
+    }
+
+    /// The semantic identity of this census seat.
+    #[must_use]
+    pub const fn trial(&self) -> TrialId {
+        match self {
+            Self::Selected(report) => report.trial(),
+            Self::NotSelected { trial, reason: _ } => *trial,
+        }
     }
 
     /// The execution record, where the invocation selected the trial.
@@ -765,7 +796,10 @@ impl SelectionDisposition {
     pub fn report(&self) -> Option<&TrialReport> {
         match self {
             Self::Selected(report) => Some(report.as_ref()),
-            Self::NotSelected { reason: _ } => None,
+            Self::NotSelected {
+                trial: _,
+                reason: _,
+            } => None,
         }
     }
 
@@ -779,7 +813,10 @@ impl SelectionDisposition {
                 | RunAttempt::TimedOut(_)
                 | RunAttempt::InfrastructureFailed(_) => Exercise::Unexercised,
             },
-            Self::NotSelected { reason: _ } => Exercise::Unexercised,
+            Self::NotSelected {
+                trial: _,
+                reason: _,
+            } => Exercise::Unexercised,
         }
     }
 
@@ -798,7 +835,7 @@ impl SelectionDisposition {
                     OutcomeClass::InfrastructureFailed(*fault)
                 }
             },
-            Self::NotSelected { reason } => OutcomeClass::NotSelected(*reason),
+            Self::NotSelected { trial: _, reason } => OutcomeClass::NotSelected(*reason),
         }
     }
 }
@@ -806,14 +843,12 @@ impl SelectionDisposition {
 impl TrialAccounting {
     /// One row of the denominator, and what this invocation did about it.
     #[must_use]
-    pub fn recorded(
-        trial: TrialId,
+    pub(crate) fn recorded(
         row: RowRevisionId,
         claim: ClaimRef,
         disposition: SelectionDisposition,
     ) -> Self {
         Self {
-            trial,
             row,
             claim,
             disposition,
@@ -823,7 +858,7 @@ impl TrialAccounting {
     /// The trial's semantic identity.
     #[must_use]
     pub const fn trial(&self) -> TrialId {
-        self.trial
+        self.disposition.trial()
     }
 
     /// The authored row's revision identity.
@@ -876,7 +911,7 @@ impl RunReport {
     /// records the answer instead of re-deriving it from a census that cannot
     /// state an expectation.
     #[must_use]
-    pub fn recorded(
+    pub(crate) fn recorded(
         census: Vec<TrialAccounting>,
         posture: TablePosture,
         selection: SelectionOutcome,
@@ -928,7 +963,7 @@ impl RunReport {
 impl CensusDelta {
     /// How the denominator moved between two runs.
     #[must_use]
-    pub fn between(before: usize, after: usize) -> Self {
+    pub(in crate::report) fn between(before: usize, after: usize) -> Self {
         let direction = match after.cmp(&before) {
             Ordering::Greater => CensusDirection::Grew,
             Ordering::Equal => CensusDirection::Unchanged,
@@ -963,7 +998,11 @@ impl CensusDelta {
 impl RowRevisionChange {
     /// One trial whose authored row was edited between the two runs.
     #[must_use]
-    pub const fn between(trial: TrialId, before: RowRevisionId, after: RowRevisionId) -> Self {
+    pub(in crate::report) const fn between(
+        trial: TrialId,
+        before: RowRevisionId,
+        after: RowRevisionId,
+    ) -> Self {
         Self {
             trial,
             before,
@@ -993,7 +1032,11 @@ impl RowRevisionChange {
 impl ConclusionFlip {
     /// One trial whose outcome differs between the two runs.
     #[must_use]
-    pub const fn between(trial: TrialId, before: OutcomeClass, after: OutcomeClass) -> Self {
+    pub(in crate::report) const fn between(
+        trial: TrialId,
+        before: OutcomeClass,
+        after: OutcomeClass,
+    ) -> Self {
         Self {
             trial,
             before,
@@ -1023,7 +1066,7 @@ impl ConclusionFlip {
 impl ReportDiff {
     /// The difference between two reports.
     #[must_use]
-    pub fn stated(
+    pub(in crate::report) fn stated(
         added: Vec<TrialId>,
         removed: Vec<TrialId>,
         revised: Vec<RowRevisionChange>,
@@ -1077,7 +1120,11 @@ impl ReportDiff {
 impl ClaimExercise {
     /// One claim's counts over the denominator.
     #[must_use]
-    pub const fn counted(claim: ClaimRef, exercised: usize, unexercised: usize) -> Self {
+    pub(in crate::report) const fn counted(
+        claim: ClaimRef,
+        exercised: usize,
+        unexercised: usize,
+    ) -> Self {
         Self {
             claim,
             exercised,
@@ -1113,7 +1160,7 @@ impl ClaimExercise {
 impl ClaimCoverage {
     /// The reading, one entry per claim the denominator names.
     #[must_use]
-    pub fn read(entries: Vec<ClaimExercise>) -> Self {
+    pub(in crate::report) fn read(entries: Vec<ClaimExercise>) -> Self {
         Self { entries }
     }
 
@@ -1121,5 +1168,15 @@ impl ClaimCoverage {
     #[must_use]
     pub fn entries(&self) -> &[ClaimExercise] {
         &self.entries
+    }
+
+    /// The report-derived reading for one claim, or the owner's zero reading when the denominator names no such claim.
+    #[must_use]
+    pub fn exercise_or_zero(&self, claim: ClaimRef) -> ClaimExercise {
+        self.entries
+            .iter()
+            .copied()
+            .find(|entry| entry.claim() == claim)
+            .unwrap_or_else(|| ClaimExercise::counted(claim, 0usize, 0usize))
     }
 }

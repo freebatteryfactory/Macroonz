@@ -1,15 +1,11 @@
-//! The anti-substitution swap-pair population: pairs of role-distinct types the
-//! generator turns into compile-refusal cases.
+//! The built-ahead anti-substitution swap-pair population: pairs of role-distinct
+//! types available to a future compile-refusal generator.
 //!
 //! # What a row buys
 //!
-//! Every pair below is a separation this harness already states in prose at the
-//! instrument that owns it. Prose is a claim held by whoever reads it, and a
-//! separation held that way survives exactly as long as nobody is in a hurry.
-//! A row moves that separation onto the compiler: the generator emits a case
-//! that offers the substitute where the seat's type is required, and the
-//! evidence is a refusal `rustc` produced without being asked what the two
-//! values mean.
+//! Every pair below names a separation in the harness's own vocabulary. A row
+//! does not establish that separation by itself; a future consumer can use it
+//! to author a compile-refusal case whose evidence is `rustc`'s refusal.
 //!
 //! The rows are material and never a census: this bank states the pairs it can
 //! ground in the harness's own vocabulary, and a separation somebody states

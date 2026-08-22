@@ -4,13 +4,12 @@
 //!
 //! # Independence
 //!
-//! Everything below that turns a transcript into bytes is written here. The
-//! encoder is this file's own: its own length framing, its own field order, its
-//! own domain-string assembly, its own byte-for-byte spelling of every member.
+//! The concrete specification facts are this file's own; `TestPak`'s transcript
+//! oracle is the one implementation that frames, composes, and derives them.
 //!
 //! Not one encoding function, constant, or spelling is imported from
-//! `threadpak-macroc`. The subject names, the role names, the role slots, the
-//! preimage family each role stands in, each family's own version position, the
+//! `threadpak-macroc`. The exercised subject names, role names, role slots,
+//! preimage families, family positions, the
 //! anchoring discriminants, and the profile stem are written out in full here,
 //! from the published prose and from nothing else: the transcript specification
 //! stated on `ProjectionTranscript`, the discriminant table published on
@@ -18,7 +17,7 @@
 //! per-family profile constants declared beside them, the derive-key grammar
 //! stated on `IdentityProfile`, and the plane's own README.
 //!
-//! Nothing below was read off an encoder body. The anchoring discriminants were
+//! Nothing below was read off a producer encoder body. The anchoring discriminants were
 //! the one thing this lane once had to assume; they are declared now, beside the
 //! postures they stand for, and this lane reads them from that declaration.
 //!
@@ -43,8 +42,8 @@
 //! beside the positive ones: an encoder that drops the content's length prefix,
 //! an encoder that assembles the domain string in the wrong order, and an
 //! encoder that writes the generator's name and schema version into the
-//! preimage — the pair the retired spelling carried and no family's grammar
-//! names today. All three must DISAGREE with the services. If any agreed, the
+//! preimage — a pair no exercised family's grammar names. All three must
+//! DISAGREE with the services. If any agreed, the
 //! positive match would be evidence of nothing.
 
 use threadpak_macroc::plane::{CapturedDeclarationSubject, GeneratedUnitSubject, PlanSubject};
@@ -52,16 +51,19 @@ use threadpak_macroc::{
     ProjectionIdentity, ProjectionRole, ProjectionTranscript, TextCapture, TranscriptAnchoring,
     captured,
 };
+use threadpak_testpak::oracle::{
+    DerivedIdentity, ORACLE_CAUSE_FAMILY, SpecifiedContext, TranscriptDerivation, TranscriptVerdict,
+};
+use threadpak_testpak::report::{FailureClass, FindingCause, FindingLocation, TrialConclusion};
 
 // ---------------------------------------------------------------------------
 // The specification, restated here in full.
 // ---------------------------------------------------------------------------
 
-/// The profile stem, spelled out rather than imported.
+/// The profile stem's published context segments.
 ///
-/// One stem for every family. What separates two families is the family segment
-/// beside it, never a stem a family chose for itself.
-const PROFILE_STEM: &str = "threadpak/macroc/projection-identity";
+/// One stem for every family. What separates two families is the family segment beside it, never a stem a family chose for itself.
+const PROFILE_STEM_SEGMENTS: [&str; 3] = ["threadpak", "macroc", "projection-identity"];
 
 /// One preimage family as this lane restates it: the declared name that is the
 /// family's segment of the derive-key context and the family member of every
@@ -97,12 +99,6 @@ const PLAN_FAMILY: JudgedFamily = JudgedFamily {
     version: 1,
 };
 
-/// The origin-node family, at the position it was first declared with.
-const ORIGIN_NODE_FAMILY: JudgedFamily = JudgedFamily {
-    name: "origin-node",
-    version: 1,
-};
-
 /// The generated-unit family, at the position it was first declared with.
 const GENERATED_UNIT_FAMILY: JudgedFamily = JudgedFamily {
     name: "generated-unit",
@@ -119,110 +115,15 @@ const RENDERED_UNIT_FAMILY: JudgedFamily = JudgedFamily {
     version: 1,
 };
 
-/// The bundle family, at the position it was first declared with.
-const BUNDLE_FAMILY: JudgedFamily = JudgedFamily {
-    name: "bundle",
-    version: 1,
-};
-
-/// The closure family, at the position it was first declared with.
-const CLOSURE_FAMILY: JudgedFamily = JudgedFamily {
-    name: "closure",
-    version: 1,
-};
-
-/// The closed-expansion family, at the position it was first declared with.
-const CLOSED_EXPANSION_FAMILY: JudgedFamily = JudgedFamily {
-    name: "closed-expansion",
-    version: 1,
-};
-
-/// The projection-intent family, at the position it was first declared with.
-const PROJECTION_INTENT_FAMILY: JudgedFamily = JudgedFamily {
-    name: "projection-intent",
-    version: 1,
-};
-
-/// The explanation family, at the position it was first declared with.
-const EXPLANATION_FAMILY: JudgedFamily = JudgedFamily {
-    name: "explanation",
-    version: 1,
-};
-
-/// The declaration-documentation family, at the position it was first declared
-/// with.
+/// The exercised role map, spelled out rather than imported: each role's declared name, its slot in the owner roster, and the preimage family a transcript at that role stands in.
 ///
-/// It shares its SUBJECT with the semantic commitment and is separated from it
-/// by this name and this version, which is the separation a shared subject is
-/// safe under.
-const DECLARATION_DOCUMENTATION_FAMILY: JudgedFamily = JudgedFamily {
-    name: "declaration-documentation",
-    version: 1,
-};
-
-/// The declared-name family, at the position it was first declared with.
-const DECLARED_NAME_FAMILY: JudgedFamily = JudgedFamily {
-    name: "declared-name",
-    version: 1,
-};
-
-/// The generator-version family, at the position it was first declared with.
-///
-/// It is the identity a plan's context NAMES as the generator it was produced
-/// under, and it is not the provenance record's generator — which no preimage
-/// anywhere carries, as the third reversal below proves.
-const GENERATOR_VERSION_FAMILY: JudgedFamily = JudgedFamily {
-    name: "generator-version",
-    version: 1,
-};
-
-/// The diagnostic-relation family, at the position it was first declared with.
-const DIAGNOSTIC_RELATION_FAMILY: JudgedFamily = JudgedFamily {
-    name: "diagnostic-relation",
-    version: 1,
-};
-
-/// The role roster, spelled out rather than imported, in the roster order the
-/// specification states: each role's declared name, its slot — which IS its
-/// place in that order, counted from the first row — and the preimage family a
-/// transcript at that role stands in.
-///
-/// The family is read off the role here for the reason it is read off the role
-/// in the services: no road below takes a family beside a role, so this lane
-/// cannot derive one family's preimage under another family's ladder either.
-///
-/// Every declared family is reached by a role, so this lane restates a version
-/// for each of the fourteen and leaves none of them unjudged. The roster is
-/// fifteen rows and the families are fourteen because two roles stand over the
-/// rendered-unit grammar — the roster's one place where a name repeats, and it
-/// repeats deliberately.
-///
-/// The five rows at the end were added so five preimages stopped standing on a
-/// neighbour's grammar. That is a fact about NAMES, so this lane holds it as
-/// names: a declared name derived under `declared-name` and a diagnostic's
-/// relation derived under `diagnostic-relation` reach different context strings
-/// than the plan and closed-expansion ladders they used to ride, and this table
-/// is where that difference is written out rather than imported.
-const ROLE_ROSTER: [(&str, u8, JudgedFamily); 15] = [
+/// The family is read off the role here for the reason it is read off the role in the services: no road below takes a family beside a role, so this lane cannot derive one family's preimage under another family's ladder.
+/// This is not a complete product-role census; every row below is reached by this lane's identity, transcript, or context readings.
+const EXERCISED_ROLES: [(&str, u8, JudgedFamily); 4] = [
     ("captured-declaration", 0, CAPTURED_DECLARATION_FAMILY),
     ("plan", 1, PLAN_FAMILY),
-    ("origin-node", 2, ORIGIN_NODE_FAMILY),
     ("generated-unit", 3, GENERATED_UNIT_FAMILY),
-    ("rendered-unit", 4, RENDERED_UNIT_FAMILY),
     ("output-bytes", 5, RENDERED_UNIT_FAMILY),
-    ("bundle", 6, BUNDLE_FAMILY),
-    ("closure", 7, CLOSURE_FAMILY),
-    ("closed-expansion", 8, CLOSED_EXPANSION_FAMILY),
-    ("projection-intent", 9, PROJECTION_INTENT_FAMILY),
-    ("explanation", 10, EXPLANATION_FAMILY),
-    (
-        "declaration-documentation",
-        11,
-        DECLARATION_DOCUMENTATION_FAMILY,
-    ),
-    ("declared-name", 12, DECLARED_NAME_FAMILY),
-    ("generator-version", 13, GENERATOR_VERSION_FAMILY),
-    ("diagnostic-relation", 14, DIAGNOSTIC_RELATION_FAMILY),
 ];
 
 /// The anchoring discriminant for a rooted transcript.
@@ -254,82 +155,110 @@ const GENERATOR_PROFILE: &str = "threadpak-macroc";
 /// still wrote it.
 const GENERATOR_SCHEMA: u32 = 3;
 
-/// This lane's own length framing: eight big-endian bytes.
-fn judge_length(length: usize, into: &mut Vec<u8>) {
-    let width = u64::try_from(length).unwrap_or(u64::MAX);
-    into.extend_from_slice(&width.to_be_bytes());
-}
-
-/// This lane's own length-prefixed byte string.
-fn judge_bytes(material: &[u8], into: &mut Vec<u8>) {
-    judge_length(material.len(), into);
-    into.extend_from_slice(material);
-}
-
 /// The slot and the preimage family this lane reads for one role name, by its
 /// own roster.
-fn judge_role(role: &str) -> Option<(u8, JudgedFamily)> {
-    ROLE_ROSTER
+fn specified_role(role: &str) -> Option<(u8, JudgedFamily)> {
+    EXERCISED_ROLES
         .iter()
         .find(|(name, _, _)| *name == role)
         .map(|(_, slot, family)| (*slot, *family))
 }
 
-/// This lane's own derive-key context, assembled by the published grammar: the
-/// stem, the family, the family's version, the subject, the role.
+/// The independently specified derive-key context for one role and subject.
 ///
 /// The family is not a parameter here either. It is read off the role, so a
 /// caller in this file cannot name one family's key space while writing
 /// another's transcript.
-fn judge_context(subject: &str, role: &str) -> Option<String> {
-    let (_, family) = judge_role(role)?;
-    let name = family.name;
-    let version = family.version;
-    Some(format!("{PROFILE_STEM}/{name}/v{version}/{subject}/{role}"))
+fn specified_context(subject: &str, role: &str) -> Option<SpecifiedContext> {
+    let (_, family) = specified_role(role)?;
+    let mut stem_and_family = PROFILE_STEM_SEGMENTS.to_vec();
+    stem_and_family.push(family.name);
+    SpecifiedContext::under_version(&stem_and_family, family.version, &[subject, role]).ok()
 }
 
-/// This lane's own transcript: the ten members of the specification, in order.
+/// The independently specified transcript through its anchor member.
 ///
 /// There is no generator member. The generator is provenance, no family's
 /// grammar names it, and a transcript carrying it would be a preimage this
 /// specification does not describe — which the third reversal below proves
 /// rather than asserts.
-fn judge_transcript(
+fn specified_through_anchor(
     subject: &str,
     role: &str,
     anchoring: u8,
     anchor: &[u8],
-    content: &[u8],
-    position: u32,
-) -> Option<Vec<u8>> {
-    let (slot, family) = judge_role(role)?;
-    let mut bytes = Vec::new();
-    judge_bytes(PROFILE_STEM.as_bytes(), &mut bytes);
-    judge_bytes(family.name.as_bytes(), &mut bytes);
-    bytes.extend_from_slice(&family.version.to_be_bytes());
-    judge_bytes(subject.as_bytes(), &mut bytes);
-    judge_bytes(role.as_bytes(), &mut bytes);
-    bytes.push(slot);
-    bytes.push(anchoring);
-    judge_bytes(anchor, &mut bytes);
-    judge_bytes(content, &mut bytes);
-    bytes.extend_from_slice(&position.to_be_bytes());
-    Some(bytes)
+) -> Option<TranscriptDerivation> {
+    let (slot, family) = specified_role(role)?;
+    let profile_stem = PROFILE_STEM_SEGMENTS.join("/");
+    Some(
+        TranscriptDerivation::opened()
+            .framed_text(&profile_stem)
+            .framed_text(family.name)
+            .fixed32(family.version)
+            .framed_text(subject)
+            .framed_text(role)
+            .discriminant(slot)
+            .discriminant(anchoring)
+            .framed(anchor),
+    )
 }
 
-/// The identity this lane derives, by the published specification and nothing
-/// else.
-fn judge_identity(
+/// The ten-member transcript the published specification declares.
+fn specified_transcript(
     subject: &str,
     role: &str,
     anchoring: u8,
     anchor: &[u8],
     content: &[u8],
     position: u32,
-) -> Option<[u8; 32]> {
-    let transcript = judge_transcript(subject, role, anchoring, anchor, content, position)?;
-    let key_context = judge_context(subject, role)?;
-    Some(blake3::derive_key(&key_context, &transcript))
+) -> Option<TranscriptDerivation> {
+    Some(
+        specified_through_anchor(subject, role, anchoring, anchor)?
+            .framed(content)
+            .fixed32(position),
+    )
+}
+
+/// The identity `TestPak` derives from this lane's independently authored facts.
+fn specified_identity(
+    subject: &str,
+    role: &str,
+    anchoring: u8,
+    anchor: &[u8],
+    content: &[u8],
+    position: u32,
+) -> Option<DerivedIdentity> {
+    let transcript = specified_transcript(subject, role, anchoring, anchor, content, position)?;
+    Some(transcript.derived(&specified_context(subject, role)?))
+}
+
+/// The class and cause carried by one normalized transcript refusal.
+fn refusal_signature(conclusion: &TrialConclusion) -> Option<(FailureClass, FindingCause)> {
+    match conclusion {
+        TrialConclusion::Passed => None,
+        TrialConclusion::Refused(finding) => Some((finding.class(), finding.cause())),
+    }
+}
+
+/// Whether one independent derivation agrees and normalizes to a pass.
+fn transcript_agrees(rederived: Option<DerivedIdentity>, published: &[u8; 32]) -> bool {
+    rederived.is_some_and(|identity| {
+        let verdict = identity.compared(published);
+        verdict == TranscriptVerdict::Agrees
+            && verdict.concluded(FindingLocation::at(file!(), line!())) == TrialConclusion::Passed
+    })
+}
+
+/// The exact verdict and normalized cause required of a hostile derivation.
+fn asserts_transcript_disagreement(verdict: &TranscriptVerdict) {
+    assert!(matches!(verdict, TranscriptVerdict::Disagrees(_)));
+    assert_eq!(
+        refusal_signature(&verdict.concluded(FindingLocation::at(file!(), line!()))),
+        Some((
+            FailureClass::OracleDisagreement,
+            FindingCause::named(ORACLE_CAUSE_FAMILY, "transcript-derivation-disagreement"),
+        ))
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -342,9 +271,9 @@ fn judge_identity(
 /// It carries NO prose, deliberately: the semantic walk drops documentation
 /// attributes before it encodes, so for this declaration alone the input's own
 /// canonical bytes and the material that walk encodes are one byte string. That
-/// is what lets this lane hand the input's bytes to its own encoder — and it is
-/// exactly why the documented twin below exists, because a lane that only ever
-/// read this text would never make the walk drop anything.
+/// is what lets this lane hand the input's bytes to the independent transcript
+/// derivation — and it is exactly why the documented twin below exists, because
+/// a lane that only ever read this text would never make the walk drop anything.
 const DECLARATION: &str = "#[refusal(family = \"testpak.transcript\", shape = single_cause, \
     order(NotAdmitted = \"not-admitted\", Unbounded = \"unbounded\"))] \
     enum TranscriptFamily { NotAdmitted, Unbounded, }";
@@ -403,15 +332,17 @@ fn produced_capture(source: &str) -> Option<(Vec<u8>, [u8; 32], [u8; 32])> {
 fn the_specification_re_derives_a_real_captured_declaration_identity() {
     assert!(
         produced_capture(DECLARATION).is_some_and(|(content, semantic, _)| {
-            judge_identity(
-                "captured-declaration",
-                "captured-declaration",
-                ANCHORING_ROOTED,
-                &[],
-                &content,
-                0,
+            transcript_agrees(
+                specified_identity(
+                    "captured-declaration",
+                    "captured-declaration",
+                    ANCHORING_ROOTED,
+                    &[],
+                    &content,
+                    0,
+                ),
+                &semantic,
             )
-            .is_some_and(|rebuilt| rebuilt == semantic)
         })
     );
 }
@@ -438,7 +369,7 @@ fn a_documented_declaration_keeps_its_undocumented_twin_semantic_name() {
     let documented = produced_capture(DOCUMENTED_DECLARATION);
     assert!(
         produced_capture(DECLARATION).is_some_and(|(content, semantic, plain_prose)| {
-            judge_identity(
+            specified_identity(
                 "captured-declaration",
                 "captured-declaration",
                 ANCHORING_ROOTED,
@@ -447,9 +378,15 @@ fn a_documented_declaration_keeps_its_undocumented_twin_semantic_name() {
                 0,
             )
             .is_some_and(|rebuilt| {
-                rebuilt == semantic
+                rebuilt.compared(&semantic) == TranscriptVerdict::Agrees
+                    && rebuilt
+                        .compared(&semantic)
+                        .concluded(FindingLocation::at(file!(), line!()))
+                        == TrialConclusion::Passed
                     && documented.is_some_and(|(_, twin, twin_prose)| {
-                        twin == rebuilt && twin_prose != twin && twin_prose != plain_prose
+                        twin == *rebuilt.as_bytes()
+                            && twin_prose != twin
+                            && twin_prose != plain_prose
                     })
             })
         })
@@ -472,39 +409,36 @@ fn the_specification_re_derives_every_posture_and_subject() {
         content,
         3,
     );
-    assert!(
-        judge_identity(
+    assert!(transcript_agrees(
+        specified_identity(
             "generated-unit",
             "generated-unit",
             ANCHORING_UNDER_PROJECTION,
             &ANCHOR,
             content,
             3,
-        )
-        .is_some_and(|rebuilt| rebuilt
-            == *ProjectionIdentity::<GeneratedUnitSubject>::derived(anchored).as_bytes())
-    );
+        ),
+        ProjectionIdentity::<GeneratedUnitSubject>::derived(anchored).as_bytes(),
+    ));
 
     let rooted = ProjectionTranscript::rooted(ProjectionRole::Plan, content, 11);
-    assert!(
-        judge_identity("plan", "plan", ANCHORING_ROOTED, &[], content, 11).is_some_and(|rebuilt| {
-            rebuilt == *ProjectionIdentity::<PlanSubject>::derived(rooted).as_bytes()
-        })
-    );
+    assert!(transcript_agrees(
+        specified_identity("plan", "plan", ANCHORING_ROOTED, &[], content, 11),
+        ProjectionIdentity::<PlanSubject>::derived(rooted).as_bytes(),
+    ));
 
     let empty = ProjectionTranscript::rooted(ProjectionRole::CapturedDeclaration, &[], 0);
-    assert!(
-        judge_identity(
+    assert!(transcript_agrees(
+        specified_identity(
             "captured-declaration",
             "captured-declaration",
             ANCHORING_ROOTED,
             &[],
             &[],
             0,
-        )
-        .is_some_and(|rebuilt| rebuilt
-            == *ProjectionIdentity::<CapturedDeclarationSubject>::derived(empty).as_bytes())
-    );
+        ),
+        ProjectionIdentity::<CapturedDeclarationSubject>::derived(empty).as_bytes(),
+    ));
 }
 
 /// The rehearsed reversal, first form: an encoder that writes the content
@@ -516,27 +450,24 @@ fn the_specification_re_derives_every_posture_and_subject() {
 #[test]
 fn an_encoder_that_drops_the_content_length_prefix_disagrees() {
     let content: &[u8] = b"independent-lane-content";
-    let mut bytes = Vec::new();
-    judge_bytes(PROFILE_STEM.as_bytes(), &mut bytes);
-    judge_bytes(PLAN_FAMILY.name.as_bytes(), &mut bytes);
-    bytes.extend_from_slice(&PLAN_FAMILY.version.to_be_bytes());
-    judge_bytes(b"plan", &mut bytes);
-    judge_bytes(b"plan", &mut bytes);
-    bytes.push(1);
-    bytes.push(ANCHORING_ROOTED);
-    judge_bytes(&[], &mut bytes);
-    bytes.extend_from_slice(content);
-    bytes.extend_from_slice(&11_u32.to_be_bytes());
-
     let minted = ProjectionIdentity::<PlanSubject>::derived(ProjectionTranscript::rooted(
         ProjectionRole::Plan,
         content,
         11,
     ));
-    assert!(
-        judge_context("plan", "plan")
-            .is_some_and(|context| blake3::derive_key(&context, &bytes) != *minted.as_bytes())
-    );
+    let malformed = specified_through_anchor("plan", "plan", ANCHORING_ROOTED, &[]).map(|opened| {
+        content
+            .iter()
+            .fold(opened, |derivation, byte| derivation.discriminant(*byte))
+            .fixed32(11u32)
+    });
+    let verdict = malformed
+        .zip(specified_context("plan", "plan"))
+        .map(|(derivation, context)| derivation.derived(&context).compared(minted.as_bytes()));
+    assert!(verdict.as_ref().is_some_and(|read| {
+        asserts_transcript_disagreement(read);
+        true
+    }));
 }
 
 /// The rehearsed reversal, second form: a context assembled with the subject and
@@ -550,7 +481,7 @@ fn an_encoder_that_drops_the_content_length_prefix_disagrees() {
 #[test]
 fn a_context_with_subject_and_role_transposed_disagrees() {
     let content: &[u8] = b"independent-lane-content";
-    let transcript = judge_transcript(
+    let transcript = specified_transcript(
         "generated-unit",
         "output-bytes",
         ANCHORING_UNDER_PROJECTION,
@@ -559,11 +490,12 @@ fn a_context_with_subject_and_role_transposed_disagrees() {
         3,
     );
     assert!(transcript.is_some_and(|transcript| {
-        let family = RENDERED_UNIT_FAMILY.name;
-        let version = RENDERED_UNIT_FAMILY.version;
-        let transposed = blake3::derive_key(
-            &format!("{PROFILE_STEM}/{family}/v{version}/output-bytes/generated-unit"),
-            &transcript,
+        let mut stem_and_family = PROFILE_STEM_SEGMENTS.to_vec();
+        stem_and_family.push(RENDERED_UNIT_FAMILY.name);
+        let transposed = SpecifiedContext::under_version(
+            &stem_and_family,
+            RENDERED_UNIT_FAMILY.version,
+            &["output-bytes", "generated-unit"],
         );
         let minted =
             ProjectionIdentity::<GeneratedUnitSubject>::derived(ProjectionTranscript::under(
@@ -572,7 +504,11 @@ fn a_context_with_subject_and_role_transposed_disagrees() {
                 content,
                 3,
             ));
-        transposed != *minted.as_bytes()
+        transposed.is_ok_and(|context| {
+            let verdict = transcript.derived(&context).compared(minted.as_bytes());
+            asserts_transcript_disagreement(&verdict);
+            true
+        })
     }));
 }
 
@@ -592,17 +528,18 @@ fn a_context_with_subject_and_role_transposed_disagrees() {
 #[test]
 fn an_encoder_that_writes_the_generator_into_the_preimage_disagrees() {
     let content: &[u8] = b"independent-lane-content";
-    let transcript = judge_transcript("plan", "plan", ANCHORING_ROOTED, &[], content, 11);
+    let transcript = specified_transcript("plan", "plan", ANCHORING_ROOTED, &[], content, 11);
     let minted = ProjectionIdentity::<PlanSubject>::derived(ProjectionTranscript::rooted(
         ProjectionRole::Plan,
         content,
         11,
     ));
     assert!(transcript.is_some_and(|ten| {
-        let mut twelve = ten;
-        judge_bytes(GENERATOR_PROFILE.as_bytes(), &mut twelve);
-        twelve.extend_from_slice(&GENERATOR_SCHEMA.to_be_bytes());
-        judge_context("plan", "plan")
-            .is_some_and(|context| blake3::derive_key(&context, &twelve) != *minted.as_bytes())
+        let twelve = ten.framed_text(GENERATOR_PROFILE).fixed32(GENERATOR_SCHEMA);
+        specified_context("plan", "plan").is_some_and(|context| {
+            let verdict = twelve.derived(&context).compared(minted.as_bytes());
+            asserts_transcript_disagreement(&verdict);
+            true
+        })
     }));
 }

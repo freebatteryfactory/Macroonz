@@ -9,12 +9,12 @@
 //! a running test on purpose: a fixture a test writes agrees with whatever the
 //! producer had just done.
 //!
-//! Nothing re-derives this text today — the road that cut it left the tree with
-//! the retired judge seat — so this file supports one claim and no more: a
-//! compiler refuses THIS text. That it is still today's renderer's output
-//! damaged returns when the generator owns materialization and publishes each
-//! fixture with its receipt; `compiled_behaviour.rs` states what stands behind
-//! every fixture in this lane meanwhile.
+//! Nothing in this lane re-derives the damaged text.
+//! This file therefore supports one claim and no more: rustc refuses these checked-in bytes.
+//! It carries no claim that the bytes are a damaged rendering from the current renderer.
+//! `refusal_artifact_readings.rs` states the distinct evidence behind the lawful and shape-altered fixtures.
+//!
+//! The exact damage is named below; no other malformed shape is claimed.
 //!
 //! # The declaration it was rendered from
 //!

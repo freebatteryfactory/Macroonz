@@ -1,5 +1,4 @@
-//! The proof-pressure engine's declarative surface: the total maps its arms are
-//! read through.
+//! The proof-pressure engine's declarative trait participation: the total conversions between its typed axes and borrowed vocabularies.
 //!
 //! Every realization here is a DECLARATION rather than a computation — a
 //! constant answer per arm, stated once so it is read in one place instead of
@@ -12,19 +11,17 @@
 //! branches inside a caller is what keeps every reader of activation and every
 //! reader of a verdict reaching the same word from the same record.
 //!
-//! # The backend word tables
+//! # The backend word conversions
 //!
 //! One outcome word from a compiled-mutation backend states two separate facts —
 //! whether the damage materialized and what became of the witness execution —
 //! and the two are declared apart because they are apart: an unviable mutant
 //! never ran, and a timed-out one built and then did not finish.
 //!
-//! # The claim ceiling
+//! # The claim-ceiling conversion
 //!
-//! What a reading of a backend's output may at most establish follows from the
-//! OUTPUT it was taken from, so the ceiling is a map over the sources and the
-//! verdicts it admits is a second one. Declared here rather than stated on a
-//! profile, so no reading is handed a ceiling wider than its source affords.
+//! What a reading of a backend's output may at most establish follows from the OUTPUT it was taken from, so the source-to-ceiling conversion is declared here.
+//! The ceiling's invariant readings live with its guard.
 //!
 //! # The routing table
 //!
@@ -32,17 +29,10 @@
 //! opening asks for, and nothing else. Stated as a map so lane choice is a
 //! planning decision a reader can check rather than a branch inside a planner.
 //!
-//! # The seed roster's rendering
-//!
-//! The artifact-mutation roster's one projection is here for the same reason:
-//! a person reading a plan needs the damage in words, and a constant answer per
-//! arm is a declaration. Nothing decides anything by it.
-
 use super::types::{
-    ActivationAxis, ActivationDisposition, AdmissionPatch, ArtifactMutation, ClaimCeiling,
-    ClaimPinnedGround, ExecutionAxis, MaterializationAxis, MutantKilledGround, MutationOutcome,
-    MutationVerdict, ObligationDischargedGround, ObligationLane, ProofShape, ReadingSource,
-    WrapOutcomeWord, WrappedBackend,
+    ActivationAxis, ActivationDisposition, AdmissionPatch, ClaimCeiling, ClaimPinnedGround,
+    ExecutionAxis, MaterializationAxis, MutantKilledGround, MutationOutcome, MutationVerdict,
+    ObligationDischargedGround, ObligationLane, ProofShape, ReadingSource, WrapOutcomeWord,
 };
 use crate::descriptor::{AdmissionGround, CapsulePosture};
 
@@ -110,19 +100,6 @@ impl From<WrapOutcomeWord> for ExecutionAxis {
     }
 }
 
-impl WrappedBackend {
-    /// The backend's own name.
-    ///
-    /// A projection: a reader of a profile names the tool through it, and no
-    /// decision anywhere consults it.
-    #[must_use]
-    pub const fn spelling(self) -> &'static str {
-        match self {
-            Self::CargoMutants => "cargo-mutants",
-        }
-    }
-}
-
 impl From<ReadingSource> for ClaimCeiling {
     /// The most a reading taken from one output can establish.
     ///
@@ -132,31 +109,6 @@ impl From<ReadingSource> for ClaimCeiling {
     fn from(source: ReadingSource) -> Self {
         match source {
             ReadingSource::ConsoleStream => Self::WitnessRejection,
-        }
-    }
-}
-
-impl ClaimCeiling {
-    /// The strongest verdict this ceiling grants.
-    #[must_use]
-    pub const fn strongest(self) -> MutationVerdict {
-        match self {
-            Self::WitnessRejection => MutationVerdict::Killed,
-        }
-    }
-
-    /// Whether one verdict stands inside this ceiling.
-    ///
-    /// A kill and an inconclusive both stand inside witness rejection; survived
-    /// stands outside it, because earning that word takes an activation the
-    /// source offers no channel to observe.
-    #[must_use]
-    pub const fn admits(self, verdict: MutationVerdict) -> bool {
-        match (self, verdict) {
-            (Self::WitnessRejection, MutationVerdict::Killed | MutationVerdict::Inconclusive) => {
-                true
-            }
-            (Self::WitnessRejection, MutationVerdict::Survived) => false,
         }
     }
 }
@@ -202,33 +154,6 @@ impl From<CapsulePosture> for AdmissionPatch {
         match posture {
             CapsulePosture::ReplayBearing => Self::RowAndCapsule,
             CapsulePosture::NoCapsule => Self::RowAlone,
-        }
-    }
-}
-
-impl ArtifactMutation {
-    /// The damage rendered for a person.
-    ///
-    /// A projection: a plan and a survivor explanation name a row through it,
-    /// and no decision anywhere consults it.
-    #[must_use]
-    pub const fn described(self) -> &'static str {
-        match self {
-            Self::OrderPermuted => "the textual selection order is reversed",
-            Self::IdentityRecycled => "every cause is emitted under one local key",
-            Self::PlannedOutputOmitted => "a planned output is deleted",
-            Self::UnplannedOutputAdded => "an unplanned output is appended",
-            Self::ImplTargetAltered => "the implementation targets a different type",
-            Self::ShapeAltered => "the declared body shape is changed",
-            Self::OutputDuplicated => "a planned output is emitted twice",
-            Self::TraitPathWrong => "the trait path names a different contract",
-            Self::DecoyInComment => "the anchored bytes are planted in a comment",
-            Self::ImplMemberDuplicated => "one member constant is emitted twice",
-            Self::ImplMemberUnexpected => "a member nobody planned joins the implementation",
-            Self::ConstructorPathAltered => "a row is built through another constructor",
-            Self::ImplPostureAltered => "the implementation is written under another posture",
-            Self::MeaningBearingAttributeAdded => "an attribute that decides something is added",
-            Self::MalformedRust => "the artifact stops being well-formed Rust",
         }
     }
 }

@@ -1,27 +1,13 @@
 # depot — the harness's own fact bank
 
-The depot is a repo-wide pattern:
+A fact lives in the depot of the package that owns it.
 
-a fact lives in the depot of the package that owns it.
+This bank carries `TestPak` facts only; product facts remain with the product that owns them.
 
-Product facts stay in the machine's bank — golden vectors, hostile and fault shapes, the error bank;
+The operator-family bank declares the mutation families `TestPak` may name. Its private fields and depot-owned constructors make membership structural; concrete reachability is established only where an admitted mutation road consumes a family for its semantic purpose.
 
-this bank holds the harness's own facts and never the machine's, so the machine's bank never holds harness concerns.
+The swap-pair bank is admitted built-ahead input for the future compile-refusal generator. No current generator consumes it, and no keeper or roster-count lane stands in for that missing semantic consumer.
 
-The families banked here:
+The `capsules/` coordinate remains empty until a human admission act has an execution-bound replay capsule to author. Runtime evidence never writes depot entries and a proposal is not admission.
 
-the mutation operator families (comparison boundaries; boolean operators; Result collapse; Option collapse; ignored results; direct machine contact; constructor and default recursion — four of the seven attack error-swallowing, fail-closed erosion, and ambient contact, which is the targeting rationale, stated);
-
-the anti-substitution swap-pair populations the generator consumes; and the admitted replay capsules — entries authored only by admission acts, each referenced by the replay reference of the row that earned it.
-
-Entries are doc-commented Rust-const rows under the custody law:
-
-authored specification, data only, one owner, and runtime evidence never writes it — admission is a human act, and the admission act is the only author the capsule family has.
-
-The harness proves its banks:
-
-every entry reachable, every refusal rendered, no orphans — a depot-conformance lane, so a bank cannot silently rot.
-
-Depot entries are written to the confirmed exemplar bar:
-
-real, readable Rust with the earned-sections documentation style, const-block assertions as compile-time closed-world checks where a family declares them.
+Depot entries are doc-commented Rust const data under one owner. Bank membership is a structural claim at the declaration; behavior and reachability belong to each real consumer, so there is no generic depot-conformance lane.

@@ -4,41 +4,45 @@
 //! Declared inside `types.rs` as its own child, which is what makes this home's
 //! claims structural rather than remembered. A kill is minted HERE, so a kill
 //! standing on an unqualified baseline is not a value that exists. A survivor is
-//! minted HERE, so a mutant nothing observed fire — and a mutant under a backend
-//! that cannot observe firing at all — can never earn the word. A dud plant is
-//! refused HERE, so activation evidence always has a firing behind it. An
+//! minted HERE, so a mutant with no positive firing observation — and a mutant under a backend that cannot observe firing at all — can never earn the word. A dud plant is refused HERE, so activation evidence always retains a positive caller/backend reading. An
 //! adapter qualification is minted HERE, and only over a grammar somebody
 //! checked against the very backend version the reading names, so an unchecked
 //! adapter is a posture anybody can state and a credential nobody can hold. A
-//! compiled-pressure witness is married to the qualification of the very
-//! reading it was read out of HERE, so trust-opening evidence can never arrive
-//! stripped of the profile that says which tool produced it. A duplicate is
+//! compiled-pressure witness is married HERE to a qualification carrying the exact adapter profile of the reported reading it was read out of, so trust-opening evidence can never arrive stripped of the profile that says which tool produced it. A duplicate is
 //! refused HERE, so "not a duplicate" is a comparison rather than a paragraph.
 //! And a proposal is married to its ground HERE, so evidence that does not fit
 //! the ground is not a proposal anybody can offer.
 
 use super::{
-    ActivationDisposition, ActivationEvidence, ActivationSite, ActiveMutant, ActiveSelection,
-    AdapterProfile, AdapterQualification, AlternativeIndex, AnnouncedRoster, BackendVersion,
-    BackendVersionPosture, BackendVersionRefusal, BaselineAxis, BaselinePrecondition,
-    BaselineQualification, BudgetRefusal, CandidateSketch, CheckGap, ClaimCeiling,
-    ClaimPinnedGround, ClaimPinnedProposal, CompiledPressureWitness, CoordinateRefusal,
-    DemonstratedRejection, Demonstration, DiffPath, DiffPathRefusal, DischargeEvidence, DudPlant,
-    DuplicateRefusal, EquivalenceAxis, EvaluationSurface, ExecutionAxis, ExplanationRefusal,
-    FailureComparison, FamilyAttribution, GrammarStanding, GrammarVersion, InconclusiveCause,
-    InferredObligation, IntendedRejection, KillRefusal, MUTATION_TARGET_TAG, MappingPosture,
-    MaterializationAxis, MutantId, MutantKilledGround, MutantKilledProposal, MutationCensus,
-    MutationIdentity, MutationOutcome, MutationPoint, MutationReport, MutationRun, MutationSite,
-    MutationTarget, MutationVerdict, NoComparison, NoComparisonReason, ObligationComparison,
+    ActivationDisposition, ActivationEvidence, ActivationSite, ActiveSelection, AdapterProfile,
+    AdapterQualification, AdmittedAlternative, AlternativeDeclaration, AlternativeId,
+    AnnouncedRoster, BackendVersion, BackendVersionPosture, BackendVersionRefusal, BaselineAxis,
+    BaselinePrecondition, BaselineQualification, BudgetRefusal, CandidateSketch, CheckGap,
+    ClaimCeiling, ClaimPinnedGround, ClaimPinnedProposal, CompiledPressureWitness,
+    CoordinateRefusal, DemonstratedRejection, Demonstration, DiffPath, DiffPathRefusal,
+    DischargeEvidence, DudPlant, DuplicateRefusal, EquivalenceAxis, EvaluationBinding,
+    EvaluationCall, EvaluationControl, EvaluationFamilyRef, EvaluationObservation, EvaluationPair,
+    EvaluationPairRefusal, EvaluationPairStanding, EvaluationSurface, EvaluationSurfaceId,
+    ExecutionAxis, ExplanationRefusal, FailureComparison, FamilyAttribution, GrammarStanding,
+    GrammarVersion, InconclusiveCause, InferredObligation, IntendedRejection,
+    InterpretedMutationEvidence, InterpretedTrust, KillRefusal, MUTATION_TARGET_TAG,
+    MappingPosture, MaterializationAxis, MeaningCheck, MutantId, MutantKilledGround,
+    MutantKilledProposal, MutationCensus, MutationIdentity, MutationOutcome, MutationPermission,
+    MutationPoint, MutationPolicy, MutationPolicyId, MutationReport, MutationRun, MutationSite,
+    MutationTarget, MutationVerdict, MutationWitness, MutationWitnessRefusal, NoComparison,
+    NoComparisonReason, NoMutationParityQualification, NoMutationParityReading,
+    NoMutationParityStanding, NoMutationReports, NoMutationResults, ObligationComparison,
     ObligationDischargedGround, ObligationDischargedProposal, ObligationLane, OperatorFamilyRef,
-    OracleClass, OwedClaim, OwedClaimRefusal, OwedDeclaration, PROPOSAL_TAG, ParityStanding,
-    PlanRefusal, PlannedDamage, PlannedRun, PointRefusal, PressureBudget, PressureLane,
-    PressureWitnessRefusal, ProofDelta, ProofDeltaRefusal, ProofPlan, ProofRefusal, ProofShape,
-    ProposalDestination, ProposalDocument, ProposalRefusal, QualificationRefusal, ReadingSource,
+    OracleClass, OwedClaim, OwedClaimRefusal, OwedDeclaration, PROPOSAL_TAG,
+    ParityQualificationRefusal, PermissionRefusal, PlanRefusal, PlannedDamage, PlannedRun,
+    PointCatalogPosture, PointRefusal, PolicyMembership, PolicyRefusal, PressureBudget,
+    PressureLane, PressureWitnessRefusal, ProductionBinding, ProductionCall, ProofDelta,
+    ProofDeltaRefusal, ProofPlan, ProofRefusal, ProofShape, ProposalDestination, ProposalDocument,
+    ProposalRefusal, QualificationRefusal, ReadingSource, RejectedNoMutationParity,
     RejectionIdentity, RewriteCandidate, RewriteDescriptor, RewriteRefusal, RewriteRoster,
     RewriteTrust, RosterRefusal, ScopeShape, ScopedInvocation, SelectionRefusal, SinkRefusal,
-    SourceCoordinate, StoredProposalRef, SurfaceRefusal, SurvivalRefusal, SurvivorExplanation,
-    UnparsedLine, WrapReading, WrapRefusal, WrapStanding, WrappedBackend, sealed,
+    SourceCoordinate, StoredProposalRef, SurfaceRefusal, SurvivorExplanation, UnparsedLine,
+    WrapReading, WrapRefusal, WrapStanding, WrappedBackend, sealed,
 };
 use crate::depot::operator_families::OPERATOR_FAMILIES;
 use crate::depot::types::OperatorFamily;
@@ -54,6 +58,30 @@ use crate::report::{
 };
 use crate::runner::Selection;
 use std::collections::BTreeSet;
+
+impl ClaimCeiling {
+    /// The strongest verdict this ceiling grants.
+    #[must_use]
+    pub const fn strongest(self) -> MutationVerdict {
+        match self {
+            Self::WitnessRejection => MutationVerdict::Killed,
+        }
+    }
+
+    /// Whether one verdict stands inside this ceiling.
+    ///
+    /// A kill and an inconclusive both stand inside witness rejection.
+    /// Survived stands outside it because earning that word takes an activation the source offers no channel to observe.
+    #[must_use]
+    pub const fn admits(self, verdict: MutationVerdict) -> bool {
+        match (self, verdict) {
+            (Self::WitnessRejection, MutationVerdict::Killed | MutationVerdict::Inconclusive) => {
+                true
+            }
+            (Self::WitnessRejection, MutationVerdict::Survived) => false,
+        }
+    }
+}
 
 /// The version of the external-mutant identity encoding itself.
 ///
@@ -157,18 +185,27 @@ impl MutationIdentity {
     pub const fn point(self) -> Option<MutationPointRef> {
         match self {
             Self::External(_) => None,
-            Self::Interpreted(point) => Some(point),
+            Self::Interpreted {
+                point,
+                alternative: _,
+            } => Some(point),
+        }
+    }
+
+    /// The admitted alternative this identity names, where it names one.
+    #[must_use]
+    pub const fn alternative(self) -> Option<AlternativeId> {
+        match self {
+            Self::External(_) => None,
+            Self::Interpreted {
+                point: _,
+                alternative,
+            } => Some(alternative),
         }
     }
 }
 
 impl OperatorFamilyRef {
-    /// The reference over one row of the bank, already read.
-    #[must_use]
-    pub const fn declared(family: OperatorFamily) -> Self {
-        Self(family)
-    }
-
     /// The reference the bank declares under this slug, where the bank declares
     /// one.
     ///
@@ -178,7 +215,7 @@ impl OperatorFamilyRef {
     pub fn of_slug(slug: &str) -> Option<Self> {
         OPERATOR_FAMILIES
             .into_iter()
-            .find(|family| family.slug == slug)
+            .find(|family| family.slug() == slug)
             .map(Self)
     }
 
@@ -191,14 +228,14 @@ impl OperatorFamilyRef {
     /// The family's stable slug.
     #[must_use]
     pub const fn slug(self) -> &'static str {
-        self.0.slug
+        self.0.slug()
     }
 }
 
 impl MutationTarget {
     /// One damaged thing this lane pressed.
     #[must_use]
-    pub fn pressed(
+    pub(in crate::muterprater) fn pressed(
         identity: MutationIdentity,
         family: FamilyAttribution,
         site: MutationSite,
@@ -251,40 +288,43 @@ impl MutationTarget {
 // ---------------------------------------------------------------------------
 
 impl ActivationEvidence {
-    /// The evidence that one planted damage fired.
+    /// The positive firing reading one evaluation callback reported for a planted damage.
     ///
-    /// # Errors
-    ///
-    /// Refuses a firing count of zero and hands back the [`DudPlant`] finding
-    /// instead: a plant that never fired is a finding, never a silent pass.
-    pub fn observed(
-        point: MutationPointRef,
+    /// A positive firing count returns an observation bound to the exact selection and witness; zero returns absence so the receiver can return the exact [`DudPlant`] finding instead. This guard validates the count and joins it but does not independently instrument the caller callback.
+    pub(in crate::muterprater) fn observed(
+        selection: ActiveSelection,
         witness: TrialId,
         firings: u32,
-    ) -> Result<Self, DudPlant> {
+    ) -> Option<Self> {
         if firings == 0_u32 {
-            return Err(DudPlant { point, witness });
+            return None;
         }
-        Ok(Self {
-            point,
+        Some(Self {
+            selection,
             witness,
             firings,
         })
     }
 
-    /// The point whose damage fired.
+    /// The point whose selected damage received the positive-count report.
     #[must_use]
     pub const fn point(self) -> MutationPointRef {
-        self.point
+        self.selection.point()
     }
 
-    /// The trial whose execution observed the firing.
+    /// The exact active selection bound to the positive-count report.
+    #[must_use]
+    pub const fn selection(self) -> ActiveSelection {
+        self.selection
+    }
+
+    /// The trial bound to the positive-count report.
     #[must_use]
     pub const fn witness(self) -> TrialId {
         self.witness
     }
 
-    /// How many times the damage was observed to fire.
+    /// The positive firing count reported by the evaluation callback or backend.
     #[must_use]
     pub const fn firings(self) -> u32 {
         self.firings
@@ -292,13 +332,27 @@ impl ActivationEvidence {
 }
 
 impl DudPlant {
-    /// The point whose damage never fired.
-    #[must_use]
-    pub const fn point(self) -> MutationPointRef {
-        self.point
+    /// The exact active selection and trial for which the evaluation callback reported zero firings.
+    pub(in crate::muterprater) const fn unfired(
+        selection: ActiveSelection,
+        witness: TrialId,
+    ) -> Self {
+        Self { selection, witness }
     }
 
-    /// The trial that was supposed to reach it.
+    /// The point whose selected damage received a reported count of zero.
+    #[must_use]
+    pub const fn point(self) -> MutationPointRef {
+        self.selection.point()
+    }
+
+    /// The exact active selection that received a reported count of zero.
+    #[must_use]
+    pub const fn selection(self) -> ActiveSelection {
+        self.selection
+    }
+
+    /// The trial bound to the callback's zero-count report.
     #[must_use]
     pub const fn witness(self) -> TrialId {
         self.witness
@@ -323,7 +377,7 @@ impl ActivationDisposition {
 impl DemonstratedRejection {
     /// The rejection this harness's own engine demonstrated.
     #[must_use]
-    pub fn demonstrated(trial: TrialId, finding: TrialFinding) -> Self {
+    pub(in crate::muterprater) fn demonstrated(trial: TrialId, finding: TrialFinding) -> Self {
         Self { trial, finding }
     }
 
@@ -383,9 +437,10 @@ fn materialized(materialization: MaterializationAxis) -> bool {
 fn witness_completed(execution: ExecutionAxis) -> bool {
     match execution {
         ExecutionAxis::Completed => true,
-        ExecutionAxis::TimedOut | ExecutionAxis::Crashed | ExecutionAxis::InfrastructureFailed => {
-            false
-        }
+        ExecutionAxis::NotExecuted
+        | ExecutionAxis::TimedOut
+        | ExecutionAxis::Crashed
+        | ExecutionAxis::InfrastructureFailed => false,
     }
 }
 
@@ -400,7 +455,7 @@ impl MutationReport {
     /// firing, and a witness that did not complete. The
     /// unobservable-under-backend arm is admitted, at its stated ceiling — a
     /// kill under it asserts witness rejection, never observed activation.
-    pub fn killed(
+    pub(in crate::muterprater) fn killed(
         target: MutationTarget,
         baseline: BaselineAxis,
         materialization: MaterializationAxis,
@@ -436,68 +491,12 @@ impl MutationReport {
         })
     }
 
-    /// The record of one mutant this lane proved survived.
-    ///
-    /// # Errors
-    ///
-    /// Refuses, in a declared dependent order: an unqualified baseline, a damage
-    /// that did not materialize, an activation that was not observed — an
-    /// unactivated mutant is not a survivor — an activation that is unobservable
-    /// under the backend, a witness that did not complete, and a damage proven
-    /// equivalent in scope. The unobservable arm is the structural rule: a
-    /// mutant nothing could have observed firing can never earn survived, and
-    /// its non-kill result is [`MutationOutcome::Inconclusive`].
-    pub fn survived(
-        target: MutationTarget,
-        baseline: BaselineAxis,
-        materialization: MaterializationAxis,
-        activation: ActivationDisposition,
-        execution: ExecutionAxis,
-        equivalence: EquivalenceAxis,
-    ) -> Result<Self, SurvivalRefusal> {
-        if !baseline_qualified(baseline) {
-            return Err(SurvivalRefusal::BaselineNotQualified(baseline));
-        }
-        if !materialized(materialization) {
-            return Err(SurvivalRefusal::NotMaterialized(materialization));
-        }
-        match activation {
-            ActivationDisposition::Observed(_) => {}
-            ActivationDisposition::NotObserved => {
-                return Err(SurvivalRefusal::ActivationNotObserved);
-            }
-            ActivationDisposition::UnobservableUnderBackend => {
-                return Err(SurvivalRefusal::ActivationUnobservable);
-            }
-        }
-        if !witness_completed(execution) {
-            return Err(SurvivalRefusal::WitnessDidNotComplete(execution));
-        }
-        match equivalence {
-            EquivalenceAxis::NotAssessed
-            | EquivalenceAxis::Refuted
-            | EquivalenceAxis::Inconclusive => {}
-            EquivalenceAxis::ProvenInScope => {
-                return Err(SurvivalRefusal::ProvenEquivalentInScope);
-            }
-        }
-        Ok(Self {
-            target,
-            baseline,
-            materialization,
-            activation,
-            execution,
-            outcome: MutationOutcome::Survived,
-            equivalence,
-        })
-    }
-
     /// The record of one mutant that established nothing about the suite.
     ///
     /// Total, and deliberately so: any chain can fail to establish anything, and
     /// the cause names which link did not hold.
     #[must_use]
-    pub fn inconclusive(
+    pub(in crate::muterprater) fn inconclusive(
         target: MutationTarget,
         baseline: BaselineAxis,
         materialization: MaterializationAxis,
@@ -514,6 +513,48 @@ impl MutationReport {
             execution,
             outcome: MutationOutcome::Inconclusive(cause),
             equivalence,
+        }
+    }
+
+    /// Derive one interpreted report from an activated execution under a qualified no-mutation baseline.
+    #[must_use]
+    pub(in crate::muterprater) fn interpreted(
+        target: MutationTarget,
+        activation: ActivationEvidence,
+        report: &crate::report::TrialReport,
+    ) -> Self {
+        let (execution, outcome) = match report.attempt() {
+            RunAttempt::Executed(TrialConclusion::Passed) => {
+                (ExecutionAxis::Completed, MutationOutcome::Survived)
+            }
+            RunAttempt::Executed(TrialConclusion::Refused(finding)) => (
+                ExecutionAxis::Completed,
+                MutationOutcome::Killed(IntendedRejection::Demonstrated(DemonstratedRejection {
+                    trial: report.trial(),
+                    finding: finding.clone(),
+                })),
+            ),
+            RunAttempt::SkippedWithReason(_) => (
+                ExecutionAxis::NotExecuted,
+                MutationOutcome::Inconclusive(InconclusiveCause::WitnessIncomplete),
+            ),
+            RunAttempt::TimedOut(_) => (
+                ExecutionAxis::TimedOut,
+                MutationOutcome::Inconclusive(InconclusiveCause::WitnessIncomplete),
+            ),
+            RunAttempt::InfrastructureFailed(_) => (
+                ExecutionAxis::InfrastructureFailed,
+                MutationOutcome::Inconclusive(InconclusiveCause::WitnessIncomplete),
+            ),
+        };
+        Self {
+            target,
+            baseline: BaselineAxis::Qualified,
+            materialization: MaterializationAxis::Built,
+            activation: ActivationDisposition::Observed(activation),
+            execution,
+            outcome,
+            equivalence: EquivalenceAxis::NotAssessed,
         }
     }
 
@@ -594,8 +635,7 @@ impl MutationCensus {
         self.killed
     }
 
-    /// How many mutants the suite accepted while their damage was proven to
-    /// fire.
+    /// How many mutants the suite accepted after a positive firing observation.
     #[must_use]
     pub const fn survived(self) -> u32 {
         self.survived
@@ -624,7 +664,9 @@ impl BaselineQualification {
     /// Refuses a baseline that ran and did not pass, then one that was not run
     /// at all. A mutant "caught" by an already-failing suite proves nothing, so
     /// there is no road from an unqualified reading to this value.
-    pub const fn read(axis: BaselineAxis) -> Result<Self, BaselinePrecondition> {
+    pub(in crate::muterprater) const fn read(
+        axis: BaselineAxis,
+    ) -> Result<Self, BaselinePrecondition> {
         match axis {
             BaselineAxis::Qualified => Ok(Self { axis }),
             BaselineAxis::Failed => Err(BaselinePrecondition::BaselineFailed),
@@ -642,7 +684,10 @@ impl BaselineQualification {
 impl MutationRun {
     /// One pressure run's record, with the census counted from the reports.
     #[must_use]
-    pub fn recorded(baseline: BaselineQualification, reports: Vec<MutationReport>) -> Self {
+    pub(in crate::muterprater) fn recorded(
+        baseline: BaselineQualification,
+        reports: Vec<MutationReport>,
+    ) -> Self {
         let census = MutationCensus::over(&reports);
         Self {
             baseline,
@@ -690,7 +735,7 @@ impl MutationRun {
             .filter(|report| report.verdict() != MutationVerdict::Killed)
     }
 
-    /// Every mutant this run proved survived.
+    /// Every mutant this run classified as survived under its activation ceiling.
     pub fn survivors(&self) -> impl Iterator<Item = &MutationReport> {
         self.reports
             .iter()
@@ -828,7 +873,8 @@ impl WrapReading {
     /// Refuses a run carrying a record whose verdict the profile's ceiling does
     /// not admit, naming the record, its verdict, and the ceiling — so a
     /// reading can never state more than its source affords.
-    pub fn read(
+    pub(in crate::muterprater) fn read(
+        family: EvaluationFamilyRef,
         profile: AdapterProfile,
         run: MutationRun,
         announced: AnnouncedRoster,
@@ -846,6 +892,7 @@ impl WrapReading {
             }
         }
         Ok(Self {
+            family,
             profile,
             run,
             announced,
@@ -857,6 +904,12 @@ impl WrapReading {
     #[must_use]
     pub const fn profile(&self) -> &AdapterProfile {
         &self.profile
+    }
+
+    /// The evaluation family this compiled-pressure reading was scoped to.
+    #[must_use]
+    pub const fn family(&self) -> EvaluationFamilyRef {
+        self.family
     }
 
     /// The run the reading recovered.
@@ -883,13 +936,11 @@ impl WrapReading {
 // ---------------------------------------------------------------------------
 
 impl AdapterQualification {
-    /// The qualification one reading's own profile stands under.
+    /// The qualification one exact adapter profile stands under.
     ///
     /// # Authority
     ///
-    /// The profile is taken FROM the reading rather than stated beside it, so
-    /// there is no road to a qualification naming a profile some other reading
-    /// was taken under. What the caller states is the grammar standing — the
+    /// The profile is taken from the reading rather than stated beside it. The resulting qualification may stand behind any reading with that same profile; it does not identify one reading instance. What the caller states is the grammar standing — the
     /// party's own word about whether the adapter's shapes were checked against
     /// output the backend really wrote — and the road weighs that word against
     /// the reading before it hands back a value at all. One pairing qualifies:
@@ -952,9 +1003,7 @@ impl CompiledPressureWitness {
     ///
     /// # Authority
     ///
-    /// Both halves stand over ONE reading: the qualification is one that
-    /// already exists and names that reading's own profile, and the kill is one
-    /// its run recorded. The qualification arrives from
+    /// The qualification already exists for the reported reading's exact adapter profile, and the kill is one that reading's run recorded. The qualification arrives from
     /// [`AdapterQualification::of`] rather than being minted here, so this road
     /// vouches for nothing — it weighs a standing somebody already earned
     /// against the reading in hand, and a reading nobody qualified produces no
@@ -962,14 +1011,9 @@ impl CompiledPressureWitness {
     ///
     /// # Errors
     ///
-    /// Refuses, in a declared dependent order: a standing that has not
-    /// reported, then a qualification naming a profile other than this
-    /// reading's — evidence about another adapter's reading, which stands
-    /// behind nothing here — then a reported reading whose run demonstrated no
-    /// lawful kill: a wrap pass that caught nothing has shown no property
-    /// biting, and it is the absence it is rather than a softer kind of
-    /// evidence.
+    /// Refuses, in a declared dependent order: a standing that has not reported; a qualification naming a profile other than this reading's; a caller-scoped reading naming another family than the exact pair; then a reported reading whose run demonstrated no lawful kill. A wrap pass that caught nothing has shown no property biting, and it is the absence it is rather than a softer kind of evidence.
     pub fn shown(
+        pair: EvaluationPairStanding,
         wrap: WrapStanding<'_>,
         qualification: &AdapterQualification,
     ) -> Result<Self, PressureWitnessRefusal> {
@@ -979,13 +1023,32 @@ impl CompiledPressureWitness {
         if qualification.profile() != reading.profile() {
             return Err(PressureWitnessRefusal::QualificationUnderAnotherProfile);
         }
+        if pair.family() != reading.family() {
+            return Err(PressureWitnessRefusal::ReadingForAnotherFamily {
+                expected: pair.family(),
+                found: reading.family(),
+            });
+        }
         let Some(kill) = reading.run().kills().next() else {
             return Err(PressureWitnessRefusal::NoKillDemonstrated);
         };
         Ok(Self {
+            pair,
             qualification: qualification.clone(),
             kill: kill.clone(),
         })
+    }
+
+    /// The exact production/evaluation pair this compiled-pressure witness was scoped to.
+    #[must_use]
+    pub const fn pair(&self) -> EvaluationPairStanding {
+        self.pair
+    }
+
+    /// The evaluation family retained by the exact pair.
+    #[must_use]
+    pub const fn family(&self) -> EvaluationFamilyRef {
+        self.pair.family()
     }
 
     /// The qualification the witness was demonstrated under.
@@ -1004,6 +1067,158 @@ impl CompiledPressureWitness {
 // ---------------------------------------------------------------------------
 // The interpreted lane's evaluation surface.
 // ---------------------------------------------------------------------------
+
+impl EvaluationFamilyRef {
+    /// The evaluation family, parsed from its owner and spelling.
+    ///
+    /// # Errors
+    ///
+    /// Refuses an empty namespace, then an empty stem.
+    pub fn named(namespace: &'static str, stem: &'static str) -> Result<Self, NameRefusal> {
+        NamespacedName::named(namespace, stem).map(Self)
+    }
+
+    /// The evaluation family over an already-parsed name.
+    #[must_use]
+    pub const fn over(name: NamespacedName) -> Self {
+        Self(name)
+    }
+
+    /// The namespaced name this family carries.
+    #[must_use]
+    pub const fn name(self) -> NamespacedName {
+        self.0
+    }
+}
+
+impl MutationPolicyId {
+    /// The policy's derived content address.
+    #[must_use]
+    pub const fn address(self) -> ContentAddress {
+        self.0
+    }
+}
+
+impl MutationPermission {
+    /// One owner claim's nonempty roster of admitted operator families.
+    ///
+    /// # Errors
+    ///
+    /// Refuses an empty roster, then a family stated twice.
+    pub fn declared(
+        owner_claim: ClaimRef,
+        mut admitted_families: Vec<OperatorFamilyRef>,
+    ) -> Result<Self, PermissionRefusal> {
+        if admitted_families.is_empty() {
+            return Err(PermissionRefusal::NoOperatorFamily);
+        }
+        admitted_families.sort_by_key(|family| family.slug());
+        for pair in admitted_families.windows(2) {
+            let [left, right] = pair else {
+                continue;
+            };
+            if left == right {
+                return Err(PermissionRefusal::DuplicateOperatorFamily(*right));
+            }
+        }
+        Ok(Self {
+            owner_claim,
+            admitted_families,
+        })
+    }
+
+    /// The owner claim this permission is scoped to.
+    #[must_use]
+    pub const fn owner_claim(&self) -> ClaimRef {
+        self.owner_claim
+    }
+
+    /// The operator families the owner admits for this claim, in canonical slug order.
+    #[must_use]
+    pub fn admitted_families(&self) -> &[OperatorFamilyRef] {
+        &self.admitted_families
+    }
+
+    /// Whether this permission admits one operator family.
+    #[must_use]
+    pub fn admits(&self, family: OperatorFamilyRef) -> bool {
+        self.admitted_families.contains(&family)
+    }
+}
+
+impl MutationPolicy {
+    /// One evaluation family's owner-authored mutation policy.
+    ///
+    /// An empty permission roster is lawful and admits a point-free evaluation copy. It does not earn parity or mutation evidence by existing.
+    ///
+    /// # Errors
+    ///
+    /// Refuses two permission rows naming one claim.
+    pub fn declared(
+        family: EvaluationFamilyRef,
+        mut permissions: Vec<MutationPermission>,
+    ) -> Result<Self, PolicyRefusal> {
+        permissions.sort_by_key(MutationPermission::owner_claim);
+        for pair in permissions.windows(2) {
+            let [left, right] = pair else {
+                continue;
+            };
+            if left.owner_claim() == right.owner_claim() {
+                return Err(PolicyRefusal::DuplicateClaim(right.owner_claim()));
+            }
+        }
+        let preimage = crate::muterprater::encode::policy_preimage(family, &permissions);
+        let identity = MutationPolicyId(crate::muterprater::encode::address(
+            super::MUTATION_POLICY_TAG,
+            &preimage,
+        ));
+        Ok(Self {
+            family,
+            permissions,
+            identity,
+        })
+    }
+
+    /// The evaluation family this policy belongs to.
+    #[must_use]
+    pub const fn family(&self) -> EvaluationFamilyRef {
+        self.family
+    }
+
+    /// The policy's derived identity.
+    #[must_use]
+    pub const fn identity(&self) -> MutationPolicyId {
+        self.identity
+    }
+
+    /// The policy's permissions, in canonical claim order.
+    #[must_use]
+    pub fn permissions(&self) -> &[MutationPermission] {
+        &self.permissions
+    }
+
+    /// The permission row for one owner claim, where this policy carries one.
+    #[must_use]
+    pub fn permission(&self, claim: ClaimRef) -> Option<&MutationPermission> {
+        self.permissions
+            .iter()
+            .find(|permission| permission.owner_claim() == claim)
+    }
+}
+
+impl PolicyMembership {
+    /// The policy that issued this membership.
+    #[must_use]
+    pub const fn policy(self) -> MutationPolicyId {
+        self.policy
+    }
+
+    /// The owner claim this membership is scoped to.
+    #[must_use]
+    pub const fn owner_claim(self) -> ClaimRef {
+        self.owner_claim
+    }
+}
 
 impl ActivationSite {
     /// The site, parsed from the owner that declares it and the spelling it
@@ -1029,90 +1244,166 @@ impl ActivationSite {
     }
 }
 
+impl AlternativeDeclaration {
+    /// One producer-discovered operator family and producer-declared canonical mutation meaning before policy admission.
+    #[must_use]
+    pub fn stated(family: OperatorFamilyRef, operation: Vec<u8>) -> Self {
+        Self { family, operation }
+    }
+
+    /// The operator family the producer attributes this meaning to.
+    #[must_use]
+    pub const fn family(&self) -> OperatorFamilyRef {
+        self.family
+    }
+
+    /// The producer-declared canonical mutation meaning supplied for admission.
+    #[must_use]
+    pub fn operation(&self) -> &[u8] {
+        &self.operation
+    }
+}
+
+impl AlternativeId {
+    /// The alternative's derived content address.
+    #[must_use]
+    pub const fn address(self) -> ContentAddress {
+        self.0
+    }
+}
+
+impl AdmittedAlternative {
+    /// The alternative's stable identity.
+    #[must_use]
+    pub const fn identity(&self) -> AlternativeId {
+        self.identity
+    }
+
+    /// The owner-permitted operator family this alternative realizes.
+    #[must_use]
+    pub const fn family(&self) -> OperatorFamilyRef {
+        self.family
+    }
+
+    /// The producer-declared canonical mutation meaning selected at runtime.
+    #[must_use]
+    pub fn operation(&self) -> &[u8] {
+        &self.operation
+    }
+}
+
 impl MutationPoint {
     /// One point, as its producer states it.
     ///
     /// # Errors
     ///
-    /// Refuses an empty original operation, then an alternative byte-identical
-    /// to the original — which would be the no-mutation reading under another
-    /// name — then an alternative the roster already carries.
+    /// Refuses an empty original operation, an empty alternative roster, an owner claim absent from the policy, then each alternative whose family is not permitted, whose bytes are empty or equal the original, or whose family and meaning duplicate an earlier alternative.
     pub fn declared(
+        policy: &MutationPolicy,
         identity: MutationPointRef,
         owner_claim: ClaimRef,
-        original_operation: &'static [u8],
-        admitted_alternatives: &'static [&'static [u8]],
+        original_operation: Vec<u8>,
+        admitted_alternatives: Vec<AlternativeDeclaration>,
         activation_site: ActivationSite,
     ) -> Result<Self, PointRefusal> {
         if original_operation.is_empty() {
             return Err(PointRefusal::EmptyOriginalOperation);
         }
-        for (at, alternative) in admitted_alternatives.iter().enumerate() {
-            if *alternative == original_operation {
+        if admitted_alternatives.is_empty() {
+            return Err(PointRefusal::NoAdmittedAlternative);
+        }
+        let Some(permission) = policy.permission(owner_claim) else {
+            return Err(PointRefusal::ClaimNotPermitted(owner_claim));
+        };
+        let mut admitted = Vec::new();
+        for (at, alternative) in admitted_alternatives.into_iter().enumerate() {
+            if !permission.admits(alternative.family()) {
+                return Err(PointRefusal::FamilyNotPermitted {
+                    at,
+                    family: alternative.family(),
+                });
+            }
+            if alternative.operation().is_empty() {
+                return Err(PointRefusal::EmptyAlternative { at });
+            }
+            if alternative.operation() == original_operation {
                 return Err(PointRefusal::AlternativeIsOriginal { at });
             }
-        }
-        for (at, alternative) in admitted_alternatives.iter().enumerate() {
-            if admitted_alternatives
-                .iter()
-                .take(at)
-                .any(|earlier| earlier == alternative)
-            {
-                return Err(PointRefusal::DuplicateAlternative { at });
+            if admitted.iter().any(|earlier: &AdmittedAlternative| {
+                earlier.family() == alternative.family()
+                    && earlier.operation() == alternative.operation()
+            }) {
+                return Err(PointRefusal::DuplicateAlternativeMeaning { at });
             }
+            let preimage = crate::muterprater::encode::alternative_preimage(
+                identity,
+                alternative.family(),
+                alternative.operation(),
+            );
+            admitted.push(AdmittedAlternative {
+                identity: AlternativeId(crate::muterprater::encode::address(
+                    super::MUTATION_ALTERNATIVE_TAG,
+                    &preimage,
+                )),
+                family: alternative.family(),
+                operation: alternative.operation,
+            });
         }
+        admitted.sort_by_key(AdmittedAlternative::identity);
         Ok(Self {
             identity,
-            owner_claim,
+            membership: PolicyMembership {
+                policy: policy.identity(),
+                owner_claim,
+            },
             original_operation,
-            admitted_alternatives,
+            admitted_alternatives: admitted,
             activation_site,
         })
     }
 
     /// The reference this point is known by.
     #[must_use]
-    pub const fn identity(self) -> MutationPointRef {
+    pub const fn identity(&self) -> MutationPointRef {
         self.identity
+    }
+
+    /// The policy-issued membership this point carries.
+    #[must_use]
+    pub const fn membership(&self) -> PolicyMembership {
+        self.membership
     }
 
     /// The claim that owns the behaviour at this point.
     #[must_use]
-    pub const fn owner_claim(self) -> ClaimRef {
-        self.owner_claim
+    pub const fn owner_claim(&self) -> ClaimRef {
+        self.membership.owner_claim()
     }
 
     /// The unmutated reading — what the point reads as under no mutation.
     #[must_use]
-    pub const fn original_operation(self) -> &'static [u8] {
-        self.original_operation
+    pub fn original_operation(&self) -> &[u8] {
+        &self.original_operation
     }
 
-    /// The damages this point may be selected into, in declared order.
+    /// The damages this point may be selected into, in canonical alternative-identity order.
     #[must_use]
-    pub const fn admitted_alternatives(self) -> &'static [&'static [u8]] {
-        self.admitted_alternatives
+    pub fn admitted_alternatives(&self) -> &[AdmittedAlternative] {
+        &self.admitted_alternatives
     }
 
     /// Where a selected alternative fires.
     #[must_use]
-    pub const fn activation_site(self) -> ActivationSite {
+    pub const fn activation_site(&self) -> ActivationSite {
         self.activation_site
     }
+}
 
-    /// Every active mutant this point admits, in declared order.
-    ///
-    /// Total: the point is the authority on which alternatives it admits, so
-    /// enumerating its own carries no refusal — which is what lets a planner
-    /// state every intended damage without a branch that cannot happen.
+impl EvaluationSurfaceId {
+    /// The surface's derived content address.
     #[must_use]
-    pub fn selections(self) -> Vec<ActiveSelection> {
-        (0..self.admitted_alternatives.len())
-            .map(|at| ActiveSelection {
-                point: self.identity,
-                alternative: AlternativeIndex(at),
-            })
-            .collect()
+    pub const fn address(self) -> ContentAddress {
+        self.0
     }
 }
 
@@ -1121,22 +1412,71 @@ impl EvaluationSurface {
     ///
     /// # Errors
     ///
-    /// Refuses an empty table — a surface nothing could ever be selected on —
-    /// then two points stating one identity.
-    pub fn conforming(points: Vec<MutationPoint>) -> Result<Self, SurfaceRefusal> {
-        if points.is_empty() {
-            return Err(SurfaceRefusal::EmptyPointTable);
-        }
+    /// Refuses a point admitted under another policy, then two points stating one identity. A point-free surface is lawful and selectable only under no-mutation.
+    pub fn conforming(
+        policy: &MutationPolicy,
+        mut points: Vec<MutationPoint>,
+    ) -> Result<Self, SurfaceRefusal> {
         let mut seen: BTreeSet<MutationPointRef> = BTreeSet::new();
         for point in &points {
+            if point.membership().policy() != policy.identity() {
+                return Err(SurfaceRefusal::PointUnderAnotherPolicy {
+                    point: point.identity(),
+                    expected: policy.identity(),
+                    found: point.membership().policy(),
+                });
+            }
             if !seen.insert(point.identity()) {
                 return Err(SurfaceRefusal::DuplicatePoint(point.identity()));
             }
         }
-        Ok(Self { points })
+        points.sort_by_key(MutationPoint::identity);
+        let preimage = crate::muterprater::encode::surface_preimage(
+            policy.family(),
+            policy.identity(),
+            &points,
+        );
+        let identity = EvaluationSurfaceId(crate::muterprater::encode::address(
+            super::EVALUATION_SURFACE_TAG,
+            &preimage,
+        ));
+        Ok(Self {
+            family: policy.family(),
+            policy: policy.identity(),
+            identity,
+            points,
+        })
     }
 
-    /// Every point the table carries, in declared order.
+    /// The evaluation family this surface belongs to.
+    #[must_use]
+    pub const fn family(&self) -> EvaluationFamilyRef {
+        self.family
+    }
+
+    /// The owner policy this surface was admitted under.
+    #[must_use]
+    pub const fn policy(&self) -> MutationPolicyId {
+        self.policy
+    }
+
+    /// The exact surface identity.
+    #[must_use]
+    pub const fn identity(&self) -> EvaluationSurfaceId {
+        self.identity
+    }
+
+    /// Whether this surface admits an active mutation control.
+    #[must_use]
+    pub const fn catalog_posture(&self) -> PointCatalogPosture {
+        if self.points.is_empty() {
+            PointCatalogPosture::NoAdmittedPoints
+        } else {
+            PointCatalogPosture::Mutable
+        }
+    }
+
+    /// Every point the table carries, in canonical point-identity order.
     #[must_use]
     pub fn points(&self) -> &[MutationPoint] {
         &self.points
@@ -1150,49 +1490,64 @@ impl EvaluationSurface {
             .find(|point| point.identity() == identity)
     }
 
-    /// Select one point into one of the damages it admits.
+    /// Select one point into one admitted mutation meaning.
     ///
     /// # Authority
     ///
     /// Runtime is SELECTION among admitted alternatives, never interpretation of
-    /// arbitrary source: an index that names no admitted alternative is refused
-    /// here, so no damage outside the producer's own roster is reachable.
+    /// arbitrary source. Alternative identity is independent of roster order.
     ///
     /// # Errors
     ///
-    /// Refuses a point the table does not carry, then an index past the point's
-    /// admitted roster.
+    /// Refuses a point the table does not carry, then an alternative that point does not admit.
     pub fn select(
         &self,
         point: MutationPointRef,
-        alternative: usize,
-    ) -> Result<ActiveMutant, SelectionRefusal> {
+        alternative: AlternativeId,
+    ) -> Result<ActiveSelection, SelectionRefusal> {
         let Some(found) = self.point(point) else {
             return Err(SelectionRefusal::NoSuchPoint(point));
         };
-        let admitted = found.admitted_alternatives().len();
-        if alternative >= admitted {
-            return Err(SelectionRefusal::AlternativePastRoster {
-                admitted,
-                named: alternative,
-            });
+        if !found
+            .admitted_alternatives()
+            .iter()
+            .any(|admitted| admitted.identity() == alternative)
+        {
+            return Err(SelectionRefusal::NoSuchAlternative { point, alternative });
         }
-        Ok(ActiveMutant::Active(ActiveSelection {
+        Ok(ActiveSelection {
+            surface: self.identity,
             point,
-            alternative: AlternativeIndex(alternative),
-        }))
+            alternative,
+        })
     }
-}
 
-impl AlternativeIndex {
-    /// The alternative's position in its point's declared roster.
+    /// Every active selection this surface admits, in canonical point and alternative identity order.
     #[must_use]
-    pub const fn position(self) -> usize {
-        self.0
+    pub fn selections(&self) -> Vec<ActiveSelection> {
+        self.points
+            .iter()
+            .flat_map(|point| {
+                point
+                    .admitted_alternatives()
+                    .iter()
+                    .map(|alternative| ActiveSelection {
+                        surface: self.identity,
+                        point: point.identity(),
+                        alternative: alternative.identity(),
+                    })
+            })
+            .collect()
     }
 }
 
 impl ActiveSelection {
+    /// The evaluation surface that issued this selection.
+    #[must_use]
+    pub const fn surface(self) -> EvaluationSurfaceId {
+        self.surface
+    }
+
     /// The point that is damaged.
     #[must_use]
     pub const fn point(self) -> MutationPointRef {
@@ -1201,19 +1556,532 @@ impl ActiveSelection {
 
     /// Which of its admitted alternatives is active.
     #[must_use]
-    pub const fn alternative(self) -> AlternativeIndex {
+    pub const fn alternative(self) -> AlternativeId {
         self.alternative
     }
 }
 
-impl ParityStanding {
-    /// The standing one parity trial's own conclusion states.
+impl<Meaning> EvaluationObservation<Meaning> {
+    /// Raw output from one evaluation-copy call.
     #[must_use]
-    pub const fn of(conclusion: &TrialConclusion) -> Self {
-        match conclusion {
-            TrialConclusion::Passed => Self::Passed,
-            TrialConclusion::Refused(_) => Self::NotPassed,
+    pub const fn observed(meaning: Meaning, firings: u32) -> Self {
+        Self { meaning, firings }
+    }
+
+    /// The evaluation meaning.
+    #[must_use]
+    pub const fn meaning(&self) -> &Meaning {
+        &self.meaning
+    }
+
+    /// How many activation firings the evaluation copy reports.
+    #[must_use]
+    pub const fn firings(&self) -> u32 {
+        self.firings
+    }
+
+    /// Split the raw output for receiver validation.
+    pub(in crate::muterprater) fn into_parts(self) -> (Meaning, u32) {
+        (self.meaning, self.firings)
+    }
+}
+
+impl<Meaning> NoMutationResults<Meaning> {
+    /// The returned production meaning, no-mutation evaluation meaning, and evaluation firing count.
+    pub(in crate::muterprater) const fn observed(
+        production: Meaning,
+        evaluation: Meaning,
+        evaluation_firings: u32,
+    ) -> Self {
+        Self {
+            production,
+            evaluation,
+            evaluation_firings,
         }
+    }
+
+    /// The production meaning.
+    #[must_use]
+    pub const fn production(&self) -> &Meaning {
+        &self.production
+    }
+
+    /// The evaluation meaning under no mutation.
+    #[must_use]
+    pub const fn evaluation(&self) -> &Meaning {
+        &self.evaluation
+    }
+
+    /// How many activation firings the no-mutation call reported.
+    #[must_use]
+    pub const fn evaluation_firings(&self) -> u32 {
+        self.evaluation_firings
+    }
+}
+
+impl NoMutationReports {
+    /// Retain the production and evaluation reports in their semantic roles.
+    pub(in crate::muterprater) fn recorded(
+        production: crate::report::TrialReport,
+        evaluation: crate::report::TrialReport,
+    ) -> Self {
+        Self {
+            production,
+            evaluation,
+        }
+    }
+
+    /// The production report.
+    const fn production(&self) -> &crate::report::TrialReport {
+        &self.production
+    }
+
+    /// The evaluation report.
+    const fn evaluation(&self) -> &crate::report::TrialReport {
+        &self.evaluation
+    }
+}
+
+impl<Input, Meaning> ProductionBinding<Input, Meaning> {
+    /// The production callable and revision declared for one evaluation family.
+    #[must_use]
+    pub const fn declared(
+        family: EvaluationFamilyRef,
+        revision: crate::descriptor::RevisionBinding,
+        call: ProductionCall<Input, Meaning>,
+    ) -> Self {
+        Self {
+            family,
+            revision,
+            call,
+        }
+    }
+
+    /// The declared evaluation family.
+    #[must_use]
+    pub const fn family(&self) -> EvaluationFamilyRef {
+        self.family
+    }
+
+    /// The production revision binding.
+    #[must_use]
+    pub const fn revision(&self) -> crate::descriptor::RevisionBinding {
+        self.revision
+    }
+
+    /// Run the production callable.
+    #[must_use]
+    pub fn evaluate(&self, input: &Input) -> Meaning {
+        (self.call)(input)
+    }
+}
+
+impl<Input, Meaning> EvaluationBinding<Input, Meaning> {
+    /// Bind the evaluation callable and revision to one exact surface.
+    ///
+    /// The family and surface identity are derived from `surface`; callers have no parallel labels to keep coherent.
+    #[must_use]
+    pub const fn declared(
+        surface: &EvaluationSurface,
+        revision: crate::descriptor::RevisionBinding,
+        call: EvaluationCall<Input, Meaning>,
+    ) -> Self {
+        Self {
+            family: surface.family(),
+            revision,
+            surface: surface.identity(),
+            call,
+        }
+    }
+
+    /// The declared evaluation family.
+    #[must_use]
+    pub const fn family(&self) -> EvaluationFamilyRef {
+        self.family
+    }
+
+    /// The evaluation revision binding.
+    #[must_use]
+    pub const fn revision(&self) -> crate::descriptor::RevisionBinding {
+        self.revision
+    }
+
+    /// The exact evaluation surface this callable executes.
+    #[must_use]
+    pub const fn surface(&self) -> EvaluationSurfaceId {
+        self.surface
+    }
+
+    /// Run the evaluation callable under one evaluation-only control.
+    #[must_use]
+    pub fn evaluate(
+        &self,
+        input: &Input,
+        control: EvaluationControl,
+    ) -> EvaluationObservation<Meaning> {
+        (self.call)(input, control)
+    }
+}
+
+impl<Input, Meaning> EvaluationPair<Input, Meaning> {
+    /// Join production and evaluation bindings under one declared family and equivalence.
+    ///
+    /// # Errors
+    ///
+    /// Refuses bindings naming different evaluation families.
+    pub fn paired(
+        production: ProductionBinding<Input, Meaning>,
+        evaluation: EvaluationBinding<Input, Meaning>,
+        same: crate::properties::Equivalence<Meaning>,
+    ) -> Result<Self, EvaluationPairRefusal> {
+        if production.family() != evaluation.family() {
+            return Err(EvaluationPairRefusal::FamilyMismatch {
+                production: production.family(),
+                evaluation: evaluation.family(),
+            });
+        }
+        Ok(Self {
+            production,
+            evaluation,
+            same,
+        })
+    }
+
+    /// The production binding.
+    #[must_use]
+    pub const fn production(&self) -> &ProductionBinding<Input, Meaning> {
+        &self.production
+    }
+
+    /// The evaluation binding.
+    #[must_use]
+    pub const fn evaluation(&self) -> &EvaluationBinding<Input, Meaning> {
+        &self.evaluation
+    }
+
+    /// The owner-declared equivalence over the two meanings.
+    #[must_use]
+    pub const fn equivalence(&self) -> crate::properties::Equivalence<Meaning> {
+        self.same
+    }
+
+    /// The identity and revision facts this pair retains in evidence.
+    #[must_use]
+    pub const fn standing(&self) -> EvaluationPairStanding {
+        EvaluationPairStanding {
+            family: self.production.family(),
+            production_revision: self.production.revision(),
+            evaluation_revision: self.evaluation.revision(),
+            surface: self.evaluation.surface(),
+        }
+    }
+}
+
+impl EvaluationPairStanding {
+    /// The evaluation family shared by both bindings.
+    #[must_use]
+    pub const fn family(self) -> EvaluationFamilyRef {
+        self.family
+    }
+
+    /// The production revision.
+    #[must_use]
+    pub const fn production_revision(self) -> crate::descriptor::RevisionBinding {
+        self.production_revision
+    }
+
+    /// The evaluation revision.
+    #[must_use]
+    pub const fn evaluation_revision(self) -> crate::descriptor::RevisionBinding {
+        self.evaluation_revision
+    }
+
+    /// The exact evaluation surface.
+    #[must_use]
+    pub const fn surface(self) -> EvaluationSurfaceId {
+        self.surface
+    }
+}
+
+impl<Meaning> MutationWitness<Meaning> {
+    /// Join one trial binding to the declared identity and callable of the check mutation executions report through.
+    ///
+    /// # Errors
+    ///
+    /// Refuses a check identity other than the one retained by the trial row. The function-pointer shape excludes captured state but cannot establish that the callable's behavior matches its declared identity; the execution lane observes that behavior.
+    pub fn bound(
+        binding: crate::runner::TrialBinding,
+        check_ref: CheckRef,
+        check: MeaningCheck<Meaning>,
+    ) -> Result<Self, MutationWitnessRefusal> {
+        let expected = binding.row().check();
+        if check_ref != expected {
+            return Err(MutationWitnessRefusal::CheckMismatch {
+                expected,
+                found: check_ref,
+            });
+        }
+        Ok(Self { binding, check })
+    }
+
+    /// The exact trial binding the receiver reports through.
+    #[must_use]
+    pub const fn binding(&self) -> &crate::runner::TrialBinding {
+        &self.binding
+    }
+
+    /// The check identity bound to the callable.
+    #[must_use]
+    pub const fn check_ref(&self) -> CheckRef {
+        self.binding.row().check()
+    }
+
+    /// Judge one produced meaning under the declared check callable.
+    #[must_use]
+    pub fn conclude(&self, meaning: &Meaning) -> TrialConclusion {
+        (self.check)(meaning)
+    }
+}
+
+impl<'pair, 'input, Input, Meaning> NoMutationParityReading<'pair, 'input, Input, Meaning> {
+    /// Record one complete no-mutation comparison after both observations joined the same trial binding.
+    pub(in crate::muterprater) fn recorded(
+        pair: &'pair EvaluationPair<Input, Meaning>,
+        witness: MutationWitness<Meaning>,
+        input: &'input Input,
+        results: NoMutationResults<Meaning>,
+        substrate: crate::properties::SharedSubstrate,
+        conclusion: TrialConclusion,
+        reports: NoMutationReports,
+    ) -> Self {
+        Self {
+            pair,
+            witness,
+            input,
+            results,
+            substrate,
+            conclusion,
+            reports,
+        }
+    }
+
+    /// The exact production/evaluation pair that ran.
+    #[must_use]
+    pub const fn pair(&self) -> &'pair EvaluationPair<Input, Meaning> {
+        self.pair
+    }
+
+    /// The exact trial binding, check identity, and check callable used by both roads.
+    #[must_use]
+    pub const fn witness(&self) -> &MutationWitness<Meaning> {
+        &self.witness
+    }
+
+    /// The exact input both roads received.
+    #[must_use]
+    pub const fn input(&self) -> &'input Input {
+        self.input
+    }
+
+    /// The production meaning.
+    #[must_use]
+    pub const fn production(&self) -> &Meaning {
+        self.results.production()
+    }
+
+    /// The evaluation meaning under no mutation.
+    #[must_use]
+    pub const fn evaluation(&self) -> &Meaning {
+        self.results.evaluation()
+    }
+
+    /// How many activation firings the no-mutation call reported.
+    #[must_use]
+    pub const fn evaluation_firings(&self) -> u32 {
+        self.results.evaluation_firings()
+    }
+
+    /// The foundations both roads share.
+    #[must_use]
+    pub const fn substrate(&self) -> &crate::properties::SharedSubstrate {
+        &self.substrate
+    }
+
+    /// The owner-declared equivalence's conclusion.
+    #[must_use]
+    pub const fn conclusion(&self) -> &TrialConclusion {
+        &self.conclusion
+    }
+
+    /// The production execution report.
+    #[must_use]
+    pub const fn production_report(&self) -> &crate::report::TrialReport {
+        self.reports.production()
+    }
+
+    /// The no-mutation evaluation execution report.
+    #[must_use]
+    pub const fn evaluation_report(&self) -> &crate::report::TrialReport {
+        self.reports.evaluation()
+    }
+}
+
+impl<'pair, 'input, Input, Meaning> NoMutationParityQualification<'pair, 'input, Input, Meaning> {
+    /// A no-mutation reading after both reports, zero activation, and semantic agreement qualified it.
+    pub(in crate::muterprater) fn qualified(
+        reading: NoMutationParityReading<'pair, 'input, Input, Meaning>,
+    ) -> Self {
+        Self { reading }
+    }
+
+    /// The complete reading this qualification stands on.
+    #[must_use]
+    pub const fn reading(&self) -> &NoMutationParityReading<'pair, 'input, Input, Meaning> {
+        &self.reading
+    }
+}
+
+impl<'pair, 'input, Input, Meaning> RejectedNoMutationParity<'pair, 'input, Input, Meaning> {
+    /// A complete no-mutation reading that did not qualify.
+    pub(in crate::muterprater) fn rejected(
+        cause: ParityQualificationRefusal,
+        reading: NoMutationParityReading<'pair, 'input, Input, Meaning>,
+    ) -> Self {
+        Self { cause, reading }
+    }
+
+    /// Why the reading did not qualify.
+    pub const fn cause(&self) -> ParityQualificationRefusal {
+        self.cause
+    }
+
+    /// The complete reading that did not qualify.
+    #[must_use]
+    pub const fn reading(&self) -> &NoMutationParityReading<'pair, 'input, Input, Meaning> {
+        &self.reading
+    }
+}
+
+impl<'pair, 'input, Input, Meaning> NoMutationParityStanding<'pair, 'input, Input, Meaning> {
+    /// The qualification, where this reading earned one.
+    #[must_use]
+    pub const fn qualification(
+        &self,
+    ) -> Option<&NoMutationParityQualification<'pair, 'input, Input, Meaning>> {
+        match self {
+            Self::Qualified(qualification) => Some(qualification),
+            Self::Rejected(_) => None,
+        }
+    }
+
+    /// The rejected reading, where qualification was refused.
+    #[must_use]
+    pub const fn rejection(
+        &self,
+    ) -> Option<&RejectedNoMutationParity<'pair, 'input, Input, Meaning>> {
+        match self {
+            Self::Qualified(_) => None,
+            Self::Rejected(rejection) => Some(rejection),
+        }
+    }
+}
+
+impl<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning>
+    InterpretedTrust<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning>
+{
+    /// Open interpreted execution over one exact surface, compiled witness, and no-mutation qualification.
+    pub(in crate::muterprater) fn opened(
+        surface: &'surface EvaluationSurface,
+        compiled: &'compiled CompiledPressureWitness,
+        parity: &'parity NoMutationParityQualification<'pair, 'input, Input, Meaning>,
+    ) -> Self {
+        Self {
+            surface,
+            compiled,
+            parity,
+        }
+    }
+
+    /// The exact evaluation surface interpreted selection runs over.
+    #[must_use]
+    pub const fn surface(&self) -> &'surface EvaluationSurface {
+        self.surface
+    }
+
+    /// The compiled-pressure witness scoped to this exact evaluation pair that demonstrated suite bite.
+    #[must_use]
+    pub const fn compiled(&self) -> &'compiled CompiledPressureWitness {
+        self.compiled
+    }
+
+    /// The no-mutation qualification for the exact pair and input.
+    #[must_use]
+    pub const fn parity(
+        &self,
+    ) -> &'parity NoMutationParityQualification<'pair, 'input, Input, Meaning> {
+        self.parity
+    }
+
+    /// Duplicate this borrowed trust statement for one admitted evidence record.
+    pub(in crate::muterprater) fn duplicate(&self) -> Self {
+        Self {
+            surface: self.surface,
+            compiled: self.compiled,
+            parity: self.parity,
+        }
+    }
+}
+
+impl<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning>
+    InterpretedMutationEvidence<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning>
+{
+    /// One active execution admitted under the trust boundary that made it evidence.
+    pub(in crate::muterprater) fn admitted(
+        trust: InterpretedTrust<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning>,
+        selection: ActiveSelection,
+        meaning: Meaning,
+        report: crate::report::TrialReport,
+        mutation: MutationReport,
+    ) -> Self {
+        Self {
+            trust,
+            selection,
+            meaning,
+            report,
+            mutation,
+        }
+    }
+
+    /// The trust evidence this interpreted result was admitted under.
+    #[must_use]
+    pub const fn trust(
+        &self,
+    ) -> &InterpretedTrust<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning> {
+        &self.trust
+    }
+
+    /// The exact active selection that ran.
+    #[must_use]
+    pub const fn selection(&self) -> ActiveSelection {
+        self.selection
+    }
+
+    /// The meaning the active evaluation copy returned.
+    #[must_use]
+    pub const fn meaning(&self) -> &Meaning {
+        &self.meaning
+    }
+
+    /// The trial report admitted through the ordinary report spine.
+    #[must_use]
+    pub const fn report(&self) -> &crate::report::TrialReport {
+        &self.report
+    }
+
+    /// The mutation report derived from the active execution.
+    #[must_use]
+    pub const fn mutation(&self) -> &MutationReport {
+        &self.mutation
     }
 }
 

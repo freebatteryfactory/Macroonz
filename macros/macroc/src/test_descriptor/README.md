@@ -55,7 +55,7 @@ Nothing this home renders spells a crate name. Every path the emission writes be
     harness: <what the consumer calls the harness>,
     invocation: <the consumer's declared budgets>,
     target: <the target triple and toolchain the runs stand on>,
-    clock: <the clock a duration is the difference of two readings from>,
+    clock: <the harness wall-measurement source>,
     attachments: {
         <lens> {
             subject_revision: <the consumer's own commitment>,

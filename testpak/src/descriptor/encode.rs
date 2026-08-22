@@ -37,7 +37,7 @@
 //! field is `bytes(name)`, then its shape, then one byte for its cardinality
 //! slot. A shape is one byte for its slot; the closed-choice shape additionally
 //! writes `u64be(arm count)` followed by `bytes(arm)` for each arm in declared
-//! order. The slots are the closed tables in `type_contract.rs`.
+//! order. The slot projections live beside the encoders below.
 //!
 //! Nothing is folded on the way in: every name and every arm spelling is
 //! written at full length, so the derived identity is the only compression
@@ -120,11 +120,84 @@
 //! two decisions, and one bump must not rename identities under the other.
 
 use super::types::{
-    CheckRef, ClaimRef, Classification, DischargeAdmission, EncodeRefusal, ExecutionSuite,
+    AdmissionGround, CheckRef, ClaimRef, Classification, DESCRIPTOR_PROJECTIONS,
+    DescriptorProjection, DischargeAdmission, EncodeRefusal, ExecutionSuite, FieldCardinality,
     FieldShape, GeneratedSupportSchema, NamespacedName, Origin, PopulationRef, ReplayAdmission,
-    SchemaField, SubjectRoute, SynthesisFacts, TrialCoordinates,
+    SchemaField, SubjectRoute, SynthesisFacts, TrialCoordinates, generated_support_members,
+    origin_declarations,
 };
 use crate::identity::ContentAddress;
+
+impl AdmissionGround {
+    /// The byte this ground is written as in a row's canonical preimage.
+    #[must_use]
+    pub const fn slot(self) -> u8 {
+        match self {
+            Self::MutantKilled => 1,
+            Self::ClaimPinned => 2,
+            Self::ObligationDischarged => 3,
+        }
+    }
+}
+
+macro_rules! implement_origin_slots {
+    ($( $variant:ident $(($payload:pat))? => $spelling:literal => $slot:literal, )+) => {
+        impl Origin {
+            /// The byte this arm is written as in a row's canonical preimage.
+            ///
+            /// The owner-local origin roster projects both this slot match and the descriptor schema's closed-choice spellings, so their order cannot drift independently.
+            #[must_use]
+            pub const fn slot(self) -> u8 {
+                match self {
+                    $(
+                        Self::$variant $(($payload))? => $slot,
+                    )+
+                }
+            }
+        }
+    };
+}
+
+origin_declarations!(implement_origin_slots);
+
+impl SynthesisFacts {
+    /// The byte this arm is written as in a row's canonical preimage.
+    #[must_use]
+    pub const fn slot(self) -> u8 {
+        match self {
+            Self::Survivor(_) => 1,
+            Self::ProofGap => 2,
+        }
+    }
+}
+
+impl FieldShape {
+    /// The byte this shape is written as in the schema's canonical preimage.
+    #[must_use]
+    pub const fn slot(self) -> u8 {
+        match self {
+            Self::NamespacedName => 1,
+            Self::ContentAddress => 2,
+            Self::ClosedChoice(_) => 3,
+            Self::Bytes => 4,
+            Self::Count => 5,
+            Self::MutationAlternative => 6,
+        }
+    }
+}
+
+impl FieldCardinality {
+    /// The byte this cardinality is written as in the schema's canonical preimage.
+    #[must_use]
+    pub const fn slot(self) -> u8 {
+        match self {
+            Self::ExactlyOne => 1,
+            Self::ZeroOrOne => 2,
+            Self::ZeroOrMore => 3,
+            Self::OneOrMore => 4,
+        }
+    }
+}
 
 /// The version of the schema encoding itself.
 ///
@@ -143,14 +216,13 @@ const SCHEMA_ENCODING_VERSION: u32 = 1;
 /// cut at another are different preimages however alike the row is.
 const ROW_ENCODING_VERSION: u32 = 2;
 
-/// The tag the descriptor member is written under.
-const DESCRIPTOR_MEMBER_TAG: u8 = 1;
-
-/// The tag the mutation-point member is written under.
-const MUTATION_POINT_MEMBER_TAG: u8 = 2;
-
-/// The tag the bench member is written under.
-const BENCH_MEMBER_TAG: u8 = 3;
+macro_rules! push_generated_support_members {
+    ([$bytes:ident, $schema:ident]; $( $member:ident: $member_type:ty => $fields:ident => $tag:literal, )+) => {
+        $(
+            push_member(&mut $bytes, $tag, $schema.$member().fields())?;
+        )+
+    };
+}
 
 /// The canonical bytes of one root schema declaration.
 ///
@@ -164,17 +236,7 @@ pub fn encode_generated_support_schema(
 ) -> Result<Vec<u8>, EncodeRefusal> {
     let mut bytes = Vec::new();
     bytes.extend_from_slice(&SCHEMA_ENCODING_VERSION.to_be_bytes());
-    push_member(
-        &mut bytes,
-        DESCRIPTOR_MEMBER_TAG,
-        schema.descriptor().fields(),
-    )?;
-    push_member(
-        &mut bytes,
-        MUTATION_POINT_MEMBER_TAG,
-        schema.mutation_point().fields(),
-    )?;
-    push_member(&mut bytes, BENCH_MEMBER_TAG, schema.bench().fields())?;
+    generated_support_members!(push_generated_support_members, bytes, schema);
     Ok(bytes)
 }
 
@@ -203,7 +265,8 @@ fn push_shape(out: &mut Vec<u8>, shape: FieldShape) -> Result<(), EncodeRefusal>
         FieldShape::NamespacedName
         | FieldShape::ContentAddress
         | FieldShape::Bytes
-        | FieldShape::Count => {}
+        | FieldShape::Count
+        | FieldShape::MutationAlternative => {}
     }
     Ok(())
 }
@@ -264,20 +327,30 @@ pub(super) fn encode_row_content(
 ) -> Result<Vec<u8>, EncodeRefusal> {
     let mut bytes = Vec::new();
     bytes.extend_from_slice(&ROW_ENCODING_VERSION.to_be_bytes());
-    push_name(&mut bytes, claim.name())?;
-    push_name(&mut bytes, execution_suite.name())?;
-    push_count(&mut bytes, classification.roles().len())?;
-    for role in classification.roles() {
-        push_name(&mut bytes, role.name())?;
+    for projection in DESCRIPTOR_PROJECTIONS {
+        match projection {
+            DescriptorProjection::Claim => push_name(&mut bytes, claim.name())?,
+            DescriptorProjection::ExecutionSuite => {
+                push_name(&mut bytes, execution_suite.name())?;
+            }
+            DescriptorProjection::Roles => {
+                push_count(&mut bytes, classification.roles().len())?;
+                for role in classification.roles() {
+                    push_name(&mut bytes, role.name())?;
+                }
+            }
+            DescriptorProjection::Tags => {
+                push_count(&mut bytes, classification.tags().len())?;
+                for tag in classification.tags() {
+                    push_name(&mut bytes, tag.name())?;
+                }
+            }
+            DescriptorProjection::Subject => push_name(&mut bytes, subject.name())?,
+            DescriptorProjection::Check => push_name(&mut bytes, check.name())?,
+            DescriptorProjection::Population => push_name(&mut bytes, population.name())?,
+            DescriptorProjection::Origin => push_origin(&mut bytes, origin)?,
+        }
     }
-    push_count(&mut bytes, classification.tags().len())?;
-    for tag in classification.tags() {
-        push_name(&mut bytes, tag.name())?;
-    }
-    push_name(&mut bytes, subject.name())?;
-    push_name(&mut bytes, check.name())?;
-    push_name(&mut bytes, population.name())?;
-    push_origin(&mut bytes, origin)?;
     Ok(bytes)
 }
 

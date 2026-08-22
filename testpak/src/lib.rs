@@ -9,19 +9,23 @@
 //!
 //! # The instruments
 //!
+//! [`clock`] owns `TestPak`'s caller-declared wall-measurement boundary,
 //! [`descriptor`] owns the rows every producer writes into, [`report`] owns
 //! the records a run leaves and the identity rails, [`oracle`] is the
 //! independence annex for claims where shared producer logic would make
-//! self-agreement vacuous, [`runner`] is the pure engine that turns
+//! self-agreement vacuous, [`runner`] is the report engine that turns
 //! descriptor tables and typed invocations into typed reports,
 //! [`properties`] carries the algebraic suites, [`muterprater`] is
 //! the proof-pressure engine, [`generate`] owns the generation contract,
-//! [`depot`] is the harness's own fact bank, and [`fault`] holds the refusing
-//! adapters. [`identity`] is the derivation substrate every identity kind in
-//! this crate derives through.
+//! [`depot`] is the harness's own fact bank, [`fault`] schedules adopter-owned
+//! fault adapters, [`corpus`] carries content-addressed generation warm starts,
+//! and [`mod@bench`] owns primary work judgment plus secondary wall observation.
+//! [`identity`] is the derivation substrate every identity kind in this crate
+//! derives through.
 //!
 //! Executable challenge material sits under `tests/`, where cargo requires
-//! it to live; seed-packs sit under `corpus/`.
+//! it to live. Pack persistence is caller-owned; [`corpus`] owns the public
+//! in-memory pack format and reader.
 //!
 //! # The instruments are reached at their own homes
 //!
@@ -41,8 +45,11 @@
 
 pub mod identity;
 
+pub mod bench;
+pub mod clock;
 pub mod depot;
 pub mod descriptor;
+pub mod corpus;
 pub mod fault;
 pub mod generate;
 pub mod muterprater;

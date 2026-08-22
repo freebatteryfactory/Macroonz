@@ -21,81 +21,80 @@ use crate::report::{ByteBudget, CaseBudget, Fingerprint, GenerationProfile, Mini
 use arbitrary::Unstructured;
 use std::collections::BTreeSet;
 
-#[path = "type_guard.rs"]
-mod guard;
-
 // ---------------------------------------------------------------------------
 // The generation axis.
 // ---------------------------------------------------------------------------
 
-/// What became of one case the generator was asked for.
-///
-/// # Authority
-///
-/// This is the generation axis and only the generation axis. What an execution
-/// did with a generated case is [`crate::report::RunAttempt`]'s roster, and what
-/// a check concluded is [`crate::report::TrialConclusion`]'s — three owned axes,
-/// never one status blob.
-///
-/// # Nonclaims
-///
-/// A disposition says what became of one REQUEST for a case. It says nothing
-/// about whether the case that was produced found anything.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum GenerationDisposition {
-    /// A case was produced and the population's precondition admitted it.
-    Generated,
-    /// The byte source held less than the width the plan's ramp asked for.
-    BytesInsufficient,
-    /// A case was produced and the population's declared precondition rejected
-    /// it.
-    ///
-    /// COUNTED, always. A rejection that silently burned budget would shrink
-    /// the denominator without anybody being able to read that it had.
-    PreconditionRejected,
-    /// The generator declined the bytes it was handed and produced no command
-    /// at all.
-    GeneratorRefused,
-    /// The generator broke the contract the driver drives it under: it reported
-    /// a decoded command while consuming none of the case's bytes.
-    GeneratorContractViolated,
-    /// The plan reached this case with one of its declared bounds already
-    /// spent, so no draw was attempted.
-    GenerationBudgetExhausted,
+macro_rules! with_generation_dispositions {
+    ($callback:ident) => {
+        $callback! {
+            /// A case was produced and the population's precondition admitted it.
+            Generated => generated,
+            /// The byte source held less than the width the plan's ramp asked for.
+            BytesInsufficient => bytes_insufficient,
+            /// A case was produced and the population's declared precondition rejected it.
+            ///
+            /// COUNTED, always. A rejection that silently burned budget would shrink the denominator without anybody being able to read that it had.
+            PreconditionRejected => precondition_rejected,
+            /// The generator declined the bytes it was handed and produced no command at all.
+            GeneratorRefused => generator_refused,
+            /// The generator broke the contract the driver drives it under: it reported a decoded command while consuming none of the case's bytes.
+            GeneratorContractViolated => generator_contract_violated,
+            /// The plan reached this case with one of its declared bounds already spent, so no draw was attempted.
+            GenerationBudgetExhausted => budget_exhausted,
+        }
+    };
 }
 
-/// How many disposition seats one census carries.
-///
-/// The width is the disposition roster's, so a seat cannot be added to
-/// [`GenerationDisposition`] without the census growing with it.
-pub const GENERATION_DISPOSITION_SEATS: usize = 6;
+macro_rules! declare_generation_dispositions {
+    ($($(#[$variant_meta:meta])* $variant:ident => $seat:ident),+ $(,)?) => {
+        /// What became of one case the generator was asked for.
+        ///
+        /// # Authority
+        ///
+        /// This is the generation axis and only the generation axis.
+        /// What an execution did with a generated case is [`crate::report::RunAttempt`]'s roster, and what a check concluded is [`crate::report::TrialConclusion`]'s: three owned axes, never one status blob.
+        ///
+        /// # Nonclaims
+        ///
+        /// A disposition says what became of one request for a case.
+        /// It says nothing about whether the case that was produced found anything.
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        pub enum GenerationDisposition {
+            $($(#[$variant_meta])* $variant),+
+        }
 
-/// The honest per-population accounting over generation dispositions.
-///
-/// # Authority
-///
-/// One count seat per arm of [`GenerationDisposition`], always, so the
-/// denominator cannot silently shrink: every case a plan reached is counted
-/// exactly once, under exactly one arm, and [`GenerationCensus::attempted`] is
-/// the sum rather than a separately maintained total that could disagree with
-/// its parts.
-///
-/// # Nonclaims
-///
-/// It counts one population's cases under one drive. It is not the trial
-/// census, the selected-trial census, the mutant census, or the bench-sample
-/// census: each of those denominators answers its own question, and none
-/// flattens into another.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct GenerationCensus {
-    population: PopulationRef,
-    generated: u32,
-    bytes_insufficient: u32,
-    precondition_rejected: u32,
-    generator_refused: u32,
-    generator_contract_violated: u32,
-    budget_exhausted: u32,
+        /// How many disposition seats one census carries.
+        ///
+        /// The width is derived from the disposition roster, so a seat cannot be added to [`GenerationDisposition`] without the census growing with it.
+        pub const GENERATION_DISPOSITION_SEATS: usize = [
+            $(GenerationDisposition::$variant),+
+        ]
+        .len();
+
+        /// The honest per-population accounting over generation dispositions.
+        ///
+        /// # Authority
+        ///
+        /// One count seat exists per arm of [`GenerationDisposition`], always, so the denominator cannot silently shrink.
+        /// Every case a plan reached is counted exactly once under exactly one arm, and [`GenerationCensus::attempted`] is the sum rather than a separately maintained total.
+        ///
+        /// # Nonclaims
+        ///
+        /// It counts one population's cases under one drive.
+        /// It is not the trial census, the selected-trial census, the mutant census, or the bench-sample census.
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        pub struct GenerationCensus {
+            population: PopulationRef,
+            counts: [u32; GENERATION_DISPOSITION_SEATS],
+        }
+    };
 }
+
+with_generation_dispositions!(declare_generation_dispositions);
+
+#[path = "type_guard.rs"]
+mod guard;
 
 // ---------------------------------------------------------------------------
 // The generation plan.
@@ -105,10 +104,7 @@ pub struct GenerationCensus {
 ///
 /// # Nonclaims
 ///
-/// A seed is not a replay account. What a second run needs to reproduce an
-/// execution is [`crate::report::ReplayCapsule`], which binds the whole
-/// contract; a seed alone names a stream and nothing about what was run over
-/// it.
+/// A seed is not a replay account. [`crate::report::ReplayCapsule`] is the run-bound output shape that can carry the exact input and execution standing once their custody is established; a seed alone names a stream and nothing about what was run over it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RootSeed(u64);
 
@@ -123,7 +119,7 @@ pub struct RootSeed(u64);
 pub enum InputOrigin {
     /// A root seed, from which the paved byte source derives its stream.
     Seeded(RootSeed),
-    /// The exact bytes an earlier run was handed, replayed byte for byte.
+    /// Exact caller-supplied bytes, including a corpus warm start or replay material whose authority is owned elsewhere.
     Supplied(Vec<u8>),
 }
 
@@ -236,8 +232,7 @@ pub enum GenerationPlanRefusal {
     /// The byte budget admits no byte, so the plan's first case could never be
     /// drawn.
     ZeroByteBudget,
-    /// The origin supplies bytes and the supplied material is empty, so there
-    /// is nothing to replay.
+    /// The origin supplies bytes and the supplied material is empty, so there is nothing to draw.
     EmptySuppliedBytes,
 }
 
@@ -558,7 +553,9 @@ pub enum ProbeOutcome {
 /// The owner-supplied re-check one candidate input is judged by.
 ///
 /// A function pointer for the same reason a decoder is one: a probe carries no
-/// captured state, so a reduction is a function of the input it was handed.
+/// captured closure state. That shape does not establish semantic purity or
+/// outcome stability; the probe's effects and readings remain its owner's
+/// responsibility.
 pub type FingerprintProbe = fn(&[u8]) -> ProbeOutcome;
 
 /// Whether one candidate shrink is admitted.

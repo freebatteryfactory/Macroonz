@@ -94,15 +94,13 @@ pub const fn admit_every_sequence<Command>(_commands: &[Command]) -> Preconditio
 /// # Authority
 ///
 /// The plan owns every bound and the source owns every byte; this call owns
-/// neither and invents nothing. It is a pure function of its four arguments:
-/// the same plan, source, decoder, and precondition yield the same sequences
-/// and the same census on any machine, because nothing here reads a clock, an
-/// environment, or an entropy source.
+/// neither and invents nothing. Its own scheduling and byte accounting are
+/// deterministic for a plan, source, and sequence of callback results. The
+/// owner-supplied decoder and precondition are function pointers without
+/// captured closure state, but their effects and outcome stability remain the
+/// owner's responsibility.
 ///
-/// The source is a separate argument rather than built from the plan so that
-/// one plan can be driven over a replay source as well as over its own paved
-/// stream. [`ByteSource::of_plan`] is the paved road from a plan to its own
-/// source.
+/// The source is a separate argument rather than built inside the driver so that one plan can be driven over caller-supplied material, including a corpus warm start or a replay whose authority is established elsewhere, as well as over its own paved stream. [`ByteSource::of_plan`] is the paved road from a plan to its declared source.
 ///
 /// # Bounds
 ///

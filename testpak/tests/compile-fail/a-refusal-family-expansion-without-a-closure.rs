@@ -23,9 +23,9 @@
 //!
 //! The committed `.stderr` beside this file carries the private constructor's
 //! own signature, so a seat joining or leaving that signature moves this
-//! snapshot and fails this test. The rendering was hand-adjusted for the
-//! constructor this fixture now names, under no toolchain, and is verified at
-//! first toolchain contact.
+//! snapshot and fails this test. The pinned qualification run proves this exact
+//! attempted outside representation refuses at the private constructor.
+//! It claims no other outside construction spelling.
 
 use threadpak_macroc::RefusalFamilyExpansion;
 

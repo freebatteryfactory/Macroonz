@@ -68,7 +68,7 @@ The generation services emit against this vocabulary; this instrument decides ad
 
 it does not own the mailbox.
 
-The spines meet at ONE WALL with exactly three named crossings, every crossing under the same law — public vocabulary owned here, producer emits against it via public constructors, the two-sided schema pin, this side decides admission:
+The spines meet at ONE WALL with exactly three named crossing contracts, every crossing under the same law — public vocabulary owned here, producer output targets public constructors, the two-sided schema pin, this side decides admission:
 
 (1) generated support → the construction contract → Binding and Table; (2) the mutation-evaluation surface → the mutation-point vocabulary; (3) benchmark rows → the bench target's row vocabulary. One GENERATED SUPPORT SCHEMA declaration — the root, whose members are the descriptor, mutation-point, and bench schemas — covers every producer-facing vocabulary, so one pin governs all three crossings.
 
@@ -78,7 +78,7 @@ a deferred token carrier the door emits at the declaration site (a macro invoked
 
 The consumer's consumption targets invoke it:
 
-row expressions for crossing one and the evaluation copy land in the test target; bench rows land in the bench target. Nothing crosses unnamed.
+The trial/deferred form lands row expressions and evaluation cargo in a test target; the bench/reporter form lands benchmark rows and reporter cargo in a bench target. Nothing crosses unnamed.
 
 The shell's test-target body is ONE INVOCATION OF THE PIN, carrying two named seats: the trial payload and the deferred cargo.
 
@@ -88,9 +88,7 @@ That is the pin governing the live crossings PHYSICALLY: every schema-sensitive 
 
 The trials seat may be empty and an empty one is a lawful delivery — a shell whose whole cargo was deferred stamps no table, and vacuity is judged at the selection, where a run can see it.
 
-The bench target's arm is the stated opening condition:
-
-one shell and one pin already cover the bench crossing — its field roster is a member of the same root declaration, so a change to it moves the same identity — and the invocation arm that carries a bench payload through the gate arrives when the reserved bench seat fills.
+The bench target's form carries one nonempty benchmark-table payload and one opaque reporter seat through the same pin arm. The handwritten receiver exercises that form directly; a producer has crossed only when its emitted shell uses the form, because schema membership alone does not land a row.
 
 The root schema declaration's canonical bytes are the PREIMAGE of the generated-support schema identity, which is derived from them — never hand-bumped, never a hash of source text, and bytes are never "the id"; a change to ANY member moves the id, so the one pin governs all three crossings mechanically.
 
@@ -100,11 +98,11 @@ What the pin's comparison detects is pair-coherence failure: a version-mixed con
 
 What it cannot detect, stated: a jointly stale pair — the schema changed and neither literal was rewritten, so the two old values still agree and the gate opens. Pair currency is the currency lane's job: `tests/published_schema_currency.rs` derives the current schema's id and requires both published spellings to equal it.
 
-That lane owns currency and nothing more — it does not establish that `Row`, `DESCRIPTOR_FIELDS`, `Origin`, the encoder's slots and the field rosters are one structural declaration, because they are parallel facts and a master declaration is what would join them.
+That lane owns currency and nothing more. Structural authorship lives above it: the descriptor schema fields and row traversal project from one local declaration, origin spellings and slots project from one origin roster, and root membership, publication assembly, traversal order, and canonical tags project from one focused three-member roster. Public payload types and their exhaustive encoders remain ordinary Rust because they own distinct semantics rather than copied populations.
 
 The disposal routes, exactly: pair incoherence dies at the gate; joint staleness dies in the currency lane; a changed constructor shape dies at the compiler as ordinary type errors before any trial runs.
 
-Every drift dies; only the gate's own claim is narrow.
+Each drift named above dies at its stated seat; only the gate's own claim is narrow.
 
 The pre-typecheck gate makes the loud break a mechanism, not a hope: this instrument owns a local `generated_support!` gate that token-matches the producer's traveling expectation against the checked-in published roster BEFORE releasing either seat into type checking — a mismatch expands to one owned diagnostic, and neither the constructors nor the deferred cargo ever reaches the compiler.
 

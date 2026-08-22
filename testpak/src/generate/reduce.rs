@@ -120,8 +120,7 @@ pub fn shrink_verdict(
 /// were refused because the fingerprint moved, which is the evidence that
 /// minimization stayed on the bug it started from.
 ///
-/// Pure and deterministic: the same plan, input, fingerprint, and probe reduce
-/// to the same outcome on any machine.
+/// The reducer's candidate order is deterministic from the plan and input. The caller-supplied probe is a capture-free function pointer, not a purity proof; for the same sequence of probe outcomes, this operation produces the same reduction outcome.
 ///
 /// # Bounds
 ///
@@ -138,11 +137,7 @@ pub fn shrink_verdict(
 ///
 /// # Nonclaims
 ///
-/// It runs the generic byte reducer and nothing else. Semantic reducers a plan
-/// names are the owner's own passes, composed around this call and admitting
-/// their candidates through the same [`shrink_verdict`]; the plan is what a
-/// replay capsule records about the whole reduction, and this call is one part
-/// of what it records.
+/// It runs the generic byte reducer and nothing else. The semantic-reducer identifiers a plan carries are not callable bindings, so this operation cannot claim those passes ran. A future run-bound replay account must stand on actual reducer custody rather than infer it from this roster.
 pub fn reduce(
     plan: &ReductionPlan,
     input: &[u8],

@@ -37,7 +37,7 @@ pub use metamorphic::{
     ambient_pathway_invariance, determinism_run_twice, permutation_insensitivity,
 };
 pub use parity::parity;
-pub use refusal::{admits_lawful, fail_closed, panic_freedom};
+pub use refusal::{admits_lawful, fail_closed};
 pub use temporal::{holds_over_drive, holds_over_history};
 pub use types::{
     ALWAYS_BROKEN, AMBIENT_PATHWAY_DISAGREEMENT, ANSWER_EXPECTED, Agreement,
@@ -47,8 +47,8 @@ pub use types::{
     Equivalence, FAIL_CLOSED_ANSWERED, FUSED_VERSUS_SEPARATE_DISAGREEMENT, Holding,
     IDEMPOTENCE_DISAGREEMENT, LATCH_BROKEN, LAWFUL_TWIN_REFUSED, LIVE_VERSUS_REPLAYED_DISAGREEMENT,
     MONOTONICITY_DISAGREEMENT, Measure, NEVER_BROKEN, NO_SEQUENCE_DRIVEN, ORDER_DECREASED, Order,
-    PERMUTATION_DISAGREEMENT, ParitySuite, PoisonResponse, REFUSAL_EXPECTED,
+    PERMUTATION_DISAGREEMENT, ParityReading, ParitySuite, PoisonResponse, REFUSAL_EXPECTED,
     ROUNDTRIP_DISAGREEMENT, ResponseReading, Road, RoadPairing, SharedSubstrate, StatePredicate,
     SubstrateRef, SubstrateRefusal, SubstrateRoster, TemporalClaim, TemporalDemand,
-    TransitionContract,
+    TemporalDriveReading, TemporalDriveStanding, TransitionContract,
 };

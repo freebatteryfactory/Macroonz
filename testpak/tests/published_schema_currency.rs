@@ -10,11 +10,8 @@
 //!
 //! # Nonclaims
 //!
-//! Currency, and nothing else. This lane does not establish that `Row`,
-//! `DESCRIPTOR_FIELDS`, `Origin`, the encoder's slots, and the schema's field
-//! rosters are one structural declaration — they are parallel facts today and a
-//! master declaration is what would join them. A pin that is current over a
-//! declaration nobody joined is still a current pin over that declaration.
+//! Currency, and nothing else.
+//! A pin that is current over a declaration is evidence about that declaration, not about the structural authorship of neighboring facts; those joins live at the descriptor owner.
 
 use threadpak_macroc::planning::EXPECTED_GENERATED_SUPPORT_SCHEMA_ID;
 use threadpak_testpak::descriptor::{

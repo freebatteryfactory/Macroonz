@@ -1,0 +1,5 @@
+error[E0599]: no associated function or constant named `recorded` found for struct `ReplayCapsule` in the current scope
+  --> tests/compile-fail/a-replay-capsule-cannot-choose-its-posture.rs:17:20
+   |
+17 |     ReplayCapsule::recorded(
+   |                    ^^^^^^^^ associated function or constant not found in `ReplayCapsule`

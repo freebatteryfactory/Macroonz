@@ -8,13 +8,10 @@
 //! `macro_rules!` pattern matches TOKENS, so it can refuse before the tokens it
 //! guards are parsed as Rust at all.
 //!
-//! # Two named seats, one pin
+//! # One coupled pair, one pin
 //!
-//! The gate is handed everything a delivery carries into a consumption target,
-//! in two named seats. `trials:` carries the row constructors, under
-//! [`trial_table!`](crate::trial_table)'s own grammar. `deferred:` carries the
-//! cargo an expansion deferred into the delivery, as opaque token trees. The
-//! matched arm releases BOTH; the refusing arm releases NEITHER.
+//! Each delivery form carries one coupled pair: `trials:` with `deferred:`, or `benches:` with `reporter:`.
+//! The matched arm releases both seats of the selected form; the refusing arm releases neither.
 //!
 //! That is what makes the pin's reach a fact of the expansion rather than a
 //! description of where a producer chose to put things: everything a delivery
@@ -37,21 +34,13 @@
 //!
 //! # Rewriting the pin
 //!
-//! There is no command to run. The act is three steps and they are named here
-//! because a reader following a schema change needs them: derive the current
-//! value through [`GeneratedSupportSchema::published`] and
-//! [`GeneratedSupportSchema::identity`](crate::descriptor::GeneratedSupportSchema::identity),
-//! rewrite both crates' literals to it, and commit the pair in one change. The
-//! currency lane is what says whether the act has been performed.
+//! There is no command to run.
+//! The act is three steps and they are named here because a reader following a schema change needs them: derive the current value through [`GeneratedSupportSchema::published`](crate::descriptor::GeneratedSupportSchema::published) and [`GeneratedSupportSchema::identity`](crate::descriptor::GeneratedSupportSchema::identity), rewrite both crates' literals to it, and commit the pair in one change.
+//! The currency lane is what says whether the act has been performed.
 //!
 //! # The derived posture
 //!
-//! The bytes below came off that derivation. They are declared as raw bytes
-//! rather than as a
-//! [`GeneratedSupportSchemaId`](crate::descriptor::GeneratedSupportSchemaId) —
-//! whose only construction road is derivation performed at the moment it is
-//! asked for — so a checked-in COPY cannot pass as a fresh derivation anywhere
-//! that type is accepted.
+//! The bytes below came off that derivation. They remain a raw published copy rather than a [`GeneratedSupportSchemaId`](crate::descriptor::GeneratedSupportSchemaId): the typed identity has both a fresh declaration-derivation road and a typed reification road for an address whose derivation the caller already established, while this literal establishes neither by itself. The currency lane derives the current identity and compares this copy against it.
 //!
 //! The first pair was hand-authored, spelled a sentence, and stood under a
 //! declared-bootstrap posture. It does not any more, and neither side has a road
@@ -70,17 +59,13 @@
 //! `testpak/tests/published_schema_currency.rs` derives the identity from the
 //! current declaration and requires both published spellings to equal it.
 //!
-//! **The lane owns currency and nothing else.** It does not establish that
-//! `Row`, `DESCRIPTOR_FIELDS`, `Origin`, the encoder's slots, and the schema's
-//! field rosters are one structural declaration. They are parallel facts, a
-//! master declaration is what would join them, and no lane here pretends to.
+//! **The lane owns currency and nothing else.** Descriptor field traversal, origin metadata, and root membership are joined structurally at their owner; this lane neither establishes nor restates those mechanisms.
 //!
-//! Every drift still dies; only this gate's own claim is narrow. The routes,
-//! exactly: pair incoherence dies here, at the gate. Joint staleness dies in the
-//! harness's own currency lane, which derives the identity from the current
-//! declaration and requires both published spellings to equal it, and a changed
-//! constructor shape dies at the compiler as ordinary type errors before any
-//! trial runs.
+//! Each drift named below dies at its stated seat; only this gate's own claim is narrow.
+//! The routes are exact.
+//! Pair incoherence dies here, at the gate.
+//! Joint staleness dies in the harness's own currency lane, which derives the identity from the current declaration and requires both published spellings to equal it.
+//! A changed constructor shape dies at the compiler as ordinary type errors before any trial runs.
 //!
 //! # The two sides must be one TOKEN, so the form is one nobody chooses
 //!
@@ -104,51 +89,31 @@
 //!
 //! # Bounds
 //!
-//! The roster is the PRODUCER-facing form and the published constant below is the
-//! reading a person and the currency lane take. Two spellings of one fact, stated
-//! rather than hidden, held together by the lane that re-derives the identity and
-//! requires both to equal it.
+//! The producer-facing rosters and the published constant below state one fact in the forms their seats require.
+//! The currency and compile-refusal lanes keep each form's opening and refusing literals coherent with the freshly derived identity.
 
 /// The generated-support schema identity this harness PUBLISHES, as raw bytes.
 ///
 /// # Authority
 ///
-/// This is one side of the two-sided pin, and it is the same thirty-two bytes
-/// the gate's own arms carry as literal tokens. Three spellings of one published
-/// fact, stated rather than hidden: a `macro_rules!` arm matches tokens and
-/// cannot read a constant, so both the opening arm and the refusing arm's
-/// printed roster must carry the digits themselves. The currency lane is what
-/// holds this constant against the identity the current declaration actually
-/// derives.
+/// This is one side of the two-sided pin, and it is the same thirty-two bytes each gate form carries as literal tokens.
+/// A `macro_rules!` arm matches tokens and cannot read a constant, so each opening pattern and refusing diagnostic carries the digits itself.
+/// The currency and compile-refusal lanes keep those literals coherent with the identity the current declaration derives.
 ///
 /// # Bounds
 ///
-/// Written in DECIMAL, in the same order and the same layout the two arms below
-/// use, so the three spellings are character-identical and a reader compares them
-/// by eye. A hexadecimal array here would read as a digest and would be
-/// uncomparable against the decimal roster the wire form requires — and the arms
-/// have no choice about their base, because an unsuffixed integer is the one
-/// literal form with exactly one rendering.
+/// Written in DECIMAL, in the same order and layout every gate arm uses, so the published copies are character-identical.
+/// The arms have no choice about their base because an unsuffixed integer is the one literal form with exactly one rendering.
 ///
 /// # Nonclaims
 ///
-/// It is deliberately NOT a
-/// [`GeneratedSupportSchemaId`](crate::descriptor::GeneratedSupportSchemaId),
-/// even though these bytes were derived. That type's only road is derivation
-/// from a declaration's canonical bytes, performed at the moment it is asked
-/// for; this is a checked-in COPY of one such derivation, and a copy that could
-/// wear the typed identity would let a stale copy pass as a fresh derivation
-/// anywhere the type is accepted. What holds the copy current is the currency
-/// lane, which re-derives and compares.
+/// It is deliberately not a [`GeneratedSupportSchemaId`](crate::descriptor::GeneratedSupportSchemaId), even though these bytes were derived when the pair was published. A typed identity can be derived freshly from the declaration or reified from a `ContentAddress` whose derivation the caller already established; this raw checked-in copy does neither by itself. The currency lane re-derives the current identity and compares this copy against it.
 pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] = &[
-    113, 22, 215, 27, 201, 83, 45, 177, 228, 123, 154, 255, 239, 17, 99, 56, 150, 45, 78, 145, 144,
-    250, 75, 10, 60, 33, 74, 147, 17, 187, 77, 147,
+    64, 247, 209, 126, 39, 187, 123, 191, 55, 210, 86, 156, 252, 110, 235, 212, 119, 194, 33, 206,
+    138, 125, 70, 120, 179, 212, 187, 59, 69, 188, 29, 250,
 ];
 
-/// Guards one generated support delivery: compares the producer's expected
-/// schema identity against the published one, and releases BOTH of its seats —
-/// the trial payload to [`trial_table!`](crate::trial_table), and the deferred
-/// cargo verbatim — only when the two agree.
+/// Guards one generated support delivery: compares the producer's expected schema identity against the published one, and releases either the trial/deferred pair or the benchmark/reporter pair only when the two agree.
 ///
 /// # The grammar
 ///
@@ -158,6 +123,13 @@ pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] = &[
 ///     harness: <identifier>,
 ///     trials: { <the trial_table! payload, verbatim> },
 ///     deferred: { <opaque token trees, verbatim> },
+/// }
+///
+/// generated_support! {
+///     expected: [<the thirty-two published bytes, in decimal>],
+///     harness: <identifier>,
+///     benches: { <the bench_table! payload, verbatim> },
+///     reporter: { <opaque token trees, verbatim> },
 /// }
 /// ```
 ///
@@ -183,13 +155,13 @@ pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] = &[
 /// - `deferred:` is the opaque seat. Its token trees are forwarded verbatim on
 ///   the matched road and withheld entirely on the refusing one, and this gate
 ///   parses none of them. What rides there is whatever an expansion deferred into
-///   the delivery — today, the evaluation cargo the mutation crossing carries
+///   the delivery — the evaluation cargo the mutation crossing carries
 ///   into a test target — and the gate's ignorance of that is the design rather
 ///   than a gap. A delivery with nothing deferred writes `deferred: { }`.
+/// - `benches:` is the benchmark-table road. Its grammar is [`bench_table!`](crate::bench_table)'s and its admitted table is nonempty.
+/// - `reporter:` is opaque benchmark-target cargo. It is released inside the same matched arm as the benchmark table and may be empty where the target needs no generated renderer.
 ///
-/// Both seats are always written, in that order. Neither is optional, and that
-/// is the point: a seat a producer could omit is a seat a producer could place
-/// somewhere the pin does not reach.
+/// Both seats of the selected form are always written, in that order. Neither is optional: a seat a producer could omit is a seat it could place somewhere the pin does not reach.
 ///
 /// # The crossings this door carries
 ///
@@ -198,22 +170,11 @@ pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] = &[
 /// crossing's evaluation cargo in `deferred:`. So one pin governs both of the
 /// live crossings physically — a mismatch withholds them together, in one arm.
 ///
-/// The third crossing lands in a BENCH target. It rides the same one delivery
-/// and answers to the same one identity — the root declaration's members are the
-/// descriptor's, the mutation point's, and the bench's, so a change to the bench
-/// roster moves the pin like any other member — and the invocation arm that
-/// carries a bench payload through this door arrives when the reserved bench
-/// seat fills. Until it does, the two seats above are the two this door
-/// declares, and the bench crossing's own opening condition is stated rather
-/// than papered over.
+/// The third crossing lands in a bench target through the `benches:`/`reporter:` form. It answers to the same identity: the root declaration's members are the descriptor's, the mutation point's, and the bench's, so a change to the bench roster moves the one pin.
 ///
 /// # Authority
 ///
-/// The opening arm carries the published literal in its PATTERN. A producer
-/// whose expectation is a different literal does not match that arm, so neither
-/// seat is released into type checking and the reader gets one sentence instead
-/// of a field-error cascade. One arm releases both seats and one arm withholds
-/// both, so there is no third outcome in which half the delivery got through.
+/// The opening arms carry the published literal in their pattern. A producer whose expectation is different reaches its form's refusing arm, so neither carried seat is released into type checking. Each form releases both seats or withholds both; there is no half-delivery outcome.
 ///
 /// The declared harness identifier is load-bearing rather than decorative: the
 /// expansion writes one item that names this crate's own schema-identity type
@@ -229,25 +190,20 @@ pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] = &[
 /// the currency lane's. This page's module states the disposal routes for every
 /// drift the gate does not catch.
 ///
-/// Releasing the deferred seat is transport and never endorsement. The gate says
-/// the pin matched; it says nothing about what those tokens mean, because it
-/// never read them.
+/// Releasing deferred or reporter cargo is transport and never endorsement. The gate says the pin matched; it says nothing about opaque tokens it never read.
 ///
 /// # Bounds
 ///
-/// The `@`-prefixed rules below are the gate's internal transcription of the
-/// trials seat — the one place an empty seat is told from a carried one — and
-/// not invocation forms.
+/// The `@`-prefixed rules below are the gate's internal transcriptions of trial and benchmark seats, not invocation forms.
 ///
 /// The form above is shown as text rather than as a compiled example, for the
-/// reason [`trial_table!`](crate::trial_table)'s page gives: a compiled one needs
-/// a subject, a check, and a population, and those live on the challenge side.
+/// reason the two table stamps' pages give: compiled rows need challenge-side bindings.
 #[macro_export]
 macro_rules! generated_support {
     (
         expected: [
-            113, 22, 215, 27, 201, 83, 45, 177, 228, 123, 154, 255, 239, 17, 99, 56,
-            150, 45, 78, 145, 144, 250, 75, 10, 60, 33, 74, 147, 17, 187, 77, 147,
+            64, 247, 209, 126, 39, 187, 123, 191, 55, 210, 86, 156, 252, 110, 235, 212,
+            119, 194, 33, 206, 138, 125, 70, 120, 179, 212, 187, 59, 69, 188, 29, 250,
         ],
         harness: $harness:ident,
         trials: { $($trials:tt)* },
@@ -273,6 +229,23 @@ macro_rules! generated_support {
         $($deferred)*
     };
 
+    (
+        expected: [
+            64, 247, 209, 126, 39, 187, 123, 191, 55, 210, 86, 156, 252, 110, 235, 212,
+            119, 194, 33, 206, 138, 125, 70, 120, 179, 212, 187, 59, 69, 188, 29, 250,
+        ],
+        harness: $harness:ident,
+        benches: { $($benches:tt)* },
+        reporter: { $($reporter:tt)* },
+    ) => {
+        const _: fn(
+            $harness::descriptor::GeneratedSupportSchemaId,
+        ) -> $crate::descriptor::GeneratedSupportSchemaId = ::core::convert::identity;
+
+        $crate::generated_support! { @benches $($benches)* }
+        $($reporter)*
+    };
+
     // Pair incoherence: the producer's expectation is a literal, and it is not
     // the published one. ONE diagnostic, both sides shown, and no seat
     // forwarded — the constructors and the deferred cargo are bound here and
@@ -296,8 +269,8 @@ macro_rules! generated_support {
             ::core::stringify!([$($expected),*]),
             ". Published here: ",
             ::core::stringify!([
-                113, 22, 215, 27, 201, 83, 45, 177, 228, 123, 154, 255, 239, 17, 99, 56,
-                150, 45, 78, 145, 144, 250, 75, 10, 60, 33, 74, 147, 17, 187, 77, 147,
+                64, 247, 209, 126, 39, 187, 123, 191, 55, 210, 86, 156, 252, 110, 235, 212,
+                119, 194, 33, 206, 138, 125, 70, 120, 179, 212, 187, 59, 69, 188, 29, 250,
             ]),
             ". Declared harness: ",
             ::core::stringify!($harness),
@@ -306,6 +279,29 @@ macro_rules! generated_support {
              producer's expectation and into this harness's published literal, and commit \
              the pair. A version-mixed consumer, a partial rewrite, and a hand edit to one \
              side are the three shapes this refusal has."
+        ));
+    };
+
+    (
+        expected: [$($expected:literal),* $(,)?],
+        harness: $harness:ident,
+        benches: { $($benches:tt)* },
+        reporter: { $($reporter:tt)* },
+    ) => {
+        ::core::compile_error!(::core::concat!(
+            "generated_support!: the producer's expected generated-support schema identity is \
+             not the one this harness publishes, so the benchmark table and reporter cargo are \
+             withheld together. Producer expected: ",
+            ::core::stringify!([$($expected),*]),
+            ". Published here: ",
+            ::core::stringify!([
+                64, 247, 209, 126, 39, 187, 123, 191, 55, 210, 86, 156, 252, 110, 235, 212,
+                119, 194, 33, 206, 138, 125, 70, 120, 179, 212, 187, 59, 69, 188, 29, 250,
+            ]),
+            ". Declared harness: ",
+            ::core::stringify!($harness),
+            ". Derive the current value from the harness's published schema declaration and \
+             rewrite both published holders together."
         ));
     };
 
@@ -319,5 +315,9 @@ macro_rules! generated_support {
     // tokens, so this rule and the one above partition the seat between them.
     (@trials $($trials:tt)+) => {
         $crate::trial_table! { $($trials)+ }
+    };
+
+    (@benches $($benches:tt)+) => {
+        $crate::bench_table! { $($benches)+ }
     };
 }

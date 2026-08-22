@@ -1,13 +1,9 @@
-# fault — a fault is an adapter that refuses
+# fault — typed adapters scheduled over command sequences
 
-A fault here is not a framework and not an environment variable:
+A fault is an adopter-owned typed adapter whose port operation returns the adopter's refusal or altered behavior. `TestPak` does not invent a universal port interface: it carries those typed adapter values through a named campaign, selects one schedule, and injects its values at declared positions in an ordinary command sequence.
 
-- it is a typed value implementing a port contract whose answer is a refusal. A write that fails, a read that returns poison, a capacity that is exhausted — each is a ten-line adapter the corpus can enumerate like any other input.
+The schedule is data, never ambient state. Positions are zero-based command coordinates; several faults may be stacked at one position, and their authored order is retained. Selection refuses a name the campaign did not declare, and injection refuses a scheduled position outside the supplied sequence rather than dropping it.
 
-Out-of-memory is a seam fault by construction: a bounded-capacity port that refuses.
+The adopter owns what an adapter does and what its refusal leaves true. A consumer observes those facts through the ordinary property and runner roads, so this home does not grow a second verdict, report, port trait, registry, global hook, or mutation orchestrator.
 
-- No global-allocator hook exists in a forbid-unsafe tree, and none is needed — the machine's own bounds are the injection points.
-
-- The scenario shapes — which faults exist, in what families — are depot data, owned with the machine's facts. This instrument owns the adapter values and the campaign shapes the chaos lane schedules over them.
-
-- Each adapter's postcondition profile — what the refusal leaves true — is part of the adapter's declared contract, and an end-to-end chain declares when it is complete and what reopens it; that rule rides the end-to-end role's semantics.
+Out-of-memory is a seam fault by construction: an adopter can supply a bounded-capacity port adapter that refuses at its declared bound. No allocator hook is required in a safe-Rust harness because the product's own bounded port is the injection point.

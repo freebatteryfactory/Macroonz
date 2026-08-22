@@ -19,7 +19,7 @@ use threadpak_testpak::identity::{
     ContentAddress, DomainTag, HARNESS_IDENTITY_PROFILE, IdentityProfileVersion,
 };
 
-/// The position every family in this crate currently stands at.
+/// The position used by the synthetic lane families.
 const FIRST: IdentityProfileVersion = IdentityProfileVersion::declared(1);
 
 /// One preimage, used for every derivation below, so the only thing that varies

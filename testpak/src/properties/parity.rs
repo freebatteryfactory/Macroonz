@@ -33,20 +33,22 @@
 
 use super::conclude::agreement;
 use super::types::{
-    FUSED_VERSUS_SEPARATE_DISAGREEMENT, LIVE_VERSUS_REPLAYED_DISAGREEMENT, ParitySuite, RoadPairing,
+    FUSED_VERSUS_SEPARATE_DISAGREEMENT, LIVE_VERSUS_REPLAYED_DISAGREEMENT, ParityReading,
+    ParitySuite, RoadPairing,
 };
-use crate::report::{FindingCause, TrialConclusion};
+use crate::report::FindingCause;
 
-/// Drive both of a suite's roads with one input and demand that they agree.
+/// Drive both of a suite's roads with one input and retain the evidence behind their agreement or disagreement.
 #[must_use]
 #[track_caller]
-pub fn parity<Input, Meaning>(
-    suite: &ParitySuite<Input, Meaning>,
-    input: &Input,
-) -> TrialConclusion {
+pub fn parity<'suite, 'input, Input, Meaning>(
+    suite: &'suite ParitySuite<Input, Meaning>,
+    input: &'input Input,
+) -> ParityReading<'suite, 'input, Input, Meaning> {
     let left = (suite.left())(input);
     let right = (suite.right())(input);
-    agreement(suite.same(), &left, &right, cited(suite.pairing()))
+    let conclusion = agreement(suite.same(), &left, &right, cited(suite.pairing()));
+    ParityReading::from_run(suite, input, left, right, conclusion)
 }
 
 /// The typed cause one pairing's disagreement is cited under.

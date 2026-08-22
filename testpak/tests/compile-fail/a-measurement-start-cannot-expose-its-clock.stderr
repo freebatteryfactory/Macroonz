@@ -1,0 +1,5 @@
+error[E0616]: field `opening` of struct `MeasurementStart` is private
+ --> tests/compile-fail/a-measurement-start-cannot-expose-its-clock.rs:7:19
+  |
+7 |     let _ = start.opening;
+  |                   ^^^^^^^ private field

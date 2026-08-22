@@ -38,10 +38,10 @@
 //!
 //! - `runner::TrialBinding` and `runner::TrialTable`, the two aliases spelling
 //!   the instantiation above, so no expansion writes the parameters by hand.
-//! - `runner::HostClock`, whose one declared road to a reading is a `const`, so
+//! - `clock::HarnessClock`, whose declared road to a reading is a `const`, so
 //!   a table's clock is stamped as a constant beside its budgets.
 //! - `runner::Invocation::declared(InvocationProfile, TargetBinding, TrialSite,
-//!   HostClock) -> Invocation`, called once per seat and once per lens, so a
+//!   HarnessClock) -> Invocation`, called once per seat and once per lens, so a
 //!   report carries the site of the seat that ran it.
 //! - `runner::Selection`, with the arm
 //!   `ByExecutionSuite(BTreeSet<ExecutionSuite>)` — one aggregate seat names
@@ -51,7 +51,7 @@
 //!   seat takes it and never the empty-tolerant one: a declared suite that pairs
 //!   with no row is the vacuity these seats exist to catch.
 //! - `runner::run_all(&TrialTableView<'_>, &SelectionPlan, &Invocation) ->
-//!   RunReport`, total.
+//!   RunReport`, with accounting that has no refusal path after caller-supplied functions return.
 //! - `runner::run_one(&TrialBinding, &Invocation) -> TrialReport`.
 //! - `runner::SeatRefusal`, the seats' one refusal type, which is `Debug` and
 //!   carries `From<TrialTableRefusal>` so that every construction refusal on
@@ -86,11 +86,10 @@
 //!   read rather than typed writes a build script in ITS OWN crate that emits
 //!   them and spells `env!` over its own variables — a documented recipe in the
 //!   caller's world, never machinery here.
-//! - `clock:` states the [`HostClock`](crate::runner::HostClock) a duration is
-//!   the difference of two readings from. A caller with no measurement to offer
-//!   writes [`HostClock::unmeasured()`](crate::runner::HostClock::unmeasured),
-//!   which is a named, documented non-measurement rather than a silent zero:
-//!   every duration then reads zero, and zero states that nothing was measured.
+//! - `clock:` states the [`HarnessClock`](crate::clock::HarnessClock) a wall reading is
+//!   measured against. A caller with no measurement to offer writes
+//!   [`HarnessClock::unavailable()`](crate::clock::HarnessClock::unavailable),
+//!   whose reading stays distinct from an observed zero.
 //!
 //! Neither clause is optional, and that is the point. A run's host facts are
 //! written where a reader can see them, and the honest answer to "nothing was
@@ -102,12 +101,9 @@
 //! identifier are compile-time facts of the invocation site rather than ambient
 //! readings, so the stamp fills the site itself.
 //!
-//! # Seats refuse; they do not panic
+//! # The expansion's refusal channel
 //!
-//! Every seat the stamp writes is a test function returning a `Result`, so a
-//! failure is a returned typed value carrying its evidence — the way the rest of
-//! this harness fails. No expansion contains an unwrap, an expectation, an
-//! assertion, a panic, or an index.
+//! Every seat the stamp writes is a test function returning a `Result`, and the expansion routes its own fallible constructions and verdict reading through that typed channel. No expansion contains an unwrap, an expectation, an assertion, an explicit panic, or an index. Row expressions and caller-supplied target, clock, and callable functions retain their own effect and unwind ceilings; the stamp does not turn arbitrary caller code into a panic-free operation.
 
 /// Stamps one complete authored world, one aggregate seat per declared
 /// execution suite, and one named lens per row, from a single declaration.
@@ -183,12 +179,12 @@
 ///   spellings and an owned string is not a `const`; it is written once and both
 ///   spellings read that one.
 /// - `clock:` is an expression evaluating to a
-///   [`HostClock`](crate::runner::HostClock), stamped as a `const` item for the
+///   [`HarnessClock`](crate::clock::HarnessClock), stamped as a `const` item for the
 ///   same reason the budgets are one — what a clock declares is the ROAD to a
 ///   reading, a function pointer, and never a reading, so no ambient value fits
 ///   this seat either. A table that measures nothing writes
-///   [`HostClock::unmeasured()`](crate::runner::HostClock::unmeasured) and every
-///   duration it records reads zero, stating that nothing was measured.
+///   [`HarnessClock::unavailable()`](crate::clock::HarnessClock::unavailable), whose
+///   reading stays distinct from an observed zero.
 /// - `suite <seat> named(<namespace>, <stem>) { … }` declares ONE aggregate seat.
 ///   `<seat>` is the test function's name; the two literals are the
 ///   [`ExecutionSuite`](crate::descriptor::ExecutionSuite) the seat selects on.
@@ -442,10 +438,9 @@ macro_rules! trial_table {
             /// A `const` item for the same reason the budgets are one: what a
             /// clock declares is the ROAD to a reading — a function pointer —
             /// and never a reading, so no ambient value fits this seat either.
-            /// A table that measures nothing declares the unmeasured clock, and
-            /// every duration it records then reads zero, which states that
-            /// nothing was measured.
-            $vis const CLOCK: $crate::runner::HostClock = $clock;
+            /// A table that measures nothing declares an unavailable clock,
+            /// whose reading stays distinct from an observed zero.
+            $vis const CLOCK: $crate::clock::HarnessClock = $clock;
 
             /// The target and toolchain this table's runs stand on.
             ///
@@ -503,7 +498,7 @@ macro_rules! trial_table {
 
             $(
                 /// One aggregate seat: the complete world, narrowed to the rows
-                /// whose own execution suite is this seat's, through the pure
+                /// whose own execution suite is this seat's, through the report
                 /// engine.
                 ///
                 /// An ordinary test function, so it runs by default.

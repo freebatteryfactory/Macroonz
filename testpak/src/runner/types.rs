@@ -29,6 +29,7 @@
 //! the fold from a report to a verdict lives in this home once, rather than
 //! being written into every expansion that wants one.
 
+use crate::clock::HarnessClock;
 use crate::descriptor::{
     AuthoredTable, Binding, ClaimRef, ExecutionSuite, SubjectRoute, TableView, TrialTableRefusal,
 };
@@ -41,24 +42,6 @@ use std::collections::BTreeSet;
 
 #[path = "type_guard.rs"]
 mod guard;
-
-/// The caller's own road to a nanosecond reading.
-///
-/// # Authority
-///
-/// This engine consults no clock. A duration in a report is the difference of
-/// two readings this function returned and nothing else, so the measurement is
-/// the caller's fact rather than an ambient one the engine went and took.
-///
-/// # Bounds
-///
-/// A function pointer rather than a closure, so a clock carries no captured
-/// state. The origin a reading counts from is the caller's own; only
-/// differences are read, never the value itself. A caller with no measurement
-/// to offer hands a reading that does not move, and every duration then reads
-/// zero rather than a number nobody measured.
-#[derive(Debug, Clone, Copy)]
-pub struct HostClock(fn() -> u64);
 
 /// The typed invocation both engine calls take: the budgets a check reads, the
 /// host facts the run stands on, the site its reports are written at, and the
@@ -86,7 +69,7 @@ pub struct Invocation {
     profile: InvocationProfile,
     target: TargetBinding,
     site: TrialSite,
-    clock: HostClock,
+    clock: HarnessClock,
 }
 
 /// What one invocation chooses FROM the complete world.
@@ -161,10 +144,37 @@ pub struct SelectionPlan {
     expects: SelectionExpectation,
 }
 
+/// Why a host-authored trial record was not admitted as report evidence.
+///
+/// # Authority
+///
+/// The runner joins host input to the complete table and the selection plan. Each cause names the first relation that did not hold; facts the runner derives rather than accepts have no refusal arm here.
+#[must_use = "a refusal is the reason a host record was not admitted"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReportRecordingRefusal {
+    /// The one-binding road was handed a record naming another trial.
+    TrialMismatch {
+        /// The trial the binding declares.
+        expected: TrialId,
+        /// The trial the host record names.
+        recorded: TrialId,
+    },
+    /// Two host records name one trial.
+    DuplicateHostRecord(TrialId),
+    /// A host record names no trial in the complete table view.
+    TrialOutsideTable(TrialId),
+    /// A host record names a table row this selection did not select.
+    RecordForUnselectedTrial(TrialId),
+    /// The selection named a trial for which the host supplied no record.
+    MissingSelectedRecord(TrialId),
+}
+
 /// The callable one executable attachment carries at the types this engine
 /// runs.
 ///
-/// A pure map: invocation facts in, one conclusion out.
+/// A capture-free function pointer: invocation facts in, one conclusion out.
+///
+/// The type excludes captured state. Rust's function-pointer type does not establish semantic purity or termination, so callers do not acquire either claim from this alias.
 pub type TrialCall = fn(&Invocation) -> TrialConclusion;
 
 /// One row married to its callable, at the types this engine runs.
@@ -277,11 +287,7 @@ pub enum SeatOutcome {
 ///
 /// # Authority
 ///
-/// A seat refuses; it does not panic. Because a seat is a test function
-/// returning a `Result`, its failure is a returned typed value carrying its own
-/// evidence, and this is the one family the whole stamped road ends in: a
-/// construction refusal enters unchanged through this type's [`From`] road over
-/// [`TrialTableRefusal`], and the run's own verdict is the other arms.
+/// This is the typed failure channel the stamped road itself writes. A construction refusal enters unchanged through this type's [`From`] road over [`TrialTableRefusal`], and the run's own verdict supplies the other arms. Caller-authored row expressions and caller-supplied target and subject functions retain their own effect and unwind ceilings; harness-clock source unwind is owned separately by the clock reading and never enters this refusal family.
 ///
 /// # Bounds
 ///

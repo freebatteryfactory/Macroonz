@@ -23,8 +23,8 @@
 //!
 //! The committed `.stderr` beside this file carries the one road in's own
 //! signature, so a change to what that road takes moves this snapshot and fails
-//! this test. The rendering was hand-adjusted for the role this fixture now
-//! mints at, under no toolchain, and is verified at first toolchain contact.
+//! this test. The pinned qualification run proves this exact attempted outside
+//! representation refuses at that road.
 
 use threadpak_macroc::RelatedSet;
 use threadpak_macroc::plane::{

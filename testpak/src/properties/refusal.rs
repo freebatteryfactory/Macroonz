@@ -1,5 +1,4 @@
-//! The refusal-family checks: fail-closed behavior, its lawful twin, and
-//! panic-freedom.
+//! The refusal-family checks: fail-closed behavior and its lawful twin.
 //!
 //! These are check adapters rather than algebraic laws. Each wraps an owner's
 //! subject, reads what it did through the owner's own declared reading, and
@@ -69,29 +68,4 @@ pub fn admits_lawful<Lawful, Response>(
         PoisonResponse::Refused => Holding::Fails,
     };
     concluded(holding, FailureClass::RefusedByCheck, LAWFUL_TWIN_REFUSED)
-}
-
-/// The panic-freedom law: the subject answers rather than unwinding.
-///
-/// # Authority
-///
-/// The check drives the subject over the input and concludes that it returned.
-/// It installs no catch of its own: a panic from the subject is caught at the
-/// TRIAL boundary and recorded as the finding it is, which is the runner's one
-/// statement about catching ([`crate::runner`]), and a second catch here would
-/// be a weaker seat restating a stronger one.
-///
-/// # Nonclaims
-///
-/// It says nothing about what the subject answered. The answer is dropped
-/// unread, deliberately: this row exists so that a claim about panic-freedom has
-/// a check to name, and a row that also judged the answer would be two claims
-/// wearing one name.
-#[must_use]
-pub fn panic_freedom<Domain, Image>(
-    subject: Road<Domain, Image>,
-    value: &Domain,
-) -> TrialConclusion {
-    let _answer = subject(value);
-    TrialConclusion::Passed
 }

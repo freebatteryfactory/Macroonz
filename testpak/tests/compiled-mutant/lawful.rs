@@ -1,5 +1,5 @@
 // MATERIALIZED — the LAWFUL rendering, byte for byte, of the declaration
-// stated in `../compiled_behaviour.rs`, as the receipt-rich road produced and
+// stated in `../refusal_artifact_readings.rs`, as the receipt-rich road produced and
 // closed over it. It is included into that test crate so `rustc` compiles it and
 // the trait constants read back as VALUES: the compiled read-back's control.
 // The provenance is re-derived on every run, so this file cannot go quietly

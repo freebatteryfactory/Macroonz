@@ -32,10 +32,9 @@
 //!
 //! # Nonclaims
 //!
-//! This says the ceiling stands exactly where the stamp says it stands. It says
-//! nothing about whether any vocabulary should approach it, and the same
-//! boundary read through the lifecycle facade arrives with the lifecycle
-//! specimen, because that facade does not exist.
+//! This says the ceiling stands exactly where the stamp says it stands.
+//! It says nothing about whether any vocabulary should approach it.
+//! The outside compile refusal beside this lane is the reversal for the same boundary.
 
 threadpak::closed_register! {
     /// A roster that spends the stamp's declared supply of positions to its

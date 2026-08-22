@@ -7,8 +7,8 @@
 //! parsers, the row and binding nuclei, the table uniqueness law, the posture
 //! meet, and the one schema-identity mint — lives in this file's own child,
 //! `type_guard.rs`, so a value of this vocabulary is born in one place. The
-//! closed tables the encoder and the admitted arms read are `type_contract.rs`;
-//! the canonical bytes are `encode.rs`.
+//! canonical encoding slots live with `encode.rs`; declarative trait
+//! participation lives in `type_contract.rs`.
 //!
 //! # The identity seam
 //!
@@ -20,9 +20,6 @@
 
 use crate::identity::ContentAddress;
 use std::collections::BTreeSet;
-
-#[path = "type_guard.rs"]
-mod guard;
 
 /// A namespaced name: the owner that declares a spelling, and the spelling.
 ///
@@ -591,9 +588,7 @@ pub struct RevisionBinding {
 ///
 /// # The callable
 ///
-/// The callable is a pure map — invocation facts in, one conclusion out — and
-/// it is a function pointer rather than a closure, so it carries no captured
-/// state and nothing ambient can ride in with it.
+/// The callable is a function pointer — invocation facts in, one conclusion out — so it carries no captured state. A function pointer may still read process-global state or perform effects; this type establishes the callable shape, not semantic purity.
 ///
 /// # The generic seam
 ///
@@ -791,6 +786,8 @@ pub enum FieldCardinality {
     ZeroOrOne,
     /// A roster of any size, including empty.
     ZeroOrMore,
+    /// A roster carrying at least one value.
+    OneOrMore,
 }
 
 /// What shape one schema field's values take.
@@ -807,6 +804,8 @@ pub enum FieldShape {
     Bytes,
     /// A count.
     Count,
+    /// One admitted mutation alternative: its operator family and canonical mutation meaning.
+    MutationAlternative,
 }
 
 /// One field of one producer-facing vocabulary, as the schema declares it.
@@ -853,26 +852,45 @@ pub enum SchemaRefusal {
     DuplicateFieldName(&'static str),
 }
 
-/// The root declaration every producer-facing vocabulary is pinned through: the
-/// descriptor, mutation-point, and bench field rosters, together.
-///
-/// # Authority
-///
-/// One declaration governs all three crossings. A change to ANY member moves
-/// the derived identity, so one pin is mechanically enough.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct GeneratedSupportSchema {
-    descriptor: DescriptorSchema,
-    mutation_point: MutationPointSchema,
-    bench: BenchSchema,
+macro_rules! generated_support_members {
+    ($callback:ident $(, $argument:ident)*) => {
+        $callback! {
+            [$($argument),*];
+            descriptor: DescriptorSchema => DESCRIPTOR_FIELDS => 1,
+            mutation_point: MutationPointSchema => MUTATION_POINT_FIELDS => 2,
+            bench: BenchSchema => BENCH_FIELDS => 3,
+        }
+    };
 }
 
-/// The identity derived from one root schema declaration's canonical bytes.
+pub(super) use generated_support_members;
+
+macro_rules! declare_generated_support_schema {
+    ([]; $( $member:ident: $member_type:ty => $fields:ident => $tag:literal, )+) => {
+        /// The root declaration every producer-facing vocabulary is pinned through: the descriptor, mutation-point, and bench field rosters, together.
+        ///
+        /// # Authority
+        ///
+        /// The focused member roster above owns the accepted members, their order, and their canonical tags. It projects this root's private seats, its guard operations, and its canonical traversal; a change to any member therefore moves the derived identity through one authored membership fact.
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        pub struct GeneratedSupportSchema {
+            $(
+                $member: $member_type,
+            )+
+        }
+    };
+}
+
+generated_support_members!(declare_generated_support_schema);
+
+#[path = "type_guard.rs"]
+mod guard;
+
+/// One generated-support schema identity, either freshly derived or reified from an already-derived published address.
 ///
 /// # Authority
 ///
-/// The bytes are the PREIMAGE and this is DERIVED from them. It is never
-/// hand-bumped, never a hash of source text, and the bytes are never "the id".
+/// [`GeneratedSupportSchema::identity`] derives this type from a root declaration's canonical bytes. [`GeneratedSupportSchemaId::over`] reifies a [`ContentAddress`] whose derivation was already established by its caller; it does not derive or verify that address again. A schema identity is never hand-bumped, never a hash of source text, and its preimage bytes are never "the id".
 ///
 /// # Nonclaims
 ///
@@ -963,64 +981,75 @@ pub enum TrialTableRefusal {
     TableNotAuthored(AuthoredTableRefusal),
 }
 
-/// The descriptor vocabulary's canonical field roster: the closed field set one
-/// row states, in reading order.
-///
-/// # Authority
-///
-/// This roster is the descriptor member's preimage material, and it is the same
-/// field set [`Row`] declares. The two are held together by the conformance
-/// trial, which derives the current schema's identity and checks the published
-/// literal against it — a roster that drifts from the row is what that trial
-/// exists to catch.
-pub const DESCRIPTOR_FIELDS: &[SchemaField] = &[
-    SchemaField::declared(
-        "claim",
-        FieldShape::NamespacedName,
-        FieldCardinality::ExactlyOne,
-    ),
-    SchemaField::declared(
-        "execution_suite",
-        FieldShape::NamespacedName,
-        FieldCardinality::ExactlyOne,
-    ),
-    SchemaField::declared(
-        "roles",
-        FieldShape::NamespacedName,
-        FieldCardinality::ZeroOrMore,
-    ),
-    SchemaField::declared(
-        "tags",
-        FieldShape::NamespacedName,
-        FieldCardinality::ZeroOrMore,
-    ),
-    SchemaField::declared(
-        "subject",
-        FieldShape::NamespacedName,
-        FieldCardinality::ExactlyOne,
-    ),
-    SchemaField::declared(
-        "check",
-        FieldShape::NamespacedName,
-        FieldCardinality::ExactlyOne,
-    ),
-    SchemaField::declared(
-        "population",
-        FieldShape::NamespacedName,
-        FieldCardinality::ExactlyOne,
-    ),
-    SchemaField::declared(
-        "origin",
-        FieldShape::ClosedChoice(&[
-            "hand-written",
-            "generated",
-            "candidate",
-            "admitted-replay",
-            "admitted-discharge",
-        ]),
-        FieldCardinality::ExactlyOne,
-    ),
-];
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum DescriptorProjection {
+    Claim,
+    ExecutionSuite,
+    Roles,
+    Tags,
+    Subject,
+    Check,
+    Population,
+    Origin,
+}
+
+macro_rules! origin_declarations {
+    ($callback:ident) => {
+        $callback! {
+            HandWritten => "hand-written" => 1,
+            Generated(_) => "generated" => 2,
+            Candidate(_) => "candidate" => 3,
+            AdmittedReplay(_) => "admitted-replay" => 4,
+            AdmittedDischarge(_) => "admitted-discharge" => 5,
+        }
+    };
+}
+
+pub(super) use origin_declarations;
+
+macro_rules! declare_origin_choices {
+    ($( $variant:ident $(($payload:pat))? => $spelling:literal => $slot:literal, )+) => {
+        const ORIGIN_CHOICES: &[&str] = &[
+            $(
+                $spelling,
+            )+
+        ];
+    };
+}
+
+origin_declarations!(declare_origin_choices);
+
+macro_rules! declare_descriptor_fields {
+    ($( $projection:ident => $name:literal => $shape:expr => $cardinality:expr, )+) => {
+        pub(super) const DESCRIPTOR_PROJECTIONS: &[DescriptorProjection] = &[
+            $(
+                DescriptorProjection::$projection,
+            )+
+        ];
+
+        /// The descriptor vocabulary's canonical field roster: the closed field set one row states, in reading order.
+        ///
+        /// # Authority
+        ///
+        /// This public schema projection and the canonical row traversal are emitted from the same local descriptor declaration above. The currency lane separately establishes only that the published schema literals equal the current root identity.
+        pub const DESCRIPTOR_FIELDS: &[SchemaField] = &[
+            $(
+                SchemaField::declared($name, $shape, $cardinality),
+            )+
+        ];
+    };
+}
+
+declare_descriptor_fields! {
+    Claim => "claim" => FieldShape::NamespacedName => FieldCardinality::ExactlyOne,
+    ExecutionSuite => "execution_suite" => FieldShape::NamespacedName => FieldCardinality::ExactlyOne,
+    Roles => "roles" => FieldShape::NamespacedName => FieldCardinality::ZeroOrMore,
+    Tags => "tags" => FieldShape::NamespacedName => FieldCardinality::ZeroOrMore,
+    Subject => "subject" => FieldShape::NamespacedName => FieldCardinality::ExactlyOne,
+    Check => "check" => FieldShape::NamespacedName => FieldCardinality::ExactlyOne,
+    Population => "population" => FieldShape::NamespacedName => FieldCardinality::ExactlyOne,
+    Origin => "origin" => FieldShape::ClosedChoice(ORIGIN_CHOICES) => FieldCardinality::ExactlyOne,
+}
 
 /// The mutation-point vocabulary's canonical field roster: what a producer
 /// states about one point on an evaluation surface.
@@ -1039,13 +1068,15 @@ pub const DESCRIPTOR_FIELDS: &[SchemaField] = &[
 /// survivor explainable: a point that survived leads to the claim that owns the
 /// behaviour, and from there to the check reference that would close it.
 ///
-/// The original operation is the unmutated reading — the no-mutation mutant
-/// every evaluation surface contains — carried as the declaration's own
-/// rendered bytes rather than as a name, because two different operations a
-/// producer happened to name alike would otherwise encode identically. The
-/// admitted alternatives are the damages this point may be selected into, a
-/// roster because a point admitting none is a lawful point that only ever reads
-/// as no-mutation.
+/// The original operation is the reading selected by the evaluation lane's
+/// no-mutation control, carried as the declaration's own rendered bytes rather
+/// than as a name, because two different operations a producer happened to
+/// name alike would otherwise encode identically. The
+/// admitted alternatives are the damages this point may be selected into. Each
+/// member carries the operator family the owner permitted and the canonical
+/// mutation meaning the producer discovered. The roster is nonempty because a
+/// discovery with no executable alternative is not a mutation point; a complete
+/// evaluation copy may still carry no admitted points at all.
 ///
 /// The activation site is where a selected alternative fires. It is NAMED
 /// rather than path-spelled, for the reason a trial's identity is not its site:
@@ -1074,8 +1105,8 @@ pub const MUTATION_POINT_FIELDS: &[SchemaField] = &[
     ),
     SchemaField::declared(
         "admitted_alternatives",
-        FieldShape::Bytes,
-        FieldCardinality::ZeroOrMore,
+        FieldShape::MutationAlternative,
+        FieldCardinality::OneOrMore,
     ),
     SchemaField::declared(
         "activation_site",

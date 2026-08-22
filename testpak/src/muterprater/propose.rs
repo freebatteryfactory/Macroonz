@@ -4,7 +4,7 @@
 //! # Candidate proving is in memory
 //!
 //! A candidate binding stages in the staged view and executes against it through
-//! the one pure engine. No scratch directory exists anywhere on this road, and
+//! the one report engine. No scratch directory exists anywhere on this road, and
 //! [`ProposalSink`](super::ProposalSink) is the only storage seam in this crate:
 //! a claimed mutant kill is DEMONSTRATED on the evaluation surface with that
 //! mutant active, never asserted, and only then does the lane propose.
@@ -41,7 +41,7 @@ use super::types::{
 };
 use super::wrap::mutant_scoped;
 use crate::descriptor::{CheckRef, ClaimRef, Origin, Row, StagedTableView, SynthesisFacts};
-use crate::report::{ClaimCoverage, ClaimExercise, Fingerprint, ReplayCapsule};
+use crate::report::{ClaimCoverage, Fingerprint, ReplayCapsule};
 use crate::runner::{Invocation, SelectionPlan, TrialBinding, TrialTable, run_all, trial_identity};
 use std::collections::BTreeSet;
 
@@ -94,7 +94,7 @@ pub fn synthesize(
 ///
 /// Three steps and no fourth: the candidate stages over the authored parent, the
 /// mutant-scoped selection joins on a shape the rows already carry, and the one
-/// pure engine runs it. The demonstrated kill is READ out of the report the run
+/// report engine runs it. The demonstrated kill is READ out of the report the run
 /// wrote, so a proposal on the mutant-killed ground can only be assembled from a
 /// rejection that actually happened.
 ///
@@ -181,11 +181,7 @@ pub fn pin_delta(
 /// One claim's exercised count in one coverage reading, or zero where the
 /// reading does not name it.
 fn exercised(coverage: &ClaimCoverage, claim: ClaimRef) -> usize {
-    coverage
-        .entries()
-        .iter()
-        .find(|entry| entry.claim() == claim)
-        .map_or(0_usize, |entry| entry.exercised())
+    coverage.exercise_or_zero(claim).exercised()
 }
 
 /// The openings one coverage reading states over the claims declared owed.
@@ -214,12 +210,7 @@ pub fn openings(coverage: &ClaimCoverage, declared: &[OwedDeclaration]) -> Vec<I
 /// The opening one owed declaration states, where the coverage leaves one open.
 fn opening(coverage: &ClaimCoverage, declaration: OwedDeclaration) -> Option<InferredObligation> {
     let owed = declaration.owed();
-    let counted = coverage
-        .entries()
-        .iter()
-        .find(|entry| entry.claim() == owed.claim())
-        .copied()
-        .unwrap_or_else(|| ClaimExercise::counted(owed.claim(), 0_usize, 0_usize));
+    let counted = coverage.exercise_or_zero(owed.claim());
     if counted.exercised() == 0_usize {
         return Some(InferredObligation::inferred(
             owed,

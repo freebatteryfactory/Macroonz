@@ -357,7 +357,7 @@ harness::trial_table! {
             harness::report::TargetTriple::declared(crate::DECLARED_TARGET_TRIPLE),
             harness::report::ToolchainIdentity::declared(crate::DECLARED_TOOLCHAIN),
         ),
-        clock: harness::runner::HostClock::unmeasured(),
+        clock: harness::clock::HarnessClock::unavailable(),
 
         suite derivation named("consumer", "derivation") {
             the_derived_declaration_is_read_back: {
