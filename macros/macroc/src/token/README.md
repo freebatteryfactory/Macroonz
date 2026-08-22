@@ -4,77 +4,50 @@ What the services read, and what they write.
 
 ## The services' own token vocabulary
 
-`proc_macro` is a proc-macro-crate-only API. A crate that is not compiled as a
-proc-macro cannot name its types at all, so the services — which are ordinary
-callable Rust and must stay so — cannot take a `TokenStream` and cannot hand one
-back. The answer is not to fall back to strings: a string is a token stream with
-its structure thrown away, and everything the capture then has to do is re-derive
-structure that the compiler already had.
+`proc_macro` is a proc-macro-crate-only API. A crate that is not compiled as a proc-macro cannot name its types at all, so the services — which are ordinary callable Rust and must stay so — cannot take a `TokenStream` and cannot hand one back.
+
+The answer is not to fall back to strings:
+
+a string is a token stream with its structure thrown away, and everything the capture then has to do is re-derive structure that the compiler already had.
 
 So the seam is typed on both sides.
 
-**Reading.** [`CapturedTokenTree`] is what one token of a declared input is: a
-payload, a **stable [`TokenPath`]** naming exactly where it sits in the tree, and
-an opaque [`SpanHandle`] indexing the producer's own span table. Delimited groups
-stay groups; nothing is re-lexed and no balance is re-discovered.
+**Reading.** [`CapturedTokenTree`] is what one token of a declared input is: a payload, a **stable [`TokenPath`]** naming exactly where it sits in the tree, and an opaque [`SpanHandle`] indexing the producer's own span table. Delimited groups stay groups;
 
-**Every producer walks under the same declared magnitudes.** Depth, whole-tree
-token count, and the capture-work budget are written down once in THIS home's own
-magnitude rows, beside the capacities they govern; the per-level count is the
-compiler plane's, because the refusal-family derive asks the same question of a
-captured level that this seam does. The capture-work budget is spent through
-[`CaptureWalk`], the walk that holds it, and that seat names the row rather than
-carrying a second copy of the number. All four are spent by every producer — the
-compiler shell and the text reader alike — so "how big may a declared input be"
-has one answer rather than one per road.
+nothing is re-lexed and no balance is re-discovered.
 
-Each magnitude bounds the thing it is about, and only that thing. The level
-bounds how wide one nesting level may be, the whole-tree count bounds how many
-tokens the declaration carries in total, and a producer's span table — one entry
-per handle it issued, across every level at once — stands under the whole-tree
-count, because a table is not a level.
+**Every producer walks under the same declared magnitudes.** Depth, whole-tree token count, and the capture-work budget are written down once in THIS home's own magnitude rows, beside the capacities they govern;
 
-**Writing.** [`GeneratedTree`] is what a renderer produces. The human Rust text
-is [`GeneratedTree::inspected`] — a projection of the tree, produced for a person
-to read, never the artifact itself. The artifact is the tree.
+the per-level count is the compiler plane's, because the refusal-family derive asks the same question of a captured level that this seam does.
 
-A renderer states a literal's VALUE and never its spelling: a text literal is its
-text, a byte-string literal is its bytes, an integer literal is its number, and
-the quoting, the escaping, and the absence of a suffix belong to the tree. That
-is what keeps `b"…"` from being assembled out of a word and a quoted string,
-which is two tokens where the address reading it matches one — and what lets one
-count be written into a `u32` seat, a `u64` seat, and a `usize` seat, because an
-unsuffixed literal is typed by the position it lands in.
+The capture-work budget is spent through [`CaptureWalk`], the walk that holds it, and that seat names the row rather than carrying a second copy of the number.
 
-**The written roster grows only at its end.** Each arm's slot lives in
-`encode.rs`, a slot is a byte of the tree's canonical bytes, and those bytes are
-the content a rendered unit's plane identity is derived over. An arm inserted
-among the existing ones renumbers every slot after it and renames identities
-already derived; an arm appended renames nothing. `encode.rs` carries the slot
-tables, states which preimage family each table feeds, and holds the standing
-analysis of what appending does and does not do to that family's version.
+All four are spent by every producer — the compiler shell and the text reader alike — so "how big may a declared input be" has one answer rather than one per road.
+
+Each magnitude bounds the thing it is about, and only that thing.
+
+The level bounds how wide one nesting level may be, the whole-tree count bounds how many tokens the declaration carries in total, and a producer's span table — one entry per handle it issued, across every level at once — stands under the whole-tree count, because a table is not a level.
+
+**Writing.** [`GeneratedTree`] is what a renderer produces. The human Rust text is [`GeneratedTree::inspected`] — a projection of the tree, produced for a person to read, never the artifact itself. The artifact is the tree.
+
+A renderer states a literal's VALUE and never its spelling: a text literal is its text, a byte-string literal is its bytes, an integer literal is its number, and the quoting, the escaping, and the absence of a suffix belong to the tree. That is what keeps `b"…"` from being assembled out of a word and a quoted string, which is two tokens where the address reading it matches one — and what lets one count be written into a `u32` seat, a `u64` seat, and a `usize` seat, because an unsuffixed literal is typed by the position it lands in.
+
+**The written roster grows only at its end.** Each arm's slot lives in `encode.rs`, a slot is a byte of the tree's canonical bytes, and those bytes are the content a rendered unit's plane identity is derived over.
+
+An arm inserted among the existing ones renumbers every slot after it and renames identities already derived; an arm appended renames nothing.
+
+`encode.rs` carries the slot tables, states which preimage family each table feeds, and holds the standing analysis of what appending does and does not do to that family's version.
 
 ## The opaque span handle
 
-A [`SpanHandle`] means "the token at this index of the table the producer built
-while capturing". The services never resolve one: they carry it into a diagnostic
-so that whoever produced the input can map it back to the exact compiler span.
-That is what puts a `compile_error!` on the offending token rather than on the
-first token of the declaration. Author token identity survives capture →
-plan → render → closure → diagnostics and origin inspection — the
-span-fidelity law, and every post-capture diagnostic is measured against
-it. The span facts that are stable on the pin: line, column, and the
-display-oriented file; the file path may be remapped, so it lives only on
-the location rail, and deeper span surfaces stay untouched.
+A [`SpanHandle`] means "the token at this index of the table the producer built while capturing". The services never resolve one: they carry it into a diagnostic so that whoever produced the input can map it back to the exact compiler span.
+
+That is what puts a `compile_error!` on the offending token rather than on the first token of the declaration.
+
+Author token identity survives capture → plan → render → closure → diagnostics and origin inspection — the span-fidelity law, and every post-capture diagnostic is measured against it.
+
+The span facts that are stable on the pin: line, column, and the display-oriented file; the file path may be remapped, so it lives only on the location rail, and deeper span surfaces stay untouched.
 
 ## The seats
 
-`types.rs` declares, including the three magnitude rows this seam's own
-capacities are governed by — meaning, number, and reason on one row, stamped
-through the plane's `limits!` — with the per-level row staying the plane's
-because a second home asks it. Its own child `type_guard.rs` holds every road
-that reaches a private field, which is where all four magnitudes are settled.
-`text.rs` is the
-callable text route end to end, `resolve.rs` composes every coordinate the seam
-hands out — a span handle's position and a refused read's byte — `encode.rs`
-writes the canonical bytes, and `inspect.rs` renders what a person is shown.
+`types.rs` declares, including the three magnitude rows this seam's own capacities are governed by — meaning, number, and reason on one row, stamped through the plane's `limits!` — with the per-level row staying the plane's because a second home asks it. Its own child `type_guard.rs` holds every road that reaches a private field, which is where all four magnitudes are settled. `text.rs` is the callable text route end to end, `resolve.rs` composes every coordinate the seam hands out — a span handle's position and a refused read's byte — `encode.rs` writes the canonical bytes, and `inspect.rs` renders what a person is shown.

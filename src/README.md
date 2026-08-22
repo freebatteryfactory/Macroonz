@@ -14,16 +14,21 @@ to say.
   `PositiveLimit`, `LimitWitness`, `PositiveLimitWitness`), and the bounded
   collections (`Bounded`, `NonEmptyBounded`). There is no public unbounded
   collection anywhere in the machine.
+
 - The transition grammar: `TransitionSystem` and `Dispatch` — the closure bar
   each owner's own state machine proves against, never a universal state type.
+
 - The typed-reference shape (`EvidenceRef`) and the non-erasable-domain
   completeness shape (`Completeness<D>`): owners instantiate it under their own
   names, so a complete query can never masquerade as complete verification.
+
 - Two root-admitted axes, by explicit decision: freshness (`Current` / `Stale`,
   types not variants) and `ProofDisposition`. Both are evidence facts, not
   knowledge axes — neither can say "not yet".
+
 - `closed_register!`, the composition stamp every closed roster is declared
   through, and `CLOSED_REGISTER_ROW_CEILING`, the one value it projects.
+
 - The depot, by explicit root admission: the bank of data-shaped truth —
   error prose, golden vectors, hostile and fault shapes, roster tables — as
   doc-commented constants. Data only, never behavior; its own README carries
@@ -45,15 +50,18 @@ only the axes it answers.
   unrepresentable, and a runtime-validated fact carried in the value's own
   canonical bytes enforces the right move at the operation boundary. The shape
   never decides — it makes bypassing the runtime check impossible.
+
 - **The opaque-newtype obligations.** Every role-distinct public type is
   opaque; minted only by its owner; `Eq`/`Hash`; no `Ord` beyond a declared
   raw-byte storage order; serialized through an explicit codec only; no public
   constructor, no `Default`, no cross-family `From`; wrong-role construction
   does not compile, and wrong-role decode refuses.
+
 - **Crossings never gain.** At every boundary crossing, uncertainty only
   widens, budgets only shrink, authority only attenuates, and information
   classification only restricts. Each reverse direction is a named,
   authority-bearing morphism that consumes new evidence and leaves a receipt.
+
 - **Result conventions.** `ASK` is pure and publishes nothing; `DO` admits a
   bounded effect batch after required evidence and decisions pass; `REQUEST`
   durably admits an asynchronous effect intent; `PEND` admits the same durable
@@ -63,6 +71,7 @@ only the axes it answers.
   owed-but-not-performed posture spells itself `Outstanding` or `Unresolved`,
   never `Pending`. `Freshness` and `ProofDisposition` are evidence facts, not
   knowledge axes — neither can say "not yet".
+
 - **Standing prohibitions.** No universal uncertainty wrapper and no parallel
   belief store. One owner per public type: every public type has exactly one
   owning home defining its body; all others reference it. A projection may

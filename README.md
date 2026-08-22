@@ -1,17 +1,8 @@
 # ThreadPak
 
-ThreadPak is an embedded, sync-first, event-native database and runtime — an
-opinionated Rust library of semantic primitives. It preserves a logical thread:
-a typed continuity from intent through accepted facts, bounded decisions, Turns,
-Attempts, effects, receipts, replay, and reconciliation. The product is named
-for that thread. Programs enter as typed declarations, not text; accepted
-history is the authority; everything else is derived and rebuildable. Use it
-where history must be trustworthy: audit trails, local-first state, compliance
-evidence, event-sourced applications.
+ThreadPak is an embedded, sync-first, event-native database and runtime — an opinionated Rust library of semantic primitives. It preserves a logical thread: a typed continuity from intent through accepted facts, bounded decisions, Turns, Attempts, effects, receipts, replay, and reconciliation. The product is named for that thread. Programs enter as typed declarations, not text; accepted history is the authority; everything else is derived and rebuildable. Use it where history must be trustworthy: audit trails, local-first state, compliance evidence, event-sourced applications.
 
-The ordinary path stays small: Store · Event · Query · Projection ·
-Subscription · Program · Application · Receipt. Expert surfaces deepen the same
-machine; none creates a second one.
+> The ordinary path stays small: Store · Event · Query · Projection · Subscription · Program · Application · Receipt. Expert surfaces deepen the same machine; none creates a second one.
 
 ## The machine in one view
 
@@ -34,8 +25,7 @@ flowchart TD
     end
 ```
 
-Hosts live in other repositories and pin an exact ThreadPak revision. The
-machine never knows which host is running it.
+Hosts live in other repositories and pin an exact ThreadPak revision. The machine never knows which host is running it.
 
 ## Workspace
 
@@ -59,23 +49,17 @@ flowchart LR
     CONS -.-> TP
 ```
 
-Arrows point at what each crate depends on;
-a dashed arrow is a dependency reached only from `tests/`.
-Edges run one way and inward, and no production edge points at testpak:
-production never depends on its judge,
-so the judge reaches its three subjects — and its one outside consumer reaches it —
-from `tests/` alone.
-Hosts are one step further out, in other repositories,
-so this repository has no `hosts/` directory.
+Arrows point at what each crate depends on; a dashed arrow is a dependency reached only from `tests/`.
+
+Edges run one way and inward, and no production edge points at testpak: production never depends on its judge, so the judge reaches its three subjects — and its one outside consumer reaches it — from `tests/` alone.
+
+Hosts are one step further out, in other repositories, so this repository has no `hosts/` directory.
 
 ## The band map
 
-Numbered directories are dependency bands. An arrow means everything downstream
-may import it: band N imports any band above it, never below. Homes materialize
-only when their specification content lands; no directory exists empty.
+Numbered directories are dependency bands. An arrow means everything downstream may import it: band N imports any band above it, never below. Homes materialize only when their specification content lands; no directory exists empty.
 
-The root also carries the depot — the bank of data-shaped truth every band
-and every crate may read; a fact has no band.
+The root also carries the depot — the bank of data-shaped truth every band and every crate may read; a fact has no band.
 
 ```mermaid
 flowchart TD
@@ -108,12 +92,7 @@ flowchart TD
 
 ## Construction
 
-Product-runtime code enters a home only through explicit owner authorization.
-The generation system is the product line: families are authored through front
-doors and their contracts are generated. TestPak and the generation services are
-constructed before per-home machine-source realization; the application compiler
-follows the machine. That is construction order, not Cargo dependency order; the
-workspace graph above remains authoritative.
+Product-runtime code enters a home only through explicit owner authorization. The generation system is the product line: families are authored through front doors and their contracts are generated. TestPak and the generation services are constructed before per-home machine-source realization; the application compiler follows the machine. That is construction order, not Cargo dependency order; the workspace graph above remains authoritative.
 
 The toolchain is the enforcement surface, run locally:
 
@@ -131,6 +110,7 @@ ThreadPak is licensed under either of
 
 - Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or
   <http://www.apache.org/licenses/LICENSE-2.0>)
+
 - MIT license ([LICENSE-MIT](LICENSE-MIT) or
   <http://opensource.org/licenses/MIT>)
 
@@ -138,6 +118,4 @@ at your option.
 
 ### Contribution
 
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
-dual licensed as above, without any additional terms or conditions.
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
