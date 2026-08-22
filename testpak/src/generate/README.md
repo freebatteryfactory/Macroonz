@@ -2,25 +2,25 @@
 
 The harness's own generation machinery, one home, consumed by properties and muterprater alike. The generator owns only generation facts; execution facts belong to the runner, and verdict facts to the check — three owned axes, never one status blob.
 
-  - The typed generation dispositions, so the denominator cannot silently shrink: generated;
+- The typed generation dispositions, so the denominator cannot silently shrink: generated;
 
-  - bytes-insufficient; precondition-rejected — COUNTED, because a rejection that silently burns budget shrinks the denominator;
+- bytes-insufficient; precondition-rejected — COUNTED, because a rejection that silently burns budget shrinks the denominator;
 
-  - generator-refused; generator-contract-violated; generation-budget-exhausted.
+- generator-refused; generator-contract-violated; generation-budget-exhausted.
 
 The runner's execution axis has its own roster, stated here once beside its sibling: a run attempt is executed, skipped with its reason, timed out, or infrastructure-failed.
 
 The harness keeps several honest censuses — rows, selected trials, generated cases, mutants, bench samples — sharing primitives; each denominator answers its own question and none flattens into another.
 
-Generation has its owning values. A generation plan binds the population identity, the generation profile and version, the root seed or exact supplied bytes, the case budget, the byte budget, the rejection budget, and the size progression.
+Generation has its owning values. A generation plan binds the population identity, the generation profile and version, the root seed or exact supplied bytes, the case budget, the byte budget, the rejection allowance, and the size progression. No rejection allowance still permits successful cases; the first empty-handed draw is retained and stops any later draw.
 
-A reduction plan binds the reduction profile and version, the generic byte reducer, optional semantic reducers, the required fingerprint preservation, and the reduction budget. The paved recommendation, realization free: a deterministic counter-addressed byte source over the admitted identity substrate.
+A reduction plan binds the reduction profile and version, the generic byte reducer, optional semantic-reducer bindings, the required fingerprint preservation, and the reduction budget. Each semantic binding carries one identity, revision posture, and callable; its typed output may propose only a strictly descending candidate sequence. The shared reduction engine alone probes those candidates and retains the reducers actually invoked in authored order.
 
-The replay capsule is the report instrument's run-bound output shape and is never a naked integer seed. The current reduction road does not bind the semantic-reducer identifiers a plan carries to executable passes, so neither a plan nor a reduced input alone can claim the complete reduction custody a future capsule mint must establish.
+A reduction probe binding begins from one refused trial report and binds the byte-input probe, its revision posture, and the input road's generation/schema facts to that exact execution standing. The completed reduction evidence retains those facts, the minimization profile, the actual semantic path, the generic-reducer posture, and the reduced input with its preserved failure fingerprint. The replay capsule mint accepts only that evidence; its identity carries that fingerprint and its replay posture is the meet of the report attachment, probe adapter, and every semantic reducer actually invoked, so author-declared or untracked code cannot inherit an exact-derived claim.
 
 Declared bounds yield generated boundary populations for free:
 
-  - empty, one, just-below, at-the-limit, just-above, maximum lawful, first unlawful.
+- empty, one, just-below, at-the-limit, just-above, maximum lawful, first unlawful.
 
 The escalation ladder by domain:
 
@@ -28,7 +28,7 @@ The escalation ladder by domain:
 
 Minimization preserves the fingerprint:
 
-  - a shrunk input must carry the same failure fingerprint, or the shrink is rejected — no minimizing into a different bug.
+- a shrunk input must carry the same failure fingerprint, or the shrink is rejected — no minimizing into a different bug.
 
 Command sequences are structured inputs, and one shared sequence driver serves temporal properties, metamorphic relations, sequence mutation, and chaos scheduling.
 

@@ -1,11 +1,11 @@
-//! Fingerprint-preserving minimization: the generic byte reducer, and the one
-//! law every reducer admits a candidate under.
+//! Fingerprint-preserving minimization: bound semantic candidate producers, the
+//! generic byte reducer, and the one law every candidate is admitted under.
 //!
 //! Minimization preserves the fingerprint. A shrunk input must carry the same
 //! failure fingerprint or the shrink is rejected — no minimizing into a
 //! different bug — and this file is where that law is realized rather than
-//! restated: [`shrink_verdict`] is the whole of it, the byte passes below call
-//! it, and a semantic reducer an owner writes calls the same function.
+//! restated: [`shrink_verdict`] is the whole of it, and both semantic candidates
+//! and the byte passes below reach it through one reduction state.
 //!
 //! # The reducer
 //!
@@ -17,10 +17,11 @@
 //! second generic reducer exists to dispatch to.
 
 use super::types::{
-    FingerprintProbe, ProbeOutcome, ReductionCensus, ReductionHalt, ReductionOutcome,
-    ReductionPlan, ReductionRefusal, ShrinkVerdict,
+    ByteReducerExecution, FingerprintProbe, ProbeOutcome, ReductionCensus, ReductionEvidence,
+    ReductionHalt, ReductionOutcome, ReductionPlan, ReductionProbeBinding, ReductionRefusal,
+    SemanticReducerExecution, ShrinkVerdict,
 };
-use crate::report::Fingerprint;
+use crate::report::{Fingerprint, ReplayCapsule};
 
 /// What one offered candidate, or one whole pass, moved.
 ///
@@ -74,9 +75,9 @@ impl Reduction {
 /// # Authority
 ///
 /// This is the whole of the preservation law, and it is deliberately one
-/// function: the generic byte passes in this file and any semantic reducer an
-/// owner writes admit a candidate on exactly the same ground, so "the shrink
-/// preserved the fingerprint" means one thing everywhere in the harness.
+/// function: semantic and generic candidates are admitted on exactly the same
+/// ground, so "the shrink preserved the fingerprint" means one thing
+/// everywhere in the harness.
 ///
 /// A candidate that reaches a DIFFERENT fingerprint is refused and the
 /// fingerprint it reached is carried out, so a reader sees where the reduction
@@ -105,7 +106,7 @@ pub fn shrink_verdict(
     }
 }
 
-/// Minimize one failing input while preserving its failure fingerprint.
+/// Minimize one failing input under one report-bound probe while preserving its fingerprint.
 ///
 /// # Authority
 ///
@@ -120,7 +121,7 @@ pub fn shrink_verdict(
 /// were refused because the fingerprint moved, which is the evidence that
 /// minimization stayed on the bug it started from.
 ///
-/// The reducer's candidate order is deterministic from the plan and input. The caller-supplied probe is a capture-free function pointer, not a purity proof; for the same sequence of probe outcomes, this operation produces the same reduction outcome.
+/// Semantic reducers run first in the plan's authored order. Each invoked binding returns a structurally descending candidate sequence, and the shared engine judges every candidate. The generic byte reducer follows when the semantic phase leaves probe budget. The caller-supplied functions are capture-free pointers, not purity proofs; for the same returned candidate sequences and probe outcomes, this operation produces the same evidence.
 ///
 /// # Bounds
 ///
@@ -133,17 +134,15 @@ pub fn shrink_verdict(
 /// # Errors
 ///
 /// Refuses an input that does not fail, then an input that fails under a
-/// different fingerprint than the one it was told to preserve.
-///
-/// # Nonclaims
-///
-/// It runs the generic byte reducer and nothing else. The semantic-reducer identifiers a plan carries are not callable bindings, so this operation cannot claim those passes ran. A future run-bound replay account must stand on actual reducer custody rather than infer it from this roster.
+/// different fingerprint than the report-derived one, then an invoked semantic
+/// reducer whose typed candidate sequence refuses.
 pub fn reduce(
     plan: &ReductionPlan,
     input: &[u8],
-    preserved: Fingerprint,
-    probe: FingerprintProbe,
-) -> Result<ReductionOutcome, ReductionRefusal> {
+    binding: &ReductionProbeBinding,
+) -> Result<ReductionEvidence, ReductionRefusal> {
+    let probe = binding.probe();
+    let preserved = binding.preserved();
     let ProbeOutcome::Reproduced(baseline) = probe(input) else {
         return Err(ReductionRefusal::BaselineDidNotFail);
     };
@@ -158,19 +157,89 @@ pub fn reduce(
         preserved,
         probe,
     };
-    let halt = loop {
-        match round(&mut state) {
-            Step::Spent => break ReductionHalt::BudgetExhausted,
-            Step::Refused => break ReductionHalt::FixedPointReached,
-            Step::Admitted => {}
+
+    let mut semantic_path = Vec::new();
+    let mut replay = binding.replay_posture();
+    let mut semantic_spent_budget = false;
+    for reducer in plan.semantic_reducers() {
+        if state.probes_left == 0 {
+            semantic_spent_budget = true;
+            break;
         }
+        let candidates = reducer.call(&state.best).map_err(|cause| {
+            ReductionRefusal::SemanticReducerRefused {
+                reducer: reducer.reducer(),
+                cause,
+            }
+        })?;
+        replay = replay.meet_revision(reducer.revision().posture());
+        let candidate_count = candidates.candidates().len();
+        let mut probes = 0usize;
+        for candidate in candidates.into_candidates() {
+            match state.offer(candidate) {
+                Step::Admitted | Step::Refused => probes = probes.saturating_add(1),
+                Step::Spent => {
+                    semantic_spent_budget = true;
+                    break;
+                }
+            }
+        }
+        semantic_path.push(SemanticReducerExecution::recorded(
+            *reducer,
+            candidate_count,
+            probes,
+        ));
+        if state.probes_left == 0 || semantic_spent_budget {
+            semantic_spent_budget = true;
+            break;
+        }
+    }
+
+    let (halt, byte_reducer) = if semantic_spent_budget {
+        (
+            ReductionHalt::BudgetExhausted,
+            ByteReducerExecution::NotReachedBecauseBudgetSpent,
+        )
+    } else {
+        let halt = loop {
+            match round(&mut state) {
+                Step::Spent => break ReductionHalt::BudgetExhausted,
+                Step::Refused => break ReductionHalt::FixedPointReached,
+                Step::Admitted => {}
+            }
+        };
+        (halt, ByteReducerExecution::Executed(plan.byte_reducer()))
     };
-    Ok(ReductionOutcome::reduced(
-        state.best,
-        preserved,
-        state.census,
-        halt,
+    let outcome = ReductionOutcome::reduced(state.best, preserved, state.census, halt);
+    Ok(ReductionEvidence::recorded(
+        binding,
+        plan.profile(),
+        semantic_path,
+        byte_reducer,
+        outcome,
+        replay,
     ))
+}
+
+/// Capture one run-bound replay account from completed reduction evidence.
+///
+/// # Authority
+///
+/// No input, execution key, profile, schema, or posture is accepted beside the
+/// evidence. The capsule's posture is the meet already computed across the
+/// report attachment, reduction probe, and every semantic reducer actually
+/// invoked. Holding the returned capsule is still not human admission.
+#[must_use]
+pub fn capture_replay(evidence: &ReductionEvidence) -> ReplayCapsule {
+    ReplayCapsule::captured(
+        evidence.standing(),
+        evidence.outcome().input(),
+        evidence.outcome().fingerprint(),
+        evidence.generation(),
+        evidence.minimization(),
+        evidence.schema(),
+        evidence.replay_posture(),
+    )
 }
 
 /// One round: both passes at every window width, from the whole input down to a

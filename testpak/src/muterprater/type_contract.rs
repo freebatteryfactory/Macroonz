@@ -30,11 +30,11 @@
 //! planning decision a reader can check rather than a branch inside a planner.
 //!
 use super::types::{
-    ActivationAxis, ActivationDisposition, AdmissionPatch, ClaimCeiling, ClaimPinnedGround,
-    ExecutionAxis, MaterializationAxis, MutantKilledGround, MutationOutcome, MutationVerdict,
+    ActivationAxis, ActivationDisposition, ClaimCeiling, ClaimPinnedGround, ExecutionAxis,
+    MaterializationAxis, MutantKilledGround, MutationOutcome, MutationVerdict,
     ObligationDischargedGround, ObligationLane, ProofShape, ReadingSource, WrapOutcomeWord,
 };
-use crate::descriptor::{AdmissionGround, CapsulePosture};
+use crate::descriptor::AdmissionGround;
 
 impl From<ActivationDisposition> for ActivationAxis {
     /// The axis one activation disposition reads as.
@@ -139,22 +139,6 @@ impl From<&ObligationDischargedGround> for AdmissionGround {
     /// The word a discharge's admission act states, on the same terms.
     fn from(_ground: &ObligationDischargedGround) -> Self {
         Self::ObligationDischarged
-    }
-}
-
-impl From<CapsulePosture> for AdmissionPatch {
-    /// Which two-part patch admitting on a ground of this posture would author.
-    ///
-    /// A replay-bearing ground authors the row and the depot capsule entry the
-    /// row's replay reference points at; a discharge authors the row alone. The
-    /// posture is the descriptor home's declaration and this map only names what
-    /// it means for the human act at the road's exit — nothing here admits
-    /// anything.
-    fn from(posture: CapsulePosture) -> Self {
-        match posture {
-            CapsulePosture::ReplayBearing => Self::RowAndCapsule,
-            CapsulePosture::NoCapsule => Self::RowAlone,
-        }
     }
 }
 

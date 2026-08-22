@@ -2,11 +2,11 @@
 //!
 //! # The files
 //!
-//! [`types`] declares the shape of a row and nothing else. [`operator_families`]
-//! and [`swap_pairs`] are the two families whose entries have landed. The
-//! `capsules/` seat carries only its own README, which states the one act that
-//! authors an entry there.
+//! [`types`] declares the two static bank-row shapes. [`operator_families`] and
+//! [`swap_pairs`] carry those authored families. [`capsules`] owns the exact
+//! entry and caller-supplied storage seam used only by human admission.
 
+pub mod capsules;
 pub mod operator_families;
 pub mod swap_pairs;
 pub mod types;

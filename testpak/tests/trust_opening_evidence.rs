@@ -2,36 +2,49 @@
 
 use std::sync::atomic::{AtomicU32, Ordering};
 use threadpak_testpak::clock::{HarnessClock, MeasurementReading};
+use threadpak_testpak::depot::capsules::{
+    ReplayCapsuleEntry, ReplayDepotRefusal, ReplayDepotSink, StoredReplayEntryRef,
+};
 use threadpak_testpak::descriptor::{
-    Binding, CheckRef, ClaimRef, Classification, ExecutableAttachment, ExecutionSuite,
-    MutationPointRef, Origin, PopulationRef, Provenance, RevisionBinding, Role, Row, SubjectRoute,
-    Tag, TrialTableRefusal,
+    AuthoredTableName, AuthoredTableRefusal, Binding, CheckRef, ClaimRef, Classification,
+    ExecutableAttachment, ExecutionSuite, GeneratedSupportSchemaId, MutationPointRef, Origin,
+    PopulationRef, ProposalId, Provenance, RevisionBinding, Role, Row, SubjectRoute,
+    SynthesisFacts, Tag, TrialTableRefusal,
+};
+use threadpak_testpak::generate::{
+    ByteReducerId, FingerprintPreservation, ProbeOutcome, ReductionBudget, ReductionPlan,
+    ReductionPlanRefusal, ReductionProbeBinding, ReductionProbeRefusal, ReductionRefusal,
+    capture_replay, reduce,
 };
 use threadpak_testpak::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use threadpak_testpak::muterprater::interpret::{
     availability, execute_active, observe_no_mutation, qualify_no_mutation,
 };
+use threadpak_testpak::muterprater::propose::{
+    human_admit_replay, offer_mutant_kill, prove_candidate,
+};
 use threadpak_testpak::muterprater::wrap::read_output;
 use threadpak_testpak::muterprater::{
     ActiveSelection, AdapterQualification, AlternativeDeclaration, AlternativeId, BackendVersion,
-    BackendVersionPosture, CompiledPressureWitness, EvaluationBinding, EvaluationControl,
-    EvaluationFamilyRef, EvaluationObservation, EvaluationPair, EvaluationPairRefusal,
-    EvaluationSurface, GrammarStanding, IntendedRejection, InterpretedExecutionRefusal,
-    InterpreterAvailability, MissingTrustEvidence, MutationIdentity, MutationOutcome,
-    MutationPermission, MutationPoint, MutationPolicy, MutationVerdict, MutationWitness,
-    MutationWitnessRefusal, NoMutationObservationRefusal, OperatorFamilyRef,
-    ParityQualificationRefusal, PermissionRefusal, PointCatalogPosture, PointRefusal,
-    PolicyRefusal, PressureWitnessRefusal, ProductionBinding, QualificationRefusal,
-    RewriteAdmission, RewriteWithheld, SourceCoordinate, SurfaceRefusal, WrapReading, WrapRefusal,
-    WrapStanding,
+    BackendVersionPosture, CompiledPressureWitness, Demonstration, EvaluationBinding,
+    EvaluationControl, EvaluationFamilyRef, EvaluationObservation, EvaluationPair,
+    EvaluationPairRefusal, EvaluationSurface, GrammarStanding, HumanAdmissionRefusal,
+    IntendedRejection, InterpretedExecutionRefusal, InterpreterAvailability, KillProposalRefusal,
+    MissingTrustEvidence, MutationIdentity, MutationOutcome, MutationPermission, MutationPoint,
+    MutationPolicy, MutationReport, MutationVerdict, MutationWitness, MutationWitnessRefusal,
+    NoMutationObservationRefusal, OperatorFamilyRef, ParityQualificationRefusal, PermissionRefusal,
+    PointCatalogPosture, PointRefusal, PolicyRefusal, PressureWitnessRefusal, ProductionBinding,
+    ProofRefusal, ProposalDestination, ProposalDocument, ProposalSink, QualificationRefusal,
+    ReplayBearingProposal, RewriteAdmission, RewriteWithheld, SinkRefusal, SourceCoordinate,
+    StoredProposalRef, SurfaceRefusal, WrapReading, WrapRefusal, WrapStanding,
 };
 use threadpak_testpak::properties::{Agreement, agreement};
 use threadpak_testpak::report::{
-    ByteBudget, CaseBudget, FindingCause, InvocationProfile, RunAttempt, TargetBinding,
-    TargetTriple, TimeBudget, ToolchainIdentity, TrialConclusion, TrialSite, encode_bytes,
-    encode_length,
+    ByteBudget, CaseBudget, FindingCause, Fingerprint, GenerationProfile, InvocationProfile,
+    MinimizationProfile, ReplayCapsule, RunAttempt, TargetBinding, TargetTriple, TimeBudget,
+    ToolchainIdentity, TrialConclusion, TrialSite, encode_bytes, encode_length,
 };
-use threadpak_testpak::runner::{Invocation, TrialBinding};
+use threadpak_testpak::runner::{Invocation, TrialBinding, TrialTable, trial_identity};
 
 const OWNER: &str = "testpak.mutation.receiver";
 const BACKEND_CONSOLE: &str = "Found 1 mutant to test\n\
@@ -44,6 +57,10 @@ const BACKEND_VERSION: &str = "25.0.0";
 const MEANING_DISAGREEMENT: FindingCause = FindingCause::named(OWNER, "meaning-disagreement");
 const REVISION_TAG: DomainTag = DomainTag::declared(
     "mutation-receiver-revision",
+    IdentityProfileVersion::declared(1),
+);
+const REPLAY_SCHEMA_TAG: DomainTag = DomainTag::declared(
+    "mutation-receiver-replay-schema",
     IdentityProfileVersion::declared(1),
 );
 const POLICY_READING_TAG: DomainTag =
@@ -74,6 +91,13 @@ enum MutationRoadFailure {
     MissingActiveSelection,
     MissingQualification(ParityQualificationRefusal),
     MissingTrust(MissingTrustEvidence),
+    Proof(ProofRefusal),
+    ReductionPlan(ReductionPlanRefusal),
+    ReductionProbe(ReductionProbeRefusal),
+    Reduction(ReductionRefusal),
+    Proposal(KillProposalRefusal),
+    ProposalSink(SinkRefusal),
+    Admission(HumanAdmissionRefusal),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -161,6 +185,73 @@ impl From<InterpretedExecutionRefusal> for MutationRoadFailure {
             InterpretedExecutionRefusal::Report(_) => InterpretedFailureStage::Report,
         };
         Self::Interpreted(stage)
+    }
+}
+
+impl From<ProofRefusal> for MutationRoadFailure {
+    fn from(refusal: ProofRefusal) -> Self {
+        Self::Proof(refusal)
+    }
+}
+
+impl From<ReductionPlanRefusal> for MutationRoadFailure {
+    fn from(refusal: ReductionPlanRefusal) -> Self {
+        Self::ReductionPlan(refusal)
+    }
+}
+
+impl From<ReductionProbeRefusal> for MutationRoadFailure {
+    fn from(refusal: ReductionProbeRefusal) -> Self {
+        Self::ReductionProbe(refusal)
+    }
+}
+
+impl From<ReductionRefusal> for MutationRoadFailure {
+    fn from(refusal: ReductionRefusal) -> Self {
+        Self::Reduction(refusal)
+    }
+}
+
+impl From<KillProposalRefusal> for MutationRoadFailure {
+    fn from(refusal: KillProposalRefusal) -> Self {
+        Self::Proposal(refusal)
+    }
+}
+
+impl From<HumanAdmissionRefusal> for MutationRoadFailure {
+    fn from(refusal: HumanAdmissionRefusal) -> Self {
+        Self::Admission(refusal)
+    }
+}
+
+#[derive(Default)]
+struct ReviewSink {
+    proposals: Vec<ProposalId>,
+}
+
+impl ProposalSink for ReviewSink {
+    fn store<Document: ProposalDocument>(
+        &mut self,
+        proposal: &Document,
+    ) -> Result<StoredProposalRef, SinkRefusal> {
+        let identity = proposal.identity();
+        self.proposals.push(identity);
+        StoredProposalRef::at(identity, "review://mutation-proposal")
+    }
+}
+
+#[derive(Default)]
+struct ReplayDepot {
+    entries: Vec<ReplayCapsuleEntry>,
+}
+
+impl ReplayDepotSink for ReplayDepot {
+    fn store(
+        &mut self,
+        entry: &ReplayCapsuleEntry,
+    ) -> Result<StoredReplayEntryRef, ReplayDepotRefusal> {
+        self.entries.push(entry.clone());
+        StoredReplayEntryRef::at(entry.replay(), "depot://mutation-replay")
     }
 }
 
@@ -348,6 +439,239 @@ fn trial_binding() -> Result<TrialBinding, TrialTableRefusal> {
     trial_binding_for("comparison-behaviour")
 }
 
+fn candidate_trial_call(_invocation: &Invocation) -> TrialConclusion {
+    check(&[3u32, 0, 0])
+}
+
+fn candidate_binding(point: MutationPointRef) -> Result<TrialBinding, TrialTableRefusal> {
+    let subject = SubjectRoute::named(OWNER, "comparison-subject")?;
+    let check_ref = CheckRef::named(OWNER, "comparison-check")?;
+    let row = Row::declared(
+        ClaimRef::named(OWNER, "comparison-behaviour")?,
+        ExecutionSuite::named(OWNER, "mutation-receiver")?,
+        Classification::authored(
+            vec![Role::named(OWNER, "mutation")?],
+            vec![Tag::named(OWNER, "outside-consumer")?],
+        )?,
+        subject,
+        check_ref,
+        PopulationRef::named(OWNER, "one-input")?,
+        Origin::Candidate(SynthesisFacts::Survivor(point)),
+    )?;
+    let revision = RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, b"trial"));
+    Binding::bound(
+        row,
+        ExecutableAttachment::attached(
+            subject,
+            check_ref,
+            revision,
+            revision,
+            candidate_trial_call,
+        ),
+        Provenance::Unproduced,
+    )
+    .map_err(TrialTableRefusal::from)
+}
+
+fn authored_parent() -> Result<TrialTable, TrialTableRefusal> {
+    TrialTable::authored(
+        AuthoredTableName::named(OWNER, "mutation-parent")?,
+        Provenance::Unproduced,
+        vec![trial_binding_for("parent-behaviour")?],
+    )
+    .map_err(TrialTableRefusal::TableNotAuthored)
+}
+
+fn replay_probe(_input: &[u8]) -> ProbeOutcome {
+    let Ok(point) = MutationPointRef::named(OWNER, "comparison-edge") else {
+        return ProbeOutcome::NoFailure;
+    };
+    let Ok(binding) = candidate_binding(point) else {
+        return ProbeOutcome::NoFailure;
+    };
+    let TrialConclusion::Refused(finding) = candidate_trial_call(&invocation()) else {
+        return ProbeOutcome::NoFailure;
+    };
+    ProbeOutcome::Reproduced(Fingerprint::of(trial_identity(binding.row()), &finding))
+}
+
+fn demonstrate_mutation(
+    mutation: &MutationReport,
+) -> Result<(Row, Demonstration), MutationRoadFailure> {
+    let Some(point) = mutation.target().identity().point() else {
+        return Err(MutationRoadFailure::MissingActiveSelection);
+    };
+    let candidate = candidate_binding(point)?;
+    let candidate_key = candidate.trial_key();
+    let candidate_row = candidate.row().clone();
+    assert!(matches!(
+        TrialTable::authored(
+            AuthoredTableName::named(OWNER, "candidate-cannot-enter")
+                .map_err(|_| MutationRoadFailure::Name)?,
+            Provenance::Unproduced,
+            vec![candidate.clone()],
+        ),
+        Err(AuthoredTableRefusal::CandidateOrigin(found)) if found == candidate_key
+    ));
+    let demonstration = prove_candidate(
+        &authored_parent()?,
+        candidate,
+        mutation.target(),
+        &invocation(),
+    )?;
+    let mutation_fingerprint = match mutation.outcome() {
+        MutationOutcome::Killed(IntendedRejection::Demonstrated(rejection)) => {
+            rejection.fingerprint()
+        }
+        MutationOutcome::Killed(IntendedRejection::ReportedByBackend { stated: _ })
+        | MutationOutcome::Survived
+        | MutationOutcome::Inconclusive(_) => {
+            return Err(MutationRoadFailure::MissingActiveSelection);
+        }
+    };
+    assert_eq!(
+        demonstration.rejection().fingerprint(),
+        mutation_fingerprint
+    );
+    Ok((candidate_row, demonstration))
+}
+
+fn capture_demonstration(
+    demonstration: &Demonstration,
+) -> Result<ReplayCapsule, MutationRoadFailure> {
+    let reduction_binding = ReductionProbeBinding::bound(
+        demonstration.trial_report(),
+        GenerationProfile::declared("mutation-replay", 1),
+        GeneratedSupportSchemaId::over(ContentAddress::derived(
+            REPLAY_SCHEMA_TAG,
+            b"mutation-replay-schema",
+        )),
+        RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, b"replay-probe")),
+        replay_probe,
+    )?;
+    let reduction_plan = ReductionPlan::declared(
+        MinimizationProfile::declared("mutation-replay", 1),
+        ByteReducerId::ChunkRemovalAndZeroing,
+        Vec::new(),
+        FingerprintPreservation::Required,
+        ReductionBudget::declared(1),
+    )?;
+    let reduction = reduce(&reduction_plan, &[1u8, 2u8], &reduction_binding)?;
+    let capsule = capture_replay(&reduction);
+    assert_eq!(capsule.key(), demonstration.trial_report().standing().key());
+    assert_eq!(
+        capsule.fingerprint(),
+        demonstration.rejection().fingerprint()
+    );
+    Ok(capsule)
+}
+
+fn reject_capsule_for_another_execution(
+    candidate: &Row,
+    mutation: &MutationReport,
+    demonstration: &Demonstration,
+    destination: ProposalDestination,
+) -> Result<(), MutationRoadFailure> {
+    let Some(point) = mutation.target().identity().point() else {
+        return Err(MutationRoadFailure::MissingActiveSelection);
+    };
+    let foreign_demonstration = prove_candidate(
+        &authored_parent()?,
+        candidate_binding(point)?,
+        mutation.target(),
+        &foreign_invocation(),
+    )?;
+    let foreign_capsule = capture_demonstration(&foreign_demonstration)?;
+    let replay = foreign_capsule.key().address();
+    let expected = demonstration.trial_report().standing().key().address();
+    assert!(matches!(
+        offer_mutant_kill(
+            candidate.clone(),
+            mutation,
+            foreign_capsule,
+            demonstration.clone(),
+            Vec::new(),
+            destination,
+        ),
+        Err(KillProposalRefusal::ReplayExecutionMismatch {
+            replay: found,
+            demonstration: required,
+        }) if found == replay && required == expected
+    ));
+    Ok(())
+}
+
+fn admit_mutation(mutation: &MutationReport) -> Result<(), MutationRoadFailure> {
+    let (candidate, demonstration) = demonstrate_mutation(mutation)?;
+    let capsule = capture_demonstration(&demonstration)?;
+    let destination = ProposalDestination::naming(
+        ExecutionSuite::named(OWNER, "mutation-receiver").map_err(|_| MutationRoadFailure::Name)?,
+    );
+    reject_capsule_for_another_execution(&candidate, mutation, &demonstration, destination)?;
+    let proposal = offer_mutant_kill(
+        candidate,
+        mutation,
+        capsule.clone(),
+        demonstration,
+        Vec::new(),
+        destination,
+    )?;
+    let mut review = ReviewSink::default();
+    let proposal_custody = review
+        .store(&proposal)
+        .map_err(MutationRoadFailure::ProposalSink)?;
+    assert_eq!(proposal_custody.proposal(), proposal.identity());
+    assert_eq!(review.proposals.as_slice(), &[proposal.identity()]);
+    reject_foreign_proposal_custody(&proposal)?;
+    let mut depot = ReplayDepot::default();
+    let receipt = human_admit_replay(&proposal, proposal_custody, &mut depot)?;
+    assert_eq!(receipt.entry().proposal(), proposal.identity());
+    assert_eq!(receipt.entry().capsule(), &capsule);
+    assert_eq!(receipt.replay_custody().replay(), receipt.entry().replay());
+    assert_eq!(depot.entries.as_slice(), &[receipt.entry().clone()]);
+    assert!(matches!(receipt.row().origin(), Origin::AdmittedReplay(_)));
+    admit_row(receipt.row().clone())
+}
+
+fn reject_foreign_proposal_custody(
+    proposal: &impl ReplayBearingProposal,
+) -> Result<(), MutationRoadFailure> {
+    let foreign = ProposalId::over(ContentAddress::derived(
+        REPLAY_SCHEMA_TAG,
+        b"foreign-proposal",
+    ));
+    let custody = StoredProposalRef::at(foreign, "review://foreign")
+        .map_err(MutationRoadFailure::ProposalSink)?;
+    let mut depot = ReplayDepot::default();
+    assert!(matches!(
+        human_admit_replay(proposal, custody, &mut depot),
+        Err(HumanAdmissionRefusal::ProposalCustodyMismatch { expected, found })
+            if expected == proposal.identity() && found == foreign
+    ));
+    assert!(depot.entries.is_empty());
+    Ok(())
+}
+
+fn admit_row(admitted: Row) -> Result<(), MutationRoadFailure> {
+    let subject = admitted.subject();
+    let check = admitted.check();
+    let revision = RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, b"trial"));
+    let binding = Binding::bound(
+        admitted,
+        ExecutableAttachment::attached(subject, check, revision, revision, candidate_trial_call),
+        Provenance::Unproduced,
+    )
+    .map_err(TrialTableRefusal::from)?;
+    let world = TrialTable::authored(
+        AuthoredTableName::named(OWNER, "admitted-world").map_err(|_| MutationRoadFailure::Name)?,
+        Provenance::Unproduced,
+        vec![binding],
+    )
+    .map_err(TrialTableRefusal::TableNotAuthored)?;
+    assert_eq!(world.bindings().len(), 1);
+    Ok(())
+}
+
 fn check_ref() -> Result<CheckRef, MutationRoadFailure> {
     CheckRef::named(OWNER, "comparison-check").map_err(|_| MutationRoadFailure::Name)
 }
@@ -364,6 +688,27 @@ fn invocation() -> Invocation {
             ToolchainIdentity::declared("1.98.0"),
         ),
         TrialSite::located(module_path!(), file!(), line!(), "mutation-receiver"),
+        HarnessClock::unavailable(),
+    )
+}
+
+fn foreign_invocation() -> Invocation {
+    Invocation::declared(
+        InvocationProfile::declared(
+            CaseBudget::declared(1),
+            ByteBudget::declared(64),
+            TimeBudget::declared(1_000_000_000),
+        ),
+        TargetBinding::bound(
+            TargetTriple::declared("wasm32-unknown-unknown"),
+            ToolchainIdentity::declared("1.98.0"),
+        ),
+        TrialSite::located(
+            module_path!(),
+            file!(),
+            line!(),
+            "foreign-mutation-receiver",
+        ),
         HarnessClock::unavailable(),
     )
 }
@@ -789,6 +1134,8 @@ fn compiled_and_interpreted_evidence_join_without_flattening() -> Result<(), Mut
         evidence.mutation().outcome(),
         MutationOutcome::Killed(_)
     ));
+
+    admit_mutation(evidence.mutation())?;
     Ok(())
 }
 

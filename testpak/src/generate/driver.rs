@@ -27,7 +27,7 @@
 use super::types::{
     ByteDraw, ByteSource, CaseIndex, CaseWidth, CommandDecode, CommandSequence, GeneratedSequences,
     GenerationCensus, GenerationDisposition, GenerationHalt, GenerationPlan, PreconditionVerdict,
-    SequencePrecondition, StreamCursor,
+    RejectionAllowance, SequencePrecondition, StreamCursor,
 };
 use arbitrary::{Arbitrary, Unstructured};
 
@@ -104,12 +104,10 @@ pub const fn admit_every_sequence<Command>(_commands: &[Command]) -> Preconditio
 ///
 /// # Bounds
 ///
-/// The three budgets are read at the door of each case, so a bound reached is
-/// a case not attempted rather than a case attempted badly:
+/// Each bound is read at the strongest point that can know it:
 ///
-/// - the byte budget stops the drive when nothing remains to draw;
-/// - the rejection budget stops it when empty-handed draws have spent their
-///   allowance;
+/// - the byte budget is read before a case and stops the drive when nothing remains to draw;
+/// - the rejection allowance is read after an empty-handed outcome is counted and stops every later draw as soon as it is spent;
 /// - the case budget ends it by completion, which is the one halt arm that
 ///   means the plan finished.
 ///
@@ -147,7 +145,7 @@ pub fn drive<Command>(
 
     for ordinal in 0..plan.cases().cases() {
         let remaining = plan.bytes().bytes().saturating_sub(spent);
-        if let Some(reason) = bound_reached(remaining, rejections, plan.rejections().draws()) {
+        if let Some(reason) = byte_bound_reached(remaining) {
             census.count(GenerationDisposition::GenerationBudgetExhausted);
             halt = reason;
             break;
@@ -169,6 +167,10 @@ pub fn drive<Command>(
             CaseOutcome::EmptyHanded(disposition) => {
                 census.count(disposition);
                 rejections = rejections.saturating_add(1);
+                if rejection_allowance_spent(plan.rejection_allowance(), rejections) {
+                    halt = GenerationHalt::RejectionAllowanceSpent;
+                    break;
+                }
             }
             CaseOutcome::ContractViolated => {
                 census.count(GenerationDisposition::GeneratorContractViolated);
@@ -181,18 +183,24 @@ pub fn drive<Command>(
     GeneratedSequences::produced(sequences, census, halt)
 }
 
-/// Which declared bound, if either, the drive has already reached.
+/// Whether the byte budget is already spent.
 ///
-/// Read before a case is drawn rather than after, so a bound reached is
-/// recorded as the case that was never attempted.
-fn bound_reached(remaining: u64, rejections: u32, admitted: u32) -> Option<GenerationHalt> {
+/// Read before a case is drawn, so exhaustion is recorded as the case that was never attempted.
+fn byte_bound_reached(remaining: u64) -> Option<GenerationHalt> {
     if remaining == 0 {
         return Some(GenerationHalt::ByteBudgetExhausted);
     }
-    if rejections > admitted {
-        return Some(GenerationHalt::RejectionBudgetExhausted);
-    }
     None
+}
+
+/// Whether the latest empty-handed draw spent the declared allowance.
+///
+/// Read after the outcome is counted so `NoRejections` can permit successful cases while retaining the first rejection that closes the road.
+fn rejection_allowance_spent(allowance: RejectionAllowance, rejections: u32) -> bool {
+    match allowance {
+        RejectionAllowance::NoRejections => rejections > 0,
+        RejectionAllowance::AtMost(admitted) => rejections >= admitted.get(),
+    }
 }
 
 /// The width one case is actually drawn at: the ramp's width, capped at what

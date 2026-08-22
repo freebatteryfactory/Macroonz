@@ -15,11 +15,14 @@
 //! ([`crate::descriptor`]). Nothing here restates either home's contract: a plan
 //! BINDS those values, and what they mean is written where they are declared.
 
-use crate::descriptor::{NamespacedName, PopulationRef};
+use crate::descriptor::{GeneratedSupportSchemaId, NamespacedName, PopulationRef, RevisionBinding};
 use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
-use crate::report::{ByteBudget, CaseBudget, Fingerprint, GenerationProfile, MinimizationProfile};
+use crate::report::{
+    ByteBudget, CaseBudget, Fingerprint, GenerationProfile, MinimizationProfile, ReplayPosture,
+    TrialRunStanding,
+};
 use arbitrary::Unstructured;
-use std::collections::BTreeSet;
+use std::num::NonZeroU32;
 
 // ---------------------------------------------------------------------------
 // The generation axis.
@@ -40,7 +43,7 @@ macro_rules! with_generation_dispositions {
             GeneratorRefused => generator_refused,
             /// The generator broke the contract the driver drives it under: it reported a decoded command while consuming none of the case's bytes.
             GeneratorContractViolated => generator_contract_violated,
-            /// The plan reached this case with one of its declared bounds already spent, so no draw was attempted.
+            /// The plan reached this case with its byte budget already spent, so no draw was attempted.
             GenerationBudgetExhausted => budget_exhausted,
         }
     };
@@ -183,24 +186,31 @@ pub enum SizeProgression {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct CaseIndex(u32);
 
-/// How many draws one plan admits that produce no case.
+/// How many empty-handed draws one plan admits before another draw is withheld.
 ///
 /// # Authority
 ///
-/// The bound is over draws that came back empty-handed —
+/// The allowance is over draws that came back empty-handed —
 /// [`GenerationDisposition::PreconditionRejected`] and
 /// [`GenerationDisposition::GeneratorRefused`] — because those are the two
 /// outcomes that spend a case seat without filling it. The census still counts
-/// them apart; this is one bound over their sum, not a place they are
-/// flattened.
+/// them apart; this is one allowance over their sum, not a place they are flattened.
+///
+/// `NoRejections` is distinct from a zero case budget: successful cases may proceed, while the first empty-handed draw is retained and prevents a later draw.
+/// `AtMost` cannot carry zero, so no integer sentinel decides which of those meanings applies.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct RejectionBudget(u32);
+pub enum RejectionAllowance {
+    /// Successful cases may proceed, but the first empty-handed draw spends the allowance.
+    NoRejections,
+    /// This non-zero number of empty-handed draws may be counted before another draw is withheld.
+    AtMost(NonZeroU32),
+}
 
 /// One plan's complete statement of what to generate and under which bounds.
 ///
 /// It binds the population identity, the generation profile and its version,
 /// the root seed or the exact supplied bytes, the case budget, the byte budget,
-/// the rejection budget, and the size progression.
+/// the rejection allowance, and the size progression.
 ///
 /// # Authority
 ///
@@ -214,7 +224,7 @@ pub struct GenerationPlan {
     origin: InputOrigin,
     cases: CaseBudget,
     bytes: ByteBudget,
-    rejections: RejectionBudget,
+    rejection_allowance: RejectionAllowance,
     progression: SizeProgression,
 }
 
@@ -411,11 +421,8 @@ pub struct CommandSequence<Command> {
 ///
 /// # Authority
 ///
-/// The halt names the bound that ended the drive; the census counts what became
-/// of every case the drive reached. They answer different questions and neither
-/// is derivable from the other: two plans can record one
-/// [`GenerationDisposition::GenerationBudgetExhausted`] and have stopped on
-/// different bounds.
+/// The halt names the bound or contract event that ended the drive; the census counts what became of every case the drive reached.
+/// They answer different questions and neither is derivable from the other: the rejection that spends an allowance is counted under its exact disposition while the halt states that no later draw was admitted.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GenerationHalt {
     /// The plan reached every case its case budget declared. This is the one
@@ -423,8 +430,8 @@ pub enum GenerationHalt {
     CaseBudgetMet,
     /// The plan reached a case with its byte budget already spent.
     ByteBudgetExhausted,
-    /// The plan reached a case with its rejection budget already spent.
-    RejectionBudgetExhausted,
+    /// An empty-handed draw spent the plan's rejection allowance.
+    RejectionAllowanceSpent,
     /// The byte source held less than a case's ramp width asked for.
     SourceExhausted,
     /// A decoder reported a command while consuming none of the case's bytes.
@@ -467,12 +474,82 @@ pub enum ByteReducerId {
 /// One owner-declared semantic reducer.
 ///
 /// Open and namespaced, because a semantic reducer knows what the bytes MEAN
-/// and that knowledge is the owner's. The plan names which ones a reduction ran
-/// under; the law they run under is
-/// [`shrink_verdict`](crate::generate::shrink_verdict), so a semantic pass and
-/// the generic byte pass admit a candidate on exactly the same ground.
+/// and that knowledge is the owner's. A plan carries this identity only inside
+/// [`SemanticReducerBinding`], and the reduction engine records it only after
+/// invoking the bound callable. Both semantic and generic candidates are judged
+/// by [`shrink_verdict`](crate::generate::shrink_verdict).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SemanticReducerId(NamespacedName);
+
+/// A semantic reducer's ordered candidate sequence for one input.
+///
+/// # Construction
+///
+/// [`SemanticCandidates::proposed`] requires each candidate to contain fewer
+/// bytes than the input or candidate immediately before it. That strict descent
+/// is the reducer contract: an owner may use any semantic knowledge to propose
+/// the bytes, while the shared engine retains termination and never admits a
+/// candidate as fingerprint-preserving merely because the reducer proposed it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SemanticCandidates {
+    candidates: Vec<Vec<u8>>,
+}
+
+/// Why one semantic reducer's candidate sequence was refused.
+#[must_use = "a refusal is the reason semantic candidates were not built"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SemanticCandidateRefusal {
+    /// One candidate was not strictly smaller than the value before it.
+    NotStrictlySmaller {
+        /// The candidate's position in the offered sequence.
+        position: usize,
+        /// The byte length it had to be smaller than.
+        predecessor_bytes: usize,
+        /// The candidate's byte length.
+        candidate_bytes: usize,
+    },
+}
+
+/// The owner-supplied semantic candidate producer.
+///
+/// A function pointer excludes captured closure state but does not establish
+/// purity, stability, or absence of ambient effects. Its typed result does
+/// establish the strict-descent contract before the shared engine probes any
+/// candidate.
+pub type SemanticReducerCall = fn(&[u8]) -> Result<SemanticCandidates, SemanticCandidateRefusal>;
+
+/// One semantic reducer's name, revision posture, and executable candidate producer.
+///
+/// # Authority
+///
+/// The callable and its revision travel in one value, so a plan cannot name a
+/// reducer independently from the function it will execute. The revision
+/// posture contributes to replay posture only when this binding is actually
+/// invoked.
+#[derive(Debug, Clone, Copy)]
+pub struct SemanticReducerBinding {
+    reducer: SemanticReducerId,
+    revision: RevisionBinding,
+    call: SemanticReducerCall,
+}
+
+/// One semantic reducer invocation retained by reduction evidence.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SemanticReducerExecution {
+    reducer: SemanticReducerId,
+    revision: RevisionBinding,
+    candidates: usize,
+    probes: usize,
+}
+
+/// Whether the generic byte reducer was reached by one reduction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ByteReducerExecution {
+    /// The generic reducer ran under this closed implementation identity.
+    Executed(ByteReducerId),
+    /// Semantic candidates spent the probe budget before the generic reducer.
+    NotReachedBecauseBudgetSpent,
+}
 
 /// That a reduction preserves the failure fingerprint.
 ///
@@ -504,11 +581,11 @@ pub struct ReductionBudget(u32);
 /// It binds the minimization profile and its version, the generic byte reducer,
 /// the semantic reducers, the required fingerprint preservation, and the
 /// reduction budget.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct ReductionPlan {
     profile: MinimizationProfile,
     byte_reducer: ByteReducerId,
-    semantic_reducers: BTreeSet<SemanticReducerId>,
+    semantic_reducers: Vec<SemanticReducerBinding>,
     preservation: FingerprintPreservation,
     budget: ReductionBudget,
 }
@@ -528,6 +605,34 @@ pub enum ReductionPlanRefusal {
     /// Refused rather than folded away, because collapsing a duplicate silently
     /// would be the harness normalizing an authoring defect out of sight.
     DuplicateSemanticReducer(SemanticReducerId),
+}
+
+/// The exact report standing and re-execution probe one reduction runs under.
+///
+/// # Authority
+///
+/// Construction begins from a real refused [`crate::report::TrialReport`], so
+/// the preserved fingerprint and attachment standing derive from the same
+/// report. The caller binds the byte-input probe and its revision posture to
+/// that standing; the function-pointer shape does not prove the adapter is the
+/// original subject callable, and the revision posture states that ceiling.
+pub struct ReductionProbeBinding {
+    standing: TrialRunStanding,
+    preserved: Fingerprint,
+    generation: GenerationProfile,
+    schema: GeneratedSupportSchemaId,
+    revision: RevisionBinding,
+    probe: FingerprintProbe,
+}
+
+/// Why one report could not open a reduction probe binding.
+#[must_use = "a refusal is the reason a reduction probe binding was not built"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReductionProbeRefusal {
+    /// The report did not execute to a conclusion, so it carries no finding to preserve.
+    TrialDidNotConclude,
+    /// The report passed, so it carries no failure fingerprint to preserve.
+    TrialPassed,
 }
 
 // ---------------------------------------------------------------------------
@@ -620,6 +725,27 @@ pub struct ReductionOutcome {
     halt: ReductionHalt,
 }
 
+/// The run-derived evidence one complete reduction leaves behind.
+///
+/// # Authority
+///
+/// The value retains the exact trial standing, generation/schema inputs,
+/// probe revision, minimization profile, actual semantic invocation path,
+/// generic-reducer posture, and reduction outcome. It is the only public input
+/// accepted by [`crate::generate::capture_replay`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReductionEvidence {
+    standing: TrialRunStanding,
+    generation: GenerationProfile,
+    schema: GeneratedSupportSchemaId,
+    probe_revision: RevisionBinding,
+    minimization: MinimizationProfile,
+    semantic_reducers: Vec<SemanticReducerExecution>,
+    byte_reducer: ByteReducerExecution,
+    outcome: ReductionOutcome,
+    replay: ReplayPosture,
+}
+
 /// Why one reduction was refused before any candidate was offered.
 ///
 /// # Authority
@@ -639,5 +765,12 @@ pub enum ReductionRefusal {
     BaselineFingerprintDiffers {
         /// The fingerprint the baseline actually reached.
         found: Fingerprint,
+    },
+    /// An invoked semantic reducer refused the candidate sequence it authored.
+    SemanticReducerRefused {
+        /// The reducer whose typed output refused.
+        reducer: SemanticReducerId,
+        /// Why its candidate sequence was not lawful.
+        cause: SemanticCandidateRefusal,
     },
 }

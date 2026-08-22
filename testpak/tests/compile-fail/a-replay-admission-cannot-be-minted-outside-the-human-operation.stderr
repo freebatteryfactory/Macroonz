@@ -1,0 +1,15 @@
+error[E0624]: associated function `admitted` is private
+  --> tests/compile-fail/a-replay-admission-cannot-be-minted-outside-the-human-operation.rs:16:22
+   |
+16 |       ReplayAdmission::admitted(proposal, ground, destination, replay)
+   |                        ^^^^^^^^ private associated function
+   |
+  ::: src/descriptor/type_guard.rs
+   |
+   | /     pub(crate) const fn admitted(
+   | |         proposal: ProposalId,
+   | |         ground: ReplayBearingGround,
+   | |         destination: ExecutionSuite,
+   | |         replay: ReplayRef,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

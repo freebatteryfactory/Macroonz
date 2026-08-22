@@ -16,20 +16,26 @@
 //! rather than a second framing invented locally.
 
 use super::{
-    ByteDraw, ByteReducerId, ByteSource, ByteSourceAddress, CaseIndex, CaseWidth, CaseWidthRefusal,
-    CommandSequence, FingerprintPreservation, GENERATION_CHUNK_TAG, GENERATION_DISPOSITION_SEATS,
-    GENERATION_SOURCE_TAG, GeneratedSequences, GenerationCensus, GenerationDisposition,
-    GenerationHalt, GenerationPlan, GenerationPlanRefusal, InputOrigin, ReductionBudget,
-    ReductionCensus, ReductionHalt, ReductionOutcome, ReductionPlan, ReductionPlanRefusal,
-    RejectionBudget, RootSeed, SOURCE_CHUNK_BYTES, SemanticReducerId, ShrinkVerdict,
+    ByteDraw, ByteReducerExecution, ByteReducerId, ByteSource, ByteSourceAddress, CaseIndex,
+    CaseWidth, CaseWidthRefusal, CommandSequence, FingerprintPreservation, GENERATION_CHUNK_TAG,
+    GENERATION_DISPOSITION_SEATS, GENERATION_SOURCE_TAG, GeneratedSequences, GenerationCensus,
+    GenerationDisposition, GenerationHalt, GenerationPlan, GenerationPlanRefusal, InputOrigin,
+    ReductionBudget, ReductionCensus, ReductionEvidence, ReductionHalt, ReductionOutcome,
+    ReductionPlan, ReductionPlanRefusal, ReductionProbeBinding, ReductionProbeRefusal,
+    RejectionAllowance, RootSeed, SOURCE_CHUNK_BYTES, SemanticCandidateRefusal, SemanticCandidates,
+    SemanticReducerBinding, SemanticReducerExecution, SemanticReducerId, ShrinkVerdict,
     SizeProgression, StreamCursor, StreamCursorRefusal,
 };
-use crate::descriptor::{NameRefusal, NamespacedName, PopulationRef};
+use crate::descriptor::{
+    GeneratedSupportSchemaId, NameRefusal, NamespacedName, PopulationRef, RevisionBinding,
+};
 use crate::identity::ContentAddress;
 use crate::report::{
-    ByteBudget, CaseBudget, Fingerprint, GenerationProfile, MinimizationProfile, encode_bytes,
+    ByteBudget, CaseBudget, Fingerprint, GenerationProfile, MinimizationProfile, ReplayPosture,
+    RunAttempt, TrialConclusion, TrialReport, TrialRunStanding, encode_bytes,
 };
 use std::collections::BTreeSet;
+use std::num::NonZeroU32;
 
 // ---------------------------------------------------------------------------
 // The generation axis.
@@ -208,17 +214,25 @@ impl SizeProgression {
     }
 }
 
-impl RejectionBudget {
-    /// The rejection budget the plan's author declared.
+impl RejectionAllowance {
+    /// The rejection allowance the plan's author declared.
+    ///
+    /// Zero becomes the explicit [`Self::NoRejections`] posture; a positive value becomes [`Self::AtMost`] and is non-zero inside that arm.
     #[must_use]
     pub const fn declared(draws: u32) -> Self {
-        Self(draws)
+        match NonZeroU32::new(draws) {
+            Some(draws) => Self::AtMost(draws),
+            None => Self::NoRejections,
+        }
     }
 
     /// How many empty-handed draws the plan admits.
     #[must_use]
     pub const fn draws(self) -> u32 {
-        self.0
+        match self {
+            Self::NoRejections => 0,
+            Self::AtMost(draws) => draws.get(),
+        }
     }
 }
 
@@ -235,7 +249,7 @@ impl GenerationPlan {
         origin: InputOrigin,
         cases: CaseBudget,
         bytes: ByteBudget,
-        rejections: RejectionBudget,
+        rejection_allowance: RejectionAllowance,
         progression: SizeProgression,
     ) -> Result<Self, GenerationPlanRefusal> {
         if cases.cases() == 0 {
@@ -258,7 +272,7 @@ impl GenerationPlan {
             origin,
             cases,
             bytes,
-            rejections,
+            rejection_allowance,
             progression,
         })
     }
@@ -295,8 +309,8 @@ impl GenerationPlan {
 
     /// How many empty-handed draws the plan admits.
     #[must_use]
-    pub const fn rejections(&self) -> RejectionBudget {
-        self.rejections
+    pub const fn rejection_allowance(&self) -> RejectionAllowance {
+        self.rejection_allowance
     }
 
     /// How the plan's case widths progress.
@@ -631,6 +645,122 @@ impl SemanticReducerId {
     }
 }
 
+impl SemanticCandidates {
+    /// The ordered candidates one semantic reducer proposes for this input.
+    ///
+    /// Empty is a lawful fixed point. Every present candidate must be strictly
+    /// shorter than the input or candidate immediately before it, so a semantic
+    /// reducer cannot move the shared reduction backwards or cycle it.
+    ///
+    /// # Errors
+    ///
+    /// Refuses the first candidate that does not strictly decrease the byte
+    /// length, carrying its position and both lengths.
+    pub fn proposed(
+        input: &[u8],
+        candidates: Vec<Vec<u8>>,
+    ) -> Result<Self, SemanticCandidateRefusal> {
+        let mut predecessor_bytes = input.len();
+        for (position, candidate) in candidates.iter().enumerate() {
+            let candidate_bytes = candidate.len();
+            if candidate_bytes >= predecessor_bytes {
+                return Err(SemanticCandidateRefusal::NotStrictlySmaller {
+                    position,
+                    predecessor_bytes,
+                    candidate_bytes,
+                });
+            }
+            predecessor_bytes = candidate_bytes;
+        }
+        Ok(Self { candidates })
+    }
+
+    /// The strictly descending candidates, in the reducer's declared order.
+    #[must_use]
+    pub fn candidates(&self) -> &[Vec<u8>] {
+        &self.candidates
+    }
+
+    /// The candidates, taken by the shared reduction engine.
+    pub(crate) fn into_candidates(self) -> Vec<Vec<u8>> {
+        self.candidates
+    }
+}
+
+impl SemanticReducerBinding {
+    /// Bind one semantic reducer identity and revision to the callable executed for it.
+    #[must_use]
+    pub const fn bound(
+        reducer: SemanticReducerId,
+        revision: RevisionBinding,
+        call: super::SemanticReducerCall,
+    ) -> Self {
+        Self {
+            reducer,
+            revision,
+            call,
+        }
+    }
+
+    /// The semantic reducer this binding names.
+    #[must_use]
+    pub const fn reducer(self) -> SemanticReducerId {
+        self.reducer
+    }
+
+    /// The revision posture bound to the callable.
+    #[must_use]
+    pub const fn revision(self) -> RevisionBinding {
+        self.revision
+    }
+
+    /// Invoke the bound reducer over one current best input.
+    pub(crate) fn call(self, input: &[u8]) -> Result<SemanticCandidates, SemanticCandidateRefusal> {
+        (self.call)(input)
+    }
+}
+
+impl SemanticReducerExecution {
+    /// Retain one reducer invocation and how much candidate work it offered.
+    #[must_use]
+    pub(crate) const fn recorded(
+        binding: SemanticReducerBinding,
+        candidates: usize,
+        probes: usize,
+    ) -> Self {
+        Self {
+            reducer: binding.reducer(),
+            revision: binding.revision(),
+            candidates,
+            probes,
+        }
+    }
+
+    /// The semantic reducer invoked.
+    #[must_use]
+    pub const fn reducer(self) -> SemanticReducerId {
+        self.reducer
+    }
+
+    /// The revision standing the invocation ran under.
+    #[must_use]
+    pub const fn revision(self) -> RevisionBinding {
+        self.revision
+    }
+
+    /// How many candidates the reducer returned.
+    #[must_use]
+    pub const fn candidates(self) -> usize {
+        self.candidates
+    }
+
+    /// How many of those candidates the shared engine probed before its budget stopped it.
+    #[must_use]
+    pub const fn probes(self) -> usize {
+        self.probes
+    }
+}
+
 impl ReductionBudget {
     /// The probe budget the plan's author declared.
     #[must_use]
@@ -654,7 +784,7 @@ impl ReductionPlan {
     pub fn declared(
         profile: MinimizationProfile,
         byte_reducer: ByteReducerId,
-        semantic_reducers: &[SemanticReducerId],
+        semantic_reducers: Vec<SemanticReducerBinding>,
         preservation: FingerprintPreservation,
         budget: ReductionBudget,
     ) -> Result<Self, ReductionPlanRefusal> {
@@ -662,15 +792,17 @@ impl ReductionPlan {
             return Err(ReductionPlanRefusal::ZeroReductionBudget);
         }
         let mut roster: BTreeSet<SemanticReducerId> = BTreeSet::new();
-        for reducer in semantic_reducers {
-            if !roster.insert(*reducer) {
-                return Err(ReductionPlanRefusal::DuplicateSemanticReducer(*reducer));
+        for binding in &semantic_reducers {
+            if !roster.insert(binding.reducer()) {
+                return Err(ReductionPlanRefusal::DuplicateSemanticReducer(
+                    binding.reducer(),
+                ));
             }
         }
         Ok(Self {
             profile,
             byte_reducer,
-            semantic_reducers: roster,
+            semantic_reducers,
             preservation,
             budget,
         })
@@ -688,9 +820,9 @@ impl ReductionPlan {
         self.byte_reducer
     }
 
-    /// The semantic reducers the plan binds, in their storage order.
+    /// The semantic reducers the plan invokes, in authored order.
     #[must_use]
-    pub const fn semantic_reducers(&self) -> &BTreeSet<SemanticReducerId> {
+    pub fn semantic_reducers(&self) -> &[SemanticReducerBinding] {
         &self.semantic_reducers
     }
 
@@ -704,6 +836,90 @@ impl ReductionPlan {
     #[must_use]
     pub const fn budget(&self) -> ReductionBudget {
         self.budget
+    }
+}
+
+impl ReductionProbeBinding {
+    /// Bind a byte-input probe and its declared revision to one real refused report.
+    ///
+    /// The failure fingerprint derives from the report; no caller supplies it
+    /// beside the standing. Generation profile and schema are the caller's typed
+    /// statements about the input road and remain under that declaration ceiling.
+    ///
+    /// # Errors
+    ///
+    /// Refuses a report that did not execute to a conclusion, then one whose
+    /// conclusion passed and therefore carries no failure fingerprint.
+    pub fn bound(
+        report: &TrialReport,
+        generation: GenerationProfile,
+        schema: GeneratedSupportSchemaId,
+        revision: RevisionBinding,
+        probe: super::FingerprintProbe,
+    ) -> Result<Self, ReductionProbeRefusal> {
+        let finding = match report.attempt() {
+            RunAttempt::Executed(TrialConclusion::Refused(finding)) => finding,
+            RunAttempt::Executed(TrialConclusion::Passed) => {
+                return Err(ReductionProbeRefusal::TrialPassed);
+            }
+            RunAttempt::SkippedWithReason(_)
+            | RunAttempt::TimedOut(_)
+            | RunAttempt::InfrastructureFailed(_) => {
+                return Err(ReductionProbeRefusal::TrialDidNotConclude);
+            }
+        };
+        Ok(Self {
+            standing: report.standing().clone(),
+            preserved: Fingerprint::of(report.trial(), finding),
+            generation,
+            schema,
+            revision,
+            probe,
+        })
+    }
+
+    /// The exact execution standing the reduction reproduces.
+    #[must_use]
+    pub const fn standing(&self) -> &TrialRunStanding {
+        &self.standing
+    }
+
+    /// The report-derived failure fingerprint the reduction preserves.
+    #[must_use]
+    pub const fn preserved(&self) -> Fingerprint {
+        self.preserved
+    }
+
+    /// The generation profile declared for the input road.
+    #[must_use]
+    pub const fn generation(&self) -> GenerationProfile {
+        self.generation
+    }
+
+    /// The generated-support schema identity declared for the input road.
+    #[must_use]
+    pub const fn schema(&self) -> GeneratedSupportSchemaId {
+        self.schema
+    }
+
+    /// The revision posture bound to the probe adapter.
+    #[must_use]
+    pub const fn revision(&self) -> RevisionBinding {
+        self.revision
+    }
+
+    /// The byte-input probe bound to this exact report standing.
+    #[must_use]
+    pub(crate) const fn probe(&self) -> super::FingerprintProbe {
+        self.probe
+    }
+
+    /// The replay ceiling after the report and probe adapter meet.
+    #[must_use]
+    pub(crate) fn replay_posture(&self) -> ReplayPosture {
+        self.standing
+            .replay()
+            .meet_revision(self.revision.posture())
     }
 }
 
@@ -813,5 +1029,84 @@ impl ReductionOutcome {
     #[must_use]
     pub fn into_input(self) -> Vec<u8> {
         self.input
+    }
+}
+
+impl ReductionEvidence {
+    /// Retain one completed reduction and every authority-bearing input it ran under.
+    #[must_use]
+    pub(crate) fn recorded(
+        probe: &ReductionProbeBinding,
+        minimization: MinimizationProfile,
+        semantic_reducers: Vec<SemanticReducerExecution>,
+        byte_reducer: ByteReducerExecution,
+        outcome: ReductionOutcome,
+        replay: ReplayPosture,
+    ) -> Self {
+        Self {
+            standing: probe.standing().clone(),
+            generation: probe.generation(),
+            schema: probe.schema(),
+            probe_revision: probe.revision(),
+            minimization,
+            semantic_reducers,
+            byte_reducer,
+            outcome,
+            replay,
+        }
+    }
+
+    /// The exact execution standing reproduced by the reduction probe.
+    #[must_use]
+    pub const fn standing(&self) -> &TrialRunStanding {
+        &self.standing
+    }
+
+    /// The generation profile declared for the reduced input.
+    #[must_use]
+    pub const fn generation(&self) -> GenerationProfile {
+        self.generation
+    }
+
+    /// The generated-support schema identity declared for the reduced input.
+    #[must_use]
+    pub const fn schema(&self) -> GeneratedSupportSchemaId {
+        self.schema
+    }
+
+    /// The revision posture bound to the re-execution probe.
+    #[must_use]
+    pub const fn probe_revision(&self) -> RevisionBinding {
+        self.probe_revision
+    }
+
+    /// The minimization profile the reduction plan declared.
+    #[must_use]
+    pub const fn minimization(&self) -> MinimizationProfile {
+        self.minimization
+    }
+
+    /// The semantic reducers actually invoked, in execution order.
+    #[must_use]
+    pub fn semantic_reducers(&self) -> &[SemanticReducerExecution] {
+        &self.semantic_reducers
+    }
+
+    /// Whether the generic byte reducer was reached.
+    #[must_use]
+    pub const fn byte_reducer(&self) -> ByteReducerExecution {
+        self.byte_reducer
+    }
+
+    /// The reduced input, fingerprint, census, and halt posture.
+    #[must_use]
+    pub const fn outcome(&self) -> &ReductionOutcome {
+        &self.outcome
+    }
+
+    /// The replay ceiling after the report, probe, and invoked reducers meet.
+    #[must_use]
+    pub const fn replay_posture(&self) -> ReplayPosture {
+        self.replay
     }
 }

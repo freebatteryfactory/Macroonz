@@ -25,22 +25,26 @@
 //!
 //! # The exit
 //!
-//! A human admits, and admission is out of scope here: it is a two-part
-//! human-authored patch — the authored row, plus, for a replay-bearing ground,
-//! the capsule entering the harness's own depot as an entry the admission act
-//! itself authors. [`admission_patch`] names which of the two shapes a proposal
-//! would require, and nothing in this crate performs either. Runtime evidence
-//! never writes authored specification.
+//! A human explicitly invokes one of this module's admission operations after a
+//! caller-owned sink has taken durable custody of the proposal. Replay-bearing
+//! proposals additionally cross the caller-owned replay depot before the
+//! admitted row is returned. Runtime evidence never invokes either operation or
+//! writes authored specification by itself.
 
 use super::types::{
-    ActivationDisposition, AdmissionPatch, CandidateSketch, CheckGap, Demonstration,
-    FailureComparison, InferredObligation, KillProposalRefusal, MutantKilledGround,
-    MutantKilledProposal, MutationTarget, ObligationLane, OwedDeclaration, ProofDelta,
-    ProofDeltaRefusal, ProofRefusal, ProposalDestination, ProposalDocument, SurvivorExplanation,
-    SynthesisRefusal,
+    CandidateSketch, CheckGap, Demonstration, DischargeAdmissionReceipt, FailureComparison,
+    HumanAdmissionRefusal, InferredObligation, IntendedRejection, KillProposalRefusal,
+    MutantKilledGround, MutantKilledProposal, MutationOutcome, MutationReport, MutationTarget,
+    ObligationDischargedProposal, ObligationLane, OwedDeclaration, ProofDelta, ProofDeltaRefusal,
+    ProofRefusal, ProposalDestination, ProposalDocument, ReplayAdmissionReceipt,
+    ReplayBearingProposal, StoredProposalRef, SurvivorExplanation, SynthesisRefusal,
 };
 use super::wrap::mutant_scoped;
-use crate::descriptor::{CheckRef, ClaimRef, Origin, Row, StagedTableView, SynthesisFacts};
+use crate::depot::capsules::{ReplayCapsuleEntry, ReplayDepotSink};
+use crate::descriptor::{
+    CheckRef, ClaimRef, DischargeAdmission, Origin, ReplayAdmission, Row, StagedTableView,
+    SynthesisFacts,
+};
 use crate::report::{ClaimCoverage, Fingerprint, ReplayCapsule};
 use crate::runner::{Invocation, SelectionPlan, TrialBinding, TrialTable, run_all, trial_identity};
 use std::collections::BTreeSet;
@@ -129,29 +133,66 @@ pub fn prove_candidate(
 ///
 /// # Authority
 ///
-/// The demonstration is required by the SHAPE of this call: there is no road
-/// here from a claimed kill to a proposal that does not pass through the report
-/// a staged run wrote. The not-a-duplicate evidence is COMPUTED from that
-/// demonstration's own fingerprint rather than supplied, so the comparison is
-/// over the failure the run actually reached.
+/// The mutation report supplies the target, activation, and harness-demonstrated
+/// rejection as one closed record. The staged demonstration must name that same
+/// failure, and the capsule must stand over the demonstrating trial report and
+/// preserve its fingerprint. The not-a-duplicate evidence is computed from the
+/// joined demonstration rather than supplied.
 ///
 /// # Errors
 ///
-/// Refuses a candidate whose failure the known roster already carries, then
-/// whatever the proposal constructor refuses about the assembled values.
+/// Refuses a mutation report without a harness-demonstrated rejection, a
+/// mutation and staged demonstration naming different failures, a capsule over
+/// another execution or fingerprint, a candidate whose failure the known
+/// roster already carries, then whatever the proposal constructor refuses.
 pub fn offer_mutant_kill(
     candidate: Row,
-    target: MutationTarget,
-    activation: ActivationDisposition,
+    mutation: &MutationReport,
     capsule: ReplayCapsule,
     demonstration: Demonstration,
     known: Vec<Fingerprint>,
     destination: ProposalDestination,
 ) -> Result<MutantKilledProposal, KillProposalRefusal> {
+    let mutation_rejection = match mutation.outcome() {
+        MutationOutcome::Killed(IntendedRejection::Demonstrated(rejection)) => rejection,
+        MutationOutcome::Killed(IntendedRejection::ReportedByBackend { stated: _ })
+        | MutationOutcome::Survived
+        | MutationOutcome::Inconclusive(_) => {
+            return Err(KillProposalRefusal::MutationNotDemonstrated {
+                verdict: mutation.verdict(),
+            });
+        }
+    };
     let fingerprint = demonstration.rejection().fingerprint();
+    let mutation_fingerprint = mutation_rejection.fingerprint();
+    if mutation_fingerprint != fingerprint {
+        return Err(KillProposalRefusal::DemonstrationMismatch {
+            mutation: mutation_fingerprint.address(),
+            demonstration: fingerprint.address(),
+        });
+    }
+    let replay_execution = capsule.key().address();
+    let demonstration_execution = demonstration.trial_report().standing().key().address();
+    if replay_execution != demonstration_execution {
+        return Err(KillProposalRefusal::ReplayExecutionMismatch {
+            replay: replay_execution,
+            demonstration: demonstration_execution,
+        });
+    }
+    if capsule.fingerprint() != fingerprint {
+        return Err(KillProposalRefusal::ReplayFingerprintMismatch {
+            replay: capsule.fingerprint().address(),
+            demonstration: fingerprint.address(),
+        });
+    }
     let duplicate =
         FailureComparison::compared(fingerprint, known).map_err(KillProposalRefusal::Duplicate)?;
-    let ground = MutantKilledGround::shown(target, activation, capsule, demonstration);
+    let ground = MutantKilledGround::shown(
+        mutation.target().clone(),
+        mutation.activation(),
+        capsule,
+        demonstration,
+    );
     MutantKilledProposal::offered(candidate, ground, duplicate, destination)
         .map_err(KillProposalRefusal::Refused)
 }
@@ -234,16 +275,114 @@ pub fn route(obligation: &InferredObligation) -> ObligationLane {
     ObligationLane::from(obligation.shape())
 }
 
-/// Which two-part patch a human admitting this proposal would author.
+/// Admit one replay-bearing proposal after a human has ruled on stored review material.
 ///
 /// # Authority
 ///
-/// A statement about the road's EXIT and nothing else. Admission is a human act
-/// this crate never performs: the authored row is written by hand, and a
-/// replay-bearing ground's capsule enters the harness's own depot as an entry
-/// the admission act itself authors, with the row's replay reference pointing at
-/// it.
-#[must_use]
-pub fn admission_patch(proposal: &impl ProposalDocument) -> AdmissionPatch {
-    AdmissionPatch::from(proposal.ground_summary().capsule_posture())
+/// Calling this function is the explicit human boundary. Rust cannot establish
+/// who called it; the operation establishes only that the supplied proposal
+/// custody names this proposal, that its typed ground carries a replay capsule,
+/// that the caller-owned depot accepted the exact derived entry, and that the
+/// returned row cites those joined facts. No runtime road invokes it implicitly.
+///
+/// # Errors
+///
+/// Refuses, before replay storage, proposal custody for another proposal and a
+/// row whose canonical encoding refused. After storage it refuses a location
+/// bound to another replay entry.
+pub fn human_admit_replay<Document, Sink>(
+    proposal: &Document,
+    proposal_custody: StoredProposalRef,
+    depot: &mut Sink,
+) -> Result<ReplayAdmissionReceipt, HumanAdmissionRefusal>
+where
+    Document: ReplayBearingProposal,
+    Sink: ReplayDepotSink,
+{
+    proposal_custody_agrees(proposal, &proposal_custody)?;
+    let entry =
+        ReplayCapsuleEntry::admitted(proposal.identity(), proposal.replay_capsule().clone());
+    let replay = entry.replay();
+    let row = admitted_row(
+        proposal,
+        Origin::AdmittedReplay(ReplayAdmission::admitted(
+            proposal.identity(),
+            proposal.replay_ground(),
+            proposal.destination().suite(),
+            replay,
+        )),
+    )?;
+    let replay_custody = depot
+        .store(&entry)
+        .map_err(HumanAdmissionRefusal::ReplayDepotRefused)?;
+    if replay_custody.replay() != replay {
+        return Err(HumanAdmissionRefusal::ReplayCustodyMismatch {
+            expected: replay,
+            found: replay_custody.replay(),
+        });
+    }
+    Ok(ReplayAdmissionReceipt::completed(
+        row,
+        entry,
+        proposal_custody,
+        replay_custody,
+    ))
+}
+
+/// Admit one obligation-discharge proposal after a human has ruled on stored review material.
+///
+/// # Authority
+///
+/// The proposal's type makes replay custody inapplicable. The operation checks
+/// exact proposal custody and returns the row whose origin cites that admission;
+/// no runtime road invokes it implicitly.
+///
+/// # Errors
+///
+/// Refuses proposal custody for another proposal, then a row whose canonical
+/// encoding refused.
+pub fn human_admit_discharge(
+    proposal: &ObligationDischargedProposal,
+    proposal_custody: StoredProposalRef,
+) -> Result<DischargeAdmissionReceipt, HumanAdmissionRefusal> {
+    proposal_custody_agrees(proposal, &proposal_custody)?;
+    let row = admitted_row(
+        proposal,
+        Origin::AdmittedDischarge(DischargeAdmission::admitted(
+            proposal.identity(),
+            proposal.destination().suite(),
+        )),
+    )?;
+    Ok(DischargeAdmissionReceipt::completed(row, proposal_custody))
+}
+
+/// Check that stored review custody names the proposal being admitted.
+fn proposal_custody_agrees(
+    proposal: &impl ProposalDocument,
+    custody: &StoredProposalRef,
+) -> Result<(), HumanAdmissionRefusal> {
+    let expected = proposal.identity();
+    let found = custody.proposal();
+    if expected == found {
+        return Ok(());
+    }
+    Err(HumanAdmissionRefusal::ProposalCustodyMismatch { expected, found })
+}
+
+/// Re-author one candidate row under the exact admitted origin its proposal earned.
+fn admitted_row(
+    proposal: &impl ProposalDocument,
+    origin: Origin,
+) -> Result<Row, HumanAdmissionRefusal> {
+    let candidate = proposal.candidate();
+    Row::declared(
+        candidate.claim(),
+        proposal.destination().suite(),
+        candidate.classification().clone(),
+        candidate.subject(),
+        candidate.check(),
+        candidate.population(),
+        origin,
+    )
+    .map_err(HumanAdmissionRefusal::RowRefused)
 }

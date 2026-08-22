@@ -6,7 +6,7 @@ use std::fmt;
 use threadpak_testpak::descriptor::{NameRefusal, PopulationRef};
 use threadpak_testpak::generate::{
     ByteSource, CaseWidth, CaseWidthRefusal, GenerationHalt, GenerationPlan, GenerationPlanRefusal,
-    InputOrigin, PreconditionVerdict, RejectionBudget, SizeProgression, admit_every_sequence,
+    InputOrigin, PreconditionVerdict, RejectionAllowance, SizeProgression, admit_every_sequence,
 };
 use threadpak_testpak::properties::{
     AMBIENT_PATHWAY_DISAGREEMENT, ANSWER_EXPECTED, Agreement, COMPOSED_RETURN_DISAGREEMENT,
@@ -350,7 +350,7 @@ fn generation_plan(
         InputOrigin::Supplied(supplied.to_vec()),
         CaseBudget::declared(cases),
         ByteBudget::declared(bytes),
-        RejectionBudget::declared(2u32),
+        RejectionAllowance::declared(2u32),
         SizeProgression::Constant {
             width: CaseWidth::declared(1usize)?,
         },

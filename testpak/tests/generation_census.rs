@@ -7,7 +7,7 @@ use std::fmt;
 use threadpak_testpak::descriptor::{NameRefusal, PopulationRef};
 use threadpak_testpak::generate::{
     ByteSource, CaseWidth, CaseWidthRefusal, GenerationDisposition, GenerationHalt, GenerationPlan,
-    GenerationPlanRefusal, InputOrigin, PreconditionVerdict, RejectionBudget, SizeProgression,
+    GenerationPlanRefusal, InputOrigin, PreconditionVerdict, RejectionAllowance, SizeProgression,
     decode_arbitrary, drive,
 };
 use threadpak_testpak::report::{ByteBudget, CaseBudget, GenerationProfile};
@@ -55,6 +55,10 @@ fn admits_even(commands: &[u8]) -> PreconditionVerdict {
     }
 }
 
+fn rejects_every_sequence(_commands: &[u8]) -> PreconditionVerdict {
+    PreconditionVerdict::Rejected
+}
+
 #[test]
 fn drive_classifies_each_reached_case_once() -> Result<(), GenerationRoadFailure> {
     let plan = GenerationPlan::declared(
@@ -63,7 +67,7 @@ fn drive_classifies_each_reached_case_once() -> Result<(), GenerationRoadFailure
         InputOrigin::Supplied(SOURCE.to_vec()),
         CaseBudget::declared(3u32),
         ByteBudget::declared(3u64),
-        RejectionBudget::declared(2u32),
+        RejectionAllowance::declared(2u32),
         SizeProgression::Constant {
             width: CaseWidth::declared(1usize)?,
         },
@@ -114,5 +118,75 @@ fn drive_classifies_each_reached_case_once() -> Result<(), GenerationRoadFailure
             (2u32, &[4u8][..], &[4u8][..])
         ]
     );
+    Ok(())
+}
+
+#[test]
+fn positive_rejection_allowance_stops_after_exactly_that_many_rejections()
+-> Result<(), GenerationRoadFailure> {
+    let plan = GenerationPlan::declared(
+        PopulationRef::named("testpak", "bounded-rejections")?,
+        GenerationProfile::declared("bounded-rejections", 1u32),
+        InputOrigin::Supplied(vec![1u8, 3u8, 5u8]),
+        CaseBudget::declared(3u32),
+        ByteBudget::declared(3u64),
+        RejectionAllowance::declared(1u32),
+        SizeProgression::Constant {
+            width: CaseWidth::declared(1usize)?,
+        },
+    )?;
+    let generated = drive(
+        &plan,
+        &ByteSource::of_plan(&plan),
+        decode_arbitrary::<u8>,
+        rejects_every_sequence,
+    );
+
+    assert_eq!(
+        generated
+            .census()
+            .count_of(GenerationDisposition::PreconditionRejected),
+        1u32
+    );
+    assert_eq!(generated.census().attempted(), 1u32);
+    assert_eq!(generated.halt(), GenerationHalt::RejectionAllowanceSpent);
+    Ok(())
+}
+
+#[test]
+fn zero_rejection_allowance_permits_success_then_retains_the_first_rejection()
+-> Result<(), GenerationRoadFailure> {
+    let plan = GenerationPlan::declared(
+        PopulationRef::named("testpak", "zero-rejections")?,
+        GenerationProfile::declared("zero-rejections", 1u32),
+        InputOrigin::Supplied(vec![2u8, 1u8]),
+        CaseBudget::declared(2u32),
+        ByteBudget::declared(2u64),
+        RejectionAllowance::declared(0u32),
+        SizeProgression::Constant {
+            width: CaseWidth::declared(1usize)?,
+        },
+    )?;
+    let generated = drive(
+        &plan,
+        &ByteSource::of_plan(&plan),
+        decode_arbitrary::<u8>,
+        admits_even,
+    );
+
+    assert_eq!(
+        generated
+            .census()
+            .count_of(GenerationDisposition::Generated),
+        1u32
+    );
+    assert_eq!(
+        generated
+            .census()
+            .count_of(GenerationDisposition::PreconditionRejected),
+        1u32
+    );
+    assert_eq!(generated.census().attempted(), 2u32);
+    assert_eq!(generated.halt(), GenerationHalt::RejectionAllowanceSpent);
     Ok(())
 }

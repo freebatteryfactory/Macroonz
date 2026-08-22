@@ -12,7 +12,7 @@ use threadpak_testpak::descriptor::{
 };
 use threadpak_testpak::generate::{
     ByteSource, CaseWidth, CaseWidthRefusal, GenerationPlan, GenerationPlanRefusal, InputOrigin,
-    RejectionBudget, SizeProgression, admit_every_sequence, decode_arbitrary,
+    RejectionAllowance, SizeProgression, admit_every_sequence, decode_arbitrary,
 };
 use threadpak_testpak::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use threadpak_testpak::properties::{
@@ -163,7 +163,7 @@ fn plan(
         origin,
         CaseBudget::declared(1u32),
         ByteBudget::declared(1u64),
-        RejectionBudget::declared(1u32),
+        RejectionAllowance::declared(1u32),
         SizeProgression::Constant {
             width: CaseWidth::declared(1usize)?,
         },

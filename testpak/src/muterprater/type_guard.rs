@@ -20,30 +20,32 @@ use super::{
     BaselinePrecondition, BaselineQualification, BudgetRefusal, CandidateSketch, CheckGap,
     ClaimCeiling, ClaimPinnedGround, ClaimPinnedProposal, CompiledPressureWitness,
     CoordinateRefusal, DemonstratedRejection, Demonstration, DiffPath, DiffPathRefusal,
-    DischargeEvidence, DudPlant, DuplicateRefusal, EquivalenceAxis, EvaluationBinding,
-    EvaluationCall, EvaluationControl, EvaluationFamilyRef, EvaluationObservation, EvaluationPair,
-    EvaluationPairRefusal, EvaluationPairStanding, EvaluationSurface, EvaluationSurfaceId,
-    ExecutionAxis, ExplanationRefusal, FailureComparison, FamilyAttribution, GrammarStanding,
-    GrammarVersion, InconclusiveCause, InferredObligation, IntendedRejection,
-    InterpretedMutationEvidence, InterpretedTrust, KillRefusal, MUTATION_TARGET_TAG,
-    MappingPosture, MaterializationAxis, MeaningCheck, MutantId, MutantKilledGround,
-    MutantKilledProposal, MutationCensus, MutationIdentity, MutationOutcome, MutationPermission,
-    MutationPoint, MutationPolicy, MutationPolicyId, MutationReport, MutationRun, MutationSite,
-    MutationTarget, MutationVerdict, MutationWitness, MutationWitnessRefusal, NoComparison,
-    NoComparisonReason, NoMutationParityQualification, NoMutationParityReading,
-    NoMutationParityStanding, NoMutationReports, NoMutationResults, ObligationComparison,
-    ObligationDischargedGround, ObligationDischargedProposal, ObligationLane, OperatorFamilyRef,
-    OracleClass, OwedClaim, OwedClaimRefusal, OwedDeclaration, PROPOSAL_TAG,
+    DischargeAdmissionReceipt, DischargeEvidence, DudPlant, DuplicateRefusal, EquivalenceAxis,
+    EvaluationBinding, EvaluationCall, EvaluationControl, EvaluationFamilyRef,
+    EvaluationObservation, EvaluationPair, EvaluationPairRefusal, EvaluationPairStanding,
+    EvaluationSurface, EvaluationSurfaceId, ExecutionAxis, ExplanationRefusal, FailureComparison,
+    FamilyAttribution, GrammarStanding, GrammarVersion, InconclusiveCause, InferredObligation,
+    IntendedRejection, InterpretedMutationEvidence, InterpretedTrust, KillRefusal,
+    MUTATION_TARGET_TAG, MappingPosture, MaterializationAxis, MeaningCheck, MutantId,
+    MutantKilledGround, MutantKilledProposal, MutationCensus, MutationIdentity, MutationOutcome,
+    MutationPermission, MutationPoint, MutationPolicy, MutationPolicyId, MutationReport,
+    MutationRun, MutationSite, MutationTarget, MutationVerdict, MutationWitness,
+    MutationWitnessRefusal, NoComparison, NoComparisonReason, NoMutationParityQualification,
+    NoMutationParityReading, NoMutationParityStanding, NoMutationReports, NoMutationResults,
+    ObligationComparison, ObligationDischargedGround, ObligationDischargedProposal, ObligationLane,
+    OperatorFamilyRef, OracleClass, OwedClaim, OwedClaimRefusal, OwedDeclaration, PROPOSAL_TAG,
     ParityQualificationRefusal, PermissionRefusal, PlanRefusal, PlannedDamage, PlannedRun,
     PointCatalogPosture, PointRefusal, PolicyMembership, PolicyRefusal, PressureBudget,
     PressureLane, PressureWitnessRefusal, ProductionBinding, ProductionCall, ProofDelta,
     ProofDeltaRefusal, ProofPlan, ProofRefusal, ProofShape, ProposalDestination, ProposalDocument,
     ProposalRefusal, QualificationRefusal, ReadingSource, RejectedNoMutationParity,
-    RejectionIdentity, RewriteCandidate, RewriteDescriptor, RewriteRefusal, RewriteRoster,
-    RewriteTrust, RosterRefusal, ScopeShape, ScopedInvocation, SelectionRefusal, SinkRefusal,
-    SourceCoordinate, StoredProposalRef, SurfaceRefusal, SurvivorExplanation, UnparsedLine,
-    WrapReading, WrapRefusal, WrapStanding, WrappedBackend, sealed,
+    RejectionIdentity, ReplayAdmissionReceipt, ReplayBearingProposal, RewriteCandidate,
+    RewriteDescriptor, RewriteRefusal, RewriteRoster, RewriteTrust, RosterRefusal, ScopeShape,
+    ScopedInvocation, SelectionRefusal, SinkRefusal, SourceCoordinate, StoredProposalRef,
+    SurfaceRefusal, SurvivorExplanation, UnparsedLine, WrapReading, WrapRefusal, WrapStanding,
+    WrappedBackend, sealed,
 };
+use crate::depot::capsules::{ReplayCapsuleEntry, StoredReplayEntryRef};
 use crate::depot::operator_families::OPERATOR_FAMILIES;
 use crate::depot::types::OperatorFamily;
 use crate::descriptor::{
@@ -2625,7 +2627,7 @@ impl Demonstration {
             TablePosture::Staged { parent: _ } => {}
             TablePosture::Authored => return Err(ProofRefusal::NotStaged),
         }
-        let rejection = {
+        let (trial_report, rejection) = {
             let Some(entry) = report
                 .census()
                 .iter()
@@ -2637,9 +2639,10 @@ impl Demonstration {
                 return Err(ProofRefusal::CandidateNotSelected);
             };
             match executed.attempt() {
-                RunAttempt::Executed(TrialConclusion::Refused(finding)) => {
-                    DemonstratedRejection::demonstrated(candidate, finding.clone())
-                }
+                RunAttempt::Executed(TrialConclusion::Refused(finding)) => (
+                    executed.clone(),
+                    DemonstratedRejection::demonstrated(candidate, finding.clone()),
+                ),
                 RunAttempt::Executed(TrialConclusion::Passed) => {
                     return Err(ProofRefusal::CandidateDidNotRefuse);
                 }
@@ -2650,13 +2653,23 @@ impl Demonstration {
                 }
             }
         };
-        Ok(Self { report, rejection })
+        Ok(Self {
+            report,
+            trial_report,
+            rejection,
+        })
     }
 
     /// The report the staged run wrote.
     #[must_use]
     pub const fn report(&self) -> &RunReport {
         &self.report
+    }
+
+    /// The candidate trial report the rejection was read from.
+    #[must_use]
+    pub const fn trial_report(&self) -> &crate::report::TrialReport {
+        &self.trial_report
     }
 
     /// The rejection read out of it.
@@ -2766,7 +2779,7 @@ impl NoComparison {
 impl MutantKilledGround {
     /// The ground a demonstrated kill stands on.
     #[must_use]
-    pub const fn shown(
+    pub(in crate::muterprater) const fn shown(
         target: MutationTarget,
         activation: ActivationDisposition,
         capsule: ReplayCapsule,
@@ -2883,7 +2896,7 @@ impl MutantKilledProposal {
     /// Refuses, in a declared dependent order: a row that does not carry the
     /// candidate origin arm, and a survivor synthesis fact naming a different
     /// point than the ground's target names.
-    pub fn offered(
+    pub(in crate::muterprater) fn offered(
         candidate: Row,
         ground: MutantKilledGround,
         duplicate: FailureComparison,
@@ -2913,28 +2926,6 @@ impl MutantKilledProposal {
 }
 
 impl ClaimPinnedProposal {
-    /// One proposal on the claim-pinned ground, offered.
-    ///
-    /// # Errors
-    ///
-    /// Refuses a row that does not carry the candidate origin arm. This ground
-    /// names no mutation point, so there is no target for a survivor synthesis
-    /// fact to disagree with and that cause is not reachable from here.
-    pub fn offered(
-        candidate: Row,
-        ground: ClaimPinnedGround,
-        duplicate: NoComparison,
-        destination: ProposalDestination,
-    ) -> Result<Self, ProposalRefusal> {
-        let _candidate = candidate_facts(&candidate)?;
-        Ok(Self {
-            candidate,
-            ground,
-            duplicate,
-            destination,
-        })
-    }
-
     /// The ground it stands on.
     #[must_use]
     pub const fn ground(&self) -> &ClaimPinnedGround {
@@ -2949,27 +2940,6 @@ impl ClaimPinnedProposal {
 }
 
 impl ObligationDischargedProposal {
-    /// One proposal on the obligation-discharged ground, offered.
-    ///
-    /// # Errors
-    ///
-    /// Refuses a row that does not carry the candidate origin arm, on the terms
-    /// [`ClaimPinnedProposal::offered`] states.
-    pub fn offered(
-        candidate: Row,
-        ground: ObligationDischargedGround,
-        duplicate: ObligationComparison,
-        destination: ProposalDestination,
-    ) -> Result<Self, ProposalRefusal> {
-        let _candidate = candidate_facts(&candidate)?;
-        Ok(Self {
-            candidate,
-            ground,
-            duplicate,
-            destination,
-        })
-    }
-
     /// The ground it stands on.
     #[must_use]
     pub const fn ground(&self) -> &ObligationDischargedGround {
@@ -3041,6 +3011,26 @@ impl ProposalDocument for ObligationDischargedProposal {
     }
 }
 
+impl ReplayBearingProposal for MutantKilledProposal {
+    fn replay_capsule(&self) -> &ReplayCapsule {
+        self.ground.capsule()
+    }
+
+    fn replay_ground(&self) -> crate::descriptor::ReplayBearingGround {
+        crate::descriptor::ReplayBearingGround::MutantKilled
+    }
+}
+
+impl ReplayBearingProposal for ClaimPinnedProposal {
+    fn replay_capsule(&self) -> &ReplayCapsule {
+        self.ground.capsule()
+    }
+
+    fn replay_ground(&self) -> crate::descriptor::ReplayBearingGround {
+        crate::descriptor::ReplayBearingGround::ClaimPinned
+    }
+}
+
 /// The one road every proposal's identity is derived by, over the three
 /// readings the three of them share.
 ///
@@ -3108,23 +3098,95 @@ fn survivor_point_agrees(
 }
 
 impl StoredProposalRef {
-    /// The location a sink stored a proposal at.
+    /// Bind a sink's storage location to the proposal it stored.
     ///
     /// # Errors
     ///
     /// Refuses an empty token, which names nowhere.
-    pub fn at(token: &str) -> Result<Self, SinkRefusal> {
+    pub fn at(proposal: ProposalId, token: &str) -> Result<Self, SinkRefusal> {
         if token.is_empty() {
             return Err(SinkRefusal::EmptyLocation);
         }
         Ok(Self {
+            proposal,
             token: token.to_owned(),
         })
+    }
+
+    /// The content identity of the proposal stored at this location.
+    #[must_use]
+    pub const fn proposal(&self) -> ProposalId {
+        self.proposal
     }
 
     /// The token, for a sink to read its own location back.
     #[must_use]
     pub fn token(&self) -> &str {
         &self.token
+    }
+}
+
+impl ReplayAdmissionReceipt {
+    /// Retain the exact outputs of one completed replay-bearing human admission.
+    #[must_use]
+    pub(in crate::muterprater) fn completed(
+        row: Row,
+        entry: ReplayCapsuleEntry,
+        proposal_custody: StoredProposalRef,
+        replay_custody: StoredReplayEntryRef,
+    ) -> Self {
+        Self {
+            row,
+            entry,
+            proposal_custody,
+            replay_custody,
+        }
+    }
+
+    /// The row whose candidate origin became human-admitted provenance.
+    #[must_use]
+    pub const fn row(&self) -> &Row {
+        &self.row
+    }
+
+    /// The exact capsule entry the human admission stored.
+    #[must_use]
+    pub const fn entry(&self) -> &ReplayCapsuleEntry {
+        &self.entry
+    }
+
+    /// The caller's review-durable custody of the proposal.
+    #[must_use]
+    pub const fn proposal_custody(&self) -> &StoredProposalRef {
+        &self.proposal_custody
+    }
+
+    /// The caller's storage location for the replay entry.
+    #[must_use]
+    pub const fn replay_custody(&self) -> &StoredReplayEntryRef {
+        &self.replay_custody
+    }
+}
+
+impl DischargeAdmissionReceipt {
+    /// Retain the outputs of one completed obligation-discharge human admission.
+    #[must_use]
+    pub(in crate::muterprater) fn completed(row: Row, proposal_custody: StoredProposalRef) -> Self {
+        Self {
+            row,
+            proposal_custody,
+        }
+    }
+
+    /// The row whose candidate origin became human-admitted provenance.
+    #[must_use]
+    pub const fn row(&self) -> &Row {
+        &self.row
+    }
+
+    /// The caller's review-durable custody of the proposal.
+    #[must_use]
+    pub const fn proposal_custody(&self) -> &StoredProposalRef {
+        &self.proposal_custody
     }
 }

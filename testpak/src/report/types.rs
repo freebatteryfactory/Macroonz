@@ -263,9 +263,10 @@ pub enum CacheEligibility {
 ///
 /// # Authority
 ///
-/// The posture is the MEET's image — the weakest of the attachment's two
-/// revision bindings decides it — so a mixed attachment can never mint an
-/// exact-replay claim over an author's-word check revision.
+/// The runner begins the posture at the attachment revision meet. A reduction
+/// that produces a replay capsule meets that ceiling with its probe adapter and
+/// every semantic reducer actually invoked, so any author-declared or
+/// untracked participant narrows the resulting account.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ReplayPosture {
     /// The one posture that earns the phrase "replay exactly": both revisions
@@ -307,17 +308,22 @@ pub struct MinimizationProfile {
 
 /// The domain tag every replay capsule identity is derived under.
 pub const REPLAY_CAPSULE_TAG: DomainTag =
-    DomainTag::declared("replay-capsule", IdentityProfileVersion::declared(1));
+    DomainTag::declared("replay-capsule", IdentityProfileVersion::declared(2));
 
 /// The closed output shape of one run-bound reproduction account.
 ///
-/// It binds the execution key, the exact input bytes, the generation and
-/// minimization profiles with their versions, the generated-support schema
-/// identity, and the replay posture the attachment's meet produced.
+/// It binds the execution key, the exact input bytes, the preserved failure
+/// fingerprint, the generation and minimization profiles with their versions,
+/// the generated-support schema identity, and the replay posture the complete
+/// reduction path earned.
 ///
 /// # Construction
 ///
-/// No public constructor accepts these seats independently. Run capture must bind recorded input to the execution standing that derives the posture before it can mint this account; that custody is not claimed by this report vocabulary alone, and human admission is a later act.
+/// No public constructor accepts these seats independently. The generation
+/// instrument's [`crate::generate::capture_replay`] operation accepts only
+/// completed [`crate::generate::ReductionEvidence`], whose reduction probe is
+/// bound to a real refused report and whose posture already includes every
+/// invoked callable revision. Human admission is a later act.
 ///
 /// # Nonclaims
 ///
@@ -329,6 +335,7 @@ pub const REPLAY_CAPSULE_TAG: DomainTag =
 pub struct ReplayCapsule {
     key: ExecutionKey,
     input: Vec<u8>,
+    fingerprint: Fingerprint,
     generation: GenerationProfile,
     minimization: MinimizationProfile,
     schema: GeneratedSupportSchemaId,

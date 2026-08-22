@@ -154,17 +154,19 @@ pub fn execution_key_preimage(
 /// | - | ------ | -------- |
 /// | 1 | execution key | `bytes(…)` of the key's derived address |
 /// | 2 | input | `bytes(…)` — the exact input at full length, never a fold |
-/// | 3 | generation profile | `bytes(utf8)` |
-/// | 4 | generation version | `u32be` |
-/// | 5 | minimization profile | `bytes(utf8)` |
-/// | 6 | minimization version | `u32be` |
-/// | 7 | generated-support schema | `bytes(…)` of its address, full thirty-two |
-/// | 8 | replay posture | one byte, [`ReplayPosture::slot`] |
+/// | 3 | failure fingerprint | `bytes(…)` of its derived address, full thirty-two |
+/// | 4 | generation profile | `bytes(utf8)` |
+/// | 5 | generation version | `u32be` |
+/// | 6 | minimization profile | `bytes(utf8)` |
+/// | 7 | minimization version | `u32be` |
+/// | 8 | generated-support schema | `bytes(…)` of its address, full thirty-two |
+/// | 9 | replay posture | one byte, [`ReplayPosture::slot`] |
 #[must_use]
 pub fn replay_capsule_preimage(capsule: &ReplayCapsule) -> Vec<u8> {
     let mut bytes = Vec::new();
     encode_bytes(capsule.key().address().as_bytes(), &mut bytes);
     encode_bytes(capsule.input(), &mut bytes);
+    encode_bytes(capsule.fingerprint().address().as_bytes(), &mut bytes);
     encode_bytes(capsule.generation().name().as_bytes(), &mut bytes);
     bytes.extend_from_slice(&capsule.generation().version().to_be_bytes());
     encode_bytes(capsule.minimization().name().as_bytes(), &mut bytes);

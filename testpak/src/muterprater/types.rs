@@ -21,6 +21,7 @@
 //! ([`crate::depot`]). Nothing here restates any of those contracts: this home
 //! BINDS those values, and what they mean is written where they are declared.
 
+use crate::depot::capsules::{ReplayCapsuleEntry, ReplayDepotRefusal, StoredReplayEntryRef};
 use crate::depot::types::OperatorFamily;
 use crate::descriptor::{
     AdmissionGround, CheckRef, ClaimRef, Classification, ExecutionSuite, MutationPointRef,
@@ -1999,6 +2000,7 @@ pub struct DischargeEvidence {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Demonstration {
     report: RunReport,
+    trial_report: TrialReport,
     rejection: DemonstratedRejection,
 }
 
@@ -2221,6 +2223,20 @@ pub trait ProposalDocument: sealed::Sealed {
     fn identity(&self) -> ProposalId;
 }
 
+/// The replay-bearing subset of the sealed proposal roster.
+///
+/// A discharge proposal cannot implement this trait and therefore cannot reach
+/// the replay admission operation. The two implementors expose the exact
+/// capsule and narrowed ground already carried by their typed proposal ground;
+/// no caller supplies either beside the proposal.
+pub trait ReplayBearingProposal: ProposalDocument {
+    /// The run-bound capsule this proposal carries.
+    fn replay_capsule(&self) -> &ReplayCapsule;
+
+    /// The replay-bearing ground the human admission states.
+    fn replay_ground(&self) -> crate::descriptor::ReplayBearingGround;
+}
+
 pub(super) mod sealed {
     /// The seal. Implemented for this home's three proposals and nothing else.
     #[expect(
@@ -2235,8 +2251,8 @@ pub(super) mod sealed {
 /// # Authority
 ///
 /// Process-local until a caller's own sink stores it. Constructing one asserts
-/// nothing about admission: a human admits, and admission is a two-part
-/// human-authored patch this crate never performs.
+/// nothing about admission: a human must explicitly invoke the admission
+/// operation after review custody exists, and no runtime road can invoke it.
 ///
 /// The comparison seat takes a [`FailureComparison`] and admits nothing else, so
 /// "is this evidence the comparison this ground owes?" is not a question that can
@@ -2305,12 +2321,38 @@ pub enum ProposalRefusal {
 
 /// Why one mutant-killed proposal was not offered.
 ///
-/// Dependent checks in a declared order: the duplicate comparison is taken
-/// before the proposal is assembled, so a find already made never reaches the
-/// constructor at all.
+/// Dependent checks in a declared order: a harness-demonstrated mutation
+/// rejection, agreement with the staged demonstration, replay execution and
+/// fingerprint binding, duplicate comparison, then proposal construction.
 #[must_use = "a refusal is the reason a mutant-killed proposal was not offered"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum KillProposalRefusal {
+    /// The mutation report does not carry a harness-demonstrated rejection.
+    MutationNotDemonstrated {
+        /// The verdict the report actually earned.
+        verdict: MutationVerdict,
+    },
+    /// The mutation report and staged demonstration name different failures.
+    DemonstrationMismatch {
+        /// The content address of the failure the mutation report names.
+        mutation: ContentAddress,
+        /// The content address of the failure the staged demonstration names.
+        demonstration: ContentAddress,
+    },
+    /// The replay capsule stands over another execution.
+    ReplayExecutionMismatch {
+        /// The execution address the capsule names.
+        replay: ContentAddress,
+        /// The execution address the demonstrating trial report names.
+        demonstration: ContentAddress,
+    },
+    /// The replay capsule preserved another failure.
+    ReplayFingerprintMismatch {
+        /// The content address of the failure the capsule preserved.
+        replay: ContentAddress,
+        /// The content address of the failure the staged demonstration names.
+        demonstration: ContentAddress,
+    },
     /// The comparison found the candidate's failure already known.
     Duplicate(DuplicateRefusal),
     /// The proposal constructor refused the values that were assembled.
@@ -2331,8 +2373,9 @@ pub enum KillProposalRefusal {
 /// It is not an identity, not a path this crate can interpret, and not evidence
 /// that the destination is durable. What the token spells is the sink's own
 /// business.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StoredProposalRef {
+    proposal: ProposalId,
     token: String,
 }
 
@@ -2390,29 +2433,54 @@ pub trait ProposalSink {
     ) -> Result<StoredProposalRef, SinkRefusal>;
 }
 
-/// The two parts a human's admission act authors, named so the proposal road's
-/// exit is stated rather than implied.
+/// A completed human admission on a replay-bearing proposal.
 ///
-/// # Authority
+/// The admitted row, exact depot entry, proposal custody, and depot custody
+/// ride together. Construction happens only after the caller's sink reports the
+/// exact entry stored.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReplayAdmissionReceipt {
+    row: Row,
+    entry: ReplayCapsuleEntry,
+    proposal_custody: StoredProposalRef,
+    replay_custody: StoredReplayEntryRef,
+}
+
+/// A completed human admission on an obligation-discharge proposal.
 ///
-/// Admission is OUT OF SCOPE for this crate: it is a human act, and nothing here
-/// performs either part. This value exists so a reader of a proposal can see
-/// what admitting it would require, and so no road here is mistaken for one that
-/// admits.
+/// The discharge authors no replay entry; the admitted row is its durable
+/// behavioral record.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DischargeAdmissionReceipt {
+    row: Row,
+    proposal_custody: StoredProposalRef,
+}
+
+/// Why an explicit human admission did not complete.
 ///
-/// # Nonclaims
-///
-/// Holding one is not an admission and creates nothing. The authored row and —
-/// for a replay-bearing ground — the depot capsule entry are both written by the
-/// admission act itself, by hand, outside this crate.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AdmissionPatch {
-    /// The admission authors the row and a depot capsule entry the row's replay
-    /// reference points at.
-    RowAndCapsule,
-    /// The admission authors the row alone; the row IS the discharge's permanent
-    /// record.
-    RowAlone,
+/// Checks precede caller storage: proposal custody, then row construction, then
+/// the replay depot's storage result and its exact-reference binding.
+#[must_use = "a refusal is the reason human admission did not complete"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum HumanAdmissionRefusal {
+    /// The supplied review custody belongs to another proposal.
+    ProposalCustodyMismatch {
+        /// The proposal being admitted.
+        expected: ProposalId,
+        /// The proposal the storage reference names.
+        found: ProposalId,
+    },
+    /// The admitted row could not be encoded.
+    RowRefused(RowRefusal),
+    /// The caller's replay depot refused storage.
+    ReplayDepotRefused(ReplayDepotRefusal),
+    /// The sink reported a location bound to another replay entry.
+    ReplayCustodyMismatch {
+        /// The content-derived replay reference being admitted.
+        expected: crate::descriptor::ReplayRef,
+        /// The replay reference the sink's location names.
+        found: crate::descriptor::ReplayRef,
+    },
 }
 
 // ---------------------------------------------------------------------------

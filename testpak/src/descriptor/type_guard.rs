@@ -221,7 +221,7 @@ impl ReplayRef {
     /// The replay reference, over the content address of the depot capsule
     /// entry an admission act authored.
     #[must_use]
-    pub const fn over(address: ContentAddress) -> Self {
+    pub(crate) const fn over(address: ContentAddress) -> Self {
         Self(address)
     }
 
@@ -342,7 +342,7 @@ impl ReplayAdmission {
     /// The ground is the narrowed one, so this constructor cannot be handed a
     /// ground that authors no capsule — the seat has no spelling for one.
     #[must_use]
-    pub const fn admitted(
+    pub(crate) const fn admitted(
         proposal: ProposalId,
         ground: ReplayBearingGround,
         destination: ExecutionSuite,
@@ -396,7 +396,7 @@ impl DischargeAdmission {
     /// No ground is taken: a discharge stands on exactly one, so the value is
     /// forced and a caller is not asked to supply what it cannot choose.
     #[must_use]
-    pub const fn admitted(proposal: ProposalId, destination: ExecutionSuite) -> Self {
+    pub(crate) const fn admitted(proposal: ProposalId, destination: ExecutionSuite) -> Self {
         Self {
             proposal,
             destination,

@@ -21,7 +21,8 @@ use super::{
 };
 use crate::clock::MeasurementReading;
 use crate::descriptor::{
-    CanonicalRowBytes, ClaimRef, GeneratedSupportSchemaId, RevisionBinding, TablePosture, TrialKey,
+    CanonicalRowBytes, ClaimRef, GeneratedSupportSchemaId, RevisionBinding, RevisionPosture,
+    TablePosture, TrialKey,
 };
 use crate::identity::ContentAddress;
 use crate::report::encode::{
@@ -423,6 +424,32 @@ impl MinimizationProfile {
 }
 
 impl ReplayCapsule {
+    /// Mint one run-bound account after the reduction owner has joined every input.
+    ///
+    /// Crate-visible solely for [`crate::generate::capture_replay`]. Public
+    /// callers cannot submit these seats independently; they must first earn
+    /// [`crate::generate::ReductionEvidence`].
+    #[must_use]
+    pub(crate) fn captured(
+        standing: &TrialRunStanding,
+        input: &[u8],
+        fingerprint: Fingerprint,
+        generation: GenerationProfile,
+        minimization: MinimizationProfile,
+        schema: GeneratedSupportSchemaId,
+        posture: ReplayPosture,
+    ) -> Self {
+        Self {
+            key: standing.key().clone(),
+            input: input.to_vec(),
+            fingerprint,
+            generation,
+            minimization,
+            schema,
+            posture,
+        }
+    }
+
     /// The execution this capsule reproduces.
     #[must_use]
     pub const fn key(&self) -> &ExecutionKey {
@@ -433,6 +460,12 @@ impl ReplayCapsule {
     #[must_use]
     pub fn input(&self) -> &[u8] {
         &self.input
+    }
+
+    /// The failure fingerprint this input preserved during reduction.
+    #[must_use]
+    pub const fn fingerprint(&self) -> Fingerprint {
+        self.fingerprint
     }
 
     /// The generation profile that produced the input.
@@ -463,6 +496,26 @@ impl ReplayCapsule {
     #[must_use]
     pub fn identity(&self) -> ContentAddress {
         ContentAddress::derived(REPLAY_CAPSULE_TAG, &replay_capsule_preimage(self))
+    }
+}
+
+impl ReplayPosture {
+    /// Meet this run ceiling with one callable revision posture.
+    ///
+    /// Derived preserves the standing ceiling, declared prevents an exact
+    /// machine-derived claim, and untracked makes exact reproduction
+    /// unavailable. This is crate-visible because only owners assembling run
+    /// evidence compute the meet; callers read the result from evidence.
+    #[must_use]
+    pub(crate) const fn meet_revision(self, revision: RevisionPosture) -> Self {
+        match (self, revision) {
+            (Self::UnavailableBecauseUntracked, _) | (_, RevisionPosture::Untracked) => {
+                Self::UnavailableBecauseUntracked
+            }
+            (Self::DeclaredByAuthor, RevisionPosture::Derived | RevisionPosture::Declared)
+            | (Self::ExactDerived, RevisionPosture::Declared) => Self::DeclaredByAuthor,
+            (Self::ExactDerived, RevisionPosture::Derived) => Self::ExactDerived,
+        }
     }
 }
 
