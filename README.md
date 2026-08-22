@@ -92,7 +92,7 @@ flowchart TD
 
 ## Construction
 
-Product-runtime code enters a home only through explicit owner authorization. The generation system is the product line: families are authored through front doors and their contracts are generated. TestPak and the generation services are constructed before per-home machine-source realization; the application compiler follows the machine. That is construction order, not Cargo dependency order; the workspace graph above remains authoritative.
+Product-runtime code enters a home only through explicit owner authorization. The generation system is the product line: families are authored through front doors and their contracts are generated. TestPak and the generation services are constructed before per-home machine-source realization; the application compiler follows the machine. That is construction order, not Cargo dependency order; the Cargo manifests remain authoritative.
 
 The toolchain is the enforcement surface, run locally:
 
