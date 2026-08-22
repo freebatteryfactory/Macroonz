@@ -1,5 +1,4 @@
-//! The family identity substrate: one content address, and the one versioned,
-//! domain-separated profile every identity in this crate is derived under.
+//! The family identity substrate: one derivation mechanism and one shared profile stem; domain separation and compatibility position are owned independently by each preimage family's [`DomainTag`].
 //!
 //! Every identity the harness mints is a [`ContentAddress`] derived here, so
 //! the harness is a citizen of the workspace identity family rather than an
