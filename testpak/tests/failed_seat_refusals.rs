@@ -34,9 +34,9 @@ use threadpak_macroc::plane::HumanTextLimit;
 use threadpak_macroc::{
     ClosureIssue, DeriveImplProjection, ExplanationBindingRefusal, ExplanationSeat,
     HumanProjection, MacrocPhase, ObservedClassification, PlanDecisions, PlannedMembership,
-    ProjectionClosure, ProjectionPlan, ProjectionPlanningIssue, RelatedIdentity,
-    RenderedImplementation, RenderedProjection, RenderedRole, RenderedUnit, ReproductionRoute,
-    TextCompileRefusal, compile_refusal_text,
+    ProjectionClosure, ProjectionPlan, ProjectionPlanningIssue, RefusalDeriveCapture,
+    RelatedIdentity, RenderedImplementation, RenderedProjection, RenderedRole, RenderedUnit,
+    ReproductionRoute, TextCompileRefusal, compile_refusal_text,
 };
 
 /// The declaration handed to the services:
@@ -55,6 +55,15 @@ fn lawful() -> Result<threadpak_macroc::RefusalFamilyExpansion, ()> {
     compile_refusal_text(DECLARATION)
         .map(|(_, closed)| closed)
         .map_err(|_| ())
+}
+
+/// Whether the callable door refused under this exact capture cause and classification.
+fn refused_as(source: &str, cause: RefusalDeriveCapture, observed: ObservedClassification) -> bool {
+    matches!(compile_refusal_text(source), Err(TextCompileRefusal::Refused(carried)) if {
+        let (_, diagnostic) = &*carried;
+        diagnostic.observed == observed
+            && diagnostic.summary.shown().contains(cause.described())
+    })
 }
 
 /// One plan with a substituted membership, re-planned through the same public
@@ -410,6 +419,59 @@ fn a_refused_declaration_carries_every_diagnostic_seat() {
         }
         TextCompileRefusal::NotReadable(_) => false,
     }));
+}
+
+/// The refusal helper is a closed grammar: unknown, malformed, repeated, and multiply declared clauses never disappear behind a successful projection.
+#[test]
+fn the_refusal_helper_consumes_every_owned_token_once() {
+    let unknown = "#[refusal(family = \"testpak.demo\", shape = single_cause, invented = value)] \
+        enum DemoFamily { NotAdmitted, }";
+    assert!(refused_as(
+        unknown,
+        RefusalDeriveCapture::NotADeclarableClause,
+        ObservedClassification::ContractDisagreement,
+    ));
+
+    let malformed = "#[refusal(family = \"testpak.demo\", shape single_cause)] \
+        enum DemoFamily { NotAdmitted, }";
+    assert!(refused_as(
+        malformed,
+        RefusalDeriveCapture::NotAClause,
+        ObservedClassification::ContractDisagreement,
+    ));
+
+    let repeated_clause = "#[refusal(family = \"testpak.demo\", shape = single_cause, \
+        shape = single_cause)] enum DemoFamily { NotAdmitted, }";
+    assert!(refused_as(
+        repeated_clause,
+        RefusalDeriveCapture::NotDeclaredOnce,
+        ObservedClassification::IdentityDisagreement,
+    ));
+
+    let repeated_helper = "#[refusal(family = \"testpak.demo\", shape = single_cause)] \
+        #[refusal(family = \"testpak.demo\", shape = single_cause)] \
+        enum DemoFamily { NotAdmitted, }";
+    assert!(refused_as(
+        repeated_helper,
+        RefusalDeriveCapture::NotDeclaredOnce,
+        ObservedClassification::IdentityDisagreement,
+    ));
+
+    let leading_comma = "#[refusal(, family = \"testpak.demo\", shape = single_cause)] \
+        enum DemoFamily { NotAdmitted, }";
+    assert!(refused_as(
+        leading_comma,
+        RefusalDeriveCapture::NotAClause,
+        ObservedClassification::ContractDisagreement,
+    ));
+
+    let doubled_comma = "#[refusal(family = \"testpak.demo\",, shape = single_cause)] \
+        enum DemoFamily { NotAdmitted, }";
+    assert!(refused_as(
+        doubled_comma,
+        RefusalDeriveCapture::NotAClause,
+        ObservedClassification::ContractDisagreement,
+    ));
 }
 
 /// A rendered unit answers for its own bytes, so the two units of one derivation

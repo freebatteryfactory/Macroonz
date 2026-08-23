@@ -822,6 +822,24 @@ capture_causes! {
         RefusalDeriveFact::AFamilyIsDeclaredAsABareVariantEnum,
         "a variant carries a payload, and this grammar admits bare variants only";
 
+    /// The declaration carries the `refusal` helper more than once, or one of
+    /// its closed clauses is declared more than once.
+    NotDeclaredOnce = "not-declared-once", ObservedClassification::IdentityDisagreement,
+        RefusalDeriveFact::ADeclarationIsReadUnderTheDeclaredCompilerProfile,
+        "the `refusal` helper and each clause inside it are declared at most once";
+
+    /// One comma-delimited group inside `refusal` is not a complete assignment
+    /// or the complete `order(...)` form.
+    NotAClause = "not-a-clause", ObservedClassification::ContractDisagreement,
+        RefusalDeriveFact::ADeclarationIsReadUnderTheDeclaredCompilerProfile,
+        "one `refusal` group is not a complete `<key> = <value>` assignment or `order(...)` clause";
+
+    /// One clause inside `refusal` names no seat this grammar declares.
+    NotADeclarableClause = "not-a-declarable-clause",
+        ObservedClassification::ContractDisagreement,
+        RefusalDeriveFact::ADeclarationIsReadUnderTheDeclaredCompilerProfile,
+        "one `refusal` clause is outside the closed `crate`, `family`, `shape`, and `order` roster";
+
     /// No `#[refusal(family = ...)]` was declared.
     NotFamilyDeclared = "not-family-declared", ObservedClassification::SeatAbsent,
         RefusalDeriveFact::CauseIdentityIsFamilyAndKey,

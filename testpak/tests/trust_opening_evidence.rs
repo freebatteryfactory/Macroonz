@@ -1,5 +1,8 @@
 //! The public mutation receiver from owner policy through compiled pressure, exact no-mutation parity, active execution, and ordinary report evidence.
 
+use std::path::PathBuf;
+use std::process::Command;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicU32, Ordering};
 use threadpak_testpak::clock::{HarnessClock, MeasurementReading};
 use threadpak_testpak::depot::capsules::{
@@ -17,34 +20,45 @@ use threadpak_testpak::generate::{
     capture_replay, reduce,
 };
 use threadpak_testpak::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use threadpak_testpak::muterprater::discover::lower_discoveries;
 use threadpak_testpak::muterprater::interpret::{
     availability, execute_active, observe_no_mutation, qualify_no_mutation,
 };
 use threadpak_testpak::muterprater::propose::{
     human_admit_replay, offer_mutant_kill, prove_candidate,
 };
+use threadpak_testpak::muterprater::specimen::demonstrate_compiled_projection;
 use threadpak_testpak::muterprater::wrap::read_output;
 use threadpak_testpak::muterprater::{
-    ActiveSelection, AdapterQualification, AlternativeDeclaration, AlternativeId, BackendVersion,
-    BackendVersionPosture, CompiledPressureWitness, Demonstration, EvaluationBinding,
-    EvaluationControl, EvaluationFamilyRef, EvaluationObservation, EvaluationPair,
-    EvaluationPairRefusal, EvaluationSurface, GrammarStanding, HumanAdmissionRefusal,
-    IntendedRejection, InterpretedExecutionRefusal, InterpreterAvailability, KillProposalRefusal,
-    MissingTrustEvidence, MutationIdentity, MutationOutcome, MutationPermission, MutationPoint,
-    MutationPolicy, MutationReport, MutationVerdict, MutationWitness, MutationWitnessRefusal,
-    NoMutationObservationRefusal, OperatorFamilyRef, ParityQualificationRefusal, PermissionRefusal,
-    PointCatalogPosture, PointRefusal, PolicyRefusal, PressureWitnessRefusal, ProductionBinding,
-    ProofRefusal, ProposalDestination, ProposalDocument, ProposalSink, QualificationRefusal,
-    ReplayBearingProposal, RewriteAdmission, RewriteWithheld, SinkRefusal, SourceCoordinate,
-    StoredProposalRef, SurfaceRefusal, WrapReading, WrapRefusal, WrapStanding,
+    ARTIFACT_CONTENT_TAG, ActiveSelection, AdapterQualification, AlternativeDeclaration,
+    AlternativeId, BackendVersion, BackendVersionPosture, CompiledProjectionPressure,
+    CompiledProjectionRefusal, CompiledSpecimenHostRefusal, CompiledSpecimenObservation,
+    CompiledSpecimenObservationMismatch, CompiledSpecimenRequest, CompiledSuitePressure,
+    Demonstration, DiscoveredMutationSite, DiscoveryDisposition, DiscoveryLoweringRefusal,
+    DiscoveryRefusal, EvaluationBinding, EvaluationCall, EvaluationCallRefusal,
+    EvaluationDirective, EvaluationFamilyRef, EvaluationObservation, EvaluationPair,
+    EvaluationPairRefusal, EvaluationPairStandingMismatch, EvaluationSurface, GrammarStanding,
+    HumanAdmissionRefusal, IntendedRejection, InterpretedExecutionRefusal, InterpreterAvailability,
+    KillProposalRefusal, MappedUnpermittedCause, MissingTrustEvidence, MutationDiscoveryReading,
+    MutationIdentity, MutationOutcome, MutationPermission, MutationPoint, MutationPolicy,
+    MutationReport, MutationVerdict, MutationWitness, MutationWitnessRefusal,
+    NoMutationObservationRefusal, NoMutationParityReading, OperatorFamilyRef, OwnerClaimMapping,
+    ParityQualificationRefusal, PermissionRefusal, PointCatalogPosture, PolicyRefusal,
+    ProductionBinding, ProofRefusal, ProposalDestination, ProposalDocument, ProposalSink,
+    QualificationRefusal, ReplayBearingProposal, RewriteAdmission, SinkRefusal, SourceCoordinate,
+    SpecimenMaterializerBinding, SpecimenMaterializerRefusal, StoredProposalRef,
+    SuitePressureRefusal, WrapReading, WrapRefusal, WrapStanding,
 };
 use threadpak_testpak::properties::{Agreement, agreement};
 use threadpak_testpak::report::{
     ByteBudget, CaseBudget, FindingCause, Fingerprint, GenerationProfile, InvocationProfile,
     MinimizationProfile, ReplayCapsule, RunAttempt, TargetBinding, TargetTriple, TimeBudget,
-    ToolchainIdentity, TrialConclusion, TrialSite, encode_bytes, encode_length,
+    ToolchainIdentity, TrialConclusion, TrialId, TrialReport, TrialSite, encode_bytes,
+    encode_length,
 };
-use threadpak_testpak::runner::{Invocation, TrialBinding, TrialTable, trial_identity};
+use threadpak_testpak::runner::{
+    Invocation, TrialBinding, TrialTable, lens_verdict, trial_identity,
+};
 
 const OWNER: &str = "testpak.mutation.receiver";
 const BACKEND_CONSOLE: &str =
@@ -55,6 +69,8 @@ const BACKEND_NO_KILL: &str = "Found 1 mutant to test\n\
 const BACKEND_VERSION: &str = "27.0.0";
 const COMPILED_MUTANT_FILE: &str = "testpak/src/muterprater/wrap.rs";
 const COMPILED_MUTANT_DAMAGE: &[u8] = b"replace != with == in roster_count";
+const ORIGINAL_OPERATION: &[u8] = b"input != 0";
+const SELECTED_OPERATION: &[u8] = b"input == 0";
 const MEANING_DISAGREEMENT: FindingCause = FindingCause::named(OWNER, "meaning-disagreement");
 const REVISION_TAG: DomainTag = DomainTag::declared(
     "mutation-receiver-revision",
@@ -70,24 +86,37 @@ const ALTERNATIVE_READING_TAG: DomainTag =
     DomainTag::declared("mutation-alternative", IdentityProfileVersion::declared(1));
 const SURFACE_READING_TAG: DomainTag =
     DomainTag::declared("evaluation-surface", IdentityProfileVersion::declared(1));
+const DISCOVERY_READING_TAG: DomainTag =
+    DomainTag::declared("mutation-discovery", IdentityProfileVersion::declared(1));
 static CLAIM_MISMATCH_EVALUATION_CALLS: AtomicU32 = AtomicU32::new(0);
+static NO_MUTATION_CALL_ORDER: AtomicU32 = AtomicU32::new(0);
+static SPECIMEN_ORDINAL: AtomicU32 = AtomicU32::new(0);
+static SPECIMEN_MATERIALIZER_CALLS: AtomicU32 = AtomicU32::new(0);
+static SPECIMEN_HOST_CALLS: AtomicU32 = AtomicU32::new(0);
+static INTERPRETED_CLOCK_CALLS: AtomicU32 = AtomicU32::new(0);
+static SPECIMEN_TEST_LOCK: Mutex<()> = Mutex::new(());
+static CACHED_SIBLING_OBSERVATION: Mutex<
+    Option<CompiledSpecimenObservation<CompiledRosterMeaning>>,
+> = Mutex::new(None);
 
 #[derive(Debug, PartialEq, Eq)]
 enum MutationRoadFailure {
     Name,
     Permission(PermissionRefusal),
     Policy(PolicyRefusal),
-    Point(PointRefusal),
-    Surface(SurfaceRefusal),
+    Discovery(DiscoveryRefusal),
+    DiscoveryLowering(DiscoveryLoweringRefusal),
     Pair(EvaluationPairRefusal),
     Table(TrialTableRefusal),
     Wrap(WrapRefusal),
     Qualification(QualificationRefusal),
-    Pressure(PressureWitnessRefusal),
+    Pressure(SuitePressureRefusal),
+    Projection(CompiledProjectionRefusal),
     Witness(MutationWitnessRefusal),
     Observation(NoMutationObservationRefusal),
     Interpreted(InterpretedFailureStage),
     MissingFamily,
+    NativeToolchain,
     MissingAlternative,
     MissingActiveSelection,
     MissingQualification(ParityQualificationRefusal),
@@ -103,8 +132,10 @@ enum MutationRoadFailure {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum InterpretedFailureStage {
+    Invocation,
     Selection,
     WitnessClaim,
+    EvaluationCall,
     DudPlant,
     Report,
 }
@@ -115,6 +146,12 @@ enum CompiledRosterMeaning {
     Unstated,
     SetupRefused,
     ReadingRefused(WrapRefusal),
+}
+
+fn lock_specimen_tests() -> Result<std::sync::MutexGuard<'static, ()>, MutationRoadFailure> {
+    SPECIMEN_TEST_LOCK
+        .lock()
+        .map_err(|_| MutationRoadFailure::NativeToolchain)
 }
 
 impl From<PermissionRefusal> for MutationRoadFailure {
@@ -129,15 +166,15 @@ impl From<PolicyRefusal> for MutationRoadFailure {
     }
 }
 
-impl From<PointRefusal> for MutationRoadFailure {
-    fn from(refusal: PointRefusal) -> Self {
-        Self::Point(refusal)
+impl From<DiscoveryRefusal> for MutationRoadFailure {
+    fn from(refusal: DiscoveryRefusal) -> Self {
+        Self::Discovery(refusal)
     }
 }
 
-impl From<SurfaceRefusal> for MutationRoadFailure {
-    fn from(refusal: SurfaceRefusal) -> Self {
-        Self::Surface(refusal)
+impl From<DiscoveryLoweringRefusal> for MutationRoadFailure {
+    fn from(refusal: DiscoveryLoweringRefusal) -> Self {
+        Self::DiscoveryLowering(refusal)
     }
 }
 
@@ -165,9 +202,15 @@ impl From<QualificationRefusal> for MutationRoadFailure {
     }
 }
 
-impl From<PressureWitnessRefusal> for MutationRoadFailure {
-    fn from(refusal: PressureWitnessRefusal) -> Self {
+impl From<SuitePressureRefusal> for MutationRoadFailure {
+    fn from(refusal: SuitePressureRefusal) -> Self {
         Self::Pressure(refusal)
+    }
+}
+
+impl From<CompiledProjectionRefusal> for MutationRoadFailure {
+    fn from(refusal: CompiledProjectionRefusal) -> Self {
+        Self::Projection(refusal)
     }
 }
 
@@ -186,9 +229,15 @@ impl From<NoMutationObservationRefusal> for MutationRoadFailure {
 impl From<InterpretedExecutionRefusal> for MutationRoadFailure {
     fn from(refusal: InterpretedExecutionRefusal) -> Self {
         let stage = match refusal {
+            InterpretedExecutionRefusal::InvocationForAnotherExecution => {
+                InterpretedFailureStage::Invocation
+            }
             InterpretedExecutionRefusal::Selection(_) => InterpretedFailureStage::Selection,
             InterpretedExecutionRefusal::WitnessForAnotherClaim { .. } => {
                 InterpretedFailureStage::WitnessClaim
+            }
+            InterpretedExecutionRefusal::EvaluationCall(_) => {
+                InterpretedFailureStage::EvaluationCall
             }
             InterpretedExecutionRefusal::DudPlant(_) => InterpretedFailureStage::DudPlant,
             InterpretedExecutionRefusal::Report(_) => InterpretedFailureStage::Report,
@@ -273,6 +322,32 @@ fn push_name(into: &mut Vec<u8>, name: threadpak_testpak::descriptor::Namespaced
     encode_bytes(name.stem().written().as_bytes(), into);
 }
 
+fn independently_frame_discovery(reading: &MutationDiscoveryReading) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    push_name(&mut bytes, reading.family().name());
+    encode_bytes(reading.policy().address().as_bytes(), &mut bytes);
+    encode_length(reading.entries().len(), &mut bytes);
+    for entry in reading.entries() {
+        let site = entry.site();
+        push_name(&mut bytes, site.identity().name());
+        match site.mapping() {
+            OwnerClaimMapping::Mapped(owner_claim) => {
+                bytes.push(1);
+                push_name(&mut bytes, owner_claim.name());
+            }
+            OwnerClaimMapping::OwnerUnmapped => bytes.push(0),
+        }
+        encode_bytes(site.original_operation(), &mut bytes);
+        encode_length(site.alternatives().len(), &mut bytes);
+        for alternative in site.alternatives() {
+            encode_bytes(alternative.family().slug().as_bytes(), &mut bytes);
+            encode_bytes(alternative.operation(), &mut bytes);
+        }
+        push_name(&mut bytes, site.activation_site().name());
+    }
+    bytes
+}
+
 fn claim() -> Result<ClaimRef, MutationRoadFailure> {
     ClaimRef::named(OWNER, "comparison-behaviour").map_err(|_| MutationRoadFailure::Name)
 }
@@ -293,16 +368,30 @@ fn point(
     stem: &'static str,
     alternatives: Vec<&'static [u8]>,
 ) -> Result<MutationPoint, MutationRoadFailure> {
+    let discovered = discovered_point(stem, OwnerClaimMapping::Mapped(claim()?), alternatives)?;
+    let lowered = lower_discoveries(policy, vec![discovered])?;
+    lowered
+        .surface()
+        .points()
+        .first()
+        .cloned()
+        .ok_or(MutationRoadFailure::MissingAlternative)
+}
+
+fn discovered_point(
+    stem: &'static str,
+    mapping: OwnerClaimMapping,
+    alternatives: Vec<&'static [u8]>,
+) -> Result<DiscoveredMutationSite, MutationRoadFailure> {
     let admitted_family = operator()?;
     let declarations = alternatives
         .into_iter()
         .map(|operation| AlternativeDeclaration::stated(admitted_family, operation.to_vec()))
         .collect();
-    Ok(MutationPoint::declared(
-        policy,
+    Ok(DiscoveredMutationSite::discovered(
         MutationPointRef::named(OWNER, stem).map_err(|_| MutationRoadFailure::Name)?,
-        claim()?,
-        b"word != ROSTER_MARKER".to_vec(),
+        mapping,
+        ORIGINAL_OPERATION.to_vec(),
         declarations,
         threadpak_testpak::muterprater::ActivationSite::named(OWNER, stem)
             .map_err(|_| MutationRoadFailure::Name)?,
@@ -314,12 +403,16 @@ fn surface_with(
     alternatives: Vec<&'static [u8]>,
 ) -> Result<EvaluationSurface, MutationRoadFailure> {
     let policy = policy(family)?;
-    let point = point(&policy, "comparison-edge", alternatives)?;
-    Ok(EvaluationSurface::conforming(&policy, vec![point])?)
+    let discovered = discovered_point(
+        "comparison-edge",
+        OwnerClaimMapping::Mapped(claim()?),
+        alternatives,
+    )?;
+    Ok(lower_discoveries(&policy, vec![discovered])?.into_parts().1)
 }
 
 fn production(_input: &[u32; 3]) -> CompiledRosterMeaning {
-    match family("comparison-family").and_then(compiled_reading) {
+    match compiled_reading() {
         Ok(reading) => match reading.announced() {
             threadpak_testpak::muterprater::AnnouncedRoster::Stated(count) => {
                 CompiledRosterMeaning::Stated(count)
@@ -333,71 +426,151 @@ fn production(_input: &[u32; 3]) -> CompiledRosterMeaning {
     }
 }
 
+fn production_ordered(input: &[u32; 3]) -> CompiledRosterMeaning {
+    if NO_MUTATION_CALL_ORDER
+        .compare_exchange(0, 1, Ordering::SeqCst, Ordering::SeqCst)
+        .is_err()
+    {
+        NO_MUTATION_CALL_ORDER.store(u32::MAX, Ordering::SeqCst);
+    }
+    production(input)
+}
+
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "this capture-free fixture inhabits the fallible EvaluationCall contract while its lawful branches both return observations"
+)]
 fn evaluation(
     input: &[u32; 3],
-    control: EvaluationControl,
-) -> EvaluationObservation<CompiledRosterMeaning> {
-    match control {
-        EvaluationControl::NoMutation => EvaluationObservation::observed(production(input), 0),
-        EvaluationControl::Active(_) => {
-            EvaluationObservation::observed(CompiledRosterMeaning::Unstated, 1)
-        }
-    }
+    directive: EvaluationDirective<'_>,
+) -> Result<EvaluationObservation<CompiledRosterMeaning>, EvaluationCallRefusal> {
+    Ok(if directive.resolved().is_some() {
+        EvaluationObservation::observed(CompiledRosterMeaning::Unstated, 1)
+    } else {
+        EvaluationObservation::observed(production(input), 0)
+    })
 }
 
+fn evaluation_reads_resolved_payload(
+    input: &[u32; 3],
+    directive: EvaluationDirective<'_>,
+) -> Result<EvaluationObservation<CompiledRosterMeaning>, EvaluationCallRefusal> {
+    let Some(resolved) = directive.resolved() else {
+        return Ok(EvaluationObservation::observed(production(input), 0));
+    };
+    if resolved.point().original_operation() != ORIGINAL_OPERATION
+        || resolved.alternative().operation() != SELECTED_OPERATION
+    {
+        return Err(EvaluationCallRefusal::ActiveSelectionNotImplemented(
+            resolved.selection(),
+        ));
+    }
+    Ok(EvaluationObservation::observed(
+        CompiledRosterMeaning::Unstated,
+        1,
+    ))
+}
+
+fn evaluation_reads_resolved_payload_counted(
+    input: &[u32; 3],
+    directive: EvaluationDirective<'_>,
+) -> Result<EvaluationObservation<CompiledRosterMeaning>, EvaluationCallRefusal> {
+    CLAIM_MISMATCH_EVALUATION_CALLS.fetch_add(1, Ordering::SeqCst);
+    evaluation_reads_resolved_payload(input, directive)
+}
+
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "this capture-free hostile fixture inhabits the fallible EvaluationCall contract while returning a semantic disagreement rather than a call refusal"
+)]
 fn parity_broken(
     _input: &[u32; 3],
-    control: EvaluationControl,
-) -> EvaluationObservation<CompiledRosterMeaning> {
-    match control {
-        EvaluationControl::NoMutation => {
-            EvaluationObservation::observed(CompiledRosterMeaning::Unstated, 0)
+    directive: EvaluationDirective<'_>,
+) -> Result<EvaluationObservation<CompiledRosterMeaning>, EvaluationCallRefusal> {
+    Ok(EvaluationObservation::observed(
+        CompiledRosterMeaning::Unstated,
+        u32::from(directive.resolved().is_some()),
+    ))
+}
+
+fn no_mutation_branch_omitted(
+    _input: &[u32; 3],
+    directive: EvaluationDirective<'_>,
+) -> Result<EvaluationObservation<CompiledRosterMeaning>, EvaluationCallRefusal> {
+    match directive.resolved() {
+        None => {
+            if NO_MUTATION_CALL_ORDER
+                .compare_exchange(1, 2, Ordering::SeqCst, Ordering::SeqCst)
+                .is_err()
+            {
+                NO_MUTATION_CALL_ORDER.store(u32::MAX, Ordering::SeqCst);
+            }
+            Err(EvaluationCallRefusal::NoMutationNotImplemented)
         }
-        EvaluationControl::Active(_) => {
-            EvaluationObservation::observed(CompiledRosterMeaning::Unstated, 1)
-        }
+        Some(resolved) => Err(EvaluationCallRefusal::ActiveSelectionNotImplemented(
+            resolved.selection(),
+        )),
     }
 }
 
+fn active_branch_omitted(
+    input: &[u32; 3],
+    directive: EvaluationDirective<'_>,
+) -> Result<EvaluationObservation<CompiledRosterMeaning>, EvaluationCallRefusal> {
+    match directive.resolved() {
+        None => Ok(EvaluationObservation::observed(production(input), 0)),
+        Some(resolved) => Err(EvaluationCallRefusal::ActiveSelectionNotImplemented(
+            resolved.selection(),
+        )),
+    }
+}
+
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "this capture-free hostile fixture inhabits the fallible EvaluationCall contract while reporting zero firing as a successful raw observation"
+)]
 fn activation_missing(
     input: &[u32; 3],
-    control: EvaluationControl,
-) -> EvaluationObservation<CompiledRosterMeaning> {
-    match control {
-        EvaluationControl::NoMutation => EvaluationObservation::observed(production(input), 0),
-        EvaluationControl::Active(_) => {
-            EvaluationObservation::observed(CompiledRosterMeaning::Unstated, 0)
-        }
-    }
+    directive: EvaluationDirective<'_>,
+) -> Result<EvaluationObservation<CompiledRosterMeaning>, EvaluationCallRefusal> {
+    Ok(if directive.resolved().is_some() {
+        EvaluationObservation::observed(CompiledRosterMeaning::Unstated, 0)
+    } else {
+        EvaluationObservation::observed(production(input), 0)
+    })
 }
 
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "this capture-free hostile fixture inhabits the fallible EvaluationCall contract while reporting an invalid positive no-mutation count"
+)]
 fn no_mutation_activates(
     input: &[u32; 3],
-    control: EvaluationControl,
-) -> EvaluationObservation<CompiledRosterMeaning> {
-    match control {
-        EvaluationControl::NoMutation | EvaluationControl::Active(_) => {
-            EvaluationObservation::observed(production(input), 1)
-        }
-    }
+    _directive: EvaluationDirective<'_>,
+) -> Result<EvaluationObservation<CompiledRosterMeaning>, EvaluationCallRefusal> {
+    Ok(EvaluationObservation::observed(production(input), 1))
 }
 
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "this capture-free fixture inhabits the fallible EvaluationCall contract while its active observation remains semantically lawful"
+)]
 fn activation_survives(
     input: &[u32; 3],
-    control: EvaluationControl,
-) -> EvaluationObservation<CompiledRosterMeaning> {
-    match control {
-        EvaluationControl::NoMutation => EvaluationObservation::observed(production(input), 0),
-        EvaluationControl::Active(_) => EvaluationObservation::observed(production(input), 1),
-    }
+    directive: EvaluationDirective<'_>,
+) -> Result<EvaluationObservation<CompiledRosterMeaning>, EvaluationCallRefusal> {
+    Ok(EvaluationObservation::observed(
+        production(input),
+        u32::from(directive.resolved().is_some()),
+    ))
 }
 
 fn evaluation_counted(
     input: &[u32; 3],
-    control: EvaluationControl,
-) -> EvaluationObservation<CompiledRosterMeaning> {
+    directive: EvaluationDirective<'_>,
+) -> Result<EvaluationObservation<CompiledRosterMeaning>, EvaluationCallRefusal> {
     CLAIM_MISMATCH_EVALUATION_CALLS.fetch_add(1, Ordering::SeqCst);
-    evaluation(input, control)
+    evaluation(input, directive)
 }
 
 fn same(left: &CompiledRosterMeaning, right: &CompiledRosterMeaning) -> Agreement {
@@ -521,7 +694,10 @@ fn replay_probe(_input: &[u8]) -> ProbeOutcome {
     let Ok(binding) = candidate_binding(point) else {
         return ProbeOutcome::NoFailure;
     };
-    let TrialConclusion::Refused(finding) = candidate_trial_call(&invocation()) else {
+    let Ok(invocation) = invocation() else {
+        return ProbeOutcome::NoFailure;
+    };
+    let TrialConclusion::Refused(finding) = candidate_trial_call(&invocation) else {
         return ProbeOutcome::NoFailure;
     };
     ProbeOutcome::Reproduced(Fingerprint::of(trial_identity(binding.row()), &finding))
@@ -549,7 +725,7 @@ fn demonstrate_mutation(
         &authored_parent()?,
         candidate,
         mutation.target(),
-        &invocation(),
+        &invocation()?,
     )?;
     let mutation_fingerprint = match mutation.outcome() {
         MutationOutcome::Killed(IntendedRejection::Demonstrated(rejection)) => {
@@ -708,20 +884,37 @@ fn check_ref() -> Result<CheckRef, MutationRoadFailure> {
     CheckRef::named(OWNER, "comparison-check").map_err(|_| MutationRoadFailure::Name)
 }
 
-fn invocation() -> Invocation {
-    Invocation::declared(
+fn invocation() -> Result<Invocation, MutationRoadFailure> {
+    let declared_toolchain = "1.98.0";
+    let version = Command::new("rustup")
+        .arg("run")
+        .arg(declared_toolchain)
+        .arg("rustc")
+        .arg("-vV")
+        .output()
+        .map_err(|_| MutationRoadFailure::NativeToolchain)?;
+    if !version.status.success() {
+        return Err(MutationRoadFailure::NativeToolchain);
+    }
+    let output =
+        std::str::from_utf8(&version.stdout).map_err(|_| MutationRoadFailure::NativeToolchain)?;
+    let native_target = output
+        .lines()
+        .find_map(|line| line.strip_prefix("host: "))
+        .ok_or(MutationRoadFailure::NativeToolchain)?;
+    Ok(Invocation::declared(
         InvocationProfile::declared(
             CaseBudget::declared(1),
             ByteBudget::declared(64),
             TimeBudget::declared(1_000_000_000),
         ),
         TargetBinding::bound(
-            TargetTriple::declared("x86_64-pc-windows-msvc"),
-            ToolchainIdentity::declared("1.98.0"),
+            TargetTriple::declared(native_target),
+            ToolchainIdentity::declared(declared_toolchain),
         ),
         TrialSite::located(module_path!(), file!(), line!(), "mutation-receiver"),
         HarnessClock::unavailable(),
-    )
+    ))
 }
 
 fn foreign_invocation() -> Invocation {
@@ -745,10 +938,35 @@ fn foreign_invocation() -> Invocation {
     )
 }
 
+fn counted_tick() -> u64 {
+    u64::from(INTERPRETED_CLOCK_CALLS.fetch_add(1, Ordering::SeqCst))
+}
+
+fn foreign_measured_invocation() -> Invocation {
+    Invocation::declared(
+        InvocationProfile::declared(
+            CaseBudget::declared(1),
+            ByteBudget::declared(64),
+            TimeBudget::declared(1_000_000_000),
+        ),
+        TargetBinding::bound(
+            TargetTriple::declared("wasm32-unknown-unknown"),
+            ToolchainIdentity::declared("1.98.0"),
+        ),
+        TrialSite::located(
+            module_path!(),
+            file!(),
+            line!(),
+            "foreign-measured-mutation-receiver",
+        ),
+        HarnessClock::reading(counted_tick),
+    )
+}
+
 fn pair(
     family: EvaluationFamilyRef,
     surface: &EvaluationSurface,
-    evaluated: fn(&[u32; 3], EvaluationControl) -> EvaluationObservation<CompiledRosterMeaning>,
+    evaluated: EvaluationCall<[u32; 3], CompiledRosterMeaning>,
 ) -> Result<EvaluationPair<[u32; 3], CompiledRosterMeaning>, MutationRoadFailure> {
     pair_with_evaluation_revision(family, surface, evaluated, b"evaluation")
 }
@@ -756,7 +974,7 @@ fn pair(
 fn pair_with_evaluation_revision(
     family: EvaluationFamilyRef,
     surface: &EvaluationSurface,
-    evaluated: fn(&[u32; 3], EvaluationControl) -> EvaluationObservation<CompiledRosterMeaning>,
+    evaluated: EvaluationCall<[u32; 3], CompiledRosterMeaning>,
     evaluation_revision_bytes: &[u8],
 ) -> Result<EvaluationPair<[u32; 3], CompiledRosterMeaning>, MutationRoadFailure> {
     let production_revision =
@@ -784,10 +1002,9 @@ fn compiled_family(coordinate: &SourceCoordinate, damage: &[u8]) -> Option<Opera
         .and_then(Result::ok)
 }
 
-fn compiled_reading(family: EvaluationFamilyRef) -> Result<WrapReading, MutationRoadFailure> {
+fn compiled_reading() -> Result<WrapReading, MutationRoadFailure> {
     let version = BackendVersion::stated(BACKEND_VERSION).map_err(|_| MutationRoadFailure::Name)?;
     Ok(read_output(
-        family,
         BACKEND_CONSOLE,
         BackendVersionPosture::Stated(version),
         compiled_owner,
@@ -795,17 +1012,193 @@ fn compiled_reading(family: EvaluationFamilyRef) -> Result<WrapReading, Mutation
     )?)
 }
 
-fn compiled_witness(
-    pair: threadpak_testpak::muterprater::EvaluationPairStanding,
-) -> Result<CompiledPressureWitness, MutationRoadFailure> {
-    let reading = compiled_reading(pair.family())?;
+fn compiled_suite_pressure() -> Result<CompiledSuitePressure, MutationRoadFailure> {
+    let reading = compiled_reading()?;
     let version = BackendVersion::stated(BACKEND_VERSION).map_err(|_| MutationRoadFailure::Name)?;
     let qualification = AdapterQualification::of(&reading, GrammarStanding::Checked(version))?;
-    Ok(CompiledPressureWitness::shown(
-        pair,
+    Ok(CompiledSuitePressure::demonstrated(
         WrapStanding::Reported(&reading),
         &qualification,
     )?)
+}
+
+fn specimen_source(operation: &[u8]) -> Vec<u8> {
+    let mut source = b"fn main() { let input: u32 = std::env::args().nth(1).expect(\"input\").parse().expect(\"u32\"); let a = 1u32; let b = 0u32; if ".to_vec();
+    source.extend_from_slice(operation);
+    source.extend_from_slice(b" { print!(\"1\"); } else { print!(\"0\"); } }\n");
+    source
+}
+
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "this admitted materializer inhabits the fallible SpecimenMaterializerCall contract while implementing both directive postures"
+)]
+fn specimen_materializer(
+    directive: EvaluationDirective<'_>,
+) -> Result<Vec<u8>, SpecimenMaterializerRefusal> {
+    SPECIMEN_MATERIALIZER_CALLS.fetch_add(1, Ordering::SeqCst);
+    let payload = directive.resolved().map_or(ORIGINAL_OPERATION, |resolved| {
+        resolved.alternative().operation()
+    });
+    Ok(specimen_source(payload))
+}
+
+fn omitted_specimen_branch(
+    directive: EvaluationDirective<'_>,
+) -> Result<Vec<u8>, SpecimenMaterializerRefusal> {
+    SPECIMEN_MATERIALIZER_CALLS.fetch_add(1, Ordering::SeqCst);
+    match directive.resolved() {
+        Some(resolved) => Err(SpecimenMaterializerRefusal::ActiveSelectionNotImplemented(
+            resolved.selection(),
+        )),
+        None => Ok(specimen_source(ORIGINAL_OPERATION)),
+    }
+}
+
+fn omitted_baseline_branch(
+    directive: EvaluationDirective<'_>,
+) -> Result<Vec<u8>, SpecimenMaterializerRefusal> {
+    SPECIMEN_MATERIALIZER_CALLS.fetch_add(1, Ordering::SeqCst);
+    match directive.resolved() {
+        None => Err(SpecimenMaterializerRefusal::NoMutationNotImplemented),
+        Some(resolved) => Ok(specimen_source(resolved.alternative().operation())),
+    }
+}
+
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "this hostile materializer must inhabit the fallible call contract while returning wrong but syntactically valid selected bytes"
+)]
+fn wrong_selected_specimen(
+    directive: EvaluationDirective<'_>,
+) -> Result<Vec<u8>, SpecimenMaterializerRefusal> {
+    SPECIMEN_MATERIALIZER_CALLS.fetch_add(1, Ordering::SeqCst);
+    Ok(match directive.resolved() {
+        None => specimen_source(ORIGINAL_OPERATION),
+        Some(_) => specimen_source(b"input > 0"),
+    })
+}
+
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "this hostile materializer must inhabit the fallible call contract while returning byte-identical baseline and selected source"
+)]
+fn unchanged_specimen_materializer(
+    _directive: EvaluationDirective<'_>,
+) -> Result<Vec<u8>, SpecimenMaterializerRefusal> {
+    SPECIMEN_MATERIALIZER_CALLS.fetch_add(1, Ordering::SeqCst);
+    Ok(specimen_source(ORIGINAL_OPERATION))
+}
+
+fn specimen_path(extension: &str) -> PathBuf {
+    let ordinal = SPECIMEN_ORDINAL.fetch_add(1, Ordering::SeqCst);
+    std::env::temp_dir().join(format!(
+        "threadpak_compiled_specimen_{}_{ordinal}{extension}",
+        std::process::id()
+    ))
+}
+
+fn host_failure(error: &[u8]) -> CompiledSpecimenHostRefusal {
+    CompiledSpecimenHostRefusal::Execution(threadpak_testpak::report::ForeignText::admitted(error))
+}
+
+fn compilation_failure(error: &[u8]) -> CompiledSpecimenHostRefusal {
+    CompiledSpecimenHostRefusal::Compilation(threadpak_testpak::report::ForeignText::admitted(
+        error,
+    ))
+}
+
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "the public CompiledSpecimenHost contract consumes its private-minted request so one host call cannot reuse request custody"
+)]
+fn compiled_specimen_host(
+    request: CompiledSpecimenRequest<'_, '_, [u32; 3]>,
+) -> Result<CompiledSpecimenObservation<CompiledRosterMeaning>, CompiledSpecimenHostRefusal> {
+    SPECIMEN_HOST_CALLS.fetch_add(1, Ordering::SeqCst);
+    let source = specimen_path(".rs");
+    let executable = specimen_path(std::env::consts::EXE_SUFFIX);
+    std::fs::write(&source, request.content().bytes())
+        .map_err(|error| compilation_failure(error.to_string().as_bytes()))?;
+    let target = request.execution().target();
+    let compiled = Command::new("rustup")
+        .arg("run")
+        .arg(target.toolchain().spelling())
+        .arg("rustc")
+        .arg(&source)
+        .arg("--edition=2024")
+        .arg("--target")
+        .arg(target.target().spelling())
+        .arg("-o")
+        .arg(&executable)
+        .output()
+        .map_err(|error| {
+            CompiledSpecimenHostRefusal::Compilation(
+                threadpak_testpak::report::ForeignText::admitted(error.to_string().as_bytes()),
+            )
+        })?;
+    drop(std::fs::remove_file(&source));
+    if !compiled.status.success() {
+        return Err(CompiledSpecimenHostRefusal::Compilation(
+            threadpak_testpak::report::ForeignText::admitted(&compiled.stderr),
+        ));
+    }
+    let executed = Command::new(&executable)
+        .arg(request.input()[0].to_string())
+        .output()
+        .map_err(|error| host_failure(error.to_string().as_bytes()))?;
+    drop(std::fs::remove_file(&executable));
+    if !executed.status.success() {
+        return Err(host_failure(&executed.stderr));
+    }
+    if !request
+        .content()
+        .bytes()
+        .windows(request.operation().len())
+        .any(|window| window == request.operation())
+    {
+        return Err(CompiledSpecimenHostRefusal::Meaning(
+            threadpak_testpak::report::ForeignText::admitted(request.operation()),
+        ));
+    }
+    let meaning = match executed.stdout.as_slice() {
+        b"1" => CompiledRosterMeaning::Stated(1),
+        b"0" => CompiledRosterMeaning::Unstated,
+        other => {
+            return Err(CompiledSpecimenHostRefusal::Meaning(
+                threadpak_testpak::report::ForeignText::admitted(other),
+            ));
+        }
+    };
+    Ok(CompiledSpecimenObservation::executed(&request, meaning))
+}
+
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "the public host contract consumes each private-minted request; this hostile adapter retains only a prior observation"
+)]
+fn cached_sibling_observation_host(
+    request: CompiledSpecimenRequest<'_, '_, [u32; 3]>,
+) -> Result<CompiledSpecimenObservation<CompiledRosterMeaning>, CompiledSpecimenHostRefusal> {
+    SPECIMEN_HOST_CALLS.fetch_add(1, Ordering::SeqCst);
+    let mut cached = CACHED_SIBLING_OBSERVATION
+        .lock()
+        .map_err(|error| host_failure(error.to_string().as_bytes()))?;
+    match request.role() {
+        threadpak_testpak::muterprater::CompiledSpecimenRole::Baseline => {
+            *cached = Some(CompiledSpecimenObservation::executed(
+                &request,
+                CompiledRosterMeaning::Unstated,
+            ));
+            Ok(CompiledSpecimenObservation::executed(
+                &request,
+                CompiledRosterMeaning::Stated(1),
+            ))
+        }
+        threadpak_testpak::muterprater::CompiledSpecimenRole::Selected(_) => cached
+            .take()
+            .ok_or_else(|| host_failure(b"cached sibling observation absent")),
+    }
 }
 
 fn active_selection(surface: &EvaluationSurface) -> Result<ActiveSelection, MutationRoadFailure> {
@@ -820,6 +1213,24 @@ fn active_selection(surface: &EvaluationSurface) -> Result<ActiveSelection, Muta
         .ok_or(MutationRoadFailure::MissingAlternative)?;
     surface
         .select(point.identity(), alternative)
+        .map_err(|_| MutationRoadFailure::MissingActiveSelection)
+}
+
+fn selection_for_operation(
+    surface: &EvaluationSurface,
+    operation: &[u8],
+) -> Result<ActiveSelection, MutationRoadFailure> {
+    let point = surface
+        .points()
+        .first()
+        .ok_or(MutationRoadFailure::MissingAlternative)?;
+    let alternative = point
+        .admitted_alternatives()
+        .iter()
+        .find(|alternative| alternative.operation() == operation)
+        .ok_or(MutationRoadFailure::MissingAlternative)?;
+    surface
+        .select(point.identity(), alternative.identity())
         .map_err(|_| MutationRoadFailure::MissingActiveSelection)
 }
 
@@ -851,16 +1262,20 @@ fn policy_admission_and_identity_are_structural() -> Result<(), MutationRoadFail
     assert_eq!(first_ids, reordered_ids);
 
     let policy = policy(evaluation_family)?;
-    let point_free = EvaluationSurface::conforming(&policy, Vec::new())?;
+    let point_free = lower_discoveries(&policy, Vec::new())?.into_parts().1;
     assert_eq!(
         point_free.catalog_posture(),
         PointCatalogPosture::NoAdmittedPoints
     );
     assert!(point_free.selections().is_empty());
     assert_eq!(
-        point(&policy, "empty-point", Vec::new()),
-        Err(MutationRoadFailure::Point(
-            PointRefusal::NoAdmittedAlternative
+        discovered_point(
+            "empty-point",
+            OwnerClaimMapping::Mapped(claim()?),
+            Vec::new(),
+        ),
+        Err(MutationRoadFailure::Discovery(
+            DiscoveryRefusal::NoAlternative
         ))
     );
 
@@ -873,11 +1288,10 @@ fn policy_admission_and_identity_are_structural() -> Result<(), MutationRoadFail
             vec![operator()?, boolean_family],
         )?],
     )?;
-    let same_bytes_under_two_operators = MutationPoint::declared(
-        &two_family_policy,
+    let discovered = DiscoveredMutationSite::discovered(
         MutationPointRef::named(OWNER, "operator-identity")
             .map_err(|_| MutationRoadFailure::Name)?,
-        claim()?,
+        OwnerClaimMapping::Mapped(claim()?),
         b"a < b".to_vec(),
         vec![
             AlternativeDeclaration::stated(operator()?, b"a > b".to_vec()),
@@ -886,6 +1300,12 @@ fn policy_admission_and_identity_are_structural() -> Result<(), MutationRoadFail
         threadpak_testpak::muterprater::ActivationSite::named(OWNER, "operator-identity")
             .map_err(|_| MutationRoadFailure::Name)?,
     )?;
+    let lowering = lower_discoveries(&two_family_policy, vec![discovered])?;
+    let same_bytes_under_two_operators = lowering
+        .surface()
+        .points()
+        .first()
+        .ok_or(MutationRoadFailure::MissingAlternative)?;
     let first_alternative = same_bytes_under_two_operators
         .admitted_alternatives()
         .first()
@@ -898,66 +1318,196 @@ fn policy_admission_and_identity_are_structural() -> Result<(), MutationRoadFail
     Ok(())
 }
 
-/// Policy membership, operator permission, pair family, and surface-issued selection refuse every crossed join explicitly.
+/// Complete discovery retains unmapped and unpermitted sites while admitting only the exact mapped subset.
 #[test]
 fn mutation_constructor_and_selection_boundaries_refuse_crossed_joins()
 -> Result<(), MutationRoadFailure> {
     let first_family = family("constructor-family")?;
     let first_policy = policy(first_family)?;
-    let first_point = point(&first_policy, "first-point", vec![b"a <= b"])?;
-
     let boolean_family = OperatorFamilyRef::of_slug("boolean-operators")
         .ok_or(MutationRoadFailure::MissingFamily)?;
-    let second_policy = MutationPolicy::declared(
-        first_family,
-        vec![MutationPermission::declared(
-            claim()?,
-            vec![operator()?, boolean_family],
-        )?],
+    let mapped = discovered_point(
+        "first-point",
+        OwnerClaimMapping::Mapped(claim()?),
+        vec![b"a <= b"],
     )?;
-    assert!(matches!(
-        EvaluationSurface::conforming(&second_policy, vec![first_point.clone()]),
-        Err(SurfaceRefusal::PointUnderAnotherPolicy {
-            point,
-            expected,
-            found,
-        }) if point == first_point.identity()
-            && expected == second_policy.identity()
-            && found == first_policy.identity()
-    ));
-
-    assert!(matches!(
-        MutationPoint::declared(
-            &first_policy,
-            MutationPointRef::named(OWNER, "foreign-family-point")
-                .map_err(|_| MutationRoadFailure::Name)?,
-            claim()?,
-            b"a < b".to_vec(),
-            vec![AlternativeDeclaration::stated(boolean_family, b"true".to_vec())],
-            threadpak_testpak::muterprater::ActivationSite::named(
-                OWNER,
-                "foreign-family-point",
-            )
+    let owner_unmapped = discovered_point(
+        "owner-unmapped-point",
+        OwnerClaimMapping::OwnerUnmapped,
+        vec![b"a >= b"],
+    )?;
+    let unpermitted_family = DiscoveredMutationSite::discovered(
+        MutationPointRef::named(OWNER, "foreign-family-point")
             .map_err(|_| MutationRoadFailure::Name)?,
-        ),
-        Err(PointRefusal::FamilyNotPermitted { at: 0, family }) if family == boolean_family
+        OwnerClaimMapping::Mapped(claim()?),
+        b"a < b".to_vec(),
+        vec![AlternativeDeclaration::stated(
+            boolean_family,
+            b"true".to_vec(),
+        )],
+        threadpak_testpak::muterprater::ActivationSite::named(OWNER, "foreign-family-point")
+            .map_err(|_| MutationRoadFailure::Name)?,
+    )?;
+    let another_claim =
+        ClaimRef::named(OWNER, "unpermitted-claim").map_err(|_| MutationRoadFailure::Name)?;
+    let unpermitted_claim = discovered_point(
+        "foreign-claim-point",
+        OwnerClaimMapping::Mapped(another_claim),
+        vec![b"a == b"],
+    )?;
+    let mapped_ref = mapped.identity();
+    let unmapped_ref = owner_unmapped.identity();
+    let family_ref = unpermitted_family.identity();
+    let claim_ref = unpermitted_claim.identity();
+    let lowering = lower_discoveries(
+        &first_policy,
+        vec![
+            mapped.clone(),
+            owner_unmapped,
+            unpermitted_family,
+            unpermitted_claim,
+        ],
+    )?;
+    let entries = lowering.discovery().entries();
+    let [mapped_entry, unmapped_entry, family_entry, claim_entry] = entries else {
+        return Err(MutationRoadFailure::MissingAlternative);
+    };
+    assert_eq!(
+        mapped_entry.disposition(),
+        DiscoveryDisposition::Mapped { point: mapped_ref }
+    );
+    assert_eq!(
+        unmapped_entry.disposition(),
+        DiscoveryDisposition::OwnerUnmapped
+    );
+    assert_eq!(
+        family_entry.disposition(),
+        DiscoveryDisposition::MappedUnpermitted {
+            cause: MappedUnpermittedCause::Family {
+                at: 0,
+                family: boolean_family,
+            },
+        }
+    );
+    assert_eq!(
+        claim_entry.disposition(),
+        DiscoveryDisposition::MappedUnpermitted {
+            cause: MappedUnpermittedCause::Claim(another_claim),
+        }
+    );
+    let first_surface = lowering.surface();
+    let [admitted_point] = first_surface.points() else {
+        return Err(MutationRoadFailure::MissingAlternative);
+    };
+    let [admitted] = admitted_point.admitted_alternatives() else {
+        return Err(MutationRoadFailure::MissingAlternative);
+    };
+    let admitted_alternative = admitted.identity();
+    assert!(matches!(
+        first_surface.select(unmapped_ref, admitted_alternative),
+        Err(threadpak_testpak::muterprater::SelectionRefusal::NoSuchPoint(found))
+            if found == unmapped_ref
     ));
+    assert!(matches!(
+        first_surface.select(family_ref, admitted_alternative),
+        Err(threadpak_testpak::muterprater::SelectionRefusal::NoSuchPoint(found))
+            if found == family_ref
+    ));
+    assert!(matches!(
+        first_surface.select(claim_ref, admitted_alternative),
+        Err(threadpak_testpak::muterprater::SelectionRefusal::NoSuchPoint(found))
+            if found == claim_ref
+    ));
+    Ok(())
+}
 
+/// One unpermitted candidate withholds a discovered site's entire mixed alternative roster.
+#[test]
+fn mixed_discovery_rosters_are_admitted_all_or_nothing() -> Result<(), MutationRoadFailure> {
+    let policy = policy(family("mixed-roster-family")?)?;
+    let boolean_family = OperatorFamilyRef::of_slug("boolean-operators")
+        .ok_or(MutationRoadFailure::MissingFamily)?;
+    let site = DiscoveredMutationSite::discovered(
+        MutationPointRef::named(OWNER, "mixed-family-point")
+            .map_err(|_| MutationRoadFailure::Name)?,
+        OwnerClaimMapping::Mapped(claim()?),
+        b"a != b".to_vec(),
+        vec![
+            AlternativeDeclaration::stated(operator()?, b"a == b".to_vec()),
+            AlternativeDeclaration::stated(boolean_family, b"true".to_vec()),
+        ],
+        threadpak_testpak::muterprater::ActivationSite::named(OWNER, "mixed-family-point")
+            .map_err(|_| MutationRoadFailure::Name)?,
+    )?;
+    let point = site.identity();
+    let lowering = lower_discoveries(&policy, vec![site])?;
+    assert!(matches!(
+        lowering.discovery().entries(),
+        [entry] if entry.disposition() == DiscoveryDisposition::MappedUnpermitted {
+            cause: MappedUnpermittedCause::Family {
+                at: 1,
+                family: boolean_family,
+            },
+        }
+    ));
+    assert!(lowering.surface().points().is_empty());
+    assert!(
+        lowering
+            .surface()
+            .points()
+            .iter()
+            .all(|found| found.identity() != point)
+    );
+    Ok(())
+}
+
+/// Surface selection and pair construction refuse absent points, crossed alternatives, and foreign families.
+#[test]
+fn selection_and_pair_boundaries_refuse_crossed_joins() -> Result<(), MutationRoadFailure> {
+    let first_family = family("constructor-family")?;
+    let first_policy = policy(first_family)?;
+    let duplicate = discovered_point(
+        "duplicate-selection-point",
+        OwnerClaimMapping::Mapped(claim()?),
+        vec![b"a <= b"],
+    )?;
+    let duplicate_ref = duplicate.identity();
+    assert!(matches!(
+        lower_discoveries(&first_policy, vec![duplicate.clone(), duplicate]),
+        Err(DiscoveryLoweringRefusal::DuplicateSite { at: 1, point }) if point == duplicate_ref
+    ));
+    let two = lower_discoveries(
+        &first_policy,
+        vec![
+            discovered_point(
+                "selection-first",
+                OwnerClaimMapping::Mapped(claim()?),
+                vec![b"a <= b"],
+            )?,
+            discovered_point(
+                "selection-second",
+                OwnerClaimMapping::Mapped(claim()?),
+                vec![b"a >= b"],
+            )?,
+        ],
+    )?;
+    let [first_point, second_point] = two.surface().points() else {
+        return Err(MutationRoadFailure::MissingAlternative);
+    };
     let first_point_ref = first_point.identity();
-    let first_surface = EvaluationSurface::conforming(&first_policy, vec![first_point])?;
-    let second_point = point(&first_policy, "second-point", vec![b"a >= b"])?;
-    let second_point_ref = second_point.identity();
     let second_alternative = second_point
         .admitted_alternatives()
         .first()
         .map(threadpak_testpak::muterprater::AdmittedAlternative::identity)
         .ok_or(MutationRoadFailure::MissingAlternative)?;
+    let absent_point =
+        MutationPointRef::named(OWNER, "absent-point").map_err(|_| MutationRoadFailure::Name)?;
     assert_eq!(
-        first_surface.select(second_point_ref, second_alternative),
-        Err(threadpak_testpak::muterprater::SelectionRefusal::NoSuchPoint(second_point_ref,))
+        two.surface().select(absent_point, second_alternative,),
+        Err(threadpak_testpak::muterprater::SelectionRefusal::NoSuchPoint(absent_point,))
     );
     assert_eq!(
-        first_surface.select(first_point_ref, second_alternative),
+        two.surface().select(first_point_ref, second_alternative),
         Err(
             threadpak_testpak::muterprater::SelectionRefusal::NoSuchAlternative {
                 point: first_point_ref,
@@ -986,36 +1536,296 @@ fn mutation_constructor_and_selection_boundaries_refuse_crossed_joins()
     Ok(())
 }
 
-/// A point-free surface may earn parity trust but cannot claim an executable rewrite-audit road.
+/// A missing materializer branch and a byte-identical selected rendering refuse before any compiler host runs.
 #[test]
-fn point_free_trust_does_not_admit_mutation_execution() -> Result<(), MutationRoadFailure> {
-    let family = family("point-free-family")?;
-    let policy = policy(family)?;
-    let surface = EvaluationSurface::conforming(&policy, Vec::new())?;
-    let pair = pair(family, &surface, evaluation)?;
-    let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check)?;
+fn exact_projection_requires_one_real_selected_artifact() -> Result<(), MutationRoadFailure> {
+    let _specimen_guard = lock_specimen_tests()?;
+    let family = family("compiled-artifact-boundary")?;
+    let surface = surface_with(family, vec![b"a <= b"])?;
+    let pair = pair(family, &surface, evaluation_reads_resolved_payload)?;
     let input = [1u32, 0, 0];
-    let standing = qualify_no_mutation(observe_no_mutation(&pair, witness, &input, &invocation())?);
+    let standing = qualify_no_mutation(observe_no_mutation(
+        &pair,
+        MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
+        &input,
+        &invocation()?,
+    )?);
     let qualification =
         standing
             .qualification()
             .ok_or(MutationRoadFailure::MissingQualification(
                 ParityQualificationRefusal::MeaningsDisagreed,
             ))?;
-    let compiled = compiled_witness(pair.standing())?;
-    let availability = availability(Some(&surface), Some(&compiled), Some(qualification));
+    let selection = active_selection(&surface)?;
+
+    let baseline_omitted = SpecimenMaterializerBinding::bound(&pair, omitted_baseline_branch);
+    SPECIMEN_MATERIALIZER_CALLS.store(0, Ordering::SeqCst);
+    SPECIMEN_HOST_CALLS.store(0, Ordering::SeqCst);
     assert!(matches!(
-        &availability,
-        InterpreterAvailability::Available(_)
+        demonstrate_compiled_projection(
+            &surface,
+            qualification,
+            &baseline_omitted,
+            selection,
+            &invocation()?,
+            compiled_specimen_host,
+        ),
+        Err(CompiledProjectionRefusal::BaselineMaterialization(
+            SpecimenMaterializerRefusal::NoMutationNotImplemented,
+        ))
     ));
-    assert_eq!(
-        threadpak_testpak::muterprater::rewrite::admission(&availability),
-        RewriteAdmission::Withheld(RewriteWithheld::NoAdmittedPoint)
-    );
+    assert_eq!(SPECIMEN_MATERIALIZER_CALLS.load(Ordering::SeqCst), 1);
+    assert_eq!(SPECIMEN_HOST_CALLS.load(Ordering::SeqCst), 0);
+
+    let omitted = SpecimenMaterializerBinding::bound(&pair, omitted_specimen_branch);
+    SPECIMEN_MATERIALIZER_CALLS.store(0, Ordering::SeqCst);
+    SPECIMEN_HOST_CALLS.store(0, Ordering::SeqCst);
+    assert!(matches!(
+        demonstrate_compiled_projection(
+            &surface,
+            qualification,
+            &omitted,
+            selection,
+            &invocation()?,
+            compiled_specimen_host,
+        ),
+        Err(CompiledProjectionRefusal::SelectedMaterialization(
+            SpecimenMaterializerRefusal::ActiveSelectionNotImplemented(found),
+        )) if found == selection
+    ));
+    assert_eq!(SPECIMEN_MATERIALIZER_CALLS.load(Ordering::SeqCst), 2);
+    assert_eq!(SPECIMEN_HOST_CALLS.load(Ordering::SeqCst), 0);
+
+    let unchanged = SpecimenMaterializerBinding::bound(&pair, unchanged_specimen_materializer);
+    SPECIMEN_MATERIALIZER_CALLS.store(0, Ordering::SeqCst);
+    SPECIMEN_HOST_CALLS.store(0, Ordering::SeqCst);
+    assert!(matches!(
+        demonstrate_compiled_projection(
+            &surface,
+            qualification,
+            &unchanged,
+            selection,
+            &invocation()?,
+            compiled_specimen_host,
+        ),
+        Err(CompiledProjectionRefusal::ArtifactDidNotChange(_))
+    ));
+    assert_eq!(SPECIMEN_MATERIALIZER_CALLS.load(Ordering::SeqCst), 2);
+    assert_eq!(SPECIMEN_HOST_CALLS.load(Ordering::SeqCst), 0);
+
+    let wrong_selected = SpecimenMaterializerBinding::bound(&pair, wrong_selected_specimen);
+    SPECIMEN_MATERIALIZER_CALLS.store(0, Ordering::SeqCst);
+    SPECIMEN_HOST_CALLS.store(0, Ordering::SeqCst);
+    assert!(matches!(
+        demonstrate_compiled_projection(
+            &surface,
+            qualification,
+            &wrong_selected,
+            selection,
+            &invocation()?,
+            compiled_specimen_host,
+        ),
+        Err(CompiledProjectionRefusal::SelectedHost(
+            CompiledSpecimenHostRefusal::Meaning(_),
+        ))
+    ));
+    assert_eq!(SPECIMEN_MATERIALIZER_CALLS.load(Ordering::SeqCst), 2);
+    assert_eq!(SPECIMEN_HOST_CALLS.load(Ordering::SeqCst), 2);
+
     Ok(())
 }
 
-/// The three new content identities match independently framed owner facts rather than a digest copied from their encoder.
+/// A lawful observation cached from the baseline request cannot impersonate the selected request.
+#[test]
+fn host_observations_must_join_the_current_specimen_request() -> Result<(), MutationRoadFailure> {
+    let _specimen_guard = lock_specimen_tests()?;
+    let family = family("compiled-observation-boundary")?;
+    let surface = surface_with(family, vec![b"a <= b"])?;
+    let pair = pair(family, &surface, evaluation)?;
+    let input = [1u32, 0, 0];
+    let standing = qualify_no_mutation(observe_no_mutation(
+        &pair,
+        MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
+        &input,
+        &invocation()?,
+    )?);
+    let qualification =
+        standing
+            .qualification()
+            .ok_or(MutationRoadFailure::MissingQualification(
+                ParityQualificationRefusal::MeaningsDisagreed,
+            ))?;
+    let selection = active_selection(&surface)?;
+    let materializer = SpecimenMaterializerBinding::bound(&pair, specimen_materializer);
+    *CACHED_SIBLING_OBSERVATION
+        .lock()
+        .map_err(|_| MutationRoadFailure::NativeToolchain)? = None;
+    SPECIMEN_MATERIALIZER_CALLS.store(0, Ordering::SeqCst);
+    SPECIMEN_HOST_CALLS.store(0, Ordering::SeqCst);
+    assert!(matches!(
+        demonstrate_compiled_projection(
+            &surface,
+            qualification,
+            &materializer,
+            selection,
+            &invocation()?,
+            cached_sibling_observation_host,
+        ),
+        Err(CompiledProjectionRefusal::SelectedObservation(
+            CompiledSpecimenObservationMismatch::Content { expected, found },
+        )) if expected.address()
+                == ContentAddress::derived(ARTIFACT_CONTENT_TAG, &specimen_source(b"a <= b"))
+            && found.address()
+                == ContentAddress::derived(ARTIFACT_CONTENT_TAG, &specimen_source(ORIGINAL_OPERATION))
+    ));
+    assert_eq!(SPECIMEN_MATERIALIZER_CALLS.load(Ordering::SeqCst), 2);
+    assert_eq!(SPECIMEN_HOST_CALLS.load(Ordering::SeqCst), 2);
+    Ok(())
+}
+
+/// Exact projection pressure requires the qualified execution, a passing compiled baseline, and rejection of the selected compiled behavior.
+#[test]
+fn exact_projection_requires_both_compiled_witness_outcomes() -> Result<(), MutationRoadFailure> {
+    let _specimen_guard = lock_specimen_tests()?;
+    let baseline_family = family("compiled-baseline-outcome")?;
+    let baseline_surface = surface_with(baseline_family, vec![SELECTED_OPERATION])?;
+    let baseline_pair = pair(baseline_family, &baseline_surface, evaluation)?;
+    let baseline_input = [0u32, 0, 0];
+    let baseline_standing = qualify_no_mutation(observe_no_mutation(
+        &baseline_pair,
+        MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
+        &baseline_input,
+        &invocation()?,
+    )?);
+    let baseline_qualification =
+        baseline_standing
+            .qualification()
+            .ok_or(MutationRoadFailure::MissingQualification(
+                ParityQualificationRefusal::MeaningsDisagreed,
+            ))?;
+    let baseline_selection = active_selection(&baseline_surface)?;
+    let baseline_materializer =
+        SpecimenMaterializerBinding::bound(&baseline_pair, specimen_materializer);
+    SPECIMEN_MATERIALIZER_CALLS.store(0, Ordering::SeqCst);
+    SPECIMEN_HOST_CALLS.store(0, Ordering::SeqCst);
+    assert!(matches!(
+        demonstrate_compiled_projection(
+            &baseline_surface,
+            baseline_qualification,
+            &baseline_materializer,
+            baseline_selection,
+            &invocation()?,
+            compiled_specimen_host,
+        ),
+        Err(CompiledProjectionRefusal::BaselineDidNotQualify)
+    ));
+    assert_eq!(SPECIMEN_MATERIALIZER_CALLS.load(Ordering::SeqCst), 2);
+    assert_eq!(SPECIMEN_HOST_CALLS.load(Ordering::SeqCst), 1);
+
+    let surviving_family = family("compiled-selected-survives")?;
+    let surviving_surface = surface_with(surviving_family, vec![b"input > 0"])?;
+    let surviving_pair = pair(surviving_family, &surviving_surface, evaluation)?;
+    let surviving_input = [1u32, 0, 0];
+    let surviving_standing = qualify_no_mutation(observe_no_mutation(
+        &surviving_pair,
+        MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
+        &surviving_input,
+        &invocation()?,
+    )?);
+    let surviving_qualification =
+        surviving_standing
+            .qualification()
+            .ok_or(MutationRoadFailure::MissingQualification(
+                ParityQualificationRefusal::MeaningsDisagreed,
+            ))?;
+    let surviving_selection = active_selection(&surviving_surface)?;
+    let surviving_materializer =
+        SpecimenMaterializerBinding::bound(&surviving_pair, specimen_materializer);
+
+    SPECIMEN_MATERIALIZER_CALLS.store(0, Ordering::SeqCst);
+    SPECIMEN_HOST_CALLS.store(0, Ordering::SeqCst);
+    assert!(matches!(
+        demonstrate_compiled_projection(
+            &surviving_surface,
+            surviving_qualification,
+            &surviving_materializer,
+            surviving_selection,
+            &foreign_invocation(),
+            compiled_specimen_host,
+        ),
+        Err(CompiledProjectionRefusal::InvocationForAnotherExecution)
+    ));
+    assert_eq!(SPECIMEN_MATERIALIZER_CALLS.load(Ordering::SeqCst), 0);
+    assert_eq!(SPECIMEN_HOST_CALLS.load(Ordering::SeqCst), 0);
+
+    SPECIMEN_MATERIALIZER_CALLS.store(0, Ordering::SeqCst);
+    SPECIMEN_HOST_CALLS.store(0, Ordering::SeqCst);
+    assert!(matches!(
+        demonstrate_compiled_projection(
+            &surviving_surface,
+            surviving_qualification,
+            &surviving_materializer,
+            surviving_selection,
+            &invocation()?,
+            compiled_specimen_host,
+        ),
+        Err(CompiledProjectionRefusal::ProjectionDidNotReject)
+    ));
+    assert_eq!(SPECIMEN_MATERIALIZER_CALLS.load(Ordering::SeqCst), 2);
+    assert_eq!(SPECIMEN_HOST_CALLS.load(Ordering::SeqCst), 2);
+    let suite = compiled_suite_pressure()?;
+    assert!(matches!(
+        availability::<[u32; 3], CompiledRosterMeaning>(
+            Some(&surviving_surface),
+            Some(&suite),
+            None,
+        ),
+        InterpreterAvailability::TrustNotOpened {
+            missing: MissingTrustEvidence::CompiledProjectionPressure,
+        }
+    ));
+    Ok(())
+}
+
+/// A point-free surface may earn parity qualification but cannot mint selection-scoped compiled pressure or active trust.
+#[test]
+fn point_free_trust_does_not_admit_mutation_execution() -> Result<(), MutationRoadFailure> {
+    let family = family("point-free-family")?;
+    let policy = policy(family)?;
+    let surface = lower_discoveries(&policy, Vec::new())?.into_parts().1;
+    let pair = pair(family, &surface, evaluation)?;
+    let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check)?;
+    let input = [1u32, 0, 0];
+    let standing =
+        qualify_no_mutation(observe_no_mutation(&pair, witness, &input, &invocation()?)?);
+    let qualification =
+        standing
+            .qualification()
+            .ok_or(MutationRoadFailure::MissingQualification(
+                ParityQualificationRefusal::MeaningsDisagreed,
+            ))?;
+    let suite = compiled_suite_pressure()?;
+    let availability =
+        availability::<[u32; 3], CompiledRosterMeaning>(Some(&surface), Some(&suite), None);
+    assert!(matches!(
+        &availability,
+        InterpreterAvailability::TrustNotOpened {
+            missing: MissingTrustEvidence::CompiledProjectionPressure,
+        }
+    ));
+    assert_eq!(
+        threadpak_testpak::muterprater::rewrite::admission(&availability),
+        RewriteAdmission::Withheld(
+            threadpak_testpak::muterprater::RewriteWithheld::TrustNotOpened(
+                MissingTrustEvidence::CompiledProjectionPressure,
+            ),
+        )
+    );
+    assert_eq!(qualification.reading().pair().standing(), pair.standing());
+    Ok(())
+}
+
+/// Policy, alternative, and surface identities match independently framed owner facts.
 #[test]
 fn mutation_identity_preimages_are_independently_read() -> Result<(), MutationRoadFailure> {
     let family = family("identity-family")?;
@@ -1051,7 +1861,16 @@ fn mutation_identity_preimages_are_independently_read() -> Result<(), MutationRo
         );
     }
 
-    let surface = EvaluationSurface::conforming(&policy, vec![point])?;
+    let surface = lower_discoveries(
+        &policy,
+        vec![discovered_point(
+            "identity-point",
+            OwnerClaimMapping::Mapped(claim()?),
+            vec![b"a <= b", b"a > b"],
+        )?],
+    )?
+    .into_parts()
+    .1;
     let mut surface_preimage = Vec::new();
     push_name(&mut surface_preimage, family.name());
     encode_bytes(
@@ -1087,18 +1906,74 @@ fn mutation_identity_preimages_are_independently_read() -> Result<(), MutationRo
         surface.identity().address(),
         ContentAddress::derived(SURFACE_READING_TAG, &surface_preimage)
     );
+
     Ok(())
 }
 
-/// Captured cargo-mutants pressure and exact no-mutation parity open one active execution that is admitted through both report spines.
+/// Discovery identity preserves producer order while the admitted surface retains canonical point order.
 #[test]
-fn compiled_and_interpreted_evidence_join_without_flattening() -> Result<(), MutationRoadFailure> {
-    let family = family("comparison-family")?;
-    let surface = surface_with(family, vec![COMPILED_MUTANT_DAMAGE])?;
-    let pair = pair(family, &surface, evaluation)?;
-    let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check)?;
-    let input = [1u32, 0, 0];
-    let reading = observe_no_mutation(&pair, witness, &input, &invocation())?;
+fn discovery_identity_and_surface_identity_keep_their_own_ordering()
+-> Result<(), MutationRoadFailure> {
+    let policy = policy(family("discovery-identity-family")?)?;
+    let first = discovered_point(
+        "producer-order-first",
+        OwnerClaimMapping::Mapped(claim()?),
+        vec![b"a <= b"],
+    )?;
+    let second = discovered_point(
+        "producer-order-second",
+        OwnerClaimMapping::Mapped(claim()?),
+        vec![b"a >= b"],
+    )?;
+    let forward = lower_discoveries(&policy, vec![first.clone(), second.clone()])?;
+    let reversed = lower_discoveries(&policy, vec![second, first])?;
+    assert_eq!(
+        forward.discovery().identity().address(),
+        ContentAddress::derived(
+            DISCOVERY_READING_TAG,
+            &independently_frame_discovery(forward.discovery()),
+        )
+    );
+    assert_ne!(
+        forward.discovery().identity(),
+        reversed.discovery().identity()
+    );
+    assert_eq!(forward.surface().identity(), reversed.surface().identity());
+    Ok(())
+}
+
+fn assert_compiled_projection_custody(
+    projection: &CompiledProjectionPressure<'_, '_, '_, [u32; 3], CompiledRosterMeaning>,
+    pair: &EvaluationPair<[u32; 3], CompiledRosterMeaning>,
+    selection: ActiveSelection,
+) {
+    assert_ne!(
+        projection.baseline_artifact(),
+        projection.standing().artifact()
+    );
+    assert_eq!(
+        projection.baseline_artifact().address(),
+        ContentAddress::derived(ARTIFACT_CONTENT_TAG, &specimen_source(ORIGINAL_OPERATION))
+    );
+    assert_eq!(
+        projection.standing().artifact().address(),
+        ContentAddress::derived(ARTIFACT_CONTENT_TAG, &specimen_source(SELECTED_OPERATION))
+    );
+    assert_eq!(projection.standing().pair(), pair.standing());
+    assert_eq!(projection.standing().selection(), selection);
+    assert!(lens_verdict(projection.baseline_report()).is_ok());
+    assert!(lens_verdict(projection.selected_report()).is_err());
+    assert_eq!(projection.mutation().verdict(), MutationVerdict::Killed);
+    assert!(matches!(
+        projection.mutation().target().identity(),
+        MutationIdentity::CompiledProjection { point: _, alternative }
+            if alternative == selection.alternative()
+    ));
+}
+
+fn assert_no_mutation_reading(
+    reading: &NoMutationParityReading<'_, '_, [u32; 3], CompiledRosterMeaning>,
+) {
     assert_eq!(reading.production(), &CompiledRosterMeaning::Stated(1));
     assert_eq!(reading.evaluation(), &CompiledRosterMeaning::Stated(1));
     assert_eq!(reading.evaluation_firings(), 0u32);
@@ -1114,6 +1989,52 @@ fn compiled_and_interpreted_evidence_join_without_flattening() -> Result<(), Mut
         reading.evaluation_report().measurement(),
         MeasurementReading::Unavailable
     );
+}
+
+fn assert_interpreted_evidence_custody(
+    report: &TrialReport,
+    mutation: &MutationReport,
+    expected_trial: TrialId,
+    selection: ActiveSelection,
+) {
+    assert_eq!(report.trial(), expected_trial);
+    assert_eq!(mutation.verdict(), MutationVerdict::Killed);
+    assert!(matches!(
+        mutation.activation().evidence(),
+        Some(activation) if activation.witness() == report.trial()
+    ));
+    assert!(matches!(
+        (report.attempt(), mutation.outcome()),
+        (
+            RunAttempt::Executed(TrialConclusion::Refused(report_finding)),
+            MutationOutcome::Killed(IntendedRejection::Demonstrated(rejection)),
+        ) if rejection.trial() == report.trial() && rejection.finding() == report_finding
+    ));
+    assert_eq!(
+        mutation
+            .activation()
+            .evidence()
+            .map(threadpak_testpak::muterprater::ActivationEvidence::selection),
+        Some(selection)
+    );
+    assert!(matches!(
+        mutation.target().identity(),
+        MutationIdentity::Interpreted { point: _, alternative }
+            if alternative == selection.alternative()
+    ));
+}
+
+/// Generic cargo-mutants suite bite, an exact separately compiled projection, and parity open one selection-scoped interpreted execution.
+#[test]
+fn compiled_and_interpreted_evidence_join_without_flattening() -> Result<(), MutationRoadFailure> {
+    let _specimen_guard = lock_specimen_tests()?;
+    let family = family("comparison-family")?;
+    let surface = surface_with(family, vec![b"input > 0", SELECTED_OPERATION])?;
+    let pair = pair(family, &surface, evaluation_reads_resolved_payload_counted)?;
+    let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check)?;
+    let input = [1u32, 0, 0];
+    let reading = observe_no_mutation(&pair, witness, &input, &invocation()?)?;
+    assert_no_mutation_reading(&reading);
     let standing = qualify_no_mutation(reading);
     let qualification =
         standing
@@ -1121,67 +2042,66 @@ fn compiled_and_interpreted_evidence_join_without_flattening() -> Result<(), Mut
             .ok_or(MutationRoadFailure::MissingQualification(
                 ParityQualificationRefusal::MeaningsDisagreed,
             ))?;
-    let compiled = compiled_witness(pair.standing())?;
-    assert_eq!(compiled.kill().target().owning_claim(), Some(claim()?));
+    let suite = compiled_suite_pressure()?;
+    assert_eq!(suite.kill().target().owning_claim(), Some(claim()?));
     assert_eq!(
-        compiled.kill().target().family(),
+        suite.kill().target().family(),
         threadpak_testpak::muterprater::FamilyAttribution::Declared(operator()?)
     );
     assert!(matches!(
-        compiled.kill().target().site(),
+        suite.kill().target().site(),
         threadpak_testpak::muterprater::MutationSite::Reported(coordinate)
             if coordinate.file() == COMPILED_MUTANT_FILE
                 && coordinate.line() == 360
                 && coordinate.column() == 13
     ));
-    let trust = match availability(Some(&surface), Some(&compiled), Some(qualification)) {
+    let selection = selection_for_operation(&surface, SELECTED_OPERATION)?;
+    let first_alternative = surface
+        .points()
+        .first()
+        .and_then(|point| point.admitted_alternatives().first())
+        .ok_or(MutationRoadFailure::MissingAlternative)?;
+    assert_ne!(selection.alternative(), first_alternative.identity());
+    let materializer = SpecimenMaterializerBinding::bound(&pair, specimen_materializer);
+    let projection = demonstrate_compiled_projection(
+        &surface,
+        qualification,
+        &materializer,
+        selection,
+        &invocation()?,
+        compiled_specimen_host,
+    )?;
+    assert_compiled_projection_custody(&projection, &pair, selection);
+    let trust = match availability(Some(&surface), Some(&suite), Some(&projection)) {
         InterpreterAvailability::Available(trust) => trust,
         InterpreterAvailability::NoConformingSurface => {
             return Err(MutationRoadFailure::MissingTrust(
-                MissingTrustEvidence::NoMutationParity,
+                MissingTrustEvidence::CompiledProjectionPressure,
             ));
         }
         InterpreterAvailability::TrustNotOpened { missing } => {
             return Err(MutationRoadFailure::MissingTrust(missing));
         }
     };
-    let selection = active_selection(&surface)?;
-    let evidence = execute_active(&trust, selection, &invocation())?;
+    assert_eq!(trust.selection(), selection);
+    CLAIM_MISMATCH_EVALUATION_CALLS.store(0, Ordering::SeqCst);
+    INTERPRETED_CLOCK_CALLS.store(0, Ordering::SeqCst);
+    assert!(matches!(
+        execute_active(&trust, &foreign_measured_invocation()),
+        Err(InterpretedExecutionRefusal::InvocationForAnotherExecution)
+    ));
+    assert_eq!(CLAIM_MISMATCH_EVALUATION_CALLS.load(Ordering::SeqCst), 0);
+    assert_eq!(INTERPRETED_CLOCK_CALLS.load(Ordering::SeqCst), 0);
+    let evidence = execute_active(&trust, &invocation()?)?;
+    assert_eq!(CLAIM_MISMATCH_EVALUATION_CALLS.load(Ordering::SeqCst), 1);
     assert_eq!(evidence.selection(), selection);
     assert_eq!(evidence.meaning(), &CompiledRosterMeaning::Unstated);
-    assert_eq!(
-        evidence.report().trial(),
-        qualification.reading().production_report().trial()
+    assert_interpreted_evidence_custody(
+        evidence.report(),
+        evidence.mutation(),
+        qualification.reading().production_report().trial(),
+        selection,
     );
-    assert_eq!(evidence.mutation().verdict(), MutationVerdict::Killed);
-    assert!(matches!(
-        evidence.mutation().activation().evidence(),
-        Some(activation) if activation.witness() == evidence.report().trial()
-    ));
-    assert!(matches!(
-        (evidence.report().attempt(), evidence.mutation().outcome()),
-        (
-            RunAttempt::Executed(TrialConclusion::Refused(report_finding)),
-            MutationOutcome::Killed(IntendedRejection::Demonstrated(rejection)),
-        ) if rejection.trial() == evidence.report().trial()
-            && rejection.finding() == report_finding
-    ));
-    assert_eq!(
-        evidence
-            .mutation()
-            .activation()
-            .evidence()
-            .map(threadpak_testpak::muterprater::ActivationEvidence::selection),
-        Some(selection)
-    );
-    assert!(matches!(
-        evidence.mutation().target().identity(),
-        MutationIdentity::Interpreted { point: _, alternative } if alternative == selection.alternative()
-    ));
-    assert!(matches!(
-        evidence.mutation().outcome(),
-        MutationOutcome::Killed(_)
-    ));
 
     admit_mutation(evidence.mutation())?;
     Ok(())
@@ -1190,31 +2110,43 @@ fn compiled_and_interpreted_evidence_join_without_flattening() -> Result<(), Mut
 /// The same admitted report authority also preserves a surviving active execution instead of hard-coding every firing as a kill.
 #[test]
 fn active_classification_is_derived_from_the_admitted_report() -> Result<(), MutationRoadFailure> {
+    let _specimen_guard = lock_specimen_tests()?;
     let family = family("surviving-family")?;
     let surface = surface_with(family, vec![b"a <= b"])?;
     let pair = pair(family, &surface, activation_survives)?;
     let input = [1u32, 0, 0];
     let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check)?;
-    let standing = qualify_no_mutation(observe_no_mutation(&pair, witness, &input, &invocation())?);
+    let standing =
+        qualify_no_mutation(observe_no_mutation(&pair, witness, &input, &invocation()?)?);
     let qualification =
         standing
             .qualification()
             .ok_or(MutationRoadFailure::MissingQualification(
                 ParityQualificationRefusal::MeaningsDisagreed,
             ))?;
-    let compiled = compiled_witness(pair.standing())?;
-    let trust = match availability(Some(&surface), Some(&compiled), Some(qualification)) {
+    let suite = compiled_suite_pressure()?;
+    let selection = active_selection(&surface)?;
+    let materializer = SpecimenMaterializerBinding::bound(&pair, specimen_materializer);
+    let projection = demonstrate_compiled_projection(
+        &surface,
+        qualification,
+        &materializer,
+        selection,
+        &invocation()?,
+        compiled_specimen_host,
+    )?;
+    let trust = match availability(Some(&surface), Some(&suite), Some(&projection)) {
         InterpreterAvailability::Available(trust) => trust,
         InterpreterAvailability::NoConformingSurface => {
             return Err(MutationRoadFailure::MissingTrust(
-                MissingTrustEvidence::NoMutationParity,
+                MissingTrustEvidence::CompiledProjectionPressure,
             ));
         }
         InterpreterAvailability::TrustNotOpened { missing } => {
             return Err(MutationRoadFailure::MissingTrust(missing));
         }
     };
-    let evidence = execute_active(&trust, active_selection(&surface)?, &invocation())?;
+    let evidence = execute_active(&trust, &invocation()?)?;
     assert!(matches!(
         (evidence.report().attempt(), evidence.mutation().outcome()),
         (
@@ -1233,7 +2165,8 @@ fn no_mutation_agreement_must_be_earned() -> Result<(), MutationRoadFailure> {
     let pair = pair(family, &surface, parity_broken)?;
     let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check_passes)?;
     let input = [1u32, 0, 0];
-    let standing = qualify_no_mutation(observe_no_mutation(&pair, witness, &input, &invocation())?);
+    let standing =
+        qualify_no_mutation(observe_no_mutation(&pair, witness, &input, &invocation()?)?);
     let rejection = standing
         .rejection()
         .ok_or(MutationRoadFailure::MissingQualification(
@@ -1262,7 +2195,7 @@ fn no_mutation_report_roles_and_refusal_priority_are_observed() -> Result<(), Mu
         &pair,
         MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
         &input,
-        &invocation(),
+        &invocation()?,
     )?);
     assert!(matches!(
         evaluation_rejected.rejection(),
@@ -1274,7 +2207,7 @@ fn no_mutation_report_roles_and_refusal_priority_are_observed() -> Result<(), Mu
         &pair,
         MutationWitness::bound(trial_binding()?, check_ref()?, check_evaluation_meaning)?,
         &input,
-        &invocation(),
+        &invocation()?,
     )?);
     assert!(matches!(
         production_rejected.rejection(),
@@ -1286,7 +2219,7 @@ fn no_mutation_report_roles_and_refusal_priority_are_observed() -> Result<(), Mu
         &pair,
         MutationWitness::bound(trial_binding()?, check_ref()?, check_refuses)?,
         &input,
-        &invocation(),
+        &invocation()?,
     )?);
     assert!(matches!(
         both_rejected.rejection(),
@@ -1304,7 +2237,8 @@ fn no_mutation_requires_zero_firings() -> Result<(), MutationRoadFailure> {
     let pair = pair(family, &surface, no_mutation_activates)?;
     let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check)?;
     let input = [1u32, 0, 0];
-    let standing = qualify_no_mutation(observe_no_mutation(&pair, witness, &input, &invocation())?);
+    let standing =
+        qualify_no_mutation(observe_no_mutation(&pair, witness, &input, &invocation()?)?);
     let rejection = standing
         .rejection()
         .ok_or(MutationRoadFailure::MissingQualification(
@@ -1318,44 +2252,136 @@ fn no_mutation_requires_zero_firings() -> Result<(), MutationRoadFailure> {
     Ok(())
 }
 
-/// A selected alternative that reports zero firings yields the exact dud and no admitted evidence.
+/// Evaluation call refusals name whether the absent branch was no-mutation or one exact active selection.
 #[test]
-fn an_unfired_selection_is_not_mutation_evidence() -> Result<(), MutationRoadFailure> {
-    let family = family("dud-family")?;
-    let surface = surface_with(family, vec![b"a <= b"])?;
-    let pair = pair(family, &surface, activation_missing)?;
-    let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check)?;
+fn evaluation_call_refusals_preserve_directive_posture() -> Result<(), MutationRoadFailure> {
+    let _specimen_guard = lock_specimen_tests()?;
+    let no_mutation_family = family("no-mutation-branch-omitted")?;
+    let no_mutation_surface = surface_with(no_mutation_family, vec![SELECTED_OPERATION])?;
+    let production_revision =
+        RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, b"production"));
+    let evaluation_revision =
+        RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, b"evaluation"));
+    let no_mutation_pair = EvaluationPair::paired(
+        ProductionBinding::declared(no_mutation_family, production_revision, production_ordered),
+        EvaluationBinding::declared(
+            &no_mutation_surface,
+            evaluation_revision,
+            no_mutation_branch_omitted,
+        ),
+        same,
+    )?;
     let input = [1u32, 0, 0];
-    let standing = qualify_no_mutation(observe_no_mutation(&pair, witness, &input, &invocation())?);
+    NO_MUTATION_CALL_ORDER.store(0, Ordering::SeqCst);
+    assert!(matches!(
+        observe_no_mutation(
+            &no_mutation_pair,
+            MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
+            &input,
+            &invocation()?,
+        ),
+        Err(NoMutationObservationRefusal::EvaluationCall(
+            EvaluationCallRefusal::NoMutationNotImplemented,
+        ))
+    ));
+    assert_eq!(NO_MUTATION_CALL_ORDER.load(Ordering::SeqCst), 2);
+
+    let active_family = family("active-branch-omitted")?;
+    let active_surface = surface_with(active_family, vec![SELECTED_OPERATION])?;
+    let active_pair = pair(active_family, &active_surface, active_branch_omitted)?;
+    let standing = qualify_no_mutation(observe_no_mutation(
+        &active_pair,
+        MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
+        &input,
+        &invocation()?,
+    )?);
     let qualification =
         standing
             .qualification()
             .ok_or(MutationRoadFailure::MissingQualification(
                 ParityQualificationRefusal::MeaningsDisagreed,
             ))?;
-    let compiled = compiled_witness(pair.standing())?;
-    let trust = match availability(Some(&surface), Some(&compiled), Some(qualification)) {
+    let selection = active_selection(&active_surface)?;
+    let materializer = SpecimenMaterializerBinding::bound(&active_pair, specimen_materializer);
+    let projection = demonstrate_compiled_projection(
+        &active_surface,
+        qualification,
+        &materializer,
+        selection,
+        &invocation()?,
+        compiled_specimen_host,
+    )?;
+    let suite = compiled_suite_pressure()?;
+    let trust = match availability(Some(&active_surface), Some(&suite), Some(&projection)) {
         InterpreterAvailability::Available(trust) => trust,
         InterpreterAvailability::NoConformingSurface => {
             return Err(MutationRoadFailure::MissingTrust(
-                MissingTrustEvidence::NoMutationParity,
+                MissingTrustEvidence::CompiledProjectionPressure,
             ));
         }
         InterpreterAvailability::TrustNotOpened { missing } => {
             return Err(MutationRoadFailure::MissingTrust(missing));
         }
     };
-    let selection = active_selection(&surface)?;
     assert!(matches!(
-        execute_active(&trust, selection, &invocation()),
+        execute_active(&trust, &invocation()?),
+        Err(InterpretedExecutionRefusal::EvaluationCall(
+            EvaluationCallRefusal::ActiveSelectionNotImplemented(found),
+        )) if found == selection
+    ));
+    Ok(())
+}
+
+/// A selected alternative that reports zero firings yields the exact dud and no admitted evidence.
+#[test]
+fn an_unfired_selection_is_not_mutation_evidence() -> Result<(), MutationRoadFailure> {
+    let _specimen_guard = lock_specimen_tests()?;
+    let family = family("dud-family")?;
+    let surface = surface_with(family, vec![b"a <= b"])?;
+    let pair = pair(family, &surface, activation_missing)?;
+    let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check)?;
+    let input = [1u32, 0, 0];
+    let standing =
+        qualify_no_mutation(observe_no_mutation(&pair, witness, &input, &invocation()?)?);
+    let qualification =
+        standing
+            .qualification()
+            .ok_or(MutationRoadFailure::MissingQualification(
+                ParityQualificationRefusal::MeaningsDisagreed,
+            ))?;
+    let suite = compiled_suite_pressure()?;
+    let selection = active_selection(&surface)?;
+    let materializer = SpecimenMaterializerBinding::bound(&pair, specimen_materializer);
+    let projection = demonstrate_compiled_projection(
+        &surface,
+        qualification,
+        &materializer,
+        selection,
+        &invocation()?,
+        compiled_specimen_host,
+    )?;
+    let trust = match availability(Some(&surface), Some(&suite), Some(&projection)) {
+        InterpreterAvailability::Available(trust) => trust,
+        InterpreterAvailability::NoConformingSurface => {
+            return Err(MutationRoadFailure::MissingTrust(
+                MissingTrustEvidence::CompiledProjectionPressure,
+            ));
+        }
+        InterpreterAvailability::TrustNotOpened { missing } => {
+            return Err(MutationRoadFailure::MissingTrust(missing));
+        }
+    };
+    assert!(matches!(
+        execute_active(&trust, &invocation()?),
         Err(InterpretedExecutionRefusal::DudPlant(dud)) if dud.selection() == selection
     ));
     Ok(())
 }
 
-/// An active selection cannot cross its issuing surface or owner claim, and either invalid join reaches no caller code.
+/// Exact compiled pressure cannot cross its issuing surface or owner claim, and either invalid join reaches no materializer or host code.
 #[test]
 fn active_execution_keeps_surface_claim_and_witness_together() -> Result<(), MutationRoadFailure> {
+    let _specimen_guard = lock_specimen_tests()?;
     let family = family("claim-bound-family")?;
     let surface = surface_with(family, vec![b"a <= b"])?;
     let pair = pair(family, &surface, evaluation_counted)?;
@@ -1366,7 +2392,7 @@ fn active_execution_keeps_surface_claim_and_witness_together() -> Result<(), Mut
         &pair,
         foreign_witness,
         &input,
-        &invocation(),
+        &invocation()?,
     )?);
     let qualification =
         standing
@@ -1374,45 +2400,66 @@ fn active_execution_keeps_surface_claim_and_witness_together() -> Result<(), Mut
             .ok_or(MutationRoadFailure::MissingQualification(
                 ParityQualificationRefusal::MeaningsDisagreed,
             ))?;
-    let compiled = compiled_witness(pair.standing())?;
-    let trust = match availability(Some(&surface), Some(&compiled), Some(qualification)) {
-        InterpreterAvailability::Available(trust) => trust,
-        InterpreterAvailability::NoConformingSurface => {
-            return Err(MutationRoadFailure::MissingTrust(
-                MissingTrustEvidence::NoMutationParity,
-            ));
-        }
-        InterpreterAvailability::TrustNotOpened { missing } => {
-            return Err(MutationRoadFailure::MissingTrust(missing));
-        }
-    };
     let selection = active_selection(&surface)?;
+    let materializer = SpecimenMaterializerBinding::bound(&pair, specimen_materializer);
     let expected_claim = claim()?;
     let foreign_claim =
         ClaimRef::named(OWNER, "another-behaviour").map_err(|_| MutationRoadFailure::Name)?;
     CLAIM_MISMATCH_EVALUATION_CALLS.store(0, Ordering::SeqCst);
+    SPECIMEN_MATERIALIZER_CALLS.store(0, Ordering::SeqCst);
+    SPECIMEN_HOST_CALLS.store(0, Ordering::SeqCst);
     assert!(matches!(
-        execute_active(&trust, selection, &invocation()),
-        Err(InterpretedExecutionRefusal::WitnessForAnotherClaim { expected, found })
+        demonstrate_compiled_projection(
+            &surface,
+            qualification,
+            &materializer,
+            selection,
+            &invocation()?,
+            compiled_specimen_host,
+        ),
+        Err(CompiledProjectionRefusal::WitnessForAnotherClaim { expected, found })
             if expected == expected_claim && found == foreign_claim
     ));
     assert_eq!(CLAIM_MISMATCH_EVALUATION_CALLS.load(Ordering::SeqCst), 0);
+    assert_eq!(SPECIMEN_MATERIALIZER_CALLS.load(Ordering::SeqCst), 0);
+    assert_eq!(SPECIMEN_HOST_CALLS.load(Ordering::SeqCst), 0);
 
+    let local_standing = qualify_no_mutation(observe_no_mutation(
+        &pair,
+        MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
+        &input,
+        &invocation()?,
+    )?);
+    let local_qualification =
+        local_standing
+            .qualification()
+            .ok_or(MutationRoadFailure::MissingQualification(
+                ParityQualificationRefusal::MeaningsDisagreed,
+            ))?;
     let foreign_surface = surface_with(family, vec![b"a >= b"])?;
     let foreign_selection = active_selection(&foreign_surface)?;
     let expected_surface = surface.identity();
     let found_surface = foreign_surface.identity();
-    CLAIM_MISMATCH_EVALUATION_CALLS.store(0, Ordering::SeqCst);
+    SPECIMEN_MATERIALIZER_CALLS.store(0, Ordering::SeqCst);
+    SPECIMEN_HOST_CALLS.store(0, Ordering::SeqCst);
     assert!(matches!(
-        execute_active(&trust, foreign_selection, &invocation()),
-        Err(InterpretedExecutionRefusal::Selection(
+        demonstrate_compiled_projection(
+            &surface,
+            local_qualification,
+            &materializer,
+            foreign_selection,
+            &invocation()?,
+            compiled_specimen_host,
+        ),
+        Err(CompiledProjectionRefusal::Selection(
             threadpak_testpak::muterprater::SelectionRefusal::SelectionFromAnotherSurface {
                 expected,
                 found,
             },
         )) if expected == expected_surface && found == found_surface
     ));
-    assert_eq!(CLAIM_MISMATCH_EVALUATION_CALLS.load(Ordering::SeqCst), 0);
+    assert_eq!(SPECIMEN_MATERIALIZER_CALLS.load(Ordering::SeqCst), 0);
+    assert_eq!(SPECIMEN_HOST_CALLS.load(Ordering::SeqCst), 0);
     Ok(())
 }
 
@@ -1432,43 +2479,24 @@ fn a_mutation_witness_keeps_its_check_identity_and_callable_together()
     Ok(())
 }
 
-/// Compiled pressure from another family cannot open this evaluation surface.
+/// Generic cargo-mutants suite pressure carries no evaluation-family or pair authority and cannot open exact trust alone.
 #[test]
-fn compiled_pressure_is_family_scoped() -> Result<(), MutationRoadFailure> {
-    let local_family = family("local-family")?;
-    let foreign = family("foreign-family")?;
-    let surface = surface_with(local_family, vec![b"a <= b"])?;
-    let evaluation_pair = pair(local_family, &surface, evaluation)?;
-    let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check)?;
-    let input = [1u32, 0, 0];
-    let standing = qualify_no_mutation(observe_no_mutation(
-        &evaluation_pair,
-        witness,
-        &input,
-        &invocation(),
-    )?);
-    let qualification =
-        standing
-            .qualification()
-            .ok_or(MutationRoadFailure::MissingQualification(
-                ParityQualificationRefusal::MeaningsDisagreed,
-            ))?;
-    let foreign_surface = surface_with(foreign, vec![b"a <= b"])?;
-    let foreign_pair = pair(foreign, &foreign_surface, evaluation)?;
-    let compiled = compiled_witness(foreign_pair.standing())?;
+fn generic_suite_pressure_cannot_open_exact_pair_trust() -> Result<(), MutationRoadFailure> {
+    let surface = surface_with(family("local-family")?, vec![b"a <= b"])?;
+    let suite = compiled_suite_pressure()?;
     assert!(matches!(
-        availability(Some(&surface), Some(&compiled), Some(qualification)),
+        availability::<[u32; 3], CompiledRosterMeaning>(Some(&surface), Some(&suite), None),
         InterpreterAvailability::TrustNotOpened {
-            missing: MissingTrustEvidence::CompiledPressureForAnotherPair,
+            missing: MissingTrustEvidence::CompiledProjectionPressure,
         }
     ));
-
     Ok(())
 }
 
-/// Compiled pressure scoped to another surface in the same family cannot open this exact evaluation pair.
+/// Exact projection pressure cannot cross a surface, and a materializer bound to another revision cannot be attached before execution.
 #[test]
 fn compiled_pressure_is_exact_pair_scoped() -> Result<(), MutationRoadFailure> {
+    let _specimen_guard = lock_specimen_tests()?;
     let family = family("same-family-pair-scope")?;
     let surface = surface_with(family, vec![b"a <= b"])?;
     let evaluation_pair = pair(family, &surface, evaluation)?;
@@ -1478,7 +2506,7 @@ fn compiled_pressure_is_exact_pair_scoped() -> Result<(), MutationRoadFailure> {
         &evaluation_pair,
         witness,
         &input,
-        &invocation(),
+        &invocation()?,
     )?);
     let qualification =
         standing
@@ -1486,14 +2514,37 @@ fn compiled_pressure_is_exact_pair_scoped() -> Result<(), MutationRoadFailure> {
             .ok_or(MutationRoadFailure::MissingQualification(
                 ParityQualificationRefusal::MeaningsDisagreed,
             ))?;
-    let another_surface = surface_with(family, vec![b"a >= b"])?;
+    let another_surface = surface_with(family, vec![SELECTED_OPERATION])?;
     let another_pair = pair(family, &another_surface, evaluation)?;
     assert_ne!(another_pair.standing(), evaluation_pair.standing());
-    let surface_compiled = compiled_witness(another_pair.standing())?;
+    let another_standing = qualify_no_mutation(observe_no_mutation(
+        &another_pair,
+        MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
+        &input,
+        &invocation()?,
+    )?);
+    let another_qualification =
+        another_standing
+            .qualification()
+            .ok_or(MutationRoadFailure::MissingQualification(
+                ParityQualificationRefusal::MeaningsDisagreed,
+            ))?;
+    let another_selection = active_selection(&another_surface)?;
+    let another_materializer =
+        SpecimenMaterializerBinding::bound(&another_pair, specimen_materializer);
+    let another_projection = demonstrate_compiled_projection(
+        &another_surface,
+        another_qualification,
+        &another_materializer,
+        another_selection,
+        &invocation()?,
+        compiled_specimen_host,
+    )?;
+    let suite = compiled_suite_pressure()?;
     assert!(matches!(
-        availability(Some(&surface), Some(&surface_compiled), Some(qualification),),
+        availability(Some(&surface), Some(&suite), Some(&another_projection)),
         InterpreterAvailability::TrustNotOpened {
-            missing: MissingTrustEvidence::CompiledPressureForAnotherPair,
+            missing: MissingTrustEvidence::ProjectionPressureForAnotherSurface,
         }
     ));
 
@@ -1504,30 +2555,36 @@ fn compiled_pressure_is_exact_pair_scoped() -> Result<(), MutationRoadFailure> {
         b"another-evaluation-revision",
     )?;
     assert_ne!(revision_pair.standing(), evaluation_pair.standing());
-    let revision_compiled = compiled_witness(revision_pair.standing())?;
+    let revision_materializer =
+        SpecimenMaterializerBinding::bound(&revision_pair, specimen_materializer);
+    let selection = active_selection(&surface)?;
+    SPECIMEN_MATERIALIZER_CALLS.store(0, Ordering::SeqCst);
+    SPECIMEN_HOST_CALLS.store(0, Ordering::SeqCst);
     assert!(matches!(
-        availability(
-            Some(&surface),
-            Some(&revision_compiled),
-            Some(qualification),
+        demonstrate_compiled_projection(
+            &surface,
+            qualification,
+            &revision_materializer,
+            selection,
+            &invocation()?,
+            compiled_specimen_host,
         ),
-        InterpreterAvailability::TrustNotOpened {
-            missing: MissingTrustEvidence::CompiledPressureForAnotherPair,
-        }
+        Err(CompiledProjectionRefusal::MaterializerForAnotherPair(
+            EvaluationPairStandingMismatch::EvaluationRevision { expected, found },
+        )) if expected == evaluation_pair.standing().evaluation_revision()
+            && found == revision_pair.standing().evaluation_revision()
     ));
+    assert_eq!(SPECIMEN_MATERIALIZER_CALLS.load(Ordering::SeqCst), 0);
+    assert_eq!(SPECIMEN_HOST_CALLS.load(Ordering::SeqCst), 0);
     Ok(())
 }
 
 /// Adapter qualification remains bound to the exact backend profile whose reading earned it.
 #[test]
 fn a_compiled_witness_refuses_another_profile() -> Result<(), MutationRoadFailure> {
-    let family = family("compiled-family")?;
-    let surface = surface_with(family, vec![b"a <= b"])?;
-    let pair = pair(family, &surface, evaluation)?;
-    let here = compiled_reading(family)?;
+    let here = compiled_reading()?;
     let other_version = BackendVersion::stated("24.0.0").map_err(|_| MutationRoadFailure::Name)?;
     let elsewhere = read_output(
-        family,
         BACKEND_CONSOLE,
         BackendVersionPosture::Stated(other_version.clone()),
         compiled_owner,
@@ -1535,8 +2592,8 @@ fn a_compiled_witness_refuses_another_profile() -> Result<(), MutationRoadFailur
     )?;
     let borrowed = AdapterQualification::of(&elsewhere, GrammarStanding::Checked(other_version))?;
     assert_eq!(
-        CompiledPressureWitness::shown(pair.standing(), WrapStanding::Reported(&here), &borrowed,),
-        Err(PressureWitnessRefusal::QualificationUnderAnotherProfile)
+        CompiledSuitePressure::demonstrated(WrapStanding::Reported(&here), &borrowed),
+        Err(SuitePressureRefusal::QualificationUnderAnotherProfile)
     );
     Ok(())
 }
@@ -1544,8 +2601,7 @@ fn a_compiled_witness_refuses_another_profile() -> Result<(), MutationRoadFailur
 /// Adapter qualification preserves its complete refusal order over unchecked, unstated, and differently versioned profiles.
 #[test]
 fn adapter_qualification_requires_one_checked_profile_version() -> Result<(), MutationRoadFailure> {
-    let family = family("qualification-family")?;
-    let stated = compiled_reading(family)?;
+    let stated = compiled_reading()?;
     assert_eq!(
         AdapterQualification::of(&stated, GrammarStanding::Unchecked),
         Err(QualificationRefusal::GrammarUnchecked)
@@ -1553,7 +2609,6 @@ fn adapter_qualification_requires_one_checked_profile_version() -> Result<(), Mu
 
     let checked = BackendVersion::stated(BACKEND_VERSION).map_err(|_| MutationRoadFailure::Name)?;
     let unstated = read_output(
-        family,
         BACKEND_CONSOLE,
         BackendVersionPosture::Unstated,
         compiled_owner,
@@ -1575,14 +2630,11 @@ fn adapter_qualification_requires_one_checked_profile_version() -> Result<(), Mu
     Ok(())
 }
 
-/// A compiled-pressure witness requires both a reported reading and a lawful kill from that reading.
+/// Generic compiled suite pressure requires both a reported reading and a lawful backend-reported kill from that reading.
 #[test]
-fn compiled_pressure_requires_a_reported_kill() -> Result<(), MutationRoadFailure> {
-    let evaluation_family = family("compiled-pressure-staging")?;
-    let surface = surface_with(evaluation_family, vec![b"a <= b"])?;
-    let pair = pair(evaluation_family, &surface, evaluation)?;
+fn generic_suite_pressure_requires_a_reported_kill() -> Result<(), MutationRoadFailure> {
     let version = BackendVersion::stated(BACKEND_VERSION).map_err(|_| MutationRoadFailure::Name)?;
-    let killed = compiled_reading(evaluation_family)?;
+    let killed = compiled_reading()?;
     assert_eq!(
         killed.announced(),
         threadpak_testpak::muterprater::AnnouncedRoster::Stated(1)
@@ -1596,16 +2648,11 @@ fn compiled_pressure_requires_a_reported_kill() -> Result<(), MutationRoadFailur
     let killed_qualification =
         AdapterQualification::of(&killed, GrammarStanding::Checked(version.clone()))?;
     assert_eq!(
-        CompiledPressureWitness::shown(
-            pair.standing(),
-            WrapStanding::NotReported,
-            &killed_qualification,
-        ),
-        Err(PressureWitnessRefusal::WrapNotReported)
+        CompiledSuitePressure::demonstrated(WrapStanding::NotReported, &killed_qualification),
+        Err(SuitePressureRefusal::WrapNotReported)
     );
 
     let missed = read_output(
-        evaluation_family,
         BACKEND_NO_KILL,
         BackendVersionPosture::Stated(version.clone()),
         compiled_owner,
@@ -1614,30 +2661,8 @@ fn compiled_pressure_requires_a_reported_kill() -> Result<(), MutationRoadFailur
     let missed_qualification =
         AdapterQualification::of(&missed, GrammarStanding::Checked(version))?;
     assert_eq!(
-        CompiledPressureWitness::shown(
-            pair.standing(),
-            WrapStanding::Reported(&missed),
-            &missed_qualification,
-        ),
-        Err(PressureWitnessRefusal::NoKillDemonstrated)
-    );
-
-    let another_family = family("compiled-pressure-other-family")?;
-    let another_reading = compiled_reading(another_family)?;
-    let another_version =
-        BackendVersion::stated(BACKEND_VERSION).map_err(|_| MutationRoadFailure::Name)?;
-    let another_qualification =
-        AdapterQualification::of(&another_reading, GrammarStanding::Checked(another_version))?;
-    assert_eq!(
-        CompiledPressureWitness::shown(
-            pair.standing(),
-            WrapStanding::Reported(&another_reading),
-            &another_qualification,
-        ),
-        Err(PressureWitnessRefusal::ReadingForAnotherFamily {
-            expected: evaluation_family,
-            found: another_family,
-        })
+        CompiledSuitePressure::demonstrated(WrapStanding::Reported(&missed), &missed_qualification,),
+        Err(SuitePressureRefusal::NoKillDemonstrated)
     );
     Ok(())
 }

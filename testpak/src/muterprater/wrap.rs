@@ -64,22 +64,16 @@
 //! a trial nor a cause: no fingerprint exists for it, and a proposal standing on
 //! a kill is grounded on a demonstration this harness ran itself.
 //!
-//! # What a reading opens trust with
+//! # What a reading contributes to trust
 //!
-//! Two typed facts, and the interpreted lane's gate consumes both. An
-//! [`AdapterQualification`](super::AdapterQualification) is the reading's exact adapter profile under a grammar standing that qualifies that profile: a party states that the
+//! A reading can yield two nested typed facts. An [`AdapterQualification`](super::AdapterQualification) is the reading's exact adapter profile under a grammar standing that qualifies that profile: a party states that the
 //! shapes this page declares were checked against output the backend really
 //! wrote, and the version they name is the version the reading's profile names.
 //! A standing under which nobody has checked anything is an honest thing to
 //! hold and produces no qualification, so the bootstrap posture is inspectable
-//! rather than admissible. A
-//! [`CompiledPressureWitness`](super::CompiledPressureWitness) is at least one lawful kill read out of a reported reading, carrying a qualification for its exact adapter profile and an explicit evaluation-pair scope. Neither is a bare run: what a run counts and what a suite
-//! demonstrated are two questions, and the profile is exactly what a reader
-//! needs at the moment the evidence starts deciding something.
+//! rather than admissible. A [`CompiledSuitePressure`](super::CompiledSuitePressure) is at least one lawful kill read out of a reported reading and already retains that qualification, with no invented evaluation-pair or source-revision scope. A coordinate remains the supplied backend text's coordinate and does not claim the current checkout still has the same bytes there. The interpreted gate joins this generic suite pressure to independent exact [`CompiledProjectionPressure`](super::CompiledProjectionPressure); it does not consume a standalone qualification. What a run counts and what a suite demonstrated remain separate questions.
 //!
 //! # The caller-supplied seams
-//!
-//! The caller scopes the raw output to an [`EvaluationFamilyRef`]. That reference is a declaration ceiling: console text cannot prove which evaluation family produced it, so trust opens only after later evidence names the same family.
 //!
 //! External mutants arrive as source coordinates, not as claims. The origin
 //! graph is read on the generator side — a reading of the one join, never a
@@ -92,12 +86,12 @@
 
 use super::types::{
     ActivationDisposition, AdapterProfile, AnnouncedRoster, BackendVersionPosture, BaselineAxis,
-    BaselineQualification, EquivalenceAxis, EvaluationFamilyRef, ExecutionAxis, FamilyAttribution,
-    FamilyLookup, GrammarVersion, InconclusiveCause, IntendedRejection, MappingPosture,
-    MaterializationAxis, MutantId, MutationIdentity, MutationReport, MutationRun, MutationSite,
-    MutationTarget, OwnerLookup, PlanRefusal, PlannedDamage, PlannedRun, PressureLane, ProofPlan,
-    ReadingSource, ScopedInvocation, SourceCoordinate, UnparsedLine, WrapOutcomeWord, WrapReading,
-    WrapRefusal, WrappedBackend,
+    BaselineQualification, EquivalenceAxis, ExecutionAxis, FamilyAttribution, FamilyLookup,
+    GrammarVersion, InconclusiveCause, IntendedRejection, MappingPosture, MaterializationAxis,
+    MutantId, MutationIdentity, MutationReport, MutationRun, MutationSite, MutationTarget,
+    OwnerLookup, PlanRefusal, PlannedDamage, PlannedRun, PressureLane, ProofPlan, ReadingSource,
+    ScopedInvocation, SourceCoordinate, UnparsedLine, WrapOutcomeWord, WrapReading, WrapRefusal,
+    WrappedBackend,
 };
 use crate::report::ForeignText;
 use crate::runner::Selection;
@@ -211,7 +205,6 @@ pub fn console_profile(version: BackendVersionPosture) -> AdapterProfile {
 /// — the last carrying which line and what the constructor refused. The ceiling
 /// The ceiling refusal belongs to a run assembled elsewhere: the records composed here are killed and inconclusive, and a console reading's ceiling admits both.
 pub fn read_output(
-    evaluation_family: EvaluationFamilyRef,
     text: &str,
     version: BackendVersionPosture,
     owner: OwnerLookup,
@@ -239,7 +232,6 @@ pub fn read_output(
         }
     }
     WrapReading::read(
-        evaluation_family,
         profile,
         MutationRun::recorded(baseline, reports),
         announced,

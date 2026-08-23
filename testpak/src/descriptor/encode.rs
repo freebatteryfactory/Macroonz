@@ -30,7 +30,7 @@
 //! | - | ------ | -------- |
 //! | 1 | encoding version | `u32be` |
 //! | 2 | descriptor member | member tag `1`, then its roster |
-//! | 3 | mutation-point member | member tag `2`, then its roster |
+//! | 3 | mutation-discovery member | member tag `2`, then its roster |
 //! | 4 | bench member | member tag `3`, then its roster |
 //!
 //! A roster is `u64be(field count)` followed by each field in declared order. A

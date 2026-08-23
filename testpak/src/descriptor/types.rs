@@ -804,7 +804,7 @@ pub enum FieldShape {
     Bytes,
     /// A count.
     Count,
-    /// One admitted mutation alternative: its operator family and canonical mutation meaning.
+    /// One producer-discovered mutation alternative: its operator family and canonical mutation meaning.
     MutationAlternative,
 }
 
@@ -823,10 +823,10 @@ pub struct DescriptorSchema {
     fields: &'static [SchemaField],
 }
 
-/// The mutation-point vocabulary's canonical field roster, as the schema
+/// The mutation-discovery vocabulary's canonical field roster, as the schema
 /// declares it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct MutationPointSchema {
+pub struct MutationDiscoverySchema {
     fields: &'static [SchemaField],
 }
 
@@ -857,7 +857,7 @@ macro_rules! generated_support_members {
         $callback! {
             [$($argument),*];
             descriptor: DescriptorSchema => DESCRIPTOR_FIELDS => 1,
-            mutation_point: MutationPointSchema => MUTATION_POINT_FIELDS => 2,
+            mutation_discovery: MutationDiscoverySchema => MUTATION_DISCOVERY_FIELDS => 2,
             bench: BenchSchema => BENCH_FIELDS => 3,
         }
     };
@@ -867,7 +867,7 @@ pub(super) use generated_support_members;
 
 macro_rules! declare_generated_support_schema {
     ([]; $( $member:ident: $member_type:ty => $fields:ident => $tag:literal, )+) => {
-        /// The root declaration every producer-facing vocabulary is pinned through: the descriptor, mutation-point, and bench field rosters, together.
+        /// The root declaration every producer-facing vocabulary is pinned through: the descriptor, mutation-discovery, and bench field rosters, together.
         ///
         /// # Authority
         ///
@@ -1051,12 +1051,12 @@ declare_descriptor_fields! {
     Origin => "origin" => FieldShape::ClosedChoice(ORIGIN_CHOICES) => FieldCardinality::ExactlyOne,
 }
 
-/// The mutation-point vocabulary's canonical field roster: what a producer
-/// states about one point on an evaluation surface.
+/// The mutation-discovery vocabulary's canonical field roster: what a producer
+/// states about one candidate site before owner-policy admission.
 ///
 /// # Authority
 ///
-/// This roster is the mutation-point member's preimage material and the whole
+/// This roster is the mutation-discovery member's preimage material and the whole
 /// of what the second crossing admits. The RUNTIME types that carry these
 /// values belong to the lane that owns them ([`crate::muterprater`]); what is
 /// declared here is the producer-facing VOCABULARY, so a producer emits against
@@ -1064,19 +1064,18 @@ declare_descriptor_fields! {
 ///
 /// # The fields
 ///
-/// The identity names the point itself, and the owner claim is what makes a
-/// survivor explainable: a point that survived leads to the claim that owns the
-/// behaviour, and from there to the check reference that would close it.
+/// The identity names the candidate site. The owner claim is optional because
+/// discovery must retain `OwnerUnmapped` rather than inventing an owner; the
+/// mutation owner decides whether a mapped site may become executable.
 ///
 /// The original operation is the reading selected by the evaluation lane's
-/// no-mutation control, carried as the declaration's own rendered bytes rather
+/// no-mutation directive, carried as the declaration's own rendered bytes rather
 /// than as a name, because two different operations a producer happened to
 /// name alike would otherwise encode identically. The
-/// admitted alternatives are the damages this point may be selected into. Each
-/// member carries the operator family the owner permitted and the canonical
-/// mutation meaning the producer discovered. The roster is nonempty because a
-/// discovery with no executable alternative is not a mutation point; a complete
-/// evaluation copy may still carry no admitted points at all.
+/// candidate alternatives are the damages the producer discovered. Each member
+/// carries its operator family and canonical mutation meaning before policy
+/// admission. The roster is nonempty because a site with no alternative states
+/// no mutation candidate.
 ///
 /// The activation site is where a selected alternative fires. It is NAMED
 /// rather than path-spelled, for the reason a trial's identity is not its site:
@@ -1084,10 +1083,9 @@ declare_descriptor_fields! {
 ///
 /// # Nonclaims
 ///
-/// A roster of admitted alternatives states which damages the point ADMITS, and
-/// never that any of them was materialized, activated, or killed. Those are
-/// executed facts and they live in the mutation lane's own record.
-pub const MUTATION_POINT_FIELDS: &[SchemaField] = &[
+/// Discovery grants no owner permission and makes no alternative executable.
+/// The mutation owner's closed lowering decides those facts.
+pub const MUTATION_DISCOVERY_FIELDS: &[SchemaField] = &[
     SchemaField::declared(
         "identity",
         FieldShape::NamespacedName,
@@ -1096,7 +1094,7 @@ pub const MUTATION_POINT_FIELDS: &[SchemaField] = &[
     SchemaField::declared(
         "owner_claim",
         FieldShape::NamespacedName,
-        FieldCardinality::ExactlyOne,
+        FieldCardinality::ZeroOrOne,
     ),
     SchemaField::declared(
         "original_operation",
@@ -1104,7 +1102,7 @@ pub const MUTATION_POINT_FIELDS: &[SchemaField] = &[
         FieldCardinality::ExactlyOne,
     ),
     SchemaField::declared(
-        "admitted_alternatives",
+        "candidate_alternatives",
         FieldShape::MutationAlternative,
         FieldCardinality::OneOrMore,
     ),

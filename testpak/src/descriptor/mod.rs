@@ -14,7 +14,7 @@ pub use types::{
     CheckRef, ClaimRef, Classification, ClassificationRefusal, DESCRIPTOR_FIELDS, DescriptorSchema,
     DischargeAdmission, DoorRef, EncodeRefusal, ExecutableAttachment, ExecutionSuite,
     FieldCardinality, FieldShape, GeneratedSupportSchema, GeneratedSupportSchemaId,
-    MUTATION_POINT_FIELDS, MutationPointRef, MutationPointSchema, NameRefusal, Namespace,
+    MUTATION_DISCOVERY_FIELDS, MutationDiscoverySchema, MutationPointRef, NameRefusal, Namespace,
     NamespacedName, Origin, PopulationRef, ProducerFacts, ProducerName, ProjectionRef, ProposalId,
     Provenance, ReplayAdmission, ReplayBearingGround, ReplayRef, RevisionBinding, RevisionPosture,
     Role, Row, RowRefusal, SchemaField, SchemaRefusal, StagedTableRefusal, StagedTableView, Stem,

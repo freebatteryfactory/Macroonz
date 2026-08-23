@@ -80,7 +80,7 @@ the declared order — preflight, planted-worse gate, then measurement — belon
 
 ## What the address still owes
 
-`CROSSING_OWED` in `type_contract.rs` is the complete bill, stated in the repository rather than in a reader's head. The bench-row vocabulary's SCHEMA is published — its field roster is declared beside the descriptor's and the mutation point's, and the one pin covers all three — but the TYPES that roster describes, the bench binding, a payload road through the gate, the stamp that reads the payload, and the host that runs the declared order are not.
+`CROSSING_OWED` in `type_contract.rs` is the complete bill, stated in the repository rather than in a reader's head. The bench-row vocabulary's SCHEMA is published — its field roster is declared beside the descriptor's and the mutation discovery's, and the one pin covers all three — but the TYPES that roster describes, the bench binding, a payload road through the gate, the stamp that reads the payload, and the host that runs the declared order are not.
 
 Every row of that table names a seat the rendering actually writes a path to; nothing is listed that the emission does not depend on.
 

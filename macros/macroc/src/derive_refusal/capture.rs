@@ -527,6 +527,71 @@ struct DeclaredAttribute {
     order: Option<(Vec<OrderedCause>, SpanHandle)>,
 }
 
+/// One completely consumed clause inside the closed `refusal` helper grammar.
+enum RefusalClause<'trees> {
+    /// The consumer crate binding.
+    Crate {
+        /// The one value token.
+        value: &'trees CapturedTokenTree,
+        /// The token the key sits at.
+        at: SpanHandle,
+    },
+    /// The refusal family identity.
+    Family {
+        /// The one value token.
+        value: &'trees CapturedTokenTree,
+        /// The token the key sits at.
+        at: SpanHandle,
+    },
+    /// The refusal family shape.
+    Shape {
+        /// The one value token.
+        value: &'trees CapturedTokenTree,
+        /// The token the key sits at.
+        at: SpanHandle,
+    },
+    /// The `order(...)` clause.
+    Order {
+        /// The trees inside the order body.
+        body: Vec<&'trees CapturedTokenTree>,
+        /// The token the clause name sits at.
+        at: SpanHandle,
+        /// The token the parenthesized body sits at.
+        body_at: SpanHandle,
+    },
+}
+
+/// The closed clause vocabulary used for duplicate and value lookup.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum RefusalClauseKey {
+    Crate,
+    Family,
+    Shape,
+    Order,
+}
+
+impl RefusalClause<'_> {
+    /// The closed-roster key this clause declares.
+    const fn key(&self) -> RefusalClauseKey {
+        match self {
+            Self::Crate { .. } => RefusalClauseKey::Crate,
+            Self::Family { .. } => RefusalClauseKey::Family,
+            Self::Shape { .. } => RefusalClauseKey::Shape,
+            Self::Order { .. } => RefusalClauseKey::Order,
+        }
+    }
+
+    /// The token the clause begins at.
+    const fn at(&self) -> SpanHandle {
+        match self {
+            Self::Crate { at, .. }
+            | Self::Family { at, .. }
+            | Self::Shape { at, .. }
+            | Self::Order { at, .. } => *at,
+        }
+    }
+}
+
 /// One row of a declared `order(...)` clause: the cause it states, and the token
 /// its local key sits at.
 ///
@@ -803,17 +868,33 @@ fn read_attribute(trees: &[&CapturedTokenTree]) -> Result<DeclaredAttribute, Ref
     // No attribute at all is a fact about the declaration's opening, and the
     // first token is where a reader starts. Every refusal PAST this line is a
     // fact about the attribute, and names the attribute's own token.
-    let (body, attribute_span) = refusal_attribute_body(trees)
-        .ok_or_else(|| refuse(RefusalDeriveCapture::NotFamilyDeclared, first_span(trees)))?;
-    let inner: &[&CapturedTokenTree] = &body;
+    let bodies = refusal_attribute_bodies(trees)?;
+    let Some((body, attribute_span)) = bodies.first() else {
+        return Err(refuse(
+            RefusalDeriveCapture::NotFamilyDeclared,
+            first_span(trees),
+        ));
+    };
+    if let Some((_, duplicate)) = bodies.get(1) {
+        return Err(refuse(RefusalDeriveCapture::NotDeclaredOnce, *duplicate));
+    }
+    let clauses = refusal_clauses(body)?;
 
-    let binding = assigned_word(inner, "crate")
-        .map_or_else(CrateBinding::default_binding, |(word, _)| {
-            CrateBinding::declared(word)
-        });
+    let binding = match assigned_clause(&clauses, RefusalClauseKey::Crate) {
+        Some(value) => CrateBinding::declared(
+            value
+                .word()
+                .ok_or_else(|| refuse(RefusalDeriveCapture::NotAClause, value.span()))?,
+        ),
+        None => CrateBinding::default_binding(),
+    };
 
-    let (family_id, family_span) = assigned_text(inner, "family")
-        .ok_or_else(|| refuse(RefusalDeriveCapture::NotFamilyDeclared, attribute_span))?;
+    let family_value = assigned_clause(&clauses, RefusalClauseKey::Family)
+        .ok_or_else(|| refuse(RefusalDeriveCapture::NotFamilyDeclared, *attribute_span))?;
+    let family_id = family_value
+        .text()
+        .ok_or_else(|| refuse(RefusalDeriveCapture::NotAClause, family_value.span()))?;
+    let family_span = family_value.span();
     if !is_family_grammatical(family_id) {
         return Err(refuse(
             RefusalDeriveCapture::NotFamilyGrammatical,
@@ -821,13 +902,17 @@ fn read_attribute(trees: &[&CapturedTokenTree]) -> Result<DeclaredAttribute, Ref
         ));
     }
 
-    let (word, shape_span) = assigned_word(inner, "shape")
-        .ok_or_else(|| refuse(RefusalDeriveCapture::NotShapeDeclared, attribute_span))?;
+    let shape_value = assigned_clause(&clauses, RefusalClauseKey::Shape)
+        .ok_or_else(|| refuse(RefusalDeriveCapture::NotShapeDeclared, *attribute_span))?;
+    let word = shape_value
+        .word()
+        .ok_or_else(|| refuse(RefusalDeriveCapture::NotAClause, shape_value.span()))?;
+    let shape_span = shape_value.span();
     let shape = admitted_shape(word)
         .ok_or_else(|| refuse(RefusalDeriveCapture::NotAnAdmittedShape, shape_span))?;
 
-    let order = match order_clause(inner) {
-        Some((clause, span)) => Some((read_order_rows(&clause, span)?, span)),
+    let order = match order_clause(&clauses) {
+        Some((clause, span)) => Some((read_order_rows(clause, span)?, span)),
         None => None,
     };
 
@@ -840,11 +925,11 @@ fn read_attribute(trees: &[&CapturedTokenTree]) -> Result<DeclaredAttribute, Ref
     })
 }
 
-/// The token trees inside the `#[refusal(...)]` attribute, where one is
-/// declared, with the token the attribute itself sits at.
-fn refusal_attribute_body<'trees>(
+/// Every `#[refusal(...)]` body, with the token its attribute sits at.
+fn refusal_attribute_bodies<'trees>(
     trees: &[&'trees CapturedTokenTree],
-) -> Option<(Vec<&'trees CapturedTokenTree>, SpanHandle)> {
+) -> Result<Vec<(Vec<&'trees CapturedTokenTree>, SpanHandle)>, RefusalDeriveRefusal> {
+    let mut bodies = Vec::new();
     for (index, tree) in trees.iter().enumerate() {
         let Some((delimiter, inner)) = tree.group() else {
             continue;
@@ -866,61 +951,142 @@ fn refusal_attribute_body<'trees>(
         if !named {
             continue;
         }
-        if let Some((CapturedDelimiter::Parenthesis, body)) =
-            bracketed.get(1).and_then(|after_name| after_name.group())
-        {
-            return Some((body.iter().collect(), tree.span()));
+        let Some(after_name) = bracketed.get(1) else {
+            return Err(refuse(RefusalDeriveCapture::NotAClause, tree.span()));
+        };
+        let Some((CapturedDelimiter::Parenthesis, body)) = after_name.group() else {
+            return Err(refuse(RefusalDeriveCapture::NotAClause, after_name.span()));
+        };
+        if bracketed.len() != 2 {
+            return Err(refuse(
+                RefusalDeriveCapture::NotAClause,
+                bracketed.get(2).map_or(tree.span(), |extra| extra.span()),
+            ));
+        }
+        bodies.push((body.iter().collect(), tree.span()));
+    }
+    Ok(bodies)
+}
+
+/// Cut and completely account the comma-delimited clauses in one helper body.
+fn refusal_clauses<'trees>(
+    body: &[&'trees CapturedTokenTree],
+) -> Result<Vec<RefusalClause<'trees>>, RefusalDeriveRefusal> {
+    let mut clauses = Vec::new();
+    let mut group = Vec::new();
+    for tree in body {
+        if tree.punct() == Some(',') {
+            if group.is_empty() {
+                return Err(refuse(RefusalDeriveCapture::NotAClause, tree.span()));
+            }
+            close_refusal_clause(&group, &mut clauses)?;
+            group.clear();
+        } else {
+            group.push(*tree);
         }
     }
-    None
+    if !group.is_empty() {
+        close_refusal_clause(&group, &mut clauses)?;
+    }
+    for (index, clause) in clauses.iter().enumerate() {
+        if clauses
+            .iter()
+            .take(index)
+            .any(|earlier| earlier.key() == clause.key())
+        {
+            return Err(refuse(RefusalDeriveCapture::NotDeclaredOnce, clause.at()));
+        }
+    }
+    Ok(clauses)
 }
 
-/// The word assigned to one key inside the attribute body, with its token.
-fn assigned_word<'trees>(
-    body: &[&'trees CapturedTokenTree],
-    key: &str,
-) -> Option<(&'trees str, SpanHandle)> {
-    let index = assignment_index(body, key)?;
-    let value = body.get(index.saturating_add(2))?;
-    value.word().map(|word| (word, value.span()))
+/// Close one complete helper clause.
+fn close_refusal_clause<'trees>(
+    group: &[&'trees CapturedTokenTree],
+    clauses: &mut Vec<RefusalClause<'trees>>,
+) -> Result<(), RefusalDeriveRefusal> {
+    let Some((head, rest)) = group.split_first() else {
+        return Ok(());
+    };
+    let Some(key) = head.word() else {
+        return Err(refuse(RefusalDeriveCapture::NotAClause, head.span()));
+    };
+    if key == "order" {
+        let [body] = rest else {
+            return Err(refuse(
+                RefusalDeriveCapture::NotAClause,
+                rest.first().map_or(head.span(), |tree| tree.span()),
+            ));
+        };
+        let Some((CapturedDelimiter::Parenthesis, inside)) = body.group() else {
+            return Err(refuse(RefusalDeriveCapture::NotAClause, body.span()));
+        };
+        clauses.push(RefusalClause::Order {
+            body: inside.iter().collect(),
+            at: head.span(),
+            body_at: body.span(),
+        });
+        return Ok(());
+    }
+    let [assigned_by, value] = rest else {
+        return Err(refuse(
+            RefusalDeriveCapture::NotAClause,
+            rest.first().map_or(head.span(), |tree| tree.span()),
+        ));
+    };
+    if assigned_by.punct() != Some('=') {
+        return Err(refuse(RefusalDeriveCapture::NotAClause, assigned_by.span()));
+    }
+    let clause = match key {
+        "crate" => RefusalClause::Crate {
+            value,
+            at: head.span(),
+        },
+        "family" => RefusalClause::Family {
+            value,
+            at: head.span(),
+        },
+        "shape" => RefusalClause::Shape {
+            value,
+            at: head.span(),
+        },
+        _ => {
+            return Err(refuse(
+                RefusalDeriveCapture::NotADeclarableClause,
+                head.span(),
+            ));
+        }
+    };
+    clauses.push(clause);
+    Ok(())
 }
 
-/// The text assigned to one key inside the attribute body, with its token.
-fn assigned_text<'trees>(
-    body: &[&'trees CapturedTokenTree],
-    key: &str,
-) -> Option<(&'trees str, SpanHandle)> {
-    let index = assignment_index(body, key)?;
-    let value = body.get(index.saturating_add(2))?;
-    value.text().map(|text| (text, value.span()))
-}
-
-/// The index of one `key =` assignment inside the attribute body.
-fn assignment_index(body: &[&CapturedTokenTree], key: &str) -> Option<usize> {
-    (0..body.len()).find(|index| {
-        body.get(*index).and_then(|tree| tree.word()) == Some(key)
-            && body
-                .get(index.saturating_add(1))
-                .and_then(|tree| tree.punct())
-                == Some('=')
+/// The one assigned value for a declared key.
+fn assigned_clause<'trees>(
+    clauses: &[RefusalClause<'trees>],
+    key: RefusalClauseKey,
+) -> Option<&'trees CapturedTokenTree> {
+    clauses.iter().find_map(|clause| match clause {
+        RefusalClause::Crate { value, .. } if key == RefusalClauseKey::Crate => Some(*value),
+        RefusalClause::Family { value, .. } if key == RefusalClauseKey::Family => Some(*value),
+        RefusalClause::Shape { value, .. } if key == RefusalClauseKey::Shape => Some(*value),
+        RefusalClause::Crate { .. }
+        | RefusalClause::Family { .. }
+        | RefusalClause::Shape { .. }
+        | RefusalClause::Order { .. } => None,
     })
 }
 
-/// The tokens inside the `order(...)` clause, where one is declared, with the
-/// token it opens at.
-fn order_clause<'trees>(
-    body: &[&'trees CapturedTokenTree],
-) -> Option<(Vec<&'trees CapturedTokenTree>, SpanHandle)> {
-    for (index, tree) in body.iter().enumerate() {
-        if tree.word() != Some("order") {
-            continue;
-        }
-        let group = body.get(index.saturating_add(1))?;
-        if let Some((CapturedDelimiter::Parenthesis, inner)) = group.group() {
-            return Some((inner.iter().collect(), group.span()));
-        }
-    }
-    None
+/// The order body and its own group token, where declared.
+fn order_clause<'clauses, 'trees>(
+    clauses: &'clauses [RefusalClause<'trees>],
+) -> Option<(&'clauses [&'trees CapturedTokenTree], SpanHandle)> {
+    clauses.iter().find_map(|clause| match clause {
+        RefusalClause::Order { body, body_at, .. } => Some((body.as_slice(), *body_at)),
+        RefusalClause::Crate { .. }
+        | RefusalClause::Family { .. }
+        | RefusalClause::Shape { .. } => None,
+    })
 }
 
 /// The `Variant = "local-key"` rows inside an order clause.

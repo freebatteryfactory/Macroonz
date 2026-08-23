@@ -13,7 +13,7 @@
 //! The CROSSING BILL: exactly what the harness owes before anything this home
 //! renders resolves at a consumer's site. The bench row vocabulary's SCHEMA is
 //! published — its field roster is declared beside the descriptor's and the
-//! mutation point's, and the one pin covers all three — but the TYPES and
+//! mutation discovery's, and the one pin covers all three — but the TYPES and
 //! constructors that roster describes are not, and neither is a payload road
 //! through the gate. Stated as a constant table so the join between what this home
 //! writes and what the mailbox publishes is one list rather than a search.

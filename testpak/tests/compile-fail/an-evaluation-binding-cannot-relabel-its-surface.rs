@@ -4,12 +4,15 @@
 
 use threadpak_testpak::descriptor::RevisionBinding;
 use threadpak_testpak::muterprater::{
-    EvaluationBinding, EvaluationControl, EvaluationFamilyRef, EvaluationObservation,
-    EvaluationSurface,
+    EvaluationBinding, EvaluationCallRefusal, EvaluationDirective, EvaluationFamilyRef,
+    EvaluationObservation, EvaluationSurface,
 };
 
-fn evaluated(_input: &u8, _control: EvaluationControl) -> EvaluationObservation<u8> {
-    EvaluationObservation::observed(0, 0)
+fn evaluated(
+    _input: &u8,
+    _directive: EvaluationDirective<'_>,
+) -> Result<EvaluationObservation<u8>, EvaluationCallRefusal> {
+    Ok(EvaluationObservation::observed(0, 0))
 }
 
 fn relabel(

@@ -300,8 +300,8 @@ pub(super) fn lawful_binding() -> Result<BenchBinding, BenchStampRefusal> {
 
 threadpak_testpak::generated_support! {
     expected: [
-        64, 247, 209, 126, 39, 187, 123, 191, 55, 210, 86, 156, 252, 110, 235, 212,
-        119, 194, 33, 206, 138, 125, 70, 120, 179, 212, 187, 59, 69, 188, 29, 250,
+        222, 149, 109, 97, 135, 230, 254, 180, 55, 195, 41, 161, 180, 186, 130, 96,
+        170, 30, 123, 48, 131, 30, 77, 129, 225, 115, 89, 175, 105, 68, 31, 161,
     ],
     harness: threadpak_testpak,
     benches: {

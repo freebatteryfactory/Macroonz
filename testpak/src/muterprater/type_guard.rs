@@ -8,42 +8,47 @@
 //! adapter qualification is minted HERE, and only over a grammar somebody
 //! checked against the very backend version the reading names, so an unchecked
 //! adapter is a posture anybody can state and a credential nobody can hold. A
-//! compiled-pressure witness is married HERE to a qualification carrying the exact adapter profile of the reported reading it was read out of, so trust-opening evidence can never arrive stripped of the profile that says which tool produced it. A duplicate is
+//! generic compiled suite pressure is married HERE to a qualification carrying the exact adapter profile of the reported reading it was read out of, without acquiring an evaluation-pair label the backend never established. Exact selected-projection pressure is minted only after separately rendered bytes cross the caller-owned host and both ordinary reports establish their required outcomes. A duplicate is
 //! refused HERE, so "not a duplicate" is a comparison rather than a paragraph.
 //! And a proposal is married to its ground HERE, so evidence that does not fit
 //! the ground is not a proposal anybody can offer.
 
 use super::{
-    ActivationDisposition, ActivationEvidence, ActivationSite, ActiveSelection, AdapterProfile,
-    AdapterQualification, AdmittedAlternative, AlternativeDeclaration, AlternativeId,
-    AnnouncedRoster, BackendVersion, BackendVersionPosture, BackendVersionRefusal, BaselineAxis,
+    ARTIFACT_CONTENT_TAG, ActivationDisposition, ActivationEvidence, ActivationSite,
+    ActiveSelection, AdapterProfile, AdapterQualification, AdmittedAlternative,
+    AlternativeDeclaration, AlternativeId, AnnouncedRoster, ArtifactContent, ArtifactContentId,
+    BackendVersion, BackendVersionPosture, BackendVersionRefusal, BaselineAxis,
     BaselinePrecondition, BaselineQualification, BudgetRefusal, CandidateSketch, CheckGap,
-    ClaimCeiling, ClaimPinnedGround, ClaimPinnedProposal, CompiledPressureWitness,
-    CoordinateRefusal, DemonstratedRejection, Demonstration, DiffPath, DiffPathRefusal,
-    DischargeAdmissionReceipt, DischargeEvidence, DudPlant, DuplicateRefusal, EquivalenceAxis,
-    EvaluationBinding, EvaluationCall, EvaluationControl, EvaluationFamilyRef,
-    EvaluationObservation, EvaluationPair, EvaluationPairRefusal, EvaluationPairStanding,
+    ClaimCeiling, ClaimPinnedGround, ClaimPinnedProposal, CompiledProjectionPressure,
+    CompiledSpecimenObservation, CompiledSpecimenObservationMismatch, CompiledSpecimenRequest,
+    CompiledSpecimenRole, CompiledSpecimenStanding, CompiledSuitePressure, CoordinateRefusal,
+    DemonstratedRejection, Demonstration, DiffPath, DiffPathRefusal, DischargeAdmissionReceipt,
+    DischargeEvidence, DiscoveredMutationSite, DiscoveryDisposition, DiscoveryEntry,
+    DiscoveryRefusal, DudPlant, DuplicateRefusal, EquivalenceAxis, EvaluationBinding,
+    EvaluationCall, EvaluationDirective, EvaluationFamilyRef, EvaluationObservation,
+    EvaluationPair, EvaluationPairRefusal, EvaluationPairStanding, EvaluationPairStandingMismatch,
     EvaluationSurface, EvaluationSurfaceId, ExecutionAxis, ExplanationRefusal, FailureComparison,
     FamilyAttribution, GrammarStanding, GrammarVersion, InconclusiveCause, InferredObligation,
     IntendedRejection, InterpretedMutationEvidence, InterpretedTrust, KillRefusal,
     MUTATION_TARGET_TAG, MappingPosture, MaterializationAxis, MeaningCheck, MutantId,
-    MutantKilledGround, MutantKilledProposal, MutationCensus, MutationIdentity, MutationOutcome,
-    MutationPermission, MutationPoint, MutationPolicy, MutationPolicyId, MutationReport,
-    MutationRun, MutationSite, MutationTarget, MutationVerdict, MutationWitness,
+    MutantKilledGround, MutantKilledProposal, MutationCensus, MutationDiscoveryId,
+    MutationDiscoveryReading, MutationIdentity, MutationOutcome, MutationPermission, MutationPoint,
+    MutationPolicy, MutationPolicyId, MutationReport, MutationRun, MutationSite,
+    MutationSurfaceLowering, MutationTarget, MutationVerdict, MutationWitness,
     MutationWitnessRefusal, NoComparison, NoComparisonReason, NoMutationParityQualification,
     NoMutationParityReading, NoMutationParityStanding, NoMutationReports, NoMutationResults,
     ObligationComparison, ObligationDischargedGround, ObligationDischargedProposal, ObligationLane,
-    OperatorFamilyRef, OracleClass, OwedClaim, OwedClaimRefusal, OwedDeclaration, PROPOSAL_TAG,
-    ParityQualificationRefusal, PermissionRefusal, PlanRefusal, PlannedDamage, PlannedRun,
-    PointCatalogPosture, PointRefusal, PolicyMembership, PolicyRefusal, PressureBudget,
-    PressureLane, PressureWitnessRefusal, ProductionBinding, ProductionCall, ProofDelta,
-    ProofDeltaRefusal, ProofPlan, ProofRefusal, ProofShape, ProposalDestination, ProposalDocument,
-    ProposalRefusal, QualificationRefusal, ReadingSource, RejectedNoMutationParity,
-    RejectionIdentity, ReplayAdmissionReceipt, ReplayBearingProposal, RewriteCandidate,
+    OperatorFamilyRef, OracleClass, OwedClaim, OwedClaimRefusal, OwedDeclaration,
+    OwnerClaimMapping, PROPOSAL_TAG, ParityQualificationRefusal, PermissionRefusal, PlanRefusal,
+    PlannedDamage, PlannedRun, PointCatalogPosture, PolicyMembership, PolicyRefusal,
+    PressureBudget, PressureLane, ProductionBinding, ProductionCall, ProofDelta, ProofDeltaRefusal,
+    ProofPlan, ProofRefusal, ProofShape, ProposalDestination, ProposalDocument, ProposalRefusal,
+    QualificationRefusal, ReadingSource, RejectedNoMutationParity, RejectionIdentity,
+    ReplayAdmissionReceipt, ReplayBearingProposal, ResolvedMutation, RewriteCandidate,
     RewriteDescriptor, RewriteRefusal, RewriteRoster, RewriteTrust, RosterRefusal, ScopeShape,
-    ScopedInvocation, SelectionRefusal, SinkRefusal, SourceCoordinate, StoredProposalRef,
-    SurfaceRefusal, SurvivorExplanation, UnparsedLine, WrapReading, WrapRefusal, WrapStanding,
-    WrappedBackend, sealed,
+    ScopedInvocation, SelectionRefusal, SinkRefusal, SourceCoordinate, SpecimenMaterializerBinding,
+    SpecimenMaterializerCall, StoredProposalRef, SuitePressureRefusal, SurvivorExplanation,
+    UnparsedLine, WrapReading, WrapRefusal, WrapStanding, WrappedBackend, sealed,
 };
 use crate::depot::capsules::{ReplayCapsuleEntry, StoredReplayEntryRef};
 use crate::depot::operator_families::OPERATOR_FAMILIES;
@@ -59,7 +64,6 @@ use crate::report::{
     RunAttempt, RunReport, TrialConclusion, TrialFinding, TrialId, encode_bytes,
 };
 use crate::runner::Selection;
-use std::collections::BTreeSet;
 
 impl ClaimCeiling {
     /// The strongest verdict this ceiling grants.
@@ -190,6 +194,10 @@ impl MutationIdentity {
             Self::Interpreted {
                 point,
                 alternative: _,
+            }
+            | Self::CompiledProjection {
+                point,
+                alternative: _,
             } => Some(point),
         }
     }
@@ -200,6 +208,10 @@ impl MutationIdentity {
         match self {
             Self::External(_) => None,
             Self::Interpreted {
+                point: _,
+                alternative,
+            }
+            | Self::CompiledProjection {
                 point: _,
                 alternative,
             } => Some(alternative),
@@ -216,7 +228,8 @@ impl OperatorFamilyRef {
     #[must_use]
     pub fn of_slug(slug: &str) -> Option<Self> {
         OPERATOR_FAMILIES
-            .into_iter()
+            .iter()
+            .copied()
             .find(|family| family.slug() == slug)
             .map(Self)
     }
@@ -560,6 +573,32 @@ impl MutationReport {
         }
     }
 
+    /// Derive one exact compiled-projection kill from the ordinary report that rejected it.
+    ///
+    /// Returns no value unless the report completed with a typed refusal. Compiled projection pressure has no activation channel, so its axis states that ceiling while retaining the exact trial and finding the ordinary runner admitted.
+    pub(in crate::muterprater) fn compiled_projection(
+        target: MutationTarget,
+        report: &crate::report::TrialReport,
+    ) -> Option<Self> {
+        let RunAttempt::Executed(TrialConclusion::Refused(finding)) = report.attempt() else {
+            return None;
+        };
+        Some(Self {
+            target,
+            baseline: BaselineAxis::Qualified,
+            materialization: MaterializationAxis::Built,
+            activation: ActivationDisposition::UnobservableUnderBackend,
+            execution: ExecutionAxis::Completed,
+            outcome: MutationOutcome::Killed(IntendedRejection::Demonstrated(
+                DemonstratedRejection {
+                    trial: report.trial(),
+                    finding: finding.clone(),
+                },
+            )),
+            equivalence: EquivalenceAxis::NotAssessed,
+        })
+    }
+
     /// What was damaged.
     #[must_use]
     pub const fn target(&self) -> &MutationTarget {
@@ -876,7 +915,6 @@ impl WrapReading {
     /// not admit, naming the record, its verdict, and the ceiling — so a
     /// reading can never state more than its source affords.
     pub(in crate::muterprater) fn read(
-        family: EvaluationFamilyRef,
         profile: AdapterProfile,
         run: MutationRun,
         announced: AnnouncedRoster,
@@ -894,7 +932,6 @@ impl WrapReading {
             }
         }
         Ok(Self {
-            family,
             profile,
             run,
             announced,
@@ -906,12 +943,6 @@ impl WrapReading {
     #[must_use]
     pub const fn profile(&self) -> &AdapterProfile {
         &self.profile
-    }
-
-    /// The evaluation family this compiled-pressure reading was scoped to.
-    #[must_use]
-    pub const fn family(&self) -> EvaluationFamilyRef {
-        self.family
     }
 
     /// The run the reading recovered.
@@ -934,7 +965,7 @@ impl WrapReading {
 }
 
 // ---------------------------------------------------------------------------
-// The two facts a reading opens trust with.
+// The wrap reading and generic suite-pressure facts.
 // ---------------------------------------------------------------------------
 
 impl AdapterQualification {
@@ -1000,8 +1031,8 @@ impl AdapterQualification {
     }
 }
 
-impl CompiledPressureWitness {
-    /// The witness one wrap standing demonstrated, where it demonstrated one.
+impl CompiledSuitePressure {
+    /// The generic suite pressure one wrap standing demonstrated, where it demonstrated one.
     ///
     /// # Authority
     ///
@@ -1013,44 +1044,24 @@ impl CompiledPressureWitness {
     ///
     /// # Errors
     ///
-    /// Refuses, in a declared dependent order: a standing that has not reported; a qualification naming a profile other than this reading's; a caller-scoped reading naming another family than the exact pair; then a reported reading whose run demonstrated no lawful kill. A wrap pass that caught nothing has shown no property biting, and it is the absence it is rather than a softer kind of evidence.
-    pub fn shown(
-        pair: EvaluationPairStanding,
+    /// Refuses, in a declared dependent order: a standing that has not reported; a qualification naming a profile other than this reading's; then a reported reading whose run demonstrated no lawful kill. A wrap pass that caught nothing has shown no property biting, and it is the absence it is rather than a softer kind of evidence.
+    pub fn demonstrated(
         wrap: WrapStanding<'_>,
         qualification: &AdapterQualification,
-    ) -> Result<Self, PressureWitnessRefusal> {
+    ) -> Result<Self, SuitePressureRefusal> {
         let WrapStanding::Reported(reading) = wrap else {
-            return Err(PressureWitnessRefusal::WrapNotReported);
+            return Err(SuitePressureRefusal::WrapNotReported);
         };
         if qualification.profile() != reading.profile() {
-            return Err(PressureWitnessRefusal::QualificationUnderAnotherProfile);
-        }
-        if pair.family() != reading.family() {
-            return Err(PressureWitnessRefusal::ReadingForAnotherFamily {
-                expected: pair.family(),
-                found: reading.family(),
-            });
+            return Err(SuitePressureRefusal::QualificationUnderAnotherProfile);
         }
         let Some(kill) = reading.run().kills().next() else {
-            return Err(PressureWitnessRefusal::NoKillDemonstrated);
+            return Err(SuitePressureRefusal::NoKillDemonstrated);
         };
         Ok(Self {
-            pair,
             qualification: qualification.clone(),
             kill: kill.clone(),
         })
-    }
-
-    /// The exact production/evaluation pair this compiled-pressure witness was scoped to.
-    #[must_use]
-    pub const fn pair(&self) -> EvaluationPairStanding {
-        self.pair
-    }
-
-    /// The evaluation family retained by the exact pair.
-    #[must_use]
-    pub const fn family(&self) -> EvaluationFamilyRef {
-        self.pair.family()
     }
 
     /// The qualification the witness was demonstrated under.
@@ -1266,6 +1277,184 @@ impl AlternativeDeclaration {
     }
 }
 
+impl DiscoveredMutationSite {
+    /// Read one complete producer-discovered site before owner-policy admission.
+    ///
+    /// # Errors
+    ///
+    /// Refuses an empty unchanged operation, an empty alternative roster, then each alternative whose bytes are empty or equal the unchanged operation, or whose family and meaning duplicate an earlier alternative.
+    pub fn discovered(
+        identity: MutationPointRef,
+        mapping: OwnerClaimMapping,
+        original_operation: Vec<u8>,
+        alternatives: Vec<AlternativeDeclaration>,
+        activation_site: ActivationSite,
+    ) -> Result<Self, DiscoveryRefusal> {
+        if original_operation.is_empty() {
+            return Err(DiscoveryRefusal::EmptyOriginalOperation);
+        }
+        if alternatives.is_empty() {
+            return Err(DiscoveryRefusal::NoAlternative);
+        }
+        for (at, alternative) in alternatives.iter().enumerate() {
+            if alternative.operation().is_empty() {
+                return Err(DiscoveryRefusal::EmptyAlternative { at });
+            }
+            if alternative.operation() == original_operation {
+                return Err(DiscoveryRefusal::AlternativeIsOriginal { at });
+            }
+            if alternatives.iter().take(at).any(|earlier| {
+                earlier.family() == alternative.family()
+                    && earlier.operation() == alternative.operation()
+            }) {
+                return Err(DiscoveryRefusal::DuplicateAlternativeMeaning { at });
+            }
+        }
+        Ok(Self {
+            identity,
+            mapping,
+            original_operation,
+            alternatives,
+            activation_site,
+        })
+    }
+
+    /// The stable point identity the producer discovered.
+    #[must_use]
+    pub const fn identity(&self) -> MutationPointRef {
+        self.identity
+    }
+
+    /// The origin reading's owner-claim mapping posture.
+    #[must_use]
+    pub const fn mapping(&self) -> OwnerClaimMapping {
+        self.mapping
+    }
+
+    /// The unchanged operation at this site.
+    #[must_use]
+    pub fn original_operation(&self) -> &[u8] {
+        &self.original_operation
+    }
+
+    /// Every producer-discovered alternative in producer order.
+    #[must_use]
+    pub fn alternatives(&self) -> &[AlternativeDeclaration] {
+        &self.alternatives
+    }
+
+    /// The named activation site the producer discovered.
+    #[must_use]
+    pub const fn activation_site(&self) -> ActivationSite {
+        self.activation_site
+    }
+}
+
+impl DiscoveryEntry {
+    /// Retain one discovered site and its derived owner-policy disposition.
+    pub(in crate::muterprater) fn recorded(
+        site: DiscoveredMutationSite,
+        disposition: DiscoveryDisposition,
+    ) -> Self {
+        Self { site, disposition }
+    }
+
+    /// The complete producer-discovered site.
+    #[must_use]
+    pub const fn site(&self) -> &DiscoveredMutationSite {
+        &self.site
+    }
+
+    /// Whether and why this site entered the executable surface.
+    #[must_use]
+    pub const fn disposition(&self) -> DiscoveryDisposition {
+        self.disposition
+    }
+}
+
+impl MutationDiscoveryId {
+    /// The discovery reading's content address.
+    #[must_use]
+    pub const fn address(self) -> ContentAddress {
+        self.0
+    }
+}
+
+impl MutationDiscoveryReading {
+    /// Retain one complete discovery denominator and derive its content identity.
+    pub(in crate::muterprater) fn recorded(
+        policy: &MutationPolicy,
+        entries: Vec<DiscoveryEntry>,
+    ) -> Self {
+        let preimage = crate::muterprater::encode::discovery_preimage(
+            policy.family(),
+            policy.identity(),
+            &entries,
+        );
+        Self {
+            family: policy.family(),
+            policy: policy.identity(),
+            identity: MutationDiscoveryId(crate::muterprater::encode::address(
+                super::MUTATION_DISCOVERY_TAG,
+                &preimage,
+            )),
+            entries,
+        }
+    }
+
+    /// The evaluation family whose producer discovery was read.
+    #[must_use]
+    pub const fn family(&self) -> EvaluationFamilyRef {
+        self.family
+    }
+
+    /// The owner policy the discovered sites were admitted against.
+    #[must_use]
+    pub const fn policy(&self) -> MutationPolicyId {
+        self.policy
+    }
+
+    /// The content identity of the complete discovery denominator.
+    #[must_use]
+    pub const fn identity(&self) -> MutationDiscoveryId {
+        self.identity
+    }
+
+    /// Every discovered site and disposition in producer order.
+    #[must_use]
+    pub fn entries(&self) -> &[DiscoveryEntry] {
+        &self.entries
+    }
+}
+
+impl MutationSurfaceLowering {
+    /// Bind one complete discovery reading to the exact executable surface derived from it.
+    pub(in crate::muterprater) fn lowered(
+        discovery: MutationDiscoveryReading,
+        surface: EvaluationSurface,
+    ) -> Self {
+        Self { discovery, surface }
+    }
+
+    /// The complete producer discovery denominator.
+    #[must_use]
+    pub const fn discovery(&self) -> &MutationDiscoveryReading {
+        &self.discovery
+    }
+
+    /// The executable subset admitted by owner policy.
+    #[must_use]
+    pub const fn surface(&self) -> &EvaluationSurface {
+        &self.surface
+    }
+
+    /// Consume the closed lowering into its retained reading and executable surface.
+    #[must_use]
+    pub fn into_parts(self) -> (MutationDiscoveryReading, EvaluationSurface) {
+        (self.discovery, self.surface)
+    }
+}
+
 impl AlternativeId {
     /// The alternative's derived content address.
     #[must_use]
@@ -1295,48 +1484,15 @@ impl AdmittedAlternative {
 }
 
 impl MutationPoint {
-    /// One point, as its producer states it.
-    ///
-    /// # Errors
-    ///
-    /// Refuses an empty original operation, an empty alternative roster, an owner claim absent from the policy, then each alternative whose family is not permitted, whose bytes are empty or equal the original, or whose family and meaning duplicate an earlier alternative.
-    pub fn declared(
+    /// Admit one structurally read, mapped, and policy-permitted discovery.
+    pub(in crate::muterprater) fn admitted(
         policy: &MutationPolicy,
-        identity: MutationPointRef,
         owner_claim: ClaimRef,
-        original_operation: Vec<u8>,
-        admitted_alternatives: Vec<AlternativeDeclaration>,
-        activation_site: ActivationSite,
-    ) -> Result<Self, PointRefusal> {
-        if original_operation.is_empty() {
-            return Err(PointRefusal::EmptyOriginalOperation);
-        }
-        if admitted_alternatives.is_empty() {
-            return Err(PointRefusal::NoAdmittedAlternative);
-        }
-        let Some(permission) = policy.permission(owner_claim) else {
-            return Err(PointRefusal::ClaimNotPermitted(owner_claim));
-        };
+        discovered: DiscoveredMutationSite,
+    ) -> Self {
+        let identity = discovered.identity;
         let mut admitted = Vec::new();
-        for (at, alternative) in admitted_alternatives.into_iter().enumerate() {
-            if !permission.admits(alternative.family()) {
-                return Err(PointRefusal::FamilyNotPermitted {
-                    at,
-                    family: alternative.family(),
-                });
-            }
-            if alternative.operation().is_empty() {
-                return Err(PointRefusal::EmptyAlternative { at });
-            }
-            if alternative.operation() == original_operation {
-                return Err(PointRefusal::AlternativeIsOriginal { at });
-            }
-            if admitted.iter().any(|earlier: &AdmittedAlternative| {
-                earlier.family() == alternative.family()
-                    && earlier.operation() == alternative.operation()
-            }) {
-                return Err(PointRefusal::DuplicateAlternativeMeaning { at });
-            }
+        for alternative in discovered.alternatives {
             let preimage = crate::muterprater::encode::alternative_preimage(
                 identity,
                 alternative.family(),
@@ -1352,16 +1508,16 @@ impl MutationPoint {
             });
         }
         admitted.sort_by_key(AdmittedAlternative::identity);
-        Ok(Self {
+        Self {
             identity,
             membership: PolicyMembership {
                 policy: policy.identity(),
                 owner_claim,
             },
-            original_operation,
+            original_operation: discovered.original_operation,
             admitted_alternatives: admitted,
-            activation_site,
-        })
+            activation_site: discovered.activation_site,
+        }
     }
 
     /// The reference this point is known by.
@@ -1410,28 +1566,11 @@ impl EvaluationSurfaceId {
 }
 
 impl EvaluationSurface {
-    /// One evaluation copy's point table, as conforming data.
-    ///
-    /// # Errors
-    ///
-    /// Refuses a point admitted under another policy, then two points stating one identity. A point-free surface is lawful and selectable only under no-mutation.
-    pub fn conforming(
+    /// Assemble an already policy-issued, identity-distinct point roster.
+    pub(in crate::muterprater) fn admitted(
         policy: &MutationPolicy,
         mut points: Vec<MutationPoint>,
-    ) -> Result<Self, SurfaceRefusal> {
-        let mut seen: BTreeSet<MutationPointRef> = BTreeSet::new();
-        for point in &points {
-            if point.membership().policy() != policy.identity() {
-                return Err(SurfaceRefusal::PointUnderAnotherPolicy {
-                    point: point.identity(),
-                    expected: policy.identity(),
-                    found: point.membership().policy(),
-                });
-            }
-            if !seen.insert(point.identity()) {
-                return Err(SurfaceRefusal::DuplicatePoint(point.identity()));
-            }
-        }
+    ) -> Self {
         points.sort_by_key(MutationPoint::identity);
         let preimage = crate::muterprater::encode::surface_preimage(
             policy.family(),
@@ -1442,12 +1581,12 @@ impl EvaluationSurface {
             super::EVALUATION_SURFACE_TAG,
             &preimage,
         ));
-        Ok(Self {
+        Self {
             family: policy.family(),
             policy: policy.identity(),
             identity,
             points,
-        })
+        }
     }
 
     /// The evaluation family this surface belongs to.
@@ -1468,7 +1607,7 @@ impl EvaluationSurface {
         self.identity
     }
 
-    /// Whether this surface admits an active mutation control.
+    /// Whether this surface admits an active directive.
     #[must_use]
     pub const fn catalog_posture(&self) -> PointCatalogPosture {
         if self.points.is_empty() {
@@ -1560,6 +1699,64 @@ impl ActiveSelection {
     #[must_use]
     pub const fn alternative(self) -> AlternativeId {
         self.alternative
+    }
+}
+
+impl<'surface> ResolvedMutation<'surface> {
+    /// Bind one surface-issued selection to the exact point and alternative `TestPak` resolved for it.
+    pub(in crate::muterprater) const fn resolved(
+        selection: ActiveSelection,
+        point: &'surface MutationPoint,
+        alternative: &'surface AdmittedAlternative,
+    ) -> Self {
+        Self {
+            selection,
+            point,
+            alternative,
+        }
+    }
+
+    /// The exact surface-issued selection that was resolved.
+    #[must_use]
+    pub const fn selection(self) -> ActiveSelection {
+        self.selection
+    }
+
+    /// The admitted point selected for this call.
+    #[must_use]
+    pub const fn point(self) -> &'surface MutationPoint {
+        self.point
+    }
+
+    /// The admitted alternative selected for this call.
+    #[must_use]
+    pub const fn alternative(self) -> &'surface AdmittedAlternative {
+        self.alternative
+    }
+}
+
+impl<'surface> EvaluationDirective<'surface> {
+    /// The directly representable no-mutation posture.
+    #[must_use]
+    pub const fn no_mutation() -> Self {
+        Self { resolved: None }
+    }
+
+    /// One active directive after `TestPak` resolved its selection against the exact surface.
+    pub(in crate::muterprater) const fn active(
+        selection: ActiveSelection,
+        point: &'surface MutationPoint,
+        alternative: &'surface AdmittedAlternative,
+    ) -> Self {
+        Self {
+            resolved: Some(ResolvedMutation::resolved(selection, point, alternative)),
+        }
+    }
+
+    /// The exact resolved mutation, where this directive is active.
+    #[must_use]
+    pub const fn resolved(self) -> Option<ResolvedMutation<'surface>> {
+        self.resolved
     }
 }
 
@@ -1714,14 +1911,17 @@ impl<Input, Meaning> EvaluationBinding<Input, Meaning> {
         self.surface
     }
 
-    /// Run the evaluation callable under one evaluation-only control.
-    #[must_use]
+    /// Run the evaluation callable under one TestPak-resolved directive.
+    ///
+    /// # Errors
+    ///
+    /// Returns the callable's typed refusal when it does not implement the offered directive.
     pub fn evaluate(
         &self,
         input: &Input,
-        control: EvaluationControl,
-    ) -> EvaluationObservation<Meaning> {
-        (self.call)(input, control)
+        directive: EvaluationDirective<'_>,
+    ) -> Result<EvaluationObservation<Meaning>, super::EvaluationCallRefusal> {
+        (self.call)(input, directive)
     }
 }
 
@@ -1780,6 +1980,41 @@ impl<Input, Meaning> EvaluationPair<Input, Meaning> {
 }
 
 impl EvaluationPairStanding {
+    /// Project one exact standing disagreement without weakening whole-standing admission.
+    pub(in crate::muterprater) fn mismatch(
+        self,
+        found: Self,
+    ) -> Option<EvaluationPairStandingMismatch> {
+        if self == found {
+            return None;
+        }
+        if self.family != found.family {
+            return Some(EvaluationPairStandingMismatch::Family {
+                expected: self.family,
+                found: found.family,
+            });
+        }
+        if self.production_revision != found.production_revision {
+            return Some(EvaluationPairStandingMismatch::ProductionRevision {
+                expected: self.production_revision,
+                found: found.production_revision,
+            });
+        }
+        if self.evaluation_revision != found.evaluation_revision {
+            return Some(EvaluationPairStandingMismatch::EvaluationRevision {
+                expected: self.evaluation_revision,
+                found: found.evaluation_revision,
+            });
+        }
+        if self.surface != found.surface {
+            return Some(EvaluationPairStandingMismatch::Surface {
+                expected: self.surface,
+                found: found.surface,
+            });
+        }
+        Some(EvaluationPairStandingMismatch::StandingChanged)
+    }
+
     /// The evaluation family shared by both bindings.
     #[must_use]
     pub const fn family(self) -> EvaluationFamilyRef {
@@ -1988,19 +2223,327 @@ impl<'pair, 'input, Input, Meaning> NoMutationParityStanding<'pair, 'input, Inpu
     }
 }
 
-impl<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning>
-    InterpretedTrust<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning>
+impl ArtifactContentId {
+    /// Derive the identity of exact compiler-source bytes.
+    pub(in crate::muterprater) fn derived(bytes: &[u8]) -> Self {
+        Self(ContentAddress::derived(ARTIFACT_CONTENT_TAG, bytes))
+    }
+
+    /// The underlying content address.
+    #[must_use]
+    pub const fn address(self) -> ContentAddress {
+        self.0
+    }
+}
+
+impl ArtifactContent {
+    /// Retain exact compiler-source bytes under their bytes-only identity.
+    pub(in crate::muterprater) fn recorded(bytes: Vec<u8>) -> Self {
+        let identity = ArtifactContentId::derived(&bytes);
+        Self { identity, bytes }
+    }
+
+    /// The bytes-only identity of this exact content.
+    #[must_use]
+    pub const fn identity(&self) -> ArtifactContentId {
+        self.identity
+    }
+
+    /// The exact bytes the host must hand unchanged to its compiler.
+    #[must_use]
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+}
+
+impl SpecimenMaterializerBinding {
+    /// Bind one capture-free source materializer to the exact pair it renders from.
+    #[must_use]
+    pub fn bound<Input, Meaning>(
+        pair: &EvaluationPair<Input, Meaning>,
+        call: SpecimenMaterializerCall,
+    ) -> Self {
+        Self {
+            pair: pair.standing(),
+            call,
+        }
+    }
+
+    /// The exact production/evaluation pair this source renderer is declared over.
+    #[must_use]
+    pub const fn pair(&self) -> EvaluationPairStanding {
+        self.pair
+    }
+
+    /// The capture-free source materializer.
+    #[must_use]
+    pub const fn call(&self) -> SpecimenMaterializerCall {
+        self.call
+    }
+}
+
+impl<'content, 'input, Input> CompiledSpecimenRequest<'content, 'input, Input> {
+    /// Bind one exact artifact and semantic role to its ordinary execution standing.
+    pub(in crate::muterprater) const fn requested(
+        content: &'content ArtifactContent,
+        role: CompiledSpecimenRole,
+        operation: &'content [u8],
+        input: &'input Input,
+        execution: &'content ExecutionKey,
+        check: CheckRef,
+    ) -> Self {
+        Self {
+            content,
+            role,
+            operation,
+            input,
+            execution,
+            check,
+        }
+    }
+
+    /// The exact compiler-source content.
+    #[must_use]
+    pub const fn content(&self) -> &'content ArtifactContent {
+        self.content
+    }
+
+    /// Whether this request is the unchanged baseline or one selected mutation.
+    #[must_use]
+    pub const fn role(&self) -> CompiledSpecimenRole {
+        self.role
+    }
+
+    /// The exact unchanged or selected operation the concrete host must find baked into this artifact.
+    #[must_use]
+    pub const fn operation(&self) -> &'content [u8] {
+        self.operation
+    }
+
+    /// The exact parity-qualified input the compiled specimen host must exercise.
+    #[must_use]
+    pub const fn input(&self) -> &'input Input {
+        self.input
+    }
+
+    /// The ordinary execution key the recovered meaning will be judged under.
+    #[must_use]
+    pub const fn execution(&self) -> &'content ExecutionKey {
+        self.execution
+    }
+
+    /// The declared check identity that will judge the recovered meaning.
+    #[must_use]
+    pub const fn check(&self) -> CheckRef {
+        self.check
+    }
+}
+
+impl<Meaning> CompiledSpecimenObservation<Meaning> {
+    /// Report successful compilation and execution of the exact supplied request.
+    ///
+    /// # Authority
+    ///
+    /// Every binding fact is copied from `request`; the host supplies only the recovered meaning. This records caller output and does not independently instrument a compiler process.
+    #[must_use]
+    pub fn executed<Input>(
+        request: &CompiledSpecimenRequest<'_, '_, Input>,
+        meaning: Meaning,
+    ) -> Self {
+        Self {
+            content: request.content().identity(),
+            role: request.role(),
+            execution: request.execution().clone(),
+            check: request.check(),
+            meaning,
+        }
+    }
+
+    /// The exact compiler-source content the host says it compiled and executed.
+    #[must_use]
+    pub const fn content(&self) -> ArtifactContentId {
+        self.content
+    }
+
+    /// The semantic role of the executed artifact.
+    #[must_use]
+    pub const fn role(&self) -> CompiledSpecimenRole {
+        self.role
+    }
+
+    /// The ordinary execution key retained from the request.
+    #[must_use]
+    pub const fn execution(&self) -> &ExecutionKey {
+        &self.execution
+    }
+
+    /// The declared check identity retained from the request.
+    #[must_use]
+    pub const fn check(&self) -> CheckRef {
+        self.check
+    }
+
+    /// Compare the copied request standing before this observation can supply a meaning.
+    pub(in crate::muterprater) fn mismatch(
+        &self,
+        content: ArtifactContentId,
+        role: CompiledSpecimenRole,
+        execution: &ExecutionKey,
+        check: CheckRef,
+    ) -> Option<CompiledSpecimenObservationMismatch> {
+        if self.content != content {
+            return Some(CompiledSpecimenObservationMismatch::Content {
+                expected: content,
+                found: self.content,
+            });
+        }
+        if self.role != role {
+            return Some(CompiledSpecimenObservationMismatch::Role);
+        }
+        if &self.execution != execution {
+            return Some(CompiledSpecimenObservationMismatch::Execution);
+        }
+        if self.check != check {
+            return Some(CompiledSpecimenObservationMismatch::Check);
+        }
+        None
+    }
+
+    /// The meaning the host recovered from the compiled specimen.
+    #[must_use]
+    pub const fn meaning(&self) -> &Meaning {
+        &self.meaning
+    }
+
+    /// Consume the host observation into its recovered meaning.
+    pub(in crate::muterprater) fn into_meaning(self) -> Meaning {
+        self.meaning
+    }
+}
+
+impl CompiledSpecimenStanding {
+    /// Bind exact compiler-source bytes to the pair, selection, and ordinary execution that pressed them.
+    pub(in crate::muterprater) fn recorded(
+        artifact: ArtifactContentId,
+        pair: EvaluationPairStanding,
+        selection: ActiveSelection,
+        execution: ExecutionKey,
+        check: CheckRef,
+    ) -> Self {
+        Self {
+            artifact,
+            pair,
+            selection,
+            execution,
+            check,
+        }
+    }
+
+    /// The exact selected compiler-source content identity.
+    #[must_use]
+    pub const fn artifact(&self) -> ArtifactContentId {
+        self.artifact
+    }
+
+    /// The exact production/evaluation pair the materializer was bound to.
+    #[must_use]
+    pub const fn pair(&self) -> EvaluationPairStanding {
+        self.pair
+    }
+
+    /// The exact surface-issued selection baked into the artifact.
+    #[must_use]
+    pub const fn selection(&self) -> ActiveSelection {
+        self.selection
+    }
+
+    /// The ordinary execution key the compiled meaning was judged under.
+    #[must_use]
+    pub const fn execution(&self) -> &ExecutionKey {
+        &self.execution
+    }
+
+    /// The declared check identity that rejected the compiled meaning.
+    #[must_use]
+    pub const fn check(&self) -> CheckRef {
+        self.check
+    }
+}
+
+impl<'parity, 'pair, 'input, Input, Meaning>
+    CompiledProjectionPressure<'parity, 'pair, 'input, Input, Meaning>
 {
-    /// Open interpreted execution over one exact surface, compiled witness, and no-mutation qualification.
+    /// Retain one exact selected compiled rejection and the unchanged compiled baseline it stood over.
+    pub(in crate::muterprater) fn demonstrated(
+        parity: &'parity NoMutationParityQualification<'pair, 'input, Input, Meaning>,
+        baseline_artifact: ArtifactContentId,
+        standing: CompiledSpecimenStanding,
+        baseline_report: crate::report::TrialReport,
+        selected_report: crate::report::TrialReport,
+        mutation: MutationReport,
+    ) -> Self {
+        Self {
+            parity,
+            baseline_artifact,
+            standing,
+            baseline_report,
+            selected_report,
+            mutation,
+        }
+    }
+
+    /// The no-mutation qualification whose exact pair, input, and witness this pressure reuses.
+    #[must_use]
+    pub const fn parity(
+        &self,
+    ) -> &'parity NoMutationParityQualification<'pair, 'input, Input, Meaning> {
+        self.parity
+    }
+
+    /// The separately compiled unchanged compiler-source content identity.
+    #[must_use]
+    pub const fn baseline_artifact(&self) -> ArtifactContentId {
+        self.baseline_artifact
+    }
+
+    /// The selected compiled specimen's exact standing.
+    #[must_use]
+    pub const fn standing(&self) -> &CompiledSpecimenStanding {
+        &self.standing
+    }
+
+    /// The ordinary passing report from the separately compiled unchanged artifact.
+    #[must_use]
+    pub const fn baseline_report(&self) -> &crate::report::TrialReport {
+        &self.baseline_report
+    }
+
+    /// The ordinary rejecting report from the separately compiled selected artifact.
+    #[must_use]
+    pub const fn selected_report(&self) -> &crate::report::TrialReport {
+        &self.selected_report
+    }
+
+    /// The mutation report derived from the selected artifact's ordinary report.
+    #[must_use]
+    pub const fn mutation(&self) -> &MutationReport {
+        &self.mutation
+    }
+}
+
+impl<'surface, 'suite, 'projection, 'parity, 'pair, 'input, Input, Meaning>
+    InterpretedTrust<'surface, 'suite, 'projection, 'parity, 'pair, 'input, Input, Meaning>
+{
+    /// Open interpreted execution over one exact surface, generic suite bite, and exact selection pressure.
     pub(in crate::muterprater) fn opened(
         surface: &'surface EvaluationSurface,
-        compiled: &'compiled CompiledPressureWitness,
-        parity: &'parity NoMutationParityQualification<'pair, 'input, Input, Meaning>,
+        suite: &'suite CompiledSuitePressure,
+        projection: &'projection CompiledProjectionPressure<'parity, 'pair, 'input, Input, Meaning>,
     ) -> Self {
         Self {
             surface,
-            compiled,
-            parity,
+            suite,
+            projection,
         }
     }
 
@@ -2010,44 +2553,74 @@ impl<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning>
         self.surface
     }
 
-    /// The compiled-pressure witness scoped to this exact evaluation pair that demonstrated suite bite.
+    /// The generic compiled suite bite retained without evaluation-pair authority.
     #[must_use]
-    pub const fn compiled(&self) -> &'compiled CompiledPressureWitness {
-        self.compiled
+    pub const fn suite(&self) -> &'suite CompiledSuitePressure {
+        self.suite
     }
 
-    /// The no-mutation qualification for the exact pair and input.
+    /// The exact compiled selected-projection pressure for this selection.
+    #[must_use]
+    pub const fn projection(
+        &self,
+    ) -> &'projection CompiledProjectionPressure<'parity, 'pair, 'input, Input, Meaning> {
+        self.projection
+    }
+
+    /// The no-mutation qualification retained by exact projection pressure.
     #[must_use]
     pub const fn parity(
         &self,
     ) -> &'parity NoMutationParityQualification<'pair, 'input, Input, Meaning> {
-        self.parity
+        self.projection.parity()
+    }
+
+    /// The only surface-issued selection this trust authorizes.
+    #[must_use]
+    pub const fn selection(&self) -> ActiveSelection {
+        self.projection.standing().selection()
     }
 
     /// Duplicate this borrowed trust statement for one admitted evidence record.
     pub(in crate::muterprater) fn duplicate(&self) -> Self {
         Self {
             surface: self.surface,
-            compiled: self.compiled,
-            parity: self.parity,
+            suite: self.suite,
+            projection: self.projection,
         }
     }
 }
 
-impl<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning>
-    InterpretedMutationEvidence<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning>
+impl<'surface, 'suite, 'projection, 'parity, 'pair, 'input, Input, Meaning>
+    InterpretedMutationEvidence<
+        'surface,
+        'suite,
+        'projection,
+        'parity,
+        'pair,
+        'input,
+        Input,
+        Meaning,
+    >
 {
     /// One active execution admitted under the trust boundary that made it evidence.
     pub(in crate::muterprater) fn admitted(
-        trust: InterpretedTrust<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning>,
-        selection: ActiveSelection,
+        trust: InterpretedTrust<
+            'surface,
+            'suite,
+            'projection,
+            'parity,
+            'pair,
+            'input,
+            Input,
+            Meaning,
+        >,
         meaning: Meaning,
         report: crate::report::TrialReport,
         mutation: MutationReport,
     ) -> Self {
         Self {
             trust,
-            selection,
             meaning,
             report,
             mutation,
@@ -2058,14 +2631,15 @@ impl<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning>
     #[must_use]
     pub const fn trust(
         &self,
-    ) -> &InterpretedTrust<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning> {
+    ) -> &InterpretedTrust<'surface, 'suite, 'projection, 'parity, 'pair, 'input, Input, Meaning>
+    {
         &self.trust
     }
 
     /// The exact active selection that ran.
     #[must_use]
     pub const fn selection(&self) -> ActiveSelection {
-        self.selection
+        self.trust.selection()
     }
 
     /// The meaning the active evaluation copy returned.

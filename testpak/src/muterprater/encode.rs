@@ -1,7 +1,8 @@
 //! The canonical preimages of the interpreted mutation lane's policy, alternative, and evaluation-surface identities.
 
 use super::{
-    AdmittedAlternative, EvaluationFamilyRef, MutationPermission, MutationPoint, MutationPolicyId,
+    AdmittedAlternative, DiscoveryEntry, EvaluationFamilyRef, MutationPermission, MutationPoint,
+    MutationPolicyId, OwnerClaimMapping,
 };
 use crate::descriptor::NamespacedName;
 use crate::identity::ContentAddress;
@@ -69,6 +70,39 @@ pub(super) fn surface_preimage(
         for alternative in point.admitted_alternatives() {
             push_alternative(&mut bytes, alternative);
         }
+    }
+    bytes
+}
+
+/// The complete preimage of one producer discovery reading.
+///
+/// Members are the evaluation-family name, owner-policy address, discovery count, then every site in producer order. A site contributes its point identity, owner-mapping posture and mapped claim where present, unchanged operation, every candidate alternative's operator-family slug and exact meaning bytes in producer order, and its activation site. Admission disposition is derived from these facts and the addressed policy rather than encoded a second time.
+pub(super) fn discovery_preimage(
+    family: EvaluationFamilyRef,
+    policy: MutationPolicyId,
+    entries: &[DiscoveryEntry],
+) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    push_name(&mut bytes, family.name());
+    encode_bytes(policy.address().as_bytes(), &mut bytes);
+    encode_length(entries.len(), &mut bytes);
+    for entry in entries {
+        let site = entry.site();
+        push_name(&mut bytes, site.identity().name());
+        match site.mapping() {
+            OwnerClaimMapping::Mapped(claim) => {
+                bytes.push(1u8);
+                push_name(&mut bytes, claim.name());
+            }
+            OwnerClaimMapping::OwnerUnmapped => bytes.push(0u8),
+        }
+        encode_bytes(site.original_operation(), &mut bytes);
+        encode_length(site.alternatives().len(), &mut bytes);
+        for alternative in site.alternatives() {
+            encode_bytes(alternative.family().slug().as_bytes(), &mut bytes);
+            encode_bytes(alternative.operation(), &mut bytes);
+        }
+        push_name(&mut bytes, site.activation_site().name());
     }
     bytes
 }

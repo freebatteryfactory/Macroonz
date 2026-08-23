@@ -109,8 +109,8 @@
 ///
 /// It is deliberately not a [`GeneratedSupportSchemaId`](crate::descriptor::GeneratedSupportSchemaId), even though these bytes were derived when the pair was published. A typed identity can be derived freshly from the declaration or reified from a `ContentAddress` whose derivation the caller already established; this raw checked-in copy does neither by itself. The currency lane re-derives the current identity and compares this copy against it.
 pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] = &[
-    64, 247, 209, 126, 39, 187, 123, 191, 55, 210, 86, 156, 252, 110, 235, 212, 119, 194, 33, 206,
-    138, 125, 70, 120, 179, 212, 187, 59, 69, 188, 29, 250,
+    222, 149, 109, 97, 135, 230, 254, 180, 55, 195, 41, 161, 180, 186, 130, 96, 170, 30, 123, 48,
+    131, 30, 77, 129, 225, 115, 89, 175, 105, 68, 31, 161,
 ];
 
 /// Guards one generated support delivery: compares the producer's expected schema identity against the published one, and releases either the trial/deferred pair or the benchmark/reporter pair only when the two agree.
@@ -170,7 +170,7 @@ pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] = &[
 /// crossing's evaluation cargo in `deferred:`. So one pin governs both of the
 /// live crossings physically — a mismatch withholds them together, in one arm.
 ///
-/// The third crossing lands in a bench target through the `benches:`/`reporter:` form. It answers to the same identity: the root declaration's members are the descriptor's, the mutation point's, and the bench's, so a change to the bench roster moves the one pin.
+/// The third crossing lands in a bench target through the `benches:`/`reporter:` form. It answers to the same identity: the root declaration's members are the descriptor's, the mutation discovery's, and the bench's, so a change to the bench roster moves the one pin.
 ///
 /// # Authority
 ///
@@ -202,8 +202,8 @@ pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] = &[
 macro_rules! generated_support {
     (
         expected: [
-            64, 247, 209, 126, 39, 187, 123, 191, 55, 210, 86, 156, 252, 110, 235, 212,
-            119, 194, 33, 206, 138, 125, 70, 120, 179, 212, 187, 59, 69, 188, 29, 250,
+            222, 149, 109, 97, 135, 230, 254, 180, 55, 195, 41, 161, 180, 186, 130, 96,
+            170, 30, 123, 48, 131, 30, 77, 129, 225, 115, 89, 175, 105, 68, 31, 161,
         ],
         harness: $harness:ident,
         trials: { $($trials:tt)* },
@@ -231,8 +231,8 @@ macro_rules! generated_support {
 
     (
         expected: [
-            64, 247, 209, 126, 39, 187, 123, 191, 55, 210, 86, 156, 252, 110, 235, 212,
-            119, 194, 33, 206, 138, 125, 70, 120, 179, 212, 187, 59, 69, 188, 29, 250,
+            222, 149, 109, 97, 135, 230, 254, 180, 55, 195, 41, 161, 180, 186, 130, 96,
+            170, 30, 123, 48, 131, 30, 77, 129, 225, 115, 89, 175, 105, 68, 31, 161,
         ],
         harness: $harness:ident,
         benches: { $($benches:tt)* },
@@ -269,8 +269,8 @@ macro_rules! generated_support {
             ::core::stringify!([$($expected),*]),
             ". Published here: ",
             ::core::stringify!([
-                64, 247, 209, 126, 39, 187, 123, 191, 55, 210, 86, 156, 252, 110, 235, 212,
-                119, 194, 33, 206, 138, 125, 70, 120, 179, 212, 187, 59, 69, 188, 29, 250,
+                222, 149, 109, 97, 135, 230, 254, 180, 55, 195, 41, 161, 180, 186, 130, 96,
+                170, 30, 123, 48, 131, 30, 77, 129, 225, 115, 89, 175, 105, 68, 31, 161,
             ]),
             ". Declared harness: ",
             ::core::stringify!($harness),
@@ -295,8 +295,8 @@ macro_rules! generated_support {
             ::core::stringify!([$($expected),*]),
             ". Published here: ",
             ::core::stringify!([
-                64, 247, 209, 126, 39, 187, 123, 191, 55, 210, 86, 156, 252, 110, 235, 212,
-                119, 194, 33, 206, 138, 125, 70, 120, 179, 212, 187, 59, 69, 188, 29, 250,
+                222, 149, 109, 97, 135, 230, 254, 180, 55, 195, 41, 161, 180, 186, 130, 96,
+                170, 30, 123, 48, 131, 30, 77, 129, 225, 115, 89, 175, 105, 68, 31, 161,
             ]),
             ". Declared harness: ",
             ::core::stringify!($harness),

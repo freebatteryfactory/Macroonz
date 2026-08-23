@@ -8,7 +8,7 @@
 //!
 //! # Trust-last, by the staging
 //!
-//! Rewrite-produced descriptors enter the interpreted audit road LAST. The trust order opens with baseline qualification, then a witness rejection demonstrated under a qualified adapter, then mandatory no-mutation parity; a mutable surface must also provide an executable point. [`admission`] reads that execution availability once. The descriptor remains an audit candidate, not evidence, until an actual execution earns a later evidence claim.
+//! Rewrite-produced descriptors enter the interpreted audit road LAST. The trust order requires a qualified generic suite bite and exact compiled selected-projection pressure, which already retains mandatory no-mutation parity for its pair and input. [`admission`] reads that selection-scoped execution availability once. The descriptor remains an audit candidate, not evidence, until an actual execution earns a later evidence claim.
 //!
 //! # Why the interpreter gates this lane
 //!
@@ -18,8 +18,8 @@
 //! the lane's whole reason for existing is that it is not.
 
 use super::types::{
-    ArtifactMutation, InterpreterAvailability, PointCatalogPosture, RewriteAdmission,
-    RewriteCandidate, RewriteRoster, RewriteWithheld, ScopeShape,
+    ArtifactMutation, InterpreterAvailability, RewriteAdmission, RewriteCandidate, RewriteRoster,
+    RewriteWithheld, ScopeShape,
 };
 use crate::depot::operator_families::OPERATOR_FAMILIES;
 use crate::depot::types::OperatorFamily;
@@ -71,18 +71,13 @@ pub fn planned(roster: &RewriteRoster, scope: &ScopeShape) -> Vec<RewriteCandida
 ///
 /// # Authority
 ///
-/// Read over the interpreted lane's availability, which already folds the trust order in its owner's sequence. A trusted point-free surface still withholds this road because it offers no active execution; an admitted descriptor remains [`super::RewriteTrust::AuditPending`], not evidence.
+/// Read over the interpreted lane's availability, which already folds the trust order in its owner's sequence. Availability now retains one exact active selection, so a point-free surface cannot reach this arm. An admitted descriptor remains [`super::RewriteTrust::AuditPending`], not evidence.
 #[must_use]
 pub fn admission<Input, Meaning>(
-    interpreter: &InterpreterAvailability<'_, '_, '_, '_, '_, Input, Meaning>,
+    interpreter: &InterpreterAvailability<'_, '_, '_, '_, '_, '_, Input, Meaning>,
 ) -> RewriteAdmission {
     match interpreter {
-        InterpreterAvailability::Available(trust) => match trust.surface().catalog_posture() {
-            PointCatalogPosture::NoAdmittedPoints => {
-                RewriteAdmission::Withheld(RewriteWithheld::NoAdmittedPoint)
-            }
-            PointCatalogPosture::Mutable => RewriteAdmission::Admitted,
-        },
+        InterpreterAvailability::Available(_) => RewriteAdmission::Admitted,
         InterpreterAvailability::NoConformingSurface => {
             RewriteAdmission::Withheld(RewriteWithheld::InterpreterUnavailable)
         }
@@ -104,7 +99,8 @@ pub fn admission<Input, Meaning>(
 #[must_use]
 pub fn unrealized_families(roster: &RewriteRoster) -> Vec<OperatorFamily> {
     OPERATOR_FAMILIES
-        .into_iter()
+        .iter()
+        .copied()
         .filter(|family| {
             !roster
                 .descriptors()

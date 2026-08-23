@@ -70,11 +70,11 @@ it does not own the mailbox.
 
 The spines meet at ONE WALL with exactly three named crossing contracts, every crossing under the same law — public vocabulary owned here, producer output targets public constructors, the two-sided schema pin, this side decides admission:
 
-(1) generated support → the construction contract → Binding and Table; (2) the mutation-evaluation surface → the mutation-point vocabulary; (3) benchmark rows → the bench target's row vocabulary. One GENERATED SUPPORT SCHEMA declaration — the root, whose members are the descriptor, mutation-point, and bench schemas — covers every producer-facing vocabulary, so one pin governs all three crossings.
+(1) generated support → the construction contract → Binding and Table; (2) producer mutation discovery → the mutation-discovery vocabulary, before TestPak-owned admission; (3) benchmark rows → the bench target's row vocabulary. One GENERATED SUPPORT SCHEMA declaration — the root, whose members are the descriptor, mutation-discovery, and bench schemas — covers every producer-facing vocabulary, so one pin governs all three crossings.
 
 The object that physically crosses is the GENERATED SUPPORT SHELL:
 
-a deferred token carrier the door emits at the declaration site (a macro invoked in a test target sees only its own invocation tokens, so the declaration's structure must travel as tokens), holding its cargo inert — constructor-calling expressions for the row vocabularies, the evaluation copy for the mutation crossing — naming no testpak type until expansion and executing nothing in the normal build.
+a deferred token carrier the door emits at the declaration site (a macro invoked in a test target sees only its own invocation tokens, so the declaration's structure must travel as tokens), holding its cargo inert — constructor-calling expressions for the row vocabularies, the producer discovery and evaluation copy for the mutation crossing — naming no testpak type until expansion and executing nothing in the normal build.
 
 The consumer's consumption targets invoke it:
 

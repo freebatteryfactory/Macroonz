@@ -56,13 +56,9 @@ The output firewall is that the declared set is the whole set, so a copy standin
 
 Its identity is therefore derived at rendering time over its own rendered bytes, under the rendered-unit role and anchored on its OWN semantic key at its own role's roster position — the same derivation any planned member's rendered unit is identified by, so this home holds no second rule for it.
 
-It reaches the consumer's test target as deferred tokens inside the generated support shell;
+The rendered evaluation copy is destination-shaped as deferred cargo for the generated support shell.
 
-the shell's own crossing — constructor-calling expressions against the harness's mutation-point vocabulary, under the two-sided schema pin — is the shell's rendering and not this home's.
-
-This home names no harness type and imports nothing from the harness:
-
-it holds the points as DATA in the harness's field shape, and the mailbox belongs to whoever owns the address.
+This home names no harness type and imports nothing from the harness. Its point table is the macroc-internal rendering input for this two-surface plan, not the producer discovery reading or owner-policy admission owned by `TestPak`.
 
 ## What a mutation point carries
 

@@ -4,14 +4,12 @@
 //! # Targeting
 //!
 //! An operator family earns its seat by naming a way this machine's own laws
-//! could be broken quietly. Four of the seven are aimed at three such ways, and
-//! each names its target at its own row: [`RESULT_COLLAPSE`] and
+//! could be broken quietly. [`RESULT_COLLAPSE`] and
 //! [`IGNORED_RESULTS`] at error-swallowing, [`OPTION_COLLAPSE`] at fail-closed
-//! erosion, and [`DIRECT_MACHINE_CONTACT`] at ambient contact. The remaining
-//! three — [`COMPARISON_BOUNDARIES`], [`BOOLEAN_OPERATORS`], and
-//! [`CONSTRUCTOR_AND_DEFAULT_RECURSION`] — are aimed at the edges, the
-//! decisions, and the constructors every one of those laws is written in terms
-//! of.
+//! erosion, and [`DIRECT_MACHINE_CONTACT`] at ambient contact. [`COMPARISON_BOUNDARIES`],
+//! [`BOOLEAN_OPERATORS`], [`CONSTRUCTOR_AND_DEFAULT_RECURSION`], and
+//! [`DECLARED_ORDER_PERMUTATION`] are aimed at the edges, decisions, invariant nuclei,
+//! and owner-declared semantic order those laws are written in terms of.
 //!
 //! A survivor is the finding, never the score: what a surviving mutant of a
 //! family means for the suite that let it live is written at the family's row,
@@ -133,8 +131,18 @@ pub const CONSTRUCTOR_AND_DEFAULT_RECURSION: OperatorFamily = OperatorFamily::de
     "the invariant nucleus a smart constructor holds",
 );
 
+/// Exchanges exactly one adjacent pair in an owner-declared semantic order.
+///
+/// Roster length, membership, every member identity and byte, and every non-order fact remain unchanged. This attacks one order-bearing projection without deleting a member or changing a neighboring projection that may state the same roster under a different purpose.
+///
+/// A kill proves the exact witness distinguishes the selected adjacent exchange. A survivor says only that the selected witness set did not distinguish it; neither outcome establishes which order is owner-correct without the owner's declaration.
+pub const DECLARED_ORDER_PERMUTATION: OperatorFamily = OperatorFamily::declared(
+    "declared-order-permutation",
+    "the adjacency of an owner-declared semantic order",
+);
+
 /// The declared operator families, in the order this bank states them.
-pub const OPERATOR_FAMILIES: [OperatorFamily; 7] = [
+pub const OPERATOR_FAMILIES: &[OperatorFamily] = &[
     COMPARISON_BOUNDARIES,
     BOOLEAN_OPERATORS,
     RESULT_COLLAPSE,
@@ -142,4 +150,5 @@ pub const OPERATOR_FAMILIES: [OperatorFamily; 7] = [
     IGNORED_RESULTS,
     DIRECT_MACHINE_CONTACT,
     CONSTRUCTOR_AND_DEFAULT_RECURSION,
+    DECLARED_ORDER_PERMUTATION,
 ];

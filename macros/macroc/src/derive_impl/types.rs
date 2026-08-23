@@ -119,15 +119,14 @@ threadpak::closed_register! {
 }
 
 // ---------------------------------------------------------------------------
-// The mutation-point vocabulary, in the harness's field shape.
+// The mutation-point vocabulary used by this rendering plan.
 // ---------------------------------------------------------------------------
 
 /// A namespaced name: the owner that declares a spelling, and the spelling.
 ///
-/// The FIELD SHAPE is the harness's mutation-point vocabulary, mirrored here as
-/// data. Nothing of the harness is imported and no harness type is named: this
-/// home writes letters to an address and does not own the mailbox, so what
-/// crosses the wall is a conforming pair of parts rather than a borrowed type.
+/// This is macroc-internal rendering data. Nothing of the harness is imported
+/// and no harness type is named; `TestPak`'s producer discovery and owner-policy
+/// admission are separate contracts rather than a shape this value mirrors.
 ///
 /// # Construction
 ///
@@ -169,9 +168,8 @@ pub struct MutationClaimRef(MutationPointName);
 /// One operation the evaluation copy can stand at a mutation point: how it is
 /// NAMED, and how it is WRITTEN.
 ///
-/// Two seats because two sides read it. The spelling is what the harness reads —
-/// it is the data that crosses the wall and the name a survivor is reported
-/// under. The tokens are what the rendering engine substitutes, and a spelling
+/// Two seats because the internal plan and renderer read different facts. The
+/// spelling is the plan's declared semantic name. The tokens are what the rendering engine substitutes, and a spelling
 /// is not tokens: a renderer that re-parsed the spelling would be composing Rust
 /// out of a string, which is exactly the round trip the token seam exists to
 /// remove.
@@ -189,11 +187,7 @@ pub struct MutationOperation {
 ///
 /// # Authority
 ///
-/// **Every seat arrives from the caller and none is derived here.** Which
-/// operation is worth damaging, which alternatives are admitted against it, and
-/// which claim owns the site are the harness's declarations. A generator that
-/// decided any of them would be producing its own facts and then proving them,
-/// which is the one thing these services never do.
+/// **Every seat is explicit input to this rendering plan and none is derived here.** This internal value grants no `TestPak` owner permission and is not a producer discovery reading or admitted executable point.
 ///
 /// # Bounds
 ///
@@ -220,9 +214,8 @@ pub struct MutationPoint {
 /// point renders its ORIGINAL operation, so the evaluation copy with this
 /// selected emits exactly what the production surface emits.
 ///
-/// It carries its declared name, because the harness reports a parity failure
-/// against a named point exactly as it reports a survivor against one; a control
-/// with no name would be the one row of the table nobody could cite.
+/// It carries its declared name because the internal rendered enum and selection
+/// table must cite the same arm without reconstructing a spelling.
 ///
 /// # Construction
 ///

@@ -70,7 +70,7 @@ The harness's records are reports. The denominator of a run is the descriptor ta
 
 ## Muterprater
 
-Muterprater keeps production free of mutation controls while one paired evaluation copy admits `NoMutation` or an exact surface-issued active selection. Point-catalog posture and parity qualification remain independent: a point-free surface is lawful but cannot mint an active control, and no interpreted result becomes trusted until compiled pressure and exact-input no-mutation parity name the same evaluation family and surface.
+Muterprater keeps production free of mutation directives while one paired evaluation copy receives either no mutation or an exact point and alternative TestPak resolved from a surface-issued selection. Point-catalog posture and parity qualification remain independent: a point-free surface is lawful but cannot mint an active selection, and no interpreted result becomes trusted until generic compiled suite bite, exact-input no-mutation parity, and separately compiled selection-scoped projection pressure all exist under their own evidence ceilings.
 
 Muterprater plans which proof pressure is worth running, records what each backend can actually establish, explains every earned survivor, and suggests candidates. A candidate becomes authored only through a proposal a human admits; runtime evidence never writes authored specification by itself.
 

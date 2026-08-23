@@ -1,7 +1,7 @@
 //! The proof-pressure engine's declarations: the verdict chain's axes, the
 //! per-mutant record and its run, the mutation target and its owner mapping, the
-//! wrap lane's adapter profile and reading vocabulary, the two facts a reading
-//! opens trust with, the interpreted lane's evaluation surface and trust gate,
+//! wrap lane's adapter profile and generic suite-pressure vocabulary, the exact
+//! compiled-projection road, the interpreted lane's evaluation surface and trust gate,
 //! the rewrite lane's descriptors, the artifact-mutation seed roster, the
 //! survivor explanation and the check gap, the scope shapes and the proof plan,
 //! and the whole proposal road.
@@ -206,9 +206,7 @@ pub struct MutantId(ContentAddress);
 ///
 /// # Authority
 ///
-/// The two arms are the two lanes' two kinds of address and never
-/// interchangeable: an external identity is derived from data a backend
-/// reported, and an interpreted one is a reference a producer authored.
+/// The arms keep generic external pressure, compile-once interpretation, and separately compiled selected-projection pressure distinct. The two selected-projection arms name the same producer-authored point and alternative under different execution roads; their report provenance and artifact standing remain separate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MutationIdentity {
     /// An external backend's mutant, addressed by its reported coordinate and
@@ -220,6 +218,13 @@ pub enum MutationIdentity {
         /// The stable point the producer discovered.
         point: MutationPointRef,
         /// The stable mutation meaning selected at that point.
+        alternative: AlternativeId,
+    },
+    /// A separately materialized production-shaped selected projection.
+    CompiledProjection {
+        /// The stable point the producer discovered.
+        point: MutationPointRef,
+        /// The stable mutation meaning baked into the compiled artifact.
         alternative: AlternativeId,
     },
 }
@@ -745,7 +750,6 @@ pub enum AnnouncedRoster {
 /// [`AdapterProfile::ceiling`], and no road anywhere widens it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WrapReading {
-    family: EvaluationFamilyRef,
     profile: AdapterProfile,
     run: MutationRun,
     announced: AnnouncedRoster,
@@ -786,7 +790,7 @@ pub enum WrapRefusal {
 }
 
 // ---------------------------------------------------------------------------
-// The two facts a reading opens trust with.
+// The wrap reading and generic suite-pressure facts.
 // ---------------------------------------------------------------------------
 
 /// Whether the wrap-first pressure has reported, and what it reported.
@@ -804,7 +808,7 @@ pub enum WrapRefusal {
 ///
 /// A report is not the same fact as a report that killed something. A wrap pass
 /// with no kill is not evidence that the properties bite, and
-/// [`CompiledPressureWitness::shown`] reads it as the absence it is.
+/// [`CompiledSuitePressure::demonstrated`] reads it as the absence it is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WrapStanding<'reading> {
     /// The wrap-first pressure reported, and this is the reading it reported.
@@ -868,7 +872,7 @@ pub enum GrammarStanding {
 ///
 /// Parser correctness is not suite bite. A qualification says the adapter is
 /// fit to be read under; it says nothing about whether any property rejected
-/// anything, which is [`CompiledPressureWitness`]'s fact on a different axis.
+/// anything, which is [`CompiledSuitePressure`]'s fact on a different axis.
 /// The claim ceiling rides with it unchanged: a qualified adapter over a
 /// console stream is still an adapter whose source carries no activation
 /// channel.
@@ -905,53 +909,42 @@ pub enum QualificationRefusal {
     },
 }
 
-/// One reported reading under a qualified adapter profile demonstrated at least one lawful witness rejection for an explicitly scoped evaluation pair.
+/// One reported reading under a qualified adapter profile carried at least one lawful backend-reported kill.
 ///
 /// # Authority
 ///
-/// The typed fact the trust-opening road demands about the RUN: a suite
-/// rejected a damaged subject, under an adapter that stands qualified. The
-/// qualification rides inside — one that already exists for the reading's exact profile and is weighed against the reported reading the kill is read out of — so a witness over an unqualified adapter profile is not a value anybody can hold.
+/// The typed fact the trust-opening road demands about the run: a backend reported a suite bite under an adapter that stands qualified. The
+/// qualification rides inside — one that already exists for the reading's exact profile and is weighed against the reported reading the kill is read out of — so suite pressure over an unqualified adapter profile is not a value anybody can hold.
 ///
 /// # Construction
 ///
-/// [`CompiledPressureWitness::shown`] is the only road, and it refuses a standing that never reported, a qualification naming another adapter profile, a caller-scoped reading naming another family than the exact pair, then a reported reading whose run demonstrated no kill. The qualification is the caller's to supply and [`AdapterQualification`]'s own road to build, so this road adds a kill and an explicit pair scope to a standing already vouched for rather than vouching for backend execution or pair provenance itself.
+/// [`CompiledSuitePressure::demonstrated`] is the only road, and it refuses a standing that never reported, a qualification naming another adapter profile, then a reported reading whose run demonstrated no kill. The qualification is the caller's to supply and [`AdapterQualification`]'s own road to build, so this road retains a qualified suite bite without attaching an evaluation pair the backend never established.
 ///
 /// # Nonclaims
 ///
-/// Suite bite is not campaign accounting. The witness states that at least one
-/// lawful rejection happened; how many mutants a run pressed and how they
+/// Suite bite is not campaign accounting. The reading states that at least one
+/// lawful kill was reported; how many mutants a run pressed and how they
 /// divide is the run's own census ([`MutationCensus`]), which answers a
 /// different question and is never read as this one. Neither of the two is the
-/// no-mutation parity ([`NoMutationParityQualification`]), which is about the
-/// exact evaluation pair's faithfulness for one retained input and about
-/// nothing else.
+/// no-mutation parity ([`NoMutationParityQualification`]), which is about one
+/// exact evaluation pair's faithfulness for one retained input and about nothing else. Generic suite pressure cannot open that pair's interpreted trust. It also retains no source-tree revision: a reported coordinate is the backend text's coordinate, not a statement that the same line still names the current checkout.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CompiledPressureWitness {
-    pair: EvaluationPairStanding,
+pub struct CompiledSuitePressure {
     qualification: AdapterQualification,
     kill: MutationReport,
 }
 
-/// Why one wrap standing demonstrated no compiled-pressure witness.
+/// Why one wrap standing demonstrated no generic compiled suite pressure.
 ///
-/// Dependent checks in a declared order: whether the pressure reported at all, whether the qualification carries the reading's exact adapter profile, whether the caller-scoped reading names the exact pair's family, then whether what it reported carries a kill.
-#[must_use = "a refusal is the reason no compiled-pressure witness was shown"]
+/// Dependent checks in a declared order: whether the pressure reported at all, whether the qualification carries the reading's exact adapter profile, then whether what it reported carries a kill.
+#[must_use = "a refusal is the reason no compiled suite pressure was demonstrated"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PressureWitnessRefusal {
+pub enum SuitePressureRefusal {
     /// The wrap-first pressure has not reported, so there is no reading to
     /// stand on.
     WrapNotReported,
     /// The qualification offered names another adapter profile and therefore stands behind nothing here.
     QualificationUnderAnotherProfile,
-    /// The caller-scoped reading names another evaluation family than the
-    /// exact production/evaluation pair offered for this witness.
-    ReadingForAnotherFamily {
-        /// The family retained by the exact evaluation pair.
-        expected: EvaluationFamilyRef,
-        /// The family the external reading was scoped to.
-        found: EvaluationFamilyRef,
-    },
     /// The reading's run demonstrated no lawful kill, so nothing in it has
     /// shown a property biting.
     NoKillDemonstrated,
@@ -972,6 +965,16 @@ pub const MUTATION_ALTERNATIVE_TAG: DomainTag =
 /// The domain tag of one complete evaluation surface.
 pub const EVALUATION_SURFACE_TAG: DomainTag =
     DomainTag::declared("evaluation-surface", IdentityProfileVersion::declared(1));
+
+/// The domain tag of one complete producer discovery reading.
+pub const MUTATION_DISCOVERY_TAG: DomainTag =
+    DomainTag::declared("mutation-discovery", IdentityProfileVersion::declared(1));
+
+/// The domain tag of the exact source bytes one compiled specimen host consumes.
+pub const ARTIFACT_CONTENT_TAG: DomainTag = DomainTag::declared(
+    "compiled-artifact-content",
+    IdentityProfileVersion::declared(1),
+);
 
 /// The owner-declared family that binds one production road, evaluation copy, policy, and evidence chain.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -1035,6 +1038,132 @@ pub struct AlternativeDeclaration {
     operation: Vec<u8>,
 }
 
+/// Whether the producer's origin reading maps one discovered site to an owner claim.
+///
+/// # Authority
+///
+/// Mapping is producer input to policy admission. The unmapped arm remains a first-class discovery fact and cannot acquire a policy membership or executable point.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum OwnerClaimMapping {
+    /// The origin reading mapped this site to the exact owner claim.
+    Mapped(ClaimRef),
+    /// The origin reading established no owner claim for this site.
+    OwnerUnmapped,
+}
+
+/// One producer-discovered mutation site before owner-policy admission.
+///
+/// # Authority
+///
+/// This is the runtime reading of the producer-facing [`crate::descriptor::MUTATION_DISCOVERY_FIELDS`] vocabulary. Discovery states the complete site, original operation, candidate alternative meanings, activation site, and owner mapping. It does not grant permission and is not executable. [`lower_discoveries`](super::discover::lower_discoveries) is the only road from a discovery roster to executable points.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DiscoveredMutationSite {
+    identity: MutationPointRef,
+    mapping: OwnerClaimMapping,
+    original_operation: Vec<u8>,
+    alternatives: Vec<AlternativeDeclaration>,
+    activation_site: ActivationSite,
+}
+
+/// Why one producer-discovered mutation site was not structurally readable.
+#[must_use = "a refusal is the reason one discovered mutation site was not read"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DiscoveryRefusal {
+    /// The site states no unchanged operation.
+    EmptyOriginalOperation,
+    /// The site carries no candidate alternative meaning.
+    NoAlternative,
+    /// One candidate alternative states no mutation meaning.
+    EmptyAlternative {
+        /// The alternative's position in producer order.
+        at: usize,
+    },
+    /// One candidate alternative is byte-identical to the unchanged operation.
+    AlternativeIsOriginal {
+        /// The alternative's position in producer order.
+        at: usize,
+    },
+    /// Two candidate alternatives state one operator family and mutation meaning.
+    DuplicateAlternativeMeaning {
+        /// The duplicate alternative's position in producer order.
+        at: usize,
+    },
+}
+
+/// Why one owner-mapped discovered site did not become executable.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MappedUnpermittedCause {
+    /// The policy carries no permission row for the mapped claim.
+    Claim(ClaimRef),
+    /// One candidate alternative uses an operator family outside the mapped claim's permission.
+    Family {
+        /// The alternative's position in producer order.
+        at: usize,
+        /// The family outside the mapped claim's permission.
+        family: OperatorFamilyRef,
+    },
+}
+
+/// Whether one discovered site was mapped and executable, owner-unmapped, or mapped but unpermitted.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DiscoveryDisposition {
+    /// Owner mapping and policy permission admitted this exact executable point.
+    Mapped {
+        /// The executable point issued from this discovery.
+        point: MutationPointRef,
+    },
+    /// The producer found the site but its origin reading named no owner claim.
+    OwnerUnmapped,
+    /// The producer mapped the site, but owner policy did not admit it.
+    MappedUnpermitted {
+        /// The exact policy cause that withheld executable admission.
+        cause: MappedUnpermittedCause,
+    },
+}
+
+/// One complete producer discovery row and its owner-policy admission disposition.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DiscoveryEntry {
+    site: DiscoveredMutationSite,
+    disposition: DiscoveryDisposition,
+}
+
+/// The content identity of one complete producer discovery reading.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct MutationDiscoveryId(ContentAddress);
+
+/// One complete producer discovery denominator after owner-policy admission was read.
+///
+/// # Authority
+///
+/// Every offered site appears exactly once in producer order with its disposition. Unmapped and unpermitted sites remain visible and cannot enter the executable surface carried beside this reading.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MutationDiscoveryReading {
+    family: EvaluationFamilyRef,
+    policy: MutationPolicyId,
+    identity: MutationDiscoveryId,
+    entries: Vec<DiscoveryEntry>,
+}
+
+/// Why one complete discovery roster could not be lowered.
+#[must_use = "a refusal is the reason no complete mutation discovery reading was lowered"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DiscoveryLoweringRefusal {
+    /// Two discovered sites state one point identity.
+    DuplicateSite {
+        /// The duplicate site's position in producer order.
+        at: usize,
+        /// The repeated point identity.
+        point: MutationPointRef,
+    },
+}
+
+/// One closed lowering that retains the complete discovery denominator beside its executable subset.
+pub struct MutationSurfaceLowering {
+    discovery: MutationDiscoveryReading,
+    surface: EvaluationSurface,
+}
+
 /// The stable identity of one point's admitted mutation meaning.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AlternativeId(ContentAddress);
@@ -1047,16 +1176,11 @@ pub struct AdmittedAlternative {
     operation: Vec<u8>,
 }
 
-/// One mutation point on an evaluation surface, as a producer states it.
+/// One owner-admitted executable mutation point on an evaluation surface.
 ///
 /// # Authority
 ///
-/// The field shapes are this crate's own reading of the producer-facing
-/// mutation-point roster the descriptor vocabulary publishes
-/// ([`crate::descriptor::MUTATION_POINT_FIELDS`]). The RUNTIME types are this
-/// lane's, exactly as that roster says, so a producer emits against the
-/// published vocabulary rather than against another crate's shape and nothing
-/// here imports a generator.
+/// Only [`lower_discoveries`](super::discover::lower_discoveries) mints this value after retaining the complete producer discovery and checking owner mapping and policy permission. A producer emits discovery candidates; it cannot mint this admitted output directly.
 ///
 /// # Nonclaims
 ///
@@ -1072,44 +1196,6 @@ pub struct MutationPoint {
     activation_site: ActivationSite,
 }
 
-/// Why one mutation point was refused.
-///
-/// Dependent checks in a declared order: original operation, nonempty alternative roster, owner-claim permission, then each alternative's family, bytes, difference from the original, and difference from earlier meanings under the same family.
-#[must_use = "a refusal is the reason a mutation point was not built"]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PointRefusal {
-    /// The point states no original operation, so its no-mutation reading is
-    /// empty.
-    EmptyOriginalOperation,
-    /// The discovery carries no executable alternative, so it is not a mutation point.
-    NoAdmittedAlternative,
-    /// The policy carries no permission row for the point's owner claim.
-    ClaimNotPermitted(ClaimRef),
-    /// One alternative's operator family is outside the owner permission.
-    FamilyNotPermitted {
-        /// The alternative's position in the supplied roster.
-        at: usize,
-        /// The family the owner policy did not admit for this claim.
-        family: OperatorFamilyRef,
-    },
-    /// One alternative states no mutation meaning.
-    EmptyAlternative {
-        /// The alternative's position in the supplied roster.
-        at: usize,
-    },
-    /// An admitted alternative is byte-identical to the original operation, so
-    /// selecting it would be the no-mutation reading under another name.
-    AlternativeIsOriginal {
-        /// The alternative's position in the roster.
-        at: usize,
-    },
-    /// Two admitted alternatives carry one operator family and canonical mutation meaning.
-    DuplicateAlternativeMeaning {
-        /// The second alternative's position in the roster.
-        at: usize,
-    },
-}
-
 /// The content identity of one complete evaluation surface.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct EvaluationSurfaceId(ContentAddress);
@@ -1118,7 +1204,7 @@ pub struct EvaluationSurfaceId(ContentAddress);
 ///
 /// # Authority
 ///
-/// This is producer-shaped conforming data: a hand author may build the same public shape, and macroc may later emit it from one declaration walk. Runtime is selection among these points and never interpretation of arbitrary source, which would mint a second meaning authority.
+/// This is producer-shaped conforming data: a hand author may supply discovery candidates and owner policy to the same closed lowering a producer targets, while only that lowering mints this surface. Runtime is selection among these points and never interpretation of arbitrary source, which would mint a second meaning authority.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct EvaluationSurface {
     family: EvaluationFamilyRef,
@@ -1127,27 +1213,10 @@ pub struct EvaluationSurface {
     points: Vec<MutationPoint>,
 }
 
-/// Why one evaluation surface was refused.
-#[must_use = "a refusal is the reason an evaluation surface was not built"]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SurfaceRefusal {
-    /// A point carries membership issued by another policy.
-    PointUnderAnotherPolicy {
-        /// The point whose membership does not belong here.
-        point: MutationPointRef,
-        /// The policy the surface requires.
-        expected: MutationPolicyId,
-        /// The policy that issued the point's membership.
-        found: MutationPolicyId,
-    },
-    /// Two points state one identity.
-    DuplicatePoint(MutationPointRef),
-}
-
 /// Whether a complete evaluation surface admits executable points.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PointCatalogPosture {
-    /// The evaluation copy is lawful but admits no active mutation control.
+    /// The evaluation copy is lawful but admits no active directive.
     NoAdmittedPoints,
     /// The evaluation copy admits at least one executable mutation point.
     Mutable,
@@ -1161,17 +1230,36 @@ pub struct ActiveSelection {
     alternative: AlternativeId,
 }
 
-/// What one run of the evaluation copy selects among the surface's points.
+/// One surface-resolved mutation handed to an evaluation callable.
 ///
 /// # Authority
 ///
-/// The no-mutation control is an evaluation-call posture rather than a point in the surface catalog. A point-free surface can therefore run parity without pretending it admits active mutation.
+/// `TestPak` is the only mint. The value retains the surface-issued selection and borrows the exact point and alternative that selection resolved to, so an evaluation callable never reconstructs an identity or consults a positional registry.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ResolvedMutation<'surface> {
+    selection: ActiveSelection,
+    point: &'surface MutationPoint,
+    alternative: &'surface AdmittedAlternative,
+}
+
+/// What one evaluation call reads after `TestPak` resolves its surface authority.
+///
+/// # Authority
+///
+/// No mutation grants no authority and is directly constructible through [`EvaluationDirective::no_mutation`]. The private active mint retains a [`ResolvedMutation`] only after `TestPak` validates a surface-issued selection against the exact surface.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EvaluationDirective<'surface> {
+    resolved: Option<ResolvedMutation<'surface>>,
+}
+
+/// Why an evaluation callable could not execute one otherwise-lawful directive.
+#[must_use = "a refusal is the reason an evaluation callable produced no observation"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum EvaluationControl {
-    /// No point is damaged; the evaluation copy reads its unmodified meaning.
-    NoMutation,
-    /// One point reads as one of its admitted alternatives.
-    Active(ActiveSelection),
+pub enum EvaluationCallRefusal {
+    /// The evaluation callable contains no no-mutation branch.
+    NoMutationNotImplemented,
+    /// The surface admitted a selection for which the evaluation callable contains no branch.
+    ActiveSelectionNotImplemented(ActiveSelection),
 }
 
 /// Why one active-mutant selection was refused.
@@ -1214,7 +1302,10 @@ pub type ProductionCall<Input, Meaning> = fn(&Input) -> Meaning;
 
 /// The evaluation-copy callable of one evaluation family.
 pub type EvaluationCall<Input, Meaning> =
-    fn(&Input, EvaluationControl) -> EvaluationObservation<Meaning>;
+    for<'surface> fn(
+        &Input,
+        EvaluationDirective<'surface>,
+    ) -> Result<EvaluationObservation<Meaning>, EvaluationCallRefusal>;
 
 /// The check that judges one meaning under the exact trial binding it is joined to.
 pub type MeaningCheck<Meaning> = fn(&Meaning) -> TrialConclusion;
@@ -1223,7 +1314,7 @@ pub type MeaningCheck<Meaning> = fn(&Meaning) -> TrialConclusion;
 ///
 /// # Authority
 ///
-/// This is caller output, not admitted evidence. The receiver validates the control, firing count, trial binding, report, and trust facts before a mutation evidence value exists.
+/// This is caller output, not admitted evidence. The receiver validates the directive, firing count, trial binding, report, and trust facts before a mutation evidence value exists.
 pub struct EvaluationObservation<Meaning> {
     meaning: Meaning,
     firings: u32,
@@ -1277,6 +1368,41 @@ pub struct EvaluationPairStanding {
     surface: EvaluationSurfaceId,
 }
 
+/// The exact member by which two evaluation-pair standings disagree.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EvaluationPairStandingMismatch {
+    /// The pair standings name different evaluation families.
+    Family {
+        /// The required family.
+        expected: EvaluationFamilyRef,
+        /// The offered family.
+        found: EvaluationFamilyRef,
+    },
+    /// The pair standings name different production revisions.
+    ProductionRevision {
+        /// The required production revision.
+        expected: RevisionBinding,
+        /// The offered production revision.
+        found: RevisionBinding,
+    },
+    /// The pair standings name different evaluation revisions.
+    EvaluationRevision {
+        /// The required evaluation revision.
+        expected: RevisionBinding,
+        /// The offered evaluation revision.
+        found: RevisionBinding,
+    },
+    /// The pair standings name different evaluation surfaces.
+    Surface {
+        /// The required surface.
+        expected: EvaluationSurfaceId,
+        /// The offered surface.
+        found: EvaluationSurfaceId,
+    },
+    /// The complete standings differ beyond the individually projected members.
+    StandingChanged,
+}
+
 /// One trial binding joined to the declared check identity and callable that judge mutation executions through it.
 pub struct MutationWitness<Meaning> {
     binding: TrialBinding,
@@ -1326,6 +1452,8 @@ pub struct NoMutationParityReading<'pair, 'input, Input, Meaning> {
 pub enum NoMutationObservationRefusal {
     /// The shared-substrate declaration could not be built.
     Substrate(ParityRefusal),
+    /// The evaluation callable refused the no-mutation directive.
+    EvaluationCall(EvaluationCallRefusal),
     /// The production observation could not join its trial binding.
     ProductionReport(ReportRecordingRefusal),
     /// The evaluation observation could not join its trial binding.
@@ -1340,7 +1468,7 @@ pub enum ParityQualificationRefusal {
     ProductionDidNotQualify,
     /// The evaluation report did not earn a lawful lens verdict.
     EvaluationDidNotQualify,
-    /// The no-mutation control reported an activation.
+    /// The no-mutation directive reported an activation.
     NoMutationActivated {
         /// How many firings the evaluation callable reported.
         firings: u32,
@@ -1368,44 +1496,245 @@ pub enum NoMutationParityStanding<'pair, 'input, Input, Meaning> {
     Rejected(RejectedNoMutationParity<'pair, 'input, Input, Meaning>),
 }
 
+// ---------------------------------------------------------------------------
+// Exact compiled selected-projection pressure.
+// ---------------------------------------------------------------------------
+
+/// The bytes handed unchanged to one compiled-specimen host and their bytes-only content identity.
+///
+/// # Authority
+///
+/// `TestPak` derives [`ArtifactContentId`] over these exact bytes under [`ARTIFACT_CONTENT_TAG`]. The identity commits to no pair, selection, target, toolchain, or caller label; those relationships belong to [`CompiledSpecimenStanding`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ArtifactContent {
+    identity: ArtifactContentId,
+    bytes: Vec<u8>,
+}
+
+/// The bytes-only content identity of one compiler-source artifact.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ArtifactContentId(ContentAddress);
+
+/// Whether one compiled specimen is the unchanged baseline or one exact selected mutation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CompiledSpecimenRole {
+    /// The production-shaped artifact under no mutation.
+    Baseline,
+    /// The production-shaped artifact with this surface-issued selection baked in.
+    Selected(ActiveSelection),
+}
+
+/// Why one selected specimen source could not be rendered.
+#[must_use = "a refusal is the reason one specimen source was not rendered"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum SpecimenMaterializerRefusal {
+    /// The materializer contains no unchanged-production branch.
+    NoMutationNotImplemented,
+    /// The surface admitted a selection for which the materializer contains no branch.
+    ActiveSelectionNotImplemented(ActiveSelection),
+}
+
+/// A capture-free source materializer over a TestPak-resolved directive.
+pub type SpecimenMaterializerCall =
+    for<'surface> fn(EvaluationDirective<'surface>) -> Result<Vec<u8>, SpecimenMaterializerRefusal>;
+
+/// One materializer bound before execution to the exact pair whose source it renders.
+///
+/// # Authority
+///
+/// The binding is a declaration ceiling over a function pointer. The compiled-specimen operation validates its pair before calling it, resolves the active directive itself, and derives content identity from the bytes returned; the type does not independently inspect the callable's implementation.
+pub struct SpecimenMaterializerBinding {
+    pair: EvaluationPairStanding,
+    call: SpecimenMaterializerCall,
+}
+
+/// One immutable request handed to a compiled-specimen host.
+///
+/// # Authority
+///
+/// `TestPak` is the only mint. The request binds the exact content, unchanged or selected operation, parity-qualified input, semantic role, ordinary execution key, and check identity before caller code runs.
+pub struct CompiledSpecimenRequest<'content, 'input, Input> {
+    content: &'content ArtifactContent,
+    role: CompiledSpecimenRole,
+    operation: &'content [u8],
+    input: &'input Input,
+    execution: &'content ExecutionKey,
+    check: CheckRef,
+}
+
+/// A host's typed report that it compiled and executed the exact request and recovered this meaning.
+///
+/// # Authority
+///
+/// The public constructor copies the retained content, role, execution, and check facts from [`CompiledSpecimenRequest`], so a host cannot supply sibling identity labels. The operation and parity-qualified input remain immutable request inputs that the host reads but this observation does not retain. This is still caller output: the type records what the host reported and does not independently prove that a compiler process ran or that the host used those inputs faithfully. The permanent outside-consumer lane owns those behavioral observations for the admitted host adapter.
+pub struct CompiledSpecimenObservation<Meaning> {
+    content: ArtifactContentId,
+    role: CompiledSpecimenRole,
+    execution: ExecutionKey,
+    check: CheckRef,
+    meaning: Meaning,
+}
+
+/// Which request member made one host observation foreign to the request being judged.
+///
+/// # Authority
+///
+/// Content mismatch retains both bytes-only identities. The other arms identify the exact member class that disagreed; this refusal is an admission diagnostic, not a retained copy of an untrusted host observation.
+#[must_use = "a mismatch is the exact request member a host observation did not reproduce"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CompiledSpecimenObservationMismatch {
+    /// The observation names compiler-source content other than the requested content.
+    Content {
+        /// The requested compiler-source content identity.
+        expected: ArtifactContentId,
+        /// The compiler-source content identity retained by the observation.
+        found: ArtifactContentId,
+    },
+    /// The observation names another baseline or selected role.
+    Role,
+    /// The observation retains another ordinary execution key.
+    Execution,
+    /// The observation names another check contract.
+    Check,
+}
+
+/// Why a compiled-specimen host produced no execution observation.
+#[must_use = "a refusal is the reason one compiled specimen produced no observation"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CompiledSpecimenHostRefusal {
+    /// The host reported that its compiler did not produce an executable artifact.
+    Compilation(ForeignText),
+    /// The host reported that the compiled artifact did not complete execution.
+    Execution(ForeignText),
+    /// The host could not recover a meaning tied to the requested operation from the completed artifact.
+    Meaning(ForeignText),
+}
+
+/// A capture-free host adapter for compiling and executing one exact specimen request.
+pub type CompiledSpecimenHost<Input, Meaning> = for<'content, 'input> fn(
+    CompiledSpecimenRequest<'content, 'input, Input>,
+) -> Result<
+    CompiledSpecimenObservation<Meaning>,
+    CompiledSpecimenHostRefusal,
+>;
+
+/// The exact compiled-specimen standing retained for one selected projection.
+///
+/// # Authority
+///
+/// This value is minted only after the materializer and host operations complete under the exact pair, surface-issued selection, ordinary execution key, and check. The artifact identity names compiler-source bytes alone; this standing carries their relationship to the host-reported execution without rehashing caller labels into that identity.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompiledSpecimenStanding {
+    artifact: ArtifactContentId,
+    pair: EvaluationPairStanding,
+    selection: ActiveSelection,
+    execution: ExecutionKey,
+    check: CheckRef,
+}
+
+/// Exact compiled pressure for one selected projection and one surface-issued selection.
+///
+/// # Authority
+///
+/// Construction requires the retained no-mutation qualification, separately rendered baseline and selected artifacts, host-reported compiler executions of those exact bytes, an ordinary passing baseline report, and an ordinary rejecting selected report. It cannot be minted from generic cargo-mutants output or from labels attached after execution.
+pub struct CompiledProjectionPressure<'parity, 'pair, 'input, Input, Meaning> {
+    parity: &'parity NoMutationParityQualification<'pair, 'input, Input, Meaning>,
+    baseline_artifact: ArtifactContentId,
+    standing: CompiledSpecimenStanding,
+    baseline_report: TrialReport,
+    selected_report: TrialReport,
+    mutation: MutationReport,
+}
+
+/// Why exact compiled selected-projection pressure could not be established.
+#[must_use = "a refusal is the reason exact compiled projection pressure was not established"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CompiledProjectionRefusal {
+    /// The no-mutation qualification belongs to another evaluation surface.
+    ParityForAnotherSurface {
+        /// The surface offered for compiled projection pressure.
+        expected: EvaluationSurfaceId,
+        /// The surface retained by the qualified pair.
+        found: EvaluationSurfaceId,
+    },
+    /// The source materializer is bound to another exact production/evaluation pair.
+    MaterializerForAnotherPair(EvaluationPairStandingMismatch),
+    /// The active selection does not belong to the qualified surface.
+    Selection(SelectionRefusal),
+    /// The retained witness trial belongs to another owner claim.
+    WitnessForAnotherClaim {
+        /// The claim that owns the selected point.
+        expected: ClaimRef,
+        /// The claim carried by the retained witness binding.
+        found: ClaimRef,
+    },
+    /// The supplied invocation does not reproduce the no-mutation qualification's execution key.
+    InvocationForAnotherExecution,
+    /// The materializer refused the unchanged source.
+    BaselineMaterialization(SpecimenMaterializerRefusal),
+    /// The materializer refused the exact selected source.
+    SelectedMaterialization(SpecimenMaterializerRefusal),
+    /// The selected rendering has the same exact bytes as the unchanged rendering.
+    ArtifactDidNotChange(ArtifactContentId),
+    /// The host refused compilation or execution of the unchanged artifact.
+    BaselineHost(CompiledSpecimenHostRefusal),
+    /// The unchanged host observation belongs to another request.
+    BaselineObservation(CompiledSpecimenObservationMismatch),
+    /// The unchanged host observation could not join the retained trial binding.
+    BaselineReport(ReportRecordingRefusal),
+    /// The separately compiled unchanged artifact did not pass its ordinary witness.
+    BaselineDidNotQualify,
+    /// The host refused compilation or execution of the selected artifact.
+    SelectedHost(CompiledSpecimenHostRefusal),
+    /// The selected host observation belongs to another request.
+    SelectedObservation(CompiledSpecimenObservationMismatch),
+    /// The selected host observation could not join the retained trial binding.
+    SelectedReport(ReportRecordingRefusal),
+    /// The ordinary exact witness did not reject the selected compiled artifact.
+    ProjectionDidNotReject,
+}
+
 /// Which of the trust order's facts the interpreted lane is still owed.
 ///
 /// # Authority
 ///
-/// The roster of what the gate can be owed, and it is short because the two
-/// evidence types are strict: an [`AdapterQualification`] exists only over an
-/// adapter somebody checked against the backend version the reading names, and
-/// a [`CompiledPressureWitness`] only over a reading that qualification stands
-/// on. So every arm here names an ABSENT fact, and the gate has no arm for
-/// evidence that arrived weak.
+/// Generic compiled suite pressure proves the external suite bit somewhere under its exact adapter profile and never carries an evaluation pair. Exact projection pressure owns one qualified pair and one surface-issued selection. Every arm here therefore names an absent or mismatched strict value rather than a weak value the gate attempts to upgrade.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MissingTrustEvidence {
-    /// No qualified reading has demonstrated a witness rejection, so nothing
-    /// has shown the properties bite.
-    CompiledPressure,
-    /// The compiled-pressure witness belongs to another exact evaluation pair.
-    CompiledPressureForAnotherPair,
-    /// The mandatory no-mutation parity has not passed.
-    NoMutationParity,
-    /// The parity qualification belongs to another pair or evaluation surface.
-    ParityForAnotherSurface,
+    /// No generic compiled suite pressure demonstrated that the suite bites.
+    CompiledSuitePressure,
+    /// No exact compiled selected-projection pressure exists for a selection.
+    CompiledProjectionPressure,
+    /// The exact projection pressure belongs to another evaluation surface.
+    ProjectionPressureForAnotherSurface,
 }
 
-/// The exact compiled and parity evidence that opens interpreted execution for one surface.
-pub struct InterpretedTrust<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning> {
+/// The generic suite bite and exact selection pressure that open interpreted execution for one surface.
+pub struct InterpretedTrust<'surface, 'suite, 'projection, 'parity, 'pair, 'input, Input, Meaning> {
     surface: &'surface EvaluationSurface,
-    compiled: &'compiled CompiledPressureWitness,
-    parity: &'parity NoMutationParityQualification<'pair, 'input, Input, Meaning>,
+    suite: &'suite CompiledSuitePressure,
+    projection: &'projection CompiledProjectionPressure<'parity, 'pair, 'input, Input, Meaning>,
 }
 
 /// The availability of interpreted evidence for one evaluation surface.
 ///
 /// # Authority
 ///
-/// A surface alone earns no trust. Availability requires a compiled-pressure witness and no-mutation qualification scoped to the same exact evaluation-pair standing: family, production revision, evaluation revision, and surface identity. Every absent fact names itself.
-pub enum InterpreterAvailability<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning> {
+/// A surface alone earns no trust. Availability requires generic compiled suite bite and exact compiled projection pressure whose retained no-mutation qualification, pair standing, and selection all belong to this surface.
+pub enum InterpreterAvailability<
+    'surface,
+    'suite,
+    'projection,
+    'parity,
+    'pair,
+    'input,
+    Input,
+    Meaning,
+> {
     /// A conforming evaluation surface exists and trust has opened.
-    Available(InterpretedTrust<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning>),
+    Available(
+        InterpretedTrust<'surface, 'suite, 'projection, 'parity, 'pair, 'input, Input, Meaning>,
+    ),
     /// No conforming evaluation surface exists — neither a producer's nor a
     /// hand-authored one under the same contract.
     NoConformingSurface,
@@ -1416,11 +1745,18 @@ pub enum InterpreterAvailability<'surface, 'compiled, 'parity, 'pair, 'input, In
     },
 }
 
-/// The admitted interpreted result of one active selection under an opened trust boundary.
-pub struct InterpretedMutationEvidence<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning>
-{
-    trust: InterpretedTrust<'surface, 'compiled, 'parity, 'pair, 'input, Input, Meaning>,
-    selection: ActiveSelection,
+/// The admitted interpreted result of the exact active selection retained by an opened trust boundary.
+pub struct InterpretedMutationEvidence<
+    'surface,
+    'suite,
+    'projection,
+    'parity,
+    'pair,
+    'input,
+    Input,
+    Meaning,
+> {
+    trust: InterpretedTrust<'surface, 'suite, 'projection, 'parity, 'pair, 'input, Input, Meaning>,
     meaning: Meaning,
     report: TrialReport,
     mutation: MutationReport,
@@ -1430,6 +1766,8 @@ pub struct InterpretedMutationEvidence<'surface, 'compiled, 'parity, 'pair, 'inp
 #[must_use = "a refusal is the reason interpreted mutation evidence was not built"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InterpretedExecutionRefusal {
+    /// The supplied invocation does not reproduce the compiled projection's execution key.
+    InvocationForAnotherExecution,
     /// The active selection does not belong to the opened surface.
     Selection(SelectionRefusal),
     /// The witness trial belongs to a claim other than the selected point's owner claim.
@@ -1439,6 +1777,8 @@ pub enum InterpretedExecutionRefusal {
         /// The claim carried by the offered trial binding.
         found: ClaimRef,
     },
+    /// The evaluation callable omitted the exact surface-issued branch.
+    EvaluationCall(EvaluationCallRefusal),
     /// The evaluation callback reported zero firings for the selected damage.
     DudPlant(DudPlant),
     /// The host observation could not join its exact trial binding.
@@ -1532,8 +1872,6 @@ pub enum RewriteWithheld {
     /// The interpreted lane — the execution substrate that makes rewrite
     /// families cheap — is not available.
     InterpreterUnavailable,
-    /// The trusted evaluation surface carries no executable mutation point.
-    NoAdmittedPoint,
     /// The trust order still owes this evidence.
     TrustNotOpened(MissingTrustEvidence),
 }
@@ -1545,7 +1883,7 @@ pub enum RewriteWithheld {
 /// Admission here is execution availability, not evidence. A descriptor remains [`RewriteTrust::AuditPending`] until an actual execution establishes whatever a later evidence owner requires.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RewriteAdmission {
-    /// The interpreted audit road is available under compiled pressure, parity, and a mutable surface.
+    /// The interpreted audit road is available under generic suite bite and exact selection-scoped projection pressure.
     Admitted,
     /// The audit road is unavailable for a stated reason.
     Withheld(RewriteWithheld),

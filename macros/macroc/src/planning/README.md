@@ -34,7 +34,7 @@ The wall has exactly three named crossings:
 
 - generated support into the construction contract;
 
-- the mutation-evaluation surface into the mutation-point vocabulary;
+- producer mutation discovery into the mutation-discovery vocabulary;
 
 - benchmark rows into the bench row vocabulary — every crossing under the same law, and one generated-support schema pin governing all three.
 
