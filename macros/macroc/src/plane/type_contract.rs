@@ -20,9 +20,10 @@ use super::{
     DECLARATION_DOCUMENTATION_IDENTITY_PROFILE, DECLARED_NAME_IDENTITY_PROFILE,
     DIAGNOSTIC_RELATION_IDENTITY_PROFILE, EXPLANATION_IDENTITY_PROFILE,
     GENERATED_UNIT_IDENTITY_PROFILE, GENERATOR_VERSION_IDENTITY_PROFILE, IdentityProfile,
-    ORIGIN_NODE_IDENTITY_PROFILE, PLAN_IDENTITY_PROFILE, PROJECTION_INTENT_IDENTITY_PROFILE,
-    PreimageFamily, ProjectionRole, RENDERED_UNIT_IDENTITY_PROFILE, RenderedRole, RenderedRoleSeal,
-    SoleRenderedUnit, TRIAL_DECLARATION_IDENTITY_PROFILE,
+    MUTATION_DECLARATION_IDENTITY_PROFILE, ORIGIN_NODE_IDENTITY_PROFILE,
+    PLAN_IDENTITY_PROFILE, PROJECTION_INTENT_IDENTITY_PROFILE, PreimageFamily, ProjectionRole,
+    RENDERED_UNIT_IDENTITY_PROFILE, RenderedRole, RenderedRoleSeal, SoleRenderedUnit,
+    TRIAL_DECLARATION_IDENTITY_PROFILE,
 };
 
 impl RenderedRole for SoleRenderedUnit {
@@ -72,6 +73,7 @@ impl PreimageFamily {
             Self::GeneratorVersion => GENERATOR_VERSION_IDENTITY_PROFILE,
             Self::DiagnosticRelation => DIAGNOSTIC_RELATION_IDENTITY_PROFILE,
             Self::TrialDeclaration => TRIAL_DECLARATION_IDENTITY_PROFILE,
+            Self::MutationDeclaration => MUTATION_DECLARATION_IDENTITY_PROFILE,
         }
     }
 }
@@ -126,6 +128,7 @@ impl ProjectionRole {
             Self::GeneratorVersion => PreimageFamily::GeneratorVersion,
             Self::DiagnosticRelation => PreimageFamily::DiagnosticRelation,
             Self::TrialDeclaration => PreimageFamily::TrialDeclaration,
+            Self::MutationDeclaration => PreimageFamily::MutationDeclaration,
         }
     }
 }

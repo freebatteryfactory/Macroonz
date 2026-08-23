@@ -21,7 +21,8 @@
 
 use super::render::contract_path_bytes;
 use super::types::{
-    CauseOrderStanding, DerivedMembership, RefusalDerivationDraft, RefusalOwnerFacts,
+    CauseOrderStanding, DerivedMembership, MutationDeclarationPosture, RefusalDerivationDraft,
+    RefusalOwnerFacts,
 };
 use crate::origin_graph::{
     DecisionTrace, Nonclaim, OriginEdge, OriginRelation, OriginTrail, TraceDecision, TraceEntry,
@@ -146,10 +147,24 @@ pub fn semantic_key(
 ) -> ProjectionIdentity<GeneratedUnitSubject> {
     ProjectionIdentity::derived(ProjectionTranscript::under_projection(
         ProjectionRole::GeneratedUnit,
-        &draft.surface().identity(),
+        &member_anchor(draft, role),
         role.described().as_bytes(),
         role.slot(),
     ))
+}
+
+/// The exact declaration reading one member stands under.
+fn member_anchor(
+    draft: &RefusalDerivationDraft,
+    role: RenderedImplementation,
+) -> ProjectionIdentity<crate::plane::CapturedDeclarationSubject> {
+    match (role, draft.surface().mutations()) {
+        (
+            RenderedImplementation::RenderedMutationEvaluation,
+            MutationDeclarationPosture::Declared(declared),
+        ) => declared.commitment(),
+        _ => draft.surface().identity(),
+    }
 }
 
 /// The origin node one rendered role's member sits at.
@@ -160,7 +175,7 @@ pub fn member_node(
 ) -> ProjectionIdentity<OriginNodeSubject> {
     ProjectionIdentity::derived(ProjectionTranscript::under_projection(
         ProjectionRole::OriginNode,
-        &draft.surface().identity(),
+        &member_anchor(draft, role),
         role.described().as_bytes(),
         role.slot(),
     ))
@@ -182,7 +197,15 @@ pub fn member_node(
 pub fn content_account(
     draft: &RefusalDerivationDraft,
 ) -> OwnerContentAccount<DeriveImplProjection> {
-    OwnerContentAccount::captured(draft.surface().identity())
+    match draft.surface().mutations() {
+        MutationDeclarationPosture::NotDeclared => {
+            OwnerContentAccount::captured(draft.surface().identity())
+        }
+        MutationDeclarationPosture::Declared(declared) => OwnerContentAccount::captured_over_one(
+            draft.surface().identity(),
+            declared.commitment(),
+        ),
+    }
 }
 
 /// The origin node the authored declaration sits at.
@@ -233,17 +256,8 @@ pub fn expansion_context(draft: &RefusalDerivationDraft) -> ProjectionContext {
 
 /// The complete logical membership one draft declares.
 ///
-/// # Both surfaces are declared, never the production half alone
-///
-/// One implementation meaning is delivered as TWO surfaces, so every contract
-/// this draft declares contributes two members: the production implementation
-/// under its own role, and the mutation-evaluation copy under that role's twin
-/// ([`RenderedImplementation::twin`]).
-/// The output firewall is exactly that the declared set is the whole set, and the
-/// closure rebuilds the membership role by role — so a copy standing outside the
-/// membership would be a surface crossing the wall that the proof never looks at,
-/// and "nothing is emitted that did not close" would be true of the production
-/// half alone.
+/// The output firewall covers every production implementation and the generated
+/// mutation module where the helper declared one.
 /// The twin is READ from the roster rather than named here, so a roster that
 /// paired its seats differently pairs these members differently too.
 ///
@@ -279,17 +293,19 @@ pub fn membership(draft: &RefusalDerivationDraft) -> PlannedMembership<RenderedI
     };
     let family = RenderedImplementation::RenderedFamilyImpl;
     let cause_order = RenderedImplementation::RenderedCauseOrderImpl;
+    let mutation = RenderedImplementation::RenderedMutationEvaluation;
     match draft.declared_membership() {
-        DerivedMembership::FamilyOnly => {
-            PlannedMembership::complete(member(family), [member(family.twin())])
-        }
+        DerivedMembership::FamilyOnly => PlannedMembership::from_member(member(family)),
         DerivedMembership::FamilyAndCauseOrder => PlannedMembership::complete(
             member(family),
-            [
-                member(family.twin()),
-                member(cause_order),
-                member(cause_order.twin()),
-            ],
+            [member(cause_order)],
+        ),
+        DerivedMembership::FamilyAndMutationEvaluation => {
+            PlannedMembership::complete(member(family), [member(mutation)])
+        }
+        DerivedMembership::FamilyCauseOrderAndMutationEvaluation => PlannedMembership::complete(
+            member(family),
+            [member(cause_order), member(mutation)],
         ),
     }
 }

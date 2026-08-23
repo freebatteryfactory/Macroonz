@@ -254,6 +254,22 @@ pub enum LotRefusal {
             population = named("consumer", "over-limit-pair"),
         },
     },
+    suite mutation = named("consumer", "mutation") {
+        merge_refusal_declared_order {
+            claim = named("consumer", "merge-refusal-declared-order"),
+            roles = [named("consumer", "mutation"), named("consumer", "regression")],
+            tags = [named("consumer", "generated")],
+            subject = named("consumer", "merge-refusal-declared-order"),
+            check = named("consumer", "declared-order-is-unchanged"),
+            population = named("consumer", "declared-order-baseline"),
+        },
+    },
+)]
+#[threadpak_mutations(
+    module = generated_merge_refusal_mutations,
+    family = named("consumer", "lot-merge-evaluation"),
+    map declared_order = named("consumer", "merge-refusal-declared-order"),
+    permit named("consumer", "merge-refusal-declared-order") = ["declared-order-permutation"],
 )]
 pub enum MergeRefusal {
     /// The two counts name different lots, so there is nothing to add.

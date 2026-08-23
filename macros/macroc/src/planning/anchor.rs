@@ -16,10 +16,8 @@
 //! It destructures the context exhaustively, so a seat added to
 //! [`ProjectionContext`] stops compiling here until somebody decides whether it
 //! is a dependency key; it reads the account through the account's own readings,
-//! so the dependency set has exactly one holder; and it deduplicates, so the
-//! roster's own cardinality — which is what
-//! [`InvalidationLimit`](crate::planning::InvalidationLimit) is declared as — stays
-//! the honest bound.
+//! so the dependency set has exactly one holder; and it deduplicates exact
+//! triggers while preserving distinct identities carried by the same variant.
 //!
 //! # Bounds
 //!
@@ -37,29 +35,14 @@
 //!
 //! One seat inside the context is a named boundary for the same reason and is
 //! stated at its binding below: a profile VERSION is not an identity, and every
-//! roster seat watches one.
+//! trigger watches one identity.
 //!
-//! An account names ONE commitment and up to the declared dependency magnitude
-//! beside it, and one roster seat carries one identity.
-//! Where the two disagree the derivation fails closed, because a set watching the
-//! content's own commitment and none of what it stands on is byte-for-byte the
-//! shape of a complete watch set: a plan committed to a commitment and two
-//! dependencies, watching one, reads as CURRENT after the other two changed.
-//! Partial invalidation is not a narrower claim than the roster supports; it is a
-//! false one, so an account with any declared dependency refuses with the
-//! planning family naming
-//! [`ProjectionPlanningIssue::CauseSetUnwatchable`](crate::refusal::ProjectionPlanningIssue::CauseSetUnwatchable),
-//! carrying both counts.
-//! The wider dependency-key roster that would watch them all opens when its own
-//! magnitude is declared.
-//!
-//! HOW MANY a seat watches is the roster's own fact and is declared beside the
-//! roster:
-//! [`InvalidationTrigger::WATCHED_SOURCE_DECLARATIONS`](crate::planning::InvalidationTrigger::WATCHED_SOURCE_DECLARATIONS),
-//! next to the road that consumes exactly that many identities and destructures
-//! them into the seat.
-//! This file reads that capacity and holds no second copy of it, so the threshold
-//! moves with the variant instead of staying behind while the variant grows.
+//! An account names one commitment and up to the declared dependency magnitude
+//! beside it. The complete watch set carries one trigger per distinct identity,
+//! so no dependency is elected or silently omitted. The separate
+//! [`OwnerContentAccount::cause_trigger`] reader remains the deliberately narrow
+//! one-trigger view and refuses accounts that cannot be represented by one
+//! trigger.
 //!
 //! # The origin footing
 //!
@@ -80,7 +63,7 @@ use crate::plane::{
     OriginNodeSubject, ProjectionIdentity, ProjectionRole, ProjectionTranscript,
     TranscriptAnchoring,
 };
-use crate::refusal::{ProjectionPlanning, ProjectionPlanningIssue};
+use crate::refusal::ProjectionPlanning;
 
 impl CauseAnchoring {
     /// What a transcript derived over this content is anchored to.
@@ -131,41 +114,38 @@ fn content_node(address: &CauseAnchoring) -> ProjectionIdentity<OriginNodeSubjec
 
 /// The trigger that watches whatever an account's content is.
 ///
-/// # Errors
-///
-/// Returns the planning family naming
-/// [`ProjectionPlanningIssue::CauseSetUnwatchable`] when the account names more
-/// commitments than the roster can watch.
-/// It refuses rather than watching the content's own commitment alone, because a
-/// set that watches one of three commitments is not a smaller watch set — it is
-/// one that reads as current after two of the three changed.
 fn caused_by<K: ProjectionKind>(
     content: &OwnerContentAccount<K>,
-) -> Result<InvalidationTrigger, ProjectionPlanning> {
-    let named = content.watched_commitment_count();
-    let watchable = InvalidationTrigger::WATCHED_SOURCE_DECLARATIONS;
-    if named > watchable {
-        return Err(ProjectionPlanning::established(
-            ProjectionPlanningIssue::CauseSetUnwatchable {
-                named: u32::try_from(named).unwrap_or(u32::MAX),
-                watchable: u32::try_from(watchable).unwrap_or(u32::MAX),
+) -> (InvalidationTrigger, Vec<InvalidationTrigger>) {
+    match content.addressing() {
+        ContentAddressing::Linked {
+            commitment,
+            dependencies,
+        } => (
+            InvalidationTrigger::SourceDeclarationChanged {
+                watched: *commitment,
             },
-        ));
-    }
-    // Past the refusal the account names exactly as many commitments as the seat
-    // watches, so the array below is the whole account rather than a commitment
-    // elected out of it. Its arity is the seat's own, so a roster that began
-    // watching two would stop this line compiling rather than leaving it quietly
-    // reporting one.
-    match content.commitment() {
-        CauseAnchoring::Declaration(fragment) => {
-            Ok(InvalidationTrigger::watching_source_declarations([
-                fragment,
-            ]))
-        }
-        CauseAnchoring::CapturedDeclaration(captured) => {
-            Ok(InvalidationTrigger::CapturedDeclarationChanged { watched: captured })
-        }
+            dependencies
+                .iter()
+                .map(|watched| InvalidationTrigger::SourceDeclarationChanged {
+                    watched: *watched,
+                })
+                .collect(),
+        ),
+        ContentAddressing::Captured {
+            commitment,
+            dependencies,
+        } => (
+            InvalidationTrigger::CapturedDeclarationChanged {
+                watched: *commitment,
+            },
+            dependencies
+                .iter()
+                .map(|watched| InvalidationTrigger::CapturedDeclarationChanged {
+                    watched: *watched,
+                })
+                .collect(),
+        ),
     }
 }
 
@@ -205,22 +185,33 @@ impl<K: ProjectionKind> OwnerContentAccount<K> {
         self.commitment().anchoring()
     }
 
-    /// The invalidation trigger that watches this account's content — the
-    /// fragment where a caller holds one, and the captured declaration where the
-    /// content IS the capture.
+    /// The invalidation triggers that watch the commitment and every declared dependency.
+    #[must_use]
+    pub fn cause_triggers(&self) -> Vec<InvalidationTrigger> {
+        let (first, rest) = caused_by(self);
+        core::iter::once(first).chain(rest).collect()
+    }
+
+    /// The single invalidation trigger that watches this account's own content.
     ///
     /// # Errors
     ///
-    /// Returns the planning family naming
-    /// [`ProjectionPlanningIssue::CauseSetUnwatchable`] when the account names
-    /// more commitments than the roster can watch.
-    /// The refusal is on this road and not only on
-    /// [`ProjectionContext::watch_set`]: a caller reading one seat is asking the
-    /// same question the whole set asks, and a road that answered it with the
-    /// content's own commitment would be the partial claim surviving beside the
-    /// road that refuses it.
+    /// Returns [`ProjectionPlanningIssue::CauseSetUnwatchable`](crate::refusal::ProjectionPlanningIssue::CauseSetUnwatchable)
+    /// when the account also names dependencies. One trigger cannot state that
+    /// complete cause set, so this narrow reader refuses instead of electing the
+    /// content commitment and hiding the dependencies. Use
+    /// [`ProjectionContext::watch_set`] for the complete multi-trigger reading.
     pub fn cause_trigger(&self) -> Result<InvalidationTrigger, ProjectionPlanning> {
-        caused_by(self)
+        let (first, rest) = caused_by(self);
+        if rest.is_empty() {
+            return Ok(first);
+        }
+        Err(ProjectionPlanning::established(
+            crate::refusal::ProjectionPlanningIssue::CauseSetUnwatchable {
+                named: u32::try_from(rest.len().saturating_add(1)).unwrap_or(u32::MAX),
+                watchable: 1,
+            },
+        ))
     }
 
     /// The origin-graph node this account's content stands at.
@@ -302,31 +293,18 @@ impl ProjectionContext {
     /// decided against one captured declaration and its account's content IS that
     /// same capture, so its cause trigger and its graph trigger are the same
     /// trigger.
-    /// Listed, that is one kind stated twice — which is what
-    /// [`InvalidationLimit`](crate::planning::InvalidationLimit) is declared to
-    /// exclude, since its magnitude IS the trigger roster's cardinality.
-    /// A duplicate would also be written twice by the plan transcript's set
+    /// A duplicate would be written twice by the plan transcript's set
     /// encoding, so two plans watching the same identities would carry two plan
     /// identities depending only on whether a call site remembered to skip the
     /// repeat.
     ///
     /// # Errors
     ///
-    /// The two refusals are different facts: one says a derived set outgrew a
-    /// declared magnitude, the other says the watch PROFILE cannot represent this
-    /// account.
-    ///
     /// Returns the planning family naming
     /// [`BoundAxis::Declarations`](crate::refusal::BoundAxis::Declarations) when
     /// the admitted magnitude does not hold the derived set.
     /// The set is admitted under the authoring profile, which claims the declared
-    /// magnitude passed admission rather than merely that these items fit it, and
-    /// that road cannot overrun from here: the derivation yields at most one
-    /// trigger per kind, and the magnitude IS the roster's cardinality.
-    /// Returns the family naming [`ProjectionPlanningIssue::CauseSetUnwatchable`]
-    /// when the account names more commitments than the roster can watch: that
-    /// account has no representable watch set at all, and the derivation says so
-    /// rather than emitting one that covers the content's own commitment.
+    /// magnitude passed admission rather than merely that these items fit it.
     pub fn watch_set<K: ProjectionKind>(
         &self,
         content: &OwnerContentAccount<K>,
@@ -350,12 +328,7 @@ impl ProjectionContext {
             target,
         } = self;
 
-        // An account names one commitment and up to the declared dependency
-        // magnitude beside it, and the roster seat names one. That gap is
-        // REFUSED rather than watched partially: a set watching the content's
-        // own commitment alone would read exactly like a complete one. Watching
-        // the rest needs a wider roster with its own declared magnitude.
-        let first = caused_by(content)?;
+        let (first, mut rest) = caused_by(content);
         let others = [
             decided_against(graph),
             InvalidationTrigger::ProjectionProfileChanged { watched: *profile },
@@ -363,7 +336,6 @@ impl ProjectionContext {
                 watched: *generator,
             },
         ];
-        let mut rest: Vec<InvalidationTrigger> = Vec::new();
         for trigger in others.into_iter().chain(bound_to(target)) {
             if trigger != first && !rest.contains(&trigger) {
                 rest.push(trigger);

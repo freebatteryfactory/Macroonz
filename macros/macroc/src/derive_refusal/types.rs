@@ -18,6 +18,7 @@ use crate::diagnostics::{
 use crate::documentation::DocumentedItem;
 use crate::explanation_protocol::ExplanationCoverage;
 use crate::generated_support::{CarrierAssembly, ShellComposition};
+use crate::mutation_descriptor::{MutationDeclaration, MutationDeclarationRefusal};
 use crate::origin_graph::Nonclaim;
 use crate::plane::{
     CapturedDeclarationSubject, CapturedTokenLimit, GeneratedTokenLimit, HumanProjection,
@@ -257,14 +258,6 @@ refusal_derive_facts! {
         "a renderer that would emit past its declared magnitude refuses rather than materializing \
          part of a unit";
 
-    /// This home's own charter fact: what the mutation-evaluation copy stands
-    /// over, and what that costs a production body.
-    AnEvaluationCopyStandsOverALocalSubject = "macroc",
-        "an-evaluation-copy-stands-over-a-local-subject",
-        "the evaluation copy is rendered against the support shell's own local subject, so a \
-         production body that observes `Self` or names the type it was derived for has no copy \
-         this delivery renders";
-
     /// This home's own charter fact: the row material a descriptor states about
     /// itself is the caller's declaration.
     ARowIsTheCallersDeclarationAndNeverTheProducers = "macroc",
@@ -283,6 +276,16 @@ refusal_derive_facts! {
          producer, the projection, and the schema are the producer's own act, and the revisions, \
          the callable, the budgets, the target, and the clock are the consumption target's host \
          facts, stated where that target invokes the carrier";
+
+    /// This home's own charter fact: what a mutation declaration states, and
+    /// which owner and execution facts remain outside it.
+    AMutationDeclarationStatesEvaluationPolicyAlone = "macroc",
+        "a-mutation-declaration-states-evaluation-policy-alone",
+        "a mutation declaration states one output module, one evaluation family, the mapping from \
+         each sealed generated fact to an owner claim, and the nonempty operator-family roster \
+         that claim permits — the producer discovers candidate meaning, TestPak alone admits and \
+         lowers executable alternatives, and the consumption target supplies every \
+         callable, input, invocation, target, toolchain, clock, and trust observation";
 
     /// This home's own charter fact: material is delivered into a seat the
     /// carrier's published grammar actually writes.
@@ -534,6 +537,7 @@ pub struct RefusalDeriveSurface {
     causes: Bounded<CapturedCause, DeriveCauseLimit>,
     documentation: Bounded<CapturedDocumentation, CapturedTokenLimit>,
     trials: TrialDeclarationPosture,
+    mutations: MutationDeclarationPosture,
     commitments: CapturedCommitments,
 }
 
@@ -574,6 +578,14 @@ pub struct DeclaredTrials {
     payload: TrialTablePayload,
 }
 
+/// One declaration's mutation policy and mapping, under its independent commitment.
+#[must_use = "declared mutations carry the helper reading and the commitment it is named under"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DeclaredMutations {
+    commitment: ProjectionIdentity<CapturedDeclarationSubject>,
+    declaration: MutationDeclaration,
+}
+
 /// Whether one captured declaration states trial rows.
 ///
 /// Two postures, and they are different facts rather than one with a missing
@@ -602,6 +614,16 @@ pub enum TrialDeclarationPosture {
     Declared(Box<DeclaredTrials>),
 }
 
+/// Whether one captured refusal declaration states generated mutation policy.
+#[must_use = "a mutation posture either carries the helper reading or states that none was declared"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum MutationDeclarationPosture {
+    /// The declaration wrote no mutation helper.
+    NotDeclared,
+    /// The mutation helper's complete reading under its own commitment.
+    Declared(Box<DeclaredMutations>),
+}
+
 /// How one declaration was not captured into a surface.
 ///
 /// Two homes answer at this seam and each answer is carried whole, on exactly the
@@ -624,6 +646,8 @@ pub enum SurfaceCaptureRefusal {
     /// The trial grammar refused, or the carrier's own vocabulary refused a value
     /// it read. The test-descriptor home's own body, whole.
     Trials(TrialDeclarationRefusal),
+    /// The mutation helper grammar or carrier vocabulary refused.
+    Mutations(MutationDeclarationRefusal),
 }
 
 impl From<RefusalDeriveRefusal> for SurfaceCaptureRefusal {
@@ -635,6 +659,12 @@ impl From<RefusalDeriveRefusal> for SurfaceCaptureRefusal {
 impl From<TrialDeclarationRefusal> for SurfaceCaptureRefusal {
     fn from(refusal: TrialDeclarationRefusal) -> Self {
         Self::Trials(refusal)
+    }
+}
+
+impl From<MutationDeclarationRefusal> for SurfaceCaptureRefusal {
+    fn from(refusal: MutationDeclarationRefusal) -> Self {
+        Self::Mutations(refusal)
     }
 }
 
@@ -950,6 +980,10 @@ pub enum DerivedMembership {
     FamilyOnly,
     /// The family implementation and the cause-order implementation.
     FamilyAndCauseOrder,
+    /// The family implementation and one generated mutation evaluation.
+    FamilyAndMutationEvaluation,
+    /// The two production implementations and one generated mutation evaluation.
+    FamilyCauseOrderAndMutationEvaluation,
 }
 
 /// Whether one derivation carries the typed cause order.
@@ -1103,10 +1137,6 @@ threadpak::closed_register! {
             "the explanation cannot bind its subject";
         /// A rendering would have passed a declared magnitude.
         MagnitudeNotHeld = "magnitude-not-held", "a rendering would pass a declared magnitude";
-        /// The rendering cannot be delivered under the subject its delivery
-        /// stands over.
-        SubjectNotSubstitutable = "subject-not-substitutable",
-            "the rendering does not stand over the subject its delivery requires";
         /// The three values the terminal binds do not belong to one expansion.
         ExpansionNotBound = "expansion-not-bound",
             "the three values do not belong to one expansion";
@@ -1461,16 +1491,6 @@ impl From<ExpansionBindingRefusal> for CarrierRoadRefusal {
 pub enum RenderRefusal {
     /// The rendered tree exceeds the declared token magnitude.
     Unbounded,
-    /// The implementation body observes the target it was derived for, so no
-    /// copy of it stands over another subject and the evaluation delivery has
-    /// nothing lawful to render.
-    ///
-    /// A typed answer rather than a silent rendering: a body that means
-    /// something different once its target changes, rendered against the
-    /// support shell's subject anyway, is an evaluation copy that is not the
-    /// production implementation — and the parity the copy exists to prove
-    /// would be a statement about two different meanings.
-    TargetObserved,
 }
 
 /// How the callable text route refused.

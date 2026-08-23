@@ -141,6 +141,23 @@ impl<K: ProjectionKind> OwnerContentAccount<K> {
         }
     }
 
+    /// The expansion-time account of content that stands on exactly one capture.
+    ///
+    /// Total because the dependency count is fixed in the type-directed call and
+    /// the declared source-declaration magnitude admits one member.
+    pub fn captured_over_one(
+        commitment: ProjectionIdentity<CapturedDeclarationSubject>,
+        dependency: ProjectionIdentity<CapturedDeclarationSubject>,
+    ) -> Self {
+        Self {
+            addressing: ContentAddressing::Captured {
+                commitment,
+                dependencies: Bounded::from_array([dependency]),
+            },
+            kind: PhantomData,
+        }
+    }
+
     /// The expansion-time account, over the captures the owner declared it
     /// stands on.
     ///
@@ -549,39 +566,6 @@ impl<R: RenderedRole> PlannedMembership<R> {
 }
 
 impl InvalidationTrigger {
-    /// How many source declarations one
-    /// [`InvalidationTrigger::SourceDeclarationChanged`] seat watches.
-    ///
-    /// DECLARED and not derived: Rust cannot count a variant's seats, so nothing
-    /// reads this number off the roster.
-    /// What holds it true is where it sits and what consumes it.
-    /// It sits in the roster's own implementation, so the edit that gives the
-    /// seat a second watched identity is an edit to the lines around it, and
-    /// [`InvalidationTrigger::watching_source_declarations`] takes exactly this
-    /// many identities and destructures them into the seat, so the number and the
-    /// seat cannot disagree without failing to compile.
-    /// Raise it to two and the pattern no longer matches the array; give the
-    /// variant a second watched seat and the construction is missing a field.
-    /// This line and that road are the one place that changes when the seat's
-    /// shape changes.
-    pub(crate) const WATCHED_SOURCE_DECLARATIONS: usize = 1;
-
-    /// The source-declaration watch, built from exactly the identities the seat
-    /// carries.
-    ///
-    /// The array's arity IS
-    /// [`InvalidationTrigger::WATCHED_SOURCE_DECLARATIONS`], which is what makes
-    /// the caller's refusal and this construction one statement instead of two:
-    /// a caller holding more declarations than the seat watches refuses before
-    /// reaching here, naming both counts, and a caller holding exactly that many
-    /// hands the whole set over and elects nothing out of it.
-    pub(crate) const fn watching_source_declarations(
-        declared: [OwnerIdentityRef<FragmentIdentityDomain>; Self::WATCHED_SOURCE_DECLARATIONS],
-    ) -> Self {
-        let [watched] = declared;
-        Self::SourceDeclarationChanged { watched }
-    }
-
     /// The one-trigger watch set. Total: one trigger always fits.
     #[must_use]
     pub fn one_watched(trigger: Self) -> InvalidationSet {
@@ -593,8 +577,8 @@ impl InvalidationTrigger {
     /// # Errors
     ///
     /// Returns the planning family naming [`BoundAxis::Declarations`] when the
-    /// watch set outgrows the trigger roster's own cardinality — more triggers
-    /// than there are kinds of trigger means one kind was stated twice.
+    /// watch set outgrows the declared trigger magnitude. Multiple triggers of
+    /// one variant are lawful where they watch distinct identities.
     pub fn watched(first: Self, rest: Vec<Self>) -> Result<InvalidationSet, ProjectionPlanning> {
         let observed = rest.len().saturating_add(1);
         NonEmptyBounded::admitted_const(

@@ -10,7 +10,7 @@
 //! assembly and building the refusal body are both what must stay unreachable.
 
 use super::{AssemblyIssue, CargoAxis, ProvedCargo};
-use crate::planning::CauseAnchoring;
+use crate::planning::ContentAddressing;
 
 /// Every carried axis whose source terminal stands under a root other than the
 /// assembly's, reported once per axis.
@@ -20,16 +20,16 @@ use crate::planning::CauseAnchoring;
 /// cargo is one exported name delivering material from two places whichever one
 /// was intended.
 pub(super) fn root_issues(
-    root: CauseAnchoring,
+    addressing: &ContentAddressing,
     carried: &[(CargoAxis, &ProvedCargo)],
 ) -> Vec<AssemblyIssue> {
     carried
         .iter()
-        .filter(|(_, proved)| proved.root() != root)
+        .filter(|(_, proved)| proved.addressing() != addressing)
         .map(|(axis, proved)| AssemblyIssue::RootsDisagree {
             axis: *axis,
-            stated: root,
-            carried: proved.root(),
+            stated: addressing.clone(),
+            carried: proved.addressing().clone(),
         })
         .collect()
 }

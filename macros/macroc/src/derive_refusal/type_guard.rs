@@ -21,10 +21,10 @@
 
 use super::{
     CapturedCause, CapturedCommitments, CapturedDocumentation, CapturedFamilyFacts,
-    CauseOrderStanding, CrateBinding, DEFAULT_CRATE_BINDING, DeclaredTrials, DeriveCauseLimit,
-    DerivedMembership, DocumentedDeclaration, RefusalCompileContext, RefusalDerivationDraft,
-    RefusalDeriveFact, RefusalDeriveSurface, RefusalFamilyExpansion, RefusalOwnerFacts,
-    RefusalSite, TrialDeclarationPosture,
+    CauseOrderStanding, CrateBinding, DEFAULT_CRATE_BINDING, DeclaredMutations, DeclaredTrials,
+    DeriveCauseLimit, DerivedMembership, DocumentedDeclaration, MutationDeclarationPosture,
+    RefusalCompileContext, RefusalDerivationDraft, RefusalDeriveFact, RefusalDeriveSurface,
+    RefusalFamilyExpansion, RefusalOwnerFacts, RefusalSite, TrialDeclarationPosture,
 };
 use crate::closure::{
     ClosedExpansion, ExpansionBindingRefusal, PartitionCargo, ProjectionClosure, RenderedProjection,
@@ -44,6 +44,7 @@ use crate::plane::{
 use crate::planning::{
     DeriveImplProjection, ProjectionDisposition, ProjectionPlan, RenderedImplementation,
 };
+use crate::mutation_descriptor::MutationDeclaration;
 use crate::test_descriptor::TrialTablePayload;
 use crate::token::{GeneratedTree, SpanHandle, SpanTable};
 use threadpak::evidence::CauseDisposition;
@@ -210,6 +211,31 @@ impl DeclaredTrials {
     }
 }
 
+impl DeclaredMutations {
+    /// Bind the parsed helper to the commitment derived over its exact body.
+    pub(crate) const fn read(
+        commitment: ProjectionIdentity<CapturedDeclarationSubject>,
+        declaration: MutationDeclaration,
+    ) -> Self {
+        Self {
+            commitment,
+            declaration,
+        }
+    }
+
+    /// The independent mutation-helper commitment.
+    #[must_use]
+    pub const fn commitment(&self) -> ProjectionIdentity<CapturedDeclarationSubject> {
+        self.commitment
+    }
+
+    /// The helper's complete typed reading.
+    #[must_use]
+    pub const fn declaration(&self) -> &MutationDeclaration {
+        &self.declaration
+    }
+}
+
 impl RefusalDeriveSurface {
     /// Assemble one captured surface.
     ///
@@ -219,6 +245,7 @@ impl RefusalDeriveSurface {
         causes: Bounded<CapturedCause, DeriveCauseLimit>,
         documentation: Bounded<CapturedDocumentation, CapturedTokenLimit>,
         trials: TrialDeclarationPosture,
+        mutations: MutationDeclarationPosture,
         commitments: CapturedCommitments,
     ) -> Self {
         let CapturedFamilyFacts {
@@ -235,6 +262,7 @@ impl RefusalDeriveSurface {
             causes,
             documentation,
             trials,
+            mutations,
             commitments,
         }
     }
@@ -337,40 +365,9 @@ impl RefusalDeriveSurface {
         &self.trials
     }
 
-    /// The commitment the CARRIER's own member identities stand under.
-    ///
-    /// # Content
-    ///
-    /// The TRIAL commitment where the declaration states rows, and the semantic
-    /// commitment where it states none.
-    ///
-    /// A carrier is the vehicle for what a declaration DELIVERS, and what it
-    /// delivers moves when a trial row moves: the exported name is derived from
-    /// the plan's identity, the plan's identity commits to its membership, and
-    /// the membership carries the semantic key this anchor is derived under. So a
-    /// declaration whose rows were edited plans a different carrier, mints a
-    /// different exported name, and renames nothing about the implementation
-    /// projection standing beside it — which is the whole of what the third
-    /// commitment is for.
-    ///
-    /// # Bounds
-    ///
-    /// It anchors the carrier's MEMBER identities and never the carrier plan's
-    /// account. The account's commitment is the semantic one on both postures,
-    /// because the assembly's one-root check compares it against the root the
-    /// IMPLEMENTATION terminal stands under — and the two terminals are one
-    /// declaration's or the carrier is delivering somebody else's cargo.
-    ///
-    /// The invalidation set therefore watches the semantic commitment on both
-    /// postures too, which is the trigger roster's own reach: a roster seat
-    /// watches one commitment, and watching a second is a wider roster with its
-    /// own declared magnitude rather than a thing this seat can arrange.
-    #[must_use]
-    pub const fn carrier_anchor(&self) -> ProjectionIdentity<CapturedDeclarationSubject> {
-        match &self.trials {
-            TrialDeclarationPosture::NotDeclared => self.commitments.semantic(),
-            TrialDeclarationPosture::Declared(declared) => declared.commitment(),
-        }
+    /// Whether this declaration states generated mutation policy and mapping.
+    pub const fn mutations(&self) -> &MutationDeclarationPosture {
+        &self.mutations
     }
 
     /// Fix the complete declared output set.
@@ -378,11 +375,23 @@ impl RefusalDeriveSurface {
     /// This is the one road to a [`RefusalDerivationDraft`].
     #[must_use]
     pub fn planned(self) -> RefusalDerivationDraft {
-        let membership = match self.shape {
-            FamilyShape::SingleCause => DerivedMembership::FamilyAndCauseOrder,
-            FamilyShape::IssueCollection | FamilyShape::InseparablePair => {
+        let membership = match (self.shape, &self.mutations) {
+            (FamilyShape::SingleCause, MutationDeclarationPosture::Declared(_)) => {
+                DerivedMembership::FamilyCauseOrderAndMutationEvaluation
+            }
+            (FamilyShape::SingleCause, MutationDeclarationPosture::NotDeclared) => {
+                DerivedMembership::FamilyAndCauseOrder
+            }
+            (
+                FamilyShape::IssueCollection | FamilyShape::InseparablePair,
+                MutationDeclarationPosture::NotDeclared,
+            ) => {
                 DerivedMembership::FamilyOnly
             }
+            (
+                FamilyShape::IssueCollection | FamilyShape::InseparablePair,
+                MutationDeclarationPosture::Declared(_),
+            ) => DerivedMembership::FamilyAndMutationEvaluation,
         };
         RefusalDerivationDraft {
             surface: self,
@@ -637,8 +646,13 @@ impl RefusalDerivationDraft {
     #[must_use]
     pub const fn cause_order_standing(&self) -> CauseOrderStanding {
         match self.membership {
-            DerivedMembership::FamilyAndCauseOrder => CauseOrderStanding::Declared,
-            DerivedMembership::FamilyOnly => CauseOrderStanding::NotApplicableToShape,
+            DerivedMembership::FamilyAndCauseOrder
+            | DerivedMembership::FamilyCauseOrderAndMutationEvaluation => {
+                CauseOrderStanding::Declared
+            }
+            DerivedMembership::FamilyOnly | DerivedMembership::FamilyAndMutationEvaluation => {
+                CauseOrderStanding::NotApplicableToShape
+            }
         }
     }
 }

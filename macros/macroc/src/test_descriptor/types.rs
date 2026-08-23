@@ -49,7 +49,7 @@ use crate::plane::{
     GeneratedUnitSubject, GeneratorVersionSubject, PlanId, ProfileVersion, ProjectionIdentity,
     ProjectionProfileSubject, SoleRenderedUnit,
 };
-use crate::planning::{CauseAnchoring, ObligationAnchoring};
+use crate::planning::{ContentAddressing, ObligationAnchoring};
 use crate::token::{GeneratedTree, SpanHandle};
 use threadpak::types::{Bounded, NonEmptyBounded};
 
@@ -110,17 +110,6 @@ crate::plane::limits! {
     /// execution suite, and a module declaring more suites than this is a module
     /// whose rows belong to more than one world.
     SuiteGroupLimit = 32,
-    /// The magnitude governing how many active-point selectors one deferred
-    /// cargo may declare.
-    ///
-    /// # Bounds
-    ///
-    /// Sixteen. A selector is one active-point roster the deferred cargo reads
-    /// itself through, and a cargo declaring more than sixteen of them carries
-    /// more selection rosters than one declaration's deliveries have; the repair
-    /// is a second declaration behind its own shell, not a wider roster behind
-    /// this one.
-    SelectorLimit = 16,
     /// The magnitude governing how many issues one shell-rendering refusal body
     /// may carry.
     ///
@@ -206,13 +195,6 @@ threadpak::closed_register! {
         /// Two aggregate seats of one payload carry one spelling.
         SeatSpellingDoubled = "seat-spelling-doubled",
             "two aggregate seats of one payload carry one spelling";
-        /// Two of one cargo's selectors are read through one constant, so the
-        /// module the cargo is spliced into would declare that constant twice.
-        SelectorConstantDoubled = "selector-constant-doubled",
-            "two active-point selectors of one deferred cargo carry one constant spelling";
-        /// The cargo declares more selectors than the declared magnitude.
-        SelectorsUnbounded = "selectors-unbounded",
-            "a deferred cargo declares more active-point selectors than the declared magnitude";
     }
 }
 
@@ -653,36 +635,7 @@ pub struct ShellName {
     spelling: String,
 }
 
-/// One active-point selector a deferred cargo reads itself through: the constant
-/// every activation site reads, the roster that constant stands on, and the row
-/// it stands at.
-///
-/// # Authority
-///
-/// **Every spelling arrives from the caller and none is composed here.** Which
-/// name a deferred implementation reads its selector through, what its
-/// active-point roster is called, and which row is the roster's no-damage
-/// control are the facts of the home that RENDERED the cargo; this home writes
-/// the constant that brings them into scope and knows nothing about what they
-/// select.
-///
-/// # Bounds
-///
-/// The roster itself is not declared here either. The cargo carries the item
-/// that declares it — an active-point enum travels in the same tokens the
-/// implementations do — so what this seat adds is the one item the cargo cannot
-/// carry: a constant standing at a row of that roster, in the scope the cargo
-/// was spliced into.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ActivePointSelector {
-    constant: String,
-    active_enum: String,
-    variant: String,
-}
-
-/// The cargo one consumption target receives deferred: the local subject the
-/// deferred implementations stand over, the selectors they read, and the tokens
-/// themselves.
+/// The proved tokens one consumption target receives in the opaque deferred seat.
 ///
 /// # Where the tokens come from
 ///
@@ -698,30 +651,9 @@ pub struct ActivePointSelector {
 /// states in the open that it has made none
 /// ([`DeliveryAddressing`](crate::closure::DeliveryAddressing)).
 ///
-/// # The subject
-///
-/// The deferred implementations stand over a subject the CONSUMPTION target
-/// owns, and this is its spelling. A copy of an implementation rendered for the
-/// type its declaration named would be that implementation declared twice where
-/// the declaration is, and a foreign trait implemented for a foreign type where
-/// the cargo lands; so the shell declares a private type inside its own module
-/// and the cargo's implementations name it.
-///
-/// The spelling is the rendering home's and travels as data, on the terms every
-/// other name crossing this wall travels: this home writes letters to an
-/// address and does not own the vocabulary in them.
-///
-/// # Bounds
-///
-/// The subject type never becomes consumer API. It is declared inside a module
-/// the shell writes with no visibility, under the shell's own content-addressed
-/// name, so nothing outside the expansion can name it and two shells in one
-/// crate declare two of them without either knowing about the other.
 #[must_use = "a deferred cargo is one emission's proved tokens and what they stand over"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DeferredCargo {
-    subject: String,
-    selectors: Bounded<ActivePointSelector, SelectorLimit>,
     tokens: GeneratedTree,
 }
 
@@ -785,6 +717,16 @@ pub(crate) enum DeferredDelivery<'cargo> {
     NothingDeferred,
     /// The cargo the carrier receives.
     Carried(&'cargo DeferredCargo),
+}
+
+/// Whether one generated-support carrier has a public invocation address.
+#[must_use = "support delivery states whether the carrier has one authored public address"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) enum SupportDelivery<'name> {
+    /// No helper declared cargo a person invokes.
+    Unaddressed,
+    /// The one helper-owned public support spelling.
+    Addressed(&'name SupportMacroName),
 }
 
 /// The generated support shell: the ONE physical carrier every crossing of the
@@ -864,8 +806,8 @@ pub struct DescriptorPlan {
     pub profile_version: ProfileVersion,
     /// The member's origin trail, walked back to authored material.
     pub origin: OriginTrail,
-    /// The ONE address the entry account walked in the door carrying.
-    pub declaration: CauseAnchoring,
+    /// The complete content account the carrier plan walked in carrying.
+    pub addressing: ContentAddressing,
     /// The rendering engine the shell is written by.
     pub engine: ProjectionIdentity<GeneratorVersionSubject>,
     /// What the descriptor challenges, under the posture the planning caller

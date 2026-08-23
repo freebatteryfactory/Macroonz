@@ -63,7 +63,8 @@
 use super::{
     BoundPath, CrateFacing, DeclarationDoor, DeferredDelivery, DescriptorRow,
     GENERATED_ROW_PROJECTION, GENERATED_TABLE_PRODUCER, PRODUCER_NAMESPACE, ShellName,
-    ShellRenderIssue, SuiteGroup, TrialDelivery, TrialLensName, TrialTablePayload, WallName,
+    ShellRenderIssue, SuiteGroup, SupportDelivery, TrialDelivery, TrialLensName,
+    TrialTablePayload, WallName,
 };
 use crate::plane::GeneratedTokenLimit;
 use crate::planning::{EXPECTED_GENERATED_SUPPORT_SCHEMA_ID, ExpectedGeneratedSupportSchemaId};
@@ -1001,82 +1002,29 @@ pub(crate) fn trial_cargo(
     }
 }
 
-/// The private module one shell splices into the gate's DEFERRED seat: the local
-/// subject the cargo's implementations stand over, the cargo itself, and one
-/// constant per selection the cargo reads.
+/// The proved cargo one shell splices into the gate's opaque deferred seat.
 ///
 /// # Where it stands, and why there
 ///
 /// INSIDE the gate invocation, in the seat the published grammar reserves for
-/// trees the gate never parses. It used to stand beside the invocation, and the
-/// cost was exact: a pin MISMATCH suppressed the rows while releasing this
-/// module, so a consumer whose published pair was incoherent was handed one
-/// refusal AND a module of evaluation copies to compile. Everything the carrier
-/// delivers rides behind the same pin or nothing does.
-///
-/// It is still not written into the harness's grammar, and that is what the two
-/// seats are for: the trials seat is the harness's vocabulary, the deferred seat
-/// is opaque token trees the gate forwards verbatim, and this module lands in
-/// the second.
-///
-/// # What the module is for
-///
-/// A deferred implementation is a copy of one the declaration site already
-/// carries, so a copy rendered for the type the declaration named would be that
-/// implementation declared twice where the declaration is — and, once the copy
-/// reaches a consumer's test target, a foreign trait implemented for a foreign
-/// type. The module answers both at once: it declares a type the target owns,
-/// the copies stand over that, and the module's own name is the shell's
-/// content-addressed spelling, so nothing outside the expansion can reach the
-/// subject and two shells in one crate never collide.
-///
-/// # Ordering
-///
-/// The subject is declared first, the cargo second — its own items include the
-/// active-point rosters — and the constants last, because a constant stands at a
-/// row of a roster the cargo declares. Rust resolves a module's items without
-/// regard to order, so the order is for the reader, and the reader is who it is
-/// written for.
+/// trees the gate never parses. The rendering home already authored the complete
+/// helper-named module and the closure proved its tree; this function forwards
+/// those exact tokens without wrapping, renaming, or interpreting them.
 ///
 /// # Errors
 ///
-/// Returns [`ShellRenderIssue::ShellTreeUnbounded`] where the module outgrows
+/// Returns [`ShellRenderIssue::ShellTreeUnbounded`] where the cargo outgrows
 /// the declared token magnitude.
-pub(crate) fn deferred_module(
-    name: &ShellName,
+pub(crate) fn deferred_cargo(
     deferred: DeferredDelivery<'_>,
 ) -> Result<Vec<GeneratedToken>, ShellRenderIssue> {
     let cargo = match deferred {
         // An expansion that planned no member into this carrier splices no
-        // module at all: a module carrying no cargo would declare a subject
-        // nothing implements and constants nothing reads, which is a different
-        // thing from a carrier nothing was ever deferred into.
+        // tokens at all.
         DeferredDelivery::NothingDeferred => return Ok(Vec::new()),
         DeferredDelivery::Carried(carried) => carried,
     };
-    let mut body = vec![
-        GeneratedToken::word("struct"),
-        GeneratedToken::word(cargo.subject()),
-        GeneratedToken::alone(';'),
-    ];
-    body.extend(cargo.tree().tokens().cloned());
-    for selector in cargo.selectors() {
-        body.push(GeneratedToken::word("const"));
-        body.push(GeneratedToken::word(selector.constant()));
-        body.push(GeneratedToken::alone(':'));
-        body.push(GeneratedToken::word(selector.active_enum()));
-        body.push(GeneratedToken::alone('='));
-        body.push(GeneratedToken::word(selector.active_enum()));
-        body.push(GeneratedToken::joint(':'));
-        body.push(GeneratedToken::alone(':'));
-        body.push(GeneratedToken::word(selector.variant()));
-        body.push(GeneratedToken::alone(';'));
-    }
-    Ok(vec![
-        GeneratedToken::word("mod"),
-        GeneratedToken::word(name.deferred_module().as_str()),
-        group(GeneratedDelimiter::Brace, body)?,
-    ])
+    Ok(cargo.tree().tokens().cloned().collect())
 }
 
 /// One `#[doc = "…"]` attribute, as the tokens that spell it.
@@ -1271,16 +1219,16 @@ pub fn exported_shell(
 /// the declared token magnitude.
 pub(crate) fn public_alias(
     name: &ShellName,
-    declared: TrialDelivery<'_>,
+    delivery: SupportDelivery<'_>,
 ) -> Result<Vec<GeneratedToken>, ShellRenderIssue> {
-    let TrialDelivery::Declared(payload) = declared else {
+    let SupportDelivery::Addressed(support) = delivery else {
         return Ok(Vec::new());
     };
     let mut tokens = documentation(ALIAS_SENTENCE)?;
     tokens.extend(attribute(vec![GeneratedToken::word("macro_export")])?);
     tokens.push(GeneratedToken::word("macro_rules"));
     tokens.push(GeneratedToken::alone('!'));
-    tokens.push(GeneratedToken::word(payload.support().spelling()));
+    tokens.push(GeneratedToken::word(support.spelling()));
 
     let mut matched = metavariable("input");
     matched.push(GeneratedToken::alone(':'));

@@ -89,10 +89,14 @@
 
 use super::types::{
     CapturedCause, CapturedCommitments, CapturedDocumentation, CapturedFamilyFacts, CrateBinding,
-    DeclaredTrials, DeriveCauseLimit, DocumentedDeclaration, RefusalDeriveCapture,
-    RefusalDeriveRefusal, RefusalDeriveSurface, RefusalSite, SHAPE_WORD_INSEPARABLE_PAIR,
-    SHAPE_WORD_ISSUE_COLLECTION, SHAPE_WORD_SINGLE_CAUSE, SurfaceCaptureRefusal,
-    TrialDeclarationPosture,
+    DeclaredMutations, DeclaredTrials, DeriveCauseLimit, DocumentedDeclaration,
+    MutationDeclarationPosture, RefusalDeriveCapture, RefusalDeriveRefusal, RefusalDeriveSurface,
+    RefusalSite, SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION,
+    SHAPE_WORD_SINGLE_CAUSE, SurfaceCaptureRefusal, TrialDeclarationPosture,
+};
+use crate::mutation_descriptor::{
+    MUTATION_ATTRIBUTE, MutationDeclarationCause, MutationDeclarationRefusal, MutationOwnerFact,
+    captured_mutations,
 };
 use crate::plane::{
     AuthoringLimitProfile, CapturedDeclarationSubject, CapturedTokenLimit, ProjectionIdentity,
@@ -146,12 +150,19 @@ pub fn captured(input: &CapturedInput) -> Result<RefusalDeriveSurface, SurfaceCa
     // is the declaration's opening rather than either level's.
     .map_err(|_| refuse(RefusalDeriveCapture::Unbounded, first_span(&trees)))?;
 
-    // The three commitments, in the order they depend on each other: the
-    // semantic one stands over the declaration alone, and the documentation and
-    // trial ones each stand over that name and their own material.
+    // The independent readings are all anchored on the semantic commitment:
+    // documentation, trial declarations, and mutation declarations move under
+    // their own material without renaming production meaning.
     let semantic = semantic_commitment(input, &trees)?;
     let documented = documentation_commitment(semantic, &documentation);
     let trials = read_trials(&trees, semantic, input.issued())?;
+    let mutations = read_mutations(
+        &trees,
+        semantic,
+        input.issued(),
+        attribute.shape,
+    )?;
+    validate_support_authorship(&trials, &mutations)?;
 
     Ok(RefusalDeriveSurface::assembled(
         CapturedFamilyFacts {
@@ -163,7 +174,133 @@ pub fn captured(input: &CapturedInput) -> Result<RefusalDeriveSurface, SurfaceCa
         causes,
         documentation,
         trials,
+        mutations,
         CapturedCommitments::derived(semantic, documented),
+    ))
+}
+
+/// Establish which helper owns the one public generated-support address.
+fn validate_support_authorship(
+    trials: &TrialDeclarationPosture,
+    mutations: &MutationDeclarationPosture,
+) -> Result<(), SurfaceCaptureRefusal> {
+    let MutationDeclarationPosture::Declared(mutations) = mutations else {
+        return Ok(());
+    };
+    let declaration = mutations.declaration();
+    if let TrialDeclarationPosture::Declared(trials) = trials {
+        if trials.payload().module().spelling() == declaration.module().spelling() {
+            return Err(MutationDeclarationRefusal::Grammar {
+                cause: MutationDeclarationCause::ModuleAlreadyDeclared,
+                at: declaration.site(),
+            }
+            .into());
+        }
+    }
+    match (trials, declaration.support()) {
+        (TrialDeclarationPosture::Declared(_), Some(_)) => {
+            Err(MutationDeclarationRefusal::Grammar {
+                cause: MutationDeclarationCause::SupportAlreadyDeclared,
+                at: declaration.support_site().unwrap_or_else(|| declaration.site()),
+            }
+            .into())
+        }
+        (TrialDeclarationPosture::NotDeclared, None) => {
+            Err(MutationDeclarationRefusal::Grammar {
+                cause: MutationDeclarationCause::SupportNotDeclared,
+                at: declaration.site(),
+            }
+            .into())
+        }
+        (TrialDeclarationPosture::Declared(_), None)
+        | (TrialDeclarationPosture::NotDeclared, Some(_)) => Ok(()),
+    }
+}
+
+/// Read the independent mutation-policy helper where the declaration carries one.
+fn read_mutations(
+    trees: &[&CapturedTokenTree],
+    semantic: ProjectionIdentity<CapturedDeclarationSubject>,
+    issued: u32,
+    shape: FamilyShape,
+) -> Result<MutationDeclarationPosture, SurfaceCaptureRefusal> {
+    let mut found: Option<(&CapturedTokenTree, SpanHandle)> = None;
+    for index in 0..trees.len() {
+        let Some((bracketed, token)) = attribute_at(trees, index) else {
+            continue;
+        };
+        if bracketed.first().and_then(|head| head.word()) != Some(MUTATION_ATTRIBUTE) {
+            continue;
+        }
+        if found.is_some() {
+            return Err(MutationDeclarationRefusal::Grammar {
+                cause: MutationDeclarationCause::NotDeclaredOnce,
+                at: token,
+            }
+            .into());
+        }
+        let Some(body) = bracketed.get(1).copied() else {
+            return Err(MutationDeclarationRefusal::Grammar {
+                cause: MutationDeclarationCause::NotBodied,
+                at: token,
+            }
+            .into());
+        };
+        if let Some(extra) = bracketed.get(2) {
+            return Err(MutationDeclarationRefusal::Grammar {
+                cause: MutationDeclarationCause::NotAClause,
+                at: extra.span(),
+            }
+            .into());
+        }
+        found = Some((body, token));
+    }
+    let Some((body, token)) = found else {
+        return Ok(MutationDeclarationPosture::NotDeclared);
+    };
+    let Some((CapturedDelimiter::Parenthesis, inner)) = body.group() else {
+        return Err(MutationDeclarationRefusal::Grammar {
+            cause: MutationDeclarationCause::NotBodied,
+            at: token,
+        }
+        .into());
+    };
+    let declared: Vec<&CapturedTokenTree> = inner.iter().collect();
+    let declaration = captured_mutations(&declared, token)?;
+    if declaration.mapping(MutationOwnerFact::DeclaredOrder).is_some()
+        && shape != FamilyShape::SingleCause
+    {
+        return Err(MutationDeclarationRefusal::Grammar {
+            cause: MutationDeclarationCause::OwnerFactNotAvailable,
+            at: token,
+        }
+        .into());
+    }
+    let commitment = mutation_commitment(semantic, &declared, issued, token)?;
+    Ok(MutationDeclarationPosture::Declared(Box::new(
+        DeclaredMutations::read(commitment, declaration),
+    )))
+}
+
+/// Derive the mutation helper's independent commitment over its exact token body.
+fn mutation_commitment(
+    semantic: ProjectionIdentity<CapturedDeclarationSubject>,
+    declared: &[&CapturedTokenTree],
+    issued: u32,
+    at: SpanHandle,
+) -> Result<ProjectionIdentity<CapturedDeclarationSubject>, RefusalDeriveRefusal> {
+    let material = CapturedInput::taken(
+        declared.iter().map(|tree| (*tree).clone()).collect(),
+        issued,
+    )
+    .map_err(|_| refuse(RefusalDeriveCapture::Unbounded, at))?;
+    Ok(ProjectionIdentity::derived(
+        ProjectionTranscript::under_projection(
+            ProjectionRole::MutationDeclaration,
+            &semantic,
+            &material.canonical_bytes(),
+            1,
+        ),
     ))
 }
 
@@ -213,6 +350,13 @@ fn read_trials(
             }
             .into());
         };
+        if let Some(extra) = bracketed.get(2) {
+            return Err(TrialDeclarationRefusal::Grammar {
+                cause: TrialDeclarationCause::NotAClause,
+                at: extra.span(),
+            }
+            .into());
+        }
         found = Some((body, token));
     }
     let Some((body, token)) = found else {
@@ -767,12 +911,14 @@ fn attribute_at<'trees>(
 /// Whether one attribute body is material this grammar names under a commitment
 /// of its own rather than inside the semantic one.
 ///
-/// Exactly two: a documentation row, and the trial declaration. Both are
+/// Documentation, trial, and mutation helpers are independent readings of the
+/// captured declaration rather than production semantic material.
 /// declaration material the semantic commitment sets aside, and both are read
 /// back through the seat that carries them.
 fn read_as_a_second_fact(bracketed: &[&CapturedTokenTree]) -> bool {
     documented_text(bracketed).is_some()
         || bracketed.first().and_then(|head| head.word()) == Some(TRIAL_ATTRIBUTE)
+        || bracketed.first().and_then(|head| head.word()) == Some(MUTATION_ATTRIBUTE)
 }
 
 /// The text one attribute body states as documentation, where the body is the

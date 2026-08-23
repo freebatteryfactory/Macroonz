@@ -46,14 +46,12 @@
 //! the implementation terminal stands under: the two terminals are one
 //! declaration's, or the carrier is delivering somebody else's cargo.
 
-use super::evaluation_spellings;
 use super::plan::{
     authored_node, expansion_context, rust_declaration_profile, rust_declaration_profile_version,
 };
-use super::render::EVALUATION_SUBJECT;
 use super::types::{
-    CarrierRoadRefusal, DerivedMembership, ExplanationBindingRefusal, ExplanationSeat,
-    MemberRenderCause, MemberRenderRefusal, RefusalDerivationDraft, RefusalDeriveFact,
+    CarrierRoadRefusal, ExplanationBindingRefusal, ExplanationSeat, MemberRenderCause,
+    MemberRenderRefusal, MutationDeclarationPosture, RefusalDerivationDraft, RefusalDeriveFact,
     TrialDeclarationPosture,
 };
 use crate::closure::{ClosedExpansion, ProjectionClosure, RenderedProjection, RenderedUnit};
@@ -61,27 +59,25 @@ use crate::explanation_protocol::{
     ExplanationAnswer, ProjectionExplanation, ProjectionExplanationView,
 };
 use crate::generated_support::{
-    AxisCargo, CargoAxis, ProvedCargo, SupportAssembly, assembled_shell,
+    AxisCargo, CargoAxis, DeclaredTrialCargo, ProvedCargo, SupportAssembly, assembled_shell,
 };
 use crate::origin_graph::{
     DecisionTrace, OriginEdge, OriginRelation, OriginTrail, TraceDecision, TraceEntry,
 };
 use crate::plane::{
-    GeneratedUnitSubject, MembershipLimit, OriginNodeSubject, OutputBytesSubject,
+    CapturedDeclarationSubject, GeneratedUnitSubject, MembershipLimit, OriginNodeSubject,
+    OutputBytesSubject,
     ProjectionIdentity, ProjectionKindSubject, ProjectionRole, ProjectionTranscript, RenderedRole,
-    SoleRenderedUnit,
+    SoleRenderedUnit, encode_bytes,
 };
 use crate::planning::{
     DigestContract, EXPECTED_GENERATED_SUPPORT_SCHEMA_ID, EmissionPartition, ObligationAnchoring,
     OwnerContentAccount, PlanDecisions, PlannedMember, PlannedMembership, PlannedOutput,
-    ProjectionDisposition, ProjectionKind, ProjectionPlan, RenderedImplementation,
-    RowMaterialPosture, TestDescriptorContent, TestDescriptorProjection,
+    ProjectionDisposition, ProjectionKind, ProjectionPlan, RowMaterialPosture,
+    TestDescriptorContent, TestDescriptorProjection,
 };
 use crate::refusal::ProjectionPlanning;
-use crate::test_descriptor::{
-    ActivePointSelector, DeferredCargo, GeneratedSupportShell, ShellDeclarationRefusal,
-    TrialTablePayload, descriptor_plan,
-};
+use crate::test_descriptor::{DeferredCargo, GeneratedSupportShell, descriptor_plan};
 use threadpak::types::Bounded;
 
 /// The carrier projection's kind identity.
@@ -105,35 +101,6 @@ pub fn carrier_kind() -> ProjectionIdentity<ProjectionKindSubject> {
 /// subject, so the three cannot part company about which member they are about.
 const CARRIER_MEMBER: &[u8] = b"generated-support-shell";
 
-/// The row of every active-point roster that renders each point's original
-/// operation.
-///
-/// The control, and the only row a copy this door renders stands at: the door
-/// admits no mutation point, so the copies carry the production surface's own
-/// operations under another subject's head.
-const NO_MUTATION: &str = "NoMutation";
-
-/// The evaluation contracts one declared membership delivers, read from the
-/// roster's own twins rather than spelled at the road below.
-///
-/// # Authority
-///
-/// **The MEMBERSHIP is the quantifier, not the roster.** A shape that declares
-/// no canonical cause order renders no cause-order copy at all, so the
-/// cause-order active-point roster is never declared in that cargo — and a
-/// constant standing at a row of a type nobody declared is a consumer's test
-/// target failing inside an expansion it did not write. The twin is READ from
-/// each production role, exactly as the plan and the rendering read it, so a
-/// roster that paired its seats differently pairs these differently too.
-fn deferred_contracts(membership: DerivedMembership) -> Vec<RenderedImplementation> {
-    let family = RenderedImplementation::RenderedFamilyImpl;
-    let cause_order = RenderedImplementation::RenderedCauseOrderImpl;
-    match membership {
-        DerivedMembership::FamilyOnly => vec![family.twin()],
-        DerivedMembership::FamilyAndCauseOrder => vec![family.twin(), cause_order.twin()],
-    }
-}
-
 /// The carrier member's semantic key.
 ///
 /// Derived from the CARRIER ANCHOR and this member's own material, so the carrier
@@ -148,10 +115,11 @@ fn deferred_contracts(membership: DerivedMembership) -> Vec<RenderedImplementati
 pub fn carrier_semantic_key(
     draft: &RefusalDerivationDraft,
 ) -> ProjectionIdentity<GeneratedUnitSubject> {
+    let (anchor, material) = carrier_derivation(draft);
     ProjectionIdentity::derived(ProjectionTranscript::under_projection(
         ProjectionRole::GeneratedUnit,
-        &draft.surface().carrier_anchor(),
-        CARRIER_MEMBER,
+        &anchor,
+        &material,
         SoleRenderedUnit::Sole.slot(),
     ))
 }
@@ -159,12 +127,37 @@ pub fn carrier_semantic_key(
 /// The origin node the carrier member sits at.
 #[must_use]
 pub fn carrier_node(draft: &RefusalDerivationDraft) -> ProjectionIdentity<OriginNodeSubject> {
+    let (anchor, material) = carrier_derivation(draft);
     ProjectionIdentity::derived(ProjectionTranscript::under_projection(
         ProjectionRole::OriginNode,
-        &draft.surface().carrier_anchor(),
-        CARRIER_MEMBER,
+        &anchor,
+        &material,
         SoleRenderedUnit::Sole.slot(),
     ))
+}
+
+/// The carrier member's payload-sensitive material.
+fn carrier_derivation(
+    draft: &RefusalDerivationDraft,
+) -> (ProjectionIdentity<CapturedDeclarationSubject>, Vec<u8>) {
+    match (draft.surface().trials(), draft.surface().mutations()) {
+        (TrialDeclarationPosture::NotDeclared, MutationDeclarationPosture::NotDeclared) => {
+            (draft.surface().identity(), CARRIER_MEMBER.to_vec())
+        }
+        (TrialDeclarationPosture::Declared(trials), MutationDeclarationPosture::NotDeclared) => {
+            (trials.commitment(), CARRIER_MEMBER.to_vec())
+        }
+        (TrialDeclarationPosture::NotDeclared, MutationDeclarationPosture::Declared(mutations)) => {
+            (mutations.commitment(), CARRIER_MEMBER.to_vec())
+        }
+        (TrialDeclarationPosture::Declared(trials), MutationDeclarationPosture::Declared(mutations)) => {
+            let mut material = Vec::new();
+            encode_bytes(CARRIER_MEMBER, &mut material);
+            encode_bytes(trials.commitment().as_bytes(), &mut material);
+            encode_bytes(mutations.commitment().as_bytes(), &mut material);
+            (draft.surface().identity(), material)
+        }
+    }
 }
 
 /// The origin trail the carrier member walks back along, to the authored
@@ -176,34 +169,6 @@ pub fn carrier_origin(draft: &RefusalDerivationDraft) -> OriginTrail {
         relation: OriginRelation::SemanticDerivation,
         to: carrier_node(draft),
     })
-}
-
-/// One selector per evaluation contract THIS membership delivers: the constant
-/// every activation site reads, the roster that constant stands on, and the row
-/// it stands at.
-///
-/// One per contract rather than one for the home, because each contract's copy
-/// declares its own active-point roster and one constant spelling across them
-/// would name a single item twice wherever the shell lands them.
-///
-/// # Errors
-///
-/// Returns the carrier's declaration refusal where a spelling this home declared
-/// is not one Rust identifier, or where two selectors are read through one
-/// constant. Both are facts about the literal spellings the home declares beside
-/// its evaluation roads, so neither is reachable while they are what they are —
-/// and the road refuses rather than electing a selector, because a cargo that
-/// dropped one would ship a copy that reads a name nobody brought into scope.
-pub fn deferred_selectors(
-    membership: DerivedMembership,
-) -> Result<Vec<ActivePointSelector>, ShellDeclarationRefusal> {
-    deferred_contracts(membership)
-        .into_iter()
-        .map(|role| {
-            let (active_enum, selector) = evaluation_spellings(role);
-            ActivePointSelector::declared(selector, active_enum, NO_MUTATION)
-        })
-        .collect()
 }
 
 /// What happened to the descriptor rows this carrier declares.
@@ -255,7 +220,7 @@ pub fn rows_disposition(
 /// partition for a promotion road to read it off. What keeps it honest is the
 /// grammar that read it and the carrier vocabulary that admitted it, both of
 /// which refuse before this seat is reached.
-pub fn trials_axis(draft: &RefusalDerivationDraft) -> AxisCargo<TrialTablePayload> {
+pub fn trials_axis(draft: &RefusalDerivationDraft) -> AxisCargo<DeclaredTrialCargo> {
     match draft.surface().trials() {
         TrialDeclarationPosture::NotDeclared => AxisCargo::Absent {
             because: ProjectionDisposition::NotApplicable {
@@ -264,8 +229,42 @@ pub fn trials_axis(draft: &RefusalDerivationDraft) -> AxisCargo<TrialTablePayloa
             },
         },
         TrialDeclarationPosture::Declared(declared) => {
-            AxisCargo::Carried(declared.payload().clone())
+            AxisCargo::Carried(DeclaredTrialCargo::carried(
+                declared.commitment(),
+                declared.payload().clone(),
+            ))
         }
+    }
+}
+
+/// The carrier account over every independently committed helper it delivers.
+fn carrier_account(
+    draft: &RefusalDerivationDraft,
+) -> Result<OwnerContentAccount<TestDescriptorProjection>, ProjectionPlanning> {
+    let mut dependencies = Vec::new();
+    if let TrialDeclarationPosture::Declared(trials) = draft.surface().trials() {
+        dependencies.push(trials.commitment());
+    }
+    if let MutationDeclarationPosture::Declared(mutations) = draft.surface().mutations() {
+        dependencies.push(mutations.commitment());
+    }
+    if dependencies.is_empty() {
+        Ok(OwnerContentAccount::captured(draft.surface().identity()))
+    } else {
+        OwnerContentAccount::captured_over(draft.surface().identity(), dependencies)
+    }
+}
+
+/// The one helper-authored public support address, where this carrier has one.
+fn support_name(draft: &RefusalDerivationDraft) -> Option<crate::test_descriptor::SupportMacroName> {
+    match draft.surface().trials() {
+        TrialDeclarationPosture::Declared(trials) => Some(trials.payload().support().clone()),
+        TrialDeclarationPosture::NotDeclared => match draft.surface().mutations() {
+            MutationDeclarationPosture::Declared(mutations) => {
+                mutations.declaration().support().cloned()
+            }
+            MutationDeclarationPosture::NotDeclared => None,
+        },
     }
 }
 
@@ -292,8 +291,7 @@ pub fn bench_disposition() -> ProjectionDisposition {
 pub fn carrier_plan(
     draft: &RefusalDerivationDraft,
 ) -> Result<ProjectionPlan<TestDescriptorProjection>, ProjectionPlanning> {
-    let account =
-        OwnerContentAccount::<TestDescriptorProjection>::captured(draft.surface().identity());
+    let account = carrier_account(draft)?;
     let context = expansion_context(draft);
     let invalidation = context.watch_set(&account)?;
     let key = carrier_semantic_key(draft);
@@ -306,7 +304,7 @@ pub fn carrier_plan(
             0,
         )),
         decision: TraceDecision::SelectedBecause(
-            RefusalDeriveFact::AnEvaluationCopyStandsOverALocalSubject.citation(),
+            RefusalDeriveFact::OneCarrierDeliversOneDeclarationsProvedCargo.citation(),
         ),
     });
     ProjectionPlan::<TestDescriptorProjection>::planned(
@@ -371,7 +369,6 @@ pub fn carrier_plan(
 /// tokens are not the terminal's own — each carried whole, under the arm of the
 /// carrier road that names which home refused.
 pub fn evaluation_axis<K: ProjectionKind>(
-    draft: &RefusalDerivationDraft,
     implementation: &ClosedExpansion<K>,
 ) -> Result<AxisCargo<ProvedCargo>, CarrierRoadRefusal> {
     let Some(tree) = implementation.test_carrier().tokens() else {
@@ -381,8 +378,7 @@ pub fn evaluation_axis<K: ProjectionKind>(
             because: ProjectionDisposition::NotRequested,
         });
     };
-    let selectors = deferred_selectors(draft.declared_membership())?;
-    let cargo = DeferredCargo::deferred(EVALUATION_SUBJECT, selectors, tree.clone())?;
+    let cargo = DeferredCargo::deferred(tree.clone());
     Ok(AxisCargo::Carried(ProvedCargo::carried(
         implementation,
         CargoAxis::Evaluation,
@@ -402,18 +398,18 @@ pub fn assembly<K: ProjectionKind>(
     draft: &RefusalDerivationDraft,
     implementation: &ClosedExpansion<K>,
 ) -> Result<SupportAssembly, CarrierRoadRefusal> {
-    let evaluation = evaluation_axis(draft, implementation)?;
+    let evaluation = evaluation_axis(implementation)?;
+    let carrier_addressing = carrier_account(draft)?.addressing().clone();
     SupportAssembly::assembled(
-        // The root is the IMPLEMENTATION terminal's own entry account, read off
-        // the terminal: what the cargo was planned over is the cargo's fact, and
-        // a root composed here would be a second account of it.
-        implementation.plan().account().commitment(),
+        implementation.plan().account().addressing().clone(),
+        carrier_addressing,
         EXPECTED_GENERATED_SUPPORT_SCHEMA_ID,
         trials_axis(draft),
         evaluation,
         AxisCargo::Absent {
             because: bench_disposition(),
         },
+        support_name(draft),
     )
     .map_err(CarrierRoadRefusal::from)
 }
@@ -499,7 +495,7 @@ fn carrier_explanation(
             seat: ExplanationSeat::PlannedCarrierMember,
         },
     )?;
-    let owner = RefusalDeriveFact::AnEvaluationCopyStandsOverALocalSubject.citation();
+    let owner = RefusalDeriveFact::OneCarrierDeliversOneDeclarationsProvedCargo.citation();
     let challenging: Bounded<ProjectionIdentity<GeneratedUnitSubject>, MembershipLimit> =
         match draft.surface().trials() {
             TrialDeclarationPosture::NotDeclared => Bounded::empty(),

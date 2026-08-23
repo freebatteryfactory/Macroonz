@@ -517,9 +517,9 @@ pub mod diagnostics;
 pub mod question;
 pub mod origin_graph;
 pub mod planning;
-pub mod derive_impl;
 pub mod codec;
 pub mod test_descriptor;
+pub mod mutation_descriptor;
 pub mod benchmark_descriptor;
 pub mod host_wrapper;
 pub mod remote_surface;
@@ -544,12 +544,13 @@ pub use composition::{
 };
 pub use derive_refusal::{
     CapturedCause, CapturedDocumentationReading, CapturedFamilyFacts, CauseOrderStanding,
-    CrateBinding, DEFAULT_CRATE_BINDING, DeclaredTrials, DerivedMembership, DerivedPlan,
+    CrateBinding, DEFAULT_CRATE_BINDING, DeclaredMutations, DeclaredTrials, DerivedMembership,
+    DerivedPlan,
     ExplanationBindingRefusal, ExplanationSeat, RefusalCompileContext, RefusalDerivationDraft,
     RefusalDeriveCapture, RefusalDeriveRefusal, RefusalDeriveSurface, RefusalFamilyExpansion,
     RefusalOwnerFacts, RenderRefusal, SurfaceCaptureRefusal, TextCompileRefusal,
-    TrialDeclarationPosture, captured, captured_text, compile_declaration, compile_refusal,
-    compile_refusal_text, documented,
+    MutationDeclarationPosture, TrialDeclarationPosture, captured, captured_text,
+    compile_declaration, compile_refusal, compile_refusal_text, documented,
 };
 pub use diagnostics::{
     DiagnosticSite, MachineAnchoring, MachineAnchors, MacrocDiagnostic, MacrocPhase,
@@ -576,7 +577,8 @@ pub use plane::{
     GENERATED_UNIT_IDENTITY_PROFILE, GENERATOR_VERSION_IDENTITY_PROFILE, GeneratorIdentity,
     GeneratorProfileId, GeneratorSchemaVersion, HumanProjection, IDENTITY_PROFILE_STEM,
     IdentityProfile, IdentityProfileVersion, IdentitySubject, MACROC_GENERATOR,
-    ORIGIN_NODE_IDENTITY_PROFILE, OwnerFactName, OwnerFactRef, OwnerIdentityRef,
+    MUTATION_DECLARATION_IDENTITY_PROFILE, ORIGIN_NODE_IDENTITY_PROFILE, OwnerFactName,
+    OwnerFactRef, OwnerIdentityRef,
     PLAN_IDENTITY_PROFILE, PROJECTION_INTENT_IDENTITY_PROFILE, PlanId, PreimageFamily,
     ProfileVersion, ProjectionIdentity, ProjectionProvenance, ProjectionRole, ProjectionTranscript,
     RENDERED_UNIT_IDENTITY_PROFILE, RenderedRole, RenderedRoleSeal, SoleRenderedUnit, SubjectSeal,

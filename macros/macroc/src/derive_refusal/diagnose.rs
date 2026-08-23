@@ -67,6 +67,7 @@ use crate::diagnostics::{
 };
 use crate::explanation_protocol::{ExplanationCoverage, ExplanationCoverageIssue};
 use crate::generated_support::{AssemblyIssue, CarrierAssembly, ShellComposition};
+use crate::mutation_descriptor::{MutationDeclarationCause, MutationDeclarationRefusal};
 use crate::plane::{HumanProjection, HumanTextLimit, RenderedRole, encode_bytes, human_projection};
 use crate::refusal::{ProjectionPlanning, ProjectionPlanningIssue};
 use crate::test_descriptor::{
@@ -125,6 +126,9 @@ const DESCRIPTOR_PLAN_FAMILY: u8 = 8;
 /// grammar that vocabulary is read out of. One tag for both would derive one
 /// related identity for two bodies that happened to carry the same slot.
 const TRIAL_DECLARATION_FAMILY: u8 = 9;
+
+/// The mutation-declaration grammar's tag.
+const MUTATION_DECLARATION_FAMILY: u8 = 10;
 
 // ---------------------------------------------------------------------------
 // The one compiler-facing grammar.
@@ -661,51 +665,11 @@ const fn materialization_magnitude(refusal: RenderingRefusal) -> RenderedMagnitu
     }
 }
 
-/// Project one assembly refusal: the tree magnitude and the role that overran
-/// it, or the body that observes the target its delivery must move it off.
-///
-/// Two arms and two projections, because they are two observations rather than
-/// one with a different number in it. A tree past a magnitude is a fact about
-/// SIZE and its repair is a smaller declaration; a body that observes its own
-/// target is a fact about MEANING and no size makes it lawful, so a line naming
-/// a bound would send a reader to shorten a declaration that is already short
-/// enough.
+/// Project one rendering refusal: the tree magnitude and the role that overran it.
 pub fn render_refused<R: RenderedRole>(refusal: RenderRefusal, role: R) -> MacrocDiagnostic {
     match refusal {
         RenderRefusal::Unbounded => bounded_rendering(RenderedMagnitude::GeneratedTokens, role),
-        RenderRefusal::TargetObserved => target_observed(role),
     }
-}
-
-/// Project one relocation refusal: the role whose body observes the target the
-/// declaration named.
-///
-/// The role's own description is the whole of the line's subject, because the
-/// role IS which delivery could not be rendered — and the two evaluation roles
-/// are the only ones this refusal is establishable at, since the production
-/// roles are rendered for the declared target and move nowhere.
-fn target_observed<R: RenderedRole>(role: R) -> MacrocDiagnostic {
-    let mut material = vec![u8::MAX];
-    material.extend_from_slice(&role.slot().to_be_bytes());
-    let described = role.described();
-    diagnosed(
-        MacrocPhase::Rendering,
-        ObservedClassification::ContractDisagreement,
-        &RefusalLine {
-            class: RefusalClass::SubjectNotSubstitutable,
-            first: &format!(
-                "{described} observes the type the declaration named, so the copy does not stand \
-                 over the support shell's own subject"
-            ),
-            // One role, one body, one observation: the walk answers about the
-            // tree it was handed and enumerates nothing behind it.
-            body: LineBody::SingleCause,
-        },
-        RENDERING_FAMILY,
-        &[material],
-        RefusalDeriveFact::AnEvaluationCopyStandsOverALocalSubject,
-        &Placement::WholeDeclaration,
-    )
 }
 
 /// Project one expansion-binding refusal: the two identities the binding was
@@ -1033,6 +997,75 @@ const fn trial_observed(cause: TrialDeclarationCause) -> ObservedClassification 
         | TrialDeclarationCause::NotARoster
         | TrialDeclarationCause::NotASuiteGroup
         | TrialDeclarationCause::NotARow => ObservedClassification::ContractDisagreement,
+    }
+}
+
+/// Project one mutation-declaration refusal at the exact authored clause.
+pub fn mutation_declaration_refused(
+    refusal: MutationDeclarationRefusal,
+    spans: &SpanTable,
+) -> MacrocDiagnostic {
+    match refusal {
+        MutationDeclarationRefusal::Grammar { cause, at } => diagnosed(
+            MacrocPhase::Capture,
+            mutation_observed(cause),
+            &RefusalLine {
+                class: RefusalClass::DeclarationNotRead,
+                first: cause.described(),
+                body: LineBody::SingleCause,
+            },
+            MUTATION_DECLARATION_FAMILY,
+            &[vec![cause.slot()]],
+            RefusalDeriveFact::AMutationDeclarationStatesEvaluationPolicyAlone,
+            &Placement::AtToken { token: at, spans },
+        ),
+        MutationDeclarationRefusal::Carrier {
+            refusal: carried,
+            at,
+        } => diagnosed(
+            MacrocPhase::Capture,
+            ObservedClassification::ContractDisagreement,
+            &RefusalLine {
+                class: RefusalClass::CarrierNotDeclared,
+                first: carried.described(),
+                body: LineBody::SingleCause,
+            },
+            DECLARATION_FAMILY,
+            &[vec![carried.slot()]],
+            RefusalDeriveFact::ACarrierSpellingIsOneRustIdentifier,
+            &Placement::AtToken { token: at, spans },
+        ),
+    }
+}
+
+/// What one mutation-grammar cause observed.
+const fn mutation_observed(cause: MutationDeclarationCause) -> ObservedClassification {
+    match cause {
+        MutationDeclarationCause::NotBodied
+        | MutationDeclarationCause::NotCovered
+        | MutationDeclarationCause::SupportNotDeclared => {
+            ObservedClassification::SeatAbsent
+        }
+        MutationDeclarationCause::NotDeclaredOnce
+        | MutationDeclarationCause::NotDistinct
+        | MutationDeclarationCause::DuplicateOwnerFact
+        | MutationDeclarationCause::DuplicatePermissionClaim
+        | MutationDeclarationCause::DuplicateOperatorFamily
+        | MutationDeclarationCause::SupportAlreadyDeclared
+        | MutationDeclarationCause::ModuleAlreadyDeclared => {
+            ObservedClassification::IdentityDisagreement
+        }
+        MutationDeclarationCause::NotAClause
+        | MutationDeclarationCause::NotADeclarableClause
+        | MutationDeclarationCause::NotANamedReference
+        | MutationDeclarationCause::NotAMapping
+        | MutationDeclarationCause::UnknownOwnerFact
+        | MutationDeclarationCause::OwnerFactNotAvailable
+        | MutationDeclarationCause::NotAPermission
+        | MutationDeclarationCause::EmptyOperatorFamilies
+        | MutationDeclarationCause::UnknownOperatorFamily => {
+            ObservedClassification::ContractDisagreement
+        }
     }
 }
 

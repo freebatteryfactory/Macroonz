@@ -28,19 +28,22 @@
 //! Every declaration below is written here, beside the source text handed to the
 //! services, and nothing asks the services what they decided.
 
-use threadpak::types::ConstLimit;
+use threadpak::types::{Bounded, ConstLimit};
 use threadpak_macroc::derive_refusal::diagnose;
+use threadpak_macroc::mutation_descriptor::MutationDeclarationCause;
 use threadpak_macroc::plane::HumanTextLimit;
 use threadpak_macroc::{
-    ClosureIssue, DeriveImplProjection, ExplanationBindingRefusal, ExplanationSeat,
-    HumanProjection, MacrocPhase, ObservedClassification, PlanDecisions, PlannedMembership,
-    ProjectionClosure, ProjectionPlan, ProjectionPlanningIssue, RefusalDeriveCapture,
-    RelatedIdentity, RenderedImplementation, RenderedProjection, RenderedRole, RenderedUnit,
-    ReproductionRoute, TextCompileRefusal, compile_refusal_text,
+    AccountedExpansion, AssemblyIssue, ClosureIssue, DeriveImplProjection,
+    ExplanationBindingRefusal, ExplanationSeat, HumanProjection, MachineAnchoring, MacrocPhase,
+    ObservedClassification, PlanDecisions, PlannedMembership, ProjectionClosure, ProjectionPlan,
+    ProjectionPlanningIssue, RefusalCompileContext, RefusalDeriveCapture, RefusalFamilyExpansion,
+    RefusalOwnerFacts, RelatedIdentity, RenderedImplementation, RenderedProjection, RenderedRole,
+    RenderedUnit, ReproductionRoute, SoleRenderedUnit, TextCapture, TextCompileRefusal,
+    TrialDeclarationPosture, MutationDeclarationPosture, compile_declaration,
+    compile_refusal_text,
 };
 
-/// The declaration handed to the services:
-/// a single-cause family, whose shape fixes a four-role output set.
+/// The declaration handed to the services: a single-cause family, whose shape fixes its family and cause-order production members.
 const DECLARATION: &str = "#[refusal(family = \"testpak.demo\", shape = single_cause, \
     order(NotCanonical = \"not-canonical\", NotAdmitted = \"not-admitted\", \
     Unbounded = \"unbounded\"))] enum DemoFamily { NotAdmitted, Unbounded, NotCanonical, }";
@@ -50,8 +53,16 @@ const DECLARATION: &str = "#[refusal(family = \"testpak.demo\", shape = single_c
 const SHAPE_NOT_ADMITTED: &str = "#[refusal(family = \"testpak.demo\", shape = tri_state)] \
     enum DemoFamily { NotAdmitted, }";
 
+const VALID_MUTATION_BODY: &str = r#"
+    support = demo_mutations,
+    module = generated_demo_mutations,
+    family = named("testpak", "demo-evaluation"),
+    map declared_order = named("testpak", "demo-order"),
+    permit named("testpak", "demo-order") = ["declared-order-permutation"],
+"#;
+
 /// One lawful refusal-family expansion, or nothing where the road refused.
-fn lawful() -> Result<threadpak_macroc::RefusalFamilyExpansion, ()> {
+fn lawful() -> Result<RefusalFamilyExpansion, ()> {
     compile_refusal_text(DECLARATION)
         .map(|(_, closed)| closed)
         .map_err(|_| ())
@@ -64,6 +75,72 @@ fn refused_as(source: &str, cause: RefusalDeriveCapture, observed: ObservedClass
         diagnostic.observed == observed
             && diagnostic.summary.shown().contains(cause.described())
     })
+}
+
+/// Whether the callable door refused under this exact mutation-helper cause and classification.
+fn mutation_refused_as(
+    source: &str,
+    cause: MutationDeclarationCause,
+    observed: ObservedClassification,
+) -> bool {
+    matches!(compile_refusal_text(source), Err(TextCompileRefusal::Refused(carried)) if {
+        let (_, diagnostic) = &*carried;
+        diagnostic.observed == observed
+            && diagnostic.summary.shown().contains(cause.described())
+    })
+}
+
+/// Compile the declaration and its generated-support carrier through the public callable road.
+fn delivered(source: &str) -> Result<AccountedExpansion<RefusalFamilyExpansion>, ()> {
+    let read = TextCapture::read(source).map_err(|_| ())?;
+    let context = RefusalCompileContext {
+        spans: read.spans().clone(),
+        machine: MachineAnchoring::UnmintedAtThisSeam,
+        owner_facts: RefusalOwnerFacts::declared(),
+        nonclaims: Bounded::empty(),
+    };
+    compile_declaration(read.input(), &context).map_err(|_| ())
+}
+
+/// Compile one combined trial-and-mutation declaration whose mutation claim is the supplied stem.
+fn delivered_with_trials(
+    claim: &str,
+) -> Result<AccountedExpansion<RefusalFamilyExpansion>, ()> {
+    const TEMPLATE: &str = r#"
+        #[refusal(family = "testpak.demo", shape = single_cause, order(A = "a", B = "b"))]
+        #[threadpak_trials(
+            support = demo_trials,
+            module = generated_demo_trials,
+            table = named("testpak", "demo-trials"),
+            suite construction = named("testpak", "construction") {
+                observes_a {
+                    claim = named("testpak", "demo-order"),
+                    roles = [named("testpak", "regression")],
+                    tags = [named("testpak", "generated")],
+                    subject = named("testpak", "demo-subject"),
+                    check = named("testpak", "demo-check"),
+                    population = named("testpak", "demo-population"),
+                },
+            },
+        )]
+        #[threadpak_mutations(
+            module = generated_demo_mutations,
+            family = named("testpak", "demo-evaluation"),
+            map declared_order = named("testpak", "$claim"),
+            permit named("testpak", "$claim") = ["declared-order-permutation"],
+        )]
+        enum DemoFamily { A, B }
+    "#;
+    delivered(&TEMPLATE.replace("$claim", claim))
+}
+
+/// One single-cause refusal declaration carrying the supplied mutation-helper body.
+fn mutation_source(body: &str) -> String {
+    format!(
+        "#[refusal(family = \"testpak.demo\", shape = single_cause, \
+         order(A = \"a\", B = \"b\"))] #[threadpak_mutations({body})] \
+         enum DemoFamily {{ A, B }}"
+    )
 }
 
 /// One plan with a substituted membership, re-planned through the same public
@@ -501,4 +578,481 @@ fn the_two_rendered_units_are_never_interchangeable() {
             })
         })
     }));
+}
+
+/// The mutation helper is a closed grammar, and support has exactly one author across the trial and mutation readings.
+#[test]
+fn the_mutation_helper_consumes_every_owned_token_once() {
+    let unknown = r#"
+        #[refusal(family = "testpak.demo", shape = single_cause, order(A = "a", B = "b"))]
+        #[threadpak_mutations(
+            support = demo_mutations,
+            module = generated_demo_mutations,
+            family = named("testpak", "demo-evaluation"),
+            invented = value,
+            map declared_order = named("testpak", "demo-order"),
+            permit named("testpak", "demo-order") = ["declared-order-permutation"],
+        )]
+        enum DemoFamily { A, B }
+    "#;
+    assert!(mutation_refused_as(
+        unknown,
+        MutationDeclarationCause::NotADeclarableClause,
+        ObservedClassification::ContractDisagreement,
+    ));
+
+    let duplicate = r#"
+        #[refusal(family = "testpak.demo", shape = single_cause, order(A = "a", B = "b"))]
+        #[threadpak_mutations(
+            support = demo_mutations,
+            module = generated_demo_mutations,
+            module = generated_demo_mutations_again,
+            family = named("testpak", "demo-evaluation"),
+            map declared_order = named("testpak", "demo-order"),
+            permit named("testpak", "demo-order") = ["declared-order-permutation"],
+        )]
+        enum DemoFamily { A, B }
+    "#;
+    assert!(mutation_refused_as(
+        duplicate,
+        MutationDeclarationCause::NotDistinct,
+        ObservedClassification::IdentityDisagreement,
+    ));
+
+    let missing_support = r#"
+        #[refusal(family = "testpak.demo", shape = single_cause, order(A = "a", B = "b"))]
+        #[threadpak_mutations(
+            module = generated_demo_mutations,
+            family = named("testpak", "demo-evaluation"),
+            map declared_order = named("testpak", "demo-order"),
+            permit named("testpak", "demo-order") = ["declared-order-permutation"],
+        )]
+        enum DemoFamily { A, B }
+    "#;
+    assert!(mutation_refused_as(
+        missing_support,
+        MutationDeclarationCause::SupportNotDeclared,
+        ObservedClassification::SeatAbsent,
+    ));
+
+    let doubled_support = r#"
+        #[refusal(family = "testpak.demo", shape = single_cause, order(A = "a", B = "b"))]
+        #[threadpak_trials(
+            support = demo_trials,
+            module = generated_demo_trials,
+            table = named("testpak", "demo-trials"),
+            suite construction = named("testpak", "construction") {
+                observes_a {
+                    claim = named("testpak", "demo-order"),
+                    roles = [named("testpak", "regression")],
+                    tags = [named("testpak", "generated")],
+                    subject = named("testpak", "demo-subject"),
+                    check = named("testpak", "demo-check"),
+                    population = named("testpak", "demo-population"),
+                },
+            },
+        )]
+        #[threadpak_mutations(
+            support = demo_mutations,
+            module = generated_demo_mutations,
+            family = named("testpak", "demo-evaluation"),
+            map declared_order = named("testpak", "demo-order"),
+            permit named("testpak", "demo-order") = ["declared-order-permutation"],
+        )]
+        enum DemoFamily { A, B }
+    "#;
+    assert!(mutation_refused_as(
+        doubled_support,
+        MutationDeclarationCause::SupportAlreadyDeclared,
+        ObservedClassification::IdentityDisagreement,
+    ));
+
+    let duplicate_helper = format!(
+        "#[refusal(family = \"testpak.demo\", shape = single_cause, \
+         order(A = \"a\", B = \"b\"))] \
+         #[threadpak_mutations({VALID_MUTATION_BODY})] \
+         #[threadpak_mutations({VALID_MUTATION_BODY})] enum DemoFamily {{ A, B }}"
+    );
+    assert!(mutation_refused_as(
+        &duplicate_helper,
+        MutationDeclarationCause::NotDeclaredOnce,
+        ObservedClassification::IdentityDisagreement,
+    ));
+
+    let no_body = "#[refusal(family = \"testpak.demo\", shape = single_cause, \
+        order(A = \"a\", B = \"b\"))] #[threadpak_mutations] enum DemoFamily { A, B }";
+    assert!(mutation_refused_as(
+        no_body,
+        MutationDeclarationCause::NotBodied,
+        ObservedClassification::SeatAbsent,
+    ));
+    let outer_tail = format!(
+        "#[refusal(family = \"testpak.demo\", shape = single_cause, \
+         order(A = \"a\", B = \"b\"))] \
+         #[threadpak_mutations({VALID_MUTATION_BODY}) trailing] enum DemoFamily {{ A, B }}"
+    );
+    assert!(mutation_refused_as(
+        &outer_tail,
+        MutationDeclarationCause::NotAClause,
+        ObservedClassification::ContractDisagreement,
+    ));
+
+    let cases = [
+        (
+            mutation_source(&format!(",{VALID_MUTATION_BODY}")),
+            MutationDeclarationCause::NotAClause,
+            ObservedClassification::ContractDisagreement,
+        ),
+        (
+            mutation_source(
+                r#"
+                    support = demo_mutations,
+                    family = named("testpak", "demo-evaluation"),
+                    map declared_order = named("testpak", "demo-order"),
+                    permit named("testpak", "demo-order") = ["declared-order-permutation"],
+                "#,
+            ),
+            MutationDeclarationCause::NotCovered,
+            ObservedClassification::SeatAbsent,
+        ),
+        (
+            mutation_source(
+                r#"
+                    support = demo_mutations,
+                    module = generated_demo_mutations,
+                    family = "demo-evaluation",
+                    map declared_order = named("testpak", "demo-order"),
+                    permit named("testpak", "demo-order") = ["declared-order-permutation"],
+                "#,
+            ),
+            MutationDeclarationCause::NotANamedReference,
+            ObservedClassification::ContractDisagreement,
+        ),
+        (
+            mutation_source(&VALID_MUTATION_BODY.replace("map declared_order =", "map declared_order")),
+            MutationDeclarationCause::NotAMapping,
+            ObservedClassification::ContractDisagreement,
+        ),
+        (
+            mutation_source(&VALID_MUTATION_BODY.replace("map declared_order", "map invented")),
+            MutationDeclarationCause::UnknownOwnerFact,
+            ObservedClassification::ContractDisagreement,
+        ),
+        (
+            mutation_source(&VALID_MUTATION_BODY.replace(
+                "map declared_order = named(\"testpak\", \"demo-order\"),",
+                "map declared_order = named(\"testpak\", \"demo-order\"), \
+                 map declared_order = named(\"testpak\", \"other-order\"),",
+            )),
+            MutationDeclarationCause::DuplicateOwnerFact,
+            ObservedClassification::IdentityDisagreement,
+        ),
+        (
+            mutation_source(&VALID_MUTATION_BODY.replace(
+                "permit named(\"testpak\", \"demo-order\") =",
+                "permit named(\"testpak\", \"demo-order\")",
+            )),
+            MutationDeclarationCause::NotAPermission,
+            ObservedClassification::ContractDisagreement,
+        ),
+        (
+            mutation_source(&VALID_MUTATION_BODY.replace(
+                "[\"declared-order-permutation\"],",
+                "[\"declared-order-permutation\"], \
+                 permit named(\"testpak\", \"demo-order\") = [\"declared-order-permutation\"],",
+            )),
+            MutationDeclarationCause::DuplicatePermissionClaim,
+            ObservedClassification::IdentityDisagreement,
+        ),
+        (
+            mutation_source(&VALID_MUTATION_BODY.replace(
+                "[\"declared-order-permutation\"]",
+                "[]",
+            )),
+            MutationDeclarationCause::EmptyOperatorFamilies,
+            ObservedClassification::ContractDisagreement,
+        ),
+        (
+            mutation_source(&VALID_MUTATION_BODY.replace(
+                "[\"declared-order-permutation\"]",
+                "[\"declared-order-permutation\", \"declared-order-permutation\"]",
+            )),
+            MutationDeclarationCause::DuplicateOperatorFamily,
+            ObservedClassification::IdentityDisagreement,
+        ),
+        (
+            mutation_source(&VALID_MUTATION_BODY.replace(
+                "declared-order-permutation",
+                "invented-operator",
+            )),
+            MutationDeclarationCause::UnknownOperatorFamily,
+            ObservedClassification::ContractDisagreement,
+        ),
+    ];
+    for (source, cause, observed) in cases {
+        assert!(mutation_refused_as(&source, cause, observed), "{cause:?}");
+    }
+
+    let unavailable_fact = format!(
+        "#[refusal(family = \"testpak.demo\", shape = issue_collection)] \
+         #[threadpak_mutations({VALID_MUTATION_BODY})] enum DemoFamily {{ A, B }}"
+    );
+    assert!(mutation_refused_as(
+        &unavailable_fact,
+        MutationDeclarationCause::OwnerFactNotAvailable,
+        ObservedClassification::ContractDisagreement,
+    ));
+
+    let module_collision = r#"
+        #[refusal(family = "testpak.demo", shape = single_cause, order(A = "a", B = "b"))]
+        #[threadpak_trials(
+            support = demo_trials,
+            module = generated_demo,
+            table = named("testpak", "demo-trials"),
+            suite construction = named("testpak", "construction") {
+                observes_a {
+                    claim = named("testpak", "demo-order"),
+                    roles = [named("testpak", "regression")],
+                    tags = [named("testpak", "generated")],
+                    subject = named("testpak", "demo-subject"),
+                    check = named("testpak", "demo-check"),
+                    population = named("testpak", "demo-population"),
+                },
+            },
+        )]
+        #[threadpak_mutations(
+            module = generated_demo,
+            family = named("testpak", "demo-evaluation"),
+            map declared_order = named("testpak", "demo-order"),
+            permit named("testpak", "demo-order") = ["declared-order-permutation"],
+        )]
+        enum DemoFamily { A, B }
+    "#;
+    assert!(mutation_refused_as(
+        module_collision,
+        MutationDeclarationCause::ModuleAlreadyDeclared,
+        ObservedClassification::IdentityDisagreement,
+    ));
+}
+
+/// Mutation declaration meaning changes only the mutation member and the carrier that delivers it.
+#[test]
+fn mutation_commitment_moves_only_its_member_and_delivery() -> Result<(), ()> {
+    let first = r#"
+        #[refusal(family = "testpak.demo", shape = single_cause, order(A = "a", B = "b"))]
+        #[threadpak_mutations(
+            support = demo_mutations,
+            module = generated_demo_mutations,
+            family = named("testpak", "demo-evaluation"),
+            map declared_order = named("testpak", "first-order-claim"),
+            permit named("testpak", "first-order-claim") = ["declared-order-permutation"],
+        )]
+        enum DemoFamily { A, B }
+    "#;
+    let second = r#"
+        #[refusal(family = "testpak.demo", shape = single_cause, order(A = "a", B = "b"))]
+        #[threadpak_mutations(
+            support = demo_mutations,
+            module = generated_demo_mutations,
+            family = named("testpak", "demo-evaluation"),
+            map declared_order = named("testpak", "second-order-claim"),
+            permit named("testpak", "second-order-claim") = ["declared-order-permutation"],
+        )]
+        enum DemoFamily { A, B }
+    "#;
+    let first = delivered(first)?;
+    let second = delivered(second)?;
+    let first_projected = first.joined().projected();
+    let second_projected = second.joined().projected();
+
+    assert_eq!(first_projected.surface().identity(), second_projected.surface().identity());
+    assert_eq!(
+        first_projected.surface().documentation_identity(),
+        second_projected.surface().documentation_identity(),
+    );
+    assert_eq!(
+        first_projected.plan().account().commitment(),
+        second_projected.plan().account().commitment(),
+    );
+    assert_ne!(
+        first_projected.plan().account().addressing(),
+        second_projected.plan().account().addressing(),
+    );
+
+    for role in [
+        RenderedImplementation::RenderedFamilyImpl,
+        RenderedImplementation::RenderedCauseOrderImpl,
+    ] {
+        let first_unit = first_projected.rendered().under(role).ok_or(())?;
+        let second_unit = second_projected.rendered().under(role).ok_or(())?;
+        assert_eq!(first_unit.semantic_key(), second_unit.semantic_key());
+        assert_eq!(first_unit.identity(), second_unit.identity());
+        assert_eq!(first_unit.digest(), second_unit.digest());
+        assert_eq!(first_unit.tree().canonical_bytes(), second_unit.tree().canonical_bytes());
+    }
+    let mutation = RenderedImplementation::RenderedMutationEvaluation;
+    let first_mutation = first_projected.rendered().under(mutation).ok_or(())?;
+    let second_mutation = second_projected.rendered().under(mutation).ok_or(())?;
+    assert_ne!(first_mutation.semantic_key(), second_mutation.semantic_key());
+    assert_ne!(first_mutation.identity(), second_mutation.identity());
+    assert_ne!(first_mutation.digest(), second_mutation.digest());
+    assert_ne!(
+        first_mutation.tree().canonical_bytes(),
+        second_mutation.tree().canonical_bytes(),
+    );
+
+    let first_carrier = first.joined().carrier();
+    let second_carrier = second.joined().carrier();
+    assert_ne!(
+        first_carrier.plan().account().addressing(),
+        second_carrier.plan().account().addressing(),
+    );
+    let first_unit = first_carrier
+        .closure()
+        .rendered()
+        .under(SoleRenderedUnit::Sole)
+        .ok_or(())?;
+    let second_unit = second_carrier
+        .closure()
+        .rendered()
+        .under(SoleRenderedUnit::Sole)
+        .ok_or(())?;
+    assert_ne!(first_unit.semantic_key(), second_unit.semantic_key());
+    assert_ne!(first_unit.identity(), second_unit.identity());
+    assert_ne!(first_unit.digest(), second_unit.digest());
+    Ok(())
+}
+
+/// A mutation-policy edit leaves the independent trial reading fixed while moving the mutation member and shared carrier.
+#[test]
+fn trial_and_mutation_commitments_remain_independent_where_both_are_delivered(
+) -> Result<(), ()> {
+    let first = delivered_with_trials("first-order-claim")?;
+    let second = delivered_with_trials("second-order-claim")?;
+    let first_projected = first.joined().projected();
+    let second_projected = second.joined().projected();
+
+    assert_eq!(first_projected.surface().identity(), second_projected.surface().identity());
+    assert_eq!(
+        first_projected.surface().documentation_identity(),
+        second_projected.surface().documentation_identity(),
+    );
+    let (
+        TrialDeclarationPosture::Declared(first_trials),
+        TrialDeclarationPosture::Declared(second_trials),
+    ) = (
+        first_projected.surface().trials(),
+        second_projected.surface().trials(),
+    ) else {
+        return Err(());
+    };
+    assert_eq!(first_trials.commitment(), second_trials.commitment());
+    assert_eq!(first_trials.payload(), second_trials.payload());
+
+    let (
+        MutationDeclarationPosture::Declared(first_mutations),
+        MutationDeclarationPosture::Declared(second_mutations),
+    ) = (
+        first_projected.surface().mutations(),
+        second_projected.surface().mutations(),
+    ) else {
+        return Err(());
+    };
+    assert_ne!(first_mutations.commitment(), second_mutations.commitment());
+
+    for role in [
+        RenderedImplementation::RenderedFamilyImpl,
+        RenderedImplementation::RenderedCauseOrderImpl,
+    ] {
+        let first_unit = first_projected.rendered().under(role).ok_or(())?;
+        let second_unit = second_projected.rendered().under(role).ok_or(())?;
+        assert_eq!(first_unit.identity(), second_unit.identity());
+        assert_eq!(first_unit.tree().canonical_bytes(), second_unit.tree().canonical_bytes());
+    }
+    let mutation = RenderedImplementation::RenderedMutationEvaluation;
+    let first_mutation = first_projected.rendered().under(mutation).ok_or(())?;
+    let second_mutation = second_projected.rendered().under(mutation).ok_or(())?;
+    assert_ne!(first_mutation.identity(), second_mutation.identity());
+    assert_ne!(
+        first_mutation.tree().canonical_bytes(),
+        second_mutation.tree().canonical_bytes(),
+    );
+    assert_eq!(
+        first.joined().assembly().trial(),
+        second.joined().assembly().trial(),
+    );
+    assert_ne!(
+        first.joined().carrier().plan().account().addressing(),
+        second.joined().carrier().plan().account().addressing(),
+    );
+    Ok(())
+}
+
+/// Same-semantic mutation deliveries from two helper readings cannot cross at either assembly join.
+#[test]
+fn mutation_dependencies_refuse_crossed_delivery_joins() -> Result<(), ()> {
+    let first = r#"
+        #[refusal(family = "testpak.demo", shape = single_cause, order(A = "a", B = "b"))]
+        #[threadpak_mutations(
+            support = demo_mutations,
+            module = generated_demo_mutations,
+            family = named("testpak", "demo-evaluation"),
+            map declared_order = named("testpak", "first-order-claim"),
+            permit named("testpak", "first-order-claim") = ["declared-order-permutation"],
+        )]
+        enum DemoFamily { A, B }
+    "#;
+    let second = r#"
+        #[refusal(family = "testpak.demo", shape = single_cause, order(A = "a", B = "b"))]
+        #[threadpak_mutations(
+            support = demo_mutations,
+            module = generated_demo_mutations,
+            family = named("testpak", "demo-evaluation"),
+            map declared_order = named("testpak", "second-order-claim"),
+            permit named("testpak", "second-order-claim") = ["declared-order-permutation"],
+        )]
+        enum DemoFamily { A, B }
+    "#;
+    let first = delivered(first)?;
+    let second = delivered(second)?;
+    let second_draft = second.joined().projected().surface().clone().planned();
+
+    let refusal = threadpak_macroc::derive_refusal::assembly(
+        &second_draft,
+        first.joined().projected().expansion(),
+    )
+    .err()
+    .ok_or(())?;
+    assert!(matches!(
+        refusal,
+        threadpak_macroc::derive_refusal::CarrierRoadRefusal::Assembled(body)
+            if body.body().carried().iter().any(|issue| matches!(
+                issue,
+                AssemblyIssue::RootsDisagree { .. }
+                    | AssemblyIssue::CarrierRootIsNotTheAssemblys { .. }
+            ))
+    ));
+
+    let second_plan = threadpak_macroc::derive_refusal::carrier_plan(&second_draft)
+        .map_err(|_| ())?;
+    let refusal = threadpak_macroc::derive_refusal::carrier_expansion(
+        &second_draft,
+        second_plan,
+        first.joined().assembly(),
+    )
+    .err()
+    .ok_or(())?;
+    assert!(matches!(
+        refusal,
+        threadpak_macroc::derive_refusal::CarrierRoadRefusal::Composed(body)
+            if matches!(
+                &*body,
+                threadpak_macroc::ShellComposition::NotOneDeclarations(body)
+                    if body.body().carried().iter().any(|issue| matches!(
+                        issue,
+                        AssemblyIssue::CarrierRootIsNotTheAssemblys { .. }
+                    ))
+            )
+    ));
+    Ok(())
 }

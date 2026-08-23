@@ -30,16 +30,14 @@ impl RenderedRole for RenderedImplementation {
     const ROLES: &'static [Self] = &[
         Self::RenderedFamilyImpl,
         Self::RenderedCauseOrderImpl,
-        Self::RenderedFamilyEvaluation,
-        Self::RenderedCauseOrderEvaluation,
+        Self::RenderedMutationEvaluation,
     ];
 
     fn slot(self) -> u32 {
         match self {
             Self::RenderedFamilyImpl => 0,
             Self::RenderedCauseOrderImpl => 1,
-            Self::RenderedFamilyEvaluation => 2,
-            Self::RenderedCauseOrderEvaluation => 3,
+            Self::RenderedMutationEvaluation => 2,
         }
     }
 
@@ -47,75 +45,20 @@ impl RenderedRole for RenderedImplementation {
         match self {
             Self::RenderedFamilyImpl => "the family contract's production implementation",
             Self::RenderedCauseOrderImpl => "the typed cause order's production implementation",
-            Self::RenderedFamilyEvaluation => {
-                "the family implementation's mutation-evaluation copy"
-            }
-            Self::RenderedCauseOrderEvaluation => {
-                "the cause-order implementation's mutation-evaluation copy"
+            Self::RenderedMutationEvaluation => {
+                "the generated mutation discovery and evaluation module"
             }
         }
     }
 }
 
 impl RenderedImplementation {
-    /// The other half of this role's pair: a production role's evaluation copy,
-    /// and an evaluation role's production original.
-    ///
-    /// One implementation meaning is delivered as two surfaces, so the roster's
-    /// seats come in pairs and the pairing is stated once, here, rather than
-    /// re-derived by every reader that needs it. A composition that rendered an
-    /// evaluation copy of one contract and matched it against the other
-    /// contract's production member would be comparing two implementations of
-    /// two contracts, and the parity it then stated would be a statement about
-    /// nothing.
-    ///
-    /// # Bounds
-    ///
-    /// Total, and an involution: every seat has exactly one twin and the twin's
-    /// twin is the seat. It never answers with an absence, because a roster
-    /// entry without a pair would be a surface delivered on its own — a
-    /// production implementation nothing can be evaluated against, or a copy of
-    /// an implementation nobody planned.
-    #[must_use]
-    pub const fn twin(self) -> Self {
-        match self {
-            Self::RenderedFamilyImpl => Self::RenderedFamilyEvaluation,
-            Self::RenderedCauseOrderImpl => Self::RenderedCauseOrderEvaluation,
-            Self::RenderedFamilyEvaluation => Self::RenderedFamilyImpl,
-            Self::RenderedCauseOrderEvaluation => Self::RenderedCauseOrderImpl,
-        }
-    }
-
-    /// Whether a member under this role is the mutation-evaluation copy rather
-    /// than the implementation the consumer's normal build compiles.
-    ///
-    /// The one fact that separates the two halves of every pair, and the reason
-    /// they are two: the evaluation copy carries the active-point selector and
-    /// crosses the wall inside the shell, while the production implementation
-    /// carries no selector under any condition there is — no profile, no
-    /// feature, no configuration, and no caller can move it.
-    #[must_use]
-    pub const fn is_evaluation_copy(self) -> bool {
-        match self {
-            Self::RenderedFamilyImpl | Self::RenderedCauseOrderImpl => false,
-            Self::RenderedFamilyEvaluation | Self::RenderedCauseOrderEvaluation => true,
-        }
-    }
-
     /// Which delivery a member under this role is written into once it is
     /// rendered.
     ///
-    /// The two halves of every pair answer differently, and the difference is
-    /// what the pair is FOR. The production implementation IS the item the
-    /// caller's declaration expands into, so it is written at the declaration
-    /// site and the consumer's normal build compiles it. The evaluation copy
-    /// carries the active-point selector, so it is written into the TEST CARRIER
-    /// and rides the generated support shell as deferred cargo that only the
-    /// consumer's test target expands. A copy written at the declaration site
-    /// would be a selector-bearing implementation compiled beside the one it is
-    /// meant to be evaluated against — a mutation surface inside the normal
-    /// build, which is precisely the delivery
-    /// [`RenderedImplementation::is_evaluation_copy`] exists to keep out of it.
+    /// Production implementations land at the declaration site. The generated
+    /// mutation module rides the test carrier, where TestPak supplies the
+    /// resolved directive and no mutation control enters the normal build.
     ///
     /// Stated as a constant answer over the closed roster rather than read off a
     /// planned member, so a plan that wrote an evaluation member at the
@@ -130,9 +73,7 @@ impl RenderedImplementation {
             Self::RenderedFamilyImpl | Self::RenderedCauseOrderImpl => {
                 MemberDestination::AtDeclarationSite
             }
-            Self::RenderedFamilyEvaluation | Self::RenderedCauseOrderEvaluation => {
-                MemberDestination::IntoTestCarrier
-            }
+            Self::RenderedMutationEvaluation => MemberDestination::IntoTestCarrier,
         }
     }
 }

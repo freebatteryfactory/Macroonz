@@ -121,7 +121,10 @@ use threadpak_macroc::{
 /// A declaration that states no trial attribute is the declaration this derive
 /// has always compiled, unchanged: the same two contract implementations at the
 /// declaration site, and a carrier whose trials seat is empty.
-#[proc_macro_derive(RefusalFamily, attributes(refusal, threadpak_trials))]
+#[proc_macro_derive(
+    RefusalFamily,
+    attributes(refusal, threadpak_trials, threadpak_mutations)
+)]
 pub fn refusal_family(item: TokenStream) -> TokenStream {
     let mut spans: Vec<Span> = Vec::new();
     let mut walk = CaptureWalk::declared();

@@ -19,12 +19,16 @@
 //! that a set of proved outputs composes into ONE carrier.
 
 use crate::closure::ClosedExpansion;
-use crate::plane::{ClosedExpansionId, OutputBytesSubject, ProjectionIdentity};
+use crate::plane::{
+    CapturedDeclarationSubject, ClosedExpansionId, OutputBytesSubject, ProjectionIdentity,
+};
 use crate::planning::{
-    CauseAnchoring, EmissionPartition, ExpectedGeneratedSupportSchemaId, KindDispositions,
+    ContentAddressing, EmissionPartition, ExpectedGeneratedSupportSchemaId, KindDispositions,
     ProjectionDisposition, TestDescriptorProjection,
 };
-use crate::test_descriptor::{DeferredCargo, ShellRendering, TrialTablePayload};
+use crate::test_descriptor::{
+    DeferredCargo, ShellRendering, SupportMacroName, TrialTablePayload,
+};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -175,10 +179,22 @@ pub enum AxisCargo<Material> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProvedCargo {
     source: ClosedExpansionId,
-    root: CauseAnchoring,
+    addressing: ContentAddressing,
     partition: EmissionPartition,
     digest: ProjectionIdentity<OutputBytesSubject>,
     cargo: DeferredCargo,
+}
+
+/// One trial declaration's commitment and payload as one carrier-axis fact.
+///
+/// The commitment cannot be replaced beside the rows because no public field or
+/// constructor exposes the pair. The derive road reads both from one captured
+/// declaration and the carrier assembly consumes them together.
+#[must_use = "declared trial cargo carries both its commitment and its exact row payload"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DeclaredTrialCargo {
+    commitment: ProjectionIdentity<CapturedDeclarationSubject>,
+    payload: TrialTablePayload,
 }
 
 // ---------------------------------------------------------------------------
@@ -209,7 +225,7 @@ pub struct ProvedCargo {
 /// values exist. Two families for one question would derive two related
 /// identities for one law's findings.
 #[must_use = "an assembly issue names exactly what did not compose"]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum AssemblyIssue {
     /// A carried axis's source terminal stands under a different root than the
     /// assembly does.
@@ -222,9 +238,9 @@ pub enum AssemblyIssue {
         /// The axis whose source disagreed.
         axis: CargoAxis,
         /// The root the assembly stands under.
-        stated: CauseAnchoring,
+        stated: ContentAddressing,
         /// The root that axis's source terminal stands under.
-        carried: CauseAnchoring,
+        carried: ContentAddressing,
     },
     /// The expectation the carrier's gate would be pinned against is not the one
     /// these services publish.
@@ -297,9 +313,9 @@ pub enum AssemblyIssue {
     /// delivering another declaration's proved cargo.
     CarrierRootIsNotTheAssemblys {
         /// The root the assembly stands under.
-        stated: CauseAnchoring,
+        stated: ContentAddressing,
         /// The root the carrier's own plan declares.
-        planned: CauseAnchoring,
+        planned: ContentAddressing,
     },
 }
 
@@ -381,11 +397,12 @@ pub enum ShellComposition {
 #[must_use = "an assembly is the verified whole one exported shell is rendered from"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SupportAssembly {
-    root: CauseAnchoring,
+    addressing: ContentAddressing,
     expectation: ExpectedGeneratedSupportSchemaId,
-    trial: AxisCargo<TrialTablePayload>,
+    trial: AxisCargo<DeclaredTrialCargo>,
     evaluation: AxisCargo<ProvedCargo>,
     bench: AxisCargo<ProvedCargo>,
+    support: Option<SupportMacroName>,
 }
 
 /// What one JOINED door road produced: the kind's own terminal, the carrier

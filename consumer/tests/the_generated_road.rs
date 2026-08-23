@@ -55,7 +55,7 @@ use harness::report::{OutcomeClass, TrialConclusion, TrialId};
 use harness::runner::{Invocation, TrialBinding, TrialCall, TrialTable};
 use std::collections::BTreeMap;
 use std::fmt;
-use threadpak_consumer::{CountRequest, Lot};
+use threadpak_consumer::{CountRequest, Lot, MergeRefusal};
 
 /// The executable attachment at the two types the engine instantiates.
 type TrialAttachment = ExecutableAttachment<Invocation, TrialConclusion>;
@@ -78,6 +78,42 @@ impl fmt::Debug for GeneratedRoadFailure {
 }
 
 impl From<TrialTableRefusal> for GeneratedRoadFailure {
+    fn from(refusal: TrialTableRefusal) -> Self {
+        Self::Harness(refusal)
+    }
+}
+
+enum GeneratedMutationRoadFailure {
+    Harness(TrialTableRefusal),
+    Lowering(generated_merge_refusal_mutations::MutationLoweringRefusal),
+    MissingWitness,
+    Pair(harness::muterprater::EvaluationPairRefusal),
+    Witness(harness::muterprater::MutationWitnessRefusal),
+    Observation(harness::muterprater::NoMutationObservationRefusal),
+    Parity(harness::muterprater::ParityQualificationRefusal),
+    TrustOpened,
+    DiscoveryShape,
+}
+
+impl fmt::Debug for GeneratedMutationRoadFailure {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Harness(refusal) => formatter.debug_tuple("Harness").field(refusal).finish(),
+            Self::Lowering(refusal) => formatter.debug_tuple("Lowering").field(refusal).finish(),
+            Self::MissingWitness => formatter.write_str("MissingWitness"),
+            Self::Pair(refusal) => formatter.debug_tuple("Pair").field(refusal).finish(),
+            Self::Witness(refusal) => formatter.debug_tuple("Witness").field(refusal).finish(),
+            Self::Observation(refusal) => {
+                formatter.debug_tuple("Observation").field(refusal).finish()
+            }
+            Self::Parity(refusal) => formatter.debug_tuple("Parity").field(refusal).finish(),
+            Self::TrustOpened => formatter.write_str("TrustOpened"),
+            Self::DiscoveryShape => formatter.write_str("DiscoveryShape"),
+        }
+    }
+}
+
+impl From<TrialTableRefusal> for GeneratedMutationRoadFailure {
     fn from(refusal: TrialTableRefusal) -> Self {
         Self::Harness(refusal)
     }
@@ -139,6 +175,9 @@ const LAWFUL_MERGE_PAIR: MergeRequest = MergeRequest {
     left: CountRequest::stated("north-yard", 1u32),
     right: CountRequest::stated("north-yard", 1u32),
 };
+
+const MUTATION_ORDER_CAUSE: harness::report::FindingCause =
+    harness::report::FindingCause::named(CONSUMER, "declared-order-changed");
 
 // ---------------------------------------------------------------------------
 // The owner-supplied seams.
@@ -257,6 +296,11 @@ fn lawful_lots_merge(_invocation: &Invocation) -> TrialConclusion {
     harness::properties::admits_lawful(merged, THE_READING, &LAWFUL_MERGE_PAIR)
 }
 
+/// The ordinary generated row's callable delegates to the exact meaning check mutation parity binds.
+fn merge_refusal_declared_order(_invocation: &Invocation) -> TrialConclusion {
+    declared_order_is_unchanged(&generated_merge_refusal_mutations::production(&()))
+}
+
 // ---------------------------------------------------------------------------
 // The revision commitments this target makes about its own code.
 // ---------------------------------------------------------------------------
@@ -308,6 +352,11 @@ threadpak_consumer::merge_refusal_trials! {
             check_revision: crate::declared_revision(crate::CHECK_REVISION),
             call: crate::merged_count_past_limit_refuses,
         },
+        merge_refusal_declared_order {
+            subject_revision: crate::declared_revision(crate::SUBJECT_REVISION),
+            check_revision: crate::declared_revision(crate::CHECK_REVISION),
+            call: crate::merge_refusal_declared_order,
+        },
     },
 }
 
@@ -356,6 +405,32 @@ fn hand_twin(
     Ok((row, attachment))
 }
 
+/// The hand-written twin of the mutation-focused generated row.
+fn mutation_hand_twin() -> Result<(Row, TrialAttachment), TrialTableRefusal> {
+    let subject = SubjectRoute::named(CONSUMER, "merge-refusal-declared-order")?;
+    let check = CheckRef::named(CONSUMER, "declared-order-is-unchanged")?;
+    let row = Row::declared(
+        ClaimRef::named(CONSUMER, "merge-refusal-declared-order")?,
+        ExecutionSuite::named(CONSUMER, "mutation")?,
+        Classification::authored(
+            vec![Role::named(CONSUMER, "hand-twin")?],
+            vec![Tag::named(CONSUMER, "hand-written")?],
+        )?,
+        subject,
+        check,
+        PopulationRef::named(CONSUMER, "declared-order-baseline")?,
+        Origin::HandWritten,
+    )?;
+    let attachment = ExecutableAttachment::attached(
+        subject,
+        check,
+        declared_revision(SUBJECT_REVISION),
+        declared_revision(CHECK_REVISION),
+        merge_refusal_declared_order,
+    );
+    Ok((row, attachment))
+}
+
 /// The generated table's bindings, read off the module the stamp wrote.
 ///
 /// # Errors
@@ -365,6 +440,182 @@ fn hand_twin(
 /// table this reading cannot either.
 fn generated_world() -> Result<TrialTable, TrialTableRefusal> {
     generated_merge_refusal_trials::table()
+}
+
+fn same_declared_order(
+    left: &tp::refusal::DeclaredCauseOrder,
+    right: &tp::refusal::DeclaredCauseOrder,
+) -> harness::properties::Agreement {
+    if left == right {
+        harness::properties::Agreement::Agrees
+    } else {
+        harness::properties::Agreement::Differs
+    }
+}
+
+fn declared_order_is_unchanged(
+    observed: &tp::refusal::DeclaredCauseOrder,
+) -> TrialConclusion {
+    harness::properties::agreement(
+        same_declared_order,
+        observed,
+        &<MergeRefusal as tp::refusal::CauseOrderDeclaration>::DECLARED_ORDER,
+        MUTATION_ORDER_CAUSE,
+    )
+}
+
+fn mutation_invocation() -> Invocation {
+    Invocation::declared(
+        generated_merge_refusal_trials::INVOCATION,
+        generated_merge_refusal_trials::target(),
+        harness::report::TrialSite::located(
+            core::module_path!(),
+            core::file!(),
+            core::line!(),
+            "the_generated_mutation_surface_qualifies_no_mutation_parity",
+        ),
+        generated_merge_refusal_trials::CLOCK,
+    )
+}
+
+/// The generated mutation module retains complete discovery, lowers only the
+/// owner-permitted adjacent order exchange, and qualifies the exact no-mutation
+/// production/evaluation pair without opening active trust.
+#[test]
+fn the_generated_mutation_surface_qualifies_no_mutation_parity(
+) -> Result<(), GeneratedMutationRoadFailure> {
+    let lowering = generated_merge_refusal_mutations::lowering()
+        .map_err(GeneratedMutationRoadFailure::Lowering)?;
+    let entries = lowering.discovery().entries();
+    let points = lowering.surface().points();
+    let [entry] = entries else {
+        return Err(GeneratedMutationRoadFailure::DiscoveryShape);
+    };
+    let [point] = points else {
+        return Err(GeneratedMutationRoadFailure::DiscoveryShape);
+    };
+    let [alternative] = point.admitted_alternatives() else {
+        return Err(GeneratedMutationRoadFailure::DiscoveryShape);
+    };
+    assert!(matches!(
+        entry.disposition(),
+        harness::muterprater::DiscoveryDisposition::Mapped { point: mapped }
+            if mapped == point.identity()
+    ));
+    assert_eq!(
+        alternative.family().slug(),
+        "declared-order-permutation"
+    );
+    let family_name = lowering.surface().family().name();
+    assert_eq!(family_name.namespace().written(), CONSUMER);
+    assert_eq!(family_name.stem().written(), "lot-merge-evaluation");
+    assert_eq!(point.identity().name().namespace().written(), CONSUMER);
+    assert_eq!(
+        point.identity().name().stem().written(),
+        "lot-merge-declared-order"
+    );
+    let owner_claim = point.owner_claim().name();
+    assert_eq!(owner_claim.namespace().written(), CONSUMER);
+    assert_eq!(owner_claim.stem().written(), "merge-refusal-declared-order");
+    assert_eq!(point.activation_site().name(), point.identity().name());
+    assert!(!point.original_operation().is_empty());
+    assert!(!alternative.operation().is_empty());
+    assert_ne!(point.original_operation(), alternative.operation());
+
+    let production_order = generated_merge_refusal_mutations::production(&());
+    let [candidate_order] = generated_merge_refusal_mutations::candidate_orders();
+    assert_eq!(
+        production_order
+            .iter()
+            .map(tp::refusal::DeclaredCause::spelling)
+            .collect::<Vec<_>>(),
+        vec!["NotTheSameLot", "OverLimit"],
+    );
+    assert_eq!(
+        candidate_order
+            .iter()
+            .map(tp::refusal::DeclaredCause::spelling)
+            .collect::<Vec<_>>(),
+        vec!["OverLimit", "NotTheSameLot"],
+    );
+
+    let production = harness::muterprater::ProductionBinding::declared(
+        lowering.surface().family(),
+        declared_revision(b"threadpak-consumer/merge-order-production/r1"),
+        generated_merge_refusal_mutations::production,
+    );
+    let evaluation = harness::muterprater::EvaluationBinding::declared(
+        lowering.surface(),
+        declared_revision(b"threadpak-consumer/merge-order-evaluation/r1"),
+        generated_merge_refusal_mutations::evaluation,
+    );
+    let pair = harness::muterprater::EvaluationPair::paired(
+        production,
+        evaluation,
+        same_declared_order,
+    )
+    .map_err(GeneratedMutationRoadFailure::Pair)?;
+
+    let claim = ClaimRef::named(CONSUMER, "merge-refusal-declared-order")
+        .map_err(TrialTableRefusal::from)?;
+    let world = generated_world()?;
+    let binding = world
+        .bindings()
+        .iter()
+        .find(|binding| binding.row().claim() == claim)
+        .cloned()
+        .ok_or(GeneratedMutationRoadFailure::MissingWitness)?;
+    let check = binding.row().check();
+    assert_eq!(
+        binding.attachment().call()(&mutation_invocation()),
+        declared_order_is_unchanged(
+            &<MergeRefusal as tp::refusal::CauseOrderDeclaration>::DECLARED_ORDER,
+        ),
+    );
+    let witness = harness::muterprater::MutationWitness::bound(
+        binding,
+        check,
+        declared_order_is_unchanged,
+    )
+    .map_err(GeneratedMutationRoadFailure::Witness)?;
+    let input = ();
+    let reading = harness::muterprater::interpret::observe_no_mutation(
+        &pair,
+        witness,
+        &input,
+        &mutation_invocation(),
+    )
+    .map_err(GeneratedMutationRoadFailure::Observation)?;
+    let standing = harness::muterprater::interpret::qualify_no_mutation(reading);
+    let Some(qualification) = standing.qualification() else {
+        let cause = standing
+            .rejection()
+            .map_or(harness::muterprater::ParityQualificationRefusal::MeaningsDisagreed, |rejected| rejected.cause());
+        return Err(GeneratedMutationRoadFailure::Parity(cause));
+    };
+    assert_eq!(qualification.reading().evaluation_firings(), 0);
+    assert_eq!(
+        qualification.reading().production(),
+        &<MergeRefusal as tp::refusal::CauseOrderDeclaration>::DECLARED_ORDER
+    );
+    assert_eq!(
+        qualification.reading().evaluation(),
+        qualification.reading().production()
+    );
+    match harness::muterprater::interpret::availability::<
+        (),
+        tp::refusal::DeclaredCauseOrder,
+    >(Some(lowering.surface()), None, None)
+    {
+        harness::muterprater::InterpreterAvailability::TrustNotOpened {
+            missing: harness::muterprater::MissingTrustEvidence::CompiledSuitePressure,
+        } => Ok(()),
+        harness::muterprater::InterpreterAvailability::Available(_)
+        | harness::muterprater::InterpreterAvailability::NoConformingSurface
+        | harness::muterprater::InterpreterAvailability::TrustNotOpened { .. } => {
+            Err(GeneratedMutationRoadFailure::TrustOpened)
+        }
+    }
 }
 
 fn generated_twin(
@@ -522,6 +773,7 @@ fn one_selection_reaches_same_trials_down_both_roads() -> Result<(), TrialTableR
         "over-limit-pair",
         merged_count_past_limit_refuses,
     )?;
+    let mutation_twin = mutation_hand_twin()?;
     let hand = harness::descriptor::AuthoredTable::authored(
         harness::descriptor::AuthoredTableName::named(CONSUMER, "the-hand-twin-world")?,
         Provenance::Unproduced,
@@ -539,6 +791,11 @@ fn one_selection_reaches_same_trials_down_both_roads() -> Result<(), TrialTableR
             harness::descriptor::Binding::bound(
                 over_limit_twin.0,
                 over_limit_twin.1,
+                Provenance::Unproduced,
+            )?,
+            harness::descriptor::Binding::bound(
+                mutation_twin.0,
+                mutation_twin.1,
                 Provenance::Unproduced,
             )?,
         ],

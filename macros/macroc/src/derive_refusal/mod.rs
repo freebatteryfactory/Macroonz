@@ -19,31 +19,31 @@ pub use account::{
 pub use capture::{captured, captured_text};
 pub use carry::{
     assembly, bench_disposition, carrier_expansion, carrier_kind, carrier_node, carrier_origin,
-    carrier_plan, carrier_semantic_key, deferred_selectors, evaluation_axis, rows_disposition,
-    trials_axis,
+    carrier_plan, carrier_semantic_key, evaluation_axis, rows_disposition, trials_axis,
 };
 pub use diagnose::composed;
 pub use document::documented;
 pub use plan::DerivedPlan;
-pub use render::{CAUSE_ORDER_CONTRACT, EVALUATION_SUBJECT, FAMILY_CONTRACT, REFUSAL_MODULE};
+pub use render::{CAUSE_ORDER_CONTRACT, FAMILY_CONTRACT, REFUSAL_MODULE};
 pub use types::{
     CapturedCause, CapturedCommitments, CapturedDocumentation, CapturedDocumentationReading,
     CapturedFamilyFacts, CarrierRoadRefusal, CauseOrderStanding, CrateBinding,
-    DEFAULT_CRATE_BINDING, DIAGNOSTIC_PREFIX, DeclaredTrials, DeriveCauseLimit, DerivedMembership,
+    DEFAULT_CRATE_BINDING, DIAGNOSTIC_PREFIX, DeclaredMutations, DeclaredTrials, DeriveCauseLimit,
+    DerivedMembership,
     DocumentedDeclaration, ExplanationBindingRefusal, ExplanationSeat, LineBody, LineSite,
     MemberRenderCause, MemberRenderRefusal, RefusalClass, RefusalCompileContext,
     RefusalDerivationDraft, RefusalDeriveCapture, RefusalDeriveFact, RefusalDeriveRefusal,
     RefusalDeriveSurface, RefusalFamilyExpansion, RefusalLine, RefusalOwnerFacts, RefusalSite,
     RenderRefusal, RenderedMagnitude, SHAPE_WORD_INSEPARABLE_PAIR, SHAPE_WORD_ISSUE_COLLECTION,
-    SHAPE_WORD_SINGLE_CAUSE, SurfaceCaptureRefusal, TextCompileRefusal, TrialDeclarationPosture,
+    MutationDeclarationPosture, SHAPE_WORD_SINGLE_CAUSE, SurfaceCaptureRefusal,
+    TextCompileRefusal, TrialDeclarationPosture,
 };
 
 use crate::closure::{ProjectionClosure, RenderedProjection, RenderedUnit};
-use crate::derive_impl::{EvaluationBinding, MutationPointTable, evaluation_copy};
 use crate::diagnostics::MacrocDiagnostic;
 use crate::generated_support::{AccountedExpansion, JoinedExpansion};
 use crate::planning::RenderedImplementation;
-use crate::token::{CapturedInput, GeneratedTree, TextCapture};
+use crate::token::{CapturedInput, TextCapture};
 use threadpak::types::Bounded;
 
 /// Capture, plan, render, close, and explain one refusal-family declaration —
@@ -78,6 +78,9 @@ pub fn compile_refusal(
         }
         SurfaceCaptureRefusal::Trials(trials) => {
             diagnose::trial_declaration_refused(trials, &context.spans)
+        }
+        SurfaceCaptureRefusal::Mutations(mutations) => {
+            diagnose::mutation_declaration_refused(mutations, &context.spans)
         }
     })?;
     let draft = surface.planned();
@@ -227,103 +230,6 @@ pub fn compile_refusal_text(
     }
 }
 
-/// The active-point enum the family contract's evaluation copy declares.
-///
-/// A literal identifier and never a spelling composed from the declaration:
-/// composing one would be this home deciding how an author's own type name
-/// becomes a Rust identifier, which is a spelling law nobody gave it.
-const FAMILY_ACTIVE_POINT: &str = "RefusalFamilyActivePoint";
-
-/// The name the family contract's evaluation copy reads its selector through.
-///
-/// The copy READS this name and never declares it. What brings it into scope at
-/// every activation site is the generated support shell's splice, which
-/// declares the constant beside the local subject the copy stands over — inside
-/// the shell's own module, in the same expansion, so the copy and the name it
-/// reads arrive at the consumption target together or not at all.
-/// That splice is the shell's rendering and not this home's; what this home owns
-/// is the spelling, which the shell reads as the data it is.
-const FAMILY_ACTIVE_POINT_SELECTOR: &str = "REFUSAL_FAMILY_ACTIVE_POINT";
-
-/// The active-point enum the cause-order contract's evaluation copy declares.
-const CAUSE_ORDER_ACTIVE_POINT: &str = "CauseOrderActivePoint";
-
-/// The name the cause-order contract's evaluation copy reads its selector
-/// through.
-const CAUSE_ORDER_ACTIVE_POINT_SELECTOR: &str = "CAUSE_ORDER_ACTIVE_POINT";
-
-/// The two spellings one contract's evaluation copy names: the active-point
-/// enum it declares, and the selector it reads.
-///
-/// One pair per CONTRACT rather than one pair for the home. A declaration that
-/// carries both contracts delivers two evaluation copies, and one enum spelling
-/// across them would declare a single type twice wherever the shell lands them.
-///
-/// Read through either half of a pair the answer is the same, because the
-/// spellings belong to the PAIR rather than to one half of it — so no caller
-/// has to hold which half it is looking at, and the two evaluation seats are
-/// written out beside the two production ones rather than collapsed under a
-/// wildcard.
-const fn evaluation_spellings(role: RenderedImplementation) -> (&'static str, &'static str) {
-    match role {
-        RenderedImplementation::RenderedFamilyImpl
-        | RenderedImplementation::RenderedFamilyEvaluation => {
-            (FAMILY_ACTIVE_POINT, FAMILY_ACTIVE_POINT_SELECTOR)
-        }
-        RenderedImplementation::RenderedCauseOrderImpl
-        | RenderedImplementation::RenderedCauseOrderEvaluation => {
-            (CAUSE_ORDER_ACTIVE_POINT, CAUSE_ORDER_ACTIVE_POINT_SELECTOR)
-        }
-    }
-}
-
-/// Transform one contract's body, rendered over the evaluation subject, into
-/// its mutation-evaluation copy.
-///
-/// # No mutation point is admitted here, and that is a stated fact
-///
-/// Which operation is worth damaging, which alternatives stand against it, and
-/// which claim owns the site are the harness's declarations, and nothing
-/// reaches this home carrying any of them: [`compile_refusal`] is handed a
-/// captured declaration and an expansion context, and neither names a point.
-///
-/// So the table composed below is the honest minimum this delivery admits.
-/// [`MutationPointTable::over`] seats the mandatory no-mutation control
-/// STRUCTURALLY, and the admitted set beside it is empty — a stated fact about
-/// a declaration nobody admitted a damage against, rather than a set somebody
-/// forgot to supply. Under the control every point renders its original
-/// operation, so a copy with no admitted point carries exactly the production
-/// surface's own operations under another subject's head, which is the parity
-/// the control exists to prove and the whole of what the rendering guard
-/// established before this seat was reached.
-///
-/// # Errors
-///
-/// Returns [`RenderRefusal::Unbounded`], which is the token-magnitude
-/// observation and the only one this seat can establish.
-///
-/// The three roads below refuse in the derive-implementation home's own
-/// families, and at THIS seat all three reduce to that one observation. The
-/// two spellings are the literal identifiers declared above, so a spelling that
-/// is not one is not a value these calls can produce; the admitted set is
-/// empty, so no name can be doubled, no point can claim the control's name, and
-/// no count can outgrow its magnitude; and with no point to stand in, every
-/// composition issue that names one is unestablishable. What remains is the
-/// copy outgrowing the declared token magnitude, which is exactly what
-/// [`RenderRefusal::Unbounded`] names. A seat that ever admitted a caller's
-/// points would owe [`diagnose`] a projection of the composition family; this
-/// one admits none.
-fn evaluation_tree(
-    production: &GeneratedTree,
-    role: RenderedImplementation,
-) -> Result<GeneratedTree, RenderRefusal> {
-    let (active_enum, selector) = evaluation_spellings(role);
-    let binding =
-        EvaluationBinding::declared(active_enum, selector).map_err(|_| RenderRefusal::Unbounded)?;
-    let table = MutationPointTable::over(Vec::new()).map_err(|_| RenderRefusal::Unbounded)?;
-    evaluation_copy(&binding, &table, production).map_err(|_| RenderRefusal::Unbounded)
-}
-
 /// Render every planned role into a rendered unit.
 ///
 /// The roster is fixed by the shape, so the rendering is built by matching on
@@ -354,18 +260,30 @@ fn render_units(
     let family = RenderedImplementation::RenderedFamilyImpl;
     let cause_order = RenderedImplementation::RenderedCauseOrderImpl;
     let family_implementation = rendered_unit(draft, family)?;
-    let family_evaluation = rendered_unit(draft, family.twin())?;
     match draft.declared_membership() {
-        DerivedMembership::FamilyOnly => Ok(RenderedProjection::complete(
-            family_implementation,
-            [family_evaluation],
-        )),
+        DerivedMembership::FamilyOnly => Ok(RenderedProjection::of_one(family_implementation)),
         DerivedMembership::FamilyAndCauseOrder => {
             let order_implementation = rendered_unit(draft, cause_order)?;
-            let order_evaluation = rendered_unit(draft, cause_order.twin())?;
             Ok(RenderedProjection::complete(
                 family_implementation,
-                [family_evaluation, order_implementation, order_evaluation],
+                [order_implementation],
+            ))
+        }
+        DerivedMembership::FamilyAndMutationEvaluation => {
+            let mutation =
+                rendered_unit(draft, RenderedImplementation::RenderedMutationEvaluation)?;
+            Ok(RenderedProjection::complete(
+                family_implementation,
+                [mutation],
+            ))
+        }
+        DerivedMembership::FamilyCauseOrderAndMutationEvaluation => {
+            let order_implementation = rendered_unit(draft, cause_order)?;
+            let mutation =
+                rendered_unit(draft, RenderedImplementation::RenderedMutationEvaluation)?;
+            Ok(RenderedProjection::complete(
+                family_implementation,
+                [order_implementation, mutation],
             ))
         }
     }
@@ -406,20 +324,11 @@ fn rendered_unit(
         RenderedImplementation::RenderedCauseOrderImpl => {
             render::cause_order_implementation(draft.surface())
         }
-        RenderedImplementation::RenderedFamilyEvaluation => {
-            render::family_evaluation_implementation(draft.surface())
-        }
-        RenderedImplementation::RenderedCauseOrderEvaluation => {
-            render::cause_order_evaluation_implementation(draft.surface())
+        RenderedImplementation::RenderedMutationEvaluation => {
+            crate::mutation_descriptor::render::generated_module(draft.surface())
         }
     }
     .map_err(|cause| refused(MemberRenderCause::Rendered(cause)))?;
-    let tree = if role.is_evaluation_copy() {
-        evaluation_tree(&implemented, role)
-            .map_err(|cause| refused(MemberRenderCause::Rendered(cause)))?
-    } else {
-        implemented
-    };
     RenderedUnit::materialized(
         role,
         plan::semantic_key(draft, role),
@@ -430,7 +339,7 @@ fn rendered_unit(
         plan::rust_declaration_profile(),
         plan::rust_declaration_profile_version(),
         plan::member_origin(draft, role),
-        tree,
+        implemented,
     )
     .map_err(|cause| refused(MemberRenderCause::Materialized(cause)))
 }

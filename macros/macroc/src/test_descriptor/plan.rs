@@ -95,7 +95,7 @@ pub fn descriptor_plan(
         profile: member.output.expected_profile,
         profile_version: member.output.expected_profile_version,
         origin: member.output.origin.clone(),
-        declaration: plan.account().commitment(),
+        addressing: plan.account().addressing().clone(),
         engine: plan.context().generator,
         obligation: content.obligation,
     })

@@ -31,12 +31,12 @@ pub use type_contract::{ROW_CONVERSIONS, RowConversion};
 // rendering, and a caller outside it holds an assembly rather than a view of
 // one.
 pub use types::{
-    ActivePointSelector, BoundPath, CrateFacing, DeclarationDoor, DeferredCargo, DescriptorPlan,
+    BoundPath, CrateFacing, DeclarationDoor, DeferredCargo, DescriptorPlan,
     DescriptorPlanIssue, DescriptorRow, GENERATED_ROW_PROJECTION, GENERATED_TABLE_PRODUCER,
     GeneratedSupportShell, PRODUCER_NAMESPACE, PathSegmentLimit, RoleLimit, RowLimit,
-    RowReferences, SelectorLimit, ShellDeclarationRefusal, ShellIssueLimit, ShellName,
+    RowReferences, ShellDeclarationRefusal, ShellIssueLimit, ShellName,
     ShellRenderIssue, ShellRendering, SuiteGroup, SuiteGroupLimit, SupportMacroName, TagLimit,
     TrialDeclarationCause, TrialDeclarationRefusal, TrialLensName, TrialModuleName, TrialSeatName,
     TrialTablePayload, WallName, is_rendered_identifier,
 };
-pub(crate) use types::{DeferredDelivery, TrialDelivery};
+pub(crate) use types::{DeferredDelivery, SupportDelivery, TrialDelivery};

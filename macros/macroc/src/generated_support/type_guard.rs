@@ -32,17 +32,19 @@
 
 use super::super::establish::{consumption_issues, root_issues};
 use super::{
-    AccountedExpansion, AssemblyIssue, AxisCargo, CargoAxis, JoinedExpansion, ProvedCargo,
-    SupportAssembly,
+    AccountedExpansion, AssemblyIssue, AxisCargo, CargoAxis, DeclaredTrialCargo,
+    JoinedExpansion, ProvedCargo, SupportAssembly,
 };
 use crate::closure::{ClosedExpansion, PartitionCargo};
-use crate::plane::{ClosedExpansionId, OutputBytesSubject, ProjectionIdentity};
+use crate::plane::{
+    CapturedDeclarationSubject, ClosedExpansionId, OutputBytesSubject, ProjectionIdentity,
+};
 use crate::planning::{
-    CauseAnchoring, EXPECTED_GENERATED_SUPPORT_SCHEMA_ID, EmissionPartition,
+    ContentAddressing, EXPECTED_GENERATED_SUPPORT_SCHEMA_ID, EmissionPartition,
     ExpectedGeneratedSupportSchemaId, KindDispositions, ProjectionDisposition, ProjectionKind,
     ProjectionKindRow, TestDescriptorProjection,
 };
-use crate::test_descriptor::{DeferredCargo, TrialTablePayload};
+use crate::test_descriptor::{DeferredCargo, SupportMacroName, TrialTablePayload};
 
 pub use seat::CarrierAssembly;
 
@@ -134,6 +136,38 @@ fn refused(issues: Vec<AssemblyIssue>) -> Option<CarrierAssembly> {
     ))
 }
 
+/// Whether the carrier account is exactly the implementation account widened
+/// by the declared trial commitment, where one exists.
+fn carrier_addressing_matches(
+    source: &ContentAddressing,
+    trial: &AxisCargo<DeclaredTrialCargo>,
+    carrier: &ContentAddressing,
+) -> bool {
+    let AxisCargo::Carried(trial) = trial else {
+        return source == carrier;
+    };
+    let (
+        ContentAddressing::Captured {
+            commitment: source_commitment,
+            dependencies: source_dependencies,
+        },
+        ContentAddressing::Captured {
+            commitment: carrier_commitment,
+            dependencies: carrier_dependencies,
+        },
+    ) = (source, carrier)
+    else {
+        return false;
+    };
+    source_commitment == carrier_commitment
+        && carrier_dependencies.len() == source_dependencies.len().saturating_add(1)
+        && carrier_dependencies.iter().next() == Some(&trial.commitment())
+        && carrier_dependencies
+            .iter()
+            .skip(1)
+            .eq(source_dependencies.iter())
+}
+
 impl ProvedCargo {
     /// Read one axis's cargo off the terminal that proved it.
     ///
@@ -220,7 +254,7 @@ impl ProvedCargo {
         }
         Ok(Self {
             source,
-            root: expansion.plan().account().commitment(),
+            addressing: expansion.plan().account().addressing().clone(),
             partition,
             digest: carried.digest(),
             cargo,
@@ -233,10 +267,10 @@ impl ProvedCargo {
         self.source
     }
 
-    /// The root that terminal was planned over.
+    /// The complete content account that terminal was planned over.
     #[must_use]
-    pub const fn root(&self) -> CauseAnchoring {
-        self.root
+    pub const fn addressing(&self) -> &ContentAddressing {
+        &self.addressing
     }
 
     /// The partition it was read from.
@@ -254,6 +288,31 @@ impl ProvedCargo {
     /// The cargo itself: the local subject, the selections, and the tokens.
     pub const fn cargo(&self) -> &DeferredCargo {
         &self.cargo
+    }
+}
+
+impl DeclaredTrialCargo {
+    /// Bind one captured trial commitment to the exact payload read beneath it.
+    pub(crate) const fn carried(
+        commitment: ProjectionIdentity<CapturedDeclarationSubject>,
+        payload: TrialTablePayload,
+    ) -> Self {
+        Self {
+            commitment,
+            payload,
+        }
+    }
+
+    /// The independent commitment over the exact trial helper body.
+    #[must_use]
+    pub const fn commitment(&self) -> ProjectionIdentity<CapturedDeclarationSubject> {
+        self.commitment
+    }
+
+    /// The trial rows read from that helper body.
+    #[must_use]
+    pub const fn payload(&self) -> &TrialTablePayload {
+        &self.payload
     }
 }
 
@@ -282,12 +341,14 @@ impl SupportAssembly {
     /// terminal's partition two axes read, and
     /// [`AssemblyIssue::BenchVehicleNotOpen`] where the bench axis carries
     /// material the published grammar has no seat for.
-    pub fn assembled(
-        root: CauseAnchoring,
+    pub(crate) fn assembled(
+        source_addressing: ContentAddressing,
+        carrier_addressing: ContentAddressing,
         expectation: ExpectedGeneratedSupportSchemaId,
-        trial: AxisCargo<TrialTablePayload>,
+        trial: AxisCargo<DeclaredTrialCargo>,
         evaluation: AxisCargo<ProvedCargo>,
         bench: AxisCargo<ProvedCargo>,
+        support: Option<SupportMacroName>,
     ) -> Result<Self, CarrierAssembly> {
         let mut issues: Vec<AssemblyIssue> = Vec::new();
 
@@ -313,8 +374,15 @@ impl SupportAssembly {
         })
         .collect();
 
-        issues.extend(root_issues(root, &carried));
+        issues.extend(root_issues(&source_addressing, &carried));
         issues.extend(consumption_issues(&carried));
+
+        if !carrier_addressing_matches(&source_addressing, &trial, &carrier_addressing) {
+            issues.push(AssemblyIssue::CarrierRootIsNotTheAssemblys {
+                stated: source_addressing.clone(),
+                planned: carrier_addressing.clone(),
+            });
+        }
 
         // The bench axis's carried arm is typed and its vehicle is a stated
         // opening condition: the published grammar writes a trials seat and a
@@ -329,18 +397,19 @@ impl SupportAssembly {
             return Err(refusal);
         }
         Ok(Self {
-            root,
+            addressing: carrier_addressing,
             expectation,
             trial,
             evaluation,
             bench,
+            support,
         })
     }
 
-    /// The one root every carried axis stands under.
+    /// The complete carrier account the source and declared axes compose.
     #[must_use]
-    pub const fn root(&self) -> CauseAnchoring {
-        self.root
+    pub const fn addressing(&self) -> &ContentAddressing {
+        &self.addressing
     }
 
     /// The published expectation the carrier's gate is pinned against.
@@ -350,7 +419,7 @@ impl SupportAssembly {
 
     /// What the trials axis carries, or what happened to the projection that
     /// would have filled it.
-    pub const fn trial(&self) -> &AxisCargo<TrialTablePayload> {
+    pub const fn trial(&self) -> &AxisCargo<DeclaredTrialCargo> {
         &self.trial
     }
 
@@ -367,6 +436,12 @@ impl SupportAssembly {
     /// somebody adds under pressure.
     pub const fn bench(&self) -> &AxisCargo<ProvedCargo> {
         &self.bench
+    }
+
+    /// The helper-owned public support address, where cargo is invocable.
+    #[must_use]
+    pub const fn support(&self) -> Option<&SupportMacroName> {
+        self.support.as_ref()
     }
 
     /// Every terminal this assembly carries cargo from, in axis-roster order.

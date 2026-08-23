@@ -61,11 +61,11 @@ crate::plane::limits! {
     ///
     /// # Bounds
     ///
-    /// Nine — the trigger roster's own cardinality, because one trigger per kind
-    /// is all that can be watched. It is not a number this home chose out of
-    /// taste: a tenth watched trigger would have to be a tenth KIND of trigger,
-    /// and the roster beside it declares nine.
-    InvalidationLimit = 9,
+    /// Sixty-nine: one content commitment, up to sixty-four declared dependencies,
+    /// and the graph, profile, generator, and target identities carried by the
+    /// shared context. Several triggers may share a variant while watching
+    /// different identities; the identity is part of the trigger.
+    InvalidationLimit = 69,
     /// The magnitude governing how many member plans one bundle may hold.
     ///
     /// # Bounds
@@ -1083,10 +1083,8 @@ pub enum RenderedImplementation {
     RenderedFamilyImpl,
     /// The typed cause-order contract's production implementation.
     RenderedCauseOrderImpl,
-    /// The family implementation's mutation-evaluation copy.
-    RenderedFamilyEvaluation,
-    /// The cause-order implementation's mutation-evaluation copy.
-    RenderedCauseOrderEvaluation,
+    /// The generated mutation discovery, policy, and directive-shaped callable module.
+    RenderedMutationEvaluation,
 }
 
 kinds! {

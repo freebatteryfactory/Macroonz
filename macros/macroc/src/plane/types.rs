@@ -551,6 +551,10 @@ threadpak::closed_register! {
         /// over the surface its semantic commitment already names.
         TrialDeclaration = "trial-declaration",
             "the trial rows one captured declaration carries";
+        /// The mutation policy and owner mapping one captured declaration
+        /// carries as an independent evaluation fact.
+        MutationDeclaration = "mutation-declaration",
+            "the mutation policy and owner mapping one captured declaration carries";
     }
 }
 
@@ -665,6 +669,10 @@ threadpak::closed_register! {
         /// commitment they were cut from.
         TrialDeclaration = "trial-declaration",
             "one captured declaration's trial rows over its semantic commitment";
+        /// The mutation policy and owner mapping one captured declaration
+        /// carries over the delivery facts already named ahead of it.
+        MutationDeclaration = "mutation-declaration",
+            "one captured declaration's mutation policy and owner mapping over its carrier base";
     }
 }
 
@@ -967,6 +975,29 @@ pub const DIAGNOSTIC_RELATION_IDENTITY_PROFILE: IdentityProfile = IdentityProfil
 ///   positions the retired single version moved through.
 pub const TRIAL_DECLARATION_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
     PreimageFamily::TrialDeclaration,
+    IdentityProfileVersion::declared(1),
+);
+
+/// The profile one captured declaration's MUTATION commitment is derived under.
+///
+/// # Preimage
+///
+/// The declaration's SEMANTIC commitment at the anchor, at its full thirty-two
+/// bytes, and over it the canonical bytes of the mutation helper's own captured
+/// token trees, at position one.
+///
+/// # Authority
+///
+/// The helper is an evaluation-policy reading rather than production contract
+/// meaning, so it is absent from the semantic commitment while remaining in the
+/// carrier identity that delivers it. Trial and mutation commitments remain
+/// independent readings; the carrier composes both where both are present.
+///
+/// # Versions
+///
+/// - **1** — the family as first declared.
+pub const MUTATION_DECLARATION_IDENTITY_PROFILE: IdentityProfile = IdentityProfile::declared(
+    PreimageFamily::MutationDeclaration,
     IdentityProfileVersion::declared(1),
 );
 

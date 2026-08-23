@@ -18,22 +18,12 @@
 //! that did not gets `threadpak`.
 //! Nothing here spells a crate name that did not come from the declaration.
 //!
-//! # The two subjects
+//! # The production subject
 //!
-//! One body, two subjects. The PRODUCTION implementation is rendered for the
-//! type the declaration named, at the declaration site, where that type is the
-//! consumer's own. The mutation-EVALUATION copy is rendered for
-//! [`EVALUATION_SUBJECT`], the private type the support shell declares inside
-//! its own hex-keyed module, because a copy rendered for the author's type is
-//! the same contract implemented twice for one type beside the production
-//! implementation, and a foreign trait implemented for a foreign type once it
-//! reaches a consumer's test target.
-//!
-//! The evaluation roads are guarded and the production ones are not, because
-//! the substitution is what needs establishing: `relocatable` walks the BODY
-//! before it goes under the subject's head and refuses one that observes `Self`
-//! or names the declared type, so a copy whose meaning moved with its subject is
-//! a typed refusal rather than a rendering.
+//! Production implementations are rendered only for the type the declaration
+//! named. Generated mutation discovery and its evaluation callables belong to
+//! [`crate::mutation_descriptor`], which renders one separate TestPak-facing
+//! module rather than copying a production implementation onto another type.
 //!
 //! # The selection order
 //!
@@ -55,39 +45,6 @@ pub const FAMILY_CONTRACT: &str = "RefusalFamily";
 
 /// The contract a cause-order implementation realizes.
 pub const CAUSE_ORDER_CONTRACT: &str = "CauseOrderDeclaration";
-
-/// The type the mutation-evaluation copies are implemented for.
-///
-/// # Why the copy stands over another subject at all
-///
-/// The copy is the production implementation transformed, so rendered against
-/// the author's own type it realizes the SAME contract for the SAME type twice:
-/// beside the production implementation that is a duplicate the consumer's
-/// compiler refuses outright, and inside a consumer's test target it is a
-/// foreign trait implemented for a foreign type, which the language refuses on
-/// the orphan rule. Neither is a delivery anybody can repair from the outside —
-/// so the copy stands over a subject the target that receives it owns.
-///
-/// A literal identifier and never a spelling composed from the declaration:
-/// composing one would be this home deciding how an author's own type name
-/// becomes a Rust identifier, which is a spelling law nobody gave it.
-///
-/// # Bounds
-///
-/// The subject is not declared here. This home renders implementations FOR it;
-/// the item that declares it — a private type inside the support shell's own
-/// hex-keyed module, which never becomes consumer API — is the shell's splice,
-/// and the shell reads this spelling as the data it is.
-/// Collision-freedom is therefore the shell's: one module per shell, scoped by
-/// the shell's own content-addressed name, so one plain spelling stands in each.
-pub const EVALUATION_SUBJECT: &str = "EvaluationSubject";
-
-/// The keyword one implementation body observes its own target through.
-///
-/// Read by the guard and by nothing else. It is the language's, not this
-/// home's: a body that spells it means "the type this implementation is for",
-/// and that meaning moves the moment the target does.
-const SELF_TYPE: &str = "Self";
 
 /// The machine's shape variant one body shape spells.
 const fn shape_variant(shape: FamilyShape) -> &'static str {
@@ -190,99 +147,6 @@ pub fn family_implementation(
     implementation(binding, FAMILY_CONTRACT, surface.family_name(), body)
 }
 
-/// Render the `RefusalFamily` implementation for the shell's own local
-/// evaluation subject.
-///
-/// The GUARDED road, and one of the only two that spell [`EVALUATION_SUBJECT`]:
-/// the body is established relocatable before it is put under the subject's
-/// head, so there is no road in this home that moves a body to another subject
-/// without establishing that moving it changes nothing.
-///
-/// # Errors
-///
-/// Returns [`RenderRefusal::Unbounded`] when the tree outgrows the declared
-/// token magnitude, and [`RenderRefusal::TargetObserved`] when the body
-/// observes the target the declaration named.
-pub fn family_evaluation_implementation(
-    surface: &RefusalDeriveSurface,
-) -> Result<GeneratedTree, RenderRefusal> {
-    let binding = surface.binding().spelling();
-    let body = relocatable(family_body(surface)?, surface.family_name())?;
-    implementation(binding, FAMILY_CONTRACT, EVALUATION_SUBJECT, body)
-}
-
-/// Render the `CauseOrderDeclaration` implementation for the shell's own local
-/// evaluation subject, on exactly the terms
-/// [`family_evaluation_implementation`] states.
-///
-/// # Errors
-///
-/// Returns [`RenderRefusal::Unbounded`] when the tree outgrows the declared
-/// token magnitude, and [`RenderRefusal::TargetObserved`] when the body
-/// observes the target the declaration named.
-pub fn cause_order_evaluation_implementation(
-    surface: &RefusalDeriveSurface,
-) -> Result<GeneratedTree, RenderRefusal> {
-    let binding = surface.binding().spelling();
-    let body = relocatable(cause_order_body(surface)?, surface.family_name())?;
-    implementation(binding, CAUSE_ORDER_CONTRACT, EVALUATION_SUBJECT, body)
-}
-
-/// Hand back one implementation body where standing it under another subject
-/// changes nothing, and refuse where it would.
-///
-/// # The guard, exactly
-///
-/// The BODY is walked whole — every nesting level, every token — and the walk
-/// asks one question of every WORD: is it `Self`, or is it the spelling the
-/// declaration named its own type by? Either answer means the body's meaning
-/// depends on the nominal identity of the target, and a body like that says
-/// something different once the target is the shell's subject.
-///
-/// The body and never the whole implementation, because the HEAD names the
-/// target on purpose and names the contract beside it: a walk over the head
-/// would refuse a family whose Rust type happens to be spelled like the
-/// contract it realizes, the module that contract lives in, or the binding the
-/// consumer reached the machine by — four names that have nothing to do with
-/// whether the body observes anything.
-///
-/// Words alone, and that is the second half of the same precision. A cause's
-/// spelling and a family's declared identity are rendered as TEXT literals
-/// rather than as identifiers, so a family whose causes are spelled like its own
-/// type is not a family this guard refuses — it is one whose body names no type
-/// at all.
-///
-/// # Bounds
-///
-/// It establishes that the substitution is MEANING-PRESERVING and nothing
-/// beyond it. Whether the shell declared the subject, whether the consumer's
-/// target compiles the copy, and whether the copy's alternatives are meaningful
-/// damages are three other questions, answered by the shell's splice and by the
-/// harness's running.
-fn relocatable(
-    body: Vec<GeneratedToken>,
-    declared: &str,
-) -> Result<Vec<GeneratedToken>, RenderRefusal> {
-    if body.iter().any(|token| observes_target(token, declared)) {
-        return Err(RenderRefusal::TargetObserved);
-    }
-    Ok(body)
-}
-
-/// Whether one token, or anything nested inside it, names the target.
-fn observes_target(token: &GeneratedToken, declared: &str) -> bool {
-    match token {
-        GeneratedToken::Word(word) => word.as_str() == SELF_TYPE || word.as_str() == declared,
-        GeneratedToken::Group { tokens, .. } => tokens
-            .iter()
-            .any(|nested| observes_target(nested, declared)),
-        GeneratedToken::Punct { .. }
-        | GeneratedToken::Text(_)
-        | GeneratedToken::ByteText(_)
-        | GeneratedToken::Number(_) => false,
-    }
-}
-
 /// The `RefusalFamily` implementation's body: the declared shape, and the
 /// textual selection order.
 fn family_body(surface: &RefusalDeriveSurface) -> Result<Vec<GeneratedToken>, RenderRefusal> {
@@ -347,8 +211,30 @@ pub fn cause_order_implementation(
 /// cause.
 fn cause_order_body(surface: &RefusalDeriveSurface) -> Result<Vec<GeneratedToken>, RenderRefusal> {
     let binding = surface.binding().spelling();
+    let mut body: Vec<GeneratedToken> = Vec::new();
+    body.push(GeneratedToken::word("const"));
+    body.push(GeneratedToken::word("DECLARED_ORDER"));
+    body.push(GeneratedToken::alone(':'));
+    body.extend(GeneratedToken::absolute_path(&[
+        binding,
+        REFUSAL_MODULE,
+        "DeclaredCauseOrder",
+    ]));
+    body.push(GeneratedToken::alone('='));
+    body.extend(declared_order_expression(surface, surface.causes())?);
+    body.push(GeneratedToken::alone(';'));
+
+    Ok(body)
+}
+
+/// One `DeclaredCauseOrder` expression over captured causes in the supplied order.
+pub(crate) fn declared_order_expression<'causes>(
+    surface: &RefusalDeriveSurface,
+    causes: impl IntoIterator<Item = &'causes CapturedCause>,
+) -> Result<Vec<GeneratedToken>, RenderRefusal> {
+    let binding = surface.binding().spelling();
     let mut rows: Vec<GeneratedToken> = Vec::new();
-    for cause in surface.causes() {
+    for cause in causes {
         let mut row_arguments = cause_identity(surface, cause)?;
         row_arguments.push(GeneratedToken::alone(','));
         row_arguments.push(GeneratedToken::text(cause.spelling()));
@@ -363,42 +249,27 @@ fn cause_order_body(surface: &RefusalDeriveSurface) -> Result<Vec<GeneratedToken
         rows.push(GeneratedToken::alone(','));
     }
 
-    let mut body: Vec<GeneratedToken> = Vec::new();
-    body.push(GeneratedToken::word("const"));
-    body.push(GeneratedToken::word("DECLARED_ORDER"));
-    body.push(GeneratedToken::alone(':'));
-    body.extend(GeneratedToken::absolute_path(&[
-        binding,
-        REFUSAL_MODULE,
-        "DeclaredCauseOrder",
-    ]));
-    body.push(GeneratedToken::alone('='));
-    body.extend(GeneratedToken::absolute_path(&[
+    let mut expression = GeneratedToken::absolute_path(&[
         binding,
         REFUSAL_MODULE,
         "DeclaredCauseOrder",
         "declared",
-    ]));
+    ]);
     let mut argument: Vec<GeneratedToken> = vec![GeneratedToken::alone('&')];
     argument.push(
         GeneratedToken::group(GeneratedDelimiter::Bracket, rows)
             .map_err(|_| RenderRefusal::Unbounded)?,
     );
-    body.push(
+    expression.push(
         GeneratedToken::group(GeneratedDelimiter::Parenthesis, argument)
             .map_err(|_| RenderRefusal::Unbounded)?,
     );
-    body.push(GeneratedToken::alone(';'));
-
-    Ok(body)
+    Ok(expression)
 }
 
 /// `impl ::<binding>::refusal::<Contract> for <Target> { <body> }`.
 ///
-/// The target is a parameter because one body is delivered for two subjects:
-/// the type the declaration named, and the support shell's own local evaluation
-/// subject. The head is the only place either spelling is written, which is
-/// what makes the guard's walk over the body a complete question.
+/// The target is a parameter shared by the two production contracts this home renders.
 fn implementation(
     binding: &str,
     contract: &str,

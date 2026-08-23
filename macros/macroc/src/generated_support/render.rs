@@ -37,7 +37,7 @@
 
 use super::{AssemblyIssue, AxisCargo, CarrierAssembly, ShellComposition, SupportAssembly};
 use crate::test_descriptor::{
-    DeferredDelivery, DescriptorPlan, GeneratedSupportShell, TrialDelivery,
+    DeferredDelivery, DescriptorPlan, GeneratedSupportShell, SupportDelivery, TrialDelivery,
 };
 
 /// Render one generated support shell over what the carrier's plan decided and
@@ -97,21 +97,26 @@ pub fn assembled_shell(
 ) -> Result<GeneratedSupportShell, ShellComposition> {
     // The join: this vehicle's plan and this cargo's assembly name one
     // declaration, or there is no lawful shell for the pair.
-    if stated.declaration != assembly.root() {
+    if stated.addressing != *assembly.addressing() {
         return Err(ShellComposition::NotOneDeclarations(
             CarrierAssembly::established(AssemblyIssue::CarrierRootIsNotTheAssemblys {
-                stated: assembly.root(),
-                planned: stated.declaration,
+                stated: assembly.addressing().clone(),
+                planned: stated.addressing.clone(),
             }),
         ));
     }
     let trials = match assembly.trial() {
         AxisCargo::Absent { .. } => TrialDelivery::NothingDeclared,
-        AxisCargo::Carried(payload) => TrialDelivery::Declared(payload),
+        AxisCargo::Carried(payload) => TrialDelivery::Declared(payload.payload()),
     };
     let deferred = match assembly.evaluation() {
         AxisCargo::Absent { .. } => DeferredDelivery::NothingDeferred,
         AxisCargo::Carried(proved) => DeferredDelivery::Carried(proved.cargo()),
     };
-    GeneratedSupportShell::rendered(stated, trials, deferred).map_err(ShellComposition::Rendering)
+    let support = assembly.support().map_or(
+        SupportDelivery::Unaddressed,
+        SupportDelivery::Addressed,
+    );
+    GeneratedSupportShell::rendered(stated, trials, deferred, support)
+        .map_err(ShellComposition::Rendering)
 }
