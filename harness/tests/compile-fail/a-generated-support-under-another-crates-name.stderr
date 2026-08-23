@@ -1,0 +1,13 @@
+error[E0433]: cannot find `descriptor` in `macroonz`
+  --> tests/compile-fail/a-generated-support-under-another-crates-name.rs:15:1
+   |
+15 | / threadpak_testpak::generated_support! {
+16 | |     expected: [
+17 | |         222, 149, 109, 97, 135, 230, 254, 180, 55, 195, 41, 161, 180, 186, 130, 96,
+18 | |         170, 30, 123, 48, 131, 30, 77, 129, 225, 115, 89, 175, 105, 68, 31, 161,
+...  |
+22 | |     deferred: { },
+23 | | }
+   | |_^ could not find `descriptor` in `macroonz`
+   |
+   = note: this error originates in the macro `threadpak_testpak::generated_support` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -20,4 +20,4 @@ workspace = true
 # have the tree. The requirement restates `workspace.package.version` because a
 # dependency requirement cannot inherit it; the two move together or the package
 # stops resolving, which is the failure that names itself.
-threadpak-macroc = { path = "../macroc", version = "0.0.0" }
+threadpak-macroc = { path = "../compiler", version = "0.0.0" }

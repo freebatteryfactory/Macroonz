@@ -1,0 +1,8 @@
+// MATERIALIZED DAMAGED ARTIFACT — the lawful rendering of the declaration
+// stated in `../refusal_artifact_readings.rs`, with one word changed by this harness.
+// It COMPILES, and declares a body shape the declaration did not name, which is
+// why the compiled read-back is the seat of the claim: the disagreement is a
+// value, and only a compiler hands back values.
+// Its text is not re-derived — what stands behind it is the pair of value-level
+// readings beside the lawful control, and that file's page says so.
+impl :: macroonz :: RefusalFamily for DemoFamily { const SHAPE : :: macroonz :: FamilyShape = :: macroonz :: FamilyShape :: IssueCollection ; } impl DemoFamily { #[ doc = "The generated textual projection of the typed cause order." ] pub const SELECTION_ORDER : & 'static [ & 'static str ] = & [ "NotCanonical" , "NotAdmitted" , "Unbounded" ] ; } impl :: macroonz :: CauseOrderDeclaration for DemoFamily { const DECLARED_ORDER : :: macroonz :: DeclaredCauseOrder = :: macroonz :: DeclaredCauseOrder :: declared ( & [ :: macroonz :: DeclaredCause :: declared ( :: macroonz :: CauseId :: declared ( :: macroonz :: RefusalFamilyId :: declared ( "testpak.demo" ) , :: macroonz :: LocalCauseKey :: declared ( "not-canonical" ) ) , "NotCanonical" ) , :: macroonz :: DeclaredCause :: declared ( :: macroonz :: CauseId :: declared ( :: macroonz :: RefusalFamilyId :: declared ( "testpak.demo" ) , :: macroonz :: LocalCauseKey :: declared ( "not-admitted" ) ) , "NotAdmitted" ) , :: macroonz :: DeclaredCause :: declared ( :: macroonz :: CauseId :: declared ( :: macroonz :: RefusalFamilyId :: declared ( "testpak.demo" ) , :: macroonz :: LocalCauseKey :: declared ( "unbounded" ) ) , "Unbounded" ) , ] ) ; }

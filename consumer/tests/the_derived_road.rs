@@ -4,14 +4,7 @@
 //!
 //! # What this file is evidence of
 //!
-//! One public, fully documented refusal-family declaration went through the
-//! derive in this crate's library, and what came back at the declaration site is
-//! compiled here and read as values. Every path into either ThreadPak crate is
-//! spelled `harness::` or `tp::`, and the derived implementations spell the
-//! machine `tp::` as well — the declaration states the binding, and the
-//! rendering follows it — so an implementation that resolved only under a
-//! canonical spelling would fail to resolve at this seat rather than in somebody
-//! else's tree later.
+//! One public, fully documented refusal-family declaration went through the derive in this crate's library, and what came back at the declaration site is compiled here and read as values. Every contract path is spelled `macroonz::`, every harness path is spelled `harness::`, and the declaration states the contract binding followed by the rendering.
 //!
 //! # What is read, and how
 //!
@@ -24,14 +17,7 @@
 //!
 //! # The parity this crate's pair earns
 //!
-//! [`declared_facts`] is generic in the contracts, so the family realized by
-//! hand and the family derived from a declaration stand in one seat: both
-//! satisfy `tp::refusal::RefusalFamily`, both satisfy
-//! `tp::refusal::CauseOrderDeclaration`, and both are read by one road taken
-//! twice rather than by two roads that happen to agree. The two rows that take
-//! it also settle what the two families' shared word buys: each declares a cause
-//! under the local key `over-limit`, and the two causes are different identities
-//! because their family seats differ.
+//! [`declared_facts`] is generic in the contracts, so the family realized by hand and the family derived from a declaration stand in one seat: both satisfy `macroonz::RefusalFamily`, both satisfy `macroonz::CauseOrderDeclaration`, and both are read by one road taken twice rather than by two roads that happen to agree. The two rows also establish that causes sharing the local key `over-limit` remain distinct when their family identities differ.
 //!
 //! # What this file does not establish
 //!
@@ -109,10 +95,10 @@ const DECLARED_TOOLCHAIN: &str = "1.98.0";
 #[derive(Debug, Clone, Copy)]
 struct DeclaredFacts {
     /// The body shape the family declares.
-    shape: tp::refusal::FamilyShape,
+    shape: macroonz::FamilyShape,
     /// The canonical order the family declares over its causes, by stable
     /// identity.
-    order: tp::refusal::DeclaredCauseOrder,
+    order: macroonz::DeclaredCauseOrder,
 }
 
 /// One family's declared facts, read through the contracts rather than off a
@@ -121,7 +107,7 @@ struct DeclaredFacts {
 /// Generic on purpose: the bound is the parity statement. A family realized by
 /// hand and a family derived from a declaration both stand in this seat, so
 /// what the rows below take is one road taken twice.
-fn declared_facts<Family: tp::refusal::CauseOrderDeclaration>() -> DeclaredFacts {
+fn declared_facts<Family: macroonz::CauseOrderDeclaration>() -> DeclaredFacts {
     DeclaredFacts {
         shape: Family::SHAPE,
         order: Family::DECLARED_ORDER,
@@ -133,12 +119,11 @@ fn declared_facts<Family: tp::refusal::CauseOrderDeclaration>() -> DeclaredFacts
 // ---------------------------------------------------------------------------
 
 /// The identity the derived family's declaration states.
-const MERGE_FAMILY: tp::refusal::RefusalFamilyId =
-    tp::refusal::RefusalFamilyId::declared("consumer.lot-merge");
+const MERGE_FAMILY: macroonz::RefusalFamilyId =
+    macroonz::RefusalFamilyId::declared("consumer.lot-merge");
 
 /// The identity the hand-realized family's declaration states.
-const LOT_FAMILY: tp::refusal::RefusalFamilyId =
-    tp::refusal::RefusalFamilyId::declared("consumer.lot");
+const LOT_FAMILY: macroonz::RefusalFamilyId = macroonz::RefusalFamilyId::declared("consumer.lot");
 
 /// The cause rows the DERIVED family's declaration states, written out here
 /// from exactly the facts that declaration carries: the family identity, each
@@ -149,18 +134,18 @@ const LOT_FAMILY: tp::refusal::RefusalFamilyId =
 /// derivation that minted an identity under another family, joined a prefix
 /// into one string, dropped a cause, or ordered the rows differently answers
 /// with a value that differs from these.
-const THE_DERIVED_ROWS: &[tp::refusal::DeclaredCause] = &[
-    tp::refusal::DeclaredCause::declared(
-        tp::refusal::CauseId::declared(
+const THE_DERIVED_ROWS: &[macroonz::DeclaredCause] = &[
+    macroonz::DeclaredCause::declared(
+        macroonz::CauseId::declared(
             MERGE_FAMILY,
-            tp::refusal::LocalCauseKey::declared("not-the-same-lot"),
+            macroonz::LocalCauseKey::declared("not-the-same-lot"),
         ),
         "NotTheSameLot",
     ),
-    tp::refusal::DeclaredCause::declared(
-        tp::refusal::CauseId::declared(
+    macroonz::DeclaredCause::declared(
+        macroonz::CauseId::declared(
             MERGE_FAMILY,
-            tp::refusal::LocalCauseKey::declared("over-limit"),
+            macroonz::LocalCauseKey::declared("over-limit"),
         ),
         "OverLimit",
     ),
@@ -172,33 +157,30 @@ const THE_DERIVED_ROWS: &[tp::refusal::DeclaredCause] = &[
 /// Its second row carries the local key the derived family's second row
 /// carries, and the two are different causes: the key is a word, and the family
 /// seat beside it is the ownership.
-const THE_HAND_ROWS: &[tp::refusal::DeclaredCause] = &[
-    tp::refusal::DeclaredCause::declared(
-        tp::refusal::CauseId::declared(
+const THE_HAND_ROWS: &[macroonz::DeclaredCause] = &[
+    macroonz::DeclaredCause::declared(
+        macroonz::CauseId::declared(
             LOT_FAMILY,
-            tp::refusal::LocalCauseKey::declared("not-labelled"),
+            macroonz::LocalCauseKey::declared("not-labelled"),
         ),
         "NotLabelled",
     ),
-    tp::refusal::DeclaredCause::declared(
-        tp::refusal::CauseId::declared(
-            LOT_FAMILY,
-            tp::refusal::LocalCauseKey::declared("over-limit"),
-        ),
+    macroonz::DeclaredCause::declared(
+        macroonz::CauseId::declared(LOT_FAMILY, macroonz::LocalCauseKey::declared("over-limit")),
         "OverLimit",
     ),
 ];
 
 /// What the DERIVED family's declaration states, whole.
 const THE_DERIVED_DECLARATION: DeclaredFacts = DeclaredFacts {
-    shape: tp::refusal::FamilyShape::SingleCause,
-    order: tp::refusal::DeclaredCauseOrder::declared(THE_DERIVED_ROWS),
+    shape: macroonz::FamilyShape::SingleCause,
+    order: macroonz::DeclaredCauseOrder::declared(THE_DERIVED_ROWS),
 };
 
 /// What the HAND-REALIZED family's declaration states, whole.
 const THE_HAND_REALIZATION: DeclaredFacts = DeclaredFacts {
-    shape: tp::refusal::FamilyShape::SingleCause,
-    order: tp::refusal::DeclaredCauseOrder::declared(THE_HAND_ROWS),
+    shape: macroonz::FamilyShape::SingleCause,
+    order: macroonz::DeclaredCauseOrder::declared(THE_HAND_ROWS),
 };
 
 /// The cause this consumer cites when the derived family's declared facts are
@@ -236,8 +218,7 @@ fn the_same_facts(left: &DeclaredFacts, right: &DeclaredFacts) -> Agreement {
 // The checks: thin functions binding a declared surface to a harness law.
 // ---------------------------------------------------------------------------
 
-/// The derived family's declared facts, read back off the implementations the
-/// derive delivered and compared against what its declaration states.
+/// The derived family's declared facts, read back off the implementations the derive delivered and compared against what its declaration states.
 fn the_derived_declaration_is_read_back(_invocation: &Invocation) -> TrialConclusion {
     harness::properties::agreement(
         the_same_facts,
@@ -247,16 +228,11 @@ fn the_derived_declaration_is_read_back(_invocation: &Invocation) -> TrialConclu
     )
 }
 
-/// The machine's own admission road over the derived declaration: the declared
-/// shape and the declared selection order cohere, and the typed cause order
-/// projects onto the textual one.
+/// The contract's admission road over the derived declaration proves that its shape and typed cause order cohere and that the generated textual order projects from the typed declaration.
 ///
-/// The textual selection order is reached here and nowhere else in this file.
-/// It needs no roster written out beside it, because this road IS the join
-/// between it and the typed order — a second roster would be one fact stated
-/// twice, and the two copies would be free to drift.
+/// The inherent textual projection is consumed directly, so this file states no second roster that could drift from the derive output.
 fn the_derived_family_closes_its_joins(_invocation: &Invocation) -> TrialConclusion {
-    let witness = tp::refusal::admit_order::<MergeRefusal>();
+    let witness = macroonz::admit_order_projection::<MergeRefusal>(MergeRefusal::SELECTION_ORDER);
     harness::properties::admitted(&witness, FAMILY_NOT_ADMITTED)
 }
 

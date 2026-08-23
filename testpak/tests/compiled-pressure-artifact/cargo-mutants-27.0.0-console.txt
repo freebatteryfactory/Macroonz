@@ -1,4 +1,0 @@
-Found 1 mutant to test
-ok       Unmutated baseline
-caught   testpak/src/muterprater/wrap.rs:360:13: replace != with == in roster_count
-1 mutant tested: 1 caught

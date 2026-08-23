@@ -1,0 +1,69 @@
+//! The question home's declarations: the protocol version, the closed question
+//! roster, and the typed answer to whether a kind admits one.
+//!
+//! Declarations only, and the home has no other seat.
+//! Nothing here has a private field, so there is no invariant nucleus to guard;
+//! nothing here computes, so there is no role file to compute it.
+
+/// The version of the explanation protocol this roster states.
+///
+/// A plain number rather than a typed carrier, because this module imports
+/// nothing and that absence is the reason it exists: a leaf that reached for a
+/// version type would stop being a leaf.
+///
+/// Bump it when the protocol changes — a question added, a question removed, or
+/// a question that keeps its spelling and asks something else.
+/// It is load-bearing where a closure identity is derived: a closure claims that
+/// a rendering answers this protocol, and a claim made under a different protocol
+/// is a different claim.
+pub const EXPLANATION_PROTOCOL_VERSION: u32 = 2;
+
+macroonz::closed_register! {
+    /// The closed roster of questions every generated thing must be able to
+    /// answer.
+    ///
+    /// A generated thing that cannot answer one of these is a generated thing
+    /// nobody can hold to account.
+    /// The roster is declared in protocol order, and a question's `slot` is what
+    /// a canonical encoding of a coverage issue carries for it.
+    pub enum ExplanationQuestion {
+        /// What are you?
+        WhatAreYou = "what-are-you", "what are you";
+        /// Which owner required you?
+        WhichOwnerRequired = "which-owner-required", "which owner required you";
+        /// Which declaration caused you?
+        WhichDeclarationCaused = "which-declaration-caused",
+            "which declaration caused you";
+        /// Which pattern instance produced you?
+        WhichPatternInstance = "which-pattern-instance", "which pattern instance produced you";
+        /// Which profile were you decided under?
+        WhichProfile = "which-profile", "which profile were you decided under";
+        /// Which assumptions and specializations do you rest on?
+        WhichAssumptionsAndSpecializations = "which-assumptions-and-specializations",
+            "which assumptions and specializations do you rest on";
+        /// Which output identity and digest are you?
+        WhichOutputIdentityAndDigest = "which-output-identity-and-digest",
+            "which output identity and digest are you";
+        /// Which tests challenge you?
+        WhichTestsChallenge = "which-tests-challenge", "which tests challenge you";
+        /// Which benchmarks measure you?
+        WhichBenchmarksMeasure = "which-benchmarks-measure",
+            "which benchmarks measure you";
+        /// What invalidates you?
+        WhatInvalidates = "what-invalidates", "what invalidates you";
+        /// Why was a related projection not generated?
+        WhyWasRelatedProjectionNotGenerated = "why-was-related-projection-not-generated",
+            "why was a related projection not generated";
+        /// What repairs a refusal?
+        WhatRepairsARefusal = "what-repairs-a-refusal", "what repairs a refusal";
+    }
+}
+
+/// Whether one kind's plans admit one question at all.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum QuestionApplicability {
+    /// The kind's plans answer this question.
+    Applicable,
+    /// The kind's plans do not admit this question at all.
+    NotApplicableToKind,
+}

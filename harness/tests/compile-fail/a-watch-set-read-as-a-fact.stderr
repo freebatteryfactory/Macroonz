@@ -1,0 +1,14 @@
+error[E0308]: mismatched types
+  --> tests/compile-fail/a-watch-set-read-as-a-fact.rs:42:5
+   |
+41 | ) -> InvalidationSet {
+   |      --------------- expected `macroonz::types::NonEmptyBounded<InvalidationTrigger, InvalidationLimit>` because of return type
+42 |     context.watch_set(content)
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `NonEmptyBounded<..., ...>`, found `Result<NonEmptyBounded<..., ...>, ...>`
+   |
+   = note: expected struct `macroonz::types::NonEmptyBounded<InvalidationTrigger, InvalidationLimit>`
+                found enum `Result<macroonz::types::NonEmptyBounded<InvalidationTrigger, InvalidationLimit>, ProjectionPlanning>`
+help: consider using `Result::expect` to unwrap the `Result<macroonz::types::NonEmptyBounded<InvalidationTrigger, InvalidationLimit>, ProjectionPlanning>` value, panicking if the value is a `Result::Err`
+   |
+42 |     context.watch_set(content).expect("REASON")
+   |                               +++++++++++++++++

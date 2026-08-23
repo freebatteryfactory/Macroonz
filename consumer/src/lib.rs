@@ -1,11 +1,6 @@
 //! An ordinary crate that adopts the machine from outside it.
 //!
-//! The package renames every ThreadPak dependency on its own dependency list —
-//! `tp` for the machine, `tp_macros` for the derive shell, `harness` for the
-//! judge — and reaches all three under no other name anywhere in this tree. That
-//! rename is the whole point of the package: a reference the machine, the shell,
-//! or the harness emits which resolves only under a published package name does
-//! not resolve here.
+//! The package names the shared declaration contracts `macroonz`, renames the derive shell `tp_macros`, renames the judge `harness`, and reaches all three under no other name anywhere in this tree. That dependency spelling is the whole point of the package: a reference emitted by a participant which resolves only under a published package name does not resolve here.
 //!
 //! # What this library is
 //!
@@ -19,15 +14,7 @@
 //!
 //! # The machine surface this library uses
 //!
-//! [`LotRefusal`] realizes the machine's two refusal contracts by hand —
-//! `tp::refusal::RefusalFamily` and `tp::refusal::CauseOrderDeclaration`, whose
-//! own page names a consumer outside the machine's crate as a lawful declarer of
-//! a family. [`MergeRefusal`] realizes the same two contracts through the
-//! shell's derive, off one declaration wearing `#[refusal(...)]`. Both roads
-//! spell the machine `tp::` — the derived one because its declaration states the
-//! binding this package reaches the machine by — so both are the standing
-//! positive control for the rename: they resolve, or this package does not
-//! build.
+//! [`LotRefusal`] realizes `macroonz::RefusalFamily` and `macroonz::CauseOrderDeclaration` by hand. [`MergeRefusal`] realizes the same contracts through the derive shell from one `#[refusal(...)]` declaration, so both roads are positive controls for the declared dependency path.
 //!
 //! # The pair
 //!
@@ -41,15 +28,9 @@
 //!
 //! Two deliveries, to two builds, from one declaration.
 //!
-//! At the DECLARATION SITE, which this crate's normal build compiles: the two
-//! production contract implementations. They are what
-//! `tests/the_derived_road.rs` reads back as values.
+//! At the declaration site, which this crate's normal build compiles, the derive emits the two production contract implementations read back by `tests/the_derived_road.rs`.
 //!
-//! Into a CONSUMPTION TARGET, which the normal build compiles none of: the trial
-//! rows [`MergeRefusal`]'s declaration states, and the evaluation copies of its
-//! two implementations, both behind one schema pin inside one exported carrier.
-//! `tests/the_generated_road.rs` is the target that invokes it, supplies the
-//! facts only a test target holds, and runs the rows.
+//! Into a consumption target, which the normal build does not compile, the derive delivers the declared trial rows and mutation production/evaluation callables behind one schema pin inside one exported carrier. `tests/the_generated_road.rs` invokes that carrier, supplies the facts only a test target holds, and runs the rows.
 //!
 //! # The seat's claim ceiling
 //!
@@ -218,7 +199,7 @@ pub enum LotRefusal {
 #[must_use = "a refusal is the reason two lots were not merged"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, tp_macros::RefusalFamily)]
 #[refusal(
-    crate = tp,
+    crate = macroonz,
     family = "consumer.lot-merge",
     shape = single_cause,
     order(NotTheSameLot = "not-the-same-lot", OverLimit = "over-limit")
@@ -278,34 +259,75 @@ pub enum MergeRefusal {
     OverLimit,
 }
 
+/// A refusal family whose generated mutation discovery has no owner mapping.
+#[must_use = "a refusal is the reason this producer declaration was not accepted"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, tp_macros::RefusalFamily)]
+#[refusal(
+    crate = macroonz,
+    family = "consumer.owner-unmapped-producer",
+    shape = single_cause,
+    order(First = "first", Second = "second")
+)]
+#[threadpak_mutations(
+    support = owner_unmapped_support,
+    module = generated_owner_unmapped_mutations,
+    family = named("consumer", "owner-unmapped-evaluation"),
+    permit named("consumer", "unmapped-order") = ["declared-order-permutation"],
+)]
+pub enum OwnerUnmappedFamily {
+    /// The first declared cause.
+    First,
+    /// The second declared cause.
+    Second,
+}
+
+/// A refusal family whose generated mutation discovery has no permission for its owner mapping.
+#[must_use = "a refusal is the reason this producer declaration was not accepted"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, tp_macros::RefusalFamily)]
+#[refusal(
+    crate = macroonz,
+    family = "consumer.mapped-unpermitted-producer",
+    shape = single_cause,
+    order(First = "first", Second = "second")
+)]
+#[threadpak_mutations(
+    support = mapped_unpermitted_support,
+    module = generated_mapped_unpermitted_mutations,
+    family = named("consumer", "mapped-unpermitted-evaluation"),
+    map declared_order = named("consumer", "mapped-order"),
+)]
+pub enum MappedUnpermittedFamily {
+    /// The first declared cause.
+    First,
+    /// The second declared cause.
+    Second,
+}
+
 /// This crate's stable identity for the lot family.
 ///
 /// The domain segment is this consumer's, never the machine's: a family
 /// identity states who owns the family, and nothing about it is inherited.
-const LOT_FAMILY: tp::refusal::RefusalFamilyId =
-    tp::refusal::RefusalFamilyId::declared("consumer.lot");
+const LOT_FAMILY: macroonz::RefusalFamilyId = macroonz::RefusalFamilyId::declared("consumer.lot");
 
-impl tp::refusal::RefusalFamily for LotRefusal {
-    const SHAPE: tp::refusal::FamilyShape = tp::refusal::FamilyShape::SingleCause;
-    const SELECTION_ORDER: &'static [&'static str] = &["NotLabelled", "OverLimit"];
+impl macroonz::RefusalFamily for LotRefusal {
+    const SHAPE: macroonz::FamilyShape = macroonz::FamilyShape::SingleCause;
 }
 
-impl tp::refusal::CauseOrderDeclaration for LotRefusal {
-    const DECLARED_ORDER: tp::refusal::DeclaredCauseOrder =
-        tp::refusal::DeclaredCauseOrder::declared(&[
-            tp::refusal::DeclaredCause::declared(
-                tp::refusal::CauseId::declared(
-                    LOT_FAMILY,
-                    tp::refusal::LocalCauseKey::declared("not-labelled"),
-                ),
-                "NotLabelled",
+impl macroonz::CauseOrderDeclaration for LotRefusal {
+    const DECLARED_ORDER: macroonz::DeclaredCauseOrder = macroonz::DeclaredCauseOrder::declared(&[
+        macroonz::DeclaredCause::declared(
+            macroonz::CauseId::declared(
+                LOT_FAMILY,
+                macroonz::LocalCauseKey::declared("not-labelled"),
             ),
-            tp::refusal::DeclaredCause::declared(
-                tp::refusal::CauseId::declared(
-                    LOT_FAMILY,
-                    tp::refusal::LocalCauseKey::declared("over-limit"),
-                ),
-                "OverLimit",
+            "NotLabelled",
+        ),
+        macroonz::DeclaredCause::declared(
+            macroonz::CauseId::declared(
+                LOT_FAMILY,
+                macroonz::LocalCauseKey::declared("over-limit"),
             ),
-        ]);
+            "OverLimit",
+        ),
+    ]);
 }

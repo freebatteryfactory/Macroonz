@@ -4,14 +4,7 @@
 //!
 //! # What this file is evidence of
 //!
-//! Every path below into either ThreadPak crate is spelled `harness::` or
-//! `tp::`; the machine's and the judge's published names stand on this
-//! package's dependency list and in no path here, and the stamp's expansion
-//! adds none: what `harness::trial_table!` writes into this crate reaches its
-//! defining crate through `$crate`, which is the mechanism this file exercises
-//! rather than describes. A generated reference that resolved only under a
-//! canonical spelling would fail to resolve here, at this seat, rather than in
-//! somebody else's tree later.
+//! Every contract path below is spelled `macroonz::`, every harness path is spelled `harness::`, and the stamp's expansion adds no hidden dependency spelling. What `harness::trial_table!` writes reaches its defining crate through `$crate`, which is the mechanism this file exercises.
 //!
 //! # The road, as a hand walks it
 //!
@@ -156,11 +149,9 @@ fn counts_the_same_twice(_invocation: &Invocation) -> TrialConclusion {
     harness::properties::determinism_run_twice(counted, the_same_outcome, &A_LAWFUL_REQUEST)
 }
 
-/// The machine's own admission road over this consumer's hand-declared refusal
-/// family: the declared shape and the declared selection order cohere, and the
-/// typed cause order projects onto the textual one.
+/// The contract's admission road proves that this consumer's hand-declared family shape and typed cause order cohere.
 fn closes_the_family_joins(_invocation: &Invocation) -> TrialConclusion {
-    let witness = tp::refusal::admit_order::<LotRefusal>();
+    let witness = macroonz::admit_order::<LotRefusal>();
     harness::properties::admitted(&witness, FAMILY_NOT_ADMITTED)
 }
 

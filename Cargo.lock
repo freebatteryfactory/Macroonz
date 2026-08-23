@@ -112,6 +112,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2"
 
 [[package]]
+name = "macroonz"
+version = "0.0.0"
+
+[[package]]
 name = "memchr"
 version = "2.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -219,14 +223,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "threadpak"
-version = "0.0.0"
-
-[[package]]
 name = "threadpak-consumer"
 version = "0.0.0"
 dependencies = [
- "threadpak",
+ "macroonz",
  "threadpak-macros",
  "threadpak-testpak",
 ]
@@ -236,7 +236,7 @@ name = "threadpak-macroc"
 version = "0.0.0"
 dependencies = [
  "blake3",
- "threadpak",
+ "macroonz",
 ]
 
 [[package]]
@@ -252,8 +252,8 @@ version = "0.0.0"
 dependencies = [
  "arbitrary",
  "blake3",
+ "macroonz",
  "syn",
- "threadpak",
  "threadpak-macroc",
  "threadpak-macros",
  "trybuild",

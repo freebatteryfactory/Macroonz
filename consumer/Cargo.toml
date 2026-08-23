@@ -14,18 +14,14 @@ publish = false
 [lints]
 workspace = true
 
-# The machine and the derive shell, under the names this consumer chose for
-# them. Every path in this package is spelled `tp::` or `tp_macros::`, and each
-# published package name appears on its own line here and nowhere else in the
-# tree — so a reference that resolves only under a canonical spelling does not
-# resolve here at all.
+# The declaration contracts and derive shell use the names this consumer chose. Every contract path is spelled `macroonz::`, every derive path is spelled `tp_macros::`, and a reference that resolves only under another spelling does not resolve here.
 #
 # The shell is an ordinary dependency rather than a development one because the
 # declaration it serves is library source: what it delivers at the declaration
 # site is the two contract implementations this crate's derived refusal family
 # is compiled with, in every build and not only in a test one.
 [dependencies]
-tp = { package = "threadpak", path = ".." }
+macroonz = { package = "macroonz", path = "../contracts" }
 tp_macros = { package = "threadpak-macros", path = "../macros/proc" }
 
 # The judge, under the name this consumer chose for it, reached only from
@@ -33,4 +29,4 @@ tp_macros = { package = "threadpak-macros", path = "../macros/proc" }
 # direction — production never depends on its judge — and the ordinary shape of
 # a consumer, whose testing lives in its tests.
 [dev-dependencies]
-harness = { package = "threadpak-testpak", path = "../testpak" }
+harness = { package = "threadpak-testpak", path = "../harness" }

@@ -1,0 +1,20 @@
+[package]
+name = "threadpak-macroc"
+description = "The metaprogramming services: ordinary callable Rust over the machine's public declaration path."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+macroonz = { path = "../../contracts", version = "0.0.0" }
+# The tooling plane's digest, admitted by the note in README.md. What the plane
+# uses of it is exactly `Hasher` and `derive_key`, which is the whole mechanism
+# the identity profile needs; which version, and which features that leaves
+# switched on, is the workspace's one decision, inherited from the root
+# manifest's `[workspace.dependencies]` table rather than restated here.
+blake3 = { workspace = true }

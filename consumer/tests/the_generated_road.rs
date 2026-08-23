@@ -12,12 +12,7 @@
 //! This target invokes that alias, supplies the facts only it holds, and runs the
 //! rows through the same engine the hand-written road runs through.
 //!
-//! Every path below into either ThreadPak crate is spelled `harness::` or `tp::`,
-//! and the expansion adds none: what the shell writes reaches the harness through
-//! the binding this file passes at the invocation, and what the deferred cargo
-//! writes reaches the machine through the binding the DECLARATION stated. A
-//! generated reference that resolved only under a canonical spelling would fail
-//! to resolve at this seat rather than in somebody else's tree later.
+//! Every contract path below is spelled `macroonz::`, every harness path is spelled `harness::`, and the expansion adds no hidden dependency spelling. The shell reaches the harness through the invocation binding, while deferred cargo reaches the declaration contracts through the binding stated at the declaration.
 //!
 //! # What this target supplies, and why it is this target that supplies it
 //!
@@ -443,8 +438,8 @@ fn generated_world() -> Result<TrialTable, TrialTableRefusal> {
 }
 
 fn same_declared_order(
-    left: &tp::refusal::DeclaredCauseOrder,
-    right: &tp::refusal::DeclaredCauseOrder,
+    left: &macroonz::DeclaredCauseOrder,
+    right: &macroonz::DeclaredCauseOrder,
 ) -> harness::properties::Agreement {
     if left == right {
         harness::properties::Agreement::Agrees
@@ -453,13 +448,11 @@ fn same_declared_order(
     }
 }
 
-fn declared_order_is_unchanged(
-    observed: &tp::refusal::DeclaredCauseOrder,
-) -> TrialConclusion {
+fn declared_order_is_unchanged(observed: &macroonz::DeclaredCauseOrder) -> TrialConclusion {
     harness::properties::agreement(
         same_declared_order,
         observed,
-        &<MergeRefusal as tp::refusal::CauseOrderDeclaration>::DECLARED_ORDER,
+        &<MergeRefusal as macroonz::CauseOrderDeclaration>::DECLARED_ORDER,
         MUTATION_ORDER_CAUSE,
     )
 }
@@ -478,12 +471,7 @@ fn mutation_invocation() -> Invocation {
     )
 }
 
-/// The generated mutation module retains complete discovery, lowers only the
-/// owner-permitted adjacent order exchange, and qualifies the exact no-mutation
-/// production/evaluation pair without opening active trust.
-#[test]
-fn the_generated_mutation_surface_qualifies_no_mutation_parity(
-) -> Result<(), GeneratedMutationRoadFailure> {
+fn generated_mutation_discovery_is_complete() -> Result<(), GeneratedMutationRoadFailure> {
     let lowering = generated_merge_refusal_mutations::lowering()
         .map_err(GeneratedMutationRoadFailure::Lowering)?;
     let entries = lowering.discovery().entries();
@@ -502,10 +490,7 @@ fn the_generated_mutation_surface_qualifies_no_mutation_parity(
         harness::muterprater::DiscoveryDisposition::Mapped { point: mapped }
             if mapped == point.identity()
     ));
-    assert_eq!(
-        alternative.family().slug(),
-        "declared-order-permutation"
-    );
+    assert_eq!(alternative.family().slug(), "declared-order-permutation");
     let family_name = lowering.surface().family().name();
     assert_eq!(family_name.namespace().written(), CONSUMER);
     assert_eq!(family_name.stem().written(), "lot-merge-evaluation");
@@ -521,23 +506,36 @@ fn the_generated_mutation_surface_qualifies_no_mutation_parity(
     assert!(!point.original_operation().is_empty());
     assert!(!alternative.operation().is_empty());
     assert_ne!(point.original_operation(), alternative.operation());
+    Ok(())
+}
 
+fn generated_mutation_orders_are_distinct() {
     let production_order = generated_merge_refusal_mutations::production(&());
     let [candidate_order] = generated_merge_refusal_mutations::candidate_orders();
     assert_eq!(
         production_order
             .iter()
-            .map(tp::refusal::DeclaredCause::spelling)
+            .map(macroonz::DeclaredCause::spelling)
             .collect::<Vec<_>>(),
         vec!["NotTheSameLot", "OverLimit"],
     );
     assert_eq!(
         candidate_order
             .iter()
-            .map(tp::refusal::DeclaredCause::spelling)
+            .map(macroonz::DeclaredCause::spelling)
             .collect::<Vec<_>>(),
         vec!["OverLimit", "NotTheSameLot"],
     );
+}
+
+/// The generated mutation module retains complete discovery, lowers only the owner-permitted adjacent order exchange, and qualifies the exact no-mutation production/evaluation pair without opening active trust.
+#[test]
+fn the_generated_mutation_surface_qualifies_no_mutation_parity()
+-> Result<(), GeneratedMutationRoadFailure> {
+    generated_mutation_discovery_is_complete()?;
+    generated_mutation_orders_are_distinct();
+    let lowering = generated_merge_refusal_mutations::lowering()
+        .map_err(GeneratedMutationRoadFailure::Lowering)?;
 
     let production = harness::muterprater::ProductionBinding::declared(
         lowering.surface().family(),
@@ -549,12 +547,9 @@ fn the_generated_mutation_surface_qualifies_no_mutation_parity(
         declared_revision(b"threadpak-consumer/merge-order-evaluation/r1"),
         generated_merge_refusal_mutations::evaluation,
     );
-    let pair = harness::muterprater::EvaluationPair::paired(
-        production,
-        evaluation,
-        same_declared_order,
-    )
-    .map_err(GeneratedMutationRoadFailure::Pair)?;
+    let pair =
+        harness::muterprater::EvaluationPair::paired(production, evaluation, same_declared_order)
+            .map_err(GeneratedMutationRoadFailure::Pair)?;
 
     let claim = ClaimRef::named(CONSUMER, "merge-refusal-declared-order")
         .map_err(TrialTableRefusal::from)?;
@@ -569,15 +564,12 @@ fn the_generated_mutation_surface_qualifies_no_mutation_parity(
     assert_eq!(
         binding.attachment().call()(&mutation_invocation()),
         declared_order_is_unchanged(
-            &<MergeRefusal as tp::refusal::CauseOrderDeclaration>::DECLARED_ORDER,
+            &<MergeRefusal as macroonz::CauseOrderDeclaration>::DECLARED_ORDER,
         ),
     );
-    let witness = harness::muterprater::MutationWitness::bound(
-        binding,
-        check,
-        declared_order_is_unchanged,
-    )
-    .map_err(GeneratedMutationRoadFailure::Witness)?;
+    let witness =
+        harness::muterprater::MutationWitness::bound(binding, check, declared_order_is_unchanged)
+            .map_err(GeneratedMutationRoadFailure::Witness)?;
     let input = ();
     let reading = harness::muterprater::interpret::observe_no_mutation(
         &pair,
@@ -588,25 +580,26 @@ fn the_generated_mutation_surface_qualifies_no_mutation_parity(
     .map_err(GeneratedMutationRoadFailure::Observation)?;
     let standing = harness::muterprater::interpret::qualify_no_mutation(reading);
     let Some(qualification) = standing.qualification() else {
-        let cause = standing
-            .rejection()
-            .map_or(harness::muterprater::ParityQualificationRefusal::MeaningsDisagreed, |rejected| rejected.cause());
+        let cause = standing.rejection().map_or(
+            harness::muterprater::ParityQualificationRefusal::MeaningsDisagreed,
+            harness::muterprater::RejectedNoMutationParity::cause,
+        );
         return Err(GeneratedMutationRoadFailure::Parity(cause));
     };
     assert_eq!(qualification.reading().evaluation_firings(), 0);
     assert_eq!(
         qualification.reading().production(),
-        &<MergeRefusal as tp::refusal::CauseOrderDeclaration>::DECLARED_ORDER
+        &<MergeRefusal as macroonz::CauseOrderDeclaration>::DECLARED_ORDER
     );
     assert_eq!(
         qualification.reading().evaluation(),
         qualification.reading().production()
     );
-    match harness::muterprater::interpret::availability::<
-        (),
-        tp::refusal::DeclaredCauseOrder,
-    >(Some(lowering.surface()), None, None)
-    {
+    match harness::muterprater::interpret::availability::<(), macroonz::DeclaredCauseOrder>(
+        Some(lowering.surface()),
+        None,
+        None,
+    ) {
         harness::muterprater::InterpreterAvailability::TrustNotOpened {
             missing: harness::muterprater::MissingTrustEvidence::CompiledSuitePressure,
         } => Ok(()),

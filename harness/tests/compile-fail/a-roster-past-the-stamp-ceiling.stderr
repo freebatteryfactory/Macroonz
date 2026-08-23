@@ -1,0 +1,12 @@
+error: closed_register!: this roster exceeds the stamp's declared position supply; the supply length is exported as `CLOSED_REGISTER_ROW_CEILING`
+  --> tests/compile-fail/a-roster-past-the-stamp-ceiling.rs:26:1
+   |
+26 | / macroonz::closed_register! {
+27 | |     /// The declared supply spent to its last position, and one row past it.
+28 | |     pub enum PastTheCeiling {
+29 | |         Row00 = "row-00", "row 00";
+...  |
+95 | | }
+   | |_^
+   |
+   = note: this error originates in the macro `$crate::closed_register` which comes from the expansion of the macro `macroonz::closed_register` (in Nightly builds, run with -Z macro-backtrace for more info)

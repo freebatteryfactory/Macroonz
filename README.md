@@ -29,24 +29,24 @@ Hosts live in other repositories and pin an exact ThreadPak revision. The machin
 
 ## Workspace
 
-| Crate           | Role                                                 |
-| --------------- | ---------------------------------------------------- |
-| `threadpak`     | the machine — root package at the repository root    |
-| `macros/macroc` | the generation services — package `threadpak-macroc` |
-| `macros/proc`   | the Rust-facing expansion shell — `threadpak-macros` |
-| `testpak`       | the testing harness — package `threadpak-testpak`    |
-| `consumer`      | the outside consumer — package `threadpak-consumer`  |
+| Crate             | Role                                                          |
+| ----------------- | ------------------------------------------------------------- |
+| `contracts`       | the production contracts — package `macroonz`                 |
+| `macros/compiler` | the generation services — package `threadpak-macroc`           |
+| `macros/proc`     | the Rust-facing expansion shell — package `threadpak-macros`   |
+| `harness`         | the testing harness — package `threadpak-testpak`              |
+| `consumer`        | the outside consumer — package `threadpak-consumer`            |
 
 ```mermaid
 flowchart LR
-    PROC["macros/proc (threadpak-macros)"] --> MC["macros/macroc (threadpak-macroc)"]
-    MC --> CORE["threadpak — the machine"]
-    CONS["consumer — the outside consumer"] --> CORE
+    PROC["macros/proc (threadpak-macros)"] --> MC["macros/compiler (threadpak-macroc)"]
+    MC --> CONTRACTS["contracts (macroonz)"]
+    CONS["consumer — the outside consumer"] --> CONTRACTS
     CONS --> PROC
-    TP["testpak — the judge"] -.-> CORE
-    TP -.-> MC
-    TP -.-> PROC
-    CONS -.-> TP
+    CONS -. qualification .-> HARNESS["harness — the judge"]
+    HARNESS -. qualification .-> CONTRACTS
+    HARNESS -. qualification .-> MC
+    HARNESS -. qualification .-> PROC
 ```
 
 Arrows point at what each crate depends on; a dashed arrow is a dependency reached only from `tests/`.

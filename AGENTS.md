@@ -119,7 +119,7 @@ Green is not a goal; it is a side effect of the software being true. A finding s
 
 - NO PYTHON in this repository, ever. All tooling is Rust.
 
-- The metaprogramming services project contracts; they never decide meaning and are never their own oracle. `macros/macroc/` is ordinary callable Rust — planning, rendering, inspection, explanation; `macros/proc/` is one thin, semantically empty, dependency-minimized expansion shell over it. Expansion is deterministic from its declared input: no network, no filesystem scan, no environment, no clock, no entropy. Composition is proven from an outside consumer that compiles against the public road, never from inside a participant.
+- The metaprogramming services project contracts; they never decide meaning and are never their own oracle. `macros/compiler/` is ordinary callable Rust — planning, rendering, inspection, explanation; `macros/proc/` is one thin, semantically empty, dependency-minimized expansion shell over it. Expansion is deterministic from its declared input: no network, no filesystem scan, no environment, no clock, no entropy. Composition is proven from an outside consumer that compiles against the public road, never from inside a participant.
 
 - testpak's production library is standalone. Its qualification targets depend inward on the machine and the generation services; the consumer crate dev-depends on testpak under a rename. Production never depends on its judge, and a consumer proving the public road is not production.
 
@@ -135,7 +135,7 @@ Green is not a goal; it is a side effect of the software being true. A finding s
 
 - The generation system is the product line: families are authored through front doors and their contracts are generated. Every door is a thin shell over the one callable engine, and equivalent declarations through different doors produce equivalent contracts.
 
-- Core never carries a compile-time dependency edge to the proc-macro crate. Core-local declarative stamps are standing law (`closed_register!` and `scope_guard_version!` are the exemplars); generation beyond a stamp's reach lands in core as published source under a receipt; the derive is the outside consumer's door.
+- Core never carries a compile-time dependency edge to the proc-macro crate. Core-local declarative stamps are standing law (`closed_register!` is the current exemplar); generation beyond a stamp's reach lands in core as published source under a receipt; the derive is the outside consumer's door.
 
 - The README owns the [construction order](README.md#construction). That authoring order is not Cargo dependency order and never authorizes a cycle or a production dependency on the judge.
 

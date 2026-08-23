@@ -1,5 +1,0 @@
-error[E0451]: field `body` of struct `ProjectionPlanning` is private
-  --> tests/compile-fail/a-services-refusal-body-reseated-by-literal.rs:32:42
-   |
-32 |     let _reseated = ProjectionPlanning { body };
-   |                                          ^^^^ private field
