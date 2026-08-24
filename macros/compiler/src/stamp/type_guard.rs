@@ -14,7 +14,7 @@ use super::{
 use crate::bounded::{Bounded, NonEmpty, NonEmptyError};
 use crate::identity::{self, Identity};
 use crate::plan::DigestContract;
-use crate::token::GeneratedTree;
+use crate::token::{GeneratedTree, rendered_identifier};
 use std::collections::BTreeSet;
 
 impl Seat {
@@ -24,7 +24,7 @@ impl Seat {
     ///
     /// Returns [`StampError::NotAnIdentifier`] where the name is not one Rust identifier, which is what a matcher needs it to be.
     pub fn declared(name: &str, seating: Seating) -> Result<Self, StampError> {
-        if !is_identifier(name) {
+        if !rendered_identifier(name) {
             return Err(StampError::NotAnIdentifier);
         }
         Ok(Self {
@@ -121,7 +121,7 @@ impl StampName {
     ///
     /// Returns [`StampError::NotAnIdentifier`] where the spelling is not one Rust identifier.
     pub fn declared(spelling: &str) -> Result<Self, StampError> {
-        if !is_identifier(spelling) {
+        if !rendered_identifier(spelling) {
             return Err(StampError::NotAnIdentifier);
         }
         Ok(Self {
@@ -146,7 +146,7 @@ impl SiteRoot {
     /// The checks are in that order, so exactly one cause is true of any refused root.
     pub fn spelled(segments: Vec<String>) -> Result<Self, StampError> {
         for segment in &segments {
-            if !is_identifier(segment.as_str()) {
+            if !rendered_identifier(segment.as_str()) {
                 return Err(StampError::NotAnIdentifier);
             }
         }
@@ -322,6 +322,30 @@ impl PublicationRecord {
     }
 }
 
+impl StampedPlan {
+    /// One reading, from the one road that checked the seat it states.
+    ///
+    /// `pub` only within the stamp home: the checks live in [`planned`](crate::stamp::planned), and this is how that road writes down what it proved.
+    pub(in crate::stamp) const fn read(
+        unit: Identity<identity::GeneratedUnit>,
+        staged: DigestContract,
+    ) -> Self {
+        Self { unit, staged }
+    }
+
+    /// The planned member's semantic key.
+    #[must_use]
+    pub const fn unit(&self) -> Identity<identity::GeneratedUnit> {
+        self.unit
+    }
+
+    /// What the eventual staged bytes' digest must satisfy.
+    #[must_use]
+    pub const fn staged(&self) -> DigestContract {
+        self.staged
+    }
+}
+
 impl PublishedStamp {
     /// Render one published stamp over what the plan decided, what the caller declared, and why the lighter roads are insufficient.
     ///
@@ -443,21 +467,6 @@ fn sites_seated(pattern: &Pattern, sites: &[Site]) -> Result<(), StampError> {
         }
     }
     Ok(())
-}
-
-/// Whether one spelling is a Rust identifier, which is what this home writes as a token.
-fn is_identifier(spelling: &str) -> bool {
-    let mut characters = spelling.chars();
-    let Some(head) = characters.next() else {
-        return false;
-    };
-    if !head.is_ascii_alphabetic() && head != '_' {
-        return false;
-    }
-    if spelling == "_" {
-        return false;
-    }
-    characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
 }
 
 /// One count as a refusal carries it.

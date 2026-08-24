@@ -7,15 +7,8 @@ use super::{
     Account, Context, ContradictionPair, DigestContract, InvalidationTrigger, Membership,
     PlanIssue, PlannedMember, PlannedOutput,
 };
-use crate::identity::{self, Identity, Profile, encode_bytes, encode_length};
+use crate::identity::{self, Identity, encode_bytes, encode_length};
 use crate::kind::{Kind, Role};
-
-/// Appends one profile's canonical bytes: the stem of whoever owns the grammar, its declared name, then its version position in four big-endian bytes.
-fn profile_into(profile: Profile, into: &mut Vec<u8>) {
-    encode_bytes(profile.stem().as_bytes(), into);
-    encode_bytes(profile.name().as_bytes(), into);
-    into.extend_from_slice(&profile.version().position().to_be_bytes());
-}
 
 /// Appends one captured commitment's canonical bytes, at full width.
 fn capture_into(captured: &Identity<identity::CapturedDeclaration>, into: &mut Vec<u8>) {
@@ -53,7 +46,7 @@ impl Context {
     ///
     /// What a plan was planned OVER is not written here and is not missing: it is the account's fact, written ahead of this by the account's own road, so no byte of a plan transcript states the content twice.
     pub fn encode_into(&self, into: &mut Vec<u8>) {
-        profile_into(self.profile(), into);
+        self.profile().encode_into(into);
         encode_bytes(self.generator().as_bytes(), into);
     }
 }
@@ -66,7 +59,7 @@ impl InvalidationTrigger {
         into.push(self.slot());
         match self {
             Self::CapturedDeclaration { watched } => encode_bytes(watched.as_bytes(), into),
-            Self::Profile { watched } => profile_into(*watched, into),
+            Self::Profile { watched } => watched.encode_into(into),
             Self::Generator { watched } => encode_bytes(watched.as_bytes(), into),
             Self::Declared { name, watched } => {
                 encode_bytes(name.as_bytes(), into);
@@ -91,7 +84,7 @@ impl PlannedOutput {
     pub fn encode_into(&self, into: &mut Vec<u8>) {
         encode_bytes(self.semantic_key.as_bytes(), into);
         self.origin.encode_into(into);
-        profile_into(self.expected_profile, into);
+        self.expected_profile.encode_into(into);
         match self.address {
             None => {
                 into.push(0);
@@ -168,7 +161,7 @@ impl PlanIssue {
         match self {
             Self::ContradictoryFacts { between } => between.encode_into(into),
             Self::UnknownKind { named } => encode_bytes(named.as_bytes(), into),
-            Self::ProfileUnsupported { profile } => profile_into(*profile, into),
+            Self::ProfileUnsupported { profile } => profile.encode_into(into),
             Self::BoundExceeded {
                 axis,
                 bound,
@@ -191,6 +184,9 @@ impl PlanIssue {
             Self::CauseSetUnwatchable { named, watchable } => {
                 into.extend_from_slice(&named.to_be_bytes());
                 into.extend_from_slice(&watchable.to_be_bytes());
+            }
+            Self::MembershipForeign { seat } | Self::AddressInert { seat } => {
+                encode_bytes(seat.as_bytes(), into);
             }
         }
     }

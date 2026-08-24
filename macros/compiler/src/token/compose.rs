@@ -9,6 +9,89 @@
 use super::{GeneratedDelimiter, GeneratedToken};
 use crate::bounded::Overflow;
 
+/// Whether one spelling is a single Rust identifier a rendering is willing to write.
+///
+/// ASCII only, and `_` alone is refused because it is the wildcard pattern rather than a name.
+/// ONE alphabet, seated with the token home, for every spelling any home renders in identifier position — a path segment, an exported address, a stamped item's own name, a declared grammar's word.
+/// A second copy would agree with this one until one of them was edited, and the failure would surface in a consumer's build with no idea where the name came from; the homes that once each carried a copy now all read this seat.
+#[must_use]
+pub fn rendered_identifier(spelling: &str) -> bool {
+    let mut characters = spelling.chars();
+    let Some(head) = characters.next() else {
+        return false;
+    };
+    if !head.is_ascii_alphabetic() && head != '_' {
+        return false;
+    }
+    if spelling == "_" {
+        return false;
+    }
+    characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
+}
+
+/// Whether one spelling is a Rust keyword no rendered item can be named by.
+///
+/// The language's own roster — the strict and reserved keywords through edition 2024 — written down once beside the identifier alphabet, because it is the same law from the other side: an alphabet says which spellings CAN be a name, and this roster says which of those the language already took.
+/// A grammar that let a keyword through would refuse nowhere and hand the collision to the adopter's build, inside an expansion whose lints rustc has silenced.
+#[must_use]
+pub fn rust_keyword(spelling: &str) -> bool {
+    matches!(
+        spelling,
+        "abstract"
+            | "as"
+            | "async"
+            | "await"
+            | "become"
+            | "box"
+            | "break"
+            | "const"
+            | "continue"
+            | "crate"
+            | "do"
+            | "dyn"
+            | "else"
+            | "enum"
+            | "extern"
+            | "false"
+            | "final"
+            | "fn"
+            | "for"
+            | "gen"
+            | "if"
+            | "impl"
+            | "in"
+            | "let"
+            | "loop"
+            | "macro"
+            | "match"
+            | "mod"
+            | "move"
+            | "mut"
+            | "override"
+            | "priv"
+            | "pub"
+            | "ref"
+            | "return"
+            | "self"
+            | "Self"
+            | "static"
+            | "struct"
+            | "super"
+            | "trait"
+            | "true"
+            | "try"
+            | "type"
+            | "typeof"
+            | "unsafe"
+            | "unsized"
+            | "use"
+            | "virtual"
+            | "where"
+            | "while"
+            | "yield"
+    )
+}
+
 /// One delimited group.
 ///
 /// # Errors

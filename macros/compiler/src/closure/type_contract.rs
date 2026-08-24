@@ -240,9 +240,11 @@ impl<R: Role> Refused for ClosureError<R> {
         }
     }
 
+    /// The issues established beyond the primary cause; the primary is the summary's own subject, never a member of its related set.
     fn related(&self) -> Vec<Vec<u8>> {
         self.issues()
             .iter()
+            .skip(1)
             .map(ClosureIssue::canonical_bytes)
             .collect()
     }

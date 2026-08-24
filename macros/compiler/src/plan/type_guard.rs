@@ -170,12 +170,26 @@ impl InvalidationTrigger {
     }
 }
 
+/// The issue one member raises where its seat is absent from the kind's declared roster.
+fn foreign<R: Role>(member: &PlannedMember<R>) -> Option<PlanIssue> {
+    (!R::ALL.contains(&member.role)).then(|| PlanIssue::MembershipForeign {
+        seat: member.role.name(),
+    })
+}
+
 impl<R: Role> Membership<R> {
-    /// The one-member output set. Total: one member always fits.
-    #[must_use]
-    pub fn from_member(member: PlannedMember<R>) -> Self {
-        Self {
-            members: NonEmpty::one(member),
+    /// The one-member output set.
+    ///
+    /// # Errors
+    ///
+    /// Returns one [`PlanIssue::MembershipForeign`] where the member's seat is absent from the kind's declared roster.
+    /// The roster is every downstream walk's denominator, so a member outside it is refused here rather than admitted, rendered, and dropped from a proof that claims the whole set.
+    pub fn from_member(member: PlannedMember<R>) -> Result<Self, PlanError> {
+        match foreign(&member) {
+            Some(issue) => Err(PlanError::over(issue, Vec::new())),
+            None => Ok(Self {
+                members: NonEmpty::one(member),
+            }),
         }
     }
 
@@ -183,8 +197,8 @@ impl<R: Role> Membership<R> {
     ///
     /// # Errors
     ///
-    /// Returns the planning refusal naming [`BoundAxis::Outputs`] where the set outgrows [`MEMBERSHIP_LIMIT`], and one [`PlanIssue::MembershipDoubled`] per seat two members stand under.
-    /// The doubling check is here rather than downstream because a doubled seat is a defect in the DECLARATION of the set: closure matches by seat, so a membership that reaches it doubled has already made that match elect one member and ignore the other.
+    /// Returns the planning refusal naming [`BoundAxis::Outputs`] where the set outgrows [`MEMBERSHIP_LIMIT`], one [`PlanIssue::MembershipForeign`] per member whose seat the kind's roster does not declare, and one [`PlanIssue::MembershipDoubled`] per seat two members stand under.
+    /// Both checks are here rather than downstream because each is a defect in the DECLARATION of the set: closure matches by seat over the roster, so a membership that reaches it doubled has already made that match elect one member and ignore the other, and one that reaches it with a foreign seat holds a member no walk will ever look at.
     pub fn declared(
         first: PlannedMember<R>,
         rest: Vec<PlannedMember<R>>,
@@ -203,13 +217,15 @@ impl<R: Role> Membership<R> {
                     },
                 )
             })?;
-        let doubled: Vec<PlanIssue> = R::ALL
+        let mut established: Vec<PlanIssue> = declared
+            .members
             .iter()
-            .filter_map(|role| declared.doubling(*role))
+            .filter_map(|member| foreign(member))
             .collect();
-        let mut established = doubled.into_iter();
-        match established.next() {
-            Some(issue) => Err(PlanError::over(issue, established.collect())),
+        established.extend(R::ALL.iter().filter_map(|role| declared.doubling(*role)));
+        let mut walked = established.into_iter();
+        match walked.next() {
+            Some(issue) => Err(PlanError::over(issue, walked.collect())),
             None => Ok(declared),
         }
     }

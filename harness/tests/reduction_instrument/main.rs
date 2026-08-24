@@ -64,7 +64,7 @@ fn trial_fingerprint(cause: FindingCause) -> Option<Fingerprint> {
         CheckRef::named("harness", "fingerprint-preserved").ok()?,
         PopulationRef::named("harness", "reduction-candidates").ok()?,
     );
-    let key = TrialKey::over(coordinates).ok()?;
+    let key = TrialKey::over(coordinates);
     let trial = TrialId::of_key(key, TrialProfile::Unprofiled);
     Some(Fingerprint::over(
         trial,
@@ -285,10 +285,21 @@ fn semantic_reducer_custody_and_replay_posture_are_run_derived() -> Result<(), R
     )?;
     let declared = reduce(&declared_plan, &[1u8, 2u8, 3u8], &binding)?;
     assert_eq!(declared.replay_posture(), ReplayPosture::DeclaredByAuthor);
-    assert_eq!(
-        capture_replay(&declared).posture(),
-        ReplayPosture::DeclaredByAuthor
-    );
+    let declared_capsule = capture_replay(&declared);
+    assert_eq!(declared_capsule.posture(), ReplayPosture::DeclaredByAuthor);
+
+    // The non-vacuity control on the posture's seat in the identity preimage: these two capsules
+    // agree on every other member — one execution key, one reduced input, one fingerprint, one
+    // generation and minimization profile, one schema — and differ in posture alone, so equal
+    // identities here would mean cache and replay authority no longer moves when the posture does.
+    assert_eq!(declared_capsule.key(), capsule.key());
+    assert_eq!(declared_capsule.input(), capsule.input());
+    assert_eq!(declared_capsule.fingerprint(), capsule.fingerprint());
+    assert_eq!(declared_capsule.generation(), capsule.generation());
+    assert_eq!(declared_capsule.minimization(), capsule.minimization());
+    assert_eq!(declared_capsule.schema(), capsule.schema());
+    assert_ne!(declared_capsule.posture(), capsule.posture());
+    assert_ne!(declared_capsule.identity(), capsule.identity());
 
     let Some(untracked_binding) = probe_binding(RevisionBinding::untracked(
         ContentAddress::derived(REVISION_TAG, b"untracked-probe"),

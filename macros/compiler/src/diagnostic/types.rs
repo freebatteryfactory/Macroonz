@@ -254,12 +254,13 @@ pub enum SiteCoordinate {
 ///
 /// A diagnostic about a CAPTURED declaration names the offending token in the producer's own span table, so the producer can put a compiler error on exactly that token rather than on the declaration's first one.
 /// A diagnostic established BEFORE any capture has no token to name — no table was built and no handle was issued — and carries the byte it was born at instead.
+/// A diagnostic about the declaration AS A WHOLE has nowhere narrower to point, and says exactly that: the whole-declaration arm carries no token and no coordinate, because any it carried would send a reader to a spot the refusal is not about.
 ///
 /// # Nonclaims
 ///
-/// **The pre-capture arm mints no handle, and that is the substitution this sum removes.**
+/// **The pre-capture and whole-declaration arms mint no handle, and that is the substitution this sum removes.**
 /// A required handle seat forces handle zero onto an observation that issued none, and handle zero reads exactly like an honest answer pointing at the declaration's first token.
-#[must_use = "a site names the token it points at, or the byte it was born at"]
+#[must_use = "a site names the token it points at, the byte it was born at, or the whole declaration"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Site {
     /// One token of a captured declaration, and where the producer's table put it.
@@ -274,6 +275,8 @@ pub enum Site {
         /// The byte the observation was born at, in the role its own text counts in.
         coordinate: SourceCoordinate,
     },
+    /// The declaration as a whole: a stated posture with no token seat to fabricate one into.
+    WholeDeclaration,
 }
 
 /// One identity a related set carries, at the level it is about.
@@ -396,8 +399,9 @@ pub trait Refused {
     /// What the summary line is a summary of.
     fn body(&self) -> LineBody;
 
-    /// One canonical byte string per established issue, in the order the body established them.
+    /// One canonical byte string per issue established BEYOND the primary cause, in the order the body established them.
     ///
+    /// The primary cause is the summary's own subject and never a member of its related set, so a single-cause refusal answers with nothing — which is what [`LineBody::SingleCause`]'s "enumerates nothing" means, at the machine seat as well as in the line.
     /// Two bodies that differ in any typed member must answer with different bytes; that completeness is the implementing home's.
     fn related(&self) -> Vec<Vec<u8>>;
 

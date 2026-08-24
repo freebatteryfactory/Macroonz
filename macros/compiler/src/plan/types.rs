@@ -141,6 +141,8 @@ pub struct PlannedMember<R: Role> {
 ///
 /// The declared set is the whole set: a sibling that is not in it was not planned, and nothing downstream may materialize one.
 /// Structurally non-empty, because a plan that would generate nothing is a disposition rather than a plan.
+///
+/// Every member's seat is in the kind's declared roster, because admission refuses one that is not: every walk downstream — encoding, proof, reconstruction, delivery — quantifies over that roster, and a member outside it would be a unit those walks never look at, held by a proof that claims the whole set.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Membership<R: Role> {
     members: NonEmpty<PlannedMember<R>, MEMBERSHIP_LIMIT>,
@@ -277,6 +279,22 @@ pub enum PlanIssue {
         named: u32,
         /// How many of them the reading can watch.
         watchable: u32,
+    },
+    /// A planned member stands under a seat the kind's roster does not declare.
+    ///
+    /// The roster is the denominator of every downstream walk — encoding, proof, reconstruction, delivery.
+    /// A member outside it would render, vanish from all of them, and leave the closure proving a set it never examined whole, so the member refuses at admission instead.
+    MembershipForeign {
+        /// The undeclared seat's own declared name.
+        seat: &'static str,
+    },
+    /// An address was stated for a seat no publication act consumes.
+    ///
+    /// An address is a claim about where an artifact will be written, and only a seat delivering to a publication artifact ever writes to one.
+    /// Stated anywhere else — a declaration site, a test carrier, or a seat outside the roster entirely — the address would still enter every identity while no act ever consumed it: a writable claim with no product act, which is exactly the shape this plan refuses to hold.
+    AddressInert {
+        /// The seat the address was stated for, by its own declared name.
+        seat: &'static str,
     },
 }
 

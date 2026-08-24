@@ -1,10 +1,10 @@
-//! The proc-macro seat of `macroonz`: three generic attributes riding one carrier road, and one direct declaration beside them.
+//! The proc-macro seat of `macroonz`: three generic attributes riding one carrier road, and three direct declarations beside them.
 //!
 //! Every grammar an entry here reads is the compiler's `descriptor` home's, every road from a reading to the tokens a declaration site receives is the compiler's, and the walk between them is the descriptor home's own `door` road.
 //! What this crate adds is exactly what a proc host owns: token conversion, span custody, one compiler call, diagnostic placement, and emission — plus the facts of its own act, declared once beside each entry.
 //!
 //! Each attribute expands to one exported carrier and then the item it decorates, byte for byte as the author wrote it; the carrier is inert until a consumption target invokes it, so an ordinary build compiles the item and one macro definition and nothing more.
-//! The [`shadow!`](macro@shadow) declaration is the one direct emission: both `cfg`-gated faces of every chosen synchronization name, as ordinary production items, because a face is not a cargo.
+//! The three declarations — [`shadow!`](macro@shadow), [`network!`](macro@network), and [`concurrency!`](macro@concurrency) — are direct emissions: ordinary items where the declaration stands, inert inside nothing, because a face and a builder are not cargo.
 
 use macroonz::descriptor::door;
 use macroonz::descriptor::{Emitter, Grammar};
@@ -143,7 +143,7 @@ pub fn trials(body: TokenStream, item: TokenStream) -> TokenStream {
 /// Declares a mutation surface over the enum this attribute sits on.
 ///
 /// The body is the mutation grammar, read whole by `macroonz::descriptor::mutation`: the surface's address, the evaluation family, the point and owner fact, the fact-to-claim mappings, and the operator permissions.
-/// The door completes the site from the item itself — the enum's variant list is the declared order, the unchanged operation is that order as authored, and each alternative is one adjacent transposition of it under the `declared-order` operator family.
+/// The door completes the site from the item itself — the enum's variant list is the declared order, the unchanged operation is that order as authored, and each alternative is one adjacent transposition of it under the harness bank's `declared-order-permutation` operator family.
 /// The expansion is one exported carrier holding the rendered module as proved test-carrier cargo, followed by the item unchanged.
 ///
 /// A malformed declaration, and an item that states no order this grammar can read, expand to `compile_error!` at the offending token.

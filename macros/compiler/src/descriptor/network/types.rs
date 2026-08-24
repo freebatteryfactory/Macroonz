@@ -18,25 +18,27 @@ pub struct LinkRow {
     to: String,
 }
 
-/// One declared fault phrase, in the sim's own vocabulary.
+/// One declared fault phrase, in the sim's own vocabulary — every number at exactly the width its harness seat declares.
+///
+/// A send ordinal and a tick span are thirty-two bits wide, a tick is sixty-four; a number past its seat refuses at capture, because generated code cannot outsource the range to rustc.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FaultRow {
     /// `drop <link> at <n>`.
     Drop {
         /// The send ordinal the fault fires on.
-        at: u64,
+        at: u32,
     },
     /// `delay <link> at <n> by <n>`.
     Delay {
         /// The send ordinal the fault fires on.
-        at: u64,
+        at: u32,
         /// How many ticks later the delivery comes due.
-        by: u64,
+        by: u32,
     },
     /// `duplicate <link> at <n>`.
     Duplicate {
         /// The send ordinal the fault fires on.
-        at: u64,
+        at: u32,
     },
     /// `partition <link> from <n> until <n>`.
     Partition {

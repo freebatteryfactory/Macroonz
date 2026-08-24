@@ -35,11 +35,12 @@ pub const ALTERNATIVE_LIMIT: usize = 64;
 /// Two helper readings of one declaration share the captured-helper role and are told apart by position alone: this one is the second.
 pub const MUTATION_HELPER_POSITION: u32 = 1;
 
-/// The operator family the declared-order door produces alternatives under.
+/// The operator family the declared-order door produces alternatives under, by the harness bank's own slug.
 ///
 /// The one structural operator a generic door can apply without knowing what a declaration means: transpose two adjacent members of the order an author declared.
 /// It is declared here so a permission and the door cite one spelling — an author who wants this pressure permits this slug, and a policy that does not name it lowers no alternative the door produced.
-pub const DECLARED_ORDER_FAMILY: &str = "declared-order";
+/// The spelling is the harness operator bank's, which owns the family vocabulary: a slug of this adapter's own invention would produce alternatives the bank refuses to resolve, which is exactly what an earlier spelling of this constant did.
+pub const DECLARED_ORDER_FAMILY: &str = "declared-order-permutation";
 
 /// The kind one mutation declaration produces: the module a mutation harness lowers, delivered to the consumer's test target.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

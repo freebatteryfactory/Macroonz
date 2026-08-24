@@ -28,10 +28,11 @@ Loom's exploration-guidance calls — `explore`, `stop_exploring`, `skip_branch`
 
 A model runs at most `loom::MAX_THREADS` concurrent threads — five, in the pinned version — and that ceiling is loom's own.
 
-## The seats deliberately left unset
+## Every seat set, none left ambient
 
-The builder's remaining knobs stay unset here, each for a stated reason rather than by omission: `max_duration` reads a wall clock, which no verdict in this harness may; `log` writes exploration chatter to stdout; `location` capture enriches failure reports but is, in loom's own words, very expensive — a declared opt-in seat is the road for it if evidence ever needs it; checkpointing resumes long explorations through the filesystem, which is not a declared port of this harness today; and `max_permutations` is a second ceiling beside the branch budget with no claim of its own yet.
-A seat that graduates does so as a declared input on [`PreemptionBounds`], never as an ambient default.
+The builder's every seat is written explicitly by this road: the two the declared bounds own, and every other at the value a clean environment would give it — `max_permutations` none, `max_duration` none (a wall clock, which no verdict in this harness may read), no checkpoint file (the filesystem is not a declared port of this harness today), the pinned default checkpoint interval, `location` off (in loom's own words, very expensive — a declared opt-in seat is the road for it if evidence ever needs it), `log` off, and loom's own thread ceiling.
+Seats forced rather than left unset, because an unset seat is loom's environment speaking: an ambient permutation ceiling or duration could end exploration before a single schedule ran and still return cleanly — a zero-execution run wearing the exhaustive claim.
+A seat that graduates to meaning does so as a declared input on [`PreemptionBounds`], never as an ambient default.
 
 ## What this wrap will not claim
 
@@ -41,8 +42,11 @@ Nothing here parses that text back into types, because a wrap that guessed at a 
 Loom reports no iteration count through its API, so none is claimed here.
 The bounds are the declared statement of how far the search was allowed to go.
 
-Loom consults its own `LOOM_*` environment variables for seats this road does not declare.
-The seats this home owns — the preemption bound and the branch budget — are set explicitly after construction and always win; a wall that runs without those variables runs declared-input-only.
+The catch at this boundary holds what the standard library can catch, and that ceiling is stated rather than papered: a model that panics while a loom thread or synchronization value is still live can panic loom again during unwind cleanup, and that second break escapes the typed reading and takes the process; the process panic hook also runs before the catch, so an expected finding is written to stderr on its way to becoming a value.
+Neither effect mints false evidence — both are loud — and full containment would be a process-isolation ruling, not a wider catch.
+
+Loom parses its `LOOM_*` environment variables inside its own constructor, before this road holds a builder to correct: a valid value there changes nothing — every seat is overwritten — but an unparseable spelling breaks the process ahead of this boundary's catch.
+That break is loud rather than false; no verdict is minted from it.
 
 The pin is exact — [`LOOM_PIN`](crate::preemption::LOOM_PIN) mirrors the manifest's `=`-requirement, and the lane holds the two spellings together — because a scheduler is a semantics, and a semantics that can drift under a caret is not a declared input.
 

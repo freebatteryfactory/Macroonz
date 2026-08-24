@@ -65,6 +65,8 @@ impl PlanIssue {
             Self::MembershipDoubled { .. } => 7,
             Self::TrailDiscontinuous { .. } => 8,
             Self::CauseSetUnwatchable { .. } => 9,
+            Self::MembershipForeign { .. } => 10,
+            Self::AddressInert { .. } => 11,
         }
     }
 
@@ -74,7 +76,9 @@ impl PlanIssue {
         match self {
             Self::ContradictoryFacts { .. }
             | Self::UnknownKind { .. }
-            | Self::MembershipDoubled { .. } => Observed::ContractDisagreement,
+            | Self::MembershipDoubled { .. }
+            | Self::MembershipForeign { .. }
+            | Self::AddressInert { .. } => Observed::ContractDisagreement,
             Self::ProfileUnsupported { .. } => Observed::ProfileDisagreement,
             Self::BoundExceeded { .. } | Self::CauseSetUnwatchable { .. } => {
                 Observed::BoundExceeded
@@ -135,6 +139,14 @@ impl fmt::Display for PlanIssue {
                 into,
                 "the account names {named} declarations and this reading watches {watchable}"
             ),
+            Self::MembershipForeign { seat } => write!(
+                into,
+                "the member under the seat {seat} stands outside the kind's declared roster"
+            ),
+            Self::AddressInert { seat } => write!(
+                into,
+                "an address was stated for the seat {seat}, which no publication act consumes"
+            ),
         }
     }
 }
@@ -181,9 +193,11 @@ impl Refused for PlanError {
         }
     }
 
+    /// The issues established beyond the primary cause; the primary is the summary's own subject, never a member of its related set.
     fn related(&self) -> Vec<Vec<u8>> {
         self.issues()
             .iter()
+            .skip(1)
             .map(PlanIssue::canonical_bytes)
             .collect()
     }

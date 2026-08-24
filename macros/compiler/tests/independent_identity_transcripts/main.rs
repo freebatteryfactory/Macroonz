@@ -244,6 +244,9 @@ const RENDERED_WORD: &str = "greeting";
 /// The one seat this kind's roster carries, by the name this lane restates rather than imports.
 const SEAT_NAME: &str = "sole";
 
+/// The kind's declared name, restated rather than imported on the same terms.
+const KIND_NAME: &str = "lane.greeting";
+
 /// The captured input this lane hands over, and the expansion the compiler produces from it.
 ///
 /// The capture's own canonical bytes are the INPUT to a derivation rather than part of the encoding under judgement: a reader of a published receipt is handed the material and asked to re-derive the name.
@@ -262,9 +265,12 @@ fn produced() -> Option<(Vec<u8>, Expansion<Greeting>)> {
     Some((material, bound))
 }
 
-/// The seat's own declared name, framed, which is what a seat's identities are derived over.
+/// The kind's declared name and the seat's own, each framed, which is what a seat's identities are derived over.
+///
+/// The kind's name first: roles are open and reusable across kinds, so the kind is the ancestor that keeps two kinds sharing one capture and one roster from sharing a unit.
 fn seat_material() -> Vec<u8> {
     let mut material = Vec::new();
+    framed(KIND_NAME.as_bytes(), &mut material);
     framed(SEAT_NAME.as_bytes(), &mut material);
     material
 }
@@ -467,11 +473,12 @@ fn an_encoder_that_writes_the_generator_into_the_preimage_disagrees() -> Result<
     Ok(())
 }
 
-/// The two facts about the seat this lane restated are the two the compiler declares.
+/// The facts about the seat and the kind this lane restated are the facts the compiler declares.
 ///
-/// The seat's declared name is the whole of what its semantic key is derived over, and its slot is the position every transcript at that seat carries — so a lane that restated either wrongly would be re-deriving something the compiler never wrote, and would say so here rather than four tests later.
+/// The kind's declared name and the seat's are together what its semantic key is derived over, and the slot is the position every transcript at that seat carries — so a lane that restated any of them wrongly would be re-deriving something the compiler never wrote, and would say so here rather than four tests later.
 #[test]
 fn the_seat_this_lane_restated_is_the_seat_the_compiler_declares() {
     assert_eq!(SoleRole::Sole.name(), SEAT_NAME);
     assert_eq!(SoleRole::Sole.slot(), 0);
+    assert_eq!(<Greeting as Kind>::NAME, KIND_NAME);
 }

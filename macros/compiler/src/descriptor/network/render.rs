@@ -12,6 +12,17 @@ use crate::token::{GeneratedDelimiter, GeneratedToken};
 /// The one crate spelling every generated path is rooted at.
 const HARNESS: &str = "macroonz_harness";
 
+/// The names the generated module writes beside the authored ones, which no schedule may take.
+///
+/// One seat for both halves: the emission below spells these constants, and the capture refuses an authored schedule that spells one of them — so the roster cannot drift from the items it reserves.
+pub(super) const RESERVED: [&str; 2] = [TOPOLOGY_ROAD, FAULT_ENUM];
+
+/// The generated topology function's name.
+const TOPOLOGY_ROAD: &str = "topology";
+
+/// The generated fault enum's name.
+const FAULT_ENUM: &str = "Fault";
+
 /// The fault enum's arms: the arm, the refusal it carries, and its stated doc.
 const FAULT_ARMS: [(&str, [&str; 3], &str); 4] = [
     (
@@ -69,7 +80,7 @@ fn fault_enum(into: &mut Vec<GeneratedToken>) -> Result<(), Overflow> {
     derive_attribute(&["Debug", "Clone", "PartialEq", "Eq"], into)?;
     into.push(GeneratedToken::word("pub"));
     into.push(GeneratedToken::word("enum"));
-    into.push(GeneratedToken::word("Fault"));
+    into.push(GeneratedToken::word(FAULT_ENUM));
     let mut arms = Vec::new();
     for (arm, path, doc) in &FAULT_ARMS {
         doc_attribute(doc, &mut arms)?;
@@ -84,7 +95,7 @@ fn fault_enum(into: &mut Vec<GeneratedToken>) -> Result<(), Overflow> {
     }
     into.push(GeneratedToken::group(GeneratedDelimiter::Brace, arms)?);
     for (arm, path, _doc) in &FAULT_ARMS {
-        from_impl(path, "Fault", arm, into)?;
+        from_impl(path, FAULT_ENUM, arm, into)?;
     }
     Ok(())
 }
@@ -167,14 +178,14 @@ fn topology_fn(
     doc_attribute("The declared topology.", into)?;
     into.push(GeneratedToken::word("pub"));
     into.push(GeneratedToken::word("fn"));
-    into.push(GeneratedToken::word("topology"));
+    into.push(GeneratedToken::word(TOPOLOGY_ROAD));
     into.push(GeneratedToken::group(
         GeneratedDelimiter::Parenthesis,
         Vec::new(),
     )?);
     let mut ok_seat = Vec::new();
     absolute_path(&[HARNESS, "network", "Topology"], &mut ok_seat);
-    fallible_return(ok_seat, "Fault", into);
+    fallible_return(ok_seat, FAULT_ENUM, into);
     let mut body = Vec::new();
     absolute_path(&["core", "result", "Result", "Ok"], &mut body);
     let mut inner = Vec::new();
@@ -227,7 +238,7 @@ fn schedule_fn(
     )?);
     let mut ok_seat = Vec::new();
     absolute_path(&[HARNESS, "network", "NetworkSchedule"], &mut ok_seat);
-    fallible_return(ok_seat, "Fault", into);
+    fallible_return(ok_seat, FAULT_ENUM, into);
     let mut body = Vec::new();
     absolute_path(&["core", "result", "Result", "Ok"], &mut body);
     let mut inner = Vec::new();
@@ -308,7 +319,7 @@ fn fault_expr(fault: &FaultRow, into: &mut Vec<GeneratedToken>) -> Result<(), Ov
             absolute_path(&[HARNESS, "network", "TickSpan", "declared"], &mut ticks);
             ticks.push(GeneratedToken::group(
                 GeneratedDelimiter::Parenthesis,
-                vec![GeneratedToken::number(by)],
+                vec![GeneratedToken::number(u64::from(by))],
             )?);
             ticks.push(GeneratedToken::alone('?'));
             positional_fault("DelayAt", at, ticks, into)
@@ -330,7 +341,7 @@ fn fault_expr(fault: &FaultRow, into: &mut Vec<GeneratedToken>) -> Result<(), Ov
 /// One positional fault arm: `LinkFault::<arm> { position: SendOrdinal::at(<n>)<extra fields> }`.
 fn positional_fault(
     arm: &str,
-    at: u64,
+    at: u32,
     extra_fields: Vec<GeneratedToken>,
     into: &mut Vec<GeneratedToken>,
 ) -> Result<(), Overflow> {
@@ -339,7 +350,7 @@ fn positional_fault(
     absolute_path(&[HARNESS, "network", "SendOrdinal", "at"], &mut fields);
     fields.push(GeneratedToken::group(
         GeneratedDelimiter::Parenthesis,
-        vec![GeneratedToken::number(at)],
+        vec![GeneratedToken::number(u64::from(at))],
     )?);
     fields.extend(extra_fields);
     into.push(GeneratedToken::group(GeneratedDelimiter::Brace, fields)?);

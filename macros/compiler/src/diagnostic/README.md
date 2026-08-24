@@ -2,7 +2,7 @@
 
 A request that fails any step is refused whole, and this is the value that says why.
 
-A `Diagnostic` names the step that was running, the exact site, one plain summary line, the contract that was expected, how what was found differs from it, the other issues it points at, the repairs their owners declared, and a route to reach the same observation again without a proc macro.
+A `Diagnostic` names the step that was running, its site — a token, a pre-capture byte, or the stated posture that the refusal is about the declaration as a whole and points at no token — one plain summary line, the contract that was expected, how what was found differs from it, the other issues it points at, the repairs their owners declared, and a route to reach the same observation again without a proc macro.
 Every rendering of it — the compiler error, a machine-readable report, whatever a tool puts in front of a person — is a projection of that one value.
 A projection may differ in shape, ordering, and verbosity; it may never differ in what it claims.
 

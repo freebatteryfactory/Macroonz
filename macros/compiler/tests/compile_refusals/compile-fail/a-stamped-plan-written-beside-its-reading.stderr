@@ -1,0 +1,9 @@
+error[E0451]: fields `unit` and `staged` of struct `StampedPlan` are private
+  --> tests/compile_refusals/compile-fail/a-stamped-plan-written-beside-its-reading.rs:19:9
+   |
+18 |     let _forged = StampedPlan {
+   |                   ----------- in this type
+19 |         unit,
+   |         ^^^^ private field
+20 |         staged: DigestContract { anchored_to: unit },
+   |         ^^^^^^ private field

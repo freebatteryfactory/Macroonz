@@ -244,6 +244,14 @@ crate::roster! {
         PhraseUnread = "phrase-unread",
         /// A phrase or a link names a node or link the declaration never declared.
         EndpointUnknown = "endpoint-unknown",
+        /// An authored number outruns the width of the seat it is written for.
+        ///
+        /// Every numeric seat has the width its harness value declares, and the capture parses at exactly that width — because generated code cannot outsource range safety to rustc: the overflowing-literal diagnostic is suppressed inside a foreign macro expansion, and an out-of-range literal wraps silently where source-authored Rust would refuse.
+        NumberBeyondSeat = "number-beyond-seat",
+        /// A declared name is one the language or the generated module already owns.
+        ///
+        /// A Rust keyword, or a name the rendering itself writes beside the authored ones — either would collide in the adopter's build, inside an expansion whose lints rustc has silenced, so the name refuses here at its own token instead.
+        NameReserved = "name-reserved",
     }
 }
 

@@ -15,17 +15,21 @@
 //! Clause order is free and is read by key; roster order is meaning and is preserved.
 //! The reading walks the clauses in passes — the names first, then the links against the nodes, then the schedules against the links — so every clause may stand wherever its author put it.
 
+use super::render::RESERVED;
 use super::{
     DisciplineRow, FaultRow, LinkRow, NetworkCaptureError, NetworkDeclaration, ScheduleRow,
 };
 use crate::descriptor::{CaptureCause, Grammar};
-use crate::token::{CapturedDelimiter, CapturedInput, CapturedTokenTree, SpanHandle};
+use crate::token::{
+    CapturedDelimiter, CapturedInput, CapturedTokenTree, SpanHandle, rendered_identifier,
+    rust_keyword,
+};
 
 /// Read one network payload out of the declaration's body.
 ///
 /// # Errors
 ///
-/// Returns [`NetworkCaptureError`] where the tokens do not say a network declaration — an unreadable clause, an undeclared key, a doubled name, a link drawn to an undeclared node, a phrase on an undrawn link, a phrase this grammar cannot read — each at the token it was established at, and an absent required clause at the declaration's opening.
+/// Returns [`NetworkCaptureError`] where the tokens do not say a network declaration — an unreadable clause, an undeclared key, a doubled name, a link drawn to an undeclared node, a phrase on an undrawn link, a phrase this grammar cannot read, a number past its seat's width, a name the language or the generated module already owns — each at the token it was established at, and an absent required clause at the declaration's opening.
 pub fn declared(
     body: &CapturedInput,
     grammar: Grammar,
@@ -108,7 +112,7 @@ fn world_of(
 ) -> Result<World, NetworkCaptureError> {
     let mut module: Option<String> = None;
     let mut namespace: Option<String> = None;
-    let mut nodes: Vec<String> = Vec::new();
+    let mut nodes: Option<Vec<String>> = None;
     for group in groups {
         match head_word(group) {
             Some("module") => assigned_once(grammar, group, &mut module, assigned_ident)?,
@@ -125,6 +129,13 @@ fn world_of(
             None => return Err(refused(grammar, CaptureCause::ClauseUnread, opening(group))),
         }
     }
+    let Some(nodes) = nodes else {
+        return Err(refused(
+            grammar,
+            CaptureCause::ClauseAbsent,
+            SpanHandle::at(0),
+        ));
+    };
     let mut links: Vec<LinkRow> = Vec::new();
     for group in groups {
         if head_word(group) == Some("link") {
@@ -153,7 +164,7 @@ fn world_of(
             SpanHandle::at(0),
         ));
     };
-    if nodes.is_empty() || links.is_empty() {
+    if links.is_empty() {
         return Err(refused(
             grammar,
             CaptureCause::ClauseAbsent,
@@ -186,7 +197,9 @@ fn assigned_once(
     Ok(())
 }
 
-/// The one identifier a `<key> = <ident>` clause assigns.
+/// The one identifier a `<key> = <ident>` clause assigns, refused where the language already owns the spelling.
+///
+/// The value becomes a rendered item's own name, so a Rust keyword here would compile into a collision inside the adopter's build — where the expansion's lints are silenced — instead of refusing at the authored token.
 fn assigned_ident(
     grammar: Grammar,
     group: &[&CapturedTokenTree],
@@ -194,10 +207,16 @@ fn assigned_ident(
     let [value] = value_of(group) else {
         return Err(refused(grammar, CaptureCause::ClauseUnread, opening(group)));
     };
-    value
+    let word = value
         .word()
-        .map(str::to_owned)
-        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, value.span()))
+        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, value.span()))?;
+    if !rendered_identifier(word) {
+        return Err(refused(grammar, CaptureCause::ClauseUnread, value.span()));
+    }
+    if rust_keyword(word) {
+        return Err(refused(grammar, CaptureCause::NameReserved, value.span()));
+    }
+    Ok(word.to_owned())
 }
 
 /// The one text literal a `<key> = "<text>"` clause assigns.
@@ -225,12 +244,15 @@ fn value_of<'group, 'trees>(
 }
 
 /// Read the node roster, refusing a repeated spelling at its own token.
+///
+/// The seat itself marks a doubled clause — an authored `nodes = []` fills the seat with an empty roster and a second `nodes` clause refuses, where a marker read off the roster's emptiness would let the empty first statement vanish under the second.
+/// The commas are grammar rather than noise: two names with no separator between them are one phrase this roster does not read, refused at the second name.
 fn read_nodes(
     grammar: Grammar,
     group: &[&CapturedTokenTree],
-    nodes: &mut Vec<String>,
+    nodes: &mut Option<Vec<String>>,
 ) -> Result<(), NetworkCaptureError> {
-    if !nodes.is_empty() {
+    if nodes.is_some() {
         return Err(refused(
             grammar,
             CaptureCause::ClauseDoubled,
@@ -243,18 +265,29 @@ fn read_nodes(
     let Some((CapturedDelimiter::Bracket, members)) = roster.group() else {
         return Err(refused(grammar, CaptureCause::RosterUnread, roster.span()));
     };
+    let mut declared: Vec<String> = Vec::new();
+    let mut separated = true;
     for member in members {
-        if member.punct() == Some(',') {
-            continue;
+        if separated {
+            let Some(word) = member.word() else {
+                return Err(refused(grammar, CaptureCause::ChoiceUnread, member.span()));
+            };
+            if declared.iter().any(|held| held == word) {
+                return Err(refused(grammar, CaptureCause::ChoiceDoubled, member.span()));
+            }
+            declared.push(word.to_owned());
+            separated = false;
+        } else {
+            if member.punct() != Some(',') {
+                return Err(refused(grammar, CaptureCause::ChoiceUnread, member.span()));
+            }
+            separated = true;
         }
-        let Some(word) = member.word() else {
-            return Err(refused(grammar, CaptureCause::ChoiceUnread, member.span()));
-        };
-        if nodes.iter().any(|held| held == word) {
-            return Err(refused(grammar, CaptureCause::ChoiceDoubled, member.span()));
-        }
-        nodes.push(word.to_owned());
     }
+    if declared.is_empty() {
+        return Err(refused(grammar, CaptureCause::NothingChosen, roster.span()));
+    }
+    *nodes = Some(declared);
     Ok(())
 }
 
@@ -311,6 +344,20 @@ fn schedule_of(
             name_tree.span(),
         ));
     };
+    if !rendered_identifier(name) {
+        return Err(refused(
+            grammar,
+            CaptureCause::ClauseUnread,
+            name_tree.span(),
+        ));
+    }
+    if rust_keyword(name) || RESERVED.contains(&name) {
+        return Err(refused(
+            grammar,
+            CaptureCause::NameReserved,
+            name_tree.span(),
+        ));
+    }
     if assigned_by.punct() != Some('=') {
         return Err(refused(grammar, CaptureCause::ClauseUnread, opening(group)));
     }
@@ -344,7 +391,7 @@ fn phrase_of(
             (
                 link,
                 FaultRow::Drop {
-                    at: number_of(grammar, at)?,
+                    at: ordinal_of(grammar, at)?,
                 },
             )
         }
@@ -354,7 +401,7 @@ fn phrase_of(
             (
                 link,
                 FaultRow::Duplicate {
-                    at: number_of(grammar, at)?,
+                    at: ordinal_of(grammar, at)?,
                 },
             )
         }
@@ -366,8 +413,8 @@ fn phrase_of(
             (
                 link,
                 FaultRow::Delay {
-                    at: number_of(grammar, at)?,
-                    by: number_of(grammar, by)?,
+                    at: ordinal_of(grammar, at)?,
+                    by: ordinal_of(grammar, by)?,
                 },
             )
         }
@@ -408,9 +455,24 @@ fn phrase_of(
         .ok_or_else(|| refused(grammar, CaptureCause::EndpointUnknown, link_tree.span()))
 }
 
-/// The one unsigned number a phrase seat states.
+/// The one unsigned number a tick seat states, at the tick's sixty-four-bit width.
 fn number_of(grammar: Grammar, tree: &CapturedTokenTree) -> Result<u64, NetworkCaptureError> {
-    tree.number()
-        .and_then(|digits| digits.parse::<u64>().ok())
-        .ok_or_else(|| refused(grammar, CaptureCause::PhraseUnread, tree.span()))
+    let digits = tree
+        .number()
+        .ok_or_else(|| refused(grammar, CaptureCause::PhraseUnread, tree.span()))?;
+    digits
+        .parse::<u64>()
+        .map_err(|_beyond| refused(grammar, CaptureCause::NumberBeyondSeat, tree.span()))
+}
+
+/// The one unsigned number an ordinal or span seat states, at those seats' thirty-two-bit width.
+///
+/// Parsed at exactly the seat's width so a number past it refuses HERE, at the authored token: generated code cannot outsource the range to rustc, whose overflowing-literal diagnostic is suppressed inside a foreign macro expansion and whose out-of-range literal wraps silently.
+fn ordinal_of(grammar: Grammar, tree: &CapturedTokenTree) -> Result<u32, NetworkCaptureError> {
+    let digits = tree
+        .number()
+        .ok_or_else(|| refused(grammar, CaptureCause::PhraseUnread, tree.span()))?;
+    digits
+        .parse::<u32>()
+        .map_err(|_beyond| refused(grammar, CaptureCause::NumberBeyondSeat, tree.span()))
 }

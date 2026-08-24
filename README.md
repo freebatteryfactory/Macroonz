@@ -122,14 +122,14 @@ No network, no filesystem scan, no environment, no clock, no entropy — there i
 ## The taste test
 
 You describe a subject once: what it takes, what it returns, what it refuses, what must hold.
-The harness does the rest.
+The harness hands you the instruments — each independently callable, composed by your own tests rather than by one button:
 
 - **Generates** inputs against the description, structure-aware, from a seed it records.
-- **Injects** faults and drives a clock it controls, so the subject is judged under pressure and not on a sunny day.
-- **Reduces** every failure to its smallest witness.
+- **Injects** faults on a declared schedule, and measures against a clock the caller declares, so the subject is judged under pressure and not on a sunny day.
+- **Reduces** a failure to the smallest witness reached under the declared reducers and budget, and mints a replay capsule over it.
 - **Mutates** the subject's own code and runs the trials against each mutant, to prove the trials can tell right from wrong.
 - **Benchmarks** with the same receiver and the same pinned profile, so a number means the same thing tomorrow.
-- **Reports** each verdict with the evidence, the seed, and the replay that reproduce it.
+- **Reports** each verdict with its standing, its site, and its complete denominator — joined to its replay capsule, where a reduction earned one, on one execution key.
 
 Descriptors, trials, mutations, and benches live in your tests — written through the generic `macroonz-macros` attributes, through your own attributes, or by hand.
 The harness owns how they are judged, never what they mean.
@@ -142,12 +142,14 @@ The harness owns how they are judged, never what they mean.
 The wall it names, run locally:
 
 ```sh
-cargo check  --workspace --all-targets
-cargo clippy --workspace --all-targets
-cargo nextest run --workspace --run-ignored all
+cargo check  --workspace --all-targets --all-features
+cargo clippy --workspace --all-targets --all-features
+cargo nextest run --workspace --all-features --run-ignored all
 cargo fmt --all -- --check
 cargo deny --workspace check
 ```
+
+The wall runs with every feature on, so the optional homes — the loom-backed `preemption` exploration among them — are proven on every run while the default build stays lean.
 
 ---
 

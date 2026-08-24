@@ -77,6 +77,7 @@ impl<'door, K: Kind> Request<'door, K> {
     /// States the address the unit under one seat is written to.
     ///
     /// Stating a seat's address twice keeps the last statement: an address is one fact about one seat, and two of them would leave the plan electing.
+    /// The seat must be one a publication act consumes — planning refuses an address on a seat that never publishes, so a stated address is never an inert claim riding the identities.
     pub fn publishing_at(mut self, role: K::Role, address: OwnerIdentity) -> Self {
         self.addresses.retain(|(seat, _)| *seat != role);
         self.addresses.push((role, address));
@@ -114,7 +115,7 @@ impl<'door, K: Kind> Request<'door, K> {
             addresses,
             answers,
         } = self;
-        let (plan, invalidation) = decide::planned::<K>(
+        let plan = decide::planned::<K>(
             &capture,
             content,
             dependencies,
@@ -129,7 +130,7 @@ impl<'door, K: Kind> Request<'door, K> {
         let units = out.rendered().map_err(|refusal| refused(&refusal, door))?;
 
         let closure = Closure::proved(&plan, units).map_err(|refusal| refused(&refusal, door))?;
-        let universal = explain::universal(door, &plan, &closure, invalidation, &assumptions)
+        let universal = explain::universal(door, &plan, &closure, &assumptions)
             .map_err(|refusal| refused(&refusal, door))?;
         let view = View::complete(&plan, &closure, universal, answers)
             .map_err(|refusal| refused(&refusal, door))?;

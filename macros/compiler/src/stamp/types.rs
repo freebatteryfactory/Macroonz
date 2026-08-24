@@ -195,13 +195,11 @@ pub struct Stamp {
 
 /// What a plan decided about the artifact one stamp publishes, read off the plan's own surface.
 ///
-/// Both seats are required, and holding one says nothing about whether anything was rendered, staged, or landed.
+/// Holding one says nothing about whether anything was rendered, staged, or landed — but it does say the reading happened: the only mint is [`planned`](crate::stamp::planned), which is where the seat's existence and its publication destination are checked, so a value of this type cannot state a decision no plan made.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct StampedPlan {
-    /// The planned member's semantic key.
-    pub unit: Identity<identity::GeneratedUnit>,
-    /// What the eventual staged bytes' digest must satisfy.
-    pub staged: DigestContract,
+    unit: Identity<identity::GeneratedUnit>,
+    staged: DigestContract,
 }
 
 /// This side's record of one publication act.

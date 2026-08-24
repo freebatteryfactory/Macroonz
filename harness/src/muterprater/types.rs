@@ -2213,7 +2213,7 @@ pub enum SinkRefusal {
 
 /// The caller-supplied storage the proposal road ends at.
 ///
-/// The only storage seam anywhere in this crate: no realization is declared here, no filesystem is reached, and no scratch directory exists.
+/// One of the crate's two caller-owned storage seams — the other is the depot home's [`ReplayDepotSink`](crate::depot::capsules::ReplayDepotSink), which replay-bearing admission calls for the admitted entry; no realization is declared at either, no filesystem is reached, and no scratch directory exists.
 /// Storing is not admitting — a stored proposal is review material a human rules on, and the ruling is what discharges it.
 pub trait ProposalSink {
     /// Store one proposal, and hand back the location custody begins at.

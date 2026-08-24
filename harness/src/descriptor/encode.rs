@@ -223,25 +223,25 @@ pub(super) fn encode_row_content(
     bytes.extend_from_slice(&ROW_ENCODING_VERSION.to_be_bytes());
     for projection in DESCRIPTOR_PROJECTIONS {
         match projection {
-            DescriptorProjection::Claim => push_name(&mut bytes, claim.name())?,
+            DescriptorProjection::Claim => claim.name().encode_into(&mut bytes),
             DescriptorProjection::ExecutionSuite => {
-                push_name(&mut bytes, execution_suite.name())?;
+                execution_suite.name().encode_into(&mut bytes);
             }
             DescriptorProjection::Roles => {
                 push_count(&mut bytes, classification.roles().len())?;
                 for role in classification.roles() {
-                    push_name(&mut bytes, role.name())?;
+                    role.name().encode_into(&mut bytes);
                 }
             }
             DescriptorProjection::Tags => {
                 push_count(&mut bytes, classification.tags().len())?;
                 for tag in classification.tags() {
-                    push_name(&mut bytes, tag.name())?;
+                    tag.name().encode_into(&mut bytes);
                 }
             }
-            DescriptorProjection::Subject => push_name(&mut bytes, subject.name())?,
-            DescriptorProjection::Check => push_name(&mut bytes, check.name())?,
-            DescriptorProjection::Population => push_name(&mut bytes, population.name())?,
+            DescriptorProjection::Subject => subject.name().encode_into(&mut bytes),
+            DescriptorProjection::Check => check.name().encode_into(&mut bytes),
+            DescriptorProjection::Population => population.name().encode_into(&mut bytes),
             DescriptorProjection::Origin => push_origin(&mut bytes, origin)?,
         }
     }
@@ -251,19 +251,13 @@ pub(super) fn encode_row_content(
 /// The complete preimage one [`TrialKey`](super::TrialKey) is derived from: the claim, the subject route, the check, and the population, each as its reference's name, in that order.
 ///
 /// The execution suite is absent because two rows differing only by suite are one trial run under two seats, and nothing about where the row is written appears either, so the key survives a file move and a rename.
-///
-/// # Errors
-///
-/// Returns [`EncodeRefusal`] where a member is longer than the width this home's framing declares.
-pub(super) fn encode_trial_coordinates(
-    coordinates: TrialCoordinates,
-) -> Result<Vec<u8>, EncodeRefusal> {
+pub(super) fn encode_trial_coordinates(coordinates: TrialCoordinates) -> Vec<u8> {
     let mut out = Vec::new();
-    push_name(&mut out, coordinates.claim().name())?;
-    push_name(&mut out, coordinates.subject().name())?;
-    push_name(&mut out, coordinates.check().name())?;
-    push_name(&mut out, coordinates.population().name())?;
-    Ok(out)
+    coordinates.claim().name().encode_into(&mut out);
+    coordinates.subject().name().encode_into(&mut out);
+    coordinates.check().name().encode_into(&mut out);
+    coordinates.population().name().encode_into(&mut out);
+    out
 }
 
 /// One origin: its slot, then exactly what its arm earns.
@@ -272,21 +266,25 @@ fn push_origin(out: &mut Vec<u8>, origin: Origin) -> Result<(), EncodeRefusal> {
     match origin {
         Origin::HandWritten => Ok(()),
         Origin::Generated(facts) => {
-            push_name(out, facts.door().name())?;
-            push_name(out, facts.projection().name())
+            facts.door().name().encode_into(out);
+            facts.projection().name().encode_into(out);
+            Ok(())
         }
-        Origin::Candidate(facts) => push_synthesis(out, facts),
+        Origin::Candidate(facts) => {
+            push_synthesis(out, facts);
+            Ok(())
+        }
         Origin::AdmittedReplay(admitted) => push_replay_admission(out, admitted),
         Origin::AdmittedDischarge(admitted) => push_discharge_admission(out, admitted),
     }
 }
 
 /// One synthesis fact: its slot, and the opening the survivor arm names.
-fn push_synthesis(out: &mut Vec<u8>, facts: SynthesisFacts) -> Result<(), EncodeRefusal> {
+fn push_synthesis(out: &mut Vec<u8>, facts: SynthesisFacts) {
     out.push(facts.slot());
     match facts {
-        SynthesisFacts::Survivor(point) => push_name(out, point.name()),
-        SynthesisFacts::ProofGap => Ok(()),
+        SynthesisFacts::Survivor(point) => point.name().encode_into(out),
+        SynthesisFacts::ProofGap => {}
     }
 }
 
@@ -299,7 +297,7 @@ fn push_replay_admission(
 ) -> Result<(), EncodeRefusal> {
     push_address(out, admitted.proposal().address())?;
     out.push(admitted.admission().ground().slot());
-    push_name(out, admitted.destination().name())?;
+    admitted.destination().name().encode_into(out);
     push_address(out, admitted.replay().address())
 }
 
@@ -311,13 +309,18 @@ fn push_discharge_admission(
     admitted: DischargeAdmission,
 ) -> Result<(), EncodeRefusal> {
     push_address(out, admitted.proposal().address())?;
-    push_name(out, admitted.destination().name())
+    admitted.destination().name().encode_into(out);
+    Ok(())
 }
 
-/// One namespaced name: the namespace, then the stem, each framed.
-fn push_name(out: &mut Vec<u8>, name: NamespacedName) -> Result<(), EncodeRefusal> {
-    push_text(out, name.namespace().written())?;
-    push_text(out, name.stem().written())
+impl NamespacedName {
+    /// Appends this name's canonical bytes: the namespace then the stem, each length-framed through the substrate's one framing.
+    ///
+    /// Seated with the type on purpose: five homes once restated these two lines, and one lawful edit to the spelling would have split the identity families of the homes that drifted from the homes that did not.
+    pub fn encode_into(self, into: &mut Vec<u8>) {
+        crate::identity::encode_bytes(self.namespace().written().as_bytes(), into);
+        crate::identity::encode_bytes(self.stem().written().as_bytes(), into);
+    }
 }
 
 /// One content address, framed at its own length like every other variable-length member.

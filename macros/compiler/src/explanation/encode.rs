@@ -5,15 +5,8 @@
 //! The one seat where prose sits beside a typed value is a repair, and only the repair's CITATION is written: the sentence is that citation's own projection.
 
 use super::{ExplanationIssue, RelatedDisposition, UniversalAnswer};
-use crate::identity::{Profile, encode_bytes, encode_length};
+use crate::identity::{encode_bytes, encode_length};
 use crate::kind::{Answer, Disposition, Question};
-
-/// Appends one profile's canonical bytes: the stem of whoever owns the grammar, its declared name, then its version position in four big-endian bytes.
-fn profile_into(profile: Profile, into: &mut Vec<u8>) {
-    encode_bytes(profile.stem().as_bytes(), into);
-    encode_bytes(profile.name().as_bytes(), into);
-    into.extend_from_slice(&profile.version().position().to_be_bytes());
-}
 
 /// Appends one disposition's canonical bytes: the row's discriminant, then the material that row carries.
 fn disposition_into(disposition: Disposition, into: &mut Vec<u8>) {
@@ -32,7 +25,7 @@ fn disposition_into(disposition: Disposition, into: &mut Vec<u8>) {
         }
         Disposition::UnavailableUnderProfile { profile, because } => {
             into.push(3);
-            profile_into(profile, into);
+            profile.encode_into(into);
             encode_bytes(&because.citation_bytes(), into);
         }
     }
@@ -61,10 +54,13 @@ pub(super) fn answer_material(answer: &UniversalAnswer, into: &mut Vec<u8>) {
                 encode_bytes(dependency.as_bytes(), into);
             }
         }
-        UniversalAnswer::Profile { profile } => profile_into(*profile, into),
-        UniversalAnswer::OutputAndDigest { output, digest } => {
-            output.encode_into(into);
-            encode_bytes(digest.as_bytes(), into);
+        UniversalAnswer::Profile { profile } => profile.encode_into(into),
+        UniversalAnswer::OutputAndDigest { outputs } => {
+            encode_length(outputs.len(), into);
+            for row in outputs.iter() {
+                row.output.encode_into(into);
+                encode_bytes(row.digest.as_bytes(), into);
+            }
         }
         UniversalAnswer::Assumptions { assumptions } => {
             encode_length(assumptions.len(), into);

@@ -10,8 +10,8 @@
 use macroonz::{
     BindError, Bounded, Closure, ClosureIssue, CrateBinding, Destination, Door, Expansion,
     GeneratedToken, GeneratedTree, InvalidationTrigger, Kind, Membership, NoQuestions, Observed,
-    Overflow, PartitionCargo, Phase, Plan, PlanDecisions, Producer, RenderedProjection,
-    RenderedUnit, Request, Role, TextCapture, UNIVERSAL_QUESTION_COUNT,
+    Overflow, OwnerIdentity, PartitionCargo, Phase, Plan, PlanDecisions, Producer,
+    RenderedProjection, RenderedUnit, Request, Role, TextCapture, UNIVERSAL_QUESTION_COUNT,
 };
 
 /// The kind this lane renders: two seats, delivered to two different builds.
@@ -84,6 +84,30 @@ fn expansion(source: &str) -> Option<Expansion<Pair>> {
             out.unit(Seat::Tail, spelled("tail")?)
         })
         .ok()
+}
+
+/// An address stated for a seat that never publishes refuses at planning, before any identity commits to it.
+///
+/// Both of this lane's seats deliver to builds rather than to a publication artifact, so an address on either is a claim no act would consume — admitted, it would ride the plan's, the rendering's, and the closure's identities while nothing ever wrote to it.
+#[test]
+fn an_address_on_an_unpublished_seat_refuses_at_planning() -> Result<(), ()> {
+    let read = TextCapture::read(DECLARATION).map_err(|_| ())?;
+    let refusal = Request::<Pair>::over(read.input().clone(), "pair", &DOOR)
+        .publishing_at(
+            Seat::Tail,
+            OwnerIdentity {
+                subject: "lane.address",
+                bytes: [7u8; 32],
+            },
+        )
+        .render(|_plan, out| {
+            out.unit(Seat::Head, spelled("head")?)?;
+            out.unit(Seat::Tail, spelled("tail")?)
+        })
+        .err()
+        .ok_or(())?;
+    assert_eq!(refusal.phase(), Phase::Planning);
+    Ok(())
 }
 
 /// One rendering of a plan's own members, spelled with the words this lane names.
@@ -167,7 +191,7 @@ fn a_shortened_output_set_leaves_a_rendered_seat_unplanned() -> Result<(), ()> {
     let bound = expansion(DECLARATION).ok_or(())?;
     let plan = bound.plan();
     let head = plan.membership().under(Seat::Head).ok_or(())?.clone();
-    let smaller = replanned(plan, Membership::from_member(head)).ok_or(())?;
+    let smaller = replanned(plan, Membership::from_member(head).map_err(|_| ())?).ok_or(())?;
     assert_ne!(smaller.identity(), plan.identity());
 
     let refusal = Closure::proved(&smaller, bound.closure().rendered().clone())

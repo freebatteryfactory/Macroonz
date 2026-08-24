@@ -174,6 +174,39 @@ fn a_malformed_network_declaration_refuses_at_capture() -> Result<(), ()> {
         link forward = client to server,
         latency = 3,
     "#;
+    let empty_then_stated_nodes = r#"
+        module = net,
+        namespace = "lane",
+        nodes = [],
+        nodes = [client, server],
+        link forward = client to server,
+    "#;
+    let unseparated_nodes = r#"
+        module = net,
+        namespace = "lane",
+        nodes = [client server],
+        link forward = client to server,
+    "#;
+    let reserved_schedule = r#"
+        module = net,
+        namespace = "lane",
+        nodes = [client, server],
+        link forward = client to server,
+        schedule topology = [],
+    "#;
+    let keyword_module = r#"
+        module = type,
+        namespace = "lane",
+        nodes = [client, server],
+        link forward = client to server,
+    "#;
+    let oversized_position = r#"
+        module = net,
+        namespace = "lane",
+        nodes = [client, server],
+        link forward = client to server,
+        schedule outage = [drop forward at 4294967296],
+    "#;
     for source in [
         missing_module,
         doubled_node,
@@ -181,6 +214,11 @@ fn a_malformed_network_declaration_refuses_at_capture() -> Result<(), ()> {
         undrawn_link,
         unread_phrase,
         undeclared_key,
+        empty_then_stated_nodes,
+        unseparated_nodes,
+        reserved_schedule,
+        keyword_module,
+        oversized_position,
     ] {
         let refusal = networked(source).ok_or(())?.err().ok_or(())?;
         assert_eq!(refusal.phase(), Phase::Capture, "{source} did not refuse");
@@ -215,7 +253,30 @@ fn a_malformed_concurrency_declaration_refuses_at_capture() -> Result<(), ()> {
         namespace = "lane",
         transfers_hold { population = "a", interleavings = many, samples = 1, seed = 1 },
     "#;
-    for source in [missing_fact, doubled_row, no_rows, unread_number] {
+    let oversized_number = r#"
+        module = explorations,
+        namespace = "lane",
+        transfers_hold { population = "a", interleavings = 4294967296, samples = 1, seed = 1 },
+    "#;
+    let keyword_module = r#"
+        module = type,
+        namespace = "lane",
+        transfers_hold { population = "a", interleavings = 1, samples = 1, seed = 1 },
+    "#;
+    let keyword_row = r#"
+        module = explorations,
+        namespace = "lane",
+        type { population = "a", interleavings = 1, samples = 1, seed = 1 },
+    "#;
+    for source in [
+        missing_fact,
+        doubled_row,
+        no_rows,
+        unread_number,
+        oversized_number,
+        keyword_module,
+        keyword_row,
+    ] {
         let refusal = concurrent(source).ok_or(())?.err().ok_or(())?;
         assert_eq!(refusal.phase(), Phase::Capture, "{source} did not refuse");
     }

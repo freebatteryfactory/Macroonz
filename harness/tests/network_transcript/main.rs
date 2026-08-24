@@ -247,13 +247,25 @@ fn a_live_witnessed_pack_keeps_its_provenance_and_its_ticks() -> Result<(), Lane
     Ok(())
 }
 
-/// The write road refuses an empty record, a foreign row, and a stamp that steps backward.
+/// The write road refuses an empty record, a foreign row, a delivery stamped before its own send, and a stamp that steps backward.
 #[test]
 fn the_write_road_refuses_incoherent_records() -> Result<(), LaneFailure> {
     let topology = pair_topology()?;
     assert_eq!(
         recorded(TranscriptProvenance::Simulated, &topology, Vec::new()).err(),
         Some(TranscriptRefusal::NoDelivery)
+    );
+    let backward = TranscriptEntry::witnessed(
+        forward()?,
+        SendOrdinal::at(0u32),
+        b"impossible".to_vec(),
+        Tick::at(99u64),
+        Tick::at(0u64),
+        DeliveryCopy::Original,
+    );
+    assert_eq!(
+        recorded(TranscriptProvenance::Simulated, &topology, vec![backward]).err(),
+        Some(TranscriptRefusal::DeliveryBeforeSend { at: 0usize })
     );
     let stranger = Link::between(
         NodeRef::declared(name("stranger")?),

@@ -73,7 +73,7 @@ const MUTATION_BODY: &str = r#"
     point = named("lane", "press-point"),
     fact = named("lane", "cause-order"),
     map named("lane", "cause-order") = named("lane", "order-held"),
-    permit named("lane", "order-held") = ["declared-order"],
+    permit named("lane", "order-held") = ["declared-order-permutation"],
 "#;
 
 /// The item a mutation declaration sits on: three variants, so two adjacent transpositions exist.
@@ -206,7 +206,7 @@ fn a_mutation_declaration_becomes_one_carrier_carrying_the_module() -> Result<()
         .ok_or(())?;
     let text = emitted(&carrier).ok_or(())?;
     assert!(text.contains("press_support"));
-    assert!(text.contains("declared-order"));
+    assert!(text.contains("declared-order-permutation"));
     for variant in ["First", "Second", "Third"] {
         assert!(text.contains(variant), "the order does not carry {variant}");
     }

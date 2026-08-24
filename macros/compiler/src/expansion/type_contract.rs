@@ -66,8 +66,9 @@ impl Refused for BindError {
         LineBody::SingleCause
     }
 
+    /// A single cause enumerates nothing: the primary cause is the summary's own subject, never a member of its related set.
     fn related(&self) -> Vec<Vec<u8>> {
-        vec![self.canonical_bytes()]
+        Vec::new()
     }
 
     /// The one repair, citing this home's own declared fact.

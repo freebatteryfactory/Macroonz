@@ -44,9 +44,9 @@ pub use diagnostic::{
 };
 pub use expansion::{Accounted, BINDING_FACT, BindError, Expansion};
 pub use explanation::{
-    ASSUMPTION_LIMIT, DECLARED_QUESTION_LIMIT, EXPLANATION_ISSUE_LIMIT, ExplanationError,
-    ExplanationIssue, RELATED_KIND_LIMIT, RelatedDisposition, UNIVERSAL_QUESTION_COUNT,
-    UniversalAnswer, UniversalQuestion, View,
+    ASSUMPTION_LIMIT, AnsweredOutput, DECLARED_QUESTION_LIMIT, EXPLANATION_ISSUE_LIMIT,
+    ExplanationError, ExplanationIssue, RELATED_KIND_LIMIT, RelatedDisposition,
+    UNIVERSAL_QUESTION_COUNT, UniversalAnswer, UniversalQuestion, View,
 };
 pub use identity::{
     Anchoring, BUNDLE_PROFILE, CAPTURED_DECLARATION_PROFILE, CAPTURED_HELPER_PROFILE,
@@ -81,5 +81,5 @@ pub use token::{
     TOKEN_PATH_DEPTH_LIMIT, TextCapture, TextReadCause, TextReadRefusal, TokenPath, absolute_path,
     and_all, attribute, bound_local, bound_path, call, capture_literal, comma, comma_many,
     constant, documentation, equality, function, group, metavariable, method_call, method_chain,
-    result_type, roster, text_pair, twin_path,
+    rendered_identifier, result_type, roster, rust_keyword, text_pair, twin_path,
 };

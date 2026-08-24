@@ -1,14 +1,17 @@
-# `descriptor` — the three kinds that speak to the harness
+# `descriptor` — the kinds that speak to the harness
 
-Most of this compiler knows nothing about what it is generating. This home is the exception, and it is the exception on purpose: `macroonz-harness` is this workspace's own harness, so the compiler is allowed to know its vocabulary, and it writes it down in one place rather than scattering it through three renderers.
+Most of this compiler knows nothing about what it is generating. This home is the exception, and it is the exception on purpose: `macroonz-harness` is this workspace's own harness, so the compiler is allowed to know its vocabulary, and it writes it down in one place rather than scattering it through the renderers.
 
-Three kinds live here.
+Six kinds live here: three carrier kinds, and three direct ones.
 
 | Kind | What one declaration produces | Where it lands |
 | --- | --- | --- |
 | [`TrialTable`](trial::TrialTable) | A stamped module of declared rows | The declaration site, inert inside the carrier's stamped seat |
 | [`BenchTable`](bench::BenchTable) | A bench table and the one file that binds it to a measurement backend | The table beside the trial table's; the adapter as the consumer's bench-target cargo |
 | [`MutationSurface`](mutation::MutationSurface) | The module a mutation harness lowers and invokes | The consumer's test target |
+| [`ShadowFace`](shadow::ShadowFace) | Both `cfg`-gated faces of every chosen synchronization name | The declaration site, as ordinary items |
+| [`NetworkModule`](network::NetworkModule) | The builder module for a declared topology and its fault schedules | The declaration site, as ordinary items |
+| [`ConcurrencyModule`](concurrency::ConcurrencyModule) | One generic exploration function per declared row | The declaration site, as ordinary items |
 
 A stamped seat lands differently from an opaque one because it is a different material: stamp grammar is not Rust, so a stamped module delivered as opaque target cargo would be a syntax error in the consumer's build, and it rides the carrier's stamped seat instead — which the gate forwards to its stamp, never to the compiler.
 

@@ -9,7 +9,7 @@ use crate::identity::{
     self, ClosureId, ExplanationId, Identity, OwnerFact, PlanId, Profile, Provenance,
 };
 use crate::kind::{Disposition, Kind, Question};
-use crate::plan::{DEPENDENCY_LIMIT, InvalidationSet, PlannedOutput};
+use crate::plan::{DEPENDENCY_LIMIT, InvalidationSet, MEMBERSHIP_LIMIT, PlannedOutput};
 use core::marker::PhantomData;
 
 #[path = "type_guard.rs"]
@@ -71,6 +71,15 @@ pub struct RelatedDisposition {
     pub disposition: Disposition,
 }
 
+/// One seat's half of the output-and-digest answer: the member the plan declared there, and the digest the closure proved over its rendered bytes.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct AnsweredOutput {
+    /// The planned member, boxed so one row does not set the width of the roster.
+    pub output: Box<PlannedOutput>,
+    /// The digest proved over the rendered bytes.
+    pub digest: Identity<identity::OutputBytes>,
+}
+
 /// One typed answer to a universal question.
 ///
 /// Every arm carries the exact values that answer its row — identities, typed rosters, typed dispositions — and never a sentence standing in for a fact.
@@ -98,15 +107,13 @@ pub enum UniversalAnswer {
         /// The profile, at the version it was decided at.
         profile: Profile,
     },
-    /// The member it is, and the digest proved over the bytes that exist.
+    /// Every member it is, and the digest proved over each one's rendered bytes.
     ///
-    /// Two values because they come from two places: the member is what the plan declared, and the digest is what the closure proved.
-    /// An answer carrying only the first answers half the question; one carrying a digest the plan supplied answers it with a number nobody computed.
+    /// The complete set in roster order, never a chosen row: a kind's roster may fill several seats, and an answer naming one of them would be coverage-complete syntax over a flattened denominator — the second output's identity and digest simply absent from a view that claims the whole expansion.
+    /// Each row is two values because they come from two places: the member is what the plan declared, and the digest is what the closure proved.
     OutputAndDigest {
-        /// The planned member, boxed so one answer does not set the width of every other.
-        output: Box<PlannedOutput>,
-        /// The digest proved over the rendered bytes.
-        digest: Identity<identity::OutputBytes>,
+        /// One row per rendered seat, in roster order; never empty in a lawful expansion, because a rendering is structurally non-empty.
+        outputs: Bounded<AnsweredOutput, MEMBERSHIP_LIMIT>,
     },
     /// The owner facts it rests on.
     Assumptions {

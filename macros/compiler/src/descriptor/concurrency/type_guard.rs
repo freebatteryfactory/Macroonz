@@ -10,8 +10,8 @@ impl ExplorationRow {
     pub(crate) const fn declared(
         name: String,
         population: String,
-        interleavings: u64,
-        samples: u64,
+        interleavings: u32,
+        samples: u32,
         seed: u64,
     ) -> Self {
         Self {
@@ -35,15 +35,15 @@ impl ExplorationRow {
         &self.population
     }
 
-    /// The exhaustive ceiling.
+    /// The exhaustive ceiling, at the width the harness bound declares.
     #[must_use]
-    pub const fn interleavings(&self) -> u64 {
+    pub const fn interleavings(&self) -> u32 {
         self.interleavings
     }
 
-    /// The sample count beyond the ceiling.
+    /// The sample count beyond the ceiling, at the width the harness bound declares.
     #[must_use]
-    pub const fn samples(&self) -> u64 {
+    pub const fn samples(&self) -> u32 {
         self.samples
     }
 

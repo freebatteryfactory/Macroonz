@@ -4,7 +4,8 @@ The compiler.
 A complete request goes in; one sealed expansion comes out, or one diagnostic that says exactly why not.
 
 This crate is ordinary callable Rust.
-Nothing in it knows a proc macro exists, and nothing in it knows what you are generating.
+Its default build knows no proc macro: the `host` feature is the one opt-in bridge to `proc_macro`, and everything outside that feature is plain functions over plain values.
+The generic kernel knows nothing about what you are generating; the `descriptor` home is the one stated exception, the first-party adapter that speaks this workspace's own harness vocabulary.
 You declare a **kind** — what one request produces — and the compiler is generic over it from the first byte to the last.
 
 ---
@@ -143,7 +144,7 @@ What is the compiler's: the eight steps, the proof that rendering matched plan, 
 ## Diagnostics
 
 One typed value per observation.
-A `Diagnostic` names its phase, the exact site — a token, or a byte before capture on the text route — one plain summary line, what was expected and what was observed, a related set derived under one identity, the repairs the owner declared, and a route to reproduce it without a proc macro.
+A `Diagnostic` names its phase, its site — a token, a byte before capture on the text route, or the stated posture that the refusal is about the declaration as a whole and points at no token — one plain summary line, what was expected and what was observed, a related set derived under one identity, the repairs the owner declared, and a route to reproduce it without a proc macro.
 
 The summary line has one grammar.
 It opens with your door's prefix, states the class of refusal, the body, and the site.

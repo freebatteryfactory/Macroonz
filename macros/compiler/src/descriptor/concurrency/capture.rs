@@ -19,13 +19,16 @@
 
 use super::{ConcurrencyCaptureError, ConcurrencyDeclaration, ExplorationRow};
 use crate::descriptor::{CaptureCause, Grammar};
-use crate::token::{CapturedDelimiter, CapturedInput, CapturedTokenTree, SpanHandle};
+use crate::token::{
+    CapturedDelimiter, CapturedInput, CapturedTokenTree, SpanHandle, rendered_identifier,
+    rust_keyword,
+};
 
 /// Read one concurrency payload out of the declaration's body.
 ///
 /// # Errors
 ///
-/// Returns [`ConcurrencyCaptureError`] where the tokens do not say a concurrency declaration — an unreadable clause, an undeclared key, a doubled key or row, a row missing one of its four facts, a declaration with no row at all — each at the token it was established at.
+/// Returns [`ConcurrencyCaptureError`] where the tokens do not say a concurrency declaration — an unreadable clause, an undeclared key, a doubled key or row, a row missing one of its four facts, a number past its seat's width, a name the language reserves, a declaration with no row at all — each at the token it was established at.
 pub fn declared(
     body: &CapturedInput,
     grammar: Grammar,
@@ -125,7 +128,9 @@ fn assigned_once(
     Ok(())
 }
 
-/// The one identifier a `<key> = <ident>` clause assigns.
+/// The one identifier a `<key> = <ident>` clause assigns, refused where the language already owns the spelling.
+///
+/// The value becomes a rendered item's own name, so a Rust keyword here would compile into a collision inside the adopter's build — where the expansion's lints are silenced — instead of refusing at the authored token.
 fn assigned_ident(
     grammar: Grammar,
     group: &[&CapturedTokenTree],
@@ -133,10 +138,16 @@ fn assigned_ident(
     let [value] = value_of(group) else {
         return Err(refused(grammar, CaptureCause::ClauseUnread, opening(group)));
     };
-    value
+    let word = value
         .word()
-        .map(str::to_owned)
-        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, value.span()))
+        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, value.span()))?;
+    if !rendered_identifier(word) {
+        return Err(refused(grammar, CaptureCause::ClauseUnread, value.span()));
+    }
+    if rust_keyword(word) {
+        return Err(refused(grammar, CaptureCause::NameReserved, value.span()));
+    }
+    Ok(word.to_owned())
 }
 
 /// The one text literal a `<key> = "<text>"` clause assigns.
@@ -153,18 +164,23 @@ fn assigned_text(
         .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, value.span()))
 }
 
-/// The one unsigned number a `<key> = <n>` clause assigns.
-fn assigned_number(
+/// The one unsigned number a `<key> = <n>` clause assigns, parsed at exactly the width of the seat it fills.
+///
+/// The width is the harness seat's own — the exhaustive ceiling and the sample count are thirty-two bits wide, a seed is sixty-four — and a number past it refuses HERE, at the authored token.
+/// Generated code cannot outsource this range to rustc: the overflowing-literal diagnostic is suppressed inside a foreign macro expansion, and an out-of-range literal wraps silently where source-authored Rust would refuse.
+fn assigned_number<Number: core::str::FromStr>(
     grammar: Grammar,
     group: &[&CapturedTokenTree],
-) -> Result<u64, ConcurrencyCaptureError> {
+) -> Result<Number, ConcurrencyCaptureError> {
     let [value] = value_of(group) else {
         return Err(refused(grammar, CaptureCause::ClauseUnread, opening(group)));
     };
-    value
+    let digits = value
         .number()
-        .and_then(|digits| digits.parse::<u64>().ok())
-        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, value.span()))
+        .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, value.span()))?;
+    digits
+        .parse::<Number>()
+        .map_err(|_beyond| refused(grammar, CaptureCause::NumberBeyondSeat, value.span()))
 }
 
 /// The value trees past one group's `<key> =` opening, or nothing where no `=` stands second.
@@ -187,8 +203,8 @@ fn row_of(
         return Err(refused(grammar, CaptureCause::RowUnread, row.span()));
     };
     let mut population: Option<String> = None;
-    let mut interleavings: Option<u64> = None;
-    let mut samples: Option<u64> = None;
+    let mut interleavings: Option<u32> = None;
+    let mut samples: Option<u32> = None;
     let mut seed: Option<u64> = None;
     for group in &comma_groups(members) {
         match group.first().and_then(|tree| tree.word()) {
@@ -214,6 +230,12 @@ fn row_of(
     let Some(spelling) = name.word() else {
         return Err(refused(grammar, CaptureCause::RowUnread, name.span()));
     };
+    if !rendered_identifier(spelling) {
+        return Err(refused(grammar, CaptureCause::RowUnread, name.span()));
+    }
+    if rust_keyword(spelling) {
+        return Err(refused(grammar, CaptureCause::NameReserved, name.span()));
+    }
     Ok(ExplorationRow::declared(
         spelling.to_owned(),
         population,
@@ -223,11 +245,11 @@ fn row_of(
     ))
 }
 
-/// Read one `<key> = <n>` clause into its empty seat, refusing a doubled key.
-fn number_once(
+/// Read one `<key> = <n>` clause into its empty seat, refusing a doubled key; the seat's own type is the width the number parses at.
+fn number_once<Number: core::str::FromStr>(
     grammar: Grammar,
     group: &[&CapturedTokenTree],
-    seat: &mut Option<u64>,
+    seat: &mut Option<Number>,
 ) -> Result<(), ConcurrencyCaptureError> {
     if seat.is_some() {
         return Err(refused(

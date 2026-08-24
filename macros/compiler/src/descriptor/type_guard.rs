@@ -260,21 +260,4 @@ impl Composition {
     }
 }
 
-/// Whether one spelling is a single Rust identifier the rendering is willing to write.
-///
-/// ASCII only, and `_` alone is refused because it is the wildcard pattern rather than a name.
-/// One alphabet for every spelling any grammar here renders in identifier position — a second copy would agree with this one until one of them was edited, and the failure would surface in a consumer's build with no idea where the name came from.
-#[must_use]
-pub fn rendered_identifier(spelling: &str) -> bool {
-    let mut characters = spelling.chars();
-    let Some(head) = characters.next() else {
-        return false;
-    };
-    if !head.is_ascii_alphabetic() && head != '_' {
-        return false;
-    }
-    if spelling == "_" {
-        return false;
-    }
-    characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
-}
+pub use crate::token::rendered_identifier;

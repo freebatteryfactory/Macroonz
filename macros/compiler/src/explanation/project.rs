@@ -18,7 +18,7 @@ pub(super) fn human_line(answer: &UniversalAnswer) -> String {
         }
         UniversalAnswer::Profile { .. } => "the profile this output was decided under",
         UniversalAnswer::OutputAndDigest { .. } => {
-            "the planned member, and the digest proved over its rendered bytes"
+            "every planned member in roster order, and the digest proved over each one's rendered bytes"
         }
         UniversalAnswer::Assumptions { .. } => "the owner facts this output rests on",
         UniversalAnswer::Invalidators { .. } => {

@@ -15,8 +15,8 @@ pub const CONCURRENCY_HELPER_POSITION: u32 = 5;
 pub struct ExplorationRow {
     name: String,
     population: String,
-    interleavings: u64,
-    samples: u64,
+    interleavings: u32,
+    samples: u32,
     seed: u64,
 }
 

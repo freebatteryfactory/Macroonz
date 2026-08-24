@@ -9,9 +9,9 @@
 //! So each clause is required to appear where it belongs and to stay absent where it does not: a whole-declaration refusal adds no position, a handle the producer's table does not reach says so rather than rendering a number, and two refusals that classify alike stay two refusals.
 
 use macroonz::{
-    CLOSURE_ISSUE_LIMIT, Capping, ClosureError, ClosureIssue, CoordinateRole, CrateBinding,
-    Diagnostic, Door, ExplanationError, ExplanationIssue, Line, LineBody, LineSite, Observed,
-    Phase, Placement, Producer, RefusalClass, RenderError, SiteCoordinate, SoleRole,
+    Bounded, Capping, CoordinateRole, CrateBinding, Diagnostic, Door, ExplanationError,
+    ExplanationIssue, Family, Line, LineBody, LineSite, Observed, Phase, Placement, Producer,
+    RELATED_ISSUE_LIMIT, REPAIR_LIMIT, RefusalClass, Refused, RenderError, Repair, SiteCoordinate,
     SourceCoordinate, SpanHandle, TextCapture, UniversalQuestion, composed,
 };
 
@@ -27,10 +27,45 @@ const DOOR: Door = Door::declared(
     },
 );
 
-/// The seat every closure issue in this lane is established at.
-const SEAT: ClosureIssue<SoleRole> = ClosureIssue::MemberMissing {
-    role: SoleRole::Sole,
-};
+/// One refusal that enumerates a remainder wider than a related set carries, declared by this lane under its own family.
+///
+/// The compiler's own homes cap their issue bodies at or under the related magnitude, so with the primary cause outside the set none of them can reach the truncated posture any more.
+/// An adopter's refusal is under no such cap, and this is one: the first cause plus a remainder exactly as wide as the whole related magnitude.
+struct Overflowing;
+
+impl Refused for Overflowing {
+    const PHASE: Phase = Phase::Rendering;
+    const FAMILY: Family = Family::declared("lane/overflowing");
+
+    fn class(&self) -> RefusalClass {
+        RefusalClass::RenderingNotClosed
+    }
+
+    fn first(&self) -> String {
+        "the first of many established issues".to_owned()
+    }
+
+    fn observed(&self) -> Observed {
+        Observed::ContractDisagreement
+    }
+
+    fn body(&self) -> LineBody {
+        LineBody::Body {
+            further: RELATED_ISSUE_LIMIT,
+            capping: Capping::Complete,
+        }
+    }
+
+    fn related(&self) -> Vec<Vec<u8>> {
+        (0..RELATED_ISSUE_LIMIT)
+            .map(|at| at.to_be_bytes().to_vec())
+            .collect()
+    }
+
+    fn repairs(&self) -> Bounded<Repair, REPAIR_LIMIT> {
+        Bounded::empty()
+    }
+}
 
 /// One refusal of the rendering family, for the lanes that need a second family.
 const NOTHING_RENDERED: RenderError = RenderError::NothingRendered;
@@ -120,21 +155,17 @@ fn a_body_line_counts_the_issues_it_is_a_summary_of() {
     assert!(shown.contains("5 of them do not fit the declared issue bound"));
 }
 
-/// A refusal about the declaration as a whole adds no position to its line.
+/// A refusal about the declaration as a whole adds no position to its line, and its site names no token and no coordinate.
 ///
 /// A whole-declaration refusal is a STATED posture rather than a site somebody forgot to supply, and a position inside the declaration would send a reader to an arbitrary spot the refusal is not about.
+/// The machine seat says the same thing as the prose: no manufactured handle-zero, no resolved position-zero — a reader that asks WHERE is told there is no where narrower than the whole.
 #[test]
 fn a_whole_declaration_refusal_adds_no_position() {
     let refused = Diagnostic::refused(&NOTHING_RENDERED, &DOOR, &Placement::WholeDeclaration);
     assert!(!refused.summary().contains("(at "));
     assert_eq!(refused.phase(), Phase::Rendering);
-    assert_eq!(
-        refused.site().coordinate(),
-        SiteCoordinate::Resolved(SourceCoordinate {
-            role: CoordinateRole::SemanticOrigin,
-            position: 0,
-        })
-    );
+    assert_eq!(refused.site().token(), None);
+    assert_eq!(refused.site().coordinate(), None);
 }
 
 /// A refusal at one token names where the producer's own table put it.
@@ -154,10 +185,10 @@ fn a_refusal_at_one_token_names_where_the_producer_put_it() -> Result<(), ()> {
     assert_eq!(refused.site().token(), Some(SpanHandle::at(1)));
     assert_eq!(
         refused.site().coordinate(),
-        SiteCoordinate::Resolved(SourceCoordinate {
+        Some(SiteCoordinate::Resolved(SourceCoordinate {
             role: CoordinateRole::Byte,
             position: 2,
-        })
+        }))
     );
     assert!(refused.summary().ends_with(" (at byte 2)"));
     Ok(())
@@ -179,7 +210,7 @@ fn a_handle_the_producers_table_does_not_reach_says_so() -> Result<(), ()> {
     );
     assert!(matches!(
         refused.site().coordinate(),
-        SiteCoordinate::NotReached(_)
+        Some(SiteCoordinate::NotReached(_))
     ));
     assert!(refused.summary().contains("does not reach handle 9"));
     Ok(())
@@ -188,7 +219,7 @@ fn a_handle_the_producers_table_does_not_reach_says_so() -> Result<(), ()> {
 /// Two families observing one classification are still two refusals.
 ///
 /// A rendering that produced nothing and an explanation that left a question unanswered both observe an absent seat — and they are different absences, of different things, repaired differently.
-/// The line and the related identities say so.
+/// The phase and the line say so; the related sets do NOT, and that is the point of the last two asserts: each refusal is a single cause, a single cause enumerates nothing, and neither primary rides its own related set dressed as an enumeration.
 #[test]
 fn two_families_observing_one_classification_are_still_two_refusals() {
     let rendering = Diagnostic::refused(&NOTHING_RENDERED, &DOOR, &Placement::WholeDeclaration);
@@ -197,10 +228,8 @@ fn two_families_observing_one_classification_are_still_two_refusals() {
     assert_eq!(explanation.observed(), Observed::SeatAbsent);
     assert_ne!(rendering.phase(), explanation.phase());
     assert_ne!(rendering.summary(), explanation.summary());
-    assert_ne!(
-        rendering.related().carried(),
-        explanation.related().carried()
-    );
+    assert!(rendering.related().carried().is_empty());
+    assert!(explanation.related().carried().is_empty());
 }
 
 /// A related set capped at its declared bound is written into the line.
@@ -208,20 +237,16 @@ fn two_families_observing_one_classification_are_still_two_refusals() {
 /// The typed capping beside the set is not something a compiler shows, so a reader handed only the body's identity would otherwise take the coarser commitment for the full one.
 #[test]
 fn a_capped_related_set_is_written_into_the_line() {
-    let further = CLOSURE_ISSUE_LIMIT.saturating_sub(1);
-    let refusal = ClosureError::over(SEAT, vec![SEAT; further]);
-    let refused = Diagnostic::refused(&refusal, &DOOR, &Placement::WholeDeclaration);
+    let refused = Diagnostic::refused(&Overflowing, &DOOR, &Placement::WholeDeclaration);
     assert_eq!(
         refused.related().capping(),
         Capping::Truncated {
-            omitted: CLOSURE_ISSUE_LIMIT,
+            omitted: RELATED_ISSUE_LIMIT,
         }
     );
-    assert!(
-        refused
-            .summary()
-            .contains(&format!("(and {further} further established issues)"))
-    );
+    assert!(refused.summary().contains(&format!(
+        "(and {RELATED_ISSUE_LIMIT} further established issues)"
+    )));
     assert!(
         refused
             .summary()

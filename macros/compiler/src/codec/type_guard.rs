@@ -20,7 +20,7 @@ impl CodecTypePath {
     /// The checks are dependent and in that order, so exactly one cause is true of any refused path.
     pub fn spelled(rooting: PathRooting, segments: Vec<String>) -> Result<Self, CodecError> {
         for segment in &segments {
-            if !is_identifier(segment) {
+            if !rendered_identifier(segment) {
                 return Err(CodecError::of(CodecIssue::SegmentNotAnIdentifier {
                     segment: segment.clone(),
                 }));
@@ -64,7 +64,7 @@ impl ModuleSpelling {
     ///
     /// Returns [`CodecIssue::ModuleSpellingNotAnIdentifier`] where the spelling is not one Rust identifier.
     pub fn spelled(spelling: &str) -> Result<Self, CodecError> {
-        if is_identifier(spelling) {
+        if rendered_identifier(spelling) {
             Ok(Self {
                 spelling: spelling.to_owned(),
             })
@@ -98,7 +98,7 @@ impl CodecMember {
         if spelling.is_empty() {
             return Err(CodecError::of(CodecIssue::MemberSpellingAbsent));
         }
-        if !is_identifier(spelling) {
+        if !rendered_identifier(spelling) {
             return Err(CodecError::of(CodecIssue::MemberSpellingNotAnIdentifier {
                 spelling: spelling.to_owned(),
             }));
@@ -146,7 +146,7 @@ impl CodecAssembly {
         if road.is_empty() {
             return Err(CodecError::of(CodecIssue::AssemblyRoadAbsent));
         }
-        if !is_identifier(road) {
+        if !rendered_identifier(road) {
             return Err(CodecError::of(CodecIssue::AssemblyRoadNotAnIdentifier {
                 spelling: road.to_owned(),
             }));
@@ -182,7 +182,7 @@ impl CodecShape {
         assembly: CodecAssembly,
         members: Vec<CodecMember>,
     ) -> Result<Self, CodecError> {
-        if !is_identifier(refusal) {
+        if !rendered_identifier(refusal) {
             return Err(CodecError::of(CodecIssue::RefusalSpellingNotAnIdentifier {
                 spelling: refusal.to_owned(),
             }));
@@ -275,24 +275,7 @@ impl CodecError {
     }
 }
 
-/// Whether one spelling is a single Rust identifier this home is willing to render.
-///
-/// ASCII only, and the bare underscore is refused because it is the wildcard pattern rather than a name.
-/// Published from `types.rs` so every road that renders a spelling reads one alphabet.
-#[must_use]
-pub fn is_identifier(spelling: &str) -> bool {
-    let mut characters = spelling.chars();
-    let Some(head) = characters.next() else {
-        return false;
-    };
-    if !head.is_ascii_alphabetic() && head != '_' {
-        return false;
-    }
-    if spelling == "_" {
-        return false;
-    }
-    characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
-}
+pub use crate::token::rendered_identifier;
 
 /// The pass over one shape's offered members: what their spellings say about each other and about the locals the decode road declares for itself.
 ///

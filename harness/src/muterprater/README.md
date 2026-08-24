@@ -83,7 +83,7 @@ Candidates are proved in memory, against the complete authored table with the ca
 A claimed kill is *demonstrated* with the mutant active, never asserted.
 "Not a duplicate" is a comparison the constructor performs, not a paragraph a reviewer has to check.
 
-A proposal is process-local until a caller's own sink stores it — the only storage seam in the crate.
+A proposal is process-local until a caller's own [`ProposalSink`] stores it — one of the crate's two caller-owned storage seams, holding review material a human rules on; the other is the [`ReplayDepotSink`](crate::depot::capsules::ReplayDepotSink), which replay-bearing admission additionally calls to store the admitted entry, and the two custodies never trade roles.
 Then a human admits it, explicitly, by calling the operation for its ground.
 Rust cannot authenticate who made that call, and this home does not pretend otherwise.
 

@@ -336,4 +336,4 @@ pub struct CodecError {
 }
 
 /// The one alphabet every spelling this home renders as a Rust identifier is admitted by, published from the nucleus every road here already reads it through.
-pub use guard::is_identifier;
+pub use guard::rendered_identifier;

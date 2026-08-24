@@ -7,7 +7,7 @@
 //!
 //! # Reversals
 //!
-//! A plan that admitted anything would satisfy every positive assertion here, so each is paired with the shape that must refuse: a seat declared twice, a set past its magnitude, an account past its magnitude, and a one-trigger reading of a cause set that names more than one declaration.
+//! A plan that admitted anything would satisfy every positive assertion here, so each is paired with the shape that must refuse: a seat declared twice, a seat outside the kind's declared roster, a set past its magnitude, an account past its magnitude, and a one-trigger reading of a cause set that names more than one declaration.
 
 use macroonz::identity::{self, Identity, Transcript};
 use macroonz::{
@@ -117,6 +117,56 @@ fn member(seat: Seat) -> PlannedMember<Seat> {
     }
 }
 
+/// A role type whose lawful values outnumber its declared roster: `Head` is in `ALL`, `Ghost` is not.
+///
+/// This is the shape the open [`Role`] contract permits any external kind to write, and the shape membership admission must refuse — a `Ghost` member would be held, rendered, and dropped from every roster-quantified walk.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Haunted {
+    /// The one seat the roster declares.
+    Head,
+    /// A lawful value the roster omits.
+    Ghost,
+}
+
+impl Role for Haunted {
+    const ALL: &'static [Self] = &[Self::Head];
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::Head => "head",
+            Self::Ghost => "ghost",
+        }
+    }
+
+    fn destination(self) -> Destination {
+        match self {
+            Self::Head => Destination::DeclarationSite,
+            Self::Ghost => Destination::TestCarrier,
+        }
+    }
+}
+
+/// One planned member at one haunted seat, over material derived from that seat's own name.
+fn haunted_member(seat: Haunted) -> PlannedMember<Haunted> {
+    let semantic_key = key(seat.name().as_bytes());
+    PlannedMember {
+        role: seat,
+        output: PlannedOutput {
+            semantic_key,
+            origin: OriginTrail::from_edge(OriginEdge {
+                from: node(b"authored"),
+                relation: OriginRelation::AuthoredDeclaration,
+                to: node(seat.name().as_bytes()),
+            }),
+            expected_profile: RUST_DECLARATION_PROFILE,
+            address: None,
+            digest_contract: DigestContract {
+                anchored_to: semantic_key,
+            },
+        },
+    }
+}
+
 /// One plan over the account and the output set this lane declares.
 fn planned(account: Account<Pair>, membership: Membership<Seat>) -> Option<Plan<Pair>> {
     let decided_under = Context::under(RUST_DECLARATION_PROFILE);
@@ -181,7 +231,7 @@ fn a_declared_set_reaches_one_plan_whichever_order_it_was_declared_in() -> Resul
 fn a_plan_commits_to_the_set_it_declared() -> Result<(), ()> {
     let whole =
         Membership::declared(member(Seat::Head), vec![member(Seat::Tail)]).map_err(|_| ())?;
-    let shortened = Membership::from_member(member(Seat::Head));
+    let shortened = Membership::from_member(member(Seat::Head)).map_err(|_| ())?;
     let first = planned(Account::over(commitment(b"one declaration")), whole).ok_or(())?;
     let second = planned(Account::over(commitment(b"one declaration")), shortened).ok_or(())?;
     assert_ne!(first.identity(), second.identity());
@@ -202,6 +252,38 @@ fn two_members_under_one_seat_refuse_at_the_declaration() -> Result<(), ()> {
             role_slot: Seat::Head.slot(),
             observed: 2,
         }
+    );
+    Ok(())
+}
+
+/// A member whose seat the roster does not declare refuses at the declaration, naming the seat.
+///
+/// The roster is the denominator of every downstream walk, so a member outside it would render and then vanish from the encoding, the proof, and the delivery — a closure would prove a set it never examined whole.
+/// This lane's role type carries a lawful value its own `ALL` omits, which is exactly the shape an open roster permits an external kind to write.
+#[test]
+fn a_member_outside_the_roster_refuses_at_the_declaration() -> Result<(), ()> {
+    let refusal = Membership::declared(
+        haunted_member(Haunted::Head),
+        vec![haunted_member(Haunted::Ghost)],
+    )
+    .err()
+    .ok_or(())?;
+    assert_eq!(
+        refusal.first_issue(),
+        &PlanIssue::MembershipForeign { seat: "ghost" }
+    );
+    Ok(())
+}
+
+/// The one-member road refuses the same foreign seat, so no membership holding one is constructible at all.
+#[test]
+fn a_one_member_set_refuses_a_seat_outside_the_roster() -> Result<(), ()> {
+    let refusal = Membership::from_member(haunted_member(Haunted::Ghost))
+        .err()
+        .ok_or(())?;
+    assert_eq!(
+        refusal.first_issue(),
+        &PlanIssue::MembershipForeign { seat: "ghost" }
     );
     Ok(())
 }

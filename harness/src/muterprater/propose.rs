@@ -3,7 +3,7 @@
 //! # Candidate proving is in memory
 //!
 //! A candidate binding stages in the staged view and executes against it through the one report engine.
-//! No scratch directory exists anywhere on this road, and [`ProposalSink`](super::ProposalSink) is the only storage seam in the crate.
+//! No scratch directory exists anywhere on this road; [`ProposalSink`](super::ProposalSink) holds review custody, and replay-bearing admission additionally calls the caller's [`ReplayDepotSink`] — the crate's other storage seam, with its own custody.
 //! A claimed mutant kill is demonstrated on the evaluation surface with that mutant active, never asserted, and only then does the lane propose.
 //!
 //! # Synthesis is scoped to what is already authored

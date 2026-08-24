@@ -5,32 +5,32 @@
 use crate::bounded::Bounded;
 use crate::closure::Closure;
 use crate::diagnostic::Door;
-use crate::explanation::{ExplanationError, UniversalAnswer};
+use crate::explanation::{AnsweredOutput, ExplanationError, UniversalAnswer};
 use crate::identity::OwnerFact;
 use crate::kind::{Kind, Role};
-use crate::plan::{InvalidationSet, Plan};
-use crate::render::{RenderedProjection, RenderedUnit};
+use crate::plan::Plan;
+use crate::render::RenderedProjection;
 
 /// Answer the universal roster over one plan and the closure proved against it.
 ///
 /// The related-disposition answer is empty and says so: one request produces one kind and accounts for no other.
 /// A door that produces several answers for them all at once, by seating a disposition record beside the whole expansion.
+/// The invalidators are read off the plan itself, never handed in beside it — the value that holds a fact is the value the answer is read from.
 ///
 /// # Errors
 ///
-/// Returns the coverage refusal where the assumed facts or the account's declared dependencies outgrow the seat they are answered in.
+/// Returns the coverage refusal where the assumed facts, the account's declared dependencies, or the rendered outputs outgrow the seat they are answered in.
 pub(super) fn universal<K: Kind>(
     door: &Door,
     plan: &Plan<K>,
     closure: &Closure<K::Role>,
-    invalidation: InvalidationSet,
     assumptions: &[OwnerFact],
 ) -> Result<Vec<UniversalAnswer>, ExplanationError> {
     let account = plan.account();
     let dependencies =
         Bounded::new(account.dependencies().to_vec()).map_err(ExplanationError::bounded)?;
     let assumed = Bounded::new(assumptions.to_vec()).map_err(ExplanationError::bounded)?;
-    let unit = answered(closure.rendered());
+    let outputs = Bounded::new(answered(closure.rendered())).map_err(ExplanationError::bounded)?;
     let producer = door.producer();
     Ok(vec![
         UniversalAnswer::Kind { name: K::NAME },
@@ -47,15 +47,12 @@ pub(super) fn universal<K: Kind>(
         UniversalAnswer::Profile {
             profile: plan.context().profile(),
         },
-        UniversalAnswer::OutputAndDigest {
-            output: Box::new(unit.reconstructed().output),
-            digest: unit.digest(),
-        },
+        UniversalAnswer::OutputAndDigest { outputs },
         UniversalAnswer::Assumptions {
             assumptions: assumed,
         },
         UniversalAnswer::Invalidators {
-            triggers: invalidation,
+            triggers: plan.invalidation().clone(),
         },
         UniversalAnswer::RelatedDispositions {
             related: Bounded::empty(),
@@ -66,14 +63,18 @@ pub(super) fn universal<K: Kind>(
     ])
 }
 
-/// The unit one output-and-digest answer is about: the first seat of the roster that a unit stands under.
+/// Every seat's half of the output-and-digest answer, in roster order.
 ///
 /// Roster order and never rendering order, so the answer does not turn on the sequence a renderer happened to write its units in.
-/// The fallback is unreachable: a rendering is non-empty and every unit in it stands under a row of its own roster.
-fn answered<R: Role>(rendered: &RenderedProjection<R>) -> &RenderedUnit<R> {
+/// The whole roster and never a chosen row: a kind may fill several seats, and an answer naming fewer than all of them would flatten the expansion's denominator to whichever row was picked.
+fn answered<R: Role>(rendered: &RenderedProjection<R>) -> Vec<AnsweredOutput> {
     R::ALL
         .iter()
         .copied()
-        .find_map(|role| rendered.under(role))
-        .unwrap_or_else(|| rendered.first())
+        .filter_map(|role| rendered.under(role))
+        .map(|unit| AnsweredOutput {
+            output: Box::new(unit.reconstructed().output),
+            digest: unit.digest(),
+        })
+        .collect()
 }

@@ -28,9 +28,7 @@ pub fn pack(population: PopulationRef, seeds: Vec<SeedInput>) -> Result<SeedPack
 fn encode_body(population: PopulationRef, seeds: &[SeedInput]) -> Vec<u8> {
     let mut body = Vec::new();
     body.extend_from_slice(&SEED_PACK_FORMAT_VERSION.to_be_bytes());
-    let name = population.name();
-    encode_bytes(name.namespace().written().as_bytes(), &mut body);
-    encode_bytes(name.stem().written().as_bytes(), &mut body);
+    population.name().encode_into(&mut body);
     encode_length(seeds.len(), &mut body);
     for seed in seeds {
         encode_bytes(seed.bytes(), &mut body);

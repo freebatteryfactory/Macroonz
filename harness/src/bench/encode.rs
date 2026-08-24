@@ -3,7 +3,7 @@
 use super::types::{
     BENCH_ROW_KEY_TAG, BenchMeasurement, BenchReferences, BenchRowKey, ContentionPosture,
 };
-use crate::descriptor::{EncodeRefusal, NamespacedName};
+use crate::descriptor::EncodeRefusal;
 use crate::identity::ContentAddress;
 
 /// Append one length-prefixed byte string: eight big-endian length bytes, then the material.
@@ -15,19 +15,13 @@ fn write_bytes(into: &mut Vec<u8>, material: &[u8]) -> Result<(), EncodeRefusal>
     Ok(())
 }
 
-/// Append one name: its namespace, then its stem.
-fn write_name(into: &mut Vec<u8>, name: NamespacedName) -> Result<(), EncodeRefusal> {
-    write_bytes(into, name.namespace().written().as_bytes())?;
-    write_bytes(into, name.stem().written().as_bytes())
-}
-
 /// Derive one row's identity over the preimage this home's README spells out.
 pub(super) fn derive_row_key(
     references: BenchReferences,
     measurement: &BenchMeasurement,
 ) -> Result<BenchRowKey, EncodeRefusal> {
     let mut preimage = Vec::new();
-    write_name(&mut preimage, references.workload().name())?;
+    references.workload().name().encode_into(&mut preimage);
 
     let sizes = measurement.input_sizes().sizes();
     let count = u64::try_from(sizes.len()).map_err(|_| EncodeRefusal::LengthPastEncodingWidth)?;
@@ -36,8 +30,8 @@ pub(super) fn derive_row_key(
         preimage.extend_from_slice(&size.to_be_bytes());
     }
 
-    write_name(&mut preimage, references.preflight().name())?;
-    write_name(&mut preimage, references.planted_worse().name())?;
+    references.preflight().name().encode_into(&mut preimage);
+    references.planted_worse().name().encode_into(&mut preimage);
 
     let budgets = measurement.budgets();
     preimage.extend_from_slice(&budgets.samples().to_be_bytes());
@@ -56,7 +50,7 @@ pub(super) fn derive_row_key(
         }
     }
 
-    write_name(&mut preimage, references.complexity().name())?;
+    references.complexity().name().encode_into(&mut preimage);
     Ok(BenchRowKey::derived(ContentAddress::derived(
         BENCH_ROW_KEY_TAG,
         &preimage,

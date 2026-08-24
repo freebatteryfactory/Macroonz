@@ -107,8 +107,9 @@ impl Refused for RenderError {
         LineBody::SingleCause
     }
 
+    /// A single cause enumerates nothing: the primary cause is the summary's own subject, never a member of its related set.
     fn related(&self) -> Vec<Vec<u8>> {
-        vec![self.canonical_bytes()]
+        Vec::new()
     }
 
     /// This home declares no repair of its own.

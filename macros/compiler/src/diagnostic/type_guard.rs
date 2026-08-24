@@ -16,7 +16,7 @@ use crate::identity::{
     Contract, Identity, RelatedBody, RelatedIssue, Role, ServiceEntry, Transcript, encode_bytes,
 };
 use crate::request::{CrateBinding, Producer};
-use crate::token::{CoordinateRole, SourceCoordinate, SpanHandle};
+use crate::token::{SourceCoordinate, SpanHandle};
 
 impl Family {
     /// Declare one family under its owner's namespace.
@@ -190,28 +190,37 @@ impl Site {
         Self::BeforeCapture { coordinate }
     }
 
+    /// The site of an observation about the declaration as a whole.
+    ///
+    /// It takes nothing, which is the statement: there is no narrower token, so no handle and no coordinate exist to be answered — and none is invented for a machine reader to mistake for a resolved one.
+    pub const fn whole_declaration() -> Self {
+        Self::WholeDeclaration
+    }
+
     /// The token this diagnostic points at, where a capture issued one.
     ///
     /// # Nonclaims
     ///
-    /// It answers with nothing for a site established BEFORE a capture, because no table was built and no handle was issued.
-    /// That is a stated posture rather than a missing value: a handle answered here would index a table that never existed and would read exactly like an honest handle naming the declaration's first token.
+    /// It answers with nothing for a site established BEFORE a capture, because no table was built and no handle was issued, and with nothing for a WHOLE-DECLARATION site, because the refusal is not at a token.
+    /// Each is a stated posture rather than a missing value: a handle answered here would index a table that never existed or name a spot the refusal is not about, and either would read exactly like an honest handle.
     #[must_use]
     pub const fn token(self) -> Option<SpanHandle> {
         match self {
             Self::AtToken { token, .. } => Some(token),
-            Self::BeforeCapture { .. } => None,
+            Self::BeforeCapture { .. } | Self::WholeDeclaration => None,
         }
     }
 
-    /// Where this diagnostic sits, whichever posture it stands under.
+    /// Where this diagnostic sits, where it sits at a place at all.
     ///
     /// The ONE place a pre-capture byte is lifted into the answered posture, and it lifts honestly: nothing was resolved because nothing needed resolving, and the coordinate's own role says which text the position counts into.
+    /// A whole-declaration site answers with nothing — the refusal has no position inside the declaration, and a manufactured one would read exactly like a resolved coordinate.
     #[must_use]
-    pub const fn coordinate(self) -> SiteCoordinate {
+    pub const fn coordinate(self) -> Option<SiteCoordinate> {
         match self {
-            Self::AtToken { coordinate, .. } => coordinate,
-            Self::BeforeCapture { coordinate } => SiteCoordinate::Resolved(coordinate),
+            Self::AtToken { coordinate, .. } => Some(coordinate),
+            Self::BeforeCapture { coordinate } => Some(SiteCoordinate::Resolved(coordinate)),
+            Self::WholeDeclaration => None,
         }
     }
 }
@@ -307,7 +316,7 @@ impl Diagnostic {
             first: &first,
             body: refusal.body(),
         };
-        let composed_line = composed(door, &line, placement_line_site(placement, site));
+        let composed_line = composed(door, &line, placement_line_site(site));
         Self {
             phase: E::PHASE,
             site,
@@ -374,27 +383,21 @@ impl Diagnostic {
 
 /// The site one placement amounts to.
 ///
-/// The whole-declaration placement answers with the at-token arm at the declaration's first token, deliberately: every refusal that reaches it is established at or after planning, which is downstream of a capture that succeeded, so a table was built and a handle means something.
-/// The semantic-origin role at position zero IS the claim there, not a stand-in for a table that did not reach.
+/// The whole-declaration placement answers with the whole-declaration site: the placement says there is nowhere narrower to point, and the site says exactly the same thing — no token, no coordinate, no manufactured first-token stand-in a machine reader could mistake for a resolved position.
 fn placement_site(placement: &Placement<'_>) -> Site {
     match *placement {
-        Placement::WholeDeclaration => Site::at_token(
-            SpanHandle::at(0),
-            SiteCoordinate::Resolved(SourceCoordinate {
-                role: CoordinateRole::SemanticOrigin,
-                position: 0,
-            }),
-        ),
+        Placement::WholeDeclaration => Site::whole_declaration(),
         Placement::AtToken { token, spans } => {
             Site::at_token(token, SiteCoordinate::answered(spans.coordinate_of(token)))
         }
     }
 }
 
-/// What the composed line says about where the refusal sits.
-fn placement_line_site(placement: &Placement<'_>, site: Site) -> LineSite {
-    match *placement {
-        Placement::WholeDeclaration => LineSite::WholeDeclaration,
-        Placement::AtToken { .. } => LineSite::At(site.coordinate()),
+/// What the composed line says about where the refusal sits — a projection of the site, so the prose and the seat cannot disagree.
+fn placement_line_site(site: Site) -> LineSite {
+    match site {
+        Site::WholeDeclaration => LineSite::WholeDeclaration,
+        Site::AtToken { coordinate, .. } => LineSite::At(coordinate),
+        Site::BeforeCapture { coordinate } => LineSite::At(SiteCoordinate::Resolved(coordinate)),
     }
 }

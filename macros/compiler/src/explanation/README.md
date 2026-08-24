@@ -48,5 +48,4 @@ It states the questions, checks the coverage, fixes the order, and names the res
 `project.rs` renders one answer for a person, exhaustively and from static literals.
 `type_contract.rs` states the rosters' constant tables and the contracts a coverage refusal stands under.
 
-One spelling here is a second copy of another home's: a profile's canonical bytes, which `plan/` also writes privately.
-Both are three lines and both are the same three; the repair is one `Profile::encode_into` seated in `identity/` beside the type, called from both.
+A profile's canonical bytes are not spelled here: `Profile::encode_into` is seated in `identity/` beside the type, and this home calls it like every other identity home does — one spelling, so a lawful grammar edit moves every identity family at once.

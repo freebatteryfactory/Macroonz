@@ -17,5 +17,5 @@ pub use types::{
     CargoAxis, CrateFacing, DeclarationError, DeclaredCargo, DeferredCargo, DeliveryForm,
     EXPECTED_SCHEMA_ID, PATH_SEGMENT_LIMIT, ProvedCargo, SchemaId, ShellError, ShellName,
     SupportAssembly, SupportAxes, SupportCarrier, SupportName, SupportShell, WallName,
-    is_rendered_identifier,
+    rendered_identifier,
 };

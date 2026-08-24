@@ -3,11 +3,12 @@
 What a run leaves behind.
 
 A trial executes once and then it is gone.
-What survives is the record this home defines: which trial ran, under which revisions of the subject and the check, on which target, what it concluded, and — when it refused — the smallest input that reproduces the refusal.
+What survives are the records this home defines, in two separately earned values: the report — which trial ran, under which revisions of the subject and the check, on which target, what it concluded — and, where a completed reduction earned one, a [`ReplayCapsule`] carrying the smallest reproducing input reached under the declared reducers and budget.
+The two join on one execution key; an ordinary report does not carry the capsule, and never claims what only a reduction established.
 
 Everything here is a value.
 Nothing in this home runs a trial, reads a clock, or touches a file.
-The runner hands it facts; it hands back a record that can be compared, counted, and replayed.
+The runner hands it facts; it hands back records that can be compared, counted, and — through the capsule's own road — replayed.
 
 ## Two rails that never cross
 

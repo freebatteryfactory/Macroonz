@@ -31,7 +31,7 @@ mod greeted {
     point = named("proc", "press-point"),
     fact = named("proc", "cause-order"),
     map named("proc", "cause-order") = named("proc", "order-held"),
-    permit named("proc", "order-held") = ["declared-order"],
+    permit named("proc", "order-held") = ["declared-order-permutation"],
 )]
 pub enum Cause {
     /// The first cause in the declared order.

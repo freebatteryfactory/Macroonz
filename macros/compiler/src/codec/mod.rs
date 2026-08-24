@@ -12,5 +12,5 @@ pub use types::{
     CodecAssembly, CodecContent, CodecDirection, CodecError, CodecIssue, CodecMember,
     CodecMemberShape, CodecPlacement, CodecProjection, CodecShape, CodecTypePath, DECODE_ROAD,
     DecodeRefusal, ENCODE_ROAD, MemberContract, ModuleSpelling, PathRooting, ROSTER_CONSTANT,
-    SLOT_ROAD, is_identifier,
+    SLOT_ROAD, rendered_identifier,
 };

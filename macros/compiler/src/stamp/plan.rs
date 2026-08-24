@@ -24,8 +24,8 @@ pub fn planned<K: Kind>(plan: &Plan<K>, role: K::Role) -> Result<StampedPlan, St
             role_slot: role.slot(),
         });
     }
-    Ok(StampedPlan {
-        unit: member.output.semantic_key,
-        staged: member.output.digest_contract,
-    })
+    Ok(StampedPlan::read(
+        member.output.semantic_key,
+        member.output.digest_contract,
+    ))
 }

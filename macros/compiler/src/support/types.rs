@@ -333,4 +333,4 @@ pub struct SupportShell {
 pub struct SupportCarrier;
 
 /// The one alphabet every spelling any crossing renders in identifier position is admitted by, published from the nucleus every road here already reads it through.
-pub use guard::is_rendered_identifier;
+pub use guard::rendered_identifier;

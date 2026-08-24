@@ -423,7 +423,7 @@ impl Row {
         )
         .map_err(RowRefusal::NotEncoded)?;
         let coordinates = TrialCoordinates::over(claim, subject, check, population);
-        let trial_key = TrialKey::over(coordinates).map_err(RowRefusal::NotEncoded)?;
+        let trial_key = TrialKey::over(coordinates);
         Ok(Self {
             coordinates,
             trial_key,
@@ -557,13 +557,11 @@ impl TrialKey {
     /// Derive one trial's compact identity from its coordinates.
     ///
     /// The one place the four coordinates are encoded, so there is no second preimage to drift from this one.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`EncodeRefusal`] where the coordinates' preimage could not be written, which is unreachable on every target this crate is built for.
-    pub fn over(coordinates: TrialCoordinates) -> Result<Self, EncodeRefusal> {
-        encode_trial_coordinates(coordinates)
-            .map(|preimage| Self(ContentAddress::derived(TRIAL_KEY_DOMAIN, &preimage)))
+    /// Total: the four names were admitted at their own construction, and writing their preimage cannot fail.
+    #[must_use]
+    pub fn over(coordinates: TrialCoordinates) -> Self {
+        let preimage = encode_trial_coordinates(coordinates);
+        Self(ContentAddress::derived(TRIAL_KEY_DOMAIN, &preimage))
     }
 
     /// The content address this key carries.

@@ -190,9 +190,11 @@ impl Refused for AssemblyError {
         }
     }
 
+    /// The issues established beyond the primary cause; the primary is the summary's own subject, never a member of its related set.
     fn related(&self) -> Vec<Vec<u8>> {
         self.issues()
             .iter()
+            .skip(1)
             .map(AssemblyIssue::canonical_bytes)
             .collect()
     }
@@ -281,8 +283,9 @@ impl Refused for ShellError {
         LineBody::SingleCause
     }
 
+    /// A single cause enumerates nothing: the primary cause is the summary's own subject, never a member of its related set.
     fn related(&self) -> Vec<Vec<u8>> {
-        vec![self.canonical_bytes()]
+        Vec::new()
     }
 
     /// The pairing repair is this home's own law; the magnitude is not.
@@ -364,8 +367,9 @@ impl Refused for DeclarationError {
         LineBody::SingleCause
     }
 
+    /// A single cause enumerates nothing: the primary cause is the summary's own subject, never a member of its related set.
     fn related(&self) -> Vec<Vec<u8>> {
-        vec![self.canonical_bytes()]
+        Vec::new()
     }
 
     /// This home declares no repair for it.

@@ -37,6 +37,10 @@ impl CaptureCause {
             Self::NothingChosen => "the declaration chooses no name at all",
             Self::PhraseUnread => "a fault phrase is not one this grammar reads",
             Self::EndpointUnknown => "a phrase names a node or link the declaration never declared",
+            Self::NumberBeyondSeat => "an authored number outruns the width of its seat",
+            Self::NameReserved => {
+                "a declared name is one the language or the generated module already owns"
+            }
         }
     }
 
@@ -67,7 +71,9 @@ impl CaptureCause {
             | Self::ChoiceUnread
             | Self::NameUnshadowed
             | Self::PhraseUnread
-            | Self::EndpointUnknown => Observed::ContractDisagreement,
+            | Self::EndpointUnknown
+            | Self::NumberBeyondSeat
+            | Self::NameReserved => Observed::ContractDisagreement,
         }
     }
 }
@@ -179,8 +185,9 @@ impl Refused for DeclarationError {
         LineBody::SingleCause
     }
 
+    /// A single cause enumerates nothing: the primary cause is the summary's own subject, never a member of its related set.
     fn related(&self) -> Vec<Vec<u8>> {
-        vec![self.canonical_bytes()]
+        Vec::new()
     }
 
     fn repairs(&self) -> Bounded<Repair, REPAIR_LIMIT> {

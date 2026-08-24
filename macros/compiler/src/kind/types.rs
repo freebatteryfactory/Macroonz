@@ -33,7 +33,7 @@ pub trait Kind: 'static {
 pub trait Role: Copy + Eq + core::fmt::Debug + 'static {
     /// The complete roster, in the order the kind states it.
     ///
-    /// Every walk over a rendering quantifies over this, so a row missing from it is a unit the walk never looks at.
+    /// Every walk over a rendering quantifies over this, and membership admission refuses a member whose role is absent from it — so a lawful value the roster omits cannot become a planned member a walk would never look at.
     const ALL: &'static [Self];
 
     /// This role's declared name.

@@ -3,8 +3,8 @@
 The taste tester.
 It has no loyalty to the baker, no opinion about the recipe, and it records everything.
 
-You describe a subject once — what it takes, what it returns, what it refuses, what must hold — and the harness spends the rest of its time trying to make that description false.
-Every verdict it hands back carries the evidence, the seed, and the replay that reproduce it, so a failure is a thing you can hold rather than a thing you saw once.
+You describe a subject once — what it takes, what it returns, what it refuses, what must hold — and its instruments spend the rest of their time trying to make that description false: independently callable engines a caller composes, not one pipeline behind one button.
+A verdict comes back as two separately earned values that join on one execution key: the report, which carries the standing, the site, and the complete denominator of what ran; and the replay capsule, which a completed reduction mints over the exact minimized input — so a failure is a thing you can hold rather than a thing you saw once, and neither value claims what the other proved.
 
 This is a dev-dependency.
 Production never depends on its judge, and the harness never depends on the crates it judges.
@@ -59,7 +59,7 @@ flowchart LR
     D["descriptor<br/>a row says what it claims"] --> S["runner<br/>select · bind · execute"]
     G["generate<br/>inputs from a seed"] --> S
     F["fault · clock<br/>adversity on schedule"] --> S
-    S --> R["report<br/>verdict + evidence + replay"]
+    S --> R["report<br/>verdict + evidence · replay minted by reduction"]
     R --> M["muterprater<br/>mutants of the subject"]
     R --> O["oracle<br/>an independent second opinion"]
     R --> B["bench<br/>work under a pinned profile"]
@@ -69,7 +69,7 @@ flowchart LR
 | --- | --- |
 | `descriptor/` | What one trial states about itself: claim, subject, check, population, roles, tags, origin, and the two-sided schema pin a generated row must match. |
 | `runner/` | Selection, binding, execution, and the verdict: a row plus an executable attachment becomes a trial report. |
-| `generate/` | Deterministic inputs from a recorded seed, a shared sequence driver, and fingerprint-preserving minimization — every failure shrunk to its smallest witness. |
+| `generate/` | Deterministic inputs from a recorded seed, a shared sequence driver, and fingerprint-preserving minimization — a failure shrunk to the smallest witness reached under the declared reducers and budget. |
 | `properties/` | The algebraic laws a subject can be held to: equivalence, order, metamorphic relations, parity between two roads, composition, temporal contracts, refusal postures. |
 | `fault/` | Adversity the owner schedules: which fault, at which call. |
 | `clock/` | A clock the harness reads but never owns. Time is an input. |
@@ -99,7 +99,7 @@ There is no trait a subject must implement.
 ## Evidence, not green
 
 A passing lane is a side effect.
-What the harness is for is the record: which claim was exercised, under which revision of the subject and which revision of the check, with which seed, on which target, and what the smallest input that broke it looked like.
-A report that cannot reproduce itself is not a report.
+What the harness is for is the record: which claim was exercised, under which revision of the subject and which revision of the check, on which target, under which budgets — that is the report's half.
+The reproduction is the replay capsule's half, earned separately: a completed reduction mints one over the smallest input reached under the declared reducers and budget, bound to the same execution key the report carries, so the two halves join without either claiming the other.
 
 Four things a verdict never does: misattribute a failure, drop an observation, fabricate evidence, or claim a kill without a qualified baseline.

@@ -3,7 +3,7 @@
 //! Every canonical encoding anywhere in this crate — a captured tree, a planned membership, a rendered unit, a transcript — is written through the two primitives here.
 //! One framing rather than one per home is what keeps the concatenation collision from being reintroduced locally: a home that invented its own length spelling would admit two byte strings for one value without anything else noticing.
 
-use super::{OwnerFact, OwnerIdentity};
+use super::{OwnerFact, OwnerIdentity, Profile};
 
 /// Append one length as eight big-endian bytes.
 ///
@@ -18,6 +18,17 @@ pub fn encode_length(length: usize, into: &mut Vec<u8>) {
 pub fn encode_bytes(material: &[u8], into: &mut Vec<u8>) {
     encode_length(material.len(), into);
     into.extend_from_slice(material);
+}
+
+impl Profile {
+    /// Appends this profile's canonical bytes: the stem of whoever owns the grammar, its declared name, then its version position in four big-endian bytes.
+    ///
+    /// Seated with the type on purpose: every identity home that commits to a profile writes it through this one road, so a lawful grammar edit moves every identity family at once rather than splitting the homes that restated the spelling from the homes that did not.
+    pub fn encode_into(self, into: &mut Vec<u8>) {
+        encode_bytes(self.stem().as_bytes(), into);
+        encode_bytes(self.name().as_bytes(), into);
+        into.extend_from_slice(&self.version().position().to_be_bytes());
+    }
 }
 
 impl OwnerFact {

@@ -72,8 +72,9 @@ impl Refused for CaptureError {
         LineBody::SingleCause
     }
 
+    /// A single cause enumerates nothing: the primary cause is the summary's own subject, never a member of its related set.
     fn related(&self) -> Vec<Vec<u8>> {
-        vec![self.canonical_bytes()]
+        Vec::new()
     }
 
     /// No repair is cited: both rows are about what the declared input carries, so the repair is that declaration, and a sentence composed here would be this compiler citing a fact nobody declared.

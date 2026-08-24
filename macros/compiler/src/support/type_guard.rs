@@ -88,7 +88,7 @@ impl BoundPath {
     /// Returns [`DeclarationError::SpellingNotAnIdentifier`] where a segment is not one Rust identifier, [`DeclarationError::PathSegmentsAbsent`] where no segment was supplied — a path naming a crate and nothing in it names no item — and [`DeclarationError::PathSegmentsUnbounded`] where the segments outgrow the declared magnitude.
     pub fn rooted(facing: CrateFacing, segments: Vec<String>) -> Result<Self, DeclarationError> {
         for segment in &segments {
-            if !is_rendered_identifier(segment.as_str()) {
+            if !rendered_identifier(segment.as_str()) {
                 return Err(DeclarationError::SpellingNotAnIdentifier);
             }
         }
@@ -129,7 +129,7 @@ impl SupportName {
     ///
     /// Returns [`DeclarationError::SpellingNotAnIdentifier`] where the spelling is not one Rust identifier: it is written into a consumer's target in identifier position, and a spelling that is not one renders tokens that compiler reads as something else.
     pub fn declared(spelling: &str) -> Result<Self, DeclarationError> {
-        if is_rendered_identifier(spelling) {
+        if rendered_identifier(spelling) {
             Ok(Self(spelling.to_owned()))
         } else {
             Err(DeclarationError::SpellingNotAnIdentifier)
@@ -554,25 +554,4 @@ fn opaque_cargo(assembly: &SupportAssembly, form: DeliveryForm) -> Vec<Generated
     }
 }
 
-/// Whether one spelling is a single Rust identifier a carrier is willing to render.
-///
-/// ASCII only, and `_` alone is refused because it is the wildcard pattern rather than a name.
-///
-/// # Authority
-///
-/// **One alphabet, for every spelling any crossing renders in identifier position** — a path segment, an exported address, a stamped item's own name.
-/// It is public because the homes that render declaration grammars ride this carrier: a second copy of the alphabet would agree with this one until one of them was edited, and the failure would surface in a consumer's build with no idea where the name came from.
-#[must_use]
-pub fn is_rendered_identifier(spelling: &str) -> bool {
-    let mut characters = spelling.chars();
-    let Some(head) = characters.next() else {
-        return false;
-    };
-    if !head.is_ascii_alphabetic() && head != '_' {
-        return false;
-    }
-    if spelling == "_" {
-        return false;
-    }
-    characters.all(|character| character.is_ascii_alphanumeric() || character == '_')
-}
+pub use crate::token::rendered_identifier;

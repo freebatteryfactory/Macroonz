@@ -6,8 +6,10 @@
 //! Minting an identity of a public subject is lawful and stays lawful — that is what makes this the honest test.
 //! Holding both levels is allowed; seating them is not expressible, because the only entry point takes bytes that were established as issues rather than names somebody chose.
 
-use macroonz::RelatedSet;
 use macroonz::identity::{Identity, RelatedIssue, Role, Transcript};
+use macroonz::{Family, RelatedSet};
+
+const FAMILY: Family = Family::declared("lane/assembled");
 
 fn main() {
     let issues = vec![Identity::<RelatedIssue>::derived(Transcript::rooted(
@@ -15,5 +17,5 @@ fn main() {
         b"an issue",
         1,
     ))];
-    let _set = RelatedSet::derived_over(1_u8, &issues);
+    let _set = RelatedSet::derived_over(FAMILY, &issues);
 }

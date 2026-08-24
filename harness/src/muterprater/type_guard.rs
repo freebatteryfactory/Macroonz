@@ -3584,9 +3584,7 @@ fn proposal_identity(
     preimage.extend_from_slice(&PROPOSAL_ENCODING_VERSION.to_be_bytes());
     encode_bytes(candidate.canonical_bytes().as_bytes(), &mut preimage);
     preimage.push(ground.slot());
-    let suite = destination.suite().name();
-    encode_bytes(suite.namespace().written().as_bytes(), &mut preimage);
-    encode_bytes(suite.stem().written().as_bytes(), &mut preimage);
+    destination.suite().name().encode_into(&mut preimage);
     ProposalId::over(ContentAddress::derived(PROPOSAL_TAG, &preimage))
 }
 

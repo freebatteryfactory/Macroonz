@@ -1,7 +1,7 @@
-//! The canonical preimage of every identity this home mints, and the one length framing they are all written through.
+//! The canonical preimage of every identity this home mints, written through the substrate's one length framing.
 //!
 //! A preimage is the exact byte string handed to the identity substrate, and the specifications below are complete: an independent implementation needs what each function documents and nothing else.
-//! One framing for the whole home is what keeps a concatenation collision out — a member written without its length would let two different member sequences cut into one byte string.
+//! The framing itself is the identity substrate's and is re-exported here for the homes that always reached it by this path — one framing for the whole crate is what keeps a concatenation collision out.
 //! Nothing here reads an ambient fact; every byte comes from a value the caller already holds.
 
 use super::{
@@ -9,18 +9,7 @@ use super::{
     ReplayPosture, SubjectRevisionId, TargetBinding, TrialId, TrialProfile,
 };
 
-/// Append one length as eight big-endian bytes.
-///
-/// A fixed width rather than a varint, because an encoding that admitted two spellings of one length would admit two preimages for one value.
-pub fn encode_length(length: usize, into: &mut Vec<u8>) {
-    into.extend_from_slice(&u64::try_from(length).unwrap_or(u64::MAX).to_be_bytes());
-}
-
-/// Append one length-prefixed byte string: the eight-byte length, then the bytes.
-pub fn encode_bytes(material: &[u8], into: &mut Vec<u8>) {
-    encode_length(material.len(), into);
-    into.extend_from_slice(material);
-}
+pub use crate::identity::{encode_bytes, encode_length};
 
 impl TrialProfile {
     /// The discriminant byte a preimage carries for this profile.

@@ -343,6 +343,13 @@ pub enum TranscriptRefusal {
         /// The position where the order breaks.
         at: usize,
     },
+    /// An entry claims a delivery stamped earlier than its own send.
+    ///
+    /// A delivery before its send is temporally impossible under any provenance — simulated or live-recorded — so the row refuses at admission rather than entering a pack whose claims a replay would then faithfully repeat.
+    DeliveryBeforeSend {
+        /// The impossible entry's position in delivery order.
+        at: usize,
+    },
     /// The envelope ends inside a member it had already declared.
     Truncated,
     /// The leading claim is not the address the body derives.

@@ -121,7 +121,7 @@ impl Replay {
     }
 }
 
-/// Whether every row belongs to the topology and the stamps never step backward.
+/// Whether every row belongs to the topology, no delivery precedes its own send, and the stamps never step backward.
 fn lawful_entries(
     topology: &Topology,
     entries: &[TranscriptEntry],
@@ -133,6 +133,9 @@ fn lawful_entries(
     for (at, entry) in entries.iter().enumerate() {
         if !topology.links().contains(&entry.link()) {
             return Err(TranscriptRefusal::ForeignLink { at });
+        }
+        if entry.delivered_at() < entry.sent_at() {
+            return Err(TranscriptRefusal::DeliveryBeforeSend { at });
         }
         if entry.delivered_at() < latest {
             return Err(TranscriptRefusal::DeliveryOrderBroken { at });
@@ -171,11 +174,9 @@ fn encode_body(
     body
 }
 
-/// Append one node's two name parts.
+/// Append one node's name, through the type's own seated spelling.
 fn encode_node(node: NodeRef, into: &mut Vec<u8>) {
-    let name = node.name();
-    encode_bytes(name.namespace().written().as_bytes(), into);
-    encode_bytes(name.stem().written().as_bytes(), into);
+    node.name().encode_into(into);
 }
 
 /// Append one link's four name parts.

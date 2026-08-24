@@ -7,7 +7,7 @@ mod type_contract;
 mod types;
 
 pub use types::{
-    ASSUMPTION_LIMIT, DECLARED_QUESTION_LIMIT, EXPLANATION_ISSUE_LIMIT, ExplanationError,
-    ExplanationIssue, RELATED_KIND_LIMIT, RelatedDisposition, UNIVERSAL_QUESTION_COUNT,
-    UniversalAnswer, UniversalQuestion, View,
+    ASSUMPTION_LIMIT, AnsweredOutput, DECLARED_QUESTION_LIMIT, EXPLANATION_ISSUE_LIMIT,
+    ExplanationError, ExplanationIssue, RELATED_KIND_LIMIT, RelatedDisposition,
+    UNIVERSAL_QUESTION_COUNT, UniversalAnswer, UniversalQuestion, View,
 };

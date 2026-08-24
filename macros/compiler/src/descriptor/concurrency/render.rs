@@ -180,9 +180,9 @@ fn explored_let(
     arguments.push(GeneratedToken::group(
         GeneratedDelimiter::Parenthesis,
         vec![
-            GeneratedToken::number(row.interleavings()),
+            GeneratedToken::number(u64::from(row.interleavings())),
             GeneratedToken::alone(','),
-            GeneratedToken::number(row.samples()),
+            GeneratedToken::number(u64::from(row.samples())),
         ],
     )?);
     arguments.push(GeneratedToken::alone('?'));

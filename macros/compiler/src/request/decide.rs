@@ -8,24 +8,24 @@ use crate::bounded::{Bounded, Overflow};
 use crate::identity::{
     self, Identity, OwnerFact, OwnerIdentity, Profile, Transcript, encode_bytes,
 };
-use crate::kind::{Kind, Role};
+use crate::kind::{Destination, Kind, Role};
 use crate::origin::{
     DecisionTrace, OriginEdge, OriginRelation, OriginTrail, TRACE_ENTRY_LIMIT, TraceDecision,
     TraceEntry,
 };
 use crate::plan::{
-    Account, BoundAxis, Context, DigestContract, InvalidationSet, Membership, Plan, PlanDecisions,
-    PlanError, PlanIssue, PlannedMember, PlannedOutput,
+    Account, BoundAxis, Context, DigestContract, Membership, Plan, PlanDecisions, PlanError,
+    PlanIssue, PlannedMember, PlannedOutput,
 };
 use crate::token::CapturedInput;
 
 /// Plan one request: the account it stands on, the context it is decided under, one member per declared seat, and the record of why.
 ///
-/// The watch set is handed back beside the plan because the explanation answers with it, and rebuilding it from the plan's own reading would be a second construction of one derived value.
+/// The watch set travels inside the plan and nowhere beside it: the plan owns the value, and every later reading — the explanation's included — is read off that one seat, so no second copy exists for a later normalization to disagree with.
 ///
 /// # Errors
 ///
-/// Returns the planning refusal where the declared dependency set, the watch set, the output set, or the decision trace outgrows its magnitude, and where the kind's roster declares no seat at all.
+/// Returns the planning refusal where the declared dependency set, the watch set, the output set, or the decision trace outgrows its magnitude, where the kind's roster declares no seat at all, and one [`PlanIssue::AddressInert`] per stated address whose seat no publication act consumes.
 pub(super) fn planned<K: Kind>(
     capture: &CapturedInput,
     content: K::Content,
@@ -33,32 +33,39 @@ pub(super) fn planned<K: Kind>(
     profile: Profile,
     assumptions: &[OwnerFact],
     addresses: &[(K::Role, OwnerIdentity)],
-) -> Result<(Plan<K>, InvalidationSet), PlanError> {
+) -> Result<Plan<K>, PlanError> {
+    consumable::<K::Role>(addresses)?;
     let stands_over = committed(capture);
     let account = Account::standing_on(stands_over, dependencies)?;
     let decided_under = Context::under(profile);
     let invalidation = decided_under.watch_set(&account)?;
     let authored = account.origin_node();
-    let membership = membership(stands_over, authored, profile, addresses, named::<K>())?;
+    let membership = membership(
+        K::NAME,
+        stands_over,
+        authored,
+        profile,
+        addresses,
+        named::<K>(),
+    )?;
     let origin = OriginTrail::from_edge(OriginEdge {
         from: authored,
         relation: OriginRelation::AuthoredDeclaration,
-        to: seat_node(stands_over, membership.first().role),
+        to: seat_node(K::NAME, stands_over, membership.first().role),
     });
     let trace = trace(traced::<K>(stands_over), assumptions)?;
-    let plan = Plan::planned(
+    Ok(Plan::planned(
         account,
         decided_under,
         content,
         PlanDecisions {
             membership,
-            invalidation: invalidation.clone(),
+            invalidation,
             trace,
             origin,
             nonclaims: Bounded::empty(),
         },
-    );
-    Ok((plan, invalidation))
+    ))
 }
 
 /// The complete output set: one member per row of the kind's roster, in roster order.
@@ -67,6 +74,7 @@ pub(super) fn planned<K: Kind>(
 ///
 /// Returns [`PlanIssue::UnknownKind`] where the roster declares no seat — a kind with nothing to render is a kind this door was handed no implementation of — and the output magnitude where it declares more seats than a plan admits.
 fn membership<R: Role>(
+    kind_name: &'static str,
     stands_over: Identity<identity::CapturedDeclaration>,
     authored: Identity<identity::OriginNode>,
     profile: Profile,
@@ -78,23 +86,24 @@ fn membership<R: Role>(
         return Err(PlanError::of(PlanIssue::UnknownKind { named: kind }));
     };
     let rest = seats
-        .map(|role| member(stands_over, authored, profile, role, addresses))
+        .map(|role| member(kind_name, stands_over, authored, profile, role, addresses))
         .collect();
     Membership::declared(
-        member(stands_over, authored, profile, head, addresses),
+        member(kind_name, stands_over, authored, profile, head, addresses),
         rest,
     )
 }
 
 /// One planned member: what the seat's unit will be, where it came from, who renders it, and what its digest must satisfy.
 fn member<R: Role>(
+    kind_name: &'static str,
     stands_over: Identity<identity::CapturedDeclaration>,
     authored: Identity<identity::OriginNode>,
     profile: Profile,
     role: R,
     addresses: &[(R, OwnerIdentity)],
 ) -> PlannedMember<R> {
-    let key = semantic_key(stands_over, role);
+    let key = semantic_key(kind_name, stands_over, role);
     PlannedMember {
         role,
         output: PlannedOutput {
@@ -102,12 +111,33 @@ fn member<R: Role>(
             origin: OriginTrail::from_edge(OriginEdge {
                 from: authored,
                 relation: OriginRelation::SemanticDerivation,
-                to: seat_node(stands_over, role),
+                to: seat_node(kind_name, stands_over, role),
             }),
             expected_profile: profile,
             address: addressed(role, addresses),
             digest_contract: DigestContract { anchored_to: key },
         },
+    }
+}
+
+/// Whether every stated address names a seat some publication act will consume.
+///
+/// An address enters the plan's, the rendering's, and the closure's identities, so one that nothing consumes is not loose metadata — it is a claim with no act.
+/// A seat consumes an address only where the roster declares it and its delivery is a publication artifact; an address stated anywhere else refuses here, before any identity commits to it.
+///
+/// # Errors
+///
+/// Returns one [`PlanIssue::AddressInert`] per address whose seat never publishes.
+fn consumable<R: Role>(addresses: &[(R, OwnerIdentity)]) -> Result<(), PlanError> {
+    let mut inert = addresses
+        .iter()
+        .filter(|(seat, _)| {
+            !R::ALL.contains(seat) || seat.destination() != Destination::PublicationArtifact
+        })
+        .map(|(seat, _)| PlanIssue::AddressInert { seat: seat.name() });
+    match inert.next() {
+        Some(issue) => Err(PlanError::over(issue, inert.collect())),
+        None => Ok(()),
     }
 }
 
@@ -164,37 +194,41 @@ pub fn committed(capture: &CapturedInput) -> Identity<identity::CapturedDeclarat
     ))
 }
 
-/// What one seat's identities are derived over: its declared name, framed.
+/// What one seat's identities are derived over: the kind's declared name and the seat's own, each framed.
 ///
 /// Framed rather than raw, which is what keeps a seat named `content` at position zero from deriving the origin node an account already stands at.
-fn seat_material<R: Role>(role: R) -> Vec<u8> {
+/// The kind's name is an ancestor on purpose: roles are open and [`SoleRole`](crate::kind::SoleRole) is reusable by any one-unit kind, so two kinds sharing one capture and one roster would otherwise share a semantic key — and if their bytes agreed, a rendered-unit identity too — while the public contract calls them different generation kinds.
+fn seat_material<R: Role>(kind_name: &'static str, role: R) -> Vec<u8> {
     let mut material = Vec::new();
+    encode_bytes(kind_name.as_bytes(), &mut material);
     encode_bytes(role.name().as_bytes(), &mut material);
     material
 }
 
 /// What the unit under one seat IS, independently of any bytes.
 fn semantic_key<R: Role>(
+    kind_name: &'static str,
     stands_over: Identity<identity::CapturedDeclaration>,
     role: R,
 ) -> Identity<identity::GeneratedUnit> {
     Identity::derived(Transcript::under_projection(
         identity::Role::GeneratedUnit,
         &stands_over,
-        &seat_material(role),
+        &seat_material(kind_name, role),
         u32::from(role.slot()),
     ))
 }
 
 /// The origin node one seat's unit stands at.
 fn seat_node<R: Role>(
+    kind_name: &'static str,
     stands_over: Identity<identity::CapturedDeclaration>,
     role: R,
 ) -> Identity<identity::OriginNode> {
     Identity::derived(Transcript::under_projection(
         identity::Role::OriginNode,
         &stands_over,
-        &seat_material(role),
+        &seat_material(kind_name, role),
         u32::from(role.slot()),
     ))
 }

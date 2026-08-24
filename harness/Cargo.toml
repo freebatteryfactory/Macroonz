@@ -1,6 +1,6 @@
 [package]
 name = "macroonz-harness"
-description = "An independent test harness: descriptor-driven, property-generated, fault-injected, mutation-pressured, with every verdict carrying its evidence and replay."
+description = "An independent test harness: descriptor-driven, property-generated, fault-injected, mutation-pressured, with reports and reduction-minted replay capsules joined on one execution key."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -17,14 +17,21 @@ loom = { workspace = true, optional = true }
 syn = { workspace = true }
 
 [features]
-default = ["preemption"]
+default = []
 # The memory-model exploration home, wrapping the pinned `loom` scheduler.
-# On by default so the one wall proves it; disable the feature to build the harness without loom.
+# Opt-in: loom's generator dependency does not build on every target the default harness supports,
+# so a default that pulled it would trade an ordinary adopter's platform for a test convenience.
+# The wall proves this feature by running with --all-features; the default build carries no loom.
 preemption = ["dep:loom"]
 
 [dev-dependencies]
 macroonz = { path = "../macros/compiler" }
 trybuild = { workspace = true }
+
+[[test]]
+name = "preemption_exploration"
+path = "tests/preemption_exploration/main.rs"
+required-features = ["preemption"]
 
 [[bench]]
 name = "neutral_receiver"
