@@ -124,6 +124,32 @@ pub const SHADOW_ROSTER: &[ShadowRow] = &[
         &["std", "sync", "atomic", "fence"],
         &["loom", "sync", "atomic", "fence"],
     ),
+    ShadowRow::covered(
+        "Barrier",
+        &["std", "sync", "Barrier"],
+        &["loom", "sync", "Barrier"],
+    ),
+    ShadowRow::covered(
+        "LockResult",
+        &["std", "sync", "LockResult"],
+        &["loom", "sync", "LockResult"],
+    ),
+    ShadowRow::covered(
+        "TryLockResult",
+        &["std", "sync", "TryLockResult"],
+        &["loom", "sync", "TryLockResult"],
+    ),
+    ShadowRow::covered("mpsc", &["std", "sync", "mpsc"], &["loom", "sync", "mpsc"]),
+    ShadowRow::covered(
+        "thread_local",
+        &["std", "thread_local"],
+        &["loom", "thread_local"],
+    ),
+    ShadowRow::covered(
+        "spin_loop",
+        &["std", "hint", "spin_loop"],
+        &["loom", "hint", "spin_loop"],
+    ),
 ];
 
 /// The chosen rows one shadow declaration reads to, in authored order.

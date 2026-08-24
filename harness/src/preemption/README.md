@@ -18,6 +18,19 @@ Back comes a typed reading:
 
 A clean pass is a statement about the bounded space, exhaustively walked — stronger than any number of lucky runs on real threads, and deterministic under fixed bounds, so a wall that was green stays green.
 
+## What composes inside a model
+
+A model function is loom's world, and everything loom offers there composes with this road without a wrapper: the shadow synchronization types and channels, `loom::thread` whole — spawn, park, thread locals through loom's own `thread_local!` — and `loom::future::block_on`, so an async block is explored like any other operation (the workspace enables loom's `futures` face and the lane drives one).
+Loom's exploration-guidance calls — `explore`, `stop_exploring`, `skip_branch` — are model-side statements too, and a model that makes them is narrowing its own search, declared in its own source.
+`loom::sync::Notify` has no standard-library twin, so it rides no shadow row; a model may still use it directly.
+
+A model runs at most `loom::MAX_THREADS` concurrent threads — five, in the pinned version — and that ceiling is loom's own.
+
+## The seats deliberately left unset
+
+The builder's remaining knobs stay unset here, each for a stated reason rather than by omission: `max_duration` reads a wall clock, which no verdict in this harness may; `log` writes exploration chatter to stdout; `location` capture enriches failure reports but is, in loom's own words, very expensive — a declared opt-in seat is the road for it if evidence ever needs it; checkpointing resumes long explorations through the filesystem, which is not a declared port of this harness today; and `max_permutations` is a second ceiling beside the branch budget with no claim of its own yet.
+A seat that graduates does so as a declared input on [`PreemptionBounds`], never as an ambient default.
+
 ## What this wrap will not claim
 
 The verdict's cause vocabulary is the boundary's, not loom's: a broken model means *an execution did not complete cleanly* — an assertion failed, a deadlock was found, or the exploration overran a declared bound — and loom's report says which in its own words.

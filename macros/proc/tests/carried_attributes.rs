@@ -72,7 +72,7 @@ mod paced {
 ///
 /// This build carries no `loom` configuration, so the ordinary faces are what compile here — each name below resolves to its standard-library path through this module.
 mod shadowed {
-    macroonz_macros::shadow! { Arc, AtomicUsize, Mutex, Ordering, thread }
+    macroonz_macros::shadow! { Arc, AtomicUsize, Barrier, Mutex, Ordering, mpsc, spin_loop, thread, thread_local }
 }
 
 /// The decorated items reach this test untouched, which is the half of the contract compilation alone cannot state.
@@ -98,4 +98,14 @@ fn the_shadowed_names_stand_for_std_off_loom() {
     }
     let spawned = shadowed::thread::spawn(|| 5u8);
     assert_eq!(spawned.join().ok(), Some(5u8));
+    let (sender, receiver) = shadowed::mpsc::channel::<u8>();
+    assert!(sender.send(3u8).is_ok());
+    assert_eq!(receiver.recv().ok(), Some(3u8));
+    shadowed::spin_loop();
+    shadowed::thread_local! {
+        static HELD: u8 = const { 9u8 };
+    }
+    HELD.with(|held| assert_eq!(*held, 9u8));
+    let gate = shadowed::Barrier::new(1usize);
+    assert!(gate.wait().is_leader());
 }

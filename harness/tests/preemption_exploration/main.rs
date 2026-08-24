@@ -13,6 +13,11 @@ use macroonz_harness::preemption::{
 /// The workspace manifest, read at compile time, where the loom pin is declared.
 const ROOT_MANIFEST: &str = include_str!("../../../Cargo.toml");
 
+loom::thread_local! {
+    /// One shadowed thread-local, declared through loom's own macro and read inside a model.
+    static SEAT: u8 = 7u8;
+}
+
 /// A lost update: two threads read, then write, so one increment can vanish.
 fn racy_model() {
     let value = Arc::new(AtomicUsize::new(0));
@@ -32,7 +37,10 @@ fn racy_model() {
 }
 
 /// The same counter with the read and the write fused, which no interleaving can break.
+///
+/// The model also reads the loom thread-local, which is only reachable inside a model and so is witnessed here.
 fn fused_model() {
+    SEAT.with(|seat| assert_eq!(*seat, 7u8));
     let value = Arc::new(AtomicUsize::new(0));
     let handles: Vec<_> = (0usize..2usize)
         .map(|_| {
@@ -45,6 +53,21 @@ fn fused_model() {
     for handle in handles {
         assert!(handle.join().is_ok());
     }
+    assert_eq!(value.load(Ordering::SeqCst), 2usize);
+}
+
+/// An async model: one thread races an async block driven by loom's own executor.
+///
+/// The claim is that the futures face is real — `block_on` participates in the exploration like any other loom operation.
+fn futures_model() {
+    let value = Arc::new(AtomicUsize::new(0));
+    let cloned = Arc::clone(&value);
+    let handle = thread::spawn(move || {
+        cloned.fetch_add(1usize, Ordering::SeqCst);
+    });
+    let seen = loom::future::block_on(async { value.fetch_add(1usize, Ordering::SeqCst) });
+    assert!(seen <= 1usize);
+    assert!(handle.join().is_ok());
     assert_eq!(value.load(Ordering::SeqCst), 2usize);
 }
 
@@ -72,6 +95,14 @@ fn the_racy_counter_is_caught_with_looms_report() -> Result<(), PreemptionBounds
 #[test]
 fn the_fused_counter_holds_over_the_bounded_space() -> Result<(), PreemptionBoundsRefusal> {
     let reading = explored(bounds()?, fused_model);
+    assert_eq!(reading.verdict(), &PreemptionVerdict::AllInterleavingsHeld);
+    Ok(())
+}
+
+/// The async model explores clean under `block_on`, so the futures face is load-bearing.
+#[test]
+fn an_async_model_explores_under_block_on() -> Result<(), PreemptionBoundsRefusal> {
+    let reading = explored(bounds()?, futures_model);
     assert_eq!(reading.verdict(), &PreemptionVerdict::AllInterleavingsHeld);
     Ok(())
 }
@@ -134,8 +165,20 @@ fn witnessed_signed_faces(
 /// The roster's remaining faces: the thread module, the ordering, and the fence.
 fn witnessed_odd_faces(_yielding: fn(), _ordering: Option<Ordering>, _fencing: fn(Ordering)) {}
 
+/// The roster's later rows: the barrier, the lock results, the channel module, and the spin hint.
+///
+/// The `thread_local` row's shadow face is a macro, witnessed by the module-level declaration above and its read inside the fused model.
+fn witnessed_late_faces(
+    _barrier: Option<loom::sync::Barrier>,
+    _lock: Option<loom::sync::LockResult<u8>>,
+    _try_lock: Option<loom::sync::TryLockResult<u8>>,
+    _channeling: fn() -> (loom::sync::mpsc::Sender<u8>, loom::sync::mpsc::Receiver<u8>),
+    _spinning: fn(),
+) {
+}
+
 /// The witnessed spellings, one per roster row, in roster order.
-const WITNESSED: [&str; 22] = [
+const WITNESSED: [&str; 28] = [
     "Arc",
     "Mutex",
     "MutexGuard",
@@ -158,6 +201,12 @@ const WITNESSED: [&str; 22] = [
     "AtomicPtr",
     "Ordering",
     "fence",
+    "Barrier",
+    "LockResult",
+    "TryLockResult",
+    "mpsc",
+    "thread_local",
+    "spin_loop",
 ];
 
 /// The shadow roster's rows and this lane's witnessed spellings are one list, so a row can neither appear nor vanish unwitnessed.
@@ -167,6 +216,13 @@ fn the_shadow_roster_is_witnessed_against_the_pinned_loom() {
     witnessed_unsigned_faces(None, None, None, None, None, None);
     witnessed_signed_faces(None, None, None, None, None, None);
     witnessed_odd_faces(thread::yield_now, None, loom::sync::atomic::fence);
+    witnessed_late_faces(
+        None,
+        None,
+        None,
+        loom::sync::mpsc::channel::<u8>,
+        loom::hint::spin_loop,
+    );
     let stated: Vec<&str> = macroonz::descriptor::shadow::SHADOW_ROSTER
         .iter()
         .map(macroonz::descriptor::shadow::ShadowRow::name)

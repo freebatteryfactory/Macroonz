@@ -30,6 +30,9 @@ A name outside the roster refuses at its own token with a typed cause, which is 
 
 The roster grows a row when the shadow library covers the primitive, and not before: a row nothing realizes would be a declaration that compiles into a lie under the flag.
 
+Two rows are macros rather than types — `thread_local` and the `mpsc` module's siblings ride the same `pub use` road, because Rust re-exports a macro by path like anything else.
+One spelling caveat rides the `thread_local` row: the `const { … }` initializer block belongs to the standard macro alone, so a declaration meant to live under both faces states the classic initializer.
+
 ## What stays the author's
 
 Two declared rows in the adopting crate's own manifest, exactly as the shadow library's documentation prescribes, and nothing else:
