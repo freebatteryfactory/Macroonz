@@ -1,6 +1,7 @@
-//! The one report assembler shared by in-process execution and external host recording.
+//! The one report assembler both admission roads walk.
 //!
-//! A complete table view and one selection plan are walked here once. The caller supplies only how a selected binding reaches its admitted trial report; this operation derives every census seat, row revision, claim, table posture, selection outcome, and invocation profile.
+//! A complete table view and one selection plan are walked here once.
+//! The caller supplies only how a selected binding reaches its admitted trial report; every census seat, row revision, claim, table posture, selection outcome, and profile is derived here.
 
 use super::resolve::{execution_key, row_revision, trial_identity};
 use super::select::{Admission, admission};
@@ -29,7 +30,10 @@ pub(super) fn trial_report(
     TrialReport::recorded(standing, invocation.site(), attempt, measurement)
 }
 
-/// Assemble one complete report through the selected-row adapter supplied by its caller.
+/// Assemble one complete report through the selected-row adapter its caller supplies.
+///
+/// The walk is over every binding the view presents, always, so the census carries one entry per row of the world whether this invocation named it or not.
+/// The disposition is read before anything executes, so a row nobody ran can never appear as an attempt.
 pub(super) fn run_report<E>(
     view: &TrialTableView<'_>,
     selection: &SelectionPlan,

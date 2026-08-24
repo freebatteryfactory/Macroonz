@@ -1,0 +1,24 @@
+error[E0080]: evaluation panicked: a non-empty list under a ceiling that admits no item
+ --> $RUST/core/src/panic.rs
+  |
+  |           $crate::panicking::panic_fmt($crate::const_format_args!($($t)+));
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ evaluation of `macroonz::bounded::types::guard::<impl macroonz::NonEmpty<u8, 0>>::one::{constant#0}` failed here
+  |
+ ::: src/bounded/type_guard.rs
+  |
+  | /             assert!(
+  | |                 N >= 1,
+  | |                 "a non-empty list under a ceiling that admits no item"
+  | |             );
+  | |_____________- in this macro invocation
+
+note: erroneous constant encountered
+ --> src/bounded/type_guard.rs
+  |
+  | /         const {
+  | |             assert!(
+  | |                 N >= 1,
+  | |                 "a non-empty list under a ceiling that admits no item"
+  | |             );
+  | |         }
+  | |_________^

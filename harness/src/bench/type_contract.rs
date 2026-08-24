@@ -1,4 +1,4 @@
-//! Declarative conversions into the stamped benchmark-table refusal family.
+//! Every constructor refusal's one road into the stamped-table family, with nothing flattened.
 
 use super::types::{
     BenchAttachmentRefusal, BenchBindingRefusal, BenchRowRefusal, BenchStampRefusal,

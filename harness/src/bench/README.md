@@ -1,13 +1,99 @@
-# bench — primary work evidence and secondary caller-clock readings
+# bench — a number that means the same thing tomorrow
 
-A benchmark row declares one workload, its authored input-size axis, a real correctness preflight, a deliberately worse control, exact budgets, a contention posture, optional owner-declared formula bytes, and a neutral complexity claim. The row is data: it cannot execute a subject, consult a host, or decide a verdict.
+A wall-clock number on its own is a rumor.
 
-`BenchRowKey` derives under `BENCH_ROW_KEY_TAG` from the row's exact ordered preimage. `bytes(x)` is `u64be(len(x)) || x`, `name(x)` is `bytes(namespace) || bytes(stem)`, and the preimage is `name(workload) || u64be(axis length) || each u64be(size) || name(preflight) || name(planted worse) || u32be(samples) || u32be(warmups) || u64be(ratio numerator) || u64be(ratio denominator) || u8(contention tag) || u8(formula presence) || optional bytes(formula) || name(complexity)`; the one contention arm is tag zero and formula absence/presence is zero/one.
+Run the same code twice and the two timings disagree.
+Run it on another host, or beside a noisy neighbor, and they disagree more.
+So this home decides nothing from the clock.
 
-The binding closes the callable seam. It joins the row to measured and planted-worse callables, the real trial binding and invocation used for preflight, one work judge, and the complete work-observation roster. Typed references are compared once at construction, with no parallel positional registry or host string lookup; callable semantic correctness remains behavioral.
+It counts the work a subject actually does, at several input sizes, and asks a judge you wrote whether that curve is the shape you claimed.
+The clock is read afterwards, and only for a row that has already qualified.
 
-The host validates the complete table's target/toolchain declarations before caller code runs. The one-arm contention vocabulary makes a mismatch unwritable while retaining the declaration in each row, invocation, and reading. For each row the host runs correctness preflight, records measured and planted-worse work curves, requires the worse curve to be refused and distinguished, requires the measured curve to be satisfied, and only then reads the caller clock. The same work judge reads both primary curves and cannot see a clock or duration by type.
+## What a row declares
 
-The timed pass retains its own work curve, accepted judgment, and one `TestPak` `MeasurementReading` per sample. An observed zero, declared unavailability, source refusal, source unwind, and regression remain distinct; none can repair a failed preflight, an inactive planted-worse control, a refused primary curve, a recording failure, or a timed curve that no longer qualifies under the same judge. Arbitrary benchmark callables retain their own effect and unwind ceilings, while ordinary clock-source unwind is retained by the clock owner as measurement failure.
+A benchmark row is data.
+It cannot run a subject, consult a host, or decide a verdict.
 
-The report is the complete authored table's record. Its constructor is crate-private, every reading retains the complete immutable row in authored order, and the denominator is derived from those readings. A report function may receive `&BenchReport` and perform caller-owned effects, but that input grants no mutable report construction, benchmark callables, or work judge and cannot alter the retained `TestPak` verdict or denominator.
+It names a workload, an axis of at least two distinct input sizes, a correctness preflight, a deliberately worse control, exact sample and warmup budgets, a contention posture, an optional formula spelled in bytes the owner chose, and a complexity claim nothing here interprets.
+Each of those names is a `NamespacedName` you declared, and each ratio is an exact pair of integers, because a benchmark that rounds is a benchmark that drifts.
+
+`BenchRowKey` is derived from that whole declaration.
+Change any of the eight facts and it is a different row with a different key — which is the point, since a number is only comparable to a number from the same declaration.
+
+## The row's preimage
+
+Read `u32be(n)` as an integer in four big-endian bytes, `u64be(n)` as one in eight, `bytes(x)` as `u64be(x.len())` followed by `x`, and `name(x)` as `bytes(namespace)` followed by `bytes(stem)`.
+
+The key is derived over exactly this, under `BENCH_ROW_KEY_TAG`, with no separators and no padding:
+
+```text
+name(workload)
+u64be(size count)
+u64be(size)                repeated, in authored order
+name(preflight)
+name(planted worse)
+u32be(samples)
+u32be(warmups)
+u64be(ratio numerator)
+u64be(ratio denominator)
+u8(contention tag)
+u8(formula present)
+bytes(formula)             only where present
+name(complexity)
+```
+
+The one contention posture is tag zero, and formula presence is zero or one.
+
+## The planted-worse control
+
+Every row must also name a callable that is deliberately worse than the one being measured.
+
+A benchmark that only exercises the good road cannot tell you whether it is measuring anything at all.
+If the judge cannot tell the planted-worse curve apart from the measured curve, by the exact ratio the row declared, the row does not qualify and the measured curve's own result is never reached.
+A control that fails to look bad is a broken instrument, not a passing benchmark.
+
+## The order a run takes
+
+For each row, in this order and never out of it:
+
+1. The correctness preflight runs as an ordinary trial, because a subject that is wrong is not slow, it is wrong.
+2. The measured callable records its work curve across the axis.
+3. The planted-worse callable records its own curve across the same axis.
+4. One judge — yours, a plain function pointer — reads both curves together and answers three things: the measured conclusion, the planted-worse conclusion, and whether the declared gap was observed.
+5. Only if the control was refused *and* distinguished, and the measured curve satisfied, does the timed pass run: warmups discarded, then one clock measurement per sample.
+6. The same judge reads the timed pass's own curve, and a row that stops qualifying under the clock publishes no report at all.
+
+Before any of that, every row's preflight invocation is checked against the run's declared target and toolchain.
+A mismatch refuses before one line of caller code executes, because comparing a number from one target against a number from another is the mistake this home exists to prevent.
+
+## What the judge may see
+
+`WorkJudgmentInput` carries the formula, the complexity claim, the budgets, and the two curves.
+
+It carries no duration, no reading, and no clock, and that is settled by its type rather than by a rule someone has to remember.
+Qualification is decided from work.
+The clock only ever describes a row that already qualified.
+
+## The recorder
+
+A benchmark callable is handed a `WorkRecorder` scoped to exactly the observations its binding declared.
+
+`record` refuses a name outside that roster, and refuses a count that would overflow.
+A callable cannot invent an observation mid-run, and it cannot quietly wrap a counter.
+
+## The report
+
+`BenchReport` holds one reading per authored binding, in authored order, and only this home can construct one.
+
+A reading keeps the complete row, the target it stood on, the preflight report, and a stage-shaped outcome: refused preflight, undistinguished control, refused primary work, or qualified.
+`bench_verdict` folds those readings down to the first row that did not qualify.
+
+A renderer may take a `&BenchReport` and do whatever it likes with it.
+What it cannot do is build one, reach a benchmark callable or the judge, or change a stage or a denominator.
+
+## What this home will not grow
+
+There is no benchmark backend here, and there will not be one.
+
+It runs no statistics, fits no curve, and holds no opinion about what "fast" means — the formula bytes belong to the owner and pass through unread.
+It reads no host fact of its own: the target, the toolchain, the clock, and the contention posture all arrive at the invocation, declared by whoever is running.

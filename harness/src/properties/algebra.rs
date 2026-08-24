@@ -1,22 +1,8 @@
-//! The declared-algebra laws: roundtrip, idempotence, conservation, and
-//! monotonicity.
+//! The declared-algebra laws: roundtrip, idempotence, conservation, and monotonicity.
 //!
-//! The oracle for each of these is the declared algebra itself, so no second
-//! implementation is needed for the law to be checkable — which is what
-//! separates this family from the parity suites, where two roads are the whole
-//! point.
+//! The oracle for each is the declared algebra itself, so no second implementation is needed for the law to be checkable — which is what separates this family from parity, where two roads are the whole point.
 //!
-//! # What a declared-algebra law proves
-//!
-//! That the subject HONORS the law its owner declared. It can never falsify the
-//! declaration: a subject whose owner declared the wrong algebra and implemented
-//! it faithfully passes every law here, and passing says exactly that much.
-//!
-//! # The comparison
-//!
-//! Every law takes the owner's own equivalence or order. Nothing here demands a
-//! trait of a subject type, so a product type is judged without ever growing a
-//! derive to be judged by.
+//! A law here proves the subject honors the algebra its owner declared, and can never falsify the declaration: a subject whose owner declared the wrong algebra and implemented it faithfully passes everything below.
 
 use super::conclude::{agreement, ranking};
 use super::types::{
@@ -26,14 +12,9 @@ use super::types::{
 use crate::report::TrialConclusion;
 use core::cmp::Ordering;
 
-/// The roundtrip law: decoding what was encoded yields the value that was
-/// encoded.
+/// The roundtrip law: decoding what was encoded yields the value that was encoded.
 ///
-/// # Bounds
-///
-/// Both roads are total. A decoder that can refuse is a road whose image is the
-/// owner's own outcome type, and the pair is judged as a roundtrip over that
-/// outcome — never by this law quietly reading a refusal as a value.
+/// Both roads are total, so a decoder that can refuse is a road whose image is the owner's own outcome type and the pair is judged as a roundtrip over that outcome.
 #[must_use]
 #[track_caller]
 pub fn roundtrip<Value, Encoded>(
@@ -48,10 +29,7 @@ pub fn roundtrip<Value, Encoded>(
 
 /// The idempotence law: applying the subject to its own image changes nothing.
 ///
-/// The comparison is between the first image and the second, never between the
-/// input and the image: a subject that normalizes its input is idempotent
-/// without being an identity, and demanding otherwise would refuse every
-/// normalizer.
+/// The comparison is between the first image and the second, never between the input and the image, because a subject that normalizes its input is idempotent without being an identity.
 #[must_use]
 #[track_caller]
 pub fn idempotence<Value>(
@@ -64,14 +42,9 @@ pub fn idempotence<Value>(
     agreement(same, &once, &twice, IDEMPOTENCE_DISAGREEMENT)
 }
 
-/// The conservation law: the quantity read entering the subject is the quantity
-/// read leaving it.
+/// The conservation law: the quantity read entering the subject is the quantity read leaving it.
 ///
-/// # Bounds
-///
-/// Two readings rather than one, because a transformation's domain and image are
-/// two types in the general case. A subject that maps a type to itself passes
-/// one reading in both seats, and the law is then the familiar one.
+/// Two readings rather than one, because a domain and an image are two types in the general case; a subject that maps a type to itself passes one reading in both seats.
 #[must_use]
 #[track_caller]
 pub fn conservation<Domain, Image, Quantity>(
@@ -88,19 +61,8 @@ pub fn conservation<Domain, Image, Quantity>(
 
 /// The monotonicity law: ordering the inputs orders the images the same way.
 ///
-/// # Authority
-///
-/// The pair is ORDERED by the declared domain order before the images are read,
-/// so every pair a population supplies is exercised. A law that only judged
-/// pairs that happened to arrive in order would pass more often the less its
-/// population knew, which is a coverage hole wearing a green light.
-///
-/// # Bounds
-///
-/// Non-strict, and the two orders are separate because a subject's domain and
-/// image are two types in the general case: the law demands that the lower
-/// input's image does not rank above the upper input's, never that it ranks
-/// strictly below.
+/// The pair is ordered by the declared domain order before the images are read, so every pair a population supplies is exercised rather than only the pairs that happened to arrive in order.
+/// Non-strict, and the two orders are separate because a domain and an image are two types in the general case.
 #[must_use]
 #[track_caller]
 pub fn monotonicity<Domain, Image>(

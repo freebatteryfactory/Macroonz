@@ -1,4 +1,6 @@
-//! The pure checked difference between two ticks from one retained measurement start.
+//! The checked difference between the two ticks of one measurement.
+//!
+//! A backwards pair refuses as [`ClockFailure::Regressed`] rather than saturating to zero.
 
 use super::{ClockFailure, MeasurementTick, RecordedDuration};
 

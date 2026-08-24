@@ -1,11 +1,7 @@
-//! The annex's invariant nucleus: every road that reaches a private field.
+//! The invariant nucleus: every road that reaches a private field.
 //!
-//! This file is declared inside `types.rs` as its own child, so it sees the
-//! fields the declarations keep private and no sibling module does. Two laws
-//! are held here and nowhere else: a golden vector exists only by being read
-//! out of a pack, so no road admits one exported from a producer; and a
-//! transcript preimage exists only by being composed here, member by member,
-//! from typed arguments a caller took off a published specification.
+//! Declared inside `types.rs` as its own child, so it sees fields no sibling module can.
+//! Two laws are held here and nowhere else: a golden vector exists only by being read out of a pack, so no road admits one exported from a producer; and a transcript preimage exists only by being composed here, member by member, from typed arguments a caller took off a published specification.
 
 use super::{
     ByteDifference, ContextRefusal, DerivedIdentity, SpecifiedContext, TranscriptDerivation,
@@ -15,9 +11,6 @@ use super::{
 };
 
 /// The width of every number a pack or a preimage frames, in bytes.
-///
-/// One width for every number rather than one per member: a framing that
-/// admitted two spellings of one length would admit two encodings of one value.
 const WIDE_WIDTH: usize = 8;
 
 // ---------------------------------------------------------------------------
@@ -59,10 +52,7 @@ impl<'pack> VectorEntry<'pack> {
 
     /// Compare what a producer rendered against what this vector states.
     ///
-    /// **The claim this supports** is the golden-vector lane's and only it: the
-    /// producer rendered exactly the bytes the specification states for this
-    /// input. It says nothing about any other input, and nothing about whether
-    /// the specification is the right one.
+    /// The claim it supports is this lane's alone: the producer rendered exactly the bytes the specification states for this input, and nothing about any other input.
     pub fn compared(self, produced: &[u8]) -> VectorVerdict {
         if produced == self.expected {
             return VectorVerdict::Agrees;
@@ -94,19 +84,12 @@ impl<'pack> VectorPack<'pack> {
     /// | 3 | count | `u64be` — how many vectors follow |
     /// | 4 | vectors | `count` of them, back to back |
     ///
-    /// and one vector is four framed members in exactly this order: the
-    /// subject's namespace as UTF-8, the subject's stem as UTF-8, the input
-    /// bytes, and the expected bytes. Nothing follows the last vector.
-    ///
-    /// That is everything an adopter needs to write a pack for their own types:
-    /// the depot ships the data, this instrument ships the tool that reads it.
+    /// One vector is four framed members in exactly this order: the subject's namespace as UTF-8, the subject's stem as UTF-8, the input bytes, and the expected bytes.
+    /// Nothing follows the last vector.
     ///
     /// # Errors
     ///
-    /// Refuses bytes that do not open with the magic, a version this
-    /// instrument does not read, a pack that ends inside a member, a declared
-    /// length this platform cannot address, a subject part that is not UTF-8 or
-    /// that is empty, and any bytes left over after the declared count.
+    /// Refuses bytes that do not open with the magic, a version this home does not read, a pack that ends inside a member, a declared length this platform cannot address, a subject part that is not UTF-8 or that is empty, and any bytes left over after the declared count.
     pub fn read(pack: &'pack [u8]) -> Result<Self, VectorPackRefusal> {
         let mut reading = PackReading { pack, at: 0 };
         reading.magic()?;
@@ -154,9 +137,7 @@ impl VectorDisagreement {
 
 /// Where two byte strings first part company.
 ///
-/// A shared prefix followed by different bytes is reported at that offset; two
-/// strings where one is a prefix of the other part only at the end, and the
-/// reading says so with both lengths rather than pointing past one of them.
+/// Two strings where one is a prefix of the other part only at the end, and the reading says so with both lengths rather than pointing past one of them.
 fn first_difference(expected: &[u8], produced: &[u8]) -> ByteDifference {
     for (at, (left, right)) in expected.iter().zip(produced.iter()).enumerate() {
         if left != right {
@@ -171,8 +152,7 @@ fn first_difference(expected: &[u8], produced: &[u8]) -> ByteDifference {
 
 /// One read in progress over one pack's bytes.
 ///
-/// It never indexes and never adds without checking, so a pack authored by
-/// anybody at all reaches a refusal rather than a panic.
+/// It never indexes and never adds without checking, so a pack authored by anybody at all reaches a refusal rather than a panic.
 struct PackReading<'pack> {
     /// The bytes being read.
     pack: &'pack [u8],
@@ -226,8 +206,7 @@ impl<'pack> PackReading<'pack> {
         self.take(width)
     }
 
-    /// Read one vector: its subject's two parts, its input, and its expected
-    /// bytes.
+    /// Read one vector: its subject's two parts, its input, and its expected bytes.
     fn entry(&mut self) -> Result<VectorEntry<'pack>, VectorPackRefusal> {
         let at = self.at;
         let namespace_bytes = self.framed()?;
@@ -259,16 +238,11 @@ impl<'pack> PackReading<'pack> {
 impl SpecifiedContext {
     /// Spell one derivation context from the segments a caller writes out.
     ///
-    /// The segments are joined by `/`, which is the separator every published
-    /// profile grammar in this workspace states. A stem the specification
-    /// publishes as a multi-segment path is handed in as its own segments, so
-    /// this lane never invents a join.
+    /// The segments are joined by `/`, the separator a published profile grammar states, so a stem published as a multi-segment path is handed in as its own segments and this lane never invents a join.
     ///
     /// # Errors
     ///
-    /// Refuses an empty roster, and refuses an empty segment: an empty segment
-    /// would spell a doubled separator and let two different rosters name one
-    /// context.
+    /// Refuses an empty roster, and refuses an empty segment, which would spell a doubled separator and let two different rosters name one context.
     pub fn spelled(segments: &[&str]) -> Result<Self, ContextRefusal> {
         if segments.is_empty() {
             return Err(ContextRefusal::NoSegments);
@@ -286,18 +260,13 @@ impl SpecifiedContext {
         Ok(Self(spelling))
     }
 
-    /// Spell one derivation context under a profile version: the stem's
-    /// segments, then `v` and the version, then the rest.
+    /// Spell one derivation context under a profile version: the stem's segments, then `v` and the version, then the rest.
     ///
-    /// The version segment is written here from the number the specification
-    /// publishes, rather than read from the producer — a lane that imported the
-    /// version would agree with a producer that silently changed it.
+    /// The version is written here from the number the specification publishes, because a lane that imported it would agree with a producer that silently changed it.
     ///
     /// # Errors
     ///
-    /// Refuses exactly what [`SpecifiedContext::spelled`] refuses, over the
-    /// assembled roster: a position a refusal carries is a position in that
-    /// roster and not in the caller's stem.
+    /// Refuses exactly what [`SpecifiedContext::spelled`] refuses, over the assembled roster: a position a refusal carries is a position in that roster and not in the caller's stem.
     pub fn under_version(
         stem: &[&str],
         version: u32,
@@ -335,11 +304,7 @@ impl TranscriptDerivation {
         self
     }
 
-    /// Append one length-prefixed byte string, over text.
-    ///
-    /// Text is framed exactly as bytes are, because a specification that framed
-    /// its text differently from its bytes would carry two rules where one
-    /// does.
+    /// Append one length-prefixed byte string, over text framed exactly as bytes are.
     #[must_use]
     pub fn framed_text(self, text: &str) -> Self {
         self.framed(text.as_bytes())
@@ -366,23 +331,16 @@ impl TranscriptDerivation {
         self
     }
 
-    /// The members written so far, in order.
-    ///
-    /// The roster is kept as typed members rather than as accumulated bytes, so
-    /// a disagreement can be read as the encoding decisions that produced it
-    /// rather than as one opaque string.
+    /// The members written so far, in order, as typed decisions rather than as accumulated bytes.
     #[must_use]
     pub fn members(&self) -> &[TranscriptMember] {
         &self.members
     }
 
-    /// Compose the preimage: every member, in order, by this lane's own
-    /// framing.
+    /// Compose the preimage: every member, in order, by this lane's own framing.
     ///
-    /// A framed member is eight big-endian length bytes then its bytes; a
-    /// discriminant is one bare byte; a fixed number is its own width in
-    /// big-endian bytes. No separators, no padding, and nothing between
-    /// members.
+    /// A framed member is eight big-endian length bytes then its bytes, a discriminant is one bare byte, and a fixed number is its own width in big-endian bytes.
+    /// No separators, no padding, and nothing between members.
     #[must_use]
     pub fn preimage(&self) -> Vec<u8> {
         let mut bytes: Vec<u8> = Vec::new();
@@ -401,11 +359,7 @@ impl TranscriptDerivation {
         bytes
     }
 
-    /// Derive the identity this preimage names under one context.
-    ///
-    /// The digest is BLAKE3's `derive_key`, over the context's spelling and
-    /// this lane's own preimage. Deterministic and total: every preimage names
-    /// an identity, on any machine, with no ambient fact in the derivation.
+    /// Derive the identity this preimage names under one context, by BLAKE3's `derive_key` over the context's spelling and these bytes.
     #[must_use]
     pub fn derived(&self, context: &SpecifiedContext) -> DerivedIdentity {
         DerivedIdentity(blake3::derive_key(context.spelling(), &self.preimage()))
@@ -421,10 +375,7 @@ impl DerivedIdentity {
 
     /// Compare this re-derivation against the identity a producer published.
     ///
-    /// **The claim this supports** is the transcript lane's and only it: the
-    /// published specification, read independently and encoded independently,
-    /// names the identity the producer minted. A disagreement says the two
-    /// readings differ; which of them is right is a person's ruling.
+    /// The claim it supports is this lane's alone: the published specification, read and encoded independently, names the identity the producer minted.
     pub fn compared(&self, published: &[u8; 32]) -> TranscriptVerdict {
         if self.0 == *published {
             TranscriptVerdict::Agrees

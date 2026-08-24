@@ -1,10 +1,9 @@
 #![doc = include_str!("README.md")]
 //!
-//! # The files
-//!
-//! [`types`] declares this home's public vocabulary: the generation dispositions and their census, the generation and reduction plans, the deterministic byte source, the driver's seams, and the minimization vocabulary.
-//! [`driver`] is the one shared sequence driver every lane drives through.
-//! [`reduce`][mod@reduce] is the generic byte reducer and the one law a shrink is admitted under.
+//! [`driver`] is the shared sequence driver, and [`reduce`][mod@reduce] is the reducers and the one law a shrink is admitted under.
+
+mod draw;
+mod encode;
 
 pub mod driver;
 pub mod reduce;

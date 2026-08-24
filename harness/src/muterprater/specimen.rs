@@ -1,17 +1,21 @@
 //! Exact compiled pressure over one separately materialized selected projection.
 //!
-//! The materializer is a capture-free function pointer that returns exact source bytes for the unchanged production shape or for one `TestPak`-resolved selection baked into that shape. `TestPak` derives bytes-only identities, hands immutable requests to a caller-owned host adapter, and judges the returned meanings through the retained ordinary trial binding. The library performs no filesystem or process operation; the permanent outside-consumer lane observes that its concrete host writes the exact bytes, invokes the declared compiler and target, and executes the artifact.
+//! The materializer is a capture-free function pointer returning source bytes for the unchanged production shape, or for one resolved selection baked into that shape.
+//! The harness derives bytes-only identities, hands immutable requests to a caller-owned host adapter, and judges the returned meanings through the retained trial binding.
+//! It performs no filesystem or process operation of its own: that the concrete host writes those exact bytes, invokes the declared compiler and target, and executes the artifact is the caller's lane to observe.
 //!
-//! Generic cargo-mutants pressure remains a separate evidence book. It demonstrates that a qualified external suite bit somewhere under its adapter profile, but it carries no exact pair or selection authority and cannot substitute for this operation.
+//! Generic pressure from a wrapped backend is a separate evidence book.
+//! It shows that a qualified external suite bit somewhere under its adapter profile, and it carries no pair or selection authority, so it cannot substitute for this road.
 
 use super::interpret::selected_alternative;
 use super::types::{
     ActiveSelection, AdmittedAlternative, ArtifactContent, CompiledProjectionPressure,
     CompiledProjectionRefusal, CompiledSpecimenHost, CompiledSpecimenHostRefusal,
     CompiledSpecimenObservationMismatch, CompiledSpecimenRequest, CompiledSpecimenRole,
-    CompiledSpecimenStanding, EvaluationDirective, EvaluationSurface, FamilyAttribution,
-    MappingPosture, MutationIdentity, MutationPoint, MutationSite, MutationTarget, MutationWitness,
-    NoMutationParityQualification, SpecimenMaterializerBinding,
+    CompiledSpecimenStanding, EvaluationDirective, EvaluationPairStanding, EvaluationSurface,
+    FamilyAttribution, MappingPosture, MutationIdentity, MutationPoint, MutationReport,
+    MutationSite, MutationTarget, MutationWitness, NoMutationParityQualification,
+    SpecimenMaterializerBinding,
 };
 use crate::descriptor::CheckRef;
 use crate::report::{ExecutionKey, HostTrialRecord, RunAttempt, TrialReport};
@@ -19,20 +23,20 @@ use crate::runner::{
     Invocation, ReportRecordingRefusal, execution_key, lens_verdict, record_one, trial_identity,
 };
 
-/// The two immutable source artifacts rendered before any host effect.
+/// The two immutable source artifacts, rendered before any host effect.
 struct MaterializedSpecimens {
     baseline: ArtifactContent,
     selected: ArtifactContent,
 }
 
-/// Why one private host observation did not become an ordinary report.
+/// Why one host observation did not become a report.
 enum ObservationRefusal {
     Host(CompiledSpecimenHostRefusal),
     Foreign(CompiledSpecimenObservationMismatch),
     Report(ReportRecordingRefusal),
 }
 
-/// The already-validated execution facts shared by baseline and selected observations.
+/// The already-validated execution facts the baseline and selected observations share.
 struct ObservationSeat<'standing, 'input, Input, Meaning> {
     input: &'input Input,
     execution: &'standing ExecutionKey,
@@ -43,7 +47,7 @@ struct ObservationSeat<'standing, 'input, Input, Meaning> {
 }
 
 impl<Input, Meaning> ObservationSeat<'_, '_, Input, Meaning> {
-    /// Run one immutable request through the caller host and ordinary report owner.
+    /// Run one immutable request through the caller's host, then through the report owner.
     fn observe<'content>(
         &self,
         content: &'content ArtifactContent,
@@ -86,7 +90,7 @@ impl<Input, Meaning> ObservationSeat<'_, '_, Input, Meaning> {
     }
 }
 
-/// Render both artifact roles before host effects and require different exact bytes.
+/// Render both artifact roles before any host effect, and require different exact bytes.
 fn materialize_specimens(
     materializer: &SpecimenMaterializerBinding,
     selection: ActiveSelection,
@@ -110,28 +114,22 @@ fn materialize_specimens(
     Ok(MaterializedSpecimens { baseline, selected })
 }
 
-/// Materialize, compile, execute, and judge one exact selected mutation projection.
-///
-/// Every structural join is checked before either caller-owned renderer or host callback runs. Both unchanged and selected source are rendered before any host effect; their bytes must differ. Each host observation is admitted through the exact retained [`crate::runner::TrialBinding`], the unchanged report must pass, and the selected report must refuse before exact pressure exists.
-///
-/// # Authority
-///
-/// Function pointers remain caller statements. This operation binds their returned bytes and meanings to exact requests and ordinary reports; it does not independently prove a compiler process ran. The outside-consumer lane owns that behavioral claim for the admitted concrete host adapter.
-///
-/// # Errors
-///
-/// Refuses, before caller code, a parity qualification for another surface, a materializer for another pair, a foreign selection, an unrelated witness claim, or an invocation that does not reproduce the qualified execution. It then refuses baseline or selected materialization, byte-identical artifacts, host failures, report joins, a baseline that does not pass, or a selected artifact the exact witness does not reject.
-pub fn demonstrate_compiled_projection<'parity, 'pair, 'input, Input, Meaning>(
-    surface: &EvaluationSurface,
-    parity: &'parity NoMutationParityQualification<'pair, 'input, Input, Meaning>,
+/// What the structural joins established, before any caller callback runs.
+struct Joined<'surface> {
+    point: &'surface MutationPoint,
+    alternative: &'surface AdmittedAlternative,
+    pair: EvaluationPairStanding,
+    execution: ExecutionKey,
+}
+
+/// Check every structural join this road stands on, before either caller callback runs.
+fn joined<'surface, Input, Meaning>(
+    surface: &'surface EvaluationSurface,
+    parity: &NoMutationParityQualification<'_, '_, Input, Meaning>,
     materializer: &SpecimenMaterializerBinding,
     selection: ActiveSelection,
     invocation: &Invocation,
-    host: CompiledSpecimenHost<Input, Meaning>,
-) -> Result<
-    CompiledProjectionPressure<'parity, 'pair, 'input, Input, Meaning>,
-    CompiledProjectionRefusal,
-> {
+) -> Result<Joined<'surface>, CompiledProjectionRefusal> {
     let pair = parity.reading().pair().standing();
     if pair.surface() != surface.identity() {
         return Err(CompiledProjectionRefusal::ParityForAnotherSurface {
@@ -158,9 +156,46 @@ pub fn demonstrate_compiled_projection<'parity, 'pair, 'input, Input, Meaning>(
     if parity.reading().production_report().standing().key() != &execution {
         return Err(CompiledProjectionRefusal::InvocationForAnotherExecution);
     }
+    Ok(Joined {
+        point,
+        alternative,
+        pair,
+        execution,
+    })
+}
+
+/// Materialize, compile, execute, and judge one exact selected mutation projection.
+///
+/// Both unchanged and selected source are rendered before any host effect, and their bytes must differ.
+/// Each host observation is admitted through the retained [`crate::runner::TrialBinding`]; the unchanged report must pass, and the selected report must refuse, before exact pressure exists.
+///
+/// Function pointers remain caller statements: this operation binds their returned bytes and meanings to exact requests and reports, and does not prove that a compiler process ran.
+///
+/// # Errors
+///
+/// Refuses, before any caller code runs, a parity qualification for another surface, a materializer for another pair, a foreign selection, an unrelated witness claim, or an invocation that does not reproduce the qualified execution.
+/// It then refuses baseline or selected materialization, byte-identical artifacts, host failures, report joins, a baseline that does not pass, or a selected artifact the exact witness does not reject.
+pub fn demonstrate_compiled_projection<'parity, 'pair, 'input, Input, Meaning>(
+    surface: &EvaluationSurface,
+    parity: &'parity NoMutationParityQualification<'pair, 'input, Input, Meaning>,
+    materializer: &SpecimenMaterializerBinding,
+    selection: ActiveSelection,
+    invocation: &Invocation,
+    host: CompiledSpecimenHost<Input, Meaning>,
+) -> Result<
+    CompiledProjectionPressure<'parity, 'pair, 'input, Input, Meaning>,
+    CompiledProjectionRefusal,
+> {
+    let Joined {
+        point,
+        alternative,
+        pair,
+        execution,
+    } = joined(surface, parity, materializer, selection, invocation)?;
+    let witness = parity.reading().witness();
+    let check = witness.check_ref();
 
     let specimens = materialize_specimens(materializer, selection, point, alternative)?;
-    let check = witness.check_ref();
     let observer = ObservationSeat {
         input: parity.reading().input(),
         execution: &execution,
@@ -169,6 +204,7 @@ pub fn demonstrate_compiled_projection<'parity, 'pair, 'input, Input, Meaning>(
         invocation,
         host,
     };
+
     let baseline_report = observer
         .observe(
             &specimens.baseline,
@@ -209,8 +245,7 @@ pub fn demonstrate_compiled_projection<'parity, 'pair, 'input, Input, Meaning>(
         MutationSite::Declared(point.activation_site()),
         MappingPosture::Mapped(point.owner_claim()),
     );
-    let Some(mutation) = super::MutationReport::compiled_projection(target, &selected_report)
-    else {
+    let Some(mutation) = MutationReport::compiled_projection(target, &selected_report) else {
         return Err(CompiledProjectionRefusal::ProjectionDidNotReject);
     };
     let standing = CompiledSpecimenStanding::recorded(

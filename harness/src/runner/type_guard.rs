@@ -1,11 +1,7 @@
-//! The runner's invariant nucleus: the roads that build an invocation, the
-//! roads that build a seat's refusal, and the readers that hand their seats
-//! back.
+//! The runner's nucleus: the roads that build an invocation, a plan, and a seat's refusal, and the readers that hand their seats back.
 //!
-//! Declared inside `types.rs` as its own child, which is what keeps the
-//! invocation's seats private: a run's hosting facts are stated once, at the
-//! call that declares them, and nothing reaches in afterwards to change what a
-//! report will say the run stood on.
+//! Declared inside `types.rs` as its own child, which is what keeps the private seats private.
+//! A run's hosting facts are stated once, at the call that declares them.
 
 use super::{FailedTrial, Invocation, SeatFailure, SeatRefusal, Selection, SelectionPlan};
 use crate::clock::HarnessClock;
@@ -32,20 +28,19 @@ impl Invocation {
         }
     }
 
-    /// The conclusion-relevant budgets, as the callable reads them and as the
-    /// report records them.
+    /// The conclusion-relevant budgets, as the callable reads them and the report records them.
     #[must_use]
     pub const fn profile(&self) -> InvocationProfile {
         self.profile
     }
 
-    /// The target and toolchain the run stands on.
+    /// The target and toolchain this run stands on.
     #[must_use]
     pub const fn target(&self) -> &TargetBinding {
         &self.target
     }
 
-    /// The site the reports of this run are written at.
+    /// The site this run's reports are written at.
     #[must_use]
     pub const fn site(&self) -> TrialSite {
         self.site
@@ -61,10 +56,8 @@ impl Invocation {
 impl SelectionPlan {
     /// The ordinary plan: this selection, expected to name at least one row.
     ///
-    /// The expectation is not a parameter, because there is nothing to choose
-    /// here: every run means to exercise something unless its caller says
-    /// otherwise, and asking each caller to restate the standing expectation
-    /// would be ceremony that can only be got wrong.
+    /// The expectation is not a parameter because there is nothing to choose.
+    /// Every run means to exercise something unless its caller says otherwise, and restating that at each call would be ceremony that can only be got wrong.
     #[must_use]
     pub fn of(chooses: Selection) -> Self {
         Self {
@@ -75,9 +68,7 @@ impl SelectionPlan {
 
     /// The plan that admits a selection matching nothing, and states why.
     ///
-    /// The one road to an empty-tolerant run. The reason travels with the plan
-    /// into the run's own record, so a zero-work result is always readable as
-    /// something a caller declared rather than something that quietly happened.
+    /// The reason travels with the plan into the run's own record, so a zero-work result always reads as something a caller declared rather than something that quietly happened.
     #[must_use]
     pub fn allowing_empty(chooses: Selection, reason: EmptySelectionReason) -> Self {
         Self {
@@ -92,7 +83,7 @@ impl SelectionPlan {
         &self.chooses
     }
 
-    /// What this plan expects the choice to match.
+    /// What this plan expects that choice to match.
     #[must_use]
     pub const fn expects(&self) -> SelectionExpectation {
         self.expects
@@ -110,15 +101,13 @@ impl FailedTrial {
         }
     }
 
-    /// The trial's semantic identity — the name this failure keeps across a
-    /// refactor.
+    /// The trial's semantic identity.
     #[must_use]
     pub const fn trial(&self) -> TrialId {
         self.trial
     }
 
-    /// Where the invocation that ran it was written — the rail a reader jumps
-    /// on.
+    /// Where the invocation that ran it was written.
     #[must_use]
     pub const fn site(&self) -> TrialSite {
         self.site
@@ -134,8 +123,7 @@ impl FailedTrial {
 impl SeatRefusal {
     /// One trial's failure, as the refusal a named lens answers with.
     ///
-    /// The box is the arm's own, stated once here, so no caller spells the
-    /// allocation that keeps every other arm of this family small.
+    /// The box is stated here once, so no caller spells the allocation that keeps every other arm of this family small.
     pub fn trial_failed(failed: FailedTrial) -> Self {
         Self::TrialFailed(Box::new(failed))
     }
@@ -143,12 +131,7 @@ impl SeatRefusal {
 
 /// Every construction refusal on the stamped road reaches a seat unchanged.
 ///
-/// The stamped seats build their world through this crate's public
-/// constructors and carry whatever those refuse into [`TrialTableRefusal`].
-/// This is the one step from there to the type a test function returns, which
-/// is what makes `?` the whole ceremony at a seat — and it is the ONLY step,
-/// because the engine call beside it refuses nothing: a run always states a
-/// report, and what that report says is the verdict road's to read.
+/// This is the one step from a table that could not be built to the type a test function returns, and it is the only step: the engine call beside it refuses nothing, because a run always states a report.
 impl From<TrialTableRefusal> for SeatRefusal {
     fn from(refusal: TrialTableRefusal) -> Self {
         Self::TableNotBuilt(refusal)

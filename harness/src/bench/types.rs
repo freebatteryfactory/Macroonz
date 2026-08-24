@@ -1,4 +1,4 @@
-//! The benchmark receiver's declarations: rows, bindings, scoped work readings, host input, and complete report stages.
+//! Every public type of this home: what one benchmark row declares, and what running a table of them produces.
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -7,33 +7,32 @@ use crate::clock::{HarnessClock, MeasurementReading};
 use crate::descriptor::{
     EncodeRefusal, NameRefusal, NamespacedName, Provenance, TrialTableRefusal,
 };
-use crate::identity::ContentAddress;
-use crate::identity::{DomainTag, IdentityProfileVersion};
+use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use crate::report::{FindingCause, TargetBinding, TargetTriple, ToolchainIdentity, TrialReport};
 use crate::runner::{Invocation, TrialBinding};
 use std::num::NonZeroU32;
 
-/// The benchmark-row identity family's derivation domain and initial position.
+/// The derivation domain and starting position of the benchmark-row identity family.
 pub const BENCH_ROW_KEY_TAG: DomainTag =
     DomainTag::declared("bench-row-key", IdentityProfileVersion::declared(1));
 
-/// One benchmark workload's semantic reference.
+/// The workload one row measures.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct WorkloadRef(NamespacedName);
 
-/// One correctness-preflight seat's semantic reference.
+/// The correctness preflight one row runs before it measures anything.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct PreflightRef(NamespacedName);
 
-/// One deliberately worse callable's semantic reference.
+/// The deliberately worse control one row measures against.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct PlantedWorseRef(NamespacedName);
 
-/// One neutral complexity claim's semantic reference.
+/// The complexity claim a row is judged under, which this home never interprets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ComplexityClaimRef(NamespacedName);
 
-/// One scoped work observation's semantic reference.
+/// One kind of work a callable may count.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct WorkObservationRef(NamespacedName);
 
@@ -41,7 +40,7 @@ pub struct WorkObservationRef(NamespacedName);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct BenchTableName(NamespacedName);
 
-/// At least two distinct benchmark input sizes in authored order.
+/// At least two distinct input sizes, in the order they were authored.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InputSizeAxis(Vec<u64>);
 
@@ -51,10 +50,10 @@ pub struct InputSizeAxis(Vec<u64>);
 pub enum InputSizeAxisRefusal {
     /// Fewer than two sizes were declared, so no growth relation can be observed.
     TooShort {
-        /// The number of declared sizes.
+        /// How many sizes were declared.
         found: usize,
     },
-    /// One size appeared twice in the authored axis.
+    /// One size appeared twice on the axis.
     DuplicateSize {
         /// The repeated size.
         size: u64,
@@ -65,14 +64,14 @@ pub enum InputSizeAxisRefusal {
     },
 }
 
-/// One exact non-floating-point ratio.
+/// One ratio held as two integers, so a comparison never depends on rounding.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ExactRatio {
     numerator: u64,
     denominator: u64,
 }
 
-/// The sample, warmup, and exact ratio budgets one benchmark row declares.
+/// The sample count, warmup count, and exact gap ratio one row declares.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DeclaredBudgets {
     samples: NonZeroU32,
@@ -80,26 +79,26 @@ pub struct DeclaredBudgets {
     ratio: ExactRatio,
 }
 
-/// Why declared benchmark budgets were not admitted.
+/// Why declared budgets were not admitted.
 #[must_use = "a refusal is the reason benchmark budgets were not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DeclaredBudgetsRefusal {
-    /// No primary sample was declared, so no work evidence can be produced.
+    /// No sample was declared, so no work evidence can be produced.
     NoSamples,
-    /// The exact ratio numerator was zero, so no positive gap was declared.
+    /// The gap ratio's numerator was zero, so no positive gap was declared.
     ZeroRatioNumerator,
-    /// The exact ratio denominator was zero.
+    /// The gap ratio's denominator was zero.
     ZeroRatioDenominator,
 }
 
-/// The contention posture under which a row is declared and invoked.
+/// The contention posture a row is declared and invoked under.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ContentionPosture {
     /// The caller declares no contended environment.
     NoDeclaredContention,
 }
 
-/// One nonempty owner-declared work-formula representation.
+/// Bytes the owner spells to say what work it expects, carried through unread.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct WorkFormula {
     bytes: Vec<u8>,
@@ -109,15 +108,15 @@ pub struct WorkFormula {
 #[must_use = "a refusal is the reason a work formula was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WorkFormulaRefusal {
-    /// A present owner-declared formula carried no bytes; absence is represented by `None`.
+    /// A present formula carried no bytes, where absence is spelled `None`.
     Empty,
 }
 
-/// The compact identity of one complete benchmark-row declaration.
+/// The identity derived from one complete row declaration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct BenchRowKey(ContentAddress);
 
-/// The four semantic references one benchmark row joins.
+/// The four names one row joins.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BenchReferences {
     workload: WorkloadRef,
@@ -126,7 +125,7 @@ pub struct BenchReferences {
     complexity: ComplexityClaimRef,
 }
 
-/// The four measurement declarations one benchmark row carries.
+/// The four measurement facts one row declares.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BenchMeasurement {
     input_sizes: InputSizeAxis,
@@ -135,17 +134,11 @@ pub struct BenchMeasurement {
     formula: Option<WorkFormula>,
 }
 
-/// One immutable benchmark-row declaration over the schema's eight facts.
+/// One immutable row: eight declared facts and the identity derived from all of them.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BenchRow {
-    workload: WorkloadRef,
-    input_sizes: InputSizeAxis,
-    preflight: PreflightRef,
-    planted_worse: PlantedWorseRef,
-    budgets: DeclaredBudgets,
-    contention: ContentionPosture,
-    formula: Option<WorkFormula>,
-    complexity: ComplexityClaimRef,
+    references: BenchReferences,
+    measurement: BenchMeasurement,
     key: BenchRowKey,
 }
 
@@ -153,21 +146,21 @@ pub struct BenchRow {
 #[must_use = "a refusal is the reason a benchmark row was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BenchRowRefusal {
-    /// The row's canonical preimage outgrew the declared length width.
+    /// The row's canonical preimage outgrew the width the encoding declares.
     Encoding(EncodeRefusal),
 }
 
-/// One benchmark workload function pointer with no captured closure environment.
+/// One benchmark callable, taking an input size and the recorder it may count through.
 ///
-/// The type does not establish purity, determinism, or unwind safety; those remain the caller's ceiling.
+/// A function pointer excludes captured state; it does not make the caller's function pure, deterministic, or unwind-safe.
 pub type BenchCall = fn(u64, &mut WorkRecorder) -> Result<(), WorkRecordingRefusal>;
 
-/// One primary work-judge function pointer with no captured closure environment.
+/// One owner-written judge over a pair of work curves.
 ///
-/// The type excludes wall readings by its input but does not establish purity, determinism, or unwind safety.
+/// Its input carries no clock reading, so no judgment can be a function of wall time.
 pub type WorkJudge = for<'reading> fn(&WorkJudgmentInput<'reading>) -> WorkJudgment;
 
-/// The exact values one primary work judge may read.
+/// Everything a work judge is allowed to read.
 #[derive(Debug, Clone, Copy)]
 pub struct WorkJudgmentInput<'reading> {
     formula: Option<&'reading WorkFormula>,
@@ -177,33 +170,33 @@ pub struct WorkJudgmentInput<'reading> {
     planted_worse: &'reading WorkCurve,
 }
 
-/// One owner-bound work judge and the complexity reference it judges under.
+/// One judge bound to the complexity claim it reads.
 #[derive(Debug, Clone, Copy)]
 pub struct WorkJudgeBinding {
     complexity: ComplexityClaimRef,
     judge: WorkJudge,
 }
 
-/// One primary work judgment.
+/// What a judge concluded about one curve.
 #[must_use = "a work conclusion is the primary benchmark judgment"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WorkConclusion {
-    /// The curve satisfies the declared formula and complexity claim.
+    /// The curve is the shape the row claimed.
     Satisfied,
-    /// The curve refuses under one typed cause.
+    /// The curve refuses, under a cause the owner spelled.
     Refused(FindingCause),
 }
 
-/// Whether the declared exact gap distinguishes the measured and planted-worse curves.
+/// Whether the declared exact gap separates the measured curve from the control.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WorkGapStanding {
     /// The declared gap was observed.
     Distinguished,
-    /// The curves did not establish the declared gap.
+    /// The two curves did not establish the declared gap.
     NotDistinguished(FindingCause),
 }
 
-/// One relational judgment over measured and planted-worse work curves.
+/// One judge's three readings over a pair of curves.
 #[must_use = "a work judgment carries all three primary benchmark readings"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WorkJudgment {
@@ -212,42 +205,42 @@ pub struct WorkJudgment {
     gap: WorkGapStanding,
 }
 
-/// Why one relational work judgment did not qualify a benchmark row.
+/// Why a judgment did not qualify a row for timing.
 #[must_use = "a refusal names the work reading that prevented qualification"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WorkQualificationRefusal {
-    /// The deliberately worse curve was not both refused and distinguished from the measured curve.
+    /// The control was not both refused and told apart from the measured curve.
     PlantedWorseNotDistinguished {
-        /// The deliberately worse curve's conclusion.
+        /// What the judge concluded about the control.
         planted_worse: WorkConclusion,
-        /// The declared exact-gap reading.
+        /// How the declared gap read.
         gap: WorkGapStanding,
     },
-    /// The measured curve did not satisfy the declared work claim after the control stood.
+    /// The control stood, and the measured curve still did not satisfy the claim.
     MeasuredRefused(WorkConclusion),
 }
 
-/// One scoped work count at one input size.
+/// One observation's exact count at one input size.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct WorkCount {
     observation: WorkObservationRef,
     count: u64,
 }
 
-/// One input size and its ordered work counts.
+/// One input size and the counts recorded at it.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct WorkCurvePoint {
     input_size: u64,
     counts: Vec<WorkCount>,
 }
 
-/// One ordered primary-work curve over the row's authored input axis.
+/// One callable's work across the row's whole input axis, in authored order.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct WorkCurve {
     points: Vec<WorkCurvePoint>,
 }
 
-/// One qualified timed pass: its retained work, accepted judgment, and caller-clock readings.
+/// What a qualified timed pass leaves behind: its own curve, the judgment that accepted it, and the clock readings.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SecondaryObservation {
     work: WorkCurve,
@@ -255,39 +248,39 @@ pub struct SecondaryObservation {
     measurements: Vec<MeasurementReading>,
 }
 
-/// The scoped recorder one benchmark callable may write through.
+/// The counter a benchmark callable writes through, scoped to its binding's observations.
 #[derive(Debug)]
 pub struct WorkRecorder {
     counts: Vec<WorkCount>,
 }
 
-/// Why scoped work recording was refused.
+/// Why a callable's work was not recorded.
 #[must_use = "a refusal is the reason work recording did not complete"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WorkRecordingRefusal {
-    /// A callable's declared observation name was not parsed.
+    /// The callable's own observation name did not parse.
     ObservationName(NameRefusal),
-    /// The callable named an observation outside its binding's roster.
+    /// The callable named an observation its binding never declared.
     UnknownObservation(WorkObservationRef),
-    /// The callable could not represent the work amount it meant to record.
+    /// The callable could not compute the amount it meant to record.
     AmountOverflow {
         /// The observation whose amount could not be formed.
         observation: WorkObservationRef,
-        /// The input size at which arithmetic overflowed.
+        /// The input size at which the arithmetic overflowed.
         input_size: u64,
     },
-    /// Adding units would overflow the exact counter.
+    /// Adding the offered units would overflow the exact counter.
     CountOverflow {
         /// The observation being counted.
         observation: WorkObservationRef,
-        /// The count already retained.
+        /// The count already held.
         current: u64,
-        /// The additional units the callable requested.
+        /// The units the callable offered.
         addition: u64,
     },
 }
 
-/// What makes one row executable as a benchmark without granting the callables authority over its meaning.
+/// What makes one row executable, without giving any callable a say in what the row means.
 #[derive(Debug, Clone)]
 pub struct BenchAttachment {
     workload: WorkloadRef,
@@ -298,13 +291,13 @@ pub struct BenchAttachment {
     observations: Vec<WorkObservationRef>,
 }
 
-/// Why one benchmark attachment was not built.
+/// Why an attachment was not built.
 #[must_use = "a refusal is the reason a benchmark attachment was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BenchAttachmentRefusal {
-    /// No work observation was declared.
+    /// No work observation was declared, so nothing could be counted.
     NoObservation,
-    /// One work observation appeared twice.
+    /// One observation appeared twice.
     DuplicateObservation {
         /// The repeated observation.
         observation: WorkObservationRef,
@@ -315,7 +308,7 @@ pub enum BenchAttachmentRefusal {
     },
 }
 
-/// One real correctness trial binding and invocation under a benchmark-owned reference.
+/// A real trial, run under this home's preflight name before any measuring starts.
 #[derive(Clone)]
 pub struct PreflightTrial {
     reference: PreflightRef,
@@ -323,7 +316,7 @@ pub struct PreflightTrial {
     invocation: Invocation,
 }
 
-/// One benchmark row joined to every callable and preflight fact its host needs.
+/// One row joined to its callables and its preflight, with every name agreeing.
 #[derive(Clone)]
 pub struct BenchBinding {
     row: BenchRow,
@@ -331,32 +324,32 @@ pub struct BenchBinding {
     preflight: PreflightTrial,
 }
 
-/// Why one benchmark binding was not built.
+/// Which name disagreed between a row and what was bound to it.
 #[must_use = "a refusal is the reason a benchmark binding was not built"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BenchBindingRefusal {
-    /// The row and attachment name different workloads.
+    /// The row and the attachment name different workloads.
     Workload {
         /// The row's workload.
         row: WorkloadRef,
         /// The attachment's workload.
         attachment: WorkloadRef,
     },
-    /// The row and attachment name different planted-worse seats.
+    /// The row and the attachment name different controls.
     PlantedWorse {
-        /// The row's reference.
+        /// The row's control.
         row: PlantedWorseRef,
-        /// The attachment's reference.
+        /// The attachment's control.
         attachment: PlantedWorseRef,
     },
-    /// The row and preflight trial name different seats.
+    /// The row and the preflight trial name different preflights.
     Preflight {
-        /// The row's reference.
+        /// The row's preflight.
         row: PreflightRef,
-        /// The trial's reference.
+        /// The trial's preflight.
         trial: PreflightRef,
     },
-    /// The row and work judge name different complexity claims.
+    /// The row and the judge name different complexity claims.
     Complexity {
         /// The row's claim.
         row: ComplexityClaimRef,
@@ -365,7 +358,7 @@ pub enum BenchBindingRefusal {
     },
 }
 
-/// One nonempty benchmark table in authored order.
+/// One nonempty table of bindings, in the order they were authored.
 #[derive(Clone)]
 pub struct BenchTable {
     name: BenchTableName,
@@ -373,15 +366,15 @@ pub struct BenchTable {
     bindings: Vec<BenchBinding>,
 }
 
-/// Why a benchmark table was not built.
+/// Why a table was not built.
 #[must_use = "a refusal is the reason a benchmark table was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BenchTableRefusal {
-    /// The table carried no benchmark row.
+    /// The table carried no row.
     Empty,
     /// Two bindings carried the same complete row identity.
     DuplicateRow {
-        /// The duplicated row identity.
+        /// The duplicated identity.
         row: BenchRowKey,
         /// Its first position.
         first: usize,
@@ -390,31 +383,31 @@ pub enum BenchTableRefusal {
     },
 }
 
-/// The one refusal family a stamped benchmark-table function returns.
+/// The one family a stamped table function returns, with every constructor's cause kept whole.
 #[must_use = "a refusal is the reason a stamped benchmark table was not built"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BenchStampRefusal {
-    /// A namespaced reference was not parsed.
+    /// A namespaced name did not parse.
     Name(NameRefusal),
     /// An input-size axis was not admitted.
     InputSizeAxis(InputSizeAxisRefusal),
-    /// Benchmark budgets were not admitted.
+    /// Budgets were not admitted.
     Budgets(DeclaredBudgetsRefusal),
     /// A present work formula was not admitted.
     WorkFormula(WorkFormulaRefusal),
-    /// A benchmark row was not built.
+    /// A row was not built.
     Row(BenchRowRefusal),
-    /// A benchmark attachment was not built.
+    /// An attachment was not built.
     Attachment(BenchAttachmentRefusal),
-    /// A benchmark binding was not built.
+    /// A binding was not built.
     Binding(BenchBindingRefusal),
-    /// A correctness trial binding was not built.
+    /// The preflight's trial binding was not built.
     Preflight(TrialTableRefusal),
-    /// The complete benchmark table was not built.
+    /// The table itself was not built.
     Table(BenchTableRefusal),
 }
 
-/// The explicit host facts for one complete benchmark-table run.
+/// The host facts one whole table run is given, declared by whoever runs it.
 #[derive(Debug, Clone)]
 pub struct BenchInvocation {
     target: TargetBinding,
@@ -422,17 +415,17 @@ pub struct BenchInvocation {
     contention: ContentionPosture,
 }
 
-/// Which target-binding fact disagreed before benchmark caller code could run.
+/// Which target fact disagreed before any caller code ran.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BenchTargetMismatch {
-    /// The compilation target spellings differ.
+    /// The compilation targets differ.
     Target {
         /// The benchmark invocation's target.
         benchmark: TargetTriple,
         /// The preflight invocation's target.
         preflight: TargetTriple,
     },
-    /// The toolchain identities differ.
+    /// The toolchains differ.
     Toolchain {
         /// The benchmark invocation's toolchain.
         benchmark: ToolchainIdentity,
@@ -441,7 +434,7 @@ pub enum BenchTargetMismatch {
     },
 }
 
-/// Why no complete benchmark report was produced.
+/// Why no report was produced at all.
 #[must_use = "a refusal is the reason no benchmark report was produced"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BenchRunRefusal {
@@ -449,99 +442,99 @@ pub enum BenchRunRefusal {
     PreflightTargetMismatch {
         /// The row that could not run.
         row: BenchRowKey,
-        /// The exact target-binding member that disagreed.
+        /// The exact fact that disagreed.
         mismatch: BenchTargetMismatch,
     },
-    /// A primary benchmark callable could not record its declared work.
+    /// A benchmark callable could not record the work it declared.
     WorkNotRecorded {
-        /// The row that could not complete.
+        /// The row that could not finish.
         row: BenchRowKey,
         /// Which callable refused.
         phase: PrimaryWorkPhase,
-        /// The exact scoped-recording refusal.
+        /// Why the recorder refused.
         refusal: WorkRecordingRefusal,
     },
-    /// The post-qualification observation pass could not retain coherent work.
+    /// The timed pass did not hold together.
     SecondaryWorkRefused {
-        /// The row that could not complete.
+        /// The row that could not finish.
         row: BenchRowKey,
-        /// Why no secondary observation was published.
+        /// Why nothing was published for it.
         refusal: SecondaryObservationRefusal,
     },
 }
 
-/// Which primary callable failed to record a work curve.
+/// Which of a row's two callables was running.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PrimaryWorkPhase {
     /// The measured callable.
     Measured,
-    /// The deliberately worse callable.
+    /// The deliberately worse control.
     PlantedWorse,
 }
 
-/// Why the post-qualification wall-observation pass was not published.
+/// Why the timed pass published nothing.
 #[must_use = "a refusal is the reason qualified caller-clock readings were not published"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SecondaryObservationRefusal {
-    /// A discarded warmup call could not record its declared work.
+    /// A discarded warmup call could not record its work.
     Warmup(WorkRecordingRefusal),
-    /// A timed sample call could not record its declared work.
+    /// A timed sample call could not record its work.
     Sample(WorkRecordingRefusal),
-    /// The timed pass did not remain admitted under the same work judge.
+    /// The timed pass no longer qualified under the same judge.
     Judgment(WorkQualificationRefusal),
 }
 
-/// One benchmark row's stage-shaped outcome.
+/// How far one row got.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BenchOutcome {
-    /// Correctness preflight refused, so no benchmark callable ran.
+    /// The correctness preflight refused, so no benchmark callable ran.
     PreflightRefused,
-    /// The deliberately worse control was not both refused and distinguished by the same work judge.
+    /// The control was not both refused and told apart from the measured curve.
     PlantedWorseNotDistinguished {
         /// The measured curve.
         measured: WorkCurve,
-        /// The planted-worse curve.
+        /// The control's curve.
         planted_worse: WorkCurve,
-        /// The relational judgment that did not activate the control.
+        /// The judgment that left the control inactive.
         judgment: WorkJudgment,
     },
-    /// The planted-worse curve refused, but the measured curve also refused.
+    /// The control stood, and the measured curve refused.
     PrimaryWorkRefused {
         /// The measured curve.
         measured: WorkCurve,
-        /// The planted-worse curve.
+        /// The control's curve.
         planted_worse: WorkCurve,
-        /// The relational judgment carrying the measured refusal.
+        /// The judgment carrying the measured refusal.
         judgment: WorkJudgment,
     },
-    /// Correctness, planted-worse activation, primary work, and secondary work coherence all held.
+    /// Correctness, the control, the primary work, and the timed pass all held.
     #[non_exhaustive]
     Qualified {
         /// The qualified measured curve.
         measured: WorkCurve,
-        /// The refused planted-worse curve.
+        /// The refused control curve.
         planted_worse: WorkCurve,
-        /// The accepted measured, planted-worse, and exact-gap judgment.
+        /// The accepted judgment over both.
         judgment: WorkJudgment,
-        /// The qualified timed pass and its secondary caller-clock readings.
+        /// The timed pass and its clock readings.
         secondary: SecondaryObservation,
     },
 }
 
-/// The stage occupied by one benchmark reading.
+/// The stage one outcome occupies, without the evidence that filled it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BenchStage {
-    /// Correctness preflight refused.
+    /// The correctness preflight refused.
     PreflightRefused,
-    /// The deliberately worse control was not distinguished.
+    /// The control was not distinguished.
     PlantedWorseNotDistinguished,
-    /// The measured primary work refused.
+    /// The measured work refused.
     PrimaryWorkRefused,
-    /// The complete benchmark row qualified.
+    /// The row qualified.
     Qualified,
 }
 
-/// One complete benchmark row's retained reading.
+/// What one row left behind.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BenchReading {
     row: BenchRow,
@@ -550,7 +543,7 @@ pub struct BenchReading {
     outcome: BenchOutcome,
 }
 
-/// The complete authored benchmark table's report.
+/// One reading per authored binding, in table order.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BenchReport {
     table: BenchTableName,
@@ -558,7 +551,7 @@ pub struct BenchReport {
     readings: Vec<BenchReading>,
 }
 
-/// Why a benchmark report's verdict fold refused.
+/// The first row that did not qualify, and where it stopped.
 #[must_use = "a refusal names the first benchmark row that did not qualify"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BenchVerdictRefusal {

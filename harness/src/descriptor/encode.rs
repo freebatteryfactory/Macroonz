@@ -1,30 +1,20 @@
-//! The canonical bytes this home's two preimage-bearing values commit to: one
-//! generated-support schema declaration, and one authored row.
+//! The canonical bytes this home's preimage-bearing values commit to: one root schema declaration, one authored row, and one trial's coordinates.
 //!
-//! These bytes are PREIMAGES — of the generated-support schema identity, which
-//! is derived from them ([`GeneratedSupportSchema::identity`]), and of the row
-//! revision identity, which the report instrument derives from them
-//! ([`RowRevisionId::over`](crate::report::RowRevisionId::over)). The bytes are
-//! never "the id", and no reader is meant to parse meaning out of them: they
-//! exist so that one value has exactly one byte string, and so that a change to
-//! any member of that value moves the derived identity.
+//! These bytes are preimages, never identities, and no reader is meant to parse meaning out of them.
+//! They exist so that one value has exactly one byte string, and so that a change to any member of that value moves the identity derived from it.
+//! The encoding is a function of the value and of nothing else — no clock, no environment, no source text, no iteration order that is not the declared one.
+//! It is stated completely here, because an independent party re-deriving one of these identities writes its own encoder from this page and imports nothing.
 //!
-//! # The schema specification
+//! # Two primitives
 //!
-//! The encoding is a function of the declaration and of nothing else — no
-//! clock, no environment, no source text, no iteration order that is not the
-//! declared one. It is stated completely here, because an independent reader
-//! re-deriving this identity writes its own encoder from this paragraph and
-//! imports nothing.
+//! - `u32be(n)` and `u64be(n)` — the integer in four or eight big-endian bytes.
+//! - `bytes(x)` — `u64be(len(x))` followed by the bytes of `x`.
 //!
-//! Two primitives:
+//! Every variable-length member is framed, so no two member sequences can be cut at a different boundary and produce one byte string.
+//! A name is `bytes(namespace)` then `bytes(stem)`, two framed members rather than a joined spelling.
+//! Nothing is folded on the way in, so the derived identity is the only compression anywhere in the derivation.
 //!
-//! - `u32be(n)` / `u64be(n)` — the integer in four or eight big-endian bytes.
-//! - `bytes(x)` — `u64be(len(x))` followed by the bytes of `x`. Every
-//!   variable-length member is written this way, so no two member sequences can
-//!   be cut at a different boundary and produce one byte string.
-//!
-//! The declaration, in exactly this order, with no separators and no padding:
+//! # The schema declaration
 //!
 //! | # | member | encoding |
 //! | - | ------ | -------- |
@@ -33,32 +23,15 @@
 //! | 3 | mutation-discovery member | member tag `2`, then its roster |
 //! | 4 | bench member | member tag `3`, then its roster |
 //!
-//! A roster is `u64be(field count)` followed by each field in declared order. A
-//! field is `bytes(name)`, then its shape, then one byte for its cardinality
-//! slot. A shape is one byte for its slot; the closed-choice shape additionally
-//! writes `u64be(arm count)` followed by `bytes(arm)` for each arm in declared
-//! order. The slot projections live beside the encoders below.
+//! A roster is `u64be(field count)` followed by each field in declared order.
+//! A field is `bytes(name)`, then its shape, then one byte for its cardinality slot.
+//! A shape is one byte for its slot; the closed-choice shape additionally writes `u64be(arm count)` followed by `bytes(arm)` for each arm in declared order.
 //!
-//! Nothing is folded on the way in: every name and every arm spelling is
-//! written at full length, so the derived identity is the only compression
-//! anywhere in the derivation.
-//!
-//! # The row specification
-//!
-//! The row preimage is the COMPLETE descriptor content of one row: every field
-//! the row declares, including the arm its origin carries and everything that
-//! arm earns. It is written under the same two primitives and the same framing
-//! law as the schema declaration, so no two rows this vocabulary considers
-//! different are cut into one byte string. A NAME is `bytes(namespace)` followed
-//! by `bytes(stem)`, two framed members rather than a joined spelling, so no
-//! pair of namespace and stem can be re-cut into a different pair that encodes
-//! identically.
-//!
-//! The members, in exactly this order, with no separators and no padding:
+//! # The row
 //!
 //! | # | member | encoding |
 //! | - | ------ | -------- |
-//! | 1 | encoding version | `u32be`, the row encoding's own version |
+//! | 1 | encoding version | `u32be`, the row encoding's own |
 //! | 2 | claim | the reference's name |
 //! | 3 | execution suite | the reference's name |
 //! | 4 | roles | `u64be(count)`, then each role's name |
@@ -68,56 +41,22 @@
 //! | 8 | population | the reference's name |
 //! | 9 | origin | one byte, [`Origin::slot`], then the arm's own members |
 //!
-//! The order is the descriptor schema's declared reading order, so the roster a
-//! producer emits against and the bytes a row commits to are read the same way
-//! round.
-//!
-//! The origin's arms carry exactly what they earn, and nothing writes a seat an
-//! arm does not have:
-//!
 //! | slot | arm | members |
 //! | ---- | --- | ------- |
 //! | 1 | hand-written | nothing |
 //! | 2 | generated | the door's name, then the projection's name |
-//! | 3 | candidate | one byte, [`SynthesisFacts::slot`]; the survivor arm then writes the mutation point's name, the proof-gap arm writes nothing |
-//! | 4 | admitted-replay | `bytes(proposal address)`, one byte for the ground ([`AdmissionGround::slot`](super::AdmissionGround::slot)), the destination suite's name, `bytes(replay address)` |
+//! | 3 | candidate | one byte, [`SynthesisFacts::slot`]; the survivor arm then writes the mutation point's name |
+//! | 4 | admitted-replay | `bytes(proposal address)`, one byte for the ground, the destination suite's name, `bytes(replay address)` |
 //! | 5 | admitted-discharge | `bytes(proposal address)`, the destination suite's name |
 //!
-//! The discharge arm writes no ground byte, and that is the elision law in the
-//! preimage: its ground is forced by the arm, so the arm's own slot already
-//! carries the fact and a second byte would state a value that could not have
-//! been anything else. The replay arm writes one, because two grounds open it.
+//! The member order is the descriptor schema's declared reading order, so the roster a producer emits against and the bytes a row commits to are read the same way round.
+//! The discharge arm writes no ground byte, and that is the elision law: its ground is forced by the arm, so a second byte would state a value that could not have been anything else.
 //!
-//! The roles and the tags are written in their STORAGE order — the set's, over
-//! the namespace and then the stem — rather than in the order a hand happened to
-//! author them. Two rows carrying the same labels therefore encode identically
-//! however they were written, which is right: the rosters are sets, a repeat is
-//! refused where the classification is built, and authoring order carries no
-//! meaning that a revision identity should move with.
+//! Roles and tags are written in storage order rather than authoring order, so two rows carrying the same labels encode identically however they were written.
+//! The schema identity, the producer's provenance, and the two revision bindings are absent, because none of them is a row field.
 //!
-//! The generated-support schema identity, the producer's provenance, and the two
-//! revision bindings are absent, because none of them is a row field: they ride
-//! the binding and the table. A row revision therefore does not move when a
-//! producer-facing schema changes, and moving it is never evidence that anything
-//! the row EXECUTES has changed.
-//!
-//! # A row is encoded once
-//!
-//! The row road runs at CONSTRUCTION and nowhere else:
-//! [`Row::declared`](super::Row::declared) writes these bytes from the values it
-//! was handed, and the row carries them as its
-//! [`CanonicalRowBytes`](super::CanonicalRowBytes) for the rest of its life. No
-//! run re-encodes a row, so a report's revision identities are readings over
-//! bytes that already exist, and there is no second encoding of one row that
-//! could disagree with the first.
-//!
-//! The two preimages here are never compared with each other. They are derived
-//! under different domain tags, so a schema identity and a row revision identity
-//! are unrelated values rather than neighbouring ones, whatever their bytes.
-//!
-//! The two encodings carry separate version constants, because they move for
-//! separate reasons: how a schema declaration is cut and how a row is cut are
-//! two decisions, and one bump must not rename identities under the other.
+//! The two encodings carry separate version constants, because how a schema is cut and how a row is cut are two decisions and one bump must rename nothing under the other.
+//! Their preimages are never compared with each other: they are derived under different domain tags, so their identities are unrelated values rather than neighbouring ones.
 
 use super::types::{
     AdmissionGround, CheckRef, ClaimRef, Classification, DESCRIPTOR_PROJECTIONS,
@@ -127,6 +66,16 @@ use super::types::{
     origin_declarations,
 };
 use crate::identity::ContentAddress;
+
+/// The version of the schema encoding itself.
+///
+/// It rides the preimage, so changing how the bytes are cut moves every derived identity.
+const SCHEMA_ENCODING_VERSION: u32 = 1;
+
+/// The version of the row encoding itself.
+///
+/// Its own constant rather than the schema encoding's: the two move for separate reasons, and a bump to one must rename nothing derived under the other.
+const ROW_ENCODING_VERSION: u32 = 2;
 
 impl AdmissionGround {
     /// The byte this ground is written as in a row's canonical preimage.
@@ -145,7 +94,7 @@ macro_rules! implement_origin_slots {
         impl Origin {
             /// The byte this arm is written as in a row's canonical preimage.
             ///
-            /// The owner-local origin roster projects both this slot match and the descriptor schema's closed-choice spellings, so their order cannot drift independently.
+            /// The origin roster projects both this match and the schema's closed-choice spellings, so their order cannot drift independently.
             #[must_use]
             pub const fn slot(self) -> u8 {
                 match self {
@@ -199,23 +148,6 @@ impl FieldCardinality {
     }
 }
 
-/// The version of the schema encoding itself.
-///
-/// It rides the preimage, so changing how the bytes are cut moves every derived
-/// identity — a new encoding can never be mistaken for the old one over the
-/// same declaration.
-const SCHEMA_ENCODING_VERSION: u32 = 1;
-
-/// The version of the row encoding itself.
-///
-/// Its own constant rather than the schema encoding's, for the reason this
-/// file's page states: the two encodings move for separate reasons, and a bump
-/// to one must rename nothing derived under the other. The number is a position
-/// in this encoding's own order — how a row's members are cut, including which
-/// members an origin arm writes at all — so a row cut at one position and a row
-/// cut at another are different preimages however alike the row is.
-const ROW_ENCODING_VERSION: u32 = 2;
-
 macro_rules! push_generated_support_members {
     ([$bytes:ident, $schema:ident]; $( $member:ident: $member_type:ty => $fields:ident => $tag:literal, )+) => {
         $(
@@ -228,9 +160,8 @@ macro_rules! push_generated_support_members {
 ///
 /// # Errors
 ///
-/// Refuses a length that does not fit the sixty-four bit width the encoding
-/// declares. The encoder states its widths rather than guessing at one; on
-/// every target this crate is built for the case is unreachable.
+/// Refuses a length that does not fit the sixty-four bit width the encoding declares.
+/// The encoder states its widths rather than guessing at one; on every target this crate is built for the case is unreachable.
 pub fn encode_generated_support_schema(
     schema: &GeneratedSupportSchema,
 ) -> Result<Vec<u8>, EncodeRefusal> {
@@ -271,51 +202,14 @@ fn push_shape(out: &mut Vec<u8>, shape: FieldShape) -> Result<(), EncodeRefusal>
     Ok(())
 }
 
-/// One length-prefixed text.
-fn push_text(out: &mut Vec<u8>, text: &str) -> Result<(), EncodeRefusal> {
-    push_count(out, text.len())?;
-    out.extend_from_slice(text.as_bytes());
-    Ok(())
-}
-
-/// One count, at the declared width.
-fn push_count(out: &mut Vec<u8>, count: usize) -> Result<(), EncodeRefusal> {
-    let declared = u64::try_from(count).map_err(|_| EncodeRefusal::LengthPastEncodingWidth)?;
-    out.extend_from_slice(&declared.to_be_bytes());
-    Ok(())
-}
-
-// ---------------------------------------------------------------------------
-// The row preimage.
-// ---------------------------------------------------------------------------
-
-/// The COMPLETE canonical bytes of one row's declared content.
+/// The complete canonical bytes of one row's declared content — every field the row declares, and everything the arm its origin carries earns.
 ///
-/// # Authority
-///
-/// These bytes are the row revision identity's preimage: the report instrument
-/// derives that identity from them
-/// ([`RowRevisionId::over`](crate::report::RowRevisionId::over)) and encodes
-/// nothing itself, so a row is encoded by the home that owns it and by nobody
-/// else.
-///
-/// The preimage is the COMPLETE descriptor content of the row — every field the
-/// row declares, and everything the arm its origin carries earns. That
-/// completeness is the whole claim: two rows this vocabulary considers
-/// different always encode differently, which is what makes a moved identity
-/// evidence that the row was edited.
-///
-/// The road takes the row's declared VALUES rather than a row, because it runs
-/// while the row is being born: [`Row::declared`](super::Row::declared) is its
-/// one caller, and the bytes it answers with are what that row then owns. The
-/// complete specification — both primitives, the framing law, the member order,
-/// and every arm's own members — is this file's page.
+/// The road takes the declared values rather than a row, because it runs while the row is being born: [`Row::declared`](super::Row::declared) is its one caller, and its answer is what that row then owns for life.
+/// The record home derives the row revision identity from these bytes and encodes nothing itself.
 ///
 /// # Errors
 ///
-/// Refuses a length that does not fit the sixty-four bit width the encoding
-/// declares. The encoder states its widths rather than guessing at one; on
-/// every target this crate is built for the case is unreachable.
+/// Refuses a length that does not fit the sixty-four bit width the encoding declares, which is unreachable on every target this crate is built for.
 pub(super) fn encode_row_content(
     claim: ClaimRef,
     execution_suite: ExecutionSuite,
@@ -354,6 +248,24 @@ pub(super) fn encode_row_content(
     Ok(bytes)
 }
 
+/// The complete preimage one [`TrialKey`](super::TrialKey) is derived from: the claim, the subject route, the check, and the population, each as its reference's name, in that order.
+///
+/// The execution suite is absent because two rows differing only by suite are one trial run under two seats, and nothing about where the row is written appears either, so the key survives a file move and a rename.
+///
+/// # Errors
+///
+/// Returns [`EncodeRefusal`] where a member is longer than the width this home's framing declares.
+pub(super) fn encode_trial_coordinates(
+    coordinates: TrialCoordinates,
+) -> Result<Vec<u8>, EncodeRefusal> {
+    let mut out = Vec::new();
+    push_name(&mut out, coordinates.claim().name())?;
+    push_name(&mut out, coordinates.subject().name())?;
+    push_name(&mut out, coordinates.check().name())?;
+    push_name(&mut out, coordinates.population().name())?;
+    Ok(out)
+}
+
 /// One origin: its slot, then exactly what its arm earns.
 fn push_origin(out: &mut Vec<u8>, origin: Origin) -> Result<(), EncodeRefusal> {
     out.push(origin.slot());
@@ -378,11 +290,9 @@ fn push_synthesis(out: &mut Vec<u8>, facts: SynthesisFacts) -> Result<(), Encode
     }
 }
 
-/// One replay-bearing admission: the proposal, the ground it stood on, the
-/// destination suite, and the capsule entry the act authored.
+/// One replay-bearing admission: the proposal, the ground, the destination suite, and the capsule entry the act authored.
 ///
-/// The ground is written at summary width, so one ground has one
-/// identity-bearing byte wherever it is encoded.
+/// The ground is written at summary width, so one ground has one identity-bearing byte wherever it is encoded.
 fn push_replay_admission(
     out: &mut Vec<u8>,
     admitted: ReplayAdmission,
@@ -395,8 +305,7 @@ fn push_replay_admission(
 
 /// One discharge admission: the proposal, then the destination suite.
 ///
-/// No ground byte: the arm's own slot already states the one ground a discharge
-/// can stand on, and writing it again would put a forced value in the preimage.
+/// No ground byte: the arm's own slot already states the one ground a discharge can stand on.
 fn push_discharge_admission(
     out: &mut Vec<u8>,
     admitted: DischargeAdmission,
@@ -405,47 +314,29 @@ fn push_discharge_admission(
     push_name(out, admitted.destination().name())
 }
 
-/// The COMPLETE preimage one [`TrialKey`](super::TrialKey) is derived from: the
-/// four coordinates, each as its reference's namespaced name, in exactly this
-/// order and with no separators and no padding.
-///
-/// | # | member | encoding |
-/// | - | ------ | -------- |
-/// | 1 | claim | the reference's namespaced name |
-/// | 2 | subject route | the reference's namespaced name |
-/// | 3 | check | the reference's namespaced name |
-/// | 4 | population | the reference's namespaced name |
-///
-/// The execution suite is absent for the reason the coordinates leave it out:
-/// two rows differing only by suite are one trial run under two seats. Nothing
-/// about where the row is written appears either, so the key survives a file
-/// move, a module move, and a rename.
-///
-/// # Errors
-///
-/// Returns [`EncodeRefusal`] where a member is longer than the width this
-/// home's framing declares.
-pub(super) fn encode_trial_coordinates(
-    coordinates: TrialCoordinates,
-) -> Result<Vec<u8>, EncodeRefusal> {
-    let mut out = Vec::new();
-    push_name(&mut out, coordinates.claim().name())?;
-    push_name(&mut out, coordinates.subject().name())?;
-    push_name(&mut out, coordinates.check().name())?;
-    push_name(&mut out, coordinates.population().name())?;
-    Ok(out)
-}
-
 /// One namespaced name: the namespace, then the stem, each framed.
 fn push_name(out: &mut Vec<u8>, name: NamespacedName) -> Result<(), EncodeRefusal> {
     push_text(out, name.namespace().written())?;
     push_text(out, name.stem().written())
 }
 
-/// One content address, framed at its own length like every other
-/// variable-length member, so no address can be re-cut against its neighbour.
+/// One content address, framed at its own length like every other variable-length member.
 fn push_address(out: &mut Vec<u8>, address: ContentAddress) -> Result<(), EncodeRefusal> {
     push_count(out, address.as_bytes().len())?;
     out.extend_from_slice(address.as_bytes());
+    Ok(())
+}
+
+/// One length-prefixed text.
+fn push_text(out: &mut Vec<u8>, text: &str) -> Result<(), EncodeRefusal> {
+    push_count(out, text.len())?;
+    out.extend_from_slice(text.as_bytes());
+    Ok(())
+}
+
+/// One count, at the declared width.
+fn push_count(out: &mut Vec<u8>, count: usize) -> Result<(), EncodeRefusal> {
+    let declared = u64::try_from(count).map_err(|_| EncodeRefusal::LengthPastEncodingWidth)?;
+    out.extend_from_slice(&declared.to_be_bytes());
     Ok(())
 }

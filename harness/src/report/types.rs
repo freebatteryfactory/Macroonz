@@ -1,10 +1,7 @@
-//! The record vocabulary's public types: the identity rails, the execution
-//! key, the replay account, the findings, the reports, and the comparison.
+//! Every public type of the record vocabulary.
 //!
-//! Declarations only. Every road that reaches a private field is in this
-//! module's own child `type_guard.rs`; the canonical preimages are in
-//! `encode.rs`; the posture readings, the comparison, and the coverage reading
-//! are their own pure-function modules.
+//! Declarations only.
+//! The roads that reach a private field are in `type_guard.rs` and its three subject files, the canonical preimages are in `encode.rs`, and the readings are their own pure-function files.
 
 use crate::clock::MeasurementReading;
 use crate::descriptor::{
@@ -15,51 +12,22 @@ use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 #[path = "type_guard.rs"]
 mod guard;
 
-// ---------------------------------------------------------------------------
-// The semantic rail.
-// ---------------------------------------------------------------------------
+// The semantic rail: what a trial means.
 
-/// The profile coordinate of a trial's semantic identity.
+/// The feature profile a trial's identity is stated under.
 ///
-/// The sole lawful value states what is true of every trial the harness runs:
-/// nothing splits trials by feature profile, so no trial carries one. It is an
-/// honest present-tense value rather than a default standing in for a choice
-/// nobody has made — a fictional `Default` here would mint identities under a
-/// coordinate the harness cannot vary and could not honour.
-///
-/// # Bounds
-///
-/// The first real feature split adds variants beside this one. Adding a variant
-/// leaves every identity derived under [`TrialProfile::Unprofiled`] with its
-/// name, because the variant's encoded slot does not move.
+/// The one value says what is true of every trial the harness runs: nothing splits trials by feature profile, so no trial carries one.
+/// A later split adds a variant beside this one without moving its encoded slot, so identities already derived keep their names.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum TrialProfile {
     /// The trial is not profiled.
     Unprofiled,
 }
 
-/// The COMPLETE preimage one [`TrialId`] is derived from: one trial's compact
-/// key, and the profile coordinate this home adds to it.
+/// The complete preimage of one [`TrialId`]: a trial's compact key, and the profile coordinate this home adds to it.
 ///
-/// A trial's identity is what it MEANS — the claim it serves, the subject it
-/// exercises, the check contract that judges it, the population that supplies
-/// its inputs, and its profile. The first four are what a [`TrialKey`] is
-/// derived over, in the descriptor home where a row is born and where they are
-/// encoded exactly once; this value adds the fifth and nothing else.
-///
-/// The mechanism coordinate is the check CONTRACT a check reference names — a
-/// typed selection of a judging contract, never a function pointer and never a
-/// path. The check's REVISION is a different fact and rides [`ExecutionKey`].
-///
-/// # Authority
-///
-/// **The four coordinates are encoded once, and not here.** A preimage that
-/// re-encoded the claim, the subject, the check, and the population beside the
-/// key would be a second implementation of the descriptor's own framing, and two
-/// implementations of one encoding agree until one of them is edited.
-///
-/// Nothing about where a trial lives is in either half, which is why the
-/// identity survives a file move, a module move, and a rename.
+/// The claim, the subject, the check contract, and the population reach the identity through the key, which the descriptor home derived over them where the row was born.
+/// Encoding those four again here would be a second implementation of one framing, and two implementations agree until one of them is edited.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ProfiledTrial {
     key: TrialKey,
@@ -70,30 +38,16 @@ pub struct ProfiledTrial {
 pub const TRIAL_IDENTITY_TAG: DomainTag =
     DomainTag::declared("trial-identity", IdentityProfileVersion::declared(1));
 
-/// One trial's semantic identity.
+/// One trial's semantic identity: what the trial means, independent of where it is written.
 ///
-/// # Authority
-///
-/// Holding one means the harness derived these thirty-two bytes from a complete
-/// [`ProfiledTrial`] under [`TRIAL_IDENTITY_TAG`], and would derive the same
-/// ones again from the same key under the same profile anywhere. The four
-/// coordinates behind that key reach this identity through the key and never
-/// beside it. Two rows with one identity are two spellings of one measurement,
-/// which is why the table constructor refuses the pair.
-///
-/// # Nonclaims
-///
-/// It says nothing about where the trial is written. A path-spelled name is a
-/// [`TrialSite`], and a report joins both rails without ever mixing them.
+/// The same key under the same profile derives the same thirty-two bytes anywhere, so two rows sharing an identity are two spellings of one measurement and the table constructor refuses the pair.
+/// Where a trial lives is a [`TrialSite`], and the two rails never mix.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct TrialId(ContentAddress);
 
-/// Where one trial is written: the diagnostic rail.
+/// Where one trial is written: the rail a person filters on and jumps to.
 ///
-/// This is what a person filters on, jumps to, and reads in a failure — and it
-/// is deliberately not identity. A refactor that moves the trial changes every
-/// field here and changes no [`TrialId`], which is the whole point of keeping
-/// the two rails apart.
+/// A refactor that moves the trial changes every field here and changes no [`TrialId`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TrialSite {
     module_path: &'static str,
@@ -102,53 +56,32 @@ pub struct TrialSite {
     name: &'static str,
 }
 
-// ---------------------------------------------------------------------------
-// The revision rail.
-// ---------------------------------------------------------------------------
+// The revision rail: which code a run stood on.
 
 /// The domain tag every row revision identity is derived under.
 pub const ROW_REVISION_TAG: DomainTag =
     DomainTag::declared("row-revision", IdentityProfileVersion::declared(1));
 
-/// The identity of one complete authored row.
+/// The identity of one complete authored row, derived from the canonical bytes that row committed to.
 ///
-/// It owns bookkeeping — census, aggregation, report diff. A suite-tag or
-/// origin edit moves it, aggregation recomputes over the new value, and no
-/// execution is owed by the move: nothing about what the row EXECUTES has
-/// changed.
-///
-/// # Construction
-///
-/// Deriving it is TOTAL. The preimage is the row's own
-/// [`CanonicalRowBytes`](crate::descriptor::CanonicalRowBytes), written where
-/// the row was born, so by the time a report names a row the bytes exist and
-/// hashing them cannot fail. A row whose bytes could not be written is a row
-/// that was never constructed, and no census entry can be stated over one.
+/// It owns bookkeeping — census, aggregation, report diff.
+/// A tag or origin edit moves it and owes no execution, because nothing about what the row runs has changed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct RowRevisionId(ContentAddress);
 
-/// The identity of the exact subject revision one attachment binds.
+/// The exact subject revision one attachment bound.
 ///
-/// # Authority
-///
-/// The value is the attachment's own revision binding, given a name that cannot
-/// be confused with the check's. Nothing is derived here: the binding is the
-/// authority on what revision was committed to and under which posture, and a
-/// second derivation in this home would be a second answer to that question.
+/// The binding is the authority on what was committed to and under which posture, so nothing is derived a second time here.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct SubjectRevisionId(ContentAddress);
 
-/// The identity of the exact check revision one attachment binds.
+/// The exact check revision one attachment bound.
 ///
-/// The check's CONTRACT is a coordinate of [`TrialId`]; this is the
-/// implementation standing behind that contract, and the two move
-/// independently.
+/// The check's contract is a coordinate of [`TrialId`]; this is the implementation standing behind that contract, and the two move independently.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct CheckRevisionId(ContentAddress);
 
-// ---------------------------------------------------------------------------
-// The execution rail.
-// ---------------------------------------------------------------------------
+// The execution rail: what one run was keyed by.
 
 /// The compilation target a run stood on, by its declared triple.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -160,12 +93,7 @@ pub struct ToolchainIdentity(String);
 
 /// The target and toolchain one execution actually ran under.
 ///
-/// # Authority
-///
-/// These are host facts, read by the harness because it needs them to run, and
-/// they enter [`ExecutionKey`] — a cache key — rather than any semantic
-/// identity. A cross-target cache hit is a claim nothing verifies, and refusing
-/// it costs reruns: cost, never truth.
+/// Both are declared at the invocation, and they enter [`ExecutionKey`] rather than any semantic identity.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TargetBinding {
     target: TargetTriple,
@@ -182,25 +110,14 @@ pub struct ByteBudget(u64);
 
 /// How long one invocation admits one trial to run, in nanoseconds.
 ///
-/// A declared bound, not a measurement: what a run actually observed is a
-/// [`MeasurementReading`].
+/// A declared bound rather than a measurement; what a run actually observed is a [`MeasurementReading`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct TimeBudget(u64);
 
-/// The invocation's conclusion-relevant facts.
+/// The facts of one invocation that can change what a trial concludes.
 ///
-/// # Authority
-///
-/// This is the declared typed subset of an invocation whose values can change
-/// what a trial CONCLUDES, which is why it rides [`ExecutionKey`]: a result
-/// reached under a smaller budget is not evidence for a larger one. The set is
-/// closed — a fact that can move a conclusion is a field here, and adding one
-/// is a law change rather than a new argument.
-///
-/// # Nonclaims
-///
-/// It is NOT the profile coordinate of [`TrialId`]. That coordinate says which
-/// feature profile a trial MEANS; this one says what one invocation permitted.
+/// A result reached under a smaller budget is not evidence for a larger one, which is why these ride [`ExecutionKey`].
+/// The set is closed: a fact that can move a conclusion is a field here, and adding one is a change to the law rather than a new argument.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct InvocationProfile {
     cases: CaseBudget,
@@ -212,18 +129,10 @@ pub struct InvocationProfile {
 pub const EXECUTION_KEY_TAG: DomainTag =
     DomainTag::declared("execution-key", IdentityProfileVersion::declared(1));
 
-/// What one execution of one trial was actually keyed by.
+/// What one execution of one trial was keyed by.
 ///
-/// The trial's semantic identity, the subject and check revisions, the
-/// invocation profile, and the target and toolchain binding — the last
-/// UNCONDITIONALLY, because a hit across targets asserts something nothing
-/// verified.
-///
-/// # Construction
-///
-/// [`ExecutionKey::over`] is the only road, and the key's address is derived
-/// from the parts on demand rather than stored beside them, so there is no
-/// second value that could disagree with what the key is made of.
+/// The target binding is a member unconditionally, so a key derived on one target cannot equal a key derived on another.
+/// The address is derived from the parts on demand rather than stored beside them, so no second value can disagree with what the key is made of.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ExecutionKey {
     trial: TrialId,
@@ -233,59 +142,35 @@ pub struct ExecutionKey {
     target: TargetBinding,
 }
 
-// ---------------------------------------------------------------------------
-// The postures: what an attachment's revision bindings buy.
-// ---------------------------------------------------------------------------
+// What an attachment's revision bindings buy.
 
 /// Whether a rerun cache may stand in for executing an attachment again.
 ///
-/// # Authority
-///
-/// This vocabulary and the reading that produces it are the one owning
-/// statement about cache eligibility. Every other mention of eligibility,
-/// anywhere in the harness, points here rather than restating it.
+/// This vocabulary is the one owning statement about cache eligibility, and every other mention of eligibility in the harness points here.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CacheEligibility {
-    /// Fully eligible: the revisions are derived from owned declarations, so a
-    /// hit stands on the same ground a fresh execution would.
+    /// The revisions are derived from owned declarations, so a hit stands on the ground a fresh execution would.
     Eligible,
-    /// Eligible only while the author's declared revisions are unchanged.
-    ///
-    /// The ceiling is the author's word: nothing mechanical establishes that
-    /// the declared revision still describes the code, so a hit inherits
-    /// exactly the confidence the declaration carries and no more.
+    /// A hit is lawful only while the author's declared revisions are unchanged, and it inherits exactly the confidence that declaration carries.
     EligibleWhileDeclaredRevisionsUnchanged,
-    /// Never eligible: no stable commitment exists, so every run executes.
+    /// No stable commitment exists, so every run executes.
     NeverEligible,
 }
 
 /// What a reproduction of one execution can claim.
 ///
-/// # Authority
-///
-/// The runner begins the posture at the attachment revision meet. A reduction
-/// that produces a replay capsule meets that ceiling with its probe adapter and
-/// every semantic reducer actually invoked, so any author-declared or
-/// untracked participant narrows the resulting account.
+/// The runner opens the posture at the attachment's revision meet, and every later participant — the probe adapter, each semantic reducer actually invoked — can only narrow it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ReplayPosture {
-    /// The one posture that earns the phrase "replay exactly": both revisions
-    /// are derived from owned declarations, so the reproduction is the same
-    /// execution and not a similar one.
+    /// The one posture that earns the phrase "replay exactly": the reproduction is the same execution, not a similar one.
     ExactDerived,
-    /// Reproduction inherits the author's-word ceiling: the run is reproduced
-    /// against revisions a hand committed to, and the claim is exactly as good
-    /// as that commitment.
+    /// The reproduction stands on revisions a hand committed to, so the claim is exactly as good as that commitment.
     DeclaredByAuthor,
-    /// No exact reproduction is available. The historical run and its input are
-    /// real evidence, the attachment always reruns, no cache hit is permitted,
-    /// and every rendering states that reproduction is non-exact.
+    /// Exact reproduction is unavailable: the historical run and its input are still evidence, the attachment always reruns, and every rendering says so.
     UnavailableBecauseUntracked,
 }
 
-// ---------------------------------------------------------------------------
 // The replay account.
-// ---------------------------------------------------------------------------
 
 /// Which generation profile produced a capsule's input, and at which version.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -296,10 +181,7 @@ pub struct GenerationProfile {
 
 /// Which minimization profile reduced a capsule's input, and at which version.
 ///
-/// A find is minimized under a profile, and a reduction that preserves the
-/// fingerprint under one profile says nothing about another — so the profile
-/// and its version ride the capsule rather than being remembered by whoever
-/// reads it.
+/// A reduction that preserved the fingerprint under one profile says nothing about another, so the profile rides the capsule instead of being remembered by whoever reads it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MinimizationProfile {
     name: &'static str,
@@ -310,27 +192,10 @@ pub struct MinimizationProfile {
 pub const REPLAY_CAPSULE_TAG: DomainTag =
     DomainTag::declared("replay-capsule", IdentityProfileVersion::declared(2));
 
-/// The closed output shape of one run-bound reproduction account.
+/// The closed shape of one run-bound reproduction account.
 ///
-/// It binds the execution key, the exact input bytes, the preserved failure
-/// fingerprint, the generation and minimization profiles with their versions,
-/// the generated-support schema identity, and the replay posture the complete
-/// reduction path earned.
-///
-/// # Construction
-///
-/// No public constructor accepts these seats independently. The generation
-/// instrument's [`crate::generate::capture_replay`] operation accepts only
-/// completed [`crate::generate::ReductionEvidence`], whose reduction probe is
-/// bound to a real refused report and whose posture already includes every
-/// invoked callable revision. Human admission is a later act.
-///
-/// # Nonclaims
-///
-/// Holding a capsule is not holding an exact-replay claim. Only
-/// [`ReplayPosture::ExactDerived`] earns that phrase; the other two postures
-/// state their own ceilings, and a rendering that omits them is renaming
-/// evidence.
+/// Its one mint consumes completed [`crate::generate::ReductionEvidence`] bound to a real refused report, so no caller assembles these seats independently.
+/// Holding a capsule is not holding an exact-replay claim: only [`ReplayPosture::ExactDerived`] earns that phrase, and the other two postures state their own ceilings.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReplayCapsule {
     key: ExecutionKey,
@@ -342,14 +207,11 @@ pub struct ReplayCapsule {
     posture: ReplayPosture,
 }
 
-// ---------------------------------------------------------------------------
 // Findings.
-// ---------------------------------------------------------------------------
 
 /// The normalized shape of a failure.
 ///
-/// Normalized on purpose: it is what turns many finds into few defects, so it
-/// names the KIND of disagreement rather than any of its particulars.
+/// It names the kind of disagreement rather than any of its particulars, which is what turns many finds into few defects.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum FailureClass {
     /// The check returned a typed refusal about the subject.
@@ -358,20 +220,16 @@ pub enum FailureClass {
     PropertyDisagreement,
     /// The independent oracle disagreed with the subject.
     OracleDisagreement,
-    /// A panic from the subject, caught at the trial boundary and recorded as
-    /// the finding it is.
+    /// A panic from the subject, caught at the trial boundary and recorded as the finding it is.
     SubjectPanic,
-    /// The subject exceeded a declared budget while the check was still
-    /// undecided.
+    /// The subject exceeded a declared budget while the check was still undecided.
     BudgetExhausted,
 }
 
-/// The typed cause a finding names, cited by the declared identity pair its
-/// home wrote down.
+/// The cause a finding names, as the pair of declared names its owner wrote down.
 ///
-/// A finding cites a cause the way the machine spells one — a family and a
-/// local key — rather than carrying prose. Free text about a cause is
-/// [`ForeignText`] and decides nothing.
+/// The family and the local key are the caller's own spelling.
+/// The harness stores them, hashes them into every [`Fingerprint`], and never reads inside them; free text about a cause is [`ForeignText`] and decides nothing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct FindingCause {
     family: &'static str,
@@ -380,9 +238,7 @@ pub struct FindingCause {
 
 /// Where a refusal was raised.
 ///
-/// This is the finding's own location, which is not the trial's: a property
-/// suite refuses inside itself while the trial lives in a table somewhere else,
-/// and a reader needs both.
+/// Not where the trial lives: a property suite refuses inside itself while the trial sits in a table somewhere else, and a reader needs both.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FindingLocation {
     file: &'static str,
@@ -397,8 +253,7 @@ pub const FOREIGN_TEXT_MAX_BYTES: usize = 4096;
 pub enum Truncation {
     /// Everything offered was admitted.
     Complete,
-    /// The material exceeded the bound and was cut, with both counts kept so a
-    /// reader is never shown a cut rendering that looks whole.
+    /// The material exceeded the bound and was cut, with both counts kept so no reader is shown a shortened rendering that looks whole.
     TruncatedAt {
         /// How many bytes were admitted.
         admitted: usize,
@@ -412,23 +267,14 @@ pub enum Truncation {
 pub enum TextFidelity {
     /// The admitted bytes are valid UTF-8 and render unchanged.
     Exact,
-    /// The admitted bytes are not valid UTF-8; rendering substitutes
-    /// replacement characters.
+    /// The admitted bytes are not valid UTF-8, so rendering substitutes replacement characters.
     LossyReplacement,
 }
 
-/// Text that came from outside this crate's own vocabulary.
+/// Text that came from outside this crate's own vocabulary, bounded and marked.
 ///
-/// A subject's panic payload, an external tool's output, a decoder's message:
-/// bounded, marked when it was cut, marked when rendering it loses bytes, and
-/// carried on its own field so that a finding is a typed value first and prose
-/// second.
-///
-/// # Nonclaims
-///
-/// Nothing in the harness reads this back, matches on it, or decides from it,
-/// and no composed summary is built from it. A reading that needs a fact takes
-/// the typed field that carries the fact.
+/// A subject's panic payload, an external tool's output, a decoder's message.
+/// It travels one way: nothing in the harness reads it back, matches on it, or builds a summary from it, so a finding is a typed value first and prose second.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ForeignText {
     bytes: Vec<u8>,
@@ -436,8 +282,7 @@ pub struct ForeignText {
     fidelity: TextFidelity,
 }
 
-/// One typed refusal: what disagreed, which cause it names, where it was
-/// raised, and any foreign text it carried in.
+/// One typed refusal: what disagreed, the cause it names, where it was raised, and any foreign text it carried in.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TrialFinding {
     class: FailureClass,
@@ -459,16 +304,9 @@ pub enum TrialConclusion {
 pub const FINGERPRINT_TAG: DomainTag =
     DomainTag::declared("failure-fingerprint", IdentityProfileVersion::declared(1));
 
-/// One failure's identity: the trial's semantic identity joined with the typed
-/// cause and the normalized failure class.
+/// One failure's identity: the trial's semantic identity, the typed cause, and the normalized class.
 ///
-/// Four dividends fall out of naming a failure this way: the same failure found
-/// in two runs deduplicates to one; a minimizer can reduce an input while
-/// requiring the fingerprint to hold, so it shrinks the input without wandering
-/// to a different bug; rerun selection stays stable across refactors, because
-/// the semantic half of the name survives file and module moves; and many finds
-/// group into few defects, because one defect keeps one name however many
-/// inputs reach it.
+/// Naming a failure this way is what lets two runs deduplicate one find, a minimizer shrink an input without wandering to a different bug, rerun selection survive a refactor, and many finds group into few defects.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Fingerprint {
     trial: TrialId,
@@ -476,9 +314,7 @@ pub struct Fingerprint {
     class: FailureClass,
 }
 
-// ---------------------------------------------------------------------------
 // One execution's record.
-// ---------------------------------------------------------------------------
 
 /// Why a selected trial did not execute.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -487,19 +323,15 @@ pub enum SkipReason {
     BudgetExhausted,
     /// The subject is not exercisable on the running target.
     TargetUnsupported,
-    /// Material the trial requires — generated support, a corpus, a fault
-    /// adapter — was not present.
+    /// Material the trial requires — generated support, a corpus, a fault adapter — was not present.
     PrerequisiteAbsent,
-    /// A cached execution under this trial's execution key stood in, which is
-    /// lawful exactly when [`CacheEligibility`] admitted it.
+    /// A cached execution under this trial's execution key stood in, which is lawful exactly when [`CacheEligibility`] admitted it.
     SatisfiedByCachedExecution,
 }
 
-/// What failed in the HARNESS rather than in the subject.
+/// What failed in the harness rather than in the subject.
 ///
-/// Kept apart from every conclusion on purpose: an infrastructure failure is
-/// not evidence about the subject, and folding one into a refusal would put a
-/// verdict on a subject nobody exercised.
+/// Kept apart from every conclusion, because folding one into a refusal would put a verdict on a subject nobody exercised.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum InfrastructureFault {
     /// The population could not supply inputs.
@@ -512,16 +344,14 @@ pub enum InfrastructureFault {
 
 /// What became of one selected trial.
 ///
-/// The conclusion rides the executed arm, so a conclusion without an execution
-/// and an execution without a conclusion are both unrepresentable.
+/// The conclusion rides the executed arm, so a conclusion without an execution and an execution without a conclusion are both unrepresentable.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum RunAttempt {
     /// It ran, and this is what it concluded.
     Executed(TrialConclusion),
     /// It did not run, for a stated reason.
     SkippedWithReason(SkipReason),
-    /// It ran past the budget it was given, which is carried so a reader knows
-    /// which bound was reached.
+    /// It ran past the budget it was given, carried here so a reader knows which bound was reached.
     TimedOut(TimeBudget),
     /// The harness failed around it, so nothing was learned about the subject.
     InfrastructureFailed(InfrastructureFault),
@@ -529,11 +359,8 @@ pub enum RunAttempt {
 
 /// One external host's typed input about a selected trial.
 ///
-/// # Authority
-///
-/// A host may establish an attempt and a wall-measurement reading the in-process runner cannot, but this input is not report evidence by itself. The runner joins it to one bound trial and one invocation before any [`TrialReport`] exists.
-///
-/// The semantic trial, execution standing, site, table census, selection outcome, and table posture are not parallel input seats here. They are derived at the join that admits this value.
+/// A host can establish an attempt and a wall-measurement reading the in-process runner cannot, and that is the whole of what it may state.
+/// The semantic standing, the site, the census, the selection outcome, and the table posture are derived at the join that admits this value, never accepted from it.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct HostTrialRecord {
     trial: TrialId,
@@ -543,17 +370,14 @@ pub struct HostTrialRecord {
 
 /// The exact semantic and revision standing one admitted trial report ran under.
 ///
-/// # Authority
-///
-/// The runner derives the execution key from the bound row, attachment, invocation profile, and target, and derives replay posture from the attachment's two revision postures. Neither fact is accepted from a host record.
+/// The runner derives both members: the key from the bound row, attachment, invocation profile and target, and the replay ceiling from the attachment's two revision postures.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TrialRunStanding {
     key: ExecutionKey,
     replay: ReplayPosture,
 }
 
-/// One execution's record: the two identity rails joined, what became of the
-/// attempt, and the wall-measurement posture recorded around it.
+/// One execution's record: the two rails joined, what became of the attempt, and the wall-measurement posture recorded around it.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TrialReport {
     standing: TrialRunStanding,
@@ -562,9 +386,7 @@ pub struct TrialReport {
     measurement: MeasurementReading,
 }
 
-// ---------------------------------------------------------------------------
 // One run's complete-table accounting.
-// ---------------------------------------------------------------------------
 
 /// Why a trial in the denominator was not selected by this invocation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -577,11 +399,7 @@ pub enum NotSelectedReason {
 
 /// What one invocation did about one row of the denominator.
 ///
-/// # Construction
-///
-/// The selected arm carries the whole execution record behind a box: a census
-/// is mostly rows one invocation did not select, and an unboxed arm would make
-/// every one of them as large as the largest report.
+/// A census is mostly rows nobody selected, so the selected arm boxes its record rather than making every unselected row as large as the largest report.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SelectionDisposition {
     /// Selected, and here is what happened.
@@ -597,9 +415,7 @@ pub enum SelectionDisposition {
 
 /// Whether one row of the denominator was actually exercised.
 ///
-/// Selection is not exercise: a trial the invocation selected and then skipped
-/// was not exercised, and a coverage reading that counted it would be claiming
-/// evidence nobody produced.
+/// Selection is not exercise: a trial the invocation selected and then skipped was not exercised, and counting it would claim evidence nobody produced.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Exercise {
     /// The trial executed and reached a conclusion.
@@ -616,50 +432,21 @@ pub struct TrialAccounting {
     disposition: SelectionDisposition,
 }
 
-/// Why a caller stated in advance that a selection matching nothing is a lawful
-/// answer.
+/// Why a caller stated in advance that a selection matching nothing is a lawful answer.
 ///
-/// # Authority
-///
-/// Typed and closed, because an escape from the anti-vacuity law has to be
-/// readable: a reason nobody can enumerate is a reason nobody can review. Free
-/// text has no seat here — a rendering of one is [`ForeignText`], and it decides
-/// nothing.
-///
-/// # Nonclaims
-///
-/// A reason states why zero was admissible. It states nothing about whether the
-/// run was worth taking, and it never claims that anything was exercised.
+/// Typed and closed, because a reason nobody can enumerate is a reason nobody can review.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum EmptySelectionReason {
-    /// The selection was carried over from a previous run's report, so a trial
-    /// the world no longer holds is a lawful absence rather than a failure.
+    /// The selection was carried over from a previous run, so a trial the world no longer holds is a lawful absence rather than a failure.
     CarriedOverFromAPreviousRun,
-    /// The run asks what the world holds under this selection. A claim with no
-    /// row serving it is the reading's own finding — the strongest opening a
-    /// coverage reading has — rather than a seat that could not run.
+    /// The run asks what the world holds under this selection, and a claim with no row serving it is the reading's own finding.
     AskingWhatTheWorldHolds,
 }
 
 /// What one invocation expects its selection to match.
 ///
-/// # Authority
-///
-/// [`SelectionExpectation::AtLeastOne`] is the standing expectation of every
-/// run, and it is what a caller gets without saying anything: a run that
-/// exercised nothing is not a run that passed, and a selection that named no row
-/// is the vacuity a harness exists to catch. The escape is DECLARED rather than
-/// discovered — a caller that means to admit zero says so in advance and says
-/// why.
-///
-/// It is this home's rather than the engine's for the reason
-/// [`InvocationProfile`] is: it is a declared input whose value the record has to
-/// carry, and the record vocabulary sits below the engine that reads it.
-///
-/// # Nonclaims
-///
-/// An expectation is not an outcome. What a run's selection actually matched,
-/// read against this, is [`SelectionOutcome`].
+/// [`SelectionExpectation::AtLeastOne`] is what a caller gets without saying anything, because a run that exercised nothing is not a run that passed.
+/// Admitting zero is declared in advance, with the reason attached.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SelectionExpectation {
     /// The selection is expected to name at least one row of the denominator.
@@ -670,50 +457,23 @@ pub enum SelectionExpectation {
 
 /// What one run's selection matched, read against what that run expected.
 ///
-/// # Authority
-///
-/// A run-level fact, recorded on the report itself. An empty selection is not a
-/// trial that failed and not a harness that broke — nothing was exercised, and
-/// there is no row to hang either verdict on — so it is stated here, once, where
-/// a reading can find it without inventing a census entry nobody ran.
-///
-/// # Nonclaims
-///
-/// It says nothing about what any trial concluded. It is also not
-/// [`OutcomeClass`], which normalizes what happened to ONE row; this is what
-/// happened to the selection as a whole. No arm of it spells "passed": a run
-/// that exercised nothing has nothing to pass.
+/// An empty selection is not a trial that failed and not a harness that broke, so it is stated once here rather than as a census entry nobody ran.
+/// No arm spells "passed": a run that exercised nothing has nothing to pass.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SelectionOutcome {
-    /// The selection named at least one row of the denominator, which is what
-    /// every expectation admits.
+    /// The selection named at least one row of the denominator, which every expectation admits.
     Satisfied,
-    /// The selection named no row of the denominator, and the run expected at
-    /// least one: it exercised nothing it meant to exercise.
+    /// The selection named no row, and the run expected at least one: it exercised nothing it meant to exercise.
     UnsatisfiedByEmptySelection,
-    /// The selection named no row of the denominator, and the caller stated in
-    /// advance that zero is a lawful answer, for this reason. Zero work was
-    /// done, and this arm is how a reading says so without saying anything ran.
+    /// The selection named no row, and the caller stated in advance that zero is a lawful answer, for this reason.
     EmptyAsStated(EmptySelectionReason),
 }
 
-/// One run's complete-table accounting: the denominator, what happened to every
-/// row of it, the table posture, the selection's own outcome, and the invocation
-/// profile it ran under.
+/// One run's complete-table accounting: the denominator, what happened to every row of it, the table posture, the selection's own outcome, and the invocation profile.
 ///
-/// # Authority
-///
-/// The denominator is the descriptor table itself — one entry per row, always,
-/// selected or not — which is what makes claim coverage a computation rather
-/// than a hand count. The posture is the view's own
-/// ([`TablePosture`]), recorded rather than restated: coverage admits the
-/// authored arm only, and the comparison refuses a cross-posture pair.
-///
-/// The selection outcome is the run-level fact a census cannot carry: whether
-/// the selection matched anything, read against what the run expected of it.
-/// Recording it here is what lets a run that selected nothing still be a
-/// COMPLETE report rather than an absent one.
-///
+/// The denominator is the descriptor table itself, one entry per row whether selected or not, which is what makes claim coverage a computation rather than a hand count.
+/// Recording the posture is what lets coverage admit authored reports only and lets the comparison refuse a cross-posture pair.
+/// Recording the selection outcome is what lets a run that selected nothing still be a complete report rather than an absent one.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RunReport {
     census: Vec<TrialAccounting>,
@@ -722,9 +482,7 @@ pub struct RunReport {
     invocation: InvocationProfile,
 }
 
-// ---------------------------------------------------------------------------
 // The comparison.
-// ---------------------------------------------------------------------------
 
 /// Why no previous report is available to compare against.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -737,11 +495,7 @@ pub enum NoBaselineReason {
 
 /// The typed baseline a comparison is taken against.
 ///
-/// # Authority
-///
-/// Typed rather than optional, because an optional input cannot distinguish two
-/// absences: a first run and a lost report are different facts, and a result
-/// may never claim knowledge absent from its input.
+/// Typed rather than optional, because an optional input cannot tell a first run from a lost report, and a result may not claim knowledge absent from its input.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Baseline<'previous> {
     /// A previous report, borrowed for the comparison.
@@ -759,8 +513,7 @@ pub enum NotComparedReason {
     FirstRun,
     /// No baseline was available, for a stated reason.
     Unavailable(NoBaselineReason),
-    /// The two reports stand over different table postures. Comparing them
-    /// would let a staged run's numbers pass as an authored world's.
+    /// The two reports stand over different table postures, and comparing them would let a staged view's numbers pass as an authored world's.
     PostureMismatch {
         /// The baseline's posture.
         left: TablePosture,
@@ -771,9 +524,7 @@ pub enum NotComparedReason {
 
 /// Which direction the denominator moved between two runs.
 ///
-/// A shrinking census is a typed fact rather than a smaller number a reader
-/// might not notice: rows leaving the world is exactly the change a comparison
-/// exists to state.
+/// A shrinking census is a typed fact rather than a smaller number a reader might not notice.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CensusDirection {
     /// The denominator grew.
@@ -802,9 +553,7 @@ pub struct RowRevisionChange {
 
 /// The normalized outcome of one row of the denominator.
 ///
-/// The comparable projection of a [`SelectionDisposition`]: enough to say that
-/// something flipped, and deliberately not enough to be mistaken for the
-/// record itself.
+/// Enough to say that something flipped, and deliberately not enough to be mistaken for the record itself.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum OutcomeClass {
     /// Executed, and the check was satisfied.
@@ -839,11 +588,9 @@ pub struct ReportDiff {
     census: CensusDelta,
 }
 
-/// The outcome of one comparison: a difference, or an honest refusal to
-/// compare.
+/// The outcome of one comparison: a difference, or an honest refusal to compare.
 ///
-/// The census never reads "no change" merely because there was nothing to
-/// compare against — that absence is the second arm, with its reason.
+/// A census never reads "no change" merely because there was nothing to compare against; that absence is the second arm, with its reason.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReportComparison {
     /// The two reports were compared, and this is the difference.
@@ -852,15 +599,12 @@ pub enum ReportComparison {
     NotCompared(NotComparedReason),
 }
 
-// ---------------------------------------------------------------------------
 // The coverage reading.
-// ---------------------------------------------------------------------------
 
 /// Why a coverage reading refused its input.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CoverageRefusal {
-    /// The report stands over a staged view. Coverage admits authored-posture
-    /// reports only, so a candidate run never enters the numbers a gate reads.
+    /// The report stands over a staged view, and coverage admits authored-posture reports only.
     StagedPosture {
         /// The authored parent the staged view named.
         parent: AuthoredTableName,
@@ -877,11 +621,7 @@ pub struct ClaimExercise {
 
 /// What a run exercised, per claim, over the denominator it recorded.
 ///
-/// # Nonclaims
-///
-/// It counts exercise, never correctness: a claim every one of whose trials ran
-/// and refused is fully exercised. What those trials concluded is the report's
-/// to state.
+/// It counts exercise and never correctness: a claim every one of whose trials ran and refused is fully exercised, and what those trials concluded is the report's to state.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ClaimCoverage {
     entries: Vec<ClaimExercise>,

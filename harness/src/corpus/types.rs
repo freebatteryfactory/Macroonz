@@ -1,6 +1,6 @@
-//! The corpus instrument's declarations: one informed seed, one content-addressed pack, and every reason either is refused.
+//! One informed seed, one content-addressed pack, and every reason either is refused.
 //!
-//! Declarations only. Every road that reaches a private field lives in this file's own child, `type_guard.rs`; canonical writing, reading, and warm-start projection live in their role-named modules.
+//! Declarations only; every road that reaches a private field lives in this file's child, `type_guard.rs`.
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -8,18 +8,18 @@ mod guard;
 use crate::descriptor::PopulationRef;
 use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 
-/// The seed-pack body format this reader understands.
+/// The body format this reader understands.
 pub const SEED_PACK_FORMAT_VERSION: u32 = 1;
 
-/// The content-address family of a seed-pack body.
+/// The content-address family every pack body is derived under.
 ///
-/// The format version governs byte decoding; this tag's position governs compatibility among externally held addresses of this preimage family.
+/// The format version governs how bytes decode; this tag's position governs whether an address held elsewhere still means what it meant.
 pub const SEED_PACK_TAG: DomainTag =
     DomainTag::declared("seed-pack", IdentityProfileVersion::declared(1));
 
-/// One nonempty exact input admitted to a seed pack.
+/// One nonempty input admitted to a pack.
 ///
-/// Empty material is refused because the current warm-start handoff is [`InputOrigin::Supplied`](crate::generate::InputOrigin::Supplied), whose generation plan refuses empty supplied material.
+/// Empty material is refused because the warm start hands each seed over as [`InputOrigin::Supplied`](crate::generate::InputOrigin::Supplied), and a generation plan refuses empty supplied material.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SeedInput(Vec<u8>);
 
@@ -27,21 +27,20 @@ pub struct SeedInput(Vec<u8>);
 #[must_use = "a refusal is the reason a seed input was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SeedInputRefusal {
-    /// The input contains no byte and cannot enter the current supplied-material generation road.
+    /// The material carries no byte.
     Empty,
 }
 
-/// The content address of one complete seed-pack body.
+/// The content address of one complete pack body.
 ///
-/// # Construction
-///
-/// The pack writer and reader derive this value under [`SEED_PACK_TAG`]. No road wraps the leading bytes of an untrusted envelope as an address.
+/// Only the writer and the reader mint one, and both derive it under [`SEED_PACK_TAG`].
+/// No road wraps the leading bytes of an untrusted envelope as an address.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SeedPackAddress(ContentAddress);
 
-/// One admitted content-addressed seed pack for one declared population.
+/// One admitted pack: a population, its seeds in authored order, and the envelope carrying them.
 ///
-/// Seed order is retained because it is warm-start exploration order and therefore part of the addressed body. The encoded envelope is retained exactly so a caller may persist it without a second writer.
+/// The envelope is retained exactly as it was derived, so persisting a pack never needs a second writer that could disagree with the first.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SeedPack {
     population: PopulationRef,
@@ -50,24 +49,24 @@ pub struct SeedPack {
     encoded: Vec<u8>,
 }
 
-/// Why one seed pack was not written or read.
+/// Why one pack was not written, or not read.
 #[must_use = "a refusal is the reason a seed pack was not admitted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SeedPackRefusal {
-    /// The pack declares no seed and therefore cannot warm-start a search.
+    /// The pack declares no seed, and an empty pack warm-starts nothing.
     NoSeed,
-    /// One seed repeats earlier material exactly.
+    /// Two seeds carry exactly the same bytes, which would narrow the roster in silence.
     DuplicateSeed {
-        /// The first seed carrying the bytes.
+        /// Where the bytes first appear.
         first: usize,
-        /// The later seed repeating them.
+        /// Where they repeat.
         duplicate: usize,
     },
-    /// The envelope ends before a declared fixed-width or framed member does.
+    /// The envelope ends inside a member it had already declared.
     Truncated,
-    /// The leading address claim differs from the address derived over the body.
+    /// The leading claim is not the address the body derives.
     AddressMismatch {
-        /// The address the body actually derives.
+        /// What the body actually derives.
         derived: SeedPackAddress,
     },
     /// The body declares a format this reader does not understand.
@@ -75,21 +74,21 @@ pub enum SeedPackRefusal {
         /// The format position found in the body.
         found: u32,
     },
-    /// The encoded population differs from the population the caller expected to open.
+    /// The encoded population is not the one the caller opened the pack for.
     PopulationMismatch,
-    /// A foreign length cannot be represented on this platform.
+    /// A declared length is wider than this platform can index.
     LengthOutsidePlatform {
-        /// The unrepresentable length from the envelope.
+        /// The unrepresentable length.
         declared: u64,
     },
-    /// A foreign seed is empty and cannot enter the current supplied-material generation road.
+    /// A foreign seed carries no byte.
     EmptySeed {
-        /// The seed's position in pack order.
+        /// Its position in pack order.
         at: usize,
     },
-    /// Bytes remain after every member admitted by the seed count.
+    /// Bytes remain after the last seed the declared count admitted.
     TrailingBytes {
-        /// The number of bytes after the admitted body.
+        /// How many are left over.
         count: usize,
     },
 }

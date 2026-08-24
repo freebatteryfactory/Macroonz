@@ -1,17 +1,39 @@
-# oracle — the independence annex
+# oracle — the second opinion
 
-The oracle owns an independent verdict route wherever shared producer logic would make self-agreement vacuous: identity preimages and canonical encodings, structural conformance, compiled read-back, and compile refusals. Everything else is judged by declared algebra in the property suites, which need no second implementation to be meaningful — no universal second implementation exists.
+Most of the harness judges a subject against laws its owner declared.
+This home exists for the claims where that is not enough: where the only thing available to check an answer against is the logic that produced it, and agreement would establish nothing at all.
 
-The read-direction law: a depot vector is the specification; only this instrument reads it; a producer states its own constants internally and gets compared against the vector. A vector is born from the specification — never exported from a producer — so a producer that silently changes diverges from the spec and the divergence screams.
+So the oracle goes and gets its answer from somewhere else.
 
-The vector parser lives here, public: an adopter writing golden vectors for their own types gets the same instrument. The depot ships data; the harness ships tools.
+## Four lanes, four different somewhere-elses
 
-A vector transcribed into the depot is transcribed from this instrument's own re-derivations, never from a producer's laws — a vector copied from the producer would convert the annex into a mirror of the thing it judges.
+| Lane | Where the second opinion comes from | What it may claim |
+| --- | --- | --- |
+| golden vector | a pack of input-and-output pairs written from a specification | the producer rendered exactly these bytes for this input |
+| independent transcript | this home's own re-encoding of a published preimage grammar | the specification, read by somebody else, names the identity that was published |
+| structural read | a Rust parser that shares nothing with whatever rendered the artifact | the artifact declares this target, this contract, these members |
+| compiled read-back | a compiler, which resolves and evaluates by its own rules | the artifact means what it spells, or the compiler refuses it |
 
-Two readings stand here, `structural` and `compiled`, and the doctrine they answer to is stated with each of them: what that reading may claim, why neither subsumes the other, and why a reader that got cleverer would start agreeing with the producer it judges. The structural comparison consumes a typed reading produced by the challenge-side parser; the production library does not carry `syn`. A verdict is method-specific, and reporting one as though it came from another is the collapse this instrument exists to refuse.
+A verdict is method-specific, and reporting one lane's answer as though it came from another is the collapse this home exists to refuse.
+The structural read never claims a path resolves; the compiled read-back never claims anything about how the artifact is written.
 
-A third reading — a scan for one declared textual form in a rendered artifact — is deliberately absent, and its absence is a decision rather than a gap. Its anchors are generator-invalidation data: they belong to whoever AUTHORS the rendered form, so they arrive in the depot when the generator becomes their author, and a hand restating them beside the renderer would be maintaining a second spelling of somebody else's output.
+## Which way a vector is allowed to travel
 
-No comparison anywhere in the harness earns independence by being described as independent, and this is the annex's ceiling on the word. Author-declared independence — the parity vocabulary's loudest arm — is a DECLARATION: it records what an author claims about two roads and never that anything established the claim. Where the two roads share anything at all, the suite names those foundations and what comes back is parity evidence, good exactly as far as the named foundations are right. A caller-supplied reference implementation is a second road like any other: calling it a reference never promotes it to an independent judge, and a comparison against it is parity evidence under whatever it shares with the subject it judges.
+A vector is born from the specification and read here.
+It is never exported from the thing under judgement: a vector copied out of a producer turns the lane into a mirror, and a producer that silently changes then agrees with itself forever.
+The vectors belong to whoever owns the specification, and this home ships only the reader — so anyone writing vectors for their own types gets the same instrument.
+`VectorPack::read` states the complete pack grammar, and nothing else in the harness reads one.
 
-The current challenge side exercises the vector parser, independent transcript derivation, structural comparison, and compiled read-back against real subjects. These are method-specific readings, not a qualified independent implementation. The route that would earn that stronger status — binding a qualified implementation to the revision it was qualified at and retaining the qualification history behind that binding — remains unbuilt.
+## The ceiling on the word "independent"
+
+No comparison here earns independence by being described as independent.
+
+These four lanes give method-specific evidence, good exactly as far as the method reaches.
+Author-declared independence — the property suites' loudest arm — records what an author claims about two roads, never that anything established the claim.
+A caller-supplied reference implementation is a second road like any other, and calling it a reference does not promote it to a judge.
+The stronger status is a qualified implementation bound to the revision it was qualified at, with the qualification history kept behind that binding, and it is not built here.
+
+## What is deliberately absent
+
+There is no scan for a declared textual form in rendered output, and its absence is a decision rather than a gap.
+Anchors like that are generator-invalidation data: they belong to whoever authors the rendered form, so a hand restating them beside the renderer would be maintaining a second spelling of somebody else's output.

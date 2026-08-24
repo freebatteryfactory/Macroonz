@@ -1,16 +1,10 @@
-//! The property vocabulary's invariant nucleus: every road that reaches a
-//! private field, and every reader that hands one back.
+//! Every road that reaches a private field of this home, and every reader that hands one back.
 //!
-//! Declared inside `types.rs` as its own child, so it sees the fields the
-//! declarations keep private and no sibling module does. A parity suite that
-//! never stated what its two roads share, a shared-substrate roster naming no
-//! substrate at all, a roster naming one substrate twice, and a transition
-//! contract demanding nothing of its histories are all refused HERE, which is
-//! what makes those claims structural rather than remembered.
+//! Declared inside `types.rs` as its own child, so it sees fields no sibling module can.
+//! Four claims are refused here rather than remembered elsewhere: a parity suite that never said what its two roads share, a shared-substrate roster naming nothing, a roster naming one substrate twice, and a transition contract demanding nothing of its histories.
 //!
-//! The empty-roster refusal is the one that separates two claims. A roster
-//! naming nothing and the declaration that two roads share nothing are opposite
-//! statements, so no constructor here turns the first into the second.
+//! The empty-roster refusal is the one that keeps two claims apart.
+//! A roster naming nothing and the declaration that two roads share nothing are opposite statements, so no constructor here turns the first into the second.
 
 use super::{
     ComposedRoads, ContractRefusal, Equivalence, ParityReading, ParitySuite, Road, RoadPairing,
@@ -22,13 +16,10 @@ use crate::generate::GeneratedSequences;
 use crate::report::{FindingCause, TrialConclusion};
 use std::collections::BTreeSet;
 
-// ---------------------------------------------------------------------------
-// The parity suite.
-// ---------------------------------------------------------------------------
+// Parity.
 
 impl SubstrateRef {
-    /// This substrate, parsed from the owner that declares it and the spelling
-    /// it carries.
+    /// This substrate, parsed from the owner that declares it and the spelling it carries.
     ///
     /// # Errors
     ///
@@ -55,11 +46,8 @@ impl SubstrateRoster {
     ///
     /// # Errors
     ///
-    /// Refuses an empty roster, then a substrate the roster names more than
-    /// once. The empty refusal is what keeps the two meanings apart: an owner
-    /// whose roads stand on nothing in common writes
-    /// [`SharedSubstrate::DeclaredIndependent`], and there is no road from this
-    /// constructor to that claim.
+    /// Refuses an empty roster, then a substrate the roster names more than once.
+    /// An owner whose roads stand on nothing in common writes [`SharedSubstrate::DeclaredIndependent`], and there is no road from here to that claim.
     pub fn declared(standing: &[SubstrateRef]) -> Result<Self, SubstrateRefusal> {
         if standing.is_empty() {
             return Err(SubstrateRefusal::EmptyRoster);
@@ -73,7 +61,7 @@ impl SubstrateRoster {
         Ok(Self { standing: roster })
     }
 
-    /// Every substrate the pair stands on, in the roster's storage order.
+    /// Every substrate the pair stands on.
     #[must_use]
     pub const fn standing(&self) -> &BTreeSet<SubstrateRef> {
         &self.standing
@@ -99,8 +87,7 @@ impl<Input, Meaning> ParitySuite<Input, Meaning> {
         }
     }
 
-    /// The suite a fused implementation and the composition of the separate
-    /// steps it fuses are judged by.
+    /// The suite a fused implementation and the composition of the steps it fuses are judged by.
     ///
     /// The fused road is the left one, the separate composition the right.
     #[must_use]
@@ -188,7 +175,7 @@ impl<'suite, 'input, Input, Meaning> ParityReading<'suite, 'input, Input, Meanin
         }
     }
 
-    /// The suite that owns the road pair, equivalence, and shared-substrate ceiling.
+    /// The suite that owns the road pair, the equivalence, and the shared-substrate ceiling.
     #[must_use]
     pub const fn suite(&self) -> &'suite ParitySuite<Input, Meaning> {
         self.suite
@@ -219,12 +206,10 @@ impl<'suite, 'input, Input, Meaning> ParityReading<'suite, 'input, Input, Meanin
     }
 }
 
-// ---------------------------------------------------------------------------
-// The temporal suite.
-// ---------------------------------------------------------------------------
+// Temporal.
 
 impl<State> TemporalClaim<State> {
-    /// The claim its owner declared, under the cause a break is cited by.
+    /// The claim its owner declared, under the cause a break in it is cited by.
     #[must_use]
     pub const fn declared(cause: FindingCause, demand: TemporalDemand<State>) -> Self {
         Self { cause, demand }
@@ -248,8 +233,7 @@ impl<State, Command> TransitionContract<State, Command> {
     ///
     /// # Errors
     ///
-    /// Refuses a contract carrying no claim, because every history driven
-    /// through one would read as a pass with nothing demanded of it.
+    /// Refuses a contract carrying no claim, because every history driven through one would read as a pass with nothing demanded of it.
     pub fn declared(
         opening: fn() -> State,
         apply: fn(&State, &Command) -> State,
@@ -299,13 +283,13 @@ impl<Command> TemporalDriveReading<Command> {
         }
     }
 
-    /// The admitted sequences, complete generation census, and halt supplied to temporal evaluation.
+    /// The admitted sequences, census, and halt supplied to temporal evaluation.
     #[must_use]
     pub const fn generated(&self) -> &GeneratedSequences<Command> {
         &self.generated
     }
 
-    /// How many admitted sequences temporal evaluation actually read.
+    /// How many admitted sequences evaluation actually read.
     #[must_use]
     pub const fn evaluated(&self) -> usize {
         self.evaluated
@@ -318,9 +302,7 @@ impl<Command> TemporalDriveReading<Command> {
     }
 }
 
-// ---------------------------------------------------------------------------
-// The composed-roads suite.
-// ---------------------------------------------------------------------------
+// Composition.
 
 impl<Entry, Middle, Exit> ComposedRoads<Entry, Middle, Exit> {
     /// The two steps its owner wired, in the order they run.

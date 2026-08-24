@@ -1,0 +1,5 @@
+error[E0451]: field `body` of struct `PlanError` is private
+  --> tests/compile_refusals/compile-fail/a-planning-refusal-body-written-as-a-literal.rs:18:33
+   |
+18 |     let _reseated = PlanError { body };
+   |                                 ^^^^ private field

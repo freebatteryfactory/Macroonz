@@ -1,4 +1,4 @@
-//! The replay depot's public entry and caller-owned storage boundary.
+//! The entry a replay-bearing admission stores, and the caller-owned boundary it stores across.
 
 use crate::descriptor::{ProposalId, ReplayRef};
 use crate::report::ReplayCapsule;
@@ -6,13 +6,9 @@ use crate::report::ReplayCapsule;
 #[path = "type_guard.rs"]
 mod guard;
 
-/// One replay capsule entry assembled by a human admission act.
+/// One replay capsule entry, assembled by an admission act.
 ///
-/// # Authority
-///
-/// The replay reference derives from the capsule's content identity at the
-/// private mint. A caller cannot pair a proposal with one capsule and a
-/// reference to another.
+/// The reference is derived from the capsule's own content at the private mint, so the three members can only agree.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReplayCapsuleEntry {
     proposal: ProposalId,
@@ -20,10 +16,9 @@ pub struct ReplayCapsuleEntry {
     capsule: ReplayCapsule,
 }
 
-/// The caller's storage location for one admitted replay entry.
+/// The caller's storage location for one admitted entry.
 ///
-/// The replay reference rides with the location, so human admission can refuse
-/// a sink response for another entry instead of trusting neighboring values.
+/// The replay reference rides with the location, so an admission can refuse a response about some other entry instead of trusting a neighboring value.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StoredReplayEntryRef {
     replay: ReplayRef,
@@ -32,8 +27,7 @@ pub struct StoredReplayEntryRef {
 
 /// Why the caller's replay depot did not store an admitted entry.
 ///
-/// Durability is the sink's statement: `TestPak` reaches no filesystem and cannot
-/// independently establish where the caller persisted the entry.
+/// Durability is the sink's own statement: the harness reaches no filesystem and cannot establish where anything was persisted.
 #[must_use = "a refusal is the reason a replay entry was not stored"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReplayDepotRefusal {
@@ -49,18 +43,13 @@ pub enum ReplayDepotRefusal {
 
 /// The caller-owned storage effect an explicit human admission invokes.
 ///
-/// # Authority
-///
-/// The sink receives an immutable, already-assembled entry. It can store or
-/// refuse; it cannot choose the proposal, replay identity, capsule bytes, or
-/// posture. Returning success is the caller's statement that storage occurred.
+/// The sink receives an entry that is already assembled and already immutable: it stores or refuses, and returning success is its own statement that storage occurred.
 pub trait ReplayDepotSink {
     /// Store the exact admitted entry and return its caller-owned location.
     ///
     /// # Errors
     ///
-    /// The sink's own refusal: unavailable, already stored under this replay
-    /// reference, an empty location, or a destination it cannot call durable.
+    /// The sink's own [`ReplayDepotRefusal`].
     fn store(
         &mut self,
         entry: &ReplayCapsuleEntry,

@@ -1,11 +1,41 @@
-# corpus — content-addressed seed packs for generation warm starts
+# corpus
 
-A seed pack is dependency-free, length-prefixed binary exploration state for one declared population. The writer preserves authored seed order, derives the pack address over the complete encoded body, and places that claim ahead of the body; the reader re-derives it before interpreting the body, refuses a population other than the caller expected, and refuses exact duplicate seeds rather than silently narrowing the search roster.
+A seed pack is a search that already paid for itself.
 
-## Canonical envelope
+Generation eventually reaches an input worth keeping: a shrunk counterexample, an awkward case someone wrote by hand, a byte string that cost a thousand tries to find.
+Write those bytes into a pack and the next run starts where the last one finished.
 
-The primitives are `u32be(n)` and `u64be(n)`, the integer in four or eight big-endian bytes, and `bytes(x)`, which is `u64be(x.len()) || x`. The addressed body is exactly `u32be(SEED_PACK_FORMAT_VERSION) || bytes(population namespace UTF-8) || bytes(population stem UTF-8) || u64be(seed count) || bytes(seed)` repeated in authored seed order; there are no other separators or padding bytes. `SeedPackAddress` is `ContentAddress::derived(SEED_PACK_TAG, body)`, and the complete envelope is `address.as_bytes() || body`, with the leading address excluded from its own preimage.
+This home owns the pack format and the two roads across it — writing one, and reading one that arrived from somewhere else.
 
-The public home owns bytes-to-pack and pack-to-supplied-input roads only. Storage paths, persistence, locking, eviction, and retention belong to the caller, and no filesystem fact enters the pack's content identity.
+## What a pack holds
 
-Packs warm-start generation; they do not judge it. A find that matters reaches the ordinary `TestPak` report and fingerprint roads, and may reach a proposal only through a separately lawful proposal ground. A pack address is neither a replay capsule nor evidence, and no seed is judged against the corpus that supplied it.
+One declared population, and its seeds, in the order they were authored.
+
+Order is kept because it is exploration order, and exploration order is part of what the pack claims.
+The pack's address is derived over its whole encoded body and written ahead of that body, so a reader re-derives the claim before it believes a single member of it.
+
+## The envelope
+
+Read `u32be(n)` as an integer in four big-endian bytes, `u64be(n)` as one in eight, and `bytes(x)` as `u64be(x.len())` followed by `x`.
+
+The addressed body is exactly this, with no separators and no padding:
+
+```text
+u32be(SEED_PACK_FORMAT_VERSION)
+bytes(population namespace)
+bytes(population stem)
+u64be(seed count)
+bytes(seed)                       repeated, in authored order
+```
+
+The address is that body under `SEED_PACK_TAG`, and the complete envelope is the address followed by the body it addresses.
+An address never covers itself.
+
+## What this home refuses to grow
+
+It stores nothing.
+Paths, files, locking, eviction, and retention are the caller's, and no fact about where a pack lived may enter what the pack is.
+
+It judges nothing.
+A pack warms a search up; the verdict still comes from the ordinary report and fingerprint roads, and no seed is judged against the corpus that handed it over.
+A pack address is not a replay capsule, and it is not evidence.

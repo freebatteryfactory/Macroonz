@@ -1,0 +1,19 @@
+error[E0451]: fields `selection`, `point` and `alternative` of struct `ResolvedMutation` are private
+  --> tests/compile_refusals/compile-fail/an-active-evaluation-directive-cannot-be-minted-outside-the-harness.rs:15:9
+   |
+14 |     let resolved = ResolvedMutation {
+   |                    ---------------- in this type
+15 |         selection,
+   |         ^^^^^^^^^ private field
+16 |         point,
+   |         ^^^^^ private field
+17 |         alternative,
+   |         ^^^^^^^^^^^ private field
+
+error[E0451]: field `resolved` of struct `EvaluationDirective` is private
+  --> tests/compile_refusals/compile-fail/an-active-evaluation-directive-cannot-be-minted-outside-the-harness.rs:20:9
+   |
+19 |     EvaluationDirective {
+   |     ------------------- in this type
+20 |         resolved: Some(resolved),
+   |         ^^^^^^^^ private field

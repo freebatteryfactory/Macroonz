@@ -1,21 +1,12 @@
-//! The structural-rewrite lane: mutation families expressed as descriptor rows,
-//! planned as candidates for the harness to audit.
+//! The structural-rewrite lane: mutation families expressed as descriptor rows, planned as candidates for the harness to audit.
 //!
-//! A rewrite descriptor is DATA — a pattern, the shape it rewrites to, and the
-//! operator family the pair realizes. Nothing here compiles, executes, or
-//! interprets either side of a pair, and nothing here invokes a rewriter: this
-//! file states which damages the lane would ask for and under which scope.
-//!
-//! # Trust-last, by the staging
-//!
-//! Rewrite-produced descriptors enter the interpreted audit road LAST. The trust order requires a qualified generic suite bite and exact compiled selected-projection pressure, which already retains mandatory no-mutation parity for its pair and input. [`admission`] reads that selection-scoped execution availability once. The descriptor remains an audit candidate, not evidence, until an actual execution earns a later evidence claim.
+//! A rewrite descriptor is data — a pattern, the shape it rewrites to, and the operator family the pair realizes.
+//! Nothing here compiles, executes, or interprets either side, and nothing here invokes a rewriter: this file states which damages the lane would ask for, and under which scope.
 //!
 //! # Why the interpreter gates this lane
 //!
-//! Mutation families expressed as rewrite descriptors join the plan once the
-//! interpreter is the execution substrate that makes them cheap. Before that,
-//! every rewrite is a source-level damage priced like a compiled mutation, and
-//! the lane's whole reason for existing is that it is not.
+//! Rewrite families are cheap only once the interpreter is the execution substrate under them; before that every rewrite is a source-level damage priced like a compiled mutation, which is the thing this lane exists not to be.
+//! So [`admission`] reads the interpreted lane's availability, and an admitted descriptor is still an audit candidate rather than evidence until an actual execution earns a later claim.
 
 use super::types::{
     ArtifactMutation, InterpreterAvailability, RewriteAdmission, RewriteCandidate, RewriteRoster,
@@ -27,12 +18,14 @@ use crate::depot::types::OperatorFamily;
 impl ArtifactMutation {
     /// The damage rendered for a person.
     ///
-    /// A projection: a plan and a survivor explanation name a row through it, and no decision anywhere consults it.
+    /// A projection, and no decision anywhere consults it.
     #[must_use]
     pub const fn described(self) -> &'static str {
         match self {
-            Self::OrderPermuted => "the textual selection order is reversed",
-            Self::IdentityRecycled => "every cause is emitted under one local key",
+            Self::OrderPermuted => "the emitted members are written in reverse of declared order",
+            Self::IdentityRecycled => {
+                "every emitted member is written under the first member's key"
+            }
             Self::PlannedOutputOmitted => "a planned output is deleted",
             Self::UnplannedOutputAdded => "an unplanned output is appended",
             Self::ImplTargetAltered => "the implementation targets a different type",
@@ -52,12 +45,7 @@ impl ArtifactMutation {
 
 /// Plan one roster's descriptors as audit candidates under one scope.
 ///
-/// # Authority
-///
-/// A pure function of its arguments. Every candidate it produces carries
-/// [`RewriteTrust::AuditPending`](super::RewriteTrust::AuditPending), because
-/// that is the only posture this lane's material has: a planned rewrite is
-/// something the harness audits, never something it has established.
+/// A pure function of its arguments, and every candidate carries [`RewriteTrust::AuditPending`](super::RewriteTrust::AuditPending), because a planned rewrite is something the harness audits and never something it has established.
 #[must_use]
 pub fn planned(roster: &RewriteRoster, scope: &ScopeShape) -> Vec<RewriteCandidate> {
     roster
@@ -69,9 +57,8 @@ pub fn planned(roster: &RewriteRoster, scope: &ScopeShape) -> Vec<RewriteCandida
 
 /// Whether this lane's descriptors may enter the interpreted audit road.
 ///
-/// # Authority
-///
-/// Read over the interpreted lane's availability, which already folds the trust order in its owner's sequence. Availability now retains one exact active selection, so a point-free surface cannot reach this arm. An admitted descriptor remains [`super::RewriteTrust::AuditPending`], not evidence.
+/// Read over the interpreted lane's availability, which already folds the trust order in its owner's sequence.
+/// Availability retains one exact active selection, so a point-free surface cannot reach the admitted arm.
 #[must_use]
 pub fn admission<Input, Meaning>(
     interpreter: &InterpreterAvailability<'_, '_, '_, '_, '_, '_, Input, Meaning>,
@@ -89,13 +76,8 @@ pub fn admission<Input, Meaning>(
 
 /// The bank's operator families no descriptor in this roster realizes.
 ///
-/// # Authority
-///
-/// A planning reading over the fact bank, computed rather than hand-counted: the
-/// bank declares which damages the harness is willing to inflict, and a family
-/// no descriptor realizes is pressure this roster does not apply. It states an
-/// absence and nothing about whether that absence matters — which families are
-/// worth realizing is the planner's decision and the owner's ruling.
+/// A planning reading over the fact bank, computed rather than hand-counted: a family no descriptor realizes is pressure this roster does not apply.
+/// It states an absence and nothing about whether that absence matters.
 #[must_use]
 pub fn unrealized_families(roster: &RewriteRoster) -> Vec<OperatorFamily> {
     OPERATOR_FAMILIES

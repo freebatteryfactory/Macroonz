@@ -1,0 +1,42 @@
+error[E0624]: associated function `recorded` is private
+  --> tests/compile_refusals/compile-fail/a-bench-report-minted-outside-the-host.rs:12:26
+   |
+12 |       let _ = BenchReport::recorded;
+   |                            ^^^^^^^^ private associated function
+   |
+  ::: src/bench/type_guard.rs
+   |
+   | /     pub(in crate::bench) fn recorded(
+   | |         table: BenchTableName,
+   | |         provenance: Provenance,
+   | |         readings: Vec<BenchReading>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0624]: associated function `recorded` is private
+  --> tests/compile_refusals/compile-fail/a-bench-report-minted-outside-the-host.rs:13:27
+   |
+13 |       let _ = BenchReading::recorded;
+   |                             ^^^^^^^^ private associated function
+   |
+  ::: src/bench/type_guard.rs
+   |
+   | /     pub(in crate::bench) fn recorded(
+   | |         row: &BenchRow,
+   | |         target: TargetBinding,
+   | |         preflight: TrialReport,
+   | |         outcome: BenchOutcome,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0639]: cannot create non-exhaustive variant using struct expression
+  --> tests/compile_refusals/compile-fail/a-bench-report-minted-outside-the-host.rs:15:13
+   |
+15 |       let _ = BenchOutcome::Qualified {
+   |  _____________^
+16 | |         measured: work_curve(),
+17 | |         planted_worse: work_curve(),
+18 | |         judgment: work_judgment(),
+19 | |         secondary: secondary_observation(),
+20 | |     };
+   | |_____^

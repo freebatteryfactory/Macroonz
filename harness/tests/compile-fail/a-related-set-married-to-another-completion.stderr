@@ -1,9 +1,0 @@
-error[E0451]: fields `carried` and `completion` of struct `RelatedSet` are private
-  --> tests/compile-fail/a-related-set-married-to-another-completion.rs:33:9
-   |
-32 |     let _crossed = RelatedSet {
-   |                    ---------- in this type
-33 |         carried: complete.carried().clone(),
-   |         ^^^^^^^ private field
-34 |         completion: truncated.completion(),
-   |         ^^^^^^^^^^ private field

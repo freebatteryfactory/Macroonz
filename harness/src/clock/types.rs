@@ -1,70 +1,57 @@
-//! `TestPak`'s caller clock, admitted tick, one-use measurement start, and wall-reading outcomes.
+//! The declared clock, the readings it produces, and why a reading can fail.
 
-use super::read::{ClockSource, MeasurementOpening};
+use super::read::{Opening, Source};
 
 #[path = "type_guard.rs"]
 mod guard;
 
-/// The caller-declared source for `TestPak` wall measurements.
-///
-/// # Authority
-///
-/// The source supplies nanosecond readings on its own origin. `TestPak` reads only differences and never turns a clock reading into semantic identity or a verdict.
-///
-/// # Construction
-///
-/// [`HarnessClock::reading`] declares an infallible function pointer, [`HarnessClock::fallible`] declares one with a typed refusal, and [`HarnessClock::unavailable`] declares that no measurement is offered.
+/// The wall-measurement source a caller declares for one run.
 #[derive(Debug, Clone, Copy)]
 pub struct HarnessClock {
-    pub(in crate::clock) source: ClockSource,
+    pub(in crate::clock) source: Source,
 }
 
-/// One opening posture that can be finished exactly once against its retained clock.
-///
-/// The value is opaque and its finish operation consumes it, so a caller cannot replace the clock, reverse the tick order, or close one measurement twice.
+/// An open measurement, finishable exactly once and only against the source it opened on.
 #[must_use = "a measurement start must be finished to produce its reading"]
 #[derive(Debug)]
 pub struct MeasurementStart {
-    pub(in crate::clock) opening: MeasurementOpening,
+    pub(in crate::clock) opening: Opening,
 }
 
-/// One admitted nanosecond reading on a caller clock's own origin.
+/// One admitted reading in nanoseconds, on the caller source's own origin.
 ///
-/// A tick is not a duration. `TestPak` exposes it where a regression must name both readings, while the checked elapsed operation remains behind [`MeasurementStart::finish`](crate::clock::MeasurementStart::finish).
+/// A tick is not a duration.
+/// Only [`MeasurementStart::finish`](crate::clock::MeasurementStart::finish) turns two of them into one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct MeasurementTick(u64);
 
 /// One observed elapsed duration in nanoseconds.
 ///
-/// A zero value is a real observation and is never used to spell unavailable measurement.
+/// Zero is a real observation and never spells unavailable measurement.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct RecordedDuration(u64);
 
-/// A typed refusal returned by a fallible caller clock read.
-///
-/// The clock subsystem records whether the refusal occurred while opening or closing the measurement.
-#[must_use = "a refusal is the caller clock's stated read failure"]
+/// A fallible caller source's stated read failure.
+#[must_use = "a refusal is the caller source's stated read failure"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ClockReadRefusal {
-    /// The caller clock did not produce a reading.
+    /// The source produced no reading.
     Refused,
 }
 
-/// Why an offered wall measurement did not produce a duration.
-///
-/// Source refusal and ordinary Rust unwind retain their opening or closing stage. A regression retains both admitted ticks instead of collapsing their difference to zero.
-#[must_use = "a failure is why an offered wall measurement did not complete"]
+/// Why an offered measurement produced no duration.
+#[must_use = "a failure is why an offered measurement produced no duration"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ClockFailure {
-    /// The first source read returned a typed refusal.
+    /// The opening read returned a typed refusal.
     OpeningRefused,
-    /// The second source read returned a typed refusal.
+    /// The closing read returned a typed refusal.
     ClosingRefused,
-    /// The first source read unwound through the ordinary Rust unwind mechanism.
+    /// The opening read unwound.
     OpeningUnwound,
-    /// The second source read unwound through the ordinary Rust unwind mechanism.
+    /// The closing read unwound.
     ClosingUnwound,
-    /// The closing tick preceded the opening tick on the same caller source.
+    /// The closing tick preceded the opening tick on the same source.
     Regressed {
         /// The admitted opening tick.
         opened: MeasurementTick,
@@ -73,16 +60,14 @@ pub enum ClockFailure {
     },
 }
 
-/// The complete wall-measurement reading retained by `TestPak` reports.
-///
-/// `Observed(RecordedDuration::recorded(0))` is distinct from [`MeasurementReading::Unavailable`]. A failed reading preserves why no duration exists rather than inventing one.
+/// The complete wall reading one run leaves in its report.
 #[must_use = "a measurement reading is a report fact"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MeasurementReading {
-    /// Both ticks were admitted in order and produced this checked duration.
+    /// Both ticks were admitted in order, and this is their checked difference.
     Observed(RecordedDuration),
-    /// The caller declared that this run offered no wall measurement.
+    /// The caller declared no clock for this run.
     Unavailable,
-    /// An offered measurement could not be completed.
+    /// A clock was offered and the measurement did not complete.
     Failed(ClockFailure),
 }

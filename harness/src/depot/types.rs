@@ -1,52 +1,26 @@
-//! The bank's declarations: the shape of one mutation-operator-family row, and
-//! the shape of one anti-substitution swap-pair row.
-//!
-//! Declarations only. The entries themselves are the family files beside this
-//! one, and what the bank is for is this home's README.
+//! Declarations only: the shape of one mutation-operator family row, and the shape of one anti-substitution pair.
 
 #[path = "type_guard.rs"]
 mod guard;
 
-/// One family of mutation operators the proof-pressure engine draws from.
-///
-/// A row states which family it is and what one of that family's operators
-/// damages in a subject. It is a fact and not a mutation: nothing here selects,
-/// applies, or scores anything — planning and application are
-/// [`crate::muterprater`]'s, and reading this bank never runs a lane.
+/// One family of mutation operators, and what an operator of it damages in a subject.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct OperatorFamily {
-    /// The family's stable slug — its identity to anything naming a family from
-    /// outside the file that declares it.
-    ///
-    /// Declared rather than taken from the Rust spelling beside it, so renaming
-    /// the constant moves the spelling and moves nothing named under the slug.
+    /// The family's stable slug, declared rather than read off the Rust spelling beside it.
     slug: &'static str,
-    /// What one operator of this family damages in the subject it is applied
-    /// to.
+    /// What one operator of this family damages.
     attacks: &'static str,
 }
 
-/// One anti-substitution swap pair: the type a position requires, the type that
-/// must never be accepted in its place, and the boundary the two stand across.
+/// One directional pair: the type a position requires, the type that must never be accepted in its place, and the boundary the two stand across.
 ///
-/// A row is material, not a case. A future anti-substitution consumer may read a
-/// row and emit a compile-refusal case that offers the substitute where the
-/// seat's type is required. No current generator consumes these rows.
-///
-/// # Ordering
-///
-/// The pair is directional and the two seats never trade places: the row says
-/// that offering [`substitute`](Self::substitute) where [`seat`](Self::seat) is
-/// required does not typecheck, and says nothing at all about the other
-/// direction — two role-distinct types may be separated for one reason in one
-/// direction and for another reason, or none, in the other.
+/// The seats never trade places — a row says that offering [`substitute`](Self::substitute) where [`seat`](Self::seat) is required does not typecheck, and says nothing at all about the other direction.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SwapPair {
     /// The type the position under test requires.
     pub seat: &'static str,
     /// The type that must never be accepted where the seat's type is required.
     pub substitute: &'static str,
-    /// The separation the two types stand on opposite sides of, named as the
-    /// instrument that owns them names it.
+    /// The separation the two stand on opposite sides of, named as the home that owns them names it.
     pub boundary: &'static str,
 }

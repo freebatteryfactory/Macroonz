@@ -1,11 +1,13 @@
-//! Smart construction and readings for human-admitted replay custody.
+//! Construction and readings for an admitted replay entry and the location it was stored at.
 
 use super::{ReplayCapsuleEntry, ReplayDepotRefusal, StoredReplayEntryRef};
 use crate::descriptor::{ProposalId, ReplayRef};
 use crate::report::ReplayCapsule;
 
 impl ReplayCapsuleEntry {
-    /// Assemble the exact entry one replay-bearing human admission stores.
+    /// Assemble the exact entry one replay-bearing admission stores.
+    ///
+    /// The reference is minted here from the capsule that was handed in, which is the whole reason the two cannot disagree.
     #[must_use]
     pub(crate) fn admitted(proposal: ProposalId, capsule: ReplayCapsule) -> Self {
         let replay = ReplayRef::over(capsule.identity());
@@ -16,7 +18,7 @@ impl ReplayCapsuleEntry {
         }
     }
 
-    /// The proposal whose human admission authored this entry.
+    /// The proposal whose admission authored this entry.
     #[must_use]
     pub const fn proposal(&self) -> ProposalId {
         self.proposal

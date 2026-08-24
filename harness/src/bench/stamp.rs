@@ -1,8 +1,9 @@
-//! Thin transcription from one authored table spelling into the public benchmark constructors.
+//! One authored table spelling, transcribed into the same constructors a hand-written caller uses.
 
-/// Declare one benchmark-table function through the same constructors a handwritten caller uses.
+/// Declare a benchmark-table function from a table written as a block.
 ///
-/// The function derives its denominator from the bindings supplied here and returns [`BenchStampRefusal`](crate::bench::BenchStampRefusal) without flattening any constructor cause. The stamp owns no row grammar, work judgment, host fact, identity algorithm, or reporter.
+/// The function returns [`BenchStampRefusal`](crate::bench::BenchStampRefusal), keeping whichever constructor refused.
+/// The stamp itself owns no row grammar, no judgment, no host fact, no identity, and no reporter.
 #[macro_export]
 macro_rules! bench_table {
     (

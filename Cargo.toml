@@ -1,8 +1,6 @@
 [workspace]
 resolver = "3"
 members = [
-    "contracts",
-    "consumer",
     "harness",
     "macros/compiler",
     "macros/proc",
@@ -11,40 +9,22 @@ members = [
 [workspace.package]
 version = "0.0.0"
 edition = "2024"
-# The floor is the pin: 1.98.0 is the version every build actually stands on.
 rust-version = "1.98.0"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/freebatteryfactory/ThreadPak"
+repository = "https://github.com/freebatteryfactory/Macroonz"
 
-# Every third-party version and feature cut is decided once, here, exact. WHY a
-# member reaches for a mechanism stays at that member, beside the reading it
-# buys. `deny.toml` settles what the resolved graph actually enables.
 [workspace.dependencies]
-# Structure-aware input generation: the harness library's shared generation
-# vocabulary, the trait alone.
 arbitrary = { version = "=1.4.2", default-features = false }
-# The Rust decoder for the judge's structural lane: `parsing` + `full`, nothing else.
 syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }
-# The digest. Exact because one changed output byte silently renames every
-# identity. No std, no rayon, no serde: `Hasher` and `derive_key` are the surface.
 blake3 = { version = "=1.8.6", default-features = false }
-# The compile-refusal harness. Exact: fixtures compare diagnostics byte for byte.
 trybuild = "=1.0.120"
 
 [profile.release]
-# Release arithmetic traps instead of wrapping; defense in depth behind the
-# source-level arithmetic lints, never permission for bare arithmetic.
 overflow-checks = true
 
 [profile.bench]
-# The same trap, pre-declared so the first bench target cannot quietly measure
-# wrapping arithmetic and call the number a measurement.
 overflow-checks = true
 
-# The lint wall, declared once and inherited by every member; no member weakens
-# it. `#[allow]` is refused; `#[expect]` is the one hatch — exact lint, mandatory
-# reason, narrowest item. An unfulfilled expectation is itself a denied warning,
-# so an expectation that outlives its cause fails the build.
 [workspace.lints.rust]
 warnings = { level = "deny", priority = -1 }
 unsafe_code = "forbid"

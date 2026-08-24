@@ -1,11 +1,7 @@
-# What the resolved dependency graph is allowed to be. Runs on `cargo deny check`.
-
 [graph]
-# Dev-dependencies are dependencies: the rules see the whole graph.
 exclude-dev = false
 
 [licenses]
-# The workspace ships MIT OR Apache-2.0; anything that cannot travel under both refuses.
 allow = [
     "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
@@ -17,35 +13,26 @@ allow = [
 ]
 
 [bans]
-# Two versions of one crate is two definitions of one type.
 multiple-versions = "deny"
-# A `*` requirement is a decision deferred to whoever resolves next.
 wildcards = "deny"
-# Inside one checkout, the path IS the resolution.
 allow-wildcard-paths = true
 
-# The decoder Rust is read through: any feature movement, in either direction,
-# from any source, refuses.
 [[bans.features]]
 crate = "syn"
 allow = ["clone-impls", "derive", "full", "parsing", "printing", "proc-macro"]
 exact = true
 
-# The digest: the empty set is the claim — no crate in the graph may switch
-# anything on in the hash implementation.
 [[bans.features]]
 crate = "blake3"
 allow = []
 exact = true
 
-# The generation vocabulary: the trait, and nothing else.
 [[bans.features]]
 crate = "arbitrary"
 allow = []
 exact = true
 
 [sources]
-# One registry, no git dependencies.
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]

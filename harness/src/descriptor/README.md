@@ -1,139 +1,95 @@
-# descriptor — the typed vocabulary every producer writes into
+# descriptor — how a test is written down
 
-A descriptor is one row of the harness's denominator:
+A test nobody wrote down is a test nobody can count.
 
-a typed statement of one test — the claim it serves, the roles that classify it, the subject it exercises, the check that judges it, and where it came from.
+This home is the vocabulary a test is written down in.
+One row states what it claims, what it exercises, what judges it, where its inputs come from, and where the row itself came from — and nothing else.
+The runner enumerates rows into trials and coverage is read over the same rows, so a test with no row is a value nobody can build.
 
-A claim names behavior, never structure:
+## What a row says
 
-it is stated in inputs, outputs, and laws, so a lawful refactor of the subject cannot break it.
+| Field | What it names |
+| --- | --- |
+| claim | the behavior the test exists to hold |
+| execution suite | the one aggregate seat the row runs under |
+| roles and tags | open, multi-valued classification |
+| subject route | what is under test |
+| check | which property suite or oracle lane renders the verdict |
+| population | where the inputs come from |
+| origin | who wrote the row |
 
-A test that would break under a refactor that preserves meaning is coupled to an owner, not to a law — and owner-coupled tests are how structure ossifies and intent flattens. Where bytes are declared canonical, the bytes are part of the meaning:
+A claim names behavior, never structure.
+Stated in inputs, outputs, and laws, it cannot be broken by a refactor that preserves meaning.
+Where bytes are declared canonical the bytes are part of the meaning, because changing them renames identities and is no refactor at all.
 
-a check anchored on a canonical encoding is coupled to a declared contract, not to an owner, because changing those bytes renames identities and is no refactor at all.
+A role is a label and never an execution roster: nothing selects a mechanism by reading one.
+The vocabulary this home shipped with — anomaly, boundary, malformed-input, regression, metamorphic, fault, crash-recovery, mutation, smoke, end-to-end, performance — is convention.
+A new role is a label, a new mechanism is a law change, and a new population inside a role is a Tuesday.
 
-The runner enumerates descriptor tables into trials; coverage is computed over the same tables;
+## Where a row comes from
 
-a test that exists without a row is a value nobody can build.
+Five origins, each carrying exactly what it earns.
 
-testpak owns these types. Producers — the generation services, a hand, an admitted proposal — emit data conforming to this vocabulary; no producer's own types are imported, so no producer's shape can quietly become the interface.
+- **Hand-written** earns nothing beyond having been written, so naming the arm is the whole of it.
+- **Generated** names the door and the projection a producer emitted through.
+- **Candidate** names the opening a synthesis cut the row for, and is lawful in a staged view only.
+- **Admitted on a replay-bearing ground** cites the proposal, the ground, the destination suite, and the capsule entry that admission authored.
+- **Admitted on a discharge ground** cites the proposal and the destination, and has no replay seat at all.
 
-**Admitting what a producer constructed is itself a lane.**
+Each arm carries its own payload type with one lawful constructor, so an incoherent origin is unwritable rather than refused.
 
-Execution is answered by the check reference and the subject route — sealed by being this crate's types, so a new mechanism is structurally a law change.
+## Row, attachment, table
 
-A role is honest, open classification: namespaced, multi-valued, never an execution roster. The initial role vocabulary: anomaly, boundary, malformed-input, regression, metamorphic, fault, crash-recovery, mutation, smoke, end-to-end, performance. A new role is a label; a new mechanism is a law change; a new population inside a role is a Tuesday.
+A row is pure data and cannot execute.
+It names its check; the callable arrives separately on an executable attachment, so no hidden row-to-function registry can exist.
+A `Binding` marries the two and verifies that both name the same subject and the same check.
 
-The fields of a row, closed:
+A row commits to its canonical bytes as it is born.
+The encoder runs once, at the constructor, so every identity derived later is a reading over bytes that already exist.
 
-- the claim served (a typed identity);
+Two table names and one relationship.
+An authored table owns authored bindings and refuses the candidate arm outright; a staged view borrows a complete authored parent and overlays candidates on it.
+Both refuse two rows stating one trial, so a denominator can never read two where one thing is measured.
+One authored world, ever.
 
-- the execution suite — exactly one, the aggregate seat the row runs under by default;
+## The wall
 
-- roles and tags — open, multi-valued classification;
+A producer writes letters to this address; it does not own the mailbox.
 
-- the subject route — a typed selection of what is under test;
+Three crossings under one law: the vocabulary is owned here, producer output targets public constructors, both sides carry the same schema pin, and this side decides admission.
 
-- the check reference — which property suite or oracle lane judges the subject (the row references its check; only a Binding carries a callable);
+1. Generated support becomes bindings and tables.
+2. Producer mutation discovery arrives in the mutation-discovery vocabulary, before this crate's own admission.
+3. Benchmark rows arrive in the bench vocabulary.
 
-- the population — which generated population supplies the row's inputs;
+One root schema declaration holds all three field rosters, so one pin governs all three crossings.
+Its canonical bytes are the preimage of the generated-support schema identity — never hand-bumped, never a hash of source text — and a change to any member moves the identity.
 
-- and the origin, whose arms carry exactly what they earn: hand-written | generated, with producer facts | candidate, with synthesis facts — lawful only in a staged view, never authored | admitted-replay, citing its proposal's content identity, the ground it was admitted on, the destination suite, and the replay reference into the depot capsule the admission act authored | admitted-discharge, citing its proposal's content identity and the destination suite, with no replay seat at all.
+## The gate
 
-The schema identity is not a row field: it rides the generated Binding and Table provenance, so hand-written rows never touch it and row identity never churns when a producer-facing schema changes.
+`generated_support!` is the door.
+It matches the producer's copy of the published identity against this crate's copy as tokens, before either side reaches type checking, and releases both seats of a delivery or neither.
 
-Every arm that earns a payload carries its OWN type for it, with one lawful constructor, and no two arms share a shape — which is what makes an incoherent origin unwritable rather than refused: the replay-bearing arm takes only the grounds that author a capsule, and the discharge arm takes no ground at all, because a discharge has exactly one and a forced value is never asked for.
-
-The hand-written arm earns nothing beyond having been written, so naming the arm is the whole of it. Each admitted payload still reads back at summary width, so an admission states its ground in one vocabulary wherever it is read.
-
-A row commits to its CANONICAL BYTES as it is born: the encoder runs once, at the constructor, and the row carries the result for its whole life. The revision identity a report derives is therefore a reading over bytes that already exist, nothing re-encodes a row per run, and the one refusal a row constructor has left is the encoding that could not be written.
-
-A Row is pure data and cannot execute. The EXECUTABLE ATTACHMENT carries the typed subject reference, the typed check reference, one posture-bearing revision binding for each, and the callable;
-
-`Binding` pairs one Row with one attachment, and its constructor structurally verifies that the row's references match the attachment's.
-
-Each revision binding carries its honest posture with a stated claim ceiling: derived (generated from an owned declaration);
-
-declared (a hand author's explicit commitment — the ceiling is the author's word); untracked (no stable commitment — lawful).
-
-What a posture means for the cache and for replay — including the meet law for the attachment's two bindings — is the report instrument's one statement.
-
-The table constructor refuses two rows with one trial identity — a duplicated trial cannot exist in a constructed table, so a denominator can never read two where one thing is measured. Three table names, one declared relationship:
-
-an AUTHORED TABLE owns authored bindings and its constructor refuses the candidate origin arm outright; a STAGED VIEW borrows its complete authored parent and overlays candidate bindings, enforcing trial uniqueness across parent and overlay; both present the one sealed read surface the runner takes. One authored world, ever.
-
-## The seam
-
-The generation services emit against this vocabulary; this instrument decides admission. The producer writes letters to an address;
-
-it does not own the mailbox.
-
-The spines meet at ONE WALL with exactly three named crossing contracts, every crossing under the same law — public vocabulary owned here, producer output targets public constructors, the two-sided schema pin, this side decides admission:
-
-(1) generated support → the construction contract → Binding and Table; (2) producer mutation discovery → the mutation-discovery vocabulary, before TestPak-owned admission; (3) benchmark rows → the bench target's row vocabulary. One GENERATED SUPPORT SCHEMA declaration — the root, whose members are the descriptor, mutation-discovery, and bench schemas — covers every producer-facing vocabulary, so one pin governs all three crossings.
-
-The object that physically crosses is the GENERATED SUPPORT SHELL:
-
-a deferred token carrier the door emits at the declaration site (a macro invoked in a test target sees only its own invocation tokens, so the declaration's structure must travel as tokens), holding its cargo inert — constructor-calling expressions for the row vocabularies and the producer discovery, production, and evaluation callables for the mutation crossing — naming no testpak type until expansion and executing nothing in the normal build.
-
-The consumer's consumption targets invoke it:
-
-The trial/deferred form lands row expressions and evaluation cargo in a test target; the bench/reporter form lands benchmark rows and reporter cargo in a bench target. Nothing crosses unnamed.
-
-The shell's test-target body is ONE INVOCATION OF THE PIN, carrying two named seats: the trial payload and the deferred cargo.
-
-Both crossings that land in a test target are therefore inside the gate rather than beside it — the row constructors ride the trials seat, the mutation crossing's production and evaluation callables ride the deferred seat, and a mismatched pin withholds them together in one arm.
-
-That is the pin governing the live crossings PHYSICALLY: every schema-sensitive token a delivery carries into a test target is inside the door, so one refusal reaches all of it, and one match releases all of it.
-
-The trials seat may be empty and an empty one is a lawful delivery — a shell whose whole cargo was deferred stamps no table, and vacuity is judged at the selection, where a run can see it.
-
-The bench target's form carries one nonempty benchmark-table payload and one opaque reporter seat through the same pin arm. The handwritten receiver exercises that form directly; a producer has crossed only when its emitted shell uses the form, because schema membership alone does not land a row.
-
-The root schema declaration's canonical bytes are the PREIMAGE of the generated-support schema identity, which is derived from them — never hand-bumped, never a hash of source text, and bytes are never "the id"; a change to ANY member moves the id, so the one pin governs all three crossings mechanically.
-
-The producer holds its own independently held expectation of that identity — two values in two crates, whose independence is across upgrade time. Both checked-in sides are rewritten together, in one git-visible human-committed change: derive the current value through the schema's own `published()` and `identity()` roads, write it into both literals, commit the pair. There is no command; the three steps are the whole of the act, and the first pair's hand-authored declared-bootstrap posture is spent and has no road back.
-
-What the pin's comparison detects is pair-coherence failure: a version-mixed consumer, a partial rewrite, or a hand edit to one side. Inside one workspace, where both sides move together, the pin's live protection is the last two only — that limit is stated, not hidden.
-
-What it cannot detect, stated: a jointly stale pair — the schema changed and neither literal was rewritten, so the two old values still agree and the gate opens. Pair currency is the currency lane's job: `tests/published_schema_currency.rs` derives the current schema's id and requires both published spellings to equal it.
-
-That lane owns currency and nothing more. Structural authorship lives above it: the descriptor schema fields and row traversal project from one local declaration, origin spellings and slots project from one origin roster, and root membership, publication assembly, traversal order, and canonical tags project from one focused three-member roster. Public payload types and their exhaustive encoders remain ordinary Rust because they own distinct semantics rather than copied populations.
-
-The disposal routes, exactly: pair incoherence dies at the gate; joint staleness dies in the currency lane; a changed constructor shape dies at the compiler as ordinary type errors before any trial runs.
-
-Each drift named above dies at its stated seat; only the gate's own claim is narrow.
-
-The pre-typecheck gate makes the loud break a mechanism, not a hope: this instrument owns a local `generated_support!` gate that token-matches the producer's traveling expectation against the checked-in published roster BEFORE releasing either seat into type checking — a mismatch expands to one owned diagnostic, and neither the constructors nor the deferred cargo ever reaches the compiler.
-
-The gate reads the deferred seat's tokens at no point: it transports them or it withholds them, because a door that parsed the cargo would be a second authority over a vocabulary it does not own.
-
-Admission's first check is producer-expected against the published harness id — one precise loud break when the two published ids disagree, never a cascade of field errors on that road;
-
-a jointly stale pair sits outside this comparison's claim.
-
-The pin crosses as a bracketed roster of thirty-two DECIMAL byte values, and the base is what makes the comparison sound rather than merely conventional:
-
-an arm matches TOKENS, a byte string has many spellings of one value, and the producer's side is spelled by the compiler's own literal writer rather than by any declaration.
-
+The pin crosses as thirty-two decimal byte values, and the base is what makes the comparison sound rather than merely conventional.
+A macro arm matches tokens, a byte string has many spellings of one value, and the producer's side is written by the compiler's own literal writer.
 An unsuffixed integer has exactly one rendering, so the two sides are one token by construction.
 
-The first producer to reach this door rendered a byte string and was refused there, over a value both sides agreed on — the gate working, and the reason the form is what it is. Generated expressions call public constructors, never struct literals.
+The gate never reads the deferred seat.
+It transports the cargo or it withholds it, because a door that parsed the cargo would be a second authority over a vocabulary it does not own.
 
-A row and its attachment are built over ONE parsed subject and ONE parsed check, so the binding constructor's pairing check compares two consumers of one value rather than two separate parses of one spelling.
+What the gate catches is pair incoherence: a version-mixed consumer, a partial rewrite, a hand edit to one side.
+What it cannot catch is a jointly stale pair, where the declaration moved and neither literal was rewritten — two old values agree just as loudly.
+That one belongs to `harness/tests/published_schema_currency/`, which derives the identity from the current declaration and requires both published spellings to equal it.
+The refusing arm itself tells whoever meets it how the pin is rewritten.
 
-The rename twins hold:
+## The stamp
 
-a consumer may rename both crates, and generated code honors the name it is handed — the trial crossing spells the harness alone, because its callables arrive as expressions from the target that owns them, and the bench crossing spells both.
+`trial_table!` turns one declaration into the authored world, one ordinary test per execution suite, and one ignored named lens per row.
+The lens is what makes every row clickable in an editor without being paid for twice in an ordinary run.
+Both spellings call the same engine, so a verdict cannot differ between them.
 
-The stamp battery lives here with the vocabulary it reads: `trial_table!` expands rows into the table, the named lenses, and one aggregate seat per execution suite — invoked from `generated_support!`'s trials seat on the generated road, and directly by hand authors; `ensure_*` sugar lives with the property combinators it wraps.
+## What this home does not claim
 
-One refusal family closes that road:
-
-a declared row expression builds its own parts through the public constructors and writes the language's own `?` on each, so every construction that can refuse — a name, a classification roster, a row, the published root schema declaration, its derived identity, the binding itself — has exactly one declared discharge into the stamp's family, stated once and never a variant a producer invented inside a vocabulary it does not own. A macro body is tokens: `$crate` names the crate that defined the macro, expansion occurs at the invocation site, and this home gains no dependency edge from either stamp.
-
-Two spellings read these tables — the runner enumerates them at run time, and the stamp expands them into named test functions, which is also what gives every row an editor test lens.
-
-Both roads call the same engine, so verdict drift between them is unrepresentable by construction; the spellings-parity trial exercises what the roads do NOT share — selection, aggregation, and suite wiring — and names `run_one` as its shared substrate, because agreement across a shared substrate is silence about that substrate.
-
-The tables are the single source of truth for both.
+It imports no producer's types, so no producer's shape can quietly become the interface.
+It says nothing about what a trial concluded — a table that was never built ran nothing, and a verdict belongs to the record home.
+It reads no host fact: a target and a clock are declared at the invocation, because a cache key with a guessed toolchain in it is a lie with a digest.

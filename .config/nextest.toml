@@ -1,10 +1,6 @@
-# Optional fast harness: `cargo nextest run` — one process per test.
 nextest-version = "0.9.132"
 
 [profile.default]
-# One run reports every failure instead of stopping at the first.
 fail-fast = false
-# Report a slow test; never kill one.
 slow-timeout = { period = "60s" }
-# Print a failure where it happened AND again at the end of the log.
 failure-output = "immediate-final"

@@ -1,22 +1,25 @@
-//! Smart constructors and readers for `TestPak`'s wall-measurement vocabulary.
+//! Declaring a clock, admitting a tick, and reading a finished measurement.
 
-use super::{HarnessClock, MeasurementReading, MeasurementTick, RecordedDuration};
-use crate::clock::read::{AvailableClockSource, ClockSource};
+use super::{
+    ClockFailure, ClockReadRefusal, HarnessClock, MeasurementReading, MeasurementTick,
+    RecordedDuration,
+};
+use crate::clock::read::{Reader, Source};
 
 impl HarnessClock {
-    /// Declare an infallible caller function as the wall-measurement source.
+    /// Declare an infallible caller function as the source.
     #[must_use]
     pub const fn reading(read: fn() -> u64) -> Self {
         Self {
-            source: ClockSource::Available(AvailableClockSource::Infallible(read)),
+            source: Source::Available(Reader::Infallible(read)),
         }
     }
 
-    /// Declare a fallible caller function as the wall-measurement source.
+    /// Declare a caller function that may refuse a read instead of unwinding.
     #[must_use]
-    pub const fn fallible(read: fn() -> Result<u64, super::ClockReadRefusal>) -> Self {
+    pub const fn fallible(read: fn() -> Result<u64, ClockReadRefusal>) -> Self {
         Self {
-            source: ClockSource::Available(AvailableClockSource::Fallible(read)),
+            source: Source::Available(Reader::Fallible(read)),
         }
     }
 
@@ -24,19 +27,18 @@ impl HarnessClock {
     #[must_use]
     pub const fn unavailable() -> Self {
         Self {
-            source: ClockSource::Unavailable,
+            source: Source::Unavailable,
         }
     }
 }
 
 impl MeasurementTick {
-    /// Admit one caller-source reading as a tick.
-    #[must_use]
+    /// Admit one source reading as a tick.
     pub(in crate::clock) const fn admitted(nanoseconds: u64) -> Self {
         Self(nanoseconds)
     }
 
-    /// The caller-source reading in nanoseconds on its own origin.
+    /// The reading in nanoseconds, on the caller source's own origin.
     #[must_use]
     pub const fn nanoseconds(self) -> u64 {
         self.0
@@ -58,7 +60,7 @@ impl RecordedDuration {
 }
 
 impl MeasurementReading {
-    /// The observed duration, where both source reads completed in order.
+    /// The duration, where both source reads completed in order.
     #[must_use]
     pub const fn duration(self) -> Option<RecordedDuration> {
         match self {
@@ -67,9 +69,9 @@ impl MeasurementReading {
         }
     }
 
-    /// The typed failure, where an offered measurement did not complete.
+    /// The failure, where an offered measurement did not complete.
     #[must_use]
-    pub const fn failure(self) -> Option<super::ClockFailure> {
+    pub const fn failure(self) -> Option<ClockFailure> {
         match self {
             Self::Failed(failure) => Some(failure),
             Self::Observed(_) | Self::Unavailable => None,

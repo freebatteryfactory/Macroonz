@@ -1,43 +1,37 @@
-//! The proposal road: survivor to candidate, candidate to demonstrated kill,
-//! opening to routed obligation, and the exit where a human admits.
+//! The proposal road: survivor to candidate, candidate to demonstrated kill, opening to routed obligation, and the exit where a human admits.
 //!
 //! # Candidate proving is in memory
 //!
-//! A candidate binding stages in the staged view and executes against it through
-//! the one report engine. No scratch directory exists anywhere on this road, and
-//! [`ProposalSink`](super::ProposalSink) is the only storage seam in this crate:
-//! a claimed mutant kill is DEMONSTRATED on the evaluation surface with that
-//! mutant active, never asserted, and only then does the lane propose.
+//! A candidate binding stages in the staged view and executes against it through the one report engine.
+//! No scratch directory exists anywhere on this road, and [`ProposalSink`](super::ProposalSink) is the only storage seam in the crate.
+//! A claimed mutant kill is demonstrated on the evaluation surface with that mutant active, never asserted, and only then does the lane propose.
 //!
 //! # Synthesis is scoped to what is already authored
 //!
-//! Descriptors, never programs. A candidate references a check the harness
-//! already has an executable attachment for; where the explanation names a check
-//! nobody has written one for, the opening is a [`CheckGap`] finding and no
-//! candidate is cut. That is what keeps candidates constructible in memory and
-//! keeps a proposal from ever serializing executable code.
+//! Descriptors, never programs.
+//! A candidate references a check the harness already has an executable attachment for; where the explanation names one nobody wrote, the opening is a [`CheckGap`] finding and no candidate is cut.
+//! That is what keeps candidates constructible in memory and keeps a proposal from ever serializing executable code.
 //!
 //! # Where proof is missing
 //!
-//! Claim coverage over reports, never a structural scan. [`openings`] reads a
-//! coverage value against the claims a declaration states are owed, and the
-//! lane an opening is routed to follows from the SHAPE of proof it asks for.
+//! Claim coverage over reports, never a structural scan.
+//! [`openings`] reads a coverage value against the claims a declaration states are owed, and [`route`] picks the lane from the shape of proof each opening asks for.
 //!
 //! # The exit
 //!
-//! A human explicitly invokes one of this module's admission operations after a
-//! caller-owned sink has taken durable custody of the proposal. Replay-bearing
-//! proposals additionally cross the caller-owned replay depot before the
-//! admitted row is returned. Runtime evidence never invokes either operation or
-//! writes authored specification by itself.
+//! A human explicitly invokes one of this module's admission operations, after a caller-owned sink has taken durable custody of the proposal.
+//! Replay-bearing proposals additionally cross the caller-owned replay depot before the admitted row is returned.
+//! Runtime evidence never invokes either operation and never writes authored specification by itself.
 
 use super::types::{
-    CandidateSketch, CheckGap, Demonstration, DischargeAdmissionReceipt, FailureComparison,
+    CandidateSketch, CheckGap, ClaimPinnedGround, ClaimPinnedProposal, Demonstration,
+    DischargeAdmissionReceipt, DischargeEvidence, DischargeProposalRefusal, FailureComparison,
     HumanAdmissionRefusal, InferredObligation, IntendedRejection, KillProposalRefusal,
     MutantKilledGround, MutantKilledProposal, MutationOutcome, MutationReport, MutationTarget,
-    ObligationDischargedProposal, ObligationLane, OwedDeclaration, ProofDelta, ProofDeltaRefusal,
-    ProofRefusal, ProposalDestination, ProposalDocument, ReplayAdmissionReceipt,
-    ReplayBearingProposal, StoredProposalRef, SurvivorExplanation, SynthesisRefusal,
+    ObligationComparison, ObligationDischargedGround, ObligationDischargedProposal, ObligationLane,
+    OwedClaim, OwedDeclaration, ProofDelta, ProofDeltaRefusal, ProofRefusal, ProposalDestination,
+    ProposalDocument, ProposalRefusal, ReplayAdmissionReceipt, ReplayBearingProposal,
+    StoredProposalRef, SurvivorExplanation, SynthesisRefusal,
 };
 use super::wrap::mutant_scoped;
 use crate::depot::capsules::{ReplayCapsuleEntry, ReplayDepotSink};
@@ -45,25 +39,17 @@ use crate::descriptor::{
     CheckRef, ClaimRef, DischargeAdmission, Origin, ReplayAdmission, Row, StagedTableView,
     SynthesisFacts,
 };
-use crate::report::{ClaimCoverage, Fingerprint, ReplayCapsule};
+use crate::report::{ClaimCoverage, Fingerprint, ReplayCapsule, TrialId};
 use crate::runner::{Invocation, SelectionPlan, TrialBinding, TrialTable, run_all, trial_identity};
 use std::collections::BTreeSet;
 
 /// Synthesize the candidate row one survivor explanation asks for.
 ///
-/// # Authority
-///
-/// Scoped to already-authored executable attachments. The roster the caller
-/// hands in is the set of checks the harness has a callable for, and a check
-/// outside it produces the [`CheckGap`] finding rather than a candidate
-/// referencing a callable nobody wrote.
+/// The roster the caller hands in is the set of checks the harness has a callable for, and a check outside it produces the [`CheckGap`] finding rather than a candidate citing a callable nobody wrote.
 ///
 /// # Errors
 ///
-/// Refuses, in a declared dependent order: a closing check with no authored
-/// attachment, a survivor whose target names no mutation point — the descriptor
-/// vocabulary's candidate arm carries a point or a proof gap and nothing else —
-/// and a row the descriptor constructor refused.
+/// Refuses, in a declared dependent order: a closing check with no authored attachment, a survivor whose target names no mutation point, and a row the descriptor constructor refused.
 pub fn synthesize(
     explanation: &SurvivorExplanation,
     sketch: &CandidateSketch,
@@ -94,27 +80,13 @@ pub fn synthesize(
 
 /// Prove one candidate in memory, against the complete world it would join.
 ///
-/// # Authority
-///
-/// Three steps and no fourth: the candidate stages over the authored parent, the
-/// mutant-scoped selection joins on a shape the rows already carry, and the one
-/// report engine runs it. The demonstrated kill is READ out of the report the run
-/// wrote, so a proposal on the mutant-killed ground can only be assembled from a
-/// rejection that actually happened.
-///
-/// The world never shrinks: the staged view overlays the candidate on the
-/// complete authored table, and the report is stated over every row of it
-/// however few this selection named.
+/// Three steps and no fourth: the candidate stages over the authored parent, the mutant-scoped selection joins on a shape the rows already carry, and the one report engine runs it.
+/// The kill is read out of the report the run wrote, so a mutant-killed proposal can only be assembled from a rejection that actually happened.
+/// The world never shrinks: the staged view overlays the candidate on the complete authored table, and the report is stated over every row of it however few this selection named.
 ///
 /// # Errors
 ///
-/// Refuses a staging the descriptor vocabulary rejected, then every way the
-/// report can fail to demonstrate a kill — a report over the authored world, a
-/// census without the candidate, a candidate the selection passed over, one that
-/// did not execute, and one that executed and did not refuse. The engine call
-/// between them refuses nothing: a candidate that reached this road is a row
-/// that was built, and a built row carries the bytes its census entry is named
-/// from.
+/// Refuses a staging the descriptor vocabulary rejected, then every way a report can fail to demonstrate a kill.
 pub fn prove_candidate(
     parent: &TrialTable,
     candidate: TrialBinding,
@@ -131,20 +103,13 @@ pub fn prove_candidate(
 
 /// Offer one proposal on the mutant-killed ground.
 ///
-/// # Authority
-///
-/// The mutation report supplies the target, activation, and harness-demonstrated
-/// rejection as one closed record. The staged demonstration must name that same
-/// failure, and the capsule must stand over the demonstrating trial report and
-/// preserve its fingerprint. The not-a-duplicate evidence is computed from the
-/// joined demonstration rather than supplied.
+/// The mutation report supplies the target, the activation, and the demonstrated rejection as one closed record.
+/// The staged demonstration must name that same failure, and the capsule must stand over the demonstrating trial report and preserve its fingerprint.
+/// The not-a-duplicate evidence is computed from the joined demonstration rather than supplied.
 ///
 /// # Errors
 ///
-/// Refuses a mutation report without a harness-demonstrated rejection, a
-/// mutation and staged demonstration naming different failures, a capsule over
-/// another execution or fingerprint, a candidate whose failure the known
-/// roster already carries, then whatever the proposal constructor refuses.
+/// Refuses a mutation report without a demonstrated rejection, a mutation and demonstration naming different failures, a capsule over another execution or fingerprint, a candidate whose failure the known roster already carries, then whatever the proposal constructor refuses.
 pub fn offer_mutant_kill(
     candidate: Row,
     mutation: &MutationReport,
@@ -197,20 +162,13 @@ pub fn offer_mutant_kill(
         .map_err(KillProposalRefusal::Refused)
 }
 
-/// The proof one candidate added to the claim it pins, read from two coverage
-/// values.
+/// The proof one candidate added to the claim it pins, read from two coverage values.
 ///
-/// # Authority
-///
-/// Computed from reports and never hand-counted: the before and after are the
-/// claim's exercised counts in two coverage readings, and a claim the reading
-/// does not name counts as zero — a claim with no row in the denominator is
-/// exercised by nothing.
+/// Computed from reports and never hand-counted, and a claim the reading does not name counts as zero.
 ///
 /// # Errors
 ///
-/// Refuses a pair that does not move: a candidate that leaves the claim's
-/// exercised count where it was pins nothing.
+/// Refuses a pair that does not move, because a candidate that leaves the exercised count where it was pins nothing.
 pub fn pin_delta(
     before: &ClaimCoverage,
     after: &ClaimCoverage,
@@ -219,27 +177,62 @@ pub fn pin_delta(
     ProofDelta::between(exercised(before, claim), exercised(after, claim))
 }
 
-/// One claim's exercised count in one coverage reading, or zero where the
-/// reading does not name it.
+/// Offer one proposal on the claim-pinned ground.
+///
+/// The delta arrives from [`pin_delta`], so a pin that adds no proof was already refused where the counts were read, and the capsule is the pinning run's own reproduction account.
+///
+/// # Errors
+///
+/// Refuses a row that does not carry the candidate origin arm.
+pub fn offer_claim_pin(
+    candidate: Row,
+    claim: ClaimRef,
+    capsule: ReplayCapsule,
+    delta: ProofDelta,
+    destination: ProposalDestination,
+) -> Result<ClaimPinnedProposal, ProposalRefusal> {
+    ClaimPinnedProposal::offered(
+        candidate,
+        ClaimPinnedGround::moved(claim, capsule, delta),
+        destination,
+    )
+}
+
+/// Offer one proposal on the obligation-discharged ground.
+///
+/// The recorded roster is every trial already known to discharge the owed claim, and the comparison refuses the offer outright where it is not empty — a second discharge of one obligation proposes nothing.
+///
+/// # Errors
+///
+/// Refuses, in a declared dependent order: an owed claim that already carries a discharge, then a row that does not carry the candidate origin arm.
+pub fn offer_obligation_discharge(
+    candidate: Row,
+    owed: OwedClaim,
+    discharge: DischargeEvidence,
+    recorded: &[TrialId],
+    destination: ProposalDestination,
+) -> Result<ObligationDischargedProposal, DischargeProposalRefusal> {
+    let duplicate = ObligationComparison::compared(owed.claim(), recorded)
+        .map_err(DischargeProposalRefusal::Duplicate)?;
+    ObligationDischargedProposal::offered(
+        candidate,
+        ObligationDischargedGround::discharged(owed, discharge),
+        duplicate,
+        destination,
+    )
+    .map_err(DischargeProposalRefusal::Refused)
+}
+
+/// One claim's exercised count in one coverage reading, or zero where the reading does not name it.
 fn exercised(coverage: &ClaimCoverage, claim: ClaimRef) -> usize {
     coverage.exercise_or_zero(claim).exercised()
 }
 
 /// The openings one coverage reading states over the claims declared owed.
 ///
-/// # Authority
-///
-/// "Where is proof missing" is claim coverage over reports, never a structural
-/// scan. An owed claim the reading names and nothing exercised is an opening; an
-/// owed claim the reading does not name at all is the STRONGEST opening — no row
-/// in the denominator serves it — and it is reported with zero counts rather
-/// than dropped for being absent.
-///
-/// # Nonclaims
-///
-/// An opening states that proof is missing. It states nothing about whether the
-/// claim is wrong, whether the subject is wrong, or which lane should close it —
-/// the last is [`route`]'s reading over the shape of proof the opening asks for.
+/// An owed claim the reading names and nothing exercised is an opening.
+/// An owed claim the reading does not name at all is the strongest opening — no row in the denominator serves it — and it is reported with zero counts rather than dropped for being absent.
+/// An opening states that proof is missing, and nothing about whether the claim is wrong, whether the subject is wrong, or which lane should close it.
 #[must_use]
 pub fn openings(coverage: &ClaimCoverage, declared: &[OwedDeclaration]) -> Vec<InferredObligation> {
     declared
@@ -264,32 +257,20 @@ fn opening(coverage: &ClaimCoverage, declaration: OwedDeclaration) -> Option<Inf
 
 /// The lane one inferred obligation is routed to discharge in.
 ///
-/// # Authority
-///
-/// A planning decision, and it follows from the shape of proof the opening asks
-/// for and nothing else — the map is declared once in this home's
-/// `type_contract.rs`, so lane choice is a reading a caller can check rather
-/// than a branch inside a planner.
+/// A planning decision that follows from the shape of proof the opening asks for and nothing else, over the map declared in this home's `type_contract.rs`.
 #[must_use]
 pub fn route(obligation: &InferredObligation) -> ObligationLane {
     ObligationLane::from(obligation.shape())
 }
 
-/// Admit one replay-bearing proposal after a human has ruled on stored review material.
+/// Admit one replay-bearing proposal, after a human has ruled on stored review material.
 ///
-/// # Authority
-///
-/// Calling this function is the explicit human boundary. Rust cannot establish
-/// who called it; the operation establishes only that the supplied proposal
-/// custody names this proposal, that its typed ground carries a replay capsule,
-/// that the caller-owned depot accepted the exact derived entry, and that the
-/// returned row cites those joined facts. No runtime road invokes it implicitly.
+/// Calling this function is the explicit human boundary.
+/// Rust cannot establish who called it; what the operation establishes is that the supplied custody names this proposal, that its typed ground carries a replay capsule, that the caller-owned depot accepted the derived entry, and that the returned row cites those joined facts.
 ///
 /// # Errors
 ///
-/// Refuses, before replay storage, proposal custody for another proposal and a
-/// row whose canonical encoding refused. After storage it refuses a location
-/// bound to another replay entry.
+/// Refuses, before replay storage, custody for another proposal and a row whose canonical encoding refused; after storage, a location bound to another replay entry.
 pub fn human_admit_replay<Document, Sink>(
     proposal: &Document,
     proposal_custody: StoredProposalRef,
@@ -329,18 +310,13 @@ where
     ))
 }
 
-/// Admit one obligation-discharge proposal after a human has ruled on stored review material.
+/// Admit one obligation-discharge proposal, after a human has ruled on stored review material.
 ///
-/// # Authority
-///
-/// The proposal's type makes replay custody inapplicable. The operation checks
-/// exact proposal custody and returns the row whose origin cites that admission;
-/// no runtime road invokes it implicitly.
+/// The proposal's type makes replay custody inapplicable, so the operation checks custody and returns the row whose origin cites that admission.
 ///
 /// # Errors
 ///
-/// Refuses proposal custody for another proposal, then a row whose canonical
-/// encoding refused.
+/// Refuses custody for another proposal, then a row whose canonical encoding refused.
 pub fn human_admit_discharge(
     proposal: &ObligationDischargedProposal,
     proposal_custody: StoredProposalRef,
@@ -369,7 +345,7 @@ fn proposal_custody_agrees(
     Err(HumanAdmissionRefusal::ProposalCustodyMismatch { expected, found })
 }
 
-/// Re-author one candidate row under the exact admitted origin its proposal earned.
+/// Re-author one candidate row under the admitted origin its proposal earned.
 fn admitted_row(
     proposal: &impl ProposalDocument,
     origin: Origin,

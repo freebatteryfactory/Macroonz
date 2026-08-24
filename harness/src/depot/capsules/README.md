@@ -1,9 +1,21 @@
-# capsules — human-admitted replay custody
+# capsules
 
-This home owns the exact entry a replay-bearing human admission stores: the proposal identity, the content-derived replay reference, and the run-bound capsule that reference names.
+A human admits a finding, and the run that produced it has to outlive the admission.
 
-The storage implementation belongs to the caller. `ReplayDepotSink` receives the already-assembled entry and may refuse under its own durability ceiling; success returns a location bound to the same replay reference. The sink neither decides admission nor edits the capsule.
+This home owns the entry that admission stores: the proposal it came from, the capsule that reproduces the run, and the content-derived reference tying the two together.
+The reference is minted from the capsule's own bytes at a private seat, so nobody pairs a proposal with one capsule and a reference to another.
 
-The proof-pressure engine owns the explicit human-admission operation. It first replaces the candidate row's origin with the admitted proposal/reference pair, then asks the caller's depot sink to store the exact entry, and only after both stand returns the admission receipt. Runtime reduction can produce a capsule but cannot reach this operation implicitly, so evidence never grows authored specification merely by existing.
+## Where the storage is
 
-An obligation-discharge admission creates no capsule entry. Its admitted row is the durable record, and the proof-pressure engine owns that separate human operation.
+Not here.
+
+`ReplayDepotSink` is the caller's.
+It receives an entry that is already assembled and already immutable, and it may store the entry or refuse under its own durability ceiling; on success it returns a location carrying the same replay reference, so an admission can tell its own entry from a neighbor's.
+The sink chooses nothing about what it is handed — not the proposal, not the identity, not the capsule bytes — and it never decides whether the admission happens.
+
+## What does not write here
+
+A run does not.
+Reduction can produce a capsule, but the operation that stores one is explicit and human, and evidence never grows authored specification merely by existing.
+
+An admission that discharges an obligation stores nothing here: its admitted row is the durable record, and rerunning it regenerates the behavioral evidence.

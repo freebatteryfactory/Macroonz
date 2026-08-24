@@ -1,0 +1,304 @@
+//! The descriptor home's shared declarations: the names a descriptor grammar spells, the crate bindings a rendered path is rooted at, how a declaration's values refuse, how a helper body is not read, and the composition root.
+//!
+//! Declarations only.
+//! Every road that reaches a private field lives in `type_guard.rs`, this file's own child.
+//!
+//! The three kinds themselves are declared beside their own grammars, in `trial/`, `bench/`, and `mutation/`.
+
+use crate::bounded::{Capped, NonEmpty};
+use crate::identity::{OwnerFact, OwnerIdentity};
+use crate::token::SpanHandle;
+
+#[path = "type_guard.rs"]
+mod guard;
+
+/// The one alphabet every spelling any grammar here renders in identifier position is admitted by, published from the nucleus every road already reads it through.
+pub use guard::rendered_identifier;
+
+/// Segments one rendered path may carry after the crate binding it is rooted at.
+///
+/// A path reaching deeper than this has stopped naming an item and started describing a tree, and the repair is a re-export at the address rather than a longer spelling here.
+pub const PATH_SEGMENT_LIMIT: usize = 8;
+
+/// Providers one composition may declare.
+///
+/// The root is a list a reader audits in one sitting, which is the whole reason it is a declaration rather than a scan.
+pub const PROVIDER_LIMIT: usize = 64;
+
+/// Issues one composition refusal carries before it counts the rest.
+pub const COMPOSITION_ISSUE_LIMIT: usize = 64;
+
+/// The fact a grammar refusal cites as its repair.
+pub const DESCRIPTOR_MEANING_FACT: OwnerFact = OwnerFact {
+    home: "descriptor",
+    name: "a-descriptor-declaration-states-descriptor-meaning-alone",
+};
+
+/// The fact a vocabulary refusal cites as its repair.
+pub const RENDERED_SPELLING_FACT: OwnerFact = OwnerFact {
+    home: "descriptor",
+    name: "a-rendered-spelling-is-one-rust-identifier",
+};
+
+/// The helper attribute one descriptor grammar is written in.
+///
+/// The name is the caller's: a door registers the attribute it wants and hands the same value to the reading, so a refusal names the word an author actually wrote.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Grammar {
+    /// The attribute's spelling, without its brackets.
+    pub attribute: &'static str,
+}
+
+/// Who emitted a generated table, in the words the emission writes.
+///
+/// Every name these services declare about their own act — the namespace, the producer, and the door — is stated here rather than composed inside a rendering, so an authored declaration cannot sign an act it did not perform.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Emitter {
+    /// The owner the producer and the door are spelled under.
+    pub namespace: &'static str,
+    /// The producer that emits the table.
+    pub producer: &'static str,
+    /// The door the declaration was authored through.
+    pub door: &'static str,
+}
+
+/// A namespaced name: the owner that declares a spelling, and the spelling.
+///
+/// # Construction
+///
+/// Both parts are refused empty, so a name that names nothing is not a value anybody can hold.
+///
+/// # Ordering
+///
+/// The order is a storage order, over the namespace and then the stem. It ranks nothing.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Name {
+    namespace: String,
+    stem: String,
+}
+
+/// The exported name a consumption target invokes one declaration's carrier by.
+///
+/// The author chooses it and the consumer's own compiler collision-checks it: the physical carrier is exported under a spelling nobody can know before expansion, so a declaration whose carrier nobody can address is a declaration whose rows nobody can run.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct SupportName(String);
+
+/// The module a stamped payload is written into, at the target that invokes the carrier.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ModuleName(String);
+
+/// A type a rendered module declares.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct TypeName(String);
+
+/// A function a rendered module declares.
+///
+/// One type for every function a stamped module writes, because they all land in ONE namespace: an aggregate seat colliding with a row lens is the same defect as two lenses colliding, and one type is what lets a single pass say so.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct FunctionName(String);
+
+crate::roster! {
+    /// Which crate binding a rendered path is rooted at.
+    ///
+    /// Two, because a delivery names exactly two crates a consumer may rename: the DECLARING crate, whose operations a row measures or challenges, and the HARNESS, whose vocabulary the row is spelled in and whose lanes judge it.
+    /// A callable living in the consumer's own target needs no row here — it arrives as an expression at the carrier's invocation, where that target's own hygiene reaches its own items.
+    ///
+    /// The declared name is also the metavariable spelling the carrier's matcher binds and every rendered path is rooted at, so both sides read one word — the same two words [`CrateFacing`](crate::support::CrateFacing) declares on the carrier's side.
+    pub enum Binding {
+        /// The crate whose operations a row measures or challenges.
+        Declaring = "declaring",
+        /// The crate whose vocabulary a row is spelled in.
+        Harness = "harness",
+    }
+}
+
+/// One path a rendered expression names, rooted at a crate binding rather than at a crate name.
+///
+/// A consumer that renamed either crate gets its own name back, because the rendering writes the binding's metavariable and this home never learns what the crate is called.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct BoundPath {
+    binding: Binding,
+    segments: NonEmpty<String, PATH_SEGMENT_LIMIT>,
+}
+
+crate::roster! {
+    /// What a declaration was stating when its values refused.
+    ///
+    /// One roster over every bounded and doubled seat the three grammars declare, so a seat admitted later is one row here rather than three rows of a refusal.
+    pub enum Seat {
+        /// A segment of a path rooted at a crate binding.
+        PathSegment = "path-segment",
+        /// An open classification a row carries.
+        Role = "role",
+        /// An open label a row carries beside its roles.
+        Tag = "tag",
+        /// One row of a declared table.
+        Row = "row",
+        /// One aggregate seat's group of rows.
+        SuiteGroup = "suite-group",
+        /// The function an aggregate seat is declared under.
+        Aggregate = "aggregate",
+        /// The function one row is declared under.
+        Lens = "lens",
+        /// One point of a declared input-size axis.
+        AxisSize = "axis-size",
+        /// One byte of a declared work formula.
+        WorkFormulaByte = "work-formula-byte",
+        /// One counted quantity a bench row reads against its formula.
+        WorkObservation = "work-observation",
+        /// One owner fact mapped to the claim that permits pressure on it.
+        FactMapping = "fact-mapping",
+        /// One claim's permission over a roster of operator families.
+        Permission = "permission",
+        /// One operator family a permission names.
+        OperatorFamily = "operator-family",
+        /// One declared alternative at a mutation point.
+        Alternative = "alternative",
+        /// One declared provider of descriptor material.
+        Provider = "provider",
+    }
+}
+
+/// How the values one descriptor declaration states are not a lawful declaration.
+///
+/// Seven shapes over one seat roster rather than one row per seat: what refuses is the SHAPE of the disagreement, and which seat it was about is the other half of the same sentence.
+#[must_use = "a declaration refusal names the seat the declaration did not fill"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DeclarationError {
+    /// A namespaced name states no owner.
+    NamespaceEmpty,
+    /// A namespaced name states no spelling.
+    StemEmpty,
+    /// A spelling written where the rendering needs one Rust identifier is not one.
+    NotAnIdentifier,
+    /// A seat that admits no emptiness was stated empty.
+    Absent {
+        /// What was being stated.
+        seat: Seat,
+    },
+    /// Two of one roster's members carry one spelling.
+    Doubled {
+        /// What was being stated.
+        seat: Seat,
+    },
+    /// A roster states more members than its declared magnitude admits.
+    Unbounded {
+        /// What was being stated.
+        seat: Seat,
+        /// The declared magnitude.
+        bound: u64,
+        /// How many were stated.
+        observed: u64,
+    },
+    /// An input-size axis states too few sizes for a growth class to be read off it.
+    NotACurve {
+        /// How many sizes were stated.
+        observed: u64,
+    },
+}
+
+crate::roster! {
+    /// How one helper body's tokens do not say a declaration its grammar admits.
+    ///
+    /// Dependent checks in a declared order, so exactly one cause is true of any refused body: the attribute is found before its body is read, the body's clauses before their values, and a value's shape before the vocabulary that value states.
+    pub enum CaptureCause {
+        /// The declaration carries the helper more than once.
+        HelperDoubled = "helper-doubled",
+        /// The helper states no parenthesized body.
+        BodyAbsent = "body-absent",
+        /// A clause is not one key and one value.
+        ClauseUnread = "clause-unread",
+        /// A clause's key is not one this grammar declares.
+        ClauseUndeclared = "clause-undeclared",
+        /// One clause is stated twice.
+        ClauseDoubled = "clause-doubled",
+        /// A required clause is absent.
+        ClauseAbsent = "clause-absent",
+        /// A value written where a namespaced reference is required is not one.
+        ReferenceUnread = "reference-unread",
+        /// A value written where a bracketed roster is required is not one.
+        RosterUnread = "roster-unread",
+        /// A value written where a named group is required is not one.
+        GroupUnread = "group-unread",
+        /// A row is not one name and one clause body.
+        RowUnread = "row-unread",
+        /// A mapping is not one fact and one claim.
+        MappingUnread = "mapping-unread",
+        /// A permission is not one claim and one family roster.
+        PermissionUnread = "permission-unread",
+    }
+}
+
+/// Which of the two readings refused, carrying that reading's own answer whole.
+///
+/// Whether the tokens SAY a declaration is the grammar's question; whether the values they say are lawful is the vocabulary's, and each answers in its own words.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CaptureIssue {
+    /// The authored grammar refused.
+    Grammar {
+        /// The established cause.
+        cause: CaptureCause,
+    },
+    /// The vocabulary refused a value the grammar read.
+    Vocabulary {
+        /// The vocabulary's own refusal.
+        refusal: DeclarationError,
+    },
+}
+
+/// How one helper body was not read: which grammar was reading, what it established, and the token.
+///
+/// Shared by every helper grammar this home declares.
+/// The TYPE a refusal travels in is the grammar's own, because a diagnostic's family tag is a fact about the type and two helper readings of one declaration must never derive one related identity.
+#[must_use = "a helper refusal names the grammar, the cause, and the token it was established at"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct HelperRefusal {
+    grammar: Grammar,
+    issue: CaptureIssue,
+    at: SpanHandle,
+}
+
+/// One declared provider of descriptor material.
+///
+/// The owning-home seat is what keeps a composition a declaration rather than a registry: a provider does not stand on its own authority, it stands on the owner fact it derives from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Provider {
+    /// The provider's own identity.
+    pub identity: OwnerIdentity,
+    /// The owning home whose fact this provider derives from.
+    pub home: OwnerFact,
+    /// The kind it composes, by that kind's declared name.
+    pub composes: &'static str,
+}
+
+/// How a composition fails to be declarable.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CompositionIssue {
+    /// One provider identity is declared more than once.
+    ProviderDoubled {
+        /// The doubled provider.
+        provider: OwnerIdentity,
+    },
+    /// The provider seat outran its declared magnitude.
+    ProvidersUnbounded {
+        /// The declared magnitude.
+        bound: u64,
+        /// How many were declared.
+        observed: u64,
+    },
+}
+
+/// How one composition refused, with every issue the scan established.
+#[must_use = "a composition refusal carries every issue the duplicate scan established"]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CompositionError {
+    body: Capped<CompositionIssue, COMPOSITION_ISSUE_LIMIT>,
+}
+
+/// The one composition of descriptor-material providers: every provider that participates, named once.
+///
+/// Structurally non-empty — a composition with no provider is not a composition, it is silence — and duplicate-free by construction.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Composition {
+    providers: NonEmpty<Provider, PROVIDER_LIMIT>,
+}

@@ -1,4 +1,2 @@
-# The backstop under the lint wall: any warning surviving any build is fatal,
-# even in a crate that inherits no [lints] table.
 [build]
 warnings = "deny"

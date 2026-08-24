@@ -1,5 +1,10 @@
-# benches — ordinary benchmark targets
+# benches
 
-Each target in this directory is an ordinary consumer of the public [`bench`](../src/bench/README.md) receiver. A target builds a table, supplies explicit host input, obtains one immutable report, and may hand that report to a renderer; the receiver owns work judgment, while a renderer owns no verdict.
+Every target here is an ordinary caller of the public [`bench`](../src/bench/README.md) receiver, with no privileges of its own.
 
-`neutral_receiver.rs` is the backend-free handwritten specimen. It shares the same neutral declaration as the focused behavior lane, exercises the exact generated-support pin partition, and adds no benchmark backend as a second execution authority.
+A target builds a table, hands in the host facts, takes back one immutable report, and may pass that report to a renderer.
+The receiver decides whether the work qualified.
+A renderer decides nothing.
+
+`neutral_receiver.rs` is the specimen: hand-written, backed by no benchmark framework, and sharing one declaration with the behavior lane under `tests/` so the two cannot drift apart.
+A framework here would be a second execution authority, and there is only one.

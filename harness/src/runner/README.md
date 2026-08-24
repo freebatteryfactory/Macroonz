@@ -1,25 +1,86 @@
-# runner — descriptor tables become runs
+# runner — a table of declared trials becomes a run
 
-The runner has two admission roads over one report assembler. The in-process road calls `run_one` for one binding or `run_all` for a complete table view, while the external-host road calls `record_one` or `record_all` with typed host observations. A host observation supplies only the fact the host owns — trial identity, attempt, and wall-measurement reading — and the runner joins it to the binding, invocation, table, and selection before it becomes evidence. The shared assembler walks the sealed view in authored order and derives one census entry per binding, so a caller cannot author a smaller denominator or disagree with the nested trial identity; the host road may pre-read membership and selection to classify malformed input before that assembly.
+This is the harness's execution engine.
 
-The row is pure data and cannot execute — the binding carries the callable, so no hidden row-to-function registry can exist. The table is always the complete world; the selection chooses from it, and the run report accounts on two owned axes: the selection disposition first (selected, or not-selected with its reason), then a run attempt only where selection admitted one — a caller can narrow a run, never the denominator, and not-selected can never impersonate a failed execution.
+Hand it the complete authored world, one selection over that world, and one invocation, and it hands back a report.
+Nothing here discovers, scans, prints, or exits.
+A run is a function of the values a caller declared, and its answer is a value.
 
-Invocation is a parameter and results are values. The runner owns no process protocol: it reads no arguments, prints nothing, and exits nothing. Subject-panic capture does install and chain a process-global hook, as the hosting section below states; that explicit host-side observation is the one process-global effect the runner itself performs. Caller-supplied function pointers retain their own effect ceiling.
+## Two roads, one assembler
 
-A selection plan is what one invocation chooses joined to what it expects that choice to match. `SelectionPlan::of` is the whole of the ordinary road and it asks for nothing beyond the selection — a run expects at least one row unless somebody says otherwise, so the standing expectation costs a caller no ceremony. `SelectionPlan::allowing_empty` is the one escape, and it carries a typed reason the run's own report then records. The escape renders a zero-work result carrying that reason, and nothing anywhere calls it passed.
+There are two ways in, and they are not two engines.
 
-Two readings turn a report into a seat's answer;
+- **In process.** `run_one` executes one binding; `run_all` executes a selection over a whole table view.
+- **From a host.** `record_one` and `record_all` take observations some external runner made and turn them into the same reports.
 
-`seat_verdict` over a run report, `lens_verdict` over one trial report, both refusing with `SeatRefusal` — the one refusal type a stamped test function returns. A construction refusal enters it unchanged through `From`, and that is the only road in, so `?` is the whole ceremony at a seat; everything else it says is lifted from typed fields the run already wrote, never matched out of anybody's prose. The readings live here rather than in the stamp because a fold written into every expansion is one calculator standing in as many places as there are invocations. `seat_verdict` answers with a typed `SeatOutcome` where it does not refuse, so a run that deliberately exercised nothing is never read as a run whose trials concluded; `lens_verdict` has no such answer to give, because a lens has one binding, no selection, and no expectation. A run that selected nothing under the standing expectation refuses: that is the suite pairing a stamp cannot check without reading inside a row expression, answered from the fact the run recorded.
+A host observation carries only what a host can know: which trial, what the attempt did, and the wall reading.
+Everything else is joined here — from the binding, the invocation, the table, and the selection — so a host cannot author evidence it never observed.
 
-The host facts a run stands on are declared, never read. The target triple and toolchain identity arrive as a `TargetBinding` the invoker states — nothing here can derive them, and a triple assembled out of `cfg!` predicates would be a plausible spelling entering a cache key that nothing verified. The invoker also hands in the `TestPak` clock owner's `HarnessClock`: `run_one` opens it before the subject and finishes it afterwards, then records the resulting observed, unavailable, or failed reading without changing the conclusion. An observed zero is a real measurement, not the spelling of no measurement. The stamped test target is the caller's own hosting world and states both host inputs at the stamp.
+Both roads walk one assembler, so the two spellings of a run cannot disagree about what a run means.
 
-This is the harness's only semantic-trial execution engine: the compiler executes compile refusals, external mutation tooling runs its campaigns outside the wall, the bench executor measures, and the standard harness hosts trials — none of those renders a semantic verdict. Every semantic run anywhere in the loop — aggregate seats, candidate proving, mutant-scoped subsets, fuzz batches, chaos schedules — is the same call with a differently selected subset of the one complete table.
+## The table is the denominator
 
-Hosting is the caller's. The stamp spelling gives every row a named test function, so the standard harness carries listing, filtering, and per-trial visibility natively — no protocol code lives in this tree; process fan-out and parallelism are the host harness's, natively, and sharding is its partition flags — external, zero machinery here. Default execution has its physics stated: aggregate seats are ordinary test functions and run by default; named lenses are ignored-by-default — clickable and filter-runnable, never paid twice. The stamps live with the descriptor vocabulary they read; their expansion names this engine through the defining crate's own path, resolved where the consumer invokes them, so the descriptor home gains no edge to this one.
+The table is always the complete world.
+A selection chooses from it and never shrinks it.
 
-A standalone adopter hosts the same engine from their own entry point under their own lints; a custom-harness shell is a documented recipe, not machinery here.
+Each report accounts on two axes, in this order:
 
-The census delta is a pure report operation — the comparison lives with the report vocabulary, under its one typed-baseline statement — so the runner never grows memory. Selective re-run is designed-for now and arrives with the identity rails: skip trials whose execution key matches the last report, eligibility governed by the attachment postures per the report instrument's one statement. Today a seat's verdict refuses every skip, cache-satisfied included, because the conclusion a cache stood in for is not in the report being read and a seat may not pass on a verdict it never saw. Whether a cached stand-in discharges a seat is a ruling that lands with selective re-run, stated here so the strictness is a decision and not an oversight.
+1. the **selection disposition** — selected, or passed over with the reason it was passed over;
+2. a **run attempt**, and only where the selection admitted one.
 
-Discovery is in memory — a trial table is constructed from typed descriptors, so nothing scans and nothing spawns. A subject panic is CAUGHT at the trial-call boundary — one unwind catch plus one chained panic hook installed once, the hook process-global, correlated per trial — and the safe payload and location are copied into the typed finding. The clock owner separately catches ordinary source unwind and retains its opening or closing stage as measurement failure, without relabeling it as a subject finding. Aborts and stack overflow are honestly uncaught; process isolation is a caller's hosting recipe, not machinery here.
+Reading the disposition first is what keeps a row nobody ran from ever being recorded as a row that failed.
+A caller narrows a run; the denominator stays whatever the table says it is.
+
+A row is data and cannot execute.
+The callable rides on the binding beside it, which is why no hidden registry from row to function exists anywhere.
+
+## Saying in advance that you might select nothing
+
+A selection plan is a selection joined to what the run expects that selection to match.
+
+`SelectionPlan::of` is the ordinary road and asks for nothing but the selection, because a run expects to exercise something unless somebody says otherwise.
+`SelectionPlan::allowing_empty` is the one escape, and it states the reason in the same call.
+A run that then selects nothing renders a zero-work result carrying that reason, and no reading anywhere calls it passed.
+
+## What a seat reads
+
+A stamped test function answers with a `Result`, and the two folds that produce it live here.
+
+- `seat_verdict` reads a whole run report and answers with a `SeatOutcome`: every selected trial concluded, or no work as stated.
+- `lens_verdict` reads one trial report and answers with nothing, because a lens has one binding, no selection, and no expectation to satisfy.
+
+Both refuse with `SeatRefusal`, the one type a seat returns instead of passing.
+A construction refusal enters it unchanged through `From`, and that is the only road in, so `?` is the whole ceremony at a seat.
+
+Neither reading reads a word of prose.
+A failure is described by carrying the record's own typed fields, so a refusal that reworded its message is still the same typed arm.
+
+They live here rather than in the stamp on purpose: a fold copied into every expansion is one calculator standing in as many places as there are invocations, and two seats disagreeing about what a passing run means is the disagreement a harness exists to make impossible.
+
+A selected trial that was skipped refuses a seat, cache-satisfied skips included.
+The conclusion a cached execution stood in for is not in the report being read, and a seat may not pass on a verdict it never saw.
+
+## Host facts arrive; they are never derived
+
+The target triple and the toolchain identity come in as a `TargetBinding` the invoker states.
+A triple assembled out of `cfg!` predicates would be a plausible spelling entering a cache key that nothing verified.
+
+The clock arrives the same way.
+`run_one` opens it before the subject and finishes it afterwards, then records the observed, unavailable, or failed reading without concluding anything from it.
+An observed zero is a real measurement, not the spelling of no measurement.
+
+## Panics
+
+A subject panic is a verdict about the subject, so it is caught at the trial boundary and recorded as the finding it is.
+That needs two mechanisms: an unwind catch, which returns the payload but not where the panic was raised, and a process-global panic hook, which sees the origin but cannot stop the unwind.
+This home installs one hook, once, and chains whatever hook was standing before it — the one process-global effect the engine performs.
+
+Aborts and stack overflows are not unwinds.
+They end the process, no finding is produced, and nothing here pretends otherwise.
+Process isolation is a hosting recipe, not machinery in this home.
+
+## What this home is not
+
+It runs no protocol: no argument vector, no output stream, no exit code.
+It keeps no memory between runs, so comparing two reports is the report home's operation over what this one wrote.
+It hosts nothing — listing, filtering, sharding, and parallelism belong to whatever test harness the caller runs the stamped seats under.

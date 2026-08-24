@@ -1,11 +1,12 @@
-//! Projecting admitted corpus seeds into the generation home's exact caller-supplied origin.
+//! Handing admitted seeds to the generation home as exact supplied material.
 
 use super::SeedPack;
 use crate::generate::InputOrigin;
 
 /// Yield one exact supplied-input origin per admitted seed, in pack order.
 ///
-/// This operation chooses no generation budget, decoder, precondition, verdict, replay posture, or proposal ground. The caller combines each origin with its existing generation plan facts and judges the resulting behavior through the ordinary harness roads.
+/// This road chooses no budget, decoder, precondition, verdict, replay posture, or proposal ground.
+/// The caller combines each origin with its own generation plan and judges what happens through the ordinary roads.
 #[must_use]
 pub fn warm_start(pack: &SeedPack) -> impl ExactSizeIterator<Item = InputOrigin> + '_ {
     pack.seeds()

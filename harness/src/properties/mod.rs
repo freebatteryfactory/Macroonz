@@ -1,22 +1,4 @@
 #![doc = include_str!("README.md")]
-//!
-//! # The files
-//!
-//! `types.rs` declares this home's public vocabulary: the check shape, the
-//! owner-supplied comparison seams, the demand verdict, the parity suite and the
-//! substrate it names, the transition contract and its temporal claims, the
-//! composed-roads suite, and the typed causes this home cites. Every road that
-//! reaches one of its private fields is its own child, `type_guard.rs`.
-//!
-//! The laws are role-named pure-function modules, one family each. `conclude` is
-//! the nucleus every one of them reaches its verdict through, and the one place
-//! a disagreement becomes a finding. `algebra` carries the declared-algebra laws
-//! and `metamorphic` the relations between two runs; `parity` carries the suite
-//! over two roads to one meaning, `composition` the suite over a wiring,
-//! `temporal` the suite over histories, and `refusal` the checks that judge
-//! whether a subject refused what it owed a refusal. [`ensure`] is the macro
-//! battery over the nucleus; its macros land at the crate root, which is Rust's
-//! rule rather than this home's choice.
 
 mod algebra;
 mod composition;

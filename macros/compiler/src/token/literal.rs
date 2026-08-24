@@ -1,32 +1,13 @@
 //! Reading one literal token's spelling into the value it names.
 //!
-//! Every producer hands this seam a spelling a compiler already lexed, so what
-//! arrives is a well-formed Rust literal and the question is never whether it is
-//! one. The question is WHICH form it is, and a form is decided by the opening
-//! the spelling was written with — never by whether some other form's characters
-//! happen to be at the ends of it.
+//! Every producer hands this seam a spelling a compiler already lexed, so what arrives is a well-formed Rust literal and the question is never whether it is one.
+//! The question is which form it is, and a form is decided by the opening the spelling was written with — never by whether some other form's characters happen to be at the ends of it.
 //!
-//! That distinction is the whole of this file. A reader that asks "does it start
-//! and end with a quote?" answers `b"x"`, `r"x"`, `'x'`, and `1u32` with one
-//! word, and the three that are not numbers are then carried as numbers through
-//! everything downstream — including the canonical bytes a captured
-//! declaration's identity is derived over. A spelling filed under a form that
-//! means something else is a wrong answer wearing the shape of a right one.
+//! That distinction is the whole of this file.
+//! A reader that asks "does it start and end with a quote?" answers `b"x"`, `r"x"`, `'x'`, and `1u32` with one word, and the three that are not numbers are then carried as numbers through everything downstream, including the canonical bytes an identity is derived over.
 //!
-//! # Values, not spellings
-//!
-//! What a form decides is which VALUE the body names. `"x"` and `r"x"` are one
-//! text; `"a\nb"` is three characters and not four. The quoting, the raw-string
-//! hashes, and the escapes are how a declaration was written down, and a
-//! producer's job is to stop carrying them.
-//!
-//! # Refusing
-//!
-//! Both refusals here are this crate admitting a limit rather than the caller
-//! being told they wrote something wrong: the compiler accepted the spelling.
-//! A form with no row refuses instead of falling through to a neighbouring row,
-//! so a literal Rust grows and this grammar has not learned is visible the day
-//! it arrives rather than silently misfiled.
+//! What a form decides is which value the body names: `"x"` and `r"x"` are one text, and `"a\nb"` is three characters and not four.
+//! The quoting, the raw-string hashes, and the escapes are how a declaration was written down, and a producer's job is to stop carrying them.
 
 use super::{CapturedPayload, LiteralReadCause};
 
@@ -34,9 +15,8 @@ use super::{CapturedPayload, LiteralReadCause};
 ///
 /// # Errors
 ///
-/// Returns [`LiteralReadCause::NotAKnownForm`] where the spelling opens with no
-/// form this grammar has a row for, and [`LiteralReadCause::NotReadable`] where
-/// a known form's body carries material this grammar could not read.
+/// Returns [`LiteralReadCause::NotAKnownForm`] where the spelling opens with no form this grammar has a row for, and [`LiteralReadCause::NotReadable`] where a known form's body carries material this grammar could not read.
+/// A form with no row refuses instead of falling through to a neighbouring row, so a literal Rust grows and this grammar has not learned is visible the day it arrives rather than silently misfiled.
 pub fn capture_literal(spelling: &str) -> Result<CapturedPayload, LiteralReadCause> {
     if opens_raw(spelling, "br") {
         return Ok(CapturedPayload::ByteText(
@@ -78,9 +58,7 @@ pub fn capture_literal(spelling: &str) -> Result<CapturedPayload, LiteralReadCau
 
 /// Whether the spelling opens a raw literal under one prefix.
 ///
-/// A raw opening is the prefix, then the hashes, then the quote — so what says
-/// it is raw is the character AFTER the prefix, and a prefix alone decides
-/// nothing.
+/// A raw opening is the prefix, then the hashes, then the quote, so what says it is raw is the character after the prefix and a prefix alone decides nothing.
 fn opens_raw(spelling: &str, opening: &str) -> bool {
     spelling
         .strip_prefix(opening)
@@ -105,10 +83,7 @@ fn charred<'spelling>(spelling: &'spelling str, opening: &str) -> Option<&'spell
 
 /// Whether the spelling opens a numeric literal.
 ///
-/// The leading minus is admitted because a producer can hand one over: a token
-/// stream a macro composed may carry a suffixed negative integer as ONE literal
-/// token, where source text spells the same value as a punctuation mark beside
-/// an unsigned one.
+/// The leading minus is admitted because a producer can hand one over: a token stream a macro composed may carry a suffixed negative integer as one literal token, where source text spells the same value as a punctuation mark beside an unsigned one.
 fn opens_number(spelling: &str) -> bool {
     spelling
         .strip_prefix('-')
@@ -116,8 +91,7 @@ fn opens_number(spelling: &str) -> bool {
         .starts_with(|character: char| character.is_ascii_digit())
 }
 
-/// The body of one raw literal, between the opening quote and the closing quote
-/// that carries the same hash count.
+/// The body of one raw literal, between the opening quote and the closing quote that carries the same hash count.
 fn raw_body<'spelling>(
     spelling: &'spelling str,
     opening: &str,
@@ -146,12 +120,9 @@ fn raw_body<'spelling>(
 // Reading one body into the value its form names.
 // ---------------------------------------------------------------------------
 
-/// One unit of a read body: either a character the body names, or a byte an
-/// escape names directly.
+/// One unit of a read body: either a character the body names, or a byte an escape names directly.
 ///
-/// Two and not one, because `\x80` names a byte that is no character of the
-/// text a `\u{…}` escape names, and a form decides which of the two it can
-/// carry. Collapsing them here would make that decision in the wrong place.
+/// Two and not one, because `\x80` names a byte that is no character of the text a `\u{…}` escape names, and a form decides which of the two it can carry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ReadUnit {
     /// One character, written plainly or named by an escape.
@@ -178,9 +149,7 @@ fn units(body: &str) -> Result<Vec<ReadUnit>, LiteralReadCause> {
 
 /// The unit one escape names, with the backslash already read.
 ///
-/// The line continuation names no unit at all: it is how a written line break
-/// is spelled out of the value, so it eats the break and the indentation behind
-/// it and contributes nothing.
+/// The line continuation names no unit at all: it is how a written line break is spelled out of the value, so it eats the break and the indentation behind it and contributes nothing.
 fn escaped(
     characters: &mut core::iter::Peekable<core::str::Chars<'_>>,
 ) -> Result<Option<ReadUnit>, LiteralReadCause> {
@@ -284,9 +253,7 @@ fn byte_material(body: &str) -> Result<Vec<u8>, LiteralReadCause> {
 
 /// One C string literal's material, without its terminator.
 ///
-/// A character contributes the bytes it is encoded as rather than one byte:
-/// this form admits the whole scalar range, so a character outside ASCII is
-/// material the value carries and not material it refuses.
+/// A character contributes the bytes it is encoded as rather than one byte, because this form admits the whole scalar range and a character outside ASCII is material the value carries.
 fn nul_terminated_material(body: &str) -> Result<Vec<u8>, LiteralReadCause> {
     let mut material = Vec::new();
     let mut buffer = [0u8; 4];

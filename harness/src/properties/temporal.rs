@@ -1,25 +1,12 @@
-//! The temporal suite: a generated command sequence drives an owner's
-//! transition system, and every claim is read across the WHOLE history.
+//! The temporal suite: a generated command sequence drives an owner's transition system, and every claim is read across the whole history.
 //!
-//! A command sequence is a structured input like any other, so the history a law
-//! is read over comes from the one shared sequence driver
-//! ([`crate::generate::drive`]) rather than from a loop grown here, and a failing
-//! sequence is a counterexample carrying its seed like any other.
+//! A command sequence is a structured input like any other, so the history a law is read over comes from the one shared sequence driver ([`crate::generate::drive`]) rather than from a loop grown here, and a failing sequence is a counterexample carrying its seed like any other.
 //!
-//! # Neutrality
+//! The state and the command are unbounded type parameters, and this home never learns what a state means.
+//! An owner integrates by mapping its own vocabulary into a [`TransitionContract`](crate::properties::TransitionContract) at its own layer.
 //!
-//! Nothing here names a product type.
-//! The state and command are unbounded type parameters, and a generated drive returns an evidence reading that carries a conclusion only when earned and otherwise carries [`TemporalDriveStanding::Incomplete`].
-//! A product integrates by mapping its vocabulary into [`TransitionContract`](crate::properties::TransitionContract) at its own layer, and this home never learns what a state means.
-//!
-//! # What a break does not carry
-//!
-//! Which step of the history broke the claim. A conclusion carries the typed
-//! cause and the class, and the sequence that produced it is what localizes the
-//! break: minimization shrinks that sequence while requiring the same
-//! fingerprint, so the shortest history that still breaks the claim is the
-//! answer to "where", produced by the lane that owns shrinking rather than
-//! guessed at here.
+//! What a break does not carry is which step of the history broke the claim.
+//! A conclusion carries the typed cause and the class, and the sequence that produced it is what localizes the break: minimization shrinks that sequence while requiring the same fingerprint, so the shortest history that still breaks the claim is the answer to "where", produced by the lane that owns shrinking.
 
 use super::conclude::concluded;
 use super::types::{
@@ -27,20 +14,16 @@ use super::types::{
     TemporalDriveStanding, TransitionContract,
 };
 use crate::generate::{
-    ByteSource, CommandDecode, GenerationHalt, GenerationPlan, SequencePrecondition, drive,
+    ByteSource, CommandDecode, CommandSequence, GenerationHalt, GenerationPlan,
+    SequencePrecondition, drive,
 };
 use crate::report::{FailureClass, TrialConclusion};
 use core::cmp::Ordering;
 
-/// Drive one command sequence through a contract and read every claim across
-/// the whole history it produced.
+/// Drive one command sequence through a contract and read every claim across the whole history it produced.
 ///
-/// # Authority
-///
-/// The history is the opening state and the state after every command, in
-/// order. Every claim the contract declares is read over that complete history,
-/// and the first claim that breaks is the conclusion: a contract cannot be built
-/// with no claim at all, so a pass here always means something was demanded.
+/// The history is the opening state and the state after every command, in order, and the first claim that breaks is the conclusion.
+/// A contract cannot be built with no claim at all, so a pass here always means something was demanded.
 #[must_use]
 #[track_caller]
 pub fn holds_over_history<State, Command>(
@@ -60,17 +43,11 @@ pub fn holds_over_history<State, Command>(
 
 /// Drive a whole generation plan through a contract and retain the evidence behind its temporal standing.
 ///
-/// # Authority
-///
-/// The plan owns every bound and the source owns every byte; this call owns
-/// neither. The sequences arrive from the one shared driver, so the temporal
-/// lane, the mutation lane, and the chaos lane all walk histories the same
-/// machinery produced.
-///
-/// # Bounds
+/// The plan owns every bound and the source owns every byte; this call owns neither.
+/// The sequences arrive from the one shared driver, so the temporal lane, the mutation lane, and the chaos lane all walk histories the same machinery produced.
 ///
 /// A drive that admitted no sequence refuses rather than passing.
-/// One counterexample refuses even under a partial halt, but an all-pass prefix remains incomplete unless generation reached the declared case budget.
+/// One counterexample refuses even under a partial halt, but an all-pass prefix stays incomplete unless generation reached the declared case budget.
 #[must_use]
 #[track_caller]
 pub fn holds_over_drive<State, Command>(
@@ -81,38 +58,44 @@ pub fn holds_over_drive<State, Command>(
     precondition: SequencePrecondition<Command>,
 ) -> TemporalDriveReading<Command> {
     let generated = drive(plan, source, decode, precondition);
-    let mut evaluated = 0usize;
-    let standing = if generated.sequences().is_empty() {
-        TemporalDriveStanding::Concluded(concluded(
+    if generated.sequences().is_empty() {
+        let empty = concluded(
             Holding::Fails,
             FailureClass::RefusedByCheck,
             NO_SEQUENCE_DRIVEN,
-        ))
-    } else {
-        let mut refusal = None;
-        for sequence in generated.sequences() {
-            evaluated = evaluated.saturating_add(1usize);
-            match holds_over_history(contract, sequence.commands()) {
-                TrialConclusion::Passed => {}
-                refused @ TrialConclusion::Refused(_) => {
-                    refusal = Some(refused);
-                    break;
-                }
-            }
+        );
+        let standing = TemporalDriveStanding::Concluded(empty);
+        return TemporalDriveReading::from_drive(generated, 0usize, standing);
+    }
+    let (evaluated, break_found) = first_break(contract, generated.sequences());
+    let standing = match break_found {
+        Some(refused) => TemporalDriveStanding::Concluded(refused),
+        None if generated.halt() == GenerationHalt::CaseBudgetMet => {
+            TemporalDriveStanding::Concluded(TrialConclusion::Passed)
         }
-        match refusal {
-            Some(refused) => TemporalDriveStanding::Concluded(refused),
-            None if generated.halt() == GenerationHalt::CaseBudgetMet => {
-                TemporalDriveStanding::Concluded(TrialConclusion::Passed)
-            }
-            None => TemporalDriveStanding::Incomplete,
-        }
+        None => TemporalDriveStanding::Incomplete,
     };
     TemporalDriveReading::from_drive(generated, evaluated, standing)
 }
 
-/// The history one command sequence drives: the opening state, and the state
-/// after each command in order.
+/// How many sequences evaluation read, and the first history that broke a claim.
+#[track_caller]
+fn first_break<State, Command>(
+    contract: &TransitionContract<State, Command>,
+    sequences: &[CommandSequence<Command>],
+) -> (usize, Option<TrialConclusion>) {
+    let mut evaluated = 0usize;
+    for sequence in sequences {
+        evaluated = evaluated.saturating_add(1usize);
+        match holds_over_history(contract, sequence.commands()) {
+            TrialConclusion::Passed => {}
+            refused @ TrialConclusion::Refused(_) => return (evaluated, Some(refused)),
+        }
+    }
+    (evaluated, None)
+}
+
+/// The history one command sequence drives: the opening state, and the state after each command in order.
 fn driven_history<State, Command>(
     contract: &TransitionContract<State, Command>,
     commands: &[Command],
@@ -161,9 +144,8 @@ fn somewhere<State>(predicate: StatePredicate<State>, history: &[State]) -> Hold
 
 /// Whether the predicate, once it holds, holds of every later state.
 ///
-/// A history the predicate never holds of satisfies the latch: nothing latched,
-/// so nothing was unlatched. What that history fails to establish is the
-/// eventually-claim, which is a different claim and states itself.
+/// A history the predicate never holds of satisfies the latch: nothing latched, so nothing was unlatched.
+/// What that history fails to establish is the eventually-claim, which is a different claim and states itself.
 fn latched<State>(predicate: StatePredicate<State>, history: &[State]) -> Holding {
     let mut seen = Holding::Fails;
     for state in history {

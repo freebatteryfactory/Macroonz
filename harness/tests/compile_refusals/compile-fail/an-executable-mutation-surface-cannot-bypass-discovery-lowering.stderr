@@ -1,0 +1,56 @@
+error[E0624]: associated function `admitted` is private
+  --> tests/compile_refusals/compile-fail/an-executable-mutation-surface-cannot-bypass-discovery-lowering.rs:21:28
+   |
+21 |       let _ = MutationPoint::admitted(policy, claim, point_site);
+   |                              ^^^^^^^^ private associated function
+   |
+  ::: src/muterprater/type_guard.rs
+   |
+   | /     pub(in crate::muterprater) fn admitted(
+   | |         policy: &MutationPolicy,
+   | |         owner_claim: ClaimRef,
+   | |         discovered: DiscoveredMutationSite,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0624]: associated function `recorded` is private
+  --> tests/compile_refusals/compile-fail/an-executable-mutation-surface-cannot-bypass-discovery-lowering.rs:22:29
+   |
+22 |       let _ = DiscoveryEntry::recorded(entry_site, disposition);
+   |                               ^^^^^^^^ private associated function
+   |
+  ::: src/muterprater/type_guard.rs
+   |
+   | /     pub(in crate::muterprater) fn recorded(
+   | |         site: DiscoveredMutationSite,
+   | |         disposition: DiscoveryDisposition,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0624]: associated function `admitted` is private
+  --> tests/compile_refusals/compile-fail/an-executable-mutation-surface-cannot-bypass-discovery-lowering.rs:23:32
+   |
+23 |       let _ = EvaluationSurface::admitted(policy, vec![point]);
+   |                                  ^^^^^^^^ private associated function
+   |
+  ::: src/muterprater/type_guard.rs
+   |
+   | /     pub(in crate::muterprater) fn admitted(
+   | |         policy: &MutationPolicy,
+   | |         mut points: Vec<MutationPoint>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0624]: associated function `lowered` is private
+  --> tests/compile_refusals/compile-fail/an-executable-mutation-surface-cannot-bypass-discovery-lowering.rs:24:38
+   |
+24 |       let _ = MutationSurfaceLowering::lowered(discovery, surface);
+   |                                        ^^^^^^^ private associated function
+   |
+  ::: src/muterprater/type_guard.rs
+   |
+   | /     pub(in crate::muterprater) fn lowered(
+   | |         discovery: MutationDiscoveryReading,
+   | |         surface: EvaluationSurface,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

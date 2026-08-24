@@ -1,11 +1,13 @@
-//! The canonical preimages of the interpreted mutation lane's policy, alternative, and evaluation-surface identities.
+//! The canonical preimages behind the interpreted lane's four content identities.
+//!
+//! Every member is length-framed through the record vocabulary's one framing law, so no two different readings can share a preimage by accident.
 
 use super::{
     AdmittedAlternative, DiscoveryEntry, EvaluationFamilyRef, MutationPermission, MutationPoint,
-    MutationPolicyId, OwnerClaimMapping,
+    MutationPolicyId, OperatorFamilyRef, OwnerClaimMapping,
 };
-use crate::descriptor::NamespacedName;
-use crate::identity::ContentAddress;
+use crate::descriptor::{MutationPointRef, NamespacedName};
+use crate::identity::{ContentAddress, DomainTag};
 use crate::report::{encode_bytes, encode_length};
 
 /// Append one namespaced name as its two length-framed authored parts.
@@ -14,9 +16,17 @@ fn push_name(into: &mut Vec<u8>, name: NamespacedName) {
     encode_bytes(name.stem().written().as_bytes(), into);
 }
 
+/// Append one admitted alternative at its canonical surface width.
+fn push_alternative(into: &mut Vec<u8>, alternative: &AdmittedAlternative) {
+    encode_bytes(alternative.identity().address().as_bytes(), into);
+    encode_bytes(alternative.family().slug().as_bytes(), into);
+    encode_bytes(alternative.operation(), into);
+}
+
 /// The complete preimage of one owner-authored mutation policy.
 ///
-/// Members are the evaluation-family name followed by the permission count and each permission in claim order. A permission is its owner-claim name followed by its family count and each operator-family slug in lexical order.
+/// The evaluation-family name, then the permission count and each permission in claim order.
+/// A permission is its owner-claim name, then its family count and each operator-family slug in lexical order.
 pub(super) fn policy_preimage(
     family: EvaluationFamilyRef,
     permissions: &[MutationPermission],
@@ -36,10 +46,11 @@ pub(super) fn policy_preimage(
 
 /// The complete preimage of one admitted alternative.
 ///
-/// Members are the point's namespaced identity, the operator-family slug, and the canonical mutation bytes. Roster position is absent, so reordering alternatives cannot rename them.
+/// The point's namespaced identity, the operator-family slug, and the canonical mutation bytes.
+/// Roster position is absent, so reordering alternatives cannot rename them.
 pub(super) fn alternative_preimage(
-    point: crate::descriptor::MutationPointRef,
-    family: super::OperatorFamilyRef,
+    point: MutationPointRef,
+    family: OperatorFamilyRef,
     operation: &[u8],
 ) -> Vec<u8> {
     let mut bytes = Vec::new();
@@ -51,7 +62,8 @@ pub(super) fn alternative_preimage(
 
 /// The complete preimage of one evaluation surface.
 ///
-/// Members are the evaluation-family name, policy address, point count, and each point in point-identity order. A point contributes its identity, policy membership claim, original bytes, activation-site name, alternative count, and each admitted alternative in alternative-identity order.
+/// The evaluation-family name, the policy address, the point count, and each point in point-identity order.
+/// A point contributes its identity, its membership claim, its original bytes, its activation-site name, and its alternatives in alternative-identity order.
 pub(super) fn surface_preimage(
     family: EvaluationFamilyRef,
     policy: MutationPolicyId,
@@ -76,7 +88,9 @@ pub(super) fn surface_preimage(
 
 /// The complete preimage of one producer discovery reading.
 ///
-/// Members are the evaluation-family name, owner-policy address, discovery count, then every site in producer order. A site contributes its point identity, owner-mapping posture and mapped claim where present, unchanged operation, every candidate alternative's operator-family slug and exact meaning bytes in producer order, and its activation site. Admission disposition is derived from these facts and the addressed policy rather than encoded a second time.
+/// The evaluation-family name, the owner-policy address, the discovery count, then every site in producer order.
+/// A site contributes its point identity, its mapping posture and mapped claim where it has one, its unchanged operation, each candidate alternative's family slug and meaning bytes in producer order, and its activation site.
+/// Admission disposition is derived from those facts and the addressed policy rather than encoded a second time.
 pub(super) fn discovery_preimage(
     family: EvaluationFamilyRef,
     policy: MutationPolicyId,
@@ -107,14 +121,7 @@ pub(super) fn discovery_preimage(
     bytes
 }
 
-/// Append one admitted alternative at its canonical surface width.
-fn push_alternative(into: &mut Vec<u8>, alternative: &AdmittedAlternative) {
-    encode_bytes(alternative.identity().address().as_bytes(), into);
-    encode_bytes(alternative.family().slug().as_bytes(), into);
-    encode_bytes(alternative.operation(), into);
-}
-
-/// Derive one content address over a preimage under the caller's family tag.
-pub(super) fn address(tag: crate::identity::DomainTag, preimage: &[u8]) -> ContentAddress {
+/// Derive one content address over a preimage, under the caller's domain tag.
+pub(super) fn address(tag: DomainTag, preimage: &[u8]) -> ContentAddress {
     ContentAddress::derived(tag, preimage)
 }

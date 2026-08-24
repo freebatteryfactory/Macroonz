@@ -1,28 +1,12 @@
-//! The one shared sequence driver: a plan and a byte source in, command
-//! sequences and an honest census out.
+//! The one shared sequence driver: a plan and a byte source in, command sequences and an honest census out.
 //!
-//! A command sequence is a structured input like any other, so one driver
-//! serves every lane that needs one — temporal properties, metamorphic
-//! relations, sequence mutation, and chaos scheduling all drive through this
-//! call rather than each growing a loop of its own.
+//! A command sequence is a structured input like any other, so a lane that needs one drives through this call rather than growing a loop of its own.
 //!
-//! # The seam
+//! Two owner-supplied function pointers and nothing else reach in: a decoder ([`CommandDecode`]) that turns a case's bytes into one command, and a precondition ([`SequencePrecondition`]) that judges the decoded sequence.
+//! Neither road is privileged and neither carries captured state.
 //!
-//! Two owner-supplied function pointers and nothing else: a decoder
-//! ([`CommandDecode`]) that turns a case's bytes into one command, and a
-//! precondition ([`SequencePrecondition`]) that judges the decoded sequence. An
-//! owner whose command type derives the generation vocabulary's `Arbitrary`
-//! reaches the first seam through [`decode_arbitrary`]; an owner with a
-//! hand-written decoder passes one directly. Neither road is privileged, and
-//! neither carries captured state.
-//!
-//! # Honest counting
-//!
-//! Every case the drive REACHES is counted exactly once, under exactly one
-//! disposition. A rejection is counted, never silently skipped: a rejection
-//! that burned budget without being counted would shrink the denominator, and a
-//! reader of the census would see a smaller world than the one the drive
-//! actually walked.
+//! Every case the drive reaches is counted exactly once, under exactly one disposition.
+//! A rejection is counted, never silently skipped: one that burned budget without being counted would leave a reader of the census seeing a smaller world than the drive actually walked.
 
 use super::types::{
     ByteDraw, ByteSource, CaseIndex, CaseWidth, CommandDecode, CommandSequence, GeneratedSequences,
@@ -32,14 +16,10 @@ use super::types::{
 use arbitrary::{Arbitrary, Unstructured};
 
 /// What one case's decode produced.
-///
-/// Private to this algorithm: the three answers exist so the driver's loop
-/// reads as one match, and none of them is a fact a caller needs a name for.
 enum CaseDecoding<Command> {
     /// At least one command was decoded.
     Decoded(Vec<Command>),
-    /// The decoder declined the very first command, so the case produced
-    /// nothing.
+    /// The decoder declined the very first command, so the case produced nothing.
     Refused,
     /// The decoder reported a command while consuming none of the case's bytes.
     ContractViolated,
@@ -55,23 +35,15 @@ enum CaseOutcome<Command> {
     ContractViolated,
 }
 
-/// The paved road from a command type that derives the generation vocabulary's
-/// `Arbitrary` into the seam [`CommandDecode`] declares.
+/// The paved road from a command type that derives the generation vocabulary's `Arbitrary` into the seam [`CommandDecode`] declares.
 ///
-/// The wrapper exists because the generation vocabulary carries the buffer
-/// lifetime on the TRAIT rather than on the method, so a trait method cannot
-/// itself be a decoder that works for every buffer. This function's own buffer
-/// lifetime is late-bound, which is what lets `decode_arbitrary::<MyCommand>`
-/// stand where a [`CommandDecode`] is asked for.
+/// The wrapper exists because that vocabulary carries the buffer lifetime on the trait rather than on the method, so a trait method cannot itself be a decoder that works for every buffer.
+/// This function's own buffer lifetime is late-bound, which is what lets `decode_arbitrary::<MyCommand>` stand where a [`CommandDecode`] is asked for.
 ///
 /// # Errors
 ///
-/// Hands back whatever the command type's own generation road refused with. The
-/// driver reads any refusal as [`GenerationDisposition::GeneratorRefused`] and
-/// never inspects which one it was: that error vocabulary belongs to the
-/// generation library and is open to new arms, so a refusal is the strongest
-/// claim this home can make from a foreign value. Byte sufficiency is the
-/// SOURCE's fact and is recorded where it is known.
+/// Hands back whatever the command type's own generation road refused with.
+/// The driver reads any refusal as [`GenerationDisposition::GeneratorRefused`] and never inspects which one it was, because that error vocabulary belongs to the generation library and is open to new arms.
 pub fn decode_arbitrary<Command>(source: &mut Unstructured<'_>) -> arbitrary::Result<Command>
 where
     Command: for<'bytes> Arbitrary<'bytes>,
@@ -81,26 +53,16 @@ where
 
 /// The precondition a population without one drives under.
 ///
-/// A total function rather than an absent one, so no road in the driver has to
-/// decide what a missing precondition would have meant.
+/// A total function rather than an absent one, so no road in the driver has to decide what a missing precondition would have meant.
 #[must_use]
 pub const fn admit_every_sequence<Command>(_commands: &[Command]) -> PreconditionVerdict {
     PreconditionVerdict::Admitted
 }
 
-/// Drive one plan over one byte source, yielding command sequences under the
-/// plan's budgets.
+/// Drive one plan over one byte source, yielding command sequences under the plan's budgets.
 ///
-/// # Authority
-///
-/// The plan owns every bound and the source owns every byte; this call owns
-/// neither and invents nothing. Its own scheduling and byte accounting are
-/// deterministic for a plan, source, and sequence of callback results. The
-/// owner-supplied decoder and precondition are function pointers without
-/// captured closure state, but their effects and outcome stability remain the
-/// owner's responsibility.
-///
-/// The source is a separate argument rather than built inside the driver so that one plan can be driven over caller-supplied material, including a corpus warm start or a replay whose authority is established elsewhere, as well as over its own paved stream. [`ByteSource::of_plan`] is the paved road from a plan to its declared source.
+/// The plan owns every bound and the source owns every byte; this call owns neither and invents nothing.
+/// The source is a separate argument rather than built inside the driver, so one plan can also be driven over caller-supplied material whose authority is established elsewhere — [`ByteSource::of_plan`] is the paved road from a plan to its declared source.
 ///
 /// # Bounds
 ///
@@ -108,27 +70,13 @@ pub const fn admit_every_sequence<Command>(_commands: &[Command]) -> Preconditio
 ///
 /// - the byte budget is read before a case and stops the drive when nothing remains to draw;
 /// - the rejection allowance is read after an empty-handed outcome is counted and stops every later draw as soon as it is spent;
-/// - the case budget ends it by completion, which is the one halt arm that
-///   means the plan finished.
+/// - the case budget ends the drive by completion, which is the one halt arm that means the plan finished.
 ///
-/// Each case's width is the plan's ramp, capped at the bytes the byte budget
-/// still admits — so the declared byte budget, never the ramp, is the ceiling
-/// on any one draw.
+/// Each case's width is the plan's ramp, capped at what the byte budget still admits.
+/// Within a case, the decode loop is bounded by the case's own width: a decoder that reports a command must have consumed at least one byte, so a case of width W yields at most W commands.
 ///
-/// Within a case, the decode loop is bounded by the case's own width: the
-/// decoder contract requires every reported command to have consumed at least
-/// one byte, so a case of width W yields at most W commands and the loop cannot
-/// run forever.
-///
-/// A decoder that refuses AFTER producing commands ends that sequence there and
-/// the case is generated — declining to extend a sequence is a lawful end, not
-/// a refusal of the case. A decoder that refuses BEFORE producing any command
-/// leaves the case empty-handed.
-///
-/// # Nonclaims
-///
-/// The sequences handed back are inputs, not evidence. Nothing here executes a
-/// subject, judges one, or knows what a command means.
+/// A decoder that refuses after producing commands ends that sequence there and the case is generated — declining to extend a sequence is a lawful end.
+/// A decoder that refuses before producing any command leaves the case empty-handed.
 #[must_use]
 pub fn drive<Command>(
     plan: &GenerationPlan,
@@ -145,9 +93,9 @@ pub fn drive<Command>(
 
     for ordinal in 0..plan.cases().cases() {
         let remaining = plan.bytes().bytes().saturating_sub(spent);
-        if let Some(reason) = byte_bound_reached(remaining) {
+        if remaining == 0 {
             census.count(GenerationDisposition::GenerationBudgetExhausted);
-            halt = reason;
+            halt = GenerationHalt::ByteBudgetExhausted;
             break;
         }
         let case = CaseIndex::at(ordinal);
@@ -167,7 +115,7 @@ pub fn drive<Command>(
             CaseOutcome::EmptyHanded(disposition) => {
                 census.count(disposition);
                 rejections = rejections.saturating_add(1);
-                if rejection_allowance_spent(plan.rejection_allowance(), rejections) {
+                if allowance_spent(plan.rejection_allowance(), rejections) {
                     halt = GenerationHalt::RejectionAllowanceSpent;
                     break;
                 }
@@ -183,31 +131,19 @@ pub fn drive<Command>(
     GeneratedSequences::produced(sequences, census, halt)
 }
 
-/// Whether the byte budget is already spent.
-///
-/// Read before a case is drawn, so exhaustion is recorded as the case that was never attempted.
-fn byte_bound_reached(remaining: u64) -> Option<GenerationHalt> {
-    if remaining == 0 {
-        return Some(GenerationHalt::ByteBudgetExhausted);
-    }
-    None
-}
-
 /// Whether the latest empty-handed draw spent the declared allowance.
 ///
-/// Read after the outcome is counted so `NoRejections` can permit successful cases while retaining the first rejection that closes the road.
-fn rejection_allowance_spent(allowance: RejectionAllowance, rejections: u32) -> bool {
+/// Read after the outcome is counted, so [`RejectionAllowance::NoRejections`] can let successful cases proceed while the first rejection closes the road.
+fn allowance_spent(allowance: RejectionAllowance, rejections: u32) -> bool {
     match allowance {
         RejectionAllowance::NoRejections => rejections > 0,
         RejectionAllowance::AtMost(admitted) => rejections >= admitted.get(),
     }
 }
 
-/// The width one case is actually drawn at: the ramp's width, capped at what
-/// the byte budget still admits.
+/// The width one case is actually drawn at: the ramp's width, capped at what the byte budget still admits.
 ///
-/// The caller reads the budget first, so `remaining` is at least one and the
-/// width handed back is never zero.
+/// The caller reads the budget first, so `remaining` is at least one and the width handed back is never zero.
 fn drawn_width(width: CaseWidth, remaining: u64) -> usize {
     let ceiling = usize::try_from(remaining).unwrap_or(usize::MAX);
     width.bytes().min(ceiling)
@@ -239,9 +175,8 @@ fn case_outcome<Command>(
 
 /// Decode one case's bytes into a command sequence.
 ///
-/// The loop ends when the case's bytes are spent, when the decoder declines, or
-/// when the decoder breaks its contract. Every reported command must have
-/// shortened the buffer, which is what bounds the loop by the case's own width.
+/// The loop ends when the case's bytes are spent, when the decoder declines, or when the decoder breaks its contract.
+/// Every reported command must have shortened the buffer, which is what bounds the loop by the case's own width.
 fn decode_case<Command>(input: &[u8], decode: CommandDecode<Command>) -> CaseDecoding<Command> {
     let mut source = Unstructured::new(input);
     let mut commands: Vec<Command> = Vec::new();
@@ -260,11 +195,7 @@ fn decode_case<Command>(input: &[u8], decode: CommandDecode<Command>) -> CaseDec
     CaseDecoding::Decoded(commands)
 }
 
-/// What a decoder's refusal means, which depends on whether it had already
-/// produced anything.
-///
-/// Declining to extend a sequence is a lawful end; declining to start one is a
-/// refusal of the case.
+/// What a decoder's refusal means, which depends on whether it had already produced anything.
 fn after_refusal<Command>(commands: Vec<Command>) -> CaseDecoding<Command> {
     if commands.is_empty() {
         CaseDecoding::Refused

@@ -1,9 +1,6 @@
-//! The comparison: two reports in, a pure difference or an honest refusal out.
+//! Two reports in, a pure difference or an honest refusal out.
 //!
-//! It runs outside the runner and therefore never grows the runner's memory:
-//! the baseline is the caller's to supply, both censuses are read through
-//! borrowed indexes, and the difference that comes back owns only identities
-//! and small typed facts — not one record is copied.
+//! It runs outside the runner and never grows the runner's memory: the baseline is the caller's to supply, both censuses are read through borrowed indexes, and the difference that comes back owns only identities and small typed facts.
 
 use super::{
     Baseline, CensusDelta, ConclusionFlip, NotComparedReason, ReportComparison, ReportDiff,
@@ -13,15 +10,8 @@ use std::collections::BTreeMap;
 
 /// Compare one report against a typed baseline.
 ///
-/// # Authority
-///
-/// A cross-posture pair is REFUSED rather than compared: an authored world and
-/// a staged view have different denominators by construction, and a difference
-/// between them would read as change in the world when it is only change in
-/// what was overlaid.
-///
-/// The refusal arms carry their own reason, so a caller can never mistake "no
-/// difference" for "nothing to compare against".
+/// A cross-posture pair is refused rather than compared: an authored world and a staged view have different denominators by construction, and a difference between them would read as change in the world when it is only change in what was overlaid.
+/// Each refusal arm carries its own reason, so a caller can never mistake "no difference" for "nothing to compare against".
 #[must_use]
 pub fn compare(baseline: Baseline<'_>, current: &RunReport) -> ReportComparison {
     match baseline {
@@ -44,8 +34,7 @@ fn against_previous(previous: &RunReport, current: &RunReport) -> ReportComparis
     }
 }
 
-/// The difference itself: census membership, authored-row revisions, and
-/// outcome flips.
+/// The difference itself: census membership, authored-row revisions, and outcome flips.
 fn diffed(previous: &RunReport, current: &RunReport) -> ReportDiff {
     let before = indexed(previous);
     let after = indexed(current);
@@ -86,8 +75,7 @@ fn diffed(previous: &RunReport, current: &RunReport) -> ReportDiff {
 
 /// One report's census, indexed by trial identity for the walk.
 ///
-/// Ordered rather than hashed, so the difference a comparison produces is in
-/// one deterministic order however the census was written.
+/// Ordered rather than hashed, so the difference comes back in one deterministic order however the census was written.
 fn indexed(report: &RunReport) -> BTreeMap<TrialId, &TrialAccounting> {
     report
         .census()

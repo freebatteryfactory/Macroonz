@@ -1,9 +1,7 @@
-//! Claim coverage: did every claim the denominator names actually get
-//! exercised.
+//! Claim coverage: did every claim the denominator names actually get exercised.
 //!
-//! A reading of one report, computed and never hand-counted, over the
-//! denominator that report already recorded. The intermediate tally is private
-//! to the reading; the counts leave as typed values.
+//! A reading of one report, computed and never hand-counted, over the denominator that report already recorded.
+//! The running tally is private to the reading; the counts leave as typed values.
 
 use super::{ClaimCoverage, ClaimExercise, CoverageRefusal, Exercise, RunReport};
 use crate::descriptor::{ClaimRef, TablePosture};
@@ -13,17 +11,12 @@ type Tally = (ClaimRef, usize, usize);
 
 /// Read what one run exercised, per claim, over the denominator it recorded.
 ///
-/// # Authority
-///
-/// Exercise is execution: a row the invocation selected and then skipped counts
-/// as unexercised, because a coverage number that counted it would be claiming
-/// evidence nobody produced.
+/// Exercise is execution: a row the invocation selected and then skipped counts as unexercised, because a coverage number that counted it would be claiming evidence nobody produced.
 ///
 /// # Errors
 ///
-/// Refuses a report standing over a staged view. Coverage admits
-/// authored-posture reports only, so a candidate run never enters the numbers a
-/// gate reads — by refusal, not by declaration.
+/// Refuses a report standing over a staged view.
+/// Coverage admits authored-posture reports only, so a candidate run never enters the numbers a gate reads — by refusal, not by declaration.
 pub fn claim_coverage(report: &RunReport) -> Result<ClaimCoverage, CoverageRefusal> {
     match report.posture() {
         TablePosture::Authored => {}

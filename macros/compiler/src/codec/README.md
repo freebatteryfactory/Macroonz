@@ -1,85 +1,81 @@
-# `codec` — the codec that refuses on decode IS the validator
+# `codec`
 
-The codec projection's delivery: the ENCODE road that writes one declared shape's canonical bytes and the DECODE road that reads them back, rendered as tokens for the owner's own type, landing at the declaration site or inside a visibly published module.
+The codec kind: one declared shape in, the Rust that writes its canonical bytes and reads them back out.
 
-## There is no validator kind, and this is why
+A caller says what its value is made of — the members, in the order they are written, each held at a type, each under one wire shape, each required, optional, or repeated — and this home renders the two roads over it.
+Nothing here decides any of that.
+A generator that chose a member's wire shape would be inventing how somebody else's value is written down and then encoding it that way.
 
-The delivery matrix admits no validator projection, and the absence is a statement rather than a gap: a codec whose decode road refuses on malformed input already answers every question a validator would. The rendered decode road reads one member at a time, refuses the moment the material does not admit the member it is standing at, and refuses again where material remains after the last declared member — so "these bytes are a lawful `Owner`" is exactly "decode returned a value", and nothing else has to be run to learn it.
+---
 
-That is why a plan whose direction is [`CodecDirection::Encode`](crate::planning::CodecDirection::Encode) delivers no validator, and why this home says so instead of rendering a half decode:
+## The decode road is the validator
 
-an encode-only codec is a lawful delivery that carries no reader, and a caller who needed the reader needs a different direction rather than a different rendering.
+There is no validator kind here, and the absence is a statement rather than a gap.
 
-## The framing is the plane's, and it is stated once
+A decode road that refuses on malformed input already answers every question a validator would.
+It reads one member at a time, refuses the moment the material does not admit the member it is standing at, and refuses once more where material remains after the last declared member.
+"These bytes are a lawful value" is therefore exactly "the decode road returned one", and there is nothing else to run to learn it.
 
-Every variable-length member is written as `u64be(len)` then the bytes — the plane's own framing ([`crate::plane::encode_bytes`]), the same one the descriptor and report instruments spell for their preimages.
+That is why a request covering only the encode direction delivers no reader, and why the surface says so instead of rendering half a decode road.
 
-Two members can therefore never be re-cut at a different boundary and produce one byte string, which is the whole of what "canonical" buys. Nothing is folded on the way in and nothing is compressed:
+---
 
-a codec that summarized a member would be inventing a second value for it.
+## The framing, stated once
 
-A NESTED member is framed on exactly those terms — the nested codec's own output, length-prefixed — rather than run to the end of the input, because a nested value that consumed the remainder would make the member after it unreadable.
+Every variable-length member is written as eight big-endian length bytes and then the bytes themselves.
 
-## The rendering writes no numeric literal, and that is deliberate
+Two members can never be re-cut at another boundary and produce one byte string, which is the whole of what canonical buys.
+Nothing is folded on the way in and nothing is summarized: a codec that summarized a member would be inventing a second value for it.
+A nested member is framed on exactly those terms rather than run to the end of the input, because a nested value that consumed the remainder would make the member after it unreadable.
 
-The generated-token roster carries a numeric arm ([`GeneratedToken::Number`](crate::token::GeneratedToken::Number)) and this home writes no literal through it.
+---
 
-Every place a number would have stood is written as the language's own road to the same value:
+## No numeric literal is written anywhere
 
-| where a number would stand | what the rendering writes |
-| -------------------------- | ------------------------- |
+The generated-token roster carries a numeric arm and this home writes nothing through it.
+Every place a number would have stood is the language's own road to the same value.
+
+| Where a number would stand | What the rendering writes |
+| --- | --- |
 | the framing width | `::core::mem::size_of::<u64>()` |
 | an absent optional member | `u8::from(false)` |
 | a present optional member | `u8::from(true)` |
-| a closed choice's admitted slots | the owner's own `ALL` roster, compared by `slot()` |
+| a closed choice's admitted slots | the owner's own roster, walked and compared |
 | a repeated member's stop | `collected.len() < count` |
 
-The closed-choice road is the one worth reading twice:
+The closed-choice road is the one worth reading twice.
+The rendering never writes a table of slots: it walks the roster the owner declared and compares each candidate's own position against the byte it read.
+A roster that gained an arm gains it in the decode road too, without this home ever learning what the arms are — and a slot no arm answers to refuses rather than electing a neighbour.
 
-the rendering never writes a table of slots, it walks the owner's OWN declared roster and compares each candidate's `slot()` against the byte it read. A roster that gained an arm gains it in the decode road too, without this home ever learning what the arms are — and a slot no arm answers to refuses rather than electing a neighbour.
+`::core::mem::size_of::<u64>()` says the width *is* the framing's, where a digit would say only what that width happens to be today.
+A literal is available here, and it is the weaker sentence.
 
-This home therefore renders no unspellable-literal refusal, and there is no such refusal anywhere for it to render:
-
-the roster carries a byte-string arm beside the numeric one ([`GeneratedToken::ByteText`](crate::token::GeneratedToken::ByteText)), so a declared count and a declared byte string are each ONE literal token, and the crossings that need them write them directly.
-
-What stands above is therefore this home's own choice of road and never a bound it is under. `::core::mem::size_of::<u64>()` says the width IS the framing's, where a digit would say only what that width happens to be today; the owner's own `ALL` roster says the slots are the OWNER's, where a table of them would be a second copy of somebody else's declaration. A literal is available here, and it is the weaker sentence.
-
-## The shape arrives from the caller
-
-The plan's kind content names a SCHEMA, a BYTE ROLE, a DIRECTION, and the owner facts the codec rests on. It does not name a type, a member, a wire shape, a cardinality, or an assembly road — so [`CodecShape`] arrives from the caller and `plan.rs` reads only what the plan actually decided.
-
-A generator that invented a member's wire shape would be declaring how somebody else's value is written down and then encoding it that way, which is the one thing these services never do.
-
-The cardinality is the contracts crate's roster ([`FieldCardinality`](macroonz::FieldCardinality)), imported rather than restated:
-
-required, optional, repeated, and no fourth.
+---
 
 ## What the address owes
 
-`MEMBER_CONTRACT` in `type_contract.rs` is the complete bill:
+`MEMBER_CONTRACT` is the complete bill: one row per wire shape, naming exactly the roads the rendered code calls on a member's own type.
+A road named through a trait is written qualified; a road named on the member's own type is written bare.
+Where a road is absent, the failure lands at the caller's site as an ordinary unresolved method, which is where a missing road on the caller's own type belongs.
 
-one row per wire shape, naming exactly the roads the rendered code calls on the member's own type.
+The assembly road's posture is stated and never inferred.
+A total constructor is called plain; a checked one is called with `?`, and the rendered refusal carries the owner's own refusal beside a `From` implementation this home writes — so a checked assembly costs the address nothing.
 
-It is stated in the repository rather than in a reader's head, and nothing is listed that the emission does not actually write.
-
-The ASSEMBLY road is the caller's and its posture is stated, never inferred:
-
-a total constructor is called plain, a checked one is called with `?` and the rendered refusal carries the owner's own refusal beside a `From` implementation this home writes — so a checked assembly costs the address nothing at all.
+---
 
 ## Where the surface lands
 
-Both admitted placements are expansion deliveries, so the plan's destination is the declaration site under either:
+Both placements are declaration-site deliveries, so what the placement decides is the surface's *shape*: spliced beside the owner's own item, or wrapped in a visibly published module whose head imports the scope the module sits in.
 
-a planned member written as a standalone artifact is a different delivery and is refused here.
+The kind's one seat names the declaration site itself, so a codec surface written anywhere else is not a member this home can refuse — it is a member nobody can plan.
 
-What the placement decides is the SHAPE — spliced beside the owner's own item, or wrapped in a visibly published module whose head writes the one import a wrapped surface needs.
+---
 
 ## The seats
 
-`types.rs` declares, including the three magnitude rows this home's capacities are governed by — meaning, number, and reason on one row, stamped through the plane's `limits!` — and the two refusal families it answers through. Its own child `type_guard.rs` holds every road that reaches a private seat — a path's segments, a member's spelling, a shape's members, the assembly road, the placement's module spelling, the surface's composition, and the refusal body's one seat.
+`types.rs` declares the kind, the shape vocabulary, the three magnitudes, and the one refusal.
+Its own child `type_guard.rs` holds every road that reaches a private seat — a path's segments, a member's spelling, a shape's members, the assembly road, the module spelling — and the one alphabet every rendered spelling is admitted by.
 
-`type_contract.rs` states the declarative tables: the refusal family's declared shape, the member contract, the reserved bindings the decode road names, and which of the two roads each declared direction covers.
+`type_contract.rs` states the tables: the kind, the member contract, the locals the decode road reserves for itself, and how a direction answers for each of the two roads.
 
-`plan.rs` reads the plan through its public surface — the account, the context, the membership, the kind content — and states what the surface will be.
-
-`render.rs` is the token half: the refusal declaration, the encode road, the decode road, and the placement that carries them.
+`render.rs` is the token half, and `encode.rs` is the canonical bytes one refused issue is.

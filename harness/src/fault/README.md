@@ -1,9 +1,46 @@
-# fault — typed adapters scheduled over command sequences
+# fault
 
-A fault is an adopter-owned typed adapter whose port operation returns the adopter's refusal or altered behavior. `TestPak` does not invent a universal port interface: it carries those typed adapter values through a named campaign, selects one schedule, and injects its values at declared positions in an ordinary command sequence.
+Adversity you schedule, not adversity the harness invents.
 
-The schedule is data, never ambient state. Positions are zero-based command coordinates; several faults may be stacked at one position, and their authored order is retained. Selection refuses a name the campaign did not declare, and injection refuses a scheduled position outside the supplied sequence rather than dropping it.
+A fault here is a value you wrote: some behavior of yours, joined to the postcondition you promise still holds when that behavior refuses.
+The harness never calls it and never looks inside it.
+What the harness owns is the placement — which of your adapters sits at which command, under which named schedule, and whether that schedule is coherent enough to be worth running.
 
-The adopter owns what an adapter does and what its refusal leaves true. A consumer observes those facts through the ordinary property and runner roads, so this home does not grow a second verdict, report, port trait, registry, global hook, or mutation orchestrator.
+## The road
 
-Out-of-memory is a seam fault by construction: an adopter can supply a bounded-capacity port adapter that refuses at its declared bound. No allocator hook is required in a safe-Rust harness because the product's own bounded port is the injection point.
+Place adapters at zero-based positions, name the schedule, gather schedules into a campaign, select one by name, and inject it into an ordinary sequence of your own commands.
+
+```rust,ignore
+let control = FaultSchedule::declared(schedule_name("quiet-control")?, Vec::new());
+let hostile = FaultSchedule::declared(
+    schedule_name("capacity-at-the-second-write")?,
+    vec![ScheduledFault::at(
+        SequencePosition::at(1),
+        FaultAdapter::declared(WriteFault::Capacity, WritePostcondition::StateUnchanged),
+    )],
+);
+let campaign = FaultCampaign::declared(vec![control, hostile])?;
+let selected = campaign.select(schedule_name("capacity-at-the-second-write")?)?;
+let injected = inject(&selected, commands())?;
+```
+
+Back comes your sequence, each command carrying the adapters scheduled at its position, in the order you wrote them.
+Running them is yours.
+
+## What it refuses
+
+- A campaign with no schedule, and a campaign whose schedules are all empty controls: each declares pressure and applies none.
+- Two schedules under one name, which would leave a selection with two answers.
+- A name the campaign never declared.
+- A position past the end of the sequence, refused before a single adapter is cloned, so a schedule is never half-injected.
+
+An empty schedule beside a hostile one is not a refusal.
+That is the control you compare against.
+
+## What it does not do
+
+It defines no port trait, keeps no registry, installs no hook, executes no adapter, and reaches no verdict.
+An injected sequence is a history; what your behavior did with it, and whether your postcondition survived, is read on the harness's ordinary `properties` and `runner` roads.
+
+Out-of-memory needs no allocator hook here.
+An adapter that refuses at its own declared capacity is that experiment, written in safe Rust.

@@ -1,28 +1,34 @@
-//! The benchmark receiver's invariant nucleus and borrowed read surface.
+//! The nucleus: every constructor that can refuse, and every reader over a private field.
 
 use super::{
     BenchAttachment, BenchAttachmentRefusal, BenchBinding, BenchBindingRefusal, BenchCall,
     BenchInvocation, BenchMeasurement, BenchOutcome, BenchReading, BenchReferences, BenchReport,
     BenchRow, BenchRowKey, BenchRowRefusal, BenchStage, BenchTable, BenchTableName,
-    BenchTableRefusal, BenchVerdictRefusal, ComplexityClaimRef, ContentAddress, ContentionPosture,
-    DeclaredBudgets, DeclaredBudgetsRefusal, ExactRatio, InputSizeAxis, InputSizeAxisRefusal,
-    Invocation, NamespacedName, NonZeroU32, PlantedWorseRef, PreflightRef, PreflightTrial,
-    Provenance, SecondaryObservation, SecondaryObservationRefusal, TargetBinding, TrialBinding,
-    TrialReport, WorkConclusion, WorkCount, WorkCurve, WorkCurvePoint, WorkFormula,
-    WorkFormulaRefusal, WorkGapStanding, WorkJudge, WorkJudgeBinding, WorkJudgment,
-    WorkJudgmentInput, WorkObservationRef, WorkQualificationRefusal, WorkRecorder,
-    WorkRecordingRefusal, WorkloadRef,
+    BenchTableRefusal, BenchVerdictRefusal, ComplexityClaimRef, ContentionPosture, DeclaredBudgets,
+    DeclaredBudgetsRefusal, ExactRatio, InputSizeAxis, InputSizeAxisRefusal, PlantedWorseRef,
+    PreflightRef, PreflightTrial, SecondaryObservation, SecondaryObservationRefusal,
+    WorkConclusion, WorkCount, WorkCurve, WorkCurvePoint, WorkFormula, WorkFormulaRefusal,
+    WorkGapStanding, WorkJudge, WorkJudgeBinding, WorkJudgment, WorkJudgmentInput,
+    WorkObservationRef, WorkQualificationRefusal, WorkRecorder, WorkRecordingRefusal, WorkloadRef,
 };
 use crate::bench::encode::derive_row_key;
 use crate::clock::{HarnessClock, MeasurementReading};
-use crate::descriptor::NameRefusal;
+use crate::descriptor::{NameRefusal, NamespacedName, Provenance};
+use crate::identity::ContentAddress;
+use crate::report::{TargetBinding, TrialReport};
+use crate::runner::{Invocation, TrialBinding};
 use std::collections::BTreeMap;
+use std::num::NonZeroU32;
 
-macro_rules! named_reference {
+/// The two roads and the one reader every namespaced reference here shares, written once.
+///
+/// Each reference is a type of its own so a workload cannot be handed in where a complexity claim was meant.
+/// All they share is how a name is parsed, and that law belongs in one place.
+macro_rules! namespaced_reference {
     ($($reference:ident),+ $(,)?) => {
         $(
             impl $reference {
-                /// Parse this reference from its declaring namespace and spelling.
+                /// This reference, from the namespace that declares it and the spelling it carries.
                 ///
                 /// # Errors
                 ///
@@ -37,13 +43,13 @@ macro_rules! named_reference {
                     }
                 }
 
-                /// This reference over an already-parsed name.
+                /// This reference, over a name already parsed.
                 #[must_use]
                 pub const fn over(name: NamespacedName) -> Self {
                     Self(name)
                 }
 
-                /// The namespaced name this reference carries.
+                /// The name this reference carries.
                 #[must_use]
                 pub const fn name(self) -> NamespacedName {
                     self.0
@@ -53,7 +59,7 @@ macro_rules! named_reference {
     };
 }
 
-named_reference!(
+namespaced_reference!(
     WorkloadRef,
     PreflightRef,
     PlantedWorseRef,
@@ -63,18 +69,18 @@ named_reference!(
 );
 
 impl InputSizeAxis {
-    /// Parse at least two distinct input sizes while retaining authored order.
+    /// At least two distinct sizes, keeping the order they were authored in.
     ///
     /// # Errors
     ///
-    /// Refuses a roster shorter than two, then the first repeated size.
+    /// Refuses an axis shorter than two, then the first repeated size.
     pub fn declared(sizes: Vec<u64>) -> Result<Self, InputSizeAxisRefusal> {
         if sizes.len() < 2usize {
             return Err(InputSizeAxisRefusal::TooShort { found: sizes.len() });
         }
-        let mut positions = BTreeMap::new();
+        let mut seen = BTreeMap::new();
         for (duplicate, size) in sizes.iter().copied().enumerate() {
-            if let Some(first) = positions.insert(size, duplicate) {
+            if let Some(first) = seen.insert(size, duplicate) {
                 return Err(InputSizeAxisRefusal::DuplicateSize {
                     size,
                     first,
@@ -85,7 +91,7 @@ impl InputSizeAxis {
         Ok(Self(sizes))
     }
 
-    /// The input sizes in authored order.
+    /// The sizes, in authored order.
     #[must_use]
     pub fn sizes(&self) -> &[u64] {
         &self.0
@@ -93,13 +99,13 @@ impl InputSizeAxis {
 }
 
 impl ExactRatio {
-    /// The ratio's numerator.
+    /// The numerator.
     #[must_use]
     pub const fn numerator(self) -> u64 {
         self.numerator
     }
 
-    /// The ratio's denominator.
+    /// The denominator.
     #[must_use]
     pub const fn denominator(self) -> u64 {
         self.denominator
@@ -107,11 +113,11 @@ impl ExactRatio {
 }
 
 impl DeclaredBudgets {
-    /// Parse one positive sample count, a zero-or-more warmup count, and one positive exact ratio.
+    /// One positive sample count, any warmup count, and one positive gap ratio.
     ///
     /// # Errors
     ///
-    /// Refuses zero samples, then a zero ratio numerator, then a zero ratio denominator.
+    /// Refuses zero samples, then a zero numerator, then a zero denominator.
     pub fn declared(
         samples: u32,
         warmups: u32,
@@ -137,19 +143,19 @@ impl DeclaredBudgets {
         })
     }
 
-    /// The positive primary sample count.
+    /// How many samples each pass takes.
     #[must_use]
     pub const fn samples(self) -> u32 {
         self.samples.get()
     }
 
-    /// The declared warmup count.
+    /// How many calls the timed pass discards first.
     #[must_use]
     pub const fn warmups(self) -> u32 {
         self.warmups
     }
 
-    /// The exact ratio supplied to the work judge.
+    /// The gap ratio handed to the judge.
     #[must_use]
     pub const fn ratio(self) -> ExactRatio {
         self.ratio
@@ -157,11 +163,11 @@ impl DeclaredBudgets {
 }
 
 impl WorkFormula {
-    /// Parse one present owner-declared work-formula representation.
+    /// One present formula, in whatever bytes the owner spells it.
     ///
     /// # Errors
     ///
-    /// Refuses empty bytes; a row with no formula carries `None` instead.
+    /// Refuses empty bytes, since a row with no formula carries `None` instead.
     pub fn encoded(bytes: Vec<u8>) -> Result<Self, WorkFormulaRefusal> {
         if bytes.is_empty() {
             return Err(WorkFormulaRefusal::Empty);
@@ -169,15 +175,27 @@ impl WorkFormula {
         Ok(Self { bytes })
     }
 
-    /// The exact bytes the owner declared for this formula.
+    /// The bytes, exactly as they were declared.
     #[must_use]
     pub fn bytes(&self) -> &[u8] {
         &self.bytes
     }
 }
 
+impl BenchRowKey {
+    pub(in crate::bench) const fn derived(address: ContentAddress) -> Self {
+        Self(address)
+    }
+
+    /// The address this identity carries.
+    #[must_use]
+    pub const fn address(self) -> ContentAddress {
+        self.0
+    }
+}
+
 impl BenchReferences {
-    /// The semantic references one benchmark row joins.
+    /// The four names one row joins.
     #[must_use]
     pub const fn declared(
         workload: WorkloadRef,
@@ -193,25 +211,25 @@ impl BenchReferences {
         }
     }
 
-    /// The measured workload reference.
+    /// The workload being measured.
     #[must_use]
     pub const fn workload(self) -> WorkloadRef {
         self.workload
     }
 
-    /// The correctness-preflight reference.
+    /// The correctness preflight.
     #[must_use]
     pub const fn preflight(self) -> PreflightRef {
         self.preflight
     }
 
-    /// The planted-worse reference.
+    /// The deliberately worse control.
     #[must_use]
     pub const fn planted_worse(self) -> PlantedWorseRef {
         self.planted_worse
     }
 
-    /// The neutral complexity-claim reference.
+    /// The complexity claim.
     #[must_use]
     pub const fn complexity(self) -> ComplexityClaimRef {
         self.complexity
@@ -219,7 +237,7 @@ impl BenchReferences {
 }
 
 impl BenchMeasurement {
-    /// The measurement facts one benchmark row declares.
+    /// The four measurement facts one row declares.
     #[must_use]
     pub fn declared(
         input_sizes: InputSizeAxis,
@@ -235,13 +253,13 @@ impl BenchMeasurement {
         }
     }
 
-    /// The authored input-size axis.
+    /// The input-size axis.
     #[must_use]
     pub const fn input_sizes(&self) -> &InputSizeAxis {
         &self.input_sizes
     }
 
-    /// The benchmark budgets.
+    /// The sample, warmup, and ratio budgets.
     #[must_use]
     pub const fn budgets(&self) -> DeclaredBudgets {
         self.budgets
@@ -253,98 +271,80 @@ impl BenchMeasurement {
         self.contention
     }
 
-    /// The optional owner-declared work-formula bytes.
+    /// The formula bytes, where the row declared any.
     #[must_use]
     pub const fn formula(&self) -> Option<&WorkFormula> {
         self.formula.as_ref()
     }
 }
 
-impl BenchRowKey {
-    pub(in crate::bench) const fn derived(address: ContentAddress) -> Self {
-        Self(address)
-    }
-
-    /// The row identity's derived address.
-    #[must_use]
-    pub const fn address(self) -> ContentAddress {
-        self.0
-    }
-}
-
 impl BenchRow {
-    /// Build one immutable row and derive its key from the complete eight-field declaration.
+    /// One row, with its identity derived from the whole declaration.
     ///
     /// # Errors
     ///
-    /// Refuses only where the canonical encoder cannot represent a member length in its declared width.
+    /// Refuses only where the canonical encoder cannot hold a member's length in the width it declares.
     pub fn declared(
         references: BenchReferences,
         measurement: BenchMeasurement,
     ) -> Result<Self, BenchRowRefusal> {
         let key = derive_row_key(references, &measurement).map_err(BenchRowRefusal::Encoding)?;
         Ok(Self {
-            workload: references.workload(),
-            input_sizes: measurement.input_sizes,
-            preflight: references.preflight(),
-            planted_worse: references.planted_worse(),
-            budgets: measurement.budgets,
-            contention: measurement.contention,
-            formula: measurement.formula,
-            complexity: references.complexity(),
+            references,
+            measurement,
             key,
         })
     }
 
-    /// The measured workload reference.
+    /// The workload being measured.
     #[must_use]
     pub const fn workload(&self) -> WorkloadRef {
-        self.workload
+        self.references.workload
     }
 
-    /// The authored input-size axis.
+    /// The input-size axis.
     #[must_use]
     pub const fn input_sizes(&self) -> &InputSizeAxis {
-        &self.input_sizes
+        &self.measurement.input_sizes
     }
 
-    /// The correctness-preflight reference.
+    /// The correctness preflight.
     #[must_use]
     pub const fn preflight(&self) -> PreflightRef {
-        self.preflight
+        self.references.preflight
     }
 
-    /// The planted-worse reference.
+    /// The deliberately worse control.
     #[must_use]
     pub const fn planted_worse(&self) -> PlantedWorseRef {
-        self.planted_worse
+        self.references.planted_worse
     }
 
-    /// The declared benchmark budgets.
+    /// The sample, warmup, and ratio budgets.
     #[must_use]
     pub const fn budgets(&self) -> DeclaredBudgets {
-        self.budgets
+        self.measurement.budgets
     }
 
     /// The declared contention posture.
     #[must_use]
     pub const fn contention(&self) -> ContentionPosture {
-        self.contention
+        self.measurement.contention
     }
 
-    /// The optional owner-declared work-formula bytes.
+    /// The formula bytes, where the row declared any.
     #[must_use]
     pub const fn formula(&self) -> Option<&WorkFormula> {
-        self.formula.as_ref()
+        self.measurement.formula.as_ref()
     }
 
-    /// The neutral complexity-claim reference.
+    /// The complexity claim.
     #[must_use]
     pub const fn complexity(&self) -> ComplexityClaimRef {
-        self.complexity
+        self.references.complexity
     }
 
-    /// The identity derived from the complete row declaration.
+    /// The identity derived from the whole declaration.
     #[must_use]
     pub const fn key(&self) -> BenchRowKey {
         self.key
@@ -368,31 +368,31 @@ impl WorkJudgmentInput<'_> {
         }
     }
 
-    /// The row's exact optional formula.
+    /// The row's formula bytes, where it declared any.
     #[must_use]
     pub const fn formula(&self) -> Option<&WorkFormula> {
         self.formula
     }
 
-    /// The row's neutral complexity claim.
+    /// The row's complexity claim.
     #[must_use]
     pub const fn complexity(&self) -> ComplexityClaimRef {
         self.complexity
     }
 
-    /// The row's declared benchmark budgets and exact ratio.
+    /// The row's budgets, including the exact gap ratio.
     #[must_use]
     pub const fn budgets(&self) -> DeclaredBudgets {
         self.budgets
     }
 
-    /// The measured primary work curve.
+    /// The measured curve.
     #[must_use]
     pub const fn measured(&self) -> &WorkCurve {
         self.measured
     }
 
-    /// The deliberately worse primary work curve.
+    /// The control's curve.
     #[must_use]
     pub const fn planted_worse(&self) -> &WorkCurve {
         self.planted_worse
@@ -400,19 +400,19 @@ impl WorkJudgmentInput<'_> {
 }
 
 impl WorkJudgeBinding {
-    /// Bind one capture-free judge to the neutral complexity claim it reads.
+    /// Bind one judge to the complexity claim it reads.
     #[must_use]
     pub const fn bound(complexity: ComplexityClaimRef, judge: WorkJudge) -> Self {
         Self { complexity, judge }
     }
 
-    /// The neutral complexity claim this judge reads.
+    /// The complexity claim this judge reads.
     #[must_use]
     pub const fn complexity(self) -> ComplexityClaimRef {
         self.complexity
     }
 
-    /// The capture-free work judge.
+    /// The judge itself.
     #[must_use]
     pub const fn judge(self) -> WorkJudge {
         self.judge
@@ -420,7 +420,7 @@ impl WorkJudgeBinding {
 }
 
 impl WorkJudgment {
-    /// State the measured, planted-worse, and declared-gap readings together.
+    /// State all three readings at once, which is the only way to state any of them.
     pub const fn stated(
         measured: WorkConclusion,
         planted_worse: WorkConclusion,
@@ -433,27 +433,27 @@ impl WorkJudgment {
         }
     }
 
-    /// The measured curve's conclusion.
+    /// What the judge concluded about the measured curve.
     pub const fn measured(self) -> WorkConclusion {
         self.measured
     }
 
-    /// The planted-worse curve's conclusion.
+    /// What the judge concluded about the control.
     pub const fn planted_worse(self) -> WorkConclusion {
         self.planted_worse
     }
 
-    /// Whether the exact declared gap distinguished the curves.
+    /// How the declared gap read.
     #[must_use]
     pub const fn gap(self) -> WorkGapStanding {
         self.gap
     }
 
-    /// Read whether all three primary readings qualify this row for secondary observation.
+    /// Whether these three readings qualify the row for timing.
     ///
     /// # Errors
     ///
-    /// Refuses an inactive planted-worse control before a refused measured curve.
+    /// Refuses an inactive control before it looks at the measured curve at all.
     pub const fn qualification(self) -> Result<(), WorkQualificationRefusal> {
         if !matches!(self.planted_worse, WorkConclusion::Refused(_))
             || !matches!(self.gap, WorkGapStanding::Distinguished)
@@ -469,7 +469,7 @@ impl WorkJudgment {
         Ok(())
     }
 
-    /// Whether the relational reading qualifies this row for secondary observation.
+    /// The same reading as [`qualification`](Self::qualification), without the reason.
     #[must_use]
     pub const fn qualifies(self) -> bool {
         self.qualification().is_ok()
@@ -483,7 +483,7 @@ impl WorkCount {
         self.observation
     }
 
-    /// The exact accumulated count.
+    /// The exact count.
     #[must_use]
     pub const fn count(self) -> u64 {
         self.count
@@ -491,13 +491,13 @@ impl WorkCount {
 }
 
 impl WorkCurvePoint {
-    /// The input size this point records.
+    /// The input size this point was recorded at.
     #[must_use]
     pub const fn input_size(&self) -> u64 {
         self.input_size
     }
 
-    /// The point's work counts in declared observation order.
+    /// The counts, in the order the binding declared its observations.
     #[must_use]
     pub fn counts(&self) -> &[WorkCount] {
         &self.counts
@@ -509,7 +509,7 @@ impl WorkCurve {
         Self { points }
     }
 
-    /// The curve's points in authored input-axis order.
+    /// The points, in authored axis order.
     #[must_use]
     pub fn points(&self) -> &[WorkCurvePoint] {
         &self.points
@@ -532,18 +532,18 @@ impl SecondaryObservation {
         })
     }
 
-    /// The work curve recorded by the timed pass.
+    /// The curve the timed pass recorded for itself.
     #[must_use]
     pub const fn work(&self) -> &WorkCurve {
         &self.work
     }
 
-    /// The same work judge's accepted reading of the timed pass.
+    /// The same judge's reading of that curve.
     pub const fn judgment(&self) -> WorkJudgment {
         self.judgment
     }
 
-    /// Caller-clock readings in input-axis, then sample order.
+    /// The clock readings, in axis order and then sample order.
     pub fn measurements(&self) -> &[MeasurementReading] {
         &self.measurements
     }
@@ -563,11 +563,11 @@ impl WorkRecorder {
         }
     }
 
-    /// Add exact units to one observation declared by this recorder's binding.
+    /// Add units to one observation this recorder was scoped to.
     ///
     /// # Errors
     ///
-    /// Refuses an observation outside the scoped roster, then checked-add overflow.
+    /// Refuses an observation outside the scoped roster, then an addition that would overflow.
     pub fn record(
         &mut self,
         observation: WorkObservationRef,
@@ -600,11 +600,11 @@ impl WorkRecorder {
 }
 
 impl BenchAttachment {
-    /// Bind the measured and planted-worse callables, work judge, and complete observation roster.
+    /// Bind both callables, the judge, and the complete observation roster.
     ///
     /// # Errors
     ///
-    /// Refuses an empty observation roster, then the first duplicate in authored order.
+    /// Refuses an empty roster, then the first repeat in authored order.
     pub fn attached(
         workload: WorkloadRef,
         measured: BenchCall,
@@ -616,9 +616,9 @@ impl BenchAttachment {
         if observations.is_empty() {
             return Err(BenchAttachmentRefusal::NoObservation);
         }
-        let mut positions = BTreeMap::new();
+        let mut seen = BTreeMap::new();
         for (duplicate, observation) in observations.iter().copied().enumerate() {
-            if let Some(first) = positions.insert(observation, duplicate) {
+            if let Some(first) = seen.insert(observation, duplicate) {
                 return Err(BenchAttachmentRefusal::DuplicateObservation {
                     observation,
                     first,
@@ -636,7 +636,7 @@ impl BenchAttachment {
         })
     }
 
-    /// The measured workload reference.
+    /// The workload these callables claim to be.
     #[must_use]
     pub const fn workload(&self) -> WorkloadRef {
         self.workload
@@ -648,25 +648,25 @@ impl BenchAttachment {
         self.measured
     }
 
-    /// The planted-worse reference.
+    /// The control's name.
     #[must_use]
     pub const fn planted_worse_ref(&self) -> PlantedWorseRef {
         self.planted_worse_ref
     }
 
-    /// The planted-worse callable.
+    /// The control's callable.
     #[must_use]
     pub const fn planted_worse(&self) -> BenchCall {
         self.planted_worse
     }
 
-    /// The owner-bound relational work judge.
+    /// The bound judge.
     #[must_use]
     pub const fn judge(&self) -> WorkJudgeBinding {
         self.judge
     }
 
-    /// The complete work-observation roster in authored order.
+    /// The observation roster, in authored order.
     #[must_use]
     pub fn observations(&self) -> &[WorkObservationRef] {
         &self.observations
@@ -674,7 +674,7 @@ impl BenchAttachment {
 }
 
 impl PreflightTrial {
-    /// Bind one preflight reference to a real trial binding and invocation.
+    /// Bind this home's preflight name to a real trial and the invocation it runs under.
     #[must_use]
     pub fn bound(reference: PreflightRef, binding: TrialBinding, invocation: Invocation) -> Self {
         Self {
@@ -684,19 +684,19 @@ impl PreflightTrial {
         }
     }
 
-    /// The benchmark-owned preflight reference.
+    /// The preflight name a row must agree with.
     #[must_use]
     pub const fn reference(&self) -> PreflightRef {
         self.reference
     }
 
-    /// The real trial binding used for preflight.
+    /// The trial that runs.
     #[must_use]
     pub const fn binding(&self) -> &TrialBinding {
         &self.binding
     }
 
-    /// The real trial invocation used for preflight.
+    /// The invocation it runs under.
     #[must_use]
     pub const fn invocation(&self) -> &Invocation {
         &self.invocation
@@ -704,11 +704,11 @@ impl PreflightTrial {
 }
 
 impl BenchBinding {
-    /// Join one row to callables and a preflight under matching semantic references.
+    /// Join one row to its callables and its preflight.
     ///
     /// # Errors
     ///
-    /// Refuses workload, planted-worse, preflight, then complexity mismatch.
+    /// Refuses a workload, control, preflight, then complexity name that disagrees, in that order.
     pub fn bound(
         row: BenchRow,
         attachment: BenchAttachment,
@@ -745,19 +745,19 @@ impl BenchBinding {
         })
     }
 
-    /// The immutable row declaration.
+    /// The row.
     #[must_use]
     pub const fn row(&self) -> &BenchRow {
         &self.row
     }
 
-    /// The bound benchmark callables and observations.
+    /// The callables and the judge bound to it.
     #[must_use]
     pub const fn attachment(&self) -> &BenchAttachment {
         &self.attachment
     }
 
-    /// The real correctness preflight.
+    /// The correctness preflight.
     #[must_use]
     pub const fn preflight(&self) -> &PreflightTrial {
         &self.preflight
@@ -765,11 +765,11 @@ impl BenchBinding {
 }
 
 impl BenchTable {
-    /// Build one nonempty benchmark table while retaining authored order.
+    /// One nonempty table, keeping the order the bindings were authored in.
     ///
     /// # Errors
     ///
-    /// Refuses an empty denominator, then the first duplicate complete row identity.
+    /// Refuses an empty table, then the first repeated row identity.
     pub fn authored(
         name: BenchTableName,
         provenance: Provenance,
@@ -778,10 +778,10 @@ impl BenchTable {
         if bindings.is_empty() {
             return Err(BenchTableRefusal::Empty);
         }
-        let mut positions = BTreeMap::new();
+        let mut seen = BTreeMap::new();
         for (duplicate, binding) in bindings.iter().enumerate() {
             let row = binding.row().key();
-            if let Some(first) = positions.insert(row, duplicate) {
+            if let Some(first) = seen.insert(row, duplicate) {
                 return Err(BenchTableRefusal::DuplicateRow {
                     row,
                     first,
@@ -796,31 +796,31 @@ impl BenchTable {
         })
     }
 
-    /// The table's authored name.
+    /// The table's name.
     #[must_use]
     pub const fn name(&self) -> BenchTableName {
         self.name
     }
 
-    /// The table's producer posture.
+    /// Whether these rows were written by hand or produced.
     #[must_use]
     pub const fn provenance(&self) -> Provenance {
         self.provenance
     }
 
-    /// Every binding in authored order.
+    /// Every binding, in authored order.
     #[must_use]
     pub fn bindings(&self) -> &[BenchBinding] {
         &self.bindings
     }
 
-    /// The denominator derived from the admitted bindings.
+    /// How many rows this table admitted.
     #[must_use]
     pub fn len(&self) -> usize {
         self.bindings.len()
     }
 
-    /// Whether this table has no row; always false for an admitted table.
+    /// Always false, since an empty table is not admitted.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.bindings.is_empty()
@@ -828,7 +828,7 @@ impl BenchTable {
 }
 
 impl BenchInvocation {
-    /// Declare the target, caller clock, and contention posture for one complete table run.
+    /// Declare the target, the clock, and the contention posture for one whole table run.
     #[must_use]
     pub fn declared(
         target: TargetBinding,
@@ -842,19 +842,19 @@ impl BenchInvocation {
         }
     }
 
-    /// The target and toolchain this host run declares.
+    /// The target and toolchain this run declares.
     #[must_use]
     pub const fn target(&self) -> &TargetBinding {
         &self.target
     }
 
-    /// The caller's secondary-observation clock.
+    /// The clock the timed pass reads.
     #[must_use]
     pub const fn clock(&self) -> HarnessClock {
         self.clock
     }
 
-    /// The host's declared contention posture.
+    /// The contention posture this run declares.
     #[must_use]
     pub const fn contention(&self) -> ContentionPosture {
         self.contention
@@ -862,7 +862,7 @@ impl BenchInvocation {
 }
 
 impl BenchOutcome {
-    /// The stage this outcome occupies.
+    /// The stage this outcome occupies, without its evidence.
     #[must_use]
     pub const fn stage(&self) -> BenchStage {
         match self {
@@ -889,25 +889,25 @@ impl BenchReading {
         }
     }
 
-    /// The complete immutable row declaration this reading executed.
+    /// The whole row this reading executed.
     #[must_use]
     pub const fn row(&self) -> &BenchRow {
         &self.row
     }
 
-    /// The target and toolchain this reading stood on.
+    /// The target it stood on.
     #[must_use]
     pub const fn target(&self) -> &TargetBinding {
         &self.target
     }
 
-    /// The exact retained correctness-preflight report.
+    /// The correctness preflight's own report.
     #[must_use]
     pub const fn preflight(&self) -> &TrialReport {
         &self.preflight
     }
 
-    /// The row's stage-shaped benchmark outcome.
+    /// How far the row got, and with what evidence.
     #[must_use]
     pub const fn outcome(&self) -> &BenchOutcome {
         &self.outcome
@@ -927,13 +927,13 @@ impl BenchReport {
         }
     }
 
-    /// The authored table this report records.
+    /// The table this report records.
     #[must_use]
     pub const fn table(&self) -> BenchTableName {
         self.table
     }
 
-    /// The table's producer posture.
+    /// Whether that table was written by hand or produced.
     #[must_use]
     pub const fn provenance(&self) -> Provenance {
         self.provenance
@@ -945,7 +945,7 @@ impl BenchReport {
         &self.readings
     }
 
-    /// The denominator derived from the complete reading census.
+    /// How many readings this report holds.
     #[must_use]
     pub fn denominator(&self) -> usize {
         self.readings.len()
@@ -963,7 +963,7 @@ impl BenchVerdictRefusal {
         self.row
     }
 
-    /// The stage at which that row stopped.
+    /// Where that row stopped.
     #[must_use]
     pub const fn stage(self) -> BenchStage {
         self.stage

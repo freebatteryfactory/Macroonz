@@ -1,0 +1,13 @@
+error[E0425]: cannot find type `GeneratedSupportSchemaId` in module `macroonz::descriptor`
+  --> tests/compile_refusals/compile-fail/a-generated-support-under-another-crates-name.rs:11:1
+   |
+11 | / macroonz_harness::generated_support! {
+12 | |     expected: [
+13 | |         185, 251, 251, 45, 168, 146, 85, 42, 248, 177, 196, 48, 117, 229, 207, 5,
+14 | |         84, 120, 104, 25, 150, 41, 202, 2, 243, 73, 31, 148, 241, 22, 122, 34,
+...  |
+18 | |     deferred: { },
+19 | | }
+   | |_^ not found in `macroonz::descriptor`
+   |
+   = note: this error originates in the macro `macroonz_harness::generated_support` (in Nightly builds, run with -Z macro-backtrace for more info)

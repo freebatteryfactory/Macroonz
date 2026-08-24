@@ -1,0 +1,16 @@
+error[E0061]: this method takes 1 argument but 2 arguments were supplied
+  --> tests/compile_refusals/compile-fail/an-evaluation-directive-cannot-enter-production.rs:12:21
+   |
+12 |     let _ = binding.evaluate(&0, directive);
+   |                     ^^^^^^^^     --------- unexpected argument #2 of type `EvaluationDirective<'_>`
+   |
+note: method defined here
+  --> src/muterprater/type_guard.rs
+   |
+   |     pub fn evaluate(&self, input: &Input) -> Meaning {
+   |            ^^^^^^^^
+help: remove the extra argument
+   |
+12 -     let _ = binding.evaluate(&0, directive);
+12 +     let _ = binding.evaluate(&0);
+   |

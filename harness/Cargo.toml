@@ -1,39 +1,22 @@
 [package]
-name = "threadpak-testpak"
-description = "ThreadPak's testing harness: property-based, descriptor-driven, mutation-pressured. Production never depends on its judge."
+name = "macroonz-harness"
+description = "An independent test harness: descriptor-driven, property-generated, fault-injected, mutation-pressured, with every verdict carrying its evidence and replay."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-publish = false
 
 [lints]
 workspace = true
 
 [dependencies]
-# What an adopter inherits, and why. Both are admitted by the notes in
-# README.md and inherited from the root manifest's `[workspace.dependencies]` table rather than restated here.
-# The generation vocabulary: structure-aware input generation, the trait alone.
 arbitrary = { workspace = true }
-# The family identity substrate: schema identity, revision identities,
-# fingerprints, replay-capsule and proposal identities, the execution key and
-# its rerun-cache keys, seed-pack content addresses — one mechanism under one
-# shared stem, with an independently positioned domain per preimage family, and
-# no identity island. The independent transcript lane
-# hashes with the same admitted mechanism the services do — a lane that
-# reimplemented BLAKE3 would be testing an arithmetic exercise rather than a
-# specification; the two crates differ in what they ENCODE and in nothing else.
 blake3 = { workspace = true }
+syn = { workspace = true }
 
 [dev-dependencies]
-# The three participants under judgment, reached only from tests/.
-macroonz = { package = "macroonz", path = "../contracts" }
-threadpak-macroc = { path = "../macros/compiler" }
-threadpak-macros = { path = "../macros/proc" }
-# The challenge-side structural decoder used by the refusal-artifact reading.
-syn = { workspace = true }
-# The compile-refusal harness, inherited exact from the workspace table.
+macroonz = { path = "../macros/compiler" }
 trybuild = { workspace = true }
 
 [[bench]]

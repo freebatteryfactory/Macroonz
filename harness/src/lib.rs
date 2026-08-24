@@ -1,55 +1,26 @@
-//! `threadpak-testpak` is ThreadPak's testing harness.
-//! What the harness is, what its instruments own, and the laws they answer to
-//! are the crate README's; each instrument's README is its module page.
+//! An independent test harness: describe a subject once, and the harness spends its time trying to make that description false.
 //!
-//! A verdict here is always claim-specific and method-specific.
-//! "The artifact declares a trait path the caller's declaration did not name,
-//! read out of a parse nobody here wrote" is a verdict; "the derive works" is
-//! not one.
+//! Every verdict is claim-specific and method-specific, and carries the evidence and the replay that reproduce it.
+//! The harness is a dev-dependency, and it depends on nothing it judges.
+//! No type is re-exported at this root, so a call site spells the home that made the claim — `oracle::StructuralVerdict`, `muterprater::ARTIFACT_MUTATIONS`.
+//! The four stamps are the exception, because Rust puts an exported macro at the crate root: [`generated_support!`], [`trial_table!`], [`bench_table!`], and the [`ensure_ok!`] battery beside it.
 //!
 //! # The instruments
 //!
-//! [`clock`] owns `TestPak`'s caller-declared wall-measurement boundary,
-//! [`descriptor`] owns the rows every producer writes into, [`report`] owns
-//! the records a run leaves and the identity rails, [`oracle`] is the
-//! independence annex for claims where shared producer logic would make
-//! self-agreement vacuous, [`runner`] is the report engine that turns
-//! descriptor tables and typed invocations into typed reports,
-//! [`properties`] carries the algebraic suites, [`muterprater`] is
-//! the proof-pressure engine, [`generate`] owns the generation contract,
-//! [`depot`] is the harness's own fact bank, [`fault`] schedules adopter-owned
-//! fault adapters, [`corpus`] carries content-addressed generation warm starts,
-//! and [`mod@bench`] owns primary work judgment plus secondary wall observation.
-//! [`identity`] is the derivation substrate every identity kind in this crate
-//! derives through.
-//!
-//! Executable challenge material sits under `tests/`, where cargo requires
-//! it to live. Pack persistence is caller-owned; [`corpus`] owns the public
-//! in-memory pack format and reader.
-//!
-//! # The instruments are reached at their own homes
-//!
-//! Nothing is re-exported at this root. An instrument's vocabulary is spelled
-//! through the module that owns it — `oracle::StructuralVerdict`,
-//! `muterprater::ARTIFACT_MUTATIONS` — so a reader of a call site sees which
-//! home made the claim rather than a flat surface that hides it.
-//!
-//! # The dependency direction
-//!
-//! testpak depends inward, and production never depends on its judge: no
-//! production dependency table in this workspace names it. The one manifest
-//! that names it at all is the consumer parity seat's, as a dev-dependency
-//! under a consumer-chosen name — which is that seat's whole point. What
-//! this package asks for, and why, is the README's; which versions, the
-//! workspace manifest's.
+//! [`descriptor`] owns the rows a producer writes into, and [`runner`] turns those rows and a typed invocation into typed reports.
+//! [`generate`] owns the generation contract, [`corpus`] carries content-addressed warm starts for it, and [`properties`] holds the algebraic laws a subject can be held to.
+//! [`fault`] schedules owner-declared adversity, [`clock`] is the caller-declared wall-measurement boundary, and [`mod@bench`] judges work under a pinned profile.
+//! [`muterprater`] is the mutation-pressure engine, and [`oracle`] is the independence annex for claims where self-agreement would be vacuous.
+//! [`report`] owns what a run leaves behind, [`depot`] is the harness's own fact bank, and [`identity`] is the derivation substrate every identity here goes through.
+//! Executable challenge material sits under `tests/`, where cargo requires it to live.
 
 pub mod identity;
 
 pub mod bench;
 pub mod clock;
+pub mod corpus;
 pub mod depot;
 pub mod descriptor;
-pub mod corpus;
 pub mod fault;
 pub mod generate;
 pub mod muterprater;

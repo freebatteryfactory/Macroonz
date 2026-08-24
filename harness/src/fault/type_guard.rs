@@ -1,4 +1,4 @@
-//! The fault instrument's invariant nucleus: constructors, validated selection, and readers over private fields.
+//! Constructors, readers, and the two checks that decide whether a campaign and a selection exist at all.
 
 use super::{
     CampaignSelection, FaultAdapter, FaultCampaign, FaultCampaignRefusal, FaultSchedule,
@@ -8,7 +8,7 @@ use crate::descriptor::NamespacedName;
 use std::collections::BTreeSet;
 
 impl<Behavior, Postcondition> FaultAdapter<Behavior, Postcondition> {
-    /// One concrete behavior joined to the postcondition its adopter declares.
+    /// A behavior joined to the postcondition its owner declares for it.
     #[must_use]
     pub const fn declared(behavior: Behavior, postcondition: Postcondition) -> Self {
         Self {
@@ -17,13 +17,13 @@ impl<Behavior, Postcondition> FaultAdapter<Behavior, Postcondition> {
         }
     }
 
-    /// The adopter-owned behavior.
+    /// The behavior half.
     #[must_use]
     pub const fn behavior(&self) -> &Behavior {
         &self.behavior
     }
 
-    /// The adopter-owned postcondition.
+    /// The postcondition half.
     #[must_use]
     pub const fn postcondition(&self) -> &Postcondition {
         &self.postcondition
@@ -31,13 +31,13 @@ impl<Behavior, Postcondition> FaultAdapter<Behavior, Postcondition> {
 }
 
 impl SequencePosition {
-    /// The zero-based position the schedule declares.
+    /// The position a schedule declares, counted from zero.
     #[must_use]
     pub const fn at(ordinal: u32) -> Self {
         Self(ordinal)
     }
 
-    /// The zero-based ordinal this position carries.
+    /// The ordinal this position carries.
     #[must_use]
     pub const fn ordinal(self) -> u32 {
         self.0
@@ -45,7 +45,7 @@ impl SequencePosition {
 }
 
 impl<Behavior, Postcondition> ScheduledFault<Behavior, Postcondition> {
-    /// One typed adapter placed at one sequence position.
+    /// One adapter placed at one position.
     #[must_use]
     pub const fn at(
         position: SequencePosition,
@@ -54,13 +54,13 @@ impl<Behavior, Postcondition> ScheduledFault<Behavior, Postcondition> {
         Self { position, adapter }
     }
 
-    /// The position this adapter is scheduled at.
+    /// Where this adapter is placed.
     #[must_use]
     pub const fn position(&self) -> SequencePosition {
         self.position
     }
 
-    /// The adopter-owned adapter value.
+    /// The adapter itself.
     #[must_use]
     pub const fn adapter(&self) -> &FaultAdapter<Behavior, Postcondition> {
         &self.adapter
@@ -68,7 +68,7 @@ impl<Behavior, Postcondition> ScheduledFault<Behavior, Postcondition> {
 }
 
 impl<Behavior, Postcondition> FaultSchedule<Behavior, Postcondition> {
-    /// One named schedule in authored adapter order.
+    /// A named schedule, in authored adapter order.
     #[must_use]
     pub fn declared(
         name: NamespacedName,
@@ -77,13 +77,13 @@ impl<Behavior, Postcondition> FaultSchedule<Behavior, Postcondition> {
         Self { name, faults }
     }
 
-    /// The schedule's campaign-local name.
+    /// The name this schedule is selected by.
     #[must_use]
     pub const fn name(&self) -> NamespacedName {
         self.name
     }
 
-    /// The scheduled adapters in authored order.
+    /// The scheduled adapters, in authored order.
     #[must_use]
     pub fn faults(&self) -> &[ScheduledFault<Behavior, Postcondition>] {
         &self.faults
@@ -91,20 +91,20 @@ impl<Behavior, Postcondition> FaultSchedule<Behavior, Postcondition> {
 }
 
 impl<Behavior, Postcondition> FaultCampaign<Behavior, Postcondition> {
-    /// One campaign over uniquely named schedules in authored order.
+    /// A campaign over uniquely named schedules, in authored order.
     ///
     /// # Errors
     ///
-    /// Refuses an empty campaign, then the first schedule name repeated in authored order, then a campaign whose schedules are all empty controls and therefore declare no fault.
+    /// Refuses an empty campaign, then the first repeated name, then a campaign whose schedules are all empty controls.
     pub fn declared(
         schedules: Vec<FaultSchedule<Behavior, Postcondition>>,
     ) -> Result<Self, FaultCampaignRefusal> {
         if schedules.is_empty() {
             return Err(FaultCampaignRefusal::NoSchedule);
         }
-        let mut names = BTreeSet::new();
+        let mut seen = BTreeSet::new();
         for schedule in &schedules {
-            if !names.insert(schedule.name()) {
+            if !seen.insert(schedule.name()) {
                 return Err(FaultCampaignRefusal::DuplicateSchedule(schedule.name()));
             }
         }
@@ -117,17 +117,17 @@ impl<Behavior, Postcondition> FaultCampaign<Behavior, Postcondition> {
         Ok(Self { schedules })
     }
 
-    /// The campaign's schedules in authored order.
+    /// The campaign's schedules, in authored order.
     #[must_use]
     pub fn schedules(&self) -> &[FaultSchedule<Behavior, Postcondition>] {
         &self.schedules
     }
 
-    /// Select the schedule this campaign declares under `name`.
+    /// The schedule this campaign declares under `name`.
     ///
     /// # Errors
     ///
-    /// Refuses a name no schedule in this campaign declares.
+    /// Refuses a name no schedule here declares.
     pub fn select(
         &self,
         name: NamespacedName,
@@ -141,7 +141,7 @@ impl<Behavior, Postcondition> FaultCampaign<Behavior, Postcondition> {
 }
 
 impl<'campaign, Behavior, Postcondition> CampaignSelection<'campaign, Behavior, Postcondition> {
-    /// The schedule this campaign selection validated.
+    /// The schedule the campaign handed back.
     #[must_use]
     pub const fn schedule(&self) -> &'campaign FaultSchedule<Behavior, Postcondition> {
         self.schedule
@@ -149,7 +149,7 @@ impl<'campaign, Behavior, Postcondition> CampaignSelection<'campaign, Behavior, 
 }
 
 impl<Command, Behavior, Postcondition> InjectedCommand<Command, Behavior, Postcondition> {
-    /// One command and the typed adapters placed beside it.
+    /// One command and the adapters placed beside it, minted only by injection.
     #[must_use]
     pub(crate) const fn injected(
         command: Command,
@@ -158,13 +158,13 @@ impl<Command, Behavior, Postcondition> InjectedCommand<Command, Behavior, Postco
         Self { command, faults }
     }
 
-    /// The original command.
+    /// The command as the caller wrote it.
     #[must_use]
     pub const fn command(&self) -> &Command {
         &self.command
     }
 
-    /// The typed adapters placed at this command, in authored schedule order.
+    /// The adapters placed here, in schedule order.
     #[must_use]
     pub fn faults(&self) -> &[FaultAdapter<Behavior, Postcondition>] {
         &self.faults
@@ -172,7 +172,7 @@ impl<Command, Behavior, Postcondition> InjectedCommand<Command, Behavior, Postco
 }
 
 impl<Command, Behavior, Postcondition> InjectedSequence<Command, Behavior, Postcondition> {
-    /// One fully injected sequence, minted only by the injection operation.
+    /// A whole injected sequence, minted only by injection.
     #[must_use]
     pub(crate) const fn injected(
         schedule: NamespacedName,
@@ -181,19 +181,19 @@ impl<Command, Behavior, Postcondition> InjectedSequence<Command, Behavior, Postc
         Self { schedule, commands }
     }
 
-    /// The selected schedule's name.
+    /// The name of the schedule that was injected.
     #[must_use]
     pub const fn schedule(&self) -> NamespacedName {
         self.schedule
     }
 
-    /// The commands and the adapters placed beside each one.
+    /// The commands, each with the adapters placed at it.
     #[must_use]
     pub fn commands(&self) -> &[InjectedCommand<Command, Behavior, Postcondition>] {
         &self.commands
     }
 
-    /// How many typed adapter values were injected, derived from the schedule rather than declared beside it.
+    /// How many adapters landed, counted from the sequence rather than declared beside it.
     #[must_use]
     pub fn fault_count(&self) -> usize {
         self.commands

@@ -1,26 +1,10 @@
-//! The conclusion nucleus: the one road from a demand to a typed conclusion, and
-//! the caller-tracking that gives every refusal its file and line.
+//! The one road from a demand to a typed conclusion, and the caller-tracking that gives every refusal its file and line.
 //!
-//! Every law in this home reaches its verdict through [`concluded`], so a
-//! disagreement becomes a finding in exactly one place. A law that built a
-//! finding of its own would be a second authority over what a refusal from this
-//! home looks like.
+//! Every law in this home reaches its verdict through [`concluded`], so a disagreement becomes a finding in exactly one place.
 //!
-//! # Ambient provenance
+//! Every road below is `#[track_caller]`, and so is every law that calls one, and the attribute is transparent up the chain — so a refusal is born knowing the site of the owner's check, with no panic machinery anywhere on the road.
 //!
-//! Every road here is `#[track_caller]`, and so is every law that calls one. The
-//! attribute is transparent up the chain, so [`raised_here`] reports the site of
-//! the OWNER's check rather than the line of whichever kernel happened to build
-//! the value — a refusal is born knowing where it came from, with no panic
-//! machinery anywhere on the road.
-//!
-//! # No foreign text
-//!
-//! Nothing foreign enters a conclusion built here. The material a law reads is
-//! the owner's own typed values, the verdict is a typed demand verdict, and the
-//! cause is a declared identity pair — so the finding's foreign-text seat is
-//! empty rather than filled with a rendering of something the harness already
-//! knows typed.
+//! Nothing foreign enters a conclusion built here: the material is the owner's own typed values, the verdict is a typed demand verdict, and the cause is a declared identity pair.
 
 use super::types::{Agreement, Equivalence, Holding, Order};
 use crate::report::{FailureClass, FindingCause, FindingLocation, TrialConclusion, TrialFinding};
@@ -29,18 +13,7 @@ use core::panic::Location;
 
 /// Where the check that reached this road was written.
 ///
-/// # Authority
-///
-/// The caller's location, not this file's. A property suite refuses inside
-/// itself while the trial it serves lives in a table somewhere else, and this is
-/// the first of those two facts — the one a reader jumps to.
-///
-/// # Bounds
-///
-/// The location a caller is tracked to lives for the program, which is what lets
-/// it stand in the record vocabulary's `'static` location seat. A location
-/// observed at run time — a panic hook's, an external tool's — does not, and
-/// never arrives through here.
+/// A tracked caller's location lives for the program, which is what lets it stand in the record vocabulary's `'static` seat; a location observed at run time does not, and never arrives through here.
 #[must_use]
 #[track_caller]
 pub fn raised_here() -> FindingLocation {
@@ -50,11 +23,7 @@ pub fn raised_here() -> FindingLocation {
 
 /// The conclusion one demand reaches.
 ///
-/// # Authority
-///
-/// The one road from a verdict to a [`TrialConclusion`] in this home. The class
-/// and the cause are the caller's declarations: the class says what KIND of
-/// disagreement this is, and the cause names it the way the machine spells one.
+/// The class and the cause are both the caller's declarations: the class says what kind of disagreement this is, and the cause names it in the caller's own spelling.
 #[must_use]
 #[track_caller]
 pub fn concluded(holding: Holding, class: FailureClass, cause: FindingCause) -> TrialConclusion {
@@ -68,11 +37,7 @@ pub fn concluded(holding: Holding, class: FailureClass, cause: FindingCause) -> 
 
 /// The conclusion one demanded agreement reaches.
 ///
-/// # Authority
-///
-/// The class is [`FailureClass::PropertyDisagreement`], always: a demanded
-/// agreement is a declared law, and a law that disagreed with its subject is
-/// what that class names.
+/// The class is [`FailureClass::PropertyDisagreement`] always, because a demanded agreement is a declared law and a law that disagreed with its subject is what that class names.
 #[must_use]
 #[track_caller]
 pub fn agreement<Value>(
@@ -88,13 +53,9 @@ pub fn agreement<Value>(
     concluded(holding, FailureClass::PropertyDisagreement, cause)
 }
 
-/// The conclusion one demanded ranking reaches: the lower value does not rank
-/// above the upper one.
+/// The conclusion one demanded ranking reaches: the lower value does not rank above the upper one.
 ///
-/// # Bounds
-///
-/// Non-strict. Equal ranks satisfy the demand, so a law built on this one
-/// demands non-decrease and never strict increase.
+/// Non-strict, so equal ranks satisfy the demand and every law built on this one demands non-decrease rather than strict increase.
 #[must_use]
 #[track_caller]
 pub fn ranking<Value>(
@@ -112,11 +73,7 @@ pub fn ranking<Value>(
 
 /// The conclusion one outcome that was owed an answer reaches.
 ///
-/// # Authority
-///
-/// The class is [`FailureClass::RefusedByCheck`]: this is a check's own contract
-/// about its subject rather than an algebraic law, and the two are kept apart so
-/// that a normalized failure class stays worth reading.
+/// The class is [`FailureClass::RefusedByCheck`], because this is a check's own contract about its subject rather than an algebraic law.
 #[must_use]
 #[track_caller]
 pub fn admitted<Answer, Refusal>(
@@ -132,12 +89,7 @@ pub fn admitted<Answer, Refusal>(
 
 /// The conclusion one outcome that was owed a refusal reaches.
 ///
-/// # Nonclaims
-///
-/// It reads that the subject refused and nothing about WHICH refusal it
-/// answered with. A check that owes the exact refusal composes the value itself
-/// — [`ensure_refused_with!`](crate::ensure_refused_with) is that road — because
-/// a refusal family is the owner's vocabulary and this home may not read one.
+/// It reads that the subject refused and nothing about which refusal it answered with; a check that owes the exact refusal composes the value itself through [`ensure_refused_with!`](crate::ensure_refused_with).
 #[must_use]
 #[track_caller]
 pub fn refused<Answer, Refusal>(

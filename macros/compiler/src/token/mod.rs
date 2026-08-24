@@ -1,17 +1,24 @@
 #![doc = include_str!("README.md")]
 
+mod compose;
 mod encode;
 mod inspect;
 mod literal;
 mod resolve;
 mod text;
+mod type_contract;
 mod types;
 
+pub use compose::{
+    absolute_path, and_all, attribute, bound_local, bound_path, call, comma, comma_many, constant,
+    documentation, equality, function, group, metavariable, method_call, method_chain, result_type,
+    roster, text_pair, twin_path,
+};
 pub use literal::capture_literal;
 pub use types::{
-    CaptureBound, CaptureWalk, CaptureWorkLimit, CapturedDelimiter, CapturedInput, CapturedPayload,
-    CapturedTokenTree, CapturedTreeTokenLimit, CoordinateRole, GeneratedDelimiter,
-    GeneratedSpacing, GeneratedToken, GeneratedTree, LiteralReadCause, SourceCoordinate,
-    SpanHandle, SpanResolutionRefusal, SpanTable, TextCapture, TextReadCause, TextReadRefusal,
-    TokenPath, TokenPathDepthLimit,
+    CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound, CaptureWalk,
+    CapturedDelimiter, CapturedInput, CapturedPayload, CapturedTokenTree, CoordinateRole,
+    GENERATED_TOKEN_LIMIT, GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree,
+    LiteralReadCause, SourceCoordinate, SpanHandle, SpanResolutionRefusal, SpanTable,
+    TOKEN_PATH_DEPTH_LIMIT, TextCapture, TextReadCause, TextReadRefusal, TokenPath,
 };

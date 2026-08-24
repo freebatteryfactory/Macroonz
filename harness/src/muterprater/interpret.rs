@@ -1,17 +1,23 @@
 //! The compile-once mutation receiver: stable selection, exact no-mutation parity, and admitted interpreted execution.
 //!
-//! Production is an ordinary callable with no directive. The evaluation callable alone receives a surface-bound [`EvaluationDirective`], and no-mutation evaluation must agree with production. Point-catalog posture and parity qualification are independent: a point-free surface is lawful, and neither a point-free nor mutable surface earns parity until the exact production/evaluation pair executes under [`EvaluationDirective::no_mutation`] and its reports and meanings qualify.
+//! Production is an ordinary callable with no directive.
+//! The evaluation callable alone receives a surface-bound [`EvaluationDirective`], and its no-mutation answer must agree with production.
 //!
-//! Generic compiled suite pressure, exact compiled selected-projection pressure, and interpreted activation remain different evidence routes. [`availability`] requires the generic suite bite and the exact projection pressure together; the latter already retains mandatory no-mutation parity and one surface-issued selection. The active road can execute only that selection, reuses the exact input and mutation witness, and admits evidence only after the evaluation callback reports a positive firing count.
+//! Catalog posture and parity qualification are independent: a point-free surface is lawful, and no surface earns parity until its exact pair executes under [`EvaluationDirective::no_mutation`] and both reports and both meanings qualify.
 //!
-//! The caller-supplied production, evaluation, and check function pointers retain their ordinary Rust effect and unwind ceilings. This module records their returned facts and delegates wall measurement to the `TestPak` clock owner; measurement posture never enters parity or mutation classification.
+//! Generic suite pressure, exact compiled projection pressure, and interpreted activation are three different evidence routes.
+//! [`availability`] requires the first two together, and the second already retains mandatory no-mutation parity and one surface-issued selection.
+//! The active road can execute only that selection, reuses the exact input and witness, and admits evidence only after the evaluation callback reports a positive firing count.
+//!
+//! The caller's production, evaluation, and check function pointers keep their ordinary Rust effect and unwind ceilings.
+//! This module records what they returned and delegates wall measurement to the clock owner; measurement posture never enters parity or mutation classification.
 
 use super::types::{
     ActivationEvidence, ActiveSelection, AdmittedAlternative, CompiledProjectionPressure,
-    CompiledSuitePressure, EvaluationDirective, EvaluationSurface, FamilyAttribution,
-    InterpretedExecutionRefusal, InterpretedMutationEvidence, InterpretedTrust,
+    CompiledSuitePressure, DudPlant, EvaluationDirective, EvaluationPair, EvaluationSurface,
+    FamilyAttribution, InterpretedExecutionRefusal, InterpretedMutationEvidence, InterpretedTrust,
     InterpreterAvailability, MUTERPRATER_NAMESPACE, MappingPosture, MissingTrustEvidence,
-    MutationIdentity, MutationPoint, MutationSite, MutationTarget, MutationWitness,
+    MutationIdentity, MutationPoint, MutationReport, MutationSite, MutationTarget, MutationWitness,
     NO_MUTATION_PAIRING, NoMutationObservationRefusal, NoMutationParityQualification,
     NoMutationParityReading, NoMutationParityStanding, NoMutationReports, NoMutationResults,
     PARITY_DECLARATION_SUBSTRATE, PARITY_RENDERING_SUBSTRATE, ParityQualificationRefusal,
@@ -21,7 +27,9 @@ use super::types::{
 use crate::descriptor::NamespacedName;
 use crate::properties::{SharedSubstrate, SubstrateRef, SubstrateRoster, agreement};
 use crate::report::{FindingCause, HostTrialRecord, RunAttempt, TrialConclusion};
-use crate::runner::{Invocation, execution_key, lens_verdict, record_one, trial_identity};
+use crate::runner::{
+    Invocation, Selection, execution_key, lens_verdict, record_one, trial_identity,
+};
 use std::collections::BTreeSet;
 
 /// The shared foundations the mandatory no-mutation comparison declares.
@@ -74,7 +82,7 @@ pub(super) fn selected_alternative(
 
 /// Plan one interpreted pass over every admitted alternative on a surface.
 ///
-/// A point-free surface yields [`PlanRefusal::NoRunPlanned`]; it remains a lawful parity surface and does not impersonate a mutation campaign.
+/// A point-free surface yields [`PlanRefusal::NoRunPlanned`]: it stays a lawful parity surface and does not impersonate a mutation campaign.
 ///
 /// # Errors
 ///
@@ -95,7 +103,7 @@ pub fn plan_pass(
                     alternative: alternative.identity(),
                 },
                 PlannedDamage::Alternative(alternative.identity()),
-                crate::runner::Selection::ByClaim(claims.clone()),
+                Selection::ByClaim(claims.clone()),
                 budget,
             ));
         }
@@ -103,15 +111,16 @@ pub fn plan_pass(
     ProofPlan::planned(scope, runs)
 }
 
-/// Execute production and the no-mutation evaluation callable over one exact input and retain both meanings and both ordinary trial reports.
+/// Execute production and the no-mutation evaluation over one exact input, and retain both meanings and both reports.
 ///
-/// The same [`MutationWitness`] judges both meanings and both host observations join its exact [`crate::runner::TrialBinding`]. The returned reading is evidence input, not qualification; [`qualify_no_mutation`] decides whether it earned that standing.
+/// The same [`MutationWitness`] judges both meanings, and both observations join its exact trial binding.
+/// The reading that comes back is evidence input rather than qualification; [`qualify_no_mutation`] decides whether it earned that standing.
 ///
 /// # Errors
 ///
 /// Refuses the shared-substrate declaration, then a production or evaluation observation that cannot join the witness binding.
 pub fn observe_no_mutation<'pair, 'input, Input, Meaning>(
-    pair: &'pair super::EvaluationPair<Input, Meaning>,
+    pair: &'pair EvaluationPair<Input, Meaning>,
     witness: MutationWitness<Meaning>,
     input: &'input Input,
     invocation: &Invocation,
@@ -166,7 +175,8 @@ pub fn observe_no_mutation<'pair, 'input, Input, Meaning>(
 
 /// Read whether one complete no-mutation comparison earned scoped qualification.
 ///
-/// Qualification requires both ordinary trial reports to conclude lawfully, zero activation under the no-mutation directive, and agreement under the owner-declared equivalence. Rejection retains the entire reading and the exact failed stage.
+/// Qualification takes both reports concluding lawfully, zero activation under the no-mutation directive, and agreement under the owner-declared equivalence.
+/// A rejection retains the entire reading and the exact stage that failed.
 #[must_use]
 pub fn qualify_no_mutation<'pair, 'input, Input, Meaning>(
     reading: NoMutationParityReading<'pair, 'input, Input, Meaning>,
@@ -196,7 +206,9 @@ pub fn qualify_no_mutation<'pair, 'input, Input, Meaning>(
 
 /// Read whether interpreted evidence is available for one exact surface and selected projection.
 ///
-/// Generic suite pressure establishes that the qualified external suite bites but carries no pair authority. Exact projection pressure retains mandatory no-mutation parity, one exact pair, and one exact surface-issued selection. A lawful point-free surface can still qualify parity, but it cannot produce exact projection pressure and therefore cannot open active trust.
+/// Generic suite pressure establishes that the qualified external suite bites and carries no pair authority.
+/// Exact projection pressure retains mandatory no-mutation parity, one exact pair, and one surface-issued selection.
+/// A lawful point-free surface can still qualify parity, and it cannot produce projection pressure, so it never opens active trust.
 #[must_use]
 pub fn availability<'surface, 'suite, 'projection, 'parity, 'pair, 'input, Input, Meaning>(
     surface: Option<&'surface EvaluationSurface>,
@@ -231,17 +243,14 @@ pub fn availability<'surface, 'suite, 'projection, 'parity, 'pair, 'input, Input
     InterpreterAvailability::Available(InterpretedTrust::opened(surface, suite, projection))
 }
 
-/// Execute the one active selection retained by opened trust and admit it through the ordinary trial and mutation report spines.
+/// Execute the one active selection opened trust retains, and admit it through the trial and mutation report spines.
 ///
-/// The input is the exact input retained by the no-mutation qualification. The evaluation callable is the exact callable retained by that qualification's pair. A positive firing count becomes an activation observation bound to the exact selection and witness; zero returns a [`super::DudPlant`] and no mutation evidence exists. The callback supplies the count, and this road does not independently instrument it.
+/// The input and the evaluation callable are the exact ones the no-mutation qualification retains.
+/// A positive firing count becomes an activation observation bound to that selection and witness; zero returns a [`DudPlant`] and no evidence exists.
 ///
 /// # Errors
 ///
-/// Refuses an invocation that does not reproduce the exact compiled projection execution, a parity witness trial owned by another claim, an omitted evaluation branch, a callback report of zero firings for the selected damage, or a returned observation that could not join that exact witness binding. Selection and claim membership were validated before exact compiled pressure opened trust; execution and claim membership are checked again before any caller evaluation or clock callable runs.
-#[expect(
-    clippy::result_large_err,
-    reason = "the rare dud refusal retains the exact surface-issued selection and trial; indirection would add allocation without changing this harness-only control path"
-)]
+/// Refuses an invocation that does not reproduce the compiled projection's execution, a witness trial owned by another claim, an omitted evaluation branch, a callback report of zero firings, or an observation that could not join the witness binding.
 pub fn execute_active<'surface, 'suite, 'projection, 'parity, 'pair, 'input, Input, Meaning>(
     trust: &InterpretedTrust<'surface, 'suite, 'projection, 'parity, 'pair, 'input, Input, Meaning>,
     invocation: &Invocation,
@@ -287,9 +296,9 @@ pub fn execute_active<'surface, 'suite, 'projection, 'parity, 'pair, 'input, Inp
         .map_err(InterpretedExecutionRefusal::EvaluationCall)?;
     let (meaning, firings) = observed.into_parts();
     let Some(activation) = ActivationEvidence::observed(selection, trial, firings) else {
-        return Err(InterpretedExecutionRefusal::DudPlant(
-            super::DudPlant::unfired(selection, trial),
-        ));
+        return Err(InterpretedExecutionRefusal::DudPlant(Box::new(
+            DudPlant::unfired(selection, trial),
+        )));
     };
     let conclusion = witness.conclude(&meaning);
     let report = record_one(
@@ -311,7 +320,7 @@ pub fn execute_active<'surface, 'suite, 'projection, 'parity, 'pair, 'input, Inp
         MutationSite::Declared(point.activation_site()),
         MappingPosture::Mapped(point.owner_claim()),
     );
-    let mutation = super::MutationReport::interpreted(target, activation, &report);
+    let mutation = MutationReport::interpreted(target, activation, &report);
     Ok(InterpretedMutationEvidence::admitted(
         trust.duplicate(),
         meaning,

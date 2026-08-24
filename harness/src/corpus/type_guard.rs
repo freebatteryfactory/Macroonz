@@ -1,4 +1,4 @@
-//! The corpus instrument's invariant nucleus: seed construction, admitted pack assembly, and readers over private fields.
+//! Construction and the readers over private fields: nothing else reaches inside a seed or a pack.
 
 use super::{SeedInput, SeedInputRefusal, SeedPack, SeedPackAddress, SeedPackRefusal};
 use crate::descriptor::PopulationRef;
@@ -10,7 +10,7 @@ impl SeedInput {
     ///
     /// # Errors
     ///
-    /// Refuses empty material because it cannot enter the current supplied-material generation road.
+    /// Refuses empty material.
     pub fn declared(bytes: Vec<u8>) -> Result<Self, SeedInputRefusal> {
         if bytes.is_empty() {
             return Err(SeedInputRefusal::Empty);
@@ -18,9 +18,9 @@ impl SeedInput {
         Ok(Self(bytes))
     }
 
-    /// One nonempty seed read from a foreign pack after its position-specific refusal was assigned.
+    /// One seed lifted out of a foreign envelope, once the reader has ruled on its position.
     #[must_use]
-    pub(crate) const fn read(bytes: Vec<u8>) -> Self {
+    pub(in crate::corpus) const fn from_envelope(bytes: Vec<u8>) -> Self {
         Self(bytes)
     }
 
@@ -32,13 +32,13 @@ impl SeedInput {
 }
 
 impl SeedPackAddress {
-    /// The pack address derived over a complete canonical body.
+    /// The address a complete canonical body derives.
     #[must_use]
-    pub(crate) const fn derived(address: ContentAddress) -> Self {
+    pub(in crate::corpus) const fn derived(address: ContentAddress) -> Self {
         Self(address)
     }
 
-    /// The content address this typed pack address carries.
+    /// The content address this pack address carries.
     #[must_use]
     pub const fn address(self) -> ContentAddress {
         self.0
@@ -46,12 +46,12 @@ impl SeedPackAddress {
 }
 
 impl SeedPack {
-    /// Assemble one pack after the writer or reader established envelope coherence.
+    /// Assemble one pack, once the writer or the reader has established that its envelope coheres.
     ///
     /// # Errors
     ///
-    /// Refuses no seed, then the first exact duplicate in pack order.
-    pub(crate) fn assembled(
+    /// Refuses a pack with no seed, then the first exact repeat in pack order.
+    pub(in crate::corpus) fn assembled(
         population: PopulationRef,
         address: SeedPackAddress,
         seeds: Vec<SeedInput>,
@@ -60,13 +60,9 @@ impl SeedPack {
         if seeds.is_empty() {
             return Err(SeedPackRefusal::NoSeed);
         }
-        let mut positions: BTreeMap<&[u8], usize> = BTreeMap::new();
-        for (duplicate, seed) in seeds.iter().enumerate() {
-            if let Some(first) = positions.insert(seed.bytes(), duplicate) {
-                return Err(SeedPackRefusal::DuplicateSeed { first, duplicate });
-            }
+        if let Some(repeat) = duplicate_in(&seeds) {
+            return Err(repeat);
         }
-        drop(positions);
         Ok(Self {
             population,
             address,
@@ -87,15 +83,26 @@ impl SeedPack {
         self.address
     }
 
-    /// The admitted seeds in pack order.
+    /// The admitted seeds, in pack order.
     #[must_use]
     pub fn seeds(&self) -> &[SeedInput] {
         &self.seeds
     }
 
-    /// The complete canonical envelope: leading address claim followed by its addressed body.
+    /// The complete envelope: the leading address claim, then the body it addresses.
     #[must_use]
     pub fn encoded(&self) -> &[u8] {
         &self.encoded
     }
+}
+
+/// The first exact repeat in pack order, as the refusal that names both positions.
+fn duplicate_in(seeds: &[SeedInput]) -> Option<SeedPackRefusal> {
+    let mut seen: BTreeMap<&[u8], usize> = BTreeMap::new();
+    for (duplicate, seed) in seeds.iter().enumerate() {
+        if let Some(first) = seen.insert(seed.bytes(), duplicate) {
+            return Some(SeedPackRefusal::DuplicateSeed { first, duplicate });
+        }
+    }
+    None
 }

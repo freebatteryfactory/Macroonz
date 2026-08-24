@@ -1,54 +1,37 @@
-//! The structural comparison: what an artifact was read to declare, compared
-//! against a declaration the caller states independently.
+//! The structural comparison: what an artifact was read to declare, against what a caller declared it would.
 //!
 //! # The question a byte scan cannot be asked
 //!
-//! A scan over bytes supports exactly one claim — *the rendered text contains
-//! this exact declared textual form* — and no number of anchors moves a
-//! structural question inside it: whether the artifact declares an
-//! implementation at all, what that implementation targets, which contract it
-//! realizes, whether an anchored constant is a MEMBER of it or merely bytes
-//! sitting nearby, whether an item nobody planned came along, and whether the
-//! same item was emitted twice. A scan that answered any of those would have to
-//! decide what the text MEANS, and deciding that means implementing the
-//! reader's own understanding of Rust — at which point the scan stops being
-//! dumb, which was the property that made it worth trusting.
+//! A scan over bytes supports exactly one claim — the rendered text contains this exact declared textual form — and no number of anchors moves a structural question inside it.
+//! Whether the artifact declares an implementation at all, what it targets, which contract it realizes, whether an anchored constant is a member of it or merely bytes sitting nearby, whether an item nobody planned came along, whether the same item was emitted twice: answering any of those means deciding what the text means, at which point the scan stops being dumb, which was the property that made it worth trusting.
 //!
-//! # The parse is somebody else's
+//! # What this lane does not claim
 //!
-//! The challenge-side host parses rendered Rust with `syn`, maps the result into
-//! [`ArtifactStructure`], and hands that typed reading here. The parser shares
-//! no capture, plan, renderer, token representation, or projection with the
-//! producer. This production module therefore owns only the comparison and
-//! names no parser dependency.
-//!
-//! # What this lane does NOT claim
-//!
-//! It reads syntax, and syntax is not meaning. It never claims that the
-//! artifact TYPECHECKS, that the paths it spells resolve to anything, that the
-//! trait it names exists, that the target type exists, that the implementation
-//! is coherent, or that any constant evaluates to the value its spelling
-//! suggests. A path the declaration did not name is read here as *a different
-//! path* and never as *no such contract*. Every one of those is the compiled
-//! read-back's, where a compiler parses by its own rules and hands back values.
+//! It reads syntax, and syntax is not meaning.
+//! It never claims the artifact typechecks, that the paths it spells resolve, that the trait it names exists, that the target type exists, that the implementation is coherent, or that a constant evaluates to what its spelling suggests.
+//! A path the declaration did not name is read here as a different path and never as no such contract.
+//! Every one of those questions is the compiled read-back's, where a compiler parses by its own rules and hands back values.
 
+use super::parse;
 use super::types::{
     ArtifactStructure, ConstantReading, DeclaredArtifact, DeclaredImplementation, DeclaredMember,
     ImplementationMember, ImplementationStructure, StructuralDisagreement, StructuralVerdict,
 };
 
-// ---------------------------------------------------------------------------
-// The comparison.
-// ---------------------------------------------------------------------------
+/// Read one rendered artifact and compare what it declares against one declaration.
+///
+/// The one road that states [`StructuralVerdict::Unparsable`]: text that is not parseable Rust is a reading that never happened, and folding it into a pass would assert over nothing.
+pub fn read(rendered: &str, declared: &DeclaredArtifact<'_>) -> StructuralVerdict {
+    match parse::declarations_in(rendered) {
+        Some(structure) => compared(&structure, declared),
+        None => StructuralVerdict::Unparsable,
+    }
+}
 
 /// Compare one reading against one declaration.
 ///
-/// The pure half of the lane: typed values on both sides, no text, no parser.
-///
-/// # Bounds
-///
-/// It never states [`StructuralVerdict::Unparsable`]. That arm belongs to the
-/// read, and a caller holding a reading is holding the proof a parse happened.
+/// The pure half of the lane: typed values on both sides, no text and no parser.
+/// It never states [`StructuralVerdict::Unparsable`], because a caller holding a reading is holding the proof a parse happened.
 pub fn compared(
     structure: &ArtifactStructure,
     declared: &DeclaredArtifact<'_>,
@@ -61,12 +44,8 @@ pub fn compared(
 
 /// The first disagreement between one reading and one declaration.
 ///
-/// The order is deliberate and coarse-to-fine: an artifact carrying an item
-/// nobody planned is reported as that, not as whichever member the extra item
-/// happened to disturb. Inside an implementation the same principle holds — how
-/// the implementation is written, and whether it exists at all under some
-/// `cfg`, are read before what its members say, because a member's value is
-/// only interesting once the item carrying it is the declared item.
+/// The order is deliberate and coarse to fine: an artifact carrying an item nobody planned is reported as that, not as whichever member the extra item happened to disturb.
+/// Inside an implementation the same principle holds — how the implementation is written is read before what its members say, because a member's value is only interesting once the item carrying it is the declared item.
 fn disagreement(
     structure: &ArtifactStructure,
     declared: &DeclaredArtifact<'_>,
@@ -121,8 +100,7 @@ fn implementation_disagreement(
 
 /// The first disagreement among the members one implementation carries.
 ///
-/// Three passes, coarse to fine: a member nobody declared, then a member
-/// declared once and stated twice, then what the declared members say.
+/// Three passes, coarse to fine: a member nobody declared, then a member declared once and stated twice, then what the declared members say.
 fn member_disagreement(
     at: usize,
     read: &[ImplementationMember],
@@ -141,10 +119,7 @@ fn member_disagreement(
 
 /// The first member the declaration did not name, by its name or by what it is.
 ///
-/// A member that is not an associated constant is one of these whatever it is
-/// called: nothing an artifact renders lawfully carries a method, an associated
-/// type, or a macro invocation, and a reader that stepped over them would have
-/// a blind spot exactly the size of everything the declaration did not name.
+/// A member that is not an associated constant is one of these whatever it is called, because a reader that stepped over methods, associated types, and macro invocations would have a blind spot exactly the size of everything the declaration did not name.
 fn undeclared_member(
     read: &[ImplementationMember],
     declared: &[DeclaredMember<'_>],
@@ -167,9 +142,7 @@ fn undeclared_member(
 
 /// The first member stated more than once.
 ///
-/// The second reading is a finding and never an overwrite of the first: a
-/// reader that filed each named constant into one seat would write the copy
-/// over the original and report nothing at all.
+/// The second reading is a finding and never an overwrite of the first: a reader that filed each named constant into one seat would write the copy over the original and report nothing at all.
 fn restated_member(read: &[ImplementationMember]) -> Option<String> {
     for (position, member) in read.iter().enumerate() {
         let ImplementationMember::Constant { name, .. } = member else {
@@ -216,8 +189,7 @@ fn member_value_disagreement(
     })
 }
 
-/// The reading of one member, where that member is the associated constant of
-/// this name.
+/// The reading of one member, where that member is the associated constant of this name.
 fn named_constant<'read>(
     member: &'read ImplementationMember,
     name: &str,

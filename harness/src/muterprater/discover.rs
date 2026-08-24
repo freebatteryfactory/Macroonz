@@ -1,6 +1,7 @@
-//! Complete producer discovery lowered through one owner mutation policy.
+//! Complete producer discovery, lowered through one owner mutation policy.
 //!
-//! Every discovered site remains in the reading in producer order. Only an owner-mapped site whose complete alternative roster is permitted becomes an executable point; owner-unmapped and mapped-but-unpermitted sites remain visible and cannot enter the surface.
+//! Every discovered site stays in the reading, in producer order.
+//! Only an owner-mapped site whose whole alternative roster is permitted becomes an executable point; unmapped and unpermitted sites stay visible and cannot enter the surface.
 
 use super::{
     DiscoveredMutationSite, DiscoveryDisposition, DiscoveryEntry, DiscoveryLoweringRefusal,
@@ -12,11 +13,12 @@ use std::collections::BTreeSet;
 
 /// Lower one complete discovery denominator into its owner-admitted executable surface.
 ///
-/// Admission is all-or-nothing per site: one unpermitted candidate family withholds the whole point rather than silently narrowing its alternative roster. A point-free surface is lawful, while no discovered site disappears from the retained reading.
+/// Admission is all-or-nothing per site: one unpermitted candidate family withholds the whole point rather than silently narrowing its alternative roster.
+/// A point-free surface is lawful, and no discovered site disappears from the retained reading.
 ///
 /// # Errors
 ///
-/// Refuses two discovered sites stating one point identity before admitting any point.
+/// Refuses two discovered sites stating one point identity, before admitting any point.
 pub fn lower_discoveries(
     policy: &MutationPolicy,
     sites: Vec<DiscoveredMutationSite>,
@@ -34,38 +36,44 @@ pub fn lower_discoveries(
     let mut entries = Vec::with_capacity(sites.len());
     let mut points = Vec::new();
     for site in sites {
-        let disposition = match site.mapping() {
-            OwnerClaimMapping::OwnerUnmapped => DiscoveryDisposition::OwnerUnmapped,
-            OwnerClaimMapping::Mapped(claim) => match policy.permission(claim) {
-                None => DiscoveryDisposition::MappedUnpermitted {
-                    cause: MappedUnpermittedCause::Claim(claim),
-                },
-                Some(permission) => {
-                    let outside = site
-                        .alternatives()
-                        .iter()
-                        .enumerate()
-                        .find(|(_, alternative)| !permission.admits(alternative.family()));
-                    if let Some((at, alternative)) = outside {
-                        DiscoveryDisposition::MappedUnpermitted {
-                            cause: MappedUnpermittedCause::Family {
-                                at,
-                                family: alternative.family(),
-                            },
-                        }
-                    } else {
-                        let point = MutationPoint::admitted(policy, claim, site.clone());
-                        let identity = point.identity();
-                        points.push(point);
-                        DiscoveryDisposition::Mapped { point: identity }
-                    }
-                }
-            },
-        };
+        let disposition = admit(policy, &site, &mut points);
         entries.push(DiscoveryEntry::recorded(site, disposition));
     }
 
     let discovery = MutationDiscoveryReading::recorded(policy, entries);
     let surface = EvaluationSurface::admitted(policy, points);
     Ok(MutationSurfaceLowering::lowered(discovery, surface))
+}
+
+/// Read one site's disposition, pushing the admitted point where policy permits the whole roster.
+fn admit(
+    policy: &MutationPolicy,
+    site: &DiscoveredMutationSite,
+    points: &mut Vec<MutationPoint>,
+) -> DiscoveryDisposition {
+    let OwnerClaimMapping::Mapped(claim) = site.mapping() else {
+        return DiscoveryDisposition::OwnerUnmapped;
+    };
+    let Some(permission) = policy.permission(claim) else {
+        return DiscoveryDisposition::MappedUnpermitted {
+            cause: MappedUnpermittedCause::Claim(claim),
+        };
+    };
+    let outside = site
+        .alternatives()
+        .iter()
+        .enumerate()
+        .find(|(_, alternative)| !permission.admits(alternative.family()));
+    if let Some((at, alternative)) = outside {
+        return DiscoveryDisposition::MappedUnpermitted {
+            cause: MappedUnpermittedCause::Family {
+                at,
+                family: alternative.family(),
+            },
+        };
+    }
+    let point = MutationPoint::admitted(policy, claim, site.clone());
+    let identity = point.identity();
+    points.push(point);
+    DiscoveryDisposition::Mapped { point: identity }
 }

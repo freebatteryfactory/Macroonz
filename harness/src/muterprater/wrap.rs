@@ -1,88 +1,40 @@
-//! The compiled-mutation lane: the vocabulary a wrapped backend's output is read
-//! into, the defensive parser that reads it, and the mutant-scoped selection a
-//! witness run is executed under.
+//! The compiled-mutation lane: the console grammar of one wrapped backend, the defensive parser that reads it, and the witness runs a reading is planned into.
 //!
-//! The backend is EXTERNAL and it runs outside the wall: it mutates the real
-//! source and invokes the test command itself. Nothing in this file executes
-//! anything. It reads text a caller already holds, and it plans runs the one
-//! report engine performs — this lane is a reader and a planner, never a second
-//! runner.
+//! The backend is external and it runs outside the wall — it mutates real source and invokes the test command itself.
+//! Nothing here executes anything: this file reads text a caller already holds, and plans runs the one report engine performs.
 //!
-//! # The profile a reading is stated under
+//! # The line grammar this parser reads
 //!
-//! The grammar below is an ASSUMPTION about one tool's console rendering, and it
-//! is carried as a value rather than held in the air: every reading is stated
-//! under an [`AdapterProfile`] naming the backend, the version posture the party
-//! that ran it states, the output the reading was taken from, and this adapter's
-//! own grammar version. Three of those four are this file's own facts, so
-//! [`console_profile`] states them and only the backend version is the caller's
-//! word. The profile's ceiling is what the console stream affords, and the reading guard refuses a run that would stand past it.
+//! The grammar is line-oriented and the reading is defensive: a line is read only when it matches a shape stated here, and every other line becomes an [`UnparsedLine`] that travels with the reading rather than being dropped.
 //!
-//! The console grammar is an inspectable assumption about the backend's own rendering.
-//! A reading under it qualifies the adapter for nothing until a party states that this grammar was checked against real output from the exact backend and version the reading names.
-//! A different machine-readable backend surface, if adopted, earns its own adapter profile and qualification rather than inheriting this grammar's standing.
+//! - A roster line is `Found <count> mutant…`: the word `Found`, a decimal count, and a third word beginning `mutant`.
+//! - A baseline line is an outcome word followed by `Unmutated baseline…`, and only `ok` reads as a qualified baseline.
+//! - A mutant line is an outcome word, then `<file>:<line>:<column>:`, then the backend's own damage text.
 //!
-//! # The output grammar this parser reads
+//! The coordinate's file part is everything before the last two colon-separated fields, so a drive-lettered path stays whole.
+//! The outcome words are `caught`, `missed`, `unviable`, `timeout`, and `failed`, matched without regard to case.
 //!
-//! The grammar is line-oriented and this reading is DEFENSIVE: a line is read
-//! only when it matches a shape stated here, and every other line becomes an
-//! [`UnparsedLine`] that travels with the reading rather than being dropped.
+//! # What a reading may claim
 //!
-//! - A ROSTER line is `Found <count> mutant…`: the word `Found`, a decimal
-//!   count, and a third word beginning `mutant`.
-//! - A BASELINE line is an outcome word followed by `Unmutated baseline…`. The
-//!   word `ok` reads as a qualified baseline and every other word reads as a
-//!   failed one, because a baseline that is anything but a clean pass is not a
-//!   precondition anybody can mint a kill under.
-//! - A MUTANT line is an outcome word, then `<file>:<line>:<column>:`, then the
-//!   backend's own damage text. The coordinate's file part is everything before
-//!   the last two colon-separated fields, so a drive-lettered path stays whole.
+//! Every reading is stated under an [`AdapterProfile`] naming the backend, the version posture the running party states, the output it was taken from, and this adapter's own grammar version.
+//! Three of those four are this file's own facts, so [`console_profile`] states them and only the backend version is the caller's word.
 //!
-//! The outcome words are `caught`, `missed`, `unviable`, `timeout`, and
-//! `failed`, matched without regard to case.
+//! The backend says which of its own mutants its command rejected and says nothing about whether a damaged expression was ever reached, so every mutant read here carries [`ActivationDisposition::UnobservableUnderBackend`].
+//! Two consequences follow, both structural: a kill under this lane asserts witness rejection and never observed activation, and a non-kill can never earn survived — it is inconclusive, and [`MutationRun::non_kills`](super::MutationRun::non_kills) is the roster a reader means by "what got through".
+//! The same fact at run width is the profile's [`ClaimCeiling::WitnessRejection`](super::ClaimCeiling::WitnessRejection), and a reading whose run carries a survivor is refused rather than believed.
 //!
-//! # What this lane can and cannot establish
+//! A kill's rejection is the backend's word ([`IntendedRejection::ReportedByBackend`]), because it named neither a trial nor a cause, so no fingerprint exists for it.
 //!
-//! The backend states which of its own mutants its command rejected. It states
-//! nothing about whether a damaged expression was ever REACHED, so every mutant
-//! read here carries [`ActivationDisposition::UnobservableUnderBackend`] — a
-//! fact about the backend, not about the damage. Two consequences follow and
-//! both are structural rather than remembered: a kill under this lane asserts
-//! witness rejection and never observed activation, and a non-kill can never
-//! earn survived — it is inconclusive, and
-//! [`MutationRun::non_kills`](super::MutationRun::non_kills) is the roster a
-//! reader means by "what got through".
+//! # What stands behind the grammar
 //!
-//! That same fact is the profile's
-//! [`ClaimCeiling::WitnessRejection`](super::ClaimCeiling::WitnessRejection) at
-//! run width: the per-mutant axis says what one damage's firing established, the
-//! ceiling says what the whole reading may be stood on, and a reading whose run
-//! carries a survivor is refused rather than believed.
-//!
-//! The rejection a kill carries is the backend's WORD
-//! ([`IntendedRejection::ReportedByBackend`]), because the backend named neither
-//! a trial nor a cause: no fingerprint exists for it, and a proposal standing on
-//! a kill is grounded on a demonstration this harness ran itself.
-//!
-//! # What a reading contributes to trust
-//!
-//! A reading can yield two nested typed facts. An [`AdapterQualification`](super::AdapterQualification) is the reading's exact adapter profile under a grammar standing that qualifies that profile: a party states that the
-//! shapes this page declares were checked against output the backend really
-//! wrote, and the version they name is the version the reading's profile names.
-//! A standing under which nobody has checked anything is an honest thing to
-//! hold and produces no qualification, so the bootstrap posture is inspectable
-//! rather than admissible. A [`CompiledSuitePressure`](super::CompiledSuitePressure) is at least one lawful kill read out of a reported reading and already retains that qualification, with no invented evaluation-pair or source-revision scope. A coordinate remains the supplied backend text's coordinate and does not claim the current checkout still has the same bytes there. The interpreted gate joins this generic suite pressure to independent exact [`CompiledProjectionPressure`](super::CompiledProjectionPressure); it does not consume a standalone qualification. What a run counts and what a suite demonstrated remain separate questions.
+//! The grammar is an inspectable assumption about one tool's rendering, and it qualifies nothing until a party states that these shapes were checked against real output of the exact backend version a reading names.
+//! That statement is what [`AdapterQualification`](super::AdapterQualification) carries, and [`CompiledSuitePressure`](super::CompiledSuitePressure) is a lawful kill read out of a reading already carrying such a qualification.
+//! A different machine-readable backend surface, if adopted, earns its own profile and its own qualification rather than inheriting this grammar's standing.
 //!
 //! # The caller-supplied seams
 //!
-//! External mutants arrive as source coordinates, not as claims. The origin
-//! graph is read on the generator side — a reading of the one join, never a
-//! second structure — and it reaches this lane as [`OwnerLookup`]. The operator
-//! family is a second reading for the same reason, [`FamilyLookup`]. Neither
-//! answer is invented here: an unanswered lookup produces
-//! [`MappingPosture::OwnerUnmapped`] and
-//! [`FamilyAttribution::OutsideTheBank`], and the witness selection widens
-//! accordingly.
+//! External mutants arrive as source coordinates rather than as claims, so the reading from a coordinate to its owning claim is the caller's ([`OwnerLookup`]), and so is the reading from damage text to operator family ([`FamilyLookup`]).
+//! Neither answer is invented here: an unanswered lookup produces [`MappingPosture::OwnerUnmapped`] and [`FamilyAttribution::OutsideTheBank`], and the witness selection widens accordingly.
 
 use super::types::{
     ActivationDisposition, AdapterProfile, AnnouncedRoster, BackendVersionPosture, BaselineAxis,
@@ -99,24 +51,17 @@ use std::collections::BTreeSet;
 
 /// The version of the console line grammar this file's page states.
 ///
-/// Its own constant, moving when and only when those line shapes move. The
-/// backend's version is the running party's word and the mutant encoding's
-/// version is the identity's: three things move for three reasons, and a bump to
-/// one renames nothing under another.
+/// It moves when and only when those line shapes move; the backend's version is the running party's word, and the mutant encoding's version is the identity's.
 const CONSOLE_GRAMMAR_VERSION: u32 = 1;
 
 /// The activation every mutant this lane reads carries.
 ///
-/// A fact about the BACKEND: it mutates source and runs a command, and nothing
-/// in its output states whether a damaged expression was reached. Declared once
-/// here so every line is stamped from one place rather than decided at each one;
-/// the same fact at run width is the profile's claim ceiling.
+/// A fact about the backend: it mutates source and runs a command, and nothing in its output states whether a damaged expression was reached.
 const WRAP_ACTIVATION: ActivationDisposition = ActivationDisposition::UnobservableUnderBackend;
 
 /// The equivalence every mutant this lane reads carries.
 ///
-/// The backend puts no equivalence question, so nothing was assessed. Recording
-/// anything else would be this lane answering a question nobody asked.
+/// The backend puts no equivalence question, so nothing was assessed.
 const WRAP_EQUIVALENCE: EquivalenceAxis = EquivalenceAxis::NotAssessed;
 
 /// The prefix a baseline line's remainder begins with.
@@ -130,6 +75,15 @@ const ROSTER_SUBJECT: &str = "mutant";
 
 /// The outcome word a qualified baseline is stated under.
 const BASELINE_QUALIFIED_WORD: &str = "ok";
+
+/// The backend's outcome words, and what each one states about one mutant.
+const OUTCOME_WORDS: [(&str, WrapOutcomeWord); 5] = [
+    ("caught", WrapOutcomeWord::Caught),
+    ("missed", WrapOutcomeWord::Missed),
+    ("unviable", WrapOutcomeWord::Unviable),
+    ("timeout", WrapOutcomeWord::TimedOut),
+    ("failed", WrapOutcomeWord::ToolFailed),
+];
 
 impl WrappedBackend {
     /// The backend's own name.
@@ -145,9 +99,7 @@ impl WrappedBackend {
 
 /// What one line of the backend's output states.
 ///
-/// Private to this reading: the public record is [`WrapReading`], and a shape
-/// this parser uses on the way there is not vocabulary anybody else writes
-/// against.
+/// Private to this reading: the public record is [`WrapReading`], and a shape the parser uses on the way there is not vocabulary anybody else writes against.
 enum LineReading<'line> {
     /// The backend announced its roster count.
     Roster(u32),
@@ -170,13 +122,7 @@ enum LineReading<'line> {
 
 /// What a console reading of the wrapped backend is stated under.
 ///
-/// # Authority
-///
-/// The backend, the output, and the grammar are this file's own facts: it is
-/// this parser that reads that tool's console stream under the shapes its page
-/// states, so the only thing left for a caller to state is which version of the
-/// backend produced the text. The claim ceiling is read off the profile's
-/// source and is never stated into it.
+/// The backend, the output, and the grammar are this file's own facts, so the only thing left for a caller to state is which version of the backend produced the text.
 #[must_use]
 pub fn console_profile(version: BackendVersionPosture) -> AdapterProfile {
     AdapterProfile::stated(
@@ -187,23 +133,14 @@ pub fn console_profile(version: BackendVersionPosture) -> AdapterProfile {
     )
 }
 
-/// Read one compiled-mutation backend's console output into this lane's record.
+/// Read one backend's console output into this lane's record.
 ///
-/// # Authority
-///
-/// Two passes, and the order is the law: the baseline is established BEFORE any
-/// mutant line is read, so a kill can never be minted under a baseline the
-/// output did not qualify. The second pass is total over the remaining lines —
-/// every one of them lands in a report or in the unparsed roster. The reading
-/// that comes back is stated under [`console_profile`], carrying the version
-/// posture the caller states for the run that wrote the text.
+/// Two passes, and the order is the law: the baseline is established before any mutant line is read, so a kill can never be minted under a baseline the output did not qualify.
+/// The second pass is total over the remaining lines — every one lands in a report or in the unparsed roster.
 ///
 /// # Errors
 ///
-/// Refuses an output stating no baseline at all, then a baseline that does not
-/// qualify, then a mutant line whose record the lawful-kill constructor refused
-/// — the last carrying which line and what the constructor refused. The ceiling
-/// The ceiling refusal belongs to a run assembled elsewhere: the records composed here are killed and inconclusive, and a console reading's ceiling admits both.
+/// Refuses an output stating no baseline, then a baseline that does not qualify, then a mutant line whose record the lawful-kill constructor refused, naming which line and what was refused.
 pub fn read_output(
     text: &str,
     version: BackendVersionPosture,
@@ -243,8 +180,7 @@ pub fn read_output(
 ///
 /// # Errors
 ///
-/// Refuses an output with no baseline line, then one whose baseline did not
-/// pass.
+/// Refuses an output with no baseline line, then one whose baseline did not pass.
 fn read_baseline(text: &str) -> Result<BaselineQualification, WrapRefusal> {
     for line in text.lines() {
         if let LineReading::Baseline(axis) = read_line(line) {
@@ -254,8 +190,9 @@ fn read_baseline(text: &str) -> Result<BaselineQualification, WrapRefusal> {
     Err(WrapRefusal::BaselineNotStated)
 }
 
-/// One mutant's record, composed from the backend's word and the baseline the
-/// output qualified.
+/// One mutant's record, composed from the backend's word and the baseline the output qualified.
+///
+/// Only `caught` reaches the lawful-kill constructor; every other word states which link of the chain did not hold.
 fn recorded(
     ordinal: usize,
     word: WrapOutcomeWord,
@@ -264,51 +201,46 @@ fn recorded(
     baseline: BaselineQualification,
 ) -> Result<MutationReport, WrapRefusal> {
     let axis = baseline.axis();
-    let materialization = MaterializationAxis::from(word);
-    let execution = ExecutionAxis::from(word);
-    match word {
-        WrapOutcomeWord::Caught => MutationReport::killed(
-            target,
-            axis,
-            materialization,
-            WRAP_ACTIVATION,
-            execution,
-            IntendedRejection::ReportedByBackend {
-                stated: ForeignText::admitted(line.as_bytes()),
-            },
-            WRAP_EQUIVALENCE,
-        )
-        .map_err(|cause| WrapRefusal::KillNotLawful { ordinal, cause }),
-        WrapOutcomeWord::Missed => Ok(MutationReport::inconclusive(
-            target,
-            axis,
-            materialization,
-            WRAP_ACTIVATION,
-            execution,
-            InconclusiveCause::UnobservableAndUnrejected,
-            WRAP_EQUIVALENCE,
-        )),
-        WrapOutcomeWord::Unviable | WrapOutcomeWord::ToolFailed => {
-            Ok(MutationReport::inconclusive(
+    let cause = match word {
+        WrapOutcomeWord::Caught => {
+            return MutationReport::killed(
                 target,
                 axis,
-                materialization,
+                MaterializationAxis::from(word),
                 WRAP_ACTIVATION,
-                execution,
-                InconclusiveCause::NotMaterialized,
+                ExecutionAxis::from(word),
+                IntendedRejection::ReportedByBackend {
+                    stated: ForeignText::admitted(line.as_bytes()),
+                },
                 WRAP_EQUIVALENCE,
-            ))
+            )
+            .map_err(|cause| WrapRefusal::KillNotLawful { ordinal, cause });
         }
-        WrapOutcomeWord::TimedOut => Ok(MutationReport::inconclusive(
-            target,
-            axis,
-            materialization,
-            WRAP_ACTIVATION,
-            execution,
-            InconclusiveCause::WitnessIncomplete,
-            WRAP_EQUIVALENCE,
-        )),
-    }
+        WrapOutcomeWord::Missed => InconclusiveCause::UnobservableAndUnrejected,
+        WrapOutcomeWord::Unviable | WrapOutcomeWord::ToolFailed => {
+            InconclusiveCause::NotMaterialized
+        }
+        WrapOutcomeWord::TimedOut => InconclusiveCause::WitnessIncomplete,
+    };
+    Ok(unlearned(target, axis, word, cause))
+}
+
+/// One record that established nothing, over the axes the backend's word already fixed.
+fn unlearned(
+    target: MutationTarget,
+    axis: BaselineAxis,
+    word: WrapOutcomeWord,
+    cause: InconclusiveCause,
+) -> MutationReport {
+    MutationReport::inconclusive(
+        target,
+        axis,
+        MaterializationAxis::from(word),
+        WRAP_ACTIVATION,
+        ExecutionAxis::from(word),
+        cause,
+        WRAP_EQUIVALENCE,
+    )
 }
 
 /// One target, over the two caller-supplied readings.
@@ -362,9 +294,7 @@ fn roster_count(word: &str, rest: &[&str]) -> Option<u32> {
 
 /// The baseline axis one outcome word states.
 ///
-/// Only a clean pass qualifies. Every other word — a failure, a timeout, a
-/// tooling fault — reads as a failed baseline, because none of them is the
-/// unchanged passing suite a kill stands on.
+/// Only a clean pass qualifies, because no other word is the unchanged passing suite a kill stands on.
 fn baseline_axis(word: &str) -> BaselineAxis {
     if word.eq_ignore_ascii_case(BASELINE_QUALIFIED_WORD) {
         BaselineAxis::Qualified
@@ -398,28 +328,15 @@ fn mutant_reading<'line>(word: &str, rest: &[&str], line: &'line str) -> LineRea
 
 /// The outcome word one token states, where it states one.
 fn outcome_word(token: &str) -> Option<WrapOutcomeWord> {
-    if token.eq_ignore_ascii_case("caught") {
-        return Some(WrapOutcomeWord::Caught);
-    }
-    if token.eq_ignore_ascii_case("missed") {
-        return Some(WrapOutcomeWord::Missed);
-    }
-    if token.eq_ignore_ascii_case("unviable") {
-        return Some(WrapOutcomeWord::Unviable);
-    }
-    if token.eq_ignore_ascii_case("timeout") {
-        return Some(WrapOutcomeWord::TimedOut);
-    }
-    if token.eq_ignore_ascii_case("failed") {
-        return Some(WrapOutcomeWord::ToolFailed);
-    }
-    None
+    OUTCOME_WORDS
+        .iter()
+        .find(|(spelling, _)| token.eq_ignore_ascii_case(spelling))
+        .map(|(_, word)| *word)
 }
 
 /// The coordinate one `<file>:<line>:<column>:` token states.
 ///
-/// Cut from the right, so a path carrying its own colons stays whole in the file
-/// part.
+/// Cut from the right, so a path carrying its own colons stays whole in the file part.
 fn read_coordinate(token: &str) -> Option<SourceCoordinate> {
     let body = token.strip_suffix(':').unwrap_or(token);
     let mut fields = body.rsplitn(3, ':');
@@ -433,18 +350,9 @@ fn read_coordinate(token: &str) -> Option<SourceCoordinate> {
 
 /// The selection one mutant's witness run is executed under.
 ///
-/// # Authority
-///
-/// The one join, over a shape the rows already carry: a mapped target names the
-/// claim that owns its site, and the rows serving that claim are the ones worth
-/// running. An unmapped target widens to the whole world — the CONSERVATIVE
-/// selection, chosen because a narrower one would rest on a claim nobody
-/// established.
-///
-/// # Nonclaims
-///
-/// A selection narrows a RUN and never the denominator. The report a narrowed
-/// run writes still stands over every row of the complete table.
+/// A mapped target names the claim that owns its site, and the rows serving that claim are the ones worth running.
+/// An unmapped target widens to the whole world — the conservative selection, because a narrower one would rest on a claim nobody established.
+/// A selection narrows a run and never the denominator: the report a narrowed run writes still stands over every row of the complete table.
 #[must_use]
 pub fn mutant_scoped(target: &MutationTarget) -> Selection {
     match target.owning_claim() {
@@ -455,16 +363,11 @@ pub fn mutant_scoped(target: &MutationTarget) -> Selection {
 
 /// Plan one compiled-mutation pass over the targets a reading recovered.
 ///
-/// # Authority
-///
-/// A pure function of its arguments, and it spends nothing: the plan lists every
-/// intended run with the selection it would use and the budget it would spend,
-/// so a caller reads the whole pass before the first mutant is pressed.
+/// A pure function of its arguments that spends nothing: the plan lists every intended run with the selection it would use and the budget it would spend, so a caller reads the whole pass before the first mutant is pressed.
 ///
 /// # Errors
 ///
-/// Refuses a pass with no target, then one stating more runs than the scope's
-/// mutant budget admits.
+/// Refuses a pass with no target, then one stating more runs than the scope's mutant budget admits.
 pub fn plan_pass(
     targets: &[MutationTarget],
     scope: ScopedInvocation,

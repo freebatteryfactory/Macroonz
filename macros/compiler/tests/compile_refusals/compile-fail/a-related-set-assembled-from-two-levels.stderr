@@ -1,0 +1,18 @@
+error[E0308]: arguments to this function are incorrect
+  --> tests/compile_refusals/compile-fail/a-related-set-assembled-from-two-levels.rs:18:16
+   |
+18 |     let _set = RelatedSet::derived_over(1_u8, &issues);
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^ ---- expected `Family`, found `u8`
+   |
+note: expected `&[Vec<u8>]`, found `&Vec<Identity<RelatedIssue>>`
+  --> tests/compile_refusals/compile-fail/a-related-set-assembled-from-two-levels.rs:18:47
+   |
+18 |     let _set = RelatedSet::derived_over(1_u8, &issues);
+   |                                               ^^^^^^^
+   = note: expected reference `&[Vec<u8>]`
+              found reference `&Vec<macroonz::Identity<RelatedIssue>>`
+note: associated function defined here
+  --> src/diagnostic/type_guard.rs
+   |
+   |     pub fn derived_over(family: Family, issues: &[Vec<u8>]) -> Self {
+   |            ^^^^^^^^^^^^

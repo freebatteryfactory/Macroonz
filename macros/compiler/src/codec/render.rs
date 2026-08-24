@@ -1,214 +1,81 @@
-//! The token half of the road: the decode refusal this home declares, the
-//! encode road that writes one declared shape's canonical bytes, the decode road
-//! that reads them back and refuses, and the placement that carries them.
+//! The token half: the decode refusal this home declares for the caller, the encode road, the decode road, and the placement that carries them.
 //!
 //! # Tokens, not text
 //!
-//! Every path is spelled as segments, every brace is a group, and no function
-//! here composes Rust source. The Rust a person reads is
-//! [`GeneratedTree::inspected`](crate::token::GeneratedTree::inspected), a
-//! projection of what is emitted rather than the thing itself.
+//! Every path is spelled as segments and every brace is a group; nothing here composes Rust source.
+//! The Rust a person reads is [`GeneratedTree::inspected`](crate::token::GeneratedTree::inspected), a projection of what is emitted rather than the thing itself.
 //!
 //! # The framing, stated once
 //!
-//! Every variable-length member is written as the framing width's worth of
-//! big-endian length followed by the bytes — the plane's own framing, the same
-//! one every canonical encoding in these services is written through. Two
-//! members can therefore never be re-cut at a different boundary and produce one
-//! byte string. A NESTED member is framed on exactly those terms rather than run
-//! to the end of the input, because a nested value that consumed the remainder
-//! would make the member after it unreadable.
+//! Every variable-length member is written as the framing width's worth of big-endian length followed by the bytes, so two members can never be re-cut at another boundary and produce one byte string.
+//! A nested member is framed on exactly those terms rather than run to the end of the input, because a nested value that consumed the remainder would make the member after it unreadable.
 //!
 //! # No numeric literal is written anywhere here
 //!
-//! The generated-token roster carries a numeric arm and a byte-string arm
-//! beside word, punctuation, text, and group; this home simply writes no
-//! literal through either. Every place a number would have
-//! stood is written as the language's own road to the same value: the framing
-//! width is `::core::mem::size_of::<u64>()`, a presence byte is `u8::from(false)`
-//! and `u8::from(true)`, a repeated member stops on a length comparison, and a
-//! closed choice's admitted slots are the owner's OWN declared roster walked and
-//! compared by `slot()`.
+//! The generated-token roster carries a numeric arm and this home writes nothing through it.
+//! The framing width is `::core::mem::size_of::<u64>()`, a presence byte is `u8::from(false)` and `u8::from(true)`, a repeated member stops on a length comparison, and a closed choice's admitted slots are the owner's own roster walked and compared.
 //!
-//! That last one is the road worth reading twice: this home never writes a table
-//! of slots. A roster that gained an arm gains it in the decode road too, without
-//! this home ever learning what the arms are — and a slot no arm answers to
-//! refuses rather than electing a neighbour.
-//!
-//! # The decode road IS the validator
-//!
-//! Every read refuses at the member it is standing at, naming that member as a
-//! text literal, and the road refuses once more where material remains after the
-//! last declared member. "These bytes are a lawful value" is therefore exactly
-//! "the decode road returned one", and there is no second pass to run.
+//! That last one is the road worth reading twice: this home never writes a table of slots.
+//! A roster that gained an arm gains it in the decode road too, without this home ever learning what the arms are.
 
-use super::type_contract::covers;
-use super::types::DecodeRefusalArm;
 use super::{
-    AssemblyPosture, CodecMember, CodecMemberShape, CodecPlacement, CodecRoad, CodecShape,
-    CodecSurfaceIssue, CodecTypePath, PathRooting,
+    AssemblyPosture, Cardinality, CodecContent, CodecMember, CodecMemberShape, CodecPlacement,
+    CodecProjection, CodecShape, CodecTypePath, DECODE_ROAD, DecodeRefusal, ENCODE_ROAD,
+    PathRooting, ROSTER_CONSTANT, SLOT_ROAD,
 };
-use crate::plane::GeneratedTokenLimit;
-use crate::planning::CodecDirection;
-use crate::token::{GeneratedDelimiter, GeneratedToken, GeneratedTree};
-use macroonz::{ConstLimit, FieldCardinality};
-
-// ---------------------------------------------------------------------------
-// The spellings this home writes at the address it renders into.
-// ---------------------------------------------------------------------------
-
-/// The road that writes one declared shape's canonical bytes.
-pub const ENCODE_ROAD: &str = "encode_canonical";
-
-/// The road that reads those bytes back, and refuses where they are not the
-/// shape's.
-pub const DECODE_ROAD: &str = "decode_canonical";
-
-/// The encode road's one parameter: the sink the bytes are appended to.
-pub const INTO_PARAMETER: &str = "into";
+use crate::bounded::Overflow;
+use crate::kind::SoleRole;
+use crate::plan::Plan;
+use crate::render::{Output, RenderError};
+use crate::token::{
+    GeneratedDelimiter, GeneratedToken, GeneratedTree, absolute_path, attribute, bound_local,
+    bound_path, call, documentation, equality, group, method_call, result_type,
+};
 
 /// The decode road's one parameter: the material read.
-pub const MATERIAL_PARAMETER: &str = "material";
+pub(super) const MATERIAL_BINDING: &str = "material";
 
 /// The decode road's running cursor over what it has not yet read.
-pub const REMAINING_BINDING: &str = "remaining";
+pub(super) const REMAINING_BINDING: &str = "remaining";
 
-/// The binding one member's own value stands under while it is being written or
-/// read.
-pub const CARRIED_BINDING: &str = "carried";
-
-/// The binding a framed member's declared length stands under.
-pub const LENGTH_BINDING: &str = "length";
-
-/// The binding a framed member's length stands under once it is an addressable
-/// width.
-pub const WIDTH_BINDING: &str = "width";
+/// The encode road's one parameter: the sink the bytes are appended to.
+pub(super) const INTO_BINDING: &str = "into";
 
 /// The binding a nested member's own encoding stands under before it is framed.
-pub const NESTED_BINDING: &str = "nested";
+pub(super) const NESTED_BINDING: &str = "nested";
 
-/// The binding a repeated member's elements are gathered into.
-pub const COLLECTED_BINDING: &str = "collected";
+/// The binding a repeated member's occurrences are gathered into.
+pub(super) const COLLECTED_BINDING: &str = "collected";
 
-/// The binding one arm of a closed roster stands under while the walk is
-/// comparing it.
-pub const CANDIDATE_BINDING: &str = "candidate";
+/// The binding one arm of a closed roster stands under while the walk compares it.
+pub(super) const CANDIDATE_BINDING: &str = "candidate";
 
 /// The binding a borrowed single byte — a slot, a presence — stands under.
-pub const CHOSEN_BINDING: &str = "chosen";
+pub(super) const CHOSEN_BINDING: &str = "chosen";
 
 /// The binding the elected arm of a closed roster stands under.
-pub const ELECTED_BINDING: &str = "elected";
+pub(super) const ELECTED_BINDING: &str = "elected";
 
 /// The binding an optional member's presence byte stands under.
-pub const PRESENT_BINDING: &str = "present";
+pub(super) const PRESENT_BINDING: &str = "present";
 
-/// The seat every member-bearing refusal arm names the member through.
-pub const MEMBER_SEAT: &str = "member";
+/// The binding one member's own value stands under while it is written or read.
+pub(super) const CARRIED_BINDING: &str = "carried";
 
-/// The refusal arm a decode road answers with where material remains after the
-/// last declared member.
-pub const TRAILING_BYTES_ARM: &str = "TrailingBytes";
+/// The binding a framed member's declared length stands under.
+pub(super) const LENGTH_BINDING: &str = "length";
 
-/// The refusal arm a checked assembly road's own refusal is carried under.
-pub const NOT_ASSEMBLED_ARM: &str = "NotAssembled";
+/// The binding a framed member's length stands under once it is an addressable width.
+pub(super) const WIDTH_BINDING: &str = "width";
 
-/// The roster constant a closed choice's admitted arms are walked through.
-pub const ROSTER_CONSTANT: &str = "ALL";
+/// The seat every member-bearing refusal arm names its member through.
+const MEMBER_SEAT: &str = "member";
 
-/// The road one arm of a closed roster answers its declared position through.
-pub const SLOT_ROAD: &str = "slot";
-
-/// The one import a published codec module's head writes.
+/// The one import a published module's head writes.
 ///
-/// A wrapped surface names the owner's type and every member's type in the scope
-/// the module sits IN rather than the scope it sits in itself, so the module's
-/// head brings that scope with it. One import and no more: a module that reached
-/// further would be deciding what else a consumer's generated module can see.
-pub const MODULE_PRELUDE_ROOT: &str = "super";
-
-/// The complete member-bearing roster of the decode refusal this home renders.
-///
-/// Nine arms, in the order a read establishes them: the material ran out, a
-/// declared length ran past what remained or past what a machine can address, a
-/// count did not fit the member's own width, text was not UTF-8, the member's own
-/// type refused what was read, a slot named no admitted arm, a nested codec
-/// refused, and a presence byte was neither of the two the encode road writes.
-///
-/// [`TRAILING_BYTES_ARM`] is not on this roster because it names no member: it is
-/// a fact about the whole material rather than about one read.
-pub const DECODE_REFUSAL_ARMS: [DecodeRefusalArm; 9] = [
-    DecodeRefusalArm {
-        spelling: TRUNCATED_ARM,
-        sentence: "The material ended inside this member.",
-    },
-    DecodeRefusalArm {
-        spelling: LENGTH_PAST_REMAINING_ARM,
-        sentence: "This member's declared length runs past the material that remains.",
-    },
-    DecodeRefusalArm {
-        spelling: LENGTH_PAST_WIDTH_ARM,
-        sentence: "This member's declared length does not fit an addressable width.",
-    },
-    DecodeRefusalArm {
-        spelling: COUNT_PAST_WIDTH_ARM,
-        sentence: "This member's declared count does not fit the width the member is held at.",
-    },
-    DecodeRefusalArm {
-        spelling: TEXT_NOT_UTF8_ARM,
-        sentence: "This member's framed bytes are not UTF-8.",
-    },
-    DecodeRefusalArm {
-        spelling: MEMBER_NOT_ADMITTED_ARM,
-        sentence: "The member's own type refused what was read for it.",
-    },
-    DecodeRefusalArm {
-        spelling: SLOT_NOT_ADMITTED_ARM,
-        sentence: "The slot read for this member names no arm of the roster it was declared over.",
-    },
-    DecodeRefusalArm {
-        spelling: NESTED_REFUSED_ARM,
-        sentence: "The nested codec this member carries refused the framed material.",
-    },
-    DecodeRefusalArm {
-        spelling: PRESENCE_NOT_ADMITTED_ARM,
-        sentence: "This member's presence byte is neither of the two the encode road writes.",
-    },
-];
-
-/// The refusal arm a read answers with where the material ended inside a member.
-pub const TRUNCATED_ARM: &str = "Truncated";
-
-/// The refusal arm a framed read answers with where the declared length runs
-/// past what remains.
-pub const LENGTH_PAST_REMAINING_ARM: &str = "LengthPastRemaining";
-
-/// The refusal arm a framed read answers with where the declared length does not
-/// fit an addressable width.
-pub const LENGTH_PAST_WIDTH_ARM: &str = "LengthPastAddressableWidth";
-
-/// The refusal arm a count read answers with where the declared count does not
-/// fit the member's own width.
-pub const COUNT_PAST_WIDTH_ARM: &str = "CountPastDeclaredWidth";
-
-/// The refusal arm a text read answers with where the framed bytes are not
-/// UTF-8.
-pub const TEXT_NOT_UTF8_ARM: &str = "TextNotUtf8";
-
-/// The refusal arm a read answers with where the member's own type refused what
-/// was read for it.
-pub const MEMBER_NOT_ADMITTED_ARM: &str = "MemberNotAdmitted";
-
-/// The refusal arm a closed-choice read answers with where the slot names no arm
-/// of the owner's declared roster.
-pub const SLOT_NOT_ADMITTED_ARM: &str = "SlotNotAdmitted";
-
-/// The refusal arm a nested read answers with where the nested codec refused.
-pub const NESTED_REFUSED_ARM: &str = "NestedMemberRefused";
-
-/// The refusal arm an optional read answers with where the presence byte is
-/// neither of the two the encode road writes.
-pub const PRESENCE_NOT_ADMITTED_ARM: &str = "PresenceNotAdmitted";
+/// A wrapped surface names the owner's type and every member's type in the scope the module sits IN rather than in its own, so the head brings that scope with it.
+/// One import and no more: a module that reached further would be deciding what else a caller's generated module can see.
+const MODULE_PRELUDE_ROOT: &str = "super";
 
 /// The sentence the rendered decode refusal documents itself with.
 const REFUSAL_SENTENCE: &str = "Why one decode of this shape's canonical bytes refused. Holding \
@@ -225,82 +92,66 @@ const DECODE_SENTENCE: &str = "Read one value back from its canonical bytes, ref
      material is not this shape's. A refusal names the member the read was standing at, and \
      material remaining after the last declared member is itself a refusal.";
 
-/// The sentence a published codec module documents itself with.
-const MODULE_SENTENCE: &str = "ThreadPak codec projection: the canonical encode and decode roads \
-     for one declared shape, published here rather than spliced beside the declaration. Its head \
-     imports the scope the module sits in, which is where the shape's own names live.";
+/// The sentence a published module documents itself with.
+const MODULE_SENTENCE: &str = "The canonical encode and decode roads for one declared shape, \
+     published here rather than spliced beside the declaration. Its head imports the scope the \
+     module sits in, which is where the shape's own names live.";
 
-/// The sentence the whole-material refusal arm documents itself with.
-const TRAILING_SENTENCE: &str = "Material remains after the last declared member. A canonical \
-     encoding is the whole of what a value writes, so a longer input is not this value with \
-     something after it.";
+/// Render the one unit a codec request produces.
+///
+/// Naming the seat is the whole call: everything else the unit answers to is that seat's planned member, read by the sink.
+///
+/// # Errors
+///
+/// Returns [`RenderError::SeatUnplanned`] where the plan declares no member under the kind's one seat, [`RenderError::BytesUnbounded`] where the surface passes the rendered-byte magnitude, and [`RenderError::TokensUnbounded`] where a level of it passes the per-level one.
+pub fn render_codec(
+    plan: &Plan<CodecProjection>,
+    out: &mut Output<'_, CodecProjection>,
+) -> Result<(), RenderError> {
+    let tree = codec_surface(plan.content())?;
+    out.unit(SoleRole::Sole, tree)
+}
 
-/// The sentence the assembly refusal arm documents itself with.
-const ASSEMBLY_SENTENCE: &str = "Every member was read, and the road that assembles them refused. \
-     The refusal is the owner's own, carried exactly.";
+/// The whole surface: the refusal the decode road answers with, the conversion a checked assembly earns, the roads the direction covers, and the placement carrying them.
+///
+/// The refusal and the conversion are rendered only where the direction covers the decode road, so an encode-only surface declares nothing that cannot happen — and carries no reader, which is what an encode-only direction means.
+///
+/// # Errors
+///
+/// Returns [`Overflow`] where a level of the surface passes the declared per-level token magnitude.
+pub fn codec_surface(content: &CodecContent) -> Result<GeneratedTree, Overflow> {
+    let shape = &content.shape;
+    let reads = content.direction.reads();
+    let mut tokens: Vec<GeneratedToken> = Vec::new();
+    if reads {
+        tokens.extend(refusal_declaration(shape)?);
+        tokens.extend(refusal_conversion(shape)?);
+    }
+    let mut inherent: Vec<GeneratedToken> = Vec::new();
+    if content.direction.writes() {
+        inherent.extend(encode_road(shape)?);
+    }
+    if reads {
+        inherent.extend(decode_road(shape)?);
+    }
+    tokens.push(GeneratedToken::word("impl"));
+    tokens.extend(type_path(shape.owner()));
+    tokens.push(group(GeneratedDelimiter::Brace, inherent)?);
+    let placed = match &content.placement {
+        CodecPlacement::AtDeclarationSite => tokens,
+        CodecPlacement::PublishedModule { spelling } => {
+            published_module(spelling.spelling(), tokens)?
+        }
+    };
+    GeneratedTree::assembled(placed)
+}
 
 // ---------------------------------------------------------------------------
 // The token primitives.
 // ---------------------------------------------------------------------------
 
-/// The issue a tree that outgrew the declared token magnitude amounts to.
-#[must_use]
-pub fn unbounded() -> CodecSurfaceIssue {
-    CodecSurfaceIssue::SurfaceTreeUnbounded {
-        bound: u64::try_from(GeneratedTokenLimit::MAX).unwrap_or(u64::MAX),
-    }
-}
-
-/// One delimited group, with a tree past the declared magnitude refused in this
-/// home's own vocabulary.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the group carries
-/// more tokens than the declared magnitude admits.
-pub fn group(
-    delimiter: GeneratedDelimiter,
-    tokens: Vec<GeneratedToken>,
-) -> Result<GeneratedToken, CodecSurfaceIssue> {
-    GeneratedToken::group(delimiter, tokens).map_err(|_| unbounded())
-}
-
-/// One path a caller declared, spelled from the rooting it stated.
-#[must_use]
-pub fn type_path(path: &CodecTypePath) -> Vec<GeneratedToken> {
-    let segments: Vec<&str> = path.segments().map(String::as_str).collect();
-    match path.rooting() {
-        PathRooting::CrateAbsolute => GeneratedToken::absolute_path(&segments),
-        PathRooting::InScope => in_scope_path(&segments),
-    }
-}
-
-/// One path resolved in the scope the surface lands in: the first segment as a
-/// plain word, and every later one behind a separator.
-fn in_scope_path(segments: &[&str]) -> Vec<GeneratedToken> {
-    let mut tokens: Vec<GeneratedToken> = Vec::new();
-    for segment in segments {
-        if tokens.is_empty() {
-            tokens.push(GeneratedToken::word(segment));
-            continue;
-        }
-        tokens.push(GeneratedToken::joint(':'));
-        tokens.push(GeneratedToken::alone(':'));
-        tokens.push(GeneratedToken::word(segment));
-    }
-    tokens
-}
-
-/// One path rooted at the language's own crates, spelled absolutely.
-#[must_use]
-pub fn language_path(segments: &[&str]) -> Vec<GeneratedToken> {
-    GeneratedToken::absolute_path(segments)
-}
-
-/// One `::` separator followed by a word — the road from a path to an associated
-/// item on it.
-#[must_use]
-pub fn associated(spelling: &str) -> Vec<GeneratedToken> {
+/// `::spelling` — the road from a path to an associated item on it.
+fn associated(spelling: &str) -> Vec<GeneratedToken> {
     vec![
         GeneratedToken::joint(':'),
         GeneratedToken::alone(':'),
@@ -308,68 +159,24 @@ pub fn associated(spelling: &str) -> Vec<GeneratedToken> {
     ]
 }
 
-/// One attribute over the body a caller spelled.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the attribute
-/// outgrows the declared token magnitude.
-pub fn attribute(body: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    Ok(vec![
-        GeneratedToken::alone('#'),
-        group(GeneratedDelimiter::Bracket, body)?,
-    ])
+/// The tokens a caller spelled, closed with a semicolon.
+fn statement(mut tokens: Vec<GeneratedToken>) -> Vec<GeneratedToken> {
+    tokens.push(GeneratedToken::alone(';'));
+    tokens
 }
 
-/// One `#[doc = "…"]` attribute, as the tokens that spell it.
-///
-/// Every public item this home renders carries one, because a lint wall that
-/// denies an undocumented public item is the wall a consumer's own crate is most
-/// likely to be standing behind.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the attribute
-/// outgrows the declared token magnitude.
-pub fn doc_attribute(sentence: &str) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    attribute(vec![
-        GeneratedToken::word("doc"),
-        GeneratedToken::alone('='),
-        GeneratedToken::text(sentence),
-    ])
-}
-
-/// The framing width, as the language's own road to it rather than as a number.
-#[must_use]
-pub fn framing_width() -> Vec<GeneratedToken> {
-    let mut tokens = language_path(&["core", "mem", "size_of"]);
-    tokens.push(GeneratedToken::joint(':'));
-    tokens.push(GeneratedToken::alone(':'));
-    tokens.push(GeneratedToken::alone('<'));
-    tokens.push(GeneratedToken::word("u64"));
+/// One generic argument list.
+fn generics(arguments: Vec<GeneratedToken>) -> Vec<GeneratedToken> {
+    let mut tokens = vec![GeneratedToken::alone('<')];
+    tokens.extend(arguments);
     tokens.push(GeneratedToken::alone('>'));
     tokens
 }
 
-/// One byte's width, as the language's own road to it rather than as a number.
-#[must_use]
-pub fn byte_width() -> Vec<GeneratedToken> {
-    let mut tokens = language_path(&["core", "mem", "size_of"]);
-    tokens.push(GeneratedToken::joint(':'));
-    tokens.push(GeneratedToken::alone(':'));
-    tokens.push(GeneratedToken::alone('<'));
-    tokens.push(GeneratedToken::word("u8"));
-    tokens.push(GeneratedToken::alone('>'));
-    tokens
-}
-
-/// One qualified road: `<Path as Trait>::road`.
+/// One qualified road, `<Subject as Contract>::road`.
 ///
-/// Qualified rather than plain, so the rendered call names the exact trait the
-/// member contract bills for and never resolves onto an inherent road that
-/// happened to share a spelling.
-#[must_use]
-pub fn qualified(
+/// Qualified rather than plain, so the call names the exact trait the member contract bills for and never resolves onto an inherent road that happened to share a spelling.
+fn qualified(
     subject: Vec<GeneratedToken>,
     contract: Vec<GeneratedToken>,
     road: &str,
@@ -383,80 +190,145 @@ pub fn qualified(
     tokens
 }
 
-/// One generic argument list: `<…>`.
-#[must_use]
-pub fn generics(arguments: Vec<GeneratedToken>) -> Vec<GeneratedToken> {
-    let mut tokens = vec![GeneratedToken::alone('<')];
-    tokens.extend(arguments);
-    tokens.push(GeneratedToken::alone('>'));
+/// One path a caller declared, spelled from the rooting it stated.
+fn type_path(path: &CodecTypePath) -> Vec<GeneratedToken> {
+    let segments: Vec<&str> = path.segments().collect();
+    match path.rooting() {
+        PathRooting::CrateAbsolute => absolute_path(&segments),
+        PathRooting::InScope => match segments.split_first() {
+            Some((root, rest)) => bound_path(root, rest),
+            None => Vec::new(),
+        },
+    }
+}
+
+/// One `let mut name = expression;` statement.
+fn bound_mutable(name: &str, expression: Vec<GeneratedToken>) -> Vec<GeneratedToken> {
+    let mut tokens = vec![
+        GeneratedToken::word("let"),
+        GeneratedToken::word("mut"),
+        GeneratedToken::word(name),
+        GeneratedToken::alone('='),
+    ];
+    tokens.extend(expression);
+    statement(tokens)
+}
+
+/// One `name = expression;` reassignment.
+fn reassigned(name: &str, expression: Vec<GeneratedToken>) -> Vec<GeneratedToken> {
+    let mut tokens = vec![GeneratedToken::word(name), GeneratedToken::alone('=')];
+    tokens.extend(expression);
+    statement(tokens)
+}
+
+/// The framing width, as the language's own road to it rather than as a number.
+fn framing_width() -> Vec<GeneratedToken> {
+    sized_width("u64")
+}
+
+/// One byte's width, on the same terms.
+fn byte_width() -> Vec<GeneratedToken> {
+    sized_width("u8")
+}
+
+/// `::core::mem::size_of::<name>` — the width of one named type.
+fn sized_width(name: &str) -> Vec<GeneratedToken> {
+    let mut tokens = absolute_path(&["core", "mem", "size_of"]);
+    tokens.push(GeneratedToken::joint(':'));
+    tokens.push(GeneratedToken::alone(':'));
+    tokens.extend(generics(vec![GeneratedToken::word(name)]));
     tokens
 }
 
-/// One statement: the tokens a caller spelled, closed with a semicolon.
-#[must_use]
-pub fn statement(mut tokens: Vec<GeneratedToken>) -> Vec<GeneratedToken> {
-    tokens.push(GeneratedToken::alone(';'));
+/// `::std::vec::Vec<u8>` — the sink the encode road appends to.
+fn byte_sink() -> Vec<GeneratedToken> {
+    let mut tokens = absolute_path(&["std", "vec", "Vec"]);
+    tokens.extend(generics(vec![GeneratedToken::word("u8")]));
     tokens
 }
 
-/// One member read off `self`, as the tokens that spell it.
-#[must_use]
-pub fn self_member(spelling: &str) -> Vec<GeneratedToken> {
-    vec![
-        GeneratedToken::word("self"),
-        GeneratedToken::alone('.'),
-        GeneratedToken::word(spelling),
-    ]
+/// `[u8]` — the slice a decode road reads.
+fn byte_slice() -> Result<Vec<GeneratedToken>, Overflow> {
+    Ok(vec![group(
+        GeneratedDelimiter::Bracket,
+        vec![GeneratedToken::word("u8")],
+    )?])
 }
 
-/// One member read off `self`, borrowed and parenthesized so a shape's write
-/// road always stands over a reference whatever the cardinality supplied it.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the expression
-/// outgrows the declared token magnitude.
-pub fn borrowed_self_member(spelling: &str) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    let mut inner = vec![GeneratedToken::alone('&')];
-    inner.extend(self_member(spelling));
-    Ok(vec![group(GeneratedDelimiter::Parenthesis, inner)?])
+/// `::std::vec::Vec::new()` — one empty gathering.
+fn empty_vector() -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut tokens = absolute_path(&["std", "vec", "Vec"]);
+    tokens.extend(associated("new"));
+    call(tokens, Vec::new())
 }
 
-/// One method call: `<receiver>.<road>(<arguments>)`.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the call outgrows
-/// the declared token magnitude.
-pub fn call(
-    receiver: Vec<GeneratedToken>,
-    road: &str,
-    arguments: Vec<GeneratedToken>,
-) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    let mut tokens = receiver;
-    tokens.push(GeneratedToken::alone('.'));
-    tokens.push(GeneratedToken::word(road));
-    tokens.push(group(GeneratedDelimiter::Parenthesis, arguments)?);
+/// `&u64::try_from(material.len()).unwrap_or(u64::MAX).to_be_bytes()` — one framed length, written without a numeric literal.
+fn framed_length(material: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, Overflow> {
+    let counted = method_call(material, "len", Vec::new())?;
+    let mut narrowing = vec![GeneratedToken::word("u64")];
+    narrowing.extend(associated("try_from"));
+    let narrowed = call(narrowing, counted)?;
+    let mut ceiling = vec![GeneratedToken::word("u64")];
+    ceiling.extend(associated("MAX"));
+    let held = method_call(narrowed, "unwrap_or", ceiling)?;
+    let bytes = method_call(held, "to_be_bytes", Vec::new())?;
+    let mut tokens = vec![GeneratedToken::alone('&')];
+    tokens.extend(bytes);
     Ok(tokens)
 }
 
-/// One member-bearing refusal construction: `<Refusal>::<Arm> { member: "…" }`.
-///
-/// The member's spelling is a TEXT literal, which is the one literal arm the
-/// generated-token roster carries — so a refusal this home renders always names
-/// the member the read was standing at.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the construction
-/// outgrows the declared token magnitude.
-pub fn member_refusal(
-    refusal: &str,
-    arm: &str,
-    member: &str,
-) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
+/// `into.extend_from_slice(material);` — one appended run.
+fn appended(material: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, Overflow> {
+    let called = method_call(
+        vec![GeneratedToken::word(INTO_BINDING)],
+        "extend_from_slice",
+        material,
+    )?;
+    Ok(statement(called))
+}
+
+/// `.map_err(|_| refusal)?` — the road a fallible step takes to this surface's own refusal.
+fn mapped(refusal: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut closure = vec![
+        GeneratedToken::alone('|'),
+        GeneratedToken::word("_"),
+        GeneratedToken::alone('|'),
+    ];
+    closure.extend(refusal);
+    let mut tokens = call(
+        vec![GeneratedToken::alone('.'), GeneratedToken::word("map_err")],
+        closure,
+    )?;
+    tokens.push(GeneratedToken::alone('?'));
+    Ok(tokens)
+}
+
+/// `.ok_or(refusal)?` — the road an absent read takes to the same place.
+fn absent(refusal: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut tokens = call(
+        vec![GeneratedToken::alone('.'), GeneratedToken::word("ok_or")],
+        refusal,
+    )?;
+    tokens.push(GeneratedToken::alone('?'));
+    Ok(tokens)
+}
+
+/// `Refusal::Arm` — one payload-free refusal construction.
+fn sole_refusal(refusal: &str, arm: DecodeRefusal) -> Vec<GeneratedToken> {
     let mut tokens = vec![GeneratedToken::word(refusal)];
-    tokens.extend(associated(arm));
+    tokens.extend(associated(arm.name()));
+    tokens
+}
+
+/// `Refusal::Arm { member: "spelling" }` — one member-bearing refusal construction.
+///
+/// The spelling is a text literal, so a refusal this home renders always names the member the read was standing at.
+fn member_refusal(
+    refusal: &str,
+    arm: DecodeRefusal,
+    member: &str,
+) -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut tokens = sole_refusal(refusal, arm);
     tokens.push(group(
         GeneratedDelimiter::Brace,
         vec![
@@ -469,100 +341,31 @@ pub fn member_refusal(
     Ok(tokens)
 }
 
-/// One payload-free refusal construction: `<Refusal>::<Arm>`.
-#[must_use]
-pub fn sole_refusal(refusal: &str, arm: &str) -> Vec<GeneratedToken> {
-    let mut tokens = vec![GeneratedToken::word(refusal)];
-    tokens.extend(associated(arm));
-    tokens
+/// One member read off `self`.
+fn self_member(spelling: &str) -> Vec<GeneratedToken> {
+    vec![
+        GeneratedToken::word("self"),
+        GeneratedToken::alone('.'),
+        GeneratedToken::word(spelling),
+    ]
 }
 
-/// `.map_err(|_| <refusal>)?` — the road a fallible step takes to this home's own
-/// refusal.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the road outgrows
-/// the declared token magnitude.
-pub fn mapped(refusal: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    let mut closure = vec![
-        GeneratedToken::alone('|'),
-        GeneratedToken::word("_"),
-        GeneratedToken::alone('|'),
-    ];
-    closure.extend(refusal);
-    let mut tokens = vec![GeneratedToken::alone('.'), GeneratedToken::word("map_err")];
-    tokens.push(group(GeneratedDelimiter::Parenthesis, closure)?);
-    tokens.push(GeneratedToken::alone('?'));
-    Ok(tokens)
-}
-
-/// `.ok_or(<refusal>)?` — the road an absent read takes to this home's own
-/// refusal.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the road outgrows
-/// the declared token magnitude.
-pub fn absent(refusal: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    let mut tokens = vec![GeneratedToken::alone('.'), GeneratedToken::word("ok_or")];
-    tokens.push(group(GeneratedDelimiter::Parenthesis, refusal)?);
-    tokens.push(GeneratedToken::alone('?'));
-    Ok(tokens)
-}
-
-/// `&u64::try_from(<expression>.len()).unwrap_or(u64::MAX).to_be_bytes()` — one
-/// framed length, at the framing width, written without a numeric literal.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the expression
-/// outgrows the declared token magnitude.
-pub fn framed_length(
-    material: Vec<GeneratedToken>,
-) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    let counted = call(material, "len", Vec::new())?;
-    let mut tokens = vec![GeneratedToken::alone('&'), GeneratedToken::word("u64")];
-    tokens.extend(associated("try_from"));
-    tokens.push(group(GeneratedDelimiter::Parenthesis, counted)?);
-    let mut ceiling = vec![GeneratedToken::word("u64")];
-    ceiling.extend(associated("MAX"));
-    tokens = call(tokens, "unwrap_or", ceiling)?;
-    call(tokens, "to_be_bytes", Vec::new())
-}
-
-/// `into.extend_from_slice(<expression>);` — one appended run.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the statement
-/// outgrows the declared token magnitude.
-pub fn appended(material: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    let call_tokens = call(
-        vec![GeneratedToken::word(INTO_PARAMETER)],
-        "extend_from_slice",
-        material,
-    )?;
-    Ok(statement(call_tokens))
+/// One member read off `self`, borrowed and parenthesized so a wire road always stands over a reference whatever the cardinality supplied it.
+fn borrowed_self_member(spelling: &str) -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut inner = vec![GeneratedToken::alone('&')];
+    inner.extend(self_member(spelling));
+    Ok(vec![group(GeneratedDelimiter::Parenthesis, inner)?])
 }
 
 // ---------------------------------------------------------------------------
 // The rendered decode refusal.
 // ---------------------------------------------------------------------------
 
-/// `#[derive(Debug, Clone, PartialEq, Eq)]`, as the tokens that spell it.
+/// `#[derive(Debug, Clone, PartialEq, Eq)]`.
 ///
-/// Four derives and no more: a refusal is shown in a failure report, cloned into
-/// one, and compared against an expectation, and nothing about a decode refusal
-/// needs ordering or hashing. `Copy` is absent because the assembly arm may carry
-/// a refusal the owner declared, and this home does not decide whether that one
-/// copies.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the attribute
-/// outgrows the declared token magnitude.
-pub fn derive_attribute() -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
+/// Four and no more: a refusal is shown in a report, cloned into one, and compared against an expectation, and nothing about a decode refusal needs ordering or hashing.
+/// `Copy` is absent because the assembly arm may carry a refusal the owner declared, and this home does not decide whether that one copies.
+fn derive_attribute() -> Result<Vec<GeneratedToken>, Overflow> {
     let named = group(
         GeneratedDelimiter::Parenthesis,
         vec![
@@ -578,16 +381,23 @@ pub fn derive_attribute() -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
     attribute(vec![GeneratedToken::word("derive"), named])
 }
 
-/// One member-bearing variant of the rendered decode refusal.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the variant outgrows
-/// the declared token magnitude.
-pub fn member_variant(arm: DecodeRefusalArm) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    let mut tokens = doc_attribute(arm.sentence)?;
-    tokens.push(GeneratedToken::word(arm.spelling));
-    tokens.push(group(
+/// One variant of the rendered refusal: its sentence, its spelling, and the payload it carries.
+fn variant(
+    arm: DecodeRefusal,
+    payload: Option<GeneratedToken>,
+) -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut tokens = documentation(arm.sentence())?;
+    tokens.push(GeneratedToken::word(arm.name()));
+    if let Some(seat) = payload {
+        tokens.push(seat);
+    }
+    tokens.push(GeneratedToken::alone(','));
+    Ok(tokens)
+}
+
+/// `{ member: &'static str, }` — the seat a member-bearing arm names its member through.
+fn member_seat() -> Result<GeneratedToken, Overflow> {
+    group(
         GeneratedDelimiter::Brace,
         vec![
             GeneratedToken::word(MEMBER_SEAT),
@@ -598,36 +408,25 @@ pub fn member_variant(arm: DecodeRefusalArm) -> Result<Vec<GeneratedToken>, Code
             GeneratedToken::word("str"),
             GeneratedToken::alone(','),
         ],
-    )?);
-    tokens.push(GeneratedToken::alone(','));
-    Ok(tokens)
+    )
 }
 
 /// The decode refusal one shape's surface declares.
 ///
-/// Every member-bearing arm, then the whole-material arm, then the assembly arm
-/// a CHECKED assembly road earns — and only that road earns it, so a total
-/// assembly renders a refusal with nothing on it that cannot happen.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the declaration
-/// outgrows the declared token magnitude.
-pub fn refusal_declaration(shape: &CodecShape) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
+/// Every member-bearing arm, then the whole-material arm, then the assembly arm a CHECKED assembly earns — and only that posture earns it, so a total assembly renders a refusal with nothing on it that cannot happen.
+fn refusal_declaration(shape: &CodecShape) -> Result<Vec<GeneratedToken>, Overflow> {
     let mut variants: Vec<GeneratedToken> = Vec::new();
-    for arm in DECODE_REFUSAL_ARMS {
-        variants.extend(member_variant(arm)?);
+    for arm in DecodeRefusal::ALL.iter().copied() {
+        if arm.carries_member() {
+            variants.extend(variant(arm, Some(member_seat()?))?);
+        }
     }
-    variants.extend(doc_attribute(TRAILING_SENTENCE)?);
-    variants.push(GeneratedToken::word(TRAILING_BYTES_ARM));
-    variants.push(GeneratedToken::alone(','));
+    variants.extend(variant(DecodeRefusal::TrailingBytes, None)?);
     if let AssemblyPosture::Checked { refusal } = shape.assembly().posture() {
-        variants.extend(doc_attribute(ASSEMBLY_SENTENCE)?);
-        variants.push(GeneratedToken::word(NOT_ASSEMBLED_ARM));
-        variants.push(group(GeneratedDelimiter::Parenthesis, type_path(refusal))?);
-        variants.push(GeneratedToken::alone(','));
+        let carried = group(GeneratedDelimiter::Parenthesis, type_path(refusal))?;
+        variants.extend(variant(DecodeRefusal::NotAssembled, Some(carried))?);
     }
-    let mut tokens = doc_attribute(REFUSAL_SENTENCE)?;
+    let mut tokens = documentation(REFUSAL_SENTENCE)?;
     tokens.extend(derive_attribute()?);
     tokens.push(GeneratedToken::word("pub"));
     tokens.push(GeneratedToken::word("enum"));
@@ -636,25 +435,16 @@ pub fn refusal_declaration(shape: &CodecShape) -> Result<Vec<GeneratedToken>, Co
     Ok(tokens)
 }
 
-/// The conversion a CHECKED assembly road earns: the owner's own refusal into
-/// this surface's.
+/// The conversion a CHECKED assembly earns: the owner's own refusal into this surface's.
 ///
-/// Rendered rather than billed. A checked assembly is the only posture that needs
-/// it, and writing it here costs the address nothing — where the test-descriptor
-/// crossing writes `?` and states a bill, this home owns both sides of the
-/// conversion and simply declares it.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the implementation
-/// outgrows the declared token magnitude.
-pub fn refusal_conversion(shape: &CodecShape) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
+/// Rendered rather than billed, so a checked assembly costs the address nothing.
+fn refusal_conversion(shape: &CodecShape) -> Result<Vec<GeneratedToken>, Overflow> {
     let AssemblyPosture::Checked { refusal } = shape.assembly().posture() else {
         return Ok(Vec::new());
     };
     let carried = type_path(refusal);
     let mut body = vec![GeneratedToken::word("Self")];
-    body.extend(associated(NOT_ASSEMBLED_ARM));
+    body.extend(associated(DecodeRefusal::NotAssembled.name()));
     body.push(group(
         GeneratedDelimiter::Parenthesis,
         vec![GeneratedToken::word(CARRIED_BINDING)],
@@ -674,7 +464,7 @@ pub fn refusal_conversion(shape: &CodecShape) -> Result<Vec<GeneratedToken>, Cod
         group(GeneratedDelimiter::Brace, body)?,
     ];
     let mut tokens = vec![GeneratedToken::word("impl")];
-    tokens.extend(language_path(&["core", "convert", "From"]));
+    tokens.extend(absolute_path(&["core", "convert", "From"]));
     tokens.extend(generics(carried));
     tokens.push(GeneratedToken::word("for"));
     tokens.push(GeneratedToken::word(shape.refusal()));
@@ -686,87 +476,13 @@ pub fn refusal_conversion(shape: &CodecShape) -> Result<Vec<GeneratedToken>, Cod
 // The encode road.
 // ---------------------------------------------------------------------------
 
-/// `::std::vec::Vec<u8>` — the sink the encode road appends to.
-#[must_use]
-pub fn byte_sink() -> Vec<GeneratedToken> {
-    let mut tokens = language_path(&["std", "vec", "Vec"]);
-    tokens.extend(generics(vec![GeneratedToken::word("u8")]));
-    tokens
-}
-
-/// The byte slice type a decode road reads: `[u8]`.
+/// One member's write, over the subject its cardinality handed it.
 ///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the group outgrows
-/// the declared token magnitude.
-pub fn byte_slice() -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    Ok(vec![group(
-        GeneratedDelimiter::Bracket,
-        vec![GeneratedToken::word("u8")],
-    )?])
-}
-
-/// One `let <binding> = <expression>;` statement.
-#[must_use]
-pub fn bound(binding: &str, expression: Vec<GeneratedToken>) -> Vec<GeneratedToken> {
-    let mut tokens = vec![
-        GeneratedToken::word("let"),
-        GeneratedToken::word(binding),
-        GeneratedToken::alone('='),
-    ];
-    tokens.extend(expression);
-    statement(tokens)
-}
-
-/// One `let mut <binding> = <expression>;` statement.
-#[must_use]
-pub fn bound_mutable(binding: &str, expression: Vec<GeneratedToken>) -> Vec<GeneratedToken> {
-    let mut tokens = vec![
-        GeneratedToken::word("let"),
-        GeneratedToken::word("mut"),
-        GeneratedToken::word(binding),
-        GeneratedToken::alone('='),
-    ];
-    tokens.extend(expression);
-    statement(tokens)
-}
-
-/// One `<binding> = <expression>;` reassignment.
-#[must_use]
-pub fn reassigned(binding: &str, expression: Vec<GeneratedToken>) -> Vec<GeneratedToken> {
-    let mut tokens = vec![GeneratedToken::word(binding), GeneratedToken::alone('=')];
-    tokens.extend(expression);
-    statement(tokens)
-}
-
-/// `::std::vec::Vec::new()` — one empty gathering.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the call outgrows
-/// the declared token magnitude.
-pub fn empty_vector() -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    let mut tokens = language_path(&["std", "vec", "Vec"]);
-    tokens.extend(associated("new"));
-    tokens.push(group(GeneratedDelimiter::Parenthesis, Vec::new())?);
-    Ok(tokens)
-}
-
-/// One member's write, over the subject the cardinality handed it.
-///
-/// The subject always stands for a REFERENCE to one occurrence, whichever
-/// cardinality supplied it, so the five shape roads never learn how many of the
-/// member there were.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the write outgrows
-/// the declared token magnitude.
-pub fn write_member(
+/// The subject always stands for a REFERENCE to one occurrence, so the five wire roads never learn how many of the member there were.
+fn write_member(
     member: &CodecMember,
     subject: Vec<GeneratedToken>,
-) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
+) -> Result<Vec<GeneratedToken>, Overflow> {
     match member.shape() {
         CodecMemberShape::Count => write_count(subject),
         CodecMemberShape::Bytes => write_framed(member, subject, CodecMemberShape::Bytes),
@@ -777,20 +493,20 @@ pub fn write_member(
 }
 
 /// A count, at the framing width.
-fn write_count(subject: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
+fn write_count(subject: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, Overflow> {
     let mut dereferenced = vec![GeneratedToken::alone('*')];
     dereferenced.extend(subject);
-    let mut widened = vec![GeneratedToken::word("u64")];
-    widened.extend(associated("from"));
-    widened.push(group(GeneratedDelimiter::Parenthesis, dereferenced)?);
-    let bytes = call(widened, "to_be_bytes", Vec::new())?;
+    let mut widening = vec![GeneratedToken::word("u64")];
+    widening.extend(associated("from"));
+    let widened = call(widening, dereferenced)?;
+    let bytes = method_call(widened, "to_be_bytes", Vec::new())?;
     let mut borrowed = vec![GeneratedToken::alone('&')];
     borrowed.extend(bytes);
     appended(borrowed)
 }
 
 /// The type the `AsRef` road a framed member is read through hands back.
-fn framed_target(shape: CodecMemberShape) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
+fn framed_target(shape: CodecMemberShape) -> Result<Vec<GeneratedToken>, Overflow> {
     match shape {
         CodecMemberShape::Text => Ok(vec![GeneratedToken::word("str")]),
         CodecMemberShape::Count
@@ -805,37 +521,37 @@ fn write_framed(
     member: &CodecMember,
     subject: Vec<GeneratedToken>,
     shape: CodecMemberShape,
-) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    let mut contract = language_path(&["core", "convert", "AsRef"]);
+) -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut contract = absolute_path(&["core", "convert", "AsRef"]);
     contract.extend(generics(framed_target(shape)?));
-    let mut expression = qualified(type_path(member.held_as()), contract, "as_ref");
-    expression.push(group(GeneratedDelimiter::Parenthesis, subject)?);
+    let road = qualified(type_path(member.held_as()), contract, "as_ref");
+    let mut expression = call(road, subject)?;
     if shape == CodecMemberShape::Text {
-        expression = call(expression, "as_bytes", Vec::new())?;
+        expression = method_call(expression, "as_bytes", Vec::new())?;
     }
-    let mut tokens = bound(MATERIAL_PARAMETER, expression);
-    let material = vec![GeneratedToken::word(MATERIAL_PARAMETER)];
+    let mut tokens = bound_local(MATERIAL_BINDING, expression);
+    let material = vec![GeneratedToken::word(MATERIAL_BINDING)];
     tokens.extend(appended(framed_length(material.clone())?)?);
     tokens.extend(appended(material)?);
     Ok(tokens)
 }
 
-/// One arm of a closed roster, as its own declared slot.
-fn write_slot(subject: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    let slot = call(subject, SLOT_ROAD, Vec::new())?;
-    let pushed = call(vec![GeneratedToken::word(INTO_PARAMETER)], "push", slot)?;
+/// One arm of a closed roster, as its own declared position.
+fn write_slot(subject: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, Overflow> {
+    let slot = method_call(subject, SLOT_ROAD, Vec::new())?;
+    let pushed = method_call(vec![GeneratedToken::word(INTO_BINDING)], "push", slot)?;
     Ok(statement(pushed))
 }
 
 /// A nested value, written by its own codec and then framed at its own length.
-fn write_nested(subject: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
+fn write_nested(subject: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, Overflow> {
     let mut tokens = bound_mutable(NESTED_BINDING, empty_vector()?);
     let sink = vec![
         GeneratedToken::alone('&'),
         GeneratedToken::word("mut"),
         GeneratedToken::word(NESTED_BINDING),
     ];
-    tokens.extend(statement(call(subject, ENCODE_ROAD, sink)?));
+    tokens.extend(statement(method_call(subject, ENCODE_ROAD, sink)?));
     let nested = vec![GeneratedToken::word(NESTED_BINDING)];
     tokens.extend(appended(framed_length(nested)?)?);
     tokens.extend(appended(vec![
@@ -845,41 +561,33 @@ fn write_nested(subject: Vec<GeneratedToken>) -> Result<Vec<GeneratedToken>, Cod
     Ok(tokens)
 }
 
-/// One member's complete contribution to the encode road, under its declared
-/// cardinality.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the contribution
-/// outgrows the declared token magnitude.
-pub fn encode_member(member: &CodecMember) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
+/// One member's complete contribution to the encode road, under its declared cardinality.
+fn encode_member(member: &CodecMember) -> Result<Vec<GeneratedToken>, Overflow> {
     match member.cardinality() {
-        FieldCardinality::Required => {
+        Cardinality::Required => {
             let subject = borrowed_self_member(member.spelling())?;
             let written = write_member(member, subject)?;
             Ok(vec![group(GeneratedDelimiter::Brace, written)?])
         }
-        FieldCardinality::Optional => encode_optional(member),
-        FieldCardinality::Repeated => encode_repeated(member),
+        Cardinality::Optional => encode_optional(member),
+        Cardinality::Repeated => encode_repeated(member),
     }
 }
 
 /// An optional member: its presence byte, then its value where there is one.
 ///
-/// The presence byte is `u8::from(…)` over the member's own answer rather than a
-/// numeric literal, and the decode road reads it back through the very same road
-/// — one spelling, read from both ends.
-fn encode_optional(member: &CodecMember) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    let asked = call(self_member(member.spelling()), "is_some", Vec::new())?;
+/// The presence byte is `u8::from(…)` over the member's own answer rather than a numeric literal, and the decode road reads it back through the very same road.
+fn encode_optional(member: &CodecMember) -> Result<Vec<GeneratedToken>, Overflow> {
+    let asked = method_call(self_member(member.spelling()), "is_some", Vec::new())?;
     let mut presence = vec![GeneratedToken::word("u8")];
     presence.extend(associated("from"));
-    presence.push(group(GeneratedDelimiter::Parenthesis, asked)?);
-    let pushed = call(vec![GeneratedToken::word(INTO_PARAMETER)], "push", presence)?;
+    let presence = call(presence, asked)?;
+    let pushed = method_call(vec![GeneratedToken::word(INTO_BINDING)], "push", presence)?;
     let mut tokens = statement(pushed);
     let written = write_member(member, vec![GeneratedToken::word(CARRIED_BINDING)])?;
     tokens.push(GeneratedToken::word("if"));
     tokens.push(GeneratedToken::word("let"));
-    tokens.extend(language_path(&["core", "option", "Option", "Some"]));
+    tokens.extend(absolute_path(&["core", "option", "Option", "Some"]));
     tokens.push(group(
         GeneratedDelimiter::Parenthesis,
         vec![GeneratedToken::word(CARRIED_BINDING)],
@@ -892,7 +600,7 @@ fn encode_optional(member: &CodecMember) -> Result<Vec<GeneratedToken>, CodecSur
 }
 
 /// A repeated member: its framed count, then each occurrence in order.
-fn encode_repeated(member: &CodecMember) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
+fn encode_repeated(member: &CodecMember) -> Result<Vec<GeneratedToken>, Overflow> {
     let counted = framed_length(self_member(member.spelling()))?;
     let mut tokens = appended(counted)?;
     let written = write_member(member, vec![GeneratedToken::word(CARRIED_BINDING)])?;
@@ -906,12 +614,7 @@ fn encode_repeated(member: &CodecMember) -> Result<Vec<GeneratedToken>, CodecSur
 }
 
 /// The encode road: one member at a time, in the order the shape declares them.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the road outgrows
-/// the declared token magnitude.
-pub fn encode_road(shape: &CodecShape) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
+fn encode_road(shape: &CodecShape) -> Result<Vec<GeneratedToken>, Overflow> {
     let mut body: Vec<GeneratedToken> = Vec::new();
     for member in shape.members() {
         body.extend(encode_member(member)?);
@@ -920,13 +623,13 @@ pub fn encode_road(shape: &CodecShape) -> Result<Vec<GeneratedToken>, CodecSurfa
         GeneratedToken::alone('&'),
         GeneratedToken::word("self"),
         GeneratedToken::alone(','),
-        GeneratedToken::word(INTO_PARAMETER),
+        GeneratedToken::word(INTO_BINDING),
         GeneratedToken::alone(':'),
         GeneratedToken::alone('&'),
         GeneratedToken::word("mut"),
     ];
     parameters.extend(byte_sink());
-    let mut tokens = doc_attribute(ENCODE_SENTENCE)?;
+    let mut tokens = documentation(ENCODE_SENTENCE)?;
     tokens.push(GeneratedToken::word("pub"));
     tokens.push(GeneratedToken::word("fn"));
     tokens.push(GeneratedToken::word(ENCODE_ROAD));
@@ -939,14 +642,9 @@ pub fn encode_road(shape: &CodecShape) -> Result<Vec<GeneratedToken>, CodecSurfa
 // The decode road.
 // ---------------------------------------------------------------------------
 
-/// `remaining.get(..<binding>)` — the run one read stands over.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the call outgrows
-/// the declared token magnitude.
-pub fn taken(binding: &str) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    call(
+/// `remaining.get(..binding)` — the run one read stands over.
+fn taken(binding: &str) -> Result<Vec<GeneratedToken>, Overflow> {
+    method_call(
         vec![GeneratedToken::word(REMAINING_BINDING)],
         "get",
         vec![
@@ -957,14 +655,9 @@ pub fn taken(binding: &str) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
     )
 }
 
-/// `remaining.get(<binding>..)` — what a read leaves behind it.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the call outgrows
-/// the declared token magnitude.
-pub fn left(binding: &str) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    call(
+/// `remaining.get(binding..)` — what a read leaves behind it.
+fn left(binding: &str) -> Result<Vec<GeneratedToken>, Overflow> {
+    method_call(
         vec![GeneratedToken::word(REMAINING_BINDING)],
         "get",
         vec![
@@ -975,83 +668,73 @@ pub fn left(binding: &str) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
     )
 }
 
-/// The framing read: the width, the run it covers, what it leaves, and the
-/// length those bytes spell.
+/// The framing read: the width, the run it covers, what it leaves, and the length those bytes spell.
 ///
-/// A block EXPRESSION rather than a run of statements, so its own bindings die
-/// at its brace and the read that follows binds the same spellings without
-/// shadowing anything.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the read outgrows
-/// the declared token magnitude.
-pub fn framing_read(refusal: &str, member: &str) -> Result<GeneratedToken, CodecSurfaceIssue> {
-    let mut width = framing_width();
-    width.push(group(GeneratedDelimiter::Parenthesis, Vec::new())?);
-    let mut body = bound(WIDTH_BINDING, width);
-    let mut carried = taken(WIDTH_BINDING)?;
-    carried.extend(absent(member_refusal(refusal, TRUNCATED_ARM, member)?)?);
-    body.extend(bound(CARRIED_BINDING, carried));
-    let mut rest = left(WIDTH_BINDING)?;
-    rest.extend(absent(member_refusal(refusal, TRUNCATED_ARM, member)?)?);
-    body.extend(reassigned(REMAINING_BINDING, rest));
-    let mut converted = language_path(&["core", "convert", "TryInto", "try_into"]);
-    converted.push(group(
-        GeneratedDelimiter::Parenthesis,
-        vec![GeneratedToken::word(CARRIED_BINDING)],
-    )?);
-    converted.extend(mapped(member_refusal(refusal, TRUNCATED_ARM, member)?)?);
-    let mut spelled = vec![GeneratedToken::word("u64")];
-    spelled.extend(associated("from_be_bytes"));
-    spelled.push(group(GeneratedDelimiter::Parenthesis, converted)?);
-    body.extend(spelled);
-    group(GeneratedDelimiter::Brace, body)
-}
-
-/// The framed prelude every variable-length read shares: the declared length, the
-/// addressable width it narrows to, the run it covers, and what it leaves.
-fn framed_prelude(refusal: &str, member: &str) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    let mut body = bound(LENGTH_BINDING, vec![framing_read(refusal, member)?]);
-    let mut narrowed = vec![GeneratedToken::word("usize")];
-    narrowed.extend(associated("try_from"));
-    narrowed.push(group(
-        GeneratedDelimiter::Parenthesis,
-        vec![GeneratedToken::word(LENGTH_BINDING)],
-    )?);
-    narrowed.extend(mapped(member_refusal(
-        refusal,
-        LENGTH_PAST_WIDTH_ARM,
-        member,
-    )?)?);
-    body.extend(bound(WIDTH_BINDING, narrowed));
+/// A block EXPRESSION rather than a run of statements, so its own bindings die at its brace and the read that follows binds the same spellings without shadowing anything.
+fn framing_read(refusal: &str, member: &str) -> Result<GeneratedToken, Overflow> {
+    let width = call(framing_width(), Vec::new())?;
+    let mut body = bound_local(WIDTH_BINDING, width);
     let mut carried = taken(WIDTH_BINDING)?;
     carried.extend(absent(member_refusal(
         refusal,
-        LENGTH_PAST_REMAINING_ARM,
+        DecodeRefusal::Truncated,
         member,
     )?)?);
-    body.extend(bound(CARRIED_BINDING, carried));
-    let mut rest = left(WIDTH_BINDING)?;
-    rest.extend(absent(member_refusal(
+    body.extend(bound_local(CARRIED_BINDING, carried));
+    body.extend(stepped_over(refusal, member, DecodeRefusal::Truncated)?);
+    let widening = absolute_path(&["core", "convert", "TryInto", "try_into"]);
+    let mut widened = call(widening, vec![GeneratedToken::word(CARRIED_BINDING)])?;
+    widened.extend(mapped(member_refusal(
         refusal,
-        LENGTH_PAST_REMAINING_ARM,
+        DecodeRefusal::Truncated,
         member,
     )?)?);
-    body.extend(reassigned(REMAINING_BINDING, rest));
+    let mut reading = vec![GeneratedToken::word("u64")];
+    reading.extend(associated("from_be_bytes"));
+    body.extend(call(reading, widened)?);
+    group(GeneratedDelimiter::Brace, body)
+}
+
+/// `remaining = remaining.get(width..).ok_or(…)?;` — the step past what was just read.
+fn stepped_over(
+    refusal: &str,
+    member: &str,
+    arm: DecodeRefusal,
+) -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut rest = left(WIDTH_BINDING)?;
+    rest.extend(absent(member_refusal(refusal, arm, member)?)?);
+    Ok(reassigned(REMAINING_BINDING, rest))
+}
+
+/// The prelude every variable-length read shares: the declared length, the addressable width it narrows to, the run it covers, and what it leaves.
+fn framed_prelude(refusal: &str, member: &str) -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut body = bound_local(LENGTH_BINDING, vec![framing_read(refusal, member)?]);
+    let mut narrowing = vec![GeneratedToken::word("usize")];
+    narrowing.extend(associated("try_from"));
+    let mut narrowed = call(narrowing, vec![GeneratedToken::word(LENGTH_BINDING)])?;
+    narrowed.extend(mapped(member_refusal(
+        refusal,
+        DecodeRefusal::LengthPastAddressableWidth,
+        member,
+    )?)?);
+    body.extend(bound_local(WIDTH_BINDING, narrowed));
+    let mut carried = taken(WIDTH_BINDING)?;
+    carried.extend(absent(member_refusal(
+        refusal,
+        DecodeRefusal::LengthPastRemaining,
+        member,
+    )?)?);
+    body.extend(bound_local(CARRIED_BINDING, carried));
+    body.extend(stepped_over(
+        refusal,
+        member,
+        DecodeRefusal::LengthPastRemaining,
+    )?);
     Ok(body)
 }
 
 /// One occurrence of one member, read back off the material.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the read outgrows
-/// the declared token magnitude.
-pub fn read_occurrence(
-    refusal: &str,
-    member: &CodecMember,
-) -> Result<GeneratedToken, CodecSurfaceIssue> {
+fn read_occurrence(refusal: &str, member: &CodecMember) -> Result<GeneratedToken, Overflow> {
     match member.shape() {
         CodecMemberShape::Count => read_count(refusal, member),
         CodecMemberShape::Bytes => read_bytes(refusal, member),
@@ -1062,21 +745,18 @@ pub fn read_occurrence(
 }
 
 /// A count, narrowed back to the width the member is held at.
-fn read_count(refusal: &str, member: &CodecMember) -> Result<GeneratedToken, CodecSurfaceIssue> {
-    let mut body = bound(
+fn read_count(refusal: &str, member: &CodecMember) -> Result<GeneratedToken, Overflow> {
+    let mut body = bound_local(
         LENGTH_BINDING,
         vec![framing_read(refusal, member.spelling())?],
     );
-    let mut contract = language_path(&["core", "convert", "TryFrom"]);
+    let mut contract = absolute_path(&["core", "convert", "TryFrom"]);
     contract.extend(generics(vec![GeneratedToken::word("u64")]));
-    let mut narrowed = qualified(type_path(member.held_as()), contract, "try_from");
-    narrowed.push(group(
-        GeneratedDelimiter::Parenthesis,
-        vec![GeneratedToken::word(LENGTH_BINDING)],
-    )?);
+    let road = qualified(type_path(member.held_as()), contract, "try_from");
+    let mut narrowed = call(road, vec![GeneratedToken::word(LENGTH_BINDING)])?;
     narrowed.extend(mapped(member_refusal(
         refusal,
-        COUNT_PAST_WIDTH_ARM,
+        DecodeRefusal::CountPastDeclaredWidth,
         member.spelling(),
     )?)?);
     body.extend(narrowed);
@@ -1084,104 +764,135 @@ fn read_count(refusal: &str, member: &CodecMember) -> Result<GeneratedToken, Cod
 }
 
 /// Framed bytes, handed to the member's own type.
-fn read_bytes(refusal: &str, member: &CodecMember) -> Result<GeneratedToken, CodecSurfaceIssue> {
+fn read_bytes(refusal: &str, member: &CodecMember) -> Result<GeneratedToken, Overflow> {
     let mut body = framed_prelude(refusal, member.spelling())?;
-    let owned = call(
+    let owned = method_call(
         vec![GeneratedToken::word(CARRIED_BINDING)],
         "to_vec",
         Vec::new(),
     )?;
-    let mut contract = language_path(&["core", "convert", "TryFrom"]);
+    let mut contract = absolute_path(&["core", "convert", "TryFrom"]);
     contract.extend(generics(byte_sink()));
-    let mut built = qualified(type_path(member.held_as()), contract, "try_from");
-    built.push(group(GeneratedDelimiter::Parenthesis, owned)?);
-    built.extend(mapped(member_refusal(
-        refusal,
-        MEMBER_NOT_ADMITTED_ARM,
-        member.spelling(),
-    )?)?);
-    body.extend(built);
+    body.extend(admitted(refusal, member, contract, owned)?);
     group(GeneratedDelimiter::Brace, body)
 }
 
 /// Framed text, checked for UTF-8 and handed to the member's own type.
-fn read_text(refusal: &str, member: &CodecMember) -> Result<GeneratedToken, CodecSurfaceIssue> {
+fn read_text(refusal: &str, member: &CodecMember) -> Result<GeneratedToken, Overflow> {
     let mut body = framed_prelude(refusal, member.spelling())?;
-    let mut checked = language_path(&["core", "str", "from_utf8"]);
-    checked.push(group(
-        GeneratedDelimiter::Parenthesis,
-        vec![GeneratedToken::word(CARRIED_BINDING)],
-    )?);
+    let checking = absolute_path(&["core", "str", "from_utf8"]);
+    let mut checked = call(checking, vec![GeneratedToken::word(CARRIED_BINDING)])?;
     checked.extend(mapped(member_refusal(
         refusal,
-        TEXT_NOT_UTF8_ARM,
+        DecodeRefusal::TextNotUtf8,
         member.spelling(),
     )?)?);
-    body.extend(bound(CHOSEN_BINDING, checked));
-    let owned = call(
+    body.extend(bound_local(CHOSEN_BINDING, checked));
+    let owned = method_call(
         vec![GeneratedToken::word(CHOSEN_BINDING)],
         "to_owned",
         Vec::new(),
     )?;
-    let mut contract = language_path(&["core", "convert", "TryFrom"]);
-    contract.extend(generics(language_path(&["std", "string", "String"])));
-    let mut built = qualified(type_path(member.held_as()), contract, "try_from");
-    built.push(group(GeneratedDelimiter::Parenthesis, owned)?);
-    built.extend(mapped(member_refusal(
-        refusal,
-        MEMBER_NOT_ADMITTED_ARM,
-        member.spelling(),
-    )?)?);
-    body.extend(built);
+    let mut contract = absolute_path(&["core", "convert", "TryFrom"]);
+    contract.extend(generics(absolute_path(&["std", "string", "String"])));
+    body.extend(admitted(refusal, member, contract, owned)?);
     group(GeneratedDelimiter::Brace, body)
 }
 
+/// The member's own type asked to admit what was read for it.
+fn admitted(
+    refusal: &str,
+    member: &CodecMember,
+    contract: Vec<GeneratedToken>,
+    material: Vec<GeneratedToken>,
+) -> Result<Vec<GeneratedToken>, Overflow> {
+    let road = qualified(type_path(member.held_as()), contract, "try_from");
+    let mut built = call(road, material)?;
+    built.extend(mapped(member_refusal(
+        refusal,
+        DecodeRefusal::MemberNotAdmitted,
+        member.spelling(),
+    )?)?);
+    Ok(built)
+}
+
 /// A framed nested value, read by the nested type's own codec.
-fn read_nested(refusal: &str, member: &CodecMember) -> Result<GeneratedToken, CodecSurfaceIssue> {
+fn read_nested(refusal: &str, member: &CodecMember) -> Result<GeneratedToken, Overflow> {
     let mut body = framed_prelude(refusal, member.spelling())?;
-    let mut nested = type_path(member.held_as());
-    nested.extend(associated(DECODE_ROAD));
-    nested.push(group(
-        GeneratedDelimiter::Parenthesis,
-        vec![GeneratedToken::word(CARRIED_BINDING)],
-    )?);
+    let mut road = type_path(member.held_as());
+    road.extend(associated(DECODE_ROAD));
+    let mut nested = call(road, vec![GeneratedToken::word(CARRIED_BINDING)])?;
     nested.extend(mapped(member_refusal(
         refusal,
-        NESTED_REFUSED_ARM,
+        DecodeRefusal::NestedMemberRefused,
         member.spelling(),
     )?)?);
     body.extend(nested);
     group(GeneratedDelimiter::Brace, body)
 }
 
+/// One byte read off the material: borrowed under the named binding, copied into the carried one, and stepped over.
+///
+/// The step is `width`, and the caller bound `width` to one byte's own size, so the two reads that need a single byte spell the step the same way.
+fn read_one_byte(
+    refusal: &str,
+    member: &str,
+    borrowed: &str,
+) -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut first = method_call(
+        vec![GeneratedToken::word(REMAINING_BINDING)],
+        "first",
+        Vec::new(),
+    )?;
+    first.extend(absent(member_refusal(
+        refusal,
+        DecodeRefusal::Truncated,
+        member,
+    )?)?);
+    let mut body = bound_local(borrowed, first);
+    body.extend(bound_local(
+        CARRIED_BINDING,
+        vec![GeneratedToken::alone('*'), GeneratedToken::word(borrowed)],
+    ));
+    body.extend(stepped_over(refusal, member, DecodeRefusal::Truncated)?);
+    Ok(body)
+}
+
 /// One arm of a closed roster, elected by walking the roster the OWNER declared.
 ///
-/// This home writes no table of slots. The walk compares the byte it read against
-/// each candidate's own `slot()`, so a roster that gained an arm gains it here
-/// too — and a slot no arm answers to refuses rather than electing a neighbour.
-fn read_choice(refusal: &str, member: &CodecMember) -> Result<GeneratedToken, CodecSurfaceIssue> {
-    let mut width = byte_width();
-    width.push(group(GeneratedDelimiter::Parenthesis, Vec::new())?);
-    let mut body = bound(WIDTH_BINDING, width);
+/// This home writes no table of slots: the walk compares the byte it read against each candidate's own position, so a roster that gained an arm gains it here too, and a slot no arm answers to refuses rather than electing a neighbour.
+fn read_choice(refusal: &str, member: &CodecMember) -> Result<GeneratedToken, Overflow> {
+    let width = call(byte_width(), Vec::new())?;
+    let mut body = bound_local(WIDTH_BINDING, width);
     body.extend(read_one_byte(refusal, member.spelling(), CHOSEN_BINDING)?);
-    let mut empty = language_path(&["core", "option", "Option"]);
+    let mut empty = absolute_path(&["core", "option", "Option"]);
     empty.extend(associated("None"));
     body.extend(bound_mutable(ELECTED_BINDING, empty));
-    let mut some = language_path(&["core", "option", "Option"]);
+    body.extend(roster_walk(member)?);
+    body.push(GeneratedToken::word(ELECTED_BINDING));
+    body.extend(absent(member_refusal(
+        refusal,
+        DecodeRefusal::SlotNotAdmitted,
+        member.spelling(),
+    )?)?);
+    group(GeneratedDelimiter::Brace, body)
+}
+
+/// The walk over the owner's own roster, electing the arm whose position is the byte that was read.
+fn roster_walk(member: &CodecMember) -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut some = absolute_path(&["core", "option", "Option"]);
     some.extend(associated("Some"));
-    some.push(group(
-        GeneratedDelimiter::Parenthesis,
-        vec![GeneratedToken::word(CANDIDATE_BINDING)],
-    )?);
+    let some = call(some, vec![GeneratedToken::word(CANDIDATE_BINDING)])?;
     let elected = reassigned(ELECTED_BINDING, some);
-    let mut comparison = call(
+    let position = method_call(
         vec![GeneratedToken::word(CANDIDATE_BINDING)],
         SLOT_ROAD,
         Vec::new(),
     )?;
-    comparison.push(GeneratedToken::joint('='));
-    comparison.push(GeneratedToken::alone('='));
-    comparison.push(GeneratedToken::word(CARRIED_BINDING));
+    let compared = equality(position, vec![GeneratedToken::word(CARRIED_BINDING)]);
+    let mut test = vec![GeneratedToken::word("if")];
+    test.extend(compared);
+    test.push(group(GeneratedDelimiter::Brace, elected)?);
     let mut walk = vec![
         GeneratedToken::word("for"),
         GeneratedToken::word(CANDIDATE_BINDING),
@@ -1189,99 +900,43 @@ fn read_choice(refusal: &str, member: &CodecMember) -> Result<GeneratedToken, Co
     ];
     walk.extend(type_path(member.held_as()));
     walk.extend(associated(ROSTER_CONSTANT));
-    let mut test = vec![GeneratedToken::word("if")];
-    test.extend(comparison);
-    test.push(group(GeneratedDelimiter::Brace, elected)?);
     walk.push(group(GeneratedDelimiter::Brace, test)?);
-    body.extend(walk);
-    body.push(GeneratedToken::word(ELECTED_BINDING));
-    body.extend(absent(member_refusal(
-        refusal,
-        SLOT_NOT_ADMITTED_ARM,
-        member.spelling(),
-    )?)?);
-    group(GeneratedDelimiter::Brace, body)
+    Ok(walk)
 }
 
-/// One byte read off the material: borrowed under the named binding, copied into
-/// [`CARRIED_BINDING`], and stepped over.
-///
-/// The step is `width` rather than a literal, and the caller bound `width` to one
-/// byte's own size — so the two reads that need a single byte spell the step the
-/// same way.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the read outgrows
-/// the declared token magnitude.
-pub fn read_one_byte(
-    refusal: &str,
-    member: &str,
-    borrowed: &str,
-) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    let mut first = call(
-        vec![GeneratedToken::word(REMAINING_BINDING)],
-        "first",
-        Vec::new(),
-    )?;
-    first.extend(absent(member_refusal(refusal, TRUNCATED_ARM, member)?)?);
-    let mut body = bound(borrowed, first);
-    body.extend(bound(
-        CARRIED_BINDING,
-        vec![GeneratedToken::alone('*'), GeneratedToken::word(borrowed)],
-    ));
-    let mut rest = left(WIDTH_BINDING)?;
-    rest.extend(absent(member_refusal(refusal, TRUNCATED_ARM, member)?)?);
-    body.extend(reassigned(REMAINING_BINDING, rest));
-    Ok(body)
-}
-
-/// One member's complete contribution to the decode road, under its declared
-/// cardinality.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the contribution
-/// outgrows the declared token magnitude.
-pub fn decode_member(
-    refusal: &str,
-    member: &CodecMember,
-) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
+/// One member's complete contribution to the decode road, under its declared cardinality.
+fn decode_member(refusal: &str, member: &CodecMember) -> Result<Vec<GeneratedToken>, Overflow> {
     let read = match member.cardinality() {
-        FieldCardinality::Required => read_occurrence(refusal, member)?,
-        FieldCardinality::Optional => decode_optional(refusal, member)?,
-        FieldCardinality::Repeated => decode_repeated(refusal, member)?,
+        Cardinality::Required => read_occurrence(refusal, member)?,
+        Cardinality::Optional => decode_optional(refusal, member)?,
+        Cardinality::Repeated => decode_repeated(refusal, member)?,
     };
-    Ok(bound(member.spelling(), vec![read]))
+    Ok(bound_local(member.spelling(), vec![read]))
 }
 
-/// An optional member: the presence byte the encode road wrote, read back through
-/// the same road, and the occurrence where there is one.
-fn decode_optional(
-    refusal: &str,
-    member: &CodecMember,
-) -> Result<GeneratedToken, CodecSurfaceIssue> {
-    let mut width = byte_width();
-    width.push(group(GeneratedDelimiter::Parenthesis, Vec::new())?);
-    let mut body = bound(WIDTH_BINDING, width);
+/// An optional member: the presence byte the encode road wrote, read back through the same road, and the occurrence where there is one.
+fn decode_optional(refusal: &str, member: &CodecMember) -> Result<GeneratedToken, Overflow> {
+    let width = call(byte_width(), Vec::new())?;
+    let mut body = bound_local(WIDTH_BINDING, width);
     body.extend(read_one_byte(refusal, member.spelling(), CHOSEN_BINDING)?);
-    body.extend(bound(
+    body.extend(bound_local(
         PRESENT_BINDING,
         vec![GeneratedToken::word(CARRIED_BINDING)],
     ));
-    let mut none = language_path(&["core", "option", "Option"]);
+    let mut none = absolute_path(&["core", "option", "Option"]);
     none.extend(associated("None"));
-    let mut some = language_path(&["core", "option", "Option"]);
+    let mut some = absolute_path(&["core", "option", "Option"]);
     some.extend(associated("Some"));
-    some.push(group(
-        GeneratedDelimiter::Parenthesis,
-        vec![read_occurrence(refusal, member)?],
-    )?);
+    let some = call(some, vec![read_occurrence(refusal, member)?])?;
     let mut refused = vec![GeneratedToken::word("return")];
-    refused.extend(language_path(&["core", "result", "Result", "Err"]));
-    refused.push(group(
-        GeneratedDelimiter::Parenthesis,
-        member_refusal(refusal, PRESENCE_NOT_ADMITTED_ARM, member.spelling())?,
+    let error = absolute_path(&["core", "result", "Result", "Err"]);
+    refused.extend(call(
+        error,
+        member_refusal(
+            refusal,
+            DecodeRefusal::PresenceNotAdmitted,
+            member.spelling(),
+        )?,
     )?);
     body.extend(presence_choice(none, some, statement(refused))?);
     group(GeneratedDelimiter::Brace, body)
@@ -1289,14 +944,12 @@ fn decode_optional(
 
 /// The three-way choice an optional member's presence byte decides.
 ///
-/// The two admitted bytes are `u8::from(false)` and `u8::from(true)` — the exact
-/// road the encode surface wrote them by — so neither end carries a numeric
-/// literal and neither can drift from the other.
+/// The two admitted bytes are `u8::from(false)` and `u8::from(true)` — the exact road the encode surface wrote them by — so neither end carries a numeric literal and neither can drift from the other.
 fn presence_choice(
     none: Vec<GeneratedToken>,
     some: Vec<GeneratedToken>,
     refused: Vec<GeneratedToken>,
-) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
+) -> Result<Vec<GeneratedToken>, Overflow> {
     let mut tokens = vec![GeneratedToken::word("if")];
     tokens.extend(presence_test("false")?);
     tokens.push(group(GeneratedDelimiter::Brace, none)?);
@@ -1309,54 +962,41 @@ fn presence_choice(
     Ok(tokens)
 }
 
-/// `present == u8::from(<answer>)`.
-fn presence_test(answer: &str) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    let mut tokens = vec![
-        GeneratedToken::word(PRESENT_BINDING),
-        GeneratedToken::joint('='),
-        GeneratedToken::alone('='),
-        GeneratedToken::word("u8"),
-    ];
-    tokens.extend(associated("from"));
-    tokens.push(group(
-        GeneratedDelimiter::Parenthesis,
-        vec![GeneratedToken::word(answer)],
-    )?);
-    Ok(tokens)
+/// `present == u8::from(answer)`.
+fn presence_test(answer: &str) -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut road = vec![GeneratedToken::word("u8")];
+    road.extend(associated("from"));
+    let written = call(road, vec![GeneratedToken::word(answer)])?;
+    Ok(equality(
+        vec![GeneratedToken::word(PRESENT_BINDING)],
+        written,
+    ))
 }
 
 /// A repeated member: the framed count, then that many occurrences.
 ///
-/// The loop stops on a length comparison rather than on a counted range, so no
-/// numeric literal is written — and a count larger than the material admits runs
-/// out of bytes on its next read and refuses there.
-fn decode_repeated(
-    refusal: &str,
-    member: &CodecMember,
-) -> Result<GeneratedToken, CodecSurfaceIssue> {
-    let mut body = bound(
+/// The loop stops on a length comparison rather than on a counted range, so no numeric literal is written — and a count larger than the material admits runs out of bytes on its next read and refuses there.
+fn decode_repeated(refusal: &str, member: &CodecMember) -> Result<GeneratedToken, Overflow> {
+    let mut body = bound_local(
         LENGTH_BINDING,
         vec![framing_read(refusal, member.spelling())?],
     );
-    let mut narrowed = vec![GeneratedToken::word("usize")];
-    narrowed.extend(associated("try_from"));
-    narrowed.push(group(
-        GeneratedDelimiter::Parenthesis,
-        vec![GeneratedToken::word(LENGTH_BINDING)],
-    )?);
+    let mut narrowing = vec![GeneratedToken::word("usize")];
+    narrowing.extend(associated("try_from"));
+    let mut narrowed = call(narrowing, vec![GeneratedToken::word(LENGTH_BINDING)])?;
     narrowed.extend(mapped(member_refusal(
         refusal,
-        COUNT_PAST_WIDTH_ARM,
+        DecodeRefusal::CountPastDeclaredWidth,
         member.spelling(),
     )?)?);
-    body.extend(bound(WIDTH_BINDING, narrowed));
+    body.extend(bound_local(WIDTH_BINDING, narrowed));
     body.extend(bound_mutable(COLLECTED_BINDING, empty_vector()?));
-    let gathered = call(
+    let gathered = method_call(
         vec![GeneratedToken::word(COLLECTED_BINDING)],
         "push",
         vec![read_occurrence(refusal, member)?],
     )?;
-    let mut test = call(
+    let mut test = method_call(
         vec![GeneratedToken::word(COLLECTED_BINDING)],
         "len",
         Vec::new(),
@@ -1371,39 +1011,38 @@ fn decode_repeated(
     group(GeneratedDelimiter::Brace, body)
 }
 
-/// The assembly call the decode road ends on, under the posture the caller
-/// stated.
-fn assembly_call(shape: &CodecShape) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
+/// The assembly call the decode road ends on, under the posture the caller stated.
+fn assembly_call(shape: &CodecShape) -> Result<Vec<GeneratedToken>, Overflow> {
     let mut arguments: Vec<GeneratedToken> = Vec::new();
     for member in shape.members() {
         arguments.push(GeneratedToken::word(member.spelling()));
         arguments.push(GeneratedToken::alone(','));
     }
-    let mut tokens = vec![GeneratedToken::word("Self")];
-    tokens.extend(associated(shape.assembly().road()));
-    tokens.push(group(GeneratedDelimiter::Parenthesis, arguments)?);
+    let mut road = vec![GeneratedToken::word("Self")];
+    road.extend(associated(shape.assembly().road()));
+    let mut assembled = call(road, arguments)?;
     match shape.assembly().posture() {
         AssemblyPosture::Total => {}
-        AssemblyPosture::Checked { .. } => tokens.push(GeneratedToken::alone('?')),
+        AssemblyPosture::Checked { .. } => assembled.push(GeneratedToken::alone('?')),
     }
-    let mut answered = language_path(&["core", "result", "Result", "Ok"]);
-    answered.push(group(GeneratedDelimiter::Parenthesis, tokens)?);
-    Ok(answered)
+    call(
+        absolute_path(&["core", "result", "Result", "Ok"]),
+        assembled,
+    )
 }
 
-/// The trailing check: material after the last declared member is itself a
-/// refusal, because a canonical encoding is the whole of what a value writes.
-fn trailing_check(refusal: &str) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
-    let asked = call(
+/// The trailing check: material after the last declared member is itself a refusal, because a canonical encoding is the whole of what a value writes.
+fn trailing_check(refusal: &str) -> Result<Vec<GeneratedToken>, Overflow> {
+    let asked = method_call(
         vec![GeneratedToken::word(REMAINING_BINDING)],
         "is_empty",
         Vec::new(),
     )?;
     let mut refused = vec![GeneratedToken::word("return")];
-    refused.extend(language_path(&["core", "result", "Result", "Err"]));
-    refused.push(group(
-        GeneratedDelimiter::Parenthesis,
-        sole_refusal(refusal, TRAILING_BYTES_ARM),
+    let error = absolute_path(&["core", "result", "Result", "Err"]);
+    refused.extend(call(
+        error,
+        sole_refusal(refusal, DecodeRefusal::TrailingBytes),
     )?);
     let mut tokens = vec![GeneratedToken::word("if"), GeneratedToken::alone('!')];
     tokens.extend(asked);
@@ -1411,44 +1050,26 @@ fn trailing_check(refusal: &str) -> Result<Vec<GeneratedToken>, CodecSurfaceIssu
     Ok(tokens)
 }
 
-/// The decode road: one member at a time in declared order, then the trailing
-/// check, then the assembly.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the road outgrows
-/// the declared token magnitude.
-pub fn decode_road(shape: &CodecShape) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
+/// The decode road: one member at a time in declared order, then the trailing check, then the assembly.
+fn decode_road(shape: &CodecShape) -> Result<Vec<GeneratedToken>, Overflow> {
     let refusal = shape.refusal();
-    let mut cursor = vec![
-        GeneratedToken::word("let"),
-        GeneratedToken::word("mut"),
-        GeneratedToken::word(REMAINING_BINDING),
-        GeneratedToken::alone(':'),
-        GeneratedToken::alone('&'),
-    ];
-    cursor.extend(byte_slice()?);
-    cursor.push(GeneratedToken::alone('='));
-    cursor.push(GeneratedToken::word(MATERIAL_PARAMETER));
-    let mut body = statement(cursor);
+    let mut body = statement(cursor()?);
     for member in shape.members() {
         body.extend(decode_member(refusal, member)?);
     }
     body.extend(trailing_check(refusal)?);
     body.extend(assembly_call(shape)?);
     let mut parameters = vec![
-        GeneratedToken::word(MATERIAL_PARAMETER),
+        GeneratedToken::word(MATERIAL_BINDING),
         GeneratedToken::alone(':'),
         GeneratedToken::alone('&'),
     ];
     parameters.extend(byte_slice()?);
-    let mut answer = language_path(&["core", "result", "Result"]);
-    answer.extend(generics(vec![
-        GeneratedToken::word("Self"),
-        GeneratedToken::alone(','),
-        GeneratedToken::word(refusal),
-    ]));
-    let mut tokens = doc_attribute(DECODE_SENTENCE)?;
+    let answer = result_type(
+        vec![GeneratedToken::word("Self")],
+        vec![GeneratedToken::word(refusal)],
+    );
+    let mut tokens = documentation(DECODE_SENTENCE)?;
     tokens.push(GeneratedToken::word("pub"));
     tokens.push(GeneratedToken::word("fn"));
     tokens.push(GeneratedToken::word(DECODE_ROAD));
@@ -1460,23 +1081,32 @@ pub fn decode_road(shape: &CodecShape) -> Result<Vec<GeneratedToken>, CodecSurfa
     Ok(tokens)
 }
 
+/// `let mut remaining: &[u8] = material` — the cursor every read moves.
+fn cursor() -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut tokens = vec![
+        GeneratedToken::word("let"),
+        GeneratedToken::word("mut"),
+        GeneratedToken::word(REMAINING_BINDING),
+        GeneratedToken::alone(':'),
+        GeneratedToken::alone('&'),
+    ];
+    tokens.extend(byte_slice()?);
+    tokens.push(GeneratedToken::alone('='));
+    tokens.push(GeneratedToken::word(MATERIAL_BINDING));
+    Ok(tokens)
+}
+
 // ---------------------------------------------------------------------------
-// The placement, and the whole surface.
+// The placement.
 // ---------------------------------------------------------------------------
 
 /// One visibly published module carrying a rendered surface.
 ///
-/// Its head writes the one import a wrapped surface needs, because the shape's
-/// own names live in the scope the module sits IN.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the module outgrows
-/// the declared token magnitude.
-pub fn published_module(
+/// Its head writes the one import a wrapped surface needs, because the shape's own names live in the scope the module sits IN.
+fn published_module(
     spelling: &str,
     surface: Vec<GeneratedToken>,
-) -> Result<Vec<GeneratedToken>, CodecSurfaceIssue> {
+) -> Result<Vec<GeneratedToken>, Overflow> {
     let mut body = vec![
         GeneratedToken::word("use"),
         GeneratedToken::word(MODULE_PRELUDE_ROOT),
@@ -1486,53 +1116,10 @@ pub fn published_module(
         GeneratedToken::alone(';'),
     ];
     body.extend(surface);
-    let mut tokens = doc_attribute(MODULE_SENTENCE)?;
+    let mut tokens = documentation(MODULE_SENTENCE)?;
     tokens.push(GeneratedToken::word("pub"));
     tokens.push(GeneratedToken::word("mod"));
     tokens.push(GeneratedToken::word(spelling));
     tokens.push(group(GeneratedDelimiter::Brace, body)?);
     Ok(tokens)
-}
-
-/// The whole codec surface: the refusal the decode road answers with, the
-/// conversion a checked assembly earns, and the roads the declared direction
-/// covers, under the placement the caller stated.
-///
-/// The refusal and the conversion are rendered only where the direction covers
-/// the decode road, so an encode-only surface declares nothing that cannot
-/// happen — and carries no validator, which is what an encode-only direction
-/// means.
-///
-/// # Errors
-///
-/// Returns [`CodecSurfaceIssue::SurfaceTreeUnbounded`] where the surface outgrows
-/// the declared token magnitude.
-pub fn codec_surface(
-    shape: &CodecShape,
-    placement: &CodecPlacement,
-    direction: CodecDirection,
-) -> Result<GeneratedTree, CodecSurfaceIssue> {
-    let mut tokens: Vec<GeneratedToken> = Vec::new();
-    let decodes = covers(direction, CodecRoad::Decode);
-    if decodes {
-        tokens.extend(refusal_declaration(shape)?);
-        tokens.extend(refusal_conversion(shape)?);
-    }
-    let mut roads: Vec<GeneratedToken> = Vec::new();
-    if covers(direction, CodecRoad::Encode) {
-        roads.extend(encode_road(shape)?);
-    }
-    if decodes {
-        roads.extend(decode_road(shape)?);
-    }
-    tokens.push(GeneratedToken::word("impl"));
-    tokens.extend(type_path(shape.owner()));
-    tokens.push(group(GeneratedDelimiter::Brace, roads)?);
-    let placed = match placement {
-        CodecPlacement::AtDeclarationSite => tokens,
-        CodecPlacement::PublishedModule { spelling } => {
-            published_module(spelling.spelling(), tokens)?
-        }
-    };
-    GeneratedTree::assembled(placed).map_err(|_| unbounded())
 }

@@ -1,26 +1,11 @@
-# Configuration for the clippy half of the lint wall in Cargo.toml.
-# Settings only. A key with no live lint behind it does not belong here.
-
 msrv = "1.98.0"
-
-# A function past a hundred lines has stopped being one operation.
 too-many-lines-threshold = 100
-
-# Past four levels of nesting the repair is a type that knows its state, not a deeper block.
 excessive-nesting-threshold = 4
-
-# A bool field is an unnamed two-state machine; states are named enums here.
 max-struct-bools = 0
 max-fn-params-bools = 0
-
-# Version 0.0.0, never published: there is no exported API to shield from stricter suggestions, so pedantic runs at full strength on public items too.
 avoid-breaking-exported-api = false
+doc-valid-idents = ["Macroonz", ".."]
 
-# The product name in prose is a word, not a code path needing backticks.
-doc-valid-idents = ["ThreadPak", ".."]
-
-# The machine is a function of its declared input: no ambient clock, no
-# nondeterministic iteration order, no environment reads.
 disallowed-types = [
     { path = "std::time::SystemTime", reason = "no ambient clock: output is a function of declared input" },
     { path = "std::time::Instant", reason = "no ambient clock: output is a function of declared input" },

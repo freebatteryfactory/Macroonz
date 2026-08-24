@@ -1,0 +1,16 @@
+error: cannot construct `Diagnostic` with struct literal syntax due to private fields
+  --> tests/compile_refusals/compile-fail/a-diagnostic-assembled-beside-its-refusal.rs:11:19
+   |
+11 |     let _minted = Diagnostic {
+   |                   ^^^^^^^^^^
+12 |         phase: Phase::Planning,
+   |         ---------------------- private field
+   |
+   = note: ...and other private fields `site`, `observed` and `carried` that were not provided
+help: you might have meant to use the `refused` associated function
+   |
+11 -     let _minted = Diagnostic {
+12 -         phase: Phase::Planning,
+13 -     };
+11 +     let _minted = Diagnostic::refused(_, _, _);
+   |

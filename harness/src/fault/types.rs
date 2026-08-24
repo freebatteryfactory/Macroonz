@@ -1,15 +1,11 @@
-//! The fault instrument's declarations: where typed adapters are scheduled, how schedules are selected, and what injection returns.
-//!
-//! Declarations only. Every road that reaches a private field lives in this file's own child, `type_guard.rs`; joining a selected schedule to commands is `inject.rs`.
+//! What a fault is, where it is scheduled, and what a selection and an injection hand back.
 
 #[path = "type_guard.rs"]
 mod guard;
 
 use crate::descriptor::NamespacedName;
 
-/// One adopter-owned fault behavior joined to the adopter-owned postcondition it promises.
-///
-/// `TestPak` carries the two typed values together and interprets neither one. The behavior may implement a concrete product port contract, while the postcondition remains available to the consumer that executes and observes it.
+/// One behavior the owner wrote, joined to the postcondition the owner promises it leaves standing.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FaultAdapter<Behavior, Postcondition> {
     behavior: Behavior,
@@ -20,35 +16,29 @@ pub struct FaultAdapter<Behavior, Postcondition> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SequencePosition(u32);
 
-/// One typed adapter scheduled at one command position.
-///
-/// The generic parameters are the adopter's concrete behavior and postcondition types. `TestPak` stores and places the joined value without deciding which port contract the behavior implements.
+/// One adapter placed at one command position.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScheduledFault<Behavior, Postcondition> {
     position: SequencePosition,
     adapter: FaultAdapter<Behavior, Postcondition>,
 }
 
-/// One named schedule of typed adapters, including an empty lawful-control schedule.
+/// One named course of adversity, from an empty control to a stack of adapters.
 ///
-/// # Ordering
-///
-/// Scheduled values retain authored order. Several values may name one position because stacking two distinct faults is a campaign statement, not a duplicate declaration.
+/// Adapters keep their authored order, and two may name one position, because stacking two faults on one command is a statement rather than a duplicate.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FaultSchedule<Behavior, Postcondition> {
     name: NamespacedName,
     faults: Vec<ScheduledFault<Behavior, Postcondition>>,
 }
 
-/// A nonempty set of uniquely named fault schedules.
-///
-/// A campaign is selection authority only. It does not execute adapters or interpret their postconditions.
+/// The uniquely named schedules one run chooses among.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FaultCampaign<Behavior, Postcondition> {
     schedules: Vec<FaultSchedule<Behavior, Postcondition>>,
 }
 
-/// Why one fault campaign was refused.
+/// Why a campaign was refused.
 #[must_use = "a refusal is the reason a fault campaign was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FaultCampaignRefusal {
@@ -56,19 +46,19 @@ pub enum FaultCampaignRefusal {
     NoSchedule,
     /// Two schedules declare the same name.
     DuplicateSchedule(NamespacedName),
-    /// Every schedule is an empty control, so the campaign declares no fault pressure.
+    /// Every schedule is an empty control, so the campaign declares no pressure at all.
     NoFaultDeclared,
 }
 
-/// One campaign-validated schedule selection.
+/// One schedule, handed back by the campaign that declares it.
 ///
-/// The selection borrows the campaign member it names, so injection cannot be handed a schedule from another campaign beside a separately asserted name.
+/// The selection borrows its campaign member, so injection can never be given one campaign's schedule beside another campaign's name.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CampaignSelection<'campaign, Behavior, Postcondition> {
     schedule: &'campaign FaultSchedule<Behavior, Postcondition>,
 }
 
-/// Why one campaign selection was refused.
+/// Why a selection was refused.
 #[must_use = "a refusal is the reason a fault schedule was not selected"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FaultSelectionRefusal {
@@ -76,40 +66,34 @@ pub enum FaultSelectionRefusal {
     ScheduleAbsent(NamespacedName),
 }
 
-/// One command with the typed adapters injected at its position.
-///
-/// The command remains the caller's value, and faults retain their schedule order. Executing either is outside this type's authority.
+/// One command and the adapters scheduled at its position, in schedule order.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InjectedCommand<Command, Behavior, Postcondition> {
     command: Command,
     faults: Vec<FaultAdapter<Behavior, Postcondition>>,
 }
 
-/// One command sequence after a validated fault schedule was injected.
-///
-/// # Authority
-///
-/// The retained schedule name and derived injected count describe only placement. A consumer earns behavior and postcondition conclusions by executing its own adapter and observing the result through the ordinary `TestPak` roads.
+/// A command sequence with one selected schedule placed into it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InjectedSequence<Command, Behavior, Postcondition> {
     schedule: NamespacedName,
     commands: Vec<InjectedCommand<Command, Behavior, Postcondition>>,
 }
 
-/// Why one selected schedule could not be injected into a command sequence.
+/// Why a selected schedule could not be injected.
 #[must_use = "a refusal is the reason a selected fault schedule was not injected"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FaultInjectionRefusal {
-    /// The sequence has a last coordinate that cannot be represented by [`SequencePosition`].
+    /// The sequence's last coordinate is past what a [`SequencePosition`] can spell.
     SequenceTooLong {
-        /// The number of commands the sequence carries.
+        /// How many commands the sequence carries.
         commands: usize,
     },
-    /// A scheduled position lies outside the supplied sequence.
+    /// A scheduled position lies outside the sequence.
     PositionOutsideSequence {
-        /// The invalid scheduled position.
+        /// The position the schedule declared.
         position: SequencePosition,
-        /// The number of commands the sequence carries.
+        /// How many commands the sequence carries.
         commands: usize,
     },
 }

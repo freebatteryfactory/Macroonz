@@ -1,25 +1,14 @@
-//! The proof-pressure engine's declarations: the verdict chain's axes, the
-//! per-mutant record and its run, the mutation target and its owner mapping, the
-//! wrap lane's adapter profile and generic suite-pressure vocabulary, the exact
-//! compiled-projection road, the interpreted lane's evaluation surface and trust gate,
-//! the rewrite lane's descriptors, the artifact-mutation seed roster, the
-//! survivor explanation and the check gap, the scope shapes and the proof plan,
-//! and the whole proposal road.
+//! Every public type of the proof-pressure engine.
 //!
-//! Declarations only. Every road that reaches a private field is this file's own
-//! child, `type_guard.rs`; declarative trait participation is in
-//! `type_contract.rs`; the four lanes are the role-named modules beside them.
+//! Declarations only.
+//! The constructors and readers that reach a private field are this file's own child, `type_guard.rs`; trait implementations are in `type_contract.rs`; the lanes are the role-named modules beside them.
 //!
-//! # The borrowed vocabularies
+//! # Borrowed vocabularies
 //!
-//! The row, the staged view, the candidate origin arm, and every namespaced
-//! reference belong to the descriptor vocabulary ([`crate::descriptor`]). The
-//! trial identity, the finding, the fingerprint, the replay capsule, the
-//! execution key, and the run report belong to the record vocabulary
-//! ([`crate::report`]). The selection and the invocation belong to the engine
-//! ([`crate::runner`]), and the operator families belong to the fact bank
-//! ([`crate::depot`]). Nothing here restates any of those contracts: this home
-//! BINDS those values, and what they mean is written where they are declared.
+//! Rows, staged views, and namespaced references belong to [`crate::descriptor`].
+//! Trial identities, findings, fingerprints, capsules, and reports belong to [`crate::report`].
+//! Selections and invocations belong to [`crate::runner`], and operator families to [`crate::depot`].
+//! This home binds those values; what each of them means is written where it is declared.
 
 use crate::depot::capsules::{ReplayCapsuleEntry, ReplayDepotRefusal, StoredReplayEntryRef};
 use crate::depot::types::OperatorFamily;
@@ -40,17 +29,12 @@ use crate::runner::{ReportRecordingRefusal, Selection, TrialBinding};
 mod guard;
 
 // ---------------------------------------------------------------------------
-// The verdict chain's axes.
+// The verdict chain.
 // ---------------------------------------------------------------------------
 
-/// What the UNMUTATED subject's own suite did before any damage was inflicted.
+/// What the unmutated subject's own suite did before any damage was inflicted.
 ///
-/// # Authority
-///
-/// An unchanged passing baseline is the precondition every kill stands on. A
-/// mutant "caught" by an already-failing suite proves nothing about the suite,
-/// so this axis is read before any other and a lane that cannot read it mints no
-/// kill.
+/// An unchanged passing baseline is the precondition every kill stands on, so this axis is read before any other.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BaselineAxis {
     /// The unchanged subject's suite ran and passed.
@@ -66,35 +50,23 @@ pub enum BaselineAxis {
 pub enum MaterializationAxis {
     /// The damaged subject built.
     Built,
-    /// The damaged subject is not buildable — the damage does not typecheck, or
-    /// the site admits no such alternative.
+    /// The damage does not typecheck, or the site admits no such alternative.
     Unviable,
-    /// The backend itself failed while materializing the damage, so nothing was
-    /// established about the damage at all.
+    /// The backend failed while materializing the damage, so nothing was established about it.
     ToolFailed,
 }
 
 /// What the backend or evaluation callable reported about one planted damage firing.
 ///
-/// # Authority
-///
-/// An unactivated mutant is not a survivor. A damage nothing reached says
-/// nothing about the suite that did not catch it, which is why this axis stands
-/// between materialization and the verdict rather than being folded into either.
-///
-/// # Nonclaims
-///
-/// [`ActivationAxis::UnobservableUnderBackend`] is a fact about the BACKEND and
-/// never about the damage: it states that no channel exists to observe firing at
-/// all, so nothing about this mutant's activation was established either way.
+/// A damage nothing reached says nothing about the suite that did not catch it, which is why this axis stands between materialization and the verdict.
+/// [`ActivationAxis::UnobservableUnderBackend`] is a fact about the backend and never about the damage.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ActivationAxis {
     /// An execution channel reported a positive firing count for the damage.
     Observed,
-    /// The backend exposes an activation channel and supplied no positive activation observation.
+    /// The backend exposes an activation channel and supplied no positive observation.
     NotObserved,
-    /// The backend offers no activation channel, so firing is unobservable under
-    /// it.
+    /// The backend offers no activation channel, so firing is unobservable under it.
     UnobservableUnderBackend,
 }
 
@@ -109,49 +81,32 @@ pub enum ExecutionAxis {
     TimedOut,
     /// The witness process died.
     Crashed,
-    /// The harness or the backend failed around the witness, so nothing was
-    /// learned about the damaged subject.
+    /// The harness or the backend failed around the witness, so nothing was learned.
     InfrastructureFailed,
 }
 
 /// What one mutant earned, at axis width.
 ///
-/// # Authority
-///
-/// This is the naming; the RECORD carries [`MutationOutcome`], whose arms carry
-/// the evidence each one requires. A reader that needs the word takes this
-/// projection, and a reader that needs the evidence takes the outcome.
-///
-/// # Nonclaims
-///
-/// A mutant unobservable under the backend can never earn
-/// [`MutationVerdict::Survived`]: its non-kill result is
-/// [`MutationVerdict::Inconclusive`], and that is a refusal in the record's
-/// constructors rather than a rule somebody follows.
+/// The record carries [`MutationOutcome`], whose arms carry the evidence each one requires; this is the word a census counts.
+/// A mutant unobservable under its backend can never earn [`MutationVerdict::Survived`], and that is a refusal in the record's constructors rather than a rule somebody follows.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MutationVerdict {
     /// The suite rejected the damaged subject.
     Killed,
-    /// The suite accepted a damage whose evaluation callable reported a positive firing count under the exact selection and witness.
+    /// The suite accepted a damage whose firing was observed under the exact selection and witness.
     Survived,
     /// Nothing was learned about the suite from this mutant.
     Inconclusive,
 }
 
-/// What was established about the damaged subject meaning the same thing as the
-/// lawful one.
+/// What was established about the damaged subject meaning what the lawful one means.
 ///
-/// # Nonclaims
-///
-/// [`EquivalenceAxis::ProvenInScope`] claims equivalence over the SCOPE the
-/// proof was taken in and never in general: a mutant indistinguishable under one
-/// declared population may be distinguishable under another.
+/// [`EquivalenceAxis::ProvenInScope`] claims equivalence over the scope the proof was taken in and never in general.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum EquivalenceAxis {
     /// No equivalence question was put.
     NotAssessed,
-    /// The damaged subject was proven equivalent to the lawful one, in the scope
-    /// the proof was taken in.
+    /// The damaged subject was proven equivalent, in the scope the proof was taken in.
     ProvenInScope,
     /// The damaged subject was shown to differ from the lawful one.
     Refuted,
@@ -169,12 +124,7 @@ pub const MUTATION_TARGET_TAG: DomainTag =
 
 /// Where in a source text an external backend placed one damage.
 ///
-/// # Bounds
-///
-/// The spelling is data a backend reported rather than a name this harness
-/// authored, which is why it is owned text and deliberately not a
-/// [`NamespacedName`]: that vocabulary is authored, and nothing here mints one
-/// from a tool's output.
+/// Owned text rather than a [`NamespacedName`], because the spelling is a tool's output and not a name anybody authored.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct SourceCoordinate {
     file: String,
@@ -190,30 +140,20 @@ pub enum CoordinateRefusal {
     EmptyFile,
 }
 
-/// One external mutant's identity, derived from the coordinate and the damage
-/// text the backend reported.
+/// One external mutant's identity, over the coordinate and damage text the backend reported.
 ///
-/// # Authority
-///
-/// External mutants arrive as source coordinates rather than as claims, so their
-/// identity is a content address over exactly what arrived. Two runs of one
-/// backend over one unchanged tree name the same mutant; a moved line names a
-/// different one, which is honest — the coordinate is what the backend gave.
+/// Two runs of one backend over one unchanged tree name the same mutant, and a moved line names a different one — which is what a coordinate affords.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct MutantId(ContentAddress);
 
 /// How one damaged thing is identified, by the lane that damaged it.
 ///
-/// # Authority
-///
-/// The arms keep generic external pressure, in-process interpretation, and separately compiled selected-projection pressure distinct. The two selected-projection arms name the same producer-authored point and alternative under different execution roads; their report provenance and artifact standing remain separate.
+/// The two selected-projection arms name the same authored point and alternative under different execution roads, and their report provenance stays separate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MutationIdentity {
-    /// An external backend's mutant, addressed by its reported coordinate and
-    /// damage.
+    /// An external backend's mutant, addressed by its reported coordinate and damage.
     External(MutantId),
-    /// A point on an evaluation surface, addressed by the reference its producer
-    /// authored.
+    /// A point on an evaluation surface, addressed by the reference its producer authored.
     Interpreted {
         /// The stable point the producer discovered.
         point: MutationPointRef,
@@ -240,22 +180,13 @@ pub enum MutationSite {
 
 /// One row of the operator-family bank, cited by the slug that bank declares.
 ///
-/// # Construction
-///
-/// [`OperatorFamilyRef::of_slug`] resolves against the bank's own roster, so a
-/// reference can never name a family the bank does not declare. Nothing here
-/// copies a family's prose: the row is carried, and what a survivor of the
-/// family means is read at the row.
+/// [`OperatorFamilyRef::of_slug`] resolves against the bank's own roster, so a reference can never name a family the bank does not declare.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct OperatorFamilyRef(OperatorFamily);
 
 /// Whether one damage is one the operator-family bank names.
 ///
-/// # Authority
-///
-/// A backend applies its own operators, and attributing one of them to a family
-/// this bank never declared would be the lane inventing a fact. The second arm
-/// is that refusal made a value.
+/// A backend applies its own operators, and attributing one of them to a family the bank never declared would be this lane inventing a fact.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FamilyAttribution {
     /// The damage realizes a family the bank declares.
@@ -264,14 +195,9 @@ pub enum FamilyAttribution {
     OutsideTheBank,
 }
 
-/// Whether the origin-graph reading named the claim that owns one damage's site.
+/// Whether the origin reading named the claim that owns one damage's site.
 ///
-/// # Authority
-///
-/// The owning claim rides the mapped arm, so a mapped target without a claim is
-/// not a value anybody can hold. Where mapping is unavailable the lane reports
-/// the second arm and runs a conservative witness selection; it never invents
-/// the claim.
+/// The owning claim rides the mapped arm, so a mapped target without a claim is not a value anybody can hold.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MappingPosture {
     /// The reading named this claim as the owner of the damage's site.
@@ -280,8 +206,7 @@ pub enum MappingPosture {
     OwnerUnmapped,
 }
 
-/// One damaged thing this lane pressed: its identity, the family it realizes,
-/// where it lives, and whether its owning claim is known.
+/// One damaged thing a lane pressed: its identity, the family it realizes, where it lives, and whether its owning claim is known.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MutationTarget {
     identity: MutationIdentity,
@@ -291,14 +216,13 @@ pub struct MutationTarget {
 }
 
 // ---------------------------------------------------------------------------
-// Activation evidence, and the dud plant.
+// Activation evidence.
 // ---------------------------------------------------------------------------
 
-/// A positive firing count reported for one exact active selection and witness trial.
+/// A positive firing count reported for one exact selection and witness trial.
 ///
-/// # Construction
-///
-/// The receiver guard returns no activation value for a firing count of zero, so a zero-count plant cannot enter the observed arm. The receiver returns the exact [`DudPlant`] instead. The count is caller-callback output: this type binds it to selection and witness but does not independently instrument the callback.
+/// A zero count produces [`DudPlant`] instead, so a silent plant cannot enter the observed arm.
+/// The count is callback output: this value binds it to a selection and a witness and does not instrument the callback.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ActivationEvidence {
     selection: ActiveSelection,
@@ -306,11 +230,7 @@ pub struct ActivationEvidence {
     firings: u32,
 }
 
-/// A plant whose evaluation callback reported zero firings for one exact active selection and witness trial.
-///
-/// # Authority
-///
-/// A zero-count callback report is a finding in its own right and cannot enter the positive-count activation arm. The receiver binds the reported count to the exact selection and witness but does not independently instrument the callback.
+/// A plant whose evaluation callback reported zero firings for its exact selection and witness trial.
 #[must_use = "a dud plant is a finding, never a silent pass"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DudPlant {
@@ -320,14 +240,12 @@ pub struct DudPlant {
 
 /// The activation axis with the evidence its observed arm requires.
 ///
-/// # Authority
-///
-/// A positive-count activation observation without its bound reading is unrepresentable: the arm carries the exact selection, witness, and count. The axis alone is [`ActivationAxis`], and the projection between them is declared once in `type_contract.rs`.
+/// The bare axis is [`ActivationAxis`], and the projection between the two is declared once in `type_contract.rs`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ActivationDisposition {
-    /// The evaluation callback or backend reported a positive activation observation, and this is its bound reading.
+    /// A positive activation observation, with the selection, witness, and count it was bound to.
     Observed(ActivationEvidence),
-    /// The backend exposes an activation channel and supplied no positive activation observation.
+    /// The backend exposes an activation channel and supplied no positive observation.
     NotObserved,
     /// The backend offers no activation channel at all.
     UnobservableUnderBackend,
@@ -337,14 +255,9 @@ pub enum ActivationDisposition {
 // The rejection a kill stands on.
 // ---------------------------------------------------------------------------
 
-/// One rejection this harness's own engine demonstrated: the trial that refused,
-/// and the finding it refused with.
+/// One rejection this harness's own engine demonstrated: the trial that refused, and the finding it refused with.
 ///
-/// # Authority
-///
-/// The finding is carried whole, so the failure identity is derived rather than
-/// remembered — [`DemonstratedRejection::fingerprint`] is the one road, and no
-/// second naming of the same failure exists.
+/// The finding is carried whole, so [`DemonstratedRejection::fingerprint`] derives the failure identity rather than remembering it.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DemonstratedRejection {
     trial: TrialId,
@@ -353,15 +266,8 @@ pub struct DemonstratedRejection {
 
 /// The rejection one witness execution answered a damaged subject with.
 ///
-/// # The ceilings
-///
-/// [`IntendedRejection::Demonstrated`] is this harness's own engine refusing:
-/// the trial and the finding are both named, so the rejection carries a failure
-/// fingerprint.
-///
-/// [`IntendedRejection::ReportedByBackend`] is an external backend's word. It
-/// names no trial and no cause, so no fingerprint exists for it, and a kill
-/// standing on it claims exactly what the backend stated and nothing more.
+/// [`IntendedRejection::Demonstrated`] names a trial and a finding, so it carries a failure fingerprint.
+/// [`IntendedRejection::ReportedByBackend`] is an external tool's word and names neither, so a kill standing on it claims what the backend stated and nothing more.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum IntendedRejection {
     /// This harness's engine ran the witness and the check refused.
@@ -375,11 +281,7 @@ pub enum IntendedRejection {
 
 /// The failure identity a rejection carries, where it carries one.
 ///
-/// # Nonclaims
-///
-/// [`RejectionIdentity::Unfingerprinted`] is not a missing value a caller should
-/// fill in. It states that the rejection came from a backend that named neither
-/// a trial nor a cause, so there is no failure to name.
+/// [`RejectionIdentity::Unfingerprinted`] states that the rejection named neither a trial nor a cause, not that a value is missing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RejectionIdentity {
     /// The rejection names a fingerprint, derived from its trial and finding.
@@ -389,61 +291,45 @@ pub enum RejectionIdentity {
 }
 
 // ---------------------------------------------------------------------------
-// The per-mutant record.
+// The per-mutant record, and the run over it.
 // ---------------------------------------------------------------------------
 
 /// Why nothing was learned about the suite from one mutant.
 ///
-/// # Authority
-///
-/// Every arm names a link of the verdict chain that did not hold. An
-/// inconclusive result is a statement about the RUN and never about the suite,
-/// which is why none of these arms is a softer survivor.
+/// Every arm names a link of the verdict chain that did not hold, and none of them is a softer survivor.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum InconclusiveCause {
-    /// The unchanged baseline did not qualify, so no rejection under it would
-    /// have proven anything.
+    /// The unchanged baseline did not qualify, so no rejection under it would prove anything.
     BaselineNotQualified,
     /// The damage never became a thing that could be executed.
     NotMaterialized,
-    /// The backend exposes an activation channel but supplied no positive activation observation, so the suite was never asked about it.
+    /// The backend can observe firing and reported none, so the suite was never asked.
     NotActivated,
     /// The witness execution did not complete.
     WitnessIncomplete,
-    /// The backend offers no activation channel and the witness did not reject,
-    /// so a non-kill here can never earn survived.
+    /// The backend cannot observe firing and the witness did not reject.
     UnobservableAndUnrejected,
-    /// The damaged subject was proven equivalent in scope, so no suite could
-    /// have rejected it.
+    /// The damaged subject was proven equivalent in scope, so no suite could have rejected it.
     ProvenEquivalentInScope,
 }
 
 /// The verdict one mutant earned, with the evidence each arm requires.
 ///
-/// # Authority
-///
-/// The killed arm carries the rejection that killed it, so a kill asserted
-/// without a rejection is unrepresentable. The survived arm carries nothing because it is the absence of a rejection after the evaluation callback reported positive activation under the exact bound selection and witness.
+/// The killed arm carries the rejection that killed it, so a kill asserted without one is unrepresentable.
+/// The survived arm carries nothing, because it is the absence of a rejection after a positive firing count was bound to the selection and witness.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum MutationOutcome {
     /// The witness rejected the damaged subject, and this is the rejection.
     Killed(IntendedRejection),
-    /// A damage with a positive firing count bound to the exact selection and witness was accepted by that witness.
+    /// A damage with an observed firing was accepted by its witness.
     Survived,
     /// Nothing was learned about the suite from this mutant.
     Inconclusive(InconclusiveCause),
 }
 
-/// One mutant's complete record: the target, every axis of the verdict chain,
-/// and the outcome the chain earned.
+/// One mutant's complete record: the target, every axis of the verdict chain, and the outcome the chain earned.
 ///
-/// # Construction
-///
-/// The compiled adapter reaches the private killed/inconclusive roads under its
-/// output ceiling. The interpreted receiver derives killed or survived only
-/// from an active execution admitted through its exact pair, firing evidence,
-/// trial report, and no-mutation qualification. No loose public constructor can
-/// assemble these axes from neighboring values.
+/// There is no loose public constructor: the wrapped-backend adapter, the interpreted receiver, and the compiled-projection road each mint only the records their own evidence affords.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MutationReport {
     target: MutationTarget,
@@ -457,37 +343,24 @@ pub struct MutationReport {
 
 /// Why one mutant's record could not be minted as a lawful kill.
 ///
-/// Dependent checks in a declared order — baseline, materialization, activation,
-/// execution — so exactly one cause is true of any refused kill.
+/// Dependent checks in a declared order — baseline, materialization, activation, execution — so exactly one cause is true of any refused kill.
 #[must_use = "a refusal is the reason a kill was not minted"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum KillRefusal {
-    /// The unchanged baseline did not qualify, so a rejection under it proves
-    /// nothing about the suite.
+    /// The unchanged baseline did not qualify, so a rejection under it proves nothing.
     BaselineNotQualified(BaselineAxis),
-    /// The damage never materialized, so there was nothing for a witness to
-    /// reject.
+    /// The damage never materialized, so there was nothing for a witness to reject.
     NotMaterialized(MaterializationAxis),
-    /// The backend exposes an activation channel and supplied no positive activation observation.
+    /// The backend can observe firing and supplied no positive observation.
     ActivationNotObserved,
-    /// The witness execution did not complete, so its rejection is not the
-    /// suite's answer.
+    /// The witness execution did not complete, so its rejection is not the suite's answer.
     WitnessDidNotComplete(ExecutionAxis),
 }
 
-/// The honest accounting over one pressure run's mutants.
+/// The accounting over one pressure run's mutants.
 ///
-/// # Authority
-///
-/// One count seat per arm of [`MutationVerdict`], always, and
-/// [`MutationCensus::pressed`] is the sum rather than a separately maintained
-/// total that could disagree with its parts.
-///
-/// # Nonclaims
-///
-/// It counts mutants under one run. It is not the trial census, the generation
-/// census, or the bench-sample census: each of those denominators answers its
-/// own question, and none flattens into another.
+/// One seat per arm of [`MutationVerdict`], and [`MutationCensus::pressed`] is their sum rather than a total that could disagree with its parts.
+/// It counts mutants under one run, and it is not the trial, generation, or bench-sample census.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MutationCensus {
     killed: u32,
@@ -497,12 +370,7 @@ pub struct MutationCensus {
 
 /// That the unchanged subject's own suite ran and passed.
 ///
-/// # Authority
-///
-/// The typed precondition every kill stands on, carried as a value so that "was
-/// the baseline good" is not a question anywhere downstream.
-/// The baseline guard is the only construction road, and it refuses every
-/// reading but [`BaselineAxis::Qualified`].
+/// The precondition every kill stands on, carried as a value so that "was the baseline good" is not a question anywhere downstream.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BaselineQualification {
     axis: BaselineAxis,
@@ -518,13 +386,9 @@ pub enum BaselinePrecondition {
     BaselineNotRun,
 }
 
-/// One pressure run's complete record: the baseline it stood on, every mutant's
-/// report, and the census over them.
+/// One pressure run's complete record: the baseline it stood on, every mutant's report, and the census over them.
 ///
-/// # Authority
-///
-/// The baseline is a [`BaselineQualification`] rather than an axis reading, so a
-/// run whose baseline did not qualify is not a run this value can describe.
+/// The baseline is a [`BaselineQualification`] rather than an axis reading, so a run whose baseline did not qualify is not a run this value describes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MutationRun {
     baseline: BaselineQualification,
@@ -533,30 +397,19 @@ pub struct MutationRun {
 }
 
 // ---------------------------------------------------------------------------
-// The wrap lane's reading vocabulary.
+// What a wrapped backend's output is read into.
 // ---------------------------------------------------------------------------
 
 /// Which external mutation backend one reading was taken from.
 ///
-/// # Bounds
-///
-/// One backend because one line grammar: the shapes the wrap lane reads are
-/// that tool's own rendering. A second backend is a second grammar, and it
-/// arrives as a second arm beside the line laws that read it.
+/// One backend because one line grammar: a second backend is a second grammar and a second arm beside the line laws that read it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WrappedBackend {
-    /// The `cargo-mutants` backend: it mutates the real source and invokes the
-    /// test command itself.
+    /// The `cargo-mutants` backend, which mutates real source and invokes the test command itself.
     CargoMutants,
 }
 
 /// One backend's version, as the party that ran it states it.
-///
-/// # Bounds
-///
-/// The spelling is the party's own word rather than a name this harness
-/// authored, which is why it is owned text and deliberately not a
-/// [`NamespacedName`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct BackendVersion(String);
 
@@ -568,23 +421,10 @@ pub enum BackendVersionRefusal {
     EmptySpelling,
 }
 
-/// Whether the party that ran a backend stated which version of it produced the
-/// output a reading was taken from.
+/// Whether the party that ran a backend stated which version produced the text a reading was taken from.
 ///
-/// # Authority
-///
-/// The version is DECLARED rather than observed: the wrap lane reads text a
-/// caller already holds and invokes nothing, so what a version is here is the
-/// running party's own word about what wrote that text.
-/// [`BackendVersionPosture::Unstated`] is the bootstrap posture — the grammar
-/// assumption stands unbound to any version, and a reading under it is exactly
-/// as good as the assumption.
-///
-/// # Nonclaims
-///
-/// [`BackendVersionPosture::Stated`] records which version the party names. It
-/// is not a verification that the text matches that version's rendering, and
-/// nothing anywhere reads a backend's output to discover its version.
+/// The version is declared and never observed: this lane reads text a caller already holds and invokes nothing.
+/// [`BackendVersionPosture::Stated`] records that party's word, and is not a verification that the text matches that version's rendering.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum BackendVersionPosture {
     /// The party that ran the backend stated this version.
@@ -595,64 +435,35 @@ pub enum BackendVersionPosture {
 
 /// Which of a backend's outputs one reading was taken from.
 ///
-/// # Bounds
-///
-/// A console stream is a rendering a tool writes for a person, so the shapes it
-/// carries are the ones the reading's own page states and no schema stands
-/// behind them. A machine-readable output is a second arm, admitted beside the
-/// grammar that reads it and carrying whatever ceiling that output affords.
+/// A console stream is a rendering a tool writes for a person, so the shapes it carries are the ones the adapter's own page states.
+/// A machine-readable output is a second arm beside the grammar that reads it, carrying whatever ceiling that output affords.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ReadingSource {
     /// The line-oriented console stream the backend writes as it runs.
     ConsoleStream,
 }
 
-/// Which version of an adapter's stated line grammar one reading was taken
-/// under.
+/// Which version of an adapter's stated line grammar one reading was taken under.
 ///
-/// # Authority
-///
-/// The adapter's own number, moving when and only when the line shapes its page
-/// states move. It is neither the backend's version nor an encoding version:
-/// three things move for three reasons, and a bump to one is never a bump to
-/// another.
+/// It moves when and only when those line shapes move, and it is neither the backend's version nor an encoding version.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct GrammarVersion(u32);
 
 /// The most one reading's evidence can establish, in the verdict vocabulary.
 ///
-/// # Authority
-///
-/// A ceiling follows from what the reading's SOURCE carries, and it is applied
-/// where a reading is built: a run carrying a verdict outside its profile's
-/// ceiling is not a reading anybody can hold. Which verdicts a ceiling admits
-/// is enforced by the type's invariant readings, so every road that stands
-/// under it reaches the same answer.
+/// A ceiling follows from what the reading's source carries, and a run carrying a verdict outside it is refused rather than believed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ClaimCeiling {
-    /// The strongest verdict is a kill that asserts witness rejection and
-    /// states nothing about activation. The source carries no channel that
-    /// could observe a damage firing, so no mutant read under it earns
-    /// [`MutationVerdict::Survived`] and every non-kill is
-    /// [`MutationVerdict::Inconclusive`].
+    /// The strongest verdict is a kill that asserts witness rejection and states nothing about activation.
+    ///
+    /// The source carries no channel that could observe a damage firing, so no mutant read under it earns [`MutationVerdict::Survived`].
     WitnessRejection,
 }
 
-/// What one reading of a backend's output is stated under: the backend, the
-/// version posture that backend's run carries, the output the reading was taken
-/// from, and the adapter grammar that read it.
+/// What one reading is stated under: the backend, its version posture, the output read, and the adapter grammar that read it.
 ///
-/// # Authority
-///
-/// The reading's assumption, made a value. A [`WrapReading`] cannot be built
-/// without one, so "which grammar was this read under, and what may it claim"
-/// is answered at the reading rather than remembered around it.
-///
-/// # Construction
-///
-/// The claim ceiling is READ from the source ([`AdapterProfile::ceiling`])
-/// rather than stated into the profile, so no profile grants its reading more
-/// than its source affords.
+/// A [`WrapReading`] cannot be built without one, so "which grammar was this read under, and what may it claim" is answered at the reading rather than remembered around it.
+/// [`AdapterProfile::ceiling`] reads the ceiling from the source, so no profile grants its reading more than the source affords.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AdapterProfile {
     backend: WrappedBackend,
@@ -661,43 +472,20 @@ pub struct AdapterProfile {
     grammar: GrammarVersion,
 }
 
-/// The caller-supplied reading from one source coordinate to the claim that owns
-/// it.
+/// The caller-supplied reading from one source coordinate to the claim that owns it.
 ///
-/// # Authority
-///
-/// The origin graph is READ on the generator side — a reading of the one join,
-/// never a second structure — and this seam is where that reading arrives. A
-/// function pointer rather than a closure, so the seam carries no captured state
-/// and nothing ambient rides in with it.
-///
-/// # Nonclaims
-///
-/// Answering `None` states that no mapping was available for the coordinate. It
-/// is not a claim that the coordinate owns no claim, which is exactly why the
-/// posture it produces is [`MappingPosture::OwnerUnmapped`] rather than a
-/// claim the lane picked.
+/// A function pointer rather than a closure, so the seam carries no captured state.
+/// Answering `None` says no mapping was available and produces [`MappingPosture::OwnerUnmapped`], never a claim this lane picked.
 pub type OwnerLookup = fn(&SourceCoordinate) -> Option<ClaimRef>;
 
-/// The caller-supplied reading from one backend's damage text to the operator
-/// family it realizes.
+/// The caller-supplied reading from one backend's damage text to the operator family it realizes.
 ///
-/// # Authority
-///
-/// The bank's families are declared by what they ATTACK, and a backend's damage
-/// prose is not a family name. Attributing one from that prose would be this
-/// lane inventing a fact, so the reading is the caller's — exactly as the owner
-/// mapping is — and answering `None` produces
-/// [`FamilyAttribution::OutsideTheBank`] rather than a family the lane picked.
+/// Answering `None` produces [`FamilyAttribution::OutsideTheBank`], never a family this lane picked.
 pub type FamilyLookup = fn(&SourceCoordinate, &[u8]) -> Option<OperatorFamilyRef>;
 
-/// The outcome word one line of a compiled-mutation backend's output states
-/// about one mutant.
+/// The outcome word one line of a backend's output states about one mutant.
 ///
-/// # Bounds
-///
-/// The roster is the set of outcomes this parser reads. A line whose leading
-/// word is none of these is an [`UnparsedLine`] and is never guessed at.
+/// A line whose leading word is none of these becomes an [`UnparsedLine`] and is never guessed at.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WrapOutcomeWord {
     /// The backend's own command rejected the mutant.
@@ -714,11 +502,7 @@ pub enum WrapOutcomeWord {
 
 /// One line of a backend's output this parser could not read.
 ///
-/// # Authority
-///
-/// Never dropped. A parser that discarded what it did not understand would shrink
-/// the denominator without anybody being able to read that it had, so every
-/// unrecognized line becomes one of these and travels with the reading.
+/// Never dropped: a parser that discarded what it did not understand would shrink the denominator with nobody able to read that it had.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct UnparsedLine {
     ordinal: usize,
@@ -734,20 +518,10 @@ pub enum AnnouncedRoster {
     Unstated,
 }
 
-/// What one reading of a compiled-mutation backend's output recovered: the
-/// profile it was read under, the run, the roster the backend announced, and
-/// every line the parser could not read.
+/// What one reading recovered: the profile it was read under, the run, the roster the backend announced, and every line left unread.
 ///
-/// # Nonclaims
-///
-/// The announced roster and the run's census answer different questions. A
-/// difference between them says the parse and the backend disagree about how
-/// many mutants there were, which is a finding for a reader and never a number
-/// this value reconciles on its own.
-///
-/// The reading claims exactly what its profile's ceiling affords. A reader that
-/// wants to know what a reading may be stood on takes
-/// [`AdapterProfile::ceiling`], and no road anywhere widens it.
+/// The announced roster and the run's census answer different questions, so a difference between them is a finding for a reader and never a number this value reconciles on its own.
+/// A reading claims exactly what its profile's ceiling affords, and no road anywhere widens it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WrapReading {
     profile: AdapterProfile,
@@ -758,15 +532,11 @@ pub struct WrapReading {
 
 /// Why one reading of a backend's output was refused.
 ///
-/// Dependent checks in a declared order: the baseline is read before any mutant
-/// line, because a lane that minted kills under an unqualified baseline would be
-/// minting evidence it does not have, and the run is weighed against the
-/// profile's ceiling before a reading stands over it.
+/// Dependent checks in a declared order: the baseline is read before any mutant line, and the run is weighed against the profile's ceiling before a reading stands over it.
 #[must_use = "a refusal is the reason a wrap reading was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WrapRefusal {
-    /// The output states no unmutated-baseline line at all, so the precondition
-    /// every kill stands on was never established.
+    /// The output states no unmutated-baseline line, so the kill precondition was never established.
     BaselineNotStated,
     /// The baseline the output states does not qualify.
     BaselineNotQualified(BaselinePrecondition),
@@ -777,8 +547,7 @@ pub enum WrapRefusal {
         /// What the constructor refused.
         cause: KillRefusal,
     },
-    /// One record in the run carries a verdict the profile's ceiling does not
-    /// admit, so the reading would state more than its source affords.
+    /// One record carries a verdict the profile's ceiling does not admit.
     VerdictPastCeiling {
         /// The record's position in the run, counting from zero.
         at: usize,
@@ -790,92 +559,42 @@ pub enum WrapRefusal {
 }
 
 // ---------------------------------------------------------------------------
-// The wrap reading and generic suite-pressure facts.
+// Qualification, and the generic suite bite.
 // ---------------------------------------------------------------------------
 
-/// Whether the wrap-first pressure has reported, and what it reported.
+/// Whether the wrapped-backend pressure has reported, and what it reported.
 ///
-/// # Authority
-///
-/// The first half of the trust order, carried as the whole PROFILED reading
-/// rather than as a bare run. The backend, the version posture, the output the
-/// reading was taken from, the adapter grammar, and the ceiling that source
-/// affords all ride with the evidence — and they are exactly the facts the
-/// trust-opening road weighs, so dropping them at the moment provenance decides
-/// something is not a shape this vocabulary has.
-///
-/// # Nonclaims
-///
-/// A report is not the same fact as a report that killed something. A wrap pass
-/// with no kill is not evidence that the properties bite, and
-/// [`CompiledSuitePressure::demonstrated`] reads it as the absence it is.
+/// The whole profiled reading rides here rather than a bare run, because the backend, the version posture, the output, the grammar, and the ceiling are exactly the facts the trust-opening road weighs.
+/// A pass with no kill is not evidence that the properties bite, and [`CompiledSuitePressure::demonstrated`] reads it as the absence it is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WrapStanding<'reading> {
-    /// The wrap-first pressure reported, and this is the reading it reported.
+    /// The wrapped-backend pressure reported, and this is the reading it reported.
     Reported(&'reading WrapReading),
-    /// The wrap-first pressure has not reported.
+    /// The wrapped-backend pressure has not reported.
     NotReported,
 }
 
-/// Whether anybody has checked one adapter's stated line grammar against output
-/// the backend itself wrote.
+/// Whether anybody has checked one adapter's stated line grammar against output the backend itself wrote.
 ///
-/// # Authority
-///
-/// The [`BackendVersionPosture`] shape, for the same reason: what stands behind
-/// a reading is a party's own word, and the bare arm is the BOOTSTRAP posture
-/// rather than a value somebody forgot to fill in. The standing is the whole of
-/// what a party states to [`AdapterQualification::of`], and it is weighed
-/// against the version the reading's own profile names.
-///
-/// # Nonclaims
-///
-/// [`GrammarStanding::Checked`] records that a party checked this adapter's
-/// stated shapes against output that version of the backend wrote. It is that
-/// party's word rather than a verification this crate performed: nothing here
-/// invokes a backend, and nothing here reads a backend's output to discover
-/// what that backend renders.
+/// The bare arm is the bootstrap posture rather than a value somebody forgot to fill in.
+/// [`GrammarStanding::Checked`] is the checking party's own word: nothing here invokes a backend, and nothing here reads a backend's output to discover what that backend renders.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GrammarStanding {
-    /// A party checked the adapter's stated line shapes against output this
-    /// version of the backend wrote, and states so.
+    /// A party checked the adapter's line shapes against output this version of the backend wrote.
     Checked(BackendVersion),
-    /// Nobody has checked them against real output, so the adapter's grammar
-    /// stands as the assumption its own page states — the honest posture, and
-    /// worth exactly what it says. It states that nothing has been checked, so
-    /// nothing is qualified: [`AdapterQualification::of`] refuses it, and an
-    /// adapter under it is inspectable, statable, and reaches no gate.
+    /// Nobody has checked them, so nothing is qualified and [`AdapterQualification::of`] refuses.
     Unchecked,
 }
 
-/// One adapter profile qualified for readings taken under that exact profile — and how far that standing reaches.
+/// One adapter profile qualified for every reading taken under that exact profile.
 ///
-/// # Authority
-///
-/// The typed fact the trust-opening road demands about the TOOL, carried as a
-/// value so that "which adapter produced this evidence, and what may a reading
-/// under it claim" is answered at the evidence rather than remembered around
-/// it. The profile is taken from a reading ([`AdapterQualification::of`]); the qualification is reusable only for readings carrying the same profile and does not identify one reading instance.
-///
-/// # Construction
-///
-/// [`AdapterQualification::of`] is the only road, and exactly one pairing
-/// travels it: the reading's profile states a backend version, and the standing
-/// is [`GrammarStanding::Checked`] over that same version. Every other pairing
-/// is a [`QualificationRefusal`] — so an unchecked adapter, a reading whose
-/// version nobody stated, and a check made against another version each yield
-/// no qualification at all. A qualification is therefore a value that could
-/// only have come from somebody checking these shapes against the very version
-/// of the backend that wrote the text.
+/// [`AdapterQualification::of`] is the only road, and exactly one pairing travels it: the reading's profile states a backend version, and the standing is a check against that same version.
+/// The qualification is reusable across readings carrying that profile, and it identifies no single reading instance.
 ///
 /// # Nonclaims
 ///
-/// Parser correctness is not suite bite. A qualification says the adapter is
-/// fit to be read under; it says nothing about whether any property rejected
-/// anything, which is [`CompiledSuitePressure`]'s fact on a different axis.
-/// The claim ceiling rides with it unchanged: a qualified adapter over a
-/// console stream is still an adapter whose source carries no activation
-/// channel.
+/// Parser correctness is not suite bite: this says the adapter is fit to be read under, and nothing about whether a property rejected anything.
+/// The claim ceiling rides through unchanged, because qualifying an adapter never widens what its source affords.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AdapterQualification {
     profile: AdapterProfile,
@@ -884,23 +603,15 @@ pub struct AdapterQualification {
 
 /// Why one reading's profile was not qualified.
 ///
-/// Dependent checks in a declared order: whether anybody checked the adapter's
-/// shapes at all, then whether the reading's profile states a version a check
-/// could be made against, then whether the check and the reading name one
-/// version. Each arm is an absent qualification and never a weaker one.
+/// Dependent checks in a declared order: whether anybody checked the shapes at all, whether the profile states a version a check could name, then whether the check and the reading name one version.
 #[must_use = "a refusal is the reason a reading's profile was not qualified"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum QualificationRefusal {
-    /// The standing is [`GrammarStanding::Unchecked`]: nobody has checked the
-    /// adapter's stated shapes against output the backend wrote, so there is
-    /// nothing to qualify the reading's profile on.
+    /// Nobody has checked the adapter's stated shapes against output the backend wrote.
     GrammarUnchecked,
-    /// The reading's profile states no backend version, so a check against a
-    /// version names nothing the reading stands under.
+    /// The reading's profile states no backend version, so a check names nothing it stands under.
     BackendVersionUnstated,
-    /// The reading was taken under one backend version and the shapes were
-    /// checked against another, so what was checked is a different version's
-    /// rendering than the one that wrote this text.
+    /// The reading was taken under one backend version and the shapes were checked against another.
     CheckedAgainstAnotherVersion {
         /// The version the reading's own profile states wrote the text.
         stated: BackendVersion,
@@ -909,25 +620,15 @@ pub enum QualificationRefusal {
     },
 }
 
-/// One reported reading under a qualified adapter profile carried at least one lawful backend-reported kill.
+/// At least one lawful backend-reported kill, read out of a reading whose adapter profile stands qualified.
 ///
-/// # Authority
-///
-/// The typed fact the trust-opening road demands about the run: a backend reported a suite bite under an adapter that stands qualified. The
-/// qualification rides inside — one that already exists for the reading's exact profile and is weighed against the reported reading the kill is read out of — so suite pressure over an unqualified adapter profile is not a value anybody can hold.
-///
-/// # Construction
-///
-/// [`CompiledSuitePressure::demonstrated`] is the only road, and it refuses a standing that never reported, a qualification naming another adapter profile, then a reported reading whose run demonstrated no kill. The qualification is the caller's to supply and [`AdapterQualification`]'s own road to build, so this road retains a qualified suite bite without attaching an evaluation pair the backend never established.
+/// The qualification rides inside, so suite pressure over an unqualified profile is not a value anybody can hold.
 ///
 /// # Nonclaims
 ///
-/// Suite bite is not campaign accounting. The reading states that at least one
-/// lawful kill was reported; how many mutants a run pressed and how they
-/// divide is the run's own census ([`MutationCensus`]), which answers a
-/// different question and is never read as this one. Neither of the two is the
-/// no-mutation parity ([`NoMutationParityQualification`]), which is about one
-/// exact evaluation pair's faithfulness for one retained input and about nothing else. Generic suite pressure cannot open that pair's interpreted trust. It also retains no source-tree revision: a reported coordinate is the backend text's coordinate, not a statement that the same line still names the current checkout.
+/// Suite bite is not campaign accounting: how many mutants a run pressed and how they divide is [`MutationCensus`]'s question.
+/// Neither is it the no-mutation parity ([`NoMutationParityQualification`]), and it cannot open any pair's interpreted trust by itself.
+/// It retains no source-tree revision: a reported coordinate is the backend text's coordinate, not a statement that the same line still names the current checkout.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompiledSuitePressure {
     qualification: AdapterQualification,
@@ -936,22 +637,20 @@ pub struct CompiledSuitePressure {
 
 /// Why one wrap standing demonstrated no generic compiled suite pressure.
 ///
-/// Dependent checks in a declared order: whether the pressure reported at all, whether the qualification carries the reading's exact adapter profile, then whether what it reported carries a kill.
+/// Dependent checks in a declared order: whether the pressure reported, whether the qualification carries the reading's exact profile, then whether what it reported carries a kill.
 #[must_use = "a refusal is the reason no compiled suite pressure was demonstrated"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SuitePressureRefusal {
-    /// The wrap-first pressure has not reported, so there is no reading to
-    /// stand on.
+    /// The wrapped-backend pressure has not reported, so there is no reading to stand on.
     WrapNotReported,
-    /// The qualification offered names another adapter profile and therefore stands behind nothing here.
+    /// The qualification names another adapter profile and stands behind nothing here.
     QualificationUnderAnotherProfile,
-    /// The reading's run demonstrated no lawful kill, so nothing in it has
-    /// shown a property biting.
+    /// The reading's run demonstrated no lawful kill.
     NoKillDemonstrated,
 }
 
 // ---------------------------------------------------------------------------
-// The interpreted lane's evaluation surface.
+// Owner policy and producer discovery.
 // ---------------------------------------------------------------------------
 
 /// The domain tag of an owner-authored mutation policy.
@@ -1026,12 +725,11 @@ pub struct PolicyMembership {
 
 /// Where a selected alternative fires, named rather than path-spelled.
 ///
-/// The reason a trial's identity is not its site holds here too: a file move
-/// must rename nothing.
+/// A file move must rename nothing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ActivationSite(NamespacedName);
 
-/// One producer-discovered operator family and producer-declared canonical mutation meaning before owner-policy admission at a point.
+/// One operator family and canonical mutation meaning a producer found at a site, before owner policy admits it.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AlternativeDeclaration {
     family: OperatorFamilyRef,
@@ -1040,9 +738,7 @@ pub struct AlternativeDeclaration {
 
 /// Whether the producer's origin reading maps one discovered site to an owner claim.
 ///
-/// # Authority
-///
-/// Mapping is producer input to policy admission. The unmapped arm remains a first-class discovery fact and cannot acquire a policy membership or executable point.
+/// The unmapped arm stays a first-class discovery fact and can acquire no policy membership or executable point.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum OwnerClaimMapping {
     /// The origin reading mapped this site to the exact owner claim.
@@ -1051,11 +747,10 @@ pub enum OwnerClaimMapping {
     OwnerUnmapped,
 }
 
-/// One producer-discovered mutation site before owner-policy admission.
+/// One producer-discovered mutation site, before owner policy admits it.
 ///
-/// # Authority
-///
-/// This is the runtime reading of the producer-facing [`crate::descriptor::MUTATION_DISCOVERY_FIELDS`] vocabulary. Discovery states the complete site, original operation, candidate alternative meanings, activation site, and owner mapping. It does not grant permission and is not executable. [`lower_discoveries`](super::discover::lower_discoveries) is the only road from a discovery roster to executable points.
+/// A discovery states the site, its unchanged operation, its candidate alternative meanings, its activation site, and its owner mapping.
+/// It grants no permission and is not executable: [`lower_discoveries`](super::discover::lower_discoveries) is the only road from a discovery roster to executable points.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DiscoveredMutationSite {
     identity: MutationPointRef,
@@ -1095,7 +790,7 @@ pub enum DiscoveryRefusal {
 pub enum MappedUnpermittedCause {
     /// The policy carries no permission row for the mapped claim.
     Claim(ClaimRef),
-    /// One candidate alternative uses an operator family outside the mapped claim's permission.
+    /// One candidate alternative uses a family outside the mapped claim's permission.
     Family {
         /// The alternative's position in producer order.
         at: usize,
@@ -1112,9 +807,9 @@ pub enum DiscoveryDisposition {
         /// The executable point issued from this discovery.
         point: MutationPointRef,
     },
-    /// The producer found the site but its origin reading named no owner claim.
+    /// The producer found the site and its origin reading named no owner claim.
     OwnerUnmapped,
-    /// The producer mapped the site, but owner policy did not admit it.
+    /// The producer mapped the site, and owner policy did not admit it.
     MappedUnpermitted {
         /// The exact policy cause that withheld executable admission.
         cause: MappedUnpermittedCause,
@@ -1132,11 +827,9 @@ pub struct DiscoveryEntry {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct MutationDiscoveryId(ContentAddress);
 
-/// One complete producer discovery denominator after owner-policy admission was read.
+/// The complete producer discovery denominator, after owner-policy admission was read over it.
 ///
-/// # Authority
-///
-/// Every offered site appears exactly once in producer order with its disposition. Unmapped and unpermitted sites remain visible and cannot enter the executable surface carried beside this reading.
+/// Every offered site appears exactly once in producer order with its disposition, so unmapped and unpermitted sites stay visible.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MutationDiscoveryReading {
     family: EvaluationFamilyRef,
@@ -1158,17 +851,21 @@ pub enum DiscoveryLoweringRefusal {
     },
 }
 
-/// One closed lowering that retains the complete discovery denominator beside its executable subset.
+/// One closed lowering: the complete discovery denominator beside the executable subset drawn from it.
 pub struct MutationSurfaceLowering {
     discovery: MutationDiscoveryReading,
     surface: EvaluationSurface,
 }
 
+// ---------------------------------------------------------------------------
+// The evaluation surface.
+// ---------------------------------------------------------------------------
+
 /// The stable identity of one point's admitted mutation meaning.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AlternativeId(ContentAddress);
 
-/// One executable operator family and producer-declared canonical mutation meaning admitted under a point's policy membership.
+/// One executable operator family and canonical mutation meaning admitted under a point's policy membership.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AdmittedAlternative {
     identity: AlternativeId,
@@ -1178,15 +875,8 @@ pub struct AdmittedAlternative {
 
 /// One owner-admitted executable mutation point on an evaluation surface.
 ///
-/// # Authority
-///
-/// Only [`lower_discoveries`](super::discover::lower_discoveries) mints this value after retaining the complete producer discovery and checking owner mapping and policy permission. A producer emits discovery candidates; it cannot mint this admitted output directly.
-///
-/// # Nonclaims
-///
-/// A roster of admitted alternatives states which damages the point ADMITS, and
-/// never that any of them was materialized, activated, or killed. Those are
-/// executed facts and they live in [`MutationReport`].
+/// Only [`lower_discoveries`](super::discover::lower_discoveries) mints this value, after retaining the complete discovery and checking owner mapping and policy permission.
+/// A roster of admitted alternatives says which damages the point admits, and never that any of them was materialized, activated, or killed.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MutationPoint {
     identity: MutationPointRef,
@@ -1202,9 +892,8 @@ pub struct EvaluationSurfaceId(ContentAddress);
 
 /// One evaluation surface's complete point table.
 ///
-/// # Authority
-///
-/// This is producer-shaped conforming data: a hand author may supply discovery candidates and owner policy to the same closed lowering a producer targets, while only that lowering mints this surface. Runtime is selection among these points and never interpretation of arbitrary source, which would mint a second meaning authority.
+/// A hand author may supply discovery candidates and owner policy to the same closed lowering a producer targets, and only that lowering mints this surface.
+/// Runtime is selection among these points, never interpretation of arbitrary source, which would mint a second meaning authority.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct EvaluationSurface {
     family: EvaluationFamilyRef,
@@ -1216,9 +905,9 @@ pub struct EvaluationSurface {
 /// Whether a complete evaluation surface admits executable points.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PointCatalogPosture {
-    /// The evaluation surface is lawful but admits no active directive.
+    /// The surface is lawful and admits no active directive.
     NoAdmittedPoints,
-    /// The evaluation surface admits at least one executable mutation point.
+    /// The surface admits at least one executable mutation point.
     Mutable,
 }
 
@@ -1232,9 +921,7 @@ pub struct ActiveSelection {
 
 /// One surface-resolved mutation handed to an evaluation callable.
 ///
-/// # Authority
-///
-/// `TestPak` is the only mint. The value retains the surface-issued selection and borrows the exact point and alternative that selection resolved to, so an evaluation callable never reconstructs an identity or consults a positional registry.
+/// The value keeps the surface-issued selection and borrows the exact point and alternative it resolved to, so an evaluation callable never reconstructs an identity or consults a positional registry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ResolvedMutation<'surface> {
     selection: ActiveSelection,
@@ -1242,11 +929,9 @@ pub struct ResolvedMutation<'surface> {
     alternative: &'surface AdmittedAlternative,
 }
 
-/// What one evaluation call reads after `TestPak` resolves its surface authority.
+/// What one evaluation call reads once the surface has resolved its authority.
 ///
-/// # Authority
-///
-/// No mutation grants no authority and is directly constructible through [`EvaluationDirective::no_mutation`]. The private active mint retains a [`ResolvedMutation`] only after `TestPak` validates a surface-issued selection against the exact surface.
+/// The no-mutation posture is directly constructible through [`EvaluationDirective::no_mutation`]; an active directive is minted privately, and only from a selection its exact surface issued.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct EvaluationDirective<'surface> {
     resolved: Option<ResolvedMutation<'surface>>,
@@ -1258,7 +943,7 @@ pub struct EvaluationDirective<'surface> {
 pub enum EvaluationCallRefusal {
     /// The evaluation callable contains no no-mutation branch.
     NoMutationNotImplemented,
-    /// The surface admitted a selection for which the evaluation callable contains no branch.
+    /// The surface admitted a selection the evaluation callable has no branch for.
     ActiveSelectionNotImplemented(ActiveSelection),
 }
 
@@ -1284,10 +969,13 @@ pub enum SelectionRefusal {
     },
 }
 
+// ---------------------------------------------------------------------------
+// The pair, its witness, and the no-mutation parity.
+// ---------------------------------------------------------------------------
+
 /// Why the mandatory no-mutation parity suite could not be declared.
 ///
-/// Dependent checks in a declared order: the substrate names are parsed, then
-/// the roster they are declared into.
+/// Dependent checks in a declared order: the substrate names are parsed, then the roster they are declared into.
 #[must_use = "a refusal is the reason a parity suite was not declared"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ParityRefusal {
@@ -1307,14 +995,12 @@ pub type EvaluationCall<Input, Meaning> =
         EvaluationDirective<'surface>,
     ) -> Result<EvaluationObservation<Meaning>, EvaluationCallRefusal>;
 
-/// The check that judges one meaning under the exact trial binding it is joined to.
+/// The check that judges one meaning under the trial binding it is joined to.
 pub type MeaningCheck<Meaning> = fn(&Meaning) -> TrialConclusion;
 
 /// Raw output from one evaluation call.
 ///
-/// # Authority
-///
-/// This is caller output, not admitted evidence. The receiver validates the directive, firing count, trial binding, report, and trust facts before a mutation evidence value exists.
+/// Caller output rather than admitted evidence: the receiver validates the directive, firing count, trial binding, report, and trust facts before any mutation evidence exists.
 pub struct EvaluationObservation<Meaning> {
     meaning: Meaning,
     firings: u32,
@@ -1335,22 +1021,20 @@ pub struct EvaluationBinding<Input, Meaning> {
     call: EvaluationCall<Input, Meaning>,
 }
 
-/// One production/evaluation pair under a shared owner declaration and equivalence.
+/// One production and evaluation binding under a shared owner declaration and equivalence.
 ///
-/// # Nonclaims
-///
-/// Matching family references prove the declared relationship, not behavioral agreement. Only an executed no-mutation parity reading can establish that agreement for its exact input.
+/// Matching family references prove the declared relationship and not behavioral agreement; only an executed no-mutation parity reading establishes that, for its exact input.
 pub struct EvaluationPair<Input, Meaning> {
     production: ProductionBinding<Input, Meaning>,
     evaluation: EvaluationBinding<Input, Meaning>,
     same: Equivalence<Meaning>,
 }
 
-/// Why one production/evaluation pair was refused.
+/// Why one production and evaluation binding could not be paired.
 #[must_use = "a refusal is the reason an evaluation pair was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum EvaluationPairRefusal {
-    /// The production and evaluation bindings name different owner families.
+    /// The two bindings name different owner families.
     FamilyMismatch {
         /// The production binding's family.
         production: EvaluationFamilyRef,
@@ -1359,7 +1043,7 @@ pub enum EvaluationPairRefusal {
     },
 }
 
-/// The identity and revision facts retained by every reading over one evaluation pair.
+/// The identity and revision facts every reading over one evaluation pair retains.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct EvaluationPairStanding {
     family: EvaluationFamilyRef,
@@ -1371,39 +1055,39 @@ pub struct EvaluationPairStanding {
 /// The exact member by which two evaluation-pair standings disagree.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EvaluationPairStandingMismatch {
-    /// The pair standings name different evaluation families.
+    /// The standings name different evaluation families.
     Family {
         /// The required family.
         expected: EvaluationFamilyRef,
         /// The offered family.
         found: EvaluationFamilyRef,
     },
-    /// The pair standings name different production revisions.
+    /// The standings name different production revisions.
     ProductionRevision {
         /// The required production revision.
         expected: RevisionBinding,
         /// The offered production revision.
         found: RevisionBinding,
     },
-    /// The pair standings name different evaluation revisions.
+    /// The standings name different evaluation revisions.
     EvaluationRevision {
         /// The required evaluation revision.
         expected: RevisionBinding,
         /// The offered evaluation revision.
         found: RevisionBinding,
     },
-    /// The pair standings name different evaluation surfaces.
+    /// The standings name different evaluation surfaces.
     Surface {
         /// The required surface.
         expected: EvaluationSurfaceId,
         /// The offered surface.
         found: EvaluationSurfaceId,
     },
-    /// The complete standings differ beyond the individually projected members.
+    /// The standings differ beyond the individually projected members.
     StandingChanged,
 }
 
-/// One trial binding joined to the declared check identity and callable that judge mutation executions through it.
+/// One trial binding joined to the check identity and callable that judge mutation executions through it.
 pub struct MutationWitness<Meaning> {
     binding: TrialBinding,
     check: MeaningCheck<Meaning>,
@@ -1413,7 +1097,7 @@ pub struct MutationWitness<Meaning> {
 #[must_use = "a refusal is the reason a mutation witness was not bound"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MutationWitnessRefusal {
-    /// The offered check identity is not the check identity retained by the trial row.
+    /// The offered check identity is not the one the trial row retains.
     CheckMismatch {
         /// The check identity retained by the row.
         expected: CheckRef,
@@ -1422,20 +1106,20 @@ pub enum MutationWitnessRefusal {
     },
 }
 
-/// The three returned facts compared by one no-mutation observation.
+/// The three facts one no-mutation observation compares.
 pub struct NoMutationResults<Meaning> {
     production: Meaning,
     evaluation: Meaning,
     evaluation_firings: u32,
 }
 
-/// The production and evaluation reports retained in their semantic roles for one no-mutation comparison.
+/// The production and evaluation reports of one no-mutation comparison, kept in their semantic roles.
 pub(in crate::muterprater) struct NoMutationReports {
     production: TrialReport,
     evaluation: TrialReport,
 }
 
-/// The exact input, results, substrate, conclusions, and reports of one no-mutation comparison.
+/// The exact input, results, substrate, conclusion, and reports of one no-mutation comparison.
 pub struct NoMutationParityReading<'pair, 'input, Input, Meaning> {
     pair: &'pair EvaluationPair<Input, Meaning>,
     witness: MutationWitness<Meaning>,
@@ -1482,7 +1166,7 @@ pub struct NoMutationParityQualification<'pair, 'input, Input, Meaning> {
     reading: NoMutationParityReading<'pair, 'input, Input, Meaning>,
 }
 
-/// One complete no-mutation reading that did not earn qualification.
+/// One complete no-mutation reading that did not earn qualification, kept whole beside the reason.
 pub struct RejectedNoMutationParity<'pair, 'input, Input, Meaning> {
     cause: ParityQualificationRefusal,
     reading: NoMutationParityReading<'pair, 'input, Input, Meaning>,
@@ -1500,11 +1184,9 @@ pub enum NoMutationParityStanding<'pair, 'input, Input, Meaning> {
 // Exact compiled selected-projection pressure.
 // ---------------------------------------------------------------------------
 
-/// The bytes handed unchanged to one compiled-specimen host and their bytes-only content identity.
+/// The bytes handed unchanged to one compiled-specimen host, under their bytes-only content identity.
 ///
-/// # Authority
-///
-/// `TestPak` derives [`ArtifactContentId`] over these exact bytes under [`ARTIFACT_CONTENT_TAG`]. The identity commits to no pair, selection, target, toolchain, or caller label; those relationships belong to [`CompiledSpecimenStanding`].
+/// The identity commits to no pair, selection, target, toolchain, or caller label; those relationships live in [`CompiledSpecimenStanding`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ArtifactContent {
     identity: ArtifactContentId,
@@ -1524,13 +1206,13 @@ pub enum CompiledSpecimenRole {
     Selected(ActiveSelection),
 }
 
-/// Why one selected specimen source could not be rendered.
+/// Why one specimen source could not be rendered.
 #[must_use = "a refusal is the reason one specimen source was not rendered"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SpecimenMaterializerRefusal {
     /// The materializer contains no unchanged-production branch.
     NoMutationNotImplemented,
-    /// The surface admitted a selection for which the materializer contains no branch.
+    /// The surface admitted a selection the materializer has no branch for.
     ActiveSelectionNotImplemented(ActiveSelection),
 }
 
@@ -1538,11 +1220,9 @@ pub enum SpecimenMaterializerRefusal {
 pub type SpecimenMaterializerCall =
     for<'surface> fn(EvaluationDirective<'surface>) -> Result<Vec<u8>, SpecimenMaterializerRefusal>;
 
-/// One materializer bound before execution to the exact pair whose source it renders.
+/// One materializer bound, before execution, to the exact pair whose source it renders.
 ///
-/// # Authority
-///
-/// The binding is a declaration ceiling over a function pointer. The compiled-specimen operation validates its pair before calling it, resolves the active directive itself, and derives content identity from the bytes returned; the type does not independently inspect the callable's implementation.
+/// The compiled-specimen road validates that pair before calling it, resolves the active directive itself, and derives content identity from the bytes returned; nothing here inspects the callable's implementation.
 pub struct SpecimenMaterializerBinding {
     pair: EvaluationPairStanding,
     call: SpecimenMaterializerCall,
@@ -1550,9 +1230,7 @@ pub struct SpecimenMaterializerBinding {
 
 /// One immutable request handed to a compiled-specimen host.
 ///
-/// # Authority
-///
-/// `TestPak` is the only mint. The request binds the exact content, unchanged or selected operation, parity-qualified input, semantic role, ordinary execution key, and check identity before caller code runs.
+/// The request binds the exact content, operation, parity-qualified input, semantic role, execution key, and check identity before any caller code runs.
 pub struct CompiledSpecimenRequest<'content, 'input, Input> {
     content: &'content ArtifactContent,
     role: CompiledSpecimenRole,
@@ -1562,11 +1240,10 @@ pub struct CompiledSpecimenRequest<'content, 'input, Input> {
     check: CheckRef,
 }
 
-/// A host's typed report that it compiled and executed the exact request and recovered this meaning.
+/// A host's typed report that it compiled and executed one exact request and recovered this meaning.
 ///
-/// # Authority
-///
-/// The public constructor copies the retained content, role, execution, and check facts from [`CompiledSpecimenRequest`], so a host cannot supply sibling identity labels. The operation and parity-qualified input remain immutable request inputs that the host reads but this observation does not retain. This is still caller output: the type records what the host reported and does not independently prove that a compiler process ran or that the host used those inputs faithfully. The permanent outside-consumer lane owns those behavioral observations for the admitted host adapter.
+/// The constructor copies the content, role, execution, and check facts off the request, so a host cannot supply sibling identity labels.
+/// This is still caller output: it records what the host reported and does not prove that a compiler process ran or that the host used those inputs faithfully.
 pub struct CompiledSpecimenObservation<Meaning> {
     content: ArtifactContentId,
     role: CompiledSpecimenRole,
@@ -1576,10 +1253,6 @@ pub struct CompiledSpecimenObservation<Meaning> {
 }
 
 /// Which request member made one host observation foreign to the request being judged.
-///
-/// # Authority
-///
-/// Content mismatch retains both bytes-only identities. The other arms identify the exact member class that disagreed; this refusal is an admission diagnostic, not a retained copy of an untrusted host observation.
 #[must_use = "a mismatch is the exact request member a host observation did not reproduce"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompiledSpecimenObservationMismatch {
@@ -1592,7 +1265,7 @@ pub enum CompiledSpecimenObservationMismatch {
     },
     /// The observation names another baseline or selected role.
     Role,
-    /// The observation retains another ordinary execution key.
+    /// The observation retains another execution key.
     Execution,
     /// The observation names another check contract.
     Check,
@@ -1602,15 +1275,15 @@ pub enum CompiledSpecimenObservationMismatch {
 #[must_use = "a refusal is the reason one compiled specimen produced no observation"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CompiledSpecimenHostRefusal {
-    /// The host reported that its compiler did not produce an executable artifact.
+    /// The host reported that its compiler produced no executable artifact.
     Compilation(ForeignText),
     /// The host reported that the compiled artifact did not complete execution.
     Execution(ForeignText),
-    /// The host could not recover a meaning tied to the requested operation from the completed artifact.
+    /// The host recovered no meaning tied to the requested operation.
     Meaning(ForeignText),
 }
 
-/// A capture-free host adapter for compiling and executing one exact specimen request.
+/// A capture-free host adapter that compiles and executes one exact specimen request.
 pub type CompiledSpecimenHost<Input, Meaning> = for<'content, 'input> fn(
     CompiledSpecimenRequest<'content, 'input, Input>,
 ) -> Result<
@@ -1618,11 +1291,9 @@ pub type CompiledSpecimenHost<Input, Meaning> = for<'content, 'input> fn(
     CompiledSpecimenHostRefusal,
 >;
 
-/// The exact compiled-specimen standing retained for one selected projection.
+/// What one selected projection's compiled specimen stands on: its artifact, pair, selection, execution, and check.
 ///
-/// # Authority
-///
-/// This value is minted only after the materializer and host operations complete under the exact pair, surface-issued selection, ordinary execution key, and check. The artifact identity names compiler-source bytes alone; this standing carries their relationship to the host-reported execution without rehashing caller labels into that identity.
+/// The artifact identity names compiler-source bytes alone, and this standing carries their relationship to the host-reported execution without rehashing caller labels into that identity.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompiledSpecimenStanding {
     artifact: ArtifactContentId,
@@ -1634,9 +1305,8 @@ pub struct CompiledSpecimenStanding {
 
 /// Exact compiled pressure for one selected projection and one surface-issued selection.
 ///
-/// # Authority
-///
-/// Construction requires the retained no-mutation qualification, separately rendered baseline and selected artifacts, host-reported compiler executions of those exact bytes, an ordinary passing baseline report, and an ordinary rejecting selected report. It cannot be minted from generic cargo-mutants output or from labels attached after execution.
+/// Building one takes the retained no-mutation qualification, separately rendered baseline and selected artifacts, host-reported executions of those exact bytes, a passing baseline report, and a rejecting selected report.
+/// It cannot be minted from an external backend's output or from labels attached after execution.
 pub struct CompiledProjectionPressure<'parity, 'pair, 'input, Input, Meaning> {
     parity: &'parity NoMutationParityQualification<'pair, 'input, Input, Meaning>,
     baseline_artifact: ArtifactContentId,
@@ -1657,7 +1327,7 @@ pub enum CompiledProjectionRefusal {
         /// The surface retained by the qualified pair.
         found: EvaluationSurfaceId,
     },
-    /// The source materializer is bound to another exact production/evaluation pair.
+    /// The source materializer is bound to another production and evaluation pair.
     MaterializerForAnotherPair(EvaluationPairStandingMismatch),
     /// The active selection does not belong to the qualified surface.
     Selection(SelectionRefusal),
@@ -1668,13 +1338,13 @@ pub enum CompiledProjectionRefusal {
         /// The claim carried by the retained witness binding.
         found: ClaimRef,
     },
-    /// The supplied invocation does not reproduce the no-mutation qualification's execution key.
+    /// The supplied invocation does not reproduce the qualification's execution key.
     InvocationForAnotherExecution,
     /// The materializer refused the unchanged source.
     BaselineMaterialization(SpecimenMaterializerRefusal),
     /// The materializer refused the exact selected source.
     SelectedMaterialization(SpecimenMaterializerRefusal),
-    /// The selected rendering has the same exact bytes as the unchanged rendering.
+    /// The selected rendering has the same bytes as the unchanged rendering.
     ArtifactDidNotChange(ArtifactContentId),
     /// The host refused compilation or execution of the unchanged artifact.
     BaselineHost(CompiledSpecimenHostRefusal),
@@ -1682,7 +1352,7 @@ pub enum CompiledProjectionRefusal {
     BaselineObservation(CompiledSpecimenObservationMismatch),
     /// The unchanged host observation could not join the retained trial binding.
     BaselineReport(ReportRecordingRefusal),
-    /// The separately compiled unchanged artifact did not pass its ordinary witness.
+    /// The separately compiled unchanged artifact did not pass its witness.
     BaselineDidNotQualify,
     /// The host refused compilation or execution of the selected artifact.
     SelectedHost(CompiledSpecimenHostRefusal),
@@ -1690,15 +1360,18 @@ pub enum CompiledProjectionRefusal {
     SelectedObservation(CompiledSpecimenObservationMismatch),
     /// The selected host observation could not join the retained trial binding.
     SelectedReport(ReportRecordingRefusal),
-    /// The ordinary exact witness did not reject the selected compiled artifact.
+    /// The exact witness did not reject the selected compiled artifact.
     ProjectionDidNotReject,
 }
 
+// ---------------------------------------------------------------------------
+// The interpreted lane's trust boundary.
+// ---------------------------------------------------------------------------
+
 /// Which of the trust order's facts the interpreted lane is still owed.
 ///
-/// # Authority
-///
-/// Generic compiled suite pressure proves the external suite bit somewhere under its exact adapter profile and never carries an evaluation pair. Exact projection pressure owns one qualified pair and one surface-issued selection. Every arm here therefore names an absent or mismatched strict value rather than a weak value the gate attempts to upgrade.
+/// Generic suite pressure proves the external suite bit somewhere under its adapter profile and carries no evaluation pair; exact projection pressure owns one qualified pair and one surface-issued selection.
+/// Every arm names an absent or mismatched strict value rather than a weak one the gate tries to upgrade.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MissingTrustEvidence {
     /// No generic compiled suite pressure demonstrated that the suite bites.
@@ -1718,9 +1391,7 @@ pub struct InterpretedTrust<'surface, 'suite, 'projection, 'parity, 'pair, 'inpu
 
 /// The availability of interpreted evidence for one evaluation surface.
 ///
-/// # Authority
-///
-/// A surface alone earns no trust. Availability requires generic compiled suite bite and exact compiled projection pressure whose retained no-mutation qualification, pair standing, and selection all belong to this surface.
+/// A surface alone earns no trust: availability takes a generic compiled suite bite plus exact projection pressure whose qualification, pair standing, and selection all belong to this surface.
 pub enum InterpreterAvailability<
     'surface,
     'suite,
@@ -1735,8 +1406,7 @@ pub enum InterpreterAvailability<
     Available(
         InterpretedTrust<'surface, 'suite, 'projection, 'parity, 'pair, 'input, Input, Meaning>,
     ),
-    /// No conforming evaluation surface exists — neither a producer's nor a
-    /// hand-authored one under the same contract.
+    /// No conforming evaluation surface exists, producer-authored or hand-authored.
     NoConformingSurface,
     /// A surface exists and the trust order still owes this evidence.
     TrustNotOpened {
@@ -1745,7 +1415,7 @@ pub enum InterpreterAvailability<
     },
 }
 
-/// The admitted interpreted result of the exact active selection retained by an opened trust boundary.
+/// The admitted interpreted result of the one active selection an opened trust boundary retains.
 pub struct InterpretedMutationEvidence<
     'surface,
     'suite,
@@ -1770,7 +1440,7 @@ pub enum InterpretedExecutionRefusal {
     InvocationForAnotherExecution,
     /// The active selection does not belong to the opened surface.
     Selection(SelectionRefusal),
-    /// The witness trial belongs to a claim other than the selected point's owner claim.
+    /// The witness trial belongs to a claim other than the selected point's owner.
     WitnessForAnotherClaim {
         /// The claim that owns the selected point.
         expected: ClaimRef,
@@ -1780,8 +1450,10 @@ pub enum InterpretedExecutionRefusal {
     /// The evaluation callable omitted the exact surface-issued branch.
     EvaluationCall(EvaluationCallRefusal),
     /// The evaluation callback reported zero firings for the selected damage.
-    DudPlant(DudPlant),
-    /// The host observation could not join its exact trial binding.
+    ///
+    /// Boxed because the dud retains the exact surface-issued selection and trial, and the refusing side of a `Result` should not widen its passing side.
+    DudPlant(Box<DudPlant>),
+    /// The observation could not join its exact trial binding.
     Report(ReportRecordingRefusal),
 }
 
@@ -1789,14 +1461,9 @@ pub enum InterpretedExecutionRefusal {
 // The rewrite lane.
 // ---------------------------------------------------------------------------
 
-/// One rewrite-mutation descriptor: the shape a damage matches, the shape it
-/// rewrites to, and the operator family the pair realizes.
+/// One rewrite-mutation descriptor: the shape a damage matches, the shape it rewrites to, and the operator family the pair realizes.
 ///
-/// # Authority
-///
-/// Data rows, never programs. A descriptor states a pattern and its rewrite as
-/// text a structural rewriter reads; nothing here compiles, executes, or
-/// interprets either side.
+/// Data rows, never programs: a descriptor states a pattern and its rewrite as text a structural rewriter reads, and nothing here compiles, executes, or interprets either side.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RewriteDescriptor {
     family: OperatorFamilyRef,
@@ -1806,8 +1473,7 @@ pub struct RewriteDescriptor {
 
 /// Why one rewrite descriptor was refused.
 ///
-/// Dependent checks in a declared order: the pattern, then the rewrite, then the
-/// pair.
+/// Dependent checks in a declared order: the pattern, then the rewrite, then the pair.
 #[must_use = "a refusal is the reason a rewrite descriptor was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RewriteRefusal {
@@ -1815,8 +1481,7 @@ pub enum RewriteRefusal {
     EmptyPattern,
     /// The rewrite is empty, so the descriptor states no damage.
     EmptyRewrite,
-    /// The pattern and the rewrite are one shape, so applying it damages
-    /// nothing.
+    /// The pattern and the rewrite are one shape, so applying it damages nothing.
     RewriteIsPattern,
 }
 
@@ -1841,23 +1506,14 @@ pub enum RosterRefusal {
 
 /// The trust posture every rewrite-produced descriptor stands under.
 ///
-/// # Authority
-///
-/// Rewrite-produced descriptors are admitted LAST in the trust order: they are
-/// candidates for the harness to audit and never evidence on their own.
-///
-/// # Bounds
-///
-/// A second posture would be a law change, and the trust order's sentence would
-/// have to move first.
+/// Rewrite-produced descriptors are admitted last, as candidates the harness audits and never as evidence on their own.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RewriteTrust {
     /// The descriptor awaits the harness's audit.
     AuditPending,
 }
 
-/// One rewrite descriptor planned for audit: the descriptor, the scope its
-/// application was planned under, and the trust posture it stands under.
+/// One rewrite descriptor planned for audit, with the scope it was planned under and the trust it stands under.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RewriteCandidate {
     descriptor: RewriteDescriptor,
@@ -1869,8 +1525,7 @@ pub struct RewriteCandidate {
 #[must_use = "a refusal is the reason the rewrite audit road was withheld"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RewriteWithheld {
-    /// The interpreted lane — the execution substrate that makes rewrite
-    /// families cheap — is not available.
+    /// The interpreted lane, which is what makes rewrite families cheap, is unavailable.
     InterpreterUnavailable,
     /// The trust order still owes this evidence.
     TrustNotOpened(MissingTrustEvidence),
@@ -1878,12 +1533,10 @@ pub enum RewriteWithheld {
 
 /// Whether rewrite descriptors may enter the interpreted audit road.
 ///
-/// # Nonclaims
-///
-/// Admission here is execution availability, not evidence. A descriptor remains [`RewriteTrust::AuditPending`] until an actual execution establishes whatever a later evidence owner requires.
+/// Admission here is execution availability and not evidence: a descriptor stays [`RewriteTrust::AuditPending`] until an actual execution establishes what a later evidence owner requires.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RewriteAdmission {
-    /// The interpreted audit road is available under generic suite bite and exact selection-scoped projection pressure.
+    /// The audit road is available under a generic suite bite and exact selection-scoped projection pressure.
     Admitted,
     /// The audit road is unavailable for a stated reason.
     Withheld(RewriteWithheld),
@@ -1893,37 +1546,20 @@ pub enum RewriteAdmission {
 // The artifact-mutation seed roster.
 // ---------------------------------------------------------------------------
 
-/// One deliberate damage the artifact-mutation mode inflicts on a lawful
-/// rendered artifact.
+/// One deliberate damage the artifact-mutation mode inflicts on a lawful rendered artifact.
 ///
-/// # Authority
-///
-/// Each arm is a LIE a damaged rendering tells about the declaration it claims
-/// to project, and every one of them is this harness's own: the services carry
-/// no road that renders a defective artifact, because a producer that writes its
-/// own exam is rehearsed only against the defects it already imagined.
-///
-/// The roster is seed material and not a lane. It states WHICH damages the
-/// self-attack mode plans for; the surgery that realizes one over a rendered
-/// artifact is authored where the anchors are authored, so that a damage is cut
-/// against the anchors a generator emits rather than against spellings a hand
-/// restated beside them.
+/// Each arm is a lie a damaged rendering tells about the declaration it claims to project, and every one of them is this harness's own — a producer that writes its own exam is rehearsed only against the defects it already imagined.
+/// The roster is seed material rather than a lane: the surgery that realizes one is authored where the anchors are, so a damage is cut against the anchors a generator emits rather than against spellings a hand restated beside them.
 ///
 /// # Nonclaims
 ///
-/// It says nothing about which reader CATCHES a damage. Ownership of a catching
-/// claim belongs to the readers that exist — the independence annex's lanes
-/// ([`crate::oracle`]) — and is stated there, against a seat that can hold it,
-/// once the self-attack mode runs over generated anchors. A roster that carried
-/// its own ownership table with no run to falsify it would be a green wall that
-/// measures nothing, which is the defect this vocabulary is descended from.
+/// It says nothing about which reader catches a damage.
+/// That ownership belongs to the readers that exist ([`crate::oracle`]) and is stated there, against a seat that can hold it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ArtifactMutation {
-    /// The textual selection order is reversed while the typed order stands as
-    /// declared — the projection no longer projects.
+    /// The emitted members are written in reverse of the order the declaration states.
     OrderPermuted,
-    /// Every cause is emitted under the first cause's local key: distinct causes
-    /// inside one family made to share one identity.
+    /// Every emitted member is written under the first member's key, so members the declaration keeps distinct share one identity.
     IdentityRecycled,
     /// One planned output is deleted from the artifact.
     PlannedOutputOmitted,
@@ -1937,18 +1573,15 @@ pub enum ArtifactMutation {
     OutputDuplicated,
     /// The trait path names a contract the declaration did not realize.
     TraitPathWrong,
-    /// A decoy carrying the anchored bytes is planted inside a comment while the
-    /// real constant is damaged.
+    /// A decoy carrying the anchored bytes is planted in a comment while the real constant is damaged.
     DecoyInComment,
     /// One planned member constant is emitted twice inside one implementation.
     ImplMemberDuplicated,
     /// A member nobody planned is added inside one implementation.
     ImplMemberUnexpected,
-    /// A declared value is carried through a constructor the declaration did not
-    /// name.
+    /// A declared value is carried through a constructor the declaration did not name.
     ConstructorPathAltered,
-    /// The implementation is written under a posture the declaration did not
-    /// name.
+    /// The implementation is written under a posture the declaration did not name.
     ImplPostureAltered,
     /// An attribute that decides something is added to an implementation.
     MeaningBearingAttributeAdded,
@@ -1958,12 +1591,9 @@ pub enum ArtifactMutation {
 
 /// The artifact-mutation roster, in the order this home states it.
 ///
-/// # Authority
-///
-/// A declared table rather than a derived one: the order is the order a plan
-/// reads the damages in, so it is written down once here instead of arriving
-/// from whichever road happened to enumerate them.
-pub const ARTIFACT_MUTATIONS: [ArtifactMutation; 15] = [
+/// A declared table rather than a derived one, so a plan reads the damages in an order written down once here.
+/// A slice rather than a sized array: a consumer whose artifacts break in ways this table does not name declares its own slice, and nothing here closes the width.
+pub const ARTIFACT_MUTATIONS: &[ArtifactMutation] = &[
     ArtifactMutation::OrderPermuted,
     ArtifactMutation::IdentityRecycled,
     ArtifactMutation::PlannedOutputOmitted,
@@ -1982,39 +1612,27 @@ pub const ARTIFACT_MUTATIONS: [ArtifactMutation; 15] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Survivor explanation and the check gap.
+// Survivor explanation, and the check gap.
 // ---------------------------------------------------------------------------
 
 /// Which independence lane a survivor's explanation names as the missing judge.
 ///
-/// # Authority
-///
-/// The roster is the independence annex's own lanes ([`crate::oracle`]), named
-/// here so an explanation says WHICH kind of judge is absent rather than that
-/// something is.
+/// The roster is the independence annex's own lanes ([`crate::oracle`]), named here so an explanation says which kind of judge is absent rather than that one is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum OracleClass {
-    /// The golden-vector lane: bytes a specification states for an input.
+    /// Bytes a specification states for an input.
     GoldenVector,
-    /// The independent transcript lane: a published identity re-derived from its
-    /// published specification.
+    /// A published identity re-derived from its published specification.
     IndependentTranscript,
-    /// The structural read: what a rendered artifact declares.
+    /// What a rendered artifact declares.
     StructuralRead,
-    /// The compiled read-back: what a compiled artifact hands back as values.
+    /// What a compiled artifact hands back as values.
     CompiledReadBack,
 }
 
-/// One survivor, explained: the target that survived, the claim that owns it,
-/// the oracle class no check of that claim supplies, and the check reference
-/// that would close the opening.
+/// One survivor, explained: the target, the claim that owns it, the oracle class no check supplies, and the check that would close the opening.
 ///
-/// # Authority
-///
-/// The whole hand-off into synthesis, in one value: survivor, owning claim,
-/// missing oracle class, closing check. An explanation over an owner-unmapped
-/// target is refused rather than guessed, so no candidate is ever cut against a
-/// claim nobody established.
+/// An explanation over an owner-unmapped target is refused rather than guessed, so no candidate is cut against a claim nobody established.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SurvivorExplanation {
     target: MutationTarget,
@@ -2029,20 +1647,13 @@ pub struct SurvivorExplanation {
 pub enum ExplanationRefusal {
     /// The record's verdict is not survived, so there is no survivor to explain.
     NotASurvivor(MutationVerdict),
-    /// The target's owning claim is unmapped, so the explanation would have to
-    /// invent the claim it hands to synthesis.
+    /// The target's owning claim is unmapped, so the explanation would have to invent it.
     OwnerUnmapped,
 }
 
-/// The typed finding a synthesis raises instead of a candidate it cannot
-/// honestly build.
+/// The typed finding a synthesis raises instead of a candidate it cannot honestly build.
 ///
-/// # Authority
-///
-/// Synthesis is scoped to already-authored executable attachments — descriptors,
-/// never programs. Where the check an explanation names has no attachment, the
-/// opening is this finding, and a fake candidate that referenced a callable
-/// nobody wrote is not a value this home can produce.
+/// Synthesis is scoped to already-authored executable attachments, so where the named check has no attachment the opening is this finding rather than a candidate citing a callable nobody wrote.
 #[must_use = "a check gap is a finding, never a candidate"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CheckGap {
@@ -2053,9 +1664,7 @@ pub struct CheckGap {
 
 /// The row coordinates a synthesis cannot read off a survivor.
 ///
-/// The explanation names the claim and the check; the suite the candidate would
-/// run under, its classification, the subject route it exercises, and the
-/// population that supplies its inputs are the caller's to state.
+/// The explanation names the claim and the check; the suite, classification, subject route, and population are the caller's to state.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CandidateSketch {
     suite: ExecutionSuite,
@@ -2066,23 +1675,15 @@ pub struct CandidateSketch {
 
 /// Why one candidate row could not be synthesized.
 ///
-/// Dependent checks in a declared order: the attachment roster is read, then the
-/// synthesis facts the origin arm needs, then the row itself.
+/// Dependent checks in a declared order: the attachment roster, then the synthesis facts the origin arm needs, then the row itself.
 #[must_use = "a refusal is the reason a candidate was not synthesized"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SynthesisRefusal {
-    /// The check the explanation names has no authored executable attachment, so
-    /// the opening is a check gap.
+    /// The named check has no authored executable attachment, so the opening is a check gap.
     CheckGapFound(CheckGap),
-    /// The explained record's identity is an external backend's mutant, which
-    /// names a coordinate rather than a mutation point, and the descriptor
-    /// vocabulary's candidate arm carries a point or a proof gap and nothing
-    /// else.
+    /// The explained record names a coordinate rather than a mutation point.
     ///
-    /// A guard on the IDENTITY shape rather than on a lane. No external reading
-    /// this crate declares can reach it today: earning the survived verdict
-    /// takes observed activation, and the one wrapped backend offers no channel
-    /// that could observe a damage firing.
+    /// A guard on the identity shape rather than on a lane: earning the survived verdict takes observed activation, and the one wrapped backend offers no channel that could observe a firing.
     ExternalSurvivorNamesNoPoint,
     /// The row constructor refused the values the synthesis assembled.
     RowRefused(RowRefusal),
@@ -2106,14 +1707,10 @@ pub enum DiffPathRefusal {
 
 /// What one invocation of a lane is scoped to.
 ///
-/// # Authority
-///
-/// Scope shapes are INVOCATION parameters and never a second world: each one
-/// narrows a run, and the denominator every report is stated over is the
-/// complete table regardless.
+/// Scope shapes are invocation parameters and never a second world: each narrows a run, and every report is still stated over the complete table.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ScopeShape {
-    /// One seam: the subject route the run is narrowed to.
+    /// One seam, entered through the subject route the run is narrowed to.
     SeamScoped {
         /// The route the seam is entered through.
         route: SubjectRoute,
@@ -2129,11 +1726,7 @@ pub enum ScopeShape {
 
 /// What one scoped pressure run may spend.
 ///
-/// # Authority
-///
-/// The mutant bound is this home's; the per-trial budgets are the invocation
-/// profile's, borrowed rather than restated, so no second budget authority
-/// answers the question the record vocabulary already answers.
+/// The mutant bound is this home's; the per-trial budgets are the invocation profile's, borrowed rather than restated.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PressureBudget {
     mutants: u32,
@@ -2170,12 +1763,7 @@ pub enum PressureLane {
 
 /// Which damage one planned run presses.
 ///
-/// # Authority
-///
-/// An external backend chooses its own damage and the mutant identity already
-/// names it; an interpreted run states which admitted alternative of its point
-/// it selects. Carrying the distinction is what keeps two planned runs over one
-/// point from reading as one run stated twice.
+/// An external backend chooses its own damage and the mutant identity already names it; an interpreted run states which admitted alternative it selects, which is what keeps two runs over one point from reading as one run stated twice.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PlannedDamage {
     /// The backend's own damage, already named by the mutant identity.
@@ -2184,13 +1772,9 @@ pub enum PlannedDamage {
     Alternative(AlternativeId),
 }
 
-/// One intended run: which lane presses which damage of which target, what the
-/// run selects, and what it may spend.
+/// One intended run: the lane, the target, the damage, what the run selects, and what it may spend.
 ///
-/// # Authority
-///
-/// A planned run is a VALUE and spends nothing. It is what makes planning
-/// inspectable before a budget is committed.
+/// A planned run is a value and spends nothing, which is what makes planning inspectable before a budget is committed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlannedRun {
     lane: PressureLane,
@@ -2200,13 +1784,9 @@ pub struct PlannedRun {
     budget: PressureBudget,
 }
 
-/// The complete statement of what one pressure pass intends to run, before any
-/// budget is spent.
+/// The complete statement of what one pressure pass intends to run, before any budget is spent.
 ///
-/// # Authority
-///
-/// Planning is a pure function and this is its image: a caller reads every
-/// intended run and its budget, and decides, before the first mutant is pressed.
+/// Planning is a pure function and this is its image: a caller reads every intended run and its budget, and decides, before the first mutant is pressed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProofPlan {
     scope: ScopedInvocation,
@@ -2215,8 +1795,7 @@ pub struct ProofPlan {
 
 /// Why one proof plan was refused.
 ///
-/// Dependent checks in a declared order: the roster is read before it is
-/// weighed against the budget.
+/// Dependent checks in a declared order: the roster is read before it is weighed against the budget.
 #[must_use = "a refusal is the reason a proof plan was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PlanRefusal {
@@ -2235,15 +1814,9 @@ pub enum PlanRefusal {
 // The obligation road.
 // ---------------------------------------------------------------------------
 
-/// A claim declared owed: its identity, and the opening condition its
-/// declaration named.
+/// A claim declared owed: its identity, and the opening condition its declaration named.
 ///
-/// # Authority
-///
-/// "Owed" is a POSTURE on a claim under the named-opening-condition rule, never
-/// a genus. The claim is a typed reference, so a citation to nothing is refused
-/// by the name parser before this value exists; the opening condition is refused
-/// empty, so an obligation that never comes due is not a value anybody can hold.
+/// Owed is a posture on a claim and never a genus, and an obligation that never comes due is refused, so no value here is an obligation nobody can discharge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct OwedClaim {
     claim: ClaimRef,
@@ -2254,17 +1827,13 @@ pub struct OwedClaim {
 #[must_use = "a refusal is the reason an owed claim was not declared"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum OwedClaimRefusal {
-    /// The posture names no opening condition, so nothing states when the claim
-    /// comes due.
+    /// The posture names no opening condition, so nothing states when the claim comes due.
     NoOpeningCondition,
 }
 
 /// What shape of proof one opening asks for.
 ///
-/// # Authority
-///
-/// The routing input. Which lane discharges an obligation follows from the shape
-/// of proof it needs, and that map is declared once in `type_contract.rs`.
+/// Which lane discharges an obligation follows from this and nothing else, and that map is declared once in `type_contract.rs`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ProofShape {
     /// One stated input and its stated answer.
@@ -2293,14 +1862,9 @@ pub struct OwedDeclaration {
     shape: ProofShape,
 }
 
-/// One opening a coverage reading states: an owed claim the denominator names
-/// and no report exercised.
+/// One opening a coverage reading states: an owed claim the denominator names and no report exercised.
 ///
-/// # Authority
-///
-/// "Where is proof missing" is claim coverage over reports, never a structural
-/// scan — so this value is born from a [`crate::report::ClaimCoverage`] entry
-/// and carries the counts it was born from.
+/// Where proof is missing is claim coverage over reports and never a structural scan, so this value is born from a coverage entry and carries the counts it was born from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct InferredObligation {
     owed: OwedClaim,
@@ -2308,14 +1872,9 @@ pub struct InferredObligation {
     shape: ProofShape,
 }
 
-/// What discharged one owed claim.
+/// What discharged one owed claim: the lane it was routed to, the trial that discharged it, and the key that trial ran under.
 ///
-/// # Authority
-///
-/// A discharge authors no capsule: the admitted row IS the discharge's permanent
-/// record, and rerunning it regenerates the behavioral evidence. What is carried
-/// here is the lane the obligation was routed to, the trial that discharged it,
-/// and the key that trial ran under — every one of them reconstructible.
+/// A discharge authors no capsule, because the admitted row is its permanent record and rerunning it regenerates the behavioral evidence.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DischargeEvidence {
     lane: ObligationLane,
@@ -2327,14 +1886,9 @@ pub struct DischargeEvidence {
 // The proposal road.
 // ---------------------------------------------------------------------------
 
-/// One demonstrated kill: the report the staged run wrote, and the rejection
-/// read out of it.
+/// One demonstrated kill: the report the staged run wrote, and the rejection read out of it.
 ///
-/// # Authority
-///
-/// A claimed kill is DEMONSTRATED on the evaluation surface with the mutant
-/// active, never asserted. This value is what a demonstration leaves behind, and
-/// the proposal road's mutant-killed ground cannot be built without one.
+/// A claimed kill is demonstrated on the evaluation surface with the mutant active, never asserted, and the mutant-killed ground cannot be built without one of these.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Demonstration {
     report: RunReport,
@@ -2344,16 +1898,13 @@ pub struct Demonstration {
 
 /// Why no kill was demonstrated.
 ///
-/// Dependent checks in a declared order: the view's posture, then the census,
-/// then the candidate's own disposition. The construction arm stands first
-/// because there is no report to read until the staged view has been built.
+/// Dependent checks in a declared order: the view's posture, then the census, then the candidate's own disposition.
 #[must_use = "a refusal is the reason a kill was not demonstrated"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProofRefusal {
     /// The staged view could not be built.
     StagingRefused(StagedTableRefusal),
-    /// The report stands over the authored world rather than a staged view, so
-    /// no candidate was proven by it.
+    /// The report stands over the authored world rather than a staged view.
     NotStaged,
     /// The report's census does not carry the candidate's trial at all.
     CandidateNotInCensus,
@@ -2361,18 +1912,13 @@ pub enum ProofRefusal {
     CandidateNotSelected,
     /// The candidate was selected and did not execute.
     CandidateDidNotExecute,
-    /// The candidate executed and did not refuse, so the claimed kill is
-    /// asserted rather than shown.
+    /// The candidate executed and did not refuse, so the claimed kill is asserted rather than shown.
     CandidateDidNotRefuse,
 }
 
 /// How much proof one candidate adds to the claim it pins.
 ///
-/// # Construction
-///
-/// [`ProofDelta::between`] takes the claim's exercised counts before and after
-/// the candidate ran in staging, and refuses a pair that does not move: a pin
-/// that adds nothing is not a pin.
+/// [`ProofDelta::between`] refuses a pair that does not move, because a pin that adds nothing is not a pin.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ProofDelta {
     before: usize,
@@ -2383,8 +1929,7 @@ pub struct ProofDelta {
 #[must_use = "a refusal is the reason a proof delta was not stated"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ProofDeltaRefusal {
-    /// The candidate leaves the claim's exercised count where it was, so it pins
-    /// nothing.
+    /// The candidate leaves the claim's exercised count where it was.
     NoProofAdded {
         /// The count before.
         before: usize,
@@ -2393,8 +1938,7 @@ pub enum ProofDeltaRefusal {
     },
 }
 
-/// The ground a mutant-killed proposal stands on: a kill shown on the surface
-/// with the mutant active.
+/// The ground a mutant-killed proposal stands on: a kill shown on the surface with the mutant active.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MutantKilledGround {
     /// What was damaged.
@@ -2420,10 +1964,7 @@ pub struct ClaimPinnedGround {
 
 /// The ground an obligation-discharged proposal stands on.
 ///
-/// No capsule at all, and no seat for one: the admitted row is the discharge's
-/// permanent record. The two grounds that DO author a capsule each carry it as
-/// a field, so nothing here reads a capsule out of an option that one ground
-/// would always answer empty.
+/// No capsule, and no seat for one: the admitted row is the discharge's permanent record, and the two grounds that do author a capsule each carry it as a field.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObligationDischargedGround {
     /// The owed claim's identity.
@@ -2437,18 +1978,13 @@ pub struct ObligationDischargedGround {
 pub enum NoComparisonReason {
     /// The ground carries no failure, so there is no fingerprint to compare.
     GroundCarriesNoFailure,
-    /// Nothing comparable was kept: no previous fingerprint and no discharge
-    /// roster.
+    /// Nothing comparable was kept: no previous fingerprint and no discharge roster.
     NoKnownMaterial,
 }
 
-/// The evidence a failure-bearing proposal is not a duplicate: the candidate's
-/// fingerprint, against every fingerprint already known.
+/// The evidence a failure-bearing proposal is not a duplicate: the candidate's fingerprint, against every fingerprint already known.
 ///
-/// # Authority
-///
-/// Never persuasive prose. The comparison is performed where the value is built,
-/// so a duplicate is a refusal rather than a paragraph a reader has to check.
+/// The comparison happens where the value is built, so a duplicate is a refusal rather than a paragraph a reader has to check.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FailureComparison {
     /// The fingerprint this candidate carries.
@@ -2457,14 +1993,13 @@ pub struct FailureComparison {
     known: Vec<Fingerprint>,
 }
 
-/// The evidence a discharge proposal is not a duplicate: the owed claim,
-/// against the discharges already recorded for it.
+/// The evidence a discharge proposal is not a duplicate: the owed claim, compared against the discharges already recorded for it.
+///
+/// The comparison happens where the value is built and only an empty roster survives it, so holding one IS holding the evidence — no roster seat rides along.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObligationComparison {
     /// The owed claim.
     owed: ClaimRef,
-    /// The trials already recorded as discharging it.
-    discharges: Vec<TrialId>,
 }
 
 /// The statement a proposal with no comparable subject makes.
@@ -2478,23 +2013,15 @@ pub struct NoComparison {
 #[must_use = "a refusal is the reason a proposal was not offered"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DuplicateRefusal {
-    /// The candidate's fingerprint is one the known roster already carries, so
-    /// it is a second spelling of a find already made.
+    /// The candidate's fingerprint is one the known roster already carries.
     FingerprintAlreadyKnown(Fingerprint),
-    /// The owed claim already carries a discharge, so this one discharges
-    /// nothing new.
+    /// The owed claim already carries a discharge, so this one discharges nothing new.
     ObligationAlreadyDischarged(TrialId),
 }
 
-/// Where an admitted row would land: a semantic owner and a suite, never a file
-/// path.
+/// Where an admitted row would land: a semantic owner and a suite, never a file path.
 ///
-/// # Authority
-///
-/// One field, because the suite's own namespace IS the semantic owner — the
-/// descriptor vocabulary says so where the destination is declared
-/// ([`crate::descriptor::AdmissionFacts`]), and a second owner field here would
-/// be a second authority answering one question.
+/// One field, because the suite's own namespace is the semantic owner, and a second owner field here would be a second authority answering one question.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ProposalDestination {
     suite: ExecutionSuite,
@@ -2504,24 +2031,15 @@ pub struct ProposalDestination {
 pub const PROPOSAL_TAG: DomainTag =
     DomainTag::declared("proposal", IdentityProfileVersion::declared(1));
 
-/// What every proposal is, whichever ground it stands on: a candidate row, a
-/// ground word an admission act can state, a destination, and the identity those
-/// three derive.
+/// What every proposal is, whichever ground it stands on: a candidate row, a ground word, a destination, and the identity those three derive.
 ///
-/// # The sealed shape
-///
-/// Sealed, so the proposals are the three this crate declares and no outside
-/// crate can add a fourth by implementing anything. A road that stores or reports
-/// a proposal takes one of these rather than a sum type every ground would have
-/// to fit inside — which is what keeps a discharge proposal from being as large
-/// as a kill's demonstration.
+/// Open, so a consumer with an admission ground of its own implements it in its own crate and reaches every [`ProposalSink`] through the same seam.
+/// A road that stores or reports a proposal takes one of these rather than a sum type every ground would have to fit inside, which is what keeps a discharge proposal from being as large as a kill's demonstration.
 ///
 /// # Nonclaims
 ///
-/// It reaches no ground's own contents. What a kill demonstrated and what a pin
-/// moved are read off the concrete proposal that holds them, because they are
-/// exactly the facts the three do not share.
-pub trait ProposalDocument: sealed::Sealed {
+/// It reaches no ground's own contents: what a kill demonstrated and what a pin moved are read off the concrete proposal, because they are exactly the facts the implementations do not share.
+pub trait ProposalDocument {
     /// The candidate row.
     fn candidate(&self) -> &Row;
 
@@ -2531,12 +2049,11 @@ pub trait ProposalDocument: sealed::Sealed {
     /// Where it would land.
     fn destination(&self) -> ProposalDestination;
 
-    /// The proposal's content identity — permanent provenance.
+    /// The proposal's content identity, which is permanent provenance.
     ///
     /// # The specification
     ///
-    /// Two primitives: `u32be(n)`, and `bytes(x)` — `u64be(len(x))` followed by
-    /// the bytes of `x`.
+    /// Two primitives: `u32be(n)`, and `bytes(x)` — `u64be(len(x))` followed by the bytes of `x`.
     ///
     /// The members, in exactly this order:
     ///
@@ -2550,23 +2067,14 @@ pub trait ProposalDocument: sealed::Sealed {
     ///
     /// # Nonclaims
     ///
-    /// The evidence is deliberately absent: the replay capsule, the
-    /// demonstration, and the duplicate comparison are what STANDS BEHIND the
-    /// proposal rather than what it proposes. Two offers of one row on one
-    /// ground into one destination therefore share an identity by design, which
-    /// is what makes an admitted origin's citation stable across a rerun.
-    ///
-    /// Every member is one of the three readings above, so the three proposals
-    /// derive their identity by one road rather than by three that agree.
+    /// The evidence is deliberately absent: the capsule, the demonstration, and the duplicate comparison are what stands behind a proposal rather than what it proposes.
+    /// Two offers of one row on one ground into one destination therefore share an identity, which is what makes an admitted origin's citation stable across a rerun.
     fn identity(&self) -> ProposalId;
 }
 
 /// The replay-bearing subset of the sealed proposal roster.
 ///
-/// A discharge proposal cannot implement this trait and therefore cannot reach
-/// the replay admission operation. The two implementors expose the exact
-/// capsule and narrowed ground already carried by their typed proposal ground;
-/// no caller supplies either beside the proposal.
+/// A discharge proposal cannot implement this trait and so cannot reach the replay admission operation.
 pub trait ReplayBearingProposal: ProposalDocument {
     /// The run-bound capsule this proposal carries.
     fn replay_capsule(&self) -> &ReplayCapsule;
@@ -2575,26 +2083,10 @@ pub trait ReplayBearingProposal: ProposalDocument {
     fn replay_ground(&self) -> crate::descriptor::ReplayBearingGround;
 }
 
-pub(super) mod sealed {
-    /// The seal. Implemented for this home's three proposals and nothing else.
-    #[expect(
-        unnameable_types,
-        reason = "a seal is a bound that is reachable and not nameable: reachable so the public trait can require it, unnameable so no outside crate can satisfy it, and a seal an outsider could name would be the closure this roster has instead of an open sum"
-    )]
-    pub trait Sealed {}
-}
-
 /// One proposal on the mutant-killed ground.
 ///
-/// # Authority
-///
-/// Process-local until a caller's own sink stores it. Constructing one asserts
-/// nothing about admission: a human must explicitly invoke the admission
-/// operation after review custody exists, and no runtime road can invoke it.
-///
-/// The comparison seat takes a [`FailureComparison`] and admits nothing else, so
-/// "is this evidence the comparison this ground owes?" is not a question that can
-/// be asked of a built value or of one being built.
+/// Process-local until a caller's own sink stores it, and constructing one asserts nothing about admission.
+/// The comparison seat takes a [`FailureComparison`] and admits nothing else, so evidence that does not fit the ground is unwritable.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MutantKilledProposal {
     candidate: Row,
@@ -2605,9 +2097,7 @@ pub struct MutantKilledProposal {
 
 /// One proposal on the claim-pinned ground.
 ///
-/// The comparison seat takes a [`NoComparison`]: a pin carries no failure to
-/// fingerprint and discharges no obligation, so what it offers is the stated
-/// reason nothing was compared.
+/// Its comparison seat takes a [`NoComparison`], because a pin carries no failure to fingerprint and discharges no obligation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ClaimPinnedProposal {
     candidate: Row,
@@ -2627,28 +2117,14 @@ pub struct ObligationDischargedProposal {
 
 /// Why one proposal was refused.
 ///
-/// Dependent checks in a declared order: the row's origin, then — where the
-/// ground names a mutation point — the survivor point against the target.
-///
-/// # Nonclaims
-///
-/// There is no evidence-against-ground cause, because there is no such
-/// disagreement to establish: each proposal's comparison seat admits exactly the
-/// comparison its ground owes, so a mismatched pair is not a value that can be
-/// written.
-///
-/// [`ProposalRefusal::SurvivorPointMismatch`] is reachable from the mutant-killed
-/// road alone. The other two grounds name no mutation point for a synthesis fact
-/// to disagree with, and their roads establish [`ProposalRefusal::NotACandidate`]
-/// or nothing.
+/// Dependent checks in a declared order: the row's origin, then — where the ground names a mutation point — the survivor point against the target.
+/// There is no evidence-against-ground cause, because each proposal's comparison seat admits exactly the comparison its ground owes.
 #[must_use = "a refusal is the reason a proposal was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ProposalRefusal {
-    /// The row does not carry the candidate origin arm, so it is an authored row
-    /// entering by the proposal door.
+    /// The row does not carry the candidate origin arm.
     NotACandidate,
-    /// The row's synthesis facts name one mutation point and the ground's target
-    /// names another.
+    /// The row's synthesis facts and the ground's target name different mutation points.
     SurvivorPointMismatch {
         /// The point the row's synthesis facts name.
         synthesis: MutationPointRef,
@@ -2659,9 +2135,7 @@ pub enum ProposalRefusal {
 
 /// Why one mutant-killed proposal was not offered.
 ///
-/// Dependent checks in a declared order: a harness-demonstrated mutation
-/// rejection, agreement with the staged demonstration, replay execution and
-/// fingerprint binding, duplicate comparison, then proposal construction.
+/// Dependent checks in a declared order: a harness-demonstrated rejection, agreement with the staged demonstration, replay execution and fingerprint binding, duplicate comparison, then proposal construction.
 #[must_use = "a refusal is the reason a mutant-killed proposal was not offered"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum KillProposalRefusal {
@@ -2697,20 +2171,22 @@ pub enum KillProposalRefusal {
     Refused(ProposalRefusal),
 }
 
+/// Why one obligation-discharge proposal was not offered.
+///
+/// Dependent checks in a declared order: duplicate comparison, then proposal construction.
+#[must_use = "a refusal is the reason a discharge proposal was not offered"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DischargeProposalRefusal {
+    /// The owed claim already carries a discharge.
+    Duplicate(DuplicateRefusal),
+    /// The proposal constructor refused the values that were assembled.
+    Refused(ProposalRefusal),
+}
+
 /// The location one sink stored a proposal at.
 ///
-/// # Authority
-///
-/// Opaque and MORTAL. The review artifact may die after any ruling, which is
-/// exactly why an admitted origin cites the proposal's content identity
-/// ([`ProposalId`]) and never this token — so nothing dangles when the artifact
-/// is deleted.
-///
-/// # Nonclaims
-///
-/// It is not an identity, not a path this crate can interpret, and not evidence
-/// that the destination is durable. What the token spells is the sink's own
-/// business.
+/// Opaque and mortal: the review artifact may die after any ruling, which is why an admitted origin cites the proposal's [`ProposalId`] and never this token.
+/// It is not an identity, not a path this crate can interpret, and not evidence that the destination is durable.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StoredProposalRef {
     proposal: ProposalId,
@@ -2719,11 +2195,7 @@ pub struct StoredProposalRef {
 
 /// Why one sink did not store a proposal.
 ///
-/// # Authority
-///
-/// The family a caller's sink answers with. The durability arm in particular is
-/// the sink's own statement: this crate reaches no filesystem and can establish
-/// nothing about where a sink writes.
+/// The durability arm is the sink's own statement: this crate reaches no filesystem and can establish nothing about where a sink writes.
 #[must_use = "a refusal is the reason a proposal was not stored"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SinkRefusal {
@@ -2733,38 +2205,24 @@ pub enum SinkRefusal {
     AlreadyStored(ProposalId),
     /// The location offered is empty, so it names nowhere.
     EmptyLocation,
-    /// The destination lies inside the repository tree or a build cache, where
-    /// undischarged review evidence may never live: deleting a cache must change
-    /// only cost, never truth.
+    /// The destination lies inside the repository tree or a build cache.
+    ///
+    /// Undischarged review evidence may never live there: deleting a cache must change only cost, never truth.
     DestinationNotDurable,
 }
 
 /// The caller-supplied storage the proposal road ends at.
 ///
-/// # Authority
-///
-/// The ONLY storage seam anywhere in this crate. No realization is declared
-/// here, no filesystem is reached from this crate at all, and no scratch
-/// directory exists: a proposal is process-local until a caller's own sink
-/// stores it, and review-durable custody begins at the reference the sink hands
-/// back.
-///
-/// # Nonclaims
-///
-/// Storing is not admitting. A stored proposal is review material a human rules
-/// on — real, duplicate, tooling defect, or invalid baseline — and the ruling is
-/// what discharges it.
+/// The only storage seam anywhere in this crate: no realization is declared here, no filesystem is reached, and no scratch directory exists.
+/// Storing is not admitting — a stored proposal is review material a human rules on, and the ruling is what discharges it.
 pub trait ProposalSink {
     /// Store one proposal, and hand back the location custody begins at.
     ///
+    /// Generic over the sealed roster rather than one sum type, so a discharge proposal does not have to be as large as a kill's demonstration to reach this seam.
+    ///
     /// # Errors
     ///
-    /// The sink's own refusal: unavailable, already stored under this identity,
-    /// an empty location, or a destination that is not durable.
-    /// Generic over the sealed proposal roster rather than over one sum type: a
-    /// sink stores what every proposal is — a row, a ground word, a destination,
-    /// and the identity those derive — and a discharge proposal reaching this
-    /// seam does not have to be as large as a kill's demonstration to get here.
+    /// The sink's own refusal: unavailable, already stored under this identity, an empty location, or a destination that is not durable.
     fn store<Document: ProposalDocument>(
         &mut self,
         proposal: &Document,
@@ -2773,9 +2231,7 @@ pub trait ProposalSink {
 
 /// A completed human admission on a replay-bearing proposal.
 ///
-/// The admitted row, exact depot entry, proposal custody, and depot custody
-/// ride together. Construction happens only after the caller's sink reports the
-/// exact entry stored.
+/// The admitted row, the depot entry, proposal custody, and depot custody ride together, and construction happens only after the caller's sink reports the exact entry stored.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReplayAdmissionReceipt {
     row: Row,
@@ -2786,8 +2242,7 @@ pub struct ReplayAdmissionReceipt {
 
 /// A completed human admission on an obligation-discharge proposal.
 ///
-/// The discharge authors no replay entry; the admitted row is its durable
-/// behavioral record.
+/// The discharge authors no replay entry, because the admitted row is its durable behavioral record.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DischargeAdmissionReceipt {
     row: Row,
@@ -2796,8 +2251,7 @@ pub struct DischargeAdmissionReceipt {
 
 /// Why an explicit human admission did not complete.
 ///
-/// Checks precede caller storage: proposal custody, then row construction, then
-/// the replay depot's storage result and its exact-reference binding.
+/// Checks precede caller storage: proposal custody, then row construction, then the replay depot's result and its exact-reference binding.
 #[must_use = "a refusal is the reason human admission did not complete"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum HumanAdmissionRefusal {
@@ -2822,14 +2276,13 @@ pub enum HumanAdmissionRefusal {
 }
 
 // ---------------------------------------------------------------------------
-// The shared-substrate spelling the no-mutation parity names.
+// The names this home spells.
 // ---------------------------------------------------------------------------
 
 /// The owner every name this home spells is declared under.
 pub const MUTERPRATER_NAMESPACE: &str = "muterprater";
 
-/// The spelling of the declaration both no-mutation parity roads are projected
-/// from.
+/// The spelling of the declaration both no-mutation parity roads are projected from.
 pub const PARITY_DECLARATION_SUBSTRATE: &str = "one-declaration";
 
 /// The spelling of the rendering engine both no-mutation parity roads stand on.

@@ -1,0 +1,16 @@
+error: unused `TextReadRefusal` that must be used
+  --> tests/compile_refusals/compile-fail/a-discarded-read-refusal.rs:27:5
+   |
+27 |     refused();
+   |     ^^^^^^^^^
+   |
+   = note: a read refusal carries the established cause and the byte it sits at
+note: the lint level is defined here
+  --> tests/compile_refusals/compile-fail/a-discarded-read-refusal.rs:10:9
+   |
+10 | #![deny(unused_must_use)]
+   |         ^^^^^^^^^^^^^^^
+help: use `let _ = ...` to ignore the resulting value
+   |
+27 |     let _ = refused();
+   |     +++++++

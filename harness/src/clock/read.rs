@@ -1,4 +1,4 @@
-//! The effect boundary that opens and finishes one `TestPak` wall measurement.
+//! The effect boundary: one source read opens a measurement, a second finishes it.
 
 use super::elapsed::elapsed;
 use super::{
@@ -7,41 +7,45 @@ use super::{
 };
 use std::panic::catch_unwind;
 
+/// What a caller declared: a reader, or nothing at all.
 #[derive(Debug, Clone, Copy)]
-pub(in crate::clock) enum ClockSource {
+pub(in crate::clock) enum Source {
     Unavailable,
-    Available(AvailableClockSource),
+    Available(Reader),
 }
 
+/// The two shapes a caller's reading function may take.
 #[derive(Debug, Clone, Copy)]
-pub(in crate::clock) enum AvailableClockSource {
+pub(in crate::clock) enum Reader {
     Infallible(fn() -> u64),
     Fallible(fn() -> Result<u64, ClockReadRefusal>),
 }
 
+/// What an opening left behind, including the reader a successful one retained.
 #[derive(Debug)]
-pub(in crate::clock) enum MeasurementOpening {
+pub(in crate::clock) enum Opening {
     Unavailable,
     Failed(ClockFailure),
     Opened {
-        source: AvailableClockSource,
+        reader: Reader,
         tick: MeasurementTick,
     },
 }
 
+/// What one call into a caller's reader produced.
 enum ReadOutcome {
     Tick(MeasurementTick),
     Refused,
     Unwound,
 }
 
-fn read(source: AvailableClockSource) -> ReadOutcome {
-    match source {
-        AvailableClockSource::Infallible(read) => match catch_unwind(read) {
+fn read_once(reader: Reader) -> ReadOutcome {
+    match reader {
+        Reader::Infallible(read) => match catch_unwind(read) {
             Ok(nanoseconds) => ReadOutcome::Tick(MeasurementTick::admitted(nanoseconds)),
             Err(_) => ReadOutcome::Unwound,
         },
-        AvailableClockSource::Fallible(read) => match catch_unwind(read) {
+        Reader::Fallible(read) => match catch_unwind(read) {
             Ok(Ok(nanoseconds)) => ReadOutcome::Tick(MeasurementTick::admitted(nanoseconds)),
             Ok(Err(ClockReadRefusal::Refused)) => ReadOutcome::Refused,
             Err(_) => ReadOutcome::Unwound,
@@ -50,16 +54,17 @@ fn read(source: AvailableClockSource) -> ReadOutcome {
 }
 
 impl HarnessClock {
-    /// Open one wall measurement without granting the reading any semantic authority.
+    /// Open one wall measurement, granting the reading no authority over anything.
     ///
-    /// An unavailable clock performs no source read. A typed refusal or ordinary Rust unwind is retained in the returned start so caller work can still run before [`MeasurementStart::finish`] publishes the final reading.
+    /// An unavailable clock reads nothing.
+    /// A refusal or an unwind here is retained in the start, so the caller's work still runs before [`MeasurementStart::finish`] publishes the reading.
     pub fn begin(self) -> MeasurementStart {
         let opening = match self.source {
-            ClockSource::Unavailable => MeasurementOpening::Unavailable,
-            ClockSource::Available(source) => match read(source) {
-                ReadOutcome::Tick(tick) => MeasurementOpening::Opened { source, tick },
-                ReadOutcome::Refused => MeasurementOpening::Failed(ClockFailure::OpeningRefused),
-                ReadOutcome::Unwound => MeasurementOpening::Failed(ClockFailure::OpeningUnwound),
+            Source::Unavailable => Opening::Unavailable,
+            Source::Available(reader) => match read_once(reader) {
+                ReadOutcome::Tick(tick) => Opening::Opened { reader, tick },
+                ReadOutcome::Refused => Opening::Failed(ClockFailure::OpeningRefused),
+                ReadOutcome::Unwound => Opening::Failed(ClockFailure::OpeningUnwound),
             },
         };
         MeasurementStart { opening }
@@ -67,14 +72,15 @@ impl HarnessClock {
 }
 
 impl MeasurementStart {
-    /// Finish this measurement against the exact source retained at opening.
+    /// Finish this measurement against the exact reader it opened on.
     ///
-    /// The operation reads no source for an unavailable or failed opening. A successful close computes elapsed time through checked subtraction, so a regression is a typed failure and an observed zero remains a real zero.
+    /// An unavailable or failed opening reads nothing further.
+    /// A second admitted tick becomes a duration by checked subtraction, so an observed zero stays a zero and a backwards pair becomes [`ClockFailure::Regressed`].
     pub fn finish(self) -> MeasurementReading {
         match self.opening {
-            MeasurementOpening::Unavailable => MeasurementReading::Unavailable,
-            MeasurementOpening::Failed(failure) => MeasurementReading::Failed(failure),
-            MeasurementOpening::Opened { source, tick } => match read(source) {
+            Opening::Unavailable => MeasurementReading::Unavailable,
+            Opening::Failed(failure) => MeasurementReading::Failed(failure),
+            Opening::Opened { reader, tick } => match read_once(reader) {
                 ReadOutcome::Tick(closed) => match elapsed(tick, closed) {
                     Ok(duration) => MeasurementReading::Observed(duration),
                     Err(failure) => MeasurementReading::Failed(failure),

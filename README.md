@@ -1,121 +1,158 @@
-# ThreadPak
+# Macroonz
 
-ThreadPak is an embedded, sync-first, event-native database and runtime — an opinionated Rust library of semantic primitives. It preserves a logical thread: a typed continuity from intent through accepted facts, bounded decisions, Turns, Attempts, effects, receipts, replay, and reconciliation. The product is named for that thread. Programs enter as typed declarations, not text; accepted history is the authority; everything else is derived and rebuildable. Use it where history must be trustworthy: audit trails, local-first state, compliance evidence, event-sourced applications.
+**Code generation that can prove what it made, and a test harness that tries to break it.**
 
-> The ordinary path stays small: Store · Event · Query · Projection · Subscription · Program · Application · Receipt. Expert surfaces deepen the same machine; none creates a second one.
+Ferris bakes macaroons here.
+Every batch starts from a written recipe, every tray is checked against that recipe before it leaves the oven, and a taste tester with no loyalty to the baker gets the first bite.
 
-## The machine in one view
+> Macroonz knows nothing about your domain.
+> Your types, your errors, your identities, your bounds — all yours.
+> It only knows how to bake exactly what you asked for, and how to find out whether it's any good.
 
-```mermaid
-flowchart TD
-    subgraph P["programs"]
-        DECL["typed declarations"] --> SF["Semantic Form — normalized meaning, checked constructor"]
-        SF --> EF["Execution Form — bounded operator graph, independently re-lowered"]
-        EF --> PI["ProgramImage (.tpk) — binds both forms, inspectable bytecode"]
-        PI --> RT["runtime — the Stitch selects one Turn: observation in, next state and effect intents out"]
-        RT --> BV["Bvisor — the physical membrane admits one fresh Attempt: capabilities, ports"]
-        BV --> VM["PakVM — bounded synchronous execution, no ambient anything"]
-    end
-    subgraph D["data"]
-        AE["accepted events"] --> DH["durable history (.tlog) — append, crash recovery, authorized removal. The authority."]
-        DH --> LT["logical threads — typed continuity across facts and runtime evidence"]
-        DH --> DT["effect intents, checkpoints, receipts — durable runtime truth"]
-        DH --> DR["queries, projections, DataBlocks — derived and rebuildable"]
-        DH --> RR["replay and reconciliation"]
-    end
-```
+---
 
-Hosts live in other repositories and pin an exact ThreadPak revision. The machine never knows which host is running it.
+## Why
 
-## Workspace
+Writing a derive macro means parsing a token stream, emitting another one, and hoping.
+Nobody can say afterwards what was generated, why, or what would change it.
+Testing a library means writing the examples you thought of.
+The bug is in the one you didn't.
 
-| Crate             | Role                                                          |
-| ----------------- | ------------------------------------------------------------- |
-| `contracts`       | the production contracts — package `macroonz`                 |
-| `macros/compiler` | the generation services — package `threadpak-macroc`           |
-| `macros/proc`     | the Rust-facing expansion shell — package `threadpak-macros`   |
-| `harness`         | the testing harness — package `threadpak-testpak`              |
-| `consumer`        | the outside consumer — package `threadpak-consumer`            |
+Macroonz replaces both hopes with records.
+
+| You have | You get |
+| --- | --- |
+| A derive that emits tokens | An expansion that names every unit it produced, proves the set matches its plan, and explains each decision — before a byte reaches `rustc` |
+| A handful of example tests | Generated inputs, injected faults, a controlled clock, mutants of your own code, and the smallest witness for every failure, with the seed and the replay that reproduce it |
+
+---
+
+## The bakery
+
+One crate is the oven, one is the hand that will load it, and one is the taste tester.
+
+| Crate | Directory | What it is |
+| --- | --- | --- |
+| **`macroonz`** | `macros/compiler/` | The compiler, as ordinary functions. Capture a declaration, build a request, plan, render, close, explain, bind, emit. This is the crate you add. |
+| **`macroonz-macros`** | `macros/proc/` | The proc-macro seat for the generic attribute carriers. An unfilled seat: its README says what belongs here and why nothing does yet, and a derive reaches the compiler through `macroonz::host` instead. It owns no grammar. |
+| **`macroonz-harness`** | `harness/` | The judge. Descriptors, generation, properties, oracles, faults, corpus, mutation, benches, reports, replay. A dev-dependency — production never depends on it. |
 
 ```mermaid
 flowchart LR
-    PROC["macros/proc (threadpak-macros)"] --> MC["macros/compiler (threadpak-macroc)"]
-    MC --> CONTRACTS["contracts (macroonz)"]
-    CONS["consumer — the outside consumer"] --> CONTRACTS
-    CONS --> PROC
-    CONS -. qualification .-> HARNESS["harness — the judge"]
-    HARNESS -. qualification .-> CONTRACTS
-    HARNESS -. qualification .-> MC
-    HARNESS -. qualification .-> PROC
+    YOU["your library<br/>+ your derive"] --> C["macroonz"]
+    PROC["macroonz-macros"] --> C
+    YOU -. tests .-> H["macroonz-harness"]
 ```
 
-Arrows point at what each crate depends on; a dashed arrow is a dependency reached only from `tests/`.
+Arrows point at dependencies.
+The compiler depends on nothing in this workspace.
+The harness reaches the generation crates only from its own tests.
 
-Edges run one way and inward, and no production edge points at testpak: production never depends on its judge, so the judge reaches its three subjects — and its one outside consumer reaches it — from `tests/` alone.
+---
 
-Hosts are one step further out, in other repositories, so this repository has no `hosts/` directory.
+## Your recipe, your kinds
 
-## The band map
+A **kind** is a thing you can ask Macroonz to generate: one `impl` block, a codec pair, a test carrier, a documentation page.
+You define it.
+A kind says what content it is rendered from, which roles its output units play, and which questions its explanation has to answer.
+The compiler is generic over all of that; it has never heard of your kind and does not need to.
 
-Numbered directories are dependency bands. An arrow means everything downstream may import it: band N imports any band above it, never below. Homes materialize only when their specification content lands; no directory exists empty.
+```rust
+use macroonz::{Kind, NoQuestions, Request};
 
-The root also carries the depot — the bank of data-shaped truth every band and every crate may read; a fact has no band.
+/// One `impl Greet` for the declared type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct GreetImpl;
+
+impl Kind for GreetImpl {
+    const NAME: &'static str = "greet.impl";
+    type Content = Greeting;
+    type Role = GreetRole;
+    type Question = NoQuestions;
+}
+
+pub fn greet(input: TokenStream) -> TokenStream {
+    macroonz::host::expand(input, |capture| {
+        let greeting = Greeting::read(&capture)?;
+        Request::<GreetImpl>::over(capture, greeting, &GREET_DOOR)
+            .render(|plan, out| out.unit(GreetRole::Impl, plan.content().impl_tokens()))
+    })
+}
+```
+
+`Greeting::read` is yours: your grammar, your rules, your refusals.
+`GREET_DOOR` is the one value that says who is asking — the diagnostic prefix your users read, and the stable names every identity carries.
+Macroonz never parses your declaration for you and never decides what it means.
+This is the same split `serde` makes — `serde_derive` ships with `serde`, not with `syn` — and it is the only split that keeps a generator honest.
+
+---
+
+## The road
+
+Every request walks the same eight steps, whatever the kind.
+Each step hands the next a value it cannot forge.
 
 ```mermaid
-flowchart TD
-    R["root — types.rs shape calculus · depot data bank"]
-    R --> B00["00 refusal — envelope, families, handling, ReasonId"]
-    B00 --> B01["01 logic — three-valued logic, truth tables, finality"]
-    B01 --> B02["02 identity — six identity classes, minting, scope guards"]
-    B02 --> B03["03 value — bounded values, closed algebra, absence"]
-    B03 --> B04["04 numeric — exact numeric families, intervals, quantization"]
-    B04 --> B05["05 bounds — budget classes, typed magnitudes"]
-    B05 --> B06["06 authority — capability and KeyScope algebra, meet, attenuation"]
-    B06 --> B07["07 bytes — frame grammar, codecs, digest domains, byte roles"]
-    B07 --> B08["08 schema — schema model, refinements, canonical profiles, migration"]
-    B08 --> B09["09 time — the tick, deadlines, chronology"]
-    B09 --> B10["10 history — accepted history, append, recovery, removal, federation"]
-    B10 --> B11["11 navigation — frames, axes, addresses, Fix, source closure"]
-    B11 --> B12["12 port — port contract algebra, host obligations"]
-    B12 --> B13["13 declaration — authoring algebra: fragments, linker, facets"]
-    B13 --> B14["14 semantic — the judgment, Semantic Form"]
-    B14 --> B15["15 execution — operator register, lowering, agreement, Execution Form"]
-    B15 --> B16["16 image — ProgramImage, .tpk, entrypoints, admission"]
-    B16 --> B17["17 pakvm — the executor: values, arenas, the step machine"]
-    B17 --> B18["18 bvisor — Attempts, reservation, ports, observations"]
-    B18 --> B19["19 runtime — the Turn, the Stitch, checkpoints, replay, reconciliation"]
-    B19 --> B20["20 derived — DataBlocks, masks, materialization"]
-    B20 --> B21["21 application — composition, interfaces, Serve"]
-    B21 --> B22["22 security — sealed extents, shred, revocation distribution"]
-    B22 --> B23["23 evidence — receipts, verification, denominators, the evidence graph"]
+flowchart LR
+    A["1 · account"] --> I["2 · intent"] --> X["3 · context"] --> P["4 · plan"]
+    P --> R["5 · render"] --> CL["6 · close"] --> E["7 · explain"] --> B["8 · bind"]
 ```
 
-## Construction
+1. **Account.** What the request stands on: the captured declaration and every captured dependency, committed under one identity.
+2. **Intent.** What it means: an identity over the kind's name and that commitment. Two callers who meant the same thing derive the same intent.
+3. **Context.** Which profile and which generator version are answering.
+4. **Plan.** The complete output set, named before a byte of syntax exists — each unit's role, semantic key, destination, origin, expected profile, and digest contract — plus the invalidation set, the decision trace, and the nonclaims.
+5. **Render.** Typed tokens into rendered units, each digested over its own canonical bytes.
+6. **Close.** The membership is rebuilt from what was rendered and proved equal to the plan, role by role. The units are partitioned by the destination each one declared.
+7. **Explain.** Every question the kind owes is answered once, over that plan and that closure, under an identity derived from both.
+8. **Bind.** Plan, closure, and explanation are sealed together, after the compiler establishes that the three name one another.
 
-Product-runtime code enters a home only through explicit owner authorization. The generation system is the product line: families are authored through front doors and their contracts are generated. TestPak and the generation services are constructed before per-home machine-source realization; the application compiler follows the machine. That is construction order, not Cargo dependency order; the Cargo manifests remain authoritative.
+The sealed expansion is the one value emission is read from.
+`emit()` hands a proc macro its tokens; a test carrier, a bench carrier, or a publication step reads its own partition from the same value.
 
-The toolchain is the enforcement surface, run locally:
+> A request that cannot walk the whole road is refused whole.
+> There is no partial output.
+> A refusal is never a smaller success.
+
+Expansion is a function of its declared input.
+No network, no filesystem scan, no environment, no clock, no entropy — there is no seat where one could enter.
+
+---
+
+## The taste test
+
+You describe a subject once: what it takes, what it returns, what it refuses, what must hold.
+The harness does the rest.
+
+- **Generates** inputs against the description, structure-aware, from a seed it records.
+- **Injects** faults and drives a clock it controls, so the subject is judged under pressure and not on a sunny day.
+- **Reduces** every failure to its smallest witness.
+- **Mutates** the subject's own code and runs the trials against each mutant, to prove the trials can tell right from wrong.
+- **Benchmarks** with the same receiver and the same pinned profile, so a number means the same thing tomorrow.
+- **Reports** each verdict with the evidence, the seed, and the replay that reproduce it.
+
+Descriptors, trials, mutations, and benches live in your tests, written through your own attributes or by hand.
+The harness owns how they are judged, never what they mean.
+
+---
+
+## Working here
+
+[`AGENTS.md`](AGENTS.md) is the working law for anyone — person, model, or agent — who edits this repository, and it owns what enforcement means here.
+The wall it names, run locally:
 
 ```sh
-cargo check --workspace --all-targets   # the compiler, which is the enforcement
-cargo clippy --workspace --all-targets  # the lint wall
-cargo nextest run --workspace --run-ignored all # the lanes, which observe what types cannot
+cargo check  --workspace --all-targets
+cargo clippy --workspace --all-targets
+cargo nextest run --workspace --run-ignored all
 cargo fmt --all -- --check
-cargo deny --workspace check             # licenses, sources, feature pins
+cargo deny --workspace check
 ```
+
+---
 
 ## License
 
-ThreadPak is licensed under either of
-
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or
-  <http://www.apache.org/licenses/LICENSE-2.0>)
-
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or
-  <http://opensource.org/licenses/MIT>)
-
-at your option.
-
-### Contribution
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT license](LICENSE-MIT), at your option.
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.

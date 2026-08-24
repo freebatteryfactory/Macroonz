@@ -1,50 +1,20 @@
-//! The closure home's declarative surface: the refusal family this home
-//! declares, the closed table its issue roster is read through, and the proof
-//! contract a complete explanation is answered over.
+//! The constant answers this home's issue roster settles, and the contracts a closure refusal stands under.
 //!
-//! All three are declarations rather than computations.
-//! Nothing here decides anything — the deciding is `prove.rs`, and the proving
-//! is `type_guard.rs`.
+//! Each table is total, so an issue admitted later stops the compiler in every one of them until somebody says what that row's position, sentence, class, and classification are.
+//! Nothing here decides anything: the pass that establishes an issue is `prove.rs`, and the proving is `type_guard.rs`.
 
-use super::ClosureIssue;
-use crate::explanation_protocol::{ClosureProofSeal, ProvedClosure};
-use crate::plane::{ClosureId, RenderedRole};
-use macroonz::{FamilyShape, RefusalFamily};
+use super::{ClosureError, ClosureIssue};
+use crate::bounded::{Bounded, Capping};
+use crate::diagnostic::{
+    CLOSURE_FAMILY, Family, LineBody, Observed, Phase, REPAIR_LIMIT, RefusalClass, Refused, Repair,
+};
+use crate::kind::Role;
+use core::fmt;
 
-use super::{ProjectionClosure, ProjectionClosureRefusal};
-
-impl<R: RenderedRole> RefusalFamily for ProjectionClosureRefusal<R> {
-    const SHAPE: FamilyShape = FamilyShape::IssueCollection;
-}
-
-/// The proof a complete explanation is answered over is THIS proof, and there is
-/// no other.
-///
-/// The explanation-protocol home declares the contract because it is declared
-/// earlier than this one — its terminal seat is what this home's binding
-/// consumes — and a home cannot name a type declared after it without the module
-/// order carrying a backward edge. The contract is sealed, so this
-/// implementation is the only one there can be: a view answered "over a closure"
-/// was answered over a value somebody proved.
-///
-/// It hands back the proof's own NAME and nothing else. What was proved, what it
-/// partitioned, and what it delivers are this home's surface, and a view reads
-/// none of them.
-impl<R: RenderedRole> ProvedClosure for ProjectionClosure<R> {
-    const SEAL: ClosureProofSeal = ClosureProofSeal::admitted();
-    type Rendered = R;
-
-    /// The inherent road, named explicitly: a closure's identity is stated once,
-    /// on the closure, and this contract is a reading of it rather than a second
-    /// answer.
-    fn identity(&self) -> ClosureId {
-        ProjectionClosure::<R>::identity(self)
-    }
-}
-
-impl<R: RenderedRole> ClosureIssue<R> {
-    /// The issue kind's position in the declared roster, written ahead of the
-    /// issue's own material so two kinds never encode alike.
+impl<R: Role> ClosureIssue<R> {
+    /// This row's position in the declared roster, written ahead of the issue's own material.
+    ///
+    /// Appended and never renumbered: the byte stands inside every identity derived over a refusal that carries it.
     #[must_use]
     pub const fn slot(&self) -> u8 {
         match self {
@@ -61,10 +31,11 @@ impl<R: RenderedRole> ClosureIssue<R> {
             Self::ReconstructionUndeclarable { .. } => 10,
             Self::JoinedTreeUnbounded { .. } => 11,
             Self::ArtifactAddressDoubled { .. } => 12,
+            Self::ArtifactAddressAbsent { .. } => 13,
         }
     }
 
-    /// The role this issue was established at, where it is about one.
+    /// The seat this issue was established at, where it is about one.
     #[must_use]
     pub const fn role(&self) -> Option<R> {
         match self {
@@ -77,39 +48,209 @@ impl<R: RenderedRole> ClosureIssue<R> {
             | Self::MaterializationMismatch { role }
             | Self::MemberPlannedTwice { role, .. }
             | Self::MembershipDisagreement { role }
-            | Self::ArtifactAddressDoubled { role, .. } => Some(*role),
+            | Self::ArtifactAddressDoubled { role, .. }
+            | Self::ArtifactAddressAbsent { role } => Some(*role),
             Self::ReconstructionEmpty
             | Self::ReconstructionUndeclarable { .. }
             | Self::JoinedTreeUnbounded { .. } => None,
         }
     }
 
-    /// How the two disagreed, rendered for a person.
-    /// A projection of the typed value: nothing reads it back.
+    /// How what this issue observed differs from the contract that was expected.
     #[must_use]
-    pub const fn described(&self) -> &'static str {
+    pub const fn observed(&self) -> Observed {
         match self {
-            Self::MemberMissing { .. } => "a planned role nothing materialized",
-            Self::MemberUnplanned { .. } => "a rendered role nothing planned",
-            Self::MemberDuplicated { .. } => "a role rendered more than once",
-            Self::OriginOrphan { .. } => "a rendered unit whose origin is not the planned one",
-            Self::DigestMismatch { .. } => "a digest that is not the digest of the bytes rendered",
-            Self::SemanticKeyMismatch { .. } => "the planned role, answering to another key",
-            Self::MaterializationMismatch { .. } => {
-                "a destination or profile the plan did not name"
+            Self::MemberMissing { .. }
+            | Self::ReconstructionEmpty
+            | Self::ArtifactAddressAbsent { .. } => Observed::SeatAbsent,
+            Self::MemberUnplanned { .. }
+            | Self::MemberDuplicated { .. }
+            | Self::MemberPlannedTwice { .. }
+            | Self::MembershipDisagreement { .. }
+            | Self::ArtifactAddressDoubled { .. } => Observed::ContractDisagreement,
+            Self::OriginOrphan { .. } => Observed::OriginAbsent,
+            Self::DigestMismatch { .. } | Self::SemanticKeyMismatch { .. } => {
+                Observed::IdentityDisagreement
             }
-            Self::MemberPlannedTwice { .. } => "a role the plan itself declared twice",
-            Self::MembershipDisagreement { .. } => {
-                "the rebuilt membership and the planned one are not the same set under this role"
+            Self::MaterializationMismatch { .. } => Observed::ProfileDisagreement,
+            Self::ReconstructionUndeclarable { .. } | Self::JoinedTreeUnbounded { .. } => {
+                Observed::BoundExceeded
             }
-            Self::ReconstructionEmpty => "the rebuild produced no member at all",
-            Self::ReconstructionUndeclarable { .. } => {
-                "the rebuild will not declare as a complete output set"
-            }
-            Self::JoinedTreeUnbounded { .. } => {
-                "one emission's joined token tree outgrows its declared magnitude"
-            }
-            Self::ArtifactAddressDoubled { .. } => "two published units stand at one address",
         }
+    }
+
+    /// Which class of refusal a line opening with this issue is about.
+    ///
+    /// Two rows are magnitudes rather than disagreements: what they report is a rendering that would have passed a declared bound, and the seats it filled are not in question.
+    #[must_use]
+    pub const fn class(&self) -> RefusalClass {
+        match self {
+            Self::ReconstructionUndeclarable { .. } | Self::JoinedTreeUnbounded { .. } => {
+                RefusalClass::MagnitudeNotHeld
+            }
+            Self::MemberMissing { .. }
+            | Self::MemberUnplanned { .. }
+            | Self::MemberDuplicated { .. }
+            | Self::OriginOrphan { .. }
+            | Self::DigestMismatch { .. }
+            | Self::SemanticKeyMismatch { .. }
+            | Self::MaterializationMismatch { .. }
+            | Self::MemberPlannedTwice { .. }
+            | Self::MembershipDisagreement { .. }
+            | Self::ReconstructionEmpty
+            | Self::ArtifactAddressDoubled { .. }
+            | Self::ArtifactAddressAbsent { .. } => RefusalClass::RenderingNotClosed,
+        }
+    }
+}
+
+impl<R: Role> fmt::Display for ClosureIssue<R> {
+    fn fmt(&self, into: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::MemberMissing { role } => {
+                let seat = role.name();
+                write!(
+                    into,
+                    "the plan declares a member at {seat} and nothing rendered one"
+                )
+            }
+            Self::MemberUnplanned { role } => {
+                let seat = role.name();
+                write!(
+                    into,
+                    "a unit was rendered at {seat} and the plan declares none"
+                )
+            }
+            Self::MemberDuplicated { role, observed } => {
+                let seat = role.name();
+                write!(into, "{observed} units were rendered at {seat}")
+            }
+            Self::OriginOrphan { role } => {
+                let seat = role.name();
+                write!(
+                    into,
+                    "the unit at {seat} walks back to an origin the plan did not declare"
+                )
+            }
+            Self::DigestMismatch { role } => {
+                let seat = role.name();
+                write!(
+                    into,
+                    "the digest at {seat} is not the digest of the bytes that unit rendered"
+                )
+            }
+            Self::SemanticKeyMismatch { role } => {
+                let seat = role.name();
+                write!(
+                    into,
+                    "the unit at {seat} answers to a semantic key the plan declared elsewhere"
+                )
+            }
+            Self::MaterializationMismatch { role } => {
+                let seat = role.name();
+                write!(
+                    into,
+                    "the unit at {seat} names a profile or an address the plan did not declare"
+                )
+            }
+            Self::MemberPlannedTwice { role, observed } => {
+                let seat = role.name();
+                write!(
+                    into,
+                    "the plan itself declares {observed} members at {seat}"
+                )
+            }
+            Self::MembershipDisagreement { role } => {
+                let seat = role.name();
+                write!(
+                    into,
+                    "the rebuilt membership and the planned one are not the same set at {seat}"
+                )
+            }
+            Self::ReconstructionEmpty => into.write_str("the rebuild produced no member at all"),
+            Self::ReconstructionUndeclarable { observed } => write!(
+                into,
+                "the {observed} rebuilt members will not declare as a complete output set"
+            ),
+            Self::JoinedTreeUnbounded { destination } => {
+                let delivery = destination.name();
+                write!(
+                    into,
+                    "the tokens joined for {delivery} outgrow the declared magnitude"
+                )
+            }
+            Self::ArtifactAddressDoubled { role, address } => {
+                let seat = role.name();
+                let subject = address.subject;
+                write!(
+                    into,
+                    "the artifact at {seat} stands at an address under {subject} already taken"
+                )
+            }
+            Self::ArtifactAddressAbsent { role } => {
+                let seat = role.name();
+                write!(
+                    into,
+                    "the unit at {seat} is delivered to an address and the plan names none"
+                )
+            }
+        }
+    }
+}
+
+impl<R: Role> fmt::Display for ClosureError<R> {
+    fn fmt(&self, into: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(into, "{}", self.first_issue())?;
+        let further = self.issues().count().saturating_sub(1);
+        if further > 0 {
+            write!(into, ", and {further} further issues")?;
+        }
+        if let Capping::Truncated { omitted } = self.capping() {
+            write!(into, ", {omitted} of them not carried")?;
+        }
+        Ok(())
+    }
+}
+
+impl<R: Role> core::error::Error for ClosureError<R> {}
+
+impl<R: Role> Refused for ClosureError<R> {
+    const PHASE: Phase = Phase::Closure;
+    const FAMILY: Family = CLOSURE_FAMILY;
+
+    fn class(&self) -> RefusalClass {
+        self.first_issue().class()
+    }
+
+    fn first(&self) -> String {
+        self.first_issue().to_string()
+    }
+
+    fn observed(&self) -> Observed {
+        self.first_issue().observed()
+    }
+
+    fn body(&self) -> LineBody {
+        let further = self.issues().count().saturating_sub(1);
+        let capping = self.capping();
+        if further == 0 && capping == Capping::Complete {
+            LineBody::SingleCause
+        } else {
+            LineBody::Body { further, capping }
+        }
+    }
+
+    fn related(&self) -> Vec<Vec<u8>> {
+        self.issues()
+            .iter()
+            .map(ClosureIssue::canonical_bytes)
+            .collect()
+    }
+
+    /// This home declares no repair of its own.
+    ///
+    /// Every issue above is about what the caller's own plan declared or what the caller's own renderer produced, so the repair is one of those two declarations; a sentence composed here would be this compiler citing a fact nobody declared.
+    fn repairs(&self) -> Bounded<Repair, REPAIR_LIMIT> {
+        Bounded::empty()
     }
 }

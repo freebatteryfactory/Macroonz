@@ -1,30 +1,20 @@
 #![doc = include_str!("README.md")]
 //!
-//! # The files
+//! [`parse`] maps rendered Rust into a structural reading, and [`structural`] and [`compiled`] are the two comparisons.
 //!
-//! `types.rs` declares everything the annex can say — a golden vector, an
-//! independently composed preimage, what an artifact was read to declare, what
-//! a compiled artifact handed back, and the verdicts over all four. Its child
-//! `type_guard.rs` holds the two roads that mint a value nobody may forge: the
-//! public vector parser, and the transcript composition. `conclude.rs` owns the
-//! finding causes and the one road from each verdict into the record
-//! vocabulary.
-//!
-//! [`structural`] and [`compiled`] are two comparisons over readings supplied by
-//! the challenge side: a `syn` host maps rendered text into typed declarations,
-//! while a compiled host maps rustc values into a read-back. Neither subsumes
-//! the other and neither is a weaker version of the other — a verdict is
-//! method-specific, and reporting one as though it came from another is the
-//! collapse the annex exists to refuse.
+//! Neither comparison subsumes the other and neither is a weaker version of the other.
+//! A verdict is method-specific, and reporting one as though it came from another is the collapse this home exists to refuse.
 
 pub mod compiled;
+pub mod parse;
 pub mod structural;
+
 mod conclude;
 mod types;
 
 pub use types::{
     ArtifactStructure, ByteDifference, CompiledDisagreement, CompiledObservation, CompiledVerdict,
-    ConstantReading, ContextRefusal, DeclaredArtifact, DeclaredBehaviour, DeclaredImplementation,
+    ConstantReading, ContextRefusal, DeclaredArtifact, DeclaredBehavior, DeclaredImplementation,
     DeclaredMember, DeclaredReadBack, DerivedIdentity, ImplPosture, ImplementationMember,
     ImplementationStructure, ORACLE_CAUSE_FAMILY, ObservedMember, ObservedValue, SpecifiedContext,
     StructuralDisagreement, StructuralVerdict, TranscriptDerivation, TranscriptDisagreement,

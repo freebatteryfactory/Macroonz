@@ -1,27 +1,27 @@
 //! One neutral benchmark declaration used by the behavior lane and the ordinary bench target.
 
-use std::sync::atomic::{AtomicU64, Ordering};
-use threadpak_testpak::bench::{
+use macroonz_harness::bench::{
     BenchAttachment, BenchBinding, BenchCall, BenchInvocation, BenchMeasurement, BenchReferences,
     BenchRow, BenchStampRefusal, ComplexityClaimRef, ContentionPosture, DeclaredBudgets,
     InputSizeAxis, PlantedWorseRef, PreflightRef, PreflightTrial, WorkConclusion, WorkCurve,
     WorkFormula, WorkGapStanding, WorkJudge, WorkJudgeBinding, WorkJudgment, WorkJudgmentInput,
     WorkObservationRef, WorkRecorder, WorkRecordingRefusal, WorkloadRef,
 };
-use threadpak_testpak::clock::HarnessClock;
-use threadpak_testpak::descriptor::{
+use macroonz_harness::clock::HarnessClock;
+use macroonz_harness::descriptor::{
     Binding, CheckRef, ClaimRef, Classification, ExecutableAttachment, ExecutionSuite, NameRefusal,
     Origin, PopulationRef, Provenance, RevisionBinding, Role, Row, SubjectRoute, Tag,
     TrialTableRefusal,
 };
-use threadpak_testpak::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
-use threadpak_testpak::report::{
+use macroonz_harness::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use macroonz_harness::report::{
     ByteBudget, CaseBudget, FindingCause, InvocationProfile, TargetBinding, TargetTriple,
     TimeBudget, ToolchainIdentity, TrialConclusion, TrialSite,
 };
-use threadpak_testpak::runner::{Invocation, TrialBinding};
+use macroonz_harness::runner::{Invocation, TrialBinding};
+use std::sync::atomic::{AtomicU64, Ordering};
 
-const OWNER: &str = "testpak.bench.consumer";
+const OWNER: &str = "harness.bench.consumer";
 const LINEAR_FORMULA: &[u8] = b"work=samples*n";
 const MEASURED_REFUSED: FindingCause = FindingCause::named(OWNER, "measured-work-refused");
 const WORSE_REFUSED: FindingCause = FindingCause::named(OWNER, "planted-worse-refused");
@@ -298,20 +298,20 @@ pub(super) fn lawful_binding() -> Result<BenchBinding, BenchStampRefusal> {
     binding(measured, planted_worse, lawful_judge, preflight_passes)
 }
 
-threadpak_testpak::generated_support! {
+macroonz_harness::generated_support! {
     expected: [
-        222, 149, 109, 97, 135, 230, 254, 180, 55, 195, 41, 161, 180, 186, 130, 96,
-        170, 30, 123, 48, 131, 30, 77, 129, 225, 115, 89, 175, 105, 68, 31, 161,
+        185, 251, 251, 45, 168, 146, 85, 42, 248, 177, 196, 48, 117, 229, 207, 5,
+        84, 120, 104, 25, 150, 41, 202, 2, 243, 73, 31, 148, 241, 22, 122, 34,
     ],
-    harness: threadpak_testpak,
+    harness: macroonz_harness,
     benches: {
-        pub(super) fn lawful_table named("testpak.bench.consumer", "neutral-benchmark-table") {
+        pub(super) fn lawful_table named("harness.bench.consumer", "neutral-benchmark-table") {
             provenance: Provenance::Unproduced,
             bindings: [lawful_binding()],
         }
     },
     reporter: {
-        pub(super) fn render(report: &threadpak_testpak::bench::BenchReport) {
+        pub(super) fn render(report: &macroonz_harness::bench::BenchReport) {
             std::hint::black_box((report.table(), report.provenance(), report.denominator()));
             for reading in report.readings() {
                 std::hint::black_box((reading.row().key(), reading.outcome().stage()));

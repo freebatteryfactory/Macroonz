@@ -1,244 +1,170 @@
-# macroc — the generation services
+# macroonz
 
-This is the product line: the road from a captured declaration to output that is planned, rendered, proved closed, and explainable — an expander that writes a record of every decision it makes.
+The compiler.
+A complete request goes in; one sealed expansion comes out, or one diagnostic that says exactly why not.
 
-Each stage hands the next one a value the next one cannot forge.
+This crate is ordinary callable Rust.
+Nothing in it knows a proc macro exists, and nothing in it knows what you are generating.
+You declare a **kind** — what one request produces — and the compiler is generic over it from the first byte to the last.
 
-## The spine — the services in eight nouns
+---
 
-Meaning becomes planned artifacts. The arrows are honest constructors, and the products say what a value actually requires:
+## What you write
 
-```text
-OwnerContentAccount              →  ProjectionIntent
-ProjectionIntent (+ context)     →  Plan
-Plan                             →  RenderedProjection
-Plan × RenderedProjection        →  ProjectionClosure
-                                    × PartitionedEmission
-Plan × ProjectionClosure         →  Explanation (which names both)
-Plan × ProjectionClosure
-     × Explanation               →  ClosedExpansion (the only value
-                                                     emission reaches)
+A kind, a reader for your own declaration grammar, and a renderer.
+Everything else is the road.
+
+```rust
+use macroonz::{Destination, Kind, NoQuestions, Request, Role};
+
+/// The one thing this derive produces: an `impl Greet` for the declared type.
+///
+/// The derives matter: a plan or an expansion over this kind derives its own `Clone` and `PartialEq` under a `K: Clone`/`K: PartialEq` bound, so a bare marker would make an account unclonable.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GreetImpl;
+
+impl Kind for GreetImpl {
+    const NAME: &'static str = "greet.impl";
+    type Content = Greeting;
+    type Role = GreetRole;
+    type Question = NoQuestions;
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GreetRole { Impl }
+
+impl Role for GreetRole {
+    const ALL: &'static [Self] = &[Self::Impl];
+    fn name(self) -> &'static str { "impl" }
+    fn destination(self) -> Destination { Destination::DeclarationSite }
+}
 ```
 
-The owner content account is the typed entry account — content, its owner-supplied commitment, and its dependency set — the ONE account feeding four readings:
+And in the proc-macro crate, with the `host` feature on:
 
-- semantic identity, invalidation dependencies, explanation facts, and origin edges; no second account of content dependencies ever forms. The intent is what you meant — the kind plus the content commitment.
+```rust
+#[proc_macro_derive(Greet, attributes(greet))]
+pub fn greet(input: TokenStream) -> TokenStream {
+    macroonz::host::expand(input, |capture| {
+        let greeting = Greeting::read(&capture)?;
+        Request::<GreetImpl>::over(capture, greeting, &GREET_DOOR)
+            .render(|plan, out| out.unit(GreetRole::Impl, plan.content().impl_tokens()))
+    })
+}
+```
 
-The plan is the decision record of one expansion: it exists inside one service invocation, consulted by the closure and the explanation, then bound into the closed expansion.
+`Greeting::read` is yours.
+The compiler hands you typed token trees with spans and never parses your attribute for you, because the moment it did, it would own your grammar.
 
-The law is precise:
+`GREET_DOOR` is the one value that says who is asking: the diagnostic prefix your users will read, the stable name of your grammar, the stable name of this entry point, and the crate your rendered paths are rooted at.
+Say it once; every diagnostic and every identity carries it.
 
-- these services own no persistent plan store, no queue, no lifecycle, no ambient registry; an ordinary returned plan value may remain inspectable in caller memory — the architecture prohibits a planning institution, not ownership;
+`host::expand` captures the stream, runs your closure, and either emits the declaration-site tokens or places the diagnostic as a `compile_error!` at the exact token it names.
 
-- The rendered projection's members carry their own rendered-unit identities, derived from the exact rendered bytes — a projection is not singularly identified by one member's id;
+---
 
-- The closure proves that plan, declared membership, rendering, origins, and trace agree — agreement among values that exist when it runs — and then splits the rendering into the emissions its members declared: one joined byte stream per delivery, because what the consumer's normal build compiles, what a test target invokes, what a bench target invokes, and what a publication writes to an address are four deliveries and not one. Every planned member declares which one it is for, so the generated mutation module can reach only its support carrier and never the normal build;
+## What you get back
 
-- The explanation is answered OVER the plan and the proved closure and carries both their names, so it can never be a complete, well-formed account of a neighbouring expansion.
+An **expansion**: plan, closure, and explanation sealed under one identity.
 
-The closed expansion binds all three — refusing unless the three names agree, and committing to all three under its own — and is the ONLY value from which emission is reachable, for every projection kind; the refusal family's own `RefusalFamilyExpansion` is a view over it rather than a second road around it.
+- `emit()` — the declaration-site tokens, for a proc macro.
+- `test_carrier()`, `bench_carrier()` — the cargo a test or bench target invokes.
+- `published()` — the units a publication step writes to their own addresses.
+- `explain()` — every question the kind owes, answered, with the identities that answer it.
 
-"Receipt" stays where an actual evidence or publication crossing is: no terminal here wears it.
+You cannot get tokens out of anything but an expansion, and you cannot get an expansion out of anything but the whole road.
 
-## The doors
+---
 
-Every door is a thin shell over the one engine. Door equivalence has its exact comparison — never plan-identity equality, which is impossible by design since a plan's identity contains origin and distinct doors are required to carry distinct origins:
-
-- same intent identity, same declared semantic output membership and roles, equivalent rendered semantic contracts, origins distinct and correctly attributed;
-
-- rendered bytes may lawfully differ where a consumer binding or lawful surface spelling differs.
-
-The builder is the engine's own entrance — the typed functions the derive already calls — promoted to a public, documented, comfortable API: no new station, no new folder, and if that cannot be done comfortably, the finding is about the entrance — fix the entrance, never build a lobby.
-
-The derive is the outside consumer's door and the worked example.
-
-A core-local stamp cannot be a live caller — core carries no dependency edge to these services — so a core stamp is an engine-authored published shell over the same declaration contract, proven equivalent to the builder.
-
-Test and bench targets are consumption sites, not doors:
-
-- they invoke the declarations' generated support shells and receive the cargo — which is a closed expansion's carrier emission and never its declaration-site one, so nothing a consumption target invokes is in the normal build;
-
-- generating test rows at the product declaration site is refused — a reverse dev dependency and a normal-build tax.
-
-What a door hands back is the whole roster's account and not only what it made:
-
-- the terminals its generated kinds ended at, and one typed disposition for every other kind of the sealed roster, so a cell that is empty says which kind of empty it is;
-
-- The roster is enumerated by the same declaration that declares the kinds, and the disposition record carries one required seat per row — a kind admitted to the roster breaks every door's construction until that door says what it does about it.
-
-No door generates a seat to look full: where a kind's plan names a fact the machine mints and a seam holds none, the answer is the standing under that seam's profile, at its version, and never a stand-in.
+## The road
 
 ```mermaid
 flowchart LR
-    CAP["capture — typed reading of the declaration"] --> PLAN["planning — the ProjectionPlan"]
-    PLAN --> REN["rendering"]
-    REN --> CLO["closure — plan, origin graph, trace, and rendering agree; the emission is partitioned by delivery"]
-    CLO --> EXP["explanation — inspectable answers, naming the plan and the proof"]
-    CLO --> BIND["closed expansion — plan, proof, and explanation under one identity"]
-    EXP --> BIND
-    BIND --> TOK["the emission each build receives — reachable only from a closed expansion"]
+    A["account"] --> I["intent"] --> X["context"] --> P["plan"]
+    P --> R["render"] --> C["close"] --> E["explain"] --> B["bind"]
 ```
 
-The crate's own doc comment carries the charter, the callable-without-a-proc-macro promise, and the declaration-order law; each home's README carries that home's narrative.
+| Step | What it settles | Home |
+| --- | --- | --- |
+| **account** | The captured declaration and every captured dependency, committed under one identity. | `plan/` |
+| **intent** | An identity over the kind's name and that commitment. Two requests that meant the same thing derive one intent. | `plan/` |
+| **context** | The profile and the generator version answering. | `plan/` |
+| **plan** | The complete output set, named before any syntax exists: each unit's role, key, destination, origin, and digest contract; the invalidation set; the decision trace; the nonclaims. | `plan/` |
+| **render** | Your renderer runs, once, against the plan. Typed tokens become units, each digested over its own canonical bytes. | `render/` |
+| **close** | The membership is rebuilt from the rendered units and proved equal to the plan, role by role, then partitioned by destination. | `closure/` |
+| **explain** | Every question answered once over that plan and that closure. | `explanation/` |
+| **bind** | The three sealed together, after the compiler establishes that they name one another. | `expansion/` |
 
-This file carries the drawn module map, the mechanism this tooling admits from outside, and the working rule it holds to when a required seat cannot be filled.
+Each step returns a value the next one cannot forge, and `Request` walks them in order so that a caller cannot skip one.
+A request that fails any step is refused whole — there is no partial output.
 
-## The module map
+---
 
-An arrow points at what a module imports. The same graph is stated structurally in `src/lib.rs`: the `pub mod` list is declared in dependency order, so a module imports only modules declared earlier than itself.
+## The homes
 
-Rustdoc renders no diagram and needs none — reading that list top to bottom is reading this map, and the `use` lines under each home are the edges themselves, greppable at their source.
+| Home | Owns |
+| --- | --- |
+| `bounded/` | The compiler's own capped collections: `Bounded`, `NonEmpty`, and `Capped` — a list plus how it was capped. |
+| `identity/` | `Identity<S>`, the `Subject` trait, transcripts, profiles, versions, provenance, and the digest. |
+| `token/` | Captured token trees with spans, the literal reader, the text route, generated tokens, and the Rust-expression helpers every renderer needs. |
+| `kind/` | `Kind`, `Role`, `Question`, `Answer`, the `kinds!` declaration, and dispositions. |
+| `diagnostic/` | `Diagnostic`: phase, site, summary, expected, observed, related set, repairs, reproduction route; and the one line grammar every refusal is projected through. |
+| `origin/` | Where a generated thing came from: the non-empty trail back to authored material, and the decision trace. |
+| `plan/` | Account, intent, context, membership, destinations, invalidation, and the plan itself. |
+| `render/` | Rendered units and projections. |
+| `closure/` | The proof and the partitioned emission. |
+| `explanation/` | The universal questions, the view, and coverage. |
+| `expansion/` | The sealed expansion and the per-kind account of what a door produced. |
+| `support/` | The exported support shell a test target invokes: the carrier, the gate, the assembly, the schema pin. |
+| `descriptor/` | The harness-facing kinds: trial tables, bench tables, mutation surfaces. |
+| `codec/` | The codec kind: canonical encode and decode for a declared shape. |
+| `stamp/` | Stamping an authored pattern into published `macro_rules!` source. |
+| `request/` | `Request<K>`, `Door`, `Producer`, `CrateBinding`: the front door. |
+| `host/` | Behind the `host` feature: the bridge to `proc_macro` — capture a stream, emit a stream, place a diagnostic. |
 
-A station no arrow reaches is a road not yet built, and the map shows it without a status label.
+A home is a directory with a README, a `mod.rs`, and a `types.rs`; the rest is in [`AGENTS.md`](../../AGENTS.md).
 
-```mermaid
-flowchart TD
-    subgraph SVC["the services, in declaration order"]
-        TOK["token"] --> PLN["plane"]
-        REF["refusal"] --> PLN
-        DIA["diagnostics"] --> PLN
-        DIA --> TOK
-        QUE["question — a leaf, the closed question roster"]
-        OG["origin_graph"] --> PLN
-        OG --> REF
-        PLAN["planning"] --> PLN
-        PLAN --> REF
-        PLAN --> QUE
-        PLAN --> OG
-        DI["refusal_family_implementation — family, cause-order, and optional mutation units"] --> PLN
-        DI --> TOK
-        DI --> OG
-        DI --> PLAN
-        COD["codec"] --> PLN
-        COD --> TOK
-        COD --> OG
-        COD --> PLAN
-        TD["test_descriptor — the wall's ONE carrier is declared here"] --> PLN
-        TD --> TOK
-        TD --> OG
-        TD --> PLAN
-        BD["benchmark_descriptor"] --> PLN
-        BD --> TOK
-        BD --> OG
-        BD --> PLAN
-        BD --> TD
-        EXP["explanation_protocol"] --> PLN
-        EXP --> DIA
-        EXP --> QUE
-        EXP --> OG
-        EXP --> PLAN
-        CLO["closure — the proof, and the closed expansion every kind's road ends at"] --> PLN
-        CLO --> OG
-        CLO --> PLAN
-        CLO --> QUE
-        CLO --> TOK
-        CLO --> EXP
-        CMP["composition"] --> PLN
-        PS["pattern_stamp"] --> PLN
-        PS --> TOK
-        PS --> REF
-        PS --> OG
-        PS --> PLAN
-        PS --> TD
-        GS["generated_support — how closed outputs compose into ONE carrier"] --> PLN
-        GS --> PLAN
-        GS --> TD
-        GS --> CLO
-    end
-    DR["derive_refusal — the working derive road"] --> PLN
-    DR --> TOK
-    DR --> REF
-    DR --> DIA
-    DR --> OG
-    DR --> PLAN
-    DR --> CLO
-    DR --> EXP
-    DR --> TD
-    DR --> GS
-```
+---
 
-`generated_support` is seated after `closure` and after `test_descriptor` because it reads both:
+## What is yours
 
-the terminals cargo is read off, and the carrier the cargo is composed into. It is not a projection kind and it is not a provider registry — `composition` owns which providers of descriptor material exist, and this home owns whether a set of already-proved outputs physically belongs in one exported shell.
+Everything with meaning.
 
-Assembly is physical; composition is the registry.
+- **Kinds, roles, questions.** `Kind`, `Role`, `Question`, and `Subject` are open traits. Implement them in your crate. There is no seal and no registration.
+- **Content.** `Kind::Content` is any `Clone + Eq + Debug` type. The compiler never encodes it and never commits to it; it commits to the captured bytes your content was read from.
+- **Grammar.** Your attributes, your clauses, your refusals, your wording.
+- **Identity.** Your subjects derive under your stem. The compiler's own identities derive under `macroonz/identity`. They cannot collide.
+- **The door.** The prefix on every diagnostic, the names of your grammar and your entry, the crate your paths are rooted at.
 
-## The publication road
+What is the compiler's: the eight steps, the proof that rendering matched plan, the explanation protocol, the diagnostic grammar, the digest, and the carrier a test target invokes.
 
-Default generation writes NOTHING to disk. Publication exists only for identifier-minting across files — git-visible source under a receipt, committed by a human — and its admission rule is structural:
+---
 
-publication is lawful only when the requested output requires a cross-file artifact or identifier minting that neither declaration-site generation nor a core-local stamp can express, and the plan RECORDS why the lighter roads are insufficient — the road held narrow by rule, never by a reader's mood.
+## Diagnostics
 
-The generated-support schema pair is this road's own case:
+One typed value per observation.
+A `Diagnostic` names its phase, the exact site — a token, or a byte before capture on the text route — one plain summary line, what was expected and what was observed, a related set derived under one identity, the repairs the owner declared, and a route to reproduce it without a proc macro.
 
-both checked-in sides rewritten together in one committed change, and held current by the harness's own currency lane.
+The summary line has one grammar.
+It opens with your door's prefix, states the class of refusal, the body, and the site.
+Every refusal the road can raise — planning, rendering, closure, explanation, binding, assembly — projects through the same grammar, so a user of three different derives built on this crate reads three diagnostics shaped one way.
 
-## The admitted digest, and what it is admitted for
+---
 
-The services derive their own identities — plans, closures, explanations, rendered units, generated units, origin nodes, bundles, closed expansions, the declared names this crate wrote down, and the relations a diagnostic points at — and those identities are handed out.
+## Determinism
 
-A closed expansion that names a plan is only as good as the name, so the derivation is a **BLAKE3 identity profile**, versioned and domain-separated, over complete transcripts — one profile per canonical preimage grammar, so a version bump renames the identities of the grammar that moved and no others, and no preimage rides a neighbour's ladder.
+Expansion is a function of the request.
+No network, no filesystem scan, no environment, no clock, no entropy — there is no seat where one could enter, and the harness observes that from outside.
 
-**The dependency.** `blake3`, at the exact version the workspace dependency table decides once for every member that names it, with `default-features = false`.
+Identities are BLAKE3 derivations over canonical transcripts.
+Every preimage grammar is versioned, one version per grammar, and a changed preimage is a new version rather than a silent rename.
 
-That table carries the pin; this home carries why the services reach for the mechanism at all, and why the cut is the one it is.
+---
 
-The default `std` feature buys an `io::Write` adapter and error-trait impls the services name nowhere.
+## Features
 
-`rayon` is not a default feature and is never named: an expansion running inside `rustc` must not stand up a thread pool to hash a few kilobytes. `serde`, `zeroize`, `mmap`, and the digest-trait previews buy surfaces the plane has no seat for.
+| Feature | Adds | Default |
+| --- | --- | --- |
+| `host` | `macroonz::host`: `proc_macro::TokenStream` in, `CapturedInput` out; expansion in, `TokenStream` out; a diagnostic placed as `compile_error!` at its site. | off |
 
-What is left is `Hasher` and `derive_key`, which is the whole mechanism the profile uses.
-
-The crate carries its own build script and C/assembly fast paths on the platforms that have them; that is a property of the admitted dependency and is disclosed here rather than discovered by whoever first builds without a C toolchain.
-
-**And unusually, that cut is settled and not merely requested.** A manifest asks; a resolved graph holds; a compiled unit is handed. `deny.toml` settles the middle one, and for `blake3` it settles it as EMPTY and exact — no crate anywhere in this graph turns a `blake3` feature on.
-
-An empty graph set is the one case that reaches the third fact too, because a unit's features are a subset of what the graph resolved.
-
-**This admission is the TOOLING PLANE's, and it is not band 07's.** Band 07's digest-family rule proposes blake3-256 for the machine's commitments, under the machine's domain-tag register, and admitting it is a separate mechanism decision with a separate owner.
-
-The two admissions share an algorithm and nothing else: different preimages, different domain separation, different claims, different owners. Neither one licenses the other, and a plane identity is never accepted where a machine commitment is required.
-
-**What the profile claims.** An identity is derived over its subject's complete transcript, never over a reduced fold. The claim's full statement — the collision resistance inherited, what each mint site still owes, and what the profile never claims — is owned by `ProjectionIdentity` and `ProjectionTranscript` in `src/plane/types.rs`.
-
-## The failed required seat
-
-**A required seat is never repaired with an empty, default, or neighbouring value after construction fails — a failed required seat is a typed refusal.**
-
-This is a rule about what the services do at the moment something impossible happens.
-
-A checked seam returns a `Result`; a caller that has no honest value for the failing case reaches for the nearest one it can see, and the nearest one is always wrong in the same three ways:
-
-- **empty** — a rendering that did not fit becomes a blank explanation;
-
-- **default** — an owner fact nobody cited stands in for the one the plan declares;
-
-- **neighbouring** — the first member of a set stands in for the member under a role, the first rendered unit's digest stands in for the digest of the unit this seat is about.
-
-Each of those produces a value that is well-formed, complete-looking, and about something else. That is strictly worse than a refusal, because everything downstream then proves the wrong claim correctly: a membership shortened to one member is closed over, at one member, and the closure is honest about a plan that is not.
-
-The rule has two halves, and the first is the one that does the work.
-
-**Where the failing case cannot happen, the road must not have it.** A complete set fixed by a shape, a static rendering whose length is a compile-time fact, a roster with a known arity — none of these has a runtime count to read, so none of them returns a `Result`. `PlannedMembership::complete`, `RenderedProjection::complete`, `NonEmptyBounded::from_array`, and the seam behind `human_projection!` are *total structural* constructors:
-
-the bound is settled by const evaluation and there is no error branch for a caller to fill.
-
-This is the half that removes the temptation rather than policing it.
-
-**Where the failing case can happen, the refusal is typed and it propagates.** It names the seat (`ExplanationBindingRefusal::RequiredOutputAbsent`), the role (`ClosureIssue::MemberPlannedTwice`), the axis and magnitude (`ProjectionPlanningIssue::BoundExceeded`), or the bound it overran (`CaptureBound`).
-
-It reaches a caller as a diagnostic that keeps those distinctions — one related identity per established issue, the first issue's own classification, and a summary composed from the typed values.
-
-Saturating a numeric conversion to `MAX` while REPORTING a count is not this defect and is not touched by the rule: it is a rendering of a number too large to render, inside a refusal that has already been established.
-
-## What the services never do
-
-**They own no semantic noun.**
-
-- The body shapes are the public contracts package's;
-
-- the canonical cause key grammar is the public contracts package's;
-
-- the selection order's content is the author's.
-
-A tooling type may summarize, reference, plan, explain, or project an owner fact; it may never create a second value that independently answers the owner's semantic question — which is why an unanchored diagnostic says it is unanchored rather than carrying a minted stand-in.
+Only a proc-macro crate turns `host` on.

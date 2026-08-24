@@ -1,86 +1,41 @@
-//! The token seam's declarations: what a captured declaration is, how a
-//! producer's span table answers, how a text read refuses, and what a renderer
-//! writes.
+//! The seam's declarations: what one captured declaration is, how a producer's span table answers, how a text read refuses, and what a renderer writes.
 //!
 //! Declarations only.
-//! The roads that reach a private field live in `type_guard.rs`, this file's
-//! own child, which is where all four declared magnitudes are settled.
-//!
-//! Three of those four are declared BELOW, because only this seam asks what they
-//! bound; the per-level magnitude is the compiler plane's, because the
-//! refusal-family derive asks it too.
+//! Every road that reaches a private field lives in `type_guard.rs`, this file's own child, which is where all five magnitudes below are settled.
 
-use crate::plane::{CapturedTokenLimit, GeneratedTokenLimit};
-use macroonz::Bounded;
+use crate::bounded::Bounded;
 
 #[path = "type_guard.rs"]
 mod guard;
 
-// ---------------------------------------------------------------------------
-// The magnitudes.
-//
-// This home's own rows, stamped by the plane's magnitude stamp. The stamp is the
-// plane's mechanism; the meaning, the number, and the reason on every row below
-// are this home's, declared beside the capacities they govern.
-// ---------------------------------------------------------------------------
+/// Steps one token path may carry, and so how deeply a declared input may nest.
+///
+/// A width bound alone bounds each level and says nothing about the depth, so an input nested a million groups deep would satisfy it at every level while the walk reading it did not terminate.
+pub const TOKEN_PATH_DEPTH_LIMIT: usize = 32;
 
-crate::plane::limits! {
-    /// The magnitude governing how many steps one token path may carry — how
-    /// deeply a declared input may nest.
-    ///
-    /// # Bounds
-    ///
-    /// Thirty-two. A level bound alone bounds the WIDTH of each level and
-    /// nothing about the depth, so an input nested a million groups deep
-    /// satisfies it at every level while the walk that reads it does not
-    /// terminate in any useful time. A route that would run past this refuses
-    /// rather than saturating: a saturated depth makes two different tokens
-    /// share one route.
-    TokenPathDepthLimit = 32,
-    /// The magnitude governing how many tokens one captured input may carry
-    /// ACROSS the whole tree.
-    ///
-    /// # Bounds
-    ///
-    /// Sixteen thousand three hundred and eighty-four. The level bound and the
-    /// depth bound MULTIPLY: four thousand tokens at each of thirty-two levels
-    /// is a tree nobody declared and nobody wants captured, so the total is
-    /// bounded in its own right rather than left as the product of two other
-    /// magnitudes.
-    ///
-    /// A producer's span table stands under this magnitude too — one entry per
-    /// handle it issued, across every level at once — because a table is not a
-    /// level.
-    CapturedTreeTokenLimit = 16384,
-    /// The magnitude governing how many units of capture work one walk may
-    /// spend, one unit per examined token.
-    ///
-    /// # Bounds
-    ///
-    /// Sixty-five thousand five hundred and thirty-six, and DELIBERATELY wider
-    /// than the whole-tree magnitude: a walk may LOOK at more than it keeps, and
-    /// a budget at the tree magnitude exactly would refuse a lawful input the
-    /// moment its producer looked twice at anything.
-    ///
-    /// Four units for every token [`CapturedTreeTokenLimit`] admits, which is
-    /// the room a producer that backtracks over an alternative or skips trivia
-    /// needs and no more. That magnitude is the one this number stands over, so
-    /// the two are moved together or not at all: a wider tree under this budget
-    /// would refuse lawful declarations naming a bound they never approached,
-    /// and this is the number that would have to move to keep the tree magnitude
-    /// reachable. The two rows sit side by side here for exactly that reason.
-    CaptureWorkLimit = 65536,
-}
+/// Token trees one captured input may carry at any one nesting level.
+pub const CAPTURED_TOKEN_LIMIT: usize = 4096;
+
+/// Tokens one captured input may carry across the whole tree, and positions one span table may hold.
+///
+/// The level bound and the depth bound multiply, so the total is bounded in its own right rather than left as the product of two other magnitudes; a table is not a level, so it stands here too.
+pub const CAPTURED_TREE_TOKEN_LIMIT: usize = 16_384;
+
+/// Units of capture work one walk may spend, one unit per examined token.
+///
+/// Deliberately wider than the whole-tree magnitude, because a walk may look at more than it keeps, and a budget at the tree magnitude exactly would refuse a lawful input the moment its producer looked twice at anything.
+pub const CAPTURE_WORK_LIMIT: usize = 65_536;
+
+/// Tokens one generated tree may carry at any one nesting level.
+pub const GENERATED_TOKEN_LIMIT: usize = 4096;
 
 /// An opaque index into the producer's span table.
 ///
-/// It carries no position, no file, and no length.
-/// A handle and only a handle: the producer built the table while capturing,
-/// and only the producer can turn one back into a compiler span.
+/// It carries no position, no file, and no length: the producer built the table while capturing, and only the producer can turn one back into a compiler span.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SpanHandle(u32);
 
-/// The coordinate system used by one source position.
+/// The coordinate system one source position is counted in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CoordinateRole {
     /// A zero-based byte offset in the captured text.
@@ -107,179 +62,93 @@ pub enum CapturedDelimiter {
     Brace,
     /// `[ … ]`.
     Bracket,
-    /// A group with no delimiter written — the invisible grouping a compiler
-    /// inserts around a captured fragment. It is a real group and is never
-    /// flattened away.
+    /// A group with no delimiter written — the invisible grouping a compiler inserts around a captured fragment.
     ///
-    /// The one producer that writes it is a compiler shell, which is handed the
-    /// grouping already made. A reader of text can never write one, because
-    /// there are no characters to read: text that carries no delimiter carries
-    /// no group, so the text route's alphabet has no row for this and needs
-    /// none.
+    /// It is a real group and is never flattened away, and a reader of text can never write one, because text that carries no delimiter carries no group.
     Bare,
 }
 
-macroonz::closed_register! {
-    /// How one capture refuses on a declared magnitude.
-    ///
-    /// One cause per magnitude, because each is a different fact about a
-    /// declared input and repairing one tells a caller nothing about the rest.
-    /// Every one of them refuses before any partial tree exists: a truncated
-    /// capture is a different declaration, and capturing one would put the whole
-    /// road downstream to work on material nobody wrote.
-    #[must_use = "a bound refusal names which declared magnitude the capture would have passed"]
-    #[expect(
-        clippy::enum_variant_names,
-        reason = "the shared word is the fact each row states: a row is not the magnitude, it is the magnitude having been RUN PAST, and a roster spelled without it would read as the four bounds rather than as the four ways of exceeding one"
-    )]
-    pub enum CaptureBound {
-        /// The declared input nests deeper than the declared magnitude.
-        DepthUnbounded = "depth-unbounded",
-            "threadpak refusal-family derive: the declared input nests deeper than the \
-             declared magnitude";
-        /// One nesting level carries more token trees than the declared magnitude.
-        LevelUnbounded = "level-unbounded",
-            "threadpak refusal-family derive: one nesting level of the declared input carries \
-             more tokens than the declared magnitude";
-        /// The whole tree carries more tokens than the declared magnitude.
-        TreeUnbounded = "tree-unbounded",
-            "threadpak refusal-family derive: the declared input carries more tokens than the \
-             declared magnitude";
-        /// The walk spent the declared capture-work budget.
-        WorkUnbounded = "work-unbounded",
-            "threadpak refusal-family derive: reading the declared input spent the declared \
-             capture-work budget";
-    }
+/// Which declared magnitude one capture ran past.
+///
+/// Every row refuses before any partial tree exists: a truncated capture is a different declaration, and capturing one would put everything downstream to work on material nobody wrote.
+#[must_use = "a bound refusal names which declared magnitude the capture would have passed"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CaptureBound {
+    /// The declared input nests deeper than the declared magnitude.
+    Depth,
+    /// One nesting level carries more token trees than the declared magnitude.
+    Level,
+    /// The whole tree carries more tokens than the declared magnitude.
+    Tree,
+    /// The walk spent the declared capture-work budget.
+    Work,
 }
 
-/// Where one captured token sits, as the index route from the root of the
-/// declared input.
+/// Where one captured token sits, as the index route from the root of the declared input.
 ///
-/// The route is unique by construction: `[3, 0, 5]` is the sixth token of the
-/// first token of the fourth top-level token, and nothing else in the tree
-/// spells that.
-/// A depth and an index would not locate a token: the first token of one group
-/// and the first token of its sibling both sit at depth one, index zero.
-///
-/// Stable under everything a span is not stable under: the route is the same
-/// whether the input arrived from a compiler or from text, whether the file
-/// moved, and whether anything was reformatted.
-/// Two captures of the same declaration agree on every route.
-///
-/// Bounded by [`TokenPathDepthLimit`], so a route is never longer than the
-/// nesting a declared input is allowed to reach.
+/// The route is unique by construction: `[3, 0, 5]` is the sixth token of the first token of the fourth top-level token, and nothing else in the tree spells that.
+/// It is stable under everything a span is not stable under — which producer read the input, where the file moved, how the source was formatted — so two captures of one declaration agree on every route.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TokenPath {
-    steps: Bounded<u32, TokenPathDepthLimit>,
+    steps: Bounded<u32, TOKEN_PATH_DEPTH_LIMIT>,
 }
 
-/// The running state of one capture walk: what the walk has spent, and how much
-/// of the whole-tree magnitude it has taken.
+/// The running state of one capture walk: what the walk has spent, and how much of the whole-tree magnitude it has taken.
 ///
-/// # Bounds
-///
-/// The depth, level, and tree magnitudes bound the result — how deep it nests,
-/// how wide each level is, how many tokens it holds.
-/// The budget bounds the walk, and the two are charged separately:
-/// [`CaptureWalk::examined`] is spent on every token a producer looks at, and
-/// [`CaptureWalk::took`] counts only the tokens a producer keeps.
-///
-/// A producer that reads material it discards — a frontend skipping trivia, a
-/// reader backtracking over an alternative — spends work the result never
-/// shows, and the budget is the only magnitude that can see it.
+/// The two are charged separately, because a producer that reads material it discards — a frontend skipping trivia, a reader backtracking over an alternative — spends work the result never shows, and the budget is the only magnitude that can see it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CaptureWalk {
-    remaining: u32,
-    taken: u32,
+    remaining: usize,
+    taken: usize,
 }
 
 /// What one captured token carries.
 ///
-/// A literal arm carries the literal's VALUE and never the characters it was
-/// spelled with: `"a\nb"` and `"a` + a real line break + `b"` are one text, and
-/// `"x"` and `r"x"` are one text, because the quoting and the escaping are the
-/// spelling's business exactly as they are on the generated side.
-/// What separates two arms is what the value IS — text, bytes, one character,
-/// one byte — and never which prefix a producer read.
+/// An arm carries a literal's value and never the characters it was spelled with, so `"x"` and `r"x"` are one text and which prefix a producer read is not a fact the tree keeps.
 ///
 /// # Ordering
 ///
-/// The roster grows at its END and nowhere else, for the reason the seam's
-/// `encode.rs` states: each arm's slot is a byte of
-/// [`CapturedInput::canonical_bytes`], and those bytes are what a captured
-/// declaration's plane identity is derived over.
+/// The roster grows at its end and nowhere else: each arm's slot is a byte of the canonical bytes a captured declaration's identity is derived over.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CapturedPayload {
     /// An identifier-shaped word.
     Word(String),
     /// One punctuation character.
     Punct(char),
-    /// A text literal's text: `"…"` and `r"…"` alike, escapes read and quotes
-    /// removed.
+    /// A text literal's text: `"…"` and `r"…"` alike, escapes read and quotes removed.
     Text(String),
-    /// A numeric literal, exactly as written.
-    ///
-    /// The spelling and not a value: an integer's base, its digit separators,
-    /// and the suffix that types it are all part of what the declaration says,
-    /// and no road in the services reads a captured number back as a number.
-    /// A decoded arm would have to pick a width and a sign to decode INTO, and
-    /// would then be answering a question this seam has never been asked.
+    /// A numeric literal, exactly as written: the base, the digit separators, and the suffix that types it are all part of what the declaration says.
     Number(String),
     /// A delimited group and the tokens inside it.
     Group {
         /// The delimiter written around the group.
         delimiter: CapturedDelimiter,
         /// The tokens inside, in the order they were written.
-        trees: Bounded<CapturedTokenTree, CapturedTokenLimit>,
+        trees: Bounded<CapturedTokenTree, CAPTURED_TOKEN_LIMIT>,
     },
-    /// A byte-string literal's material: `b"…"` and `br"…"`.
-    ///
-    /// Bytes rather than text, for the reason [`GeneratedToken::ByteText`]
-    /// states on the other side — the two are different literals at the seat
-    /// they are written to, and material that is not text crosses without a
-    /// lossy road existing for it to take.
+    /// A byte-string literal's material: `b"…"` and `br"…"`, kept as bytes because material that is not text crosses without a lossy road existing for it to take.
     ByteText(Vec<u8>),
     /// One character literal's character: `'…'`.
     Character(char),
     /// One byte literal's byte: `b'…'`.
     Byte(u8),
-    /// A C string literal's material: `c"…"` and `cr"…"`.
-    ///
-    /// The material is the body. The terminating NUL is the literal form's and
-    /// not the value's, exactly as the quotes are, so nothing here carries a
-    /// byte the declaration did not write.
+    /// A C string literal's material: `c"…"` and `cr"…"`, without the terminating NUL, which is the literal form's and never the value's.
     NulTerminatedText(Vec<u8>),
 }
 
-macroonz::closed_register! {
-    /// Why one literal spelling could not be read into the value it names.
-    ///
-    /// Two causes, because they are two different facts about this grammar and
-    /// each names a different repair: a form with no row here is a row this
-    /// seam owes, and a body a known form could not read is a reader here that
-    /// does not reach as far as the form does.
-    ///
-    /// Neither is the caller's mistake. Every spelling that reaches this road
-    /// was already lexed by a compiler, so a refusal on one is this crate
-    /// saying it does not read what the compiler admitted — which is the one
-    /// honest answer available, and is why filing an unread spelling under a
-    /// row that means something else is the thing this grammar exists to stop.
-    #[must_use = "a literal refusal names why the spelling could not be read into a value"]
-    pub enum LiteralReadCause {
-        /// The spelling opens with no literal form this grammar has a row for.
-        NotAKnownForm = "not-a-known-form",
-            "threadpak refusal-family derive: the declared input carries a literal written in \
-             a form this grammar has no row for";
-        /// The form is one this grammar reads, and its body carries material
-        /// this grammar could not read the value of.
-        NotReadable = "not-readable",
-            "threadpak refusal-family derive: the declared input carries a literal this \
-             grammar could not read the value of";
-    }
+/// Why one literal spelling could not be read into the value it names.
+///
+/// Neither row is the caller's mistake: every spelling that reaches this road was already lexed by a compiler, so a refusal is this crate saying it does not read what the compiler admitted.
+#[must_use = "a literal refusal names why the spelling could not be read into a value"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum LiteralReadCause {
+    /// The spelling opens with no literal form this grammar has a row for.
+    NotAKnownForm,
+    /// The form is one this grammar reads, and its body carries material this grammar could not read the value of.
+    NotReadable,
 }
 
-/// One captured token: what it carries, where it sits, and how to reach the
-/// compiler span it came from.
+/// One captured token: what it carries, where it sits, and how to reach the compiler span it came from.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CapturedTokenTree {
     payload: CapturedPayload,
@@ -287,80 +156,52 @@ pub struct CapturedTokenTree {
     span: SpanHandle,
 }
 
-/// One captured declared input: the top-level token trees, and how many span
-/// handles the producer issued.
+/// One captured declared input: the top-level token trees, and how many span handles the producer issued.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CapturedInput {
-    trees: Bounded<CapturedTokenTree, CapturedTokenLimit>,
+    trees: Bounded<CapturedTokenTree, CAPTURED_TOKEN_LIMIT>,
     issued: u32,
 }
 
 /// Why one span table could not say where a handle sits.
 ///
-/// A table that does not reach a handle has exactly one thing to say: which
-/// handle ran past it, and how far it reaches.
-/// A caller holding both can tell a handle issued by another producer from a
-/// handle issued past the end of a truncated table, which is the whole of what
-/// is knowable from this side.
+/// A caller holding the handle and the table's reach can tell a handle issued by another producer from a handle issued past the end of a truncated table, which is the whole of what is knowable from this side.
 #[must_use = "a resolution refusal carries the handle and how far the table reaches"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SpanResolutionRefusal {
     /// The handle the table was asked to resolve.
     pub handle: SpanHandle,
-    /// How many positions the table carries.
-    /// A handle at or past this index names no position in it.
+    /// How many positions the table carries; a handle at or past this index names no position in it.
     pub reaches: usize,
 }
 
 /// How a producer answers "where is the token this handle names?".
 ///
-/// A producer either knows byte offsets into the text it read, or it holds the
-/// compiler's own spans and resolves handles on its own side.
-/// Not an option and not a default: the services never invent a position for a
-/// handle they cannot resolve, and a diagnostic coordinate reading `byte 0`
-/// under a producer-held table would be a fiction.
+/// Not an option and not a default: nothing here invents a position for a handle it cannot resolve, and a diagnostic coordinate reading `byte 0` under a producer-held table would be a fiction.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SpanTable {
     /// Byte offsets into the declared input, one per issued handle.
-    ///
-    /// Bounded by the WHOLE-TREE magnitude, because that is what the table
-    /// counts: a producer issues one handle per token it keeps, across every
-    /// level of the tree at once, so the table grows with the tree and never
-    /// with any one level of it.
-    /// Under the per-level magnitude the table would refuse a lawful
-    /// declaration of four thousand and ninety-seven tokens while naming a
-    /// magnitude that declaration never approached — a bound that bites is only
-    /// evidence when it is the bound the input actually overran.
-    ByteOffsets(Bounded<u64, CapturedTreeTokenLimit>),
+    ByteOffsets(Bounded<u64, CAPTURED_TREE_TOKEN_LIMIT>),
     /// The producer holds the compiler's spans and resolves handles itself.
     ProducerHeld,
 }
 
 /// Why one text read refused.
 ///
-/// Dependent checks: there is no group to balance until the characters were
-/// cut, and no magnitude to exceed until the trees were built.
-#[must_use = "an established cause is why the text read refused"]
+/// Dependent checks: there is no group to balance until the characters were cut, and no magnitude to exceed until the trees were built.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TextReadCause {
     /// A text literal was never closed.
     NotTerminated,
-    /// A text literal carries an escape sequence.
-    /// THIS ROUTE admits none, so a body it captures is the text that body
-    /// spells and no reading stands between the two.
-    /// The captured grammar is wider than the route: a compiler shell hands
-    /// escaped spellings over and [`crate::capture_literal`] reads them, so what
-    /// this cause bounds is the hand-rolled reader's own alphabet and never what
-    /// a captured text may hold.
+    /// A text literal carries an escape sequence, which this route admits none of.
+    ///
+    /// The captured grammar is wider than the route: a compiler shell hands escaped spellings over and `capture_literal` reads them, so what this cause bounds is this reader's own alphabet and never what a captured text may hold.
     NotEscapeFree,
     /// A delimited group was never closed.
     NotBalanced,
     /// A closing delimiter arrived with no group open.
     NotOpened,
-    /// The read exceeds a declared magnitude, and this is which one.
-    /// The bound travels rather than collapsing to one word: a reader told only
-    /// "unbounded" cannot tell a tree that nests too deep from one that spends
-    /// the walk's budget, and the two are repaired differently.
+    /// The read exceeds a declared magnitude, and this is which one — a reader told only "unbounded" cannot tell a tree that nests too deep from one that spends the walk's budget.
     Unbounded(CaptureBound),
 }
 
@@ -374,19 +215,10 @@ pub struct TextReadRefusal {
     pub at: u64,
 }
 
-/// One declared input read from text: the captured trees, and the byte offsets
-/// that resolve every handle the read issued.
+/// One declared input read from text: the captured trees, and the byte offsets that resolve every handle the read issued.
 ///
-/// The callable route.
-/// A compiler is one producer of captured input, a test is another, and text is
-/// the third — it exists so that the callable-services reproduction route a
-/// diagnostic names is a real road and not a promise.
-///
-/// The two seats are visible to the text route alone, and that route is what
-/// establishes the relationship between them: the offsets table resolves
-/// exactly the handles the capture beside it issued.
-/// Nothing outside `token/` can name either seat, and nothing inside it builds
-/// the pair any other way.
+/// The callable route — a compiler is one producer of captured input, a test is another, and text is the third — so that the reproduction route a diagnostic names is a real road and not a promise.
+/// The two seats are visible to `text.rs` alone, and that read establishes the relationship between them: the offsets table resolves exactly the handles the capture beside it issued.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TextCapture {
     /// The captured input the read produced.
@@ -417,27 +249,12 @@ pub enum GeneratedDelimiter {
 
 /// One token a renderer writes.
 ///
-/// A renderer states a literal's VALUE and never its spelling: a text literal is
-/// its text, a byte-string literal is its bytes, an integer literal is its
-/// number.
-/// The quoting, the escaping, and the absence of a suffix are the tree's
-/// business, which is what keeps a caller from composing `b"…"` out of a word
-/// and a quoted string — that pair is two tokens where the address reading it
-/// matches one.
+/// A renderer states a literal's value and never its spelling, and the quoting, the escaping, and the absence of a suffix are the tree's business.
+/// That is what keeps a caller from composing `b"…"` out of a word and a quoted string — a pair that is two tokens where the address reading it matches one.
 ///
 /// # Ordering
 ///
-/// The roster grows at its END and nowhere else.
-/// Each arm's slot is written in the seam's `encode.rs`, a slot is a byte of
-/// [`GeneratedTree::canonical_bytes`], and those bytes are the content a
-/// rendered unit's plane identity is derived over — so an arm inserted among the
-/// existing ones would renumber every slot after it and rename identities that
-/// were already derived.
-/// Appending renames nothing: a tree that was spellable before an arm was added
-/// encodes to the same bytes after it.
-/// The captured roster next door is ordered differently for the same reason it
-/// is ordered at all — it was declared once, in one act, and has never had to
-/// grow under material already encoded.
+/// The roster grows at its end and nowhere else: each arm's slot is a byte of [`GeneratedTree::canonical_bytes`], which is what a rendered unit's identity is derived over.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum GeneratedToken {
     /// An identifier-shaped word.
@@ -449,53 +266,21 @@ pub enum GeneratedToken {
         /// Whether it joins what follows.
         spacing: GeneratedSpacing,
     },
-    /// A text literal.
-    /// The renderer states the text; the quoting is the tree's business, so no
-    /// caller ever composes a quoted string by hand.
+    /// A text literal, stated as its text; the quoting is the tree's business.
     Text(String),
     /// A delimited group.
     Group {
         /// The delimiter.
         delimiter: GeneratedDelimiter,
         /// The tokens inside.
-        tokens: Bounded<GeneratedToken, GeneratedTokenLimit>,
+        tokens: Bounded<GeneratedToken, GENERATED_TOKEN_LIMIT>,
     },
-    /// A BYTE-STRING literal: the material, written `b"…"`.
-    ///
-    /// Bytes rather than text, because the two are different literals at the
-    /// address they are written to.
-    /// A clause declared to take `b"…"` does not take `"…"`, and a text literal
-    /// carrying the same characters is a different value at that seat — so a
-    /// producer holding thirty-two bytes of a pinned identity has one arm that
-    /// says what it holds and one that says something else.
-    ///
-    /// The renderer states the material and never the spelling: the `b`, the
-    /// quotes, and every escape are the tree's, exactly as the quoting of
-    /// [`GeneratedToken::Text`] is.
+    /// A byte-string literal's material, written `b"…"`, because a clause declared to take `b"…"` does not take `"…"`.
     ByteText(Vec<u8>),
-    /// An integer literal, written UNSUFFIXED: plain digits and nothing else.
+    /// An integer literal, written unsuffixed: plain digits and nothing else.
     ///
-    /// Unsuffixed because the consumer's type position is what types it.
-    /// The literal is written into a seat the address already declares — a
-    /// constructor parameter, a roster element, an attribute argument — and an
-    /// unsuffixed literal takes the type that seat demands, so one renderer
-    /// writes a count into a `u32` seat, a `u64` seat, and a `usize` seat
-    /// without being told which.
-    /// A suffix would state a second type beside the one the address declares,
-    /// and where the two disagreed the consumer would be shown a mismatch this
-    /// producer invented rather than a fact about its own declaration.
-    ///
-    /// The payload is a `u64` because that is the widest count the services
-    /// carry.
-    /// A value the destination seat cannot hold is refused at that seat, by the
-    /// consumer's own type, rather than by a narrower payload here that would
-    /// refuse it in this producer's name.
-    ///
-    /// # Nonclaims
-    ///
-    /// It carries no sign and no fraction: the arm is what the services actually
-    /// have to write — counts and byte magnitudes — and an arm that admitted
-    /// spellings no renderer produces would be a grammar nobody exercises.
+    /// The seat it lands in is what types it, so one renderer writes a count into a `u32` seat, a `u64` seat, and a `usize` seat without being told which, where a suffix would state a second type beside the one the address declares.
+    /// It carries no sign and no fraction, and a value the destination seat cannot hold is refused at that seat by the reader's own type.
     Number(u64),
 }
 
@@ -503,12 +288,8 @@ pub enum GeneratedToken {
 ///
 /// # Nonclaims
 ///
-/// The Rust source text a person reads is [`GeneratedTree::inspected`], a
-/// projection of this value rather than the other way round.
-/// Nothing in the services parses that text back, and no identity is derived
-/// from it: the digest is taken over [`GeneratedTree::canonical_bytes`], which
-/// is the tree's own encoding.
+/// The Rust source text a person reads is [`GeneratedTree::inspected`], a projection of this value rather than the other way round: nothing parses it back, and the digest is taken over [`GeneratedTree::canonical_bytes`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GeneratedTree {
-    tokens: Bounded<GeneratedToken, GeneratedTokenLimit>,
+    tokens: Bounded<GeneratedToken, GENERATED_TOKEN_LIMIT>,
 }

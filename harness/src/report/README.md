@@ -1,35 +1,67 @@
-# report — the harness record vocabulary
+# report
 
-A report states what one run did: what ran, what was inspected, what was skipped and why, and what each trial concluded. The denominator a report is stated over is the descriptor table itself — one census, already typed. A `RunReport` can be assembled only by the runner while it walks that table: the in-process road supplies a callable's attempt, and the external-host road supplies an untrusted `HostTrialRecord` containing only a trial identity, an attempt, and a wall-measurement reading. Both roads share one assembler, which derives every census seat, nested execution standing, table posture, selection outcome, and invocation profile. A `RunReport` names its table posture — authored, or staged with its parent named — and the posture has consumers: claim coverage admits authored-posture reports only, and the comparison refuses a cross-posture pair, so a staged run cannot masquerade by refusal, not by declaration.
+What a run leaves behind.
 
-Beside the census the report carries one run-level fact a census cannot hold: what the run's selection matched, read against what it expected. The `SelectionExpectation` is `AtLeastOne` unless a caller declared otherwise — anti-vacuity is the standing law and it costs an author nothing to keep — and the escape, `AllowEmpty`, carries a typed `EmptySelectionReason` stating why zero is admissible here. The `SelectionOutcome` is that reading: satisfied, unsatisfied by an empty selection, or empty as stated with the reason. An empty run is a complete report, never an absent one, and no arm of that vocabulary spells "passed": a run that exercised nothing has nothing to pass. Turning an unsatisfied expectation into a failing test is the engine's verdict road, over the fact recorded here.
+A trial executes once and then it is gone.
+What survives is the record this home defines: which trial ran, under which revisions of the subject and the check, on which target, what it concluded, and — when it refused — the smallest input that reproduces the refusal.
 
-## The identity rails
+Everything here is a value.
+Nothing in this home runs a trial, reads a clock, or touches a file.
+The runner hands it facts; it hands back a record that can be compared, counted, and replayed.
 
-Semantic identity is content-addressed; diagnostic identity is location-addressed; the two never mix. `TrialId` is semantic meaning — the claim, the subject, the mechanism (the check contract the check reference names), the population, and the profile — and survives file and module moves. `TrialSite` is the locator: module path, file, line, display name.
+## Two rails that never cross
 
-Reports join both; the path-spelled name is a site, never the identity. The profile coordinate's sole lawful value today is `Unprofiled` — an honest present-tense value, not a fictional default; the first real feature split adds choices.
+A trial has two names, and they answer different questions.
 
-Beside the semantic identity ride the revision identities: `RowRevisionId` pins the complete authored row, derived from the canonical bytes that row committed to when it was built — a reading, never a re-encoding, and total because the bytes already exist; `SubjectRevisionId` and `CheckRevisionId` pin the exact implementation and check revisions. The keys split by job.
+`TrialId` is what the trial **means** — its claim, its subject, its check contract, its population, its profile.
+Move the file, rename the function, reorganize the module: the identity does not change.
 
-ROWREVISIONID owns bookkeeping — census, aggregation, report diff; a suite-tag or origin edit changes it, aggregation recomputes, and no execution is owed. The EXECUTIONKEY owns execution — `TrialId`, the subject and check revisions, the invocation profile, and the target/toolchain binding, unconditionally: a cross-target cache hit is a claim nothing verifies, and refusing it costs only reruns — cost, never truth. The invocation profile is its own typed value — the invocation's conclusion-relevant facts, budgets included, declared as a typed subset on the invocation itself; it is not `TrialId`'s profile component.
+`TrialSite` is where the trial is **written** — module path, file, line, display name.
+That is what a person filters on and jumps to, and it is deliberately not identity.
 
-Cache eligibility is governed by the attachment postures — the one owning statement: derived is fully eligible; declared skips only while the author's declared revisions are unchanged, the author's-word ceiling stated in the report; untracked always reruns, never cached. An attachment carries two posture-bearing revision bindings, subject and check, and every per-posture sentence reads over their MEET — the weakest of the pair: cache eligibility takes the meet, and the replay posture is the meet's image — a mixed attachment can never mint an exact-replay claim over an author's-word check revision. Every other mention of eligibility, anywhere, points here.
+A report joins both.
+A path-spelled name is a site; it is never an identity.
 
-`ReplayCapsule` is the closed output shape for a run-bound reproduction account: an execution key, exact input bytes, the preserved failure fingerprint, generation and minimization profiles and versions, the generated-support schema identity, and the replay posture earned by the complete reduction path. Its sole public mint consumes completed reduction evidence bound to one real refused report; no caller supplies the capsule's seats or posture independently, and human admission is a later act. `ExactDerived` is the only posture that earns the phrase "replay exactly"; `DeclaredByAuthor` inherits the author's-word ceiling; `UnavailableBecauseUntracked` states that reproduction is non-exact. All of these identities are content addresses under the family identity substrate — no identity island.
+## What a key is made of
 
-`Fingerprint` is failure identity: the trial's semantic identity joined with its typed cause and a normalized failure class. Its dividends: cross-run deduplication, fingerprint-preserving minimization, stable rerun selection across refactors, and grouping many finds into few defects.
+`ExecutionKey` names one execution rather than one trial: the trial identity, the subject revision, the check revision, the invocation profile, and the target and toolchain — the last unconditionally.
+A cache hit across two targets asserts something nobody verified, and refusing it costs reruns.
+Cost is a price.
+A false claim is not.
 
-## The census and the comparison
+`RowRevisionId` is the bookkeeping key beside it.
+Editing a row's tags moves it, aggregation recomputes, and no execution is owed: nothing about what the row runs has changed.
 
-Claim coverage is a reading of reports: did every declared claim, hostile case, and mutation row get exercised. It is computed, never hand-counted.
+## What a reproduction may claim
 
-A `RunReport` records its denominator; the comparison is what reports the change. The comparison takes a typed baseline — a previous report, a first run, or an unavailable baseline with its reason — because an optional input cannot distinguish two absences and a result may never claim knowledge absent from its input; its outcome is either a comparison with its pure diff or an honest not-compared carrying the first-run, unavailable, or posture-mismatch arm. A pure operation outside the runner, which therefore never grows memory; the baseline is the caller's to supply; a shrinking census appears explicitly in the comparison result, and the census never reads "no change" merely because it had nothing to compare.
+An attachment binds two revisions — one for the subject, one for the check — and every posture sentence reads over the weaker of the two.
 
-Reports are machine-readable so any front end can project them — a code lens showing a declaration's proof status is a reading across three report families (the semantic run's descriptor accounting, the mutation record's score, and [`BenchReport`](crate::bench::BenchReport)'s planted-worse and primary-work stages), each value absent-with-a-reason when its family has not run, and a ratio is absent-with-a-reason when its denominator is zero, never a value — a reading of reports, not a new record. Line coverage is a command a person runs, never a gate; claim coverage is the gate-shaped reading, and it comes from here.
+- `ExactDerived` is the one posture that earns the phrase "replay exactly".
+- `DeclaredByAuthor` inherits the ceiling of a hand-written declaration and says so.
+- `UnavailableBecauseUntracked` states plainly that reproduction is not exact; the run and its input are still evidence, and no rendering pretends otherwise.
 
-Any text a finding carries that came from outside this crate's own vocabulary — a subject's panic payload, parsed external-tool output — rides a distinct, bounded, typed foreign-text field, and no composed summary is built from it: the finding is a typed value first and prose second.
+`ReplayCapsule` is the closed shape of a reproduction account, and it has exactly one mint: completed reduction evidence bound to a real refused report.
+No caller assembles its seats by hand.
 
-A caught subject panic is recorded as the finding it is — a typed verdict carrying its source location — and emitted as a report artifact that rides the proposal road. The depot is authored specification; a report is runtime evidence; no report writes the depot.
+## The census
 
-"Receipt" is the machine's word. The one record family here that earns it is the parity subset — records the machine consumes before trusting an optimized component — and those are designed as exports from the start.
+A `RunReport` is stated over a denominator — one entry per row of the table the run stood on, selected or not.
+That is what makes claim coverage a computation instead of a hand count, and what makes a shrinking census a visible fact rather than a smaller number nobody noticed.
+
+A run whose selection matched nothing is a complete report, not a missing one.
+`SelectionExpectation::AtLeastOne` is what a caller gets without asking, because a run that exercised nothing is not a run that passed.
+Admitting zero is a declaration made in advance, with a typed reason attached.
+
+## Text from outside
+
+A subject's panic payload, a decoder's message, an external tool's output: all of it rides `ForeignText`, bounded at `FOREIGN_TEXT_MAX_BYTES`, marked when it was cut and marked when rendering it loses bytes.
+It travels one way.
+Nothing here reads it back, matches on it, or decides from it — a finding is a typed value first and prose second.
+
+## What this home does not do
+
+It does not run anything; the runner owns execution and hands records here.
+It does not judge; a `TrialConclusion` arrives already reached.
+It does not persist; writing a report somewhere is the caller's.
+It does not read a clock, a target triple, or a toolchain name — those are declared at the invocation and carried, never guessed.
+And it never interprets a `FindingCause`: the family and the local key are the caller's own spelling, stored, hashed into every fingerprint, and handed back unread.
