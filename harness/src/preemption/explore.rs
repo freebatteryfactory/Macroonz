@@ -3,8 +3,10 @@
 //! The model is a bare function pointer, like every owner-supplied seam in this harness, so nothing ambient rides in with it.
 //! Loom's finding arrives as a panic; the catch at this boundary is what turns it into a value instead of a crashed runner.
 
-use super::types::{PreemptionBound, PreemptionBounds, PreemptionReading, PreemptionVerdict};
-use crate::report::ForeignText;
+use super::types::{
+    MODEL_BROKE, PreemptionBound, PreemptionBounds, PreemptionReading, PreemptionVerdict,
+};
+use crate::report::{FailureClass, FindingLocation, ForeignText, TrialConclusion, TrialFinding};
 use core::any::Any;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
@@ -29,6 +31,24 @@ pub fn explored(bounds: PreemptionBounds, model: fn()) -> PreemptionReading {
         },
     };
     PreemptionReading::read(bounds, verdict)
+}
+
+/// Read one exploration into the trial conclusion its evidence earns.
+///
+/// A clean walk of the bounded space concludes as a pass; a broken model concludes as a refusal under [`MODEL_BROKE`](crate::preemption::MODEL_BROKE), classed as the subject's own panic — which is how loom's finding arrives — with loom's report riding the finding as foreign text.
+#[must_use]
+pub fn concluded(reading: &PreemptionReading) -> TrialConclusion {
+    match reading.verdict() {
+        PreemptionVerdict::AllInterleavingsHeld => TrialConclusion::Passed,
+        PreemptionVerdict::ModelBroke { report } => {
+            TrialConclusion::Refused(TrialFinding::established(
+                FailureClass::SubjectPanic,
+                MODEL_BROKE,
+                FindingLocation::at(file!(), line!()),
+                report.clone(),
+            ))
+        }
+    }
 }
 
 /// The panic payload, in the two shapes a payload is safely readable in.

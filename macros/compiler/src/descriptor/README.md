@@ -52,8 +52,9 @@ Duplicate-free by construction — the scan runs before the value exists — and
 
 `vocabulary/` is what the harness publishes, in two tables.
 
-`trial/`, `bench/`, and `mutation/` are the three carrier kinds, each with its own grammar, its own guard, and its own rendering; `shadow/` is the one direct kind, whose grammar chooses names off a stated roster and whose rendering writes both `cfg`-gated faces of each.
+`trial/`, `bench/`, and `mutation/` are the three carrier kinds, each with its own grammar, its own guard, and its own rendering.
+`shadow/`, `network/`, and `concurrency/` are the three direct kinds: the shadow roster's two-faced imports, the network topology's builder module, and the exploration rows' generic functions, each emitted as ordinary Rust where the declaration stands.
 
-`door/` is the roads a generic entry walks, one per grammar: a captured body in, the sealed expansion out — a carrier with its axes composed from what each kind's own terminal proved for the three, and direct declaration-site items for the shadow face.
+`door/` is the roads a generic entry walks, one per grammar: a captured body in, the sealed expansion out — a carrier with its axes composed from what each kind's own terminal proved for the three carrier kinds, and direct declaration-site items for the three direct ones.
 
-`types.rs` holds what the kinds share; `type_guard.rs` is its own child and holds every road that reaches a private field; `type_contract.rs` states how a refusal reads; `composition.rs` is the duplicate scan.
+`types.rs` holds what the kinds share; `type_guard.rs` is its own child and holds every road that reaches a private field; `type_contract.rs` states how a refusal reads; `composition.rs` is the duplicate scan; `emitting.rs` is the one seat the direct renders spell a generated item through.

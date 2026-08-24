@@ -78,6 +78,12 @@ pub const BENCH_HELPER_FAMILY: Family = Family::declared("macroonz/bench-helper"
 /// The shadow face's captured grammar.
 pub const SHADOW_HELPER_FAMILY: Family = Family::declared("macroonz/shadow-helper");
 
+/// The network declaration's captured grammar.
+pub const NETWORK_HELPER_FAMILY: Family = Family::declared("macroonz/network-helper");
+
+/// The concurrency declaration's captured grammar.
+pub const CONCURRENCY_HELPER_FAMILY: Family = Family::declared("macroonz/concurrency-helper");
+
 /// Reading a declared input into a captured surface.
 pub const CAPTURE_FAMILY: Family = Family::declared("macroonz/capture");
 

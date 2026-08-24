@@ -7,17 +7,17 @@
 //! Totality is what lets a reducer remove or zero any window of material and still hold a schedule a fingerprint probe can judge.
 
 use super::types::{
-    Counterexample, EncodingRefusal, ExplorationBound, ExplorationMode, ExplorationReading,
-    ExplorationRefusal, ExplorationSite, ExplorationStanding, InterleavedSequence, Interleaving,
-    InterleavingSpace, StrandSet,
+    Counterexample, EXPLORATION_STARVED, EncodingRefusal, ExplorationBound, ExplorationMode,
+    ExplorationReading, ExplorationRefusal, ExplorationSite, ExplorationStanding,
+    InterleavedSequence, Interleaving, InterleavingSpace, StrandSet,
 };
 use crate::descriptor::PopulationRef;
 use crate::generate::{
-    ByteSource, GenerationPlan, InputOrigin, RejectionAllowance, RootSeed, SizeProgression,
-    admit_every_sequence, decode_arbitrary, drive,
+    ByteSource, GenerationHalt, GenerationPlan, InputOrigin, RejectionAllowance, RootSeed,
+    SizeProgression, admit_every_sequence, decode_arbitrary, drive,
 };
-use crate::properties::{TransitionContract, holds_over_history};
-use crate::report::{ByteBudget, CaseBudget, GenerationProfile, TrialConclusion};
+use crate::properties::{Holding, TransitionContract, holds_over_history};
+use crate::report::{ByteBudget, CaseBudget, FailureClass, GenerationProfile, TrialConclusion};
 use std::collections::VecDeque;
 
 /// The generator identity every sampled exploration draws under.
@@ -49,6 +49,35 @@ pub fn explored<State, Command: Clone>(
         Ok(enumerated(set, contract, space))
     } else {
         sampled(set, contract, bound, population, seed, space)
+    }
+}
+
+/// Read one exploration into the trial conclusion its evidence earns.
+///
+/// A counterexample concludes as the refusal its own finding states; an exhausted space concludes as a pass over the whole space; a clean sample concludes as a pass of the declared exploration exactly when the sampling drive met its declared case budget, and refuses as [`EXPLORATION_STARVED`](crate::interleave::EXPLORATION_STARVED) where it stopped short — an all-pass over fewer schedules than were declared is unexercised evidence, not a pass.
+///
+/// The reading stays the owner of the replay: the conclusion is the verdict alone, and the counterexample's interleaving lives where it always did.
+#[must_use]
+#[track_caller]
+pub fn concluded(reading: &ExplorationReading) -> TrialConclusion {
+    match reading.standing() {
+        ExplorationStanding::CounterexampleFound(counterexample) => {
+            TrialConclusion::Refused(counterexample.finding().clone())
+        }
+        ExplorationStanding::SpaceExhaustedAllHold => TrialConclusion::Passed,
+        ExplorationStanding::SampledAllHold => match reading.mode() {
+            ExplorationMode::Sampled {
+                halt: GenerationHalt::CaseBudgetMet,
+                census: _,
+            } => TrialConclusion::Passed,
+            ExplorationMode::Exhaustive | ExplorationMode::Sampled { .. } => {
+                crate::properties::concluded(
+                    Holding::Fails,
+                    FailureClass::RefusedByCheck,
+                    EXPLORATION_STARVED,
+                )
+            }
+        },
     }
 }
 

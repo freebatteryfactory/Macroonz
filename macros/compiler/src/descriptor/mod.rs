@@ -1,10 +1,14 @@
 #![doc = include_str!("README.md")]
 
 pub mod bench;
+pub mod concurrency;
 pub mod door;
 pub mod mutation;
+pub mod network;
 pub mod shadow;
 pub mod trial;
+
+mod emitting;
 pub mod vocabulary;
 
 mod composition;

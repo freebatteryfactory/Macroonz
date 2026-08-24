@@ -18,6 +18,8 @@ Back comes a typed reading:
 
 A clean pass is a statement about the bounded space, exhaustively walked — stronger than any number of lucky runs on real threads, and deterministic under fixed bounds, so a wall that was green stays green.
 
+`concluded` reads the verdict into one ordinary trial conclusion — a pass, or a refusal classed as the subject's own panic with loom's report riding as foreign text — so a preemption row concludes in the same report vocabulary as every other check.
+
 ## What composes inside a model
 
 A model function is loom's world, and everything loom offers there composes with this road without a wrapper: the shadow synchronization types and channels, `loom::thread` whole — spawn, park, thread locals through loom's own `thread_local!` — and `loom::future::block_on`, so an async block is explored like any other operation (the workspace enables loom's `futures` face and the lane drives one).

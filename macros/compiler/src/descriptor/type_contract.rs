@@ -35,6 +35,8 @@ impl CaptureCause {
             Self::ChoiceDoubled => "one name is chosen twice",
             Self::NameUnshadowed => "a chosen name is not one the shadow roster covers",
             Self::NothingChosen => "the declaration chooses no name at all",
+            Self::PhraseUnread => "a fault phrase is not one this grammar reads",
+            Self::EndpointUnknown => "a phrase names a node or link the declaration never declared",
         }
     }
 
@@ -63,7 +65,9 @@ impl CaptureCause {
             | Self::PathUnread
             | Self::ItemUnread
             | Self::ChoiceUnread
-            | Self::NameUnshadowed => Observed::ContractDisagreement,
+            | Self::NameUnshadowed
+            | Self::PhraseUnread
+            | Self::EndpointUnknown => Observed::ContractDisagreement,
         }
     }
 }

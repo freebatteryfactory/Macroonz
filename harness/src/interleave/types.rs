@@ -9,10 +9,21 @@ use crate::descriptor::NamespacedName;
 use crate::generate::{
     CaseIndex, CaseWidth, GenerationCensus, GenerationHalt, GenerationPlanRefusal,
 };
-use crate::report::TrialFinding;
+use crate::report::{FindingCause, TrialFinding};
 
 #[path = "type_guard.rs"]
 mod guard;
+
+/// The owner every cause this home cites is declared under.
+///
+/// Qualified with the harness's own name, like every sibling family, so a consumer declaring a bare `interleave` family cannot alias a fingerprint of this home's.
+const CAUSE_FAMILY: &str = "macroonz.interleave";
+
+/// The cause a sampling drive that stopped short of its declared samples is cited under.
+///
+/// An all-pass over fewer schedules than the bound declared is unexercised evidence, not a pass, on the same ground [`crate::properties::NO_SEQUENCE_DRIVEN`] refuses an empty drive.
+pub const EXPLORATION_STARVED: FindingCause =
+    FindingCause::named(CAUSE_FAMILY, "exploration-starved");
 
 /// How many strands one choice byte can address.
 ///

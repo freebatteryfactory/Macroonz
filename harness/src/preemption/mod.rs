@@ -3,8 +3,8 @@
 mod explore;
 mod types;
 
-pub use explore::explored;
+pub use explore::{concluded, explored};
 pub use types::{
-    LOOM_PIN, PreemptionBound, PreemptionBounds, PreemptionBoundsRefusal, PreemptionReading,
-    PreemptionVerdict,
+    LOOM_PIN, MODEL_BROKE, PreemptionBound, PreemptionBounds, PreemptionBoundsRefusal,
+    PreemptionReading, PreemptionVerdict,
 };

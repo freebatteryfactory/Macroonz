@@ -13,8 +13,8 @@ use macroonz_harness::generate::{GenerationDisposition, GenerationHalt, RootSeed
 use macroonz_harness::interleave::{
     Counterexample, EncodingRefusal, ExplorationBound, ExplorationBoundRefusal, ExplorationMode,
     ExplorationReading, ExplorationRefusal, ExplorationSite, ExplorationStanding, Interleaving,
-    InterleavingSpace, Strand, StrandRefusal, StrandSet, StrandSetRefusal, encoded, explored,
-    interpreted,
+    InterleavingSpace, Strand, StrandRefusal, StrandSet, StrandSetRefusal, concluded, encoded,
+    explored, interpreted,
 };
 use macroonz_harness::properties::{
     ContractRefusal, Holding, TemporalClaim, TemporalDemand, TransitionContract, holds_over_history,
@@ -249,6 +249,10 @@ fn a_noncommutative_order_is_caught_at_its_interleaving() -> Result<(), LaneFail
         ExplorationSite::Enumerated { ordinal: 1u64 }
     );
     assert_eq!(counterexample.finding().cause(), NEVER_OVERDRAWN);
+    let TrialConclusion::Refused(finding) = concluded(&reading) else {
+        return Err(LaneFailure::Standing);
+    };
+    assert_eq!(finding.cause(), NEVER_OVERDRAWN);
     Ok(())
 }
 
@@ -286,6 +290,7 @@ fn a_commutative_control_holds_over_the_exhausted_space() -> Result<(), LaneFail
         reading.standing(),
         &ExplorationStanding::SpaceExhaustedAllHold
     );
+    assert_eq!(concluded(&reading), TrialConclusion::Passed);
     Ok(())
 }
 
@@ -319,6 +324,7 @@ fn beyond_the_bound_the_space_is_sampled_and_the_census_says_so() -> Result<(), 
     };
     assert_eq!(census.count_of(GenerationDisposition::Generated), 32u32);
     assert_eq!(halt, GenerationHalt::CaseBudgetMet);
+    assert_eq!(concluded(&reading), TrialConclusion::Passed);
     let again = explored(
         &set,
         &contract,

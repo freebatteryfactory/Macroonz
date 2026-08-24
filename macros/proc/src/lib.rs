@@ -79,6 +79,40 @@ const SHADOW_GRAMMAR: Grammar = Grammar {
     attribute: "shadow",
 };
 
+/// The grammar spelling the `network` declaration registers.
+const NETWORK_GRAMMAR: Grammar = Grammar {
+    attribute: "network",
+};
+
+/// The grammar spelling the `concurrency` declaration registers.
+const CONCURRENCY_GRAMMAR: Grammar = Grammar {
+    attribute: "concurrency",
+};
+
+/// Who is asking, wherever a `network` expansion refuses.
+const NETWORK_DOOR: Door = Door::declared(
+    "macroonz",
+    "macroonz.network",
+    "macroonz_macros::network",
+    CrateBinding::declared("macroonz"),
+    Producer {
+        namespace: "macroonz",
+        name: "macroonz-macros",
+    },
+);
+
+/// Who is asking, wherever a `concurrency` expansion refuses.
+const CONCURRENCY_DOOR: Door = Door::declared(
+    "macroonz",
+    "macroonz.concurrency",
+    "macroonz_macros::concurrency",
+    CrateBinding::declared("macroonz"),
+    Producer {
+        namespace: "macroonz",
+        name: "macroonz-macros",
+    },
+);
+
 /// Who is asking, wherever a `shadow` expansion refuses.
 const SHADOW_DOOR: Door = Door::declared(
     "macroonz",
@@ -153,5 +187,30 @@ pub fn bench(body: TokenStream, item: TokenStream) -> TokenStream {
 pub fn shadow(body: TokenStream) -> TokenStream {
     host::expand(body, |capture| {
         door::shadow(capture, SHADOW_GRAMMAR, &SHADOW_DOOR)
+    })
+}
+
+/// Declares a topology and its fault schedules, and expands to the builder module an author would have written by hand.
+///
+/// The body names a module, a namespace, the nodes, the directed links, and each schedule's discipline as fault phrases in the sim's own vocabulary.
+/// What the tokens can know refuses at its own token; what the harness's value guards refuse still refuses there, through the generated functions' honest results.
+///
+/// A malformed declaration expands to `compile_error!` at the offending token, carrying the compiler's own rendering of the established cause.
+#[proc_macro]
+pub fn network(body: TokenStream) -> TokenStream {
+    host::expand(body, |capture| {
+        door::network(capture, NETWORK_GRAMMAR, &NETWORK_DOOR)
+    })
+}
+
+/// Declares named interleaving explorations, and expands to one generic function per row.
+///
+/// Each row pins the facts that make a finding replayable — the population, the exhaustive ceiling, the sample count, and the seed — and the generated function takes the strand set and the transition contract at the call, handing back the exploration reading beside its concluded trial verdict.
+///
+/// A malformed declaration expands to `compile_error!` at the offending token, carrying the compiler's own rendering of the established cause.
+#[proc_macro]
+pub fn concurrency(body: TokenStream) -> TokenStream {
+    host::expand(body, |capture| {
+        door::concurrency(capture, CONCURRENCY_GRAMMAR, &CONCURRENCY_DOOR)
     })
 }

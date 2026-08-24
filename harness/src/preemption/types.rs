@@ -2,10 +2,18 @@
 //!
 //! Construction and reading live in this module's own child `type_guard.rs`; the one road that runs loom lives in `explore.rs`.
 
-use crate::report::ForeignText;
+use crate::report::{FindingCause, ForeignText};
 
 #[path = "type_guard.rs"]
 mod guard;
+
+/// The owner every cause this home cites is declared under.
+const CAUSE_FAMILY: &str = "macroonz.preemption";
+
+/// The cause a model that did not complete cleanly is cited under.
+///
+/// One cause for the whole broke-arm, because the boundary cannot type loom's report without parsing it — an assertion, a deadlock, and an overrun bound all conclude here, and loom's own words ride the finding as foreign text.
+pub const MODEL_BROKE: FindingCause = FindingCause::named(CAUSE_FAMILY, "model-broke");
 
 /// The exact loom requirement the workspace manifest declares.
 ///

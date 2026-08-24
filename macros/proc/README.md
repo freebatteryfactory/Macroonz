@@ -15,9 +15,11 @@ It owns no grammar, no roster, no identity rule, no planning decision, and no ju
 | `#[bench(...)]` | a type or a module | A bench table and its one-file reporter adapter, bound to a measurement backend you name. |
 | `#[mutations(...)]` | an enum | A mutation surface pressing the enum's declared order: the policy you state, and one adjacent-transposition alternative per neighboring pair of variants. |
 | `shadow! { ... }` | item position | Both faces of every chosen synchronization name from the compiler's stated roster: the ordinary face behind `#[cfg(not(loom))]`, the shadow face behind `#[cfg(loom)]` — written once, where the declaration stands. |
+| `network! { ... }` | item position | The builder module for a declared topology and its fault schedules: `topology()`, one function per schedule, and one generated fault enum their refusals travel in. |
+| `concurrency! { ... }` | item position | One generic function per declared exploration row, taking the strand set and the transition contract and handing back the exploration reading beside its concluded trial verdict. |
 
 Each attribute expands to exactly two things: one exported carrier, and the item you wrote, untouched.
-The shadow declaration is the one direct emission — its items are production `pub use` rows, inert inside nothing, because a face is not a cargo.
+The three declarations are direct emissions — their items are ordinary Rust where they stand, inert inside nothing, because a face and a builder are not cargo.
 
 The carrier is a hidden `macro_rules!` definition — plus the alias you chose in the `support` clause — holding its cargo inert.
 An ordinary build compiles the definition and nothing inside it.

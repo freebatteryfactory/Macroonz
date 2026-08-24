@@ -240,6 +240,10 @@ crate::roster! {
         NameUnshadowed = "name-unshadowed",
         /// The declaration chooses no name at all.
         NothingChosen = "nothing-chosen",
+        /// A fault phrase is not one this grammar reads.
+        PhraseUnread = "phrase-unread",
+        /// A phrase or a link names a node or link the declaration never declared.
+        EndpointUnknown = "endpoint-unknown",
     }
 }
 

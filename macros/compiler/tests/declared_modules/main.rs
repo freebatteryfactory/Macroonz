@@ -1,0 +1,223 @@
+//! The two declaration roads, exercised from outside: a lawful body in, the builder or exploration module out, and every malformed clause refused at capture.
+//!
+//! The positive lanes hold the emitted text to the shapes the grammars promise; the refusal lanes reverse one clause each — an undeclared key, a doubled name, a foreign endpoint, an unreadable phrase, a missing fact, an empty declaration.
+
+use macroonz::descriptor::Grammar;
+use macroonz::descriptor::concurrency::ConcurrencyModule;
+use macroonz::descriptor::door;
+use macroonz::descriptor::network::NetworkModule;
+use macroonz::kind::Kind;
+use macroonz::{CrateBinding, Diagnostic, Door, Expansion, Phase, Producer, TextCapture};
+
+/// The one value that says who is asking.
+const DOOR: Door = Door::declared(
+    "lane",
+    "lane.declared.grammar",
+    "lane::declared",
+    CrateBinding::declared("demo"),
+    Producer {
+        namespace: "lane",
+        name: "declared",
+    },
+);
+
+/// The network grammar this lane registers.
+const NETWORK: Grammar = Grammar {
+    attribute: "network",
+};
+
+/// The concurrency grammar this lane registers.
+const CONCURRENCY: Grammar = Grammar {
+    attribute: "concurrency",
+};
+
+/// One lawful network declaration body.
+const NETWORK_BODY: &str = r#"
+    module = net,
+    namespace = "lane",
+    nodes = [client, server],
+    link forward = client to server,
+    link back = server to client,
+    schedule quiet = [],
+    schedule outage = [
+        drop forward at 0,
+        delay forward at 1 by 2,
+        duplicate back at 0,
+        partition forward from 0 until 3,
+    ],
+"#;
+
+/// One lawful concurrency declaration body.
+const CONCURRENCY_BODY: &str = r#"
+    module = explorations,
+    namespace = "lane",
+    transfers_hold {
+        population = "transfer-orders",
+        interleavings = 16,
+        samples = 32,
+        seed = 11,
+    },
+"#;
+
+/// The network road walked over one source, or nothing where the lane's own source did not capture.
+fn networked(source: &str) -> Option<Result<Expansion<NetworkModule>, Diagnostic>> {
+    let read = TextCapture::read(source).ok()?;
+    Some(door::network(read.input().clone(), NETWORK, &DOOR))
+}
+
+/// The concurrency road walked over one source, on the same terms.
+fn concurrent(source: &str) -> Option<Result<Expansion<ConcurrencyModule>, Diagnostic>> {
+    let read = TextCapture::read(source).ok()?;
+    Some(door::concurrency(read.input().clone(), CONCURRENCY, &DOOR))
+}
+
+/// The declaration-site text one expansion emits.
+fn emitted<K: Kind>(expansion: &Expansion<K>) -> Option<String> {
+    expansion
+        .emit()
+        .tokens()
+        .map(macroonz::GeneratedTree::inspected)
+}
+
+/// A lawful network declaration becomes one builder module: the fault enum, the topology, and one function per schedule.
+#[test]
+fn a_network_declaration_becomes_its_builder_module() -> Result<(), ()> {
+    let expansion = networked(NETWORK_BODY).ok_or(())?.ok().ok_or(())?;
+    let text = emitted(&expansion).ok_or(())?;
+    for spelled in [
+        "pub mod net",
+        "pub enum Fault",
+        "pub fn topology",
+        "pub fn quiet",
+        "pub fn outage",
+        "Topology",
+        "NetworkSchedule",
+        "LinkDiscipline",
+        "DropAt",
+        "DelayAt",
+        "DuplicateAt",
+        "Partition",
+        "TickSpan",
+    ] {
+        assert!(
+            text.contains(spelled),
+            "the module does not spell {spelled}"
+        );
+    }
+    assert_eq!(text.matches("pub fn").count(), 3usize);
+    Ok(())
+}
+
+/// A lawful concurrency declaration becomes one exploration module: the fault enum and one generic function per row.
+#[test]
+fn a_concurrency_declaration_becomes_its_exploration_module() -> Result<(), ()> {
+    let expansion = concurrent(CONCURRENCY_BODY).ok_or(())?.ok().ok_or(())?;
+    let text = emitted(&expansion).ok_or(())?;
+    for spelled in [
+        "pub mod explorations",
+        "pub enum Fault",
+        "pub fn transfers_hold",
+        "StrandSet",
+        "TransitionContract",
+        "ExplorationBound",
+        "PopulationRef",
+        "RootSeed",
+        "concluded",
+    ] {
+        assert!(
+            text.contains(spelled),
+            "the module does not spell {spelled}"
+        );
+    }
+    assert_eq!(text.matches("pub fn").count(), 1usize);
+    Ok(())
+}
+
+/// A malformed network declaration refuses at capture, clause by clause.
+#[test]
+fn a_malformed_network_declaration_refuses_at_capture() -> Result<(), ()> {
+    let missing_module = r#"
+        namespace = "lane",
+        nodes = [client, server],
+        link forward = client to server,
+    "#;
+    let doubled_node = r#"
+        module = net,
+        namespace = "lane",
+        nodes = [client, client],
+        link forward = client to client,
+    "#;
+    let foreign_endpoint = r#"
+        module = net,
+        namespace = "lane",
+        nodes = [client, server],
+        link forward = client to stranger,
+    "#;
+    let undrawn_link = r#"
+        module = net,
+        namespace = "lane",
+        nodes = [client, server],
+        link forward = client to server,
+        schedule outage = [drop sideways at 0],
+    "#;
+    let unread_phrase = r#"
+        module = net,
+        namespace = "lane",
+        nodes = [client, server],
+        link forward = client to server,
+        schedule outage = [scramble forward at 0],
+    "#;
+    let undeclared_key = r#"
+        module = net,
+        namespace = "lane",
+        nodes = [client, server],
+        link forward = client to server,
+        latency = 3,
+    "#;
+    for source in [
+        missing_module,
+        doubled_node,
+        foreign_endpoint,
+        undrawn_link,
+        unread_phrase,
+        undeclared_key,
+    ] {
+        let refusal = networked(source).ok_or(())?.err().ok_or(())?;
+        assert_eq!(refusal.phase(), Phase::Capture, "{source} did not refuse");
+    }
+    Ok(())
+}
+
+/// A malformed concurrency declaration refuses at capture, clause by clause.
+#[test]
+fn a_malformed_concurrency_declaration_refuses_at_capture() -> Result<(), ()> {
+    let missing_fact = r#"
+        module = explorations,
+        namespace = "lane",
+        transfers_hold {
+            population = "transfer-orders",
+            interleavings = 16,
+            samples = 32,
+        },
+    "#;
+    let doubled_row = r#"
+        module = explorations,
+        namespace = "lane",
+        transfers_hold { population = "a", interleavings = 1, samples = 1, seed = 1 },
+        transfers_hold { population = "b", interleavings = 1, samples = 1, seed = 1 },
+    "#;
+    let no_rows = r#"
+        module = explorations,
+        namespace = "lane",
+    "#;
+    let unread_number = r#"
+        module = explorations,
+        namespace = "lane",
+        transfers_hold { population = "a", interleavings = many, samples = 1, seed = 1 },
+    "#;
+    for source in [missing_fact, doubled_row, no_rows, unread_number] {
+        let refusal = concurrent(source).ok_or(())?.err().ok_or(())?;
+        assert_eq!(refusal.phase(), Phase::Capture, "{source} did not refuse");
+    }
+    Ok(())
+}

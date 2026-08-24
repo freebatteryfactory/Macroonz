@@ -1,0 +1,233 @@
+//! Rendering the exploration module one concurrency declaration compresses.
+//!
+//! One generic function per row: the strand set and the contract arrive at the call, the declared facts are spelled once here, and the pair that comes back is the reading beside its concluded verdict.
+
+use super::{ConcurrencyDeclaration, ExplorationRow};
+use crate::bounded::Overflow;
+use crate::descriptor::emitting::{
+    absolute_path, derive_attribute, doc_attribute, fallible_return, from_impl,
+};
+use crate::token::{GeneratedDelimiter, GeneratedToken};
+
+/// The one crate spelling every generated path is rooted at.
+const HARNESS: &str = "macroonz_harness";
+
+/// The fault enum's arms: the arm, the refusal it carries, and its stated doc.
+const FAULT_ARMS: [(&str, [&str; 3], &str); 3] = [
+    (
+        "Name",
+        [HARNESS, "descriptor", "NameRefusal"],
+        "A declared name was refused by the name vocabulary.",
+    ),
+    (
+        "Bound",
+        [HARNESS, "interleave", "ExplorationBoundRefusal"],
+        "The declared bound was refused by its own guard.",
+    ),
+    (
+        "Exploration",
+        [HARNESS, "interleave", "ExplorationRefusal"],
+        "The exploration itself refused to run.",
+    ),
+];
+
+/// The declaration-site tokens one concurrency payload renders to.
+///
+/// # Errors
+///
+/// Returns [`Overflow`] where a composed group carries more tokens than the declared magnitude admits.
+pub fn rendered(declaration: &ConcurrencyDeclaration) -> Result<Vec<GeneratedToken>, Overflow> {
+    let mut tokens = Vec::new();
+    doc_attribute(
+        "The generated explorations: one generic function per declared row, each handing back the reading beside its concluded verdict.",
+        &mut tokens,
+    )?;
+    tokens.push(GeneratedToken::word("pub"));
+    tokens.push(GeneratedToken::word("mod"));
+    tokens.push(GeneratedToken::word(declaration.module()));
+    let mut body = Vec::new();
+    fault_enum(&mut body)?;
+    for row in declaration.rows() {
+        row_fn(declaration, row, &mut body)?;
+    }
+    tokens.push(GeneratedToken::group(GeneratedDelimiter::Brace, body)?);
+    Ok(tokens)
+}
+
+/// The generated fault enum and its `From` impls.
+fn fault_enum(into: &mut Vec<GeneratedToken>) -> Result<(), Overflow> {
+    doc_attribute(
+        "Everything a generated exploration can refuse, carried as itself.",
+        into,
+    )?;
+    derive_attribute(&["Debug", "Clone", "PartialEq", "Eq"], into)?;
+    into.push(GeneratedToken::word("pub"));
+    into.push(GeneratedToken::word("enum"));
+    into.push(GeneratedToken::word("Fault"));
+    let mut arms = Vec::new();
+    for (arm, path, doc) in &FAULT_ARMS {
+        doc_attribute(doc, &mut arms)?;
+        arms.push(GeneratedToken::word(arm));
+        let mut carried = Vec::new();
+        absolute_path(path, &mut carried);
+        arms.push(GeneratedToken::group(
+            GeneratedDelimiter::Parenthesis,
+            carried,
+        )?);
+        arms.push(GeneratedToken::alone(','));
+    }
+    into.push(GeneratedToken::group(GeneratedDelimiter::Brace, arms)?);
+    for (arm, path, _doc) in &FAULT_ARMS {
+        from_impl(path, "Fault", arm, into)?;
+    }
+    Ok(())
+}
+
+/// One generated exploration function.
+fn row_fn(
+    declaration: &ConcurrencyDeclaration,
+    row: &ExplorationRow,
+    into: &mut Vec<GeneratedToken>,
+) -> Result<(), Overflow> {
+    doc_attribute(&format!("The declared `{}` exploration.", row.name()), into)?;
+    into.push(GeneratedToken::word("pub"));
+    into.push(GeneratedToken::word("fn"));
+    into.push(GeneratedToken::word(row.name()));
+    generics(into);
+    parameters(into)?;
+    let mut ok_seat = Vec::new();
+    let mut pair = Vec::new();
+    absolute_path(&[HARNESS, "interleave", "ExplorationReading"], &mut pair);
+    pair.push(GeneratedToken::alone(','));
+    absolute_path(&[HARNESS, "report", "TrialConclusion"], &mut pair);
+    ok_seat.push(GeneratedToken::group(
+        GeneratedDelimiter::Parenthesis,
+        pair,
+    )?);
+    fallible_return(ok_seat, "Fault", into);
+    let mut body = Vec::new();
+    explored_let(declaration, row, &mut body)?;
+    concluded_let(&mut body)?;
+    absolute_path(&["core", "result", "Result", "Ok"], &mut body);
+    body.push(GeneratedToken::group(
+        GeneratedDelimiter::Parenthesis,
+        vec![GeneratedToken::group(
+            GeneratedDelimiter::Parenthesis,
+            vec![
+                GeneratedToken::word("reading"),
+                GeneratedToken::alone(','),
+                GeneratedToken::word("conclusion"),
+            ],
+        )?],
+    )?);
+    into.push(GeneratedToken::group(GeneratedDelimiter::Brace, body)?);
+    Ok(())
+}
+
+/// The `<State, Command: ::core::clone::Clone>` generic seat.
+fn generics(into: &mut Vec<GeneratedToken>) {
+    into.push(GeneratedToken::alone('<'));
+    into.push(GeneratedToken::word("State"));
+    into.push(GeneratedToken::alone(','));
+    into.push(GeneratedToken::word("Command"));
+    into.push(GeneratedToken::alone(':'));
+    absolute_path(&["core", "clone", "Clone"], into);
+    into.push(GeneratedToken::alone('>'));
+}
+
+/// The `(strands: &StrandSet<Command>, contract: &TransitionContract<State, Command>)` parameter seat.
+fn parameters(into: &mut Vec<GeneratedToken>) -> Result<(), Overflow> {
+    let mut listed = vec![GeneratedToken::word("strands"), GeneratedToken::alone(':')];
+    listed.push(GeneratedToken::alone('&'));
+    absolute_path(&[HARNESS, "interleave", "StrandSet"], &mut listed);
+    listed.push(GeneratedToken::alone('<'));
+    listed.push(GeneratedToken::word("Command"));
+    listed.push(GeneratedToken::alone('>'));
+    listed.push(GeneratedToken::alone(','));
+    listed.push(GeneratedToken::word("contract"));
+    listed.push(GeneratedToken::alone(':'));
+    listed.push(GeneratedToken::alone('&'));
+    absolute_path(&[HARNESS, "properties", "TransitionContract"], &mut listed);
+    listed.push(GeneratedToken::alone('<'));
+    listed.push(GeneratedToken::word("State"));
+    listed.push(GeneratedToken::alone(','));
+    listed.push(GeneratedToken::word("Command"));
+    listed.push(GeneratedToken::alone('>'));
+    into.push(GeneratedToken::group(
+        GeneratedDelimiter::Parenthesis,
+        listed,
+    )?);
+    Ok(())
+}
+
+/// The `let reading = …explored(…)?;` statement.
+fn explored_let(
+    declaration: &ConcurrencyDeclaration,
+    row: &ExplorationRow,
+    into: &mut Vec<GeneratedToken>,
+) -> Result<(), Overflow> {
+    into.push(GeneratedToken::word("let"));
+    into.push(GeneratedToken::word("reading"));
+    into.push(GeneratedToken::alone('='));
+    absolute_path(&[HARNESS, "interleave", "explored"], into);
+    let mut arguments = vec![GeneratedToken::word("strands"), GeneratedToken::alone(',')];
+    arguments.push(GeneratedToken::word("contract"));
+    arguments.push(GeneratedToken::alone(','));
+    absolute_path(
+        &[HARNESS, "interleave", "ExplorationBound", "declared"],
+        &mut arguments,
+    );
+    arguments.push(GeneratedToken::group(
+        GeneratedDelimiter::Parenthesis,
+        vec![
+            GeneratedToken::number(row.interleavings()),
+            GeneratedToken::alone(','),
+            GeneratedToken::number(row.samples()),
+        ],
+    )?);
+    arguments.push(GeneratedToken::alone('?'));
+    arguments.push(GeneratedToken::alone(','));
+    absolute_path(
+        &[HARNESS, "descriptor", "PopulationRef", "named"],
+        &mut arguments,
+    );
+    arguments.push(GeneratedToken::group(
+        GeneratedDelimiter::Parenthesis,
+        vec![
+            GeneratedToken::text(declaration.namespace()),
+            GeneratedToken::alone(','),
+            GeneratedToken::text(row.population()),
+        ],
+    )?);
+    arguments.push(GeneratedToken::alone('?'));
+    arguments.push(GeneratedToken::alone(','));
+    absolute_path(
+        &[HARNESS, "generate", "RootSeed", "declared"],
+        &mut arguments,
+    );
+    arguments.push(GeneratedToken::group(
+        GeneratedDelimiter::Parenthesis,
+        vec![GeneratedToken::number(row.seed())],
+    )?);
+    into.push(GeneratedToken::group(
+        GeneratedDelimiter::Parenthesis,
+        arguments,
+    )?);
+    into.push(GeneratedToken::alone('?'));
+    into.push(GeneratedToken::alone(';'));
+    Ok(())
+}
+
+/// The `let conclusion = …concluded(&reading);` statement.
+fn concluded_let(into: &mut Vec<GeneratedToken>) -> Result<(), Overflow> {
+    into.push(GeneratedToken::word("let"));
+    into.push(GeneratedToken::word("conclusion"));
+    into.push(GeneratedToken::alone('='));
+    absolute_path(&[HARNESS, "interleave", "concluded"], into);
+    into.push(GeneratedToken::group(
+        GeneratedDelimiter::Parenthesis,
+        vec![GeneratedToken::alone('&'), GeneratedToken::word("reading")],
+    )?);
+    into.push(GeneratedToken::alone(';'));
+    Ok(())
+}

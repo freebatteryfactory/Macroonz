@@ -35,6 +35,9 @@ A counterexample carries the site it was found at, the canonical interleaving, a
 
 A directed check is the same two calls in the other direction: author the choice string yourself, encode it, realize it, judge it — the exact schedule that once failed, pinned as a regression.
 
+`concluded` reads a whole exploration into one ordinary trial conclusion: a counterexample as the refusal its own finding states, an exhausted space as a pass over the whole space, a clean sample as a pass of the declared exploration exactly when its drive met its declared budget — and as a refusal where it stopped short, because an all-pass over fewer schedules than were declared is unexercised evidence.
+The reading stays the owner of the replay; the conclusion is the verdict alone, and it rides the report vocabulary every fingerprint and rerun selection already reads.
+
 ## Faults compose
 
 Adversity is per-party: inject a [`crate::fault`] schedule into one strand's commands *before* declaring the strand, and explore the injected commands like any others.

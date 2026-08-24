@@ -12,7 +12,9 @@ What comes back is an ordinary sealed expansion of the carrier kind, whose one d
 - **`trials`** reads a trial payload from the attribute's body. The stamped table rides the declared axis, read off the trial terminal's own declaration-site delivery; the other axes state their absence.
 - **`mutations`** reads a mutation declaration from the attribute's body and completes it from the item the attribute sits on — the one road here that reads two captures, which is why the item's identity rides the request as a dependency. The rendered module rides the deferred axis as proved test-carrier cargo, and the stamped seat is honestly empty.
 - **`bench`** reads a bench payload from the attribute's body. The table rides the declared axis and the adapter rides the bench axis, so the carrier writes the bench form.
-- **`shadow`** is the one road with no carrier at all: the reading chooses roster rows, the rendering writes each row's two `cfg`-gated faces, and the sealed expansion's one declaration-site unit is those items directly — production `pub use` rows, inert inside nothing.
+- **`shadow`** is the first road with no carrier at all: the reading chooses roster rows, the rendering writes each row's two `cfg`-gated faces, and the sealed expansion's one declaration-site unit is those items directly — production `pub use` rows, inert inside nothing.
+- **`network`** reads a topology and its fault schedules and emits their builder module directly: `topology()`, one function per schedule, one generated fault enum. What the tokens can know refuses at capture; what the harness's value guards own still refuses there, through the builders' honest results.
+- **`concurrency`** reads named exploration rows — population, ceiling, samples, seed — and emits one generic function per row, taking the strand set and the contract at the call and handing back the reading beside its concluded verdict.
 
 ## One attribute, one carrier
 

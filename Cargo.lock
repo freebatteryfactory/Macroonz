@@ -186,6 +186,7 @@ name = "macroonz-macros"
 version = "0.0.0"
 dependencies = [
  "macroonz",
+ "macroonz-harness",
 ]
 
 [[package]]

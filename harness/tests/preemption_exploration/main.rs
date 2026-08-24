@@ -6,9 +6,10 @@ use loom::sync::Arc;
 use loom::sync::atomic::{AtomicUsize, Ordering};
 use loom::thread;
 use macroonz_harness::preemption::{
-    LOOM_PIN, PreemptionBound, PreemptionBounds, PreemptionBoundsRefusal, PreemptionVerdict,
-    explored,
+    LOOM_PIN, MODEL_BROKE, PreemptionBound, PreemptionBounds, PreemptionBoundsRefusal,
+    PreemptionVerdict, concluded, explored,
 };
+use macroonz_harness::report::{FailureClass, TrialConclusion};
 
 /// The workspace manifest, read at compile time, where the loom pin is declared.
 const ROOT_MANIFEST: &str = include_str!("../../../Cargo.toml");
@@ -88,6 +89,16 @@ fn the_racy_counter_is_caught_with_looms_report() -> Result<(), PreemptionBounds
         ),
         "the racy model was not caught with a report"
     );
+    let conclusion = concluded(&reading);
+    assert!(
+        matches!(conclusion, TrialConclusion::Refused(_)),
+        "the broke verdict did not conclude as a refusal"
+    );
+    if let TrialConclusion::Refused(finding) = conclusion {
+        assert_eq!(finding.cause(), MODEL_BROKE);
+        assert_eq!(finding.class(), FailureClass::SubjectPanic);
+        assert!(finding.foreign().is_some());
+    }
     Ok(())
 }
 
@@ -96,6 +107,7 @@ fn the_racy_counter_is_caught_with_looms_report() -> Result<(), PreemptionBounds
 fn the_fused_counter_holds_over_the_bounded_space() -> Result<(), PreemptionBoundsRefusal> {
     let reading = explored(bounds()?, fused_model);
     assert_eq!(reading.verdict(), &PreemptionVerdict::AllInterleavingsHeld);
+    assert_eq!(concluded(&reading), TrialConclusion::Passed);
     Ok(())
 }
 

@@ -3,9 +3,9 @@
 mod explore;
 mod types;
 
-pub use explore::{encoded, explored, interpreted};
+pub use explore::{concluded, encoded, explored, interpreted};
 pub use types::{
-    ADDRESSABLE_STRANDS, Counterexample, EncodingRefusal, ExplorationBound,
+    ADDRESSABLE_STRANDS, Counterexample, EXPLORATION_STARVED, EncodingRefusal, ExplorationBound,
     ExplorationBoundRefusal, ExplorationMode, ExplorationReading, ExplorationRefusal,
     ExplorationSite, ExplorationStanding, InterleavedSequence, Interleaving, InterleavingSpace,
     Strand, StrandRefusal, StrandSet, StrandSetRefusal,
