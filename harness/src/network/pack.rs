@@ -77,7 +77,7 @@ impl Replay {
     ///
     /// A live recording whose epoch starts at zero lawfully carries a delivery stamped at tick zero, and the opening is where it plays — never shifted onto a later tick.
     /// The simulator's own transcripts never carry one, because its time law places every delivery at least one tick after its send; for them the opening hand is empty and playback is unchanged.
-    /// The drain rides the constructor rather than a second call, so no caller can open a replay and read past what tick zero already delivered.
+    /// The drain rides the constructor rather than a second call, so there is no road to a replay value that has not already surrendered its opening hand — what a caller does with a hand it was dealt is its own affair, at this tick as at every later one.
     #[must_use]
     pub fn opened(pack: &TranscriptPack) -> (Self, Vec<Delivery<Vec<u8>>>) {
         let mut replay = Self {

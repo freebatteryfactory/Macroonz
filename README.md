@@ -23,7 +23,7 @@ Macroonz replaces both hopes with records.
 | You have | You get |
 | --- | --- |
 | A derive that emits tokens | An expansion that names every unit it produced, proves the set matches its plan, and explains each decision — before a byte reaches `rustc` |
-| A handful of example tests | Generated inputs, injected faults, a controlled clock, mutants of your own code, and the seed that reproduces every failure — with reduction minting the smallest witness it reached and the replay capsule that carries it |
+| A handful of example tests | Generated inputs, injected faults, a controlled clock, mutants of your own code, and the reproduction material each road earns — generation keeps its seed when generation drove the run, reduction mints the smallest witness it reached, and the replay capsule carries it |
 
 ---
 

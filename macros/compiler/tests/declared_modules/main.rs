@@ -250,7 +250,7 @@ fn a_network_separator_separating_nothing_refuses() -> Result<(), ()> {
 
 /// A keyword cannot name a rendered item: every programmatic name constructor reads the composed law, not the alphabet alone.
 ///
-/// The one deliberate exception is the stamp site root, which stays on the alphabet because a site inside the publishing crate lawfully roots itself at the spelling `crate`.
+/// Paths read position-aware the way the language does: the stamp site root admits `crate`, `self`, or a leading run of `super` at the root, the codec path types its qualifier as the rooting — so every later segment is an item name the keyword roster refuses.
 #[test]
 fn a_keyword_cannot_name_a_rendered_item() {
     assert!(macroonz::descriptor::ModuleName::declared("type").is_err());
@@ -262,6 +262,34 @@ fn a_keyword_cannot_name_a_rendered_item() {
     assert!(macroonz::support::SupportName::declared("loop").is_err());
     assert!(macroonz::codec::ModuleSpelling::spelled("type").is_err());
     assert!(macroonz::stamp::SiteRoot::spelled(vec!["crate".to_owned()]).is_ok());
+    assert!(
+        macroonz::stamp::SiteRoot::spelled(vec!["crate".to_owned(), "type".to_owned()]).is_err()
+    );
+    assert!(
+        macroonz::stamp::SiteRoot::spelled(vec![
+            "super".to_owned(),
+            "super".to_owned(),
+            "stamps".to_owned(),
+        ])
+        .is_ok()
+    );
+    assert!(
+        macroonz::stamp::SiteRoot::spelled(vec!["stamps".to_owned(), "self".to_owned()]).is_err()
+    );
+    assert!(
+        macroonz::codec::CodecTypePath::spelled(
+            macroonz::codec::PathRooting::ParentScoped,
+            vec!["Thing".to_owned()],
+        )
+        .is_ok()
+    );
+    assert!(
+        macroonz::codec::CodecTypePath::spelled(
+            macroonz::codec::PathRooting::InScope,
+            vec!["self".to_owned(), "Thing".to_owned()],
+        )
+        .is_err()
+    );
 }
 
 /// A malformed concurrency declaration refuses at capture, clause by clause.

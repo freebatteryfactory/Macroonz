@@ -186,6 +186,8 @@ pub enum ExplanationIssue {
         expected: u16,
         /// Rows the supplied answer carried.
         observed: u16,
+        /// The first roster position where the supplied answer stops restating the proof — the shorter roster's own end where one merely ran out.
+        diverges: u16,
     },
 }
 

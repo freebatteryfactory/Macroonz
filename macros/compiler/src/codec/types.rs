@@ -84,12 +84,17 @@ crate::roster! {
 crate::roster! {
     /// Where one rendered type path is rooted.
     ///
-    /// Two rows and neither is a default: a path spelled from the caller's crate root and a path resolved wherever the surface lands are two different claims, and a rendering that guessed would put the wrong one in somebody else's crate.
+    /// Four rows and none is a default: where a path is rooted is a claim about whose scope resolves it, and a rendering that guessed would put the wrong one in somebody else's crate.
+    /// The qualifier is typed here rather than smuggled as a first segment, so every segment stays an item step and the keyword roster holds on all of them.
     pub enum PathRooting {
-        /// Rooted at the caller's own crate, so the path resolves the same wherever the surface lands.
+        /// Rooted at the caller's own crate — rendered under the language's `crate` qualifier, so the path resolves the same wherever the surface lands.
         CrateAbsolute = "crate-absolute",
         /// Resolved in the scope the surface lands in, exactly as the caller spelled it.
         InScope = "in-scope",
+        /// Rooted at the module the surface lands in, under the language's `self` qualifier.
+        SelfScoped = "self-scoped",
+        /// Rooted one module above the surface, under the language's `super` qualifier; a deeper reach is a re-export at the address rather than a longer qualifier run.
+        ParentScoped = "parent-scoped",
     }
 }
 

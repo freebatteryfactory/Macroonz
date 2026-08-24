@@ -172,9 +172,14 @@ fn clauses<'trees>(
     let mut group: Vec<&CapturedTokenTree> = Vec::new();
     for tree in body {
         if tree.punct() == Some(',') {
-            if !group.is_empty() {
-                read.push(clause(grammar, &group)?);
+            if group.is_empty() {
+                return Err(refused(
+                    grammar,
+                    CaptureCause::SeparatorDangling,
+                    tree.span(),
+                ));
             }
+            read.push(clause(grammar, &group)?);
             group.clear();
         } else {
             group.push(tree);
@@ -290,26 +295,59 @@ fn permission<'trees>(
         ));
     };
     let mut families: Vec<FamilySlug> = Vec::new();
+    let mut group: Vec<&CapturedTokenTree> = Vec::new();
     for tree in inner {
         if tree.punct() == Some(',') {
-            continue;
+            match group.as_slice() {
+                [] => {
+                    return Err(refused(
+                        grammar,
+                        CaptureCause::SeparatorDangling,
+                        tree.span(),
+                    ));
+                }
+                [only] => families.push(family(grammar, only)?),
+                [first, ..] => {
+                    return Err(refused(
+                        grammar,
+                        CaptureCause::PermissionUnread,
+                        first.span(),
+                    ));
+                }
+            }
+            group.clear();
+        } else {
+            group.push(tree);
         }
-        let Some(slug) = tree.text() else {
+    }
+    match group.as_slice() {
+        [] => {}
+        [only] => families.push(family(grammar, only)?),
+        [first, ..] => {
             return Err(refused(
                 grammar,
                 CaptureCause::PermissionUnread,
-                tree.span(),
+                first.span(),
             ));
-        };
-        families.push(
-            FamilySlug::declared(slug).map_err(|refusal| carried(grammar, refusal, tree.span()))?,
-        );
+        }
     }
     Ok(Clause::Permission {
         claim,
         families,
         at,
     })
+}
+
+/// One operator-family slug, read off its own token.
+fn family(grammar: Grammar, tree: &CapturedTokenTree) -> Result<FamilySlug, MutationCaptureError> {
+    let Some(slug) = tree.text() else {
+        return Err(refused(
+            grammar,
+            CaptureCause::PermissionUnread,
+            tree.span(),
+        ));
+    };
+    FamilySlug::declared(slug).map_err(|refusal| carried(grammar, refusal, tree.span()))
 }
 
 /// Refuse where one assigned clause key is stated twice.
@@ -530,9 +568,14 @@ fn declared_order<'trees>(
     let mut group: Vec<&CapturedTokenTree> = Vec::new();
     for tree in inner {
         if tree.punct() == Some(',') {
-            if !group.is_empty() {
-                order.push(variant(grammar, &group, at)?);
+            if group.is_empty() {
+                return Err(refused(
+                    grammar,
+                    CaptureCause::SeparatorDangling,
+                    tree.span(),
+                ));
             }
+            order.push(variant(grammar, &group, at)?);
             group.clear();
         } else {
             group.push(tree);

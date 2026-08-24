@@ -14,7 +14,7 @@ use super::{
 use crate::bounded::{Bounded, NonEmpty, NonEmptyError};
 use crate::identity::{self, Identity};
 use crate::plan::DigestContract;
-use crate::token::{GeneratedTree, rendered_identifier, rendered_name};
+use crate::token::{GeneratedTree, rendered_name};
 use std::collections::BTreeSet;
 
 impl Seat {
@@ -141,13 +141,23 @@ impl SiteRoot {
     ///
     /// # Errors
     ///
-    /// Returns [`StampError::NotAnIdentifier`] where a segment is not one Rust identifier, [`StampError::PathEmpty`] where no segment was stated, and [`StampError::PathUnbounded`] where the segments outgrow the declared magnitude.
+    /// Returns [`StampError::NotAnIdentifier`] where a segment cannot name a step of a site's path, [`StampError::PathEmpty`] where no segment was stated, and [`StampError::PathUnbounded`] where the segments outgrow the declared magnitude.
     ///
     /// The checks are in that order, so exactly one cause is true of any refused root.
-    /// This is the one path seat read against the alphabet alone: a site inside the publishing crate lawfully roots itself at the spelling `crate`, so the keyword roster does not apply here the way it does to every item name.
+    /// The reading is position-aware the way the language's own path grammar is: the root position admits the qualifiers a site lawfully roots itself under — `crate`, `self`, or a leading run of `super` — and every segment past the qualifiers names an item, read against the composed law that refuses the keyword roster.
     pub fn spelled(segments: Vec<String>) -> Result<Self, StampError> {
-        for segment in &segments {
-            if !rendered_identifier(segment.as_str()) {
+        let names = match segments.split_first() {
+            Some((root, rest)) if root.as_str() == "crate" || root.as_str() == "self" => rest,
+            Some(_) | None => {
+                let qualifiers = segments
+                    .iter()
+                    .take_while(|segment| segment.as_str() == "super")
+                    .count();
+                segments.get(qualifiers..).unwrap_or(&[])
+            }
+        };
+        for segment in names {
+            if !rendered_name(segment.as_str()) {
                 return Err(StampError::NotAnIdentifier);
             }
         }

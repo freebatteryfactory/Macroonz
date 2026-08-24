@@ -20,9 +20,9 @@ use crate::plan::Plan;
 use crate::render::RenderedProjection;
 use core::marker::PhantomData;
 
-/// The refusal one established issue list amounts to, or nothing where the pass established none.
+/// The refusal one established issue list amounts to, or nothing where the passes established none.
 ///
-/// One road for every pass in [`View::complete`](super::View::complete), so no pass can establish issues and then walk on past them.
+/// One road for everything [`View::complete`](super::View::complete) establishes: the coverage pass and the output pass co-establish into one list, so no pass can establish issues and then walk on past them, and no caller repairs one pass's findings only to meet the other's.
 fn refused(issues: Vec<ExplanationIssue>) -> Option<ExplanationError> {
     let mut established = issues.into_iter();
     let first = established.next()?;
@@ -74,9 +74,15 @@ fn outputs_beside_proof<R: Role>(
     if supplied.len() == lawful.len() && supplied.iter().eq(lawful.iter()) {
         return Vec::new();
     }
+    let diverges = supplied
+        .iter()
+        .zip(lawful.iter())
+        .position(|(offered, proved)| offered != proved)
+        .unwrap_or_else(|| supplied.len().min(lawful.len()));
     vec![ExplanationIssue::OutputsBesideTheProof {
         expected: u16::try_from(lawful.len()).unwrap_or(u16::MAX),
         observed: u16::try_from(supplied.len()).unwrap_or(u16::MAX),
+        diverges: u16::try_from(diverges).unwrap_or(u16::MAX),
     }]
 }
 
@@ -175,10 +181,9 @@ impl<K: Kind> View<K> {
         universal: Vec<UniversalAnswer>,
         declared: Vec<<K::Question as Question>::Answer>,
     ) -> Result<Self, ExplanationError> {
-        if let Some(refusal) = refused(coverage_issues::<K>(&universal, &declared)) {
-            return Err(refusal);
-        }
-        if let Some(refusal) = refused(outputs_beside_proof(&universal, closure)) {
+        let mut issues = coverage_issues::<K>(&universal, &declared);
+        issues.extend(outputs_beside_proof(&universal, closure));
+        if let Some(refusal) = refused(issues) {
             return Err(refusal);
         }
         let seated_universal = in_roster_order::<UniversalQuestion>(universal);

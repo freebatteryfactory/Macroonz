@@ -162,7 +162,7 @@ pub struct StampName {
 
 /// The path one site reaches its published stamp by.
 ///
-/// Structurally non-empty and every segment an identifier, so a root the consumer's compiler would read as something else is not a value anybody can hold.
+/// Structurally non-empty, and read the way the language reads a path: qualifiers only at the root — `crate`, `self`, or a leading run of `super` — and an item name at every later step, so a root the consumer's compiler would read as something else is not a value anybody can hold.
 /// Usually one segment: the crate the stamp is published in names its own root, and a site elsewhere names that crate.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SiteRoot {

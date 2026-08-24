@@ -217,7 +217,71 @@ fn an_output_answer_beside_the_proof_refuses() -> Result<(), ()> {
         &ExplanationIssue::OutputsBesideTheProof {
             expected: 1u16,
             observed: 0u16,
+            diverges: 0u16,
         }
+    );
+    Ok(())
+}
+
+/// An output answer that doubles the proof's one row refuses, and the issue points at the position past the roster's own end.
+#[test]
+fn a_doubled_output_row_refuses_at_its_own_position() -> Result<(), ()> {
+    let bound = lawful().ok_or(())?;
+    let mut doubled: Vec<UniversalAnswer> = bound.explain().universal().to_vec();
+    for answer in &mut doubled {
+        if let UniversalAnswer::OutputAndDigest { outputs } = answer {
+            let mut rows = outputs.as_slice().to_vec();
+            let Some(first) = rows.first().cloned() else {
+                return Err(());
+            };
+            rows.push(first);
+            *outputs = Bounded::new(rows).map_err(|_overflow| ())?;
+        }
+    }
+    let refusal = View::complete(
+        bound.plan(),
+        bound.closure(),
+        doubled,
+        vec![Answered::Whom("world")],
+    )
+    .err()
+    .ok_or(())?;
+    assert_eq!(
+        refusal.first_issue(),
+        &ExplanationIssue::OutputsBesideTheProof {
+            expected: 1u16,
+            observed: 2u16,
+            diverges: 1u16,
+        }
+    );
+    Ok(())
+}
+
+/// The coverage pass and the output pass co-establish: a sheet failing both is refused once, carrying both findings.
+#[test]
+fn coverage_and_output_findings_arrive_together() -> Result<(), ()> {
+    let bound = lawful().ok_or(())?;
+    let mut hostile: Vec<UniversalAnswer> = bound.explain().universal().to_vec();
+    hostile.retain(|answer| !matches!(answer, UniversalAnswer::Profile { .. }));
+    for answer in &mut hostile {
+        if let UniversalAnswer::OutputAndDigest { outputs } = answer {
+            *outputs = Bounded::empty();
+        }
+    }
+    let refusal = View::complete(
+        bound.plan(),
+        bound.closure(),
+        hostile,
+        vec![Answered::Whom("world")],
+    )
+    .err()
+    .ok_or(())?;
+    assert_eq!(refusal.issues().count(), 2usize);
+    assert!(
+        refusal
+            .issues()
+            .iter()
+            .any(|issue| matches!(issue, ExplanationIssue::OutputsBesideTheProof { .. }))
     );
     Ok(())
 }

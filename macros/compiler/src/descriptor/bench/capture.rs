@@ -212,7 +212,9 @@ enum Clause<'trees> {
     },
 }
 
-/// Cut one declaration body into its comma-separated clauses.
+/// Cut one declaration body into its comma-separated clauses, refusing a separator that separates nothing.
+///
+/// A trailing comma after the last clause is ordinary Rust and lawful; a leading or doubled comma makes an empty group this reader would otherwise silently drop, so it refuses at the comma's own token.
 fn declaration_clauses<'trees>(
     grammar: Grammar,
     body: &[&'trees CapturedTokenTree],
@@ -221,6 +223,13 @@ fn declaration_clauses<'trees>(
     let mut group: Vec<&CapturedTokenTree> = Vec::new();
     for tree in body {
         if tree.punct() == Some(',') {
+            if group.is_empty() {
+                return Err(refused(
+                    grammar,
+                    CaptureCause::SeparatorDangling,
+                    tree.span(),
+                ));
+            }
             close(grammar, &group, &mut clauses)?;
             group.clear();
         } else {
@@ -234,7 +243,7 @@ fn declaration_clauses<'trees>(
 
 /// Close one of a declaration body's comma-separated groups.
 ///
-/// An empty group is a trailing comma and is lawful.
+/// An empty group is a trailing comma and is lawful; an empty group standing at a comma was refused before this road is reached.
 /// A group of one word and one brace body is a row; anything else is read as an assignment against the declaration level's keys.
 fn close<'trees>(
     grammar: Grammar,
@@ -502,11 +511,31 @@ fn axis(
         ));
     };
     let mut sizes: Vec<u64> = Vec::new();
+    let mut group: Vec<&CapturedTokenTree> = Vec::new();
     for tree in inner {
         if tree.punct() == Some(',') {
-            continue;
+            match group.as_slice() {
+                [] => {
+                    return Err(refused(
+                        grammar,
+                        CaptureCause::SeparatorDangling,
+                        tree.span(),
+                    ));
+                }
+                [only] => sizes.push(number(grammar, only)?),
+                [first, ..] => {
+                    return Err(refused(grammar, CaptureCause::RosterUnread, first.span()));
+                }
+            }
+            group.clear();
+        } else {
+            group.push(tree);
         }
-        sizes.push(number(grammar, tree)?);
+    }
+    match group.as_slice() {
+        [] => {}
+        [only] => sizes.push(number(grammar, only)?),
+        [first, ..] => return Err(refused(grammar, CaptureCause::RosterUnread, first.span())),
     }
     Ok(sizes)
 }
@@ -552,9 +581,14 @@ fn observations(
     let mut group: Vec<&CapturedTokenTree> = Vec::new();
     for tree in inner {
         if tree.punct() == Some(',') {
-            if !group.is_empty() {
-                observed.push(bound_path(grammar, &group, bracketed.span())?);
+            if group.is_empty() {
+                return Err(refused(
+                    grammar,
+                    CaptureCause::SeparatorDangling,
+                    tree.span(),
+                ));
             }
+            observed.push(bound_path(grammar, &group, bracketed.span())?);
             group.clear();
         } else {
             group.push(tree);
@@ -613,9 +647,14 @@ fn row_clauses<'trees>(
     let mut group: Vec<&CapturedTokenTree> = Vec::new();
     for tree in body {
         if tree.punct() == Some(',') {
-            if let Some((head, rest)) = group.split_first() {
-                clauses.push(assignment(grammar, head, rest, &DECLARABLE_ROW)?);
-            }
+            let Some((head, rest)) = group.split_first() else {
+                return Err(refused(
+                    grammar,
+                    CaptureCause::SeparatorDangling,
+                    tree.span(),
+                ));
+            };
+            clauses.push(assignment(grammar, head, rest, &DECLARABLE_ROW)?);
             group.clear();
         } else {
             group.push(tree);

@@ -319,6 +319,76 @@ fn a_bench_axis_of_one_point_refuses() -> Result<(), ()> {
     Ok(())
 }
 
+/// A trial separator separating nothing refuses at capture — leading, doubled, or inside a row body — while trailing commas stay ordinary Rust.
+#[test]
+fn a_trial_separator_separating_nothing_refuses() -> Result<(), ()> {
+    let leading = r#"
+        , support = greet_support,
+        module = greet_trials,
+        table = named("lane", "greet-table"),
+    "#;
+    let doubled = r#"
+        support = greet_support,,
+        module = greet_trials,
+        table = named("lane", "greet-table"),
+    "#;
+    let dangling_in_row = r#"
+        support = greet_support,
+        module = greet_trials,
+        table = named("lane", "greet-table"),
+        suite checks = named("lane", "unit") {
+            greet_answers {
+                claim = named("lane", "greet-answers"),,
+                subject = named("lane", "greet"),
+                check = named("lane", "exact"),
+                population = named("lane", "smalls"),
+            },
+        },
+    "#;
+    for source in [leading, doubled, dangling_in_row] {
+        let refusal = trials(source).ok_or(())?.err().ok_or(())?;
+        assert_eq!(refusal.phase(), Phase::Capture, "{source} did not refuse");
+    }
+    Ok(())
+}
+
+/// A bench separator separating nothing refuses at capture, and an axis whose numbers stand unseparated refuses rather than being read as two lawful sizes.
+#[test]
+fn a_bench_separator_separating_nothing_refuses() -> Result<(), ()> {
+    let doubled = BENCH_BODY.replacen("support = pace_support,", "support = pace_support,,", 1);
+    let dangling_axis = BENCH_BODY.replacen("axis = [2, 4, 8],", "axis = [2,, 4],", 1);
+    let unseparated_axis = BENCH_BODY.replacen("axis = [2, 4, 8],", "axis = [2 4],", 1);
+    for source in [&doubled, &dangling_axis, &unseparated_axis] {
+        let refusal = bench(source).ok_or(())?.err().ok_or(())?;
+        assert_eq!(refusal.phase(), Phase::Capture, "{source} did not refuse");
+    }
+    Ok(())
+}
+
+/// A mutation separator separating nothing refuses at capture, and a permission roster whose slugs stand unseparated refuses rather than being read as two lawful families.
+#[test]
+fn a_mutation_separator_separating_nothing_refuses() -> Result<(), ()> {
+    let doubled = MUTATION_BODY.replacen("module = pressed,", "module = pressed,,", 1);
+    let dangling_permit = MUTATION_BODY.replacen(
+        "= [\"declared-order-permutation\"],",
+        "= [, \"declared-order-permutation\"],",
+        1,
+    );
+    let unseparated_permit = MUTATION_BODY.replacen(
+        "= [\"declared-order-permutation\"],",
+        "= [\"declared-order-permutation\" \"declared-order-permutation\"],",
+        1,
+    );
+    for source in [&doubled, &dangling_permit, &unseparated_permit] {
+        let refusal = mutations(source, MUTATION_ITEM)
+            .ok_or(())?
+            .err()
+            .ok_or(())?;
+        assert_eq!(refusal.phase(), Phase::Capture, "{source} did not refuse");
+    }
+    Ok(())
+}
+
 /// Two declarations mint two carriers under two exported names, keyed by each plan's own identity.
 #[test]
 fn two_declarations_mint_two_exported_names() -> Result<(), ()> {

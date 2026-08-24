@@ -181,9 +181,13 @@ impl fmt::Display for ExplanationIssue {
             Self::SeatBoundExceeded { bound, observed } => {
                 write!(into, "{observed} seats offered where {bound} are declared")
             }
-            Self::OutputsBesideTheProof { expected, observed } => write!(
+            Self::OutputsBesideTheProof {
+                expected,
+                observed,
+                diverges,
+            } => write!(
                 into,
-                "the output answer carries {observed} rows beside the proof's {expected}"
+                "the output answer carries {observed} rows beside the proof's {expected}, diverging at roster position {diverges}"
             ),
         }
     }

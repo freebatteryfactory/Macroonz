@@ -295,6 +295,31 @@ fn a_live_tick_zero_delivery_plays_at_the_opening() -> Result<(), LaneFailure> {
     Ok(())
 }
 
+/// The tick-zero opening survives the wire: a live pack encoded, re-read, and opened hands the same epoch delivery a fresh writer's would.
+#[test]
+fn a_decoded_pack_still_opens_with_its_tick_zero_delivery() -> Result<(), LaneFailure> {
+    let wire = forward()?;
+    let entries = vec![TranscriptEntry::witnessed(
+        wire,
+        SendOrdinal::at(0u32),
+        b"epoch".to_vec(),
+        Tick::at(0u64),
+        Tick::at(0u64),
+        DeliveryCopy::Original,
+    )];
+    let topology = pair_topology()?;
+    let pack = recorded(TranscriptProvenance::RecordedLive, &topology, entries)?;
+    let reread = read(&topology, pack.encoded())?;
+    let (replay, opening) = Replay::opened(&reread);
+    assert_eq!(replay.tick(), Tick::at(0u64));
+    assert_eq!(opening.len(), 1usize);
+    let zeroth = opening.first().ok_or(LaneFailure::Standing)?;
+    assert_eq!(zeroth.delivered_at(), Tick::at(0u64));
+    assert_eq!(zeroth.payload(), b"epoch");
+    assert_eq!(replay.remaining(), 0usize);
+    Ok(())
+}
+
 /// The write road refuses an empty record, a foreign row, a delivery stamped before its own send, and a stamp that steps backward.
 #[test]
 fn the_write_road_refuses_incoherent_records() -> Result<(), LaneFailure> {

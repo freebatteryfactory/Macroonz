@@ -191,10 +191,14 @@ fn qualified(
 }
 
 /// One path a caller declared, spelled from the rooting it stated.
+///
+/// The crate-absolute rooting writes the language's own `crate` qualifier, because that rooting's claim is the caller's own crate — a leading `::` would address the extern prelude, which is a different crate entirely.
 fn type_path(path: &CodecTypePath) -> Vec<GeneratedToken> {
     let segments: Vec<&str> = path.segments().collect();
     match path.rooting() {
-        PathRooting::CrateAbsolute => absolute_path(&segments),
+        PathRooting::CrateAbsolute => bound_path("crate", &segments),
+        PathRooting::SelfScoped => bound_path("self", &segments),
+        PathRooting::ParentScoped => bound_path("super", &segments),
         PathRooting::InScope => match segments.split_first() {
             Some((root, rest)) => bound_path(root, rest),
             None => Vec::new(),
