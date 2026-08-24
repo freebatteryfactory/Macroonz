@@ -244,7 +244,97 @@ fn a_network_separator_separating_nothing_refuses() -> Result<(), ()> {
     for source in [leading_separator, doubled_separator] {
         let refusal = networked(source).ok_or(())?.err().ok_or(())?;
         assert_eq!(refusal.phase(), Phase::Capture, "{source} did not refuse");
+        assert!(
+            refusal
+                .summary()
+                .contains("a separator stands where no clause does"),
+            "{source} does not name the dangling separator"
+        );
+        assert!(
+            refusal.summary().contains("(at "),
+            "{source} carries no coordinate"
+        );
     }
+    Ok(())
+}
+
+/// A concurrency separator separating nothing refuses at its own comma, named as such — at the declaration level and inside a row body.
+#[test]
+fn a_concurrency_separator_separating_nothing_refuses() -> Result<(), ()> {
+    let doubled_separator = r#"
+        module = explorations,,
+        namespace = "lane",
+        transfers_hold { population = "a", interleavings = 1, samples = 1, seed = 1 },
+    "#;
+    let dangling_row_separator = r#"
+        module = explorations,
+        namespace = "lane",
+        transfers_hold { population = "a", interleavings = 1,, samples = 1, seed = 1 },
+    "#;
+    for source in [doubled_separator, dangling_row_separator] {
+        let refusal = concurrent(source).ok_or(())?.err().ok_or(())?;
+        assert_eq!(refusal.phase(), Phase::Capture, "{source} did not refuse");
+        assert!(
+            refusal
+                .summary()
+                .contains("a separator stands where no clause does"),
+            "{source} does not name the dangling separator"
+        );
+        assert!(
+            refusal.summary().contains("(at "),
+            "{source} carries no coordinate"
+        );
+    }
+    Ok(())
+}
+
+/// The three typed rootings render the language's own qualifiers — the caller's crate, the landing module, and its parent — never the extern prelude.
+#[test]
+fn a_codec_path_renders_under_its_typed_rooting() -> Result<(), ()> {
+    use macroonz::codec::{
+        AssemblyPosture, Cardinality, CodecAssembly, CodecContent, CodecDirection, CodecMember,
+        CodecMemberShape, CodecPlacement, CodecShape, CodecTypePath, PathRooting, codec_surface,
+    };
+    let owner = CodecTypePath::spelled(PathRooting::CrateAbsolute, vec!["Demo".to_owned()])
+        .map_err(|_| ())?;
+    let held = CodecTypePath::spelled(PathRooting::ParentScoped, vec!["Held".to_owned()])
+        .map_err(|_| ())?;
+    let near =
+        CodecTypePath::spelled(PathRooting::SelfScoped, vec!["Near".to_owned()]).map_err(|_| ())?;
+    let members = vec![
+        CodecMember::declared(
+            "held",
+            held,
+            CodecMemberShape::Nested,
+            Cardinality::Required,
+        )
+        .map_err(|_| ())?,
+        CodecMember::declared(
+            "near",
+            near,
+            CodecMemberShape::Nested,
+            Cardinality::Required,
+        )
+        .map_err(|_| ())?,
+    ];
+    let assembly = CodecAssembly::stated("assembled", AssemblyPosture::Total).map_err(|_| ())?;
+    let shape = CodecShape::declared(owner, "DemoRefusal", assembly, members).map_err(|_| ())?;
+    let content = CodecContent {
+        shape,
+        direction: CodecDirection::RoundTrip,
+        placement: CodecPlacement::AtDeclarationSite,
+        schema: None,
+        byte_role: None,
+        assumptions: macroonz::Bounded::empty(),
+    };
+    let text = codec_surface(&content).map_err(|_| ())?.inspected();
+    for spelled in ["crate :: Demo", "super :: Held", "self :: Near"] {
+        assert!(
+            text.contains(spelled),
+            "the surface does not spell {spelled}"
+        );
+    }
+    assert!(!text.contains(":: crate"), "the extern prelude leaked in");
     Ok(())
 }
 
@@ -334,16 +424,6 @@ fn a_malformed_concurrency_declaration_refuses_at_capture() -> Result<(), ()> {
         namespace = "lane",
         type { population = "a", interleavings = 1, samples = 1, seed = 1 },
     "#;
-    let doubled_separator = r#"
-        module = explorations,,
-        namespace = "lane",
-        transfers_hold { population = "a", interleavings = 1, samples = 1, seed = 1 },
-    "#;
-    let dangling_row_separator = r#"
-        module = explorations,
-        namespace = "lane",
-        transfers_hold { population = "a", interleavings = 1,, samples = 1, seed = 1 },
-    "#;
     for source in [
         missing_fact,
         doubled_row,
@@ -352,8 +432,6 @@ fn a_malformed_concurrency_declaration_refuses_at_capture() -> Result<(), ()> {
         oversized_number,
         keyword_module,
         keyword_row,
-        doubled_separator,
-        dangling_row_separator,
     ] {
         let refusal = concurrent(source).ok_or(())?.err().ok_or(())?;
         assert_eq!(refusal.phase(), Phase::Capture, "{source} did not refuse");

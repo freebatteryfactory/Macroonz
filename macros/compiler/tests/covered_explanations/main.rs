@@ -257,6 +257,54 @@ fn a_doubled_output_row_refuses_at_its_own_position() -> Result<(), ()> {
     Ok(())
 }
 
+/// An output answer restating the right COUNT but another proof's row refuses, and the divergence coordinate names the first foreign row.
+///
+/// This is the substitution a bare count comparison would wave through: one row offered beside one row proved, and they are not the same row.
+#[test]
+fn a_foreign_output_row_refuses_at_position_zero() -> Result<(), ()> {
+    let bound = lawful().ok_or(())?;
+    let read = TextCapture::read(DECLARATION).map_err(|_| ())?;
+    let foreign = Request::<Greeting>::over(read.input().clone(), "farewell", &DOOR)
+        .answering(vec![Answered::Whom("mars")])
+        .render(|_plan, out| {
+            out.unit(
+                SoleRole::Sole,
+                GeneratedTree::assembled(vec![GeneratedToken::word("farewell")])?,
+            )
+        })
+        .map_err(|_| ())?;
+    let mut found = None;
+    for other in foreign.explain().universal() {
+        if let UniversalAnswer::OutputAndDigest { outputs } = other {
+            found = Some(outputs.clone());
+        }
+    }
+    let theirs = found.ok_or(())?;
+    let mut swapped: Vec<UniversalAnswer> = bound.explain().universal().to_vec();
+    for answer in &mut swapped {
+        if let UniversalAnswer::OutputAndDigest { outputs } = answer {
+            *outputs = theirs.clone();
+        }
+    }
+    let refusal = View::complete(
+        bound.plan(),
+        bound.closure(),
+        swapped,
+        vec![Answered::Whom("world")],
+    )
+    .err()
+    .ok_or(())?;
+    assert_eq!(
+        refusal.first_issue(),
+        &ExplanationIssue::OutputsBesideTheProof {
+            expected: 1u16,
+            observed: 1u16,
+            diverges: 0u16,
+        }
+    );
+    Ok(())
+}
+
 /// The coverage pass and the output pass co-establish: a sheet failing both is refused once, carrying both findings.
 #[test]
 fn coverage_and_output_findings_arrive_together() -> Result<(), ()> {

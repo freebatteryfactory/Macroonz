@@ -348,6 +348,16 @@ fn a_trial_separator_separating_nothing_refuses() -> Result<(), ()> {
     for source in [leading, doubled, dangling_in_row] {
         let refusal = trials(source).ok_or(())?.err().ok_or(())?;
         assert_eq!(refusal.phase(), Phase::Capture, "{source} did not refuse");
+        assert!(
+            refusal
+                .summary()
+                .contains("a separator stands where no clause does"),
+            "{source} does not name the dangling separator"
+        );
+        assert!(
+            refusal.summary().contains("(at "),
+            "{source} carries no coordinate"
+        );
     }
     Ok(())
 }
@@ -358,10 +368,22 @@ fn a_bench_separator_separating_nothing_refuses() -> Result<(), ()> {
     let doubled = BENCH_BODY.replacen("support = pace_support,", "support = pace_support,,", 1);
     let dangling_axis = BENCH_BODY.replacen("axis = [2, 4, 8],", "axis = [2,, 4],", 1);
     let unseparated_axis = BENCH_BODY.replacen("axis = [2, 4, 8],", "axis = [2 4],", 1);
-    for source in [&doubled, &dangling_axis, &unseparated_axis] {
+    for source in [&doubled, &dangling_axis] {
         let refusal = bench(source).ok_or(())?.err().ok_or(())?;
         assert_eq!(refusal.phase(), Phase::Capture, "{source} did not refuse");
+        assert!(
+            refusal
+                .summary()
+                .contains("a separator stands where no clause does"),
+            "{source} does not name the dangling separator"
+        );
+        assert!(
+            refusal.summary().contains("(at "),
+            "{source} carries no coordinate"
+        );
     }
+    let unseparated = bench(&unseparated_axis).ok_or(())?.err().ok_or(())?;
+    assert_eq!(unseparated.phase(), Phase::Capture);
     Ok(())
 }
 
@@ -379,13 +401,28 @@ fn a_mutation_separator_separating_nothing_refuses() -> Result<(), ()> {
         "= [\"declared-order-permutation\" \"declared-order-permutation\"],",
         1,
     );
-    for source in [&doubled, &dangling_permit, &unseparated_permit] {
+    for source in [&doubled, &dangling_permit] {
         let refusal = mutations(source, MUTATION_ITEM)
             .ok_or(())?
             .err()
             .ok_or(())?;
         assert_eq!(refusal.phase(), Phase::Capture, "{source} did not refuse");
+        assert!(
+            refusal
+                .summary()
+                .contains("a separator stands where no clause does"),
+            "{source} does not name the dangling separator"
+        );
+        assert!(
+            refusal.summary().contains("(at "),
+            "{source} carries no coordinate"
+        );
     }
+    let unseparated = mutations(&unseparated_permit, MUTATION_ITEM)
+        .ok_or(())?
+        .err()
+        .ok_or(())?;
+    assert_eq!(unseparated.phase(), Phase::Capture);
     Ok(())
 }
 
