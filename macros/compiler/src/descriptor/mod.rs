@@ -3,6 +3,7 @@
 pub mod bench;
 pub mod door;
 pub mod mutation;
+pub mod shadow;
 pub mod trial;
 pub mod vocabulary;
 

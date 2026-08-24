@@ -9,6 +9,8 @@
 //!
 //! [`descriptor`] owns the rows a producer writes into, and [`runner`] turns those rows and a typed invocation into typed reports.
 //! [`generate`] owns the generation contract, [`corpus`] carries content-addressed warm starts for it, and [`properties`] holds the algebraic laws a subject can be held to.
+//! [`interleave`] explores the orders concurrent parties' commands can merge in, with the schedule itself a generated input, and [`network`] is the deterministic message-passing sim whose command-shaped deliveries feed that exploration.
+//! [`preemption`] explores instruction-level interleavings and the memory model through the pinned loom scheduler (on by default; the `preemption` feature opts out).
 //! [`fault`] schedules owner-declared adversity, [`clock`] is the caller-declared wall-measurement boundary, and [`mod@bench`] judges work under a pinned profile.
 //! [`muterprater`] is the mutation-pressure engine, and [`oracle`] is the independence annex for claims where self-agreement would be vacuous.
 //! [`report`] owns what a run leaves behind, [`depot`] is the harness's own fact bank, and [`identity`] is the derivation substrate every identity here goes through.
@@ -23,8 +25,12 @@ pub mod depot;
 pub mod descriptor;
 pub mod fault;
 pub mod generate;
+pub mod interleave;
 pub mod muterprater;
+pub mod network;
 pub mod oracle;
+#[cfg(feature = "preemption")]
+pub mod preemption;
 pub mod properties;
 pub mod report;
 pub mod runner;

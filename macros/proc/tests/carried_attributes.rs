@@ -68,6 +68,13 @@ mod paced {
     pub(crate) const WORKLOAD: &str = "encode";
 }
 
+/// The one shadow declaration a crate writes: both faces of every chosen name, emitted where it stands.
+///
+/// This build carries no `loom` configuration, so the ordinary faces are what compile here — each name below resolves to its standard-library path through this module.
+mod shadowed {
+    macroonz_macros::shadow! { Arc, AtomicUsize, Mutex, Ordering, thread }
+}
+
 /// The decorated items reach this test untouched, which is the half of the contract compilation alone cannot state.
 #[test]
 fn the_items_survive_beside_their_carriers() {
@@ -75,4 +82,20 @@ fn the_items_survive_beside_their_carriers() {
     assert_eq!(paced::WORKLOAD, "encode");
     let held = Cause::Second;
     assert!(matches!(held, Cause::First | Cause::Second | Cause::Third));
+}
+
+/// The shadowed names resolve to their ordinary faces off the loom configuration, and behave as the standard library.
+#[test]
+fn the_shadowed_names_stand_for_std_off_loom() {
+    let value = shadowed::Arc::new(7u8);
+    assert_eq!(*value, 7u8);
+    let counter = shadowed::AtomicUsize::new(0usize);
+    counter.fetch_add(2usize, shadowed::Ordering::SeqCst);
+    assert_eq!(counter.load(shadowed::Ordering::SeqCst), 2usize);
+    let guarded = shadowed::Mutex::new("held");
+    if let Ok(reached) = guarded.lock() {
+        assert_eq!(*reached, "held");
+    }
+    let spawned = shadowed::thread::spawn(|| 5u8);
+    assert_eq!(spawned.join().ok(), Some(5u8));
 }

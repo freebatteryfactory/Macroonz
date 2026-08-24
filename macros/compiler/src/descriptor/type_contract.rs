@@ -31,6 +31,10 @@ impl CaptureCause {
             Self::PathUnread => "a value is not one path rooted at a crate binding",
             Self::ItemUnread => "the item the helper sits on states no declared order",
             Self::OrderUnpressable => "the declared order has fewer than two members to transpose",
+            Self::ChoiceUnread => "a choice is not one bare name",
+            Self::ChoiceDoubled => "one name is chosen twice",
+            Self::NameUnshadowed => "a chosen name is not one the shadow roster covers",
+            Self::NothingChosen => "the declaration chooses no name at all",
         }
     }
 
@@ -41,8 +45,13 @@ impl CaptureCause {
     #[must_use]
     pub const fn classified(self) -> Observed {
         match self {
-            Self::BodyAbsent | Self::ClauseAbsent | Self::OrderUnpressable => Observed::SeatAbsent,
-            Self::HelperDoubled | Self::ClauseDoubled => Observed::IdentityDisagreement,
+            Self::BodyAbsent
+            | Self::ClauseAbsent
+            | Self::OrderUnpressable
+            | Self::NothingChosen => Observed::SeatAbsent,
+            Self::HelperDoubled | Self::ClauseDoubled | Self::ChoiceDoubled => {
+                Observed::IdentityDisagreement
+            }
             Self::ClauseUnread
             | Self::ClauseUndeclared
             | Self::ReferenceUnread
@@ -52,7 +61,9 @@ impl CaptureCause {
             | Self::MappingUnread
             | Self::PermissionUnread
             | Self::PathUnread
-            | Self::ItemUnread => Observed::ContractDisagreement,
+            | Self::ItemUnread
+            | Self::ChoiceUnread
+            | Self::NameUnshadowed => Observed::ContractDisagreement,
         }
     }
 }

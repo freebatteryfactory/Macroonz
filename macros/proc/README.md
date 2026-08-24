@@ -7,15 +7,17 @@ It owns no grammar, no roster, no identity rule, no planning decision, and no ju
 
 ---
 
-## Three attributes
+## Three attributes and one declaration
 
-| Attribute | On | Renders |
+| Entry | On | Renders |
 | --- | --- | --- |
 | `#[trials(...)]` | a type or a module | A trial table for `macroonz-harness`: suites and rows, each row a claim, subject, check, and population you name. |
 | `#[bench(...)]` | a type or a module | A bench table and its one-file reporter adapter, bound to a measurement backend you name. |
 | `#[mutations(...)]` | an enum | A mutation surface pressing the enum's declared order: the policy you state, and one adjacent-transposition alternative per neighboring pair of variants. |
+| `shadow! { ... }` | item position | Both faces of every chosen synchronization name from the compiler's stated roster: the ordinary face behind `#[cfg(not(loom))]`, the shadow face behind `#[cfg(loom)]` — written once, where the declaration stands. |
 
-Each expands to exactly two things: one exported carrier, and the item you wrote, untouched.
+Each attribute expands to exactly two things: one exported carrier, and the item you wrote, untouched.
+The shadow declaration is the one direct emission — its items are production `pub use` rows, inert inside nothing, because a face is not a cargo.
 
 The carrier is a hidden `macro_rules!` definition — plus the alias you chose in the `support` clause — holding its cargo inert.
 An ordinary build compiles the definition and nothing inside it.

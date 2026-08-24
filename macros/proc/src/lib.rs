@@ -1,10 +1,10 @@
-//! The proc-macro seat of `macroonz`: three generic attributes, each a carrier and nothing else.
+//! The proc-macro seat of `macroonz`: three generic attributes riding one carrier road, and one direct declaration beside them.
 //!
-//! Every grammar an attribute here reads is the compiler's `descriptor` home's, every road from a reading to the tokens a declaration site receives is the compiler's `support` home's, and the walk between them is the descriptor home's own `door` road.
-//! What this crate adds is exactly what a proc host owns: token conversion, span custody, one compiler call, diagnostic placement, and emission — plus the five facts of its own act, declared once beside each attribute.
+//! Every grammar an entry here reads is the compiler's `descriptor` home's, every road from a reading to the tokens a declaration site receives is the compiler's, and the walk between them is the descriptor home's own `door` road.
+//! What this crate adds is exactly what a proc host owns: token conversion, span custody, one compiler call, diagnostic placement, and emission — plus the facts of its own act, declared once beside each entry.
 //!
-//! Each attribute expands to one exported carrier and then the item it decorates, byte for byte as the author wrote it.
-//! The carrier is inert until a consumption target invokes it, so an ordinary build compiles the item and one macro definition and nothing more.
+//! Each attribute expands to one exported carrier and then the item it decorates, byte for byte as the author wrote it; the carrier is inert until a consumption target invokes it, so an ordinary build compiles the item and one macro definition and nothing more.
+//! The [`shadow!`](macro@shadow) declaration is the one direct emission: both `cfg`-gated faces of every chosen synchronization name, as ordinary production items, because a face is not a cargo.
 
 use macroonz::descriptor::door;
 use macroonz::descriptor::{Emitter, Grammar};
@@ -74,6 +74,23 @@ const BENCH_DOOR: Door = Door::declared(
     },
 );
 
+/// The grammar spelling the `shadow` declaration registers.
+const SHADOW_GRAMMAR: Grammar = Grammar {
+    attribute: "shadow",
+};
+
+/// Who is asking, wherever a `shadow` expansion refuses.
+const SHADOW_DOOR: Door = Door::declared(
+    "macroonz",
+    "macroonz.shadow",
+    "macroonz_macros::shadow",
+    CrateBinding::declared("macroonz"),
+    Producer {
+        namespace: "macroonz",
+        name: "macroonz-macros",
+    },
+);
+
 /// Declares a trial table beside the item this attribute sits on.
 ///
 /// The body is the trial grammar, read whole by `macroonz::descriptor::trial`: the exported support name, the stamped module, the table's own name, and each aggregate seat with its rows.
@@ -123,4 +140,18 @@ pub fn bench(body: TokenStream, item: TokenStream) -> TokenStream {
     });
     expanded.extend(item);
     expanded
+}
+
+/// Declares the two faces of every chosen synchronization name, once, where the declaration stands.
+///
+/// The body is a comma-separated choice of names from the compiler's stated shadow roster.
+/// Each chosen name expands to exactly the pair its author would have written by hand: the ordinary face behind `#[cfg(not(loom))]` over the standard-library path, and the shadowed face behind `#[cfg(loom)]` over the shadow path.
+/// Write the declaration once in a module of the production crate and import through that module everywhere; the crate's one remaining act is its own `[target.'cfg(loom)'.dependencies]` row, declared where it is used.
+///
+/// A name outside the roster, a malformed choice, and an empty declaration expand to `compile_error!` at the offending token, carrying the compiler's own rendering of the established cause.
+#[proc_macro]
+pub fn shadow(body: TokenStream) -> TokenStream {
+    host::expand(body, |capture| {
+        door::shadow(capture, SHADOW_GRAMMAR, &SHADOW_DOOR)
+    })
 }

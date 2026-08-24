@@ -38,8 +38,8 @@ pub use diagnostic::{
     EXPLANATION_FAMILY, ExplanationSeat, FIRST_HELPER_FAMILY, Family, Line, LineBody, LineSite,
     Observed, PLANNING_FAMILY, Phase, Placement, RELATED_ISSUE_LIMIT, RENDERING_FAMILY,
     REPAIR_LIMIT, RefusalClass, Refused, RelatedIdentity, RelatedSet, RenderedMagnitude, Repair,
-    Route, SECOND_HELPER_FAMILY, SHELL_FAMILY, SUPPORT_DECLARATION_FAMILY, Site, SiteCoordinate,
-    composed,
+    Route, SECOND_HELPER_FAMILY, SHADOW_HELPER_FAMILY, SHELL_FAMILY, SUPPORT_DECLARATION_FAMILY,
+    Site, SiteCoordinate, composed,
 };
 pub use expansion::{Accounted, BINDING_FACT, BindError, Expansion};
 pub use explanation::{

@@ -232,6 +232,14 @@ crate::roster! {
         ItemUnread = "item-unread",
         /// The declared order carries fewer than two members, so no transposition of it exists.
         OrderUnpressable = "order-unpressable",
+        /// A choice is not one bare name.
+        ChoiceUnread = "choice-unread",
+        /// One name is chosen twice.
+        ChoiceDoubled = "choice-doubled",
+        /// A chosen name is not one the shadow roster covers.
+        NameUnshadowed = "name-unshadowed",
+        /// The declaration chooses no name at all.
+        NothingChosen = "nothing-chosen",
     }
 }
 

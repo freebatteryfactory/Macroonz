@@ -34,7 +34,7 @@ One crate is the oven, one is the hand that will load it, and one is the taste t
 | Crate | Directory | What it is |
 | --- | --- | --- |
 | **`macroonz`** | `macros/compiler/` | The compiler, as ordinary functions. Capture a declaration, build a request, plan, render, close, explain, bind, emit. This is the crate you add. |
-| **`macroonz-macros`** | `macros/proc/` | The generic attributes: `#[trials]`, `#[bench]`, and `#[mutations]`, each expanding to one inert exported carrier beside the item it decorates. It owns no grammar — every reading and every road is the compiler's. |
+| **`macroonz-macros`** | `macros/proc/` | The generic entries: `#[trials]`, `#[bench]`, and `#[mutations]`, each expanding to one inert exported carrier beside the item it decorates, and `shadow!`, which writes both `cfg`-gated faces of every chosen synchronization name where it stands. It owns no grammar — every reading and every road is the compiler's. |
 | **`macroonz-harness`** | `harness/` | The judge. Descriptors, generation, properties, oracles, faults, corpus, mutation, benches, reports, replay. A dev-dependency — production never depends on it. |
 
 ```mermaid

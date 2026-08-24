@@ -52,8 +52,8 @@ Duplicate-free by construction — the scan runs before the value exists — and
 
 `vocabulary/` is what the harness publishes, in two tables.
 
-`trial/`, `bench/`, and `mutation/` are the three kinds, each with its own grammar, its own guard, and its own rendering.
+`trial/`, `bench/`, and `mutation/` are the three carrier kinds, each with its own grammar, its own guard, and its own rendering; `shadow/` is the one direct kind, whose grammar chooses names off a stated roster and whose rendering writes both `cfg`-gated faces of each.
 
-`door/` is the three roads a generic attribute walks, one per grammar: a captured body in, the sealed carrier expansion out, with the axes composed from what each kind's own terminal proved.
+`door/` is the roads a generic entry walks, one per grammar: a captured body in, the sealed expansion out — a carrier with its axes composed from what each kind's own terminal proved for the three, and direct declaration-site items for the shadow face.
 
-`types.rs` holds what all three share; `type_guard.rs` is its own child and holds every road that reaches a private field; `type_contract.rs` states how a refusal reads; `composition.rs` is the duplicate scan.
+`types.rs` holds what the kinds share; `type_guard.rs` is its own child and holds every road that reaches a private field; `type_contract.rs` states how a refusal reads; `composition.rs` is the duplicate scan.

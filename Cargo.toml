@@ -17,6 +17,7 @@ repository = "https://github.com/freebatteryfactory/Macroonz"
 arbitrary = { version = "=1.4.2", default-features = false }
 syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }
 blake3 = { version = "=1.8.6", default-features = false }
+loom = { version = "=0.7.2", default-features = false }
 trybuild = "=1.0.120"
 
 [profile.release]
@@ -28,6 +29,8 @@ overflow-checks = true
 [workspace.lints.rust]
 warnings = { level = "deny", priority = -1 }
 unsafe_code = "forbid"
+# The loom configuration is a declared input of this workspace: the shadow road emits it, and adopters build under it.
+unexpected_cfgs = { level = "deny", check-cfg = ["cfg(loom)"] }
 let_underscore_drop = "deny"
 meta_variable_misuse = "deny"
 missing_docs = "deny"
