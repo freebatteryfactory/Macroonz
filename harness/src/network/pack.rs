@@ -35,7 +35,7 @@ use crate::report::{encode_bytes, encode_length};
 ///
 /// # Errors
 ///
-/// Refuses a transcript with no delivery, then the first entry on a link the topology never declared, then the first entry stamped earlier than the entry before it.
+/// Refuses a transcript with no delivery, then the first entry on a link the topology never declared, then the first entry delivered before its own send, then the first entry stamped earlier than the entry before it.
 pub fn recorded(
     provenance: TranscriptProvenance,
     topology: &Topology,
@@ -73,14 +73,20 @@ pub fn read(expected: &Topology, encoded: &[u8]) -> Result<TranscriptPack, Trans
 }
 
 impl Replay {
-    /// Open one admitted pack for playback, at tick zero.
+    /// Open one admitted pack for playback at tick zero, handing back every delivery already due at the opening tick.
+    ///
+    /// A live recording whose epoch starts at zero lawfully carries a delivery stamped at tick zero, and the opening is where it plays — never shifted onto a later tick.
+    /// The simulator's own transcripts never carry one, because its time law places every delivery at least one tick after its send; for them the opening hand is empty and playback is unchanged.
+    /// The drain rides the constructor rather than a second call, so no caller can open a replay and read past what tick zero already delivered.
     #[must_use]
-    pub fn opened(pack: &TranscriptPack) -> Self {
-        Self {
+    pub fn opened(pack: &TranscriptPack) -> (Self, Vec<Delivery<Vec<u8>>>) {
+        let mut replay = Self {
             entries: pack.entries().to_vec(),
             at: 0usize,
             tick: Tick::at(0u64),
-        }
+        };
+        let opening = replay.due_now();
+        (replay, opening)
     }
 
     /// The current logical tick.
@@ -101,6 +107,13 @@ impl Replay {
     #[must_use]
     pub fn advance(&mut self) -> Vec<Delivery<Vec<u8>>> {
         self.tick = self.tick.next();
+        self.due_now()
+    }
+
+    /// Every recorded delivery due by the current tick and not yet played, stamps included.
+    ///
+    /// The one collect step, shared by the opening drain and every advance, so a delivery plays at exactly its recorded tick on both roads.
+    fn due_now(&mut self) -> Vec<Delivery<Vec<u8>>> {
         let now = self.tick;
         let mut played = Vec::new();
         while let Some(entry) = self.entries.get(self.at) {

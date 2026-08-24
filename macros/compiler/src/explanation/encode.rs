@@ -136,6 +136,10 @@ impl ExplanationIssue {
                 into.extend_from_slice(&bound.to_be_bytes());
                 into.extend_from_slice(&observed.to_be_bytes());
             }
+            Self::OutputsBesideTheProof { expected, observed } => {
+                into.extend_from_slice(&expected.to_be_bytes());
+                into.extend_from_slice(&observed.to_be_bytes());
+            }
         }
     }
 }

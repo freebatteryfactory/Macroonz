@@ -267,7 +267,7 @@ pub struct CodecProjection;
 pub enum CodecIssue {
     /// A rendered type path names no segment, so it names nothing.
     PathSegmentsAbsent,
-    /// A path segment is not one Rust identifier, so the rendering would write tokens the caller's compiler reads as something else.
+    /// A path segment cannot name a rendered item — not one Rust identifier, or a keyword the language already took — so the rendering would write tokens the caller's compiler reads as something else.
     SegmentNotAnIdentifier {
         /// The segment as it was spelled.
         segment: String,
@@ -281,7 +281,7 @@ pub enum CodecIssue {
     },
     /// A member states no spelling, so nothing names it in either road.
     MemberSpellingAbsent,
-    /// A member's spelling is not one Rust identifier.
+    /// A member's spelling cannot name a rendered item: not one Rust identifier, or a keyword the language already took.
     MemberSpellingNotAnIdentifier {
         /// The spelling as it was stated.
         spelling: String,
@@ -300,17 +300,17 @@ pub enum CodecIssue {
     },
     /// An assembly road states no spelling.
     AssemblyRoadAbsent,
-    /// An assembly road's spelling is not one Rust identifier.
+    /// An assembly road's spelling cannot name a rendered item: not one Rust identifier, or a keyword the language already took.
     AssemblyRoadNotAnIdentifier {
         /// The spelling as it was stated.
         spelling: String,
     },
-    /// A rendered decode refusal's spelling is not one Rust identifier.
+    /// A rendered decode refusal's spelling cannot name a rendered item: not one Rust identifier, or a keyword the language already took.
     RefusalSpellingNotAnIdentifier {
         /// The spelling as it was stated.
         spelling: String,
     },
-    /// A published module's spelling is not one Rust identifier.
+    /// A published module's spelling cannot name a rendered item: not one Rust identifier, or a keyword the language already took.
     ModuleSpellingNotAnIdentifier {
         /// The spelling as it was stated.
         spelling: String,
@@ -336,4 +336,4 @@ pub struct CodecError {
 }
 
 /// The one alphabet every spelling this home renders as a Rust identifier is admitted by, published from the nucleus every road here already reads it through.
-pub use guard::rendered_identifier;
+pub use guard::{rendered_identifier, rendered_name};

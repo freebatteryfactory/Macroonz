@@ -9,7 +9,7 @@
 //! So each is paired with the sheet that must refuse: a universal question unanswered, one answered twice, a declared question unanswered, one answered twice, and an answer naming a question its own roster does not carry.
 
 use macroonz::{
-    Answer, CrateBinding, Diagnostic, Door, Expansion, ExplanationIssue, GeneratedToken,
+    Answer, Bounded, CrateBinding, Diagnostic, Door, Expansion, ExplanationIssue, GeneratedToken,
     GeneratedTree, Kind, Phase, Producer, Question, Request, SoleRole, TextCapture,
     UNIVERSAL_QUESTION_COUNT, UniversalAnswer, UniversalQuestion, View, encode_bytes,
 };
@@ -187,6 +187,36 @@ fn a_universal_question_left_unanswered_refuses() -> Result<(), ()> {
         refusal.first_issue(),
         &ExplanationIssue::UniversalUnanswered {
             question: dropped.question(),
+        }
+    );
+    Ok(())
+}
+
+/// An output answer that does not restate the proof's own rendered roster refuses, carrying both counts.
+///
+/// The lawful rows are derivable from the closure the view is completed over, so a shortened or emptied set cannot ride a coverage-complete view.
+#[test]
+fn an_output_answer_beside_the_proof_refuses() -> Result<(), ()> {
+    let bound = lawful().ok_or(())?;
+    let mut shortened: Vec<UniversalAnswer> = bound.explain().universal().to_vec();
+    for answer in &mut shortened {
+        if let UniversalAnswer::OutputAndDigest { outputs } = answer {
+            *outputs = Bounded::empty();
+        }
+    }
+    let refusal = View::complete(
+        bound.plan(),
+        bound.closure(),
+        shortened,
+        vec![Answered::Whom("world")],
+    )
+    .err()
+    .ok_or(())?;
+    assert_eq!(
+        refusal.first_issue(),
+        &ExplanationIssue::OutputsBesideTheProof {
+            expected: 1u16,
+            observed: 0u16,
         }
     );
     Ok(())

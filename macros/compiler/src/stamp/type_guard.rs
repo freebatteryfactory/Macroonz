@@ -14,7 +14,7 @@ use super::{
 use crate::bounded::{Bounded, NonEmpty, NonEmptyError};
 use crate::identity::{self, Identity};
 use crate::plan::DigestContract;
-use crate::token::{GeneratedTree, rendered_identifier};
+use crate::token::{GeneratedTree, rendered_identifier, rendered_name};
 use std::collections::BTreeSet;
 
 impl Seat {
@@ -22,9 +22,9 @@ impl Seat {
     ///
     /// # Errors
     ///
-    /// Returns [`StampError::NotAnIdentifier`] where the name is not one Rust identifier, which is what a matcher needs it to be.
+    /// Returns [`StampError::NotAnIdentifier`] where the name cannot seat a metavariable — not one Rust identifier, or a keyword the language already took, either of which a matcher refuses.
     pub fn declared(name: &str, seating: Seating) -> Result<Self, StampError> {
-        if !rendered_identifier(name) {
+        if !rendered_name(name) {
             return Err(StampError::NotAnIdentifier);
         }
         Ok(Self {
@@ -119,9 +119,9 @@ impl StampName {
     ///
     /// # Errors
     ///
-    /// Returns [`StampError::NotAnIdentifier`] where the spelling is not one Rust identifier.
+    /// Returns [`StampError::NotAnIdentifier`] where the spelling cannot name an exported item — not one Rust identifier, or a keyword the language already took.
     pub fn declared(spelling: &str) -> Result<Self, StampError> {
-        if !rendered_identifier(spelling) {
+        if !rendered_name(spelling) {
             return Err(StampError::NotAnIdentifier);
         }
         Ok(Self {
@@ -144,6 +144,7 @@ impl SiteRoot {
     /// Returns [`StampError::NotAnIdentifier`] where a segment is not one Rust identifier, [`StampError::PathEmpty`] where no segment was stated, and [`StampError::PathUnbounded`] where the segments outgrow the declared magnitude.
     ///
     /// The checks are in that order, so exactly one cause is true of any refused root.
+    /// This is the one path seat read against the alphabet alone: a site inside the publishing crate lawfully roots itself at the spelling `crate`, so the keyword roster does not apply here the way it does to every item name.
     pub fn spelled(segments: Vec<String>) -> Result<Self, StampError> {
         for segment in &segments {
             if !rendered_identifier(segment.as_str()) {

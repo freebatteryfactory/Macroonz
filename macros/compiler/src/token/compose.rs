@@ -92,6 +92,15 @@ pub fn rust_keyword(spelling: &str) -> bool {
     )
 }
 
+/// Whether one spelling can NAME a rendered item: a single identifier the language has not already taken.
+///
+/// The two seats above are the two halves of one law, and this is the law whole — the alphabet says which spellings can be a name, the keyword roster says which of those the language took, and an item name must clear both.
+/// The direct grammars keep reading the two halves separately, because an authored declaration deserves a refusal naming which half disagreed at which token; every constructor that mints a name or a path segment programmatically reads this one.
+#[must_use]
+pub fn rendered_name(spelling: &str) -> bool {
+    rendered_identifier(spelling) && !rust_keyword(spelling)
+}
+
 /// One delimited group.
 ///
 /// # Errors

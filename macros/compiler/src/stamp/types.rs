@@ -254,7 +254,7 @@ pub struct PublishedStamp {
 #[must_use = "a stamping refusal names the exact thing the declaration did not settle"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StampError {
-    /// A spelling written as a Rust identifier is not one.
+    /// A spelling cannot stand where its seat needs it: outside the identifier alphabet, or — at a name seat — a keyword the language already took.
     NotAnIdentifier,
     /// A path names no segment, so it names nothing.
     PathEmpty,

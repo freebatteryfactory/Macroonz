@@ -133,6 +133,7 @@ impl ExplanationIssue {
             Self::DeclaredAnsweredTwice { .. } => 3,
             Self::QuestionOutsideRoster { .. } => 4,
             Self::SeatBoundExceeded { .. } => 5,
+            Self::OutputsBesideTheProof { .. } => 6,
         }
     }
 
@@ -145,7 +146,8 @@ impl ExplanationIssue {
             }
             Self::UniversalAnsweredTwice { .. }
             | Self::DeclaredAnsweredTwice { .. }
-            | Self::QuestionOutsideRoster { .. } => Observed::ContractDisagreement,
+            | Self::QuestionOutsideRoster { .. }
+            | Self::OutputsBesideTheProof { .. } => Observed::ContractDisagreement,
             Self::SeatBoundExceeded { .. } => Observed::BoundExceeded,
         }
     }
@@ -179,6 +181,10 @@ impl fmt::Display for ExplanationIssue {
             Self::SeatBoundExceeded { bound, observed } => {
                 write!(into, "{observed} seats offered where {bound} are declared")
             }
+            Self::OutputsBesideTheProof { expected, observed } => write!(
+                into,
+                "the output answer carries {observed} rows beside the proof's {expected}"
+            ),
         }
     }
 }

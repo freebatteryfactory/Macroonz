@@ -1,6 +1,6 @@
 //! The two declaration roads, exercised from outside: a lawful body in, the builder or exploration module out, and every malformed clause refused at capture.
 //!
-//! The positive lanes hold the emitted text to the shapes the grammars promise; the refusal lanes reverse one clause each — an undeclared key, a doubled name, a foreign endpoint, an unreadable phrase, a missing fact, an empty declaration.
+//! The positive lanes hold the emitted text to the shapes the grammars promise; the refusal lanes reverse one clause each — an undeclared key, a doubled name, a foreign endpoint, an unreadable phrase, a missing fact, an empty declaration, a separator separating nothing.
 
 use macroonz::descriptor::Grammar;
 use macroonz::descriptor::concurrency::ConcurrencyModule;
@@ -226,6 +226,44 @@ fn a_malformed_network_declaration_refuses_at_capture() -> Result<(), ()> {
     Ok(())
 }
 
+/// A separator separating nothing refuses at its own comma — leading or doubled — while a trailing comma stays ordinary Rust.
+#[test]
+fn a_network_separator_separating_nothing_refuses() -> Result<(), ()> {
+    let leading_separator = r#"
+        , module = net,
+        namespace = "lane",
+        nodes = [client, server],
+        link forward = client to server,
+    "#;
+    let doubled_separator = r#"
+        module = net,,
+        namespace = "lane",
+        nodes = [client, server],
+        link forward = client to server,
+    "#;
+    for source in [leading_separator, doubled_separator] {
+        let refusal = networked(source).ok_or(())?.err().ok_or(())?;
+        assert_eq!(refusal.phase(), Phase::Capture, "{source} did not refuse");
+    }
+    Ok(())
+}
+
+/// A keyword cannot name a rendered item: every programmatic name constructor reads the composed law, not the alphabet alone.
+///
+/// The one deliberate exception is the stamp site root, which stays on the alphabet because a site inside the publishing crate lawfully roots itself at the spelling `crate`.
+#[test]
+fn a_keyword_cannot_name_a_rendered_item() {
+    assert!(macroonz::descriptor::ModuleName::declared("type").is_err());
+    assert!(macroonz::descriptor::SupportName::declared("mod").is_err());
+    assert!(macroonz::descriptor::TypeName::declared("gen").is_err());
+    assert!(macroonz::descriptor::FunctionName::declared("fn").is_err());
+    assert!(macroonz::descriptor::ModuleName::declared("lawful_name").is_ok());
+    assert!(macroonz::stamp::StampName::declared("type").is_err());
+    assert!(macroonz::support::SupportName::declared("loop").is_err());
+    assert!(macroonz::codec::ModuleSpelling::spelled("type").is_err());
+    assert!(macroonz::stamp::SiteRoot::spelled(vec!["crate".to_owned()]).is_ok());
+}
+
 /// A malformed concurrency declaration refuses at capture, clause by clause.
 #[test]
 fn a_malformed_concurrency_declaration_refuses_at_capture() -> Result<(), ()> {
@@ -268,6 +306,16 @@ fn a_malformed_concurrency_declaration_refuses_at_capture() -> Result<(), ()> {
         namespace = "lane",
         type { population = "a", interleavings = 1, samples = 1, seed = 1 },
     "#;
+    let doubled_separator = r#"
+        module = explorations,,
+        namespace = "lane",
+        transfers_hold { population = "a", interleavings = 1, samples = 1, seed = 1 },
+    "#;
+    let dangling_row_separator = r#"
+        module = explorations,
+        namespace = "lane",
+        transfers_hold { population = "a", interleavings = 1,, samples = 1, seed = 1 },
+    "#;
     for source in [
         missing_fact,
         doubled_row,
@@ -276,6 +324,8 @@ fn a_malformed_concurrency_declaration_refuses_at_capture() -> Result<(), ()> {
         oversized_number,
         keyword_module,
         keyword_row,
+        doubled_separator,
+        dangling_row_separator,
     ] {
         let refusal = concurrent(source).ok_or(())?.err().ok_or(())?;
         assert_eq!(refusal.phase(), Phase::Capture, "{source} did not refuse");

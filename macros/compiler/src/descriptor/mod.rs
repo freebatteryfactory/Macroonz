@@ -20,4 +20,5 @@ pub use types::{
     CompositionError, CompositionIssue, DESCRIPTOR_MEANING_FACT, DeclarationError, Emitter,
     FunctionName, Grammar, HelperRefusal, ModuleName, Name, PATH_SEGMENT_LIMIT, PROVIDER_LIMIT,
     Provider, RENDERED_SPELLING_FACT, Seat, SupportName, TypeName, rendered_identifier,
+    rendered_name,
 };

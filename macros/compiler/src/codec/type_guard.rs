@@ -16,11 +16,11 @@ impl CodecTypePath {
     ///
     /// # Errors
     ///
-    /// Returns [`CodecIssue::SegmentNotAnIdentifier`] where a segment is not one Rust identifier, [`CodecIssue::PathSegmentsAbsent`] where no segment was supplied, and [`CodecIssue::PathSegmentsUnbounded`] where the segments outgrow the declared magnitude.
+    /// Returns [`CodecIssue::SegmentNotAnIdentifier`] where a segment cannot name a rendered item — the root is typed as the rooting, so every segment is an item step, refused outside the alphabet or on the keyword roster — [`CodecIssue::PathSegmentsAbsent`] where no segment was supplied, and [`CodecIssue::PathSegmentsUnbounded`] where the segments outgrow the declared magnitude.
     /// The checks are dependent and in that order, so exactly one cause is true of any refused path.
     pub fn spelled(rooting: PathRooting, segments: Vec<String>) -> Result<Self, CodecError> {
         for segment in &segments {
-            if !rendered_identifier(segment) {
+            if !rendered_name(segment) {
                 return Err(CodecError::of(CodecIssue::SegmentNotAnIdentifier {
                     segment: segment.clone(),
                 }));
@@ -62,9 +62,9 @@ impl ModuleSpelling {
     ///
     /// # Errors
     ///
-    /// Returns [`CodecIssue::ModuleSpellingNotAnIdentifier`] where the spelling is not one Rust identifier.
+    /// Returns [`CodecIssue::ModuleSpellingNotAnIdentifier`] where the spelling cannot name a rendered item: not one Rust identifier, or a keyword the language already took.
     pub fn spelled(spelling: &str) -> Result<Self, CodecError> {
-        if rendered_identifier(spelling) {
+        if rendered_name(spelling) {
             Ok(Self {
                 spelling: spelling.to_owned(),
             })
@@ -87,7 +87,7 @@ impl CodecMember {
     ///
     /// # Errors
     ///
-    /// Returns [`CodecIssue::MemberSpellingAbsent`] where the member states no spelling, and [`CodecIssue::MemberSpellingNotAnIdentifier`] where the spelling is not one Rust identifier.
+    /// Returns [`CodecIssue::MemberSpellingAbsent`] where the member states no spelling, and [`CodecIssue::MemberSpellingNotAnIdentifier`] where the spelling cannot name a rendered item — not one Rust identifier, or a keyword the language already took.
     /// The two are dependent — there is no alphabet to read until there are characters — so exactly one is ever established.
     pub fn declared(
         spelling: &str,
@@ -98,7 +98,7 @@ impl CodecMember {
         if spelling.is_empty() {
             return Err(CodecError::of(CodecIssue::MemberSpellingAbsent));
         }
-        if !rendered_identifier(spelling) {
+        if !rendered_name(spelling) {
             return Err(CodecError::of(CodecIssue::MemberSpellingNotAnIdentifier {
                 spelling: spelling.to_owned(),
             }));
@@ -141,12 +141,12 @@ impl CodecAssembly {
     ///
     /// # Errors
     ///
-    /// Returns [`CodecIssue::AssemblyRoadAbsent`] where the road states no spelling, and [`CodecIssue::AssemblyRoadNotAnIdentifier`] where the spelling is not one Rust identifier.
+    /// Returns [`CodecIssue::AssemblyRoadAbsent`] where the road states no spelling, and [`CodecIssue::AssemblyRoadNotAnIdentifier`] where the spelling cannot name a rendered item — not one Rust identifier, or a keyword the language already took.
     pub fn stated(road: &str, posture: AssemblyPosture) -> Result<Self, CodecError> {
         if road.is_empty() {
             return Err(CodecError::of(CodecIssue::AssemblyRoadAbsent));
         }
-        if !rendered_identifier(road) {
+        if !rendered_name(road) {
             return Err(CodecError::of(CodecIssue::AssemblyRoadNotAnIdentifier {
                 spelling: road.to_owned(),
             }));
@@ -175,14 +175,14 @@ impl CodecShape {
     ///
     /// # Errors
     ///
-    /// Returns [`CodecIssue::RefusalSpellingNotAnIdentifier`] where the rendered refusal's spelling is not one Rust identifier, then whatever the pass over the offered members established — [`CodecIssue::MemberSpellingDoubled`] and [`CodecIssue::MemberShadowsBinding`], which co-establish — then [`CodecIssue::MembersAbsent`] where no member was supplied and [`CodecIssue::MembersUnbounded`] where the members outgrow the declared magnitude.
+    /// Returns [`CodecIssue::RefusalSpellingNotAnIdentifier`] where the rendered refusal's spelling cannot name a rendered item — not one Rust identifier, or a keyword the language already took — then whatever the pass over the offered members established — [`CodecIssue::MemberSpellingDoubled`] and [`CodecIssue::MemberShadowsBinding`], which co-establish — then [`CodecIssue::MembersAbsent`] where no member was supplied and [`CodecIssue::MembersUnbounded`] where the members outgrow the declared magnitude.
     pub fn declared(
         owner: CodecTypePath,
         refusal: &str,
         assembly: CodecAssembly,
         members: Vec<CodecMember>,
     ) -> Result<Self, CodecError> {
-        if !rendered_identifier(refusal) {
+        if !rendered_name(refusal) {
             return Err(CodecError::of(CodecIssue::RefusalSpellingNotAnIdentifier {
                 spelling: refusal.to_owned(),
             }));
@@ -275,7 +275,7 @@ impl CodecError {
     }
 }
 
-pub use crate::token::rendered_identifier;
+pub use crate::token::{rendered_identifier, rendered_name};
 
 /// The pass over one shape's offered members: what their spellings say about each other and about the locals the decode road declares for itself.
 ///

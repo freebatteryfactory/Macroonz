@@ -177,14 +177,16 @@ fn a_simulated_run_packs_reads_back_and_replays_identically() -> Result<(), Lane
     assert_eq!(pack.provenance(), TranscriptProvenance::Simulated);
     let reread = read(&pair_topology()?, pack.encoded())?;
     assert_eq!(reread, pack);
-    let mut replay = Replay::opened(&pack);
+    let (mut replay, opening) = Replay::opened(&pack);
+    assert!(opening.is_empty());
     assert_eq!(replay.remaining(), 2usize);
     let mut played = Vec::new();
     while replay.remaining() > 0usize {
         played.extend(replay.advance());
     }
     assert_eq!(played, deliveries);
-    let mut again = Replay::opened(&pack);
+    let (mut again, opening_again) = Replay::opened(&pack);
+    assert!(opening_again.is_empty());
     let mut second = Vec::new();
     while again.remaining() > 0usize {
         second.extend(again.advance());
@@ -232,7 +234,8 @@ fn a_live_witnessed_pack_keeps_its_provenance_and_its_ticks() -> Result<(), Lane
     )?;
     let reread = read(&pair_topology()?, pack.encoded())?;
     assert_eq!(reread.provenance(), TranscriptProvenance::RecordedLive);
-    let mut replay = Replay::opened(&pack);
+    let (mut replay, opening_hand) = Replay::opened(&pack);
+    assert!(opening_hand.is_empty());
     assert!(replay.advance().is_empty());
     let early = replay.advance();
     assert_eq!(early.len(), 1usize);
@@ -243,6 +246,51 @@ fn a_live_witnessed_pack_keeps_its_provenance_and_its_ticks() -> Result<(), Lane
     assert!(replay.advance().is_empty());
     let late = replay.advance();
     assert_eq!(late.len(), 1usize);
+    assert_eq!(replay.remaining(), 0usize);
+    Ok(())
+}
+
+/// A live epoch that starts at zero plays its tick-zero delivery at the opening, and a same-tick delivery at exactly its recorded tick — never shifted.
+#[test]
+fn a_live_tick_zero_delivery_plays_at_the_opening() -> Result<(), LaneFailure> {
+    let wire = forward()?;
+    let entries = vec![
+        TranscriptEntry::witnessed(
+            wire,
+            SendOrdinal::at(0u32),
+            b"epoch".to_vec(),
+            Tick::at(0u64),
+            Tick::at(0u64),
+            DeliveryCopy::Original,
+        ),
+        TranscriptEntry::witnessed(
+            wire,
+            SendOrdinal::at(1u32),
+            b"same-tick".to_vec(),
+            Tick::at(2u64),
+            Tick::at(2u64),
+            DeliveryCopy::Original,
+        ),
+    ];
+    let pack = recorded(
+        TranscriptProvenance::RecordedLive,
+        &pair_topology()?,
+        entries,
+    )?;
+    let (mut replay, opening) = Replay::opened(&pack);
+    assert_eq!(replay.tick(), Tick::at(0u64));
+    assert_eq!(opening.len(), 1usize);
+    let zeroth = opening.first().ok_or(LaneFailure::Standing)?;
+    assert_eq!(zeroth.delivered_at(), Tick::at(0u64));
+    assert_eq!(zeroth.payload(), b"epoch");
+    assert_eq!(replay.remaining(), 1usize);
+    assert!(replay.advance().is_empty());
+    let second = replay.advance();
+    assert_eq!(replay.tick(), Tick::at(2u64));
+    assert_eq!(second.len(), 1usize);
+    let same_tick = second.first().ok_or(LaneFailure::Standing)?;
+    assert_eq!(same_tick.delivered_at(), Tick::at(2u64));
+    assert_eq!(same_tick.payload(), b"same-tick");
     assert_eq!(replay.remaining(), 0usize);
     Ok(())
 }

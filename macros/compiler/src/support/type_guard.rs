@@ -85,10 +85,10 @@ impl BoundPath {
     ///
     /// # Errors
     ///
-    /// Returns [`DeclarationError::SpellingNotAnIdentifier`] where a segment is not one Rust identifier, [`DeclarationError::PathSegmentsAbsent`] where no segment was supplied — a path naming a crate and nothing in it names no item — and [`DeclarationError::PathSegmentsUnbounded`] where the segments outgrow the declared magnitude.
+    /// Returns [`DeclarationError::SpellingNotAnIdentifier`] where a segment cannot name a rendered item — the root is typed as the facing, so every segment is an item step, and one outside the alphabet or on the keyword roster renders a path no consumer's compiler reads — [`DeclarationError::PathSegmentsAbsent`] where no segment was supplied — a path naming a crate and nothing in it names no item — and [`DeclarationError::PathSegmentsUnbounded`] where the segments outgrow the declared magnitude.
     pub fn rooted(facing: CrateFacing, segments: Vec<String>) -> Result<Self, DeclarationError> {
         for segment in &segments {
-            if !rendered_identifier(segment.as_str()) {
+            if !rendered_name(segment.as_str()) {
                 return Err(DeclarationError::SpellingNotAnIdentifier);
             }
         }
@@ -127,9 +127,9 @@ impl SupportName {
     ///
     /// # Errors
     ///
-    /// Returns [`DeclarationError::SpellingNotAnIdentifier`] where the spelling is not one Rust identifier: it is written into a consumer's target in identifier position, and a spelling that is not one renders tokens that compiler reads as something else.
+    /// Returns [`DeclarationError::SpellingNotAnIdentifier`] where the spelling cannot name a rendered item — not one Rust identifier, or a keyword the language already took: it is written into a consumer's target in identifier position, and either disagreement renders tokens that compiler reads as something else.
     pub fn declared(spelling: &str) -> Result<Self, DeclarationError> {
-        if rendered_identifier(spelling) {
+        if rendered_name(spelling) {
             Ok(Self(spelling.to_owned()))
         } else {
             Err(DeclarationError::SpellingNotAnIdentifier)
@@ -554,4 +554,4 @@ fn opaque_cargo(assembly: &SupportAssembly, form: DeliveryForm) -> Vec<Generated
     }
 }
 
-pub use crate::token::rendered_identifier;
+pub use crate::token::{rendered_identifier, rendered_name};

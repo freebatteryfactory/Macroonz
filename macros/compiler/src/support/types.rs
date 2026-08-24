@@ -97,7 +97,7 @@ pub enum DeclarationError {
     EmptyNamespace,
     /// The name states no spelling.
     EmptyStem,
-    /// A spelling written into a consumer's target in identifier position is not one Rust identifier, so the emission would write tokens that compiler reads as something else.
+    /// A spelling written into a consumer's target in identifier position cannot name a rendered item — not one Rust identifier, or a keyword the language already took — so the emission would write tokens that compiler reads as something else.
     SpellingNotAnIdentifier,
     /// The path names no segment past the crate it is rooted at, so it names the crate and nothing in it.
     PathSegmentsAbsent,
@@ -333,4 +333,4 @@ pub struct SupportShell {
 pub struct SupportCarrier;
 
 /// The one alphabet every spelling any crossing renders in identifier position is admitted by, published from the nucleus every road here already reads it through.
-pub use guard::rendered_identifier;
+pub use guard::{rendered_identifier, rendered_name};

@@ -28,12 +28,12 @@ use crate::token::{
 ///
 /// # Errors
 ///
-/// Returns [`ConcurrencyCaptureError`] where the tokens do not say a concurrency declaration — an unreadable clause, an undeclared key, a doubled key or row, a row missing one of its four facts, a number past its seat's width, a name the language reserves, a declaration with no row at all — each at the token it was established at.
+/// Returns [`ConcurrencyCaptureError`] where the tokens do not say a concurrency declaration — an unreadable clause, an undeclared key, a doubled key or row, a separator separating nothing, a row missing one of its four facts, a number past its seat's width, a name the language reserves, a declaration with no row at all — each at the token it was established at.
 pub fn declared(
     body: &CapturedInput,
     grammar: Grammar,
 ) -> Result<ConcurrencyDeclaration, ConcurrencyCaptureError> {
-    let groups = comma_groups(body.trees());
+    let groups = comma_groups(grammar, body.trees())?;
     let mut module: Option<String> = None;
     let mut namespace: Option<String> = None;
     let mut rows: Vec<ExplorationRow> = Vec::new();
@@ -86,15 +86,29 @@ const fn refused(grammar: Grammar, cause: CaptureCause, at: SpanHandle) -> Concu
     ConcurrencyCaptureError::grammar_refused(grammar, cause, at)
 }
 
-/// Cut one body into its comma-separated groups, dropping empty ones.
-fn comma_groups(trees: &[CapturedTokenTree]) -> Vec<Vec<&CapturedTokenTree>> {
+/// Cut one body into its comma-separated groups, refusing a separator that separates nothing.
+///
+/// A trailing comma after the last group is ordinary Rust and lawful; a leading or doubled comma makes an empty group this reader would otherwise silently drop, so it refuses at the comma's own token.
+///
+/// # Errors
+///
+/// Returns [`CaptureCause::SeparatorDangling`] at the comma standing where no clause does.
+fn comma_groups(
+    grammar: Grammar,
+    trees: &[CapturedTokenTree],
+) -> Result<Vec<Vec<&CapturedTokenTree>>, ConcurrencyCaptureError> {
     let mut groups: Vec<Vec<&CapturedTokenTree>> = Vec::new();
     let mut group: Vec<&CapturedTokenTree> = Vec::new();
     for tree in trees {
         if tree.punct() == Some(',') {
-            if !group.is_empty() {
-                groups.push(core::mem::take(&mut group));
+            if group.is_empty() {
+                return Err(refused(
+                    grammar,
+                    CaptureCause::SeparatorDangling,
+                    tree.span(),
+                ));
             }
+            groups.push(core::mem::take(&mut group));
         } else {
             group.push(tree);
         }
@@ -102,7 +116,7 @@ fn comma_groups(trees: &[CapturedTokenTree]) -> Vec<Vec<&CapturedTokenTree>> {
     if !group.is_empty() {
         groups.push(group);
     }
-    groups
+    Ok(groups)
 }
 
 /// The token one group opens at, or the declaration's own opening for an empty one.
@@ -206,7 +220,7 @@ fn row_of(
     let mut interleavings: Option<u32> = None;
     let mut samples: Option<u32> = None;
     let mut seed: Option<u64> = None;
-    for group in &comma_groups(members) {
+    for group in &comma_groups(grammar, members)? {
         match group.first().and_then(|tree| tree.word()) {
             Some("population") => assigned_once(grammar, group, &mut population, assigned_text)?,
             Some("interleavings") => number_once(grammar, group, &mut interleavings)?,

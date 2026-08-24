@@ -112,7 +112,7 @@ pub enum UniversalAnswer {
     /// The complete set in roster order, never a chosen row: a kind's roster may fill several seats, and an answer naming one of them would be coverage-complete syntax over a flattened denominator — the second output's identity and digest simply absent from a view that claims the whole expansion.
     /// Each row is two values because they come from two places: the member is what the plan declared, and the digest is what the closure proved.
     OutputAndDigest {
-        /// One row per rendered seat, in roster order; never empty in a lawful expansion, because a rendering is structurally non-empty.
+        /// One row per rendered seat, in roster order; never empty in a lawful expansion, because a rendering is structurally non-empty — and completion refuses a set that does not restate the proof's own roster, so a shortened or reordered answer cannot ride a coverage-complete view.
         outputs: Bounded<AnsweredOutput, MEMBERSHIP_LIMIT>,
     },
     /// The owner facts it rests on.
@@ -177,6 +177,15 @@ pub enum ExplanationIssue {
         bound: u64,
         /// The observed count.
         observed: u64,
+    },
+    /// The output answer does not restate the proof's own rendered roster.
+    ///
+    /// The lawful rows are derivable from the closure a view is completed over, so the pass rebuilds them and compares whole — a missing seat, an extra row, a reordered roster, and a digest that is not the proof's all land here rather than riding a coverage-complete view.
+    OutputsBesideTheProof {
+        /// Rows the proof's rendered roster carries.
+        expected: u16,
+        /// Rows the supplied answer carried.
+        observed: u16,
     },
 }
 

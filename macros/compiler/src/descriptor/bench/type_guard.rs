@@ -12,7 +12,7 @@ use super::{
 use crate::bounded::{Bounded, NonEmpty};
 use crate::descriptor::{
     BoundPath, CaptureCause, DeclarationError, FunctionName, Grammar, HelperRefusal, ModuleName,
-    Name, Seat, SupportName, rendered_identifier,
+    Name, Seat, SupportName, rendered_name,
 };
 use crate::token::SpanHandle;
 use std::collections::BTreeSet;
@@ -155,9 +155,9 @@ impl Backend {
     ///
     /// # Errors
     ///
-    /// Returns [`DeclarationError::NotAnIdentifier`] where the spelling is not one Rust identifier: it is written in path position, so a spelling that is not one renders tokens the consumer's compiler reads as something else.
+    /// Returns [`DeclarationError::NotAnIdentifier`] where the spelling cannot root a rendered path — not one Rust identifier, or a keyword the language already took: a dependency reached by a keyword is a path no consumer's source can write.
     pub fn named(spelling: &str) -> Result<Self, DeclarationError> {
-        if rendered_identifier(spelling) {
+        if rendered_name(spelling) {
             Ok(Self(spelling.to_owned()))
         } else {
             Err(DeclarationError::NotAnIdentifier)

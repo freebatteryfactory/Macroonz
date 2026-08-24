@@ -7,7 +7,7 @@
 use super::super::encode::seats_into;
 use super::super::establish::coverage_issues;
 use super::{
-    EXPLANATION_ISSUE_LIMIT, ExplanationError, ExplanationIssue, UniversalAnswer,
+    AnsweredOutput, EXPLANATION_ISSUE_LIMIT, ExplanationError, ExplanationIssue, UniversalAnswer,
     UniversalQuestion, View,
 };
 use crate::bounded::{Bounded, Capped, Capping, NonEmpty, Overflow};
@@ -15,8 +15,9 @@ use crate::closure::Closure;
 use crate::identity::{
     self, ClosureId, ExplanationId, PlanId, Provenance, Transcript, encode_bytes,
 };
-use crate::kind::{Answer, Kind, Question};
+use crate::kind::{Answer, Kind, Question, Role};
 use crate::plan::Plan;
+use crate::render::RenderedProjection;
 use core::marker::PhantomData;
 
 /// The refusal one established issue list amounts to, or nothing where the pass established none.
@@ -26,6 +27,57 @@ fn refused(issues: Vec<ExplanationIssue>) -> Option<ExplanationError> {
     let mut established = issues.into_iter();
     let first = established.next()?;
     Some(ExplanationError::over(first, established.collect()))
+}
+
+impl AnsweredOutput {
+    /// Every seat's half of the output-and-digest answer, in roster order, read off the proof itself.
+    ///
+    /// Roster order and never rendering order, so the answer does not turn on the sequence a renderer happened to write its units in.
+    /// The whole roster and never a chosen row: a kind may fill several seats, and an answer naming fewer than all of them would flatten the expansion's denominator to whichever row was picked.
+    /// Seated once: the request road composes its answer through this walk, and [`View::complete`] rebuilds the same walk to compare — one derivation, so the claim and its check cannot drift apart.
+    pub(crate) fn roster<R: Role>(rendered: &RenderedProjection<R>) -> Vec<Self> {
+        R::ALL
+            .iter()
+            .copied()
+            .filter_map(|role| rendered.under(role))
+            .map(|unit| Self {
+                output: Box::new(unit.reconstructed().output),
+                digest: unit.digest(),
+            })
+            .collect()
+    }
+}
+
+/// The issue the output answer establishes against the proof's own rendered roster, or nothing where it restates it exactly.
+///
+/// The lawful rows are derivable from the closure, so this pass rebuilds them and compares whole — count, order, members, and digests in one equality.
+/// An absent output answer is the coverage pass's finding and establishes nothing here.
+fn outputs_beside_proof<R: Role>(
+    universal: &[UniversalAnswer],
+    closure: &Closure<R>,
+) -> Vec<ExplanationIssue> {
+    let supplied = universal.iter().find_map(|answer| match answer {
+        UniversalAnswer::OutputAndDigest { outputs } => Some(outputs),
+        UniversalAnswer::Kind { .. }
+        | UniversalAnswer::Owner { .. }
+        | UniversalAnswer::CausingDeclarations { .. }
+        | UniversalAnswer::Profile { .. }
+        | UniversalAnswer::Assumptions { .. }
+        | UniversalAnswer::Invalidators { .. }
+        | UniversalAnswer::RelatedDispositions { .. }
+        | UniversalAnswer::Repairs { .. } => None,
+    });
+    let Some(supplied) = supplied else {
+        return Vec::new();
+    };
+    let lawful = AnsweredOutput::roster(closure.rendered());
+    if supplied.len() == lawful.len() && supplied.iter().eq(lawful.iter()) {
+        return Vec::new();
+    }
+    vec![ExplanationIssue::OutputsBesideTheProof {
+        expected: u16::try_from(lawful.len()).unwrap_or(u16::MAX),
+        observed: u16::try_from(supplied.len()).unwrap_or(u16::MAX),
+    }]
 }
 
 /// The supplied answers, restated in their roster's own declared order.
@@ -115,7 +167,7 @@ impl<K: Kind> View<K> {
     ///
     /// # Errors
     ///
-    /// Returns [`ExplanationError`] naming every unanswered question, every doubled question, every answer standing outside its own roster, and the seat bound where a kind's roster outgrows it.
+    /// Returns [`ExplanationError`] naming every unanswered question, every doubled question, every answer standing outside its own roster, the seat bound where a kind's roster outgrows it, and an output answer that does not restate the proof's own rendered roster.
     /// All of them together: a caller repairing a view one question per attempt is a caller the protocol failed.
     pub fn complete(
         plan: &Plan<K>,
@@ -124,6 +176,9 @@ impl<K: Kind> View<K> {
         declared: Vec<<K::Question as Question>::Answer>,
     ) -> Result<Self, ExplanationError> {
         if let Some(refusal) = refused(coverage_issues::<K>(&universal, &declared)) {
+            return Err(refusal);
+        }
+        if let Some(refusal) = refused(outputs_beside_proof(&universal, closure)) {
             return Err(refusal);
         }
         let seated_universal = in_roster_order::<UniversalQuestion>(universal);

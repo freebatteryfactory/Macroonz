@@ -39,9 +39,9 @@ A callable living in the consumer's own target needs no binding at all: it arriv
 
 [`DeclarationError`] is how they refuse: seven shapes over one [`Seat`] roster, because what refuses is the SHAPE of the disagreement and which seat it was about is the other half of the same sentence. A bounded seat admitted later is one row on that roster rather than three rows of a refusal.
 
-## Two helper readings, told apart by position
+## Three helper readings, told apart by position
 
-A declaration may carry two helper bodies — one trial, one mutation — and they are separated by the position each reading stands at, never by two roles. The families their diagnostics derive in are separated the same way, which is why each grammar's refusal is its own type: a diagnostic's family tag is a fact about the type, and one type for both readings would derive one related identity for two unrelated observations.
+A declaration may carry three helper bodies — trial, bench, mutation — and they are separated by the position each reading stands at, never by three roles. The families their diagnostics derive in are separated the same way, which is why each grammar's refusal is its own type: a diagnostic's family tag is a fact about the type, and one type for several readings would derive one related identity for unrelated observations.
 
 ## Composition
 

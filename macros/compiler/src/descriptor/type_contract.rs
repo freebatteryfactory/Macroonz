@@ -41,6 +41,7 @@ impl CaptureCause {
             Self::NameReserved => {
                 "a declared name is one the language or the generated module already owns"
             }
+            Self::SeparatorDangling => "a separator stands where no clause does",
         }
     }
 
@@ -73,7 +74,8 @@ impl CaptureCause {
             | Self::PhraseUnread
             | Self::EndpointUnknown
             | Self::NumberBeyondSeat
-            | Self::NameReserved => Observed::ContractDisagreement,
+            | Self::NameReserved
+            | Self::SeparatorDangling => Observed::ContractDisagreement,
         }
     }
 }

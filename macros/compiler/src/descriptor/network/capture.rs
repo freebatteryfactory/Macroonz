@@ -29,12 +29,12 @@ use crate::token::{
 ///
 /// # Errors
 ///
-/// Returns [`NetworkCaptureError`] where the tokens do not say a network declaration — an unreadable clause, an undeclared key, a doubled name, a link drawn to an undeclared node, a phrase on an undrawn link, a phrase this grammar cannot read, a number past its seat's width, a name the language or the generated module already owns — each at the token it was established at, and an absent required clause at the declaration's opening.
+/// Returns [`NetworkCaptureError`] where the tokens do not say a network declaration — an unreadable clause, an undeclared key, a doubled name, a separator separating nothing, a link drawn to an undeclared node, a phrase on an undrawn link, a phrase this grammar cannot read, a number past its seat's width, a name the language or the generated module already owns — each at the token it was established at, and an absent required clause at the declaration's opening.
 pub fn declared(
     body: &CapturedInput,
     grammar: Grammar,
 ) -> Result<NetworkDeclaration, NetworkCaptureError> {
-    let groups = comma_groups(body.trees());
+    let groups = comma_groups(grammar, body.trees())?;
     let world = world_of(grammar, &groups)?;
     let mut schedules: Vec<ScheduleRow> = Vec::new();
     for group in &groups {
@@ -76,15 +76,29 @@ struct World {
     links: Vec<LinkRow>,
 }
 
-/// Cut one body into its comma-separated groups, dropping empty ones.
-fn comma_groups(trees: &[CapturedTokenTree]) -> Vec<Vec<&CapturedTokenTree>> {
+/// Cut one body into its comma-separated groups, refusing a separator that separates nothing.
+///
+/// A trailing comma after the last group is ordinary Rust and lawful; a leading or doubled comma makes an empty group this reader would otherwise silently drop, so it refuses at the comma's own token.
+///
+/// # Errors
+///
+/// Returns [`CaptureCause::SeparatorDangling`] at the comma standing where no clause does.
+fn comma_groups(
+    grammar: Grammar,
+    trees: &[CapturedTokenTree],
+) -> Result<Vec<Vec<&CapturedTokenTree>>, NetworkCaptureError> {
     let mut groups: Vec<Vec<&CapturedTokenTree>> = Vec::new();
     let mut group: Vec<&CapturedTokenTree> = Vec::new();
     for tree in trees {
         if tree.punct() == Some(',') {
-            if !group.is_empty() {
-                groups.push(core::mem::take(&mut group));
+            if group.is_empty() {
+                return Err(refused(
+                    grammar,
+                    CaptureCause::SeparatorDangling,
+                    tree.span(),
+                ));
             }
+            groups.push(core::mem::take(&mut group));
         } else {
             group.push(tree);
         }
@@ -92,7 +106,7 @@ fn comma_groups(trees: &[CapturedTokenTree]) -> Vec<Vec<&CapturedTokenTree>> {
     if !group.is_empty() {
         groups.push(group);
     }
-    groups
+    Ok(groups)
 }
 
 /// The word one group opens with, where it opens with one.
@@ -245,7 +259,7 @@ fn value_of<'group, 'trees>(
 
 /// Read the node roster, refusing a repeated spelling at its own token.
 ///
-/// The seat itself marks a doubled clause — an authored `nodes = []` fills the seat with an empty roster and a second `nodes` clause refuses, where a marker read off the roster's emptiness would let the empty first statement vanish under the second.
+/// An authored `nodes = []` refuses at its own bracket as choosing nothing, so an empty first statement never stands to vanish under a second — and a doubled clause refuses at its own opening, marked by the seat a lawful first clause filled.
 /// The commas are grammar rather than noise: two names with no separator between them are one phrase this roster does not read, refused at the second name.
 fn read_nodes(
     grammar: Grammar,
@@ -365,7 +379,7 @@ fn schedule_of(
         return Err(refused(grammar, CaptureCause::RosterUnread, roster.span()));
     };
     let mut disciplines: Vec<DisciplineRow> = Vec::new();
-    for phrase in &comma_groups(members) {
+    for phrase in &comma_groups(grammar, members)? {
         let (link, fault) = phrase_of(grammar, phrase, world)?;
         match disciplines
             .iter_mut()

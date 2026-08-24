@@ -7,9 +7,8 @@ use crate::closure::Closure;
 use crate::diagnostic::Door;
 use crate::explanation::{AnsweredOutput, ExplanationError, UniversalAnswer};
 use crate::identity::OwnerFact;
-use crate::kind::{Kind, Role};
+use crate::kind::Kind;
 use crate::plan::Plan;
-use crate::render::RenderedProjection;
 
 /// Answer the universal roster over one plan and the closure proved against it.
 ///
@@ -30,7 +29,8 @@ pub(super) fn universal<K: Kind>(
     let dependencies =
         Bounded::new(account.dependencies().to_vec()).map_err(ExplanationError::bounded)?;
     let assumed = Bounded::new(assumptions.to_vec()).map_err(ExplanationError::bounded)?;
-    let outputs = Bounded::new(answered(closure.rendered())).map_err(ExplanationError::bounded)?;
+    let outputs = Bounded::new(AnsweredOutput::roster(closure.rendered()))
+        .map_err(ExplanationError::bounded)?;
     let producer = door.producer();
     Ok(vec![
         UniversalAnswer::Kind { name: K::NAME },
@@ -61,20 +61,4 @@ pub(super) fn universal<K: Kind>(
             repairs: Bounded::empty(),
         },
     ])
-}
-
-/// Every seat's half of the output-and-digest answer, in roster order.
-///
-/// Roster order and never rendering order, so the answer does not turn on the sequence a renderer happened to write its units in.
-/// The whole roster and never a chosen row: a kind may fill several seats, and an answer naming fewer than all of them would flatten the expansion's denominator to whichever row was picked.
-fn answered<R: Role>(rendered: &RenderedProjection<R>) -> Vec<AnsweredOutput> {
-    R::ALL
-        .iter()
-        .copied()
-        .filter_map(|role| rendered.under(role))
-        .map(|unit| AnsweredOutput {
-            output: Box::new(unit.reconstructed().output),
-            digest: unit.digest(),
-        })
-        .collect()
 }

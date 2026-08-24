@@ -13,7 +13,7 @@ use crate::token::SpanHandle;
 mod guard;
 
 /// The one alphabet every spelling any grammar here renders in identifier position is admitted by, published from the nucleus every road already reads it through.
-pub use guard::rendered_identifier;
+pub use guard::{rendered_identifier, rendered_name};
 
 /// Segments one rendered path may carry after the crate binding it is rooted at.
 ///
@@ -169,7 +169,7 @@ pub enum DeclarationError {
     NamespaceEmpty,
     /// A namespaced name states no spelling.
     StemEmpty,
-    /// A spelling written where the rendering needs one Rust identifier is not one.
+    /// A spelling written where the rendering needs an item name cannot be one: not one Rust identifier, or a keyword the language already took.
     NotAnIdentifier,
     /// A seat that admits no emptiness was stated empty.
     Absent {
@@ -252,6 +252,10 @@ crate::roster! {
         ///
         /// A Rust keyword, or a name the rendering itself writes beside the authored ones — either would collide in the adopter's build, inside an expansion whose lints rustc has silenced, so the name refuses here at its own token instead.
         NameReserved = "name-reserved",
+        /// A separator stands where no clause does.
+        ///
+        /// A leading or doubled comma is a phrase the author wrote, and a reader that dropped the empty group it makes would read straight past it — so the dangling separator refuses at its own token. A trailing comma after the last clause is ordinary Rust and stays lawful.
+        SeparatorDangling = "separator-dangling",
     }
 }
 
