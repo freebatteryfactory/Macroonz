@@ -1,6 +1,8 @@
 # `trial` — the kind that carries declared rows into a test target
 
-One authored declaration in; one stamped module out, delivered as cargo the consumer's test target invokes.
+One authored declaration in; one stamped module out, riding inert in the carrier's stamped seat until the consumer's test target invokes it.
+
+The unit's own delivery is the declaration site, because the table is stamp grammar and not Rust: the ordinary build compiles only the exported carrier around it, and the gate forwards the seat to its stamp at the invocation.
 
 ## What an author states
 

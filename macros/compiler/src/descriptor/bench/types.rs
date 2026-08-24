@@ -4,10 +4,15 @@
 //! Every road that reaches a private field lives in `type_guard.rs`, this file's own child.
 
 use crate::bounded::{Bounded, NonEmpty};
-use crate::descriptor::{BoundPath, FunctionName, ModuleName, Name};
+use crate::descriptor::{BoundPath, FunctionName, HelperRefusal, ModuleName, Name, SupportName};
 
 #[path = "type_guard.rs"]
 mod guard;
+
+/// The transcript position a captured reading of this grammar is separated by.
+///
+/// The helper readings of one declaration share the captured-helper role and are told apart by position alone, in one closed space across the grammars the descriptor home declares: this one is the third.
+pub const BENCH_HELPER_POSITION: u32 = 2;
 
 /// Sizes one row's input-size axis may state.
 ///
@@ -29,7 +34,9 @@ pub const WORK_OBSERVATION_LIMIT: usize = 8;
 /// Deliberately narrower than a trial table's: every bench row is measured across its whole axis under declared sample and warmup counts, so a bench table's cost is its rows times its axis times its samples, where a trial table's is its rows.
 pub const BENCH_ROW_LIMIT: usize = 128;
 
-/// The kind one bench declaration produces: a bench table and the adapter that binds it to a measurement backend, both delivered to the consumer's bench target.
+/// The kind one bench declaration produces: a bench table and the adapter that binds it to a measurement backend.
+///
+/// The two units land apart because they are two materials: the table is stamp-grammar material delivered at the declaration site, riding inert inside the carrier's stamped seat, and the adapter is Rust the consumer's bench target invokes, delivered as that target's proved cargo.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BenchTable;
 
@@ -185,9 +192,17 @@ pub struct Adapter {
     backend: Backend,
 }
 
+/// How one bench helper body was not read.
+///
+/// Its own type, because a diagnostic's family tag is a fact about the type: this grammar is a declaration's bench reading, and the trial and mutation grammars each carry their own.
+#[must_use = "a bench capture refusal names the cause and the token it was established at"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct BenchCaptureError(HelperRefusal);
+
 /// The complete payload one bench delivery is declared from: the table's rows, and the adapter that binds them.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Benches {
+    support: SupportName,
     module: ModuleName,
     table: Name,
     rows: NonEmpty<Row, BENCH_ROW_LIMIT>,

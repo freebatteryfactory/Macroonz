@@ -1,6 +1,6 @@
 [package]
 name = "macroonz-macros"
-description = "The proc-macro seat over the macroonz compiler, declared and not yet filled."
+description = "Generic trials, bench, and mutations attributes over the macroonz compiler: each expands to one inert exported carrier beside the item it decorates."
 publish = false
 version.workspace = true
 edition.workspace = true

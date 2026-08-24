@@ -4,7 +4,7 @@
 
 use super::{
     ASSEMBLY_FACT, AssemblyError, AssemblyIssue, CargoAxis, DeclarationError, DeliveryForm,
-    ShellError,
+    ShellError, SupportAssembly, SupportCarrier,
 };
 use crate::bounded::{Bounded, Capping, Overflow};
 use crate::diagnostic::{
@@ -12,8 +12,16 @@ use crate::diagnostic::{
     RenderedMagnitude, Repair, SHELL_FAMILY, SUPPORT_DECLARATION_FAMILY,
 };
 use crate::identity::human_projection;
-use crate::kind::Destination;
+use crate::kind::{Destination, Kind, NoQuestions, SoleRole};
 use core::fmt;
+
+impl Kind for SupportCarrier {
+    const NAME: &'static str = "support-carrier";
+
+    type Content = SupportAssembly;
+    type Role = SoleRole;
+    type Question = NoQuestions;
+}
 
 impl CargoAxis {
     /// The delivery this axis reads a terminal's proved cargo from, where it reads one at all.

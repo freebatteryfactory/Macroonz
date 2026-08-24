@@ -217,6 +217,24 @@ impl CapturedTokenTree {
         }
     }
 
+    /// The numeric spelling this token carries, where it is a numeric literal.
+    ///
+    /// The spelling exactly as written — the base, the digit separators, and the suffix are part of what the declaration says — so a grammar wanting a value states which spellings it reads and refuses the rest itself.
+    #[must_use]
+    pub fn number(&self) -> Option<&str> {
+        match &self.payload {
+            CapturedPayload::Number(spelling) => Some(spelling.as_str()),
+            CapturedPayload::Word(_)
+            | CapturedPayload::Punct(_)
+            | CapturedPayload::Text(_)
+            | CapturedPayload::Group { .. }
+            | CapturedPayload::ByteText(_)
+            | CapturedPayload::Character(_)
+            | CapturedPayload::Byte(_)
+            | CapturedPayload::NulTerminatedText(_) => None,
+        }
+    }
+
     /// The group this token opens, where it is one.
     #[must_use]
     pub fn group(&self) -> Option<(CapturedDelimiter, &[Self])> {

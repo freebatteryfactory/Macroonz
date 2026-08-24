@@ -1,6 +1,7 @@
 #![doc = include_str!("README.md")]
 
 pub mod bench;
+pub mod door;
 pub mod mutation;
 pub mod trial;
 pub mod vocabulary;

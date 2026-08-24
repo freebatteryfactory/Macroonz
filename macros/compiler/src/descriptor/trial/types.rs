@@ -36,7 +36,9 @@ pub const SUITE_GROUP_LIMIT: usize = 32;
 /// Two helper readings of one declaration share the captured-helper role and are told apart by position alone, so the numbering is one closed space across the grammars this home declares: this one is the first.
 pub const TRIAL_HELPER_POSITION: u32 = 0;
 
-/// The kind one trial declaration produces: a stamped trial table, delivered to the consumer's test target.
+/// The kind one trial declaration produces: a stamped trial table, delivered at the declaration site inside the carrier's stamped seat.
+///
+/// The unit's delivery is the declaration site because the table is stamp-grammar material and not Rust: it rides INERT inside the exported carrier the ordinary build merely defines, and it reaches the consumer's test target only when that target invokes the carrier and the gate forwards the seat to its stamp.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TrialTable;
 

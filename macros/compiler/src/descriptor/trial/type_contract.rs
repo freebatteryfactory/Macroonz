@@ -28,7 +28,7 @@ impl Role for TrialRole {
 
     fn destination(self) -> Destination {
         match self {
-            Self::Table => Destination::TestCarrier,
+            Self::Table => Destination::DeclarationSite,
         }
     }
 }

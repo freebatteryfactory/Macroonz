@@ -28,3 +28,31 @@ pub fn expand<K: Kind>(
         Err(refusal) => refusal.placed(&spans),
     }
 }
+
+/// Capture two declared inputs into one span table, hand both to the road, and expand to what came back.
+///
+/// The shape an attribute road takes: the first stream is the attribute's own body and the second is the item it sits on, and a road that completes its reading from the item receives both captures whole.
+/// One span table holds both streams' handles in capture order, so a refusal about either lands on its own token; each stream stands under the declared magnitudes on its own.
+///
+/// What expands is the road's answer alone.
+/// The item is the author's and this host neither rewrites nor re-emits it — the caller appends the original stream after this call, exactly as it arrived.
+#[must_use]
+pub fn expand_on<K: Kind>(
+    body: TokenStream,
+    item: TokenStream,
+    road: impl FnOnce(CapturedInput, CapturedInput) -> Result<Expansion<K>, Diagnostic>,
+) -> TokenStream {
+    let mut spans = Spans::empty();
+    let captured_body = match capture(body, &mut spans) {
+        Ok(captured) => captured,
+        Err(refusal) => return refusal.placed(&spans),
+    };
+    let captured_item = match capture(item, &mut spans) {
+        Ok(captured) => captured,
+        Err(refusal) => return refusal.placed(&spans),
+    };
+    match road(captured_body, captured_item) {
+        Ok(expansion) => emit(&expansion),
+        Err(diagnostic) => place(&diagnostic, &spans),
+    }
+}

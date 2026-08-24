@@ -2,7 +2,7 @@
 
 Two units out of one declaration: the bench table, and the one file a consumer swaps to change measurement backends.
 
-They are two seats rather than one, because they are two independent things. The table is cargo the carrier's gate forwards; the adapter is an item beside it. A rendering that produced one and not the other is caught by the seat it left empty rather than by a count that happened to be wrong.
+They are two seats rather than one, because they are two independent things landing apart. The table is stamp grammar riding inert in the carrier's stamped seat, so its own delivery is the declaration site; the adapter is Rust the bench target invokes, delivered as that target's proved cargo. A rendering that produced one and not the other is caught by the seat it left empty rather than by a count that happened to be wrong.
 
 ## The rows are the harness's field roster, mirrored as data
 

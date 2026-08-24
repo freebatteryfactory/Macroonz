@@ -226,6 +226,12 @@ crate::roster! {
         MappingUnread = "mapping-unread",
         /// A permission is not one claim and one family roster.
         PermissionUnread = "permission-unread",
+        /// A value written where a path rooted at a crate binding is required is not one.
+        PathUnread = "path-unread",
+        /// The item the helper sits on does not state a declared order this grammar can read.
+        ItemUnread = "item-unread",
+        /// The declared order carries fewer than two members, so no transposition of it exists.
+        OrderUnpressable = "order-unpressable",
     }
 }
 

@@ -6,13 +6,15 @@
 //! A table's lens namespace is closed here, so the rendered adapter never declares one function twice.
 
 use super::{
-    Adapter, Attachment, BENCH_ROW_LIMIT, Backend, Benches, INPUT_SIZE_LIMIT, Measurement,
-    References, Row, WORK_FORMULA_LIMIT, WORK_OBSERVATION_LIMIT, WorkFormula,
+    Adapter, Attachment, BENCH_ROW_LIMIT, Backend, BenchCaptureError, Benches, INPUT_SIZE_LIMIT,
+    Measurement, References, Row, WORK_FORMULA_LIMIT, WORK_OBSERVATION_LIMIT, WorkFormula,
 };
 use crate::bounded::{Bounded, NonEmpty};
 use crate::descriptor::{
-    BoundPath, DeclarationError, FunctionName, ModuleName, Name, Seat, rendered_identifier,
+    BoundPath, CaptureCause, DeclarationError, FunctionName, Grammar, HelperRefusal, ModuleName,
+    Name, Seat, SupportName, rendered_identifier,
 };
+use crate::token::SpanHandle;
 use std::collections::BTreeSet;
 
 impl WorkFormula {
@@ -198,6 +200,7 @@ impl Benches {
     ///
     /// Returns [`DeclarationError::Absent`] where no row was supplied, [`DeclarationError::Doubled`] where two rows carry one lens spelling — the rendered adapter puts every lens in one namespace, so a collision would be a duplicate definition inside an expansion nobody wrote — and [`DeclarationError::Unbounded`] where the rows outgrow [`BENCH_ROW_LIMIT`].
     pub fn declared(
+        support: SupportName,
         module: ModuleName,
         table: Name,
         rows: Vec<Row>,
@@ -211,11 +214,18 @@ impl Benches {
         let admitted = NonEmpty::new(rows)
             .map_err(|_| DeclarationError::unbounded(Seat::Row, BENCH_ROW_LIMIT, offered))?;
         Ok(Self {
+            support,
             module,
             table,
             rows: admitted,
             adapter,
         })
+    }
+
+    /// The exported name a consumption target invokes this delivery's carrier by.
+    #[must_use]
+    pub const fn support(&self) -> &SupportName {
+        &self.support
     }
 
     /// The module the rendered table is written as.
@@ -240,6 +250,27 @@ impl Benches {
     #[must_use]
     pub const fn adapter(&self) -> &Adapter {
         &self.adapter
+    }
+}
+
+impl BenchCaptureError {
+    /// One refusal the bench grammar's own reading established.
+    pub const fn grammar_refused(grammar: Grammar, cause: CaptureCause, at: SpanHandle) -> Self {
+        Self(HelperRefusal::grammar_refused(grammar, cause, at))
+    }
+
+    /// One refusal the vocabulary established over a value this grammar read.
+    pub const fn vocabulary_refused(
+        grammar: Grammar,
+        refusal: DeclarationError,
+        at: SpanHandle,
+    ) -> Self {
+        Self(HelperRefusal::vocabulary_refused(grammar, refusal, at))
+    }
+
+    /// The refusal itself.
+    pub const fn refusal(&self) -> &HelperRefusal {
+        &self.0
     }
 }
 

@@ -6,7 +6,8 @@
 //! # Every fact here is the declaration's
 //!
 //! An owner fact is a name the consumer declares, an operator family is a slug the consumer declares, and an alternative is DATA: its semantic operation bytes and the value it means, both stated rather than derived.
-//! This home computes no alternative and knows no order: a producer that generated them would be deciding what pressure a consumer's declaration is under.
+//! Nothing in this vocabulary computes an alternative: a shape that could invent one would be deciding what pressure a consumer's declaration is under.
+//! The one computation this home does offer — the declared-order door in `capture.rs` — transposes the declaration's OWN order and invents nothing beside it.
 
 use crate::bounded::{Bounded, NonEmpty};
 use crate::descriptor::{HelperRefusal, ModuleName, Name, SupportName, TypeName};
@@ -33,6 +34,12 @@ pub const ALTERNATIVE_LIMIT: usize = 64;
 ///
 /// Two helper readings of one declaration share the captured-helper role and are told apart by position alone: this one is the second.
 pub const MUTATION_HELPER_POSITION: u32 = 1;
+
+/// The operator family the declared-order door produces alternatives under.
+///
+/// The one structural operator a generic door can apply without knowing what a declaration means: transpose two adjacent members of the order an author declared.
+/// It is declared here so a permission and the door cite one spelling — an author who wants this pressure permits this slug, and a policy that does not name it lowers no alternative the door produced.
+pub const DECLARED_ORDER_FAMILY: &str = "declared-order";
 
 /// The kind one mutation declaration produces: the module a mutation harness lowers, delivered to the consumer's test target.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

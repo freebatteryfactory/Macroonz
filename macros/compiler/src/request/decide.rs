@@ -151,7 +151,12 @@ fn trace(
 /// The identity of the material one request walked in with.
 ///
 /// Over the capture's own canonical bytes exactly as they were handed over: a consumer that names a narrower reading of its declaration hands the narrower capture.
-fn committed(capture: &CapturedInput) -> Identity<identity::CapturedDeclaration> {
+///
+/// # Authority
+///
+/// **This is the one derivation of a captured declaration's identity**, and it is public for exactly one further caller: a door stating a request's DEPENDENCIES hands over the identities of the further captures it read content from, and those identities must be this derivation over those captures — a second spelling of the rule beside this one would agree until one of them was edited.
+#[must_use]
+pub fn committed(capture: &CapturedInput) -> Identity<identity::CapturedDeclaration> {
     Identity::derived(Transcript::rooted(
         identity::Role::CapturedDeclaration,
         &capture.canonical_bytes(),

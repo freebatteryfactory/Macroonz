@@ -6,9 +6,11 @@ Three kinds live here.
 
 | Kind | What one declaration produces | Where it lands |
 | --- | --- | --- |
-| [`TrialTable`](trial::TrialTable) | A stamped module of declared rows | The consumer's test target |
-| [`BenchTable`](bench::BenchTable) | A bench table and the one file that binds it to a measurement backend | The consumer's bench target |
+| [`TrialTable`](trial::TrialTable) | A stamped module of declared rows | The declaration site, inert inside the carrier's stamped seat |
+| [`BenchTable`](bench::BenchTable) | A bench table and the one file that binds it to a measurement backend | The table beside the trial table's; the adapter as the consumer's bench-target cargo |
 | [`MutationSurface`](mutation::MutationSurface) | The module a mutation harness lowers and invokes | The consumer's test target |
+
+A stamped seat lands differently from an opaque one because it is a different material: stamp grammar is not Rust, so a stamped module delivered as opaque target cargo would be a syntax error in the consumer's build, and it rides the carrier's stamped seat instead — which the gate forwards to its stamp, never to the compiler.
 
 ## Nothing here is a constant a door cannot change
 
@@ -51,5 +53,7 @@ Duplicate-free by construction — the scan runs before the value exists — and
 `vocabulary/` is what the harness publishes, in two tables.
 
 `trial/`, `bench/`, and `mutation/` are the three kinds, each with its own grammar, its own guard, and its own rendering.
+
+`door/` is the three roads a generic attribute walks, one per grammar: a captured body in, the sealed carrier expansion out, with the axes composed from what each kind's own terminal proved.
 
 `types.rs` holds what all three share; `type_guard.rs` is its own child and holds every road that reaches a private field; `type_contract.rs` states how a refusal reads; `composition.rs` is the duplicate scan.

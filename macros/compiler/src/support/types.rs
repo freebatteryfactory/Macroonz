@@ -325,5 +325,12 @@ pub struct SupportShell {
     tree: GeneratedTree,
 }
 
+/// The kind one carrier delivery is: a verified assembly in, the exported carrier at the declaration site out.
+///
+/// Its content is the [`SupportAssembly`] itself, so a carrier request cannot be stated over anything a verification pass did not already admit.
+/// Its one seat is the declaration site, because an exported `macro_rules!` definition is the one shape the ordinary build may compile while every token inside it stays inert.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SupportCarrier;
+
 /// The one alphabet every spelling any crossing renders in identifier position is admitted by, published from the nucleus every road here already reads it through.
 pub use guard::is_rendered_identifier;

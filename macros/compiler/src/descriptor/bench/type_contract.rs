@@ -1,9 +1,15 @@
 //! The bench home's stated tables: what the kind is, where its two units land, the question it owes, the arm a posture is emitted under, the backend's road spellings, and the order the three named tolerances occupy in a positional roster.
 
 use super::{
-    BackendRoad, BenchAnswer, BenchQuestion, BenchRole, BenchTable, Benches, ContentionPosture,
+    BackendRoad, BenchAnswer, BenchCaptureError, BenchQuestion, BenchRole, BenchTable, Benches,
+    ContentionPosture,
 };
+use crate::bounded::Bounded;
 use crate::descriptor::vocabulary::HarnessName;
+use crate::diagnostic::{
+    BENCH_HELPER_FAMILY, Family, LineBody, Observed, Phase, REPAIR_LIMIT, RefusalClass, Refused,
+    Repair,
+};
 use crate::identity::encode_bytes;
 use crate::kind::{Answer, Destination, Kind, Question, Role};
 
@@ -27,7 +33,8 @@ impl Role for BenchRole {
 
     fn destination(self) -> Destination {
         match self {
-            Self::Table | Self::Adapter => Destination::BenchCarrier,
+            Self::Table => Destination::DeclarationSite,
+            Self::Adapter => Destination::BenchCarrier,
         }
     }
 }
@@ -112,6 +119,44 @@ impl Benches {
         self.adapter().backend().spelling()
     }
 }
+
+impl Refused for BenchCaptureError {
+    const PHASE: Phase = Phase::Capture;
+    const FAMILY: Family = BENCH_HELPER_FAMILY;
+
+    fn class(&self) -> RefusalClass {
+        self.refusal().class()
+    }
+
+    fn first(&self) -> String {
+        self.refusal().first()
+    }
+
+    fn observed(&self) -> Observed {
+        self.refusal().classified()
+    }
+
+    fn body(&self) -> LineBody {
+        LineBody::SingleCause
+    }
+
+    fn related(&self) -> Vec<Vec<u8>> {
+        vec![self.refusal().canonical_bytes()]
+    }
+
+    fn repairs(&self) -> Bounded<Repair, REPAIR_LIMIT> {
+        self.refusal().repairs()
+    }
+}
+
+impl core::fmt::Display for BenchCaptureError {
+    fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let refusal = self.refusal();
+        write!(into, "{refusal}")
+    }
+}
+
+impl core::error::Error for BenchCaptureError {}
 
 /// The named tolerance each position of the schema's positional budget roster carries, in the order the rendering writes them.
 ///

@@ -394,6 +394,40 @@ pub fn suite_group(seated: &SuiteGroup, emitter: Emitter) -> Result<Vec<Generate
     Ok(tokens)
 }
 
+/// The matcher clauses one trial table's carrier must bind: exactly the metavariables the stamped module spells, in the order it spells them.
+///
+/// The three host facts come first and every row's three attachment seats follow, group by group in declared order, so the invocation a person writes reads in the same order as the module the stamp writes.
+/// Every clause takes an expression, because each is a value the consumption target owns — a revision commitment, a callable, a clock — arriving where that target's own hygiene reaches its own items.
+///
+/// The carrier's own binding clause is not here: the carrier asks for it always, whatever cargo it composes, so it is composed where the matcher is.
+#[must_use]
+pub fn matched_clauses(payload: &Trials) -> Vec<GeneratedToken> {
+    let mut clauses: Vec<GeneratedToken> = Vec::new();
+    for host in [
+        HarnessWord::Invocation,
+        HarnessWord::Target,
+        HarnessWord::Clock,
+    ] {
+        clauses.extend(crate::support::matched_clause(host.spelling(), "expr"));
+    }
+    for seated in payload.groups() {
+        for declared in seated.rows() {
+            let lens = declared.lens().spelling();
+            for seat in [
+                HarnessWord::SubjectRevision,
+                HarnessWord::CheckRevision,
+                HarnessWord::Call,
+            ] {
+                clauses.extend(crate::support::matched_clause(
+                    &attachment_metavariable(lens, seat),
+                    "expr",
+                ));
+            }
+        }
+    }
+    clauses
+}
+
 /// The stamped module the carrier's gate forwards: the table's name, its stated provenance, the consumer's three declared host facts, and every aggregate seat.
 ///
 /// The visibility is `pub(crate)`, and the reach is exactly the consumption target: the stamp lands in a test binary, so crate visibility there reaches the seats and the table a lane reads and reaches nothing a consumer publishes.

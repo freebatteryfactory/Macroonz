@@ -72,6 +72,9 @@ pub const FIRST_HELPER_FAMILY: Family = Family::declared("macroonz/trial-helper"
 /// The mutation helper's captured grammar.
 pub const SECOND_HELPER_FAMILY: Family = Family::declared("macroonz/mutation-helper");
 
+/// The bench helper's captured grammar.
+pub const BENCH_HELPER_FAMILY: Family = Family::declared("macroonz/bench-helper");
+
 /// Reading a declared input into a captured surface.
 pub const CAPTURE_FAMILY: Family = Family::declared("macroonz/capture");
 

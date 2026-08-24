@@ -34,7 +34,7 @@ One crate is the oven, one is the hand that will load it, and one is the taste t
 | Crate | Directory | What it is |
 | --- | --- | --- |
 | **`macroonz`** | `macros/compiler/` | The compiler, as ordinary functions. Capture a declaration, build a request, plan, render, close, explain, bind, emit. This is the crate you add. |
-| **`macroonz-macros`** | `macros/proc/` | The proc-macro seat for the generic attribute carriers. An unfilled seat: its README says what belongs here and why nothing does yet, and a derive reaches the compiler through `macroonz::host` instead. It owns no grammar. |
+| **`macroonz-macros`** | `macros/proc/` | The generic attributes: `#[trials]`, `#[bench]`, and `#[mutations]`, each expanding to one inert exported carrier beside the item it decorates. It owns no grammar — every reading and every road is the compiler's. |
 | **`macroonz-harness`** | `harness/` | The judge. Descriptors, generation, properties, oracles, faults, corpus, mutation, benches, reports, replay. A dev-dependency — production never depends on it. |
 
 ```mermaid
@@ -131,7 +131,7 @@ The harness does the rest.
 - **Benchmarks** with the same receiver and the same pinned profile, so a number means the same thing tomorrow.
 - **Reports** each verdict with the evidence, the seed, and the replay that reproduce it.
 
-Descriptors, trials, mutations, and benches live in your tests, written through your own attributes or by hand.
+Descriptors, trials, mutations, and benches live in your tests — written through the generic `macroonz-macros` attributes, through your own attributes, or by hand.
 The harness owns how they are judged, never what they mean.
 
 ---

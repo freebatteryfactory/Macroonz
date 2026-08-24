@@ -14,7 +14,7 @@ use super::{Attachment, BackendRoad, Benches, Budgets, ContentionPosture, Row, W
 use crate::bounded::Overflow;
 use crate::descriptor::trial::{named_clause, table_schema_identity};
 use crate::descriptor::vocabulary::{self, HarnessName, HarnessWord};
-use crate::descriptor::{BoundPath, Emitter, Name};
+use crate::descriptor::{Binding, BoundPath, Emitter, Name};
 use crate::token::{
     GeneratedDelimiter, GeneratedToken, absolute_path, attribute, call, documentation, group,
     metavariable, roster, text_pair, twin_path,
@@ -209,6 +209,20 @@ pub fn row_expression(row: &Row) -> Result<Vec<GeneratedToken>, Overflow> {
         ],
         arguments,
     )
+}
+
+/// The matcher clauses one bench delivery's carrier must bind: the declaring crate's name, and the invocation the table and every row read.
+///
+/// The declaring clause is an identifier because it names a crate the consumer may have renamed, exactly as the carrier's own harness clause does; the invocation is an expression the consumption target owns.
+/// Both seats of the bench form spell these and no others — every further name a row needs is either data the table parses or a path already rooted at one of the two crate bindings.
+#[must_use]
+pub fn matched_clauses() -> Vec<GeneratedToken> {
+    let mut clauses = crate::support::matched_clause(Binding::Declaring.name(), "ident");
+    clauses.extend(crate::support::matched_clause(
+        HarnessWord::Invocation.spelling(),
+        "expr",
+    ));
+    clauses
 }
 
 /// The bench table the carrier's gate forwards.

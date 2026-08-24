@@ -7,30 +7,23 @@ It owns no grammar, no roster, no identity rule, no planning decision, and no ju
 
 ---
 
-## The question
-
-What does a proc host export, when every grammar it would read and every road that turns a reading into tokens belong to the compiler?
-
-Three attributes are the answer it is written for.
+## Three attributes
 
 | Attribute | On | Renders |
 | --- | --- | --- |
 | `#[trials(...)]` | a type or a module | A trial table for `macroonz-harness`: suites and rows, each row a claim, subject, check, and population you name. |
-| `#[bench(...)]` | a type or a module | A bench table and its one-file reporter adapter, bound to a measurement backend. |
-| `#[mutations(...)]` | a type or a module | A mutation surface: the points, owner-claim mappings, and operator permissions the harness lowers into executable pressure. |
+| `#[bench(...)]` | a type or a module | A bench table and its one-file reporter adapter, bound to a measurement backend you name. |
+| `#[mutations(...)]` | an enum | A mutation surface pressing the enum's declared order: the policy you state, and one adjacent-transposition alternative per neighboring pair of variants. |
 
-Each walks the road any derive built on `macroonz` walks — capture, request, render, close, explain, bind, emit — and reads its body through `macroonz::descriptor`.
+Each expands to exactly two things: one exported carrier, and the item you wrote, untouched.
 
-## The condition that fills it
+The carrier is a hidden `macro_rules!` definition — plus the alias you chose in the `support` clause — holding its cargo inert.
+An ordinary build compiles the definition and nothing inside it.
+Your test or bench target invokes the alias, supplies its own host facts and callables there, and the carrier's gate checks the schema pin before a single constructor reaches type checking.
 
-What all three render is inert until a consumption target invokes it, so what a declaration site receives is the exported carrier and never the table inside it.
-
-A carrier reaches a declaration site the way every other token does: as a rendered unit of a seat whose destination is the declaration site, joined and digested by the proof that closed it.
-`macroonz::closure::CarriedTokens` has no public constructor, so there is no second road — a tree assembled here would be bytes no proof committed to, and `macroonz::host::emit` will not take one.
-Every seat the compiler's three descriptor kinds declare delivers to a carrier, so none of them can hand this crate anything to emit.
-
-That seat — a carrier kind whose plan `macroonz::support::SupportShell::assembled` already accepts, rendering the exported `macro_rules!` at the declaration site — is what fills this crate.
-Two of the three grammars wait on one further thing each: a bench declaration has no reader in `macroonz::descriptor::bench`, and a mutation declaration is completed by the door that captured what the helper sits on.
+Each attribute walks the road any derive built on `macroonz` walks — capture, request, render, close, explain, bind, emit.
+The grammar each one reads is the compiler's `descriptor` home's; the road from a reading to a sealed carrier expansion is the same home's `door`; the carrier itself is the compiler's `support` home's.
+What lives here is one function per attribute, and every sentence a refusal shows you was composed inside the compiler at the token it is about.
 
 ---
 
@@ -53,3 +46,4 @@ pub fn greet(input: TokenStream) -> TokenStream {
 
 That is the whole crate a derive needs.
 `serde_derive` ships with `serde`; your derive ships with you.
+A derive that also wants to deliver descriptor cargo composes its own carrier on the same public roads these attributes walk — one vehicle may carry a trial table beside a mutation module, which is a composition the standalone attributes deliberately keep apart.

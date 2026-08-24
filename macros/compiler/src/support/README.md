@@ -66,11 +66,18 @@ The DECLARATION refusal is about this home's own vocabulary — a name that name
 The ASSEMBLY refusal carries every way a set of closed outputs did not compose, together, because an assembly failing on two declarations and a doubled consumption at once is repaired in one attempt rather than two.
 The SHELL refusal is the one road's own answer: the plan and the assembly are not one declaration's, or the composed carrier outgrew the token magnitude.
 
+## One kind of its own
+
+The carrier is itself a generated unit, so this home declares the kind that plans it: content the verified assembly, one seat at the declaration site, no questions beyond the universal ones.
+
+A carrier expansion therefore walks the same eight steps every expansion walks, and the exported definition a consumption target invokes is a proved unit like any other — the mangled name is the carrier plan's own identity, which is why the shell can only be rendered inside that plan's render step.
+
 ## The seats
 
 `types.rs` declares, and its own child `type_guard.rs` holds every road that reaches a private field — the name parsers, the promotion of proved cargo, the assembly, and the one road to a rendered carrier.
 
 `establish.rs` is the verification pass, pure, reading each axis through the same answers any caller gets.
 `render.rs` is the token half: the pin roster, the gate invocation, the exported definition, and the forwarding address.
+`deliver.rs` walks one carrier request whole: a capture and a verified assembly in, the sealed expansion whose declaration-site unit is the exported carrier out.
 `encode.rs` writes the bytes one refusal is named by.
 `type_contract.rs` states the rosters' constant tables and the contracts the three refusals stand under.

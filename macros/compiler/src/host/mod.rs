@@ -10,6 +10,6 @@ mod types;
 
 pub use capture::capture;
 pub use emit::emit;
-pub use expand::expand;
+pub use expand::{expand, expand_on};
 pub use place::place;
 pub use types::{CaptureError, Emittable, Spans};

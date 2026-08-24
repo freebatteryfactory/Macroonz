@@ -199,6 +199,33 @@ impl DeclaredCargo {
         Self { matched, stamped }
     }
 
+    /// Read one stamped body off the terminal that proved it, bound to the matcher clauses that body consumes.
+    ///
+    /// The declared axis takes a body somebody wrote, and [`DeclaredCargo::declared`] is that road; this one is for the body a descriptor terminal RENDERED, where the honest source is the terminal's own declaration-site delivery rather than a tree a door recomposed beside it.
+    /// The matcher clauses stay the caller's, because the grammar that spells the body's metavariables is the one that knows which clauses bind them.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AssemblyIssue::CargoNotTheSourcesOwn`] where the terminal's declaration-site delivery carries nothing: a terminal that planned no member there proved no stamped body anybody could carry.
+    pub fn stamped_from<K: Kind>(
+        expansion: &Expansion<K>,
+        matched: GeneratedTree,
+    ) -> Result<Self, AssemblyError> {
+        let source = expansion.identity();
+        let Some(PartitionCargo::Carried(proved)) =
+            expansion.emission().joined(Destination::DeclarationSite)
+        else {
+            return Err(AssemblyError::of(AssemblyIssue::CargoNotTheSourcesOwn {
+                source,
+                destination: Destination::DeclarationSite,
+            }));
+        };
+        Ok(Self {
+            matched,
+            stamped: proved.tree().clone(),
+        })
+    }
+
     /// The clauses this delivery's invocation must supply.
     #[must_use]
     pub const fn matched(&self) -> &GeneratedTree {
