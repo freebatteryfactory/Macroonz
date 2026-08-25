@@ -3,10 +3,10 @@
 use crate::descriptor::{CanonicalRowBytes, RevisionBinding, TrialKey};
 use crate::identity::ContentAddress;
 use crate::report::{
-    ByteBudget, CaseBudget, CheckRevisionId, EXECUTION_KEY_TAG, ExecutionKey, InvocationProfile,
-    ProfiledTrial, ROW_REVISION_TAG, RowRevisionId, SubjectRevisionId, TRIAL_IDENTITY_TAG,
-    TargetBinding, TargetTriple, TimeBudget, ToolchainIdentity, TrialId, TrialProfile, TrialSite,
-    execution_key_preimage, trial_preimage,
+    ByteBudget, CaseBudget, CheckRevisionId, EXECUTION_KEY_TAG, ExecutionKey, ExecutionRevisions,
+    InvocationProfile, ProfiledTrial, ROW_REVISION_TAG, RowRevisionId, SubjectRevisionId,
+    TRIAL_IDENTITY_TAG, TargetBinding, TargetTriple, TimeBudget, ToolchainIdentity, TrialId,
+    TrialProfile, TrialSite, execution_key_preimage, trial_preimage,
 };
 
 impl ProfiledTrial {
@@ -147,6 +147,26 @@ impl CheckRevisionId {
     }
 }
 
+impl ExecutionRevisions {
+    /// Bind the differently typed subject and check revision identities into one execution standing.
+    #[must_use]
+    pub const fn bound(subject: SubjectRevisionId, check: CheckRevisionId) -> Self {
+        Self { subject, check }
+    }
+
+    /// The subject revision.
+    #[must_use]
+    pub const fn subject(self) -> SubjectRevisionId {
+        self.subject
+    }
+
+    /// The check revision.
+    #[must_use]
+    pub const fn check(self) -> CheckRevisionId {
+        self.check
+    }
+}
+
 impl TargetTriple {
     /// The target triple the run declared.
     #[must_use]
@@ -277,8 +297,7 @@ impl ExecutionKey {
     ) -> Self {
         Self {
             trial,
-            subject,
-            check,
+            revisions: ExecutionRevisions::bound(subject, check),
             invocation,
             target,
         }
@@ -293,13 +312,19 @@ impl ExecutionKey {
     /// The subject revision it stood on.
     #[must_use]
     pub const fn subject(&self) -> SubjectRevisionId {
-        self.subject
+        self.revisions.subject()
     }
 
     /// The check revision it stood on.
     #[must_use]
     pub const fn check(&self) -> CheckRevisionId {
-        self.check
+        self.revisions.check()
+    }
+
+    /// The exact subject and check revision standing.
+    #[must_use]
+    pub const fn revisions(&self) -> ExecutionRevisions {
+        self.revisions
     }
 
     /// The invocation profile it ran under.
@@ -321,8 +346,8 @@ impl ExecutionKey {
             EXECUTION_KEY_TAG,
             &execution_key_preimage(
                 self.trial,
-                self.subject,
-                self.check,
+                self.revisions.subject(),
+                self.revisions.check(),
                 self.invocation,
                 &self.target,
             ),

@@ -1,9 +1,9 @@
 //! The one report assembler both admission roads walk.
 //!
 //! A complete table view and one selection plan are walked here once.
-//! The caller supplies only how a selected binding reaches its admitted trial report; every census seat, row revision, claim, table posture, selection outcome, and profile is derived here.
+//! The caller supplies only how a selected binding reaches its admitted trial report; every census seat, row and execution revision, claim, table posture, selection outcome, profile, and target binding is derived here.
 
-use super::resolve::{execution_key, row_revision, trial_identity};
+use super::resolve::{execution_key, execution_revisions, row_revision, trial_identity};
 use super::select::{Admission, admission};
 use super::types::{Invocation, SelectionPlan, TrialBinding, TrialTableView};
 use crate::clock::MeasurementReading;
@@ -54,6 +54,7 @@ pub(super) fn run_report<E>(
         };
         census.push(TrialAccounting::recorded(
             row_revision(row),
+            execution_revisions(binding),
             row.claim(),
             disposition,
         ));
@@ -63,5 +64,6 @@ pub(super) fn run_report<E>(
         view.posture(),
         SelectionOutcome::read(selection.expects(), selected),
         invocation.profile(),
+        invocation.target().clone(),
     ))
 }

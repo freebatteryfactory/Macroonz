@@ -721,7 +721,7 @@ impl ReductionProbeBinding {
                 return Err(ReductionProbeRefusal::TrialPassed);
             }
             RunAttempt::SkippedWithReason(_)
-            | RunAttempt::TimedOut(_)
+            | RunAttempt::TimedOut
             | RunAttempt::InfrastructureFailed(_) => {
                 return Err(ReductionProbeRefusal::TrialDidNotConclude);
             }

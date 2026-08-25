@@ -34,7 +34,7 @@ pub fn run_one(binding: &TrialBinding, invocation: &Invocation) -> TrialReport {
 /// Accounting has no refusal path: once the selected callables return, every world produces a report.
 /// A row carries its canonical bytes from the moment it is built, so nothing on the accounting road can fail to name a row's revision, and a selection that matched nothing is a fact the report states rather than a reason to state no report.
 ///
-/// The posture the report records is the view's own, the selection outcome is the plan's expectation read against what the walk selected, and the profile is the invocation's — all three recorded rather than restated.
+/// The posture the report records is the view's own, the selection outcome is the plan's expectation read against what the walk selected, and the profile and target binding are the invocation's — all recorded rather than restated.
 #[must_use]
 pub fn run_all(
     view: &TrialTableView<'_>,

@@ -3,8 +3,9 @@
 //! It runs outside the runner and never grows the runner's memory: the baseline is the caller's to supply, both censuses are read through borrowed indexes, and the difference that comes back owns only identities and small typed facts.
 
 use super::{
-    Baseline, CensusDelta, ConclusionFlip, NotComparedReason, ReportComparison, ReportDiff,
-    RowRevisionChange, RunReport, TrialAccounting, TrialId,
+    Baseline, CensusDelta, ConclusionFlip, ExecutionRevisionChange, InvocationProfileChange,
+    NotComparedReason, ReportComparison, ReportDiff, ReportExecutionDiff, ReportPopulationDiff,
+    RowRevisionChange, RunReport, TargetBindingChange, TrialAccounting, TrialId,
 };
 use std::collections::BTreeMap;
 
@@ -34,13 +35,14 @@ fn against_previous(previous: &RunReport, current: &RunReport) -> ReportComparis
     }
 }
 
-/// The difference itself: census membership, authored-row revisions, and outcome flips.
+/// The difference itself: census membership, authored-row revisions, execution revisions, run standing, and outcome flips.
 fn diffed(previous: &RunReport, current: &RunReport) -> ReportDiff {
     let before = indexed(previous);
     let after = indexed(current);
     let mut added: Vec<TrialId> = Vec::new();
     let mut removed: Vec<TrialId> = Vec::new();
     let mut revised: Vec<RowRevisionChange> = Vec::new();
+    let mut execution_revisions: Vec<ExecutionRevisionChange> = Vec::new();
     let mut flips: Vec<ConclusionFlip> = Vec::new();
 
     for (trial, entry) in &after {
@@ -48,6 +50,13 @@ fn diffed(previous: &RunReport, current: &RunReport) -> ReportDiff {
             Some(prior) => {
                 if prior.row() != entry.row() {
                     revised.push(RowRevisionChange::between(*trial, prior.row(), entry.row()));
+                }
+                if prior.revisions() != entry.revisions() {
+                    execution_revisions.push(ExecutionRevisionChange::between(
+                        *trial,
+                        prior.revisions(),
+                        entry.revisions(),
+                    ));
                 }
                 let was = prior.disposition().outcome();
                 let now = entry.disposition().outcome();
@@ -64,13 +73,31 @@ fn diffed(previous: &RunReport, current: &RunReport) -> ReportDiff {
         }
     }
 
-    ReportDiff::stated(
+    let invocation = if previous.invocation() == current.invocation() {
+        None
+    } else {
+        Some(InvocationProfileChange::between(
+            previous.invocation(),
+            current.invocation(),
+        ))
+    };
+    let target = if previous.target() == current.target() {
+        None
+    } else {
+        Some(TargetBindingChange::between(
+            previous.target().clone(),
+            current.target().clone(),
+        ))
+    };
+
+    let population = ReportPopulationDiff::stated(
         added,
         removed,
         revised,
-        flips,
         CensusDelta::between(previous.denominator(), current.denominator()),
-    )
+    );
+    let execution = ReportExecutionDiff::stated(execution_revisions, flips, invocation, target);
+    ReportDiff::stated(population, execution)
 }
 
 /// One report's census, indexed by trial identity for the walk.

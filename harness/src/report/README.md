@@ -56,6 +56,10 @@ A run whose selection matched nothing is a complete report, not a missing one.
 `SelectionExpectation::AtLeastOne` is what a caller gets without asking, because a run that exercised nothing is not a run that passed.
 Admitting zero is a declaration made in advance, with a typed reason attached.
 
+A report comparison has a population half and an execution-standing half.
+The population half compares membership, authored-row revision, and denominator; the execution half compares shared trials across subject revision, check revision, and normalized outcome, then compares the runs across case, byte, and time budgets plus the exact target and toolchain pair.
+An empty selection still exposes a budget or target move because those facts live on `RunReport`, not behind the first executed row somebody happened to find.
+
 ## Text from outside
 
 A subject's panic payload, a decoder's message, an external tool's output: all of it rides `ForeignText`, bounded at `FOREIGN_TEXT_MAX_BYTES`, marked when it was cut and marked when rendering it loses bytes.

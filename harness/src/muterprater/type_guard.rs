@@ -533,7 +533,7 @@ impl MutationReport {
                 ExecutionAxis::NotExecuted,
                 MutationOutcome::Inconclusive(InconclusiveCause::WitnessIncomplete),
             ),
-            RunAttempt::TimedOut(_) => (
+            RunAttempt::TimedOut => (
                 ExecutionAxis::TimedOut,
                 MutationOutcome::Inconclusive(InconclusiveCause::WitnessIncomplete),
             ),
@@ -3153,7 +3153,7 @@ impl Demonstration {
                     return Err(ProofRefusal::CandidateDidNotRefuse);
                 }
                 RunAttempt::SkippedWithReason(_)
-                | RunAttempt::TimedOut(_)
+                | RunAttempt::TimedOut
                 | RunAttempt::InfrastructureFailed(_) => {
                     return Err(ProofRefusal::CandidateDidNotExecute);
                 }

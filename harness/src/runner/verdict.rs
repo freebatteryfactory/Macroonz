@@ -89,7 +89,9 @@ fn failed_trial(report: &TrialReport) -> Option<FailedTrial> {
             SeatFailure::CheckRefused(finding.clone())
         }
         RunAttempt::SkippedWithReason(reason) => SeatFailure::NotRun(*reason),
-        RunAttempt::TimedOut(budget) => SeatFailure::PastTimeBudget(*budget),
+        RunAttempt::TimedOut => {
+            SeatFailure::PastTimeBudget(report.standing().key().invocation().time())
+        }
         RunAttempt::InfrastructureFailed(failure) => SeatFailure::HarnessFailed(failure.clone()),
     };
     Some(FailedTrial::recorded(

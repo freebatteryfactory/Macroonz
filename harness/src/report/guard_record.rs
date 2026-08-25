@@ -3,11 +3,11 @@
 use crate::clock::MeasurementReading;
 use crate::descriptor::{ClaimRef, TablePosture};
 use crate::report::{
-    ExecutionKey, Exercise, ForeignText, HostTrialRecord, InfrastructureFailure,
-    InfrastructureFault, InvocationProfile, NotSelectedReason, OutcomeClass, ReplayPosture,
-    RowRevisionId, RunAttempt, RunReport, SelectionDisposition, SelectionExpectation,
-    SelectionOutcome, TrialAccounting, TrialConclusion, TrialId, TrialReport, TrialRunStanding,
-    TrialSite,
+    ExecutionKey, ExecutionRevisions, Exercise, ForeignText, HostTrialRecord,
+    InfrastructureFailure, InfrastructureFault, InvocationProfile, NotSelectedReason, OutcomeClass,
+    ReplayPosture, RowRevisionId, RunAttempt, RunReport, SelectionDisposition,
+    SelectionExpectation, SelectionOutcome, TargetBinding, TrialAccounting, TrialConclusion,
+    TrialId, TrialReport, TrialRunStanding, TrialSite,
 };
 
 impl InfrastructureFailure {
@@ -172,7 +172,7 @@ impl SelectionDisposition {
             Self::Selected(report) => match report.attempt() {
                 RunAttempt::Executed(_) => Exercise::Exercised,
                 RunAttempt::SkippedWithReason(_)
-                | RunAttempt::TimedOut(_)
+                | RunAttempt::TimedOut
                 | RunAttempt::InfrastructureFailed(_) => Exercise::Unexercised,
             },
             Self::NotSelected {
@@ -192,7 +192,7 @@ impl SelectionDisposition {
                     OutcomeClass::Refused(finding.class())
                 }
                 RunAttempt::SkippedWithReason(reason) => OutcomeClass::Skipped(*reason),
-                RunAttempt::TimedOut(_) => OutcomeClass::TimedOut,
+                RunAttempt::TimedOut => OutcomeClass::TimedOut,
                 RunAttempt::InfrastructureFailed(failure) => {
                     OutcomeClass::InfrastructureFailed(failure.fault())
                 }
@@ -207,11 +207,13 @@ impl TrialAccounting {
     #[must_use]
     pub(crate) fn recorded(
         row: RowRevisionId,
+        revisions: ExecutionRevisions,
         claim: ClaimRef,
         disposition: SelectionDisposition,
     ) -> Self {
         Self {
             row,
+            revisions,
             claim,
             disposition,
         }
@@ -227,6 +229,12 @@ impl TrialAccounting {
     #[must_use]
     pub const fn row(&self) -> RowRevisionId {
         self.row
+    }
+
+    /// The subject and check revisions this row's binding stood on.
+    #[must_use]
+    pub const fn revisions(&self) -> ExecutionRevisions {
+        self.revisions
     }
 
     /// The claim the row serves.
@@ -269,12 +277,14 @@ impl RunReport {
         posture: TablePosture,
         selection: SelectionOutcome,
         invocation: InvocationProfile,
+        target: TargetBinding,
     ) -> Self {
         Self {
             census,
             posture,
             selection,
             invocation,
+            target,
         }
     }
 
@@ -306,5 +316,11 @@ impl RunReport {
     #[must_use]
     pub const fn invocation(&self) -> InvocationProfile {
         self.invocation
+    }
+
+    /// The target and toolchain this run stood on.
+    #[must_use]
+    pub const fn target(&self) -> &TargetBinding {
+        &self.target
     }
 }

@@ -81,6 +81,15 @@ pub struct SubjectRevisionId(ContentAddress);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct CheckRevisionId(ContentAddress);
 
+/// The exact subject and check revisions one trial binding stands on.
+///
+/// Kept as one relationship because an execution never has one half without the other, while the differently typed fields keep the two roles from being exchanged.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ExecutionRevisions {
+    subject: SubjectRevisionId,
+    check: CheckRevisionId,
+}
+
 // The execution rail: what one run was keyed by.
 
 /// The compilation target a run stood on, by its declared triple.
@@ -136,8 +145,7 @@ pub const EXECUTION_KEY_TAG: DomainTag =
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ExecutionKey {
     trial: TrialId,
-    subject: SubjectRevisionId,
-    check: CheckRevisionId,
+    revisions: ExecutionRevisions,
     invocation: InvocationProfile,
     target: TargetBinding,
 }
@@ -362,8 +370,10 @@ pub enum RunAttempt {
     Executed(TrialConclusion),
     /// It did not run, for a stated reason.
     SkippedWithReason(SkipReason),
-    /// It ran past the budget it was given, carried here so a reader knows which bound was reached.
-    TimedOut(TimeBudget),
+    /// It ran past the invocation's time budget.
+    ///
+    /// The exact bound lives on the report's execution key, so a host cannot attach a second budget that disagrees with the invocation.
+    TimedOut,
     /// The harness failed around it, so nothing was learned about the subject.
     InfrastructureFailed(InfrastructureFailure),
 }
@@ -439,6 +449,7 @@ pub enum Exercise {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TrialAccounting {
     row: RowRevisionId,
+    revisions: ExecutionRevisions,
     claim: ClaimRef,
     disposition: SelectionDisposition,
 }
@@ -480,7 +491,7 @@ pub enum SelectionOutcome {
     EmptyAsStated(EmptySelectionReason),
 }
 
-/// One run's complete-table accounting: the denominator, what happened to every row of it, the table posture, the selection's own outcome, and the invocation profile.
+/// One run's complete-table accounting: the denominator, what happened to every row of it, the table posture, the selection's own outcome, the invocation profile, and the target binding.
 ///
 /// The denominator is the descriptor table itself, one entry per row whether selected or not, which is what makes claim coverage a computation rather than a hand count.
 /// Recording the posture is what lets coverage admit authored reports only and lets the comparison refuse a cross-posture pair.
@@ -491,6 +502,7 @@ pub struct RunReport {
     posture: TablePosture,
     selection: SelectionOutcome,
     invocation: InvocationProfile,
+    target: TargetBinding,
 }
 
 // The comparison.
@@ -562,6 +574,28 @@ pub struct RowRevisionChange {
     after: RowRevisionId,
 }
 
+/// One trial present in both runs whose subject or check revision standing moved.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ExecutionRevisionChange {
+    trial: TrialId,
+    before: ExecutionRevisions,
+    after: ExecutionRevisions,
+}
+
+/// How the conclusion-relevant invocation profile moved between two runs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct InvocationProfileChange {
+    before: InvocationProfile,
+    after: InvocationProfile,
+}
+
+/// How the exact target and toolchain pair moved between two runs.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TargetBindingChange {
+    before: TargetBinding,
+    after: TargetBinding,
+}
+
 /// The normalized outcome of one row of the denominator.
 ///
 /// Enough to say that something flipped, and deliberately not enough to be mistaken for the record itself.
@@ -589,14 +623,29 @@ pub struct ConclusionFlip {
     after: OutcomeClass,
 }
 
-/// The pure difference between two reports.
+/// The table-population half of a report difference.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ReportDiff {
+pub struct ReportPopulationDiff {
     added: Vec<TrialId>,
     removed: Vec<TrialId>,
     revised: Vec<RowRevisionChange>,
-    flips: Vec<ConclusionFlip>,
     census: CensusDelta,
+}
+
+/// The execution-standing half of a report difference.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ReportExecutionDiff {
+    revisions: Vec<ExecutionRevisionChange>,
+    flips: Vec<ConclusionFlip>,
+    invocation: Option<InvocationProfileChange>,
+    target: Option<Box<TargetBindingChange>>,
+}
+
+/// The declared population and execution-standing comparison reading between two reports.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ReportDiff {
+    population: ReportPopulationDiff,
+    execution: ReportExecutionDiff,
 }
 
 /// The outcome of one comparison: a difference, or an honest refusal to compare.

@@ -2,8 +2,10 @@
 
 use crate::descriptor::ClaimRef;
 use crate::report::{
-    CensusDelta, CensusDirection, ClaimCoverage, ClaimExercise, ConclusionFlip, OutcomeClass,
-    ReportDiff, RowRevisionChange, RowRevisionId, TrialId,
+    CensusDelta, CensusDirection, ClaimCoverage, ClaimExercise, ConclusionFlip,
+    ExecutionRevisionChange, ExecutionRevisions, InvocationProfile, InvocationProfileChange,
+    OutcomeClass, ReportDiff, ReportExecutionDiff, ReportPopulationDiff, RowRevisionChange,
+    RowRevisionId, TargetBinding, TargetBindingChange, TrialId,
 };
 use core::cmp::Ordering;
 
@@ -76,6 +78,83 @@ impl RowRevisionChange {
     }
 }
 
+impl ExecutionRevisionChange {
+    /// One trial whose subject or check revision standing moved between the two runs.
+    #[must_use]
+    pub(in crate::report) const fn between(
+        trial: TrialId,
+        before: ExecutionRevisions,
+        after: ExecutionRevisions,
+    ) -> Self {
+        Self {
+            trial,
+            before,
+            after,
+        }
+    }
+
+    /// The trial.
+    #[must_use]
+    pub const fn trial(self) -> TrialId {
+        self.trial
+    }
+
+    /// The baseline's subject and check revisions.
+    #[must_use]
+    pub const fn before(self) -> ExecutionRevisions {
+        self.before
+    }
+
+    /// The current report's subject and check revisions.
+    #[must_use]
+    pub const fn after(self) -> ExecutionRevisions {
+        self.after
+    }
+}
+
+impl InvocationProfileChange {
+    /// One changed conclusion-relevant invocation profile.
+    #[must_use]
+    pub(in crate::report) const fn between(
+        before: InvocationProfile,
+        after: InvocationProfile,
+    ) -> Self {
+        Self { before, after }
+    }
+
+    /// The baseline's invocation profile.
+    #[must_use]
+    pub const fn before(self) -> InvocationProfile {
+        self.before
+    }
+
+    /// The current report's invocation profile.
+    #[must_use]
+    pub const fn after(self) -> InvocationProfile {
+        self.after
+    }
+}
+
+impl TargetBindingChange {
+    /// One changed target and toolchain pair.
+    #[must_use]
+    pub(in crate::report) const fn between(before: TargetBinding, after: TargetBinding) -> Self {
+        Self { before, after }
+    }
+
+    /// The baseline's target and toolchain.
+    #[must_use]
+    pub const fn before(&self) -> &TargetBinding {
+        &self.before
+    }
+
+    /// The current report's target and toolchain.
+    #[must_use]
+    pub const fn after(&self) -> &TargetBinding {
+        &self.after
+    }
+}
+
 impl ConclusionFlip {
     /// One trial whose outcome differs between the two runs.
     #[must_use]
@@ -110,21 +189,19 @@ impl ConclusionFlip {
     }
 }
 
-impl ReportDiff {
-    /// The difference between two reports.
+impl ReportPopulationDiff {
+    /// The table-population half of a report difference.
     #[must_use]
     pub(in crate::report) fn stated(
         added: Vec<TrialId>,
         removed: Vec<TrialId>,
         revised: Vec<RowRevisionChange>,
-        flips: Vec<ConclusionFlip>,
         census: CensusDelta,
     ) -> Self {
         Self {
             added,
             removed,
             revised,
-            flips,
             census,
         }
     }
@@ -147,16 +224,78 @@ impl ReportDiff {
         &self.revised
     }
 
+    /// How the denominator moved.
+    #[must_use]
+    pub const fn census(&self) -> CensusDelta {
+        self.census
+    }
+}
+
+impl ReportExecutionDiff {
+    /// The execution-standing half of a report difference.
+    #[must_use]
+    pub(in crate::report) fn stated(
+        revisions: Vec<ExecutionRevisionChange>,
+        flips: Vec<ConclusionFlip>,
+        invocation: Option<InvocationProfileChange>,
+        target: Option<TargetBindingChange>,
+    ) -> Self {
+        Self {
+            revisions,
+            flips,
+            invocation,
+            target: target.map(Box::new),
+        }
+    }
+
+    /// Trials in both runs whose subject or check revision standing moved.
+    #[must_use]
+    pub fn revisions(&self) -> &[ExecutionRevisionChange] {
+        &self.revisions
+    }
+
     /// Trials in both runs whose outcome differs.
     #[must_use]
     pub fn flips(&self) -> &[ConclusionFlip] {
         &self.flips
     }
 
-    /// How the denominator moved.
+    /// How the invocation's case, byte, or time budget moved, where any did.
     #[must_use]
-    pub const fn census(&self) -> CensusDelta {
-        self.census
+    pub const fn invocation(&self) -> Option<InvocationProfileChange> {
+        self.invocation
+    }
+
+    /// How the target triple or toolchain moved, where either did.
+    #[must_use]
+    pub fn target(&self) -> Option<&TargetBindingChange> {
+        self.target.as_deref()
+    }
+}
+
+impl ReportDiff {
+    /// The complete declared population and execution-standing comparison reading between two reports.
+    #[must_use]
+    pub(in crate::report) const fn stated(
+        population: ReportPopulationDiff,
+        execution: ReportExecutionDiff,
+    ) -> Self {
+        Self {
+            population,
+            execution,
+        }
+    }
+
+    /// The table-population difference.
+    #[must_use]
+    pub const fn population(&self) -> &ReportPopulationDiff {
+        &self.population
+    }
+
+    /// The execution-standing difference.
+    #[must_use]
+    pub const fn execution(&self) -> &ReportExecutionDiff {
+        &self.execution
     }
 }
 

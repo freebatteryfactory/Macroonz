@@ -6,7 +6,8 @@
 use super::types::{Invocation, TrialBinding};
 use crate::descriptor::Row;
 use crate::report::{
-    CheckRevisionId, ExecutionKey, RowRevisionId, SubjectRevisionId, TrialId, TrialProfile,
+    CheckRevisionId, ExecutionKey, ExecutionRevisions, RowRevisionId, SubjectRevisionId, TrialId,
+    TrialProfile,
 };
 
 /// The semantic identity of the trial one row declares.
@@ -27,13 +28,25 @@ pub fn trial_identity(row: &Row) -> TrialId {
 /// This engine looks nothing up: it executes what the selection admitted, and a caller that keeps results across runs decides what a matching key buys.
 #[must_use]
 pub fn execution_key(binding: &TrialBinding, invocation: &Invocation) -> ExecutionKey {
-    let attachment = binding.attachment();
+    let revisions = execution_revisions(binding);
     ExecutionKey::over(
         trial_identity(binding.row()),
-        SubjectRevisionId::of_binding(attachment.subject_revision()),
-        CheckRevisionId::of_binding(attachment.check_revision()),
+        revisions.subject(),
+        revisions.check(),
         invocation.profile(),
         invocation.target().clone(),
+    )
+}
+
+/// The exact subject and check revision standing one binding declares.
+///
+/// One join shared by the execution key and the complete-table accounting, so selected and unselected rows read the same revision relationship.
+#[must_use]
+pub(super) fn execution_revisions(binding: &TrialBinding) -> ExecutionRevisions {
+    let attachment = binding.attachment();
+    ExecutionRevisions::bound(
+        SubjectRevisionId::of_binding(attachment.subject_revision()),
+        CheckRevisionId::of_binding(attachment.check_revision()),
     )
 }
 
