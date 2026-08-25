@@ -1,0 +1,5 @@
+error[E0451]: field `manifest` of struct `CompiledSuiteArtifactCustody` is private
+ --> tests/compile_refusals/compile-fail/compiled-suite-custody-cannot-be-minted-without-the-source-join.rs:8:36
+  |
+8 |     CompiledSuiteArtifactCustody { manifest }
+  |                                    ^^^^^^^^ private field

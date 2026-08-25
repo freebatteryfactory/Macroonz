@@ -35,7 +35,7 @@ Reading one axis as another is how a harness grades itself green on a question i
 
 Pressure arrives by four roads, and none of them can be relabelled into another after the fact.
 
-- **A wrapped external backend** (`wrap`) reads `cargo-mutants` console output into the axis-composed record. It mutates real source and runs the test command itself, outside the wall. Its ceiling is witness rejection, because a console stream carries no channel that could watch a damage fire.
+- **A wrapped external backend** (`wrap`) reads `cargo-mutants` console output into the axis-composed record. It mutates real source and runs the test command itself, outside the wall. Persistent pressure carries one typed artifact manifest retaining backend, version, command tokens, target and toolchain, exact output identity, parser profile, and the exact revision of every source file named by a parsed report. Source currency is admitted only after those artifact revisions equal a complete caller-supplied current roster. Its ceiling remains witness rejection, because a console stream carries no channel that could watch a damage fire.
 - **A separately compiled projection** (`specimen`) renders unchanged and selected source as bytes, hands both to a caller-owned compiler host, and requires the unchanged report to pass and the selected report to refuse.
 - **An in-process evaluation callable** (`interpret`) is the rapid loop this instrument is named for: one compile, then selection among damages an owner already admitted.
 - **Structural rewrites** (`rewrite`) are descriptors — a pattern and what it rewrites to — planned as audit candidates and admitted last.
@@ -66,7 +66,7 @@ Neither is a guess dressed as an answer.
 An in-process mutation result is the cheapest evidence to produce and the easiest to fool yourself with, so it is admitted last and only behind three earlier facts:
 
 1. **A qualified adapter.** Somebody states that the console grammar this harness reads was checked against real output of the exact backend version a reading names. Nobody having checked is an honest posture to hold, and it opens no gate.
-2. **A generic suite bite.** At least one lawful kill, read out of a reading under that qualified profile.
+2. **A generic suite bite.** At least one lawful kill, read out of a current-source-qualified artifact under that qualified profile.
 3. **Exact projection pressure.** One separately compiled selected artifact that a real witness really rejected — carrying with it the mandatory no-mutation parity, where production and the evaluation callable must agree on the same input before either is believed about a mutant.
 
 Only then does interpreted execution run, and only for the one selection that pressure already covers.

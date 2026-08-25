@@ -21,7 +21,7 @@ use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use crate::properties::{Equivalence, SharedSubstrate, SubstrateRefusal};
 use crate::report::{
     ClaimExercise, ExecutionKey, Fingerprint, ForeignText, InvocationProfile, ReplayCapsule,
-    RunReport, TrialConclusion, TrialFinding, TrialId, TrialReport,
+    RunReport, TargetBinding, TrialConclusion, TrialFinding, TrialId, TrialReport,
 };
 use crate::runner::{ReportRecordingRefusal, Selection, TrialBinding};
 
@@ -472,6 +472,35 @@ pub struct AdapterProfile {
     grammar: GrammarVersion,
 }
 
+/// The exact command tokens a party states it used to invoke one mutation backend.
+///
+/// Tokens are retained separately rather than flattened into shell text, so an argument boundary cannot be reconstructed differently by a later reader.
+/// This is execution custody and not proof that a process ran.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct BackendCommand {
+    executable: String,
+    arguments: Vec<String>,
+}
+
+/// Why one backend command was refused.
+#[must_use = "a refusal is the reason a backend command was not admitted"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum BackendCommandRefusal {
+    /// An empty executable states no program to invoke.
+    EmptyExecutable,
+}
+
+/// The backend, version, command, target, and toolchain one imported suite-pressure artifact states it ran under.
+///
+/// The adapter profile is derived from the backend and version on the reading road rather than supplied beside this value.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MutationBackendInvocation {
+    backend: WrappedBackend,
+    version: BackendVersion,
+    command: BackendCommand,
+    target: TargetBinding,
+}
+
 /// The caller-supplied reading from one source coordinate to the claim that owns it.
 ///
 /// A function pointer rather than a closure, so the seam carries no captured state.
@@ -558,19 +587,105 @@ pub enum WrapRefusal {
     },
 }
 
+/// The domain tag of exact imported backend-output bytes.
+pub const BACKEND_OUTPUT_TAG: DomainTag = DomainTag::declared(
+    "mutation-backend-output",
+    IdentityProfileVersion::declared(1),
+);
+
+/// The domain tag of one exact mutation-source revision.
+pub const MUTATION_SOURCE_REVISION_TAG: DomainTag = DomainTag::declared(
+    "mutation-source-revision",
+    IdentityProfileVersion::declared(1),
+);
+
+/// The content identity of exact output bytes imported from a mutation backend.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct BackendOutputId(ContentAddress);
+
+/// The content identity of exact source bytes one imported mutation report stood over.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct MutationSourceRevisionId(ContentAddress);
+
+/// One reported source file joined to the exact bytes the artifact run stood over.
+///
+/// The path remains a coordinate relationship while the revision is bytes-only, so identical bytes may lawfully occur at two different paths without becoming one source seat.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct MutationSourceRevision {
+    file: String,
+    revision: MutationSourceRevisionId,
+}
+
+/// One imported mutation run's typed custody manifest.
+///
+/// The reading owns the parser profile; the invocation owns backend execution context; the output identity owns exact imported text; and the source roster owns the exact revision of every file named by a parsed mutation report.
+/// The constructor is the wrapped-backend reader, so none of those seats can be attached to an independently parsed run.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompiledSuiteArtifactManifest {
+    invocation: MutationBackendInvocation,
+    output: BackendOutputId,
+    sources: Vec<MutationSourceRevision>,
+    reading: WrapReading,
+}
+
+/// Why imported output and source snapshots did not become one artifact manifest.
+#[must_use = "a refusal is the reason no compiled-suite artifact manifest was admitted"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ArtifactManifestRefusal {
+    /// The output did not read under the adapter grammar.
+    Reading(WrapRefusal),
+    /// A parser-produced record carried a non-external source site, which this artifact road cannot bind.
+    MutationSiteNotReported,
+    /// Two supplied source revisions name one file.
+    DuplicateSource(String),
+    /// A parsed mutation report names a file absent from the artifact's source snapshots.
+    ReportedSourceMissing(String),
+    /// A supplied source snapshot names no parsed mutation report.
+    SourceNotReported(String),
+}
+
+/// One imported artifact whose retained source revisions exactly match a caller-supplied current source roster.
+///
+/// This establishes currency only against the bytes the caller supplied for comparison; it does not inspect a checkout or authenticate the backend process.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompiledSuiteArtifactCustody {
+    manifest: CompiledSuiteArtifactManifest,
+}
+
+/// Why an artifact manifest did not stand over the supplied current source roster.
+#[must_use = "a refusal is the reason imported mutation evidence is not current for the supplied sources"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ArtifactCustodyRefusal {
+    /// Two current source revisions name one file.
+    DuplicateCurrentSource(String),
+    /// The artifact names a source file absent from the current roster.
+    CurrentSourceMissing(String),
+    /// The current roster names a source file absent from the artifact.
+    CurrentSourceUnexpected(String),
+    /// One source file's exact bytes moved since the artifact was captured.
+    CurrentSourceMoved {
+        /// The source file whose bytes moved.
+        file: String,
+        /// The revision retained by the artifact.
+        expected: MutationSourceRevisionId,
+        /// The revision derived from the supplied current bytes.
+        found: MutationSourceRevisionId,
+    },
+}
+
 // ---------------------------------------------------------------------------
 // Qualification, and the generic suite bite.
 // ---------------------------------------------------------------------------
 
-/// Whether the wrapped-backend pressure has reported, and what it reported.
+/// Whether current-source-qualified external suite pressure has reported, and what it reported.
 ///
-/// The whole profiled reading rides here rather than a bare run, because the backend, the version posture, the output, the grammar, and the ceiling are exactly the facts the trust-opening road weighs.
+/// The whole custody value rides here rather than a bare reading, so backend, version, command, target, output, parser, and source revision cannot fall away before pressure is minted.
 /// A pass with no kill is not evidence that the properties bite, and [`CompiledSuitePressure::demonstrated`] reads it as the absence it is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum WrapStanding<'reading> {
-    /// The wrapped-backend pressure reported, and this is the reading it reported.
-    Reported(&'reading WrapReading),
-    /// The wrapped-backend pressure has not reported.
+pub enum CompiledSuiteArtifactStanding<'artifact> {
+    /// The wrapped-backend pressure reported under complete current-source custody.
+    Reported(&'artifact CompiledSuiteArtifactCustody),
+    /// No current-source-qualified artifact has reported.
     NotReported,
 }
 
@@ -620,29 +735,30 @@ pub enum QualificationRefusal {
     },
 }
 
-/// At least one lawful backend-reported kill, read out of a reading whose adapter profile stands qualified.
+/// At least one lawful backend-reported kill, read out of a current-source-qualified artifact whose adapter profile stands qualified.
 ///
-/// The qualification rides inside, so suite pressure over an unqualified profile is not a value anybody can hold.
+/// The qualification and complete artifact custody ride inside, so suite pressure over an unqualified profile or stale supplied source roster is not a value anybody can hold.
 ///
 /// # Nonclaims
 ///
 /// Suite bite is not campaign accounting: how many mutants a run pressed and how they divide is [`MutationCensus`]'s question.
 /// Neither is it the no-mutation parity ([`NoMutationParityQualification`]), and it cannot open any pair's interpreted trust by itself.
-/// It retains no source-tree revision: a reported coordinate is the backend text's coordinate, not a statement that the same line still names the current checkout.
+/// Source currency is exact only against the source bytes supplied to [`CompiledSuiteArtifactCustody`]; it is not ambient checkout observation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CompiledSuitePressure {
     qualification: AdapterQualification,
+    custody: CompiledSuiteArtifactCustody,
     kill: MutationReport,
 }
 
-/// Why one wrap standing demonstrated no generic compiled suite pressure.
+/// Why one current-source-qualified artifact standing demonstrated no generic compiled suite pressure.
 ///
 /// Dependent checks in a declared order: whether the pressure reported, whether the qualification carries the reading's exact profile, then whether what it reported carries a kill.
 #[must_use = "a refusal is the reason no compiled suite pressure was demonstrated"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SuitePressureRefusal {
-    /// The wrapped-backend pressure has not reported, so there is no reading to stand on.
-    WrapNotReported,
+    /// No current-source-qualified artifact has reported, so there is no reading to stand on.
+    ArtifactNotReported,
     /// The qualification names another adapter profile and stands behind nothing here.
     QualificationUnderAnotherProfile,
     /// The reading's run demonstrated no lawful kill.

@@ -11,25 +11,28 @@ use super::{
     ARTIFACT_CONTENT_TAG, ActivationDisposition, ActivationEvidence, ActivationSite,
     ActiveSelection, AdapterProfile, AdapterQualification, AdmittedAlternative,
     AlternativeDeclaration, AlternativeId, AnnouncedRoster, ArtifactContent, ArtifactContentId,
-    BackendVersion, BackendVersionPosture, BackendVersionRefusal, BaselineAxis,
+    ArtifactCustodyRefusal, BACKEND_OUTPUT_TAG, BackendCommand, BackendCommandRefusal,
+    BackendOutputId, BackendVersion, BackendVersionPosture, BackendVersionRefusal, BaselineAxis,
     BaselinePrecondition, BaselineQualification, BudgetRefusal, CandidateSketch, CheckGap,
     ClaimCeiling, ClaimPinnedGround, ClaimPinnedProposal, CompiledProjectionPressure,
     CompiledSpecimenObservation, CompiledSpecimenObservationMismatch, CompiledSpecimenRequest,
-    CompiledSpecimenRole, CompiledSpecimenStanding, CompiledSuitePressure, CoordinateRefusal,
-    DemonstratedRejection, Demonstration, DiffPath, DiffPathRefusal, DischargeAdmissionReceipt,
-    DischargeEvidence, DiscoveredMutationSite, DiscoveryDisposition, DiscoveryEntry,
-    DiscoveryRefusal, DudPlant, DuplicateRefusal, EVALUATION_SURFACE_TAG, EquivalenceAxis,
-    EvaluationBinding, EvaluationCall, EvaluationCallRefusal, EvaluationDirective,
+    CompiledSpecimenRole, CompiledSpecimenStanding, CompiledSuiteArtifactCustody,
+    CompiledSuiteArtifactManifest, CompiledSuiteArtifactStanding, CompiledSuitePressure,
+    CoordinateRefusal, DemonstratedRejection, Demonstration, DiffPath, DiffPathRefusal,
+    DischargeAdmissionReceipt, DischargeEvidence, DiscoveredMutationSite, DiscoveryDisposition,
+    DiscoveryEntry, DiscoveryRefusal, DudPlant, DuplicateRefusal, EVALUATION_SURFACE_TAG,
+    EquivalenceAxis, EvaluationBinding, EvaluationCall, EvaluationCallRefusal, EvaluationDirective,
     EvaluationFamilyRef, EvaluationObservation, EvaluationPair, EvaluationPairRefusal,
     EvaluationPairStanding, EvaluationPairStandingMismatch, EvaluationSurface, EvaluationSurfaceId,
     ExecutionAxis, ExplanationRefusal, FailureComparison, FamilyAttribution, GrammarStanding,
     GrammarVersion, InconclusiveCause, InferredObligation, IntendedRejection,
     InterpretedMutationEvidence, InterpretedTrust, KillRefusal, MUTATION_ALTERNATIVE_TAG,
-    MUTATION_DISCOVERY_TAG, MUTATION_POLICY_TAG, MUTATION_TARGET_TAG, MappingPosture,
-    MaterializationAxis, MeaningCheck, MutantId, MutantKilledGround, MutantKilledProposal,
-    MutationCensus, MutationDiscoveryId, MutationDiscoveryReading, MutationIdentity,
-    MutationOutcome, MutationPermission, MutationPoint, MutationPolicy, MutationPolicyId,
-    MutationReport, MutationRun, MutationSite, MutationSurfaceLowering, MutationTarget,
+    MUTATION_DISCOVERY_TAG, MUTATION_POLICY_TAG, MUTATION_SOURCE_REVISION_TAG, MUTATION_TARGET_TAG,
+    MappingPosture, MaterializationAxis, MeaningCheck, MutantId, MutantKilledGround,
+    MutantKilledProposal, MutationBackendInvocation, MutationCensus, MutationDiscoveryId,
+    MutationDiscoveryReading, MutationIdentity, MutationOutcome, MutationPermission, MutationPoint,
+    MutationPolicy, MutationPolicyId, MutationReport, MutationRun, MutationSite,
+    MutationSourceRevision, MutationSourceRevisionId, MutationSurfaceLowering, MutationTarget,
     MutationVerdict, MutationWitness, MutationWitnessRefusal, NoComparison, NoComparisonReason,
     NoMutationParityQualification, NoMutationParityReading, NoMutationParityStanding,
     NoMutationReports, NoMutationResults, ObligationComparison, ObligationDischargedGround,
@@ -44,7 +47,7 @@ use super::{
     RewriteTrust, RosterRefusal, ScopeShape, ScopedInvocation, SelectionRefusal, SinkRefusal,
     SourceCoordinate, SpecimenMaterializerBinding, SpecimenMaterializerCall, StoredProposalRef,
     SuitePressureRefusal, SurvivorExplanation, UnparsedLine, WrapReading, WrapRefusal,
-    WrapStanding, WrappedBackend,
+    WrappedBackend,
 };
 use crate::depot::capsules::{ReplayCapsuleEntry, StoredReplayEntryRef};
 use crate::depot::operator_families::OPERATOR_FAMILIES;
@@ -62,6 +65,7 @@ use crate::report::{
     RunAttempt, RunReport, TrialConclusion, TrialFinding, TrialId, TrialReport, encode_bytes,
 };
 use crate::runner::{Selection, TrialBinding};
+use std::collections::BTreeMap;
 
 /// The version of the external-mutant identity encoding.
 ///
@@ -767,6 +771,80 @@ impl MutationRun {
 // What a wrapped backend's output is read into.
 // ---------------------------------------------------------------------------
 
+impl BackendCommand {
+    /// Retain one backend command as an executable followed by its exact argument tokens.
+    ///
+    /// # Errors
+    ///
+    /// Refuses an empty executable, which states no program to invoke.
+    pub fn declared(executable: &str, arguments: &[&str]) -> Result<Self, BackendCommandRefusal> {
+        if executable.is_empty() {
+            return Err(BackendCommandRefusal::EmptyExecutable);
+        }
+        Ok(Self {
+            executable: executable.to_owned(),
+            arguments: arguments
+                .iter()
+                .map(|argument| (*argument).to_owned())
+                .collect(),
+        })
+    }
+
+    /// The executable token.
+    #[must_use]
+    pub fn executable(&self) -> &str {
+        &self.executable
+    }
+
+    /// The argument tokens, in invocation order.
+    #[must_use]
+    pub fn arguments(&self) -> &[String] {
+        &self.arguments
+    }
+}
+
+impl MutationBackendInvocation {
+    /// State the exact backend execution context one imported artifact records.
+    #[must_use]
+    pub fn declared(
+        backend: WrappedBackend,
+        version: BackendVersion,
+        command: BackendCommand,
+        target: crate::report::TargetBinding,
+    ) -> Self {
+        Self {
+            backend,
+            version,
+            command,
+            target,
+        }
+    }
+
+    /// The backend the command invokes.
+    #[must_use]
+    pub const fn backend(&self) -> WrappedBackend {
+        self.backend
+    }
+
+    /// The backend version the artifact states produced its output.
+    #[must_use]
+    pub const fn version(&self) -> &BackendVersion {
+        &self.version
+    }
+
+    /// The exact command tokens the artifact states were invoked.
+    #[must_use]
+    pub const fn command(&self) -> &BackendCommand {
+        &self.command
+    }
+
+    /// The target and toolchain the artifact states it ran under.
+    #[must_use]
+    pub const fn target(&self) -> &crate::report::TargetBinding {
+        &self.target
+    }
+}
+
 impl BackendVersion {
     /// The version the party that ran the backend states.
     ///
@@ -784,6 +862,167 @@ impl BackendVersion {
     #[must_use]
     pub fn spelling(&self) -> &str {
         &self.0
+    }
+}
+
+impl BackendOutputId {
+    /// Derive the content identity of exact imported backend-output bytes.
+    pub(in crate::muterprater) fn derived(bytes: &[u8]) -> Self {
+        Self(ContentAddress::derived(BACKEND_OUTPUT_TAG, bytes))
+    }
+
+    /// The underlying content address.
+    #[must_use]
+    pub const fn address(self) -> ContentAddress {
+        self.0
+    }
+}
+
+impl MutationSourceRevisionId {
+    /// Derive one exact mutation-source revision from its bytes.
+    fn derived(bytes: &[u8]) -> Self {
+        Self(ContentAddress::derived(MUTATION_SOURCE_REVISION_TAG, bytes))
+    }
+
+    /// The underlying content address.
+    #[must_use]
+    pub const fn address(self) -> ContentAddress {
+        self.0
+    }
+}
+
+impl MutationSourceRevision {
+    /// Bind one reported source path to the exact source bytes an artifact or current comparison stood over.
+    ///
+    /// # Errors
+    ///
+    /// Refuses an empty file spelling, which identifies no source seat.
+    pub fn from_content(file: &str, bytes: &[u8]) -> Result<Self, CoordinateRefusal> {
+        if file.is_empty() {
+            return Err(CoordinateRefusal::EmptyFile);
+        }
+        Ok(Self {
+            file: file.to_owned(),
+            revision: MutationSourceRevisionId::derived(bytes),
+        })
+    }
+
+    /// The reported source-file spelling.
+    #[must_use]
+    pub fn file(&self) -> &str {
+        &self.file
+    }
+
+    /// The exact content revision of that source file.
+    #[must_use]
+    pub const fn revision(&self) -> MutationSourceRevisionId {
+        self.revision
+    }
+}
+
+impl CompiledSuiteArtifactManifest {
+    /// Retain one parser-produced reading under its exact backend invocation, output identity, and source revisions.
+    pub(in crate::muterprater) fn recorded(
+        invocation: MutationBackendInvocation,
+        output: BackendOutputId,
+        sources: Vec<MutationSourceRevision>,
+        reading: WrapReading,
+    ) -> Self {
+        Self {
+            invocation,
+            output,
+            sources,
+            reading,
+        }
+    }
+
+    /// The backend execution context the artifact states.
+    #[must_use]
+    pub const fn invocation(&self) -> &MutationBackendInvocation {
+        &self.invocation
+    }
+
+    /// The exact imported backend-output content identity.
+    #[must_use]
+    pub const fn output(&self) -> BackendOutputId {
+        self.output
+    }
+
+    /// The exact source revisions, ordered by reported file spelling.
+    #[must_use]
+    pub fn sources(&self) -> &[MutationSourceRevision] {
+        &self.sources
+    }
+
+    /// The parser-produced reading retained by this manifest.
+    #[must_use]
+    pub const fn reading(&self) -> &WrapReading {
+        &self.reading
+    }
+}
+
+impl CompiledSuiteArtifactCustody {
+    /// Join an imported artifact manifest to the exact current source revisions a caller supplies.
+    ///
+    /// The comparison is over the complete manifest roster by file and revision, so a missing, added, duplicated, or moved source refuses instead of silently narrowing currency.
+    ///
+    /// # Errors
+    ///
+    /// Refuses duplicate current files first, then a manifest file missing from the current roster, then an unexpected current file, then the first source revision that moved in file order.
+    pub fn current(
+        manifest: CompiledSuiteArtifactManifest,
+        current_sources: Vec<MutationSourceRevision>,
+    ) -> Result<Self, ArtifactCustodyRefusal> {
+        let mut current = BTreeMap::new();
+        for source in current_sources {
+            let file = source.file().to_owned();
+            if current.insert(file.clone(), source).is_some() {
+                return Err(ArtifactCustodyRefusal::DuplicateCurrentSource(file));
+            }
+        }
+        let expected: BTreeMap<&str, MutationSourceRevisionId> = manifest
+            .sources()
+            .iter()
+            .map(|source| (source.file(), source.revision()))
+            .collect();
+        for file in expected.keys().copied() {
+            if !current.contains_key(file) {
+                return Err(ArtifactCustodyRefusal::CurrentSourceMissing(
+                    file.to_owned(),
+                ));
+            }
+        }
+        for file in current.keys() {
+            if !expected.contains_key(file.as_str()) {
+                return Err(ArtifactCustodyRefusal::CurrentSourceUnexpected(
+                    file.to_owned(),
+                ));
+            }
+        }
+        for (file, expected_revision) in expected {
+            match current.get(file) {
+                Some(found) if expected_revision != found.revision() => {
+                    return Err(ArtifactCustodyRefusal::CurrentSourceMoved {
+                        file: file.to_owned(),
+                        expected: expected_revision,
+                        found: found.revision(),
+                    });
+                }
+                Some(_) => {}
+                None => {
+                    return Err(ArtifactCustodyRefusal::CurrentSourceMissing(
+                        file.to_owned(),
+                    ));
+                }
+            }
+        }
+        Ok(Self { manifest })
+    }
+
+    /// The complete imported artifact manifest this current-source join stands over.
+    #[must_use]
+    pub const fn manifest(&self) -> &CompiledSuiteArtifactManifest {
+        &self.manifest
     }
 }
 
@@ -989,28 +1228,35 @@ impl AdapterQualification {
 }
 
 impl CompiledSuitePressure {
-    /// The generic suite pressure one wrap standing demonstrated, where it demonstrated one.
+    /// The generic suite pressure one current-source-qualified artifact demonstrated, where it demonstrated one.
     ///
     /// The qualification arrives from [`AdapterQualification::of`] rather than being minted here, so this road weighs a standing somebody already earned against the reading in hand.
     ///
     /// # Errors
     ///
-    /// Refuses, in a declared dependent order: a standing that has not reported, a qualification naming a profile other than this reading's, then a reading whose run demonstrated no lawful kill.
+    /// Refuses, in a declared dependent order: a standing that has not reported, a qualification naming a profile other than this artifact's reading, then a reading whose run demonstrated no lawful kill.
     pub fn demonstrated(
-        wrap: WrapStanding<'_>,
+        artifact: CompiledSuiteArtifactStanding<'_>,
         qualification: &AdapterQualification,
     ) -> Result<Self, SuitePressureRefusal> {
-        let WrapStanding::Reported(reading) = wrap else {
-            return Err(SuitePressureRefusal::WrapNotReported);
+        let CompiledSuiteArtifactStanding::Reported(custody) = artifact else {
+            return Err(SuitePressureRefusal::ArtifactNotReported);
         };
+        let reading = custody.manifest().reading();
         if qualification.profile() != reading.profile() {
             return Err(SuitePressureRefusal::QualificationUnderAnotherProfile);
         }
-        let Some(kill) = reading.run().kills().next() else {
+        let Some(kill) = reading
+            .run()
+            .reports()
+            .iter()
+            .find(|report| report.verdict() == MutationVerdict::Killed)
+        else {
             return Err(SuitePressureRefusal::NoKillDemonstrated);
         };
         Ok(Self {
             qualification: qualification.clone(),
+            custody: custody.clone(),
             kill: kill.clone(),
         })
     }
@@ -1019,6 +1265,12 @@ impl CompiledSuitePressure {
     #[must_use]
     pub const fn qualification(&self) -> &AdapterQualification {
         &self.qualification
+    }
+
+    /// The exact backend invocation, output, parser reading, and current-source custody behind this pressure.
+    #[must_use]
+    pub const fn custody(&self) -> &CompiledSuiteArtifactCustody {
+        &self.custody
     }
 
     /// The kill it was demonstrated by.

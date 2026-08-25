@@ -26,30 +26,32 @@ use macroonz_harness::muterprater::propose::{
 };
 use macroonz_harness::muterprater::rewrite::admission;
 use macroonz_harness::muterprater::specimen::demonstrate_compiled_projection;
-use macroonz_harness::muterprater::wrap::read_output;
+use macroonz_harness::muterprater::wrap::{read_artifact, read_output};
 use macroonz_harness::muterprater::{
     ARTIFACT_CONTENT_TAG, ActivationEvidence, ActivationSite, ActiveSelection,
     AdapterQualification, AdmittedAlternative, AlternativeDeclaration, AlternativeId,
-    AnnouncedRoster, BackendVersion, BackendVersionPosture, CompiledProjectionPressure,
-    CompiledProjectionRefusal, CompiledSpecimenHostRefusal, CompiledSpecimenObservation,
-    CompiledSpecimenObservationMismatch, CompiledSpecimenRequest, CompiledSpecimenRole,
-    CompiledSuitePressure, Demonstration, DischargeEvidence, DischargeProposalRefusal,
-    DiscoveredMutationSite, DiscoveryDisposition, DiscoveryLoweringRefusal, DiscoveryRefusal,
-    DuplicateRefusal, EvaluationBinding, EvaluationCall, EvaluationCallRefusal,
-    EvaluationDirective, EvaluationFamilyRef, EvaluationObservation, EvaluationPair,
-    EvaluationPairRefusal, EvaluationPairStandingMismatch, EvaluationSurface, FamilyAttribution,
-    GrammarStanding, HumanAdmissionRefusal, IntendedRejection, InterpretedExecutionRefusal,
-    InterpreterAvailability, KillProposalRefusal, MappedUnpermittedCause, MissingTrustEvidence,
+    AnnouncedRoster, ArtifactCustodyRefusal, ArtifactManifestRefusal, BackendCommand,
+    BackendVersion, BackendVersionPosture, CompiledProjectionPressure, CompiledProjectionRefusal,
+    CompiledSpecimenHostRefusal, CompiledSpecimenObservation, CompiledSpecimenObservationMismatch,
+    CompiledSpecimenRequest, CompiledSpecimenRole, CompiledSuiteArtifactCustody,
+    CompiledSuiteArtifactManifest, CompiledSuiteArtifactStanding, CompiledSuitePressure,
+    Demonstration, DischargeEvidence, DischargeProposalRefusal, DiscoveredMutationSite,
+    DiscoveryDisposition, DiscoveryLoweringRefusal, DiscoveryRefusal, DuplicateRefusal,
+    EvaluationBinding, EvaluationCall, EvaluationCallRefusal, EvaluationDirective,
+    EvaluationFamilyRef, EvaluationObservation, EvaluationPair, EvaluationPairRefusal,
+    EvaluationPairStandingMismatch, EvaluationSurface, FamilyAttribution, GrammarStanding,
+    HumanAdmissionRefusal, IntendedRejection, InterpretedExecutionRefusal, InterpreterAvailability,
+    KillProposalRefusal, MappedUnpermittedCause, MissingTrustEvidence, MutationBackendInvocation,
     MutationDiscoveryReading, MutationIdentity, MutationOutcome, MutationPermission, MutationPoint,
-    MutationPolicy, MutationReport, MutationSite, MutationVerdict, MutationWitness,
-    MutationWitnessRefusal, NoComparisonReason, NoMutationObservationRefusal,
+    MutationPolicy, MutationReport, MutationSite, MutationSourceRevision, MutationVerdict,
+    MutationWitness, MutationWitnessRefusal, NoComparisonReason, NoMutationObservationRefusal,
     NoMutationParityReading, ObligationLane, OperatorFamilyRef, OwedClaim, OwedClaimRefusal,
     OwnerClaimMapping, ParityQualificationRefusal, PermissionRefusal, PointCatalogPosture,
     PolicyRefusal, ProductionBinding, ProofDelta, ProofDeltaRefusal, ProofRefusal,
     ProposalDestination, ProposalDocument, ProposalRefusal, ProposalSink, QualificationRefusal,
-    ReplayBearingProposal, RewriteAdmission, RewriteWithheld, SelectionRefusal, SinkRefusal,
-    SourceCoordinate, SpecimenMaterializerBinding, SpecimenMaterializerRefusal, StoredProposalRef,
-    SuitePressureRefusal, WrapReading, WrapRefusal, WrapStanding,
+    ReadingSource, ReplayBearingProposal, RewriteAdmission, RewriteWithheld, SelectionRefusal,
+    SinkRefusal, SourceCoordinate, SpecimenMaterializerBinding, SpecimenMaterializerRefusal,
+    StoredProposalRef, SuitePressureRefusal, WrapReading, WrapRefusal, WrappedBackend,
 };
 use macroonz_harness::properties::{Agreement, agreement};
 use macroonz_harness::report::{
@@ -69,10 +71,30 @@ use std::sync::atomic::{AtomicU32, Ordering};
 const OWNER: &str = "harness.mutation.receiver";
 const BACKEND_CONSOLE: &str =
     include_str!("compiled-pressure-artifact/cargo-mutants-27.0.0-console.txt");
+const BACKEND_SOURCE: &[u8] = include_bytes!("compiled-pressure-artifact/wrap.rs");
+const CURRENT_BACKEND_SOURCE: &[u8] = include_bytes!("../../src/muterprater/wrap.rs");
 const BACKEND_NO_KILL: &str = "Found 1 mutant to test\n\
     ok Unmutated baseline in 3.1s\n\
     missed src/subject/lane.rs:41:9: replace is_qualified -> bool with true in 4.0s";
 const BACKEND_VERSION: &str = "27.0.0";
+const BACKEND_TARGET: &str = "x86_64-pc-windows-msvc";
+const BACKEND_TOOLCHAIN: &str = "rustc 1.98.0 (88d9e12ae 2026-08-18)";
+const BACKEND_COMMAND: &[&str] = &[
+    "mutants",
+    "--package",
+    "macroonz-harness",
+    "--file",
+    "harness/src/muterprater/wrap.rs",
+    "--re",
+    "replace != with == in roster_count",
+    "--test-tool",
+    "nextest",
+    "--no-shuffle",
+    "--jobs",
+    "1",
+    "--caught",
+    "--no-times",
+];
 const COMPILED_MUTANT_FILE: &str = "harness/src/muterprater/wrap.rs";
 const COMPILED_MUTANT_DAMAGE: &[u8] = b"replace != with == in roster_count";
 const ORIGINAL_OPERATION: &[u8] = b"input != 0";
@@ -115,6 +137,8 @@ enum MutationRoadFailure {
     Pair(EvaluationPairRefusal),
     Table(TrialTableRefusal),
     Wrap(WrapRefusal),
+    ArtifactManifest(ArtifactManifestRefusal),
+    ArtifactCustody(ArtifactCustodyRefusal),
     Qualification(QualificationRefusal),
     Pressure(SuitePressureRefusal),
     Projection(CompiledProjectionRefusal),
@@ -203,6 +227,18 @@ impl From<TrialTableRefusal> for MutationRoadFailure {
 impl From<WrapRefusal> for MutationRoadFailure {
     fn from(refusal: WrapRefusal) -> Self {
         Self::Wrap(refusal)
+    }
+}
+
+impl From<ArtifactManifestRefusal> for MutationRoadFailure {
+    fn from(refusal: ArtifactManifestRefusal) -> Self {
+        Self::ArtifactManifest(refusal)
+    }
+}
+
+impl From<ArtifactCustodyRefusal> for MutationRoadFailure {
+    fn from(refusal: ArtifactCustodyRefusal) -> Self {
+        Self::ArtifactCustody(refusal)
     }
 }
 
@@ -1076,12 +1112,59 @@ fn compiled_reading() -> Result<WrapReading, MutationRoadFailure> {
     )?)
 }
 
+fn backend_invocation(
+    version: BackendVersion,
+) -> Result<MutationBackendInvocation, MutationRoadFailure> {
+    let command = BackendCommand::declared("cargo", BACKEND_COMMAND)
+        .map_err(|_| MutationRoadFailure::Name)?;
+    Ok(MutationBackendInvocation::declared(
+        WrappedBackend::CargoMutants,
+        version,
+        command,
+        TargetBinding::bound(
+            TargetTriple::declared(BACKEND_TARGET),
+            ToolchainIdentity::declared(BACKEND_TOOLCHAIN),
+        ),
+    ))
+}
+
+fn source_revision(bytes: &[u8]) -> Result<MutationSourceRevision, MutationRoadFailure> {
+    MutationSourceRevision::from_content(COMPILED_MUTANT_FILE, bytes)
+        .map_err(|_| MutationRoadFailure::Name)
+}
+
+fn compiled_artifact(
+    console: &str,
+    version: BackendVersion,
+    artifact_source: &[u8],
+) -> Result<CompiledSuiteArtifactManifest, MutationRoadFailure> {
+    Ok(read_artifact(
+        console,
+        backend_invocation(version)?,
+        vec![source_revision(artifact_source)?],
+        compiled_owner,
+        compiled_family,
+    )?)
+}
+
+fn current_custody(
+    manifest: CompiledSuiteArtifactManifest,
+    current_source: &[u8],
+) -> Result<CompiledSuiteArtifactCustody, MutationRoadFailure> {
+    Ok(CompiledSuiteArtifactCustody::current(
+        manifest,
+        vec![source_revision(current_source)?],
+    )?)
+}
+
 fn compiled_suite_pressure() -> Result<CompiledSuitePressure, MutationRoadFailure> {
-    let reading = compiled_reading()?;
     let version = BackendVersion::stated(BACKEND_VERSION).map_err(|_| MutationRoadFailure::Name)?;
-    let qualification = AdapterQualification::of(&reading, GrammarStanding::Checked(version))?;
+    let manifest = compiled_artifact(BACKEND_CONSOLE, version.clone(), BACKEND_SOURCE)?;
+    let qualification =
+        AdapterQualification::of(manifest.reading(), GrammarStanding::Checked(version))?;
+    let custody = current_custody(manifest, CURRENT_BACKEND_SOURCE)?;
     Ok(CompiledSuitePressure::demonstrated(
-        WrapStanding::Reported(&reading),
+        CompiledSuiteArtifactStanding::Reported(&custody),
         &qualification,
     )?)
 }
@@ -2088,7 +2171,7 @@ fn compiled_and_interpreted_evidence_join_without_flattening() -> Result<(), Mut
         suite.kill().target().site(),
         MutationSite::Reported(coordinate)
             if coordinate.file() == COMPILED_MUTANT_FILE
-                && coordinate.line() == 360
+                && coordinate.line() == 348
                 && coordinate.column() == 13
     ));
     let selection = selection_for_operation(&surface, SELECTED_OPERATION)?;
@@ -2616,7 +2699,9 @@ fn compiled_pressure_is_exact_pair_scoped() -> Result<(), MutationRoadFailure> {
 /// Adapter qualification remains bound to the exact backend profile whose reading earned it.
 #[test]
 fn a_compiled_witness_refuses_another_profile() -> Result<(), MutationRoadFailure> {
-    let here = compiled_reading()?;
+    let here_version =
+        BackendVersion::stated(BACKEND_VERSION).map_err(|_| MutationRoadFailure::Name)?;
+    let here = compiled_artifact(BACKEND_CONSOLE, here_version, BACKEND_SOURCE)?;
     let other_version = BackendVersion::stated("24.0.0").map_err(|_| MutationRoadFailure::Name)?;
     let elsewhere = read_output(
         BACKEND_CONSOLE,
@@ -2625,9 +2710,145 @@ fn a_compiled_witness_refuses_another_profile() -> Result<(), MutationRoadFailur
         compiled_family,
     )?;
     let borrowed = AdapterQualification::of(&elsewhere, GrammarStanding::Checked(other_version))?;
+    let custody = current_custody(here, CURRENT_BACKEND_SOURCE)?;
     assert_eq!(
-        CompiledSuitePressure::demonstrated(WrapStanding::Reported(&here), &borrowed),
+        CompiledSuitePressure::demonstrated(
+            CompiledSuiteArtifactStanding::Reported(&custody),
+            &borrowed,
+        ),
         Err(SuitePressureRefusal::QualificationUnderAnotherProfile)
+    );
+    Ok(())
+}
+
+/// Imported suite pressure retains backend, version, command, target, output, parser, and exact current source revision without turning any of them into pair authority.
+#[test]
+fn compiled_suite_artifact_custody_is_complete_and_current() -> Result<(), MutationRoadFailure> {
+    let version = BackendVersion::stated(BACKEND_VERSION).map_err(|_| MutationRoadFailure::Name)?;
+    let manifest = compiled_artifact(BACKEND_CONSOLE, version.clone(), BACKEND_SOURCE)?;
+    assert_eq!(
+        manifest.invocation().backend(),
+        WrappedBackend::CargoMutants
+    );
+    assert_eq!(manifest.invocation().version(), &version);
+    assert_eq!(manifest.invocation().command().executable(), "cargo");
+    assert_eq!(manifest.invocation().command().arguments(), BACKEND_COMMAND);
+    assert_eq!(
+        manifest.invocation().target().target().spelling(),
+        BACKEND_TARGET
+    );
+    assert_eq!(
+        manifest.invocation().target().toolchain().spelling(),
+        BACKEND_TOOLCHAIN
+    );
+    assert_eq!(
+        manifest.reading().profile().backend(),
+        manifest.invocation().backend()
+    );
+    assert_eq!(
+        manifest.reading().profile().version(),
+        &BackendVersionPosture::Stated(version)
+    );
+    assert_eq!(
+        manifest.reading().profile().source(),
+        ReadingSource::ConsoleStream
+    );
+    assert_eq!(manifest.reading().profile().grammar().number(), 1u32);
+    let [source] = manifest.sources() else {
+        return Err(MutationRoadFailure::MissingAlternative);
+    };
+    assert_eq!(source.file(), COMPILED_MUTANT_FILE);
+    assert_eq!(source, &source_revision(BACKEND_SOURCE)?);
+
+    let same = compiled_artifact(
+        BACKEND_CONSOLE,
+        manifest.invocation().version().clone(),
+        BACKEND_SOURCE,
+    )?;
+    assert_eq!(manifest.output(), same.output());
+    let changed_console = format!("{BACKEND_CONSOLE}artifact-note\n");
+    let changed = compiled_artifact(
+        &changed_console,
+        manifest.invocation().version().clone(),
+        BACKEND_SOURCE,
+    )?;
+    assert_ne!(manifest.output(), changed.output());
+
+    let custody = current_custody(manifest.clone(), CURRENT_BACKEND_SOURCE)?;
+    assert_eq!(custody.manifest(), &manifest);
+    let moved = source_revision(b"moved-source")?;
+    assert!(matches!(
+        CompiledSuiteArtifactCustody::current(manifest, vec![moved]),
+        Err(ArtifactCustodyRefusal::CurrentSourceMoved { file, expected, found })
+            if file == COMPILED_MUTANT_FILE && expected != found
+    ));
+    Ok(())
+}
+
+/// Source custody closes both the artifact-time and current-source rosters instead of accepting a convenient subset.
+#[test]
+fn compiled_suite_source_rosters_refuse_missing_extra_and_duplicate_files()
+-> Result<(), MutationRoadFailure> {
+    let version = BackendVersion::stated(BACKEND_VERSION).map_err(|_| MutationRoadFailure::Name)?;
+    let invocation = || backend_invocation(version.clone());
+    let source = source_revision(BACKEND_SOURCE)?;
+    assert_eq!(
+        read_artifact(
+            BACKEND_CONSOLE,
+            invocation()?,
+            Vec::new(),
+            compiled_owner,
+            compiled_family,
+        ),
+        Err(ArtifactManifestRefusal::ReportedSourceMissing(
+            COMPILED_MUTANT_FILE.to_owned(),
+        ))
+    );
+    let extra = MutationSourceRevision::from_content("elsewhere.rs", b"elsewhere")
+        .map_err(|_| MutationRoadFailure::Name)?;
+    assert_eq!(
+        read_artifact(
+            BACKEND_CONSOLE,
+            invocation()?,
+            vec![source.clone(), extra.clone()],
+            compiled_owner,
+            compiled_family,
+        ),
+        Err(ArtifactManifestRefusal::SourceNotReported(
+            "elsewhere.rs".to_owned(),
+        ))
+    );
+    assert_eq!(
+        read_artifact(
+            BACKEND_CONSOLE,
+            invocation()?,
+            vec![source.clone(), source.clone()],
+            compiled_owner,
+            compiled_family,
+        ),
+        Err(ArtifactManifestRefusal::DuplicateSource(
+            COMPILED_MUTANT_FILE.to_owned(),
+        ))
+    );
+
+    let manifest = compiled_artifact(BACKEND_CONSOLE, version, BACKEND_SOURCE)?;
+    assert_eq!(
+        CompiledSuiteArtifactCustody::current(manifest.clone(), Vec::new()),
+        Err(ArtifactCustodyRefusal::CurrentSourceMissing(
+            COMPILED_MUTANT_FILE.to_owned(),
+        ))
+    );
+    assert_eq!(
+        CompiledSuiteArtifactCustody::current(manifest.clone(), vec![source.clone(), extra],),
+        Err(ArtifactCustodyRefusal::CurrentSourceUnexpected(
+            "elsewhere.rs".to_owned(),
+        ))
+    );
+    assert_eq!(
+        CompiledSuiteArtifactCustody::current(manifest, vec![source.clone(), source]),
+        Err(ArtifactCustodyRefusal::DuplicateCurrentSource(
+            COMPILED_MUTANT_FILE.to_owned(),
+        ))
     );
     Ok(())
 }
@@ -2668,31 +2889,41 @@ fn adapter_qualification_requires_one_checked_profile_version() -> Result<(), Mu
 #[test]
 fn generic_suite_pressure_requires_a_reported_kill() -> Result<(), MutationRoadFailure> {
     let version = BackendVersion::stated(BACKEND_VERSION).map_err(|_| MutationRoadFailure::Name)?;
-    let killed = compiled_reading()?;
-    assert_eq!(killed.announced(), AnnouncedRoster::Stated(1));
+    let killed = compiled_artifact(BACKEND_CONSOLE, version.clone(), BACKEND_SOURCE)?;
+    assert_eq!(killed.reading().announced(), AnnouncedRoster::Stated(1));
     assert!(matches!(
-        killed.unparsed(),
+        killed.reading().unparsed(),
         [summary]
             if summary.ordinal() == 3
                 && summary.text().bytes() == b"1 mutant tested: 1 caught"
     ));
     let killed_qualification =
-        AdapterQualification::of(&killed, GrammarStanding::Checked(version.clone()))?;
+        AdapterQualification::of(killed.reading(), GrammarStanding::Checked(version.clone()))?;
     assert_eq!(
-        CompiledSuitePressure::demonstrated(WrapStanding::NotReported, &killed_qualification),
-        Err(SuitePressureRefusal::WrapNotReported)
+        CompiledSuitePressure::demonstrated(
+            CompiledSuiteArtifactStanding::NotReported,
+            &killed_qualification,
+        ),
+        Err(SuitePressureRefusal::ArtifactNotReported)
     );
 
-    let missed = read_output(
+    let missed_source = MutationSourceRevision::from_content("src/subject/lane.rs", b"missed")
+        .map_err(|_| MutationRoadFailure::Name)?;
+    let missed = read_artifact(
         BACKEND_NO_KILL,
-        BackendVersionPosture::Stated(version.clone()),
+        backend_invocation(version.clone())?,
+        vec![missed_source.clone()],
         compiled_owner,
         compiled_family,
     )?;
     let missed_qualification =
-        AdapterQualification::of(&missed, GrammarStanding::Checked(version))?;
+        AdapterQualification::of(missed.reading(), GrammarStanding::Checked(version))?;
+    let missed_custody = CompiledSuiteArtifactCustody::current(missed, vec![missed_source])?;
     assert_eq!(
-        CompiledSuitePressure::demonstrated(WrapStanding::Reported(&missed), &missed_qualification,),
+        CompiledSuitePressure::demonstrated(
+            CompiledSuiteArtifactStanding::Reported(&missed_custody),
+            &missed_qualification,
+        ),
         Err(SuitePressureRefusal::NoKillDemonstrated)
     );
     Ok(())
