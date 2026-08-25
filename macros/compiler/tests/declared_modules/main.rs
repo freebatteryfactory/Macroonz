@@ -61,12 +61,24 @@ const CONCURRENCY_BODY: &str = r#"
 
 /// The network road walked over one source, or nothing where the lane's own source did not capture.
 fn networked(source: &str) -> Option<Result<Expansion<NetworkModule>, Diagnostic>> {
+    let bound = format!("harness = renamed_facade::harness, {source}");
+    networked_raw(&bound)
+}
+
+/// The network road walked over an already-bound source.
+fn networked_raw(source: &str) -> Option<Result<Expansion<NetworkModule>, Diagnostic>> {
     let read = TextCapture::read(source).ok()?;
     Some(door::network(read.input().clone(), NETWORK, &DOOR))
 }
 
 /// The concurrency road walked over one source, on the same terms.
 fn concurrent(source: &str) -> Option<Result<Expansion<ConcurrencyModule>, Diagnostic>> {
+    let bound = format!("harness = renamed_facade::harness, {source}");
+    concurrent_raw(&bound)
+}
+
+/// The concurrency road walked over an already-bound source.
+fn concurrent_raw(source: &str) -> Option<Result<Expansion<ConcurrencyModule>, Diagnostic>> {
     let read = TextCapture::read(source).ok()?;
     Some(door::concurrency(read.input().clone(), CONCURRENCY, &DOOR))
 }
@@ -85,6 +97,7 @@ fn a_network_declaration_becomes_its_builder_module() -> Result<(), ()> {
     let expansion = networked(NETWORK_BODY).ok_or(())?.ok().ok_or(())?;
     let text = emitted(&expansion).ok_or(())?;
     for spelled in [
+        ":: renamed_facade :: harness",
         "pub mod net",
         "pub enum Fault",
         "pub fn topology",
@@ -114,6 +127,7 @@ fn a_concurrency_declaration_becomes_its_exploration_module() -> Result<(), ()> 
     let expansion = concurrent(CONCURRENCY_BODY).ok_or(())?.ok().ok_or(())?;
     let text = emitted(&expansion).ok_or(())?;
     for spelled in [
+        ":: renamed_facade :: harness",
         "pub mod explorations",
         "pub enum Fault",
         "pub fn transfers_hold",
@@ -130,6 +144,58 @@ fn a_concurrency_declaration_becomes_its_exploration_module() -> Result<(), ()> 
         );
     }
     assert_eq!(text.matches("pub fn").count(), 1usize);
+    Ok(())
+}
+
+/// A direct harness binding is required, singular, bounded, and a fully consumed Rust path.
+#[test]
+fn a_direct_harness_binding_refuses_every_unwritable_shape() -> Result<(), ()> {
+    let malformed = [
+        NETWORK_BODY.to_owned(),
+        format!("harness = , {NETWORK_BODY}"),
+        format!("harness = type, {NETWORK_BODY}"),
+        format!("harness = renamed:harness, {NETWORK_BODY}"),
+        format!("harness = renamed::, {NETWORK_BODY}"),
+        format!("harness = one, harness = two, {NETWORK_BODY}"),
+        format!("harness = a::b::c::d::e::f::g::h::i, {NETWORK_BODY}"),
+    ];
+    for source in &malformed {
+        let refusal = networked_raw(source).ok_or(())?.err().ok_or(())?;
+        assert_eq!(refusal.phase(), Phase::Capture, "{source} did not refuse");
+        assert!(
+            refusal.summary().contains("(at "),
+            "{source} carries no coordinate"
+        );
+    }
+
+    let concurrency_without_binding = CONCURRENCY_BODY;
+    let refusal = concurrent_raw(concurrency_without_binding)
+        .ok_or(())?
+        .err()
+        .ok_or(())?;
+    assert_eq!(refusal.phase(), Phase::Capture);
+    assert!(refusal.summary().contains("(at "));
+    Ok(())
+}
+
+/// The direct binding moves the declaration's own content commitment and the exact generated path.
+#[test]
+fn a_direct_harness_binding_is_committed_content() -> Result<(), ()> {
+    let one_source = format!("harness = mh, {NETWORK_BODY}");
+    let facade_source = format!("harness = renamed_facade::harness, {NETWORK_BODY}");
+    let one = networked_raw(&one_source).ok_or(())?.ok().ok_or(())?;
+    let facade = networked_raw(&facade_source).ok_or(())?.ok().ok_or(())?;
+
+    assert_ne!(
+        one.plan().account().content_commitment(),
+        facade.plan().account().content_commitment()
+    );
+    assert!(emitted(&one).ok_or(())?.contains(":: mh :: network"));
+    assert!(
+        emitted(&facade)
+            .ok_or(())?
+            .contains(":: renamed_facade :: harness :: network")
+    );
     Ok(())
 }
 

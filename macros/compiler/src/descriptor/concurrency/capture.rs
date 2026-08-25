@@ -4,6 +4,7 @@
 //!
 //! ```text
 //! <helper>! {
+//!     harness = <dependency path>,
 //!     module = <ident>,
 //!     namespace = "<owner>",
 //!     <row name> {
@@ -18,7 +19,7 @@
 //! Clause order is free and is read by key, inside a row and outside one; row order is meaning and is preserved.
 
 use super::{ConcurrencyCaptureError, ConcurrencyDeclaration, ExplorationRow};
-use crate::descriptor::{CaptureCause, Grammar};
+use crate::descriptor::{CaptureCause, DirectBinding, Grammar};
 use crate::token::{
     CapturedDelimiter, CapturedInput, CapturedTokenTree, SpanHandle, rendered_identifier,
     rust_keyword,
@@ -28,17 +29,21 @@ use crate::token::{
 ///
 /// # Errors
 ///
-/// Returns [`ConcurrencyCaptureError`] where the tokens do not say a concurrency declaration — an unreadable clause, an undeclared key, a doubled key or row, a separator separating nothing, a row missing one of its four facts, a number past its seat's width, a name the language reserves, a declaration with no row at all — each at the token it was established at.
+/// Returns [`ConcurrencyCaptureError`] where the tokens do not say a concurrency declaration — an absent or unreadable binding, an unreadable clause, an undeclared key, a doubled key or row, a separator separating nothing, a row missing one of its four facts, a number past its seat's width, a name the language reserves, a declaration with no row at all — each at the token it was established at.
 pub fn declared(
     body: &CapturedInput,
     grammar: Grammar,
 ) -> Result<ConcurrencyDeclaration, ConcurrencyCaptureError> {
     let groups = comma_groups(grammar, body.trees())?;
+    let mut harness: Option<DirectBinding> = None;
     let mut module: Option<String> = None;
     let mut namespace: Option<String> = None;
     let mut rows: Vec<ExplorationRow> = Vec::new();
     for group in &groups {
         match group.as_slice() {
+            [key, ..] if key.word() == Some("harness") => {
+                binding_once(grammar, group, &mut harness)?;
+            }
             [key, ..] if key.word() == Some("module") => {
                 assigned_once(grammar, group, &mut module, assigned_ident)?;
             }
@@ -57,6 +62,13 @@ pub fn declared(
             }
         }
     }
+    let Some(harness) = harness else {
+        return Err(refused(
+            grammar,
+            CaptureCause::ClauseAbsent,
+            SpanHandle::at(0),
+        ));
+    };
     let Some(module) = module else {
         return Err(refused(
             grammar,
@@ -78,7 +90,9 @@ pub fn declared(
             SpanHandle::at(0),
         ));
     }
-    Ok(ConcurrencyDeclaration::read(module, namespace, rows))
+    Ok(ConcurrencyDeclaration::read(
+        harness, module, namespace, rows,
+    ))
 }
 
 /// One established grammar refusal at one token.
@@ -122,6 +136,25 @@ fn comma_groups(
 /// The token one group opens at, or the declaration's own opening for an empty one.
 fn opening(group: &[&CapturedTokenTree]) -> SpanHandle {
     group.first().map_or(SpanHandle::at(0), |tree| tree.span())
+}
+
+/// Read one `harness = <dependency path>` clause into its empty seat.
+fn binding_once(
+    grammar: Grammar,
+    group: &[&CapturedTokenTree],
+    seat: &mut Option<DirectBinding>,
+) -> Result<(), ConcurrencyCaptureError> {
+    if seat.is_some() {
+        return Err(refused(
+            grammar,
+            CaptureCause::ClauseDoubled,
+            opening(group),
+        ));
+    }
+    let binding = crate::descriptor::binding::direct_binding(value_of(group))
+        .map_err(|(issue, at)| ConcurrencyCaptureError::binding_refused(grammar, issue, at))?;
+    *seat = Some(binding);
+    Ok(())
 }
 
 /// Read one `<key> = <value>` clause into its empty seat, refusing a doubled key.

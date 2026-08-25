@@ -178,7 +178,7 @@ pub fn bench(body: TokenStream, item: TokenStream) -> TokenStream {
 
 /// Declares the two faces of every chosen synchronization name, once, where the declaration stands.
 ///
-/// The body is a comma-separated choice of names from the compiler's stated shadow roster.
+/// The body declares the physical Loom path and a comma-separated choice of names from the compiler's stated shadow roster.
 /// Each chosen name expands to exactly the pair its author would have written by hand: the ordinary face behind `#[cfg(not(loom))]` over the standard-library path, and the shadowed face behind `#[cfg(loom)]` over the shadow path.
 /// Write the declaration once in a module of the production crate and import through that module everywhere; the crate's one remaining act is its own `[target.'cfg(loom)'.dependencies]` row, declared where it is used.
 ///
@@ -192,7 +192,7 @@ pub fn shadow(body: TokenStream) -> TokenStream {
 
 /// Declares a topology and its fault schedules, and expands to the builder module an author would have written by hand.
 ///
-/// The body names a module, a namespace, the nodes, the directed links, and each schedule's discipline as fault phrases in the sim's own vocabulary.
+/// The body names the physical harness path, a module, a namespace, the nodes, the directed links, and each schedule's discipline as fault phrases in the sim's own vocabulary.
 /// What the tokens can know refuses at its own token; what the harness's value guards refuse still refuses there, through the generated functions' honest results.
 ///
 /// A malformed declaration expands to `compile_error!` at the offending token, carrying the compiler's own rendering of the established cause.
@@ -205,7 +205,7 @@ pub fn network(body: TokenStream) -> TokenStream {
 
 /// Declares named interleaving explorations, and expands to one generic function per row.
 ///
-/// Each row pins the facts that make a finding replayable — the population, the exhaustive ceiling, the sample count, and the seed — and the generated function takes the strand set and the transition contract at the call, handing back the exploration reading beside its concluded trial verdict.
+/// The body names the physical harness path and each row pins the facts that make a finding replayable — the population, the exhaustive ceiling, the sample count, and the seed — while the generated function takes the strand set and the transition contract at the call, handing back the exploration reading beside its concluded trial verdict.
 ///
 /// A malformed declaration expands to `compile_error!` at the offending token, carrying the compiler's own rendering of the established cause.
 #[proc_macro]

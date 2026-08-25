@@ -2,7 +2,7 @@
 //!
 //! Construction and reading live in this module's own child `type_guard.rs`.
 
-use crate::descriptor::HelperRefusal;
+use crate::descriptor::{DirectBinding, HelperRefusal};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -23,6 +23,7 @@ pub struct ExplorationRow {
 /// The complete payload one concurrency declaration reads to.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConcurrencyDeclaration {
+    harness: DirectBinding,
     module: String,
     namespace: String,
     rows: Vec<ExplorationRow>,

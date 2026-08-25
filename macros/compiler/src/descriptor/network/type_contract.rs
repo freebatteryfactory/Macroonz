@@ -13,6 +13,10 @@ use crate::kind::{CanonicalContent, Kind, NoQuestions, SoleRole};
 
 impl CanonicalContent for NetworkDeclaration {
     fn encode_content_into(&self, into: &mut Vec<u8>) {
+        encode_length(self.harness().segments().count(), into);
+        for segment in self.harness().segments() {
+            encode_bytes(segment.as_bytes(), into);
+        }
         encode_bytes(self.module().as_bytes(), into);
         encode_bytes(self.namespace().as_bytes(), into);
         encode_length(self.nodes().len(), into);

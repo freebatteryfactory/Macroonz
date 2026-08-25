@@ -118,7 +118,7 @@ A request that fails any step is refused whole — there is no partial output.
 | `explanation/` | The universal questions, the view, and coverage. |
 | `expansion/` | The sealed expansion and the per-kind account of what a door produced. |
 | `support/` | The exported support shell a test target invokes: the carrier, the gate, the assembly, the schema pin. |
-| `descriptor/` | The harness-facing kinds: trial tables, bench tables, mutation surfaces. |
+| `descriptor/` | The bounded first-party adapter: carrier projections for trial, bench, and mutation declarations; direct projections for shadow, network, and concurrency declarations. |
 | `codec/` | The codec kind: canonical encode and decode for a declared shape. |
 | `stamp/` | Stamping an authored pattern into published `macro_rules!` source. |
 | `request/` | `Request<K>`, `Door`, `Producer`, `CrateBinding`: the front door. |

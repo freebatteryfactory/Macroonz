@@ -18,4 +18,4 @@ workspace = true
 macroonz = { path = "../compiler", version = "0.0.0", features = ["host"] }
 
 [dev-dependencies]
-macroonz-harness = { path = "../../harness" }
+mh = { package = "macroonz-harness", path = "../../harness" }

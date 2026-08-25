@@ -3,7 +3,7 @@
 use super::{
     DisciplineRow, FaultRow, LinkRow, NetworkCaptureError, NetworkDeclaration, ScheduleRow,
 };
-use crate::descriptor::{CaptureCause, Grammar, HelperRefusal};
+use crate::descriptor::{CaptureCause, CaptureIssue, DirectBinding, Grammar, HelperRefusal};
 use crate::token::SpanHandle;
 
 impl LinkRow {
@@ -81,6 +81,7 @@ impl NetworkDeclaration {
     /// The complete payload, minted only by the capture reading.
     #[must_use]
     pub(crate) const fn read(
+        harness: DirectBinding,
         module: String,
         namespace: String,
         nodes: Vec<String>,
@@ -88,12 +89,19 @@ impl NetworkDeclaration {
         schedules: Vec<ScheduleRow>,
     ) -> Self {
         Self {
+            harness,
             module,
             namespace,
             nodes,
             links,
             schedules,
         }
+    }
+
+    /// The physical path to the harness vocabulary this direct projection targets.
+    #[must_use]
+    pub const fn harness(&self) -> &DirectBinding {
+        &self.harness
     }
 
     /// The module the builders land in.
@@ -131,6 +139,11 @@ impl NetworkCaptureError {
     /// One refusal the network grammar's own reading established.
     pub const fn grammar_refused(grammar: Grammar, cause: CaptureCause, at: SpanHandle) -> Self {
         Self(HelperRefusal::grammar_refused(grammar, cause, at))
+    }
+
+    /// One refusal from the direct-binding reading, retained without flattening its owner.
+    pub const fn binding_refused(grammar: Grammar, issue: CaptureIssue, at: SpanHandle) -> Self {
+        Self(HelperRefusal::capture_refused(grammar, issue, at))
     }
 
     /// The refusal itself.

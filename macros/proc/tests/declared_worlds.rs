@@ -2,20 +2,19 @@
 //!
 //! Compiling this file is half the claim — every generated item stands under the workspace's own lint wall — and the tests are the other half: the declared topology drives a real sim whose partition takes the first send, and the declared exploration finds the same withdraw-before-deposit counterexample the hand-rolled road finds, concluded into the ordinary trial vocabulary.
 
-use macroonz_harness::descriptor::NameRefusal;
-use macroonz_harness::interleave::{
+use mh::descriptor::NameRefusal;
+use mh::interleave::{
     ExplorationStanding, InterleavingSpace, Strand, StrandRefusal, StrandSet, StrandSetRefusal,
 };
-use macroonz_harness::network::{
+use mh::network::{
     LinkFault, NetworkCampaign, NetworkCampaignRefusal, NetworkSelectionRefusal, SendFate,
     SendRefusal, SimNet, SimNetRefusal,
 };
-use macroonz_harness::properties::{
-    ContractRefusal, Holding, TemporalClaim, TemporalDemand, TransitionContract,
-};
-use macroonz_harness::report::{FindingCause, TrialConclusion};
+use mh::properties::{ContractRefusal, Holding, TemporalClaim, TemporalDemand, TransitionContract};
+use mh::report::{FindingCause, TrialConclusion};
 
 macroonz_macros::network! {
+    harness = mh,
     module = net,
     namespace = "proc",
     nodes = [client, server],
@@ -31,6 +30,7 @@ macroonz_macros::network! {
 }
 
 macroonz_macros::concurrency! {
+    harness = mh,
     module = explorations,
     namespace = "proc",
     transfers_never_overdraw {
@@ -184,11 +184,11 @@ impl From<explorations::Fault> for LaneFailure {
 /// One depositor and one withdrawer over the same five units.
 fn transfer_set() -> Result<StrandSet<Move>, LaneFailure> {
     let depositor = Strand::declared(
-        macroonz_harness::descriptor::NamespacedName::named("proc", "depositor")?,
+        mh::descriptor::NamespacedName::named("proc", "depositor")?,
         vec![Move::Deposit(5u64)],
     )?;
     let withdrawer = Strand::declared(
-        macroonz_harness::descriptor::NamespacedName::named("proc", "withdrawer")?,
+        mh::descriptor::NamespacedName::named("proc", "withdrawer")?,
         vec![Move::Withdraw(5u64)],
     )?;
     Ok(StrandSet::declared(vec![depositor, withdrawer])?)

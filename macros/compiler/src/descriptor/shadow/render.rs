@@ -5,6 +5,8 @@
 
 use super::Shadows;
 use crate::bounded::Overflow;
+use crate::descriptor::DirectBinding;
+use crate::descriptor::emitting::{absolute_path, direct_path};
 use crate::token::{GeneratedDelimiter, GeneratedToken};
 
 /// Which of a row's two faces one arm writes.
@@ -24,14 +26,24 @@ enum Face {
 pub fn faces(shadows: &Shadows) -> Result<Vec<GeneratedToken>, Overflow> {
     let mut tokens = Vec::new();
     for row in shadows.chosen() {
-        arm(&mut tokens, Face::Ordinary, row.std_path())?;
-        arm(&mut tokens, Face::Shadowed, row.loom_path())?;
+        arm(&mut tokens, Face::Ordinary, None, row.std_path())?;
+        arm(
+            &mut tokens,
+            Face::Shadowed,
+            Some(shadows.loom()),
+            row.shadow_path(),
+        )?;
     }
     Ok(tokens)
 }
 
 /// One `#[cfg(…)] pub use <path>;` arm.
-fn arm(into: &mut Vec<GeneratedToken>, face: Face, path: &[&'static str]) -> Result<(), Overflow> {
+fn arm(
+    into: &mut Vec<GeneratedToken>,
+    face: Face,
+    binding: Option<&DirectBinding>,
+    path: &[&'static str],
+) -> Result<(), Overflow> {
     into.push(GeneratedToken::alone('#'));
     let condition = match face {
         Face::Ordinary => vec![
@@ -50,12 +62,9 @@ fn arm(into: &mut Vec<GeneratedToken>, face: Face, path: &[&'static str]) -> Res
     into.push(GeneratedToken::group(GeneratedDelimiter::Bracket, cfg)?);
     into.push(GeneratedToken::word("pub"));
     into.push(GeneratedToken::word("use"));
-    for (position, segment) in path.iter().enumerate() {
-        if position > 0 {
-            into.push(GeneratedToken::joint(':'));
-            into.push(GeneratedToken::alone(':'));
-        }
-        into.push(GeneratedToken::word(segment));
+    match binding {
+        Some(root) => direct_path(root, path, into),
+        None => absolute_path(path, into),
     }
     into.push(GeneratedToken::alone(';'));
     Ok(())

@@ -11,6 +11,10 @@ use crate::kind::{CanonicalContent, Kind, NoQuestions, SoleRole};
 
 impl CanonicalContent for Shadows {
     fn encode_content_into(&self, into: &mut Vec<u8>) {
+        encode_length(self.loom().segments().count(), into);
+        for segment in self.loom().segments() {
+            encode_bytes(segment.as_bytes(), into);
+        }
         encode_length(self.chosen().len(), into);
         for row in self.chosen() {
             let mut encoded = Vec::new();
@@ -19,8 +23,8 @@ impl CanonicalContent for Shadows {
             for segment in row.std_path() {
                 encode_bytes(segment.as_bytes(), &mut encoded);
             }
-            encode_length(row.loom_path().len(), &mut encoded);
-            for segment in row.loom_path() {
+            encode_length(row.shadow_path().len(), &mut encoded);
+            for segment in row.shadow_path() {
                 encode_bytes(segment.as_bytes(), &mut encoded);
             }
             encode_bytes(&encoded, into);

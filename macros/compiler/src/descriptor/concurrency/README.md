@@ -7,6 +7,7 @@ This home is the declaration grammar over that sentence: name each exploration, 
 
 ```rust,ignore
 concurrency! {
+    harness = renamed_macroonz::harness,
     module = explorations,
     namespace = "app",
     transfer_never_overdraws {
@@ -17,6 +18,9 @@ concurrency! {
     },
 }
 ```
+
+The `harness` clause is the physical path this scope uses for the harness vocabulary.
+A direct expansion compiles immediately, so an adopter states its Cargo alias or facade re-export here instead of the renderer guessing a package name.
 
 becomes one module — `explorations` — holding, per row, a generic function taking the strand set and the transition contract and handing back the exploration reading beside its concluded verdict, with every refusal traveling in one generated fault enum.
 

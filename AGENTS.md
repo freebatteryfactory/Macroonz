@@ -16,7 +16,8 @@ The [README](README.md) owns the product and the crate map, and nothing here rep
 Macroonz is generic machinery — a compiler that bakes what a request asks for, a harness that judges what it is handed, a proc host that carries tokens.
 It has no product.
 
-- No downstream type, trait, roster, identity rule, bound, or error family is defined here, copied here, or depended on here.
+- The compiler's `descriptor/` home is the one bounded first-party adapter: it may target the public `macroonz-harness` constructor surface and the target-qualified Loom shadow surface, receives every physical dependency spelling through a declared binding, owns the destination vocabulary it emits, proves that vocabulary through outside crossings, and invents no semantic policy.
+- Outside that adapter, no downstream type, trait, roster, identity rule, bound, or error family is defined here, copied here, or depended on here.
 - Nothing is moved here because several files happen to import it. Shared is not ours.
 - The compiler's own errors are plain diagnostics with ordinary fields. Its own collections are its own. Its own rosters are plain enums. None of them is somebody else's theory of refusal, admission, or commitment wearing a new name.
 - A library that uses Macroonz keeps every one of its primitives and writes its own derives on the compiler's public API.

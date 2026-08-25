@@ -1,6 +1,8 @@
 # `descriptor` — the kinds that speak to the harness
 
-Most of this compiler knows nothing about what it is generating. This home is the exception, and it is the exception on purpose: `macroonz-harness` is this workspace's own harness, so the compiler is allowed to know its vocabulary, and it writes it down in one place rather than scattering it through the renderers.
+Most of this compiler knows nothing about what it is generating.
+This home is the bounded first-party adapter: it targets the public `macroonz-harness` constructor surface and the target-qualified Loom shadow surface, and it owns that destination vocabulary in one place rather than scattering it through the neutral compiler.
+It reads declared meaning and physical dependency paths, renders the destination shape, and invents no harness policy, owner fact, or default.
 
 Six kinds live here: three carrier kinds, and three direct ones.
 
@@ -23,19 +25,28 @@ The producer's own act — the namespace it spells its facts under, the producer
 
 ## What crosses, and what does not
 
-What crosses the wall is conforming DATA in the harness's declared field shape. Not one harness type is imported, and the constructor-calling expressions a rendering writes name the address through the caller-supplied binding rather than through a dependency edge.
+What crosses the wall is conforming DATA in the harness's declared field shape.
+Not one harness type is imported, and the constructor-calling expressions a rendering writes name the address through an informed binding rather than through a dependency edge.
 
 The producer writes letters to an address; it does not own the mailbox.
 
-## Two crate bindings, and no crate name
+## Two binding postures, and no hardcoded crate name
 
-Every rendered path is rooted at one of two [`Binding`] rows — the declaring crate whose operations a row measures or challenges, and the harness whose vocabulary the row is spelled in. Each is written as a metavariable the carrier's invocation binds, so a consumer that renamed either dependency gets its own name back and nothing here learns what the crate is called.
+Carrier cargo is rooted at one of two logical [`Binding`] rows — the declaring crate whose operations a row measures or challenges, and the harness whose vocabulary the row is spelled in.
+Each is written as a metavariable the carrier invocation binds, so a consumer that renamed either dependency gets its own name back and the declaration never learns what either crate is called.
+
+The shadow, network, and concurrency projections compile immediately where their direct macro stands, so each declaration supplies a [`DirectBinding`] containing the physical path that scope resolves.
+One segment addresses a renamed dependency; several address a facade re-export.
+The shared binding reader consumes the entire path, and each direct renderer reads only that informed value.
+
+The physical path participates in the declaration's canonical content because changing the path changes the exact Rust the projection renders.
 
 A callable living in the consumer's own target needs no binding at all: it arrives as an expression at the invocation, where that target's own hygiene reaches its own items.
 
 ## One vocabulary for a declaration's values
 
-[`Name`], [`SupportName`], [`ModuleName`], [`TypeName`], [`FunctionName`], and [`BoundPath`] are what a declaration's values are. Every one of them refuses at construction, so a name that names nothing and a spelling a consumer's compiler would read as something else are values nobody can hold.
+[`Name`], [`SupportName`], [`ModuleName`], [`TypeName`], [`FunctionName`], [`BoundPath`], and [`DirectBinding`] are what a declaration's values are.
+Every one of them refuses at construction, so a name that names nothing and a spelling a consumer's compiler would read as something else are values nobody can hold.
 
 [`DeclarationError`] is how they refuse: seven shapes over one [`Seat`] roster, because what refuses is the SHAPE of the disagreement and which seat it was about is the other half of the same sentence. A bounded seat admitted later is one row on that roster rather than three rows of a refusal.
 
@@ -60,4 +71,4 @@ Duplicate-free by construction — the scan runs before the value exists — and
 
 `door/` is the roads a generic entry walks, one per grammar: a captured body in, the sealed expansion out — a carrier with its axes composed from what each kind's own terminal proved for the three carrier kinds, and direct declaration-site items for the three direct ones.
 
-`types.rs` holds what the kinds share; `type_guard.rs` is its own child and holds every road that reaches a private field; `type_contract.rs` states how a refusal reads; `composition.rs` is the duplicate scan; `emitting.rs` is the one seat the direct renders spell a generated item through.
+`types.rs` holds what the kinds share; `type_guard.rs` is its own child and holds every road that reaches a private field; `type_contract.rs` states how a refusal reads; `binding.rs` reads the direct declarations' physical paths; `composition.rs` is the duplicate scan; `emitting.rs` is the one seat the direct renders spell a generated item through.

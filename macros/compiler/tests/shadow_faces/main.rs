@@ -27,6 +27,12 @@ const SHADOW: Grammar = Grammar {
 
 /// The shadow road walked over one source, or nothing where the lane's own source did not capture.
 fn shadowed(source: &str) -> Option<Result<Expansion<ShadowFace>, Diagnostic>> {
+    let bound = format!("loom = renamed_facade::loom, names = [{source}]");
+    shadowed_raw(&bound)
+}
+
+/// The shadow road walked over an already-bound source.
+fn shadowed_raw(source: &str) -> Option<Result<Expansion<ShadowFace>, Diagnostic>> {
     let read = TextCapture::read(source).ok()?;
     Some(door::shadow(read.input().clone(), SHADOW, &DOOR))
 }
@@ -51,6 +57,7 @@ fn a_choice_becomes_both_faces_of_each_name() -> Result<(), ()> {
     assert_eq!(text.matches("Mutex").count(), 2usize);
     assert_eq!(text.matches("std").count(), 2usize);
     assert_eq!(text.matches("loom").count(), 6usize);
+    assert!(text.contains(":: renamed_facade :: loom"));
     Ok(())
 }
 
@@ -74,6 +81,29 @@ fn a_malformed_choice_refuses_at_capture() -> Result<(), ()> {
     Ok(())
 }
 
+/// A direct shadow binding is required, singular, bounded, and a fully consumed Rust path.
+#[test]
+fn a_direct_shadow_binding_refuses_every_unwritable_shape() -> Result<(), ()> {
+    let malformed = [
+        "names = [Arc]",
+        "loom = , names = [Arc]",
+        "loom = type, names = [Arc]",
+        "loom = renamed:loom, names = [Arc]",
+        "loom = renamed::, names = [Arc]",
+        "loom = one, loom = two, names = [Arc]",
+        "loom = a::b::c::d::e::f::g::h::i, names = [Arc]",
+    ];
+    for source in malformed {
+        let refusal = shadowed_raw(source).ok_or(())?.err().ok_or(())?;
+        assert_eq!(refusal.phase(), Phase::Capture, "{source} did not refuse");
+        assert!(
+            refusal.summary().contains("(at "),
+            "{source} carries no coordinate"
+        );
+    }
+    Ok(())
+}
+
 /// The stated roster holds its own shape: distinct names, and every row's two paths rooted where the row claims.
 #[test]
 fn the_roster_is_distinct_and_rooted() {
@@ -81,10 +111,10 @@ fn the_roster_is_distinct_and_rooted() {
     for row in SHADOW_ROSTER {
         assert!(seen.insert(row.name()), "{} is stated twice", row.name());
         assert_eq!(row.std_path().first(), Some(&"std"));
-        assert_eq!(row.loom_path().first(), Some(&"loom"));
+        assert!(!row.shadow_path().is_empty());
         assert_eq!(
             row.std_path().last(),
-            row.loom_path().last(),
+            row.shadow_path().last(),
             "{} does not end on one name",
             row.name()
         );

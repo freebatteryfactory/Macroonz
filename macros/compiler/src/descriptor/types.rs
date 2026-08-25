@@ -121,6 +121,15 @@ pub struct BoundPath {
     segments: NonEmpty<String, PATH_SEGMENT_LIMIT>,
 }
 
+/// One physical dependency path a direct descriptor projection is rooted at.
+///
+/// Unlike [`BoundPath`], which names a logical carrier binding resolved later by a consumption target, this path is declared at the direct macro invocation where generated items compile immediately.
+/// Every segment is an ordinary Rust item name, so a renamed dependency and a facade re-export are both stated through the same shape: `renamed_harness` and `renamed_facade::harness` differ only in how many segments they carry.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DirectBinding {
+    segments: NonEmpty<String, PATH_SEGMENT_LIMIT>,
+}
+
 crate::roster! {
     /// What a declaration was stating when its values refused.
     ///
@@ -226,7 +235,7 @@ crate::roster! {
         MappingUnread = "mapping-unread",
         /// A permission is not one claim and one family roster.
         PermissionUnread = "permission-unread",
-        /// A value written where a path rooted at a crate binding is required is not one.
+        /// A value written where a declared Rust item path is required is not one.
         PathUnread = "path-unread",
         /// The item the helper sits on does not state a declared order this grammar can read.
         ItemUnread = "item-unread",

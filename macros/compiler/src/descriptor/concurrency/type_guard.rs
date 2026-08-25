@@ -1,7 +1,7 @@
 //! Constructors and readers for the concurrency declaration vocabulary.
 
 use super::{ConcurrencyCaptureError, ConcurrencyDeclaration, ExplorationRow};
-use crate::descriptor::{CaptureCause, Grammar, HelperRefusal};
+use crate::descriptor::{CaptureCause, CaptureIssue, DirectBinding, Grammar, HelperRefusal};
 use crate::token::SpanHandle;
 
 impl ExplorationRow {
@@ -57,12 +57,24 @@ impl ExplorationRow {
 impl ConcurrencyDeclaration {
     /// The complete payload, minted only by the capture reading.
     #[must_use]
-    pub(crate) const fn read(module: String, namespace: String, rows: Vec<ExplorationRow>) -> Self {
+    pub(crate) const fn read(
+        harness: DirectBinding,
+        module: String,
+        namespace: String,
+        rows: Vec<ExplorationRow>,
+    ) -> Self {
         Self {
+            harness,
             module,
             namespace,
             rows,
         }
+    }
+
+    /// The physical path to the harness vocabulary this direct projection targets.
+    #[must_use]
+    pub const fn harness(&self) -> &DirectBinding {
+        &self.harness
     }
 
     /// The module the exploration functions land in.
@@ -88,6 +100,11 @@ impl ConcurrencyCaptureError {
     /// One refusal the concurrency grammar's own reading established.
     pub const fn grammar_refused(grammar: Grammar, cause: CaptureCause, at: SpanHandle) -> Self {
         Self(HelperRefusal::grammar_refused(grammar, cause, at))
+    }
+
+    /// One refusal from the direct-binding reading, retained without flattening its owner.
+    pub const fn binding_refused(grammar: Grammar, issue: CaptureIssue, at: SpanHandle) -> Self {
+        Self(HelperRefusal::capture_refused(grammar, issue, at))
     }
 
     /// The refusal itself.

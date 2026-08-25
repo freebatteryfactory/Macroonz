@@ -2,7 +2,7 @@
 //!
 //! Construction and reading live in this module's own child `type_guard.rs`.
 
-use crate::descriptor::HelperRefusal;
+use crate::descriptor::{DirectBinding, HelperRefusal};
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -68,6 +68,7 @@ pub struct ScheduleRow {
 /// The complete payload one network declaration reads to.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NetworkDeclaration {
+    harness: DirectBinding,
     module: String,
     namespace: String,
     nodes: Vec<String>,

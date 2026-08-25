@@ -72,7 +72,10 @@ mod paced {
 ///
 /// This build carries no `loom` configuration, so the ordinary faces are what compile here — each name below resolves to its standard-library path through this module.
 mod shadowed {
-    macroonz_macros::shadow! { Arc, AtomicUsize, Barrier, Mutex, Ordering, mpsc, spin_loop, thread, thread_local }
+    macroonz_macros::shadow! {
+        loom = loom,
+        names = [Arc, AtomicUsize, Barrier, Mutex, Ordering, mpsc, spin_loop, thread, thread_local],
+    }
 }
 
 /// The decorated items reach this test untouched, which is the half of the contract compilation alone cannot state.

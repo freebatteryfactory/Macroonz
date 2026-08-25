@@ -28,7 +28,7 @@ impl CaptureCause {
             Self::RowUnread => "a row is not one name and one clause body",
             Self::MappingUnread => "a mapping is not one fact and one claim",
             Self::PermissionUnread => "a permission is not one claim and one family roster",
-            Self::PathUnread => "a value is not one path rooted at a crate binding",
+            Self::PathUnread => "a value is not one declared Rust item path",
             Self::ItemUnread => "the item the helper sits on states no declared order",
             Self::OrderUnpressable => "the declared order has fewer than two members to transpose",
             Self::ChoiceUnread => "a choice is not one bare name",

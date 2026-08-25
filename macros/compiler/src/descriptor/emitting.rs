@@ -3,11 +3,31 @@
 //! One seat per spelling: the absolute path, the doc attribute, the derive attribute, and the `From` impl are each written here and nowhere else, so two renders cannot drift apart on how a generated item is spelled.
 
 use crate::bounded::Overflow;
+use crate::descriptor::DirectBinding;
 use crate::token::{GeneratedDelimiter, GeneratedToken};
 
 /// Append one absolute path: `::seg::seg…`.
 pub(crate) fn absolute_path(segments: &[&str], into: &mut Vec<GeneratedToken>) {
     for segment in segments {
+        into.push(GeneratedToken::joint(':'));
+        into.push(GeneratedToken::alone(':'));
+        into.push(GeneratedToken::word(segment));
+    }
+}
+
+/// Append one direct dependency path and the destination segments after it.
+pub(crate) fn direct_path(
+    binding: &DirectBinding,
+    destination: &[&str],
+    into: &mut Vec<GeneratedToken>,
+) {
+    let mut segments = binding.segments().iter().map(String::as_str);
+    if let Some(root) = segments.next() {
+        into.push(GeneratedToken::joint(':'));
+        into.push(GeneratedToken::alone(':'));
+        into.push(GeneratedToken::word(root));
+    }
+    for segment in segments.chain(destination.iter().copied()) {
         into.push(GeneratedToken::joint(':'));
         into.push(GeneratedToken::alone(':'));
         into.push(GeneratedToken::word(segment));
@@ -65,7 +85,7 @@ pub(crate) fn derive_attribute(
 ///
 /// Returns [`Overflow`] where a composed group carries more tokens than the declared magnitude admits.
 pub(crate) fn from_impl(
-    source: &[&str],
+    source: Vec<GeneratedToken>,
     target: &str,
     arm: &str,
     into: &mut Vec<GeneratedToken>,
@@ -73,13 +93,13 @@ pub(crate) fn from_impl(
     into.push(GeneratedToken::word("impl"));
     absolute_path(&["core", "convert", "From"], into);
     into.push(GeneratedToken::alone('<'));
-    absolute_path(source, into);
+    into.extend(source.iter().cloned());
     into.push(GeneratedToken::alone('>'));
     into.push(GeneratedToken::word("for"));
     into.push(GeneratedToken::word(target));
     let mut body = vec![GeneratedToken::word("fn"), GeneratedToken::word("from")];
     let mut parameter = vec![GeneratedToken::word("refusal"), GeneratedToken::alone(':')];
-    absolute_path(source, &mut parameter);
+    parameter.extend(source);
     body.push(GeneratedToken::group(
         GeneratedDelimiter::Parenthesis,
         parameter,

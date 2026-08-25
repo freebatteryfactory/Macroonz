@@ -8,8 +8,9 @@
 use super::super::composition::doubled_providers;
 use super::{
     Binding, BoundPath, COMPOSITION_ISSUE_LIMIT, CaptureCause, CaptureIssue, Composition,
-    CompositionError, CompositionIssue, DeclarationError, FunctionName, Grammar, HelperRefusal,
-    ModuleName, Name, PATH_SEGMENT_LIMIT, PROVIDER_LIMIT, Provider, Seat, SupportName, TypeName,
+    CompositionError, CompositionIssue, DeclarationError, DirectBinding, FunctionName, Grammar,
+    HelperRefusal, ModuleName, Name, PATH_SEGMENT_LIMIT, PROVIDER_LIMIT, Provider, Seat,
+    SupportName, TypeName,
 };
 use crate::bounded::{Capped, Capping, NonEmpty};
 use crate::token::SpanHandle;
@@ -110,23 +111,9 @@ impl BoundPath {
     ///
     /// Returns [`DeclarationError::Absent`] where no segment was supplied, [`DeclarationError::NotAnIdentifier`] where a segment cannot name a rendered item — a path rooted at a binding traverses items, so a segment outside the alphabet or on the keyword roster renders a path no consumer's compiler reads — and [`DeclarationError::Unbounded`] where the segments outgrow [`PATH_SEGMENT_LIMIT`].
     pub fn rooted(binding: Binding, segments: Vec<String>) -> Result<Self, DeclarationError> {
-        if segments.is_empty() {
-            return Err(DeclarationError::Absent {
-                seat: Seat::PathSegment,
-            });
-        }
-        for segment in &segments {
-            if !rendered_name(segment.as_str()) {
-                return Err(DeclarationError::NotAnIdentifier);
-            }
-        }
-        let offered = segments.len();
-        let admitted = NonEmpty::new(segments).map_err(|_| {
-            DeclarationError::unbounded(Seat::PathSegment, PATH_SEGMENT_LIMIT, offered)
-        })?;
         Ok(Self {
             binding,
-            segments: admitted,
+            segments: path_segments(segments)?,
         })
     }
 
@@ -141,6 +128,42 @@ impl BoundPath {
     pub fn segments(&self) -> &NonEmpty<String, PATH_SEGMENT_LIMIT> {
         &self.segments
     }
+}
+
+impl DirectBinding {
+    /// One direct projection's physical dependency path, from its ordered item segments.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DeclarationError::Absent`] where no segment was supplied, [`DeclarationError::NotAnIdentifier`] where a segment cannot name a rendered item, and [`DeclarationError::Unbounded`] where the path outgrows [`PATH_SEGMENT_LIMIT`].
+    pub fn declared(segments: Vec<String>) -> Result<Self, DeclarationError> {
+        path_segments(segments).map(|segments| Self { segments })
+    }
+
+    /// The dependency path's segments, in resolution order; structurally at least one.
+    #[must_use]
+    pub fn segments(&self) -> &NonEmpty<String, PATH_SEGMENT_LIMIT> {
+        &self.segments
+    }
+}
+
+/// One informed item-path segment roster, shared by logical carrier paths and physical direct bindings.
+fn path_segments(
+    segments: Vec<String>,
+) -> Result<NonEmpty<String, PATH_SEGMENT_LIMIT>, DeclarationError> {
+    if segments.is_empty() {
+        return Err(DeclarationError::Absent {
+            seat: Seat::PathSegment,
+        });
+    }
+    for segment in &segments {
+        if !rendered_name(segment) {
+            return Err(DeclarationError::NotAnIdentifier);
+        }
+    }
+    let offered = segments.len();
+    NonEmpty::new(segments)
+        .map_err(|_| DeclarationError::unbounded(Seat::PathSegment, PATH_SEGMENT_LIMIT, offered))
 }
 
 impl HelperRefusal {
@@ -163,6 +186,14 @@ impl HelperRefusal {
             grammar,
             issue: CaptureIssue::Vocabulary { refusal },
             at,
+        }
+    }
+
+    /// One refusal from a shared descriptor reading, retained under the issue's own authority.
+    pub const fn capture_refused(grammar: Grammar, issue: CaptureIssue, at: SpanHandle) -> Self {
+        match issue {
+            CaptureIssue::Grammar { cause } => Self::grammar_refused(grammar, cause, at),
+            CaptureIssue::Vocabulary { refusal } => Self::vocabulary_refused(grammar, refusal, at),
         }
     }
 

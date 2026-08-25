@@ -4,6 +4,7 @@
 //!
 //! ```text
 //! <helper>! {
+//!     harness = <dependency path>,
 //!     module = <ident>,
 //!     namespace = "<owner>",
 //!     nodes = [<ident>, ...],
@@ -19,6 +20,7 @@ use super::render::RESERVED;
 use super::{
     DisciplineRow, FaultRow, LinkRow, NetworkCaptureError, NetworkDeclaration, ScheduleRow,
 };
+use crate::descriptor::DirectBinding;
 use crate::descriptor::{CaptureCause, Grammar};
 use crate::token::{
     CapturedDelimiter, CapturedInput, CapturedTokenTree, SpanHandle, rendered_identifier,
@@ -29,7 +31,7 @@ use crate::token::{
 ///
 /// # Errors
 ///
-/// Returns [`NetworkCaptureError`] where the tokens do not say a network declaration — an unreadable clause, an undeclared key, a doubled name, a separator separating nothing, a link drawn to an undeclared node, a phrase on an undrawn link, a phrase this grammar cannot read, a number past its seat's width, a name the language or the generated module already owns — each at the token it was established at, and an absent required clause at the declaration's opening.
+/// Returns [`NetworkCaptureError`] where the tokens do not say a network declaration — an absent or unreadable binding, an unreadable clause, an undeclared key, a doubled name, a separator separating nothing, a link drawn to an undeclared node, a phrase on an undrawn link, a phrase this grammar cannot read, a number past its seat's width, a name the language or the generated module already owns — each at the token it was established at, and an absent required clause at the declaration's opening.
 pub fn declared(
     body: &CapturedInput,
     grammar: Grammar,
@@ -51,6 +53,7 @@ pub fn declared(
         }
     }
     Ok(NetworkDeclaration::read(
+        world.harness,
         world.module,
         world.namespace,
         world.nodes,
@@ -66,6 +69,8 @@ const fn refused(grammar: Grammar, cause: CaptureCause, at: SpanHandle) -> Netwo
 
 /// The declaration's world: everything a schedule is read against.
 struct World {
+    /// The physical path to the harness vocabulary this projection targets.
+    harness: DirectBinding,
     /// The module the builders land in.
     module: String,
     /// The namespace every declared name is owned under.
@@ -127,8 +132,10 @@ fn world_of(
     let mut module: Option<String> = None;
     let mut namespace: Option<String> = None;
     let mut nodes: Option<Vec<String>> = None;
+    let mut harness: Option<DirectBinding> = None;
     for group in groups {
         match head_word(group) {
+            Some("harness") => read_binding(grammar, group, &mut harness)?,
             Some("module") => assigned_once(grammar, group, &mut module, assigned_ident)?,
             Some("namespace") => assigned_once(grammar, group, &mut namespace, assigned_text)?,
             Some("nodes") => read_nodes(grammar, group, &mut nodes)?,
@@ -144,6 +151,13 @@ fn world_of(
         }
     }
     let Some(nodes) = nodes else {
+        return Err(refused(
+            grammar,
+            CaptureCause::ClauseAbsent,
+            SpanHandle::at(0),
+        ));
+    };
+    let Some(harness) = harness else {
         return Err(refused(
             grammar,
             CaptureCause::ClauseAbsent,
@@ -186,11 +200,32 @@ fn world_of(
         ));
     }
     Ok(World {
+        harness,
         module,
         namespace,
         nodes,
         links,
     })
+}
+
+/// Read one `harness = <dependency path>` clause into its empty seat.
+fn read_binding(
+    grammar: Grammar,
+    group: &[&CapturedTokenTree],
+    seat: &mut Option<DirectBinding>,
+) -> Result<(), NetworkCaptureError> {
+    if seat.is_some() {
+        return Err(refused(
+            grammar,
+            CaptureCause::ClauseDoubled,
+            opening(group),
+        ));
+    }
+    let value = value_of(group);
+    let binding = crate::descriptor::binding::direct_binding(value)
+        .map_err(|(issue, at)| NetworkCaptureError::binding_refused(grammar, issue, at))?;
+    *seat = Some(binding);
+    Ok(())
 }
 
 /// Read one `<key> = <value>` clause into its empty seat, refusing a doubled key.

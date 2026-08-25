@@ -7,6 +7,7 @@ This home is the declaration grammar over those values: name the nodes, draw the
 
 ```rust,ignore
 network! {
+    harness = renamed_macroonz::harness,
     module = net,
     namespace = "app",
     nodes = [client, server],
@@ -20,6 +21,9 @@ network! {
     ],
 }
 ```
+
+The `harness` clause is the physical path this scope uses for the harness vocabulary.
+A direct expansion compiles immediately, so an adopter states its Cargo alias or facade re-export here instead of the renderer guessing a package name.
 
 becomes one module — `net` — holding `topology()`, one function per schedule, and one generated fault enum their refusals travel in.
 Assembling schedules into a campaign stays the author's one line, because which schedules ride together is a run's decision, not a topology's.
