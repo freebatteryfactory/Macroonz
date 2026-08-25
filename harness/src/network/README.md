@@ -37,19 +37,26 @@ The census counts what became of every send, so a schedule that quietly dropped 
 A **delivery is a command-shaped event**: link, ordinal, payload, sent and delivered ticks, and whether it is the original or a duplicate.
 That shape is the keystone — deliveries feed a [`crate::properties`] transition contract directly, and per-link delivery sequences stand as [`crate::interleave`] strands, so delivery orders, party schedules, and link faults explore in one seeded, replayable space.
 
-## Records and replays
+## Records, reproduction, and replays
 
-A run worth keeping becomes a **transcript pack**: the provenance, the topology, and every delivery with its whole lineage — link, ordinal, payload bytes, sent and delivered ticks, original or duplicate — in one content-addressed envelope, the address derived over the whole body and written ahead of it, so a reader re-derives the claim before it believes a single row.
+A run worth keeping becomes a **transcript pack**: the topology, a source claim, and every delivery with its whole lineage — link, ordinal, payload bytes, sent and delivered ticks, original or duplicate — in one content-addressed envelope, the address derived over the whole body and written ahead of it, so a reader re-derives the claim before it believes a single row.
 
-The same pack has two writers and one meaning:
+The source-specific writers retain different material:
 
-- **`Simulated`** — the rows came out of a sim run, fully declared and re-derivable from the run's own inputs.
-- **`RecordedLive`** — the rows were witnessed on a real network by an adopter's adapter, outside this crate.
-  A transcript entry is openly mintable for exactly this reason: an adapter writes down what it observed, and what the pack can claim is bounded by its provenance, not by who spelled the rows.
-  A claim graded over recorded-live material takes the honest ceiling posture — witnessed once, not re-derivable — and nothing may quietly promote it.
+- **`Simulated`** retains the selected schedule and every successful `send` and `advance` in exact drive order beside the delivery rows.
+  The writer projects payloads to bytes, executes that complete byte-valued manifest through the same sim engine, and returns reproduction standing separately from the pack.
+- **`RecordedLive`** retains rows witnessed on a real network by an adopter's adapter, outside this crate.
+  A transcript entry is openly mintable for exactly this reason: an adapter writes down what it observed, while the live writer has no seat for a simulated source claim.
+
+Reading and reproduction are separate authority steps.
+The simulated reader compares foreign bytes with the owner-built topology and selected schedule and returns addressed declaration material only.
+The reproduction operation drives those retained inputs through `SimNet<Vec<u8>>` and mints standing only when every resulting delivery row equals the addressed roster.
+Recorded-live material has no simulation manifest and cannot enter that operation.
 
 A pack opens as a **replay**: exactly the recorded deliveries at exactly their recorded ticks, no sends taken, no discipline consulted.
-Live traffic becomes a deterministic regression input in one move, and the replayed deliveries are ordinary command-shaped events, judged on the same temporal road as everything else.
+Consuming an exhausted replay mints `ReplayExhaustion` bound to the exact transcript address, total rows handed out, and final replay tick; an incomplete replay refuses with the exact remaining-row count.
+Simulation reproduction and replay exhaustion join only when both name one address, proving that the manifest reproduced the rows and playback handed every row out without claiming that the caller processed any delivery.
+Live traffic thereby becomes a deterministic regression input, and the replayed deliveries are ordinary command-shaped events judged on the same temporal road as everything else.
 
 Live end-to-end runs themselves execute outside — a real client, a real server, a real wire — and their observations enter evidence through the runner's recording road, where a host cannot author evidence it never observed.
 This home ships the pack writer and reader; it never owns a socket.

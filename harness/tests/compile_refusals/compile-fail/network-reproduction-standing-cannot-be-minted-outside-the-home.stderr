@@ -1,0 +1,30 @@
+error[E0624]: associated function `witnessed` is private
+ --> tests/compile_refusals/compile-fail/network-reproduction-standing-cannot-be-minted-outside-the-home.rs:4:52
+  |
+4 |       let _simulation_mint = SimulationReproduction::witnessed;
+  |                                                      ^^^^^^^^^ private associated function
+  |
+ ::: src/network/type_guard.rs
+  |
+  | /     pub(super) const fn witnessed(
+  | |         address: TranscriptAddress,
+  | |         actions: usize,
+  | |         rows: usize,
+  | |         final_tick: Tick,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
+
+error[E0624]: associated function `witnessed` is private
+ --> tests/compile_refusals/compile-fail/network-reproduction-standing-cannot-be-minted-outside-the-home.rs:5:42
+  |
+5 |       let _replay_mint = ReplayExhaustion::witnessed;
+  |                                            ^^^^^^^^^ private associated function
+  |
+ ::: src/network/type_guard.rs
+  |
+  | /     pub(super) const fn witnessed(
+  | |         address: TranscriptAddress,
+  | |         total: usize,
+  | |         final_tick: Tick,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

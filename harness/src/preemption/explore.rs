@@ -12,7 +12,7 @@ use crate::report::{
 
 /// Explore one model under the declared bounds using the backend qualified for this target.
 ///
-/// The model returns its check as a value, so only an explicit [`Err`](Result::Err) can establish [`PreemptionVerdict::ModelBroke`].
+/// The model returns its check as a value, so only an explicit [`Err`] can establish [`PreemptionVerdict::ModelBroke`].
 /// A target without the pinned backend returns typed unavailability through the same reading rather than removing the public door or compiling an unsupported dependency.
 #[must_use]
 pub fn explored(

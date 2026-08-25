@@ -166,7 +166,7 @@ impl<R: Role> RenderedProjection<R> {
     ///
     /// # Errors
     ///
-    /// Returns [`RenderError::NothingRendered`] where no unit was offered, and [`RenderError::UnitsUnbounded`] where the rendering outgrows [`MEMBERSHIP_LIMIT`](crate::plan::MEMBERSHIP_LIMIT) — the two counts read off the collection that refused rather than restated here.
+    /// Returns [`RenderError::NothingRendered`] where no unit was offered, and [`RenderError::UnitsUnbounded`] where the rendering outgrows [`MEMBERSHIP_LIMIT`] — the two counts read off the collection that refused rather than restated here.
     pub fn materialized(units: Vec<RenderedUnit<R>>) -> Result<Self, RenderError> {
         NonEmpty::new(units)
             .map(|admitted| Self { units: admitted })

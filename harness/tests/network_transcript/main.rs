@@ -1,14 +1,16 @@
-//! The transcript roads, exercised from outside: a run becomes an addressed pack, the pack reads back whole, and a replay hands back exactly the recorded deliveries.
+//! Transcript custody, reproduction, and replay evidence exercised through the public surface.
 //!
-//! One simulated run and one hand-witnessed live-shaped record walk the same envelope; the refusal lanes reverse one clause each of what the write road and the reader promise, and a tampered envelope dies at its address before a single row is believed.
+//! A simulated pack can arise only from a driven sim, decoding admits no reproduction standing, exact re-execution mints it, and exhausted playback joins only on the same addressed transcript.
 
 use macroonz_harness::descriptor::{NameRefusal, NamespacedName};
+use macroonz_harness::identity::ContentAddress;
 use macroonz_harness::network::{
     Delivery, DeliveryCopy, Link, LinkDiscipline, LinkFault, NetworkCampaign,
     NetworkCampaignRefusal, NetworkSchedule, NetworkScheduleRefusal, NetworkSelectionRefusal,
-    NodeRef, Replay, SendOrdinal, SendRefusal, SimNet, SimNetRefusal, Tick, Topology,
-    TopologyRefusal, TranscriptEntry, TranscriptPack, TranscriptProvenance, TranscriptRefusal,
-    read, recorded,
+    NodeRef, Replay, ReplayIncomplete, ReproducedReplay, ReproducedReplayRefusal, SendOrdinal,
+    SendRefusal, SimNet, SimNetRefusal, SimulationReproduction, TRANSCRIPT_TAG, Tick, Topology,
+    TopologyRefusal, TranscriptEntry, TranscriptPack, TranscriptRefusal, TranscriptSourceClaim,
+    read_recorded_live, read_simulated, recorded_live, reproduce, simulated,
 };
 
 /// Everything a lane road can refuse, carried as itself.
@@ -21,6 +23,8 @@ enum LaneFailure {
     Sim(SimNetRefusal),
     Send(SendRefusal),
     Transcript(TranscriptRefusal),
+    Replay(ReplayIncomplete),
+    Join(ReproducedReplayRefusal),
     /// A value did not carry the shape the claim demanded.
     Standing,
 }
@@ -38,6 +42,8 @@ impl core::fmt::Debug for LaneFailure {
             Self::Transcript(refusal) => {
                 formatter.debug_tuple("Transcript").field(refusal).finish()
             }
+            Self::Replay(refusal) => formatter.debug_tuple("Replay").field(refusal).finish(),
+            Self::Join(refusal) => formatter.debug_tuple("Join").field(refusal).finish(),
             Self::Standing => formatter.write_str("Standing"),
         }
     }
@@ -91,6 +97,18 @@ impl From<TranscriptRefusal> for LaneFailure {
     }
 }
 
+impl From<ReplayIncomplete> for LaneFailure {
+    fn from(refusal: ReplayIncomplete) -> Self {
+        Self::Replay(refusal)
+    }
+}
+
+impl From<ReproducedReplayRefusal> for LaneFailure {
+    fn from(refusal: ReproducedReplayRefusal) -> Self {
+        Self::Join(refusal)
+    }
+}
+
 /// One lane-owned name.
 fn name(stem: &'static str) -> Result<NamespacedName, NameRefusal> {
     NamespacedName::named("lane", stem)
@@ -114,9 +132,9 @@ fn pair_topology() -> Result<Topology, LaneFailure> {
     )?)
 }
 
-/// One simulated run under a duplicating schedule, and the deliveries it produced.
-fn duplicated_run() -> Result<Vec<Delivery<Vec<u8>>>, LaneFailure> {
-    let duplicate = NetworkSchedule::declared(
+/// The schedule that duplicates the first client request.
+fn duplicate_schedule() -> Result<NetworkSchedule, LaneFailure> {
+    Ok(NetworkSchedule::declared(
         name("duplicate-the-request")?,
         vec![LinkDiscipline::declared(
             forward()?,
@@ -124,8 +142,16 @@ fn duplicated_run() -> Result<Vec<Delivery<Vec<u8>>>, LaneFailure> {
                 position: SendOrdinal::at(0u32),
             }],
         )],
-    )?;
-    let campaign = NetworkCampaign::declared(vec![duplicate])?;
+    )?)
+}
+
+/// One driven sim, its selected schedule, and every delivery handed out by that drive.
+type DrivenRun = (Vec<Delivery<Vec<u8>>>, SimNet<Vec<u8>>, NetworkSchedule);
+
+/// Drive the duplicating schedule, optionally recording extra empty advances after delivery.
+fn duplicated_run(extra_advances: usize) -> Result<DrivenRun, LaneFailure> {
+    let schedule = duplicate_schedule()?;
+    let campaign = NetworkCampaign::declared(vec![schedule.clone()])?;
     let mut sim = SimNet::declared(
         pair_topology()?,
         campaign.select(name("duplicate-the-request")?)?,
@@ -135,197 +161,270 @@ fn duplicated_run() -> Result<Vec<Delivery<Vec<u8>>>, LaneFailure> {
     while sim.pending() > 0usize {
         deliveries.extend(sim.advance());
     }
-    Ok(deliveries)
+    for _ in 0..extra_advances {
+        deliveries.extend(sim.advance());
+    }
+    Ok((deliveries, sim, schedule))
 }
 
-/// The transcript rows one run's deliveries spell.
-fn witnessed(deliveries: &[Delivery<Vec<u8>>]) -> Vec<TranscriptEntry> {
-    deliveries
-        .iter()
-        .map(|delivery| {
-            TranscriptEntry::witnessed(
-                delivery.link(),
-                delivery.ordinal(),
-                delivery.payload().clone(),
-                delivery.sent_at(),
-                delivery.delivered_at(),
-                delivery.copy(),
-            )
-        })
-        .collect()
+/// One run's deliveries beside its pack, selected schedule, and minted reproduction.
+type PackedRun = (
+    Vec<Delivery<Vec<u8>>>,
+    NetworkSchedule,
+    TranscriptPack,
+    SimulationReproduction,
+);
+
+/// Drive and pack one simulated run.
+fn packed_run(extra_advances: usize) -> Result<PackedRun, LaneFailure> {
+    let (deliveries, sim, schedule) = duplicated_run(extra_advances)?;
+    let (pack, reproduction) = simulated(&sim, Vec::clone)?;
+    Ok((deliveries, schedule, pack, reproduction))
 }
 
-/// One run's deliveries beside the pack they were written into.
-type RunAndPack = (Vec<Delivery<Vec<u8>>>, TranscriptPack);
-
-/// One packed simulated run, for the lanes that read and replay it.
-fn packed_run() -> Result<RunAndPack, LaneFailure> {
-    let deliveries = duplicated_run()?;
-    let pack = recorded(
-        TranscriptProvenance::Simulated,
-        &pair_topology()?,
-        witnessed(&deliveries),
-    )?;
-    Ok((deliveries, pack))
+/// One lawful live-recorded row.
+fn live_entry(
+    payload: &[u8],
+    ordinal: u32,
+    delivered_at: u64,
+) -> Result<TranscriptEntry, LaneFailure> {
+    Ok(TranscriptEntry::witnessed(
+        forward()?,
+        SendOrdinal::at(ordinal),
+        payload.to_vec(),
+        Tick::at(delivered_at.saturating_sub(1u64)),
+        Tick::at(delivered_at),
+        DeliveryCopy::Original,
+    ))
 }
 
-/// A simulated run packs, reads back byte for byte, and replays into exactly the deliveries the sim produced.
+/// Replace the envelope's address after one hostile body edit.
+fn readdress(encoded: &mut [u8]) -> Result<(), LaneFailure> {
+    let address_width = ContentAddress::derived(TRANSCRIPT_TAG, &[])
+        .as_bytes()
+        .len();
+    let body = encoded.get(address_width..).ok_or(LaneFailure::Standing)?;
+    let address = ContentAddress::derived(TRANSCRIPT_TAG, body);
+    let claim = encoded
+        .get_mut(0usize..address_width)
+        .ok_or(LaneFailure::Standing)?;
+    claim.copy_from_slice(address.as_bytes());
+    Ok(())
+}
+
+/// A complete simulated manifest packs, reads as declaration material, reproduces, and replays under exact address custody.
 #[test]
-fn a_simulated_run_packs_reads_back_and_replays_identically() -> Result<(), LaneFailure> {
-    let (deliveries, pack) = packed_run()?;
+fn a_simulated_run_reproduces_and_replays_under_one_address() -> Result<(), LaneFailure> {
+    let (deliveries, schedule, pack, written_reproduction) = packed_run(0usize)?;
     assert_eq!(deliveries.len(), 2usize);
-    assert_eq!(pack.provenance(), TranscriptProvenance::Simulated);
-    let reread = read(&pair_topology()?, pack.encoded())?;
+    assert_eq!(pack.source_claim(), TranscriptSourceClaim::Simulated);
+    let manifest = pack.simulation_manifest().ok_or(LaneFailure::Standing)?;
+    assert_eq!(manifest.schedule(), &schedule);
+    assert_eq!(manifest.actions().len(), 2usize);
+    assert_eq!(written_reproduction.address(), pack.address());
+    assert_eq!(written_reproduction.rows(), 2usize);
+
+    let reread = read_simulated(&pair_topology()?, &schedule, pack.encoded())?;
     assert_eq!(reread, pack);
-    let (mut replay, opening) = Replay::opened(&pack);
+    let decoded_reproduction = reproduce(&reread)?;
+    assert_eq!(decoded_reproduction, written_reproduction);
+
+    let (mut replay, opening) = Replay::opened(&reread);
     assert!(opening.is_empty());
-    assert_eq!(replay.remaining(), 2usize);
     let mut played = Vec::new();
     while replay.remaining() > 0usize {
         played.extend(replay.advance());
     }
     assert_eq!(played, deliveries);
-    let (mut again, opening_again) = Replay::opened(&pack);
-    assert!(opening_again.is_empty());
-    let mut second = Vec::new();
-    while again.remaining() > 0usize {
-        second.extend(again.advance());
-    }
-    assert_eq!(second, played);
+    let exhaustion = replay.exhaust()?;
+    assert_eq!(exhaustion.address(), pack.address());
+    assert_eq!(exhaustion.total(), 2usize);
+    let joined = ReproducedReplay::joined(decoded_reproduction, exhaustion)?;
+    assert_eq!(joined.reproduction(), decoded_reproduction);
+    assert_eq!(joined.exhaustion(), exhaustion);
     Ok(())
 }
 
-/// Two identical runs derive one address, which is what makes a pack a claim rather than a file.
+/// Identical drives derive one address, while an extra empty advance moves the manifest identity without changing the delivery rows.
 #[test]
-fn one_run_derives_one_address() -> Result<(), LaneFailure> {
-    let (_first_deliveries, first) = packed_run()?;
-    let (_second_deliveries, second) = packed_run()?;
+fn the_complete_action_manifest_moves_the_address() -> Result<(), LaneFailure> {
+    let (_first_rows, _first_schedule, first, _first_reproduction) = packed_run(0usize)?;
+    let (_second_rows, _second_schedule, second, _second_reproduction) = packed_run(0usize)?;
     assert_eq!(first.address(), second.address());
     assert_eq!(first.encoded(), second.encoded());
+
+    let (_extended_rows, _extended_schedule, extended, standing) = packed_run(1usize)?;
+    assert_eq!(first.entries(), extended.entries());
+    assert_ne!(first.address(), extended.address());
+    assert_ne!(first.encoded(), extended.encoded());
+    assert_eq!(standing.actions(), 3usize);
+    assert_eq!(standing.final_tick(), Tick::at(2u64));
     Ok(())
 }
 
-/// A hand-witnessed record carries its live provenance through the envelope and replays at its recorded ticks.
+/// A dropped send remains in the complete action denominator even though it produces no delivery row.
 #[test]
-fn a_live_witnessed_pack_keeps_its_provenance_and_its_ticks() -> Result<(), LaneFailure> {
-    let wire = forward()?;
-    let entries = vec![
-        TranscriptEntry::witnessed(
-            wire,
-            SendOrdinal::at(0u32),
-            b"first".to_vec(),
-            Tick::at(1u64),
-            Tick::at(2u64),
-            DeliveryCopy::Original,
-        ),
-        TranscriptEntry::witnessed(
-            wire,
-            SendOrdinal::at(1u32),
-            b"second".to_vec(),
-            Tick::at(3u64),
-            Tick::at(5u64),
-            DeliveryCopy::Original,
-        ),
-    ];
-    let pack = recorded(
-        TranscriptProvenance::RecordedLive,
-        &pair_topology()?,
-        entries,
+fn dropped_inputs_remain_in_the_reproduced_manifest() -> Result<(), LaneFailure> {
+    let schedule = NetworkSchedule::declared(
+        name("drop-first")?,
+        vec![LinkDiscipline::declared(
+            forward()?,
+            vec![LinkFault::DropAt {
+                position: SendOrdinal::at(0u32),
+            }],
+        )],
     )?;
-    let reread = read(&pair_topology()?, pack.encoded())?;
-    assert_eq!(reread.provenance(), TranscriptProvenance::RecordedLive);
-    let (mut replay, opening_hand) = Replay::opened(&pack);
-    assert!(opening_hand.is_empty());
-    assert!(replay.advance().is_empty());
-    let early = replay.advance();
-    assert_eq!(early.len(), 1usize);
-    let opening = early.first().ok_or(LaneFailure::Standing)?;
-    assert_eq!(opening.delivered_at(), Tick::at(2u64));
-    assert_eq!(opening.payload(), b"first");
-    assert!(replay.advance().is_empty());
-    assert!(replay.advance().is_empty());
-    let late = replay.advance();
-    assert_eq!(late.len(), 1usize);
-    assert_eq!(replay.remaining(), 0usize);
+    let campaign = NetworkCampaign::declared(vec![schedule.clone()])?;
+    let mut sim = SimNet::declared(pair_topology()?, campaign.select(name("drop-first")?)?)?;
+    sim.send(forward()?, b"lost".to_vec())?;
+    sim.send(forward()?, b"kept".to_vec())?;
+    let delivered = sim.advance();
+    assert_eq!(delivered.len(), 1usize);
+    let (pack, standing) = simulated(&sim, Vec::clone)?;
+    let manifest = pack.simulation_manifest().ok_or(LaneFailure::Standing)?;
+    assert_eq!(manifest.actions().len(), 3usize);
+    assert_eq!(pack.entries().len(), 1usize);
+    assert_eq!(standing.actions(), 3usize);
+    assert_eq!(standing.rows(), 1usize);
     Ok(())
 }
 
-/// A live epoch that starts at zero plays its tick-zero delivery at the opening, and a same-tick delivery at exactly its recorded tick — never shifted.
+/// Live-recorded material preserves its honest source ceiling and cannot enter simulation reproduction.
 #[test]
-fn a_live_tick_zero_delivery_plays_at_the_opening() -> Result<(), LaneFailure> {
-    let wire = forward()?;
-    let entries = vec![
-        TranscriptEntry::witnessed(
-            wire,
-            SendOrdinal::at(0u32),
-            b"epoch".to_vec(),
-            Tick::at(0u64),
-            Tick::at(0u64),
-            DeliveryCopy::Original,
-        ),
-        TranscriptEntry::witnessed(
-            wire,
-            SendOrdinal::at(1u32),
-            b"same-tick".to_vec(),
-            Tick::at(2u64),
-            Tick::at(2u64),
-            DeliveryCopy::Original,
-        ),
-    ];
-    let pack = recorded(
-        TranscriptProvenance::RecordedLive,
-        &pair_topology()?,
-        entries,
+fn a_live_record_is_replayable_but_not_reproducible() -> Result<(), LaneFailure> {
+    let topology = pair_topology()?;
+    let pack = recorded_live(
+        &topology,
+        vec![
+            live_entry(b"first", 0u32, 2u64)?,
+            live_entry(b"second", 1u32, 5u64)?,
+        ],
     )?;
-    let (mut replay, opening) = Replay::opened(&pack);
-    assert_eq!(replay.tick(), Tick::at(0u64));
-    assert_eq!(opening.len(), 1usize);
-    let zeroth = opening.first().ok_or(LaneFailure::Standing)?;
-    assert_eq!(zeroth.delivered_at(), Tick::at(0u64));
-    assert_eq!(zeroth.payload(), b"epoch");
-    assert_eq!(replay.remaining(), 1usize);
-    assert!(replay.advance().is_empty());
-    let second = replay.advance();
-    assert_eq!(replay.tick(), Tick::at(2u64));
-    assert_eq!(second.len(), 1usize);
-    let same_tick = second.first().ok_or(LaneFailure::Standing)?;
-    assert_eq!(same_tick.delivered_at(), Tick::at(2u64));
-    assert_eq!(same_tick.payload(), b"same-tick");
-    assert_eq!(replay.remaining(), 0usize);
+    assert_eq!(pack.source_claim(), TranscriptSourceClaim::RecordedLive);
+    assert!(pack.simulation_manifest().is_none());
+    let reread = read_recorded_live(&topology, pack.encoded())?;
+    assert_eq!(reread, pack);
+    assert_eq!(
+        reproduce(&reread).err(),
+        Some(TranscriptRefusal::RecordedLiveCannotReproduce)
+    );
+    let (mut replay, opening) = Replay::opened(&reread);
+    assert!(opening.is_empty());
+    while replay.remaining() > 0usize {
+        let _handed_out = replay.advance();
+    }
+    assert_eq!(replay.exhaust()?.total(), 2usize);
     Ok(())
 }
 
-/// The tick-zero opening survives the wire: a live pack encoded, re-read, and opened hands the same epoch delivery a fresh writer's would.
+/// Source-specific readers reject a body from the other road, and simulation reading demands the exact selected schedule.
 #[test]
-fn a_decoded_pack_still_opens_with_its_tick_zero_delivery() -> Result<(), LaneFailure> {
-    let wire = forward()?;
-    let entries = vec![TranscriptEntry::witnessed(
-        wire,
+fn readers_do_not_upgrade_or_relabel_source_material() -> Result<(), LaneFailure> {
+    let topology = pair_topology()?;
+    let (_rows, schedule, simulated_pack, _standing) = packed_run(0usize)?;
+    assert_eq!(
+        read_recorded_live(&topology, simulated_pack.encoded()).err(),
+        Some(TranscriptRefusal::SourceClaimMismatch {
+            expected: TranscriptSourceClaim::RecordedLive,
+            found: TranscriptSourceClaim::Simulated,
+        })
+    );
+    let live = recorded_live(&topology, vec![live_entry(b"live", 0u32, 1u64)?])?;
+    assert_eq!(
+        read_simulated(&topology, &schedule, live.encoded()).err(),
+        Some(TranscriptRefusal::SourceClaimMismatch {
+            expected: TranscriptSourceClaim::Simulated,
+            found: TranscriptSourceClaim::RecordedLive,
+        })
+    );
+    let other = NetworkSchedule::declared(name("other")?, Vec::new())?;
+    assert_eq!(
+        read_simulated(&topology, &other, simulated_pack.encoded()).err(),
+        Some(TranscriptRefusal::ScheduleMismatch)
+    );
+    Ok(())
+}
+
+/// A self-consistent address over altered output rows still cannot mint simulation reproduction.
+#[test]
+fn addressed_bytes_do_not_impersonate_reproduction() -> Result<(), LaneFailure> {
+    let topology = pair_topology()?;
+    let (_rows, schedule, pack, _standing) = packed_run(0usize)?;
+    let mut altered = pack.encoded().to_vec();
+    let positions: Vec<_> = altered
+        .windows(3usize)
+        .enumerate()
+        .filter_map(|(at, bytes)| (bytes == b"pay").then_some(at))
+        .collect();
+    assert_eq!(positions.len(), 3usize);
+    let last = positions.last().copied().ok_or(LaneFailure::Standing)?;
+    let byte = altered.get_mut(last).ok_or(LaneFailure::Standing)?;
+    *byte = b'x';
+    readdress(&mut altered)?;
+    let decoded = read_simulated(&topology, &schedule, &altered)?;
+    assert_eq!(
+        reproduce(&decoded).err(),
+        Some(TranscriptRefusal::SimulationRowsDiverge { at: 1usize })
+    );
+    Ok(())
+}
+
+/// Tick-zero delivery is handed out by opening and counts toward exact replay exhaustion.
+#[test]
+fn tick_zero_is_part_of_the_exhaustion_denominator() -> Result<(), LaneFailure> {
+    let topology = pair_topology()?;
+    let entry = TranscriptEntry::witnessed(
+        forward()?,
         SendOrdinal::at(0u32),
         b"epoch".to_vec(),
         Tick::at(0u64),
         Tick::at(0u64),
         DeliveryCopy::Original,
-    )];
-    let topology = pair_topology()?;
-    let pack = recorded(TranscriptProvenance::RecordedLive, &topology, entries)?;
-    let reread = read(&topology, pack.encoded())?;
+    );
+    let pack = recorded_live(&topology, vec![entry])?;
+    let reread = read_recorded_live(&topology, pack.encoded())?;
     let (replay, opening) = Replay::opened(&reread);
-    assert_eq!(replay.tick(), Tick::at(0u64));
     assert_eq!(opening.len(), 1usize);
-    let zeroth = opening.first().ok_or(LaneFailure::Standing)?;
-    assert_eq!(zeroth.delivered_at(), Tick::at(0u64));
-    assert_eq!(zeroth.payload(), b"epoch");
     assert_eq!(replay.remaining(), 0usize);
+    let exhaustion = replay.exhaust()?;
+    assert_eq!(exhaustion.total(), 1usize);
+    assert_eq!(exhaustion.final_tick(), Tick::at(0u64));
     Ok(())
 }
 
-/// The write road refuses an empty record, a foreign row, a delivery stamped before its own send, and a stamp that steps backward.
+/// Exhaustion refuses with the exact remaining-row count and cannot join reproduction from another address.
 #[test]
-fn the_write_road_refuses_incoherent_records() -> Result<(), LaneFailure> {
+fn incomplete_or_foreign_playback_cannot_open_the_join() -> Result<(), LaneFailure> {
+    let (_first_rows, _first_schedule, first, first_reproduction) = packed_run(0usize)?;
+    let (incomplete, first_opening) = Replay::opened(&first);
+    assert!(first_opening.is_empty());
+    let refusal = incomplete.exhaust().err().ok_or(LaneFailure::Standing)?;
+    assert_eq!(refusal.address(), first.address());
+    assert_eq!(refusal.remaining(), 2usize);
+
+    let (_second_rows, _second_schedule, second, _second_reproduction) = packed_run(1usize)?;
+    let (mut replay, second_opening) = Replay::opened(&second);
+    assert!(second_opening.is_empty());
+    while replay.remaining() > 0usize {
+        let _handed_out = replay.advance();
+    }
+    let exhaustion = replay.exhaust()?;
+    assert_eq!(
+        ReproducedReplay::joined(first_reproduction, exhaustion),
+        Err(ReproducedReplayRefusal::AddressMismatch {
+            reproduction: first.address(),
+            replay: second.address(),
+        })
+    );
+    Ok(())
+}
+
+/// The live writer refuses empty, foreign, impossible, and backward records at their exact clauses.
+#[test]
+fn the_live_write_road_refuses_incoherent_records() -> Result<(), LaneFailure> {
     let topology = pair_topology()?;
     assert_eq!(
-        recorded(TranscriptProvenance::Simulated, &topology, Vec::new()).err(),
+        recorded_live(&topology, Vec::new()).err(),
         Some(TranscriptRefusal::NoDelivery)
     );
     let backward = TranscriptEntry::witnessed(
@@ -337,7 +436,7 @@ fn the_write_road_refuses_incoherent_records() -> Result<(), LaneFailure> {
         DeliveryCopy::Original,
     );
     assert_eq!(
-        recorded(TranscriptProvenance::Simulated, &topology, vec![backward]).err(),
+        recorded_live(&topology, vec![backward]).err(),
         Some(TranscriptRefusal::DeliveryBeforeSend { at: 0usize })
     );
     let stranger = Link::between(
@@ -353,31 +452,16 @@ fn the_write_road_refuses_incoherent_records() -> Result<(), LaneFailure> {
         DeliveryCopy::Original,
     );
     assert_eq!(
-        recorded(TranscriptProvenance::Simulated, &topology, vec![foreign]).err(),
+        recorded_live(&topology, vec![foreign]).err(),
         Some(TranscriptRefusal::ForeignLink { at: 0usize })
     );
-    let wire = forward()?;
-    let late = TranscriptEntry::witnessed(
-        wire,
-        SendOrdinal::at(0u32),
-        b"late".to_vec(),
-        Tick::at(4u64),
-        Tick::at(5u64),
-        DeliveryCopy::Original,
-    );
-    let early = TranscriptEntry::witnessed(
-        wire,
-        SendOrdinal::at(1u32),
-        b"early".to_vec(),
-        Tick::at(1u64),
-        Tick::at(2u64),
-        DeliveryCopy::Original,
-    );
     assert_eq!(
-        recorded(
-            TranscriptProvenance::Simulated,
+        recorded_live(
             &topology,
-            vec![late, early]
+            vec![
+                live_entry(b"late", 0u32, 5u64)?,
+                live_entry(b"early", 1u32, 2u64)?
+            ]
         )
         .err(),
         Some(TranscriptRefusal::DeliveryOrderBroken { at: 1usize })
@@ -385,17 +469,17 @@ fn the_write_road_refuses_incoherent_records() -> Result<(), LaneFailure> {
     Ok(())
 }
 
-/// The reader settles the address before believing a row, refuses a truncated envelope, and refuses a foreign topology.
+/// The reader settles the address first, rejects foreign topology, and refuses the retired wire version explicitly.
 #[test]
-fn the_reader_refuses_tampered_and_foreign_envelopes() -> Result<(), LaneFailure> {
-    let (_deliveries, pack) = packed_run()?;
+fn the_reader_refuses_tampered_foreign_and_retired_envelopes() -> Result<(), LaneFailure> {
+    let (_rows, schedule, pack, _standing) = packed_run(0usize)?;
+    let topology = pair_topology()?;
     let mut tampered = pack.encoded().to_vec();
     if let Some(last) = tampered.last_mut() {
         *last = last.wrapping_add(1u8);
     }
-    let tampered_verdict = read(&pair_topology()?, &tampered).err();
     assert!(matches!(
-        tampered_verdict,
+        read_simulated(&topology, &schedule, &tampered).err(),
         Some(TranscriptRefusal::AddressMismatch { derived: _ })
     ));
     let short = pack
@@ -403,7 +487,7 @@ fn the_reader_refuses_tampered_and_foreign_envelopes() -> Result<(), LaneFailure
         .get(0usize..10usize)
         .ok_or(LaneFailure::Standing)?;
     assert_eq!(
-        read(&pair_topology()?, short).err(),
+        read_simulated(&topology, &schedule, short).err(),
         Some(TranscriptRefusal::Truncated)
     );
     let elsewhere = Topology::declared(
@@ -417,8 +501,23 @@ fn the_reader_refuses_tampered_and_foreign_envelopes() -> Result<(), LaneFailure
         )],
     )?;
     assert_eq!(
-        read(&elsewhere, pack.encoded()).err(),
+        read_simulated(&elsewhere, &schedule, pack.encoded()).err(),
         Some(TranscriptRefusal::TopologyMismatch)
+    );
+
+    let address_width = ContentAddress::derived(TRANSCRIPT_TAG, &[])
+        .as_bytes()
+        .len();
+    let mut retired = pack.encoded().to_vec();
+    let version_end = address_width.saturating_add(4usize);
+    let version = retired
+        .get_mut(address_width..version_end)
+        .ok_or(LaneFailure::Standing)?;
+    version.copy_from_slice(&1u32.to_be_bytes());
+    readdress(&mut retired)?;
+    assert_eq!(
+        read_simulated(&topology, &schedule, &retired).err(),
+        Some(TranscriptRefusal::UnsupportedFormat { found: 1u32 })
     );
     Ok(())
 }

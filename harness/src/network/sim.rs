@@ -28,6 +28,20 @@ pub(super) struct InFlight<Payload> {
     copy: DeliveryCopy,
 }
 
+/// One successful caller action, retained in exact drive order for simulation reproduction.
+#[derive(Debug, Clone)]
+pub(super) enum Action<Payload> {
+    /// One send the sim accepted.
+    Send {
+        /// The declared link.
+        link: Link,
+        /// The exact payload handed in.
+        payload: Payload,
+    },
+    /// One logical-tick advance.
+    Advance,
+}
+
 /// What one send's declared faults add up to, before anything is scheduled.
 enum Shaping {
     /// The send travels, carrying this much declared delay and this many copies.
@@ -55,6 +69,10 @@ impl<Payload: Clone> SimNet<Payload> {
         if !self.topology.links().contains(&link) {
             return Err(SendRefusal::LinkUndeclared(link));
         }
+        self.actions.push(Action::Send {
+            link,
+            payload: payload.clone(),
+        });
         let count = self.placed.entry(link).or_insert(0u32);
         let ordinal = SendOrdinal::at(*count);
         *count = count.saturating_add(1u32);
@@ -119,6 +137,7 @@ impl<Payload: Clone> SimNet<Payload> {
     /// Deliveries are ordered by due tick, then by scheduling sequence, so two identically driven sims hand back identical histories.
     #[must_use]
     pub fn advance(&mut self) -> Vec<Delivery<Payload>> {
+        self.actions.push(Action::Advance);
         self.tick = self.tick.next();
         let now = self.tick;
         let (mut due, waiting): (Vec<_>, Vec<_>) = mem::take(&mut self.in_flight)
@@ -130,7 +149,8 @@ impl<Payload: Clone> SimNet<Payload> {
             .census
             .delivered
             .saturating_add(u64::try_from(due.len()).unwrap_or(u64::MAX));
-        due.into_iter()
+        let delivered: Vec<_> = due
+            .into_iter()
             .map(|flight| {
                 Delivery::delivered(
                     flight.link,
@@ -141,7 +161,9 @@ impl<Payload: Clone> SimNet<Payload> {
                     flight.copy,
                 )
             })
-            .collect()
+            .collect();
+        self.history.extend(delivered.iter().cloned());
+        delivered
     }
 }
 

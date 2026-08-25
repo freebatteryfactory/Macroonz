@@ -3,9 +3,11 @@
 use super::{
     Delivery, DeliveryCopy, Link, LinkDiscipline, LinkFault, NetworkCampaign,
     NetworkCampaignRefusal, NetworkCensus, NetworkSchedule, NetworkScheduleRefusal,
-    NetworkSelection, NetworkSelectionRefusal, NodeRef, SendFate, SendOrdinal, SendReceipt, SimNet,
-    SimNetRefusal, Tick, TickSpan, TickSpanRefusal, Topology, TopologyRefusal, TranscriptAddress,
-    TranscriptEntry, TranscriptPack, TranscriptProvenance,
+    NetworkSelection, NetworkSelectionRefusal, NodeRef, ReplayExhaustion, ReplayIncomplete,
+    ReproducedReplay, ReproducedReplayRefusal, SendFate, SendOrdinal, SendReceipt, SimNet,
+    SimNetRefusal, SimulationAction, SimulationManifest, SimulationReproduction, Tick, TickSpan,
+    TickSpanRefusal, Topology, TopologyRefusal, TranscriptAddress, TranscriptEntry,
+    TranscriptMaterial, TranscriptPack, TranscriptSourceClaim,
 };
 use crate::descriptor::NamespacedName;
 use crate::identity::ContentAddress;
@@ -320,6 +322,8 @@ impl<Payload> SimNet<Payload> {
             sequence: 0u64,
             placed: BTreeMap::new(),
             in_flight: Vec::new(),
+            actions: Vec::new(),
+            history: Vec::new(),
             census: NetworkCensus {
                 sends: 0u64,
                 scheduled_deliveries: 0u64,
@@ -503,23 +507,45 @@ impl TranscriptPack {
     /// One admitted pack, minted only by the write and read roads.
     #[must_use]
     pub(super) const fn assembled(
-        provenance: TranscriptProvenance,
+        topology: Topology,
+        material: TranscriptMaterial,
         address: TranscriptAddress,
         entries: Vec<TranscriptEntry>,
         encoded: Vec<u8>,
     ) -> Self {
         Self {
-            provenance,
+            topology,
+            material,
             address,
             entries,
             encoded,
         }
     }
 
-    /// Where this pack's deliveries came from.
+    /// The topology retained in this pack's addressed body.
     #[must_use]
-    pub const fn provenance(&self) -> TranscriptProvenance {
-        self.provenance
+    pub const fn topology(&self) -> &Topology {
+        &self.topology
+    }
+
+    /// What this pack's addressed body claims about its source.
+    ///
+    /// The reading carries no reproduction standing.
+    #[must_use]
+    pub const fn source_claim(&self) -> TranscriptSourceClaim {
+        match self.material {
+            TranscriptMaterial::Simulated(_) => TranscriptSourceClaim::Simulated,
+            TranscriptMaterial::RecordedLive => TranscriptSourceClaim::RecordedLive,
+        }
+    }
+
+    /// The simulation inputs this pack retains, where its body claims a simulated source.
+    #[must_use]
+    pub const fn simulation_manifest(&self) -> Option<&SimulationManifest> {
+        match &self.material {
+            TranscriptMaterial::Simulated(manifest) => Some(manifest),
+            TranscriptMaterial::RecordedLive => None,
+        }
     }
 
     /// The address the whole body derives.
@@ -538,6 +564,159 @@ impl TranscriptPack {
     #[must_use]
     pub fn encoded(&self) -> &[u8] {
         &self.encoded
+    }
+}
+
+impl SimulationManifest {
+    /// One selected schedule beside the complete ordered actions driven through it.
+    #[must_use]
+    pub(super) const fn captured(
+        schedule: NetworkSchedule,
+        actions: Vec<SimulationAction>,
+    ) -> Self {
+        Self { schedule, actions }
+    }
+
+    /// The selected schedule the manifest declares.
+    #[must_use]
+    pub const fn schedule(&self) -> &NetworkSchedule {
+        &self.schedule
+    }
+
+    /// Every send and advance, in exact drive order.
+    #[must_use]
+    pub fn actions(&self) -> &[SimulationAction] {
+        &self.actions
+    }
+}
+
+impl SimulationReproduction {
+    /// One exact transcript address whose manifest reproduced all addressed rows.
+    #[must_use]
+    pub(super) const fn witnessed(
+        address: TranscriptAddress,
+        actions: usize,
+        rows: usize,
+        final_tick: Tick,
+    ) -> Self {
+        Self {
+            address,
+            actions,
+            rows,
+            final_tick,
+        }
+    }
+
+    /// The transcript whose exact manifest and rows were reproduced.
+    #[must_use]
+    pub const fn address(self) -> TranscriptAddress {
+        self.address
+    }
+
+    /// How many manifest actions were executed.
+    #[must_use]
+    pub const fn actions(self) -> usize {
+        self.actions
+    }
+
+    /// How many delivery rows the execution reproduced.
+    #[must_use]
+    pub const fn rows(self) -> usize {
+        self.rows
+    }
+
+    /// The reproduced sim's logical tick after the final manifest action.
+    #[must_use]
+    pub const fn final_tick(self) -> Tick {
+        self.final_tick
+    }
+}
+
+impl ReplayExhaustion {
+    /// One exhausted replay, minted only by consuming that replay.
+    #[must_use]
+    pub(super) const fn witnessed(
+        address: TranscriptAddress,
+        total: usize,
+        final_tick: Tick,
+    ) -> Self {
+        Self {
+            address,
+            total,
+            final_tick,
+        }
+    }
+
+    /// The transcript whose rows were all handed out.
+    #[must_use]
+    pub const fn address(self) -> TranscriptAddress {
+        self.address
+    }
+
+    /// How many addressed rows were handed out.
+    #[must_use]
+    pub const fn total(self) -> usize {
+        self.total
+    }
+
+    /// The replay tick at exhaustion.
+    #[must_use]
+    pub const fn final_tick(self) -> Tick {
+        self.final_tick
+    }
+}
+
+impl ReplayIncomplete {
+    /// One replay that still retained rows when exhaustion was requested.
+    pub(super) const fn witnessed(address: TranscriptAddress, remaining: usize) -> Self {
+        Self { address, remaining }
+    }
+
+    /// The transcript whose replay remains incomplete.
+    #[must_use]
+    pub const fn address(self) -> TranscriptAddress {
+        self.address
+    }
+
+    /// How many recorded rows were never handed out.
+    #[must_use]
+    pub const fn remaining(self) -> usize {
+        self.remaining
+    }
+}
+
+impl ReproducedReplay {
+    /// Join exact simulation reproduction with exhausted playback over the same address.
+    ///
+    /// # Errors
+    ///
+    /// Refuses values that name different transcript addresses.
+    pub fn joined(
+        reproduction: SimulationReproduction,
+        exhaustion: ReplayExhaustion,
+    ) -> Result<Self, ReproducedReplayRefusal> {
+        if reproduction.address() != exhaustion.address() {
+            return Err(ReproducedReplayRefusal::AddressMismatch {
+                reproduction: reproduction.address(),
+                replay: exhaustion.address(),
+            });
+        }
+        Ok(Self {
+            reproduction,
+            exhaustion,
+        })
+    }
+
+    /// The simulation reproduction this join retains.
+    #[must_use]
+    pub const fn reproduction(self) -> SimulationReproduction {
+        self.reproduction
+    }
+
+    /// The replay exhaustion this join retains.
+    #[must_use]
+    pub const fn exhaustion(self) -> ReplayExhaustion {
+        self.exhaustion
     }
 }
 

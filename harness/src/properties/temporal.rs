@@ -3,7 +3,7 @@
 //! A command sequence is a structured input like any other, so the history a law is read over comes from the one shared sequence driver ([`crate::generate::drive`]) rather than from a loop grown here, and a failing sequence is a counterexample carrying its seed like any other.
 //!
 //! The state and the command are unbounded type parameters, and this home never learns what a state means.
-//! An owner integrates by mapping its own vocabulary into a [`TransitionContract`](crate::properties::TransitionContract) at its own layer.
+//! An owner integrates by mapping its own vocabulary into a [`TransitionContract`] at its own layer.
 //!
 //! What a break does not carry is which step of the history broke the claim.
 //! A conclusion carries the typed cause and the class, and the sequence that produced it is what localizes the break: minimization shrinks that sequence while requiring the same fingerprint, so the shortest history that still breaks the claim is the answer to "where", produced by the lane that owns shrinking.

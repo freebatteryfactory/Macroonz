@@ -17,7 +17,7 @@ mod pack;
 #[path = "sim.rs"]
 mod sim;
 
-pub use pack::{read, recorded};
+pub use pack::{read_recorded_live, read_simulated, recorded_live, reproduce, simulated};
 
 // The topology.
 
@@ -195,6 +195,8 @@ pub struct SimNet<Payload> {
     sequence: u64,
     placed: BTreeMap<Link, u32>,
     in_flight: Vec<sim::InFlight<Payload>>,
+    actions: Vec<sim::Action<Payload>>,
+    history: Vec<Delivery<Payload>>,
     census: NetworkCensus,
 }
 
@@ -280,20 +282,54 @@ pub struct NetworkCensus {
 // The transcript.
 
 /// The body format the transcript reader understands.
-pub const TRANSCRIPT_FORMAT_VERSION: u32 = 1;
+pub const TRANSCRIPT_FORMAT_VERSION: u32 = 2;
 
 /// The content-address family every transcript body is derived under.
 pub const TRANSCRIPT_TAG: DomainTag =
-    DomainTag::declared("network-transcript", IdentityProfileVersion::declared(1));
+    DomainTag::declared("network-transcript", IdentityProfileVersion::declared(2));
 
-/// Where a transcript's deliveries came from.
+/// What one transcript body claims about where its deliveries came from.
 ///
-/// The provenance is part of the addressed body, because a claim graded over recorded-live material takes the honest ceiling posture and nothing may quietly promote it.
+/// A source claim is addressed material, not standing that the claim was reproduced.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum TranscriptProvenance {
-    /// The deliveries came out of a [`SimNet`] run, fully declared and re-derivable.
+pub enum TranscriptSourceClaim {
+    /// The body carries a complete simulation manifest.
     Simulated,
-    /// The deliveries were witnessed on a live network by an adopter's adapter, outside this crate.
+    /// The body carries deliveries witnessed by an adopter's live adapter.
+    RecordedLive,
+}
+
+/// One byte-valued input action retained by a simulated transcript.
+///
+/// The action is declaration material until [`reproduce`] executes its whole manifest through [`SimNet`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SimulationAction {
+    /// Place these payload bytes on this link at the current logical tick.
+    Send {
+        /// The link the action sends on.
+        link: Link,
+        /// The payload bytes handed to the reproduced sim.
+        payload: Vec<u8>,
+    },
+    /// Advance the reproduced sim by one logical tick.
+    Advance,
+}
+
+/// The selected schedule and complete ordered action trace one simulated body declares.
+///
+/// The schedule remains an owner-built value rather than decoded names minted from foreign bytes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SimulationManifest {
+    schedule: NetworkSchedule,
+    actions: Vec<SimulationAction>,
+}
+
+/// The source-specific material retained by an admitted pack.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum TranscriptMaterial {
+    /// A simulation claim with the inputs needed to execute it again.
+    Simulated(SimulationManifest),
+    /// A live-recorded claim carrying no reproducible input manifest.
     RecordedLive,
 }
 
@@ -316,12 +352,13 @@ pub struct TranscriptEntry {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TranscriptAddress(ContentAddress);
 
-/// One admitted transcript: its provenance, its deliveries in delivery order, and the envelope carrying them.
+/// One admitted transcript: its topology, source material, deliveries in delivery order, and the envelope carrying them.
 ///
 /// The envelope is retained exactly as it was derived, so persisting a pack never needs a second writer that could disagree with the first.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TranscriptPack {
-    provenance: TranscriptProvenance,
+    topology: Topology,
+    material: TranscriptMaterial,
     address: TranscriptAddress,
     entries: Vec<TranscriptEntry>,
     encoded: Vec<u8>,
@@ -362,8 +399,27 @@ pub enum TranscriptRefusal {
         /// The format position found in the body.
         found: u32,
     },
-    /// The body declares a provenance slot this reader does not know.
-    UnknownProvenance {
+    /// The body declares a source-claim slot this reader does not know.
+    UnknownSourceClaim {
+        /// The slot found in the body.
+        found: u32,
+    },
+    /// The body declares a different source posture than the reading road accepts.
+    SourceClaimMismatch {
+        /// The source posture the reading road accepts.
+        expected: TranscriptSourceClaim,
+        /// The source posture the body declares.
+        found: TranscriptSourceClaim,
+    },
+    /// The encoded simulation schedule is not the owner-built schedule the caller supplied.
+    ScheduleMismatch,
+    /// The body declares a link-fault slot this reader does not know.
+    UnknownFault {
+        /// The slot found in the body.
+        found: u32,
+    },
+    /// The body declares a simulation-action slot this reader does not know.
+    UnknownAction {
         /// The slot found in the body.
         found: u32,
     },
@@ -374,6 +430,27 @@ pub enum TranscriptRefusal {
     },
     /// The encoded topology is not the one the caller opened the pack for.
     TopologyMismatch,
+    /// One decoded simulation action sends on a link outside the expected topology.
+    SimulationActionForeignLink {
+        /// The action's position in manifest order.
+        at: usize,
+    },
+    /// The retained schedule could not open over the retained topology.
+    SimulationNotOpened(SimNetRefusal),
+    /// One retained action was refused by the reproduced sim.
+    SimulationSendRefused {
+        /// The action's position in manifest order.
+        at: usize,
+        /// Why the send was refused.
+        refusal: SendRefusal,
+    },
+    /// The reproduced delivery roster first differs from the addressed roster here.
+    SimulationRowsDiverge {
+        /// The first different or absent row.
+        at: usize,
+    },
+    /// A recorded-live transcript has no simulation manifest to reproduce.
+    RecordedLiveCannotReproduce,
     /// A declared length is wider than this platform can index.
     LengthOutsidePlatform {
         /// The unrepresentable length.
@@ -391,7 +468,61 @@ pub enum TranscriptRefusal {
 /// A replay takes no sends and consults no discipline — it is the record, walked forward, which is what turns live traffic into a deterministic regression input.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Replay {
+    address: TranscriptAddress,
     entries: Vec<TranscriptEntry>,
+    total: usize,
     at: usize,
     tick: Tick,
+}
+
+/// Evidence that one exact simulation manifest reproduced its addressed delivery roster.
+///
+/// It proves reproduction of the byte-valued manifest and nothing about how a caller later handles those deliveries.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SimulationReproduction {
+    address: TranscriptAddress,
+    actions: usize,
+    rows: usize,
+    final_tick: Tick,
+}
+
+/// Evidence that one replay handed out every row in one exact addressed transcript.
+///
+/// Handed out is the ceiling: this value does not claim the caller processed, accepted, or applied any delivery.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ReplayExhaustion {
+    address: TranscriptAddress,
+    total: usize,
+    final_tick: Tick,
+}
+
+/// Why one replay could not mint [`ReplayExhaustion`].
+#[must_use = "a refusal is the reason replay exhaustion was not minted"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ReplayIncomplete {
+    address: TranscriptAddress,
+    remaining: usize,
+}
+
+/// The exact join of reproduced simulation material and an exhausted replay over the same transcript.
+///
+/// It proves that the addressed input manifest reproduced the addressed rows and that playback handed every addressed row out.
+/// It does not prove that a caller processed those rows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ReproducedReplay {
+    reproduction: SimulationReproduction,
+    exhaustion: ReplayExhaustion,
+}
+
+/// Why simulation reproduction and replay exhaustion did not join.
+#[must_use = "a refusal is the reason reproduced replay standing was not minted"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReproducedReplayRefusal {
+    /// The two values describe different addressed transcripts.
+    AddressMismatch {
+        /// The transcript the simulation reproduction names.
+        reproduction: TranscriptAddress,
+        /// The transcript the replay exhaustion names.
+        replay: TranscriptAddress,
+    },
 }

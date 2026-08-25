@@ -39,7 +39,7 @@ fn related_into(related: &RelatedDisposition, into: &mut Vec<u8>) {
 
 /// The typed material one universal answer carries, written through each value's own declared spelling.
 ///
-/// Exhaustive on purpose: an arm added to [`UniversalAnswer`](super::UniversalAnswer) stops compiling HERE until somebody says what of it an explanation's identity commits to, so no answer can be admitted and left out of the preimage.
+/// Exhaustive on purpose: an arm added to [`UniversalAnswer`] stops compiling HERE until somebody says what of it an explanation's identity commits to, so no answer can be admitted and left out of the preimage.
 pub(super) fn answer_material(answer: &UniversalAnswer, into: &mut Vec<u8>) {
     match answer {
         UniversalAnswer::Kind { name } => encode_bytes(name.as_bytes(), into),

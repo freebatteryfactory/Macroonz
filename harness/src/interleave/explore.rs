@@ -54,7 +54,7 @@ pub fn explored<State, Command: Clone>(
 
 /// Read one exploration into the trial conclusion its evidence earns.
 ///
-/// A counterexample concludes as the refusal its own finding states; an exhausted space concludes as a pass over the whole space; a clean sample concludes as a pass of the declared exploration exactly when the sampling drive met its declared case budget, and refuses as [`EXPLORATION_STARVED`](crate::interleave::EXPLORATION_STARVED) where it stopped short — an all-pass over fewer schedules than were declared is unexercised evidence, not a pass.
+/// A counterexample concludes as the refusal its own finding states; an exhausted space concludes as a pass over the whole space; a clean sample concludes as a pass of the declared exploration exactly when the sampling drive met its declared case budget, and refuses as [`EXPLORATION_STARVED`] where it stopped short — an all-pass over fewer schedules than were declared is unexercised evidence, not a pass.
 ///
 /// The reading stays the owner of the replay: the conclusion is the verdict alone, and the counterexample's interleaving lives where it always did.
 #[must_use]
