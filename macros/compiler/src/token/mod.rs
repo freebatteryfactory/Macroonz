@@ -9,6 +9,7 @@ mod text;
 mod type_contract;
 mod types;
 
+pub(crate) use compose::segmented_twin_path;
 pub use compose::{
     absolute_path, and_all, attribute, bound_local, bound_path, call, comma, comma_many, constant,
     documentation, equality, function, group, metavariable, method_call, method_chain,

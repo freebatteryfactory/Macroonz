@@ -21,6 +21,12 @@ use macroonz_harness::report::{
 use macroonz_harness::runner::{Invocation, TrialBinding};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+mod facade_harness {
+    pub(crate) mod descriptor {
+        pub(crate) use macroonz_harness::descriptor::GeneratedSupportSchemaId;
+    }
+}
+
 const OWNER: &str = "harness.bench.consumer";
 const LINEAR_FORMULA: &[u8] = b"work=samples*n";
 const MEASURED_REFUSED: FindingCause = FindingCause::named(OWNER, "measured-work-refused");
@@ -303,7 +309,7 @@ macroonz_harness::generated_support! {
         185, 251, 251, 45, 168, 146, 85, 42, 248, 177, 196, 48, 117, 229, 207, 5,
         84, 120, 104, 25, 150, 41, 202, 2, 243, 73, 31, 148, 241, 22, 122, 34,
     ],
-    harness: macroonz_harness,
+    harness: self::facade_harness,
     benches: {
         pub(super) fn lawful_table named("harness.bench.consumer", "neutral-benchmark-table") {
             provenance: Provenance::Unproduced,

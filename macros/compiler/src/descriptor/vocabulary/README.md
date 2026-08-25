@@ -31,4 +31,4 @@ Rust's own roads — `map_err`, `and_then`, `to_vec` — because they belong to 
 
 ## Rooting
 
-[`path`] writes the harness binding's metavariable and then the segments, so a consumer that renamed the dependency is named the way it named itself. Nothing in this home ever spells a crate.
+[`path`] writes the harness binding's root and repeated segments before the destination segments, so a consumer reaching the harness through a facade or renamed dependency uses the path it owns. Nothing in this home ever spells a crate.

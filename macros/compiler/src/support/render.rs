@@ -7,9 +7,9 @@
 //!
 //! # The crate a path is rooted at is never spelled
 //!
-//! Every path a carrier writes begins with the carrier's own METAVARIABLE for the crate it is rooted at, and the consumption target supplies the name once, at the invocation.
-//! A consumer that renamed either dependency gets its own name back, and this home never learns what the name is.
-//! The gate's own binding clause receives the very same metavariable, which is what makes that binding load-bearing rather than decorative: the gate proves the name the consumer passed reaches the same declaration the gate's own crate reaches, so a wrong name refuses at the door instead of as an unresolved path somewhere inside a seat.
+//! Every path a carrier writes begins with the carrier's own root-and-segments METAVARIABLES for the crate it is rooted at, and the consumption target supplies the path once, at the invocation.
+//! A consumer that reaches the harness through a facade or renamed dependency gets its own path back, and this home never learns what that path is.
+//! The gate's own binding clause receives the very same metavariables, which is what makes that binding load-bearing rather than decorative: the gate proves the path the consumer passed reaches the same declaration the gate's own crate reaches, so a wrong path refuses at the door instead of as an unresolved path somewhere inside a seat.
 //!
 //! # The pin is a roster of canonical tokens
 //!
@@ -24,7 +24,8 @@ use super::{
 use crate::bounded::Overflow;
 use crate::diagnostic::Door;
 use crate::token::{
-    GeneratedDelimiter, GeneratedToken, attribute, documentation, group, metavariable, twin_path,
+    GeneratedDelimiter, GeneratedToken, attribute, documentation, group, metavariable,
+    segmented_twin_path,
 };
 
 /// The gate a carrier's body invokes.
@@ -33,11 +34,25 @@ pub const GATE_MACRO: &str = "generated_support";
 /// The gate's clause carrying the producer's own expectation.
 pub const EXPECTED_CLAUSE: &str = "expected";
 
+/// The suffix naming the repeated path-segment binding beside a crate-facing root binding.
+const PATH_SEGMENT_SUFFIX: &str = "_segment";
+
+/// The repeated path-segment binding belonging to one crate-facing root binding.
+fn segment_binding(facing: CrateFacing) -> String {
+    format!("{}{PATH_SEGMENT_SUFFIX}", facing.name())
+}
+
+/// One path rooted at the complete segmented path a carrier binds for this facing.
+#[must_use]
+pub(crate) fn rooted_path(facing: CrateFacing, segments: &[&str]) -> Vec<GeneratedToken> {
+    segmented_twin_path(facing.name(), &segment_binding(facing), segments)
+}
+
 /// One path a caller declared, spelled from the crate it was rooted at.
 #[must_use]
 pub fn rendered_path(path: &BoundPath) -> Vec<GeneratedToken> {
     let segments: Vec<&str> = path.segments().iter().map(String::as_str).collect();
-    twin_path(path.facing().name(), &segments)
+    rooted_path(path.facing(), &segments)
 }
 
 /// The producer's expectation, as the bracketed roster of decimal byte values the gate's opening arm matches.
@@ -67,11 +82,31 @@ pub fn matched_clause(name: &str, fragment: &str) -> Vec<GeneratedToken> {
 
 /// A carrier's matcher: the binding every rendered path is rooted at, and exactly the clauses the declared cargo consumes.
 ///
-/// The binding is asked for always, because every expression a carrier renders is rooted at it and the gate's own clause is what proves the name the consumer passed is the right crate.
+/// The binding is asked for always, because every expression a carrier renders is rooted at it and the gate's own clause is what proves the path the consumer passed reaches the right crate.
 /// The rest is the declared cargo's own, carried beside the body that spells it — an argument a consumer supplies that nothing spells is a value the plan decided and nothing read.
 #[must_use]
 pub fn matcher(declared: &AxisCargo<DeclaredCargo>) -> Vec<GeneratedToken> {
-    let mut tokens = matched_clause(CrateFacing::Harness.name(), "ident");
+    let facing = CrateFacing::Harness;
+    let binding = facing.name();
+    let segment = segment_binding(facing);
+    let mut tokens = vec![GeneratedToken::word(binding), GeneratedToken::alone(':')];
+    tokens.extend(metavariable(binding));
+    tokens.push(GeneratedToken::alone(':'));
+    tokens.push(GeneratedToken::word("ident"));
+    tokens.push(GeneratedToken::joint('$'));
+    tokens.push(GeneratedToken::fixed_group(
+        GeneratedDelimiter::Parenthesis,
+        [
+            GeneratedToken::joint(':'),
+            GeneratedToken::alone(':'),
+            GeneratedToken::joint('$'),
+            GeneratedToken::word(&segment),
+            GeneratedToken::alone(':'),
+            GeneratedToken::word("ident"),
+        ],
+    ));
+    tokens.push(GeneratedToken::alone('*'));
+    tokens.push(GeneratedToken::alone(','));
     if let AxisCargo::Carried(cargo) = declared {
         tokens.extend(cargo.matched().tokens().iter().cloned());
     }
@@ -95,7 +130,8 @@ pub fn gate_invocation(
     stamped: Vec<GeneratedToken>,
     opaque: Vec<GeneratedToken>,
 ) -> Result<Vec<GeneratedToken>, Overflow> {
-    let binding = CrateFacing::Harness.name();
+    let facing = CrateFacing::Harness;
+    let binding = facing.name();
     let mut clauses = vec![
         GeneratedToken::word(EXPECTED_CLAUSE),
         GeneratedToken::alone(':'),
@@ -104,7 +140,7 @@ pub fn gate_invocation(
         GeneratedToken::word(binding),
         GeneratedToken::alone(':'),
     ];
-    clauses.extend(metavariable(binding));
+    clauses.extend(rooted_path(facing, &[]));
     clauses.push(GeneratedToken::alone(','));
     clauses.push(GeneratedToken::word(form.name()));
     clauses.push(GeneratedToken::alone(':'));
@@ -114,7 +150,7 @@ pub fn gate_invocation(
     clauses.push(GeneratedToken::alone(':'));
     clauses.push(group(GeneratedDelimiter::Brace, opaque)?);
     clauses.push(GeneratedToken::alone(','));
-    let mut tokens = twin_path(binding, &[GATE_MACRO]);
+    let mut tokens = rooted_path(facing, &[GATE_MACRO]);
     tokens.push(GeneratedToken::alone('!'));
     tokens.push(group(GeneratedDelimiter::Brace, clauses)?);
     Ok(tokens)

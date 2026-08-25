@@ -27,14 +27,14 @@ pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] = &[
 /// ```text
 /// generated_support! {
 ///     expected: [<the thirty-two published bytes, in decimal>],
-///     harness: <identifier>,
+///     harness: <path>,
 ///     trials: { <the trial_table! payload, verbatim> },
 ///     deferred: { <opaque token trees, verbatim> },
 /// }
 ///
 /// generated_support! {
 ///     expected: [<the thirty-two published bytes, in decimal>],
-///     harness: <identifier>,
+///     harness: <path>,
 ///     benches: { <the bench_table! payload, verbatim> },
 ///     reporter: { <opaque token trees, verbatim> },
 /// }
@@ -42,8 +42,8 @@ pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] = &[
 ///
 /// - `expected:` is the producer's own copy of the published identity, as thirty-two unsuffixed decimal byte values.
 ///   Exactly one roster opens the gate; every other roster reaches the refusing arm.
-/// - `harness:` is the identifier this crate is reached by at the invocation site — the rename twin's own name.
-///   It is an identifier rather than a path because a captured path fragment cannot be extended with further segments in an expansion.
+/// - `harness:` is the path this crate is reached by at the invocation site.
+///   The grammar captures its root and remaining segments separately, because Rust permits a repeated identifier sequence to be extended while a captured path fragment cannot be.
 /// - `trials:` is the row road, whose grammar is [`trial_table!`](crate::trial_table)'s exhaustively and which this gate neither reads nor rewrites.
 ///   The seat may be empty: a producer whose whole cargo was deferred writes `trials: { }`, the matched arm stamps no table, and nothing is missing.
 /// - `deferred:` is the opaque seat, forwarded verbatim on the matched road and withheld entirely on the refusing one.
@@ -55,8 +55,8 @@ pub const PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID: &[u8; 32] = &[
 ///
 /// # Authority
 ///
-/// The declared harness identifier is load-bearing rather than decorative: the expansion writes one item naming this crate's schema-identity type through both the declared path and `$crate`, and the two must be one type.
-/// A declaration that names another crate, or a name the consuming crate does not have, refuses at the door.
+/// The declared harness path is load-bearing rather than decorative: the expansion writes one item naming this crate's schema-identity type through both the declared path and `$crate`, and the two must be one type.
+/// A declaration that names another crate, or a path the consuming crate does not have, refuses at the door.
 ///
 /// Agreement here means the two published sides are coherent, and nothing more.
 /// Releasing cargo is transport and never endorsement: the gate says the pin matched, and says nothing about opaque tokens it never read.
@@ -70,15 +70,15 @@ macro_rules! generated_support {
             185, 251, 251, 45, 168, 146, 85, 42, 248, 177, 196, 48, 117, 229, 207, 5,
             84, 120, 104, 25, 150, 41, 202, 2, 243, 73, 31, 148, 241, 22, 122, 34,
         ],
-        harness: $harness:ident,
+        harness: $harness:ident $(:: $harness_segment:ident)*,
         trials: { $($trials:tt)* },
         deferred: { $($deferred:tt)* },
     ) => {
-        // The declared harness identifier, proven to name THIS crate: one type, reached both ways, and a
-        // function pointer that exists only if the two roads arrive at it. A wrong name refuses here, at
+        // The declared harness path, proven to name THIS crate: one type, reached both ways, and a
+        // function pointer that exists only if the two roads arrive at it. A wrong path refuses here, at
         // the door, rather than as an unresolved path somewhere inside either seat.
         const _: fn(
-            $harness::descriptor::GeneratedSupportSchemaId,
+            $harness $(:: $harness_segment)* :: descriptor::GeneratedSupportSchemaId,
         ) -> $crate::descriptor::GeneratedSupportSchemaId = ::core::convert::identity;
 
         $crate::generated_support! { @trials $($trials)* }
@@ -94,12 +94,12 @@ macro_rules! generated_support {
             185, 251, 251, 45, 168, 146, 85, 42, 248, 177, 196, 48, 117, 229, 207, 5,
             84, 120, 104, 25, 150, 41, 202, 2, 243, 73, 31, 148, 241, 22, 122, 34,
         ],
-        harness: $harness:ident,
+        harness: $harness:ident $(:: $harness_segment:ident)*,
         benches: { $($benches:tt)* },
         reporter: { $($reporter:tt)* },
     ) => {
         const _: fn(
-            $harness::descriptor::GeneratedSupportSchemaId,
+            $harness $(:: $harness_segment)* :: descriptor::GeneratedSupportSchemaId,
         ) -> $crate::descriptor::GeneratedSupportSchemaId = ::core::convert::identity;
 
         $crate::generated_support! { @benches $($benches)* }
@@ -114,7 +114,7 @@ macro_rules! generated_support {
     // compiler message has no way to learn the name it was renamed to.
     (
         expected: [$($expected:literal),* $(,)?],
-        harness: $harness:ident,
+        harness: $harness:ident $(:: $harness_segment:ident)*,
         trials: { $($trials:tt)* },
         deferred: { $($deferred:tt)* },
     ) => {
@@ -131,7 +131,7 @@ macro_rules! generated_support {
                 84, 120, 104, 25, 150, 41, 202, 2, 243, 73, 31, 148, 241, 22, 122, 34,
             ]),
             ". Declared harness: ",
-            ::core::stringify!($harness),
+            ::core::stringify!($harness $(:: $harness_segment)*),
             ". Both sides are rewritten together, in one change: derive the current value \
              from the harness's own published schema declaration, write it into the \
              producer's expectation and into this harness's published literal, and commit \
@@ -142,7 +142,7 @@ macro_rules! generated_support {
 
     (
         expected: [$($expected:literal),* $(,)?],
-        harness: $harness:ident,
+        harness: $harness:ident $(:: $harness_segment:ident)*,
         benches: { $($benches:tt)* },
         reporter: { $($reporter:tt)* },
     ) => {
@@ -157,7 +157,7 @@ macro_rules! generated_support {
                 84, 120, 104, 25, 150, 41, 202, 2, 243, 73, 31, 148, 241, 22, 122, 34,
             ]),
             ". Declared harness: ",
-            ::core::stringify!($harness),
+            ::core::stringify!($harness $(:: $harness_segment)*),
             ". Derive the current value from the harness's published schema declaration and \
              rewrite both published holders together."
         ));

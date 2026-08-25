@@ -147,6 +147,31 @@ pub fn twin_path(binding: &str, segments: &[&str]) -> Vec<GeneratedToken> {
     tokens
 }
 
+/// The path `$root $(:: $segment)*::a::b`, rooted at the complete segmented path a macro matcher captured.
+///
+/// The repetition group has fixed arity, so its fit under the generated-token magnitude is settled at compile time.
+#[must_use]
+pub(crate) fn segmented_twin_path(
+    root_binding: &str,
+    segment_binding: &str,
+    segments: &[&str],
+) -> Vec<GeneratedToken> {
+    let mut tokens = metavariable(root_binding);
+    tokens.push(GeneratedToken::joint('$'));
+    tokens.push(GeneratedToken::fixed_group(
+        GeneratedDelimiter::Parenthesis,
+        [
+            GeneratedToken::joint(':'),
+            GeneratedToken::alone(':'),
+            GeneratedToken::joint('$'),
+            GeneratedToken::word(segment_binding),
+        ],
+    ));
+    tokens.push(GeneratedToken::alone('*'));
+    extend_path(&mut tokens, segments);
+    tokens
+}
+
 /// Write `::segment` for each segment onto a path being built.
 fn extend_path(tokens: &mut Vec<GeneratedToken>, segments: &[&str]) {
     for segment in segments {

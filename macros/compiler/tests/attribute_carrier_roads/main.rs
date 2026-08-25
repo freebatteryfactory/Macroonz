@@ -171,6 +171,8 @@ fn a_trial_declaration_becomes_one_carrier_at_the_declaration_site() -> Result<(
 fn the_trial_matcher_binds_every_spelled_metavariable() -> Result<(), ()> {
     let carrier = trials(TRIAL_BODY).ok_or(())?.ok().ok_or(())?;
     let text = emitted(&carrier).ok_or(())?;
+    assert!(text.contains("harness : $harness : ident $( :: $harness_segment : ident ) * ,"));
+    assert!(text.contains("$harness $( :: $harness_segment ) * :: generated_support"));
     for clause in [
         "invocation",
         "target",

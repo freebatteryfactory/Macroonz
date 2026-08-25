@@ -554,6 +554,18 @@ impl GeneratedToken {
     pub fn group(delimiter: GeneratedDelimiter, tokens: Vec<Self>) -> Result<Self, Overflow> {
         Bounded::new(tokens).map(|tokens| Self::Group { delimiter, tokens })
     }
+
+    /// One fixed-arity delimited group whose fit is settled at compile time.
+    #[must_use]
+    pub(crate) fn fixed_group<const N: usize>(
+        delimiter: GeneratedDelimiter,
+        tokens: [Self; N],
+    ) -> Self {
+        Self::Group {
+            delimiter,
+            tokens: Bounded::from_array(tokens),
+        }
+    }
 }
 
 impl GeneratedTree {

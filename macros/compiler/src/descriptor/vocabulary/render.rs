@@ -1,16 +1,16 @@
 //! Spelling one path, one call, and one clause at the harness's address.
 //!
-//! Every path a descriptor emission writes begins with the harness binding's own metavariable, so a consumer that renamed the dependency gets its own name back and nothing here learns what the crate is called.
+//! Every path a descriptor emission writes begins with the harness binding's root and repeated segment metavariables, so a consumer that reaches the harness through a facade or renamed dependency gets its own path back and nothing here learns what the crate is called.
 
 use super::{HarnessName, HarnessWord};
 use crate::bounded::Overflow;
-use crate::token::{GeneratedToken, call, twin_path};
+use crate::token::{GeneratedToken, call};
 
-/// One path at the harness's address, rooted at the harness binding's metavariable.
+/// One path at the harness's address, rooted at the harness binding's segmented path.
 #[must_use]
 pub fn path(segments: &[HarnessName]) -> Vec<GeneratedToken> {
     let spelled: Vec<&str> = segments.iter().map(|segment| segment.spelling()).collect();
-    twin_path(crate::support::CrateFacing::Harness.name(), &spelled)
+    crate::support::rooted_path(crate::support::CrateFacing::Harness, &spelled)
 }
 
 /// One call to a road at the harness's address.
