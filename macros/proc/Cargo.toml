@@ -1,7 +1,6 @@
 [package]
 name = "macroonz-macros"
 description = "Generic trials, bench, and mutations attributes over the macroonz compiler, with the shadow, network, and concurrency declarations beside them."
-publish = false
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -18,4 +17,4 @@ workspace = true
 macroonz-compiler = { workspace = true, features = ["host"] }
 
 [dev-dependencies]
-mh = { package = "macroonz-harness", path = "../../harness", version = "=0.0.0" }
+mh = { package = "macroonz-harness", path = "../../harness", version = "=0.1.0" }
