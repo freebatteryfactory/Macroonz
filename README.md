@@ -29,24 +29,27 @@ Macroonz replaces both hopes with records.
 
 ## The bakery
 
-One crate is the oven, one is the hand that will load it, and one is the taste tester.
+One storefront opens onto the oven, the hand that loads it, and the taste tester without pouring their vocabularies into one bowl.
 
 | Crate | Directory | What it is |
 | --- | --- | --- |
-| **`macroonz`** | `macros/compiler/` | The compiler, as ordinary functions. Capture a declaration, build a request, plan, render, close, explain, bind, emit. This is the crate you add. |
+| **`macroonz`** | `/` | The storefront. It preserves the three owners as `compiler`, `macros`, and feature-gated `harness` modules. This is the crate you add. |
+| **`macroonz-compiler`** | `macros/compiler/` | The compiler, as ordinary functions. Capture a declaration, build a request, plan, render, close, explain, bind, emit. |
 | **`macroonz-macros`** | `macros/proc/` | The generic entries: `#[trials]`, `#[bench]`, and `#[mutations]`, each expanding to one inert exported carrier beside the item it decorates, and the three direct declarations — `shadow!` for two-faced synchronization imports, `network!` for a topology's builder module, `concurrency!` for declared interleaving explorations. It owns no grammar — every reading and every road is the compiler's. |
-| **`macroonz-harness`** | `harness/` | The judge. Descriptors, generation, properties, oracles, faults, corpus, mutation, benches, reports, replay. A dev-dependency — production never depends on it. |
+| **`macroonz-harness`** | `harness/` | The judge. Descriptors, generation, properties, oracles, faults, corpus, mutation, benches, reports, replay. The default storefront includes it; the diet posture removes it from a shipping graph. |
 
 ```mermaid
 flowchart LR
-    YOU["your library<br/>+ your derive"] --> C["macroonz"]
-    PROC["macroonz-macros"] --> C
-    YOU -. tests .-> H["macroonz-harness"]
+    YOU["your crate"] --> F["macroonz"]
+    F --> C["macroonz-compiler"]
+    F --> PROC["macroonz-macros"]
+    PROC --> C
+    F -. harness feature .-> H["macroonz-harness"]
 ```
 
 Arrows point at dependencies.
 The compiler depends on nothing in this workspace.
-The harness reaches the generation crates only from its own tests.
+The proc crate reaches the harness only from its tests, and the harness reaches the compiler only from its tests.
 
 ---
 
@@ -58,7 +61,7 @@ A kind says what content it is rendered from, which roles its output units play,
 The compiler is generic over all of that; it has never heard of your kind and does not need to.
 
 ```rust
-use macroonz::{Kind, NoQuestions, Request};
+use macroonz::compiler::{Kind, NoQuestions, Request};
 
 /// One `impl Greet` for the declared type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -72,7 +75,7 @@ impl Kind for GreetImpl {
 }
 
 pub fn greet(input: TokenStream) -> TokenStream {
-    macroonz::host::expand(input, |capture| {
+    macroonz::compiler::host::expand(input, |capture| {
         let greeting = Greeting::read(&capture)?;
         Request::<GreetImpl>::over(capture, greeting, &GREET_DOOR)
             .render(|plan, out| out.unit(GreetRole::Impl, plan.content().impl_tokens()))
@@ -132,8 +135,24 @@ The harness hands you the instruments — each independently callable, composed 
 - **Benchmarks** with the same receiver and the same pinned profile, so a number means the same thing tomorrow.
 - **Reports** each verdict with its standing, its site, and its complete denominator — joined to its replay capsule, where a reduction earned one, on one execution key.
 
-Descriptors, trials, mutations, and benches live in your tests — written through the generic `macroonz-macros` attributes, through your own attributes, or by hand.
+Descriptors, trials, mutations, and benches live in your tests — written through the generic `macroonz::macros` attributes, through your own attributes, or by hand.
 The harness owns how they are judged, never what they mean.
+
+---
+
+## The three postures
+
+Cargo features are additive, so the lighter postures are selected by turning off the default before adding back only the door wanted.
+
+| Posture | Command | Surface |
+| --- | --- | --- |
+| **full** | `cargo add macroonz` | Compiler, proc declarations, harness, and the target-qualified preemption backend. This is the default. |
+| **diet-lite** | `cargo add macroonz --no-default-features --features harness` | Compiler, proc declarations, and harness without Loom. |
+| **diet** | `cargo add macroonz --no-default-features` | Compiler and proc declarations only. |
+
+The `preemption` feature always implies `harness`.
+On a native target supported by the pinned Loom backend, enabling `preemption` installs that backend.
+On every other target, including Wasm, the same harness result plane remains available and reports typed backend unavailability instead of trying to compile Loom.
 
 ---
 
@@ -150,7 +169,7 @@ cargo fmt --all -- --check
 cargo deny --workspace check
 ```
 
-The wall runs with every feature on, so the optional homes — the loom-backed `preemption` exploration among them — are proven on every run while the default build stays lean.
+The wall runs with every feature on, so the optional homes — the target-qualified Loom-backed `preemption` exploration among them — are exercised together.
 
 ---
 

@@ -9,8 +9,8 @@
 //!
 //! A plan that admitted anything would satisfy every positive assertion here, so each is paired with the shape that must refuse: a seat declared twice, a seat outside the kind's declared roster, a set past its magnitude, an account past its magnitude, and a one-trigger reading of a cause set that names more than one declaration.
 
-use macroonz::identity::{self, Identity, Transcript};
-use macroonz::{
+use macroonz_compiler::identity::{self, Identity, Transcript};
+use macroonz_compiler::{
     Account, BoundAxis, Bounded, ContentBinding, Context, CrateBinding, DEPENDENCY_LIMIT,
     DecisionTrace, Destination, DigestContract, Door, InvalidationTrigger, Kind, MEMBERSHIP_LIMIT,
     Membership, NoQuestions, OriginEdge, OriginRelation, OriginTrail, OwnerFact, Plan,

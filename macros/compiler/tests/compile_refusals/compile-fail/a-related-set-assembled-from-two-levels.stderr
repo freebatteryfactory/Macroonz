@@ -7,7 +7,7 @@ error[E0308]: mismatched types
    |                arguments to this function are incorrect
    |
    = note: expected reference `&[Vec<u8>]`
-              found reference `&Vec<macroonz::Identity<RelatedIssue>>`
+              found reference `&Vec<macroonz_compiler::Identity<RelatedIssue>>`
 note: associated function defined here
   --> src/diagnostic/type_guard.rs
    |

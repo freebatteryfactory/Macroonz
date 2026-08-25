@@ -2,10 +2,10 @@
 //!
 //! The positive lanes establish that the rendering writes exactly the two `cfg`-gated faces per chosen name in authored order; the refusal lanes reverse one clause each of what the grammar promises; the roster lane holds the stated table to its own shape.
 
-use macroonz::descriptor::Grammar;
-use macroonz::descriptor::door;
-use macroonz::descriptor::shadow::{SHADOW_ROSTER, ShadowFace};
-use macroonz::{CrateBinding, Diagnostic, Door, Expansion, Phase, Producer, TextCapture};
+use macroonz_compiler::descriptor::Grammar;
+use macroonz_compiler::descriptor::door;
+use macroonz_compiler::descriptor::shadow::{SHADOW_ROSTER, ShadowFace};
+use macroonz_compiler::{CrateBinding, Diagnostic, Door, Expansion, Phase, Producer, TextCapture};
 use std::collections::BTreeSet;
 
 /// The one value that says who is asking.
@@ -42,7 +42,7 @@ fn emitted(expansion: &Expansion<ShadowFace>) -> Option<String> {
     expansion
         .emit()
         .tokens()
-        .map(macroonz::GeneratedTree::inspected)
+        .map(macroonz_compiler::GeneratedTree::inspected)
 }
 
 /// A lawful choice becomes both faces of each chosen name, in authored order, and nothing else.

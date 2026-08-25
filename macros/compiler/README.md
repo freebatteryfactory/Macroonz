@@ -1,4 +1,4 @@
-# macroonz
+# macroonz-compiler
 
 The compiler.
 A complete request goes in; one sealed expansion comes out, or one diagnostic that says exactly why not.
@@ -16,7 +16,7 @@ A kind, a reader for your own declaration grammar, and a renderer.
 Everything else is the road.
 
 ```rust
-use macroonz::{Destination, Kind, NoQuestions, Request, Role};
+use macroonz_compiler::{Destination, Kind, NoQuestions, Request, Role};
 
 /// The one thing this derive produces: an `impl Greet` for the declared type.
 ///
@@ -46,7 +46,7 @@ And in the proc-macro crate, with the `host` feature on:
 ```rust
 #[proc_macro_derive(Greet, attributes(greet))]
 pub fn greet(input: TokenStream) -> TokenStream {
-    macroonz::host::expand(input, |capture| {
+    macroonz_compiler::host::expand(input, |capture| {
         let greeting = Greeting::read(&capture)?;
         Request::<GreetImpl>::over(capture, greeting, &GREET_DOOR)
             .render(|plan, out| out.unit(GreetRole::Impl, plan.content().impl_tokens()))
@@ -167,6 +167,6 @@ Every preimage grammar is versioned, one version per grammar, and a changed prei
 
 | Feature | Adds | Default |
 | --- | --- | --- |
-| `host` | `macroonz::host`: `proc_macro::TokenStream` in, `CapturedInput` out; expansion in, `TokenStream` out; a diagnostic placed as `compile_error!` at its site. | off |
+| `host` | `macroonz_compiler::host`: `proc_macro::TokenStream` in, `CapturedInput` out; expansion in, `TokenStream` out; a diagnostic placed as `compile_error!` at its site. | off |
 
 Only a proc-macro crate turns `host` on.

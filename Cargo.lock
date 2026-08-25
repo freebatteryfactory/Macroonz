@@ -165,6 +165,15 @@ dependencies = [
 name = "macroonz"
 version = "0.0.0"
 dependencies = [
+ "macroonz-compiler",
+ "macroonz-harness",
+ "macroonz-macros",
+]
+
+[[package]]
+name = "macroonz-compiler"
+version = "0.0.0"
+dependencies = [
  "blake3",
  "trybuild",
 ]
@@ -176,7 +185,7 @@ dependencies = [
  "arbitrary",
  "blake3",
  "loom",
- "macroonz",
+ "macroonz-compiler",
  "syn",
  "trybuild",
 ]
@@ -185,7 +194,7 @@ dependencies = [
 name = "macroonz-macros"
 version = "0.0.0"
 dependencies = [
- "macroonz",
+ "macroonz-compiler",
  "macroonz-harness",
 ]
 

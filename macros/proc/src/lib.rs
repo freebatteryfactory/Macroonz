@@ -6,9 +6,9 @@
 //! Each attribute expands to one exported carrier and then the item it decorates, byte for byte as the author wrote it; the carrier is inert until a consumption target invokes it, so an ordinary build compiles the item and one macro definition and nothing more.
 //! The three declarations — [`shadow!`](macro@shadow), [`network!`](macro@network), and [`concurrency!`](macro@concurrency) — are direct emissions: ordinary items where the declaration stands, inert inside nothing, because a face and a builder are not cargo.
 
-use macroonz::descriptor::door;
-use macroonz::descriptor::{Emitter, Grammar};
-use macroonz::{CrateBinding, Door, Producer, host};
+use macroonz_compiler::descriptor::door;
+use macroonz_compiler::descriptor::{Emitter, Grammar};
+use macroonz_compiler::{CrateBinding, Door, Producer, host};
 use proc_macro::TokenStream;
 
 /// The grammar spelling the `trials` attribute registers.
@@ -127,7 +127,7 @@ const SHADOW_DOOR: Door = Door::declared(
 
 /// Declares a trial table beside the item this attribute sits on.
 ///
-/// The body is the trial grammar, read whole by `macroonz::descriptor::trial`: the exported support name, the stamped module, the table's own name, and each aggregate seat with its rows.
+/// The body is the trial grammar, read whole by `macroonz_compiler::descriptor::trial`: the exported support name, the stamped module, the table's own name, and each aggregate seat with its rows.
 /// The expansion is one exported carrier holding the stamped table inert, followed by the item unchanged; a consumption target invokes the carrier by the declared support name and supplies its own host facts and callables there.
 ///
 /// A malformed declaration expands to `compile_error!` at the offending token, carrying the compiler's own rendering of the established cause.
@@ -142,7 +142,7 @@ pub fn trials(body: TokenStream, item: TokenStream) -> TokenStream {
 
 /// Declares a mutation surface over the enum this attribute sits on.
 ///
-/// The body is the mutation grammar, read whole by `macroonz::descriptor::mutation`: the surface's address, the evaluation family, the point and owner fact, the fact-to-claim mappings, and the operator permissions.
+/// The body is the mutation grammar, read whole by `macroonz_compiler::descriptor::mutation`: the surface's address, the evaluation family, the point and owner fact, the fact-to-claim mappings, and the operator permissions.
 /// The door completes the site from the item itself — the enum's variant list is the declared order, the unchanged operation is that order as authored, and each alternative is one adjacent transposition of it under the harness bank's `declared-order-permutation` operator family.
 /// The expansion is one exported carrier holding the rendered module as proved test-carrier cargo, followed by the item unchanged.
 ///
@@ -163,7 +163,7 @@ pub fn mutations(body: TokenStream, item: TokenStream) -> TokenStream {
 
 /// Declares a neutral benchmark table and its typed report-reader seat beside the item this attribute sits on.
 ///
-/// The body is the bench grammar, read whole by `macroonz::descriptor::bench`: the exported support name, the table function and name, the reporter module, and each row's references, axis, four exact budget values, optional formula, and observation references.
+/// The body is the bench grammar, read whole by `macroonz_compiler::descriptor::bench`: the exported support name, the table function and name, the reporter module, and each row's references, axis, four exact budget values, optional formula, and observation references.
 /// The expansion is one exported carrier holding the table in its stamped seat and one target-supplied `fn(&BenchReport)` value in its opaque seat, followed by the item unchanged.
 ///
 /// A malformed declaration expands to `compile_error!` at the offending token, carrying the compiler's own rendering of the established cause.

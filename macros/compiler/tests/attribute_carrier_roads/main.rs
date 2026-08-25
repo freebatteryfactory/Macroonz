@@ -3,10 +3,10 @@
 //! Every claim below is asked through the road a proc host takes — `descriptor::door` — with nothing reached around it.
 //! The positive lanes establish that each road's carrier really composes what its reading produced, and each refusal lane reverses one clause of that, so a road that stopped reading or stopped refusing is caught from this side of the wall.
 
-use macroonz::descriptor::door;
-use macroonz::descriptor::{Emitter, Grammar};
-use macroonz::support::SupportCarrier;
-use macroonz::{
+use macroonz_compiler::descriptor::door;
+use macroonz_compiler::descriptor::{Emitter, Grammar};
+use macroonz_compiler::support::SupportCarrier;
+use macroonz_compiler::{
     CrateBinding, Diagnostic, Door, Expansion, PartitionCargo, Phase, Producer, TextCapture,
 };
 
@@ -138,7 +138,7 @@ fn emitted(expansion: &Expansion<SupportCarrier>) -> Option<String> {
     expansion
         .emit()
         .tokens()
-        .map(macroonz::GeneratedTree::inspected)
+        .map(macroonz_compiler::GeneratedTree::inspected)
 }
 
 /// A trial declaration becomes one carrier at the declaration site and nothing anywhere else.

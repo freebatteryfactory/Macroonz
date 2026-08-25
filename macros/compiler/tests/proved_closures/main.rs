@@ -7,7 +7,7 @@
 //!
 //! A road that closed over anything would satisfy every positive assertion here, so each is paired with the shape that must refuse: a set the rendering outgrew, a rendering short of the set, a renderer that wrote nothing, and each of the three ways three separately produced values can disagree about their parentage.
 
-use macroonz::{
+use macroonz_compiler::{
     BindError, Bounded, Closure, ClosureIssue, CrateBinding, Destination, Door, Expansion,
     GeneratedToken, GeneratedTree, InvalidationTrigger, Kind, Membership, NoQuestions, Observed,
     Overflow, OwnerIdentity, PartitionCargo, Phase, Plan, PlanDecisions, Producer,

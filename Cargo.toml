@@ -1,6 +1,16 @@
+[package]
+name = "macroonz"
+description = "One module-preserving front door for the Macroonz compiler, procedural declarations, and test harness."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
 [workspace]
 resolver = "3"
 members = [
+    ".",
     "harness",
     "macros/compiler",
     "macros/proc",
@@ -19,6 +29,23 @@ syn = { version = "=3.0.3", default-features = false, features = ["full", "parsi
 blake3 = { version = "=1.8.6", default-features = false }
 loom = { version = "=0.7.2", default-features = false, features = ["futures"] }
 trybuild = "=1.0.120"
+macroonz-compiler = { path = "macros/compiler", version = "=0.0.0" }
+macroonz-harness = { path = "harness", version = "=0.0.0", default-features = false }
+macroonz-macros = { path = "macros/proc", version = "=0.0.0" }
+
+[features]
+default = ["full"]
+harness = ["dep:macroonz-harness"]
+preemption = ["harness", "macroonz-harness/preemption"]
+full = ["harness", "preemption"]
+
+[dependencies]
+macroonz-compiler = { workspace = true, features = ["host"] }
+macroonz-harness = { workspace = true, optional = true }
+macroonz-macros = { workspace = true }
+
+[lints]
+workspace = true
 
 [profile.release]
 overflow-checks = true

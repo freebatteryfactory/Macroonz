@@ -1,4 +1,4 @@
-error: cannot construct `macroonz::Closure<_>` with struct literal syntax due to private fields
+error: cannot construct `macroonz_compiler::Closure<_>` with struct literal syntax due to private fields
   --> tests/compile_refusals/compile-fail/a-proof-minted-without-proving.rs:11:56
    |
 11 |     let mint: fn(PlanId) -> Closure<SoleRole> = |plan| Closure { plan };

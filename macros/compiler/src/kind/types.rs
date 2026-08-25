@@ -199,7 +199,7 @@ fn slot_in<T: Copy + Eq>(roster: &[T], row: T) -> u16 {
 /// # Examples
 ///
 /// ```ignore
-/// macroonz::roster! {
+/// macroonz_compiler::roster! {
 ///     /// Which direction a codec covers.
 ///     pub enum Direction {
 ///         /// Typed value to canonical bytes.
@@ -248,7 +248,7 @@ macro_rules! roster {
 /// # Examples
 ///
 /// ```ignore
-/// macroonz::kinds! {
+/// macroonz_compiler::kinds! {
 ///     set = GreetKinds;
 ///     dispositions = GreetDispositions;
 ///

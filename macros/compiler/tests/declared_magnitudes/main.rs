@@ -17,7 +17,7 @@
 //! This lane implements that coordinate itself and shows two distinct tokens colliding under it while their routes differ.
 
 use core::convert::Infallible;
-use macroonz::{
+use macroonz_compiler::{
     CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound,
     CaptureBuildRefusal, CaptureBuilder, CapturedAtom, CapturedDelimiter, CapturedInput,
     CapturedTokenTree, CoordinateRole, TOKEN_PATH_DEPTH_LIMIT, TextCapture, TextReadCause,
@@ -175,7 +175,7 @@ fn a_fresh_capture_after_refusal_preserves_prior_handles_without_ghost_positions
     assert_eq!(fresh.issued(), 2);
     assert_eq!(
         fresh.trees().first().map(CapturedTokenTree::span),
-        Some(macroonz::SpanHandle::at(1))
+        Some(macroonz_compiler::SpanHandle::at(1))
     );
     Ok(())
 }

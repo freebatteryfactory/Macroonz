@@ -5,7 +5,7 @@
 //!
 //! Nothing is called below; naming the road is the proof, because a private associated function is unreachable from here whatever it is handed.
 
-use macroonz::CarriedTokens;
+use macroonz_compiler::CarriedTokens;
 
 fn main() {
     let _join = CarriedTokens::joined;

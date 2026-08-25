@@ -15,7 +15,7 @@ proc-macro = true
 workspace = true
 
 [dependencies]
-macroonz = { path = "../compiler", version = "0.0.0", features = ["host"] }
+macroonz-compiler = { workspace = true, features = ["host"] }
 
 [dev-dependencies]
-mh = { package = "macroonz-harness", path = "../../harness" }
+mh = { package = "macroonz-harness", path = "../../harness", version = "=0.0.0" }

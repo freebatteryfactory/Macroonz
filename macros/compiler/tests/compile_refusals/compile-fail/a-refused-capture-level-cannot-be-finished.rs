@@ -1,6 +1,6 @@
 //! A capture operation consumes its level, so a producer refusal leaves no partial level to finish.
 
-use macroonz::{CaptureBuilder, CapturedAtom};
+use macroonz_compiler::{CaptureBuilder, CapturedAtom};
 
 fn main() {
     let mut builder = CaptureBuilder::<u64>::declared();

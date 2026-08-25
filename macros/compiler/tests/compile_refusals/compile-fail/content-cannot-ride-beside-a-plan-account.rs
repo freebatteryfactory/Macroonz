@@ -2,7 +2,7 @@
 //!
 //! Restoring the old four-argument constructor makes this fixture compile and permits a plan identity derived from one account to carry another content value.
 
-use macroonz::{Account, Context, Kind, NoQuestions, Plan, PlanDecisions, SoleRole};
+use macroonz_compiler::{Account, Context, Kind, NoQuestions, Plan, PlanDecisions, SoleRole};
 
 struct Demo;
 

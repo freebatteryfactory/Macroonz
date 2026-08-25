@@ -7,7 +7,7 @@ error[E0308]: mismatched types
    |     arguments to this function are incorrect
    |
    = note: expected struct `ContentBinding<Demo>`
-              found struct `macroonz::Identity<macroonz::identity::CapturedDeclaration>`
+              found struct `macroonz_compiler::Identity<macroonz_compiler::identity::CapturedDeclaration>`
 note: associated function defined here
   --> src/plan/type_guard.rs
    |

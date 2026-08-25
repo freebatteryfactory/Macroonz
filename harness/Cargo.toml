@@ -27,7 +27,7 @@ default = []
 preemption = ["dep:loom"]
 
 [dev-dependencies]
-macroonz = { path = "../macros/compiler" }
+macroonz-compiler = { workspace = true }
 trybuild = { workspace = true }
 
 [[test]]

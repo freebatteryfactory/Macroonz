@@ -6,8 +6,8 @@
 //! Minting an identity of a public subject is lawful and stays lawful — that is what makes this the honest test.
 //! Holding both levels is allowed; seating them is not expressible, because the only entry point takes bytes that were established as issues rather than names somebody chose.
 
-use macroonz::identity::{Identity, RelatedIssue, Role, Transcript};
-use macroonz::{Family, RelatedSet};
+use macroonz_compiler::identity::{Identity, RelatedIssue, Role, Transcript};
+use macroonz_compiler::{Family, RelatedSet};
 
 const FAMILY: Family = Family::declared("lane/assembled");
 

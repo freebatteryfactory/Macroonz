@@ -8,7 +8,7 @@
 //! A grammar that composed anything would satisfy a lane that only checked for a non-empty sentence.
 //! So each clause is required to appear where it belongs and to stay absent where it does not: a whole-declaration refusal adds no position, a handle the producer's table does not reach says so rather than rendering a number, and two refusals that classify alike stay two refusals.
 
-use macroonz::{
+use macroonz_compiler::{
     Bounded, Capping, CoordinateRole, CrateBinding, Diagnostic, Door, ExplanationError,
     ExplanationIssue, Family, Line, LineBody, LineSite, Observed, Phase, Placement, Producer,
     RELATED_ISSUE_LIMIT, REPAIR_LIMIT, RefusalClass, Refused, RenderError, Repair, SiteCoordinate,

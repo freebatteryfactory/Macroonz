@@ -9,7 +9,7 @@
 //! Currency, and nothing else.
 //! A pin that is current over a declaration is evidence about that declaration, not about the structural authorship of neighboring facts; those joins live at the descriptor owner.
 
-use macroonz::support::EXPECTED_SCHEMA_ID;
+use macroonz_compiler::support::EXPECTED_SCHEMA_ID;
 use macroonz_harness::descriptor::{GeneratedSupportSchema, PUBLISHED_GENERATED_SUPPORT_SCHEMA_ID};
 
 /// The identity the current declaration derives, through the public owner road and nothing else.

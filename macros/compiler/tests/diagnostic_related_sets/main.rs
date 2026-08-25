@@ -13,7 +13,7 @@
 //! A match that could not fail proves nothing.
 //! Three negative controls run beside the positive ones: an encoder that concatenates the issues unframed must disagree, an encoder that derives the body under the ISSUE subject must disagree, and the crafted aliasing case — material that derives one identity at both levels under a single-subject grammar — must produce two.
 
-use macroonz::{Capping, Family, RELATED_ISSUE_LIMIT, RelatedIdentity, RelatedSet};
+use macroonz_compiler::{Capping, Family, RELATED_ISSUE_LIMIT, RelatedIdentity, RelatedSet};
 
 // ---------------------------------------------------------------------------
 // The specification, restated here in full.

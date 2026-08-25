@@ -5,7 +5,7 @@
 //!
 //! No value is constructed below; the struct expression alone is the proof.
 
-use macroonz::{Diagnostic, Phase};
+use macroonz_compiler::{Diagnostic, Phase};
 
 fn main() {
     let _minted = Diagnostic {

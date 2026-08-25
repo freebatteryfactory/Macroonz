@@ -5,9 +5,9 @@
 //!
 //! Minting the identities is lawful and stays lawful; the unwritable thing is the pair that claims a plan decided them.
 
-use macroonz::identity::{GeneratedUnit, Identity, Role, Transcript};
-use macroonz::plan::DigestContract;
-use macroonz::stamp::StampedPlan;
+use macroonz_compiler::identity::{GeneratedUnit, Identity, Role, Transcript};
+use macroonz_compiler::plan::DigestContract;
+use macroonz_compiler::stamp::StampedPlan;
 
 fn main() {
     let unit = Identity::<GeneratedUnit>::derived(Transcript::rooted(

@@ -9,7 +9,7 @@
 //! So the separations are required rather than assumed: six spellings must reach six answers, one value written two ways must reach one, and one body written under two forms must encode apart.
 
 use core::convert::Infallible;
-use macroonz::{CaptureBuilder, CapturedAtom, LiteralReadCause, capture_literal};
+use macroonz_compiler::{CaptureBuilder, CapturedAtom, LiteralReadCause, capture_literal};
 
 /// The payload one spelling reads to, or nothing where reading it refused.
 fn read(spelling: &str) -> Option<CapturedAtom> {

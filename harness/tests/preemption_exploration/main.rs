@@ -334,9 +334,9 @@ fn the_shadow_roster_is_witnessed_against_the_pinned_loom() {
         loom::sync::mpsc::channel::<u8>,
         loom::hint::spin_loop,
     );
-    let stated: Vec<&str> = macroonz::descriptor::shadow::SHADOW_ROSTER
+    let stated: Vec<&str> = macroonz_compiler::descriptor::shadow::SHADOW_ROSTER
         .iter()
-        .map(macroonz::descriptor::shadow::ShadowRow::name)
+        .map(macroonz_compiler::descriptor::shadow::ShadowRow::name)
         .collect();
     assert_eq!(stated, WITNESSED);
 }

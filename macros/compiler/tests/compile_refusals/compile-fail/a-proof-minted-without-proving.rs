@@ -5,7 +5,7 @@
 //!
 //! No value is constructed below; the struct expression alone is the proof.
 
-use macroonz::{Closure, PlanId, SoleRole};
+use macroonz_compiler::{Closure, PlanId, SoleRole};
 
 fn main() {
     let mint: fn(PlanId) -> Closure<SoleRole> = |plan| Closure { plan };

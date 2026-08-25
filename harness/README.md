@@ -6,8 +6,8 @@ It has no loyalty to the baker, no opinion about the recipe, and it records ever
 You describe a subject once — what it takes, what it returns, what it refuses, what must hold — and its instruments spend the rest of their time trying to make that description false: independently callable engines a caller composes, not one pipeline behind one button.
 A verdict comes back as two separately earned values that join on one execution key: the report, which carries the standing, the site, and the complete denominator of what ran; and the replay capsule, which a completed reduction mints over the exact minimized input — so a failure is a thing you can hold rather than a thing you saw once, and neither value claims what the other proved.
 
-This is a dev-dependency.
-Production never depends on its judge, and the harness never depends on the crates it judges.
+The harness belongs in test and tooling code, and it never depends on the crates it judges.
+The `macroonz` facade includes its API by default so one dependency opens the complete machine; a shipping crate that wants no judge selects the diet posture.
 
 ---
 

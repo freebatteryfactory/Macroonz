@@ -5,7 +5,7 @@
 //!
 //! Restoring an unconditional answer makes the road total again and this file compiles, which is what makes the fixture the control for the shape rather than a note beside it.
 
-use macroonz::{Account, Context, InvalidationSet, Kind, NoQuestions, SoleRole};
+use macroonz_compiler::{Account, Context, InvalidationSet, Kind, NoQuestions, SoleRole};
 
 /// One kind, because an account is an account OF something.
 struct Demo;

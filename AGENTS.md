@@ -29,11 +29,14 @@ If the compiler or the harness cannot do its job without knowing the product it 
 ## 2 · Dependencies point one way
 
 ```text
-macroonz-macros   ──▶ macroonz
-macroonz-harness  ┈┈▶ macroonz   tests only
+macroonz          ──▶ macroonz-compiler
+macroonz          ──▶ macroonz-macros   ──▶ macroonz-compiler
+macroonz          ──▶ macroonz-harness  optional
+macroonz-macros   ┈┈▶ macroonz-harness  tests only
+macroonz-harness  ┈┈▶ macroonz-compiler tests only
 ```
 
-Every other edge is forbidden, and the diagram is the whole claim: an arrow a manifest carries that no line here draws is a defect in one of the two.
+Every other edge is forbidden, and the diagram is the whole claim: an arrow a manifest carries that no line here draws is a defect in one of these packages.
 
 ---
 

@@ -2,12 +2,12 @@
 //!
 //! The positive lanes hold the emitted text to the shapes the grammars promise; the refusal lanes reverse one clause each — an undeclared key, a doubled name, a foreign endpoint, an unreadable phrase, a missing fact, an empty declaration, a separator separating nothing.
 
-use macroonz::descriptor::Grammar;
-use macroonz::descriptor::concurrency::ConcurrencyModule;
-use macroonz::descriptor::door;
-use macroonz::descriptor::network::NetworkModule;
-use macroonz::kind::Kind;
-use macroonz::{CrateBinding, Diagnostic, Door, Expansion, Phase, Producer, TextCapture};
+use macroonz_compiler::descriptor::Grammar;
+use macroonz_compiler::descriptor::concurrency::ConcurrencyModule;
+use macroonz_compiler::descriptor::door;
+use macroonz_compiler::descriptor::network::NetworkModule;
+use macroonz_compiler::kind::Kind;
+use macroonz_compiler::{CrateBinding, Diagnostic, Door, Expansion, Phase, Producer, TextCapture};
 
 /// The one value that says who is asking.
 const DOOR: Door = Door::declared(
@@ -88,7 +88,7 @@ fn emitted<K: Kind>(expansion: &Expansion<K>) -> Option<String> {
     expansion
         .emit()
         .tokens()
-        .map(macroonz::GeneratedTree::inspected)
+        .map(macroonz_compiler::GeneratedTree::inspected)
 }
 
 /// A lawful network declaration becomes one builder module: the fault enum, the topology, and one function per schedule.
@@ -357,7 +357,7 @@ fn a_concurrency_separator_separating_nothing_refuses() -> Result<(), ()> {
 /// The three typed rootings render the language's own qualifiers — the caller's crate, the landing module, and its parent — never the extern prelude.
 #[test]
 fn a_codec_path_renders_under_its_typed_rooting() -> Result<(), ()> {
-    use macroonz::codec::{
+    use macroonz_compiler::codec::{
         AssemblyPosture, Cardinality, CodecAssembly, CodecContent, CodecDirection, CodecMember,
         CodecMemberShape, CodecPlacement, CodecShape, CodecTypePath, PathRooting, codec_surface,
     };
@@ -391,7 +391,7 @@ fn a_codec_path_renders_under_its_typed_rooting() -> Result<(), ()> {
         placement: CodecPlacement::AtDeclarationSite,
         schema: None,
         byte_role: None,
-        assumptions: macroonz::Bounded::empty(),
+        assumptions: macroonz_compiler::Bounded::empty(),
     };
     let text = codec_surface(&content).map_err(|_| ())?.inspected();
     for spelled in ["crate :: Demo", "super :: Held", "self :: Near"] {
@@ -409,20 +409,21 @@ fn a_codec_path_renders_under_its_typed_rooting() -> Result<(), ()> {
 /// Paths read position-aware the way the language does: the stamp site root admits `crate`, `self`, or a leading run of `super` at the root, the codec path types its qualifier as the rooting — so every later segment is an item name the keyword roster refuses.
 #[test]
 fn a_keyword_cannot_name_a_rendered_item() {
-    assert!(macroonz::descriptor::ModuleName::declared("type").is_err());
-    assert!(macroonz::descriptor::SupportName::declared("mod").is_err());
-    assert!(macroonz::descriptor::TypeName::declared("gen").is_err());
-    assert!(macroonz::descriptor::FunctionName::declared("fn").is_err());
-    assert!(macroonz::descriptor::ModuleName::declared("lawful_name").is_ok());
-    assert!(macroonz::stamp::StampName::declared("type").is_err());
-    assert!(macroonz::support::SupportName::declared("loop").is_err());
-    assert!(macroonz::codec::ModuleSpelling::spelled("type").is_err());
-    assert!(macroonz::stamp::SiteRoot::spelled(vec!["crate".to_owned()]).is_ok());
+    assert!(macroonz_compiler::descriptor::ModuleName::declared("type").is_err());
+    assert!(macroonz_compiler::descriptor::SupportName::declared("mod").is_err());
+    assert!(macroonz_compiler::descriptor::TypeName::declared("gen").is_err());
+    assert!(macroonz_compiler::descriptor::FunctionName::declared("fn").is_err());
+    assert!(macroonz_compiler::descriptor::ModuleName::declared("lawful_name").is_ok());
+    assert!(macroonz_compiler::stamp::StampName::declared("type").is_err());
+    assert!(macroonz_compiler::support::SupportName::declared("loop").is_err());
+    assert!(macroonz_compiler::codec::ModuleSpelling::spelled("type").is_err());
+    assert!(macroonz_compiler::stamp::SiteRoot::spelled(vec!["crate".to_owned()]).is_ok());
     assert!(
-        macroonz::stamp::SiteRoot::spelled(vec!["crate".to_owned(), "type".to_owned()]).is_err()
+        macroonz_compiler::stamp::SiteRoot::spelled(vec!["crate".to_owned(), "type".to_owned()])
+            .is_err()
     );
     assert!(
-        macroonz::stamp::SiteRoot::spelled(vec![
+        macroonz_compiler::stamp::SiteRoot::spelled(vec![
             "super".to_owned(),
             "super".to_owned(),
             "stamps".to_owned(),
@@ -430,18 +431,19 @@ fn a_keyword_cannot_name_a_rendered_item() {
         .is_ok()
     );
     assert!(
-        macroonz::stamp::SiteRoot::spelled(vec!["stamps".to_owned(), "self".to_owned()]).is_err()
+        macroonz_compiler::stamp::SiteRoot::spelled(vec!["stamps".to_owned(), "self".to_owned()])
+            .is_err()
     );
     assert!(
-        macroonz::codec::CodecTypePath::spelled(
-            macroonz::codec::PathRooting::ParentScoped,
+        macroonz_compiler::codec::CodecTypePath::spelled(
+            macroonz_compiler::codec::PathRooting::ParentScoped,
             vec!["Thing".to_owned()],
         )
         .is_ok()
     );
     assert!(
-        macroonz::codec::CodecTypePath::spelled(
-            macroonz::codec::PathRooting::InScope,
+        macroonz_compiler::codec::CodecTypePath::spelled(
+            macroonz_compiler::codec::PathRooting::InScope,
             vec!["self".to_owned(), "Thing".to_owned()],
         )
         .is_err()

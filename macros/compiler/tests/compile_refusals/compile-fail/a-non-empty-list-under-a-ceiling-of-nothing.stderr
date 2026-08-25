@@ -2,7 +2,7 @@ error[E0080]: evaluation panicked: a non-empty list under a ceiling that admits 
  --> $RUST/core/src/panic.rs
   |
   |           $crate::panicking::panic_fmt($crate::const_format_args!($($t)+));
-  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ evaluation of `macroonz::bounded::types::guard::<impl macroonz::NonEmpty<u8, 0>>::one::{constant#0}` failed here
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ evaluation of `macroonz_compiler::bounded::types::guard::<impl macroonz_compiler::NonEmpty<u8, 0>>::one::{constant#0}` failed here
   |
  ::: src/bounded/type_guard.rs
   |

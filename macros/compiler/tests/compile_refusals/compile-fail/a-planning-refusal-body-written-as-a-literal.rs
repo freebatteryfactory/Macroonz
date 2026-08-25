@@ -5,7 +5,7 @@
 //! The body below is WELL FORMED, and that is the point — the bounded collection is public, so anybody can build one over the compiler's own issue type, and this is exactly the body a forger would arrive holding.
 //! Nothing about it is defective; the record it is being written into simply has no seat anybody out here can name.
 
-use macroonz::{BoundAxis, Capped, NonEmpty, PLAN_ISSUE_LIMIT, PlanError, PlanIssue};
+use macroonz_compiler::{BoundAxis, Capped, NonEmpty, PLAN_ISSUE_LIMIT, PlanError, PlanIssue};
 
 fn main() {
     let body = Capped::all(NonEmpty::<PlanIssue, PLAN_ISSUE_LIMIT>::one(

@@ -18,7 +18,7 @@
 //! A match that could not fail proves nothing.
 //! Three negative controls run beside the positive ones: an encoder that drops the material's length prefix, one that assembles the derive-key context with the subject and the role transposed, and one that writes the generator's name and shape position into the preimage — a pair no grammar names.
 
-use macroonz::{
+use macroonz_compiler::{
     CrateBinding, Door, Expansion, GeneratedToken, GeneratedTree, Kind, NoQuestions, Producer,
     Request, Role, SoleRole, TextCapture,
 };

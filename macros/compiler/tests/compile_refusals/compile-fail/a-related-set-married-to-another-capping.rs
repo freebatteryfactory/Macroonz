@@ -6,7 +6,7 @@
 //!
 //! The two leave the one road married inside the set: the readers hand back a borrowed slice and a posture, neither of which is the seat behind it, and the seats themselves are not the caller's to write.
 
-use macroonz::{Bounded, Family, RelatedIdentity, RelatedSet};
+use macroonz_compiler::{Bounded, Family, RelatedIdentity, RelatedSet};
 
 const FAMILY: Family = Family::declared("lane/capping");
 

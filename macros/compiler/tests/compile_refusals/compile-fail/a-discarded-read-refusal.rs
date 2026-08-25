@@ -9,7 +9,7 @@
 
 #![deny(unused_must_use)]
 
-use macroonz::{TextReadCause, TextReadRefusal};
+use macroonz_compiler::{TextReadCause, TextReadRefusal};
 
 /// The refusal the callable text route hands back for a text it could not read.
 fn refused() -> TextReadRefusal {

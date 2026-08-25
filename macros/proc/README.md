@@ -26,7 +26,7 @@ The carrier is a hidden `macro_rules!` definition — plus the alias you chose i
 An ordinary build compiles the definition and nothing inside it.
 Your test or bench target invokes the alias, supplies its own host facts and callables there, and the carrier's gate checks the schema pin before a single constructor reaches type checking.
 
-Each attribute walks the road any derive built on `macroonz` walks — capture, request, render, close, explain, bind, emit.
+Each attribute walks the road any derive built on `macroonz-compiler` walks — capture, request, render, close, explain, bind, emit.
 The grammar each one reads is the compiler's `descriptor` home's; the road from a reading to a sealed carrier expansion is the same home's `door`; the carrier itself is the compiler's `support` home's.
 What lives here is one function per attribute, and every sentence a refusal shows you was composed inside the compiler at the token it is about.
 
@@ -36,12 +36,12 @@ What lives here is one function per attribute, and every sentence a refusal show
 
 Do not write it here.
 
-A derive that produces your types lives in your repository, in your proc-macro crate, on `macroonz` with the `host` feature:
+A derive that produces your types lives in your repository, in your proc-macro crate, on `macroonz-compiler` with the `host` feature:
 
 ```rust
 #[proc_macro_derive(Greet, attributes(greet))]
 pub fn greet(input: TokenStream) -> TokenStream {
-    macroonz::host::expand(input, |capture| {
+    macroonz_compiler::host::expand(input, |capture| {
         let greeting = Greeting::read(&capture)?;
         Request::<GreetImpl>::over(capture, greeting, &GREET_DOOR)
             .render(|plan, out| out.unit(GreetRole::Impl, plan.content().impl_tokens()))

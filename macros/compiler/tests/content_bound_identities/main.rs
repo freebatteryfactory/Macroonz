@@ -5,7 +5,7 @@
 
 use core::convert::Infallible;
 use core::fmt;
-use macroonz::{
+use macroonz_compiler::{
     CanonicalContent, CaptureBuilder, CapturedAtom, CapturedInput, CrateBinding, Door, Expansion,
     GeneratedToken, GeneratedTree, Kind, NoQuestions, Producer, Request, SoleRole,
 };

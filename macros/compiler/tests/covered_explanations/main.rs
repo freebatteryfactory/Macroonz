@@ -8,7 +8,7 @@
 //! A protocol that accepted any answer sheet would satisfy every positive assertion here.
 //! So each is paired with the sheet that must refuse: a universal question unanswered, one answered twice, a declared question unanswered, one answered twice, and an answer naming a question its own roster does not carry.
 
-use macroonz::{
+use macroonz_compiler::{
     Answer, Bounded, CrateBinding, Diagnostic, Door, Expansion, ExplanationIssue, GeneratedToken,
     GeneratedTree, Kind, Phase, Producer, Question, Request, SoleRole, TextCapture,
     UNIVERSAL_QUESTION_COUNT, UniversalAnswer, UniversalQuestion, View, encode_bytes,

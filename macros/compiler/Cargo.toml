@@ -1,5 +1,5 @@
 [package]
-name = "macroonz"
+name = "macroonz-compiler"
 description = "A deterministic code generator as ordinary callable Rust: plan, render, close, explain, and bind one sealed expansion from a complete request."
 version.workspace = true
 edition.workspace = true

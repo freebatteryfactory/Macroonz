@@ -11,7 +11,7 @@ Two runs on one machine, or on two, derive the same bytes from the same transcri
 `Subject` is an open trait with two constants: the name a subject is spelled by, and the stem of whoever owns it.
 
 ```ignore
-macroonz::subjects! {
+macroonz_compiler::subjects! {
     stem = "my-crate/identity";
     /// One obligation a trial row challenges.
     Obligation = "obligation",

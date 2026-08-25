@@ -2,8 +2,8 @@
 //!
 //! Restoring the old raw-identity constructor makes this fixture compile and reopens the road where content could ride beside an unrelated account.
 
-use macroonz::{Account, Kind, NoQuestions, SoleRole};
-use macroonz::identity::{self, Identity};
+use macroonz_compiler::{Account, Kind, NoQuestions, SoleRole};
+use macroonz_compiler::identity::{self, Identity};
 
 struct Demo;
 
