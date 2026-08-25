@@ -82,10 +82,9 @@ const MUTATION_ITEM: &str = "pub enum Cause { First, Second, Third }";
 /// One lawful bench declaration body.
 const BENCH_BODY: &str = r#"
     support = pace_support,
-    module = pace_benches,
+    table_function = pace_table,
     table = named("lane", "pace-table"),
-    adapter = pace_adapter,
-    backend = divan,
+    reporter = pace_reporter,
     encode_pace {
         workload = named("lane", "encode"),
         preflight = named("lane", "encode-correct"),
@@ -93,12 +92,10 @@ const BENCH_BODY: &str = r#"
         complexity = named("lane", "linear"),
         axis = [2, 4, 8],
         samples = 16,
-        warmup = 4,
-        ratio = 3,
-        run = declaring::ops::encode,
-        run_worse = declaring::ops::encode_slow,
-        run_preflight = declaring::ops::encode_check,
-        observe = [declaring::ops::bytes_touched],
+        warmups = 4,
+        ratio_numerator = 3,
+        ratio_denominator = 1,
+        observe = [named("lane", "bytes-touched")],
     },
 "#;
 
@@ -278,8 +275,9 @@ fn a_bench_declaration_becomes_one_carrier_writing_the_bench_form() -> Result<()
     assert!(text.contains("pace_support"));
     assert!(text.contains("benches"));
     assert!(text.contains("reporter"));
-    assert!(text.contains("pace_adapter"));
-    assert!(text.contains("divan"));
+    assert!(text.contains("pace_reporter"));
+    assert!(text.contains("DeclaredBudgets :: declared ( 16 , 4 , 3 , 1 )"));
+    assert!(!text.contains("divan"));
     assert!(matches!(
         carrier.test_carrier(),
         PartitionCargo::NothingPlanned
@@ -291,15 +289,109 @@ fn a_bench_declaration_becomes_one_carrier_writing_the_bench_form() -> Result<()
     Ok(())
 }
 
+/// The benchmark carrier asks the target for exactly the executable facts the generated binding consumes.
+#[test]
+fn the_bench_matcher_names_the_target_owned_seats() -> Result<(), ()> {
+    let carrier = bench(BENCH_BODY).ok_or(())?.ok().ok_or(())?;
+    let text = emitted(&carrier).ok_or(())?;
+    for clause in [
+        "reporter",
+        "encode_pace_measured",
+        "encode_pace_planted_worse",
+        "encode_pace_judge",
+        "encode_pace_preflight",
+    ] {
+        assert!(text.contains(clause), "the matcher omits {clause}");
+    }
+    for retired in ["backend", "declaring", "run_worse", "run_preflight"] {
+        assert!(
+            !text.contains(retired),
+            "the retired bench vocabulary still emits {retired}"
+        );
+    }
+    Ok(())
+}
+
+/// The retired backend grammar and an omitted exact-ratio half both refuse at capture.
+#[test]
+fn retired_or_incomplete_benchmark_syntax_refuses() -> Result<(), ()> {
+    let backend = BENCH_BODY.replacen(
+        "reporter = pace_reporter,",
+        "reporter = pace_reporter, backend = divan,",
+        1,
+    );
+    let missing_denominator = BENCH_BODY.replacen("ratio_denominator = 1,", "", 1);
+    for source in [&backend, &missing_denominator] {
+        let refusal = bench(source).ok_or(())?.err().ok_or(())?;
+        assert_eq!(refusal.phase(), Phase::Capture);
+    }
+    Ok(())
+}
+
+/// The two generated benchmark items cannot claim one target-namespace spelling.
+#[test]
+fn benchmark_table_and_reporter_names_cannot_collide() -> Result<(), ()> {
+    let collided = BENCH_BODY.replacen("reporter = pace_reporter,", "reporter = pace_table,", 1);
+    let refusal = bench(&collided).ok_or(())?.err().ok_or(())?;
+    assert_eq!(refusal.phase(), Phase::Capture);
+    assert!(refusal.summary().contains("generated-item"));
+    Ok(())
+}
+
+/// Numeric width and observation-roster closure are enforced before generated code exists.
+#[test]
+fn benchmark_budget_width_and_observation_roster_are_closed() -> Result<(), ()> {
+    let wide_samples = BENCH_BODY.replacen("samples = 16,", "samples = 4294967296,", 1);
+    let typed_samples = BENCH_BODY.replacen("samples = 16,", "samples = 16u32,", 1);
+    let separated_samples = BENCH_BODY.replacen("samples = 16,", "samples = 1_6,", 1);
+    let no_observation = BENCH_BODY.replacen(
+        "observe = [named(\"lane\", \"bytes-touched\")],",
+        "observe = [],",
+        1,
+    );
+    let duplicate_observation = BENCH_BODY.replacen(
+        "observe = [named(\"lane\", \"bytes-touched\")],",
+        "observe = [named(\"lane\", \"bytes-touched\"), named(\"lane\", \"bytes-touched\")],",
+        1,
+    );
+    for (source, cause) in [
+        (
+            &wide_samples,
+            "an authored number outruns the width of its seat",
+        ),
+        (&typed_samples, "a clause is not one key and one value"),
+        (&separated_samples, "a clause is not one key and one value"),
+        (
+            &no_observation,
+            "the declaration states no work-observation",
+        ),
+        (
+            &duplicate_observation,
+            "one work-observation of the declaration is stated twice",
+        ),
+    ] {
+        let refusal = bench(source).ok_or(())?.err().ok_or(())?;
+        assert_eq!(refusal.phase(), Phase::Capture, "{source} did not refuse");
+        assert!(
+            refusal.summary().contains(cause),
+            "{source} refused under the wrong cause"
+        );
+        assert!(
+            refusal.summary().contains("(at "),
+            "{source} carries no coordinate"
+        );
+    }
+    Ok(())
+}
+
 /// A bench axis of one point is not a curve, and the road refuses the row rather than reading a growth class off a point.
 #[test]
 fn a_bench_axis_of_one_point_refuses() -> Result<(), ()> {
     let body = r#"
         support = pace_support,
-        module = pace_benches,
+        table_function = pace_table,
         table = named("lane", "pace-table"),
-        adapter = pace_adapter,
-        backend = divan,
+        reporter = pace_reporter,
         encode_pace {
             workload = named("lane", "encode"),
             preflight = named("lane", "encode-correct"),
@@ -307,11 +399,10 @@ fn a_bench_axis_of_one_point_refuses() -> Result<(), ()> {
             complexity = named("lane", "linear"),
             axis = [2],
             samples = 16,
-            warmup = 4,
-            ratio = 3,
-            run = declaring::ops::encode,
-            run_worse = declaring::ops::encode_slow,
-            run_preflight = declaring::ops::encode_check,
+            warmups = 4,
+            ratio_numerator = 3,
+            ratio_denominator = 1,
+            observe = [named("lane", "bytes-touched")],
         },
     "#;
     let refusal = bench(body).ok_or(())?.err().ok_or(())?;

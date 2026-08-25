@@ -5,10 +5,9 @@
 //! ```text
 //! #[<helper>(
 //!     support = <exported name>,
-//!     module = <stamped module name>,
+//!     table_function = <table function name>,
 //!     table = named("<namespace>", "<stem>"),
-//!     adapter = <adapter module name>,
-//!     backend = <backend identifier>,
+//!     reporter = <reporter module name>,
 //!
 //!     <lens> {
 //!         workload = named("<namespace>", "<stem>"),
@@ -17,25 +16,23 @@
 //!         complexity = named("<namespace>", "<stem>"),
 //!         axis = [<size>, <size>, ...],
 //!         samples = <count>,
-//!         warmup = <count>,
-//!         ratio = <count>,
+//!         warmups = <count>,
+//!         ratio_numerator = <count>,
+//!         ratio_denominator = <count>,
 //!         formula = "<work formula>",
-//!         run = <binding>::<segment>::<segment>,
-//!         run_worse = <binding>::<segment>,
-//!         run_preflight = <binding>::<segment>,
-//!         observe = [<binding>::<segment>, ...],
+//!         observe = [named("<namespace>", "<stem>"), ...],
 //!     },
 //! )]
 //! ```
 //!
 //! The helper's own spelling is the caller's, which is why `<helper>` stands where a word would: a door registers the attribute it wants and hands the same [`Grammar`] to this reading, so a refusal names the word an author actually wrote.
 //!
-//! `formula` and `observe` may be left out; every other row clause is required.
-//! An operation that declares no work formula states that by carrying none, and a row that observes nothing observes nothing.
+//! `formula` may be left out; every other row clause is required.
+//! An operation that declares no work formula states that by carrying none.
 //!
 //! Every count is one unsuffixed decimal literal, because a count that arrives typed, based, or separated is a spelling this reading would have to interpret, and interpreting a spelling is deciding what an author meant by a value it could not read.
 //!
-//! A callable path opens with the crate binding it is rooted at — `declaring` or `harness` — and the carrier's invocation supplies the crate's real name once, so a consumer that renamed either dependency gets its own name back.
+//! Callables, the judge, the complete preflight, and the report reader are target-owned expressions and therefore are not authored here.
 //!
 //! # What has no clause, and why
 //!
@@ -45,32 +42,28 @@
 //! # Order
 //!
 //! Clause order inside a body is free and is read by key.
-//! Order between ROSTER members is meaning and is preserved: the rows in the order they were written, each axis in the order its sizes were written, and each observation roster in the order its paths were written.
+//! Order between ROSTER members is meaning and is preserved: the rows in the order they were written, each axis in the order its sizes were written, and each observation roster in the order its references were written.
 
 use super::{
-    Adapter, Attachment, Backend, BenchCaptureError, Benches, Budgets, ContentionPosture,
-    Measurement, References, Row, WorkFormula,
+    BenchCaptureError, BenchmarkDeclaration, Budgets, ContentionPosture, Measurement, References,
+    Reporter, Row, WorkFormula,
 };
 use crate::descriptor::{
-    Binding, BoundPath, CaptureCause, DeclarationError, FunctionName, Grammar, ModuleName, Name,
-    SupportName,
+    CaptureCause, DeclarationError, FunctionName, Grammar, ModuleName, Name, SupportName,
 };
 use crate::token::{CapturedDelimiter, CapturedTokenTree, SpanHandle};
 
 /// The clause naming the exported support name.
 const SUPPORT: &str = "support";
 
-/// The clause naming the stamped module.
-const MODULE: &str = "module";
+/// The clause naming the stamped table function.
+const TABLE_FUNCTION: &str = "table_function";
 
 /// The clause naming the authored table.
 const TABLE: &str = "table";
 
-/// The clause naming the adapter module.
-const ADAPTER: &str = "adapter";
-
-/// The clause naming the measurement backend.
-const BACKEND: &str = "backend";
+/// The clause naming the report-reader module.
+const REPORTER: &str = "reporter";
 
 /// The road every namespaced reference in this grammar is spelled by.
 const NAMED: &str = "named";
@@ -94,45 +87,37 @@ const AXIS: &str = "axis";
 const SAMPLES: &str = "samples";
 
 /// The row clause stating how many warmup iterations run before sampling.
-const WARMUP: &str = "warmup";
+const WARMUPS: &str = "warmups";
 
-/// The row clause stating the ratio the planted-worse gap must clear.
-const RATIO: &str = "ratio";
+/// The row clause stating the exact gap ratio's numerator.
+const RATIO_NUMERATOR: &str = "ratio_numerator";
+
+/// The row clause stating the exact gap ratio's denominator.
+const RATIO_DENOMINATOR: &str = "ratio_denominator";
 
 /// The row clause stating the declared work formula.
 const FORMULA: &str = "formula";
-
-/// The row clause naming the callable under measurement.
-const RUN: &str = "run";
-
-/// The row clause naming the deliberately worse realization.
-const RUN_WORSE: &str = "run_worse";
-
-/// The row clause naming the correctness preflight's own callable.
-const RUN_PREFLIGHT: &str = "run_preflight";
 
 /// The row clause stating the work observations the gate reads.
 const OBSERVE: &str = "observe";
 
 /// The clause keys this grammar declares at a declaration's own level.
-const DECLARABLE: [&str; 5] = [SUPPORT, MODULE, TABLE, ADAPTER, BACKEND];
+const DECLARABLE: [&str; 4] = [SUPPORT, TABLE_FUNCTION, TABLE, REPORTER];
 
 /// The clause keys one row admits.
 ///
 /// Its own roster rather than the declaration level's, because the two levels admit different keys and one roster standing for both would let a table's clause be written inside a row and read as lawful.
-const DECLARABLE_ROW: [&str; 13] = [
+const DECLARABLE_ROW: [&str; 11] = [
     WORKLOAD,
     PREFLIGHT,
     PLANTED_WORSE,
     COMPLEXITY,
     AXIS,
     SAMPLES,
-    WARMUP,
-    RATIO,
+    WARMUPS,
+    RATIO_NUMERATOR,
+    RATIO_DENOMINATOR,
     FORMULA,
-    RUN,
-    RUN_WORSE,
-    RUN_PREFLIGHT,
     OBSERVE,
 ];
 
@@ -145,16 +130,14 @@ pub fn captured(
     body: &[&CapturedTokenTree],
     at: SpanHandle,
     grammar: Grammar,
-) -> Result<Benches, BenchCaptureError> {
+) -> Result<BenchmarkDeclaration, BenchCaptureError> {
     let clauses = declaration_clauses(grammar, body)?;
     let support = SupportName::declared(identifier(grammar, &clauses, SUPPORT, at)?)
         .map_err(|refusal| carried(grammar, refusal, at))?;
-    let module = ModuleName::declared(identifier(grammar, &clauses, MODULE, at)?)
+    let table_function = FunctionName::declared(identifier(grammar, &clauses, TABLE_FUNCTION, at)?)
         .map_err(|refusal| carried(grammar, refusal, at))?;
     let table = named_reference(grammar, &clauses, TABLE, at)?;
-    let adapter_module = ModuleName::declared(identifier(grammar, &clauses, ADAPTER, at)?)
-        .map_err(|refusal| carried(grammar, refusal, at))?;
-    let backend = Backend::named(identifier(grammar, &clauses, BACKEND, at)?)
+    let reporter_module = ModuleName::declared(identifier(grammar, &clauses, REPORTER, at)?)
         .map_err(|refusal| carried(grammar, refusal, at))?;
 
     let mut rows: Vec<Row> = Vec::new();
@@ -168,12 +151,12 @@ pub fn captured(
             rows.push(row(grammar, lens, stated, *site)?);
         }
     }
-    Benches::declared(
+    BenchmarkDeclaration::declared(
         support,
-        module,
+        table_function,
         table,
         rows,
-        Adapter::declared(adapter_module, backend),
+        Reporter::declared(reporter_module),
     )
     .map_err(|refusal| carried(grammar, refusal, at))
 }
@@ -301,7 +284,7 @@ fn assignment<'trees>(
 
 /// Refuse where one clause key is stated twice.
 ///
-/// Assigned clauses alone: two rows are two lenses, and the adapter's own lens-namespace law is what tells one from another — stated once at the payload rather than a second time here.
+/// Assigned clauses alone: two rows are two lenses, and the payload's own lens-namespace law is what tells one from another.
 fn distinct(grammar: Grammar, clauses: &[Clause<'_>]) -> Result<(), BenchCaptureError> {
     for (position, clause) in clauses.iter().enumerate() {
         let Clause::Assigned { key, at, .. } = clause else {
@@ -350,12 +333,12 @@ fn identifier<'trees>(
 }
 
 /// One unsuffixed decimal count a clause assigns.
-fn count(
+fn count<Number: core::str::FromStr>(
     grammar: Grammar,
     clauses: &[Clause<'_>],
     key: &str,
     at: SpanHandle,
-) -> Result<u64, BenchCaptureError> {
+) -> Result<Number, BenchCaptureError> {
     let (value, clause) =
         assigned(clauses, key).ok_or_else(|| refused(grammar, CaptureCause::ClauseAbsent, at))?;
     let [only] = value else {
@@ -364,14 +347,20 @@ fn count(
     number(grammar, only)
 }
 
-/// One unsuffixed decimal literal, read as the value it spells.
-fn number(grammar: Grammar, tree: &CapturedTokenTree) -> Result<u64, BenchCaptureError> {
+/// One unsuffixed decimal literal, read at the exact width of the seat it fills.
+fn number<Number: core::str::FromStr>(
+    grammar: Grammar,
+    tree: &CapturedTokenTree,
+) -> Result<Number, BenchCaptureError> {
     let spelling = tree
         .number()
         .ok_or_else(|| refused(grammar, CaptureCause::ClauseUnread, tree.span()))?;
+    if !spelling.bytes().all(|byte| byte.is_ascii_digit()) {
+        return Err(refused(grammar, CaptureCause::ClauseUnread, tree.span()));
+    }
     spelling
-        .parse::<u64>()
-        .map_err(|_| refused(grammar, CaptureCause::ClauseUnread, tree.span()))
+        .parse::<Number>()
+        .map_err(|_| refused(grammar, CaptureCause::NumberBeyondSeat, tree.span()))
 }
 
 /// One `named(<namespace>, <stem>)` reference a clause assigns.
@@ -430,68 +419,6 @@ fn named_value(
     Name::named(owner, spelling).map_err(|refusal| carried(grammar, refusal, arguments.span()))
 }
 
-/// One path rooted at a crate binding, read off the tokens that spell it.
-///
-/// The shape is a binding word, then one or more `::`-joined segments.
-fn bound_path(
-    grammar: Grammar,
-    value: &[&CapturedTokenTree],
-    at: SpanHandle,
-) -> Result<BoundPath, BenchCaptureError> {
-    let Some((root, rest)) = value.split_first() else {
-        return Err(refused(grammar, CaptureCause::PathUnread, at));
-    };
-    let binding = match root.word() {
-        Some(word) if word == Binding::Declaring.name() => Binding::Declaring,
-        Some(word) if word == Binding::Harness.name() => Binding::Harness,
-        Some(_) | None => {
-            return Err(refused(grammar, CaptureCause::PathUnread, root.span()));
-        }
-    };
-    let mut segments: Vec<String> = Vec::new();
-    let mut trees = rest.iter();
-    while let Some(first_colon) = trees.next() {
-        let Some(second_colon) = trees.next() else {
-            return Err(refused(
-                grammar,
-                CaptureCause::PathUnread,
-                first_colon.span(),
-            ));
-        };
-        if first_colon.punct() != Some(':') || second_colon.punct() != Some(':') {
-            return Err(refused(
-                grammar,
-                CaptureCause::PathUnread,
-                first_colon.span(),
-            ));
-        }
-        let Some(segment) = trees.next() else {
-            return Err(refused(
-                grammar,
-                CaptureCause::PathUnread,
-                second_colon.span(),
-            ));
-        };
-        let Some(spelling) = segment.word() else {
-            return Err(refused(grammar, CaptureCause::PathUnread, segment.span()));
-        };
-        segments.push(spelling.to_owned());
-    }
-    BoundPath::rooted(binding, segments).map_err(|refusal| carried(grammar, refusal, at))
-}
-
-/// One bound path a clause assigns.
-fn path_reference(
-    grammar: Grammar,
-    clauses: &[Clause<'_>],
-    key: &str,
-    at: SpanHandle,
-) -> Result<BoundPath, BenchCaptureError> {
-    let (value, clause) =
-        assigned(clauses, key).ok_or_else(|| refused(grammar, CaptureCause::ClauseAbsent, at))?;
-    bound_path(grammar, value, clause)
-}
-
 /// The bracketed axis of input sizes a row states.
 fn axis(
     grammar: Grammar,
@@ -522,7 +449,7 @@ fn axis(
                         tree.span(),
                     ));
                 }
-                [only] => sizes.push(number(grammar, only)?),
+                [only] => sizes.push(number::<u64>(grammar, only)?),
                 [first, ..] => {
                     return Err(refused(grammar, CaptureCause::RosterUnread, first.span()));
                 }
@@ -534,7 +461,7 @@ fn axis(
     }
     match group.as_slice() {
         [] => {}
-        [only] => sizes.push(number(grammar, only)?),
+        [only] => sizes.push(number::<u64>(grammar, only)?),
         [first, ..] => return Err(refused(grammar, CaptureCause::RosterUnread, first.span())),
     }
     Ok(sizes)
@@ -559,14 +486,14 @@ fn formula(
         .map_err(|refusal| carried(grammar, refusal, only.span()))
 }
 
-/// The bracketed roster of work-observation paths a row states, or an empty roster where the clause is absent.
+/// The required bracketed roster of work-observation references a row states.
 fn observations(
     grammar: Grammar,
     clauses: &[Clause<'_>],
-) -> Result<Vec<BoundPath>, BenchCaptureError> {
-    let Some((value, at)) = assigned(clauses, OBSERVE) else {
-        return Ok(Vec::new());
-    };
+    at: SpanHandle,
+) -> Result<Vec<Name>, BenchCaptureError> {
+    let (value, at) = assigned(clauses, OBSERVE)
+        .ok_or_else(|| refused(grammar, CaptureCause::ClauseAbsent, at))?;
     let [bracketed] = value else {
         return Err(refused(grammar, CaptureCause::RosterUnread, at));
     };
@@ -577,7 +504,7 @@ fn observations(
             bracketed.span(),
         ));
     };
-    let mut observed: Vec<BoundPath> = Vec::new();
+    let mut observed: Vec<Name> = Vec::new();
     let mut group: Vec<&CapturedTokenTree> = Vec::new();
     for tree in inner {
         if tree.punct() == Some(',') {
@@ -588,14 +515,14 @@ fn observations(
                     tree.span(),
                 ));
             }
-            observed.push(bound_path(grammar, &group, bracketed.span())?);
+            observed.push(named_value(grammar, &group, bracketed.span())?);
             group.clear();
         } else {
             group.push(tree);
         }
     }
     if !group.is_empty() {
-        observed.push(bound_path(grammar, &group, bracketed.span())?);
+        observed.push(named_value(grammar, &group, bracketed.span())?);
     }
     Ok(observed)
 }
@@ -619,21 +546,21 @@ fn row(
     let measurement = Measurement {
         budgets: Budgets {
             samples: count(grammar, &clauses, SAMPLES, at)?,
-            warmup: count(grammar, &clauses, WARMUP, at)?,
-            ratio_threshold: count(grammar, &clauses, RATIO, at)?,
+            warmups: count(grammar, &clauses, WARMUPS, at)?,
+            ratio_numerator: count(grammar, &clauses, RATIO_NUMERATOR, at)?,
+            ratio_denominator: count(grammar, &clauses, RATIO_DENOMINATOR, at)?,
         },
         contention: ContentionPosture::NoDeclaredContention,
         work_formula: formula(grammar, &clauses)?,
     };
-    let attachment = Attachment::measuring(
-        path_reference(grammar, &clauses, RUN, at)?,
-        path_reference(grammar, &clauses, RUN_WORSE, at)?,
-        path_reference(grammar, &clauses, RUN_PREFLIGHT, at)?,
-        observations(grammar, &clauses)?,
+    Row::declared(
+        named,
+        references,
+        sizes,
+        measurement,
+        observations(grammar, &clauses, at)?,
     )
-    .map_err(|refusal| carried(grammar, refusal, at))?;
-    Row::declared(named, references, sizes, measurement, attachment)
-        .map_err(|refusal| carried(grammar, refusal, at))
+    .map_err(|refusal| carried(grammar, refusal, at))
 }
 
 /// Cut one row body into its comma-separated assignments.

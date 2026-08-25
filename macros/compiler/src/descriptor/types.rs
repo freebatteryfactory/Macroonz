@@ -97,33 +97,8 @@ pub struct TypeName(String);
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FunctionName(String);
 
-crate::roster! {
-    /// Which crate binding a rendered path is rooted at.
-    ///
-    /// Two, because a delivery names exactly two crates a consumer may rename: the DECLARING crate, whose operations a row measures or challenges, and the HARNESS, whose vocabulary the row is spelled in and whose lanes judge it.
-    /// A callable living in the consumer's own target needs no row here — it arrives as an expression at the carrier's invocation, where that target's own hygiene reaches its own items.
-    ///
-    /// The declared name is also the metavariable spelling the carrier's matcher binds and every rendered path is rooted at, so both sides read one word — the same two words [`CrateFacing`](crate::support::CrateFacing) declares on the carrier's side.
-    pub enum Binding {
-        /// The crate whose operations a row measures or challenges.
-        Declaring = "declaring",
-        /// The crate whose vocabulary a row is spelled in.
-        Harness = "harness",
-    }
-}
-
-/// One path a rendered expression names, rooted at a crate binding rather than at a crate name.
-///
-/// A consumer that renamed either crate gets its own name back, because the rendering writes the binding's metavariable and this home never learns what the crate is called.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct BoundPath {
-    binding: Binding,
-    segments: NonEmpty<String, PATH_SEGMENT_LIMIT>,
-}
-
 /// One physical dependency path a direct descriptor projection is rooted at.
 ///
-/// Unlike [`BoundPath`], which names a logical carrier binding resolved later by a consumption target, this path is declared at the direct macro invocation where generated items compile immediately.
 /// Every segment is an ordinary Rust item name, so a renamed dependency and a facade re-export are both stated through the same shape: `renamed_harness` and `renamed_facade::harness` differ only in how many segments they carry.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DirectBinding {
@@ -149,6 +124,8 @@ crate::roster! {
         Aggregate = "aggregate",
         /// The function one row is declared under.
         Lens = "lens",
+        /// One item emitted into a generated target namespace.
+        GeneratedItem = "generated-item",
         /// One point of a declared input-size axis.
         AxisSize = "axis-size",
         /// One byte of a declared work formula.

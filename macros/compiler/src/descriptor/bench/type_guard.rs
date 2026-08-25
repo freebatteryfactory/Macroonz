@@ -2,17 +2,16 @@
 //!
 //! A work formula is encoded here, so a formula carrying no bytes is not a value anybody can hold.
 //! An axis is admitted here, so a growth class is never read off a single point.
-//! A backend is named here, so the adapter's one swap point cannot be handed a spelling that is not a Rust identifier.
-//! A table's lens namespace is closed here, so the rendered adapter never declares one function twice.
+//! A table's lens namespace is closed here, so one carrier never asks for one target-owned expression twice.
 
 use super::{
-    Adapter, Attachment, BENCH_ROW_LIMIT, Backend, BenchCaptureError, Benches, INPUT_SIZE_LIMIT,
-    Measurement, References, Row, WORK_FORMULA_LIMIT, WORK_OBSERVATION_LIMIT, WorkFormula,
+    BENCH_ROW_LIMIT, BenchCaptureError, BenchmarkDeclaration, INPUT_SIZE_LIMIT, Measurement,
+    References, Reporter, Row, WORK_FORMULA_LIMIT, WORK_OBSERVATION_LIMIT, WorkFormula,
 };
 use crate::bounded::{Bounded, NonEmpty};
 use crate::descriptor::{
-    BoundPath, CaptureCause, DeclarationError, FunctionName, Grammar, HelperRefusal, ModuleName,
-    Name, Seat, SupportName, rendered_name,
+    CaptureCause, DeclarationError, FunctionName, Grammar, HelperRefusal, ModuleName, Name, Seat,
+    SupportName,
 };
 use crate::token::SpanHandle;
 use std::collections::BTreeSet;
@@ -43,52 +42,19 @@ impl WorkFormula {
     }
 }
 
-impl Attachment {
-    /// What makes one row measurable: the three callables the host order invokes, and the work observations it reads.
-    ///
-    /// The three callables are required by the signature, so a row that would be benchmarked without its two gates is unrepresentable rather than refused.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`DeclarationError::Unbounded`] where the observations outgrow [`WORK_OBSERVATION_LIMIT`].
-    pub fn measuring(
-        measured: BoundPath,
-        planted_worse: BoundPath,
-        preflight: BoundPath,
-        observations: Vec<BoundPath>,
-    ) -> Result<Self, DeclarationError> {
-        let offered = observations.len();
-        let admitted = Bounded::new(observations).map_err(|_| {
-            DeclarationError::unbounded(Seat::WorkObservation, WORK_OBSERVATION_LIMIT, offered)
-        })?;
-        Ok(Self {
-            measured,
-            planted_worse,
-            preflight,
-            observations: admitted,
-        })
-    }
-
-    /// The work observations this row reads, in the order they were declared.
-    #[must_use]
-    pub fn observations(&self) -> &[BoundPath] {
-        self.observations.as_slice()
-    }
-}
-
 impl Row {
     /// Declare one bench row.
     ///
     /// # Errors
     ///
-    /// Returns [`DeclarationError::NotACurve`] where the axis states fewer than two sizes — a growth class is read off a curve and never off a point — [`DeclarationError::Doubled`] where two positions state one size, and [`DeclarationError::Unbounded`] where the axis outgrows [`INPUT_SIZE_LIMIT`].
-    /// The checks are dependent and in that order, so exactly one cause is true of any refused row.
+    /// Returns [`DeclarationError::NotACurve`] where the axis states fewer than two sizes, [`DeclarationError::Doubled`] where two positions state one axis size or observation, [`DeclarationError::Absent`] where no observation was declared, and [`DeclarationError::Unbounded`] where either roster outgrows its declared magnitude.
+    /// The checks run in the signature's semantic order and retain the first established cause.
     pub fn declared(
         lens: FunctionName,
         references: References,
         axis: Vec<u64>,
         measurement: Measurement,
-        attachment: Attachment,
+        observations: Vec<Name>,
     ) -> Result<Self, DeclarationError> {
         let offered = axis.len();
         if offered < 2 {
@@ -102,18 +68,39 @@ impl Row {
                 seat: Seat::AxisSize,
             });
         }
-        let admitted = Bounded::new(axis)
+        let admitted_axis = Bounded::new(axis)
             .map_err(|_| DeclarationError::unbounded(Seat::AxisSize, INPUT_SIZE_LIMIT, offered))?;
+        if observations.is_empty() {
+            return Err(DeclarationError::Absent {
+                seat: Seat::WorkObservation,
+            });
+        }
+        let mut distinct_observations: BTreeSet<&Name> = BTreeSet::new();
+        for observation in &observations {
+            if !distinct_observations.insert(observation) {
+                return Err(DeclarationError::Doubled {
+                    seat: Seat::WorkObservation,
+                });
+            }
+        }
+        let observation_count = observations.len();
+        let admitted_observations = Bounded::new(observations).map_err(|_| {
+            DeclarationError::unbounded(
+                Seat::WorkObservation,
+                WORK_OBSERVATION_LIMIT,
+                observation_count,
+            )
+        })?;
         Ok(Self {
             lens,
             references,
-            axis: admitted,
+            axis: admitted_axis,
             measurement,
-            attachment,
+            observations: admitted_observations,
         })
     }
 
-    /// The lens the rendered adapter registers this row under.
+    /// The lens the carrier's target-owned expressions are matched under.
     #[must_use]
     pub const fn lens(&self) -> &FunctionName {
         &self.lens
@@ -141,73 +128,47 @@ impl Row {
         &self.measurement
     }
 
-    /// What makes this row measurable.
+    /// The work observations this row's target-owned callables may record, in authored order.
     #[must_use]
-    pub const fn attachment(&self) -> &Attachment {
-        &self.attachment
+    pub fn observations(&self) -> &[Name] {
+        self.observations.as_slice()
     }
 }
 
-impl Backend {
-    /// The backend a consumer named, under whatever it reaches the dependency by.
-    ///
-    /// There is no default: a backend this compiler chose would be a dependency the consumer never asked for, and the adapter reads its name from the value it was handed.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`DeclarationError::NotAnIdentifier`] where the spelling cannot root a rendered path — not one Rust identifier, or a keyword the language already took: a dependency reached by a keyword is a path no consumer's source can write.
-    pub fn named(spelling: &str) -> Result<Self, DeclarationError> {
-        if rendered_name(spelling) {
-            Ok(Self(spelling.to_owned()))
-        } else {
-            Err(DeclarationError::NotAnIdentifier)
-        }
-    }
-
-    /// The spelling every backend-naming token in the adapter is written from.
+impl Reporter {
+    /// Declare the module that carries the target-supplied report reader.
     #[must_use]
-    pub fn spelling(&self) -> &str {
-        self.0.as_str()
-    }
-}
-
-impl Adapter {
-    /// Declare the one-file reporter adapter.
-    ///
-    /// Total: both parts were admitted by their own roads before they reached this one.
-    #[must_use]
-    pub const fn declared(module: ModuleName, backend: Backend) -> Self {
-        Self { module, backend }
+    pub const fn declared(module: ModuleName) -> Self {
+        Self { module }
     }
 
-    /// The module the adapter is rendered as.
+    /// The module the report-reader value is rendered inside.
     #[must_use]
     pub const fn module(&self) -> &ModuleName {
         &self.module
     }
-
-    /// The one swap point: the backend the neutral table is bound to.
-    #[must_use]
-    pub const fn backend(&self) -> &Backend {
-        &self.backend
-    }
 }
 
-impl Benches {
-    /// Declare the complete payload one bench delivery is written from.
+impl BenchmarkDeclaration {
+    /// Declare the complete neutral benchmark payload one delivery is written from.
     ///
     /// # Errors
     ///
-    /// Returns [`DeclarationError::Absent`] where no row was supplied, [`DeclarationError::Doubled`] where two rows carry one lens spelling — the rendered adapter puts every lens in one namespace, so a collision would be a duplicate definition inside an expansion nobody wrote — and [`DeclarationError::Unbounded`] where the rows outgrow [`BENCH_ROW_LIMIT`].
+    /// Returns [`DeclarationError::Absent`] where no row was supplied, [`DeclarationError::Doubled`] where the table function and reporter module share one generated-item spelling or two rows carry one lens spelling, and [`DeclarationError::Unbounded`] where the rows outgrow [`BENCH_ROW_LIMIT`].
     pub fn declared(
         support: SupportName,
-        module: ModuleName,
+        table_function: FunctionName,
         table: Name,
         rows: Vec<Row>,
-        adapter: Adapter,
+        reporter: Reporter,
     ) -> Result<Self, DeclarationError> {
         if rows.is_empty() {
             return Err(DeclarationError::Absent { seat: Seat::Row });
+        }
+        if table_function.spelling() == reporter.module().spelling() {
+            return Err(DeclarationError::Doubled {
+                seat: Seat::GeneratedItem,
+            });
         }
         lens_namespace_closed(&rows)?;
         let offered = rows.len();
@@ -215,10 +176,10 @@ impl Benches {
             .map_err(|_| DeclarationError::unbounded(Seat::Row, BENCH_ROW_LIMIT, offered))?;
         Ok(Self {
             support,
-            module,
+            table_function,
             table,
             rows: admitted,
-            adapter,
+            reporter,
         })
     }
 
@@ -228,10 +189,10 @@ impl Benches {
         &self.support
     }
 
-    /// The module the rendered table is written as.
+    /// The function the benchmark-table stamp writes.
     #[must_use]
-    pub const fn module(&self) -> &ModuleName {
-        &self.module
+    pub const fn table_function(&self) -> &FunctionName {
+        &self.table_function
     }
 
     /// The bench table's own namespaced name.
@@ -246,10 +207,10 @@ impl Benches {
         &self.rows
     }
 
-    /// The adapter that binds these rows to a measurement backend.
+    /// The module that carries the target-supplied report reader.
     #[must_use]
-    pub const fn adapter(&self) -> &Adapter {
-        &self.adapter
+    pub const fn reporter(&self) -> &Reporter {
+        &self.reporter
     }
 }
 
@@ -274,7 +235,7 @@ impl BenchCaptureError {
     }
 }
 
-/// The rendered adapter's ONE namespace, closed: every lens spelling across every row, distinct.
+/// The carrier matcher's one lens namespace, closed: every lens spelling across every row, distinct.
 ///
 /// Refused here rather than left to the consumer's compiler, which would report a duplicate definition inside an expansion nobody wrote.
 fn lens_namespace_closed(rows: &[Row]) -> Result<(), DeclarationError> {

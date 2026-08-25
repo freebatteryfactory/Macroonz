@@ -12,7 +12,7 @@ It owns no grammar, no roster, no identity rule, no planning decision, and no ju
 | Entry | On | Renders |
 | --- | --- | --- |
 | `#[trials(...)]` | a type or a module | A trial table for `macroonz-harness`: suites and rows, each row a claim, subject, check, and population you name. |
-| `#[bench(...)]` | a type or a module | A bench table and its one-file reporter adapter, bound to a measurement backend you name. |
+| `#[bench(...)]` | a type or a module | A neutral bench table and one typed seat for the target's `fn(&BenchReport)` reader. |
 | `#[mutations(...)]` | an enum | A mutation surface pressing the enum's declared order: the policy you state, and one adjacent-transposition alternative per neighboring pair of variants. |
 | `shadow! { ... }` | item position | Both faces of every chosen synchronization name, rooted at the Loom path the declaration supplies. |
 | `network! { ... }` | item position | The builder module for a declared topology and its fault schedules, rooted at the harness path the declaration supplies. |

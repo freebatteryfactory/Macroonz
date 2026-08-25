@@ -161,10 +161,10 @@ pub fn mutations(body: TokenStream, item: TokenStream) -> TokenStream {
     expanded
 }
 
-/// Declares a bench table and its reporter adapter beside the item this attribute sits on.
+/// Declares a neutral benchmark table and its typed report-reader seat beside the item this attribute sits on.
 ///
-/// The body is the bench grammar, read whole by `macroonz::descriptor::bench`: the exported support name, the stamped module, the table's own name, the adapter module and its one backend value, and each row with its references, axis, budgets, and callables.
-/// The expansion is one exported carrier holding the table in its stamped seat and the adapter in its opaque seat, followed by the item unchanged.
+/// The body is the bench grammar, read whole by `macroonz::descriptor::bench`: the exported support name, the table function and name, the reporter module, and each row's references, axis, four exact budget values, optional formula, and observation references.
+/// The expansion is one exported carrier holding the table in its stamped seat and one target-supplied `fn(&BenchReport)` value in its opaque seat, followed by the item unchanged.
 ///
 /// A malformed declaration expands to `compile_error!` at the offending token, carrying the compiler's own rendering of the established cause.
 #[proc_macro_attribute]

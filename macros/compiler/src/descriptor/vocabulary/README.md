@@ -22,7 +22,8 @@ Neither carries a complete roster, because nothing walks a vocabulary. A renderi
 
 ## What is not here
 
-The measurement backend's roads. A backend is a dependency the consumer names, not something the harness publishes, and the bench home spells it from the one value a consumer swaps.
+A benchmark backend protocol, because the harness publishes none and the compiler invents none.
+The bench target supplies a plain report-reader function through the carrier instead.
 
 The carrier's own gate grammar. The shell, its matcher, and the gate invocation are the support home's, and a payload written here is cargo that rides inside them.
 

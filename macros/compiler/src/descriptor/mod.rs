@@ -17,9 +17,9 @@ mod type_contract;
 mod types;
 
 pub use types::{
-    Binding, BoundPath, COMPOSITION_ISSUE_LIMIT, CaptureCause, CaptureIssue, Composition,
-    CompositionError, CompositionIssue, DESCRIPTOR_MEANING_FACT, DeclarationError, DirectBinding,
-    Emitter, FunctionName, Grammar, HelperRefusal, ModuleName, Name, PATH_SEGMENT_LIMIT,
-    PROVIDER_LIMIT, Provider, RENDERED_SPELLING_FACT, Seat, SupportName, TypeName,
-    rendered_identifier, rendered_name,
+    COMPOSITION_ISSUE_LIMIT, CaptureCause, CaptureIssue, Composition, CompositionError,
+    CompositionIssue, DESCRIPTOR_MEANING_FACT, DeclarationError, DirectBinding, Emitter,
+    FunctionName, Grammar, HelperRefusal, ModuleName, Name, PATH_SEGMENT_LIMIT, PROVIDER_LIMIT,
+    Provider, RENDERED_SPELLING_FACT, Seat, SupportName, TypeName, rendered_identifier,
+    rendered_name,
 };

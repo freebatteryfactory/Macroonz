@@ -1,47 +1,64 @@
-# `bench` — the kind that carries measured rows into a bench target
+# `bench` — neutral benchmark declarations completed by a target
 
-Two units out of one declaration: the bench table, and the one file a consumer swaps to change measurement backends.
+One declaration produces two coupled units: a stamped benchmark table and a typed report-reader value.
 
-They are two seats rather than one, because they are two independent things landing apart. The table is stamp grammar riding inert in the carrier's stamped seat, so its own delivery is the declaration site; the adapter is Rust the bench target invokes, delivered as that target's proved cargo. A rendering that produced one and not the other is caught by the seat it left empty rather than by a count that happened to be wrong.
+They travel through one carrier and one generated-support pin because either unit without the other is an incomplete delivery.
+The table is constructor-shaped cargo for `macroonz-harness`.
+The report reader is a target-supplied `fn(&BenchReport)` value carried in a small generated module.
 
-## The rows are the harness's field roster, mirrored as data
+## Declaration-owned facts
 
-A row carries the workload identity, the input-size axis, the correctness preflight, the planted-worse falsifier, the declared budgets, the contention posture, the work formula where one is declared, and the neutral complexity-claim reference. [`Attachment`] carries what makes a row measurable, because a bench row is pure data and cannot measure.
+[`BenchmarkDeclaration`] owns only stable authored facts:
 
-Four of those seats are structural statements rather than shapes of convenience.
+- the support address;
+- the generated table function and the table's namespaced identity;
+- authored row order;
+- each workload, preflight, planted-worse, and complexity reference;
+- each input-size axis;
+- sample count and warmup count;
+- the exact ratio numerator and denominator;
+- the optional formula bytes;
+- the work-observation references;
+- the report-reader module name.
 
-**The axis is a curve.** An axis of fewer than two distinct sizes is refused at the door: a growth class is read off a curve and never off a point, and a row measured at one size is a number rather than a class.
+The four budget values are named fields rather than a positional account.
+No denominator is inferred, and no complexity reference is interpreted as a judge.
 
-**The posture is stated always.** A measurement under an undeclared contention posture is inadmissible, and the field is what enforces it. Every row states the seat, so "unstated" is not a value and never becomes one — which holds whatever the roster's width is.
+An axis carries at least two distinct sizes because a growth relation is read from a curve rather than one point.
+Each row carries at least one distinct observation reference because the harness recorder cannot qualify work it was never permitted to count.
 
-**The tolerances are spec, not vibes.** [`Budgets`] is a record of three named seats rather than a roster of counts, because the schema's roster is positional and a positional roster can be declared short. A table whose second budget silently became its third is a gate judging against the wrong tolerance. [`BUDGET_ORDER`] is the stated mapping between the named seats and the positions, written in exactly the order the rendering emits them.
+## Target-owned facts
 
-**The host order is carried by the shape.** [`Attachment`] requires the measured callable, the planted-worse falsifier, and the preflight together, so a row that would be benchmarked without either gate is unwritable rather than refused.
+The carrier invocation supplies each row's measured callable, planted-worse callable, real `WorkJudgeBinding`, and complete `PreflightTrial`.
+It also supplies the report reader.
 
-## The adapter, and its one swap point
+Those values are expressions rather than rendered paths, so they resolve in the target's own scope and remain valid when dependencies are renamed or reached through a facade.
+The compiler does not rebuild a preflight from a callable, infer a judge from a complexity label, or acquire a clock.
 
-[`Backend`] is the single value every backend-naming token in the rendered adapter is written from — the attribute on each registered function, the black box that keeps a measured value alive, and the road that runs them.
+The target constructs its `BenchInvocation`, including target, toolchain, contention posture, and `HarnessClock`, then hands the generated table to the harness's `run_all` host.
+The generated cargo never becomes a second host.
 
-Backend-agnostic by construction rather than by promise: there is no second place a backend name can enter the rendering, so changing backends changes one declared value. There is no default, either. A backend this compiler chose would be a dependency the consumer never asked for.
+## One renderer
 
-Each row renders as its own module carrying two registered functions — the measured realization and the planted-worse one — so the backend produces both curves and the gate has two to separate. A module per row rather than two suffixed names in one namespace, because a suffix is a spelling two distinct lenses can collide at.
+The table renderer calls the harness's public `BenchReferences`, `BenchMeasurement`, `BenchRow`, `BenchAttachment`, and `BenchBinding` constructors in their declared relationship order.
+The same declared observation roster becomes the attachment's recorder scope.
 
-The adapter BINDS AND REPORTS. It renders no verdict and runs no gate: the declared order — preflight, planted-worse gate, then measurement — belongs to the bench host, an adapter that ran it would be a second host, and a backend that returned a verdict would be a second authority over what the numbers mean.
+The report reader is stored as a function pointer and is never wrapped in a backend protocol.
+It receives a finished `BenchReport`, owns no verdict, and cannot reach the callables or clock that produced the report.
 
-## Two literals, written directly
+## A benchmark is evidence
 
-The declared COUNTS — the axis, the budgets — as unsuffixed integers, and the declared BYTES — the work formula — as a byte string.
-
-Each states the value and lets the tree own the spelling: an unsuffixed integer takes the type the consumer's own seat declares, and the `b`, the quotes, and every escape belong to the tree. Neither road carries a refusal for a literal it cannot spell.
-
-## A benchmark is evidence, never a specification
-
-What a rendering here carries is what one declaration said about one realization. Nothing in it says what any other realization must do, and no seat of it carries a measurement — measurements are the bench host's, taken by running.
+The declaration states one measurement contract and nothing about another realization.
+Measurements and verdicts belong to the harness execution road, not to generated syntax.
 
 ## The seats
 
-`types.rs` declares the kind, its two seats, the question it owes, and the row vocabulary; `type_guard.rs` is its own child and holds every road that reaches a private field.
+`types.rs` declares the kind, the table and reporter roles, the question it owes, and the neutral declaration vocabulary.
 
-`type_contract.rs` states what the kind is, the arm a posture is emitted under, the backend's roads, and the budget order.
+`type_guard.rs` owns the informed row and declaration constructors.
 
-`render.rs` writes the tokens.
+`type_contract.rs` owns the kind, role, question, canonical-content, and refusal contracts.
+
+`capture.rs` reads the closed helper grammar.
+
+`render.rs` projects the informed declaration into the current harness constructors and the typed report-reader seat.

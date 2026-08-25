@@ -4,14 +4,13 @@
 
 use super::{HarnessName, HarnessWord};
 use crate::bounded::Overflow;
-use crate::descriptor::Binding;
 use crate::token::{GeneratedToken, call, twin_path};
 
 /// One path at the harness's address, rooted at the harness binding's metavariable.
 #[must_use]
 pub fn path(segments: &[HarnessName]) -> Vec<GeneratedToken> {
     let spelled: Vec<&str> = segments.iter().map(|segment| segment.spelling()).collect();
-    twin_path(Binding::Harness.name(), &spelled)
+    twin_path(crate::support::CrateFacing::Harness.name(), &spelled)
 }
 
 /// One call to a road at the harness's address.

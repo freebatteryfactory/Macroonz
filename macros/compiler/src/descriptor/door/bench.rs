@@ -11,9 +11,9 @@ use crate::request::Request;
 use crate::support::{self, AxisCargo, CargoAxis, DeclaredCargo, SupportAxes, SupportCarrier};
 use crate::token::{CapturedInput, CapturedTokenTree, GeneratedTree, SpanHandle};
 
-/// Walk one bench declaration to the sealed carrier expansion its table and adapter ride out inside.
+/// Walk one benchmark declaration to the sealed carrier expansion its table and report reader ride out inside.
 ///
-/// The body is read through the bench grammar, the bench terminal proves the table into its declaration-site delivery and the adapter into the bench-carrier delivery, and the carrier composes the two as the bench form: stamped table, opaque reporter.
+/// The body is read through the bench grammar, the bench terminal proves the table into its declaration-site delivery and the report reader into the bench-carrier delivery, and the carrier composes the two as the bench form: stamped table, opaque reporter.
 ///
 /// # Errors
 ///
@@ -30,7 +30,7 @@ pub fn bench(
     drop(trees);
 
     let address = support_address(read.support().spelling(), door)?;
-    let matched = GeneratedTree::assembled(bench::matched_clauses())
+    let matched = GeneratedTree::assembled(bench::matched_clauses(&read))
         .map_err(|overflow| whole(&super::walk::overflown(overflow), door))?;
     let rows = u64::try_from(read.row_count()).unwrap_or(u64::MAX);
     let answer = BenchAnswer::MeasuringBenchmarks {
@@ -43,8 +43,8 @@ pub fn bench(
         .render(|plan, out| {
             let table = unit_tree(bench::bench_table(plan.content(), emitter))?;
             out.unit(BenchRole::Table, table)?;
-            let adapter = unit_tree(bench::reporter_adapter(plan.content()))?;
-            out.unit(BenchRole::Adapter, adapter)
+            let reporter = unit_tree(bench::reporter(plan.content()))?;
+            out.unit(BenchRole::Reporter, reporter)
         })?;
 
     let declared =

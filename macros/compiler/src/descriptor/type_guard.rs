@@ -7,10 +7,9 @@
 
 use super::super::composition::doubled_providers;
 use super::{
-    Binding, BoundPath, COMPOSITION_ISSUE_LIMIT, CaptureCause, CaptureIssue, Composition,
-    CompositionError, CompositionIssue, DeclarationError, DirectBinding, FunctionName, Grammar,
-    HelperRefusal, ModuleName, Name, PATH_SEGMENT_LIMIT, PROVIDER_LIMIT, Provider, Seat,
-    SupportName, TypeName,
+    COMPOSITION_ISSUE_LIMIT, CaptureCause, CaptureIssue, Composition, CompositionError,
+    CompositionIssue, DeclarationError, DirectBinding, FunctionName, Grammar, HelperRefusal,
+    ModuleName, Name, PATH_SEGMENT_LIMIT, PROVIDER_LIMIT, Provider, Seat, SupportName, TypeName,
 };
 use crate::bounded::{Capped, Capping, NonEmpty};
 use crate::token::SpanHandle;
@@ -104,32 +103,6 @@ rendered_identifiers! {
     FunctionName, "declared function name";
 }
 
-impl BoundPath {
-    /// The path rooted at one crate binding, over the segments that follow it.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`DeclarationError::Absent`] where no segment was supplied, [`DeclarationError::NotAnIdentifier`] where a segment cannot name a rendered item — a path rooted at a binding traverses items, so a segment outside the alphabet or on the keyword roster renders a path no consumer's compiler reads — and [`DeclarationError::Unbounded`] where the segments outgrow [`PATH_SEGMENT_LIMIT`].
-    pub fn rooted(binding: Binding, segments: Vec<String>) -> Result<Self, DeclarationError> {
-        Ok(Self {
-            binding,
-            segments: path_segments(segments)?,
-        })
-    }
-
-    /// Which crate binding this path is rooted at.
-    #[must_use]
-    pub const fn binding(&self) -> Binding {
-        self.binding
-    }
-
-    /// The segments after the binding, in the order they were declared; structurally at least one.
-    #[must_use]
-    pub fn segments(&self) -> &NonEmpty<String, PATH_SEGMENT_LIMIT> {
-        &self.segments
-    }
-}
-
 impl DirectBinding {
     /// One direct projection's physical dependency path, from its ordered item segments.
     ///
@@ -147,7 +120,7 @@ impl DirectBinding {
     }
 }
 
-/// One informed item-path segment roster, shared by logical carrier paths and physical direct bindings.
+/// One informed item-path segment roster for physical direct bindings.
 fn path_segments(
     segments: Vec<String>,
 ) -> Result<NonEmpty<String, PATH_SEGMENT_LIMIT>, DeclarationError> {

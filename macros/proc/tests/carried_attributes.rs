@@ -44,10 +44,9 @@ pub enum Cause {
 
 #[macroonz_macros::bench(
     support = pace_support,
-    module = pace_benches,
+    table_function = pace_table,
     table = named("proc", "pace-table"),
-    adapter = pace_adapter,
-    backend = divan,
+    reporter = pace_reporter,
     encode_pace {
         workload = named("proc", "encode"),
         preflight = named("proc", "encode-correct"),
@@ -55,12 +54,10 @@ pub enum Cause {
         complexity = named("proc", "linear"),
         axis = [2, 4, 8],
         samples = 16,
-        warmup = 4,
-        ratio = 3,
-        run = declaring::ops::encode,
-        run_worse = declaring::ops::encode_slow,
-        run_preflight = declaring::ops::encode_check,
-        observe = [declaring::ops::bytes_touched],
+        warmups = 4,
+        ratio_numerator = 3,
+        ratio_denominator = 1,
+        observe = [named("proc", "bytes-touched")],
     },
 )]
 mod paced {

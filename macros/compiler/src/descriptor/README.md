@@ -9,13 +9,13 @@ Six kinds live here: three carrier kinds, and three direct ones.
 | Kind | What one declaration produces | Where it lands |
 | --- | --- | --- |
 | [`TrialTable`](trial::TrialTable) | A stamped module of declared rows | The declaration site, inert inside the carrier's stamped seat |
-| [`BenchTable`](bench::BenchTable) | A bench table and the one file that binds it to a measurement backend | The table beside the trial table's; the adapter as the consumer's bench-target cargo |
+| [`BenchTable`](bench::BenchTable) | A neutral bench table and one typed target-supplied report reader | The table in the stamped seat; the report reader as bench-target cargo |
 | [`MutationSurface`](mutation::MutationSurface) | The module a mutation harness lowers and invokes | The consumer's test target |
 | [`ShadowFace`](shadow::ShadowFace) | Both `cfg`-gated faces of every chosen synchronization name | The declaration site, as ordinary items |
 | [`NetworkModule`](network::NetworkModule) | The builder module for a declared topology and its fault schedules | The declaration site, as ordinary items |
 | [`ConcurrencyModule`](concurrency::ConcurrencyModule) | One generic exploration function per declared row | The declaration site, as ordinary items |
 
-A stamped seat lands differently from an opaque one because it is a different material: stamp grammar is not Rust, so a stamped module delivered as opaque target cargo would be a syntax error in the consumer's build, and it rides the carrier's stamped seat instead — which the gate forwards to its stamp, never to the compiler.
+A stamped seat lands differently from an opaque one because it is a different material: stamp grammar is not Rust, so a stamped payload delivered as opaque target cargo would be a syntax error in the consumer's build, and it rides the carrier's stamped seat instead — which the gate forwards to its stamp, never to the compiler.
 
 ## Nothing here is a constant a door cannot change
 
@@ -32,8 +32,9 @@ The producer writes letters to an address; it does not own the mailbox.
 
 ## Two binding postures, and no hardcoded crate name
 
-Carrier cargo is rooted at one of two logical [`Binding`] rows — the declaring crate whose operations a row measures or challenges, and the harness whose vocabulary the row is spelled in.
-Each is written as a metavariable the carrier invocation binds, so a consumer that renamed either dependency gets its own name back and the declaration never learns what either crate is called.
+Carrier cargo roots every harness path at the support carrier's logical harness metavariable.
+Callables and other target-owned values arrive as expressions, so no declaring-crate path needs a second logical binding.
+A consumer that renamed the harness gets its own name back and the declaration never learns what the crate is called.
 
 The shadow, network, and concurrency projections compile immediately where their direct macro stands, so each declaration supplies a [`DirectBinding`] containing the physical path that scope resolves.
 One segment addresses a renamed dependency; several address a facade re-export.
@@ -45,7 +46,7 @@ A callable living in the consumer's own target needs no binding at all: it arriv
 
 ## One vocabulary for a declaration's values
 
-[`Name`], [`SupportName`], [`ModuleName`], [`TypeName`], [`FunctionName`], [`BoundPath`], and [`DirectBinding`] are what a declaration's values are.
+[`Name`], [`SupportName`], [`ModuleName`], [`TypeName`], [`FunctionName`], and [`DirectBinding`] are what a declaration's values are.
 Every one of them refuses at construction, so a name that names nothing and a spelling a consumer's compiler would read as something else are values nobody can hold.
 
 [`DeclarationError`] is how they refuse: seven shapes over one [`Seat`] roster, because what refuses is the SHAPE of the disagreement and which seat it was about is the other half of the same sentence. A bounded seat admitted later is one row on that roster rather than three rows of a refusal.

@@ -17,6 +17,8 @@ pub enum HarnessName {
     Muterprater,
     /// The module discovery lowering lives under.
     Discover,
+    /// The module the benchmark receiver lives under.
+    Bench,
     /// The stamp a rendered bench payload is written in the grammar of.
     BenchTableStamp,
     /// The road a namespaced reference is parsed by.
@@ -109,6 +111,14 @@ pub enum HarnessName {
     BindingType,
     /// One row of the bench-row vocabulary.
     BenchRow,
+    /// The four semantic references one benchmark row joins.
+    BenchReferences,
+    /// The input axis, budgets, contention posture, and optional formula one row declares.
+    BenchMeasurement,
+    /// The informed input-size axis.
+    InputSizeAxis,
+    /// What makes one benchmark row executable.
+    BenchAttachment,
     /// The reference naming what is measured.
     WorkloadRef,
     /// The reference naming the correctness preflight.
@@ -117,6 +127,8 @@ pub enum HarnessName {
     PlantedWorseRef,
     /// The neutral reference a row's complexity claim is stated through.
     ComplexityClaimRef,
+    /// One work observation a benchmark callable may record.
+    WorkObservationRef,
     /// The declared contention posture's own type.
     ContentionPosture,
     /// The declared work formula's own type.
@@ -125,6 +137,8 @@ pub enum HarnessName {
     DeclaredBudgets,
     /// One bench row married to the callables the host order invokes.
     BenchBinding,
+    /// One complete benchmark report.
+    BenchReport,
     /// How a namespaced reference refuses.
     NameRefusal,
     /// How a mutation permission refuses.
@@ -198,6 +212,18 @@ pub enum HarnessWord {
     Suite,
     /// The clause each declared bench row is written under.
     Row,
+    /// The roster of benchmark bindings one stamped table carries.
+    Bindings,
+    /// The target-owned report reader.
+    Reporter,
+    /// The target-owned measured callable for one benchmark row.
+    Measured,
+    /// The target-owned planted-worse callable for one benchmark row.
+    PlantedWorse,
+    /// The target-owned work judge binding for one benchmark row.
+    Judge,
+    /// The target-owned complete preflight trial for one benchmark row.
+    Preflight,
     /// The attachment seat carrying one row's subject revision commitment.
     SubjectRevision,
     /// The attachment seat carrying one row's check revision commitment.
@@ -218,6 +244,7 @@ impl HarnessName {
             Self::Descriptor => "descriptor",
             Self::Muterprater => "muterprater",
             Self::Discover => "discover",
+            Self::Bench => "bench",
             Self::BenchTableStamp => "bench_table",
             Self::Named => "named",
             Self::Declared => "declared",
@@ -264,14 +291,20 @@ impl HarnessName {
             Self::ProducerName => "ProducerName",
             Self::BindingType => "Binding",
             Self::BenchRow => "BenchRow",
+            Self::BenchReferences => "BenchReferences",
+            Self::BenchMeasurement => "BenchMeasurement",
+            Self::InputSizeAxis => "InputSizeAxis",
+            Self::BenchAttachment => "BenchAttachment",
             Self::WorkloadRef => "WorkloadRef",
             Self::PreflightRef => "PreflightRef",
             Self::PlantedWorseRef => "PlantedWorseRef",
             Self::ComplexityClaimRef => "ComplexityClaimRef",
+            Self::WorkObservationRef => "WorkObservationRef",
             Self::ContentionPosture => "ContentionPosture",
             Self::WorkFormula => "WorkFormula",
             Self::DeclaredBudgets => "DeclaredBudgets",
             Self::BenchBinding => "BenchBinding",
+            Self::BenchReport => "BenchReport",
             Self::NameRefusal => "NameRefusal",
             Self::PermissionRefusal => "PermissionRefusal",
             Self::PolicyRefusal => "PolicyRefusal",
@@ -315,6 +348,12 @@ impl HarnessWord {
             Self::Clock => "clock",
             Self::Suite => "suite",
             Self::Row => "row",
+            Self::Bindings => "bindings",
+            Self::Reporter => "reporter",
+            Self::Measured => "measured",
+            Self::PlantedWorse => "planted_worse",
+            Self::Judge => "judge",
+            Self::Preflight => "preflight",
             Self::SubjectRevision => "subject_revision",
             Self::CheckRevision => "check_revision",
             Self::Call => "call",
