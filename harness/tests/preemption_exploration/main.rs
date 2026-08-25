@@ -2,6 +2,21 @@
 //!
 //! The models are written directly against loom's shadow types, which is the adopter's own posture; the pin lane holds the declared [`LOOM_PIN`] and the workspace manifest's `=`-requirement together, so the evidence row and the compiled scheduler cannot drift apart in silence.
 
+#![cfg(any(
+    all(
+        unix,
+        any(
+            target_arch = "aarch64",
+            target_arch = "arm",
+            target_arch = "x86_64",
+            target_arch = "loongarch64",
+            target_arch = "riscv64",
+            all(target_arch = "powerpc64", target_endian = "little"),
+        ),
+    ),
+    all(windows, any(target_arch = "x86_64", target_arch = "aarch64")),
+))]
+
 use loom::sync::Arc;
 use loom::sync::atomic::{AtomicUsize, Ordering};
 use loom::thread;
