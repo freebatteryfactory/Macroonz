@@ -10,7 +10,7 @@ use crate::descriptor::{
     AuthoredTable, Binding, ClaimRef, ExecutionSuite, SubjectRoute, TableView, TrialTableRefusal,
 };
 use crate::report::{
-    EmptySelectionReason, FindingCause, InfrastructureFault, InvocationProfile,
+    EmptySelectionReason, FindingCause, InfrastructureFailure, InvocationProfile,
     SelectionExpectation, SkipReason, TargetBinding, TimeBudget, TrialConclusion, TrialFinding,
     TrialId, TrialSite,
 };
@@ -122,7 +122,7 @@ pub enum SeatFailure {
     /// The trial ran past the budget it was given, which rides along so a reader knows which bound was reached.
     PastTimeBudget(TimeBudget),
     /// The harness failed around the trial, so nothing was learned about the subject.
-    HarnessFailed(InfrastructureFault),
+    HarnessFailed(InfrastructureFailure),
 }
 
 /// One selected trial that did not conclude lawfully: both identity rails, and what it did instead.

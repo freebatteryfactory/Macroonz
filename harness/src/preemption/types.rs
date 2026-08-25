@@ -1,6 +1,6 @@
 //! Every public type of the preemption home, declared and nothing else.
 //!
-//! Construction and reading live in this module's own child `type_guard.rs`; the one road that runs loom lives in `explore.rs`.
+//! Construction and reading live in this module's own child `type_guard.rs`; target-specific execution lives behind the one explore road.
 
 use crate::report::{FindingCause, ForeignText};
 
@@ -10,9 +10,9 @@ mod guard;
 /// The owner every cause this home cites is declared under.
 const CAUSE_FAMILY: &str = "macroonz.preemption";
 
-/// The cause a model that did not complete cleanly is cited under.
+/// The cause an explicit model check refused under.
 ///
-/// One cause for the whole broke-arm, because the boundary cannot type loom's report without parsing it — an assertion, a deadlock, and an overrun bound all conclude here, and loom's own words ride the finding as foreign text.
+/// This cause is minted only from [`PreemptionModelFailure`], never inferred from a foreign backend unwind.
 pub const MODEL_BROKE: FindingCause = FindingCause::named(CAUSE_FAMILY, "model-broke");
 
 /// The exact loom requirement the workspace manifest declares.
@@ -48,21 +48,60 @@ pub enum PreemptionBoundsRefusal {
     ZeroBranches,
 }
 
-/// What one bounded exploration established.
+/// One model-owned refusal returned as a value from a scheduled execution.
+///
+/// Its private report seat keeps the exact model-break mint on the typed return road; panicking with lookalike text cannot construct it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PreemptionModelFailure {
+    report: Option<ForeignText>,
+}
+
+/// The result one model returns on each scheduled execution.
+pub type PreemptionModelResult = Result<(), PreemptionModelFailure>;
+
+/// What one completed bounded exploration established.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PreemptionVerdict {
-    /// Every execution under the declared bounds completed with every assertion standing.
+    /// Every execution under the declared bounds completed with every model check standing.
     AllInterleavingsHeld,
-    /// Some execution did not complete cleanly — an assertion failed, a deadlock was found, or the exploration overran a declared bound — and this is loom's own report of it.
+    /// One execution returned an explicit model-owned refusal.
     ModelBroke {
-        /// Loom's report, bounded and carried one way; a payload of a foreign type reads as absent.
+        /// The model's bounded report, where it supplied one.
         report: Option<ForeignText>,
     },
 }
 
-/// What one exploration produced: the bounds it ran under, and the verdict they established.
+/// Why one requested exploration did not establish a model verdict.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum IncompleteExploration {
+    /// The pinned backend has no implementation for this compilation target.
+    Unavailable,
+    /// The backend refused before its explicitly configured exploration began.
+    InitializationFailed {
+        /// The backend's bounded report, where its payload was text.
+        report: Option<ForeignText>,
+    },
+    /// The backend unwound after exploration began without a Macroonz-minted model refusal.
+    ///
+    /// Loom 0.7.2 does not type whether this was declared branch exhaustion, cleanup failure, an undeclared model panic, or a backend defect; the report remains foreign and is never parsed into invented authority.
+    ExecutionUnresolved {
+        /// The backend's bounded report, where its payload was text.
+        report: Option<ForeignText>,
+    },
+}
+
+/// Whether one exploration completed with a model verdict or stopped on the infrastructure rail.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PreemptionOutcome {
+    /// The backend established a verdict about the bounded model space.
+    Completed(PreemptionVerdict),
+    /// The backend did not establish a model verdict.
+    Incomplete(IncompleteExploration),
+}
+
+/// What one exploration produced: the bounds it was asked to run under and the strongest outcome the backend established.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PreemptionReading {
     bounds: PreemptionBounds,
-    verdict: PreemptionVerdict,
+    outcome: PreemptionOutcome,
 }

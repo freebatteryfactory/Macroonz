@@ -1,9 +1,10 @@
 //! Constructors and readers for the preemption vocabulary.
 
 use super::{
-    PreemptionBound, PreemptionBounds, PreemptionBoundsRefusal, PreemptionReading,
-    PreemptionVerdict,
+    PreemptionBound, PreemptionBounds, PreemptionBoundsRefusal, PreemptionModelFailure,
+    PreemptionOutcome, PreemptionReading,
 };
+use crate::report::ForeignText;
 
 impl PreemptionBounds {
     /// The budget its author declared: the preemption seat, and the branch budget one execution may take.
@@ -37,22 +38,44 @@ impl PreemptionBounds {
     }
 }
 
+impl PreemptionModelFailure {
+    /// Refuse one scheduled execution with no foreign report.
+    #[must_use]
+    pub const fn unreported() -> Self {
+        Self { report: None }
+    }
+
+    /// Refuse one scheduled execution with bounded report material.
+    #[must_use]
+    pub fn reported(material: &[u8]) -> Self {
+        Self {
+            report: Some(ForeignText::admitted(material)),
+        }
+    }
+
+    /// The bounded report the model supplied, where it supplied one.
+    #[must_use]
+    pub const fn report(&self) -> Option<&ForeignText> {
+        self.report.as_ref()
+    }
+}
+
 impl PreemptionReading {
     /// One exploration's product, minted only by the explore road.
     #[must_use]
-    pub(crate) const fn read(bounds: PreemptionBounds, verdict: PreemptionVerdict) -> Self {
-        Self { bounds, verdict }
+    pub(crate) const fn read(bounds: PreemptionBounds, outcome: PreemptionOutcome) -> Self {
+        Self { bounds, outcome }
     }
 
-    /// The bounds the exploration ran under.
+    /// The bounds the exploration was asked to run under.
     #[must_use]
     pub const fn bounds(&self) -> PreemptionBounds {
         self.bounds
     }
 
-    /// What the bounded exploration established.
+    /// The strongest outcome the backend established.
     #[must_use]
-    pub const fn verdict(&self) -> &PreemptionVerdict {
-        &self.verdict
+    pub const fn outcome(&self) -> &PreemptionOutcome {
+        &self.outcome
     }
 }

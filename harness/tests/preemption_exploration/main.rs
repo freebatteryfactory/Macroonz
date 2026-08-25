@@ -6,10 +6,11 @@ use loom::sync::Arc;
 use loom::sync::atomic::{AtomicUsize, Ordering};
 use loom::thread;
 use macroonz_harness::preemption::{
-    LOOM_PIN, MODEL_BROKE, PreemptionBound, PreemptionBounds, PreemptionBoundsRefusal,
-    PreemptionVerdict, concluded, explored,
+    IncompleteExploration, LOOM_PIN, MODEL_BROKE, PreemptionBound, PreemptionBounds,
+    PreemptionBoundsRefusal, PreemptionModelFailure, PreemptionModelResult, PreemptionOutcome,
+    PreemptionVerdict, attempted, explored,
 };
-use macroonz_harness::report::{FailureClass, TrialConclusion};
+use macroonz_harness::report::{FailureClass, InfrastructureFault, RunAttempt, TrialConclusion};
 
 /// The workspace manifest, read at compile time, where the loom pin is declared.
 const ROOT_MANIFEST: &str = include_str!("../../../Cargo.toml");
@@ -20,7 +21,7 @@ loom::thread_local! {
 }
 
 /// A lost update: two threads read, then write, so one increment can vanish.
-fn racy_model() {
+fn racy_model() -> PreemptionModelResult {
     let value = Arc::new(AtomicUsize::new(0));
     let handles: Vec<_> = (0usize..2usize)
         .map(|_| {
@@ -32,16 +33,26 @@ fn racy_model() {
         })
         .collect();
     for handle in handles {
-        assert!(handle.join().is_ok());
+        if handle.join().is_err() {
+            return Err(PreemptionModelFailure::reported(b"a worker did not join"));
+        }
     }
-    assert_eq!(value.load(Ordering::SeqCst), 2usize);
+    if value.load(Ordering::SeqCst) == 2usize {
+        Ok(())
+    } else {
+        Err(PreemptionModelFailure::reported(b"the update was lost"))
+    }
 }
 
 /// The same counter with the read and the write fused, which no interleaving can break.
 ///
 /// The model also reads the loom thread-local, which is only reachable inside a model and so is witnessed here.
-fn fused_model() {
-    SEAT.with(|seat| assert_eq!(*seat, 7u8));
+fn fused_model() -> PreemptionModelResult {
+    if !SEAT.with(|seat| *seat == 7u8) {
+        return Err(PreemptionModelFailure::reported(
+            b"the shadow thread-local changed",
+        ));
+    }
     let value = Arc::new(AtomicUsize::new(0));
     let handles: Vec<_> = (0usize..2usize)
         .map(|_| {
@@ -52,24 +63,62 @@ fn fused_model() {
         })
         .collect();
     for handle in handles {
-        assert!(handle.join().is_ok());
+        if handle.join().is_err() {
+            return Err(PreemptionModelFailure::reported(b"a worker did not join"));
+        }
     }
-    assert_eq!(value.load(Ordering::SeqCst), 2usize);
+    if value.load(Ordering::SeqCst) == 2usize {
+        Ok(())
+    } else {
+        Err(PreemptionModelFailure::reported(
+            b"the fused update was lost",
+        ))
+    }
 }
 
 /// An async model: one thread races an async block driven by loom's own executor.
 ///
 /// The claim is that the futures face is real — `block_on` participates in the exploration like any other loom operation.
-fn futures_model() {
+fn futures_model() -> PreemptionModelResult {
     let value = Arc::new(AtomicUsize::new(0));
     let cloned = Arc::clone(&value);
     let handle = thread::spawn(move || {
         cloned.fetch_add(1usize, Ordering::SeqCst);
     });
     let seen = loom::future::block_on(async { value.fetch_add(1usize, Ordering::SeqCst) });
-    assert!(seen <= 1usize);
-    assert!(handle.join().is_ok());
-    assert_eq!(value.load(Ordering::SeqCst), 2usize);
+    if seen > 1usize {
+        return Err(PreemptionModelFailure::reported(
+            b"the async observation was outside its range",
+        ));
+    }
+    if handle.join().is_err() {
+        return Err(PreemptionModelFailure::reported(b"a worker did not join"));
+    }
+    if value.load(Ordering::SeqCst) == 2usize {
+        Ok(())
+    } else {
+        Err(PreemptionModelFailure::reported(
+            b"the async update was lost",
+        ))
+    }
+}
+
+/// An undeclared panic carrying the same words as the model's typed refusal.
+fn lookalike_panicking_model() -> PreemptionModelResult {
+    if std::thread::panicking() {
+        return Err(PreemptionModelFailure::unreported());
+    }
+    std::panic::resume_unwind(Box::new("the update was lost"))
+}
+
+/// One scheduler branch with no live shadow allocation during unwind.
+fn branching_model() -> PreemptionModelResult {
+    thread::yield_now();
+    if std::hint::black_box(false) {
+        Err(PreemptionModelFailure::unreported())
+    } else {
+        Ok(())
+    }
 }
 
 /// The lane's one declared budget.
@@ -77,26 +126,26 @@ fn bounds() -> Result<PreemptionBounds, PreemptionBoundsRefusal> {
     PreemptionBounds::declared(PreemptionBound::AtMost(2u32), 1_000u32)
 }
 
-/// The lost update is found, and loom's own report crosses the boundary as foreign text.
+/// The lost update is found through the model-owned typed refusal road.
 #[test]
-fn the_racy_counter_is_caught_with_looms_report() -> Result<(), PreemptionBoundsRefusal> {
+fn the_racy_counter_is_caught_with_its_typed_report() -> Result<(), PreemptionBoundsRefusal> {
     let reading = explored(bounds()?, racy_model);
     assert_eq!(reading.bounds(), bounds()?);
     assert!(
         matches!(
-            reading.verdict(),
-            PreemptionVerdict::ModelBroke { report: Some(_) }
+            reading.outcome(),
+            PreemptionOutcome::Completed(PreemptionVerdict::ModelBroke { report: Some(_) })
         ),
-        "the racy model was not caught with a report"
+        "the racy model was not caught through its typed refusal"
     );
-    let conclusion = concluded(&reading);
+    let attempt = attempted(&reading);
     assert!(
-        matches!(conclusion, TrialConclusion::Refused(_)),
-        "the broke verdict did not conclude as a refusal"
+        matches!(attempt, RunAttempt::Executed(TrialConclusion::Refused(_))),
+        "the broke verdict did not become an executed refusal"
     );
-    if let TrialConclusion::Refused(finding) = conclusion {
+    if let RunAttempt::Executed(TrialConclusion::Refused(finding)) = attempt {
         assert_eq!(finding.cause(), MODEL_BROKE);
-        assert_eq!(finding.class(), FailureClass::SubjectPanic);
+        assert_eq!(finding.class(), FailureClass::RefusedByCheck);
         assert!(finding.foreign().is_some());
     }
     Ok(())
@@ -106,8 +155,14 @@ fn the_racy_counter_is_caught_with_looms_report() -> Result<(), PreemptionBounds
 #[test]
 fn the_fused_counter_holds_over_the_bounded_space() -> Result<(), PreemptionBoundsRefusal> {
     let reading = explored(bounds()?, fused_model);
-    assert_eq!(reading.verdict(), &PreemptionVerdict::AllInterleavingsHeld);
-    assert_eq!(concluded(&reading), TrialConclusion::Passed);
+    assert_eq!(
+        reading.outcome(),
+        &PreemptionOutcome::Completed(PreemptionVerdict::AllInterleavingsHeld)
+    );
+    assert_eq!(
+        attempted(&reading),
+        RunAttempt::Executed(TrialConclusion::Passed)
+    );
     Ok(())
 }
 
@@ -115,7 +170,51 @@ fn the_fused_counter_holds_over_the_bounded_space() -> Result<(), PreemptionBoun
 #[test]
 fn an_async_model_explores_under_block_on() -> Result<(), PreemptionBoundsRefusal> {
     let reading = explored(bounds()?, futures_model);
-    assert_eq!(reading.verdict(), &PreemptionVerdict::AllInterleavingsHeld);
+    assert_eq!(
+        reading.outcome(),
+        &PreemptionOutcome::Completed(PreemptionVerdict::AllInterleavingsHeld)
+    );
+    Ok(())
+}
+
+/// An untyped unwind cannot wear the exact model-break badge or cross onto the subject rail, even when its text matches.
+#[test]
+fn lookalike_panic_text_stays_infrastructure_unresolved() -> Result<(), PreemptionBoundsRefusal> {
+    let reading = explored(bounds()?, lookalike_panicking_model);
+    assert!(matches!(
+        reading.outcome(),
+        PreemptionOutcome::Incomplete(IncompleteExploration::ExecutionUnresolved {
+            report: Some(_)
+        })
+    ));
+    let attempt = attempted(&reading);
+    assert!(matches!(
+        attempt,
+        RunAttempt::InfrastructureFailed(ref failure)
+            if failure.fault() == InfrastructureFault::BackendExecutionUnresolved
+                && failure.foreign().is_some()
+    ));
+    Ok(())
+}
+
+/// A budget the backend cannot complete under remains infrastructure-incomplete rather than a subject panic.
+#[test]
+fn branch_exhaustion_stays_infrastructure_unresolved() -> Result<(), PreemptionBoundsRefusal> {
+    let narrow = PreemptionBounds::declared(PreemptionBound::AtMost(2u32), 1u32)?;
+    let reading = explored(narrow, branching_model);
+    assert!(matches!(
+        reading.outcome(),
+        PreemptionOutcome::Incomplete(IncompleteExploration::ExecutionUnresolved {
+            report: Some(_)
+        })
+    ));
+    let attempt = attempted(&reading);
+    assert!(matches!(
+        attempt,
+        RunAttempt::InfrastructureFailed(ref failure)
+            if failure.fault() == InfrastructureFault::BackendExecutionUnresolved
+                && failure.foreign().is_some()
+    ));
     Ok(())
 }
 

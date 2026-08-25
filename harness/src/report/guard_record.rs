@@ -3,11 +3,32 @@
 use crate::clock::MeasurementReading;
 use crate::descriptor::{ClaimRef, TablePosture};
 use crate::report::{
-    ExecutionKey, Exercise, HostTrialRecord, InvocationProfile, NotSelectedReason, OutcomeClass,
-    ReplayPosture, RowRevisionId, RunAttempt, RunReport, SelectionDisposition,
-    SelectionExpectation, SelectionOutcome, TrialAccounting, TrialConclusion, TrialId, TrialReport,
-    TrialRunStanding, TrialSite,
+    ExecutionKey, Exercise, ForeignText, HostTrialRecord, InfrastructureFailure,
+    InfrastructureFault, InvocationProfile, NotSelectedReason, OutcomeClass, ReplayPosture,
+    RowRevisionId, RunAttempt, RunReport, SelectionDisposition, SelectionExpectation,
+    SelectionOutcome, TrialAccounting, TrialConclusion, TrialId, TrialReport, TrialRunStanding,
+    TrialSite,
 };
+
+impl InfrastructureFailure {
+    /// Record one harness-side failure with its normalized class and bounded foreign material.
+    #[must_use]
+    pub const fn recorded(fault: InfrastructureFault, foreign: Option<ForeignText>) -> Self {
+        Self { fault, foreign }
+    }
+
+    /// The normalized harness-side failure class.
+    #[must_use]
+    pub const fn fault(&self) -> InfrastructureFault {
+        self.fault
+    }
+
+    /// The bounded material the failing boundary carried in, where it carried any.
+    #[must_use]
+    pub const fn foreign(&self) -> Option<&ForeignText> {
+        self.foreign.as_ref()
+    }
+}
 
 impl HostTrialRecord {
     /// One host's typed input about one selected trial.
@@ -172,8 +193,8 @@ impl SelectionDisposition {
                 }
                 RunAttempt::SkippedWithReason(reason) => OutcomeClass::Skipped(*reason),
                 RunAttempt::TimedOut(_) => OutcomeClass::TimedOut,
-                RunAttempt::InfrastructureFailed(fault) => {
-                    OutcomeClass::InfrastructureFailed(*fault)
+                RunAttempt::InfrastructureFailed(failure) => {
+                    OutcomeClass::InfrastructureFailed(failure.fault())
                 }
             },
             Self::NotSelected { trial: _, reason } => OutcomeClass::NotSelected(*reason),

@@ -13,15 +13,17 @@ workspace = true
 [dependencies]
 arbitrary = { workspace = true }
 blake3 = { workspace = true }
-loom = { workspace = true, optional = true }
 syn = { workspace = true }
+
+[target.'cfg(any(all(unix, any(target_arch = "aarch64", target_arch = "arm", target_arch = "x86_64", target_arch = "loongarch64", target_arch = "riscv64", all(target_arch = "powerpc64", target_endian = "little"))), all(windows, any(target_arch = "x86_64", target_arch = "aarch64"))))'.dependencies]
+loom = { workspace = true, optional = true }
 
 [features]
 default = []
 # The memory-model exploration home, wrapping the pinned `loom` scheduler.
-# Opt-in: loom's generator dependency does not build on every target the default harness supports,
-# so a default that pulled it would trade an ordinary adopter's platform for a test convenience.
-# The wall proves this feature by running with --all-features; the default build carries no loom.
+# Opt-in at this package door; the facade later decides which public posture opens it by default.
+# Loom compiles only where its pinned generator backend implements the target.
+# Every other target retains the target-neutral result plane and reports typed backend unavailability.
 preemption = ["dep:loom"]
 
 [dev-dependencies]

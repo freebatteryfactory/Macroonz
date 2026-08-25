@@ -340,6 +340,19 @@ pub enum InfrastructureFault {
     SupportAbsent,
     /// The harness could not record the execution's own evidence.
     CaptureFailed,
+    /// A requested backend is not implemented for the compilation target.
+    BackendUnavailable,
+    /// A backend could not establish its configured execution environment.
+    BackendInitializationFailed,
+    /// A backend began its work but did not return evidence that distinguishes a subject result from an infrastructure interruption.
+    BackendExecutionUnresolved,
+}
+
+/// One harness-side failure: its typed class and any bounded material the failing boundary carried in.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct InfrastructureFailure {
+    fault: InfrastructureFault,
+    foreign: Option<ForeignText>,
 }
 
 /// What became of one selected trial.
@@ -354,7 +367,7 @@ pub enum RunAttempt {
     /// It ran past the budget it was given, carried here so a reader knows which bound was reached.
     TimedOut(TimeBudget),
     /// The harness failed around it, so nothing was learned about the subject.
-    InfrastructureFailed(InfrastructureFault),
+    InfrastructureFailed(InfrastructureFailure),
 }
 
 /// One external host's typed input about a selected trial.
