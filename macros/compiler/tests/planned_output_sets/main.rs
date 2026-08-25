@@ -11,11 +11,23 @@
 
 use macroonz::identity::{self, Identity, Transcript};
 use macroonz::{
-    Account, BoundAxis, Bounded, Context, DEPENDENCY_LIMIT, DecisionTrace, Destination,
-    DigestContract, InvalidationTrigger, Kind, MEMBERSHIP_LIMIT, Membership, NoQuestions,
-    OriginEdge, OriginRelation, OriginTrail, OwnerFact, Plan, PlanDecisions, PlanIssue,
-    PlannedMember, PlannedOutput, RUST_DECLARATION_PROFILE, Role, TraceDecision, TraceEntry,
+    Account, BoundAxis, Bounded, ContentBinding, Context, CrateBinding, DEPENDENCY_LIMIT,
+    DecisionTrace, Destination, DigestContract, Door, InvalidationTrigger, Kind, MEMBERSHIP_LIMIT,
+    Membership, NoQuestions, OriginEdge, OriginRelation, OriginTrail, OwnerFact, Plan,
+    PlanDecisions, PlanIssue, PlannedMember, PlannedOutput, Producer, RUST_DECLARATION_PROFILE,
+    Role, TextCapture, TraceDecision, TraceEntry, bound_content,
 };
+
+const DOOR: Door = Door::declared(
+    "lane",
+    "lane grammar",
+    "lane::planned",
+    CrateBinding::declared("macroonz"),
+    Producer {
+        namespace: "lane",
+        name: "planned-output-sets",
+    },
+);
 
 /// The kind this lane plans: two seats, delivered to two different builds.
 ///
@@ -75,6 +87,12 @@ fn commitment(material: &[u8]) -> Identity<identity::CapturedDeclaration> {
         material,
         0,
     ))
+}
+
+/// One content binding over captured text this lane authored.
+fn binding<K: Kind>(material: &str, content: K::Content) -> Option<ContentBinding<K>> {
+    let read = TextCapture::read(material).ok()?;
+    Some(bound_content::<K>(read.input(), content, &DOOR))
 }
 
 /// One origin node over material this lane names.
@@ -174,7 +192,6 @@ fn planned(account: Account<Pair>, membership: Membership<Seat>) -> Option<Plan<
     Some(Plan::planned(
         account,
         decided_under,
-        "pair",
         PlanDecisions {
             membership,
             invalidation,
@@ -218,8 +235,16 @@ fn a_declared_set_reaches_one_plan_whichever_order_it_was_declared_in() -> Resul
     let one = Membership::declared(member(Seat::Head), vec![member(Seat::Tail)]).map_err(|_| ())?;
     let other =
         Membership::declared(member(Seat::Tail), vec![member(Seat::Head)]).map_err(|_| ())?;
-    let first = planned(Account::over(commitment(b"one declaration")), one).ok_or(())?;
-    let second = planned(Account::over(commitment(b"one declaration")), other).ok_or(())?;
+    let first = planned(
+        Account::over(binding::<Pair>("one declaration", "pair").ok_or(())?),
+        one,
+    )
+    .ok_or(())?;
+    let second = planned(
+        Account::over(binding::<Pair>("one declaration", "pair").ok_or(())?),
+        other,
+    )
+    .ok_or(())?;
     assert_eq!(first.identity(), second.identity());
     Ok(())
 }
@@ -232,8 +257,16 @@ fn a_plan_commits_to_the_set_it_declared() -> Result<(), ()> {
     let whole =
         Membership::declared(member(Seat::Head), vec![member(Seat::Tail)]).map_err(|_| ())?;
     let shortened = Membership::from_member(member(Seat::Head)).map_err(|_| ())?;
-    let first = planned(Account::over(commitment(b"one declaration")), whole).ok_or(())?;
-    let second = planned(Account::over(commitment(b"one declaration")), shortened).ok_or(())?;
+    let first = planned(
+        Account::over(binding::<Pair>("one declaration", "pair").ok_or(())?),
+        whole,
+    )
+    .ok_or(())?;
+    let second = planned(
+        Account::over(binding::<Pair>("one declaration", "pair").ok_or(())?),
+        shortened,
+    )
+    .ok_or(())?;
     assert_ne!(first.identity(), second.identity());
     Ok(())
 }
@@ -318,9 +351,12 @@ fn an_account_past_the_dependency_magnitude_names_the_declaration_axis() -> Resu
     let dependencies: Vec<Identity<identity::CapturedDeclaration>> = (0..offered)
         .map(|position| commitment(&position.to_be_bytes()))
         .collect();
-    let refusal = Account::<Pair>::standing_on(commitment(b"one declaration"), dependencies)
-        .err()
-        .ok_or(())?;
+    let refusal = Account::<Pair>::standing_on(
+        binding::<Pair>("one declaration", "pair").ok_or(())?,
+        dependencies,
+    )
+    .err()
+    .ok_or(())?;
     assert_eq!(
         refusal.first_issue(),
         &PlanIssue::BoundExceeded {
@@ -337,10 +373,11 @@ fn an_account_past_the_dependency_magnitude_names_the_declaration_axis() -> Resu
 /// The set is canonicalized where the account is built, so two callers who declared the same captures reach one plan rather than two that differ by the order somebody wrote them in.
 #[test]
 fn one_dependency_set_declared_in_two_orders_reaches_one_account() -> Result<(), ()> {
-    let stands_over = commitment(b"one declaration");
+    let stands_over = binding::<Pair>("one declaration", "pair").ok_or(())?;
     let first = commitment(b"first dependency");
     let second = commitment(b"second dependency");
-    let one = Account::<Pair>::standing_on(stands_over, vec![first, second]).map_err(|_| ())?;
+    let one =
+        Account::<Pair>::standing_on(stands_over.clone(), vec![first, second]).map_err(|_| ())?;
     let other =
         Account::<Pair>::standing_on(stands_over, vec![second, first, second]).map_err(|_| ())?;
     assert_eq!(one, other);
@@ -348,14 +385,18 @@ fn one_dependency_set_declared_in_two_orders_reaches_one_account() -> Result<(),
     Ok(())
 }
 
-/// The narrow one-trigger reading refuses where the account names more than one declaration.
+/// The narrow one-trigger reading covers an account with no dependencies and refuses where another capture is named beside it.
 ///
-/// A watch covering the commitment and none of the dependencies reads exactly like a complete one, so the reading refuses rather than issuing a claim about the declarations it dropped.
+/// The content commitment is already bound under the account's own captured declaration, so restating that capture would add no cause; a dependency is an independent cause and cannot be dropped.
 #[test]
-fn a_one_trigger_reading_refuses_where_the_account_names_more_than_one() -> Result<(), ()> {
-    let stands_over = commitment(b"one declaration");
-    let alone = Account::<Pair>::over(stands_over);
-    assert!(alone.cause_trigger().is_ok());
+fn a_one_trigger_reading_refuses_where_the_account_names_an_independent_dependency()
+-> Result<(), ()> {
+    let stands_over = binding::<Pair>("one declaration", "pair").ok_or(())?;
+    let alone = Account::<Pair>::over(stands_over.clone());
+    assert!(matches!(
+        alone.cause_trigger().map_err(|_| ())?,
+        InvalidationTrigger::ProjectionContent { .. }
+    ));
 
     let standing_on = Account::<Pair>::standing_on(stands_over, vec![commitment(b"a dependency")])
         .map_err(|_| ())?;
@@ -370,12 +411,12 @@ fn a_one_trigger_reading_refuses_where_the_account_names_more_than_one() -> Resu
     Ok(())
 }
 
-/// The watch set watches every declaration the account names, and the two facts the context declares.
+/// The watch set watches the content binding, every independent declaration it depends on, and the two facts the context declares.
 ///
 /// The shared half of any plan's invalidation is derived from the context's own seats rather than listed at a plan site, so a context that grew a seat and a watch set that did not cannot drift apart.
 #[test]
-fn the_watch_set_watches_every_declaration_the_account_names() -> Result<(), ()> {
-    let stands_over = commitment(b"one declaration");
+fn the_watch_set_watches_the_content_binding_and_every_declared_dependency() -> Result<(), ()> {
+    let stands_over = binding::<Pair>("one declaration", "pair").ok_or(())?;
     let account = Account::<Pair>::standing_on(
         stands_over,
         vec![commitment(b"first"), commitment(b"second")],
@@ -388,7 +429,14 @@ fn the_watch_set_watches_every_declaration_the_account_names() -> Result<(), ()>
         .iter()
         .filter(|trigger| matches!(trigger, InvalidationTrigger::CapturedDeclaration { .. }))
         .collect();
-    assert_eq!(named.len(), 3);
+    assert_eq!(named.len(), 2);
+    assert_eq!(
+        watched
+            .iter()
+            .filter(|trigger| matches!(trigger, InvalidationTrigger::ProjectionContent { .. }))
+            .count(),
+        1
+    );
     assert_eq!(
         watched
             .iter()
@@ -411,16 +459,18 @@ fn the_watch_set_watches_every_declaration_the_account_names() -> Result<(), ()>
 /// The layer exists so two distinct requests may agree at it, so the claim needs both directions: what a request stands on does not change what it meant, and the kind and the content each do.
 #[test]
 fn what_a_request_meant_is_its_kind_over_its_content_and_nothing_else() -> Result<(), ()> {
-    let stands_over = commitment(b"one declaration");
-    let alone = Account::<Pair>::over(stands_over);
+    let stands_over = binding::<Pair>("one declaration", "pair").ok_or(())?;
+    let alone = Account::<Pair>::over(stands_over.clone());
     let standing_on = Account::<Pair>::standing_on(stands_over, vec![commitment(b"a dependency")])
         .map_err(|_| ())?;
     assert_eq!(alone.intent(), standing_on.intent());
 
-    let another_kind = Account::<Other>::over(stands_over);
+    let another_kind =
+        Account::<Other>::over(binding::<Other>("one declaration", "pair").ok_or(())?);
     assert_ne!(alone.intent(), another_kind.intent());
 
-    let another_declaration = Account::<Pair>::over(commitment(b"another declaration"));
+    let another_declaration =
+        Account::<Pair>::over(binding::<Pair>("another declaration", "pair").ok_or(())?);
     assert_ne!(alone.intent(), another_declaration.intent());
     Ok(())
 }

@@ -132,7 +132,6 @@ fn replanned(plan: &Plan<Pair>, membership: Membership<Seat>) -> Option<Plan<Pai
     Some(Plan::planned(
         plan.account().clone(),
         *plan.context(),
-        *plan.content(),
         PlanDecisions {
             membership,
             invalidation,

@@ -14,9 +14,10 @@ pub use types::{
     Explanation, ExplanationId, GENERATED_UNIT_PROFILE, GENERATOR, GENERATOR_VERSION_PROFILE,
     GeneratedUnit, GeneratorIdentity, GeneratorVersion, HUMAN_TEXT_LIMIT, HumanProjection,
     Identity, MACROONZ_STEM, Nonclaim, ORIGIN_NODE_PROFILE, OriginNode, OutputBytes, OwnerFact,
-    OwnerIdentity, PLAN_PROFILE, PROJECTION_INTENT_PROFILE, Plan, PlanId, Profile,
-    ProjectionIntent, ProjectionKind, ProjectionProfile, Provenance, RENDERED_UNIT_PROFILE,
-    RelatedBody, RelatedIssue, RenderedUnit, Role, ServiceEntry, ShapeVersion, Subject, Traced,
-    Transcript, Version, names_are_separating,
+    OwnerIdentity, PLAN_PROFILE, PROJECTION_CONTENT_PROFILE, PROJECTION_INTENT_PROFILE,
+    PROJECTION_KIND_PROFILE, Plan, PlanId, Profile, ProjectionContent, ProjectionIntent,
+    ProjectionKind, ProjectionProfile, Provenance, RENDERED_UNIT_PROFILE, RelatedBody,
+    RelatedIssue, RenderedUnit, Role, ServiceEntry, ShapeVersion, Subject, Traced, Transcript,
+    Version, names_are_separating,
 };
 pub(crate) use types::{human_projection, static_bytes};

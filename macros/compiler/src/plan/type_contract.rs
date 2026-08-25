@@ -47,6 +47,7 @@ impl InvalidationTrigger {
             Self::Profile { .. } => 1,
             Self::Generator { .. } => 2,
             Self::Declared { .. } => 3,
+            Self::ProjectionContent { .. } => 4,
         }
     }
 }
@@ -137,7 +138,7 @@ impl fmt::Display for PlanIssue {
             ),
             Self::CauseSetUnwatchable { named, watchable } => write!(
                 into,
-                "the account names {named} declarations and this reading watches {watchable}"
+                "the account names {named} independent causes and this reading watches {watchable}"
             ),
             Self::MembershipForeign { seat } => write!(
                 into,

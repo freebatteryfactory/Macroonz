@@ -57,6 +57,8 @@ subjects! {
     CapturedDeclaration = "captured-declaration",
     /// What a request MEANT, ahead of anything decided about it.
     ProjectionIntent = "projection-intent",
+    /// The canonical facts one kind-specific content value carries.
+    ProjectionContent = "projection-content",
     /// One projection plan.
     Plan = "plan",
     /// One generated unit — the thing a plan declares it will materialize.
@@ -168,6 +170,10 @@ pub enum Role {
     ///
     /// Several helpers may stand here at once; they are separated by the roster position each one is derived at, never by a grammar of their own.
     CapturedHelper,
+    /// One kind-specific content commitment.
+    ProjectionContent,
+    /// One projection kind qualified by the producer that owns its generated names.
+    ProjectionKind,
 }
 
 /// One position in one grammar's own order.
@@ -219,28 +225,40 @@ pub const DECLARED_NAME_PROFILE: Profile =
 
 /// The grammar one projection intent's identity is derived under.
 ///
-/// The kind's declared name and the content commitment it was meant over, rooted at position zero, and **nothing else** — no generator, no shape version, no delivery, no token grammar.
+/// The owner-qualified kind identity and the kind-specific content commitment it was meant over, rooted at position zero, and **nothing else** — no generator, no shape version, no delivery, no token grammar.
 /// So an intent survives upgrading the machinery that realizes it, which is the whole reason the layer exists: it is the one layer two distinct requests are allowed to agree at.
 pub const PROJECTION_INTENT_PROFILE: Profile =
-    Profile::declared(MACROONZ_STEM, "projection-intent", Version::declared(1));
+    Profile::declared(MACROONZ_STEM, "projection-intent", Version::declared(2));
+
+/// The grammar one owner-qualified projection kind is derived under.
+///
+/// The producer namespace, the producer name, and the kind's declared name, each framed, rooted at position zero.
+pub const PROJECTION_KIND_PROFILE: Profile =
+    Profile::declared(MACROONZ_STEM, "projection-kind", Version::declared(1));
+
+/// The grammar one kind-specific content commitment is derived under.
+///
+/// The owner-qualified kind identity and the content's complete canonical bytes, anchored under the exact captured declaration the content was paired with, at position zero.
+pub const PROJECTION_CONTENT_PROFILE: Profile =
+    Profile::declared(MACROONZ_STEM, "projection-content", Version::declared(1));
 
 /// The grammar one plan's identity is derived under.
 ///
 /// The intent, the dependency set the account declares beside it, the context, the complete membership in role order, the invalidation set, the decision trace, the origin trail, and the nonclaims — anchored on the address the content walked in carrying.
 /// The context names the generator version the plan was produced under, so the generator reaches a plan's identity through the seat the plan declared it at and never through a member every grammar would have carried.
-pub const PLAN_PROFILE: Profile = Profile::declared(MACROONZ_STEM, "plan", Version::declared(1));
+pub const PLAN_PROFILE: Profile = Profile::declared(MACROONZ_STEM, "plan", Version::declared(2));
 
 /// The grammar one origin node's identity is derived under.
 ///
 /// The declared material the node stands for, anchored on the address it is a node of, so one piece of content is one node wherever it is reached from.
 pub const ORIGIN_NODE_PROFILE: Profile =
-    Profile::declared(MACROONZ_STEM, "origin-node", Version::declared(1));
+    Profile::declared(MACROONZ_STEM, "origin-node", Version::declared(2));
 
 /// The grammar one generated unit's semantic key is derived under.
 ///
-/// The declared material one planned member answers to and the roster position of the role it stands under, anchored on what the plan hangs off — a member's LOGICAL identity, fixed before a byte of it exists.
+/// The owner-qualified kind identity, the kind-specific content commitment, and the role's declared name, with the roster position of that role, anchored on what the plan hangs off — a member's LOGICAL identity, fixed before a byte of it exists.
 pub const GENERATED_UNIT_PROFILE: Profile =
-    Profile::declared(MACROONZ_STEM, "generated-unit", Version::declared(1));
+    Profile::declared(MACROONZ_STEM, "generated-unit", Version::declared(2));
 
 /// The grammar one rendered unit's identity and its output-bytes digest are both derived under.
 ///

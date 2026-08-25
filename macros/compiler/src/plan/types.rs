@@ -7,7 +7,6 @@ use crate::bounded::{Bounded, Capped, NonEmpty};
 use crate::identity::{self, Identity, OwnerFact, OwnerIdentity, PlanId, Profile, Provenance};
 use crate::kind::{Kind, Role};
 use crate::origin::{DecisionTrace, Nonclaim, OriginTrail};
-use core::marker::PhantomData;
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -33,13 +32,26 @@ pub const NONCLAIM_LIMIT: usize = 16;
 /// One per doubled seat — sixteen, since doubling spends two members of a membership of thirty-two — one per bound axis, and one of each remaining kind.
 pub const PLAN_ISSUE_LIMIT: usize = 32;
 
-/// What a request MEANT: its kind's declared name over the content commitment it was meant for.
+/// What a request MEANT: its owner-qualified kind over the content commitment it was meant for.
 ///
 /// Two requests that meant the same thing derive one of these, whatever machinery would realize them, which is why this is the layer equivalence is compared at.
 pub type Intent = Identity<identity::ProjectionIntent>;
 
 /// The triggers one plan watches.
 pub type InvalidationSet = NonEmpty<InvalidationTrigger, TRIGGER_LIMIT>;
+
+/// One kind's content bound to the exact captured declaration and owner-qualified kind it was presented under.
+///
+/// Holding one proves the compiler derived the content commitment from all three together.
+/// It claims nothing about whether the content is a correct semantic reading of the captured declaration; that is the declaring adapter's authority.
+#[must_use = "a content binding is the only material an account accepts"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ContentBinding<K: Kind> {
+    capture: Identity<identity::CapturedDeclaration>,
+    kind: Identity<identity::ProjectionKind>,
+    commitment: Identity<identity::ProjectionContent>,
+    content: K::Content,
+}
 
 /// The one account of the content a request walked in with: what that content IS, and what it declares it stands on.
 ///
@@ -52,9 +64,8 @@ pub type InvalidationSet = NonEmpty<InvalidationTrigger, TRIGGER_LIMIT>;
 #[must_use = "the account is what a plan is planned over, and every reading reads it"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Account<K: Kind> {
-    commitment: Identity<identity::CapturedDeclaration>,
+    binding: ContentBinding<K>,
     dependencies: Bounded<Identity<identity::CapturedDeclaration>, DEPENDENCY_LIMIT>,
-    kind: PhantomData<K>,
 }
 
 /// The exact facts every plan is decided under, whatever its kind.
@@ -85,6 +96,11 @@ pub enum InvalidationTrigger {
     Generator {
         /// The watched generator version.
         watched: Identity<identity::GeneratorVersion>,
+    },
+    /// The kind-specific content commitment the plan was decided over.
+    ProjectionContent {
+        /// The watched content commitment.
+        watched: Identity<identity::ProjectionContent>,
     },
     /// Anything else a consumer declared this plan watches.
     ///
@@ -179,7 +195,6 @@ pub struct Plan<K: Kind> {
     provenance: Provenance,
     account: Account<K>,
     context: Context,
-    content: K::Content,
     membership: Membership<K::Role>,
     invalidation: InvalidationSet,
     trace: DecisionTrace,
@@ -271,11 +286,11 @@ pub enum PlanIssue {
         /// The position of the edge that does not join its predecessor, counted from the trail's first edge.
         at: u32,
     },
-    /// A narrow one-trigger reading was asked of an account that names more than one declaration.
+    /// A narrow one-trigger reading was asked of an account that names more than one independent cause.
     ///
-    /// A watch covering the first declaration and no other reads exactly like a complete one, so the reading refuses rather than issuing a claim about the declarations it dropped.
+    /// A watch covering the first cause and no other reads exactly like a complete one, so the reading refuses rather than issuing a claim about the causes it dropped.
     CauseSetUnwatchable {
-        /// How many declarations the account names.
+        /// How many independent causes the account names.
         named: u32,
         /// How many of them the reading can watch.
         watchable: u32,

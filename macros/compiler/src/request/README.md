@@ -7,10 +7,10 @@ One call walks it in order, and every refusal on the way comes back as one diagn
 
 ## The door says who is asking
 
-Four spellings and nothing else: the prefix your users read at the head of every line, the stable name of your declaration grammar, the stable name of this entry point, and the crate your rendered paths are rooted at.
+One door declares the prefix your users read at the head of every line, the stable name of the declaration grammar, the stable name of the entry point, the crate rendered paths are rooted at, and the producer namespace and name generated identities stand under.
 
 Say them once, in a `const`, and pass a reference from then on.
-Every diagnostic and every identity a request derives carries them, so three derives built on this compiler read as three derives of one shape.
+Diagnostics read the diagnostic spellings, rendered paths read the crate binding, and the projection-kind identity reads the producer qualification, so each fact reaches only the product surface it owns.
 
 No spelling of any of the four lives here.
 A consumer may rename its dependencies, so a binding this compiler chose for you would name a crate you do not have.
@@ -20,7 +20,8 @@ A consumer may rename its dependencies, so a binding this compiler chose for you
 A kind declares its seats, and a request through this door plans one member per seat.
 
 That is the whole selection rule, and it is this home's own declared fact: what a kind's roster names is what one request produces.
-The semantic key, the origin node, and the digest contract of each member are derived from the seat and from the bytes you were handed — never supplied, because a caller who could supply them could make a plan agree with a rendering it was not planned for.
+The content binding, semantic key, origin node, and digest contract of each member are derived from the captured bytes, the owner-qualified kind, the content's canonical bytes, and the seat as each identity grammar requires.
+They are never supplied, because a caller who could supply them could make a plan agree with content or a rendering it was not planned for.
 
 A kind whose output set varies with what was declared does not use this door.
 The eight steps are ordinary public functions and stay reachable underneath, which is where a conditional membership is built.
@@ -56,5 +57,5 @@ A request that fails a step is refused whole, and nothing that did not bind is h
 `types.rs` declares the request, the producer, the crate binding, the profile a request runs under, and the fact the selection rule cites.
 
 Its own child `type_guard.rs` holds every road that reaches a private field: the six steps, and the one walk.
-`decide.rs` states what a request decides before a token of Rust exists — the commitment, the seat identities, the membership, the trail, and the trace.
+`decide.rs` states what a request decides before a token of Rust exists — the capture commitment, owner-qualified kind, content binding, seat identities, membership, trail, and trace.
 `explain.rs` composes the nine universal answers off the plan and the closure.

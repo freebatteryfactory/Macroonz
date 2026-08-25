@@ -55,24 +55,28 @@ pub use identity::{
     EXPLANATION_PROFILE, ExplanationId, GENERATED_UNIT_PROFILE, GENERATOR,
     GENERATOR_VERSION_PROFILE, GeneratorIdentity, HUMAN_TEXT_LIMIT, HumanProjection, Identity,
     MACROONZ_STEM, ORIGIN_NODE_PROFILE, OwnerFact, OwnerIdentity, PLAN_PROFILE,
-    PROJECTION_INTENT_PROFILE, PlanId, Profile, Provenance, RENDERED_UNIT_PROFILE, ShapeVersion,
-    Subject, Transcript, Version, encode_bytes, encode_length, names_are_separating,
+    PROJECTION_CONTENT_PROFILE, PROJECTION_INTENT_PROFILE, PROJECTION_KIND_PROFILE, PlanId,
+    Profile, Provenance, RENDERED_UNIT_PROFILE, ShapeVersion, Subject, Transcript, Version,
+    encode_bytes, encode_length, names_are_separating,
 };
 pub use kind::{
-    Answer, Destination, Disposition, Kind, KindSet, NoQuestions, Question, Role, SoleRole,
+    Answer, CanonicalContent, Destination, Disposition, Kind, KindSet, NoQuestions, Question, Role,
+    SoleRole,
 };
 pub use origin::{
     DecisionTrace, Nonclaim, ORIGIN_EDGE_LIMIT, OriginEdge, OriginRelation, OriginTrail,
     TRACE_ENTRY_LIMIT, TraceDecision, TraceEntry, TrailError,
 };
 pub use plan::{
-    Account, BoundAxis, Context, ContradictionPair, DEPENDENCY_LIMIT, DigestContract, Intent,
-    InvalidationSet, InvalidationTrigger, MEMBERSHIP_LIMIT, Membership, NONCLAIM_LIMIT,
-    PLAN_ISSUE_LIMIT, Plan, PlanDecisions, PlanError, PlanIssue, PlannedMember, PlannedOutput,
-    TRIGGER_LIMIT,
+    Account, BoundAxis, ContentBinding, Context, ContradictionPair, DEPENDENCY_LIMIT,
+    DigestContract, Intent, InvalidationSet, InvalidationTrigger, MEMBERSHIP_LIMIT, Membership,
+    NONCLAIM_LIMIT, PLAN_ISSUE_LIMIT, Plan, PlanDecisions, PlanError, PlanIssue, PlannedMember,
+    PlannedOutput, TRIGGER_LIMIT,
 };
 pub use render::{Output, RENDERED_BYTE_LIMIT, RenderError, RenderedProjection, RenderedUnit};
-pub use request::{CrateBinding, Producer, RUST_DECLARATION_PROFILE, Request, SELECTION_FACT};
+pub use request::{
+    CrateBinding, Producer, RUST_DECLARATION_PROFILE, Request, SELECTION_FACT, bound_content,
+};
 pub use token::{
     CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound,
     CaptureBuildRefusal, CaptureBuilder, CaptureLevel, CaptureWalk, CapturedAtom,

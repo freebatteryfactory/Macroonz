@@ -63,13 +63,25 @@ const CAPTURED_DECLARATION: Grammar = Grammar {
 /// The projection-intent grammar, at the position it was first declared with.
 const PROJECTION_INTENT: Grammar = Grammar {
     name: "projection-intent",
+    version: 2,
+};
+
+/// The owner-qualified projection-kind grammar, at the position it was first declared with.
+const PROJECTION_KIND: Grammar = Grammar {
+    name: "projection-kind",
+    version: 1,
+};
+
+/// The projection-content grammar, at the position it was first declared with.
+const PROJECTION_CONTENT: Grammar = Grammar {
+    name: "projection-content",
     version: 1,
 };
 
 /// The generated-unit grammar, at the position it was first declared with.
 const GENERATED_UNIT: Grammar = Grammar {
     name: "generated-unit",
-    version: 1,
+    version: 2,
 };
 
 /// The rendered-unit grammar, at the position it was first declared with.
@@ -98,6 +110,20 @@ const INTENT_SEAT: Seat = Seat {
     name: "projection-intent",
     slot: 9,
     grammar: PROJECTION_INTENT,
+};
+
+/// The seat an owner-qualified kind identity stands at.
+const KIND_SEAT: Seat = Seat {
+    name: "projection-kind",
+    slot: 17,
+    grammar: PROJECTION_KIND,
+};
+
+/// The seat one kind-specific content commitment stands at.
+const CONTENT_SEAT: Seat = Seat {
+    name: "projection-content",
+    slot: 16,
+    grammar: PROJECTION_CONTENT,
 };
 
 /// The seat one generated unit's semantic key stands at.
@@ -247,6 +273,15 @@ const SEAT_NAME: &str = "sole";
 /// The kind's declared name, restated rather than imported on the same terms.
 const KIND_NAME: &str = "lane.greeting";
 
+/// The producer namespace the door qualifies the kind under.
+const PRODUCER_NAMESPACE: &str = "lane";
+
+/// The producer name the door qualifies the kind under.
+const PRODUCER_NAME: &str = "greeting";
+
+/// The kind-specific content this request carries.
+const CONTENT: &str = "greeting";
+
 /// The captured input this lane hands over, and the expansion the compiler produces from it.
 ///
 /// The capture's own canonical bytes are the INPUT to a derivation rather than part of the encoding under judgement: a reader of a published receipt is handed the material and asked to re-derive the name.
@@ -254,7 +289,7 @@ fn produced() -> Option<(Vec<u8>, Expansion<Greeting>)> {
     let read = TextCapture::read(DECLARATION).ok()?;
     let capture = read.input().clone();
     let material = capture.canonical_bytes();
-    let bound = Request::<Greeting>::over(capture, "greeting", &DOOR)
+    let bound = Request::<Greeting>::over(capture, CONTENT, &DOOR)
         .render(|_plan, out| {
             out.unit(
                 SoleRole::Sole,
@@ -268,11 +303,38 @@ fn produced() -> Option<(Vec<u8>, Expansion<Greeting>)> {
 /// The kind's declared name and the seat's own, each framed, which is what a seat's identities are derived over.
 ///
 /// The kind's name first: roles are open and reusable across kinds, so the kind is the ancestor that keeps two kinds sharing one capture and one roster from sharing a unit.
-fn seat_material() -> Vec<u8> {
+fn seat_material(kind: &[u8; 32], content: &[u8; 32]) -> Vec<u8> {
     let mut material = Vec::new();
-    framed(KIND_NAME.as_bytes(), &mut material);
+    framed(kind, &mut material);
+    framed(content, &mut material);
     framed(SEAT_NAME.as_bytes(), &mut material);
     material
+}
+
+/// The owner-qualified kind identity this lane independently derives.
+fn kind_identity() -> [u8; 32] {
+    let mut material = Vec::new();
+    framed(PRODUCER_NAMESPACE.as_bytes(), &mut material);
+    framed(PRODUCER_NAME.as_bytes(), &mut material);
+    framed(KIND_NAME.as_bytes(), &mut material);
+    specified(KIND_SEAT, "projection-kind", ROOTED, &[], &material, 0)
+}
+
+/// The content commitment this lane independently derives under one capture.
+fn content_identity(capture: &[u8; 32], kind: &[u8; 32]) -> [u8; 32] {
+    let mut canonical_content = Vec::new();
+    framed(CONTENT.as_bytes(), &mut canonical_content);
+    let mut material = Vec::new();
+    framed(kind, &mut material);
+    framed(&canonical_content, &mut material);
+    specified(
+        CONTENT_SEAT,
+        "projection-content",
+        UNDER_PROJECTION,
+        capture,
+        &material,
+        0,
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -321,6 +383,20 @@ fn the_specification_re_derives_a_real_intent() -> Result<(), ()> {
     Ok(())
 }
 
+/// The specification re-derives the owner-qualified kind and the content commitment bound under the capture.
+#[test]
+fn the_specification_re_derives_the_content_binding() -> Result<(), ()> {
+    let (_material, bound) = produced().ok_or(())?;
+    let account = bound.plan().account();
+    let kind = kind_identity();
+    assert_eq!(account.kind().as_bytes(), &kind);
+    assert_eq!(
+        account.content_commitment().as_bytes(),
+        &content_identity(account.commitment().as_bytes(), &kind)
+    );
+    Ok(())
+}
+
 /// The specification re-derives a real semantic key, and the two identities taken over the bytes that answer it.
 ///
 /// The chain is what a reader follows: the seat's key hangs off the declaration's commitment, and both the rendered unit and the digest of its bytes hang off that key.
@@ -328,6 +404,8 @@ fn the_specification_re_derives_a_real_intent() -> Result<(), ()> {
 fn the_specification_re_derives_a_real_key_and_the_identities_over_its_bytes() -> Result<(), ()> {
     let (_material, bound) = produced().ok_or(())?;
     let commitment = bound.plan().account().commitment();
+    let kind = kind_identity();
+    let content = content_identity(commitment.as_bytes(), &kind);
     let unit = bound.closure().rendered().under(SoleRole::Sole).ok_or(())?;
     let rendered = unit.bytes();
 
@@ -336,7 +414,7 @@ fn the_specification_re_derives_a_real_key_and_the_identities_over_its_bytes() -
         "generated-unit",
         UNDER_PROJECTION,
         commitment.as_bytes(),
-        &seat_material(),
+        &seat_material(&kind, &content),
         0,
     );
     assert_eq!(unit.semantic_key().as_bytes(), &key);
@@ -422,13 +500,15 @@ fn an_encoder_that_drops_the_material_length_prefix_disagrees() -> Result<(), ()
 fn a_context_with_the_grammar_and_the_subject_transposed_disagrees() -> Result<(), ()> {
     let (_material, bound) = produced().ok_or(())?;
     let commitment = bound.plan().account().commitment();
+    let kind = kind_identity();
+    let content = content_identity(commitment.as_bytes(), &kind);
     let unit = bound.closure().rendered().under(SoleRole::Sole).ok_or(())?;
     let key = specified(
         KEY_SEAT,
         "generated-unit",
         UNDER_PROJECTION,
         commitment.as_bytes(),
-        &seat_material(),
+        &seat_material(&kind, &content),
         0,
     );
     let grammar = DIGEST_SEAT.grammar.name;

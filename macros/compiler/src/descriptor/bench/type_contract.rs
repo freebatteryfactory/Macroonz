@@ -6,12 +6,73 @@ use super::{
 };
 use crate::bounded::Bounded;
 use crate::descriptor::vocabulary::HarnessName;
+use crate::descriptor::{BoundPath, Name};
 use crate::diagnostic::{
     BENCH_HELPER_FAMILY, Family, LineBody, Observed, Phase, REPAIR_LIMIT, RefusalClass, Refused,
     Repair,
 };
-use crate::identity::encode_bytes;
-use crate::kind::{Answer, Destination, Kind, Question, Role};
+use crate::identity::{encode_bytes, encode_length};
+use crate::kind::{Answer, CanonicalContent, Destination, Kind, Question, Role};
+
+impl CanonicalContent for Benches {
+    fn encode_content_into(&self, into: &mut Vec<u8>) {
+        encode_bytes(self.support().spelling().as_bytes(), into);
+        encode_bytes(self.module().spelling().as_bytes(), into);
+        encode_name(self.table(), into);
+        encode_length(self.rows().count(), into);
+        for row in self.rows() {
+            let mut encoded = Vec::new();
+            encode_bytes(row.lens().spelling().as_bytes(), &mut encoded);
+            let references = row.references();
+            encode_name(&references.workload, &mut encoded);
+            encode_name(&references.correctness_preflight, &mut encoded);
+            encode_name(&references.planted_worse, &mut encoded);
+            encode_name(&references.complexity_claim, &mut encoded);
+            encode_length(row.axis().len(), &mut encoded);
+            for size in row.axis() {
+                encoded.extend_from_slice(&size.to_be_bytes());
+            }
+            let measurement = row.measurement();
+            encoded.extend_from_slice(&measurement.budgets.samples.to_be_bytes());
+            encoded.extend_from_slice(&measurement.budgets.warmup.to_be_bytes());
+            encoded.extend_from_slice(&measurement.budgets.ratio_threshold.to_be_bytes());
+            encoded.push(match measurement.contention {
+                ContentionPosture::NoDeclaredContention => 0,
+            });
+            match &measurement.work_formula {
+                None => encoded.push(0),
+                Some(formula) => {
+                    encoded.push(1);
+                    encode_bytes(formula.bytes(), &mut encoded);
+                }
+            }
+            let attachment = row.attachment();
+            encode_path(&attachment.measured, &mut encoded);
+            encode_path(&attachment.planted_worse, &mut encoded);
+            encode_path(&attachment.preflight, &mut encoded);
+            encode_length(attachment.observations().len(), &mut encoded);
+            for observation in attachment.observations() {
+                encode_path(observation, &mut encoded);
+            }
+            encode_bytes(&encoded, into);
+        }
+        encode_bytes(self.adapter().module().spelling().as_bytes(), into);
+        encode_bytes(self.adapter().backend().spelling().as_bytes(), into);
+    }
+}
+
+fn encode_path(path: &BoundPath, into: &mut Vec<u8>) {
+    encode_bytes(path.binding().name().as_bytes(), into);
+    encode_length(path.segments().count(), into);
+    for segment in path.segments() {
+        encode_bytes(segment.as_bytes(), into);
+    }
+}
+
+fn encode_name(name: &Name, into: &mut Vec<u8>) {
+    encode_bytes(name.namespace().as_bytes(), into);
+    encode_bytes(name.stem().as_bytes(), into);
+}
 
 impl Kind for BenchTable {
     const NAME: &'static str = "bench-table";

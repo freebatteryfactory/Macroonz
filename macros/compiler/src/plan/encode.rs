@@ -34,10 +34,10 @@ impl<K: Kind> Account<K> {
         encode_set(self.dependencies().iter(), capture_into, into);
     }
 
-    /// Appends the intent preimage: the kind's declared name, then the content commitment at full width.
+    /// Appends the intent preimage: the owner-qualified kind, then the kind-specific content commitment at full width.
     fn intent_into(&self, into: &mut Vec<u8>) {
-        encode_bytes(K::NAME.as_bytes(), into);
-        encode_bytes(self.commitment().as_bytes(), into);
+        encode_bytes(self.kind().as_bytes(), into);
+        encode_bytes(self.content_commitment().as_bytes(), into);
     }
 }
 
@@ -61,6 +61,7 @@ impl InvalidationTrigger {
             Self::CapturedDeclaration { watched } => encode_bytes(watched.as_bytes(), into),
             Self::Profile { watched } => watched.encode_into(into),
             Self::Generator { watched } => encode_bytes(watched.as_bytes(), into),
+            Self::ProjectionContent { watched } => encode_bytes(watched.as_bytes(), into),
             Self::Declared { name, watched } => {
                 encode_bytes(name.as_bytes(), into);
                 encode_bytes(&watched.citation_bytes(), into);

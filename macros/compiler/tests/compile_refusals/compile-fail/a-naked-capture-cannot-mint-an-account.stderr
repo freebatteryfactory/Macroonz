@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/compile_refusals/compile-fail/a-naked-capture-cannot-mint-an-account.rs:18:19
+   |
+18 |     Account::over(capture)
+   |     ------------- ^^^^^^^ expected `ContentBinding<Demo>`, found `Identity<CapturedDeclaration>`
+   |     |
+   |     arguments to this function are incorrect
+   |
+   = note: expected struct `ContentBinding<Demo>`
+              found struct `macroonz::Identity<macroonz::identity::CapturedDeclaration>`
+note: associated function defined here
+  --> src/plan/type_guard.rs
+   |
+   |     pub fn over(binding: ContentBinding<K>) -> Self {
+   |            ^^^^

@@ -495,6 +495,11 @@ impl<Position> Drop for CaptureLevel<'_, Position> {
 }
 
 impl GeneratedToken {
+    /// Append this token's canonical bytes to a containing compiler-owned encoding.
+    pub(crate) fn encode_into(&self, into: &mut Vec<u8>) {
+        encode_generated(self, into);
+    }
+
     /// One word.
     #[must_use]
     pub fn word(spelling: &str) -> Self {
@@ -607,7 +612,7 @@ impl GeneratedTree {
     pub fn canonical_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
         for token in self.tokens.as_slice() {
-            encode_generated(token, &mut bytes);
+            token.encode_into(&mut bytes);
         }
         bytes
     }

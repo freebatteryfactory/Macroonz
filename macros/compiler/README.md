@@ -57,8 +57,9 @@ pub fn greet(input: TokenStream) -> TokenStream {
 `Greeting::read` is yours.
 The compiler hands you typed token trees with spans and never parses your attribute for you, because the moment it did, it would own your grammar.
 
-`GREET_DOOR` is the one value that says who is asking: the diagnostic prefix your users will read, the stable name of your grammar, the stable name of this entry point, and the crate your rendered paths are rooted at.
-Say it once; every diagnostic and every identity carries it.
+`Greeting` implements `CanonicalContent`, giving the kind-specific facts one complete semantic encoding that changes whenever a fact the renderer may read changes.
+`GREET_DOOR` is the one value that says who is asking: the diagnostic prefix and stable names, the crate rendered paths are rooted at, and the producer namespace and name.
+Say it once; diagnostics, rendered paths, stamped names, and owner-qualified kind identities each read the seat they own.
 
 `host::expand` captures the stream, runs your closure, and either emits the declaration-site tokens or places the diagnostic as a `compile_error!` at the exact token it names.
 
@@ -87,8 +88,8 @@ flowchart LR
 
 | Step | What it settles | Home |
 | --- | --- | --- |
-| **account** | The captured declaration and every captured dependency, committed under one identity. | `plan/` |
-| **intent** | An identity over the kind's name and that commitment. Two requests that meant the same thing derive one intent. | `plan/` |
+| **account** | The kind-specific content bound to its exact captured declaration and owner-qualified kind, plus every independent captured dependency it declares. | `plan/` |
+| **intent** | An identity over the owner-qualified kind and content commitment. Two requests that meant the same thing derive one intent. | `plan/` |
 | **context** | The profile and the generator version answering. | `plan/` |
 | **plan** | The complete output set, named before any syntax exists: each unit's role, key, destination, origin, and digest contract; the invalidation set; the decision trace; the nonclaims. | `plan/` |
 | **render** | Your renderer runs, once, against the plan. Typed tokens become units, each digested over its own canonical bytes. | `render/` |
@@ -108,7 +109,7 @@ A request that fails any step is refused whole — there is no partial output.
 | `bounded/` | The compiler's own capped collections: `Bounded`, `NonEmpty`, and `Capped` — a list plus how it was capped. |
 | `identity/` | `Identity<S>`, the `Subject` trait, transcripts, profiles, versions, provenance, and the digest. |
 | `token/` | Captured token trees with spans, the literal reader, the text route, generated tokens, and the Rust-expression helpers every renderer needs. |
-| `kind/` | `Kind`, `Role`, `Question`, `Answer`, the `kinds!` declaration, and dispositions. |
+| `kind/` | `Kind`, `CanonicalContent`, `Role`, `Question`, `Answer`, the `kinds!` declaration, and dispositions. |
 | `diagnostic/` | `Diagnostic`: phase, site, summary, expected, observed, related set, repairs, reproduction route; and the one line grammar every refusal is projected through. |
 | `origin/` | Where a generated thing came from: the non-empty trail back to authored material, and the decision trace. |
 | `plan/` | Account, intent, context, membership, destinations, invalidation, and the plan itself. |
@@ -132,10 +133,10 @@ A home is a directory with a README, a `mod.rs`, and a `types.rs`; the rest is i
 Everything with meaning.
 
 - **Kinds, roles, questions.** `Kind`, `Role`, `Question`, and `Subject` are open traits. Implement them in your crate. There is no seal and no registration.
-- **Content.** `Kind::Content` is any `Clone + Eq + Debug` type. The compiler never encodes it and never commits to it; it commits to the captured bytes your content was read from.
+- **Content.** `Kind::Content` implements `CanonicalContent`. Its declaring adapter owns the complete semantic encoding; the compiler frames it and binds it to the exact capture and owner-qualified kind before planning.
 - **Grammar.** Your attributes, your clauses, your refusals, your wording.
 - **Identity.** Your subjects derive under your stem. The compiler's own identities derive under `macroonz/identity`. They cannot collide.
-- **The door.** The prefix on every diagnostic, the names of your grammar and your entry, the crate your paths are rooted at.
+- **The door.** The prefix on every diagnostic, the names of your grammar and entry, the crate your paths are rooted at, and the producer namespace and name generated identities stand under.
 
 What is the compiler's: the eight steps, the proof that rendering matched plan, the explanation protocol, the diagnostic grammar, the digest, and the carrier a test target invokes.
 

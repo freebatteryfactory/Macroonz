@@ -21,6 +21,9 @@ macroonz::subjects! {
 The compiler's own subjects are declared in this home under `MACROONZ_STEM`.
 Yours are declared in your crate under your stem, and the two cannot collide: the stem opens the derive-key context, so `"obligation"` under your stem and `"obligation"` under anyone else's are unrelated key spaces rather than neighbouring names.
 
+A projection kind is qualified by the producer namespace and name on its request door before the kind's own declared name is derived.
+A projection-content commitment is then derived from that kind identity and the content's complete canonical bytes under the exact captured declaration, so changing any of those three facts moves the binding before a plan exists.
+
 A roster is checked while it compiles — every name inside the grammar, and no name declared twice.
 The grammar is lowercase ASCII letters and digits in `-`-joined segments, with no leading, trailing, or doubled separator.
 

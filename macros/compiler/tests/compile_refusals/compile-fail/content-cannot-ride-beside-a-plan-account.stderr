@@ -1,0 +1,16 @@
+error[E0061]: this function takes 3 arguments but 4 arguments were supplied
+  --> tests/compile_refusals/compile-fail/content-cannot-ride-beside-a-plan-account.rs:21:5
+   |
+21 |     Plan::planned(account, context, (), decisions)
+   |     ^^^^^^^^^^^^^                   -- unexpected argument #3 of type `()`
+   |
+note: associated function defined here
+  --> src/plan/type_guard.rs
+   |
+   |     pub fn planned(
+   |            ^^^^^^^
+help: remove the extra argument
+   |
+21 -     Plan::planned(account, context, (), decisions)
+21 +     Plan::planned(account, context, decisions)
+   |

@@ -1,10 +1,12 @@
-//! What one request decides before a token of Rust exists, and the five identities it mints doing so.
+//! What one request decides before a token of Rust exists, and the identity chain it mints doing so.
 //!
 //! Pure functions over values their types already inform.
-//! Nothing here is handed an identity: the commitment is derived from the bytes the caller walked in with, and every seat's identity hangs off that commitment, so a plan is a deterministic function of the declaration and cannot be told it stands over material it was not planned for.
+//! No caller supplies the primary capture, kind, content, member, or plan identity: each is derived from the informed values this road receives.
+//! Dependency captures and publication addresses cross as typed citations because their owners are independent declarations, and they never substitute for an identity this request mints.
 
 use super::SELECTION_FACT;
 use crate::bounded::{Bounded, Overflow};
+use crate::diagnostic::Door;
 use crate::identity::{
     self, Identity, OwnerFact, OwnerIdentity, Profile, Transcript, encode_bytes,
 };
@@ -14,9 +16,10 @@ use crate::origin::{
     TraceEntry,
 };
 use crate::plan::{
-    Account, BoundAxis, Context, DigestContract, Membership, Plan, PlanDecisions, PlanError,
-    PlanIssue, PlannedMember, PlannedOutput,
+    Account, BoundAxis, ContentBinding, Context, DigestContract, Membership, Plan, PlanDecisions,
+    PlanError, PlanIssue, PlannedMember, PlannedOutput,
 };
+use crate::request::Producer;
 use crate::token::CapturedInput;
 
 /// Plan one request: the account it stands on, the context it is decided under, one member per declared seat, and the record of why.
@@ -29,35 +32,42 @@ use crate::token::CapturedInput;
 pub(super) fn planned<K: Kind>(
     capture: &CapturedInput,
     content: K::Content,
+    door: &Door,
     dependencies: Vec<Identity<identity::CapturedDeclaration>>,
     profile: Profile,
     assumptions: &[OwnerFact],
     addresses: &[(K::Role, OwnerIdentity)],
 ) -> Result<Plan<K>, PlanError> {
     consumable::<K::Role>(addresses)?;
-    let stands_over = committed(capture);
-    let account = Account::standing_on(stands_over, dependencies)?;
+    let account = Account::standing_on(bound_content(capture, content, door), dependencies)?;
+    let stands_over = account.commitment();
+    let content_commitment = account.content_commitment();
+    let kind = account.kind();
     let decided_under = Context::under(profile);
     let invalidation = decided_under.watch_set(&account)?;
     let authored = account.origin_node();
     let membership = membership(
-        K::NAME,
         stands_over,
+        content_commitment,
         authored,
         profile,
         addresses,
-        named::<K>(),
+        kind,
     )?;
     let origin = OriginTrail::from_edge(OriginEdge {
         from: authored,
         relation: OriginRelation::AuthoredDeclaration,
-        to: seat_node(K::NAME, stands_over, membership.first().role),
+        to: seat_node(
+            kind,
+            content_commitment,
+            stands_over,
+            membership.first().role,
+        ),
     });
-    let trace = trace(traced::<K>(stands_over), assumptions)?;
+    let trace = trace(traced(kind, content_commitment, stands_over), assumptions)?;
     Ok(Plan::planned(
         account,
         decided_under,
-        content,
         PlanDecisions {
             membership,
             invalidation,
@@ -74,8 +84,8 @@ pub(super) fn planned<K: Kind>(
 ///
 /// Returns [`PlanIssue::UnknownKind`] where the roster declares no seat — a kind with nothing to render is a kind this door was handed no implementation of — and the output magnitude where it declares more seats than a plan admits.
 fn membership<R: Role>(
-    kind_name: &'static str,
     stands_over: Identity<identity::CapturedDeclaration>,
+    content: Identity<identity::ProjectionContent>,
     authored: Identity<identity::OriginNode>,
     profile: Profile,
     addresses: &[(R, OwnerIdentity)],
@@ -86,24 +96,43 @@ fn membership<R: Role>(
         return Err(PlanError::of(PlanIssue::UnknownKind { named: kind }));
     };
     let rest = seats
-        .map(|role| member(kind_name, stands_over, authored, profile, role, addresses))
+        .map(|role| {
+            member(
+                kind,
+                content,
+                stands_over,
+                authored,
+                profile,
+                role,
+                addresses,
+            )
+        })
         .collect();
     Membership::declared(
-        member(kind_name, stands_over, authored, profile, head, addresses),
+        member(
+            kind,
+            content,
+            stands_over,
+            authored,
+            profile,
+            head,
+            addresses,
+        ),
         rest,
     )
 }
 
 /// One planned member: what the seat's unit will be, where it came from, who renders it, and what its digest must satisfy.
 fn member<R: Role>(
-    kind_name: &'static str,
+    kind: Identity<identity::ProjectionKind>,
+    content: Identity<identity::ProjectionContent>,
     stands_over: Identity<identity::CapturedDeclaration>,
     authored: Identity<identity::OriginNode>,
     profile: Profile,
     role: R,
     addresses: &[(R, OwnerIdentity)],
 ) -> PlannedMember<R> {
-    let key = semantic_key(kind_name, stands_over, role);
+    let key = semantic_key(kind, content, stands_over, role);
     PlannedMember {
         role,
         output: PlannedOutput {
@@ -111,7 +140,7 @@ fn member<R: Role>(
             origin: OriginTrail::from_edge(OriginEdge {
                 from: authored,
                 relation: OriginRelation::SemanticDerivation,
-                to: seat_node(kind_name, stands_over, role),
+                to: seat_node(kind, content, stands_over, role),
             }),
             expected_profile: profile,
             address: addressed(role, addresses),
@@ -194,51 +223,61 @@ pub fn committed(capture: &CapturedInput) -> Identity<identity::CapturedDeclarat
     ))
 }
 
-/// What one seat's identities are derived over: the kind's declared name and the seat's own, each framed.
+/// What one seat's identities are derived over: the owner-qualified kind, the content commitment, and the seat's own name, each framed.
 ///
 /// Framed rather than raw, which is what keeps a seat named `content` at position zero from deriving the origin node an account already stands at.
-/// The kind's name is an ancestor on purpose: roles are open and [`SoleRole`](crate::kind::SoleRole) is reusable by any one-unit kind, so two kinds sharing one capture and one roster would otherwise share a semantic key — and if their bytes agreed, a rendered-unit identity too — while the public contract calls them different generation kinds.
-fn seat_material<R: Role>(kind_name: &'static str, role: R) -> Vec<u8> {
+/// The owner-qualified kind identity is an ancestor on purpose: roles are open and [`SoleRole`](crate::kind::SoleRole) is reusable by any one-unit kind, so two kinds sharing one capture and one roster would otherwise share a semantic key — and if their bytes agreed, a rendered-unit identity too — while the public contract calls them different generation kinds.
+fn seat_material<R: Role>(
+    kind: Identity<identity::ProjectionKind>,
+    content: Identity<identity::ProjectionContent>,
+    role: R,
+) -> Vec<u8> {
     let mut material = Vec::new();
-    encode_bytes(kind_name.as_bytes(), &mut material);
+    encode_bytes(kind.as_bytes(), &mut material);
+    encode_bytes(content.as_bytes(), &mut material);
     encode_bytes(role.name().as_bytes(), &mut material);
     material
 }
 
 /// What the unit under one seat IS, independently of any bytes.
 fn semantic_key<R: Role>(
-    kind_name: &'static str,
+    kind: Identity<identity::ProjectionKind>,
+    content: Identity<identity::ProjectionContent>,
     stands_over: Identity<identity::CapturedDeclaration>,
     role: R,
 ) -> Identity<identity::GeneratedUnit> {
     Identity::derived(Transcript::under_projection(
         identity::Role::GeneratedUnit,
         &stands_over,
-        &seat_material(kind_name, role),
+        &seat_material(kind, content, role),
         u32::from(role.slot()),
     ))
 }
 
 /// The origin node one seat's unit stands at.
 fn seat_node<R: Role>(
-    kind_name: &'static str,
+    kind: Identity<identity::ProjectionKind>,
+    content: Identity<identity::ProjectionContent>,
     stands_over: Identity<identity::CapturedDeclaration>,
     role: R,
 ) -> Identity<identity::OriginNode> {
     Identity::derived(Transcript::under_projection(
         identity::Role::OriginNode,
         &stands_over,
-        &seat_material(kind_name, role),
+        &seat_material(kind, content, role),
         u32::from(role.slot()),
     ))
 }
 
 /// The subject every decision of one request is recorded against.
-fn traced<K: Kind>(
+fn traced(
+    kind: Identity<identity::ProjectionKind>,
+    content: Identity<identity::ProjectionContent>,
     stands_over: Identity<identity::CapturedDeclaration>,
 ) -> Identity<identity::Traced> {
     let mut material = Vec::new();
-    encode_bytes(K::NAME.as_bytes(), &mut material);
+    encode_bytes(kind.as_bytes(), &mut material);
+    encode_bytes(content.as_bytes(), &mut material);
     Identity::derived(Transcript::under_projection(
         identity::Role::Plan,
         &stands_over,
@@ -248,10 +287,23 @@ fn traced<K: Kind>(
 }
 
 /// The kind a request names, by the one fact of a kind that reaches an identity.
-fn named<K: Kind>() -> Identity<identity::ProjectionKind> {
+fn named<K: Kind>(producer: Producer) -> Identity<identity::ProjectionKind> {
+    let mut material = Vec::new();
+    encode_bytes(producer.namespace.as_bytes(), &mut material);
+    encode_bytes(producer.name.as_bytes(), &mut material);
+    encode_bytes(K::NAME.as_bytes(), &mut material);
     Identity::derived(Transcript::rooted(
-        identity::Role::DeclaredName,
-        K::NAME.as_bytes(),
+        identity::Role::ProjectionKind,
+        &material,
         0,
     ))
+}
+
+/// Bind one kind's content to the exact captured declaration and door-qualified kind it was presented under.
+pub fn bound_content<K: Kind>(
+    capture: &CapturedInput,
+    content: K::Content,
+    door: &Door,
+) -> ContentBinding<K> {
+    ContentBinding::bound(committed(capture), named::<K>(door.producer()), content)
 }

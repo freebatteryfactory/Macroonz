@@ -3,17 +3,88 @@
 //! Every table is total, so a row admitted later stops the compiler in each of them until somebody says what that row's position, sentence, delivery, and classification are.
 
 use super::{
-    ASSEMBLY_FACT, AssemblyError, AssemblyIssue, CargoAxis, DeclarationError, DeliveryForm,
-    ShellError, SupportAssembly, SupportCarrier,
+    ASSEMBLY_FACT, AssemblyError, AssemblyIssue, AxisCargo, CargoAxis, DeclarationError,
+    DeclaredCargo, DeliveryForm, ProvedCargo, ShellError, SupportAssembly, SupportCarrier,
 };
 use crate::bounded::{Bounded, Capping, Overflow};
 use crate::diagnostic::{
     ASSEMBLY_FAMILY, Family, LineBody, Observed, Phase, REPAIR_LIMIT, RefusalClass, Refused,
     RenderedMagnitude, Repair, SHELL_FAMILY, SUPPORT_DECLARATION_FAMILY,
 };
-use crate::identity::human_projection;
-use crate::kind::{Destination, Kind, NoQuestions, SoleRole};
+use crate::identity::{encode_bytes, human_projection};
+use crate::kind::{CanonicalContent, Destination, Disposition, Kind, NoQuestions, SoleRole};
 use core::fmt;
+
+impl CanonicalContent for SupportAssembly {
+    fn encode_content_into(&self, into: &mut Vec<u8>) {
+        encode_bytes(self.root().as_bytes(), into);
+        encode_bytes(self.expectation().as_bytes(), into);
+        match self.address() {
+            None => into.push(0),
+            Some(address) => {
+                into.push(1);
+                encode_bytes(address.spelling().as_bytes(), into);
+            }
+        }
+        encode_axis(self.declared(), encode_declared, into);
+        encode_axis(self.deferred(), encode_proved, into);
+        encode_axis(self.bench(), encode_proved, into);
+    }
+}
+
+fn encode_axis<Material>(
+    axis: &AxisCargo<Material>,
+    encode: fn(&Material, &mut Vec<u8>),
+    into: &mut Vec<u8>,
+) {
+    match axis {
+        AxisCargo::Absent { because } => {
+            into.push(0);
+            encode_disposition(because, into);
+        }
+        AxisCargo::Carried(material) => {
+            into.push(1);
+            let mut encoded = Vec::new();
+            encode(material, &mut encoded);
+            encode_bytes(&encoded, into);
+        }
+    }
+}
+
+fn encode_disposition(disposition: &Disposition, into: &mut Vec<u8>) {
+    match *disposition {
+        Disposition::Generated { unit } => {
+            into.push(0);
+            encode_bytes(unit.as_bytes(), into);
+        }
+        Disposition::NotApplicable { because } => {
+            into.push(1);
+            encode_bytes(&because.citation_bytes(), into);
+        }
+        Disposition::NotRequested { because } => {
+            into.push(2);
+            encode_bytes(&because.citation_bytes(), into);
+        }
+        Disposition::UnavailableUnderProfile { profile, because } => {
+            into.push(3);
+            profile.encode_into(into);
+            encode_bytes(&because.citation_bytes(), into);
+        }
+    }
+}
+
+fn encode_declared(cargo: &DeclaredCargo, into: &mut Vec<u8>) {
+    encode_bytes(&cargo.matched().canonical_bytes(), into);
+    encode_bytes(&cargo.stamped().canonical_bytes(), into);
+}
+
+fn encode_proved(cargo: &ProvedCargo, into: &mut Vec<u8>) {
+    encode_bytes(cargo.source().as_bytes(), into);
+    encode_bytes(cargo.root().as_bytes(), into);
+    encode_bytes(cargo.destination().name().as_bytes(), into);
+    encode_bytes(cargo.digest().as_bytes(), into);
+    encode_bytes(&cargo.cargo().tree().canonical_bytes(), into);
+}
 
 impl Kind for SupportCarrier {
     const NAME: &'static str = "support-carrier";

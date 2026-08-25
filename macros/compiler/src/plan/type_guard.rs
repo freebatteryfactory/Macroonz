@@ -5,25 +5,72 @@
 
 use super::super::encode::encode_set;
 use super::{
-    Account, BoundAxis, Context, Intent, InvalidationSet, InvalidationTrigger, MEMBERSHIP_LIMIT,
-    Membership, PLAN_ISSUE_LIMIT, Plan, PlanDecisions, PlanError, PlanIssue, PlannedMember,
-    TRIGGER_LIMIT,
+    Account, BoundAxis, ContentBinding, Context, Intent, InvalidationSet, InvalidationTrigger,
+    MEMBERSHIP_LIMIT, Membership, PLAN_ISSUE_LIMIT, Plan, PlanDecisions, PlanError, PlanIssue,
+    PlannedMember, TRIGGER_LIMIT,
 };
 use crate::bounded::{Bounded, Capped, Capping, NonEmpty, Overflow};
 use crate::identity::{
     self, GENERATOR, Identity, PlanId, Profile, Provenance, Transcript, encode_bytes,
 };
-use crate::kind::{Destination, Kind, Role};
+use crate::kind::{CanonicalContent, Destination, Kind, Role};
 use crate::origin::{DecisionTrace, Nonclaim, OriginTrail, TrailError};
-use core::marker::PhantomData;
+
+impl<K: Kind> ContentBinding<K> {
+    /// Bind one content value to the capture and owner-qualified kind it was presented under.
+    pub(crate) fn bound(
+        capture: Identity<identity::CapturedDeclaration>,
+        kind: Identity<identity::ProjectionKind>,
+        content: K::Content,
+    ) -> Self {
+        let mut material = Vec::new();
+        encode_bytes(kind.as_bytes(), &mut material);
+        encode_bytes(&content.canonical_content_bytes(), &mut material);
+        let commitment = Identity::derived(Transcript::under_projection(
+            identity::Role::ProjectionContent,
+            &capture,
+            &material,
+            0,
+        ));
+        Self {
+            capture,
+            kind,
+            commitment,
+            content,
+        }
+    }
+
+    /// The captured declaration this content was bound under.
+    #[must_use]
+    pub const fn capture(&self) -> Identity<identity::CapturedDeclaration> {
+        self.capture
+    }
+
+    /// The owner-qualified kind this content was bound as.
+    #[must_use]
+    pub const fn kind(&self) -> Identity<identity::ProjectionKind> {
+        self.kind
+    }
+
+    /// The commitment over this content's canonical bytes.
+    #[must_use]
+    pub const fn commitment(&self) -> Identity<identity::ProjectionContent> {
+        self.commitment
+    }
+
+    /// The exact kind-specific content the binding carries.
+    #[must_use]
+    pub const fn content(&self) -> &K::Content {
+        &self.content
+    }
+}
 
 impl<K: Kind> Account<K> {
     /// The account of content that stands on nothing.
-    pub fn over(commitment: Identity<identity::CapturedDeclaration>) -> Self {
+    pub fn over(binding: ContentBinding<K>) -> Self {
         Self {
-            commitment,
+            binding,
             dependencies: Bounded::empty(),
-            kind: PhantomData,
         }
     }
 
@@ -35,16 +82,15 @@ impl<K: Kind> Account<K> {
     ///
     /// Returns the planning refusal naming [`BoundAxis::Declarations`] where the declared set outgrows [`DEPENDENCY_LIMIT`](super::DEPENDENCY_LIMIT).
     pub fn standing_on(
-        commitment: Identity<identity::CapturedDeclaration>,
+        binding: ContentBinding<K>,
         mut dependencies: Vec<Identity<identity::CapturedDeclaration>>,
     ) -> Result<Self, PlanError> {
         dependencies.sort_unstable_by(|left, right| left.as_bytes().cmp(right.as_bytes()));
         dependencies.dedup();
         Bounded::new(dependencies)
             .map(|admitted| Self {
-                commitment,
+                binding,
                 dependencies: admitted,
-                kind: PhantomData,
             })
             .map_err(|overflow| PlanError::bounded(BoundAxis::Declarations, overflow))
     }
@@ -54,7 +100,25 @@ impl<K: Kind> Account<K> {
     /// The reading a plan's anchor, its causing-declaration answer, and its own trigger are all taken from — one value read three times rather than three seats that could disagree.
     #[must_use]
     pub const fn commitment(&self) -> Identity<identity::CapturedDeclaration> {
-        self.commitment
+        self.binding.capture()
+    }
+
+    /// The owner-qualified kind identity this account carries.
+    #[must_use]
+    pub const fn kind(&self) -> Identity<identity::ProjectionKind> {
+        self.binding.kind()
+    }
+
+    /// The commitment over the kind-specific content's canonical bytes.
+    #[must_use]
+    pub const fn content_commitment(&self) -> Identity<identity::ProjectionContent> {
+        self.binding.commitment()
+    }
+
+    /// The kind-specific content itself.
+    #[must_use]
+    pub const fn content(&self) -> &K::Content {
+        self.binding.content()
     }
 
     /// The captures this content declares it stands on, in canonical order.
@@ -63,7 +127,7 @@ impl<K: Kind> Account<K> {
         self.dependencies.as_slice()
     }
 
-    /// What was MEANT: the kind's declared name over the content commitment, derived into the intent layer's own identity.
+    /// What was MEANT: the owner-qualified kind over the content commitment, derived into the intent layer's own identity.
     ///
     /// The preimage is [`Account::intent_bytes`], derived at [`Role::ProjectionIntent`](crate::identity::Role::ProjectionIntent), rooted, at position zero.
     /// Rooted deliberately: the preimage already carries the commitment at full width, so anchoring on that same commitment would write it twice into one derivation and separate nothing.
@@ -372,7 +436,6 @@ impl<K: Kind> Plan<K> {
     pub fn planned(
         account: Account<K>,
         decided_under: Context,
-        content: K::Content,
         decisions: PlanDecisions<K::Role>,
     ) -> Self {
         // Destructured at the door: every seat the bundle carries is moved into
@@ -408,7 +471,6 @@ impl<K: Kind> Plan<K> {
             provenance,
             account,
             context: decided_under,
-            content,
             membership,
             invalidation,
             trace,
@@ -454,7 +516,7 @@ impl<K: Kind> Plan<K> {
     /// The kind-specific facts.
     #[must_use]
     pub const fn content(&self) -> &K::Content {
-        &self.content
+        self.account.content()
     }
 
     /// The complete declared output set.

@@ -6,7 +6,27 @@ use crate::diagnostic::{
     Family, LineBody, Observed, Phase, REPAIR_LIMIT, RefusalClass, Refused, Repair,
     SHADOW_HELPER_FAMILY,
 };
-use crate::kind::{Kind, NoQuestions, SoleRole};
+use crate::identity::{encode_bytes, encode_length};
+use crate::kind::{CanonicalContent, Kind, NoQuestions, SoleRole};
+
+impl CanonicalContent for Shadows {
+    fn encode_content_into(&self, into: &mut Vec<u8>) {
+        encode_length(self.chosen().len(), into);
+        for row in self.chosen() {
+            let mut encoded = Vec::new();
+            encode_bytes(row.name().as_bytes(), &mut encoded);
+            encode_length(row.std_path().len(), &mut encoded);
+            for segment in row.std_path() {
+                encode_bytes(segment.as_bytes(), &mut encoded);
+            }
+            encode_length(row.loom_path().len(), &mut encoded);
+            for segment in row.loom_path() {
+                encode_bytes(segment.as_bytes(), &mut encoded);
+            }
+            encode_bytes(&encoded, into);
+        }
+    }
+}
 
 impl Kind for ShadowFace {
     const NAME: &'static str = "shadow-face";

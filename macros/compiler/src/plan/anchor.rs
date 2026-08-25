@@ -12,19 +12,30 @@ use crate::identity::{self, Anchoring, Identity, Transcript};
 use crate::kind::Kind;
 use crate::origin::{OriginEdge, OriginRelation};
 
-/// The material every origin node over a request's content is derived from, beside the content's own commitment at the anchor.
-///
-/// A declared constant rather than a per-call spelling: the node one piece of content stands at must not depend on which reading asked for it, or one piece of content would stand at two nodes and the graph would carry two answers to one question.
-const CONTENT_NODE: &[u8] = b"content";
+/// The stable material one captured dependency stands at before a kind-specific content binding names it more narrowly.
+const CAPTURED_CONTENT_NODE: &[u8] = b"content";
 
-/// The origin node one content address stands at.
-fn content_node(
+/// The origin node one captured dependency stands at.
+fn captured_content_node(
     commitment: Identity<identity::CapturedDeclaration>,
 ) -> Identity<identity::OriginNode> {
     Identity::derived(Transcript::under_projection(
         identity::Role::OriginNode,
         &commitment,
-        CONTENT_NODE,
+        CAPTURED_CONTENT_NODE,
+        0,
+    ))
+}
+
+/// The stable material one kind-specific content binding stands at.
+const BOUND_CONTENT_NODE: &[u8] = b"content";
+
+/// The origin node one content binding stands at.
+fn content_node(content: Identity<identity::ProjectionContent>) -> Identity<identity::OriginNode> {
+    Identity::derived(Transcript::under_projection(
+        identity::Role::OriginNode,
+        &content,
+        BOUND_CONTENT_NODE,
         0,
     ))
 }
@@ -40,10 +51,10 @@ impl<K: Kind> Account<K> {
 
     /// The origin node this account's content stands at.
     ///
-    /// Derived from the commitment alone, so content reached from two directions is one node: what a plan is over, and what another content declares it stands on, are the same thing named the same way.
+    /// Derived under the content commitment, so changing its kind, captured declaration, or canonical content moves the node through the binding's stronger identity rather than a second restatement of those facts.
     #[must_use]
     pub fn origin_node(&self) -> Identity<identity::OriginNode> {
-        content_node(self.commitment())
+        content_node(self.content_commitment())
     }
 
     /// The origin edges this account contributes: one per declared dependency, each running from what the content stands on to the content itself.
@@ -61,7 +72,7 @@ impl<K: Kind> Account<K> {
         self.dependencies()
             .iter()
             .map(|dependency| OriginEdge {
-                from: content_node(*dependency),
+                from: captured_content_node(*dependency),
                 relation: OriginRelation::ExplicitLink,
                 to,
             })
@@ -93,13 +104,14 @@ impl<K: Kind> Account<K> {
         }))
     }
 
-    /// The commitment's trigger, and one per declared dependency beside it.
+    /// The content commitment's trigger and one per declared dependency beside it.
     ///
-    /// The one spelling both readings above take, and the one the shared watch derivation opens with.
+    /// The content commitment is already derived under the exact captured declaration, so a second trigger over that declaration would be a weaker restatement rather than another cause.
+    /// This is the one spelling both readings above take, and the one the shared watch derivation opens with.
     pub(super) fn caused_by(&self) -> (InvalidationTrigger, Vec<InvalidationTrigger>) {
         (
-            InvalidationTrigger::CapturedDeclaration {
-                watched: self.commitment(),
+            InvalidationTrigger::ProjectionContent {
+                watched: self.content_commitment(),
             },
             self.dependencies()
                 .iter()

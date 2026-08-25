@@ -8,16 +8,75 @@ use super::render::{
     REMAINING_BINDING, WIDTH_BINDING,
 };
 use super::{
-    CodecContent, CodecDirection, CodecError, CodecIssue, CodecMemberShape, CodecProjection,
-    DECODE_ROAD, DecodeRefusal, ENCODE_ROAD, MemberContract, ROSTER_CONSTANT, SLOT_ROAD,
+    AssemblyPosture, CodecContent, CodecDirection, CodecError, CodecIssue, CodecMemberShape,
+    CodecPlacement, CodecProjection, CodecTypePath, DECODE_ROAD, DecodeRefusal, ENCODE_ROAD,
+    MemberContract, ROSTER_CONSTANT, SLOT_ROAD,
 };
 use crate::bounded::{Bounded, Capping};
 use crate::diagnostic::{
     CODEC_DECLARATION_FAMILY, Family, LineBody, Observed, Phase, REPAIR_LIMIT, RefusalClass,
     Refused, Repair,
 };
-use crate::kind::{Kind, NoQuestions, SoleRole};
+use crate::identity::{OwnerIdentity, encode_bytes, encode_length};
+use crate::kind::{CanonicalContent, Kind, NoQuestions, SoleRole};
 use core::fmt;
+
+impl CanonicalContent for CodecContent {
+    fn encode_content_into(&self, into: &mut Vec<u8>) {
+        encode_path(self.shape.owner(), into);
+        encode_bytes(self.shape.refusal().as_bytes(), into);
+        let assembly = self.shape.assembly();
+        encode_bytes(assembly.road().as_bytes(), into);
+        match assembly.posture() {
+            AssemblyPosture::Total => into.push(0),
+            AssemblyPosture::Checked { refusal } => {
+                into.push(1);
+                encode_path(refusal, into);
+            }
+        }
+        encode_length(self.shape.count(), into);
+        for member in self.shape.members() {
+            let mut encoded = Vec::new();
+            encode_bytes(member.spelling().as_bytes(), &mut encoded);
+            encode_path(member.held_as(), &mut encoded);
+            encode_bytes(member.shape().name().as_bytes(), &mut encoded);
+            encode_bytes(member.cardinality().name().as_bytes(), &mut encoded);
+            encode_bytes(&encoded, into);
+        }
+        encode_bytes(self.direction.name().as_bytes(), into);
+        match &self.placement {
+            CodecPlacement::AtDeclarationSite => into.push(0),
+            CodecPlacement::PublishedModule { spelling } => {
+                into.push(1);
+                encode_bytes(spelling.spelling().as_bytes(), into);
+            }
+        }
+        encode_owner(self.schema.as_ref(), into);
+        encode_owner(self.byte_role.as_ref(), into);
+        encode_length(self.assumptions.len(), into);
+        for assumption in self.assumptions.as_slice() {
+            encode_bytes(&assumption.citation_bytes(), into);
+        }
+    }
+}
+
+fn encode_path(path: &CodecTypePath, into: &mut Vec<u8>) {
+    encode_bytes(path.rooting().name().as_bytes(), into);
+    encode_length(path.count(), into);
+    for segment in path.segments() {
+        encode_bytes(segment.as_bytes(), into);
+    }
+}
+
+fn encode_owner(owner: Option<&OwnerIdentity>, into: &mut Vec<u8>) {
+    match owner {
+        None => into.push(0),
+        Some(identity) => {
+            into.push(1);
+            encode_bytes(&identity.citation_bytes(), into);
+        }
+    }
+}
 
 impl Kind for CodecProjection {
     const NAME: &'static str = "codec-projection";

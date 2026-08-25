@@ -4,11 +4,14 @@ What you are generating, declared once, in your own crate.
 
 The compiler is generic over a kind from the first step of the road to the last.
 It never enumerates the kinds that exist, never registers one, and holds no list you have to get onto.
-Four open traits are the whole contract, and you implement them where your grammar already lives.
+Five open traits are the whole contract, and you implement them where your grammar already lives.
 
-## The four
+## The five
 
-A **kind** is what one request produces: a declared name, the content a request carries beyond its tokens, the seats its rendering fills, and the questions it owes.
+A **kind** is what one request produces: a declared name, the canonically encoded content a request carries beyond its tokens, the seats its rendering fills, and the questions it owes.
+
+**Canonical content** is the complete semantic encoding of those kind-specific facts.
+The kind owns that encoding because only its declaring adapter knows which facts its renderer may read; the compiler frames the result and binds it to the exact capture and owner-qualified kind before planning.
 
 A **role** is one seat.
 A rendered unit is matched to a planned one by role, so a rendering that produced the right number of units in the wrong seats is caught by the seat rather than by a count.
@@ -53,8 +56,8 @@ Implementing `Kind`, `Role`, `Question`, or `Answer` is an ordinary implementati
 The universal questions — what you are, which owner required you, which declaration caused you, which profile you were decided under, which output identity and digest you are, which assumptions you rest on, what invalidates you, why a related projection was not generated, and what repairs a refusal — are the compiler's own and live in `explanation/`.
 They are never restated in a kind's roster, so a kind cannot narrow what it must explain by forgetting a row.
 
-Content is not encoded here and never crosses into an identity.
-The compiler commits to the captured bytes your content was read from, which is a fact it can check, rather than to a value it cannot see inside.
+The compiler cannot establish that an adopter's canonical encoding is complete.
+That is the declaring adapter's authority, and [`CanonicalContent`](crate::CanonicalContent) makes the required operation explicit instead of substituting `Debug`, `Hash`, or the captured bytes for a value the renderer may interpret more narrowly.
 
 ## The two stamps
 
@@ -67,6 +70,6 @@ One declaration, so the marker, the set, and the record cannot drift apart.
 
 ## The seats
 
-`types.rs` declares the four traits, the two compiler-owned rosters, the destination, the disposition, the set contract, and the two stamps.
+`types.rs` declares the five traits, the two compiler-owned rosters, the destination, the disposition, the set contract, and the two stamps.
 `type_contract.rs` implements the traits for the two rosters this home owns.
 Nothing here holds a private field, so there is no invariant nucleus and no `type_guard.rs`.

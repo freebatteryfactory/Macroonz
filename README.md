@@ -81,7 +81,8 @@ pub fn greet(input: TokenStream) -> TokenStream {
 ```
 
 `Greeting::read` is yours: your grammar, your rules, your refusals.
-`GREET_DOOR` is the one value that says who is asking — the diagnostic prefix your users read, and the stable names every identity carries.
+`Greeting` implements `CanonicalContent`, giving the kind-specific facts one complete semantic encoding that changes whenever a fact the renderer may read changes.
+`GREET_DOOR` is the one value that says who is asking — the diagnostic spellings, rendered crate binding, and producer qualification each compiler surface reads.
 Macroonz never parses your declaration for you and never decides what it means.
 This is the same split `serde` makes — `serde_derive` ships with `serde`, not with `syn` — and it is the only split that keeps a generator honest.
 
@@ -98,8 +99,8 @@ flowchart LR
     P --> R["5 · render"] --> CL["6 · close"] --> E["7 · explain"] --> B["8 · bind"]
 ```
 
-1. **Account.** What the request stands on: the captured declaration and every captured dependency, committed under one identity.
-2. **Intent.** What it means: an identity over the kind's name and that commitment. Two callers who meant the same thing derive the same intent.
+1. **Account.** The kind-specific content bound to its exact captured declaration and owner-qualified kind, plus every independent captured dependency it declares.
+2. **Intent.** What it means: an identity over the owner-qualified kind and content commitment. Two callers who meant the same thing derive the same intent.
 3. **Context.** Which profile and which generator version are answering.
 4. **Plan.** The complete output set, named before a byte of syntax exists — each unit's role, semantic key, destination, origin, expected profile, and digest contract — plus the invalidation set, the decision trace, and the nonclaims.
 5. **Render.** Typed tokens into rendered units, each digested over its own canonical bytes.

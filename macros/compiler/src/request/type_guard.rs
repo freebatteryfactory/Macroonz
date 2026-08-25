@@ -118,6 +118,7 @@ impl<'door, K: Kind> Request<'door, K> {
         let plan = decide::planned::<K>(
             &capture,
             content,
+            door,
             dependencies,
             profile,
             &assumptions,

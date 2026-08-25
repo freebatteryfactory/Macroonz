@@ -17,14 +17,31 @@ pub trait Kind: 'static {
 
     /// The facts a request of this kind carries beyond its captured tokens.
     ///
-    /// The compiler never encodes one: it commits to the captured bytes the content was read from, which is a fact it can check.
-    type Content: Clone + Eq + core::fmt::Debug;
+    /// Its canonical encoding is the content commitment's material, so changing any fact a renderer may read changes the commitment before a plan exists.
+    type Content: CanonicalContent;
 
     /// The seats this kind's rendering fills.
     type Role: Role;
 
     /// The questions this kind owes beyond the universal ones.
     type Question: Question;
+}
+
+/// Kind-specific facts with one complete canonical encoding.
+///
+/// The encoding is semantic material rather than a rendering for a person.
+/// A kind owns the implementation for its content, and the compiler frames the complete result before deriving the content commitment.
+pub trait CanonicalContent: Clone + Eq + core::fmt::Debug {
+    /// Append every fact this content carries in its declared order.
+    fn encode_content_into(&self, into: &mut Vec<u8>);
+
+    /// The complete canonical bytes of this content.
+    #[must_use]
+    fn canonical_content_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        self.encode_content_into(&mut bytes);
+        bytes
+    }
 }
 
 /// One seat a kind's rendering fills.
