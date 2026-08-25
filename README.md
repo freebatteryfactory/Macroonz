@@ -1,7 +1,7 @@
 # Macroonz
 
 <p align="center">
-  <img src="assets/logo.png" alt="Macroonz — Bake. Build. Delight." width="480">
+  <img src="assets/logo.webp" alt="Macroonz — Bake. Build. Delight." width="480">
 </p>
 
 **Code generation that can prove what it made, and a test harness that tries to break it.**
