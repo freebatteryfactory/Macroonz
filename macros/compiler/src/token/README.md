@@ -17,11 +17,18 @@ So the seam is typed on both sides.
 [`CapturedTokenTree`] is one token of a declared input: a payload, a stable [`TokenPath`] naming exactly where it sits in the tree, and an opaque [`SpanHandle`] indexing the producer's own table.
 Delimited groups stay groups; nothing is re-lexed and no balance is re-discovered.
 
+[`CaptureBuilder`] is the only mint of a complete captured input.
+A producer supplies its own source position and a [`CapturedAtom`], or opens a nested group; the builder issues the path and handle, spends every declared magnitude, retains positions in handle order, and derives the final denominator from that roster.
+No producer can state those four facts as sibling arguments.
+A capture operation consumes its open [`CaptureLevel`], and only a successful operation returns the level, so a refused partial tree has no road to [`CaptureLevel::finish`].
+The refused attempt's positions remain available for its diagnostic; opening a fresh level rolls back that attempt while preserving handles issued by earlier successful captures in the same table.
+
 A payload carries a literal's **value** and never its spelling.
 `"x"` and `r"x"` are one text, `"a\nb"` is three characters, and which prefix a producer read is not a fact the tree keeps.
 [`capture_literal`] is where a lexed spelling becomes that value, and it refuses a form it has no row for rather than filing it under a neighbouring one.
 
-Every producer walks under the same five magnitudes — depth, level, whole tree, capture work, and the width of a generated level — declared as plain constants beside the capacities they govern.
+Every producer walks under the same captured-input magnitudes — depth, level, whole tree, and capture work — declared as plain constants beside the capacities they govern.
+A producer that skips or backtracks charges that observation through [`CaptureLevel::examined`], so work discarded before capture does not disappear from the budget.
 A [`SpanHandle`] means "the token at this index of the table the producer built while capturing".
 The compiler never resolves one; it carries the handle into a diagnostic so that whoever produced the input can map it back to the exact compiler span, which is what puts a `compile_error!` on the offending token rather than on the first token of the declaration.
 

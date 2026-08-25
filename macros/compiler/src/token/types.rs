@@ -102,6 +102,29 @@ pub struct CaptureWalk {
     taken: usize,
 }
 
+/// One non-group value a capture producer offers to the checked builder.
+///
+/// Groups have their own builder operation so no caller can smuggle child trees carrying foreign paths or handles through an atom seat.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum CapturedAtom {
+    /// An identifier-shaped word.
+    Word(String),
+    /// One punctuation character.
+    Punct(char),
+    /// A text literal's text.
+    Text(String),
+    /// A numeric literal, exactly as written.
+    Number(String),
+    /// A byte-string literal's material.
+    ByteText(Vec<u8>),
+    /// One character literal's character.
+    Character(char),
+    /// One byte literal's byte.
+    Byte(u8),
+    /// A C string literal's material without its terminating NUL.
+    NulTerminatedText(Vec<u8>),
+}
+
 /// What one captured token carries.
 ///
 /// An arm carries a literal's value and never the characters it was spelled with, so `"x"` and `r"x"` are one text and which prefix a producer read is not a fact the tree keeps.
@@ -160,7 +183,61 @@ pub struct CapturedTokenTree {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CapturedInput {
     trees: Bounded<CapturedTokenTree, CAPTURED_TOKEN_LIMIT>,
-    issued: u32,
+    issued: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum CaptureBuilderStanding {
+    Ready,
+    Refused { retained_before_capture: usize },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum CaptureLevelStanding {
+    Open,
+    Finished,
+}
+
+/// The only state that issues capture handles and retains the producer's matching source positions.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CaptureBuilder<Position> {
+    positions: Vec<Position>,
+    walk: CaptureWalk,
+    standing: CaptureBuilderStanding,
+}
+
+/// One nesting level borrowed from a [`CaptureBuilder`].
+///
+/// A producer can append atoms or groups and cannot state a path, a handle, or a denominator.
+/// Every operation consumes the level, and only a successful operation returns it, so a refused partial level cannot be finished.
+pub struct CaptureLevel<'capture, Position> {
+    positions: &'capture mut Vec<Position>,
+    walk: &'capture mut CaptureWalk,
+    builder_standing: &'capture mut CaptureBuilderStanding,
+    retained_before_capture: usize,
+    path: TokenPath,
+    trees: Bounded<CapturedTokenTree, CAPTURED_TOKEN_LIMIT>,
+    standing: CaptureLevelStanding,
+}
+
+/// Why a checked capture was not completed.
+#[must_use = "a capture refusal names whether a declared bound or the producer's own reading stopped construction"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CaptureBuildRefusal<Position, ProducerRefusal> {
+    /// One declared capture magnitude was exceeded at this producer position.
+    Unbounded {
+        /// The magnitude exceeded.
+        bound: CaptureBound,
+        /// The producer's own position for the token that reached it.
+        at: Position,
+    },
+    /// The producer could not read one token after the builder issued its handle.
+    ProducerRefused {
+        /// The producer's typed reason.
+        cause: ProducerRefusal,
+        /// The handle already bound to the token's retained source position.
+        at: SpanHandle,
+    },
 }
 
 /// Why one span table could not say where a handle sits.

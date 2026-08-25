@@ -9,45 +9,45 @@
 //! What a form decides is which value the body names: `"x"` and `r"x"` are one text, and `"a\nb"` is three characters and not four.
 //! The quoting, the raw-string hashes, and the escapes are how a declaration was written down, and a producer's job is to stop carrying them.
 
-use super::{CapturedPayload, LiteralReadCause};
+use super::{CapturedAtom, LiteralReadCause};
 
-/// Read one literal token's spelling into the payload it names.
+/// Read one literal token's spelling into the atom it names.
 ///
 /// # Errors
 ///
 /// Returns [`LiteralReadCause::NotAKnownForm`] where the spelling opens with no form this grammar has a row for, and [`LiteralReadCause::NotReadable`] where a known form's body carries material this grammar could not read.
 /// A form with no row refuses instead of falling through to a neighbouring row, so a literal Rust grows and this grammar has not learned is visible the day it arrives rather than silently misfiled.
-pub fn capture_literal(spelling: &str) -> Result<CapturedPayload, LiteralReadCause> {
+pub fn capture_literal(spelling: &str) -> Result<CapturedAtom, LiteralReadCause> {
     if opens_raw(spelling, "br") {
-        return Ok(CapturedPayload::ByteText(
+        return Ok(CapturedAtom::ByteText(
             raw_body(spelling, "br")?.as_bytes().to_vec(),
         ));
     }
     if opens_raw(spelling, "cr") {
-        return Ok(CapturedPayload::NulTerminatedText(
+        return Ok(CapturedAtom::NulTerminatedText(
             raw_body(spelling, "cr")?.as_bytes().to_vec(),
         ));
     }
     if opens_raw(spelling, "r") {
-        return Ok(CapturedPayload::Text(raw_body(spelling, "r")?.to_owned()));
+        return Ok(CapturedAtom::Text(raw_body(spelling, "r")?.to_owned()));
     }
     if let Some(body) = quoted(spelling, "b") {
-        return byte_material(body).map(CapturedPayload::ByteText);
+        return byte_material(body).map(CapturedAtom::ByteText);
     }
     if let Some(body) = quoted(spelling, "c") {
-        return nul_terminated_material(body).map(CapturedPayload::NulTerminatedText);
+        return nul_terminated_material(body).map(CapturedAtom::NulTerminatedText);
     }
     if let Some(body) = quoted(spelling, "") {
-        return text_material(body).map(CapturedPayload::Text);
+        return text_material(body).map(CapturedAtom::Text);
     }
     if let Some(body) = charred(spelling, "b") {
-        return one_byte(body).map(CapturedPayload::Byte);
+        return one_byte(body).map(CapturedAtom::Byte);
     }
     if let Some(body) = charred(spelling, "") {
-        return one_character(body).map(CapturedPayload::Character);
+        return one_character(body).map(CapturedAtom::Character);
     }
     if opens_number(spelling) {
-        return Ok(CapturedPayload::Number(spelling.to_owned()));
+        return Ok(CapturedAtom::Number(spelling.to_owned()));
     }
     Err(LiteralReadCause::NotAKnownForm)
 }

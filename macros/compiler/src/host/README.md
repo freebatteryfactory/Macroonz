@@ -7,7 +7,7 @@ So the bridge lives behind the `host` feature, which only a proc-macro crate tur
 
 ## Capture
 
-A `TokenStream` becomes a `CapturedInput`, walked natively: groups stay groups, nothing is re-lexed, and no balance is re-discovered.
+A `TokenStream` becomes a `CapturedInput` through the token home's checked builder, walked natively: groups stay groups, nothing is re-lexed, and no balance is re-discovered.
 
 Which value a literal's spelling names is asked of `capture_literal`.
 The forms, the value each one names, and the two ways reading one refuses are the compiler's grammar; a host deciding them here would be a second grammar nobody ever compared against the first.
@@ -17,12 +17,13 @@ This host reports which one stopped it; it declares none.
 
 ## Custody
 
-One handle is issued per token, in reading order, into [`Spans`] — the table of compiler spans this host keeps while converting.
+One handle is issued per token, in reading order, by the builder inside [`Spans`] — the table of compiler spans this host keeps while converting.
 
 That table is the whole reason a refusal lands on the offending token rather than on the declaration's first one.
 A `SpanTable` cannot do it: the compiler holds no compiler spans and cannot, so the seam between the two is a handle and the resolution is the producer's.
 
 The table is the caller's value, not something the capture consumes, because a refusal names a handle in it: a table swallowed by the road that refused could not resolve the very handle the refusal carries.
+The builder owns both the retained spans and the issued denominator, so custody cannot be counted on a second road.
 
 ## Call
 

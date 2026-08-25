@@ -2,10 +2,10 @@
 
 use super::types::{CaptureError, Spans};
 use crate::token::{
-    CaptureBound, CaptureWalk, CapturedDelimiter, CapturedInput, CapturedPayload,
-    CapturedTokenTree, TokenPath, capture_literal,
+    CaptureBuildRefusal, CaptureLevel, CapturedAtom, CapturedDelimiter, CapturedInput,
+    LiteralReadCause, capture_literal,
 };
-use proc_macro::{Delimiter, TokenStream, TokenTree};
+use proc_macro::{Delimiter, Span, TokenStream, TokenTree};
 
 /// Capture one declared input, issuing one handle per token into the table beside it.
 ///
@@ -16,53 +16,44 @@ use proc_macro::{Delimiter, TokenStream, TokenTree};
 ///
 /// Returns [`CaptureError::Unbounded`] where the read runs past one of the declared magnitudes, and [`CaptureError::Unread`] where a literal is written in a form this grammar does not read.
 pub fn capture(stream: TokenStream, spans: &mut Spans) -> Result<CapturedInput, CaptureError> {
-    let mut walk = CaptureWalk::declared();
-    let trees = capture_stream(stream, &TokenPath::root(), &mut walk, spans)?;
-    let issued = spans.issued()?;
-    CapturedInput::taken(trees, issued).map_err(CaptureError::from)
+    let level = spans.builder().open();
+    let level = capture_stream(stream, level).map_err(capture_refusal)?;
+    Ok(level.finish())
 }
 
-/// Convert one token stream, at the route it sits at.
-///
-/// Each token's own route is that route stepped by the token's position, so this host and the compiler's own text reader build routes the same way and spend the same declared walk.
+/// Convert one token stream through the builder level that owns its paths and handles.
 fn capture_stream(
     stream: TokenStream,
-    path: &TokenPath,
-    walk: &mut CaptureWalk,
-    spans: &mut Spans,
-) -> Result<Vec<CapturedTokenTree>, CaptureError> {
-    let mut captured = Vec::new();
-    for (position, tree) in stream.into_iter().enumerate() {
-        walk.examined()?;
-        walk.took()?;
-        let index = u32::try_from(position).map_err(|_| CaptureBound::Level)?;
-        let stepped = path.stepped(index)?;
-        captured.push(capture_tree(&tree, stepped, walk, spans)?);
+    mut level: CaptureLevel<'_, Span>,
+) -> Result<CaptureLevel<'_, Span>, CaptureBuildRefusal<Span, LiteralReadCause>> {
+    for tree in stream {
+        let position = tree.span();
+        level = match tree {
+            TokenTree::Ident(word) => level.atom(position, |_| {
+                Ok::<_, LiteralReadCause>(CapturedAtom::Word(word.to_string()))
+            })?,
+            TokenTree::Punct(punct) => level.atom(position, |_| {
+                Ok::<_, LiteralReadCause>(CapturedAtom::Punct(punct.as_char()))
+            })?,
+            TokenTree::Literal(literal) => {
+                level.atom(position, |_| capture_literal(&literal.to_string()))?
+            }
+            TokenTree::Group(group) => level.group(
+                position,
+                captured_delimiter(group.delimiter()),
+                |_span, inner| capture_stream(group.stream(), inner),
+            )?,
+        };
     }
-    Ok(captured)
+    Ok(level)
 }
 
-/// Convert one token tree, issuing its handle first so handle order matches reading order.
-fn capture_tree(
-    tree: &TokenTree,
-    path: TokenPath,
-    walk: &mut CaptureWalk,
-    spans: &mut Spans,
-) -> Result<CapturedTokenTree, CaptureError> {
-    let span = spans.issue(tree.span())?;
-    let payload = match tree {
-        TokenTree::Ident(word) => CapturedPayload::Word(word.to_string()),
-        TokenTree::Punct(punct) => CapturedPayload::Punct(punct.as_char()),
-        TokenTree::Literal(literal) => capture_literal(&literal.to_string())
-            .map_err(|cause| CaptureError::Unread { cause, at: span })?,
-        TokenTree::Group(group) => {
-            let inner = capture_stream(group.stream(), &path, walk, spans)?;
-            let delimiter = captured_delimiter(group.delimiter());
-            return CapturedTokenTree::group_of(delimiter, inner, path, span)
-                .map_err(CaptureError::from);
-        }
-    };
-    Ok(CapturedTokenTree::captured(payload, path, span))
+/// Lower the checked builder's two refusal seats into this host's capture refusal.
+const fn capture_refusal(refusal: CaptureBuildRefusal<Span, LiteralReadCause>) -> CaptureError {
+    match refusal {
+        CaptureBuildRefusal::Unbounded { bound, at: _ } => CaptureError::Unbounded { bound },
+        CaptureBuildRefusal::ProducerRefused { cause, at } => CaptureError::Unread { cause, at },
+    }
 }
 
 /// The captured delimiter one compiler delimiter names.

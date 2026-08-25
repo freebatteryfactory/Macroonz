@@ -1,0 +1,15 @@
+error[E0382]: use of moved value: `level`
+ --> tests/compile_refusals/compile-fail/a-refused-capture-level-cannot-be-finished.rs:9:20
+  |
+7 |     let level = builder.open();
+  |         ----- move occurs because `level` has type `CaptureLevel<'_, u64>`, which does not implement the `Copy` trait
+8 |     let _refused = level.atom(0, |_| Err::<CapturedAtom, _>("unread"));
+  |                          --------------------------------------------- `level` moved due to this method call
+9 |     let _partial = level.finish();
+  |                    ^^^^^ value used here after move
+  |
+note: `token::types::guard::<impl CaptureLevel<'_, Position>>::atom` takes ownership of the receiver `self`, which moves `level`
+ --> src/token/type_guard.rs
+  |
+  |         mut self,
+  |             ^^^^

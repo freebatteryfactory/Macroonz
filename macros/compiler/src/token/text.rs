@@ -4,9 +4,9 @@
 //! The whole route lives here, [`TextCapture::read`] included, because the relationship between a capture and the offsets that resolve its handles is established in exactly one place — the read that issued both.
 
 use super::{
-    CaptureBound, CaptureWalk, CapturedDelimiter, CapturedInput, CapturedPayload,
-    CapturedTokenTree, SpanHandle, SpanTable, TextCapture, TextReadCause, TextReadRefusal,
-    TokenPath,
+    CaptureBound, CaptureBuildRefusal, CaptureBuilder, CaptureLevel, CapturedAtom,
+    CapturedDelimiter, CapturedInput, SpanHandle, SpanTable, TextCapture, TextReadCause,
+    TextReadRefusal,
 };
 use crate::bounded::Bounded;
 
@@ -18,22 +18,18 @@ impl TextCapture {
     /// Returns [`TextReadRefusal`] naming the established cause and the byte it sits at.
     /// A cause established with the source read to its end sits at the source's own length: that is where the read stood when it refused, and it is a fact the caller can measure against the text it supplied rather than the zero an absent position renders as.
     pub fn read(source: &str) -> Result<Self, TextReadRefusal> {
-        let mut reader = TextReader {
-            offsets: Vec::new(),
-            walk: CaptureWalk::declared(),
-        };
+        let mut reader = TextReader;
+        let mut builder = CaptureBuilder::declared();
         let mut characters = source.char_indices().peekable();
-        let trees = reader.read_group(&mut characters, None, &TokenPath::root())?;
+        let level = builder.open();
+        let level = reader
+            .read_group(&mut characters, None, level)
+            .map_err(text_refusal)?;
+        let input = level.finish();
         let end = u64::try_from(source.len()).unwrap_or(u64::MAX);
-        let issued = u32::try_from(reader.offsets.len()).unwrap_or(u32::MAX);
         // The table carries one offset per token the walk kept, so it stands under the whole-tree magnitude the walk counted against rather than the width of any one level.
-        let offsets = Bounded::new(reader.offsets).map_err(|_| TextReadRefusal {
+        let offsets = Bounded::new(builder.positions().to_vec()).map_err(|_| TextReadRefusal {
             cause: TextReadCause::Unbounded(CaptureBound::Tree),
-            at: end,
-        })?;
-        // The top level is complete only once the source is, so this is where the per-level magnitude bites on the text route.
-        let input = CapturedInput::taken(trees, issued).map_err(|bound| TextReadRefusal {
-            cause: TextReadCause::Unbounded(bound),
             at: end,
         })?;
         Ok(Self {
@@ -55,49 +51,33 @@ impl TextCapture {
     }
 }
 
-/// The reader's running state: the byte offset issued for each handle, in handle order, and the declared walk this read spends.
-struct TextReader {
-    offsets: Vec<u64>,
-    walk: CaptureWalk,
-}
+/// The stateless source reader that feeds the checked capture builder.
+struct TextReader;
 
 /// One character stream over source text, with lookahead.
 type Characters<'source> = core::iter::Peekable<core::str::CharIndices<'source>>;
 
 impl TextReader {
-    /// Issue the next handle for a token starting at one byte offset.
-    ///
-    /// # Errors
-    ///
-    /// Refuses where the table has already run past the width a handle is carried in.
-    /// An index that saturated instead would hand two tokens one handle, and a handle naming two tokens resolves to whichever the table reaches first — a position indistinguishable from an honest answer.
-    fn issue(&mut self, at: u64) -> Result<SpanHandle, TextReadRefusal> {
-        let index = u32::try_from(self.offsets.len()).map_err(|_| TextReadRefusal {
-            cause: TextReadCause::Unbounded(CaptureBound::Tree),
-            at,
-        })?;
-        self.offsets.push(at);
-        Ok(SpanHandle::at(index))
-    }
-
     /// Read the tokens of one group, stopping at `closing` where one is given.
     ///
-    /// The route this group sits at is carried in, and each token's own route is that route stepped by the token's position, so a route is built the same way at every level and no two tokens can share one.
-    fn read_group(
+    /// The builder level owns every route, handle, and magnitude while this reader owns only the character grammar.
+    fn read_group<'capture>(
         &mut self,
         characters: &mut Characters<'_>,
-        closing: Option<(char, u64)>,
-        path: &TokenPath,
-    ) -> Result<Vec<CapturedTokenTree>, TextReadRefusal> {
-        let mut trees: Vec<CapturedTokenTree> = Vec::new();
+        closing: Option<(char, u64, SpanHandle)>,
+        mut level: CaptureLevel<'capture, u64>,
+    ) -> Result<CaptureLevel<'capture, u64>, CaptureBuildRefusal<u64, TextReadRefusal>> {
         loop {
             let Some(&(offset, character)) = characters.peek() else {
                 return match closing {
-                    Some((_, at)) => Err(TextReadRefusal {
-                        cause: TextReadCause::NotBalanced,
-                        at,
+                    Some((_, at, handle)) => Err(CaptureBuildRefusal::ProducerRefused {
+                        cause: TextReadRefusal {
+                            cause: TextReadCause::NotBalanced,
+                            at,
+                        },
+                        at: handle,
                     }),
-                    None => Ok(trees),
+                    None => Ok(level),
                 };
             };
             let at = u64::try_from(offset).unwrap_or(u64::MAX);
@@ -109,92 +89,61 @@ impl TextReader {
                 GroupBoundary::Interior => {}
                 GroupBoundary::Closes => {
                     let _consumed = characters.next();
-                    return Ok(trees);
+                    return Ok(level);
                 }
                 GroupBoundary::NotOpened => {
-                    return Err(TextReadRefusal {
+                    let refusal = TextReadRefusal {
                         cause: TextReadCause::NotOpened,
                         at,
-                    });
+                    };
+                    return level.atom(at, |_| Err(refusal));
                 }
             }
-            self.walk.examined().map_err(|bound| TextReadRefusal {
-                cause: TextReadCause::Unbounded(bound),
-                at,
-            })?;
-            self.walk.took().map_err(|bound| TextReadRefusal {
-                cause: TextReadCause::Unbounded(bound),
-                at,
-            })?;
-            let index = u32::try_from(trees.len()).map_err(|_| TextReadRefusal {
-                cause: TextReadCause::Unbounded(CaptureBound::Level),
-                at,
-            })?;
-            let stepped = path.stepped(index).map_err(|bound| TextReadRefusal {
-                cause: TextReadCause::Unbounded(bound),
-                at,
-            })?;
-            let tree = self.read_token(characters, at, character, stepped)?;
-            trees.push(tree);
+            level = self.read_token(characters, at, character, level)?;
         }
     }
 
     /// Read one token, whatever kind it is.
-    fn read_token(
+    fn read_token<'capture>(
         &mut self,
         characters: &mut Characters<'_>,
         at: u64,
         character: char,
-        path: TokenPath,
-    ) -> Result<CapturedTokenTree, TextReadRefusal> {
+        level: CaptureLevel<'capture, u64>,
+    ) -> Result<CaptureLevel<'capture, u64>, CaptureBuildRefusal<u64, TextReadRefusal>> {
         if let Some((delimiter, closes)) = opening(character) {
-            let span = self.issue(at)?;
             let _consumed = characters.next();
-            let inner = self.read_group(characters, Some((closes, at)), &path)?;
-            return CapturedTokenTree::group_of(delimiter, inner, path, span).map_err(|bound| {
-                TextReadRefusal {
-                    cause: TextReadCause::Unbounded(bound),
-                    at,
-                }
+            return level.group(at, delimiter, |handle, inner| {
+                self.read_group(characters, Some((closes, at, handle)), inner)
             });
         }
         if character.is_alphabetic() || character == '_' {
-            let span = self.issue(at)?;
             let word = read_run(characters, |next| next.is_alphanumeric() || next == '_');
-            return Ok(CapturedTokenTree::captured(
-                CapturedPayload::Word(word),
-                path,
-                span,
-            ));
+            return level.atom(at, |_| Ok(CapturedAtom::Word(word)));
         }
         if character.is_ascii_digit() {
-            let span = self.issue(at)?;
             let number = read_run(characters, |next| {
                 next.is_alphanumeric() || next == '_' || next == '.'
             });
-            return Ok(CapturedTokenTree::captured(
-                CapturedPayload::Number(number),
-                path,
-                span,
-            ));
+            return level.atom(at, |_| Ok(CapturedAtom::Number(number)));
         }
         if character == '"' {
-            let span = self.issue(at)?;
             let _consumed = characters.next();
-            let text = read_quoted(characters, at)?;
-            return Ok(CapturedTokenTree::captured(
-                CapturedPayload::Text(text),
-                path,
-                span,
-            ));
+            return level.atom(at, |_| read_quoted(characters, at).map(CapturedAtom::Text));
         }
-        let span = self.issue(at)?;
         let _consumed = characters.next();
-        Ok(CapturedTokenTree::captured(
-            CapturedPayload::Punct(character),
-            path,
-            span,
-        ))
+        level.atom(at, |_| Ok(CapturedAtom::Punct(character)))
+    }
+}
+
+/// Lower the checked builder's refusal into the text route's own byte-positioned refusal.
+const fn text_refusal(refusal: CaptureBuildRefusal<u64, TextReadRefusal>) -> TextReadRefusal {
+    match refusal {
+        CaptureBuildRefusal::Unbounded { bound, at } => TextReadRefusal {
+            cause: TextReadCause::Unbounded(bound),
+            at,
+        },
+        CaptureBuildRefusal::ProducerRefused { cause, at: _ } => cause,
     }
 }
 
@@ -212,11 +161,11 @@ enum GroupBoundary {
 }
 
 /// The boundary answer for one character, given the closer the group expects.
-fn group_boundary(character: char, closing: Option<(char, u64)>) -> GroupBoundary {
+fn group_boundary(character: char, closing: Option<(char, u64, SpanHandle)>) -> GroupBoundary {
     if !matches!(character, ')' | ']' | '}') {
         return GroupBoundary::Interior;
     }
-    if closing.map(|(close, _)| close) == Some(character) {
+    if closing.map(|(close, _, _)| close) == Some(character) {
         return GroupBoundary::Closes;
     }
     GroupBoundary::NotOpened

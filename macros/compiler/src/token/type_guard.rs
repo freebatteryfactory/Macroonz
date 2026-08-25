@@ -8,9 +8,11 @@
 use super::super::encode::{encode_captured, encode_generated};
 use super::super::inspect::inspect_token;
 use super::{
-    CAPTURE_WORK_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound, CaptureWalk, CapturedDelimiter,
-    CapturedInput, CapturedPayload, CapturedTokenTree, GeneratedDelimiter, GeneratedSpacing,
-    GeneratedToken, GeneratedTree, SpanHandle, TokenPath,
+    CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound,
+    CaptureBuildRefusal, CaptureBuilder, CaptureBuilderStanding, CaptureLevel,
+    CaptureLevelStanding, CaptureWalk, CapturedAtom, CapturedDelimiter, CapturedInput,
+    CapturedPayload, CapturedTokenTree, GeneratedDelimiter, GeneratedSpacing, GeneratedToken,
+    GeneratedTree, SpanHandle, TokenPath,
 };
 use crate::bounded::{Bounded, Overflow};
 
@@ -120,7 +122,7 @@ impl CaptureWalk {
 impl CapturedTokenTree {
     /// Capture one token.
     #[must_use]
-    pub const fn captured(payload: CapturedPayload, path: TokenPath, span: SpanHandle) -> Self {
+    const fn captured(payload: CapturedPayload, path: TokenPath, span: SpanHandle) -> Self {
         Self {
             payload,
             path,
@@ -128,21 +130,14 @@ impl CapturedTokenTree {
         }
     }
 
-    /// Capture one delimited group.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`CaptureBound::Level`] where the group carries more tokens than the declared magnitude admits.
-    /// A group that does not fit refuses rather than capturing as an empty one: an empty group is a declaration with no body, not a shorter declaration, and the two must never read alike.
-    pub fn group_of(
+    /// Capture one delimited group over children the checked builder already bounded.
+    const fn group_of(
         delimiter: CapturedDelimiter,
-        trees: Vec<Self>,
+        trees: Bounded<Self, CAPTURED_TOKEN_LIMIT>,
         path: TokenPath,
         span: SpanHandle,
-    ) -> Result<Self, CaptureBound> {
-        Bounded::new(trees)
-            .map(|trees| Self::captured(CapturedPayload::Group { delimiter, trees }, path, span))
-            .map_err(|_| CaptureBound::Level)
+    ) -> Self {
+        Self::captured(CapturedPayload::Group { delimiter, trees }, path, span)
     }
 
     /// What this token carries.
@@ -253,17 +248,6 @@ impl CapturedTokenTree {
 }
 
 impl CapturedInput {
-    /// Take one captured input.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`CaptureBound::Level`] where the top level carries more trees than the declared magnitude admits.
-    pub fn taken(trees: Vec<CapturedTokenTree>, issued: u32) -> Result<Self, CaptureBound> {
-        Bounded::new(trees)
-            .map(|trees| Self { trees, issued })
-            .map_err(|_| CaptureBound::Level)
-    }
-
     /// The top-level trees, in the order they were written.
     #[must_use]
     pub fn trees(&self) -> &[CapturedTokenTree] {
@@ -284,7 +268,7 @@ impl CapturedInput {
 
     /// How many span handles the producer issued; a handle at or past this index names no token.
     #[must_use]
-    pub const fn issued(&self) -> u32 {
+    pub const fn issued(&self) -> usize {
         self.issued
     }
 
@@ -298,6 +282,215 @@ impl CapturedInput {
             encode_captured(tree, &mut bytes);
         }
         bytes
+    }
+}
+
+impl<Position> CaptureBuilder<Position> {
+    /// Open one checked capture builder with no issued source positions.
+    #[must_use]
+    pub const fn declared() -> Self {
+        Self {
+            positions: Vec::new(),
+            walk: CaptureWalk::declared(),
+            standing: CaptureBuilderStanding::Ready,
+        }
+    }
+
+    /// Open one root level under a fresh capture walk while retaining this builder's continuous source-handle custody.
+    ///
+    /// A fresh level lets an attribute body and its item stand under separate input bounds and one shared source table.
+    /// Where the preceding level refused, opening the next rolls back only that attempt's positions and preserves every handle from earlier finished captures.
+    #[must_use]
+    pub fn open(&mut self) -> CaptureLevel<'_, Position> {
+        if let CaptureBuilderStanding::Refused {
+            retained_before_capture,
+        } = self.standing
+        {
+            self.positions.truncate(retained_before_capture);
+            self.standing = CaptureBuilderStanding::Ready;
+        }
+        self.walk = CaptureWalk::declared();
+        let retained_before_capture = self.positions.len();
+        CaptureLevel {
+            positions: &mut self.positions,
+            walk: &mut self.walk,
+            builder_standing: &mut self.standing,
+            retained_before_capture,
+            path: TokenPath::root(),
+            trees: Bounded::empty(),
+            standing: CaptureLevelStanding::Open,
+        }
+    }
+
+    /// The producer positions retained in handle order.
+    #[must_use]
+    pub fn positions(&self) -> &[Position] {
+        &self.positions
+    }
+}
+
+impl<Position: Clone> CaptureLevel<'_, Position> {
+    /// Finish this root level as one captured input.
+    ///
+    /// The issued denominator is read from the builder's retained position roster rather than accepted from the producer.
+    #[must_use]
+    pub fn finish(mut self) -> CapturedInput {
+        let trees = core::mem::replace(&mut self.trees, Bounded::empty());
+        self.standing = CaptureLevelStanding::Finished;
+        CapturedInput {
+            trees,
+            issued: self.positions.len(),
+        }
+    }
+
+    /// Charge one producer observation that does not become a captured token.
+    ///
+    /// This is the work-budget seat for a producer that skips trivia or backtracks before it offers an atom or group.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CaptureBuildRefusal::Unbounded`] at the producer position where the work budget is spent.
+    pub fn examined<ProducerRefusal>(
+        self,
+        position: Position,
+    ) -> Result<Self, CaptureBuildRefusal<Position, ProducerRefusal>> {
+        self.walk
+            .examined()
+            .map_err(|bound| CaptureBuildRefusal::Unbounded {
+                bound,
+                at: position,
+            })?;
+        Ok(self)
+    }
+
+    /// Append one non-group token after the producer reads its value.
+    ///
+    /// The builder issues the path and handle before invoking `read`, so a producer refusal retains the exact handle whose source position is already in custody.
+    ///
+    /// # Errors
+    ///
+    /// Returns the bound or producer refusal established at this token.
+    pub fn atom<ProducerRefusal>(
+        mut self,
+        position: Position,
+        read: impl FnOnce(SpanHandle) -> Result<CapturedAtom, ProducerRefusal>,
+    ) -> Result<Self, CaptureBuildRefusal<Position, ProducerRefusal>> {
+        let (path, span, at) = self.issue(position)?;
+        let atom =
+            read(span).map_err(|cause| CaptureBuildRefusal::ProducerRefused { cause, at: span })?;
+        self.trees
+            .try_push(CapturedTokenTree::captured(atom.into(), path, span))
+            .map_err(|_| CaptureBuildRefusal::Unbounded {
+                bound: CaptureBound::Level,
+                at,
+            })?;
+        Ok(self)
+    }
+
+    /// Append one group and let the same builder own its nested level.
+    ///
+    /// # Errors
+    ///
+    /// Returns the first bound or producer refusal established in pre-order.
+    pub fn group<ProducerRefusal>(
+        mut self,
+        position: Position,
+        delimiter: CapturedDelimiter,
+        fill: impl FnOnce(
+            SpanHandle,
+            CaptureLevel<'_, Position>,
+        ) -> Result<
+            CaptureLevel<'_, Position>,
+            CaptureBuildRefusal<Position, ProducerRefusal>,
+        >,
+    ) -> Result<Self, CaptureBuildRefusal<Position, ProducerRefusal>> {
+        let (path, span, at) = self.issue(position)?;
+        let inner = CaptureLevel {
+            positions: &mut *self.positions,
+            walk: &mut *self.walk,
+            builder_standing: &mut *self.builder_standing,
+            retained_before_capture: self.retained_before_capture,
+            path: path.clone(),
+            trees: Bounded::empty(),
+            standing: CaptureLevelStanding::Open,
+        };
+        let inner = fill(span, inner)?;
+        let tree = CapturedTokenTree::group_of(delimiter, inner.close(), path, span);
+        self.trees
+            .try_push(tree)
+            .map_err(|_| CaptureBuildRefusal::Unbounded {
+                bound: CaptureBound::Level,
+                at,
+            })?;
+        Ok(self)
+    }
+
+    /// Issue the next path and handle at this level while retaining the producer's position.
+    fn issue<ProducerRefusal>(
+        &mut self,
+        position: Position,
+    ) -> Result<(TokenPath, SpanHandle, Position), CaptureBuildRefusal<Position, ProducerRefusal>>
+    {
+        if let Err(bound) = self.walk.examined() {
+            return Err(CaptureBuildRefusal::Unbounded {
+                bound,
+                at: position,
+            });
+        }
+        if let Err(bound) = self.walk.took() {
+            return Err(CaptureBuildRefusal::Unbounded {
+                bound,
+                at: position,
+            });
+        }
+        if self.trees.len() >= CAPTURED_TOKEN_LIMIT {
+            return Err(CaptureBuildRefusal::Unbounded {
+                bound: CaptureBound::Level,
+                at: position,
+            });
+        }
+        let level_index =
+            u32::try_from(self.trees.len()).map_err(|_| CaptureBuildRefusal::Unbounded {
+                bound: CaptureBound::Level,
+                at: position.clone(),
+            })?;
+        let path =
+            self.path
+                .stepped(level_index)
+                .map_err(|bound| CaptureBuildRefusal::Unbounded {
+                    bound,
+                    at: position.clone(),
+                })?;
+        if self.positions.len() >= CAPTURED_TREE_TOKEN_LIMIT {
+            return Err(CaptureBuildRefusal::Unbounded {
+                bound: CaptureBound::Tree,
+                at: position,
+            });
+        }
+        let handle_index =
+            u32::try_from(self.positions.len()).map_err(|_| CaptureBuildRefusal::Unbounded {
+                bound: CaptureBound::Tree,
+                at: position.clone(),
+            })?;
+        self.positions.push(position.clone());
+        Ok((path, SpanHandle::at(handle_index), position))
+    }
+
+    /// Close a nested level into its parent's group without minting another captured input.
+    fn close(mut self) -> Bounded<CapturedTokenTree, CAPTURED_TOKEN_LIMIT> {
+        let trees = core::mem::replace(&mut self.trees, Bounded::empty());
+        self.standing = CaptureLevelStanding::Finished;
+        trees
+    }
+}
+
+impl<Position> Drop for CaptureLevel<'_, Position> {
+    fn drop(&mut self) {
+        if self.standing == CaptureLevelStanding::Open {
+            *self.builder_standing = CaptureBuilderStanding::Refused {
+                retained_before_capture: self.retained_before_capture,
+            };
+        }
     }
 }
 

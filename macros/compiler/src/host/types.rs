@@ -3,7 +3,7 @@
 //! Declarations only, with every road that reaches a private field in `type_guard.rs`, this file's own child.
 
 use crate::closure::PartitionCargo;
-use crate::token::{CaptureBound, LiteralReadCause, SpanHandle};
+use crate::token::{CaptureBound, CaptureBuilder, LiteralReadCause, SpanHandle};
 use proc_macro::Span;
 
 #[path = "type_guard.rs"]
@@ -15,7 +15,7 @@ mod guard;
 /// It is what lets a refusal land on the offending token rather than on the declaration's first one, because it is what holds the compiler's own spans.
 #[derive(Debug)]
 pub struct Spans {
-    held: Vec<Span>,
+    builder: CaptureBuilder<Span>,
 }
 
 /// How reading one declared input into a captured surface refuses.

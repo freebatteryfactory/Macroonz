@@ -8,24 +8,22 @@
 //! A lane that only asked "does `"x"` read as text?" would pass against a reader answering every quoted spelling with text and everything else with a number.
 //! So the separations are required rather than assumed: six spellings must reach six answers, one value written two ways must reach one, and one body written under two forms must encode apart.
 
-use macroonz::{
-    CapturedInput, CapturedPayload, CapturedTokenTree, LiteralReadCause, SpanHandle, TokenPath,
-    capture_literal,
-};
+use core::convert::Infallible;
+use macroonz::{CaptureBuilder, CapturedAtom, LiteralReadCause, capture_literal};
 
 /// The payload one spelling reads to, or nothing where reading it refused.
-fn read(spelling: &str) -> Option<CapturedPayload> {
+fn read(spelling: &str) -> Option<CapturedAtom> {
     capture_literal(spelling).ok()
 }
 
 /// The canonical bytes of a one-token declaration carrying one payload.
 ///
 /// This encoding is what a captured declaration's identity is derived over, so two payloads reaching one byte string are two declarations reaching one name.
-fn encoded(payload: CapturedPayload) -> Option<Vec<u8>> {
-    let tree = CapturedTokenTree::captured(payload, TokenPath::root(), SpanHandle::at(0));
-    CapturedInput::taken(vec![tree], 1)
-        .ok()
-        .map(|input| input.canonical_bytes())
+fn encoded(atom: CapturedAtom) -> Option<Vec<u8>> {
+    let mut builder = CaptureBuilder::declared();
+    let level = builder.open();
+    let level = level.atom(0u64, |_| Ok::<_, Infallible>(atom)).ok()?;
+    Some(level.finish().canonical_bytes())
 }
 
 /// Each literal form reads to the value it names, under its own row.
@@ -35,35 +33,35 @@ fn encoded(payload: CapturedPayload) -> Option<Vec<u8>> {
 fn every_literal_form_reads_to_the_value_it_names() {
     assert_eq!(
         read(r#""a\nb""#),
-        Some(CapturedPayload::Text(String::from("a\nb")))
+        Some(CapturedAtom::Text(String::from("a\nb")))
     );
     assert_eq!(
         read("r#\"a\"b\"#"),
-        Some(CapturedPayload::Text(String::from("a\"b")))
+        Some(CapturedAtom::Text(String::from("a\"b")))
     );
     assert_eq!(
         read(r#"b"ab""#),
-        Some(CapturedPayload::ByteText(b"ab".to_vec()))
+        Some(CapturedAtom::ByteText(b"ab".to_vec()))
     );
     assert_eq!(
         read(r#"br"a\nb""#),
-        Some(CapturedPayload::ByteText(br"a\nb".to_vec()))
+        Some(CapturedAtom::ByteText(br"a\nb".to_vec()))
     );
     assert_eq!(
         read(r#"c"ab""#),
-        Some(CapturedPayload::NulTerminatedText(b"ab".to_vec()))
+        Some(CapturedAtom::NulTerminatedText(b"ab".to_vec()))
     );
-    assert_eq!(read("'x'"), Some(CapturedPayload::Character('x')));
-    assert_eq!(read(r"'\u{1F600}'"), Some(CapturedPayload::Character('😀')));
-    assert_eq!(read("b'x'"), Some(CapturedPayload::Byte(b'x')));
-    assert_eq!(read(r"b'\xff'"), Some(CapturedPayload::Byte(0xFF)));
+    assert_eq!(read("'x'"), Some(CapturedAtom::Character('x')));
+    assert_eq!(read(r"'\u{1F600}'"), Some(CapturedAtom::Character('😀')));
+    assert_eq!(read("b'x'"), Some(CapturedAtom::Byte(b'x')));
+    assert_eq!(read(r"b'\xff'"), Some(CapturedAtom::Byte(0xFF)));
     assert_eq!(
         read("1_000u32"),
-        Some(CapturedPayload::Number(String::from("1_000u32")))
+        Some(CapturedAtom::Number(String::from("1_000u32")))
     );
     assert_eq!(
         read("0xFF"),
-        Some(CapturedPayload::Number(String::from("0xFF")))
+        Some(CapturedAtom::Number(String::from("0xFF")))
     );
 }
 
@@ -74,11 +72,11 @@ fn every_literal_form_reads_to_the_value_it_names() {
 fn a_raw_text_carries_what_a_quoted_one_reads() {
     assert_eq!(
         read(r#""a\nb""#),
-        Some(CapturedPayload::Text(String::from("a\nb")))
+        Some(CapturedAtom::Text(String::from("a\nb")))
     );
     assert_eq!(
         read(r#"r"a\nb""#),
-        Some(CapturedPayload::Text(String::from(r"a\nb")))
+        Some(CapturedAtom::Text(String::from(r"a\nb")))
     );
 }
 
@@ -122,9 +120,9 @@ fn a_value_survives_its_spelling_and_a_form_survives_its_characters() {
 /// The rows are separated in the encoding and not only in the type, which is what keeps two declarations that say different things from deriving one name.
 #[test]
 fn three_forms_carrying_one_body_encode_apart() {
-    let text = encoded(CapturedPayload::Text(String::from("x")));
-    let bytes = encoded(CapturedPayload::ByteText(b"x".to_vec()));
-    let terminated = encoded(CapturedPayload::NulTerminatedText(b"x".to_vec()));
+    let text = encoded(CapturedAtom::Text(String::from("x")));
+    let bytes = encoded(CapturedAtom::ByteText(b"x".to_vec()));
+    let terminated = encoded(CapturedAtom::NulTerminatedText(b"x".to_vec()));
     assert!(text.is_some() && bytes.is_some() && terminated.is_some());
     assert_ne!(text, bytes);
     assert_ne!(bytes, terminated);

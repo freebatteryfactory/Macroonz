@@ -62,6 +62,23 @@ impl<T, const N: usize> Bounded<T, N> {
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
+
+    /// Append one item where it fits under this ceiling.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Overflow`] without changing the list where the appended item would exceed `N`.
+    pub fn try_push(&mut self, item: T) -> Result<(), Overflow> {
+        let offered = self.0.len().saturating_add(1);
+        if offered > N {
+            return Err(Overflow {
+                capacity: N,
+                offered,
+            });
+        }
+        self.0.push(item);
+        Ok(())
+    }
 }
 
 impl<T, const N: usize> NonEmpty<T, N> {

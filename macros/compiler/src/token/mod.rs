@@ -16,7 +16,8 @@ pub use compose::{
 };
 pub use literal::capture_literal;
 pub use types::{
-    CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound, CaptureWalk,
+    CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound,
+    CaptureBuildRefusal, CaptureBuilder, CaptureLevel, CaptureWalk, CapturedAtom,
     CapturedDelimiter, CapturedInput, CapturedPayload, CapturedTokenTree, CoordinateRole,
     GENERATED_TOKEN_LIMIT, GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree,
     LiteralReadCause, SourceCoordinate, SpanHandle, SpanResolutionRefusal, SpanTable,

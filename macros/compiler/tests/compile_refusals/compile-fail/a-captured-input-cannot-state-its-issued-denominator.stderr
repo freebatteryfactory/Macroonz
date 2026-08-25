@@ -1,0 +1,9 @@
+error[E0451]: fields `trees` and `issued` of struct `CapturedInput` are private
+ --> tests/compile_refusals/compile-fail/a-captured-input-cannot-state-its-issued-denominator.rs:7:9
+  |
+6 |     let _forged = CapturedInput {
+  |                   ------------- in this type
+7 |         trees: Bounded::empty(),
+  |         ^^^^^ private field
+8 |         issued: 99,
+  |         ^^^^^^ private field

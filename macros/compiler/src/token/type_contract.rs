@@ -4,8 +4,24 @@
 //! A projection that is a constant per row sits beside the row rather than in a second file that has to be kept in step with it.
 
 use super::{
-    CaptureBound, LiteralReadCause, SpanResolutionRefusal, TextReadCause, TextReadRefusal,
+    CaptureBound, CapturedAtom, CapturedPayload, LiteralReadCause, SpanResolutionRefusal,
+    TextReadCause, TextReadRefusal,
 };
+
+impl From<CapturedAtom> for CapturedPayload {
+    fn from(atom: CapturedAtom) -> Self {
+        match atom {
+            CapturedAtom::Word(word) => Self::Word(word),
+            CapturedAtom::Punct(mark) => Self::Punct(mark),
+            CapturedAtom::Text(text) => Self::Text(text),
+            CapturedAtom::Number(number) => Self::Number(number),
+            CapturedAtom::ByteText(material) => Self::ByteText(material),
+            CapturedAtom::Character(character) => Self::Character(character),
+            CapturedAtom::Byte(byte) => Self::Byte(byte),
+            CapturedAtom::NulTerminatedText(material) => Self::NulTerminatedText(material),
+        }
+    }
+}
 
 impl CaptureBound {
     /// Every bound a capture can run past, in declaration order.

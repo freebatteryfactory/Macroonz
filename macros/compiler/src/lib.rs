@@ -74,7 +74,8 @@ pub use plan::{
 pub use render::{Output, RENDERED_BYTE_LIMIT, RenderError, RenderedProjection, RenderedUnit};
 pub use request::{CrateBinding, Producer, RUST_DECLARATION_PROFILE, Request, SELECTION_FACT};
 pub use token::{
-    CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound, CaptureWalk,
+    CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound,
+    CaptureBuildRefusal, CaptureBuilder, CaptureLevel, CaptureWalk, CapturedAtom,
     CapturedDelimiter, CapturedInput, CapturedPayload, CapturedTokenTree, CoordinateRole,
     GENERATED_TOKEN_LIMIT, GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree,
     LiteralReadCause, SourceCoordinate, SpanHandle, SpanResolutionRefusal, SpanTable,

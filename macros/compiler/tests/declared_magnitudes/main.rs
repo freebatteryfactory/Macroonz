@@ -8,19 +8,20 @@
 //! # Producers
 //!
 //! The depth, per-level, and whole-tree magnitudes bite on the callable text route, so they are driven through it with no proc macro anywhere in the path.
-//! The per-level magnitude is driven a second way at the capture constructor, which is the seam a producer holding its own spans meets it at, and the two roads reach one named bound.
-//! The work budget is reachable from neither producer this crate carries — both KEEP every token they examine, so the whole-tree magnitude bites first — and it is therefore driven at the seam that governs it, the walk itself.
+//! The per-level magnitude is driven a second way at the checked capture builder, which is the seam a producer holding its own source positions meets it at, and the two roads reach one named bound.
+//! The work budget is driven through the builder's discarded-observation seat, which is what a producer that skips trivia or backtracks uses without minting a token.
 //!
 //! # The planted coordinate
 //!
 //! The reversal is the coordinate the route replaces: a depth and an index, which name two tokens with one value.
 //! This lane implements that coordinate itself and shows two distinct tokens colliding under it while their routes differ.
 
-use core::num::TryFromIntError;
+use core::convert::Infallible;
 use macroonz::{
-    CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound, CaptureWalk,
-    CapturedInput, CapturedPayload, CapturedTokenTree, CoordinateRole, SpanHandle,
-    TOKEN_PATH_DEPTH_LIMIT, TextCapture, TextReadCause, TokenPath,
+    CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound,
+    CaptureBuildRefusal, CaptureBuilder, CapturedAtom, CapturedDelimiter, CapturedInput,
+    CapturedTokenTree, CoordinateRole, TOKEN_PATH_DEPTH_LIMIT, TextCapture, TextReadCause,
+    TokenPath,
 };
 
 /// An ordinary declaration, small enough that no magnitude is anywhere near it.
@@ -72,6 +73,19 @@ fn collect_routes(tree: &CapturedTokenTree, into: &mut Vec<Vec<u32>>) {
     }
 }
 
+/// The exact root, group, and nested-token shape authored by the builder specimen.
+fn builder_specimen(
+    input: &CapturedInput,
+) -> Option<(&CapturedTokenTree, &CapturedTokenTree, &CapturedTokenTree)> {
+    let [root, group] = input.trees() else {
+        return None;
+    };
+    let Some((CapturedDelimiter::Bracket, [nested])) = group.group() else {
+        return None;
+    };
+    Some((root, group, nested))
+}
+
 /// The planted coordinate: how deep a token sits, and its position inside its own group.
 ///
 /// It is implemented here, by the lane, because the seam carries no such coordinate — and a law about a coordinate is only evidence if the coordinate can be built and seen to collide.
@@ -103,6 +117,67 @@ fn every_route_in_one_capture_names_a_different_token() {
         sorted.dedup();
         counted > 0 && sorted.len() == counted
     }));
+}
+
+/// One builder operation owns the retained positions, paths, handles, and denominator together.
+#[test]
+fn the_builder_issues_every_capture_coordinate_from_one_walk()
+-> Result<(), CaptureBuildRefusal<u64, Infallible>> {
+    let mut builder = CaptureBuilder::declared();
+    let level = builder.open();
+    let level = level.atom(11u64, |_| {
+        Ok::<_, Infallible>(CapturedAtom::Word(String::from("root")))
+    })?;
+    let level = level.group(22u64, CapturedDelimiter::Bracket, |_group, inner| {
+        inner.atom(33u64, |_| {
+            Ok::<_, Infallible>(CapturedAtom::Word(String::from("nested")))
+        })
+    })?;
+    let input = level.finish();
+    let specimen = builder_specimen(&input);
+    assert!(specimen.is_some());
+
+    assert_eq!(builder.positions(), &[11u64, 22u64, 33u64]);
+    assert_eq!(input.issued(), 3);
+    if let Some((root, group, nested)) = specimen {
+        assert_eq!(root.span().index(), 0);
+        assert_eq!(group.span().index(), 1);
+        assert_eq!(nested.span().index(), 2);
+        assert_eq!(root.path().steps(), &[0]);
+        assert_eq!(group.path().steps(), &[1]);
+        assert_eq!(nested.path().steps(), &[1, 0]);
+    }
+    Ok(())
+}
+
+/// A refused capture retains its failing position for diagnostics, then a fresh capture rolls back only the refused attempt.
+#[test]
+fn a_fresh_capture_after_refusal_preserves_prior_handles_without_ghost_positions()
+-> Result<(), CaptureBuildRefusal<u64, &'static str>> {
+    let mut builder = CaptureBuilder::declared();
+    let first = builder
+        .open()
+        .atom(10u64, |_| Ok(CapturedAtom::Word(String::from("first"))))?
+        .finish();
+    assert_eq!(first.issued(), 1);
+
+    assert!(matches!(
+        builder.open().atom(20u64, |_| Err("unread")),
+        Err(CaptureBuildRefusal::ProducerRefused { cause: "unread", at }) if at.index() == 1
+    ));
+    assert_eq!(builder.positions(), &[10u64, 20u64]);
+
+    let fresh = builder
+        .open()
+        .atom(30u64, |_| Ok(CapturedAtom::Word(String::from("fresh"))))?
+        .finish();
+    assert_eq!(builder.positions(), &[10u64, 30u64]);
+    assert_eq!(fresh.issued(), 2);
+    assert_eq!(
+        fresh.trees().first().map(CapturedTokenTree::span),
+        Some(macroonz::SpanHandle::at(1))
+    );
+    Ok(())
 }
 
 /// The planted coordinate names two different tokens with one value.
@@ -184,25 +259,25 @@ fn a_tree_past_the_declared_token_magnitude_refuses() {
     );
 }
 
-/// The walk counts to each declared magnitude and refuses one past it.
+/// The builder charges producer work that does not become a captured token.
 ///
-/// Two counters, charged separately: what a producer KEEPS is counted against the whole-tree magnitude, and what it LOOKS AT is spent against the budget.
-/// Both directions for both, so the declared number of steps is admitted and the step after it refuses naming its own bound.
+/// Kept tokens reach the tree magnitude through the text road above; this is the distinct discarded-work seat for trivia or backtracking.
 #[test]
-fn the_walk_counts_to_each_declared_magnitude_and_refuses_past_it() {
-    let mut kept = CaptureWalk::declared();
-    for _ in 0..CAPTURED_TREE_TOKEN_LIMIT {
-        assert!(kept.took().is_ok());
+fn the_builder_counts_discarded_work_and_refuses_one_past_it()
+-> Result<(), CaptureBuildRefusal<usize, Infallible>> {
+    let mut spent_builder = CaptureBuilder::declared();
+    let mut spent = spent_builder.open();
+    for position in 0..CAPTURE_WORK_LIMIT {
+        spent = spent.examined::<Infallible>(position)?;
     }
-    assert_eq!(kept.taken(), CAPTURED_TREE_TOKEN_LIMIT);
-    assert_eq!(kept.took(), Err(CaptureBound::Tree));
-
-    let mut spent = CaptureWalk::declared();
-    for _ in 0..CAPTURE_WORK_LIMIT {
-        assert!(spent.examined().is_ok());
-    }
-    assert_eq!(spent.remaining(), 0);
-    assert_eq!(spent.examined(), Err(CaptureBound::Work));
+    assert!(matches!(
+        spent.examined::<Infallible>(CAPTURE_WORK_LIMIT),
+        Err(CaptureBuildRefusal::Unbounded {
+            bound: CaptureBound::Work,
+            at: CAPTURE_WORK_LIMIT,
+        })
+    ));
+    Ok(())
 }
 
 /// One nesting level carrying more trees than the declared magnitude refuses naming the level, on the callable text route.
@@ -223,33 +298,34 @@ fn a_level_past_the_declared_magnitude_refuses_on_the_text_route() {
     );
 }
 
-/// One nesting level carrying more trees than the declared magnitude refuses naming the level, at the capture constructor.
+/// One nesting level carrying more trees than the declared magnitude refuses naming the level, at the checked builder.
 ///
 /// The same magnitude met at the other seam, with no text and no reader anywhere in the path: two roads, one named bound.
 #[test]
-fn a_level_past_the_declared_magnitude_refuses_at_the_constructor() -> Result<(), TryFromIntError> {
-    let tree = |position: usize| {
-        Ok(CapturedTokenTree::captured(
-            CapturedPayload::Word(String::from("a")),
-            TokenPath::root(),
-            SpanHandle::at(u32::try_from(position)?),
-        ))
-    };
-    let admitted: Vec<CapturedTokenTree> = (0..CAPTURED_TOKEN_LIMIT)
-        .map(tree)
-        .collect::<Result<_, TryFromIntError>>()?;
-    let admitted_count = u32::try_from(admitted.len())?;
-    let lawful = CapturedInput::taken(admitted, admitted_count);
-    assert!(lawful.is_ok_and(|input| input.len() == CAPTURED_TOKEN_LIMIT));
+fn a_level_past_the_declared_magnitude_refuses_at_the_constructor()
+-> Result<(), CaptureBuildRefusal<usize, Infallible>> {
+    let atom = || CapturedAtom::Word(String::from("a"));
+    let mut lawful_builder = CaptureBuilder::declared();
+    let mut lawful_level = lawful_builder.open();
+    for position in 0..CAPTURED_TOKEN_LIMIT {
+        lawful_level = lawful_level.atom(position, |_| Ok::<_, Infallible>(atom()))?;
+    }
+    let lawful = lawful_level.finish();
+    assert_eq!(lawful.len(), CAPTURED_TOKEN_LIMIT);
+    assert_eq!(lawful.issued(), CAPTURED_TOKEN_LIMIT);
+    assert_eq!(lawful_builder.positions().len(), CAPTURED_TOKEN_LIMIT);
 
-    let mut over: Vec<CapturedTokenTree> = (0..CAPTURED_TOKEN_LIMIT)
-        .map(tree)
-        .collect::<Result<_, TryFromIntError>>()?;
-    over.push(tree(CAPTURED_TOKEN_LIMIT)?);
-    let over_count = u32::try_from(over.len())?;
-    assert_eq!(
-        CapturedInput::taken(over, over_count).err(),
-        Some(CaptureBound::Level)
-    );
+    let mut hostile_builder = CaptureBuilder::declared();
+    let mut hostile_level = hostile_builder.open();
+    for position in 0..CAPTURED_TOKEN_LIMIT {
+        hostile_level = hostile_level.atom(position, |_| Ok::<_, Infallible>(atom()))?;
+    }
+    assert!(matches!(
+        hostile_level.atom(CAPTURED_TOKEN_LIMIT, |_| Ok::<_, Infallible>(atom())),
+        Err(CaptureBuildRefusal::Unbounded {
+            bound: CaptureBound::Level,
+            at: CAPTURED_TOKEN_LIMIT,
+        })
+    ));
     Ok(())
 }
