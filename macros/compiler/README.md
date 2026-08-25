@@ -124,7 +124,7 @@ A request that fails any step is refused whole — there is no partial output.
 | `request/` | `Request<K>`, `Door`, `Producer`, `CrateBinding`: the front door. |
 | `host/` | Behind the `host` feature: the bridge to `proc_macro` — capture a stream, emit a stream, place a diagnostic. |
 
-A home is a directory with a README, a `mod.rs`, and a `types.rs`; the rest is in [`AGENTS.md`](../../AGENTS.md).
+A home is a directory with a README, a `mod.rs`, and a `types.rs`; the repository working law owns the rest.
 
 ---
 
