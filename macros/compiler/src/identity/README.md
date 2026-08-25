@@ -10,12 +10,17 @@ Two runs on one machine, or on two, derive the same bytes from the same transcri
 
 `Subject` is an open trait with two constants: the name a subject is spelled by, and the stem of whoever owns it.
 
-```ignore
+```rust
 macroonz_compiler::subjects! {
     stem = "my-crate/identity";
     /// One obligation a trial row challenges.
     Obligation = "obligation",
 }
+
+use macroonz_compiler::Subject;
+
+assert_eq!(Obligation::STEM, "my-crate/identity");
+assert_eq!(Obligation::NAME, "obligation");
 ```
 
 The compiler's own subjects are declared in this home under `MACROONZ_STEM`.

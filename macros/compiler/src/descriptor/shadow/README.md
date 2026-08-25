@@ -8,7 +8,7 @@ The ecosystem's convention for that switch is the `loom` configuration flag — 
 This home absorbs that ceremony.
 A shadow declaration chooses names from a stated roster, and the rendering writes the two faces the author would have written by hand:
 
-```rust,ignore
+```text
 shadow! {
     loom = renamed_loom,
     names = [Arc, Mutex, AtomicUsize, thread],
@@ -17,7 +17,7 @@ shadow! {
 
 becomes, for each chosen name, exactly
 
-```rust,ignore
+```text
 #[cfg(not(loom))]
 pub use std::sync::Arc;
 #[cfg(loom)]

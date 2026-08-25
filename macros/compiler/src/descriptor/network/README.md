@@ -5,7 +5,7 @@ A topology you can read at a glance.
 The harness's network sim is declared through values — nodes, links, schedules, campaigns — and the values are right, but a topology spelled as constructor calls reads like plumbing.
 This home is the declaration grammar over those values: name the nodes, draw the links, state each schedule's discipline as fault phrases, and the rendering writes the builder module an author would have written by hand.
 
-```rust,ignore
+```text
 network! {
     harness = renamed_macroonz::harness,
     module = net,

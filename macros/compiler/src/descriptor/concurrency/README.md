@@ -5,7 +5,7 @@ The exploration's identity, declared once.
 An interleaving exploration is four declared facts — a population, a bound, a sample count, a seed — and a plumbing sentence repeating them at every call.
 This home is the declaration grammar over that sentence: name each exploration, state its facts as a row, and the rendering writes one function per row that runs the exploration and reads it into a trial conclusion.
 
-```rust,ignore
+```text
 concurrency! {
     harness = renamed_macroonz::harness,
     module = explorations,

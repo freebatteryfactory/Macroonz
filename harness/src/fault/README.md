@@ -10,7 +10,7 @@ What the harness owns is the placement — which of your adapters sits at which 
 
 Place adapters at zero-based positions, name the schedule, gather schedules into a campaign, select one by name, and inject it into an ordinary sequence of your own commands.
 
-```rust,ignore
+```text
 let control = FaultSchedule::declared(schedule_name("quiet-control")?, Vec::new());
 let hostile = FaultSchedule::declared(
     schedule_name("capacity-at-the-second-write")?,

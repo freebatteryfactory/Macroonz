@@ -15,7 +15,7 @@ The `macroonz` facade includes its API by default so one dependency opens the co
 
 A row per trial, in your own tests, through the `trial_table!` stamp or by hand.
 
-```rust,ignore
+```text
 macroonz_harness::trial_table! {
     /// Every trial this crate authored for its lots.
     mod lots named("bakery", "lots") {

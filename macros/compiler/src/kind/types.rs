@@ -198,7 +198,7 @@ fn slot_in<T: Copy + Eq>(roster: &[T], row: T) -> u16 {
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```rust
 /// macroonz_compiler::roster! {
 ///     /// Which direction a codec covers.
 ///     pub enum Direction {
@@ -208,6 +208,9 @@ fn slot_in<T: Copy + Eq>(roster: &[T], row: T) -> u16 {
 ///         Decode = "decode",
 ///     }
 /// }
+///
+/// assert_eq!(Direction::ALL, &[Direction::Encode, Direction::Decode]);
+/// assert_eq!(Direction::Decode.name(), "decode");
 /// ```
 #[macro_export]
 macro_rules! roster {
@@ -247,7 +250,9 @@ macro_rules! roster {
 ///
 /// # Examples
 ///
-/// ```ignore
+/// ```rust
+/// pub type Greeting = &'static str;
+///
 /// macroonz_compiler::kinds! {
 ///     set = GreetKinds;
 ///     dispositions = GreetDispositions;
@@ -255,6 +260,11 @@ macro_rules! roster {
 ///     /// Projects a declaration into the implementation that greets.
 ///     GreetImpl = "greet.impl", greet_impl => Greeting, SoleRole, NoQuestions;
 /// }
+///
+/// use macroonz_compiler::{KindSet, NoQuestions, SoleRole};
+///
+/// assert_eq!(<GreetKinds as KindSet>::NAMES, &["greet.impl"]);
+/// assert_eq!(GreetKinds::GreetImpl.name(), "greet.impl");
 /// ```
 #[macro_export]
 macro_rules! kinds {

@@ -19,13 +19,19 @@ A rendered unit is matched to a planned one by role, so a rendering that produce
 
 A **question** is something a kind owes an answer to beyond what every kind owes, and an **answer** is the typed value that answers one — its canonical bytes and the sentence a person reads.
 
-```ignore
+```rust
+use macroonz_compiler::{Kind, NoQuestions, SoleRole};
+
+struct GreetImpl;
+
 impl Kind for GreetImpl {
     const NAME: &'static str = "greet.impl";
-    type Content = Greeting;
+    type Content = &'static str;
     type Role = SoleRole;
     type Question = NoQuestions;
 }
+
+assert_eq!(GreetImpl::NAME, "greet.impl");
 ```
 
 `SoleRole` is the roster of a kind that renders exactly one unit, at the declaration site.
