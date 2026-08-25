@@ -44,6 +44,9 @@ A row is pure data and cannot execute.
 It names its check; the callable arrives separately on an executable attachment, so no hidden row-to-function registry can exist.
 A `Binding` marries the two and verifies that both name the same subject and the same check.
 
+An attachment's derived revision cannot arrive as a caller-made digest.
+The derivation operation receives canonical material and mints opaque `DerivedRevision` evidence under this home's domain; imported or hand-declared addresses remain lawful under weaker postures and never authorize a cache hit.
+
 A row commits to its canonical bytes as it is born.
 The encoder runs once, at the constructor, so every identity derived later is a reading over bytes that already exist.
 

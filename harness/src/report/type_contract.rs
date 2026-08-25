@@ -12,8 +12,7 @@ impl From<RevisionPosture> for CacheEligibility {
     fn from(posture: RevisionPosture) -> Self {
         match posture {
             RevisionPosture::Derived => Self::Eligible,
-            RevisionPosture::Declared => Self::EligibleWhileDeclaredRevisionsUnchanged,
-            RevisionPosture::Untracked => Self::NeverEligible,
+            RevisionPosture::Declared | RevisionPosture::Untracked => Self::NeverEligible,
         }
     }
 }

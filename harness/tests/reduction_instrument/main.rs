@@ -2,9 +2,9 @@
 
 use macroonz_harness::clock::HarnessClock;
 use macroonz_harness::descriptor::{
-    Binding, CheckRef, ClaimRef, Classification, ExecutableAttachment, ExecutionSuite,
-    GeneratedSupportSchemaId, Origin, PopulationRef, Provenance, RevisionBinding, Role, Row,
-    SubjectRoute, Tag, TrialCoordinates, TrialKey,
+    Binding, CheckRef, ClaimRef, Classification, DerivedRevision, ExecutableAttachment,
+    ExecutionSuite, GeneratedSupportSchemaId, Origin, PopulationRef, Provenance, RevisionBinding,
+    Role, Row, SubjectRoute, Tag, TrialCoordinates, TrialKey,
 };
 use macroonz_harness::generate::{
     ByteReducerExecution, ByteReducerId, FingerprintPreservation, ProbeOutcome, ReductionBudget,
@@ -96,6 +96,10 @@ fn refused_trial(_invocation: &Invocation) -> TrialConclusion {
     ))
 }
 
+fn revision_derived_from(material: &[u8]) -> RevisionBinding {
+    RevisionBinding::derived(DerivedRevision::from_material(material))
+}
+
 fn trial_binding() -> Option<TrialBinding> {
     let subject = SubjectRoute::named("harness", "byte-input").ok()?;
     let check = CheckRef::named("harness", "fingerprint-preserved").ok()?;
@@ -113,7 +117,7 @@ fn trial_binding() -> Option<TrialBinding> {
         Origin::HandWritten,
     )
     .ok()?;
-    let revision = RevisionBinding::derived(ContentAddress::derived(REVISION_TAG, b"trial"));
+    let revision = revision_derived_from(b"trial");
     Binding::bound(
         row,
         ExecutableAttachment::attached(subject, check, revision, revision, refused_trial),
@@ -174,10 +178,7 @@ fn generic_reduction_preserves_one_fingerprint_and_reports_every_candidate_class
         FingerprintPreservation::Required,
         ReductionBudget::declared(16u32),
     )?;
-    let Some(binding) = probe_binding(RevisionBinding::derived(ContentAddress::derived(
-        REVISION_TAG,
-        b"probe",
-    ))) else {
+    let Some(binding) = probe_binding(revision_derived_from(b"probe")) else {
         return Err(ReductionRoadFailure::Fixture);
     };
 
@@ -225,8 +226,7 @@ fn semantic_reducer_custody_and_replay_posture_are_run_derived() -> Result<(), R
 {
     let reducer = SemanticReducerId::named("harness", "sequence-aware")
         .map_err(|_| ReductionRoadFailure::Fixture)?;
-    let derived_revision =
-        RevisionBinding::derived(ContentAddress::derived(REVISION_TAG, b"semantic-reducer"));
+    let derived_revision = revision_derived_from(b"semantic-reducer");
     let plan = ReductionPlan::declared(
         MinimizationProfile::declared("semantic-reduction", 1),
         ByteReducerId::ChunkRemovalAndZeroing,
@@ -238,10 +238,7 @@ fn semantic_reducer_custody_and_replay_posture_are_run_derived() -> Result<(), R
         FingerprintPreservation::Required,
         ReductionBudget::declared(2),
     )?;
-    let Some(binding) = probe_binding(RevisionBinding::derived(ContentAddress::derived(
-        REVISION_TAG,
-        b"probe",
-    ))) else {
+    let Some(binding) = probe_binding(revision_derived_from(b"probe")) else {
         return Err(ReductionRoadFailure::Fixture);
     };
     let evidence = reduce(&plan, &[1u8, 2u8, 3u8], &binding)?;
@@ -331,7 +328,7 @@ fn semantic_candidate_and_plan_boundaries_refuse_non_descent_and_duplicate_ident
     );
     let reducer = SemanticReducerId::named("harness", "duplicate")
         .map_err(|_| ReductionRoadFailure::Fixture)?;
-    let revision = RevisionBinding::derived(ContentAddress::derived(REVISION_TAG, b"duplicate"));
+    let revision = revision_derived_from(b"duplicate");
     assert!(matches!(
         ReductionPlan::declared(
             MinimizationProfile::declared("semantic-reduction", 1),

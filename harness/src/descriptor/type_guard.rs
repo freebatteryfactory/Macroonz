@@ -12,13 +12,14 @@
 use super::{
     AdmissionFacts, AdmissionGround, AuthoredTable, AuthoredTableName, AuthoredTableRefusal,
     BENCH_FIELDS, BenchSchema, Binding, BindingRefusal, CanonicalRowBytes, CapsulePosture,
-    CheckRef, ClaimRef, Classification, ClassificationRefusal, DESCRIPTOR_FIELDS, DescriptorSchema,
-    DischargeAdmission, DoorRef, EncodeRefusal, ExecutableAttachment, ExecutionSuite,
-    FieldCardinality, FieldShape, GeneratedSupportSchema, GeneratedSupportSchemaId,
-    MUTATION_DISCOVERY_FIELDS, MutationDiscoverySchema, MutationPointRef, NameRefusal, Namespace,
-    NamespacedName, Origin, PopulationRef, ProducerFacts, ProducerName, ProjectionRef, ProposalId,
-    Provenance, ReplayAdmission, ReplayBearingGround, ReplayRef, RevisionBinding, RevisionPosture,
-    Role, Row, RowRefusal, SchemaField, SchemaRefusal, StagedTableRefusal, StagedTableView, Stem,
+    CheckRef, ClaimRef, Classification, ClassificationRefusal, DERIVED_REVISION_DOMAIN,
+    DESCRIPTOR_FIELDS, DerivedRevision, DescriptorSchema, DischargeAdmission, DoorRef,
+    EncodeRefusal, ExecutableAttachment, ExecutionSuite, FieldCardinality, FieldShape,
+    GeneratedSupportSchema, GeneratedSupportSchemaId, MUTATION_DISCOVERY_FIELDS,
+    MutationDiscoverySchema, MutationPointRef, NameRefusal, Namespace, NamespacedName, Origin,
+    PopulationRef, ProducerFacts, ProducerName, ProjectionRef, ProposalId, Provenance,
+    ReplayAdmission, ReplayBearingGround, ReplayRef, RevisionBinding, RevisionPosture, Role, Row,
+    RowRefusal, SchemaField, SchemaRefusal, StagedTableRefusal, StagedTableView, Stem,
     SubjectRoute, TablePosture, TableView, Tag, TrialCoordinates, TrialKey,
 };
 use crate::descriptor::encode::{
@@ -588,12 +589,35 @@ impl RevisionPosture {
     }
 }
 
-impl RevisionBinding {
-    /// A revision generated from an owned declaration.
+impl DerivedRevision {
+    /// Derive one executable revision from the canonical material the owning operation produced.
+    ///
+    /// The address is minted here under [`DERIVED_REVISION_DOMAIN`] and cannot arrive already made.
+    ///
+    /// # Authority
+    ///
+    /// This evidence proves the derivation over the supplied bytes.
+    /// The operation supplying them remains responsible for making them the complete canonical material of the subject or check it binds.
     #[must_use]
-    pub const fn derived(revision: ContentAddress) -> Self {
+    pub fn from_material(material: &[u8]) -> Self {
         Self {
-            revision,
+            revision: ContentAddress::derived(DERIVED_REVISION_DOMAIN, material),
+        }
+    }
+
+    /// The address this derivation minted.
+    #[must_use]
+    pub const fn revision(self) -> ContentAddress {
+        self.revision
+    }
+}
+
+impl RevisionBinding {
+    /// A revision generated from canonical material by this home's derivation operation.
+    #[must_use]
+    pub const fn derived(evidence: DerivedRevision) -> Self {
+        Self {
+            revision: evidence.revision(),
             posture: RevisionPosture::Derived,
         }
     }

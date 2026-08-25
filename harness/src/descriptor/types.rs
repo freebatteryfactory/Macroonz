@@ -4,10 +4,10 @@
 //! Every road that builds one of these values lives in `type_guard.rs`, declared at the foot of this file as its own child so that it sees private fields.
 //! Canonical bytes live in `encode.rs`; trait realizations live in `type_contract.rs`.
 //!
-//! A content-addressed reference here carries a [`ContentAddress`] and mints none of it: a proposal identity, a replay reference, and a revision identity arrive already made.
-//! The one derivation this home performs is the generated-support schema identity, over bytes this home encodes.
+//! A proposal identity and a replay reference preserve addresses minted by their owning operations.
+//! This home derives the generated-support schema identity over bytes it encodes and executable revisions over canonical material supplied to the revision derivation operation.
 
-use crate::identity::ContentAddress;
+use crate::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use std::collections::BTreeSet;
 
 /// A namespaced name: the owner that declares a spelling, and the spelling.
@@ -297,13 +297,26 @@ pub enum RowRefusal {
 /// What a posture buys the cache and lets a reproduction claim is the record home's statement.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RevisionPosture {
-    /// Generated from an owned declaration, so the identity moves when the declaration moves.
+    /// Derived under this home's revision domain from canonical material supplied by the owning operation.
     Derived,
     /// A hand author's explicit commitment, whose ceiling is the author's word.
     Declared,
     /// No stable commitment at all, and lawful.
     Untracked,
 }
+
+/// The evidence that one revision address was derived from canonical material under this home's revision domain.
+///
+/// Its only mint takes the material itself rather than an address a caller made elsewhere, so an address from another domain cannot be relabeled as derived.
+/// It proves exactly that derivation act; the operation supplying the material remains the authority on what those bytes describe.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DerivedRevision {
+    revision: ContentAddress,
+}
+
+/// The domain every material-derived executable revision is addressed under.
+pub const DERIVED_REVISION_DOMAIN: DomainTag =
+    DomainTag::declared("executable-revision", IdentityProfileVersion::declared(1));
 
 /// One revision identity and the posture it is held under.
 ///

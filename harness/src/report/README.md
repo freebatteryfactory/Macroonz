@@ -37,6 +37,9 @@ Editing a row's tags moves it, aggregation recomputes, and no execution is owed:
 
 An attachment binds two revisions — one for the subject, one for the check — and every posture sentence reads over the weaker of the two.
 
+Only a pair of harness-derived revisions can authorize a cache hit.
+A declared or untracked half always executes again; its address still names the historical standing without claiming the harness derived it from canonical material.
+
 - `ExactDerived` is the one posture that earns the phrase "replay exactly".
 - `DeclaredByAuthor` inherits the ceiling of a hand-written declaration and says so.
 - `UnavailableBecauseUntracked` states plainly that reproduction is not exact; the run and its input are still evidence, and no rendering pretends otherwise.

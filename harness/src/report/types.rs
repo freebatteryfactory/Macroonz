@@ -149,11 +149,9 @@ pub struct ExecutionKey {
 /// This vocabulary is the one owning statement about cache eligibility, and every other mention of eligibility in the harness points here.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CacheEligibility {
-    /// The revisions are derived from owned declarations, so a hit stands on the ground a fresh execution would.
+    /// Both revisions were derived by the harness operation from the canonical material their owners supplied, so the key carries their exact addresses.
     Eligible,
-    /// A hit is lawful only while the author's declared revisions are unchanged, and it inherits exactly the confidence that declaration carries.
-    EligibleWhileDeclaredRevisionsUnchanged,
-    /// No stable commitment exists, so every run executes.
+    /// The attachment carries no harness-derived commitment strong enough to let a prior execution stand in for this one, so every run executes.
     NeverEligible,
 }
 
