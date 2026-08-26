@@ -1,7 +1,7 @@
 //! Every road that reaches a private field of the reduction home, and every reader that hands one back.
 //!
 //! Declared inside `types.rs` as its own child, so it sees fields no sibling module does.
-//! Empty reducer rosters, duplicate semantic reducers, zero budgets, non-descending candidates, and unbound probes are refused here, which makes those claims structural rather than remembered.
+//! Duplicate semantic reducers, zero budgets, non-descending candidates, and probes not bound to a refused report are refused here, while an empty semantic roster lawfully selects the generic byte road alone.
 
 use super::{
     ByteReducerExecution, ByteReducerId, FingerprintPreservation, FingerprintProbe,

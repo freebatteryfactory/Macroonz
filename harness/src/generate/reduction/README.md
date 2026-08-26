@@ -2,11 +2,11 @@
 
 The reduction owner searches for a smaller input that still produces the fingerprint carried by one refused trial report.
 
-A reduction plan binds an ordered semantic-reducer roster, the generic byte reducer, and a finite attempt budget.
-A report-bound probe refuses reports that did not fail, and every proposed candidate must be strictly smaller than its predecessor before the candidate can be observed.
-Semantic candidates run first; generic chunk removal and zeroing then run at halving widths until a fixed point or budget exhaustion.
+Every candidate descends under the reducer that authored it and reaches one shared admission law: the report-bound probe must reproduce the same fingerprint.
+Owner-semantic candidates run before the generic byte search, and a finite probe budget bounds the complete road.
 
-The evidence records reducer executions, attempt counts, the original and reduced fingerprints, the resulting bytes, and the halt.
-A replay capsule is minted only from that evidence and preserves the report-owned identity and encoding contract.
+The retained evidence keeps the reducers that actually ran, the work they offered, the reached input, the fingerprint it preserved, the stopping posture, and the replay ceiling earned across those participants.
+A replay capsule can be minted only from that completed evidence.
 
-This home does not interpret input bytes, choose semantic candidates, execute a subject, or claim that the reached result is globally minimal.
+This home does not interpret input bytes, choose semantic candidates, execute a subject, or claim that the reached input is globally minimal.
+The exact plan fields, reducer contracts, refusal order, and evidence seats live with their public items.

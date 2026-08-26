@@ -185,6 +185,20 @@ fn semantic_candidates(input: &[u8]) -> Result<SemanticCandidates, SemanticCandi
     }
 }
 
+fn first_semantic_step(input: &[u8]) -> Result<SemanticCandidates, SemanticCandidateRefusal> {
+    match input {
+        [1u8, 2u8, 3u8] => SemanticCandidates::proposed(input, vec![vec![1u8, 2u8]]),
+        _ => SemanticCandidates::proposed(input, Vec::new()),
+    }
+}
+
+fn second_semantic_step(input: &[u8]) -> Result<SemanticCandidates, SemanticCandidateRefusal> {
+    match input {
+        [1u8, 2u8] => SemanticCandidates::proposed(input, vec![vec![1u8]]),
+        _ => SemanticCandidates::proposed(input, Vec::new()),
+    }
+}
+
 fn non_descending_candidates(input: &[u8]) -> Result<SemanticCandidates, SemanticCandidateRefusal> {
     SemanticCandidates::proposed(input, vec![input.to_vec()])
 }
@@ -342,6 +356,53 @@ fn semantic_reducer_custody_and_replay_posture_are_run_derived() -> Result<(), R
     assert_eq!(
         capture_replay(&untracked).posture(),
         ReplayPosture::UnavailableBecauseUntracked
+    );
+    Ok(())
+}
+
+#[test]
+fn semantic_reducers_run_in_declared_order_over_the_current_best()
+-> Result<(), ReductionRoadFailure> {
+    let first = SemanticReducerId::named("harness", "first-semantic-step")
+        .map_err(|_| ReductionRoadFailure::Fixture)?;
+    let second = SemanticReducerId::named("harness", "second-semantic-step")
+        .map_err(|_| ReductionRoadFailure::Fixture)?;
+    let plan = ReductionPlan::declared(
+        MinimizationProfile::declared("ordered-semantic-reduction", 1u32),
+        ByteReducerId::ChunkRemovalAndZeroing,
+        vec![
+            SemanticReducerBinding::bound(
+                first,
+                revision_derived_from(b"first-semantic-step"),
+                first_semantic_step,
+            ),
+            SemanticReducerBinding::bound(
+                second,
+                revision_derived_from(b"second-semantic-step"),
+                second_semantic_step,
+            ),
+        ],
+        FingerprintPreservation::Required,
+        ReductionBudget::declared(2u32),
+    )?;
+    let Some(binding) = probe_binding(revision_derived_from(b"ordered-probe")) else {
+        return Err(ReductionRoadFailure::Fixture);
+    };
+    let evidence = reduce(&plan, &[1u8, 2u8, 3u8], &binding)?;
+    let [first_execution, second_execution] = evidence.semantic_reducers() else {
+        return Err(ReductionRoadFailure::Fixture);
+    };
+    assert_eq!(first_execution.reducer(), first);
+    assert_eq!(first_execution.candidates(), 1usize);
+    assert_eq!(first_execution.probes(), 1usize);
+    assert_eq!(second_execution.reducer(), second);
+    assert_eq!(second_execution.candidates(), 1usize);
+    assert_eq!(second_execution.probes(), 1usize);
+    assert_eq!(evidence.outcome().input(), &[1u8]);
+    assert_eq!(evidence.outcome().halt(), ReductionHalt::BudgetExhausted);
+    assert_eq!(
+        evidence.byte_reducer(),
+        ByteReducerExecution::NotReachedBecauseBudgetSpent
     );
     Ok(())
 }

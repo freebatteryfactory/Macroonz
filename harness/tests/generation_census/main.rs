@@ -5,7 +5,7 @@
 
 use arbitrary::Unstructured;
 use macroonz_harness::descriptor::{NameRefusal, PopulationRef};
-use macroonz_harness::generate::driver::{decode_arbitrary, drive};
+use macroonz_harness::generate::driver::{admit_every_sequence, decode_arbitrary, drive};
 use macroonz_harness::generate::types::{
     ByteDraw, ByteSource, ByteSourceAddress, CaseWidth, CaseWidthRefusal, GENERATION_CHUNK_TAG,
     GENERATION_SOURCE_TAG, GenerationDisposition, GenerationHalt, GenerationPlan,
@@ -92,6 +92,20 @@ fn supplied_plan(
         RejectionAllowance::declared(0u32),
         SizeProgression::Constant {
             width: CaseWidth::declared(width)?,
+        },
+    )?)
+}
+
+fn seeded_prefix_plan(cases: u32, bytes: u64) -> Result<GenerationPlan, GenerationRoadFailure> {
+    Ok(GenerationPlan::declared(
+        PopulationRef::named("harness", "monotonic-prefix")?,
+        GenerationProfile::declared("monotonic-prefix", 1u32),
+        InputOrigin::Seeded(RootSeed::declared(0x0102_0304_0506_0708u64)),
+        CaseBudget::declared(cases),
+        ByteBudget::declared(bytes),
+        RejectionAllowance::NoRejections,
+        SizeProgression::Constant {
+            width: CaseWidth::declared(4usize)?,
         },
     )?)
 }
@@ -286,6 +300,57 @@ fn source_and_chunk_addresses_match_their_declared_byte_preimages()
     };
     assert_eq!(bytes.as_slice(), expected.as_bytes());
     assert_eq!(next, expected_next);
+    Ok(())
+}
+
+#[test]
+fn extending_the_budget_preserves_the_exact_prefix_and_direct_seek()
+-> Result<(), GenerationRoadFailure> {
+    let short_plan = seeded_prefix_plan(2u32, 8u64)?;
+    let extended_plan = seeded_prefix_plan(4u32, 16u64)?;
+    assert_eq!(
+        ByteSourceAddress::of_plan(&short_plan),
+        ByteSourceAddress::of_plan(&extended_plan)
+    );
+
+    let short = drive(
+        &short_plan,
+        &ByteSource::of_plan(&short_plan),
+        decode_arbitrary::<u8>,
+        admit_every_sequence::<u8>,
+    );
+    let extended = drive(
+        &extended_plan,
+        &ByteSource::of_plan(&extended_plan),
+        decode_arbitrary::<u8>,
+        admit_every_sequence::<u8>,
+    );
+    assert_eq!(short.sequences().len(), 2usize);
+    assert_eq!(extended.sequences().len(), 4usize);
+    assert!(
+        short
+            .sequences()
+            .iter()
+            .zip(extended.sequences())
+            .all(|(left, right)| left == right)
+    );
+
+    let source = ByteSource::of_plan(&extended_plan);
+    let ByteDraw::Drawn { bytes: first, next } = source.draw(StreamCursor::opening(), 4usize)
+    else {
+        return Err(GenerationRoadFailure::Fixture);
+    };
+    let Ok(direct) = StreamCursor::at(0u64, 4usize) else {
+        return Err(GenerationRoadFailure::Fixture);
+    };
+    assert_eq!(next, direct);
+    let ByteDraw::Drawn { bytes: second, .. } = source.draw(direct, 4usize) else {
+        return Err(GenerationRoadFailure::Fixture);
+    };
+    let ByteDraw::Drawn { bytes: joined, .. } = source.draw(StreamCursor::opening(), 8usize) else {
+        return Err(GenerationRoadFailure::Fixture);
+    };
+    assert_eq!(first.into_iter().chain(second).collect::<Vec<_>>(), joined);
     Ok(())
 }
 

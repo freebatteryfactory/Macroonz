@@ -91,13 +91,8 @@ pub fn shrink_verdict(
 ) -> ShrinkVerdict {
     match probe(candidate) {
         ProbeOutcome::NoFailure => ShrinkVerdict::RejectedNoFailure,
-        ProbeOutcome::Reproduced(found) => {
-            if found == preserved {
-                ShrinkVerdict::Accepted
-            } else {
-                ShrinkVerdict::RejectedFingerprintMoved { found }
-            }
-        }
+        ProbeOutcome::Reproduced(found) if found == preserved => ShrinkVerdict::Accepted,
+        ProbeOutcome::Reproduced(found) => ShrinkVerdict::RejectedFingerprintMoved { found },
     }
 }
 
