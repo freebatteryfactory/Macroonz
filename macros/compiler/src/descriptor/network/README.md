@@ -1,39 +1,22 @@
 # network
 
-A topology you can read at a glance.
+A direct network declaration becomes the harness builders its declaration site compiles.
 
-The harness's network sim is declared through values — nodes, links, schedules, campaigns — and the values are right, but a topology spelled as constructor calls reads like plumbing.
-This home is the declaration grammar over those values: name the nodes, draw the links, state each schedule's discipline as fault phrases, and the rendering writes the builder module an author would have written by hand.
+## Boundary
 
-```text
-network! {
-    harness = renamed_macroonz::harness,
-    module = net,
-    namespace = "app",
-    nodes = [client, server],
-    link forward = client to server,
-    link back = server to client,
-    schedule quiet = [],
-    schedule outage = [
-        drop forward at 0,
-        delay forward at 1 by 2,
-        partition forward from 0 until 3,
-    ],
-}
-```
+This child is the compiler descriptor adapter for one question: what conforming harness constructor data does the declaration state?
+Capture admits the physical harness path, names, directed links, schedule membership, and fault material that the authored tokens can settle.
+Rendering uses only that informed declaration to emit one module containing the topology and schedule builders.
+The generated functions still call the harness's public smart constructors, so harness-owned value refusals remain harness-owned rather than being predicted here.
 
-The `harness` clause is the physical path this scope uses for the harness vocabulary.
-A direct expansion compiles immediately, so an adopter states its Cargo alias or facade re-export here instead of the renderer guessing a package name.
+The physical harness path is declared input because a direct expansion compiles where it stands.
+A renamed dependency and a facade re-export therefore cross through the same binding instead of a guessed crate name.
 
-becomes one module — `net` — holding `topology()`, one function per schedule, and one generated fault enum their refusals travel in.
-Assembling schedules into a campaign stays the author's one line, because which schedules ride together is a run's decision, not a topology's.
+## Composition
 
-## What is settled at the declaration
+Capture preserves authored order and resolves each schedule phrase to the link it names before a declaration can exist.
+Canonical content commits to that ordered meaning and the physical binding before planning.
+The descriptor door walks the generic request road and delivers the rendered module as one declaration-site unit.
 
-Everything the tokens can know refuses at its own token, before any code exists: a repeated node or link name, a link drawn to a node never declared, a phrase naming a link never drawn, a phrase this grammar cannot read.
-What the harness's own guards refuse — an empty topology, an empty partition interval, a zero delay — still refuses there, at runtime, through the generated functions' honest results: this grammar compresses spelling, it does not stand in for the value roads' judgment.
-
-## The fault phrases
-
-One phrase per fault, in the sim's own vocabulary: `drop <link> at <n>`, `delay <link> at <n> by <n>`, `duplicate <link> at <n>`, and `partition <link> from <n> until <n>`.
-Phrases on one link gather into that link's discipline in authored order, and an empty roster is the quiet control, exactly as the sim home states it.
+The declaration chooses no campaign, opens no simulation, and judges no network behavior.
+Those decisions remain with the adopter and the harness network home.
