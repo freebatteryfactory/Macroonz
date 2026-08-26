@@ -14,7 +14,9 @@ use macroonz_harness::generate::{
     ByteSource, CaseWidth, CaseWidthRefusal, GenerationPlan, GenerationPlanRefusal, InputOrigin,
     RejectionAllowance, SizeProgression, admit_every_sequence, decode_arbitrary,
 };
-use macroonz_harness::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use macroonz_harness::identity::{
+    ContentAddress, DomainTag, IdentityProfileVersion, encode_bytes, encode_length,
+};
 use macroonz_harness::properties::{
     ContractRefusal, Holding, TemporalClaim, TemporalDemand, TemporalDriveStanding,
     TransitionContract, holds_over_drive,
@@ -22,7 +24,7 @@ use macroonz_harness::properties::{
 use macroonz_harness::report::{
     ByteBudget, CaseBudget, FailureClass, FindingCause, Fingerprint, GenerationProfile,
     InvocationProfile, RunAttempt, SelectionOutcome, TargetBinding, TargetTriple, TimeBudget,
-    ToolchainIdentity, TrialConclusion, TrialSite, encode_bytes, encode_length,
+    ToolchainIdentity, TrialConclusion, TrialSite,
 };
 use macroonz_harness::runner::{Invocation, Selection, SelectionPlan, TrialTable, run_all};
 
@@ -280,22 +282,31 @@ fn invocation() -> Invocation {
     )
 }
 
-fn foreign_envelope(population: PopulationRef, seeds: &[&[u8]], trailing: &[u8]) -> Vec<u8> {
+fn foreign_body_prefix(format: u32, population: PopulationRef) -> Vec<u8> {
     let mut body = Vec::new();
-    body.extend_from_slice(&SEED_PACK_FORMAT_VERSION.to_be_bytes());
+    body.extend_from_slice(&format.to_be_bytes());
     let name = population.name();
     encode_bytes(name.namespace().written().as_bytes(), &mut body);
     encode_bytes(name.stem().written().as_bytes(), &mut body);
+    body
+}
+
+fn envelope_for_body(body: &[u8]) -> Vec<u8> {
+    let address = ContentAddress::derived(SEED_PACK_TAG, body);
+    let mut envelope = Vec::new();
+    envelope.extend_from_slice(address.as_bytes());
+    envelope.extend_from_slice(body);
+    envelope
+}
+
+fn foreign_envelope(population: PopulationRef, seeds: &[&[u8]], trailing: &[u8]) -> Vec<u8> {
+    let mut body = foreign_body_prefix(SEED_PACK_FORMAT_VERSION, population);
     encode_length(seeds.len(), &mut body);
     for seed in seeds {
         encode_bytes(seed, &mut body);
     }
     body.extend_from_slice(trailing);
-    let address = ContentAddress::derived(SEED_PACK_TAG, &body);
-    let mut envelope = Vec::new();
-    envelope.extend_from_slice(address.as_bytes());
-    envelope.extend_from_slice(&body);
-    envelope
+    envelope_for_body(&body)
 }
 
 #[test]
@@ -359,13 +370,94 @@ fn pack_read_warm_start_and_report_retain_their_authority_boundaries()
 }
 
 #[test]
-fn foreign_envelopes_refuse_corruption_duplicates_and_malformed_members()
--> Result<(), CorpusRoadFailure> {
+fn canonical_body_vector_and_address_preimage_stay_exact() -> Result<(), CorpusRoadFailure> {
     let expected_population = population("warm-start-values")?;
     let written = pack(expected_population, seeds()?)?;
-    let mut corrupted = written.encoded().to_vec();
     let address_width = written.address().address().as_bytes().len();
-    let Some(format_byte) = corrupted
+    let version = 1u32.to_be_bytes();
+    let namespace_length = 23u64.to_be_bytes();
+    let stem_length = 17u64.to_be_bytes();
+    let seed_count = 2u64.to_be_bytes();
+    let seed_length = 1u64.to_be_bytes();
+    let one = [1u8];
+    let four = [4u8];
+    let expected_body = [
+        version.as_slice(),
+        namespace_length.as_slice(),
+        CONSUMER.as_bytes(),
+        stem_length.as_slice(),
+        b"warm-start-values".as_slice(),
+        seed_count.as_slice(),
+        seed_length.as_slice(),
+        one.as_slice(),
+        seed_length.as_slice(),
+        four.as_slice(),
+    ]
+    .concat();
+    assert_eq!(
+        written.encoded().get(address_width..),
+        Some(expected_body.as_slice())
+    );
+    assert_eq!(
+        written.address().address(),
+        ContentAddress::derived(SEED_PACK_TAG, &expected_body)
+    );
+    assert_eq!(
+        read(expected_population, written.encoded())?.encoded(),
+        written.encoded()
+    );
+    Ok(())
+}
+
+#[test]
+fn pack_address_moves_with_population_seed_bytes_and_authored_order()
+-> Result<(), CorpusRoadFailure> {
+    let expected_population = population("warm-start-values")?;
+    let baseline = pack(expected_population, seeds()?)?;
+    let repeated = pack(expected_population, seeds()?)?;
+    let reordered = pack(
+        expected_population,
+        vec![
+            SeedInput::declared(vec![4u8])?,
+            SeedInput::declared(vec![1u8])?,
+        ],
+    )?;
+    let changed_seed = pack(
+        expected_population,
+        vec![
+            SeedInput::declared(vec![1u8])?,
+            SeedInput::declared(vec![5u8])?,
+        ],
+    )?;
+    let changed_population = pack(population("other-values")?, seeds()?)?;
+    assert_eq!(baseline.address(), repeated.address());
+    assert_eq!(baseline.encoded(), repeated.encoded());
+    assert_ne!(baseline.address(), reordered.address());
+    assert_ne!(baseline.address(), changed_seed.address());
+    assert_ne!(baseline.address(), changed_population.address());
+    Ok(())
+}
+
+#[test]
+fn address_claims_are_settled_before_body_members() -> Result<(), CorpusRoadFailure> {
+    let expected_population = population("warm-start-values")?;
+    let written = pack(expected_population, seeds()?)?;
+    let address_width = written.address().address().as_bytes().len();
+    for at in 0..address_width {
+        let mut corrupted_claim = written.encoded().to_vec();
+        let Some(byte) = corrupted_claim.get_mut(at) else {
+            return Err(CorpusRoadFailure::MissingEvidence);
+        };
+        *byte ^= 1u8;
+        assert_eq!(
+            read(expected_population, &corrupted_claim),
+            Err(SeedPackRefusal::AddressMismatch {
+                derived: written.address(),
+            })
+        );
+    }
+    let mut corrupted_body = written.encoded().to_vec();
+    let Some(format_byte) = corrupted_body
         .get_mut(address_width..)
         .and_then(<[u8]>::first_mut)
     else {
@@ -373,9 +465,16 @@ fn foreign_envelopes_refuse_corruption_duplicates_and_malformed_members()
     };
     *format_byte ^= 1u8;
     assert!(matches!(
-        read(expected_population, &corrupted),
+        read(expected_population, &corrupted_body),
         Err(SeedPackRefusal::AddressMismatch { .. })
     ));
+    Ok(())
+}
+
+#[test]
+fn foreign_member_rosters_refuse_duplicates_empty_members_and_trailing_bytes()
+-> Result<(), CorpusRoadFailure> {
+    let expected_population = population("warm-start-values")?;
 
     let duplicate = foreign_envelope(expected_population, &[&[7u8], &[7u8]], &[]);
     assert_eq!(
@@ -398,16 +497,6 @@ fn foreign_envelopes_refuse_corruption_duplicates_and_malformed_members()
             duplicate: 1usize,
         })
     );
-    assert_eq!(
-        read(expected_population, &[]),
-        Err(SeedPackRefusal::Truncated)
-    );
-
-    let other = pack(population("other-values")?, seeds()?)?;
-    assert_eq!(
-        read(expected_population, other.encoded()),
-        Err(SeedPackRefusal::PopulationMismatch)
-    );
     let trailing = foreign_envelope(expected_population, &[&[1u8]], &[9u8]);
     assert_eq!(
         read(expected_population, &trailing),
@@ -422,5 +511,74 @@ fn foreign_envelopes_refuse_corruption_duplicates_and_malformed_members()
         SeedInput::declared(Vec::new()),
         Err(SeedInputRefusal::Empty)
     );
+    Ok(())
+}
+
+#[test]
+fn foreign_format_population_counts_and_lengths_refuse_without_partial_admission()
+-> Result<(), CorpusRoadFailure> {
+    let expected_population = population("warm-start-values")?;
+    let written = pack(expected_population, seeds()?)?;
+    assert_eq!(
+        read(expected_population, &[]),
+        Err(SeedPackRefusal::Truncated)
+    );
+    for end in 0..written.encoded().len() {
+        let Some(prefix) = written.encoded().get(..end) else {
+            return Err(CorpusRoadFailure::MissingEvidence);
+        };
+        assert!(read(expected_population, prefix).is_err());
+    }
+
+    let mut unsupported_body = foreign_body_prefix(
+        SEED_PACK_FORMAT_VERSION.saturating_add(1u32),
+        expected_population,
+    );
+    encode_length(1usize, &mut unsupported_body);
+    encode_bytes(&[1u8], &mut unsupported_body);
+    assert_eq!(
+        read(expected_population, &envelope_for_body(&unsupported_body)),
+        Err(SeedPackRefusal::UnsupportedFormat {
+            found: SEED_PACK_FORMAT_VERSION.saturating_add(1u32),
+        })
+    );
+
+    let other = pack(population("other-values")?, seeds()?)?;
+    assert_eq!(
+        read(expected_population, other.encoded()),
+        Err(SeedPackRefusal::PopulationMismatch)
+    );
+    assert_eq!(
+        pack(expected_population, Vec::new()),
+        Err(SeedPackRefusal::NoSeed)
+    );
+    assert_eq!(
+        read(
+            expected_population,
+            &foreign_envelope(expected_population, &[], &[]),
+        ),
+        Err(SeedPackRefusal::NoSeed)
+    );
+
+    let mut hostile_count = foreign_body_prefix(SEED_PACK_FORMAT_VERSION, expected_population);
+    hostile_count.extend_from_slice(&u64::MAX.to_be_bytes());
+    assert!(matches!(
+        read(expected_population, &envelope_for_body(&hostile_count)),
+        Err(
+            SeedPackRefusal::LengthOutsidePlatform { declared: u64::MAX }
+                | SeedPackRefusal::Truncated
+        )
+    ));
+
+    let mut hostile_length = foreign_body_prefix(SEED_PACK_FORMAT_VERSION, expected_population);
+    hostile_length.extend_from_slice(&1u64.to_be_bytes());
+    hostile_length.extend_from_slice(&u64::MAX.to_be_bytes());
+    assert!(matches!(
+        read(expected_population, &envelope_for_body(&hostile_length)),
+        Err(
+            SeedPackRefusal::LengthOutsidePlatform { declared: u64::MAX }
+                | SeedPackRefusal::Truncated
+        )
+    ));
     Ok(())
 }

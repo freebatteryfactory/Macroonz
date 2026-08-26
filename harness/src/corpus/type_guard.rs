@@ -1,5 +1,3 @@
-//! Construction and the readers over private fields: nothing else reaches inside a seed or a pack.
-
 use super::{SeedInput, SeedInputRefusal, SeedPack, SeedPackAddress, SeedPackRefusal};
 use crate::descriptor::PopulationRef;
 use crate::identity::ContentAddress;
@@ -96,7 +94,6 @@ impl SeedPack {
     }
 }
 
-/// The first exact repeat in pack order, as the refusal that names both positions.
 fn duplicate_in(seeds: &[SeedInput]) -> Option<SeedPackRefusal> {
     let mut seen: BTreeMap<&[u8], usize> = BTreeMap::new();
     for (duplicate, seed) in seeds.iter().enumerate() {

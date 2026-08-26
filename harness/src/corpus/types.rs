@@ -1,7 +1,3 @@
-//! One informed seed, one content-addressed pack, and every reason either is refused.
-//!
-//! Declarations only; every road that reaches a private field lives in this file's child, `type_guard.rs`.
-
 #[path = "type_guard.rs"]
 mod guard;
 

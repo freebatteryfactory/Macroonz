@@ -1,41 +1,28 @@
 # corpus
 
-A seed pack is a search that already paid for itself.
+A seed pack carries inputs worth keeping from one search into a later one.
 
-Generation eventually reaches an input worth keeping: a shrunk counterexample, an awkward case someone wrote by hand, a byte string that cost a thousand tries to find.
-Write those bytes into a pack and the next run starts where the last one finished.
+Those inputs may be minimized counterexamples, awkward authored cases, or byte strings that took a long search to find.
+The pack preserves them without turning their storage location or discovery history into product authority.
 
-This home owns the pack format and the two roads across it — writing one, and reading one that arrived from somewhere else.
+This home answers one question: whether an ordered seed roster belongs to one declared population and can cross a content-addressed envelope intact.
 
-## What a pack holds
+## Authority crossing
 
-One declared population, and its seeds, in the order they were authored.
+The writer receives an already-declared population and informed nonempty seeds.
+It preserves authored order, because changing exploration order changes what the pack claims.
 
-Order is kept because it is exploration order, and exploration order is part of what the pack claims.
-The pack's address is derived over its whole encoded body and written ahead of that body, so a reader re-derives the claim before it believes a single member of it.
+The reader receives the expected population separately from the untrusted envelope.
+It verifies the envelope's content claim before interpreting any member, then refuses population drift, malformed framing, empty members, duplicates, and undeclared trailing material.
 
-## The envelope
+An admitted pack leaves with the exact envelope it crossed and the ordered seeds it informed.
+Its warm-start projection hands those bytes to generation as exact supplied input; generation still owns budgets, decoding, preconditions, and case accounting.
 
-Read `u32be(n)` as an integer in four big-endian bytes, `u64be(n)` as one in eight, and `bytes(x)` as `u64be(x.len())` followed by `x`.
+## Trust ceiling
 
-The addressed body is exactly this, with no separators and no padding:
+This home owns the canonical pack format and its content address.
+The exact byte grammar belongs beside the writer and reader that implement it, where outside vectors can hold it to account.
 
-```text
-u32be(SEED_PACK_FORMAT_VERSION)
-bytes(population namespace)
-bytes(population stem)
-u64be(seed count)
-bytes(seed)                       repeated, in authored order
-```
-
-The address is that body under `SEED_PACK_TAG`, and the complete envelope is the address followed by the body it addresses.
-An address never covers itself.
-
-## What this home refuses to grow
-
-It stores nothing.
-Paths, files, locking, eviction, and retention are the caller's, and no fact about where a pack lived may enter what the pack is.
-
-It judges nothing.
-A pack warms a search up; the verdict still comes from the ordinary report and fingerprint roads, and no seed is judged against the corpus that handed it over.
-A pack address is not a replay capsule, and it is not evidence.
+Storage, paths, locking, eviction, and retention remain caller-owned, and none enters pack identity.
+The pack does not judge a seed, mint replay authority, or become evidence merely because its bytes are content-addressed.
+Verdicts and reproductions remain separately earned through their ordinary owners.
