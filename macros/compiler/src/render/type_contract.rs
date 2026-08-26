@@ -13,7 +13,7 @@ use core::fmt;
 impl RenderError {
     /// This row's position in the declared roster, written ahead of the refusal's own material.
     ///
-    /// Appended and never renumbered: the byte stands inside every related identity derived over a refusal that carries it.
+    /// Appended and never renumbered: the byte is part of this refusal's public canonical encoding.
     #[must_use]
     pub const fn slot(&self) -> u8 {
         match self {
