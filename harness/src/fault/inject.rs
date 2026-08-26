@@ -1,5 +1,3 @@
-//! Joining one selected schedule to one ordinary command sequence.
-
 use super::{
     CampaignSelection, FaultInjectionRefusal, InjectedCommand, InjectedSequence, ScheduledFault,
 };

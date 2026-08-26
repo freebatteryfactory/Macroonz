@@ -1,5 +1,3 @@
-//! Constructors, readers, and the two checks that decide whether a campaign and a selection exist at all.
-
 use super::{
     CampaignSelection, FaultAdapter, FaultCampaign, FaultCampaignRefusal, FaultSchedule,
     FaultSelectionRefusal, InjectedCommand, InjectedSequence, ScheduledFault, SequencePosition,
