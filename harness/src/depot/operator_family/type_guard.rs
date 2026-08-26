@@ -1,9 +1,9 @@
-//! Construction and readings for the operator-family bank.
+//! Construction and readings for an authored operator family.
 
 use super::OperatorFamily;
 
 impl OperatorFamily {
-    /// Declare one row, from inside the depot that owns the bank.
+    /// Declare one row from inside the home that owns the bank.
     pub(in crate::depot) const fn declared(slug: &'static str, attacks: &'static str) -> Self {
         Self { slug, attacks }
     }

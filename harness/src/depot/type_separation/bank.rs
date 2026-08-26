@@ -1,8 +1,8 @@
-//! Pairs of the harness's own types that must never be accepted for one another.
+//! Directional challenges for harness types that must never substitute for one another.
 //!
 //! A row does not establish a separation by itself, and the rows are never a census: a separation stated elsewhere is not weaker for having no row here.
 
-use super::types::SwapPair;
+use super::type_separation::types::SwapPair;
 
 /// A trial's site offered where its semantic identity is required.
 ///

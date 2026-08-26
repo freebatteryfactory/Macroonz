@@ -1,8 +1,6 @@
-//! The damages a mutation may inflict on a subject, banked as rows rather than hidden inside a planner.
-//!
-//! Each row states what an operator of its family attacks and what a surviving mutant of it means for the suite that let it live; choosing a point and applying a damage are [`crate::muterprater`]'s.
+//! The generic damages mutation pressure can attribute without inventing subject meaning.
 
-use super::types::OperatorFamily;
+use super::operator_family::types::OperatorFamily;
 
 /// Moves a comparison off the edge it was written on — `<` for `<=`, `>` for `>=`, or either for its negation.
 ///
