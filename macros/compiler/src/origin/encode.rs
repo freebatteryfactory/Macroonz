@@ -27,6 +27,7 @@ impl OriginTrail {
 
 impl TraceDecision {
     /// Appends this decision's canonical bytes: the discriminant, then the cited fact where one was cited.
+    /// [`TraceDecision::NotRun`] writes its discriminant followed by an empty framed citation, so every decision keeps one unambiguous citation seat.
     pub fn encode_into(&self, into: &mut Vec<u8>) {
         into.push(self.slot());
         match self {
