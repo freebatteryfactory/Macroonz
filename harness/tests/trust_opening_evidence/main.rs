@@ -3,6 +3,7 @@
 mod discovery;
 mod interpretation;
 mod specimen;
+mod structural_rewrite_planning;
 mod support;
 
 use macroonz_harness::clock::{HarnessClock, MeasurementReading};
@@ -1284,7 +1285,9 @@ fn compiled_and_interpreted_evidence_join_without_flattening() -> Result<(), Mut
         COMPILED_SPECIMEN_HOST,
     )?;
     assert_compiled_projection_custody(&projection, &pair, selection);
-    let trust = match availability(Some(&surface), Some(&suite), Some(&projection)) {
+    let availability = availability(Some(&surface), Some(&suite), Some(&projection));
+    assert_eq!(admission(&availability), RewriteAdmission::Admitted);
+    let trust = match availability {
         InterpreterAvailability::Available(trust) => trust,
         InterpreterAvailability::NoConformingSurface => {
             return Err(MutationRoadFailure::MissingTrust(
