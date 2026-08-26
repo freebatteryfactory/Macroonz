@@ -1,61 +1,12 @@
-//! The sim's two moves: placing a send under its link's discipline, and advancing the tick to collect what came due.
+//! Placing sends under declared link discipline and advancing logical time.
 //!
-//! Determinism is structural on both roads.
-//! A send's fate follows from the declared faults at its exact link and ordinal, with a partition read first because a dead wire outranks any shaping of live traffic; a delivery's place in an advance follows from its due tick and its scheduling sequence, and from nothing else.
+//! Determinism is structural: fault precedence decides a send, and due tick plus scheduling sequence decides delivery order.
 
 use super::{
-    Delivery, DeliveryCopy, Link, LinkFault, SendFate, SendOrdinal, SendReceipt, SendRefusal,
-    SimNet, Tick,
+    Action, Delivery, DeliveryCopy, InFlight, Link, LinkFault, SendFate, SendOrdinal, SendReceipt,
+    SendRefusal, Shaping, SimNet, Tick,
 };
 use std::mem;
-
-/// One scheduled delivery, waiting for its tick.
-#[derive(Debug, Clone)]
-pub(super) struct InFlight<Payload> {
-    /// The tick this delivery comes due.
-    due: Tick,
-    /// The global scheduling sequence, which orders same-tick deliveries.
-    sequence: u64,
-    /// The link the payload travels.
-    link: Link,
-    /// The send's ordinal on that link.
-    ordinal: SendOrdinal,
-    /// The payload itself.
-    payload: Payload,
-    /// The tick the send was placed at.
-    sent_at: Tick,
-    /// Whether this copy is the original or a duplicate.
-    copy: DeliveryCopy,
-}
-
-/// One successful caller action, retained in exact drive order for simulation reproduction.
-#[derive(Debug, Clone)]
-pub(super) enum Action<Payload> {
-    /// One send the sim accepted.
-    Send {
-        /// The declared link.
-        link: Link,
-        /// The exact payload handed in.
-        payload: Payload,
-    },
-    /// One logical-tick advance.
-    Advance,
-}
-
-/// What one send's declared faults add up to, before anything is scheduled.
-enum Shaping {
-    /// The send travels, carrying this much declared delay and this many copies.
-    Travels {
-        /// How many ticks of declared delay the send carries.
-        delay: u64,
-        /// One for the original, plus one per duplicate fault.
-        copies: u32,
-    },
-    /// An open partition took the send.
-    TakenByPartition,
-    /// A drop fault took the send.
-    TakenByDiscipline,
-}
 
 impl<Payload: Clone> SimNet<Payload> {
     /// Place one payload on a link at the current tick, under the link's discipline.

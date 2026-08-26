@@ -4,7 +4,7 @@ error[E0624]: associated function `witnessed` is private
 4 |       let _simulation_mint = SimulationReproduction::witnessed;
   |                                                      ^^^^^^^^^ private associated function
   |
- ::: src/network/type_guard.rs
+ ::: src/network/transcript/type_guard.rs
   |
   | /     pub(super) const fn witnessed(
   | |         address: TranscriptAddress,
@@ -20,7 +20,7 @@ error[E0624]: associated function `witnessed` is private
 5 |       let _replay_mint = ReplayExhaustion::witnessed;
   |                                            ^^^^^^^^^ private associated function
   |
- ::: src/network/type_guard.rs
+ ::: src/network/transcript/type_guard.rs
   |
   | /     pub(super) const fn witnessed(
   | |         address: TranscriptAddress,

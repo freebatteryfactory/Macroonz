@@ -1,7 +1,10 @@
 #![doc = include_str!("README.md")]
 
+mod simulation;
+mod transcript;
 mod types;
 
+pub use transcript::{read_recorded_live, read_simulated, recorded_live, reproduce, simulated};
 pub use types::{
     Delivery, DeliveryCopy, Link, LinkDiscipline, LinkFault, NetworkCampaign,
     NetworkCampaignRefusal, NetworkCensus, NetworkSchedule, NetworkScheduleRefusal,
@@ -10,5 +13,5 @@ pub use types::{
     SimNet, SimNetRefusal, SimulationAction, SimulationManifest, SimulationReproduction,
     TRANSCRIPT_FORMAT_VERSION, TRANSCRIPT_TAG, Tick, TickSpan, TickSpanRefusal, Topology,
     TopologyRefusal, TranscriptAddress, TranscriptEntry, TranscriptPack, TranscriptRefusal,
-    TranscriptSourceClaim, read_recorded_live, read_simulated, recorded_live, reproduce, simulated,
+    TranscriptSourceClaim,
 };
