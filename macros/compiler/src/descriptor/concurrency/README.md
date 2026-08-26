@@ -1,38 +1,26 @@
 # concurrency
 
-The exploration's identity, declared once.
+This home projects declared interleaving explorations into ordinary Rust at the declaration site.
 
-An interleaving exploration is four declared facts — a population, a bound, a sample count, a seed — and a plumbing sentence repeating them at every call.
-This home is the declaration grammar over that sentence: name each exploration, state its facts as a row, and the rendering writes one function per row that runs the exploration and reads it into a trial conclusion.
+An adopter names a physical harness path and a set of explorations whose budgets and generation lineage are fixed by the declaration.
+Those authored facts become canonical compiler content in authored order, so changing the destination or an exploration's declared meaning changes the projection the compiler is asked to produce.
 
-```text
-concurrency! {
-    harness = renamed_macroonz::harness,
-    module = explorations,
-    namespace = "app",
-    transfer_never_overdraws {
-        population = "transfer-orders",
-        interleavings = 16,
-        samples = 32,
-        seed = 11,
-    },
-}
-```
+The strand set and transition contract stay at the generated call boundary.
+They are living values owned by the adopter, and putting either into this grammar would duplicate meaning that belongs to the calling target.
 
-The `harness` clause is the physical path this scope uses for the harness vocabulary.
-A direct expansion compiles immediately, so an adopter states its Cargo alias or facade re-export here instead of the renderer guessing a package name.
+## The crossing
 
-becomes one module — `explorations` — holding, per row, a generic function taking the strand set and the transition contract and handing back the exploration reading beside its concluded verdict, with every refusal traveling in one generated fault enum.
+The projection leaves as one module of generic exploration functions.
+Each function asks the harness's public constructors to inform the declared values, runs the harness exploration road, and returns both the reading and the conclusion that road earns.
+The reading remains the owner of schedule evidence and replay material; the conclusion remains ordinary report vocabulary.
 
-## What a row declares, and what it does not
+The physical harness binding is declared input because this projection compiles where it stands.
+A dependency alias and a facade re-export therefore cross through the same grammar without a package name hidden in the renderer.
 
-A row declares the facts that make a finding replayable and nameable: which population the schedules are drawn under, the exhaustive ceiling and the sample count, and the seed.
-Those are spellings a table should pin, because a seed that drifts is a counterexample nobody can find again.
+## The boundary
 
-The strand set and the contract stay call-side values, because they are the adopter's living types: a declaration that tried to spell them would be a second place their meaning could drift.
-The generated function is generic over both, exactly as the exploration road is.
+This home owns the declaration grammar, its canonical content, and the destination vocabulary the generated Rust spells.
+It does not own name admission, exploration bounds, schedule semantics, transitions, or verdicts.
+Values that only the harness can judge reach its public guards and return the harness's typed refusals without being reinterpreted here.
 
-## What comes back
-
-The pair, not a flattened verdict: the harness's `ExplorationReading` — the space, the mode, the census, the counterexample with its replay — beside the `TrialConclusion` the conclusion road read off it.
-The verdict rides the ordinary report vocabulary, so a fingerprint, a rerun selection, and a reduction bind to it like to any other conclusion; the reading stays the owner of the evidence.
+No thread, clock, scheduler backend, or subject policy enters this projection.
