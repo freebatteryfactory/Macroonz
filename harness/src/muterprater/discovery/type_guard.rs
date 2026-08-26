@@ -548,6 +548,37 @@ impl EvaluationSurface {
             .find(|point| point.identity() == identity)
     }
 
+    /// Resolve one surface-issued selection to the point and alternative it names.
+    ///
+    /// # Errors
+    ///
+    /// Refuses a selection issued by another surface, then a point or alternative this surface does not carry.
+    pub(in crate::muterprater) fn selected_alternative(
+        &self,
+        selection: ActiveSelection,
+    ) -> Result<(&MutationPoint, &AdmittedAlternative), SelectionRefusal> {
+        if selection.surface() != self.identity() {
+            return Err(SelectionRefusal::SelectionFromAnotherSurface {
+                expected: self.identity(),
+                found: selection.surface(),
+            });
+        }
+        let Some(point) = self.point(selection.point()) else {
+            return Err(SelectionRefusal::NoSuchPoint(selection.point()));
+        };
+        let Some(alternative) = point
+            .admitted_alternatives()
+            .iter()
+            .find(|alternative| alternative.identity() == selection.alternative())
+        else {
+            return Err(SelectionRefusal::NoSuchAlternative {
+                point: selection.point(),
+                alternative: selection.alternative(),
+            });
+        };
+        Ok((point, alternative))
+    }
+
     /// Select one point into one admitted mutation meaning.
     ///
     /// Runtime is selection among admitted alternatives, never interpretation of arbitrary source, and alternative identity is independent of roster order.

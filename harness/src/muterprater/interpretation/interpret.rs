@@ -56,31 +56,12 @@ fn parity_cause() -> Result<FindingCause, ParityRefusal> {
     ))
 }
 
-/// Find and validate the exact alternative one active selection names.
+/// Resolve the exact alternative one active selection names through the discovery-owned surface guard.
 pub(in crate::muterprater) fn selected_alternative(
     surface: &EvaluationSurface,
     selection: ActiveSelection,
 ) -> Result<(&MutationPoint, &AdmittedAlternative), SelectionRefusal> {
-    if selection.surface() != surface.identity() {
-        return Err(SelectionRefusal::SelectionFromAnotherSurface {
-            expected: surface.identity(),
-            found: selection.surface(),
-        });
-    }
-    let Some(point) = surface.point(selection.point()) else {
-        return Err(SelectionRefusal::NoSuchPoint(selection.point()));
-    };
-    let Some(alternative) = point
-        .admitted_alternatives()
-        .iter()
-        .find(|alternative| alternative.identity() == selection.alternative())
-    else {
-        return Err(SelectionRefusal::NoSuchAlternative {
-            point: selection.point(),
-            alternative: selection.alternative(),
-        });
-    };
-    Ok((point, alternative))
+    surface.selected_alternative(selection)
 }
 
 /// Plan one interpreted pass over every admitted alternative on a surface.

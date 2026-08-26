@@ -13,7 +13,6 @@ use super::types::{
     CompiledSpecimenRole, CompiledSpecimenStanding, SpecimenMaterializerBinding,
 };
 use crate::descriptor::CheckRef;
-use crate::muterprater::interpret::selected_alternative;
 use crate::muterprater::{
     ActiveSelection, AdmittedAlternative, EvaluationDirective, EvaluationPairStanding,
     EvaluationSurface, FamilyAttribution, MappingPosture, MutationIdentity, MutationPoint,
@@ -143,8 +142,9 @@ fn joined<'surface, Input, Meaning>(
             mismatch,
         ));
     }
-    let (point, alternative) =
-        selected_alternative(surface, selection).map_err(CompiledProjectionRefusal::Selection)?;
+    let (point, alternative) = surface
+        .selected_alternative(selection)
+        .map_err(CompiledProjectionRefusal::Selection)?;
     let witness = parity.reading().witness();
     let witness_claim = witness.binding().row().claim();
     if witness_claim != point.owner_claim() {
