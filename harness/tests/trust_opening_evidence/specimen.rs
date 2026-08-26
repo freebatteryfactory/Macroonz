@@ -6,8 +6,8 @@ use super::support::{
     WRONG_SELECTED_SPECIMEN, clear_cached_sibling_observation, lock_specimen_tests,
     omitted_baseline_branch, omitted_specimen_branch, specimen_source,
 };
-use super::{
-    CLAIM_MISMATCH_EVALUATION_CALLS, EVALUATION, MutationRoadFailure, ORIGINAL_OPERATION,
+use super::support::{
+    CLAIM_MISMATCH_EVALUATION_CALLS, EVALUATION, MutationRoadFailure, ORIGINAL_OPERATION, OWNER,
     SELECTED_OPERATION, active_selection, check, check_ref, claim, evaluation_counted,
     evaluation_reads_resolved_payload, family, foreign_invocation, invocation, pair,
     pair_with_evaluation_revision, surface_with, trial_binding, trial_binding_for,
@@ -326,8 +326,8 @@ fn projection_requires_its_witness_claim_and_surface_selection() -> Result<(), M
     let selection = active_selection(&surface)?;
     let materializer = SpecimenMaterializerBinding::bound(&pair, SPECIMEN_MATERIALIZER);
     let expected_claim = claim()?;
-    let foreign_claim = ClaimRef::named(super::OWNER, "another-behaviour")
-        .map_err(|_| MutationRoadFailure::Name)?;
+    let foreign_claim =
+        ClaimRef::named(OWNER, "another-behaviour").map_err(|_| MutationRoadFailure::Name)?;
     CLAIM_MISMATCH_EVALUATION_CALLS.store(0, Ordering::SeqCst);
     SPECIMEN_MATERIALIZER_CALLS.store(0, Ordering::SeqCst);
     SPECIMEN_HOST_CALLS.store(0, Ordering::SeqCst);

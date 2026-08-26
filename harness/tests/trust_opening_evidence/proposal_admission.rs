@@ -1,9 +1,9 @@
 //! Outside claims over proposal offers, review custody, replay custody, admission, and proposal identity bytes.
 
 use super::interpretation::interpreted_survivor;
-use super::{
-    MutationRoadFailure, REPLAY_SCHEMA_TAG, foreign_invocation, interpreted_kill, invocation,
-    trial_binding_for,
+use super::support::{
+    CompiledRosterMeaning, MutationRoadFailure, OWNER, REPLAY_SCHEMA_TAG, REVISION_TAG, check,
+    claim, foreign_invocation, interpreted_kill, invocation, trial_binding_for,
 };
 use macroonz_harness::depot::capsules::{
     ReplayCapsuleEntry, ReplayDepotRefusal, ReplayDepotSink, StoredReplayEntryRef,
@@ -93,26 +93,25 @@ struct KillFixture {
 }
 
 fn candidate_trial_call(_invocation: &Invocation) -> TrialConclusion {
-    super::check(&super::CompiledRosterMeaning::Unstated)
+    check(&CompiledRosterMeaning::Unstated)
 }
 
 fn candidate_binding(point: MutationPointRef) -> Result<TrialBinding, TrialTableRefusal> {
-    let subject = SubjectRoute::named(super::OWNER, "comparison-subject")?;
-    let check_ref = CheckRef::named(super::OWNER, "comparison-check")?;
+    let subject = SubjectRoute::named(OWNER, "comparison-subject")?;
+    let check_ref = CheckRef::named(OWNER, "comparison-check")?;
     let row = Row::declared(
-        ClaimRef::named(super::OWNER, "comparison-behaviour")?,
-        ExecutionSuite::named(super::OWNER, "mutation-receiver")?,
+        ClaimRef::named(OWNER, "comparison-behaviour")?,
+        ExecutionSuite::named(OWNER, "mutation-receiver")?,
         Classification::authored(
-            vec![Role::named(super::OWNER, "mutation")?],
-            vec![Tag::named(super::OWNER, "outside-consumer")?],
+            vec![Role::named(OWNER, "mutation")?],
+            vec![Tag::named(OWNER, "outside-consumer")?],
         )?,
         subject,
         check_ref,
-        PopulationRef::named(super::OWNER, "one-input")?,
+        PopulationRef::named(OWNER, "one-input")?,
         Origin::Candidate(SynthesisFacts::Survivor(point)),
     )?;
-    let revision =
-        RevisionBinding::declared(ContentAddress::derived(super::REVISION_TAG, b"trial"));
+    let revision = RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, b"trial"));
     Binding::bound(
         row,
         ExecutableAttachment::attached(
@@ -129,7 +128,7 @@ fn candidate_binding(point: MutationPointRef) -> Result<TrialBinding, TrialTable
 
 fn authored_parent() -> Result<TrialTable, TrialTableRefusal> {
     TrialTable::authored(
-        AuthoredTableName::named(super::OWNER, "mutation-parent")?,
+        AuthoredTableName::named(OWNER, "mutation-parent")?,
         Provenance::Unproduced,
         vec![trial_binding_for("parent-behaviour")?],
     )
@@ -137,7 +136,7 @@ fn authored_parent() -> Result<TrialTable, TrialTableRefusal> {
 }
 
 fn replay_probe(_input: &[u8]) -> ProbeOutcome {
-    let Ok(point) = MutationPointRef::named(super::OWNER, "comparison-edge") else {
+    let Ok(point) = MutationPointRef::named(OWNER, "comparison-edge") else {
         return ProbeOutcome::NoFailure;
     };
     let Ok(binding) = candidate_binding(point) else {
@@ -163,7 +162,7 @@ fn demonstrate_mutation(
     let candidate_row = candidate.row().clone();
     assert!(matches!(
         TrialTable::authored(
-            AuthoredTableName::named(super::OWNER, "candidate-cannot-enter")
+            AuthoredTableName::named(OWNER, "candidate-cannot-enter")
                 .map_err(|_| MutationRoadFailure::Name)?,
             Provenance::Unproduced,
             vec![candidate.clone()],
@@ -210,10 +209,7 @@ fn capture_demonstration_under(
             REPLAY_SCHEMA_TAG,
             b"mutation-replay-schema",
         )),
-        RevisionBinding::declared(ContentAddress::derived(
-            super::REVISION_TAG,
-            b"replay-probe",
-        )),
+        RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, b"replay-probe")),
         replay_probe,
     )?;
     let reduction_plan = ReductionPlan::declared(
@@ -272,8 +268,7 @@ fn offered_kill(mutation: &MutationReport) -> Result<KillFixture, MutationRoadFa
     let (candidate, demonstration) = demonstrate_mutation(mutation)?;
     let capsule = capture_demonstration(&demonstration)?;
     let destination = ProposalDestination::naming(
-        ExecutionSuite::named(super::OWNER, "mutation-receiver")
-            .map_err(|_| MutationRoadFailure::Name)?,
+        ExecutionSuite::named(OWNER, "mutation-receiver").map_err(|_| MutationRoadFailure::Name)?,
     );
     reject_capsule_for_another_execution(&candidate, mutation, &demonstration, destination)?;
     let proposal = offer_mutant_kill(
@@ -313,8 +308,7 @@ fn reject_foreign_proposal_custody(
 fn admit_row(admitted: Row) -> Result<(), MutationRoadFailure> {
     let subject = admitted.subject();
     let check = admitted.check();
-    let revision =
-        RevisionBinding::declared(ContentAddress::derived(super::REVISION_TAG, b"trial"));
+    let revision = RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, b"trial"));
     let binding = Binding::bound(
         admitted,
         ExecutableAttachment::attached(subject, check, revision, revision, candidate_trial_call),
@@ -322,8 +316,7 @@ fn admit_row(admitted: Row) -> Result<(), MutationRoadFailure> {
     )
     .map_err(TrialTableRefusal::from)?;
     let world = TrialTable::authored(
-        AuthoredTableName::named(super::OWNER, "admitted-world")
-            .map_err(|_| MutationRoadFailure::Name)?,
+        AuthoredTableName::named(OWNER, "admitted-world").map_err(|_| MutationRoadFailure::Name)?,
         Provenance::Unproduced,
         vec![binding],
     )
@@ -356,8 +349,7 @@ fn coverage_for(
     claim_stem: &'static str,
 ) -> Result<ClaimCoverage, MutationRoadFailure> {
     let table = TrialTable::authored(
-        AuthoredTableName::named(super::OWNER, table_stem)
-            .map_err(|_| MutationRoadFailure::Name)?,
+        AuthoredTableName::named(OWNER, table_stem).map_err(|_| MutationRoadFailure::Name)?,
         Provenance::Unproduced,
         vec![trial_binding_for(claim_stem)?],
     )
@@ -381,7 +373,7 @@ fn coverage_for(
 fn survivor_synthesis_requires_an_authored_closing_check() -> Result<(), MutationRoadFailure> {
     let killed = interpreted_kill()?;
     let closing =
-        CheckRef::named(super::OWNER, "survivor-closing").map_err(|_| MutationRoadFailure::Name)?;
+        CheckRef::named(OWNER, "survivor-closing").map_err(|_| MutationRoadFailure::Name)?;
     assert!(matches!(
         SurvivorExplanation::of(&killed, OracleClass::GoldenVector, closing),
         Err(ExplanationRefusal::NotASurvivor(found))
@@ -392,19 +384,14 @@ fn survivor_synthesis_requires_an_authored_closing_check() -> Result<(), Mutatio
     let explanation = SurvivorExplanation::of(&survivor, OracleClass::GoldenVector, closing)
         .map_err(|_| MutationRoadFailure::MissingActiveSelection)?;
     let sketch = CandidateSketch::stated(
-        ExecutionSuite::named(super::OWNER, "mutation-receiver")
-            .map_err(|_| MutationRoadFailure::Name)?,
+        ExecutionSuite::named(OWNER, "mutation-receiver").map_err(|_| MutationRoadFailure::Name)?,
         Classification::authored(
-            vec![Role::named(super::OWNER, "mutation").map_err(|_| MutationRoadFailure::Name)?],
-            vec![
-                Tag::named(super::OWNER, "outside-consumer")
-                    .map_err(|_| MutationRoadFailure::Name)?,
-            ],
+            vec![Role::named(OWNER, "mutation").map_err(|_| MutationRoadFailure::Name)?],
+            vec![Tag::named(OWNER, "outside-consumer").map_err(|_| MutationRoadFailure::Name)?],
         )
         .map_err(|_| MutationRoadFailure::Name)?,
-        SubjectRoute::named(super::OWNER, "comparison-subject")
-            .map_err(|_| MutationRoadFailure::Name)?,
-        PopulationRef::named(super::OWNER, "one-input").map_err(|_| MutationRoadFailure::Name)?,
+        SubjectRoute::named(OWNER, "comparison-subject").map_err(|_| MutationRoadFailure::Name)?,
+        PopulationRef::named(OWNER, "one-input").map_err(|_| MutationRoadFailure::Name)?,
     );
     assert!(matches!(
         synthesize(&explanation, &sketch, &BTreeSet::new()),
@@ -434,7 +421,7 @@ fn survivor_synthesis_requires_an_authored_closing_check() -> Result<(), Mutatio
 /// Retained regression: Structural scanning, absent-claim omission, and policy-based route selection remain permanent owner regressions.
 #[test]
 fn coverage_readings_open_and_route_only_missing_proof() -> Result<(), MutationRoadFailure> {
-    let claim = super::claim()?;
+    let claim = claim()?;
     let before = coverage_for("proposal-before", "unrelated-behaviour")?;
     let after = coverage_for("proposal-after", "comparison-behaviour")?;
     let delta = pin_delta(&before, &after, claim).map_err(MutationRoadFailure::Delta)?;
@@ -444,17 +431,17 @@ fn coverage_readings_open_and_route_only_missing_proof() -> Result<(), MutationR
     let exercised =
         OwedClaim::declared(claim, "not-exercised").map_err(MutationRoadFailure::Owed)?;
     let stated = OwedClaim::declared(
-        ClaimRef::named(super::OWNER, "owed-stated").map_err(|_| MutationRoadFailure::Name)?,
+        ClaimRef::named(OWNER, "owed-stated").map_err(|_| MutationRoadFailure::Name)?,
         "no-stated-case",
     )
     .map_err(MutationRoadFailure::Owed)?;
     let generated = OwedClaim::declared(
-        ClaimRef::named(super::OWNER, "owed-generated").map_err(|_| MutationRoadFailure::Name)?,
+        ClaimRef::named(OWNER, "owed-generated").map_err(|_| MutationRoadFailure::Name)?,
         "no-generated-search",
     )
     .map_err(MutationRoadFailure::Owed)?;
     let scheduled = OwedClaim::declared(
-        ClaimRef::named(super::OWNER, "owed-scheduled").map_err(|_| MutationRoadFailure::Name)?,
+        ClaimRef::named(OWNER, "owed-scheduled").map_err(|_| MutationRoadFailure::Name)?,
         "no-scheduled-fault",
     )
     .map_err(MutationRoadFailure::Owed)?;
@@ -556,8 +543,7 @@ fn pin_and_discharge_keep_distinct_admission_grounds() -> Result<(), MutationRoa
     let (candidate, demonstration) = demonstrate_mutation(&mutation)?;
     let capsule = capture_demonstration(&demonstration)?;
     let destination = ProposalDestination::naming(
-        ExecutionSuite::named(super::OWNER, "mutation-receiver")
-            .map_err(|_| MutationRoadFailure::Name)?,
+        ExecutionSuite::named(OWNER, "mutation-receiver").map_err(|_| MutationRoadFailure::Name)?,
     );
     let claim = candidate.claim();
     let delta = ProofDelta::between(0, 1).map_err(MutationRoadFailure::Delta)?;

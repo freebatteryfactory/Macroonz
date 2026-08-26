@@ -1,6 +1,6 @@
 //! Outside claims over owner policy, producer discovery, lowering, selection, and identity bytes.
 
-use super::{
+use super::support::{
     MutationRoadFailure, OWNER, claim, discovered_point, family, operator, policy, surface_with,
 };
 use macroonz_harness::descriptor::{ClaimRef, MutationPointRef, NamespacedName};
@@ -8,9 +8,10 @@ use macroonz_harness::identity::{ContentAddress, DomainTag, IdentityProfileVersi
 use macroonz_harness::muterprater::discover::lower_discoveries;
 use macroonz_harness::muterprater::{
     ActivationSite, AdmittedAlternative, AlternativeDeclaration, AlternativeId,
-    DiscoveredMutationSite, DiscoveryDisposition, DiscoveryRefusal, MappedUnpermittedCause,
-    MutationDiscoveryReading, MutationPermission, MutationPoint, MutationPolicy, OperatorFamilyRef,
-    OwnerClaimMapping, PermissionRefusal, PointCatalogPosture, PolicyRefusal, SelectionRefusal,
+    DiscoveredMutationSite, DiscoveryDisposition, DiscoveryLoweringRefusal, DiscoveryRefusal,
+    MappedUnpermittedCause, MutationDiscoveryReading, MutationPermission, MutationPoint,
+    MutationPolicy, OperatorFamilyRef, OwnerClaimMapping, PermissionRefusal, PointCatalogPosture,
+    PolicyRefusal, SelectionRefusal,
 };
 use macroonz_harness::report::{encode_bytes, encode_length};
 
@@ -581,5 +582,69 @@ fn discovery_identity_and_surface_identity_keep_their_own_ordering()
         reversed.discovery().identity()
     );
     assert_eq!(forward.surface().identity(), reversed.surface().identity());
+    Ok(())
+}
+
+/// Claim: a surface refuses absent points and alternatives borrowed from another point.
+///
+/// Subject: the public discovery lowering and surface selection roads.
+/// Population: one duplicate input and one two-point admitted surface.
+/// Hostile control: the selection attempts an absent point and a sibling point's alternative.
+/// Denominator: every selection refusal coordinate exposed by the two-point fixture.
+/// Evidence ceiling: this establishes discovery-owned selection boundaries for one outside fixture and says nothing about interpretation execution.
+/// Retained regression: this discovery composition claim remains in the original integration target.
+#[test]
+fn surface_selection_refuses_absent_points_and_crossed_alternatives()
+-> Result<(), MutationRoadFailure> {
+    let first_family = family("constructor-family")?;
+    let first_policy = policy(first_family)?;
+    let duplicate = discovered_point(
+        "duplicate-selection-point",
+        OwnerClaimMapping::Mapped(claim()?),
+        vec![b"a <= b"],
+    )?;
+    let duplicate_ref = duplicate.identity();
+    assert!(matches!(
+        lower_discoveries(&first_policy, vec![duplicate.clone(), duplicate]),
+        Err(DiscoveryLoweringRefusal::DuplicateSite { at: 1, point }) if point == duplicate_ref
+    ));
+    let two = lower_discoveries(
+        &first_policy,
+        vec![
+            discovered_point(
+                "selection-first",
+                OwnerClaimMapping::Mapped(claim()?),
+                vec![b"a <= b"],
+            )?,
+            discovered_point(
+                "selection-second",
+                OwnerClaimMapping::Mapped(claim()?),
+                vec![b"a >= b"],
+            )?,
+        ],
+    )?;
+    let [first_point, second_point] = two.surface().points() else {
+        return Err(MutationRoadFailure::MissingAlternative);
+    };
+    let first_point_ref = first_point.identity();
+    let second_alternative = second_point
+        .admitted_alternatives()
+        .first()
+        .map(AdmittedAlternative::identity)
+        .ok_or(MutationRoadFailure::MissingAlternative)?;
+    let absent_point =
+        MutationPointRef::named(OWNER, "absent-point").map_err(|_| MutationRoadFailure::Name)?;
+    assert_eq!(
+        two.surface().select(absent_point, second_alternative,),
+        Err(SelectionRefusal::NoSuchPoint(absent_point))
+    );
+    assert_eq!(
+        two.surface().select(first_point_ref, second_alternative),
+        Err(SelectionRefusal::NoSuchAlternative {
+            point: first_point_ref,
+            alternative: second_alternative,
+        })
+    );
+
     Ok(())
 }

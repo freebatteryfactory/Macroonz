@@ -1,201 +1,866 @@
-//! Shared outside-test construction for exact compiled specimen claims and retained composition claims.
+//! Shared outside-test construction for mutation claim modules.
 
-use super::{CompiledRosterMeaning, MutationRoadFailure, ORIGINAL_OPERATION};
+#[path = "specimen_support.rs"]
+mod specimen_support;
+
+pub(super) use specimen_support::{
+    CACHED_SIBLING_OBSERVATION_HOST, COMPILED_SPECIMEN_HOST, SPECIMEN_HOST_CALLS,
+    SPECIMEN_MATERIALIZER, SPECIMEN_MATERIALIZER_CALLS, UNCHANGED_SPECIMEN_MATERIALIZER,
+    WRONG_SELECTED_SPECIMEN, clear_cached_sibling_observation, lock_specimen_tests,
+    omitted_baseline_branch, omitted_specimen_branch, specimen_source,
+};
+
+use macroonz_harness::clock::{HarnessClock, MeasurementReading};
+use macroonz_harness::descriptor::{
+    Binding, CheckRef, ClaimRef, Classification, ExecutableAttachment, ExecutionSuite,
+    MutationPointRef, Origin, PopulationRef, Provenance, RevisionBinding, Role, Row, SubjectRoute,
+    Tag, TrialTableRefusal,
+};
+use macroonz_harness::generate::{ReductionPlanRefusal, ReductionProbeRefusal, ReductionRefusal};
+use macroonz_harness::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use macroonz_harness::muterprater::discover::lower_discoveries;
+use macroonz_harness::muterprater::interpret::{
+    availability, execute_active, observe_no_mutation, qualify_no_mutation,
+};
+use macroonz_harness::muterprater::rewrite::admission;
+use macroonz_harness::muterprater::specimen::demonstrate_compiled_projection;
+use macroonz_harness::muterprater::wrap::{read_artifact, read_output};
 use macroonz_harness::muterprater::{
-    CompiledSpecimenHostRefusal, CompiledSpecimenObservation, CompiledSpecimenRequest,
-    CompiledSpecimenRole, EvaluationDirective, SpecimenMaterializerRefusal,
+    ARTIFACT_CONTENT_TAG, ActivationEvidence, ActivationSite, ActiveSelection,
+    AdapterQualification, AdmittedAlternative, AlternativeDeclaration, AnnouncedRoster,
+    ArtifactCustodyRefusal, ArtifactManifestRefusal, BackendCommand, BackendVersion,
+    BackendVersionPosture, CompiledProjectionPressure, CompiledProjectionRefusal,
+    CompiledSuiteArtifactCustody, CompiledSuiteArtifactManifest, CompiledSuiteArtifactStanding,
+    CompiledSuitePressure, DischargeProposalRefusal, DiscoveredMutationSite,
+    DiscoveryLoweringRefusal, DiscoveryRefusal, EvaluationBinding, EvaluationCall,
+    EvaluationCallRefusal, EvaluationDirective, EvaluationFamilyRef, EvaluationObservation,
+    EvaluationPair, EvaluationPairRefusal, EvaluationSurface, FamilyAttribution, GrammarStanding,
+    HumanAdmissionRefusal, IntendedRejection, InterpretedExecutionRefusal, InterpreterAvailability,
+    KillProposalRefusal, MissingTrustEvidence, MutationBackendInvocation, MutationIdentity,
+    MutationOutcome, MutationPermission, MutationPolicy, MutationReport, MutationSite,
+    MutationSourceRevision, MutationVerdict, MutationWitness, MutationWitnessRefusal,
+    NoMutationObservationRefusal, NoMutationParityReading, OperatorFamilyRef, OwedClaimRefusal,
+    OwnerClaimMapping, ParityQualificationRefusal, PermissionRefusal, PlanRefusal, PolicyRefusal,
+    ProductionBinding, ProofDeltaRefusal, ProofRefusal, ProposalRefusal, QualificationRefusal,
+    RewriteAdmission, SinkRefusal, SourceCoordinate, SpecimenMaterializerBinding,
+    SuitePressureRefusal, WrapReading, WrapRefusal, WrappedBackend,
 };
-use macroonz_harness::report::ForeignText;
-use std::path::PathBuf;
+use macroonz_harness::properties::{Agreement, agreement};
+use macroonz_harness::report::{
+    ByteBudget, CaseBudget, CoverageRefusal, FindingCause, InvocationProfile, RunAttempt,
+    TargetBinding, TargetTriple, TimeBudget, ToolchainIdentity, TrialConclusion, TrialId,
+    TrialReport, TrialSite,
+};
+use macroonz_harness::runner::{Invocation, TrialBinding, lens_verdict};
 use std::process::Command;
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicU32, Ordering};
+pub(super) const OWNER: &str = "harness.mutation.receiver";
+pub(super) const BACKEND_CONSOLE: &str =
+    include_str!("compiled-pressure-artifact/cargo-mutants-27.0.0-console.txt");
+pub(super) const BACKEND_SOURCE: &[u8] = include_bytes!("compiled-pressure-artifact/wrap.rs");
+pub(super) const CURRENT_BACKEND_SOURCE: &[u8] = include_bytes!("../../src/muterprater/wrap.rs");
+pub(super) const BACKEND_NO_KILL: &str = "Found 1 mutant to test\n\
+    ok Unmutated baseline in 3.1s\n\
+    missed src/subject/lane.rs:41:9: replace is_qualified -> bool with true in 4.0s";
+pub(super) const BACKEND_VERSION: &str = "27.0.0";
+pub(super) const BACKEND_TARGET: &str = "x86_64-pc-windows-msvc";
+pub(super) const BACKEND_TOOLCHAIN: &str = "rustc 1.98.0 (88d9e12ae 2026-08-18)";
+pub(super) const BACKEND_COMMAND: &[&str] = &[
+    "mutants",
+    "--package",
+    "macroonz-harness",
+    "--file",
+    "harness/src/muterprater/wrap.rs",
+    "--re",
+    "replace != with == in roster_count",
+    "--test-tool",
+    "nextest",
+    "--no-shuffle",
+    "--jobs",
+    "1",
+    "--caught",
+    "--no-times",
+];
+pub(super) const COMPILED_MUTANT_FILE: &str = "harness/src/muterprater/wrap.rs";
+pub(super) const COMPILED_MUTANT_DAMAGE: &[u8] = b"replace != with == in roster_count";
+pub(super) const ORIGINAL_OPERATION: &[u8] = b"input != 0";
+pub(super) const SELECTED_OPERATION: &[u8] = b"input == 0";
+pub(super) const MEANING_DISAGREEMENT: FindingCause =
+    FindingCause::named(OWNER, "meaning-disagreement");
+pub(super) const REVISION_TAG: DomainTag = DomainTag::declared(
+    "mutation-receiver-revision",
+    IdentityProfileVersion::declared(1),
+);
+pub(super) const REPLAY_SCHEMA_TAG: DomainTag = DomainTag::declared(
+    "mutation-receiver-replay-schema",
+    IdentityProfileVersion::declared(1),
+);
+pub(super) static CLAIM_MISMATCH_EVALUATION_CALLS: AtomicU32 = AtomicU32::new(0);
+pub(super) static INTERPRETED_CLOCK_CALLS: AtomicU32 = AtomicU32::new(0);
 
-static SPECIMEN_ORDINAL: AtomicU32 = AtomicU32::new(0);
-pub(super) static SPECIMEN_MATERIALIZER_CALLS: AtomicU32 = AtomicU32::new(0);
-pub(super) static SPECIMEN_HOST_CALLS: AtomicU32 = AtomicU32::new(0);
-static SPECIMEN_TEST_LOCK: Mutex<()> = Mutex::new(());
-static CACHED_SIBLING_OBSERVATION: Mutex<
-    Option<CompiledSpecimenObservation<CompiledRosterMeaning>>,
-> = Mutex::new(None);
-
-pub(super) fn lock_specimen_tests()
--> Result<std::sync::MutexGuard<'static, ()>, MutationRoadFailure> {
-    SPECIMEN_TEST_LOCK
-        .lock()
-        .map_err(|_| MutationRoadFailure::NativeToolchain)
+#[derive(Debug, PartialEq, Eq)]
+pub(super) enum MutationRoadFailure {
+    Name,
+    Permission(PermissionRefusal),
+    Policy(PolicyRefusal),
+    Discovery(DiscoveryRefusal),
+    DiscoveryLowering(DiscoveryLoweringRefusal),
+    Pair(EvaluationPairRefusal),
+    Table(TrialTableRefusal),
+    Wrap(WrapRefusal),
+    ArtifactManifest(ArtifactManifestRefusal),
+    ArtifactCustody(ArtifactCustodyRefusal),
+    Qualification(QualificationRefusal),
+    Pressure(SuitePressureRefusal),
+    Projection(CompiledProjectionRefusal),
+    Witness(MutationWitnessRefusal),
+    Observation(NoMutationObservationRefusal),
+    Plan(PlanRefusal),
+    Interpreted(InterpretedFailureStage),
+    MissingFamily,
+    NativeToolchain,
+    MissingAlternative,
+    MissingActiveSelection,
+    MissingQualification(ParityQualificationRefusal),
+    MissingTrust(MissingTrustEvidence),
+    Proof(ProofRefusal),
+    ReductionPlan(ReductionPlanRefusal),
+    ReductionProbe(ReductionProbeRefusal),
+    Reduction(ReductionRefusal),
+    Coverage(CoverageRefusal),
+    Proposal(KillProposalRefusal),
+    PinProposal(ProposalRefusal),
+    DischargeProposal(DischargeProposalRefusal),
+    Delta(ProofDeltaRefusal),
+    Owed(OwedClaimRefusal),
+    ProposalSink(SinkRefusal),
+    Admission(HumanAdmissionRefusal),
 }
 
-pub(super) fn clear_cached_sibling_observation() -> Result<(), MutationRoadFailure> {
-    *CACHED_SIBLING_OBSERVATION
-        .lock()
-        .map_err(|_| MutationRoadFailure::NativeToolchain)? = None;
-    Ok(())
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum InterpretedFailureStage {
+    Invocation,
+    Selection,
+    WitnessClaim,
+    EvaluationCall,
+    DudPlant,
+    Report,
 }
 
-/// The materializer-callable shape, on the same terms as the public contract.
-type MaterializerFn = fn(EvaluationDirective<'_>) -> Result<Vec<u8>, SpecimenMaterializerRefusal>;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum CompiledRosterMeaning {
+    Stated(u32),
+    Unstated,
+    SetupRefused,
+    ReadingRefused(WrapRefusal),
+}
 
-/// The compiled-specimen host shape takes custody of each private-minted request.
-type SpecimenHostFn =
+impl From<PermissionRefusal> for MutationRoadFailure {
+    fn from(refusal: PermissionRefusal) -> Self {
+        Self::Permission(refusal)
+    }
+}
+
+impl From<PolicyRefusal> for MutationRoadFailure {
+    fn from(refusal: PolicyRefusal) -> Self {
+        Self::Policy(refusal)
+    }
+}
+
+impl From<DiscoveryRefusal> for MutationRoadFailure {
+    fn from(refusal: DiscoveryRefusal) -> Self {
+        Self::Discovery(refusal)
+    }
+}
+
+impl From<DiscoveryLoweringRefusal> for MutationRoadFailure {
+    fn from(refusal: DiscoveryLoweringRefusal) -> Self {
+        Self::DiscoveryLowering(refusal)
+    }
+}
+
+impl From<EvaluationPairRefusal> for MutationRoadFailure {
+    fn from(refusal: EvaluationPairRefusal) -> Self {
+        Self::Pair(refusal)
+    }
+}
+
+impl From<TrialTableRefusal> for MutationRoadFailure {
+    fn from(refusal: TrialTableRefusal) -> Self {
+        Self::Table(refusal)
+    }
+}
+
+impl From<WrapRefusal> for MutationRoadFailure {
+    fn from(refusal: WrapRefusal) -> Self {
+        Self::Wrap(refusal)
+    }
+}
+
+impl From<ArtifactManifestRefusal> for MutationRoadFailure {
+    fn from(refusal: ArtifactManifestRefusal) -> Self {
+        Self::ArtifactManifest(refusal)
+    }
+}
+
+impl From<ArtifactCustodyRefusal> for MutationRoadFailure {
+    fn from(refusal: ArtifactCustodyRefusal) -> Self {
+        Self::ArtifactCustody(refusal)
+    }
+}
+
+impl From<QualificationRefusal> for MutationRoadFailure {
+    fn from(refusal: QualificationRefusal) -> Self {
+        Self::Qualification(refusal)
+    }
+}
+
+impl From<SuitePressureRefusal> for MutationRoadFailure {
+    fn from(refusal: SuitePressureRefusal) -> Self {
+        Self::Pressure(refusal)
+    }
+}
+
+impl From<CompiledProjectionRefusal> for MutationRoadFailure {
+    fn from(refusal: CompiledProjectionRefusal) -> Self {
+        Self::Projection(refusal)
+    }
+}
+
+impl From<MutationWitnessRefusal> for MutationRoadFailure {
+    fn from(refusal: MutationWitnessRefusal) -> Self {
+        Self::Witness(refusal)
+    }
+}
+
+impl From<NoMutationObservationRefusal> for MutationRoadFailure {
+    fn from(refusal: NoMutationObservationRefusal) -> Self {
+        Self::Observation(refusal)
+    }
+}
+
+impl From<PlanRefusal> for MutationRoadFailure {
+    fn from(refusal: PlanRefusal) -> Self {
+        Self::Plan(refusal)
+    }
+}
+
+impl From<InterpretedExecutionRefusal> for MutationRoadFailure {
+    fn from(refusal: InterpretedExecutionRefusal) -> Self {
+        let stage = match refusal {
+            InterpretedExecutionRefusal::InvocationForAnotherExecution => {
+                InterpretedFailureStage::Invocation
+            }
+            InterpretedExecutionRefusal::Selection(_) => InterpretedFailureStage::Selection,
+            InterpretedExecutionRefusal::WitnessForAnotherClaim { .. } => {
+                InterpretedFailureStage::WitnessClaim
+            }
+            InterpretedExecutionRefusal::EvaluationCall(_) => {
+                InterpretedFailureStage::EvaluationCall
+            }
+            InterpretedExecutionRefusal::DudPlant(_) => InterpretedFailureStage::DudPlant,
+            InterpretedExecutionRefusal::Report(_) => InterpretedFailureStage::Report,
+        };
+        Self::Interpreted(stage)
+    }
+}
+
+impl From<ProofRefusal> for MutationRoadFailure {
+    fn from(refusal: ProofRefusal) -> Self {
+        Self::Proof(refusal)
+    }
+}
+
+impl From<ReductionPlanRefusal> for MutationRoadFailure {
+    fn from(refusal: ReductionPlanRefusal) -> Self {
+        Self::ReductionPlan(refusal)
+    }
+}
+
+impl From<ReductionProbeRefusal> for MutationRoadFailure {
+    fn from(refusal: ReductionProbeRefusal) -> Self {
+        Self::ReductionProbe(refusal)
+    }
+}
+
+impl From<ReductionRefusal> for MutationRoadFailure {
+    fn from(refusal: ReductionRefusal) -> Self {
+        Self::Reduction(refusal)
+    }
+}
+
+impl From<CoverageRefusal> for MutationRoadFailure {
+    fn from(refusal: CoverageRefusal) -> Self {
+        Self::Coverage(refusal)
+    }
+}
+
+impl From<KillProposalRefusal> for MutationRoadFailure {
+    fn from(refusal: KillProposalRefusal) -> Self {
+        Self::Proposal(refusal)
+    }
+}
+
+impl From<HumanAdmissionRefusal> for MutationRoadFailure {
+    fn from(refusal: HumanAdmissionRefusal) -> Self {
+        Self::Admission(refusal)
+    }
+}
+
+pub(super) fn family(stem: &'static str) -> Result<EvaluationFamilyRef, MutationRoadFailure> {
+    EvaluationFamilyRef::named(OWNER, stem).map_err(|_| MutationRoadFailure::Name)
+}
+
+pub(super) fn claim() -> Result<ClaimRef, MutationRoadFailure> {
+    ClaimRef::named(OWNER, "comparison-behaviour").map_err(|_| MutationRoadFailure::Name)
+}
+
+pub(super) fn operator() -> Result<OperatorFamilyRef, MutationRoadFailure> {
+    OperatorFamilyRef::of_slug("comparison-boundaries").ok_or(MutationRoadFailure::MissingFamily)
+}
+
+pub(super) fn policy(family: EvaluationFamilyRef) -> Result<MutationPolicy, MutationRoadFailure> {
+    Ok(MutationPolicy::declared(
+        family,
+        vec![MutationPermission::declared(claim()?, vec![operator()?])?],
+    )?)
+}
+
+pub(super) fn discovered_point(
+    stem: &'static str,
+    mapping: OwnerClaimMapping,
+    alternatives: Vec<&'static [u8]>,
+) -> Result<DiscoveredMutationSite, MutationRoadFailure> {
+    let admitted_family = operator()?;
+    let declarations = alternatives
+        .into_iter()
+        .map(|operation| AlternativeDeclaration::stated(admitted_family, operation.to_vec()))
+        .collect();
+    Ok(DiscoveredMutationSite::discovered(
+        MutationPointRef::named(OWNER, stem).map_err(|_| MutationRoadFailure::Name)?,
+        mapping,
+        ORIGINAL_OPERATION.to_vec(),
+        declarations,
+        ActivationSite::named(OWNER, stem).map_err(|_| MutationRoadFailure::Name)?,
+    )?)
+}
+
+pub(super) fn surface_with(
+    family: EvaluationFamilyRef,
+    alternatives: Vec<&'static [u8]>,
+) -> Result<EvaluationSurface, MutationRoadFailure> {
+    let policy = policy(family)?;
+    let discovered = discovered_point(
+        "comparison-edge",
+        OwnerClaimMapping::Mapped(claim()?),
+        alternatives,
+    )?;
+    Ok(lower_discoveries(&policy, vec![discovered])?.into_parts().1)
+}
+
+pub(super) fn production(_input: &[u32; 3]) -> CompiledRosterMeaning {
+    match compiled_reading() {
+        Ok(reading) => match reading.announced() {
+            AnnouncedRoster::Stated(count) => CompiledRosterMeaning::Stated(count),
+            AnnouncedRoster::Unstated => CompiledRosterMeaning::Unstated,
+        },
+        Err(MutationRoadFailure::Wrap(refusal)) => CompiledRosterMeaning::ReadingRefused(refusal),
+        Err(_) => CompiledRosterMeaning::SetupRefused,
+    }
+}
+
+/// The shape every evaluation callable below inhabits: the contract's own, whose refusing side belongs to the fixtures that refuse.
+///
+/// The lawful and hostile fixtures that never refuse are `const` closures over this shape rather than `fn` items, so their always-passing bodies carry no fallibility of their own.
+pub(super) type EvaluationFn =
     fn(
-        CompiledSpecimenRequest<'_, '_, [u32; 3]>,
-    )
-        -> Result<CompiledSpecimenObservation<CompiledRosterMeaning>, CompiledSpecimenHostRefusal>;
+        &[u32; 3],
+        EvaluationDirective<'_>,
+    ) -> Result<EvaluationObservation<CompiledRosterMeaning>, EvaluationCallRefusal>;
 
-pub(super) fn specimen_source(operation: &[u8]) -> Vec<u8> {
-    let mut source = b"fn main() { let input: u32 = std::env::args().nth(1).expect(\"input\").parse().expect(\"u32\"); let a = 1u32; let b = 0u32; if ".to_vec();
-    source.extend_from_slice(operation);
-    source.extend_from_slice(b" { print!(\"1\"); } else { print!(\"0\"); } }\n");
-    source
-}
-
-/// This admitted materializer implements both directive postures.
-pub(super) const SPECIMEN_MATERIALIZER: MaterializerFn = |directive| {
-    SPECIMEN_MATERIALIZER_CALLS.fetch_add(1, Ordering::SeqCst);
-    let payload = directive.resolved().map_or(ORIGINAL_OPERATION, |resolved| {
-        resolved.alternative().operation()
-    });
-    Ok(specimen_source(payload))
-};
-
-pub(super) fn omitted_specimen_branch(
-    directive: EvaluationDirective<'_>,
-) -> Result<Vec<u8>, SpecimenMaterializerRefusal> {
-    SPECIMEN_MATERIALIZER_CALLS.fetch_add(1, Ordering::SeqCst);
-    match directive.resolved() {
-        Some(resolved) => Err(SpecimenMaterializerRefusal::ActiveSelectionNotImplemented(
-            resolved.selection(),
-        )),
-        None => Ok(specimen_source(ORIGINAL_OPERATION)),
-    }
-}
-
-pub(super) fn omitted_baseline_branch(
-    directive: EvaluationDirective<'_>,
-) -> Result<Vec<u8>, SpecimenMaterializerRefusal> {
-    SPECIMEN_MATERIALIZER_CALLS.fetch_add(1, Ordering::SeqCst);
-    match directive.resolved() {
-        None => Err(SpecimenMaterializerRefusal::NoMutationNotImplemented),
-        Some(resolved) => Ok(specimen_source(resolved.alternative().operation())),
-    }
-}
-
-/// This hostile materializer returns wrong but syntactically valid selected bytes.
-pub(super) const WRONG_SELECTED_SPECIMEN: MaterializerFn = |directive| {
-    SPECIMEN_MATERIALIZER_CALLS.fetch_add(1, Ordering::SeqCst);
-    Ok(match directive.resolved() {
-        None => specimen_source(ORIGINAL_OPERATION),
-        Some(_) => specimen_source(b"input > 0"),
+/// This capture-free fixture's lawful branches both return observations.
+pub(super) const EVALUATION: EvaluationFn = |input, directive| {
+    Ok(if directive.resolved().is_some() {
+        EvaluationObservation::observed(CompiledRosterMeaning::Unstated, 1)
+    } else {
+        EvaluationObservation::observed(production(input), 0)
     })
 };
 
-/// This hostile materializer returns byte-identical baseline and selected source.
-pub(super) const UNCHANGED_SPECIMEN_MATERIALIZER: MaterializerFn = |_directive| {
-    SPECIMEN_MATERIALIZER_CALLS.fetch_add(1, Ordering::SeqCst);
-    Ok(specimen_source(ORIGINAL_OPERATION))
-};
-
-fn specimen_path(extension: &str) -> PathBuf {
-    let ordinal = SPECIMEN_ORDINAL.fetch_add(1, Ordering::SeqCst);
-    std::env::temp_dir().join(format!(
-        "macroonz_harness_specimen_{}_{ordinal}{extension}",
-        std::process::id()
+pub(super) fn evaluation_reads_resolved_payload(
+    input: &[u32; 3],
+    directive: EvaluationDirective<'_>,
+) -> Result<EvaluationObservation<CompiledRosterMeaning>, EvaluationCallRefusal> {
+    let Some(resolved) = directive.resolved() else {
+        return Ok(EvaluationObservation::observed(production(input), 0));
+    };
+    if resolved.point().original_operation() != ORIGINAL_OPERATION
+        || resolved.alternative().operation() != SELECTED_OPERATION
+    {
+        return Err(EvaluationCallRefusal::ActiveSelectionNotImplemented(
+            resolved.selection(),
+        ));
+    }
+    Ok(EvaluationObservation::observed(
+        CompiledRosterMeaning::Unstated,
+        1,
     ))
 }
 
-fn host_failure(error: &[u8]) -> CompiledSpecimenHostRefusal {
-    CompiledSpecimenHostRefusal::Execution(ForeignText::admitted(error))
+pub(super) fn evaluation_reads_resolved_payload_counted(
+    input: &[u32; 3],
+    directive: EvaluationDirective<'_>,
+) -> Result<EvaluationObservation<CompiledRosterMeaning>, EvaluationCallRefusal> {
+    CLAIM_MISMATCH_EVALUATION_CALLS.fetch_add(1, Ordering::SeqCst);
+    evaluation_reads_resolved_payload(input, directive)
 }
 
-fn compilation_failure(error: &[u8]) -> CompiledSpecimenHostRefusal {
-    CompiledSpecimenHostRefusal::Compilation(ForeignText::admitted(error))
+pub(super) fn evaluation_counted(
+    input: &[u32; 3],
+    directive: EvaluationDirective<'_>,
+) -> Result<EvaluationObservation<CompiledRosterMeaning>, EvaluationCallRefusal> {
+    CLAIM_MISMATCH_EVALUATION_CALLS.fetch_add(1, Ordering::SeqCst);
+    EVALUATION(input, directive)
 }
 
-/// The real host consumes each request so one call cannot reuse request custody.
-pub(super) const COMPILED_SPECIMEN_HOST: SpecimenHostFn = |request| specimen_hosted(&request);
+pub(super) fn same(left: &CompiledRosterMeaning, right: &CompiledRosterMeaning) -> Agreement {
+    if left == right {
+        Agreement::Agrees
+    } else {
+        Agreement::Differs
+    }
+}
 
-/// Compile one specimen through the pinned toolchain, execute it, and read the meaning off its output.
-fn specimen_hosted(
-    request: &CompiledSpecimenRequest<'_, '_, [u32; 3]>,
-) -> Result<CompiledSpecimenObservation<CompiledRosterMeaning>, CompiledSpecimenHostRefusal> {
-    SPECIMEN_HOST_CALLS.fetch_add(1, Ordering::SeqCst);
-    let source = specimen_path(".rs");
-    let executable = specimen_path(std::env::consts::EXE_SUFFIX);
-    std::fs::write(&source, request.content().bytes())
-        .map_err(|error| compilation_failure(error.to_string().as_bytes()))?;
-    let target = request.execution().target();
-    let compiled = Command::new("rustup")
+pub(super) fn check(meaning: &CompiledRosterMeaning) -> TrialConclusion {
+    agreement(
+        same,
+        meaning,
+        &CompiledRosterMeaning::Stated(1),
+        MEANING_DISAGREEMENT,
+    )
+}
+
+pub(super) fn unused_trial_call(_invocation: &Invocation) -> TrialConclusion {
+    TrialConclusion::Passed
+}
+
+pub(super) fn trial_binding_for(
+    claim_stem: &'static str,
+) -> Result<TrialBinding, TrialTableRefusal> {
+    let subject = SubjectRoute::named(OWNER, "comparison-subject")?;
+    let check_ref = CheckRef::named(OWNER, "comparison-check")?;
+    let row = Row::declared(
+        ClaimRef::named(OWNER, claim_stem)?,
+        ExecutionSuite::named(OWNER, "mutation-receiver")?,
+        Classification::authored(
+            vec![Role::named(OWNER, "mutation")?],
+            vec![Tag::named(OWNER, "outside-consumer")?],
+        )?,
+        subject,
+        check_ref,
+        PopulationRef::named(OWNER, "one-input")?,
+        Origin::HandWritten,
+    )?;
+    let revision = RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, b"trial"));
+    Binding::bound(
+        row,
+        ExecutableAttachment::attached(subject, check_ref, revision, revision, unused_trial_call),
+        Provenance::Unproduced,
+    )
+    .map_err(TrialTableRefusal::from)
+}
+
+pub(super) fn trial_binding() -> Result<TrialBinding, TrialTableRefusal> {
+    trial_binding_for("comparison-behaviour")
+}
+
+pub(super) fn check_ref() -> Result<CheckRef, MutationRoadFailure> {
+    CheckRef::named(OWNER, "comparison-check").map_err(|_| MutationRoadFailure::Name)
+}
+
+pub(super) fn invocation() -> Result<Invocation, MutationRoadFailure> {
+    let declared_toolchain = "1.98.0";
+    let version = Command::new("rustup")
         .arg("run")
-        .arg(target.toolchain().spelling())
+        .arg(declared_toolchain)
         .arg("rustc")
-        .arg(&source)
-        .arg("--edition=2024")
-        .arg("--target")
-        .arg(target.target().spelling())
-        .arg("-o")
-        .arg(&executable)
+        .arg("-vV")
         .output()
-        .map_err(|error| compilation_failure(error.to_string().as_bytes()))?;
-    drop(std::fs::remove_file(&source));
-    if !compiled.status.success() {
-        return Err(compilation_failure(&compiled.stderr));
+        .map_err(|_| MutationRoadFailure::NativeToolchain)?;
+    if !version.status.success() {
+        return Err(MutationRoadFailure::NativeToolchain);
     }
-    let executed = Command::new(&executable)
-        .arg(request.input()[0].to_string())
-        .output()
-        .map_err(|error| host_failure(error.to_string().as_bytes()))?;
-    drop(std::fs::remove_file(&executable));
-    if !executed.status.success() {
-        return Err(host_failure(&executed.stderr));
-    }
-    if !request
-        .content()
-        .bytes()
-        .windows(request.operation().len())
-        .any(|window| window == request.operation())
-    {
-        return Err(CompiledSpecimenHostRefusal::Meaning(ForeignText::admitted(
-            request.operation(),
-        )));
-    }
-    let meaning = match executed.stdout.as_slice() {
-        b"1" => CompiledRosterMeaning::Stated(1),
-        b"0" => CompiledRosterMeaning::Unstated,
-        other => {
-            return Err(CompiledSpecimenHostRefusal::Meaning(ForeignText::admitted(
-                other,
-            )));
+    let output =
+        std::str::from_utf8(&version.stdout).map_err(|_| MutationRoadFailure::NativeToolchain)?;
+    let native_target = output
+        .lines()
+        .find_map(|line| line.strip_prefix("host: "))
+        .ok_or(MutationRoadFailure::NativeToolchain)?;
+    Ok(Invocation::declared(
+        InvocationProfile::declared(
+            CaseBudget::declared(1),
+            ByteBudget::declared(64),
+            TimeBudget::declared(1_000_000_000),
+        ),
+        TargetBinding::bound(
+            TargetTriple::declared(native_target),
+            ToolchainIdentity::declared(declared_toolchain),
+        ),
+        TrialSite::located(module_path!(), file!(), line!(), "mutation-receiver"),
+        HarnessClock::unavailable(),
+    ))
+}
+
+pub(super) fn foreign_invocation() -> Invocation {
+    Invocation::declared(
+        InvocationProfile::declared(
+            CaseBudget::declared(1),
+            ByteBudget::declared(64),
+            TimeBudget::declared(1_000_000_000),
+        ),
+        TargetBinding::bound(
+            TargetTriple::declared("wasm32-unknown-unknown"),
+            ToolchainIdentity::declared("1.98.0"),
+        ),
+        TrialSite::located(
+            module_path!(),
+            file!(),
+            line!(),
+            "foreign-mutation-receiver",
+        ),
+        HarnessClock::unavailable(),
+    )
+}
+
+pub(super) fn counted_tick() -> u64 {
+    u64::from(INTERPRETED_CLOCK_CALLS.fetch_add(1, Ordering::SeqCst))
+}
+
+pub(super) fn foreign_measured_invocation() -> Invocation {
+    Invocation::declared(
+        InvocationProfile::declared(
+            CaseBudget::declared(1),
+            ByteBudget::declared(64),
+            TimeBudget::declared(1_000_000_000),
+        ),
+        TargetBinding::bound(
+            TargetTriple::declared("wasm32-unknown-unknown"),
+            ToolchainIdentity::declared("1.98.0"),
+        ),
+        TrialSite::located(
+            module_path!(),
+            file!(),
+            line!(),
+            "foreign-measured-mutation-receiver",
+        ),
+        HarnessClock::reading(counted_tick),
+    )
+}
+
+pub(super) fn pair(
+    family: EvaluationFamilyRef,
+    surface: &EvaluationSurface,
+    evaluated: EvaluationCall<[u32; 3], CompiledRosterMeaning>,
+) -> Result<EvaluationPair<[u32; 3], CompiledRosterMeaning>, MutationRoadFailure> {
+    pair_with_evaluation_revision(family, surface, evaluated, b"evaluation")
+}
+
+pub(super) fn pair_with_evaluation_revision(
+    family: EvaluationFamilyRef,
+    surface: &EvaluationSurface,
+    evaluated: EvaluationCall<[u32; 3], CompiledRosterMeaning>,
+    evaluation_revision_bytes: &[u8],
+) -> Result<EvaluationPair<[u32; 3], CompiledRosterMeaning>, MutationRoadFailure> {
+    let production_revision =
+        RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, b"production"));
+    let evaluation_revision = RevisionBinding::declared(ContentAddress::derived(
+        REVISION_TAG,
+        evaluation_revision_bytes,
+    ));
+    Ok(EvaluationPair::paired(
+        ProductionBinding::declared(family, production_revision, production),
+        EvaluationBinding::declared(surface, evaluation_revision, evaluated),
+        same,
+    )?)
+}
+
+pub(super) fn compiled_owner(coordinate: &SourceCoordinate) -> Option<ClaimRef> {
+    (coordinate.file() == COMPILED_MUTANT_FILE)
+        .then(claim)
+        .and_then(Result::ok)
+}
+
+pub(super) fn compiled_family(
+    coordinate: &SourceCoordinate,
+    damage: &[u8],
+) -> Option<OperatorFamilyRef> {
+    (coordinate.file() == COMPILED_MUTANT_FILE && damage == COMPILED_MUTANT_DAMAGE)
+        .then(operator)
+        .and_then(Result::ok)
+}
+
+pub(super) fn compiled_reading() -> Result<WrapReading, MutationRoadFailure> {
+    let version = BackendVersion::stated(BACKEND_VERSION).map_err(|_| MutationRoadFailure::Name)?;
+    Ok(read_output(
+        BACKEND_CONSOLE,
+        BackendVersionPosture::Stated(version),
+        compiled_owner,
+        compiled_family,
+    )?)
+}
+
+pub(super) fn backend_invocation(
+    version: BackendVersion,
+) -> Result<MutationBackendInvocation, MutationRoadFailure> {
+    let command = BackendCommand::declared("cargo", BACKEND_COMMAND)
+        .map_err(|_| MutationRoadFailure::Name)?;
+    Ok(MutationBackendInvocation::declared(
+        WrappedBackend::CargoMutants,
+        version,
+        command,
+        TargetBinding::bound(
+            TargetTriple::declared(BACKEND_TARGET),
+            ToolchainIdentity::declared(BACKEND_TOOLCHAIN),
+        ),
+    ))
+}
+
+pub(super) fn source_revision(bytes: &[u8]) -> Result<MutationSourceRevision, MutationRoadFailure> {
+    MutationSourceRevision::from_content(COMPILED_MUTANT_FILE, bytes)
+        .map_err(|_| MutationRoadFailure::Name)
+}
+
+pub(super) fn compiled_artifact(
+    console: &str,
+    version: BackendVersion,
+    artifact_source: &[u8],
+) -> Result<CompiledSuiteArtifactManifest, MutationRoadFailure> {
+    Ok(read_artifact(
+        console,
+        backend_invocation(version)?,
+        vec![source_revision(artifact_source)?],
+        compiled_owner,
+        compiled_family,
+    )?)
+}
+
+pub(super) fn current_custody(
+    manifest: CompiledSuiteArtifactManifest,
+    current_source: &[u8],
+) -> Result<CompiledSuiteArtifactCustody, MutationRoadFailure> {
+    Ok(CompiledSuiteArtifactCustody::current(
+        manifest,
+        vec![source_revision(current_source)?],
+    )?)
+}
+
+pub(super) fn compiled_suite_pressure() -> Result<CompiledSuitePressure, MutationRoadFailure> {
+    let version = BackendVersion::stated(BACKEND_VERSION).map_err(|_| MutationRoadFailure::Name)?;
+    let manifest = compiled_artifact(BACKEND_CONSOLE, version.clone(), BACKEND_SOURCE)?;
+    let qualification =
+        AdapterQualification::of(manifest.reading(), GrammarStanding::Checked(version))?;
+    let custody = current_custody(manifest, CURRENT_BACKEND_SOURCE)?;
+    Ok(CompiledSuitePressure::demonstrated(
+        CompiledSuiteArtifactStanding::Reported(&custody),
+        &qualification,
+    )?)
+}
+
+pub(super) fn active_selection(
+    surface: &EvaluationSurface,
+) -> Result<ActiveSelection, MutationRoadFailure> {
+    let point = surface
+        .points()
+        .first()
+        .ok_or(MutationRoadFailure::MissingAlternative)?;
+    let alternative = point
+        .admitted_alternatives()
+        .first()
+        .map(AdmittedAlternative::identity)
+        .ok_or(MutationRoadFailure::MissingAlternative)?;
+    surface
+        .select(point.identity(), alternative)
+        .map_err(|_| MutationRoadFailure::MissingActiveSelection)
+}
+
+pub(super) fn selection_for_operation(
+    surface: &EvaluationSurface,
+    operation: &[u8],
+) -> Result<ActiveSelection, MutationRoadFailure> {
+    let point = surface
+        .points()
+        .first()
+        .ok_or(MutationRoadFailure::MissingAlternative)?;
+    let alternative = point
+        .admitted_alternatives()
+        .iter()
+        .find(|alternative| alternative.operation() == operation)
+        .ok_or(MutationRoadFailure::MissingAlternative)?;
+    surface
+        .select(point.identity(), alternative.identity())
+        .map_err(|_| MutationRoadFailure::MissingActiveSelection)
+}
+
+pub(super) fn assert_compiled_projection_custody(
+    projection: &CompiledProjectionPressure<'_, '_, '_, [u32; 3], CompiledRosterMeaning>,
+    pair: &EvaluationPair<[u32; 3], CompiledRosterMeaning>,
+    selection: ActiveSelection,
+) {
+    assert_ne!(
+        projection.baseline_artifact(),
+        projection.standing().artifact()
+    );
+    assert_eq!(
+        projection.baseline_artifact().address(),
+        ContentAddress::derived(ARTIFACT_CONTENT_TAG, &specimen_source(ORIGINAL_OPERATION))
+    );
+    assert_eq!(
+        projection.standing().artifact().address(),
+        ContentAddress::derived(ARTIFACT_CONTENT_TAG, &specimen_source(SELECTED_OPERATION))
+    );
+    assert_eq!(projection.standing().pair(), pair.standing());
+    assert_eq!(projection.standing().selection(), selection);
+    assert!(lens_verdict(projection.baseline_report()).is_ok());
+    assert!(lens_verdict(projection.selected_report()).is_err());
+    assert_eq!(projection.mutation().verdict(), MutationVerdict::Killed);
+    assert!(matches!(
+        projection.mutation().target().identity(),
+        MutationIdentity::CompiledProjection { point: _, alternative }
+            if alternative == selection.alternative()
+    ));
+}
+
+pub(super) fn assert_no_mutation_reading(
+    reading: &NoMutationParityReading<'_, '_, [u32; 3], CompiledRosterMeaning>,
+) {
+    assert_eq!(reading.production(), &CompiledRosterMeaning::Stated(1));
+    assert_eq!(reading.evaluation(), &CompiledRosterMeaning::Stated(1));
+    assert_eq!(reading.evaluation_firings(), 0u32);
+    assert_eq!(
+        reading.production_report().trial(),
+        reading.evaluation_report().trial()
+    );
+    assert_eq!(
+        reading.production_report().measurement(),
+        MeasurementReading::Unavailable
+    );
+    assert_eq!(
+        reading.evaluation_report().measurement(),
+        MeasurementReading::Unavailable
+    );
+}
+
+pub(super) fn assert_interpreted_evidence_custody(
+    report: &TrialReport,
+    mutation: &MutationReport,
+    expected_trial: TrialId,
+    selection: ActiveSelection,
+) {
+    assert_eq!(report.trial(), expected_trial);
+    assert_eq!(mutation.verdict(), MutationVerdict::Killed);
+    assert!(matches!(
+        mutation.activation().evidence(),
+        Some(activation) if activation.witness() == report.trial()
+    ));
+    assert!(matches!(
+        (report.attempt(), mutation.outcome()),
+        (
+            RunAttempt::Executed(TrialConclusion::Refused(report_finding)),
+            MutationOutcome::Killed(IntendedRejection::Demonstrated(rejection)),
+        ) if rejection.trial() == report.trial() && rejection.finding() == report_finding
+    ));
+    assert_eq!(
+        mutation
+            .activation()
+            .evidence()
+            .map(ActivationEvidence::selection),
+        Some(selection)
+    );
+    assert!(matches!(
+        mutation.target().identity(),
+        MutationIdentity::Interpreted { point: _, alternative }
+            if alternative == selection.alternative()
+    ));
+}
+
+pub(super) fn interpreted_kill() -> Result<MutationReport, MutationRoadFailure> {
+    let _specimen_guard = lock_specimen_tests()?;
+    let family = family("comparison-family")?;
+    let surface = surface_with(family, vec![b"input > 0", SELECTED_OPERATION])?;
+    let pair = pair(family, &surface, evaluation_reads_resolved_payload_counted)?;
+    let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check)?;
+    let input = [1u32, 0, 0];
+    let reading = observe_no_mutation(&pair, witness, &input, &invocation()?)?;
+    assert_no_mutation_reading(&reading);
+    let standing = qualify_no_mutation(reading);
+    let qualification =
+        standing
+            .qualification()
+            .ok_or(MutationRoadFailure::MissingQualification(
+                ParityQualificationRefusal::MeaningsDisagreed,
+            ))?;
+    let suite = compiled_suite_pressure()?;
+    assert_eq!(suite.kill().target().owning_claim(), Some(claim()?));
+    assert_eq!(
+        suite.kill().target().family(),
+        FamilyAttribution::Declared(operator()?)
+    );
+    assert!(matches!(
+        suite.kill().target().site(),
+        MutationSite::Reported(coordinate)
+            if coordinate.file() == COMPILED_MUTANT_FILE
+                && coordinate.line() == 348
+                && coordinate.column() == 13
+    ));
+    let selection = selection_for_operation(&surface, SELECTED_OPERATION)?;
+    let sibling = selection_for_operation(&surface, b"input > 0")?;
+    let [point] = surface.points() else {
+        return Err(MutationRoadFailure::MissingAlternative);
+    };
+    assert_eq!(point.admitted_alternatives().len(), 2usize);
+    assert_ne!(selection.alternative(), sibling.alternative());
+    let materializer = SpecimenMaterializerBinding::bound(&pair, SPECIMEN_MATERIALIZER);
+    let projection = demonstrate_compiled_projection(
+        &surface,
+        qualification,
+        &materializer,
+        selection,
+        &invocation()?,
+        COMPILED_SPECIMEN_HOST,
+    )?;
+    assert_compiled_projection_custody(&projection, &pair, selection);
+    let availability = availability(Some(&surface), Some(&suite), Some(&projection));
+    assert_eq!(admission(&availability), RewriteAdmission::Admitted);
+    let trust = match availability {
+        InterpreterAvailability::Available(trust) => trust,
+        InterpreterAvailability::NoConformingSurface => {
+            return Err(MutationRoadFailure::MissingTrust(
+                MissingTrustEvidence::CompiledProjectionPressure,
+            ));
+        }
+        InterpreterAvailability::TrustNotOpened { missing } => {
+            return Err(MutationRoadFailure::MissingTrust(missing));
         }
     };
-    Ok(CompiledSpecimenObservation::executed(request, meaning))
-}
+    assert_eq!(trust.selection(), selection);
+    CLAIM_MISMATCH_EVALUATION_CALLS.store(0, Ordering::SeqCst);
+    INTERPRETED_CLOCK_CALLS.store(0, Ordering::SeqCst);
+    assert!(matches!(
+        execute_active(&trust, &foreign_measured_invocation()),
+        Err(InterpretedExecutionRefusal::InvocationForAnotherExecution)
+    ));
+    assert_eq!(CLAIM_MISMATCH_EVALUATION_CALLS.load(Ordering::SeqCst), 0);
+    assert_eq!(INTERPRETED_CLOCK_CALLS.load(Ordering::SeqCst), 0);
+    let evidence = execute_active(&trust, &invocation()?)?;
+    assert_eq!(CLAIM_MISMATCH_EVALUATION_CALLS.load(Ordering::SeqCst), 1);
+    assert_eq!(evidence.selection(), selection);
+    assert_eq!(evidence.meaning(), &CompiledRosterMeaning::Unstated);
+    assert_interpreted_evidence_custody(
+        evidence.report(),
+        evidence.mutation(),
+        qualification.reading().production_report().trial(),
+        selection,
+    );
 
-/// This hostile host answers the selected request with a cached baseline observation.
-pub(super) const CACHED_SIBLING_OBSERVATION_HOST: SpecimenHostFn =
-    |request| sibling_cached(&request);
-
-/// The baseline call plants an observation, and the selected call answers with it.
-fn sibling_cached(
-    request: &CompiledSpecimenRequest<'_, '_, [u32; 3]>,
-) -> Result<CompiledSpecimenObservation<CompiledRosterMeaning>, CompiledSpecimenHostRefusal> {
-    SPECIMEN_HOST_CALLS.fetch_add(1, Ordering::SeqCst);
-    let mut cached = CACHED_SIBLING_OBSERVATION
-        .lock()
-        .map_err(|error| host_failure(error.to_string().as_bytes()))?;
-    match request.role() {
-        CompiledSpecimenRole::Baseline => {
-            *cached = Some(CompiledSpecimenObservation::executed(
-                request,
-                CompiledRosterMeaning::Unstated,
-            ));
-            Ok(CompiledSpecimenObservation::executed(
-                request,
-                CompiledRosterMeaning::Stated(1),
-            ))
-        }
-        CompiledSpecimenRole::Selected(_) => cached
-            .take()
-            .ok_or_else(|| host_failure(b"cached sibling observation absent")),
-    }
+    Ok(evidence.mutation().clone())
 }

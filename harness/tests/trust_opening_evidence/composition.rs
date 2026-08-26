@@ -1,15 +1,27 @@
-//! Outside observations of structural rewrite declaration, planning, admission, and seed vocabulary.
+//! Outside observations of mutation planning and cross-owner evidence composition.
 
+use super::support::{
+    COMPILED_SPECIMEN_HOST, CompiledRosterMeaning, EVALUATION, MutationRoadFailure,
+    SELECTED_OPERATION, SPECIMEN_MATERIALIZER, active_selection, check, check_ref,
+    compiled_suite_pressure, family, interpreted_kill, invocation, lock_specimen_tests, pair,
+    policy, surface_with, trial_binding,
+};
 use macroonz_harness::depot::operator_families::OPERATOR_FAMILIES;
+use macroonz_harness::muterprater::discover::lower_discoveries;
+use macroonz_harness::muterprater::interpret::{
+    availability, observe_no_mutation, qualify_no_mutation,
+};
 use macroonz_harness::muterprater::rewrite::{admission, planned, unrealized_families};
+use macroonz_harness::muterprater::specimen::demonstrate_compiled_projection;
 use macroonz_harness::muterprater::{
     ARTIFACT_MUTATIONS, ArtifactMutation, InterpreterAvailability, MissingTrustEvidence,
-    OperatorFamilyRef, RewriteAdmission, RewriteCandidate, RewriteDescriptor, RewriteRefusal,
-    RewriteRoster, RewriteTrust, RewriteWithheld, RosterRefusal, ScopeShape,
+    MutationVerdict, MutationWitness, OperatorFamilyRef, ParityQualificationRefusal,
+    RewriteAdmission, RewriteCandidate, RewriteDescriptor, RewriteRefusal, RewriteRoster,
+    RewriteTrust, RewriteWithheld, RosterRefusal, ScopeShape, SpecimenMaterializerBinding,
 };
 use std::collections::BTreeSet;
 
-fn family(slug: &str) -> Result<OperatorFamilyRef, ()> {
+fn rewrite_family(slug: &str) -> Result<OperatorFamilyRef, ()> {
     OperatorFamilyRef::of_slug(slug).ok_or(())
 }
 
@@ -31,7 +43,7 @@ fn descriptor(
 /// Retained regression: Refusal-order or field-custody drift remains a permanent regression.
 #[test]
 fn descriptor_admission_is_ordered_and_lossless() -> Result<(), ()> {
-    let family = family("comparison-boundaries")?;
+    let family = rewrite_family("comparison-boundaries")?;
     assert_eq!(
         RewriteDescriptor::declared(family, "", ""),
         Err(RewriteRefusal::EmptyPattern)
@@ -66,8 +78,8 @@ fn roster_admission_preserves_authored_structure() -> Result<(), ()> {
         RewriteRoster::declared(Vec::new()),
         Err(RosterRefusal::EmptyRoster)
     );
-    let comparison = family("comparison-boundaries")?;
-    let boolean = family("boolean-operators")?;
+    let comparison = rewrite_family("comparison-boundaries")?;
+    let boolean = rewrite_family("boolean-operators")?;
     let first = descriptor(comparison, "input < bound", "input <= bound")?;
     let second = descriptor(boolean, "left && right", "left || right")?;
     let repeated_under_another_family = descriptor(boolean, "input < bound", "input <= bound")?;
@@ -95,12 +107,12 @@ fn roster_admission_preserves_authored_structure() -> Result<(), ()> {
 #[test]
 fn planning_preserves_order_scope_and_audit_pending_trust() -> Result<(), ()> {
     let first = descriptor(
-        family("comparison-boundaries")?,
+        rewrite_family("comparison-boundaries")?,
         "input < bound",
         "input <= bound",
     )?;
     let second = descriptor(
-        family("boolean-operators")?,
+        rewrite_family("boolean-operators")?,
         "left && right",
         "left || right",
     )?;
@@ -142,12 +154,12 @@ fn planning_preserves_order_scope_and_audit_pending_trust() -> Result<(), ()> {
 #[test]
 fn unrealized_families_follow_the_complete_bank() -> Result<(), ()> {
     let first = descriptor(
-        family("comparison-boundaries")?,
+        rewrite_family("comparison-boundaries")?,
         "input < bound",
         "input <= bound",
     )?;
     let second = descriptor(
-        family("boolean-operators")?,
+        rewrite_family("boolean-operators")?,
         "left && right",
         "left || right",
     )?;
@@ -235,4 +247,113 @@ fn admission_preserves_every_withheld_posture() {
             RewriteAdmission::Withheld(RewriteWithheld::TrustNotOpened(missing))
         );
     }
+}
+
+/// Claim: point-free parity cannot cross the specimen or rewrite joins into active mutation authority.
+///
+/// Subject: the interpretation parity, specimen pressure, and rewrite admission composition.
+/// Population: one lawfully qualified point-free surface.
+/// Hostile control: generic suite pressure is present while selection-scoped projection pressure is absent.
+/// Denominator: the point-free qualification, interpretation availability, and rewrite admission readings.
+/// Evidence ceiling: this establishes one typed cross-owner composition and does not annex any participating claim.
+/// Retained regression: the composition claim remains in the original integration target.
+#[test]
+fn point_free_trust_does_not_admit_mutation_execution() -> Result<(), MutationRoadFailure> {
+    let family = family("point-free-family")?;
+    let policy = policy(family)?;
+    let surface = lower_discoveries(&policy, Vec::new())?.into_parts().1;
+    let pair = pair(family, &surface, EVALUATION)?;
+    let witness = MutationWitness::bound(trial_binding()?, check_ref()?, check)?;
+    let input = [1u32, 0, 0];
+    let standing =
+        qualify_no_mutation(observe_no_mutation(&pair, witness, &input, &invocation()?)?);
+    let qualification =
+        standing
+            .qualification()
+            .ok_or(MutationRoadFailure::MissingQualification(
+                ParityQualificationRefusal::MeaningsDisagreed,
+            ))?;
+    let suite = compiled_suite_pressure()?;
+    let availability =
+        availability::<[u32; 3], CompiledRosterMeaning>(Some(&surface), Some(&suite), None);
+    assert!(matches!(
+        &availability,
+        InterpreterAvailability::TrustNotOpened {
+            missing: MissingTrustEvidence::CompiledProjectionPressure,
+        }
+    ));
+    assert_eq!(
+        admission(&availability),
+        RewriteAdmission::Withheld(RewriteWithheld::TrustNotOpened(
+            MissingTrustEvidence::CompiledProjectionPressure,
+        ))
+    );
+    assert_eq!(qualification.reading().pair().standing(), pair.standing());
+    Ok(())
+}
+
+/// Claim: generic suite pressure and exact projection pressure join without flattening their evidence into interpreted execution.
+///
+/// Subject: the compiled-suite, specimen-projection, and interpretation execution composition.
+/// Population: one two-alternative surface and one selected compiled projection.
+/// Hostile control: a foreign invocation is refused before evaluation or clock effects.
+/// Denominator: every evidence book and custody join traversed by the selected execution.
+/// Evidence ceiling: this establishes one complete outside composition and preserves each owner's narrower evidence ceiling.
+/// Retained regression: the cross-owner claim remains in the original integration target.
+#[test]
+fn compiled_and_interpreted_evidence_join_without_flattening() -> Result<(), MutationRoadFailure> {
+    let mutation = interpreted_kill()?;
+    assert_eq!(mutation.verdict(), MutationVerdict::Killed);
+    Ok(())
+}
+
+/// Claim: exact projection pressure cannot open interpreted trust for another surface.
+///
+/// Subject: the public specimen demonstration and interpretation availability roads.
+/// Population: two surfaces under one family with distinct admitted selections.
+/// Hostile control: a lawful projection from the second surface is offered to the first.
+/// Denominator: one complete projection and the one crossed surface join.
+/// Evidence ceiling: this establishes the typed cross-owner join for one outside fixture and does not widen either evidence book.
+/// Retained regression: this composition claim remains in the original integration target.
+#[test]
+fn compiled_pressure_cannot_open_trust_for_another_surface() -> Result<(), MutationRoadFailure> {
+    let _specimen_guard = lock_specimen_tests()?;
+    let family = family("same-family-pair-scope")?;
+    let surface = surface_with(family, vec![b"a <= b"])?;
+    let evaluation_pair = pair(family, &surface, EVALUATION)?;
+    let input = [1u32, 0, 0];
+    let another_surface = surface_with(family, vec![SELECTED_OPERATION])?;
+    let another_pair = pair(family, &another_surface, EVALUATION)?;
+    assert_ne!(another_pair.standing(), evaluation_pair.standing());
+    let another_standing = qualify_no_mutation(observe_no_mutation(
+        &another_pair,
+        MutationWitness::bound(trial_binding()?, check_ref()?, check)?,
+        &input,
+        &invocation()?,
+    )?);
+    let another_qualification =
+        another_standing
+            .qualification()
+            .ok_or(MutationRoadFailure::MissingQualification(
+                ParityQualificationRefusal::MeaningsDisagreed,
+            ))?;
+    let another_selection = active_selection(&another_surface)?;
+    let another_materializer =
+        SpecimenMaterializerBinding::bound(&another_pair, SPECIMEN_MATERIALIZER);
+    let another_projection = demonstrate_compiled_projection(
+        &another_surface,
+        another_qualification,
+        &another_materializer,
+        another_selection,
+        &invocation()?,
+        COMPILED_SPECIMEN_HOST,
+    )?;
+    let suite = compiled_suite_pressure()?;
+    assert!(matches!(
+        availability(Some(&surface), Some(&suite), Some(&another_projection)),
+        InterpreterAvailability::TrustNotOpened {
+            missing: MissingTrustEvidence::ProjectionPressureForAnotherSurface,
+        }
+    ));
+    Ok(())
 }
