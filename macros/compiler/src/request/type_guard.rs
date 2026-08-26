@@ -152,7 +152,7 @@ impl<'door, K: Kind> Request<'door, K> {
 
     /// States the answers to the questions the kind itself declares.
     ///
-    /// The nine questions every kind owes are answered by this road; these are the kind's own.
+    /// The universal questions every kind owes are answered by this road; these are the kind's own.
     pub fn answering(mut self, answers: Vec<<K::Question as Question>::Answer>) -> Self {
         self.answers = answers;
         self

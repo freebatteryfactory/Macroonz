@@ -1,4 +1,4 @@
-//! The nine answers every kind owes, composed off the plan and the proof one request produced.
+//! The universal answers every kind owes, composed off the plan and the proof one request produced.
 //!
 //! Each answer is read from the value that holds it and never from a second copy: the kind names itself, the account names what caused it, the context names the profile, the closure names the digest, and the door names who required it.
 

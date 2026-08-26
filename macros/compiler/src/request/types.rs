@@ -56,6 +56,7 @@ pub struct Door {
 /// One request: the material it stands over, what that material means, who is asking, and the seats the caller states.
 ///
 /// A builder, and the value the whole road is walked from.
+/// Stating a builder fact again replaces its earlier statement; a publication address replaces only the earlier address for that same seat.
 /// The material is held rather than committed to at the door, because a commitment beside the bytes it was taken from is one fact in two seats; the commitment is derived once, where the plan that carries it is built.
 ///
 /// # Nonclaims
