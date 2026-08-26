@@ -219,33 +219,97 @@ pub(super) fn encode_row_content(
     population: PopulationRef,
     origin: Origin,
 ) -> Result<Vec<u8>, EncodeRefusal> {
-    let mut bytes = Vec::new();
-    bytes.extend_from_slice(&ROW_ENCODING_VERSION.to_be_bytes());
-    for projection in DESCRIPTOR_PROJECTIONS {
-        match projection {
-            DescriptorProjection::Claim => claim.name().encode_into(&mut bytes),
-            DescriptorProjection::ExecutionSuite => {
-                execution_suite.name().encode_into(&mut bytes);
-            }
-            DescriptorProjection::Roles => {
-                push_count(&mut bytes, classification.roles().len())?;
-                for role in classification.roles() {
-                    role.name().encode_into(&mut bytes);
-                }
-            }
-            DescriptorProjection::Tags => {
-                push_count(&mut bytes, classification.tags().len())?;
-                for tag in classification.tags() {
-                    tag.name().encode_into(&mut bytes);
-                }
-            }
-            DescriptorProjection::Subject => subject.name().encode_into(&mut bytes),
-            DescriptorProjection::Check => check.name().encode_into(&mut bytes),
-            DescriptorProjection::Population => population.name().encode_into(&mut bytes),
-            DescriptorProjection::Origin => push_origin(&mut bytes, origin)?,
+    RowEncoding::over(
+        claim,
+        execution_suite,
+        classification,
+        subject,
+        check,
+        population,
+        origin,
+    )
+    .encoded()
+}
+
+/// The informed inputs and accumulating bytes of one row encoding.
+struct RowEncoding<'classification> {
+    bytes: Vec<u8>,
+    claim: ClaimRef,
+    execution_suite: ExecutionSuite,
+    classification: &'classification Classification,
+    subject: SubjectRoute,
+    check: CheckRef,
+    population: PopulationRef,
+    origin: Origin,
+}
+
+impl<'classification> RowEncoding<'classification> {
+    /// Begin one row encoding over the complete declared input roster.
+    fn over(
+        claim: ClaimRef,
+        execution_suite: ExecutionSuite,
+        classification: &'classification Classification,
+        subject: SubjectRoute,
+        check: CheckRef,
+        population: PopulationRef,
+        origin: Origin,
+    ) -> Self {
+        Self {
+            bytes: ROW_ENCODING_VERSION.to_be_bytes().to_vec(),
+            claim,
+            execution_suite,
+            classification,
+            subject,
+            check,
+            population,
+            origin,
         }
     }
-    Ok(bytes)
+
+    /// Write every declared projection in the roster's canonical order.
+    fn encoded(mut self) -> Result<Vec<u8>, EncodeRefusal> {
+        for projection in DESCRIPTOR_PROJECTIONS {
+            self.push_projection(*projection)?;
+        }
+        Ok(self.bytes)
+    }
+
+    /// Write one informed projection without reopening the row's argument list.
+    fn push_projection(&mut self, projection: DescriptorProjection) -> Result<(), EncodeRefusal> {
+        match projection {
+            DescriptorProjection::Claim => self.claim.name().encode_into(&mut self.bytes),
+            DescriptorProjection::ExecutionSuite => {
+                self.execution_suite.name().encode_into(&mut self.bytes);
+            }
+            DescriptorProjection::Roles => self.push_roles()?,
+            DescriptorProjection::Tags => self.push_tags()?,
+            DescriptorProjection::Subject => self.subject.name().encode_into(&mut self.bytes),
+            DescriptorProjection::Check => self.check.name().encode_into(&mut self.bytes),
+            DescriptorProjection::Population => {
+                self.population.name().encode_into(&mut self.bytes);
+            }
+            DescriptorProjection::Origin => push_origin(&mut self.bytes, self.origin)?,
+        }
+        Ok(())
+    }
+
+    /// Write the role roster in its informed storage order.
+    fn push_roles(&mut self) -> Result<(), EncodeRefusal> {
+        push_count(&mut self.bytes, self.classification.roles().len())?;
+        for role in self.classification.roles() {
+            role.name().encode_into(&mut self.bytes);
+        }
+        Ok(())
+    }
+
+    /// Write the tag roster in its informed storage order.
+    fn push_tags(&mut self) -> Result<(), EncodeRefusal> {
+        push_count(&mut self.bytes, self.classification.tags().len())?;
+        for tag in self.classification.tags() {
+            tag.name().encode_into(&mut self.bytes);
+        }
+        Ok(())
+    }
 }
 
 /// The complete preimage one [`TrialKey`](super::TrialKey) is derived from: the claim, the subject route, the check, and the population, each as its reference's name, in that order.
