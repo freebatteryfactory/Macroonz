@@ -16,6 +16,11 @@ macroonz::macros::network! {
 #[test]
 fn compiler_stays_under_its_owner() {
     assert_eq!(size_of::<macroonz::compiler::NoQuestions>(), 0usize);
+    assert_eq!(
+        size_of::<macroonz::compiler::codec::CodecProjection>(),
+        0usize
+    );
+    assert_eq!(macroonz::compiler::codec::MEMBER_CONTRACT.len(), 5usize);
 }
 
 /// A facade-qualified proc declaration may name the facade-qualified harness and produce ordinary working cargo.

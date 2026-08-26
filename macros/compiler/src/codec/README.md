@@ -76,6 +76,12 @@ The kind's one seat names the declaration site itself, so a codec surface writte
 `types.rs` declares the kind, the shape vocabulary, the three magnitudes, and the one refusal.
 Its own child `type_guard.rs` holds every road that reaches a private seat — a path's segments, a member's spelling, a shape's members, the assembly road, the module spelling — and the one alphabet every rendered spelling is admitted by.
 
-`type_contract.rs` states the tables: the kind, the member contract, the locals the decode road reserves for itself, and how a direction answers for each of the two roads.
+`type_contract.rs` states the tables: the kind, the authoritative member contract consumed by both generated roads, the locals the decode road reserves for itself, and how a direction answers for each of the two roads.
 
-`render.rs` is the token half, and `encode.rs` is the canonical bytes one refused issue is.
+`render.rs` composes the surface from its earned operations.
+`declare.rs` renders the refusal and checked-assembly conversion.
+`write.rs` renders the canonical write road.
+`read.rs` renders the canonical read road.
+`place.rs` wraps a surface in its declared placement.
+`spell.rs` owns the Rust-token spellings those operations share.
+`encode.rs` owns the canonical bytes one refused issue is.

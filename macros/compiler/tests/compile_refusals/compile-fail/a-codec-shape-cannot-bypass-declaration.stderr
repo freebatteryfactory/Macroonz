@@ -1,0 +1,13 @@
+error[E0451]: fields `owner`, `refusal`, `assembly` and `members` of struct `CodecShape` are private
+  --> tests/compile_refusals/compile-fail/a-codec-shape-cannot-bypass-declaration.rs:28:9
+   |
+27 |     let shape = CodecShape {
+   |                 ---------- in this type
+28 |         owner,
+   |         ^^^^^ private field
+29 |         refusal: "DemoRefusal".to_owned(),
+   |         ^^^^^^^ private field
+30 |         assembly,
+   |         ^^^^^^^^ private field
+31 |         members: NonEmpty::one(member),
+   |         ^^^^^^^ private field

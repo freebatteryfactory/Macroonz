@@ -2,7 +2,7 @@
 //!
 //! Each table is total, so a row admitted later stops the compiler in every one of them until somebody says what that row's answer is.
 
-use super::render::{
+use super::spell::{
     CANDIDATE_BINDING, CARRIED_BINDING, CHOSEN_BINDING, COLLECTED_BINDING, ELECTED_BINDING,
     INTO_BINDING, LENGTH_BINDING, MATERIAL_BINDING, NESTED_BINDING, PRESENT_BINDING,
     REMAINING_BINDING, WIDTH_BINDING,
@@ -174,32 +174,116 @@ impl DecodeRefusal {
 ///
 /// The closed-choice row is this compiler's own contract on a caller's roster — a complete roster constant and a position road answering one byte — and not an inheritance from any stamp that happens to emit one.
 pub const MEMBER_CONTRACT: [MemberContract; 5] = [
-    MemberContract {
+    COUNT_CONTRACT.bill,
+    BYTES_CONTRACT.bill,
+    TEXT_CONTRACT.bill,
+    CLOSED_CHOICE_CONTRACT.bill,
+    NESTED_CONTRACT.bill,
+];
+
+/// The write operation one contract row selects.
+#[derive(Clone, Copy)]
+pub(super) enum WriteRoad {
+    /// Widen one count and write its big-endian bytes.
+    Count,
+    /// Borrow bytes through the declared trait road and frame them.
+    Bytes,
+    /// Borrow text through the declared trait road and frame its UTF-8 bytes.
+    Text,
+    /// Write the declared slot of one closed-choice arm.
+    ClosedChoice,
+    /// Call and frame one nested codec.
+    Nested,
+}
+
+/// The read operation one contract row selects.
+#[derive(Clone, Copy)]
+pub(super) enum ReadRoad {
+    /// Read and narrow one count.
+    Count,
+    /// Read framed bytes and ask the member type to admit them.
+    Bytes,
+    /// Read framed UTF-8 text and ask the member type to admit it.
+    Text,
+    /// Elect one arm from the owner's complete roster.
+    ClosedChoice,
+    /// Ask one nested codec to read its framed material.
+    Nested,
+}
+
+/// One authoritative contract row, with its public bill and the two internal operations that consume it.
+#[derive(Clone, Copy)]
+pub(super) struct RenderingContract {
+    /// The public statement of the member roads.
+    pub(super) bill: MemberContract,
+    /// The generated write operation.
+    pub(super) write: WriteRoad,
+    /// The generated read operation.
+    pub(super) read: ReadRoad,
+}
+
+const COUNT_CONTRACT: RenderingContract = RenderingContract {
+    bill: MemberContract {
         shape: CodecMemberShape::Count,
         encode_road: "u64::from",
         decode_road: "<T as ::core::convert::TryFrom<u64>>::try_from",
     },
-    MemberContract {
+    write: WriteRoad::Count,
+    read: ReadRoad::Count,
+};
+
+const BYTES_CONTRACT: RenderingContract = RenderingContract {
+    bill: MemberContract {
         shape: CodecMemberShape::Bytes,
         encode_road: "<T as ::core::convert::AsRef<[u8]>>::as_ref",
         decode_road: "<T as ::core::convert::TryFrom<::std::vec::Vec<u8>>>::try_from",
     },
-    MemberContract {
+    write: WriteRoad::Bytes,
+    read: ReadRoad::Bytes,
+};
+
+const TEXT_CONTRACT: RenderingContract = RenderingContract {
+    bill: MemberContract {
         shape: CodecMemberShape::Text,
         encode_road: "<T as ::core::convert::AsRef<str>>::as_ref",
         decode_road: "<T as ::core::convert::TryFrom<::std::string::String>>::try_from",
     },
-    MemberContract {
+    write: WriteRoad::Text,
+    read: ReadRoad::Text,
+};
+
+const CLOSED_CHOICE_CONTRACT: RenderingContract = RenderingContract {
+    bill: MemberContract {
         shape: CodecMemberShape::ClosedChoice,
         encode_road: SLOT_ROAD,
         decode_road: ROSTER_CONSTANT,
     },
-    MemberContract {
+    write: WriteRoad::ClosedChoice,
+    read: ReadRoad::ClosedChoice,
+};
+
+const NESTED_CONTRACT: RenderingContract = RenderingContract {
+    bill: MemberContract {
         shape: CodecMemberShape::Nested,
         encode_road: ENCODE_ROAD,
         decode_road: DECODE_ROAD,
     },
-];
+    write: WriteRoad::Nested,
+    read: ReadRoad::Nested,
+};
+
+/// The authoritative row one member shape selects.
+///
+/// Both the public bill and generated operations read this seat, so adding or reassigning a shape cannot leave an independently selected renderer behind it.
+pub(super) const fn rendering_contract(shape: CodecMemberShape) -> RenderingContract {
+    match shape {
+        CodecMemberShape::Count => COUNT_CONTRACT,
+        CodecMemberShape::Bytes => BYTES_CONTRACT,
+        CodecMemberShape::Text => TEXT_CONTRACT,
+        CodecMemberShape::ClosedChoice => CLOSED_CHOICE_CONTRACT,
+        CodecMemberShape::Nested => NESTED_CONTRACT,
+    }
+}
 
 /// The locals the rendered decode road declares for itself.
 ///

@@ -286,22 +286,41 @@ fn member_issues(members: &[CodecMember]) -> Vec<CodecIssue> {
     let mut seen: BTreeSet<&str> = BTreeSet::new();
     let mut reported: BTreeSet<&str> = BTreeSet::new();
     for member in members {
-        let spelling = member.spelling();
-        if !seen.insert(spelling) && reported.insert(spelling) {
+        let standing = member_standing(member, &mut seen, &mut reported);
+        if let Some(spelling) = standing.doubled {
             issues.push(CodecIssue::MemberSpellingDoubled {
                 spelling: spelling.to_owned(),
             });
         }
-        for binding in RESERVED_BINDINGS {
-            if spelling == binding {
-                issues.push(CodecIssue::MemberShadowsBinding {
-                    spelling: spelling.to_owned(),
-                    binding,
-                });
-            }
+        if let Some((spelling, binding)) = standing.shadowed {
+            issues.push(CodecIssue::MemberShadowsBinding {
+                spelling: spelling.to_owned(),
+                binding,
+            });
         }
     }
     issues
+}
+
+/// What one offered member's spelling establishes after the duplicate and reserved-binding passes have both read it.
+struct MemberStanding<'member> {
+    doubled: Option<&'member str>,
+    shadowed: Option<(&'member str, &'static str)>,
+}
+
+/// Read one member through both spelling indexes before the issue pass decides what to report.
+fn member_standing<'member>(
+    member: &'member CodecMember,
+    seen: &mut BTreeSet<&'member str>,
+    reported: &mut BTreeSet<&'member str>,
+) -> MemberStanding<'member> {
+    let spelling = member.spelling();
+    let doubled = (!seen.insert(spelling) && reported.insert(spelling)).then_some(spelling);
+    let shadowed = RESERVED_BINDINGS
+        .into_iter()
+        .find(|binding| spelling == *binding)
+        .map(|binding| (spelling, binding));
+    MemberStanding { doubled, shadowed }
 }
 
 /// One pass's established issues as the pair a refusal is built from, or nothing where the pass established none.

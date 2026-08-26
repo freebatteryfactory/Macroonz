@@ -1,9 +1,14 @@
 #![doc = include_str!("README.md")]
 
+mod declare;
 mod encode;
+mod place;
+mod read;
 mod render;
+mod spell;
 mod type_contract;
 mod types;
+mod write;
 
 pub use render::{codec_surface, render_codec};
 pub use type_contract::{MEMBER_CONTRACT, RESERVED_BINDINGS};
