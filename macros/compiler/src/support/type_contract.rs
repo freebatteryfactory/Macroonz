@@ -1,6 +1,5 @@
-//! The constant answers this home's rosters settle, and the contracts its three refusals stand under.
-//!
-//! Every table is total, so a row admitted later stops the compiler in each of them until somebody says what that row's position, sentence, delivery, and classification are.
+//! The total roster tables, canonical content encoding, and diagnostic contracts for this home's values.
+//! A new row stops the compiler at each table until its position, material, delivery, and classification are stated.
 
 use super::{
     ASSEMBLY_FACT, AssemblyError, AssemblyIssue, AxisCargo, CargoAxis, DeclarationError,

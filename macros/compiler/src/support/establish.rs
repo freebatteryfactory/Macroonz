@@ -39,6 +39,23 @@ pub(super) fn root_issues(
         .collect()
 }
 
+/// Every carried value seated on an axis other than the one its proved destination belongs to.
+///
+/// Promotion proves that the value came from the destination named at that call, while the public axes decide where the value is later seated.
+/// Rechecking the relationship here prevents a proved test delivery from being moved into the benchmark field, or the reverse, after promotion erased the call's axis argument.
+pub(super) fn destination_issues(carried: &[(CargoAxis, &ProvedCargo)]) -> Vec<AssemblyIssue> {
+    carried
+        .iter()
+        .filter(|(axis, proved)| axis.reads_from() != Some(proved.destination()))
+        .map(
+            |(axis, proved)| AssemblyIssue::CargoReachesASecondDestination {
+                axis: *axis,
+                destination: proved.destination(),
+            },
+        )
+        .collect()
+}
+
 /// Every terminal delivery two axes read, reported at its SECOND occurrence.
 ///
 /// The second rather than the first, because the first reading is the lawful one and what is being established is that something read it again: a caller repairing a doubled consumption drops the later axis, and pointing at the earlier one would send it to the reading it means to keep.

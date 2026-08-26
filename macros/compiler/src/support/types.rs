@@ -1,7 +1,5 @@
-//! The support home's declarations: the carrier's own vocabulary, the pin its gate is matched against, the three cargo axes, the verified assembly one carrier is rendered from, the carrier itself, and the three ways this home says no.
-//!
-//! Declarations only.
-//! Every road that reaches a private field lives in `type_guard.rs`, this file's own child, which is what makes the home's central claim structural: proved cargo is read off a terminal's own delivery, and no second seam can build an assembly out of anything else.
+//! Every road that reaches a private field lives in `type_guard.rs`, this file's own child.
+//! Keeping the invariant nucleus beside these declarations makes proved-cargo promotion and verified assembly structural rather than conventions another module may bypass.
 
 use crate::bounded::{Capped, NonEmpty};
 use crate::identity::{self, ClosedExpansionId, Identity, OwnerFact};

@@ -7,11 +7,15 @@
 //!
 //! A road that closed over anything would satisfy every positive assertion here, so each is paired with the shape that must refuse: a set the rendering outgrew, a rendering short of the set, a renderer that wrote nothing, and each of the three ways three separately produced values can disagree about their parentage.
 
+use macroonz_compiler::support::{
+    AssemblyIssue, AxisCargo, CargoAxis, DeferredCargo, ProvedCargo, SupportAssembly, SupportAxes,
+};
 use macroonz_compiler::{
-    BindError, Bounded, Closure, ClosureIssue, CrateBinding, Destination, Door, Expansion,
-    GeneratedToken, GeneratedTree, InvalidationTrigger, Kind, Membership, NoQuestions, Observed,
-    Overflow, OwnerIdentity, PartitionCargo, Phase, Plan, PlanDecisions, Producer,
-    RenderedProjection, RenderedUnit, Request, Role, TextCapture, UNIVERSAL_QUESTION_COUNT,
+    BindError, Bounded, Closure, ClosureIssue, CrateBinding, Destination, Disposition, Door,
+    Expansion, GeneratedToken, GeneratedTree, InvalidationTrigger, Kind, Membership, NoQuestions,
+    Observed, Overflow, OwnerFact, OwnerIdentity, PartitionCargo, Phase, Plan, PlanDecisions,
+    Producer, RenderedProjection, RenderedUnit, Request, Role, TextCapture,
+    UNIVERSAL_QUESTION_COUNT,
 };
 
 /// The kind this lane renders: two seats, delivered to two different builds.
@@ -70,6 +74,42 @@ const DECLARATION: &str = "struct Greeting { line: Line }";
 /// A second declared input, so a lane needing two expansions has two.
 const OTHER_DECLARATION: &str = "struct Farewell { line: Line }";
 
+/// The outside observer's reason for leaving an unrelated support axis empty.
+const SUPPORT_AXIS_ABSENT: OwnerFact = OwnerFact {
+    home: "lane",
+    name: "support-axis-not-part-of-this-reversal",
+};
+
+/// A kind whose one seat reaches only the benchmark carrier.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct BenchCargo;
+
+impl Kind for BenchCargo {
+    const NAME: &'static str = "lane.bench-cargo";
+    type Content = &'static str;
+    type Role = BenchSeat;
+    type Question = NoQuestions;
+}
+
+/// The one seat the benchmark-cargo fixture fills.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BenchSeat {
+    /// Cargo proved for a benchmark target.
+    Cargo,
+}
+
+impl Role for BenchSeat {
+    const ALL: &'static [Self] = &[Self::Cargo];
+
+    fn name(self) -> &'static str {
+        "cargo"
+    }
+
+    fn destination(self) -> Destination {
+        Destination::BenchCarrier
+    }
+}
+
 /// One generated tree spelling one word.
 fn spelled(word: &str) -> Result<GeneratedTree, Overflow> {
     GeneratedTree::assembled(vec![GeneratedToken::word(word)])
@@ -84,6 +124,23 @@ fn expansion(source: &str) -> Option<Expansion<Pair>> {
             out.unit(Seat::Tail, spelled("tail")?)
         })
         .ok()
+}
+
+/// The expansion whose one proved delivery belongs to the benchmark carrier.
+fn bench_expansion(source: &str) -> Option<Expansion<BenchCargo>> {
+    let read = TextCapture::read(source).ok()?;
+    Request::<BenchCargo>::over(read.input().clone(), "bench-cargo", &DOOR)
+        .render(|_plan, out| out.unit(BenchSeat::Cargo, spelled("bench")?))
+        .ok()
+}
+
+/// One axis whose absence is explicit and irrelevant to the active reversal.
+fn absent_axis<Material>() -> AxisCargo<Material> {
+    AxisCargo::Absent {
+        because: Disposition::NotApplicable {
+            because: SUPPORT_AXIS_ABSENT,
+        },
+    }
 }
 
 /// An address stated for a seat that never publishes refuses at planning, before any identity commits to it.
@@ -178,6 +235,64 @@ fn each_delivery_carries_what_its_own_seats_declared() -> Result<(), ()> {
             .is_none()
     );
     assert_eq!(bound.published().count(), 0);
+    Ok(())
+}
+
+/// Cargo proved for a test target cannot be reseated in the public benchmark field after promotion.
+#[test]
+fn proved_test_cargo_cannot_be_reseated_as_benchmark_cargo() -> Result<(), ()> {
+    let bound = expansion(DECLARATION).ok_or(())?;
+    let cargo = DeferredCargo::deferred(bound.test_carrier().tokens().ok_or(())?.clone());
+    let proved = ProvedCargo::carried(&bound, CargoAxis::Deferred, Destination::TestCarrier, cargo)
+        .map_err(|_| ())?;
+    let root = bound.plan().account().commitment();
+    let refusal = SupportAssembly::assembled(
+        root,
+        None,
+        SupportAxes {
+            declared: absent_axis(),
+            deferred: absent_axis(),
+            bench: AxisCargo::Carried(proved),
+        },
+    )
+    .err()
+    .ok_or(())?;
+    assert_eq!(
+        refusal.first_issue(),
+        &AssemblyIssue::CargoReachesASecondDestination {
+            axis: CargoAxis::Bench,
+            destination: Destination::TestCarrier,
+        }
+    );
+    Ok(())
+}
+
+/// Cargo proved for a benchmark target cannot be reseated in the public deferred field after promotion.
+#[test]
+fn proved_benchmark_cargo_cannot_be_reseated_as_test_cargo() -> Result<(), ()> {
+    let bound = bench_expansion(OTHER_DECLARATION).ok_or(())?;
+    let cargo = DeferredCargo::deferred(bound.bench_carrier().tokens().ok_or(())?.clone());
+    let proved = ProvedCargo::carried(&bound, CargoAxis::Bench, Destination::BenchCarrier, cargo)
+        .map_err(|_| ())?;
+    let root = bound.plan().account().commitment();
+    let refusal = SupportAssembly::assembled(
+        root,
+        None,
+        SupportAxes {
+            declared: absent_axis(),
+            deferred: AxisCargo::Carried(proved),
+            bench: absent_axis(),
+        },
+    )
+    .err()
+    .ok_or(())?;
+    assert_eq!(
+        refusal.first_issue(),
+        &AssemblyIssue::CargoReachesASecondDestination {
+            axis: CargoAxis::Deferred,
+            destination: Destination::BenchCarrier,
+        }
+    );
     Ok(())
 }
 

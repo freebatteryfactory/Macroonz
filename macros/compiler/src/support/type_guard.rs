@@ -1,13 +1,9 @@
-//! The support home's invariant nucleus: every road that reaches a private field.
-//!
-//! Declared inside `types.rs` as its own child, which is what makes this home's claims structural rather than reviewed.
-//! A name is parsed HERE, so a reference that names nothing is not a value anybody can hold.
-//! A path is rooted HERE, so a rendered expression naming no crate is unwritable.
-//! Proved cargo is promoted HERE, off a terminal's own delivery and compared against what that delivery carries, so a carrier holding tokens nobody proved is unwritable.
-//! An assembly is built HERE, after the whole verification agreed, so there is no half-verified whole for a renderer to mistake for a verified one.
-//! And a carrier is composed HERE, in one act, so its bytes are a function of the assembly the caller holds and of nothing beside it.
+//! The invariant nucleus declared inside `types.rs`, with the only roads to this home's private fields.
+//! Name admission, proved-cargo promotion, verified assembly, and shell composition stay here because each operation mints a value whose private state is the proof later operations consume.
 
-use super::super::establish::{carried_axes, consumption_issues, form_issues, root_issues};
+use super::super::establish::{
+    carried_axes, consumption_issues, destination_issues, form_issues, root_issues,
+};
 use super::super::render;
 use super::{
     ASSEMBLY_ISSUE_LIMIT, AssemblyError, AssemblyIssue, AxisCargo, BoundPath, CargoAxis,
@@ -354,8 +350,9 @@ impl SupportAssembly {
     ///
     /// # What is established here, and what was established before
     ///
-    /// Each carried axis's cargo was already proved to be its own terminal's by [`ProvedCargo::carried`], which is why no loose tree reaches this.
-    /// What remains are the facts about the WHOLE: one declaration under every axis, every terminal's delivery consumed once, and one delivery form with the seats that form requires.
+    /// Each carried value was already proved to be its own terminal's by [`ProvedCargo::carried`], which is why no loose tree reaches this.
+    /// The public axes then choose where that value is seated, so this road rechecks that every field reads the proved destination its own row names.
+    /// What remains beside that relationship are the facts about the WHOLE: one declaration under every axis, every terminal's delivery consumed once, and one delivery form with the seats that form requires.
     /// The gate pin is these services' own published constant, written here so no caller can offer another.
     ///
     /// # Errors
@@ -368,11 +365,11 @@ impl SupportAssembly {
     ) -> Result<Self, AssemblyError> {
         let mut issues: Vec<AssemblyIssue> = Vec::new();
 
-        // The carried set borrows the axes, and the axes move into the assembly
-        // below, so the pass over them is closed before either happens.
+        // The pass closes before the borrowed axes move into the assembly.
         {
             let carried = carried_axes(&axes);
             issues.extend(root_issues(root, &carried));
+            issues.extend(destination_issues(&carried));
             issues.extend(consumption_issues(&carried));
         }
         issues.extend(form_issues(&axes));
