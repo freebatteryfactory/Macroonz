@@ -1,0 +1,9 @@
+error[E0451]: fields `items` and `capping` of struct `Capped` are private
+ --> tests/compile_refusals/compile-fail/a-capped-collection-cannot-be-minted-beside-its-guard.rs:7:9
+  |
+6 |     let _capped = Capped::<u8, 1> {
+  |                   --------------- in this type
+7 |         items: NonEmpty::one(1),
+  |         ^^^^^ private field
+8 |         capping: Capping::Complete,
+  |         ^^^^^^^ private field

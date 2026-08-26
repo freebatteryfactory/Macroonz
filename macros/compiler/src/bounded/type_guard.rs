@@ -6,13 +6,13 @@
 use super::{Bounded, Capped, Capping, Empty, NonEmpty, NonEmptyError, Overflow};
 
 impl<T, const N: usize> Bounded<T, N> {
-    /// The list holding nothing.
+    /// An empty collection under this ceiling.
     #[must_use]
     pub const fn empty() -> Self {
         Self(Vec::new())
     }
 
-    /// Takes a list under this ceiling.
+    /// Admits one complete ordered offering under this ceiling.
     ///
     /// # Errors
     ///
@@ -28,7 +28,7 @@ impl<T, const N: usize> Bounded<T, N> {
         }
     }
 
-    /// Takes a fixed-arity list, whose fit is settled at compile time.
+    /// Admits a fixed-arity offering whose fit is settled at compile time.
     #[must_use]
     pub fn from_array<const M: usize>(items: [T; M]) -> Self {
         const {
@@ -63,7 +63,7 @@ impl<T, const N: usize> Bounded<T, N> {
         self.0.is_empty()
     }
 
-    /// Append one item where it fits under this ceiling.
+    /// Appends one item where the resulting collection fits under this ceiling.
     ///
     /// # Errors
     ///
@@ -82,7 +82,7 @@ impl<T, const N: usize> Bounded<T, N> {
 }
 
 impl<T, const N: usize> NonEmpty<T, N> {
-    /// The list holding exactly the one item.
+    /// A non-empty collection holding exactly one item.
     #[must_use]
     pub const fn one(value: T) -> Self {
         const {
@@ -97,7 +97,7 @@ impl<T, const N: usize> NonEmpty<T, N> {
         }
     }
 
-    /// Takes a list under this ceiling.
+    /// Admits one complete ordered offering that is non-empty and under this ceiling.
     ///
     /// # Errors
     ///
@@ -155,7 +155,7 @@ impl<'held, T, const N: usize> IntoIterator for &'held NonEmpty<T, N> {
 }
 
 impl<T, const N: usize> Capped<T, N> {
-    /// The capped list that kept everything.
+    /// A capped collection that kept its complete lawful offering.
     #[must_use]
     pub const fn all(items: NonEmpty<T, N>) -> Self {
         Self {
@@ -164,7 +164,7 @@ impl<T, const N: usize> Capped<T, N> {
         }
     }
 
-    /// Keeps the first item and as many of the rest as fit, and records how many did not.
+    /// Keeps the first item and the ordered prefix of the rest that fits, then records the exact omitted count.
     #[must_use]
     pub fn first_n(first: T, rest: impl Iterator<Item = T>) -> Self {
         const {

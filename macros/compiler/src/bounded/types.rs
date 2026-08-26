@@ -1,4 +1,4 @@
-//! The bounded home's declarations: three collections, the record of how one was capped, and the two ways construction refuses.
+//! The bounded home's collection shapes, capping posture, and construction refusals.
 //!
 //! Declarations only.
 //! Every road that reaches a private field lives in `type_guard.rs`, this file's own child, which is what makes each ceiling structural rather than remembered.
@@ -6,11 +6,11 @@
 #[path = "type_guard.rs"]
 mod guard;
 
-/// A list of at most `N` items.
+/// An ordered collection of at most `N` items.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Bounded<T, const N: usize>(Vec<T>);
 
-/// A list of at least one and at most `N` items.
+/// An ordered collection of at least one and at most `N` items.
 ///
 /// The first item is a field, so non-emptiness is the shape of the value rather than a property a road checks.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -19,7 +19,7 @@ pub struct NonEmpty<T, const N: usize> {
     tail: Vec<T>,
 }
 
-/// A non-empty list together with how it was capped.
+/// A non-empty ordered collection together with its constructor-derived capping posture.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Capped<T, const N: usize> {
     items: NonEmpty<T, N>,
@@ -38,7 +38,7 @@ pub enum Capping {
     },
 }
 
-/// More items were offered than a bound admits.
+/// The exact magnitude refused because more items were offered than a ceiling admits.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Overflow {
     /// The most items the bound admits.
@@ -51,7 +51,7 @@ pub struct Overflow {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Empty;
 
-/// How construction of a non-empty list refuses.
+/// How construction of a required non-empty collection refuses.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NonEmptyError {
     /// Nothing was offered.
