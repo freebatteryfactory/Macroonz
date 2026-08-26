@@ -1,4 +1,4 @@
-//! The diagnostic home's declarations: one diagnostic, the door it is asked through, the typed parts of its one summary line, the registries a refusal reads its vocabulary off, and the trait a refusing step implements.
+//! The diagnostic home's declarations: one diagnostic, the typed parts of its one summary line, the registries a refusal reads its vocabulary off, and the trait a refusing step implements.
 //!
 //! Declarations only.
 //! Every road that reaches a private field lives in `type_guard.rs`, this file's own child, so the seats a caller may not write have exactly one way in.
@@ -7,7 +7,6 @@ use crate::bounded::{Bounded, Capping};
 use crate::identity::{
     Contract, HumanProjection, Identity, OwnerFact, RelatedBody, RelatedIssue, ServiceEntry,
 };
-use crate::request::{CrateBinding, Producer};
 use crate::token::{SourceCoordinate, SpanHandle, SpanResolutionRefusal, SpanTable};
 
 #[path = "type_guard.rs"]
@@ -321,18 +320,6 @@ pub struct Repair {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Route {
     entry: Identity<ServiceEntry>,
-}
-
-/// The one value that says who is asking.
-///
-/// The two declared names are spellings rather than identities so a door is a `const` a consumer writes down once; the identities they stand for are derived on read, under the declared-name grammar at the two positions this compiler assigns.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Door {
-    prefix: &'static str,
-    grammar: &'static str,
-    entry: &'static str,
-    binding: CrateBinding,
-    producer: Producer,
 }
 
 /// Where one projected refusal sits.

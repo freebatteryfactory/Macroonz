@@ -2,9 +2,9 @@
 //!
 //! Each answer is read from the value that holds it and never from a second copy: the kind names itself, the account names what caused it, the context names the profile, the closure names the digest, and the door names who required it.
 
+use super::Door;
 use crate::bounded::Bounded;
 use crate::closure::Closure;
-use crate::diagnostic::Door;
 use crate::explanation::{AnsweredOutput, ExplanationError, UniversalAnswer};
 use crate::identity::OwnerFact;
 use crate::kind::Kind;

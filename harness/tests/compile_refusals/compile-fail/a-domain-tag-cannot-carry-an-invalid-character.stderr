@@ -1,0 +1,19 @@
+error[E0080]: evaluation panicked: a domain tag contains a byte outside its declared character grammar
+ --> tests/compile_refusals/compile-fail/a-domain-tag-cannot-carry-an-invalid-character.rs:4:5
+  |
+4 |     DomainTag::declared("invalid_tag", IdentityProfileVersion::declared(1));
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ evaluation of `INVALID_DOMAIN` failed inside this call
+  |
+note: inside `identity::types::guard::<impl DomainTag>::declared`
+ --> $RUST/core/src/panic.rs
+  |
+  |           $crate::panicking::panic_fmt($crate::const_format_args!($($t)+));
+  |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the failure occurred here
+  |
+ ::: src/identity/type_guard.rs
+  |
+  | /             assert!(
+  | |                 matches!(*byte, b'a'..=b'z' | b'0'..=b'9' | b'-'),
+  | |                 "a domain tag contains a byte outside its declared character grammar"
+  | |             );
+  | |_____________- in this macro invocation

@@ -21,7 +21,8 @@ Nothing is lost to it: every established issue has its own identity in the relat
 
 ## The door
 
-`Door` is the one value that says who is asking — the diagnostic prefix a consumer's users read, the stable name of its declaration grammar, the stable name of its entry point, the crate its rendered paths are rooted at, and the producer it stamps.
+The request home owns `Door`, the one value that says who is asking — the diagnostic prefix a consumer's users read, the stable name of its declaration grammar, the stable name of its entry point, the crate its rendered paths are rooted at, and the producer it stamps.
+This home consumes its first three facts when it projects a refusal and reexports the request type at `diagnostic::Door` as a compatibility path; that path is public navigation, not a second declaration.
 
 Say it once and every diagnostic carries it.
 The prefix opens every line; the two declared names become the expected contract and the reproduction route, derived here under the declared-name grammar at the two positions this compiler assigns.

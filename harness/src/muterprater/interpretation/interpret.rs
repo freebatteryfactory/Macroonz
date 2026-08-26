@@ -13,18 +13,21 @@
 //! This module records what they returned and delegates wall measurement to the clock owner; measurement posture never enters parity or mutation classification.
 
 use super::types::{
-    ActivationEvidence, ActiveSelection, AdmittedAlternative, CompiledProjectionPressure,
-    CompiledSuitePressure, DudPlant, EvaluationDirective, EvaluationPair, EvaluationSurface,
-    FamilyAttribution, InterpretedExecutionRefusal, InterpretedMutationEvidence, InterpretedTrust,
-    InterpreterAvailability, MUTERPRATER_NAMESPACE, MappingPosture, MissingTrustEvidence,
-    MutationIdentity, MutationPoint, MutationReport, MutationSite, MutationTarget, MutationWitness,
+    EvaluationPair, InterpretedExecutionRefusal, InterpretedMutationEvidence, InterpretedTrust,
+    InterpreterAvailability, MUTERPRATER_NAMESPACE, MissingTrustEvidence, MutationWitness,
     NO_MUTATION_PAIRING, NoMutationObservationRefusal, NoMutationParityQualification,
     NoMutationParityReading, NoMutationParityStanding, NoMutationReports, NoMutationResults,
     PARITY_DECLARATION_SUBSTRATE, PARITY_RENDERING_SUBSTRATE, ParityQualificationRefusal,
-    ParityRefusal, PlanRefusal, PlannedDamage, PlannedRun, PressureLane, ProofPlan,
-    RejectedNoMutationParity, ScopedInvocation, SelectionRefusal,
+    ParityRefusal, RejectedNoMutationParity,
 };
 use crate::descriptor::NamespacedName;
+use crate::muterprater::{
+    ActivationEvidence, ActiveSelection, AdmittedAlternative, CompiledProjectionPressure,
+    CompiledSuitePressure, DudPlant, EvaluationDirective, EvaluationSurface, FamilyAttribution,
+    MappingPosture, MutationIdentity, MutationPoint, MutationReport, MutationSite, MutationTarget,
+    PlanRefusal, PlannedDamage, PlannedRun, PressureLane, ProofPlan, ScopedInvocation,
+    SelectionRefusal,
+};
 use crate::properties::{SharedSubstrate, SubstrateRef, SubstrateRoster, agreement};
 use crate::report::{FindingCause, HostTrialRecord, RunAttempt, TrialConclusion};
 use crate::runner::{
@@ -54,7 +57,7 @@ fn parity_cause() -> Result<FindingCause, ParityRefusal> {
 }
 
 /// Find and validate the exact alternative one active selection names.
-pub(super) fn selected_alternative(
+pub(in crate::muterprater) fn selected_alternative(
     surface: &EvaluationSurface,
     selection: ActiveSelection,
 ) -> Result<(&MutationPoint, &AdmittedAlternative), SelectionRefusal> {

@@ -7,11 +7,12 @@
 //! A renderer answers in the render vocabulary, which has no seat for a shell refusal, so the refusal is parked beside the walk and converted to the diagnostic it deserves — the render-level abort it rides out on is never what a person reads.
 
 use super::types::{ShellError, SupportAssembly, SupportCarrier, SupportShell};
-use crate::diagnostic::{Diagnostic, Door, Placement};
+use crate::diagnostic::{Diagnostic, Placement};
 use crate::expansion::Expansion;
 use crate::identity::{self, Identity};
 use crate::kind::SoleRole;
 use crate::render::RenderError;
+use crate::request::Door;
 use crate::request::Request;
 use crate::token::CapturedInput;
 

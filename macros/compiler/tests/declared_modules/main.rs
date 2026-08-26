@@ -6,7 +6,9 @@ use macroonz_compiler::descriptor::Grammar;
 use macroonz_compiler::descriptor::concurrency::ConcurrencyModule;
 use macroonz_compiler::descriptor::door;
 use macroonz_compiler::descriptor::network::NetworkModule;
+use macroonz_compiler::diagnostic::Door as DiagnosticDoor;
 use macroonz_compiler::kind::Kind;
+use macroonz_compiler::request::Door as RequestDoor;
 use macroonz_compiler::{CrateBinding, Diagnostic, Door, Expansion, Phase, Producer, TextCapture};
 
 /// The one value that says who is asking.
@@ -20,6 +22,11 @@ const DOOR: Door = Door::declared(
         name: "declared",
     },
 );
+
+/// Every approved public path names the one request-owned type.
+const _: RequestDoor = DOOR;
+const _: DiagnosticDoor = DOOR;
+const _: Door = DOOR;
 
 /// The network grammar this lane registers.
 const NETWORK: Grammar = Grammar {

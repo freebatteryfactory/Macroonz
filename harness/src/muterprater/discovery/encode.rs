@@ -2,12 +2,13 @@
 //!
 //! Every member is length-framed through the record vocabulary's one framing law, so no two different readings can share a preimage by accident.
 
-use super::{
+use super::types::{
     AdmittedAlternative, DiscoveryEntry, EvaluationFamilyRef, MutationPermission, MutationPoint,
-    MutationPolicyId, OperatorFamilyRef, OwnerClaimMapping,
+    MutationPolicyId, OwnerClaimMapping,
 };
 use crate::descriptor::{MutationPointRef, NamespacedName};
 use crate::identity::{ContentAddress, DomainTag};
+use crate::muterprater::OperatorFamilyRef;
 use crate::report::{encode_bytes, encode_length};
 
 /// Append one namespaced name, through the type's own seated spelling.

@@ -22,7 +22,7 @@ use super::{
     SupportName,
 };
 use crate::bounded::Overflow;
-use crate::diagnostic::Door;
+use crate::request::Door;
 use crate::token::{
     GeneratedDelimiter, GeneratedToken, attribute, documentation, group, metavariable,
     segmented_twin_path,

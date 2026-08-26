@@ -7,17 +7,18 @@
 //! Generic pressure from a wrapped backend is a separate evidence book.
 //! It shows that a qualified external suite bit somewhere under its adapter profile, and it carries no pair or selection authority, so it cannot substitute for this road.
 
-use super::interpret::selected_alternative;
 use super::types::{
-    ActiveSelection, AdmittedAlternative, ArtifactContent, CompiledProjectionPressure,
-    CompiledProjectionRefusal, CompiledSpecimenHost, CompiledSpecimenHostRefusal,
-    CompiledSpecimenObservationMismatch, CompiledSpecimenRequest, CompiledSpecimenRole,
-    CompiledSpecimenStanding, EvaluationDirective, EvaluationPairStanding, EvaluationSurface,
-    FamilyAttribution, MappingPosture, MutationIdentity, MutationPoint, MutationReport,
-    MutationSite, MutationTarget, MutationWitness, NoMutationParityQualification,
-    SpecimenMaterializerBinding,
+    ArtifactContent, CompiledProjectionPressure, CompiledProjectionRefusal, CompiledSpecimenHost,
+    CompiledSpecimenHostRefusal, CompiledSpecimenObservationMismatch, CompiledSpecimenRequest,
+    CompiledSpecimenRole, CompiledSpecimenStanding, SpecimenMaterializerBinding,
 };
 use crate::descriptor::CheckRef;
+use crate::muterprater::interpret::selected_alternative;
+use crate::muterprater::{
+    ActiveSelection, AdmittedAlternative, EvaluationDirective, EvaluationPairStanding,
+    EvaluationSurface, FamilyAttribution, MappingPosture, MutationIdentity, MutationPoint,
+    MutationReport, MutationSite, MutationTarget, MutationWitness, NoMutationParityQualification,
+};
 use crate::report::{ExecutionKey, HostTrialRecord, RunAttempt, TrialReport};
 use crate::runner::{
     Invocation, ReportRecordingRefusal, execution_key, lens_verdict, record_one, trial_identity,

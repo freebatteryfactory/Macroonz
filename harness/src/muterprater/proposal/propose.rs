@@ -23,22 +23,23 @@
 //! Replay-bearing proposals additionally cross the caller-owned replay depot before the admitted row is returned.
 //! Runtime evidence never invokes either operation and never writes authored specification by itself.
 
-use super::types::{
+use super::super::wrap::mutant_scoped;
+use super::{
     CandidateSketch, CheckGap, ClaimPinnedGround, ClaimPinnedProposal, Demonstration,
     DischargeAdmissionReceipt, DischargeEvidence, DischargeProposalRefusal, FailureComparison,
-    HumanAdmissionRefusal, InferredObligation, IntendedRejection, KillProposalRefusal,
-    MutantKilledGround, MutantKilledProposal, MutationOutcome, MutationReport, MutationTarget,
-    ObligationComparison, ObligationDischargedGround, ObligationDischargedProposal, ObligationLane,
-    OwedClaim, OwedDeclaration, ProofDelta, ProofDeltaRefusal, ProofRefusal, ProposalDestination,
-    ProposalDocument, ProposalRefusal, ReplayAdmissionReceipt, ReplayBearingProposal,
-    StoredProposalRef, SurvivorExplanation, SynthesisRefusal,
+    HumanAdmissionRefusal, InferredObligation, KillProposalRefusal, MutantKilledGround,
+    MutantKilledProposal, ObligationComparison, ObligationDischargedGround,
+    ObligationDischargedProposal, ObligationLane, OwedClaim, OwedDeclaration, ProofDelta,
+    ProofDeltaRefusal, ProofRefusal, ProposalDestination, ProposalDocument, ProposalRefusal,
+    ReplayAdmissionReceipt, ReplayBearingProposal, StoredProposalRef, SurvivorExplanation,
+    SynthesisRefusal,
 };
-use super::wrap::mutant_scoped;
 use crate::depot::capsules::{ReplayCapsuleEntry, ReplayDepotSink};
 use crate::descriptor::{
     CheckRef, ClaimRef, DischargeAdmission, Origin, ReplayAdmission, Row, StagedTableView,
     SynthesisFacts,
 };
+use crate::muterprater::{IntendedRejection, MutationOutcome, MutationReport, MutationTarget};
 use crate::report::{ClaimCoverage, Fingerprint, ReplayCapsule, TrialId};
 use crate::runner::{Invocation, SelectionPlan, TrialBinding, TrialTable, run_all, trial_identity};
 use std::collections::BTreeSet;

@@ -5,4 +5,4 @@ mod explain;
 mod types;
 
 pub use decide::{bound_content, committed};
-pub use types::{CrateBinding, Producer, RUST_DECLARATION_PROFILE, Request, SELECTION_FACT};
+pub use types::{CrateBinding, Door, Producer, RUST_DECLARATION_PROFILE, Request, SELECTION_FACT};

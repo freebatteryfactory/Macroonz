@@ -1,4 +1,4 @@
-//! The diagnostic home's invariant nucleus: the one road that builds a related set, the one road that builds a diagnostic, and the roads a site and a door are read through.
+//! The diagnostic home's invariant nucleus: the one road that builds a related set, the one road that builds a diagnostic, and the roads its own values are read through.
 //!
 //! Declared inside `types.rs` as its own child, so the seats a caller may not write are reachable here and nowhere else.
 //!
@@ -7,7 +7,7 @@
 //! The diagnostic road takes a refusal, a door, and a placement, and composes the summary, the site, and the related set together, so a line naming one position beside a seat holding another is unrepresentable.
 
 use super::{
-    Diagnostic, DiagnosticSeats, Door, Family, Line, LineSite, Observed, Phase, Placement, Refused,
+    Diagnostic, DiagnosticSeats, Family, Line, LineSite, Observed, Phase, Placement, Refused,
     RelatedIdentity, RelatedSet, Repair, Route, Site, SiteCoordinate,
 };
 use crate::bounded::{Bounded, Capping};
@@ -15,7 +15,7 @@ use crate::diagnostic::project::{composed, witnessed};
 use crate::identity::{
     Contract, Identity, RelatedBody, RelatedIssue, Role, ServiceEntry, Transcript, encode_bytes,
 };
-use crate::request::{CrateBinding, Producer};
+use crate::request::Door;
 use crate::token::{SourceCoordinate, SpanHandle};
 
 impl Family {
@@ -235,70 +235,6 @@ impl Route {
     #[must_use]
     pub const fn entry(self) -> Identity<ServiceEntry> {
         self.entry
-    }
-}
-
-impl Door {
-    /// One door, by the five facts a consumer declares once.
-    ///
-    /// A `const`, so a consumer writes it down beside its derive and passes it by reference from then on.
-    #[must_use]
-    pub const fn declared(
-        prefix: &'static str,
-        grammar: &'static str,
-        entry: &'static str,
-        binding: CrateBinding,
-        producer: Producer,
-    ) -> Self {
-        Self {
-            prefix,
-            grammar,
-            entry,
-            binding,
-            producer,
-        }
-    }
-
-    /// The word every line composed through this door opens with.
-    #[must_use]
-    pub const fn prefix(&self) -> &'static str {
-        self.prefix
-    }
-
-    /// The declaration grammar every diagnostic through this door expected to hold.
-    ///
-    /// Derived over the declared name's own bytes, rooted at [`Role::DeclaredName`], at position zero — the seat this compiler assigns a door's grammar.
-    #[must_use]
-    pub fn grammar(&self) -> Identity<Contract> {
-        Identity::derived(Transcript::rooted(
-            Role::DeclaredName,
-            self.grammar.as_bytes(),
-            0,
-        ))
-    }
-
-    /// The callable entry point every diagnostic through this door reproduces at.
-    ///
-    /// Derived on [`Door::grammar`]'s terms, separated from it by its own subject and by its own content, at position one.
-    #[must_use]
-    pub fn entry(&self) -> Identity<ServiceEntry> {
-        Identity::derived(Transcript::rooted(
-            Role::DeclaredName,
-            self.entry.as_bytes(),
-            1,
-        ))
-    }
-
-    /// The crate a path rendered through this door is rooted at.
-    #[must_use]
-    pub const fn binding(&self) -> CrateBinding {
-        self.binding
-    }
-
-    /// Who is producing, for whatever this door's expansions are stamped into.
-    #[must_use]
-    pub const fn producer(&self) -> Producer {
-        self.producer
     }
 }
 

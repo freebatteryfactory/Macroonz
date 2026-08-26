@@ -3,9 +3,10 @@
 use super::walk::{helper_refused, unit_tree};
 use crate::descriptor::Grammar;
 use crate::descriptor::network::{self, NetworkModule};
-use crate::diagnostic::{Diagnostic, Door};
+use crate::diagnostic::Diagnostic;
 use crate::expansion::Expansion;
 use crate::kind::SoleRole;
+use crate::request::Door;
 use crate::request::Request;
 use crate::token::CapturedInput;
 

@@ -54,7 +54,7 @@ A request that fails a step is refused whole, and nothing that did not bind is h
 
 ## The seats
 
-`types.rs` declares the request, the producer, the crate binding, the profile a request runs under, and the fact the selection rule cites.
+`types.rs` declares the request, its door, the producer, the crate binding, the profile a request runs under, and the fact the selection rule cites.
 
 Its own child `type_guard.rs` holds every road that reaches a private field: the six steps, and the one walk.
 `decide.rs` states what a request decides before a token of Rust exists — the capture commitment, owner-qualified kind, content binding, seat identities, membership, trail, and trace.

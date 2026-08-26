@@ -17,11 +17,11 @@ use super::{
 };
 use crate::bounded::{Capped, Capping, NonEmpty, NonEmptyError};
 use crate::closure::PartitionCargo;
-use crate::diagnostic::Door;
 use crate::expansion::Expansion;
 use crate::identity::{self, ClosedExpansionId, Identity, PlanId};
 use crate::kind::{Destination, Kind};
 use crate::plan::Plan;
+use crate::request::Door;
 use crate::token::{GeneratedToken, GeneratedTree};
 
 /// One lowercase hexadecimal digit for the low four bits of a byte.

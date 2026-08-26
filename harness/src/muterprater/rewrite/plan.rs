@@ -9,11 +9,11 @@
 //! So [`admission`] reads the interpreted lane's availability, and an admitted descriptor is still an audit candidate rather than evidence until an actual execution earns a later claim.
 
 use super::types::{
-    ArtifactMutation, InterpreterAvailability, RewriteAdmission, RewriteCandidate, RewriteRoster,
-    RewriteWithheld, ScopeShape,
+    ArtifactMutation, RewriteAdmission, RewriteCandidate, RewriteRoster, RewriteWithheld,
 };
 use crate::depot::operator_families::OPERATOR_FAMILIES;
 use crate::depot::types::OperatorFamily;
+use crate::muterprater::{InterpreterAvailability, ScopeShape};
 
 impl ArtifactMutation {
     /// The damage rendered for a person.
@@ -45,7 +45,7 @@ impl ArtifactMutation {
 
 /// Plan one roster's descriptors as audit candidates under one scope.
 ///
-/// A pure function of its arguments, and every candidate carries [`RewriteTrust::AuditPending`](super::RewriteTrust::AuditPending), because a planned rewrite is something the harness audits and never something it has established.
+/// A pure function of its arguments, and every candidate carries [`RewriteTrust::AuditPending`](super::types::RewriteTrust::AuditPending), because a planned rewrite is something the harness audits and never something it has established.
 #[must_use]
 pub fn planned(roster: &RewriteRoster, scope: &ScopeShape) -> Vec<RewriteCandidate> {
     roster

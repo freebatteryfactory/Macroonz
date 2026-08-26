@@ -6,12 +6,14 @@
 //! The walk is one function because the road is one road: a caller cannot arrive at a proof holding a rendering nobody planned, and cannot arrive at a binding holding an explanation answered over something else, because there is no seat between the steps to put a foreign value in.
 
 use super::super::{decide, explain};
-use super::{CrateBinding, RUST_DECLARATION_PROFILE, Request};
+use super::{CrateBinding, Door, Producer, RUST_DECLARATION_PROFILE, Request};
 use crate::closure::Closure;
-use crate::diagnostic::{Diagnostic, Door, Placement, Refused};
+use crate::diagnostic::{Diagnostic, Placement, Refused};
 use crate::expansion::Expansion;
 use crate::explanation::View;
-use crate::identity::{self, Identity, OwnerFact, OwnerIdentity, Profile};
+use crate::identity::{
+    self, Contract, Identity, OwnerFact, OwnerIdentity, Profile, Role, ServiceEntry, Transcript,
+};
 use crate::kind::{Kind, Question};
 use crate::plan::Plan;
 use crate::render::{Output, RenderError};
@@ -28,6 +30,70 @@ impl CrateBinding {
     #[must_use]
     pub const fn spelling(self) -> &'static str {
         self.spelling
+    }
+}
+
+impl Door {
+    /// One door, by the five facts a consumer declares once.
+    ///
+    /// A `const`, so a consumer writes it down beside its derive and passes it by reference from then on.
+    #[must_use]
+    pub const fn declared(
+        prefix: &'static str,
+        grammar: &'static str,
+        entry: &'static str,
+        binding: CrateBinding,
+        producer: Producer,
+    ) -> Self {
+        Self {
+            prefix,
+            grammar,
+            entry,
+            binding,
+            producer,
+        }
+    }
+
+    /// The word every line composed through this door opens with.
+    #[must_use]
+    pub const fn prefix(&self) -> &'static str {
+        self.prefix
+    }
+
+    /// The declaration grammar every diagnostic through this door expected to hold.
+    ///
+    /// Derived over the declared name's own bytes, rooted at [`Role::DeclaredName`], at position zero — the seat this compiler assigns a door's grammar.
+    #[must_use]
+    pub fn grammar(&self) -> Identity<Contract> {
+        Identity::derived(Transcript::rooted(
+            Role::DeclaredName,
+            self.grammar.as_bytes(),
+            0,
+        ))
+    }
+
+    /// The callable entry point every diagnostic through this door reproduces at.
+    ///
+    /// Derived on [`Door::grammar`]'s terms, separated from it by its own subject and by its own content, at position one.
+    #[must_use]
+    pub fn entry(&self) -> Identity<ServiceEntry> {
+        Identity::derived(Transcript::rooted(
+            Role::DeclaredName,
+            self.entry.as_bytes(),
+            1,
+        ))
+    }
+
+    /// The crate a path rendered through this door is rooted at.
+    #[must_use]
+    pub const fn binding(&self) -> CrateBinding {
+        self.binding
+    }
+
+    /// Who is producing, for whatever this door's expansions are stamped into.
+    #[must_use]
+    pub const fn producer(&self) -> Producer {
+        self.producer
     }
 }
 

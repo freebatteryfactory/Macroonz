@@ -19,6 +19,27 @@ const FIRST: IdentityProfileVersion = IdentityProfileVersion::declared(1);
 /// One preimage, used for every derivation below, so the only thing that varies between two addresses is the context they were derived under.
 const PREIMAGE: &[u8] = b"family-isolation-lane-preimage";
 
+/// The exact documented character grammar admits no other structural restrictions.
+#[test]
+fn domain_tags_admit_every_spelling_inside_the_declared_character_grammar() {
+    for spelling in ["", "a", "0", "-", "-a", "a-", "a--b", "a0-b9"] {
+        let tag = DomainTag::declared(spelling, FIRST);
+        assert_eq!(tag.spelling(), spelling);
+        assert_eq!(tag.version(), FIRST);
+    }
+}
+
+/// Every byte outside lowercase ASCII letters, ASCII digits, and `-` refuses through the public runtime surface.
+#[test]
+fn domain_tags_refuse_bytes_outside_the_declared_character_grammar() {
+    for spelling in ["A", "a_b", "a.b", "a/b", "a b", "a\nb", "é"] {
+        assert!(
+            std::panic::catch_unwind(|| DomainTag::declared(spelling, FIRST)).is_err(),
+            "the hostile spelling was admitted: {spelling:?}"
+        );
+    }
+}
+
 /// Two families over one preimage reach two unrelated addresses.
 ///
 /// This is what the family segment buys, and it is proven rather than asserted: without it, a schema identity and a trial key derived over identical material would be one value, and a caller holding either could read it as the other.

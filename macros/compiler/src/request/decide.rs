@@ -4,9 +4,9 @@
 //! No caller supplies the primary capture, kind, content, member, or plan identity: each is derived from the informed values this road receives.
 //! Dependency captures and publication addresses cross as typed citations because their owners are independent declarations, and they never substitute for an identity this request mints.
 
+use super::Door;
 use super::SELECTION_FACT;
 use crate::bounded::{Bounded, Overflow};
-use crate::diagnostic::Door;
 use crate::identity::{
     self, Identity, OwnerFact, OwnerIdentity, Profile, Transcript, encode_bytes,
 };
