@@ -1,0 +1,74 @@
+error[E0624]: associated function `captured` is private
+ --> tests/compile_refusals/compile-fail/report-records-cannot-be-minted-beside-their-owning-roads.rs:9:40
+  |
+9 |       let _capsule_mint = ReplayCapsule::captured;
+  |                                          ^^^^^^^^ private associated function
+  |
+ ::: src/report/guard_finding.rs
+  |
+  | /     pub(crate) fn captured(
+  | |         standing: &TrialRunStanding,
+  | |         input: &[u8],
+  | |         fingerprint: Fingerprint,
+... |
+  | |         posture: ReplayPosture,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
+
+error[E0624]: associated function `recorded` is private
+  --> tests/compile_refusals/compile-fail/report-records-cannot-be-minted-beside-their-owning-roads.rs:10:43
+   |
+10 |       let _trial_report_mint = TrialReport::recorded;
+   |                                             ^^^^^^^^ private associated function
+   |
+  ::: src/report/guard_record.rs
+   |
+   | /     pub(crate) fn recorded(
+   | |         standing: TrialRunStanding,
+   | |         site: TrialSite,
+   | |         attempt: RunAttempt,
+   | |         measurement: MeasurementReading,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0624]: associated function `recorded` is private
+  --> tests/compile_refusals/compile-fail/report-records-cannot-be-minted-beside-their-owning-roads.rs:11:39
+   |
+11 |       let _run_report_mint = RunReport::recorded;
+   |                                         ^^^^^^^^ private associated function
+   |
+  ::: src/report/guard_record.rs
+   |
+   | /     pub(crate) fn recorded(
+   | |         census: Vec<TrialAccounting>,
+   | |         posture: TablePosture,
+   | |         selection: SelectionOutcome,
+   | |         invocation: InvocationProfile,
+   | |         target: TargetBinding,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0624]: associated function `stated` is private
+  --> tests/compile_refusals/compile-fail/report-records-cannot-be-minted-beside-their-owning-roads.rs:12:41
+   |
+12 |       let _report_diff_mint = ReportDiff::stated;
+   |                                           ^^^^^^ private associated function
+   |
+  ::: src/report/guard_reading.rs
+   |
+   | /     pub(in crate::report) const fn stated(
+   | |         population: ReportPopulationDiff,
+   | |         execution: ReportExecutionDiff,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0624]: associated function `read` is private
+  --> tests/compile_refusals/compile-fail/report-records-cannot-be-minted-beside-their-owning-roads.rs:13:47
+   |
+13 |     let _claim_coverage_mint = ClaimCoverage::read;
+   |                                               ^^^^ private associated function
+   |
+  ::: src/report/guard_reading.rs
+   |
+   |     pub(in crate::report) fn read(entries: Vec<ClaimExercise>) -> Self {
+   |     ------------------------------------------------------------------ private associated function defined here

@@ -13,12 +13,12 @@ use macroonz_harness::generate::types::{
     ReductionProbeRefusal, ReductionRefusal, SemanticCandidateRefusal, SemanticCandidates,
     SemanticReducerBinding, SemanticReducerId, ShrinkVerdict,
 };
-use macroonz_harness::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
+use macroonz_harness::identity::{ContentAddress, DomainTag, IdentityProfileVersion, encode_bytes};
 use macroonz_harness::report::{
     ByteBudget, CaseBudget, FailureClass, FindingCause, FindingLocation, Fingerprint,
-    GenerationProfile, InvocationProfile, MinimizationProfile, ReplayPosture, TargetBinding,
-    TargetTriple, TimeBudget, ToolchainIdentity, TrialConclusion, TrialFinding, TrialId,
-    TrialProfile, TrialSite,
+    GenerationProfile, InvocationProfile, MinimizationProfile, REPLAY_CAPSULE_TAG, ReplayCapsule,
+    ReplayPosture, TargetBinding, TargetTriple, TimeBudget, ToolchainIdentity, TrialConclusion,
+    TrialFinding, TrialId, TrialProfile, TrialSite,
 };
 use macroonz_harness::runner::{Invocation, TrialBinding, run_one};
 use std::fmt;
@@ -29,6 +29,20 @@ const REVISION_TAG: DomainTag =
     DomainTag::declared("reduction-revision", IdentityProfileVersion::declared(1));
 const SCHEMA_TAG: DomainTag =
     DomainTag::declared("reduction-schema", IdentityProfileVersion::declared(1));
+
+fn independently_derived_capsule_identity(capsule: &ReplayCapsule) -> ContentAddress {
+    let mut preimage = Vec::new();
+    encode_bytes(capsule.key().address().as_bytes(), &mut preimage);
+    encode_bytes(capsule.input(), &mut preimage);
+    encode_bytes(capsule.fingerprint().address().as_bytes(), &mut preimage);
+    encode_bytes(capsule.generation().name().as_bytes(), &mut preimage);
+    preimage.extend_from_slice(&capsule.generation().version().to_be_bytes());
+    encode_bytes(capsule.minimization().name().as_bytes(), &mut preimage);
+    preimage.extend_from_slice(&capsule.minimization().version().to_be_bytes());
+    encode_bytes(capsule.schema().address().as_bytes(), &mut preimage);
+    preimage.push(capsule.posture().slot());
+    ContentAddress::derived(REPLAY_CAPSULE_TAG, &preimage)
+}
 
 enum ReductionRoadFailure {
     Plan(ReductionPlanRefusal),
@@ -278,6 +292,10 @@ fn semantic_reducer_custody_and_replay_posture_are_run_derived() -> Result<(), R
     assert_eq!(capsule.minimization(), evidence.minimization());
     assert_eq!(capsule.schema(), evidence.schema());
     assert_eq!(capsule.posture(), ReplayPosture::ExactDerived);
+    assert_eq!(
+        capsule.identity(),
+        independently_derived_capsule_identity(&capsule)
+    );
 
     let declared_plan = ReductionPlan::declared(
         MinimizationProfile::declared("semantic-reduction", 1),
