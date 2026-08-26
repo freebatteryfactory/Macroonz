@@ -3,8 +3,10 @@
 use super::support::{
     BACKEND_COMMAND, BACKEND_CONSOLE, BACKEND_NO_KILL, BACKEND_SOURCE, BACKEND_TARGET,
     BACKEND_TOOLCHAIN, BACKEND_VERSION, COMPILED_MUTANT_FILE, CURRENT_BACKEND_SOURCE,
-    MutationRoadFailure, backend_invocation, compiled_artifact, compiled_family, compiled_owner,
-    compiled_reading, current_custody, source_revision,
+    HISTORICAL_BACKEND_COMMAND, HISTORICAL_BACKEND_CONSOLE, HISTORICAL_BACKEND_SOURCE,
+    HISTORICAL_COMPILED_MUTANT_FILE, MutationRoadFailure, backend_invocation, compiled_artifact,
+    compiled_family, compiled_owner, compiled_reading, current_custody,
+    historical_compiled_artifact, historical_source_revision, source_revision,
 };
 use macroonz_harness::muterprater::wrap::{read_artifact, read_output};
 use macroonz_harness::muterprater::{
@@ -13,6 +15,67 @@ use macroonz_harness::muterprater::{
     CompiledSuiteArtifactStanding, CompiledSuitePressure, GrammarStanding, MutationSourceRevision,
     QualificationRefusal, ReadingSource, SuitePressureRefusal, WrappedBackend,
 };
+
+/// Claim: the prior compiled-pressure receipt remains exact historical evidence and cannot join to the moved current source coordinate.
+///
+/// Subject: the retained prior artifact, the current artifact, and the public source-custody constructor.
+/// Population: both exact source copies, both exact console outputs, both manifests, and the attempted old-manifest/new-coordinate join.
+/// Hostile control: the source coordinate and its ownership-relative import bytes differ, so source, output, and external-mutant identities differ and the crossed custody join refuses.
+/// Denominator: every coordinate-sensitive and bytes-sensitive identity carried by the two receipts.
+/// Evidence ceiling: this preserves what the prior run stated and does not present it as a rerun against the moved source.
+/// Retained regression: fixture drift, receipt relabeling, or acceptance of the crossed source join remains a permanent regression.
+#[test]
+fn prior_compiled_pressure_receipt_remains_historical() -> Result<(), MutationRoadFailure> {
+    let version = BackendVersion::stated(BACKEND_VERSION).map_err(|_| MutationRoadFailure::Name)?;
+    let historical = historical_compiled_artifact(
+        HISTORICAL_BACKEND_CONSOLE,
+        version.clone(),
+        HISTORICAL_BACKEND_SOURCE,
+    )?;
+    let current = compiled_artifact(BACKEND_CONSOLE, version, BACKEND_SOURCE)?;
+
+    assert_ne!(HISTORICAL_BACKEND_SOURCE, BACKEND_SOURCE);
+    assert_eq!(BACKEND_SOURCE, CURRENT_BACKEND_SOURCE);
+    assert_eq!(
+        historical.invocation().command().arguments(),
+        HISTORICAL_BACKEND_COMMAND
+    );
+    assert_eq!(current.invocation().command().arguments(), BACKEND_COMMAND);
+    let [historical_source] = historical.sources() else {
+        return Err(MutationRoadFailure::MissingAlternative);
+    };
+    let [current_source] = current.sources() else {
+        return Err(MutationRoadFailure::MissingAlternative);
+    };
+    assert_eq!(historical_source.file(), HISTORICAL_COMPILED_MUTANT_FILE);
+    assert_eq!(current_source.file(), COMPILED_MUTANT_FILE);
+    assert_eq!(
+        historical_source,
+        &historical_source_revision(HISTORICAL_BACKEND_SOURCE)?
+    );
+    assert_eq!(current_source, &source_revision(BACKEND_SOURCE)?);
+    assert_ne!(historical_source.revision(), current_source.revision());
+    assert_ne!(historical.output(), current.output());
+    let [historical_report] = historical.reading().run().reports() else {
+        return Err(MutationRoadFailure::MissingAlternative);
+    };
+    let [current_report] = current.reading().run().reports() else {
+        return Err(MutationRoadFailure::MissingAlternative);
+    };
+    assert_ne!(
+        historical_report.target().identity(),
+        current_report.target().identity()
+    );
+    assert!(matches!(
+        CompiledSuiteArtifactCustody::current(
+            historical,
+            vec![source_revision(CURRENT_BACKEND_SOURCE)?],
+        ),
+        Err(ArtifactCustodyRefusal::CurrentSourceMissing(file))
+            if file == HISTORICAL_COMPILED_MUTANT_FILE
+    ));
+    Ok(())
+}
 
 /// Adapter qualification remains bound to the exact backend profile whose reading earned it.
 #[test]

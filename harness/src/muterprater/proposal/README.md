@@ -14,7 +14,7 @@ Depot capsules owns replay entries, replay storage, stored replay references, an
 
 Verdict owns mutation outcomes, targets, reports, and intended rejection.
 
-The frozen parent `wrap.rs` supplies mutant-scoped execution without moving into this home.
+The private backend `wrap` operation supplies mutant-scoped execution without moving into this home.
 
 A proposal sink reports caller-owned review custody, and a replay depot reports caller-owned replay custody.
 

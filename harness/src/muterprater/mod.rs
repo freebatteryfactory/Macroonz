@@ -19,7 +19,7 @@ pub mod discover;
 pub use proposal::propose;
 pub mod rewrite;
 pub mod specimen;
-pub mod wrap;
+pub use backend::wrap;
 
 mod backend;
 mod discovery;

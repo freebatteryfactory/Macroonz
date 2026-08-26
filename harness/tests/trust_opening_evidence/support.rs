@@ -56,9 +56,15 @@ use std::process::Command;
 use std::sync::atomic::{AtomicU32, Ordering};
 pub(super) const OWNER: &str = "harness.mutation.receiver";
 pub(super) const BACKEND_CONSOLE: &str =
+    include_str!("current-compiled-pressure-artifact/cargo-mutants-27.0.0-console.txt");
+pub(super) const BACKEND_SOURCE: &[u8] =
+    include_bytes!("current-compiled-pressure-artifact/wrap.rs");
+pub(super) const CURRENT_BACKEND_SOURCE: &[u8] =
+    include_bytes!("../../src/muterprater/backend/wrap.rs");
+pub(super) const HISTORICAL_BACKEND_CONSOLE: &str =
     include_str!("compiled-pressure-artifact/cargo-mutants-27.0.0-console.txt");
-pub(super) const BACKEND_SOURCE: &[u8] = include_bytes!("compiled-pressure-artifact/wrap.rs");
-pub(super) const CURRENT_BACKEND_SOURCE: &[u8] = include_bytes!("../../src/muterprater/wrap.rs");
+pub(super) const HISTORICAL_BACKEND_SOURCE: &[u8] =
+    include_bytes!("compiled-pressure-artifact/wrap.rs");
 pub(super) const BACKEND_NO_KILL: &str = "Found 1 mutant to test\n\
     ok Unmutated baseline in 3.1s\n\
     missed src/subject/lane.rs:41:9: replace is_qualified -> bool with true in 4.0s";
@@ -66,6 +72,22 @@ pub(super) const BACKEND_VERSION: &str = "27.0.0";
 pub(super) const BACKEND_TARGET: &str = "x86_64-pc-windows-msvc";
 pub(super) const BACKEND_TOOLCHAIN: &str = "rustc 1.98.0 (88d9e12ae 2026-08-18)";
 pub(super) const BACKEND_COMMAND: &[&str] = &[
+    "mutants",
+    "--package",
+    "macroonz-harness",
+    "--file",
+    "harness/src/muterprater/backend/wrap.rs",
+    "--re",
+    "replace != with == in roster_count",
+    "--test-tool",
+    "nextest",
+    "--no-shuffle",
+    "--jobs",
+    "1",
+    "--caught",
+    "--no-times",
+];
+pub(super) const HISTORICAL_BACKEND_COMMAND: &[&str] = &[
     "mutants",
     "--package",
     "macroonz-harness",
@@ -81,7 +103,8 @@ pub(super) const BACKEND_COMMAND: &[&str] = &[
     "--caught",
     "--no-times",
 ];
-pub(super) const COMPILED_MUTANT_FILE: &str = "harness/src/muterprater/wrap.rs";
+pub(super) const COMPILED_MUTANT_FILE: &str = "harness/src/muterprater/backend/wrap.rs";
+pub(super) const HISTORICAL_COMPILED_MUTANT_FILE: &str = "harness/src/muterprater/wrap.rs";
 pub(super) const COMPILED_MUTANT_DAMAGE: &[u8] = b"replace != with == in roster_count";
 pub(super) const ORIGINAL_OPERATION: &[u8] = b"input != 0";
 pub(super) const SELECTED_OPERATION: &[u8] = b"input == 0";
@@ -590,11 +613,26 @@ pub(super) fn compiled_owner(coordinate: &SourceCoordinate) -> Option<ClaimRef> 
         .and_then(Result::ok)
 }
 
+pub(super) fn historical_compiled_owner(coordinate: &SourceCoordinate) -> Option<ClaimRef> {
+    (coordinate.file() == HISTORICAL_COMPILED_MUTANT_FILE)
+        .then(claim)
+        .and_then(Result::ok)
+}
+
 pub(super) fn compiled_family(
     coordinate: &SourceCoordinate,
     damage: &[u8],
 ) -> Option<OperatorFamilyRef> {
     (coordinate.file() == COMPILED_MUTANT_FILE && damage == COMPILED_MUTANT_DAMAGE)
+        .then(operator)
+        .and_then(Result::ok)
+}
+
+pub(super) fn historical_compiled_family(
+    coordinate: &SourceCoordinate,
+    damage: &[u8],
+) -> Option<OperatorFamilyRef> {
+    (coordinate.file() == HISTORICAL_COMPILED_MUTANT_FILE && damage == COMPILED_MUTANT_DAMAGE)
         .then(operator)
         .and_then(Result::ok)
 }
@@ -625,8 +663,31 @@ pub(super) fn backend_invocation(
     ))
 }
 
+pub(super) fn historical_backend_invocation(
+    version: BackendVersion,
+) -> Result<MutationBackendInvocation, MutationRoadFailure> {
+    let command = BackendCommand::declared("cargo", HISTORICAL_BACKEND_COMMAND)
+        .map_err(|_| MutationRoadFailure::Name)?;
+    Ok(MutationBackendInvocation::declared(
+        WrappedBackend::CargoMutants,
+        version,
+        command,
+        TargetBinding::bound(
+            TargetTriple::declared(BACKEND_TARGET),
+            ToolchainIdentity::declared(BACKEND_TOOLCHAIN),
+        ),
+    ))
+}
+
 pub(super) fn source_revision(bytes: &[u8]) -> Result<MutationSourceRevision, MutationRoadFailure> {
     MutationSourceRevision::from_content(COMPILED_MUTANT_FILE, bytes)
+        .map_err(|_| MutationRoadFailure::Name)
+}
+
+pub(super) fn historical_source_revision(
+    bytes: &[u8],
+) -> Result<MutationSourceRevision, MutationRoadFailure> {
+    MutationSourceRevision::from_content(HISTORICAL_COMPILED_MUTANT_FILE, bytes)
         .map_err(|_| MutationRoadFailure::Name)
 }
 
@@ -641,6 +702,20 @@ pub(super) fn compiled_artifact(
         vec![source_revision(artifact_source)?],
         compiled_owner,
         compiled_family,
+    )?)
+}
+
+pub(super) fn historical_compiled_artifact(
+    console: &str,
+    version: BackendVersion,
+    artifact_source: &[u8],
+) -> Result<CompiledSuiteArtifactManifest, MutationRoadFailure> {
+    Ok(read_artifact(
+        console,
+        historical_backend_invocation(version)?,
+        vec![historical_source_revision(artifact_source)?],
+        historical_compiled_owner,
+        historical_compiled_family,
     )?)
 }
 
@@ -809,7 +884,7 @@ pub(super) fn interpreted_kill() -> Result<MutationReport, MutationRoadFailure> 
         suite.kill().target().site(),
         MutationSite::Reported(coordinate)
             if coordinate.file() == COMPILED_MUTANT_FILE
-                && coordinate.line() == 348
+                && coordinate.line() == 351
                 && coordinate.column() == 13
     ));
     let selection = selection_for_operation(&surface, SELECTED_OPERATION)?;

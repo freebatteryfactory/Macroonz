@@ -20,15 +20,15 @@
 //! Three of those four are this file's own facts, so [`console_profile`] states them and only the backend version is the caller's word.
 //!
 //! The backend says which of its own mutants its command rejected and says nothing about whether a damaged expression was ever reached, so every mutant read here carries [`ActivationDisposition::UnobservableUnderBackend`].
-//! Two consequences follow, both structural: a kill under this lane asserts witness rejection and never observed activation, and a non-kill can never earn survived — it is inconclusive, and [`MutationRun::non_kills`](super::MutationRun::non_kills) is the roster a reader means by "what got through".
-//! The same fact at run width is the profile's [`ClaimCeiling::WitnessRejection`](super::ClaimCeiling::WitnessRejection), and a reading whose run carries a survivor is refused rather than believed.
+//! Two consequences follow, both structural: a kill under this lane asserts witness rejection and never observed activation, and a non-kill can never earn survived — it is inconclusive, and [`MutationRun::non_kills`](crate::muterprater::MutationRun::non_kills) is the roster a reader means by "what got through".
+//! The same fact at run width is the profile's [`ClaimCeiling::WitnessRejection`](crate::muterprater::ClaimCeiling::WitnessRejection), and a reading whose run carries a survivor is refused rather than believed.
 //!
 //! A kill's rejection is the backend's word ([`IntendedRejection::ReportedByBackend`]), because it named neither a trial nor a cause, so no fingerprint exists for it.
 //!
 //! # What stands behind the grammar
 //!
 //! The grammar is an inspectable assumption about one tool's rendering, and it qualifies nothing until a party states that these shapes were checked against real output of the exact backend version a reading names.
-//! That statement is what [`AdapterQualification`](super::AdapterQualification) carries, and [`CompiledSuitePressure`](super::CompiledSuitePressure) is a lawful kill read out of a current-source-qualified artifact carrying that exact profile.
+//! That statement is what [`AdapterQualification`](crate::muterprater::AdapterQualification) carries, and [`CompiledSuitePressure`](crate::muterprater::CompiledSuitePressure) is a lawful kill read out of a current-source-qualified artifact carrying that exact profile.
 //! A different machine-readable backend surface, if adopted, earns its own profile and its own qualification rather than inheriting this grammar's standing.
 //!
 //! # The caller-supplied seams
@@ -36,15 +36,18 @@
 //! External mutants arrive as source coordinates rather than as claims, so the reading from a coordinate to its owning claim is the caller's ([`OwnerLookup`]), and so is the reading from damage text to operator family ([`FamilyLookup`]).
 //! Neither answer is invented here: an unanswered lookup produces [`MappingPosture::OwnerUnmapped`] and [`FamilyAttribution::OutsideTheBank`], and the witness selection widens accordingly.
 
+use super::super::types::{
+    ActivationDisposition, BaselineAxis, BaselineQualification, EquivalenceAxis, ExecutionAxis,
+    FamilyAttribution, InconclusiveCause, IntendedRejection, MappingPosture, MaterializationAxis,
+    MutantId, MutationIdentity, MutationReport, MutationRun, MutationSite, MutationTarget,
+    PlanRefusal, PlannedDamage, PlannedRun, PressureLane, ProofPlan, ScopedInvocation,
+    SourceCoordinate,
+};
 use super::types::{
-    ActivationDisposition, AdapterProfile, AnnouncedRoster, ArtifactManifestRefusal,
-    BackendOutputId, BackendVersionPosture, BaselineAxis, BaselineQualification,
-    CompiledSuiteArtifactManifest, EquivalenceAxis, ExecutionAxis, FamilyAttribution, FamilyLookup,
-    GrammarVersion, InconclusiveCause, IntendedRejection, MappingPosture, MaterializationAxis,
-    MutantId, MutationBackendInvocation, MutationIdentity, MutationReport, MutationRun,
-    MutationSite, MutationSourceRevision, MutationTarget, OwnerLookup, PlanRefusal, PlannedDamage,
-    PlannedRun, PressureLane, ProofPlan, ReadingSource, ScopedInvocation, SourceCoordinate,
-    UnparsedLine, WrapOutcomeWord, WrapReading, WrapRefusal, WrappedBackend,
+    AdapterProfile, AnnouncedRoster, ArtifactManifestRefusal, BackendOutputId,
+    BackendVersionPosture, CompiledSuiteArtifactManifest, FamilyLookup, GrammarVersion,
+    MutationBackendInvocation, MutationSourceRevision, OwnerLookup, ReadingSource, UnparsedLine,
+    WrapOutcomeWord, WrapReading, WrapRefusal, WrappedBackend,
 };
 use crate::report::ForeignText;
 use crate::runner::Selection;
