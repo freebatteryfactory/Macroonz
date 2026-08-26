@@ -79,7 +79,7 @@ flowchart LR
 | `muterprater/` | Mutation pressure: which damages a subject may suffer, pressing them, and refusing to let a run claim more than its evidence affords. Four evidence roads stay physically distinct. |
 | `bench/` | Work measured under a pinned receiver and profile, with complexity claims and planted-worse controls, so a number means the same thing tomorrow. |
 | `depot/` | The harness's own fact bank: the mutation-operator taxonomy and the separations among its own types. Nothing product-shaped is banked here. |
-| `identity.rs` | One derivation substrate: domain-tagged, versioned content addresses. |
+| `identity/` | One derivation substrate: domain-tagged, versioned content addresses. |
 
 ---
 
