@@ -19,9 +19,10 @@ Delimited groups stay groups; nothing is re-lexed and no balance is re-discovere
 
 [`CaptureBuilder`] is the only mint of a complete captured input.
 A producer supplies its own source position and a [`CapturedAtom`], or opens a nested group; the builder issues the path and handle, spends every declared magnitude, retains positions in handle order, and derives the final denominator from that roster.
-No producer can state those four facts as sibling arguments.
+No producer can state the resulting capture facts as sibling arguments.
 A capture operation consumes its open [`CaptureLevel`], and only a successful operation returns the level, so a refused partial tree has no road to [`CaptureLevel::finish`].
 The refused attempt's positions remain available for its diagnostic; opening a fresh level rolls back that attempt while preserving handles issued by earlier successful captures in the same table.
+Where a producer refuses one token after issuance, the refusal retains both the declaration-local path and the producer-local handle.
 
 A payload carries a literal's **value** and never its spelling.
 `"x"` and `r"x"` are one text, `"a\nb"` is three characters, and which prefix a producer read is not a fact the tree keeps.

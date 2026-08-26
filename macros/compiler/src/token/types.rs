@@ -222,7 +222,7 @@ pub struct CaptureLevel<'capture, Position> {
 
 /// Why a checked capture was not completed.
 #[must_use = "a capture refusal names whether a declared bound or the producer's own reading stopped construction"]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CaptureBuildRefusal<Position, ProducerRefusal> {
     /// One declared capture magnitude was exceeded at this producer position.
     Unbounded {
@@ -231,10 +231,12 @@ pub enum CaptureBuildRefusal<Position, ProducerRefusal> {
         /// The producer's own position for the token that reached it.
         at: Position,
     },
-    /// The producer could not read one token after the builder issued its handle.
+    /// The producer could not read one token after the builder issued its declaration path and producer handle.
     ProducerRefused {
         /// The producer's typed reason.
         cause: ProducerRefusal,
+        /// The declaration-local route to the token the producer could not read.
+        path: TokenPath,
         /// The handle already bound to the token's retained source position.
         at: SpanHandle,
     },

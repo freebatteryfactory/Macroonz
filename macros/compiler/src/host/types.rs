@@ -3,7 +3,7 @@
 //! Declarations only, with every road that reaches a private field in `type_guard.rs`, this file's own child.
 
 use crate::closure::PartitionCargo;
-use crate::token::{CaptureBound, CaptureBuilder, LiteralReadCause, SpanHandle};
+use crate::token::{CaptureBound, CaptureBuilder, LiteralReadCause, SpanHandle, TokenPath};
 use proc_macro::Span;
 
 #[path = "type_guard.rs"]
@@ -22,18 +22,20 @@ pub struct Spans {
 ///
 /// Two rows, because the two are facts about different things — and the difference is where each is reported.
 #[must_use = "a capture refusal names what stopped the read and what it is a fact about"]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CaptureError {
     /// The read ran past one of the declared magnitudes.
     Unbounded {
         /// Which magnitude.
         bound: CaptureBound,
     },
-    /// One literal's spelling could not be read into the value it names.
+    /// One literal's spelling could not be read into the value it names, with declaration identity and producer placement retained separately.
     Unread {
         /// Why it could not be read.
         cause: LiteralReadCause,
-        /// The token it is about, whose handle was issued before its payload was read.
+        /// Which token of the declared input could not be read.
+        path: TokenPath,
+        /// The producer-local handle already bound to the token's compiler span.
         at: SpanHandle,
     },
 }

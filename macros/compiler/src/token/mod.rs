@@ -15,6 +15,8 @@ pub use compose::{
     documentation, equality, function, group, metavariable, method_call, method_chain,
     rendered_identifier, rendered_name, result_type, roster, rust_keyword, text_pair, twin_path,
 };
+#[cfg(feature = "host")]
+pub(crate) use encode::encode_token_path;
 pub use literal::capture_literal;
 pub use types::{
     CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound,

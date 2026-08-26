@@ -49,10 +49,12 @@ fn capture_stream(
 }
 
 /// Lower the checked builder's two refusal seats into this host's capture refusal.
-const fn capture_refusal(refusal: CaptureBuildRefusal<Span, LiteralReadCause>) -> CaptureError {
+fn capture_refusal(refusal: CaptureBuildRefusal<Span, LiteralReadCause>) -> CaptureError {
     match refusal {
         CaptureBuildRefusal::Unbounded { bound, at: _ } => CaptureError::Unbounded { bound },
-        CaptureBuildRefusal::ProducerRefused { cause, at } => CaptureError::Unread { cause, at },
+        CaptureBuildRefusal::ProducerRefused { cause, path, at } => {
+            CaptureError::Unread { cause, path, at }
+        }
     }
 }
 

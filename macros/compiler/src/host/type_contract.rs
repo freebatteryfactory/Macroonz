@@ -16,7 +16,7 @@ impl CaptureError {
     ///
     /// Appended and never renumbered: the byte stands inside every related identity derived over a refused capture.
     #[must_use]
-    pub const fn slot(self) -> u8 {
+    pub const fn slot(&self) -> u8 {
         match self {
             Self::Unbounded { .. } => 0,
             Self::Unread { .. } => 1,

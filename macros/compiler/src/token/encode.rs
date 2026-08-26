@@ -10,9 +10,23 @@
 //! So a table grows at its end and is never renumbered.
 //! Renumbering an occupied slot re-encodes trees that were already encoded, which renames every identity derived from them; appending re-encodes nothing, because a tree that could not carry the new arm encodes exactly as it did before.
 
+#[cfg(feature = "host")]
+use super::TokenPath;
 use super::{CapturedDelimiter, CapturedPayload, CapturedTokenTree};
 use super::{GeneratedDelimiter, GeneratedSpacing, GeneratedToken};
 use crate::identity::{encode_bytes, encode_length};
+
+/// Encode one declaration-local token path as its step count followed by fixed-width steps.
+///
+/// The count uses the compiler's one length encoding, and every step is the `u32` value the path owns in big-endian order.
+/// Producer-local spans never reach this grammar.
+#[cfg(feature = "host")]
+pub(crate) fn encode_token_path(path: &TokenPath, into: &mut Vec<u8>) {
+    encode_length(path.steps().len(), into);
+    for step in path.steps() {
+        into.extend_from_slice(&step.to_be_bytes());
+    }
+}
 
 /// Encode one captured tree into the canonical byte form, spans excluded.
 pub(super) fn encode_captured(tree: &CapturedTokenTree, into: &mut Vec<u8>) {

@@ -6,7 +6,7 @@
 use super::{
     CaptureBound, CaptureBuildRefusal, CaptureBuilder, CaptureLevel, CapturedAtom,
     CapturedDelimiter, CapturedInput, SpanHandle, SpanTable, TextCapture, TextReadCause,
-    TextReadRefusal,
+    TextReadRefusal, TokenPath,
 };
 use crate::bounded::Bounded;
 
@@ -24,7 +24,7 @@ impl TextCapture {
         let level = builder.open();
         let level = reader
             .read_group(&mut characters, None, level)
-            .map_err(text_refusal)?;
+            .map_err(|refusal| text_refusal(&refusal))?;
         let input = level.finish();
         let end = u64::try_from(source.len()).unwrap_or(u64::MAX);
         // The table carries one offset per token the walk kept, so it stands under the whole-tree magnitude the walk counted against rather than the width of any one level.
@@ -57,6 +57,18 @@ struct TextReader;
 /// One character stream over source text, with lookahead.
 type Characters<'source> = core::iter::Peekable<core::str::CharIndices<'source>>;
 
+/// The facts retained while reading one open source group.
+struct GroupClosing {
+    /// The character that closes the group.
+    delimiter: char,
+    /// The source byte where the group opened.
+    at: u64,
+    /// The declaration-local route to the group token.
+    path: TokenPath,
+    /// The producer-local handle for the group's opening span.
+    span: SpanHandle,
+}
+
 impl TextReader {
     /// Read the tokens of one group, stopping at `closing` where one is given.
     ///
@@ -64,18 +76,24 @@ impl TextReader {
     fn read_group<'capture>(
         &mut self,
         characters: &mut Characters<'_>,
-        closing: Option<(char, u64, SpanHandle)>,
+        closing: Option<GroupClosing>,
         mut level: CaptureLevel<'capture, u64>,
     ) -> Result<CaptureLevel<'capture, u64>, CaptureBuildRefusal<u64, TextReadRefusal>> {
         loop {
             let Some(&(offset, character)) = characters.peek() else {
                 return match closing {
-                    Some((_, at, handle)) => Err(CaptureBuildRefusal::ProducerRefused {
+                    Some(GroupClosing {
+                        delimiter: _,
+                        at,
+                        path,
+                        span,
+                    }) => Err(CaptureBuildRefusal::ProducerRefused {
                         cause: TextReadRefusal {
                             cause: TextReadCause::NotBalanced,
                             at,
                         },
-                        at: handle,
+                        path,
+                        at: span,
                     }),
                     None => Ok(level),
                 };
@@ -85,7 +103,7 @@ impl TextReader {
                 let _consumed = characters.next();
                 continue;
             }
-            match group_boundary(character, closing) {
+            match group_boundary(character, closing.as_ref()) {
                 GroupBoundary::Interior => {}
                 GroupBoundary::Closes => {
                     let _consumed = characters.next();
@@ -114,7 +132,17 @@ impl TextReader {
         if let Some((delimiter, closes)) = opening(character) {
             let _consumed = characters.next();
             return level.group(at, delimiter, |handle, inner| {
-                self.read_group(characters, Some((closes, at, handle)), inner)
+                let path = inner.path().clone();
+                self.read_group(
+                    characters,
+                    Some(GroupClosing {
+                        delimiter: closes,
+                        at,
+                        path,
+                        span: handle,
+                    }),
+                    inner,
+                )
             });
         }
         if character.is_alphabetic() || character == '_' {
@@ -137,13 +165,17 @@ impl TextReader {
 }
 
 /// Lower the checked builder's refusal into the text route's own byte-positioned refusal.
-const fn text_refusal(refusal: CaptureBuildRefusal<u64, TextReadRefusal>) -> TextReadRefusal {
+fn text_refusal(refusal: &CaptureBuildRefusal<u64, TextReadRefusal>) -> TextReadRefusal {
     match refusal {
         CaptureBuildRefusal::Unbounded { bound, at } => TextReadRefusal {
-            cause: TextReadCause::Unbounded(bound),
-            at,
+            cause: TextReadCause::Unbounded(*bound),
+            at: *at,
         },
-        CaptureBuildRefusal::ProducerRefused { cause, at: _ } => cause,
+        CaptureBuildRefusal::ProducerRefused {
+            cause,
+            path: _,
+            at: _,
+        } => *cause,
     }
 }
 
@@ -161,11 +193,11 @@ enum GroupBoundary {
 }
 
 /// The boundary answer for one character, given the closer the group expects.
-fn group_boundary(character: char, closing: Option<(char, u64, SpanHandle)>) -> GroupBoundary {
+fn group_boundary(character: char, closing: Option<&GroupClosing>) -> GroupBoundary {
     if !matches!(character, ')' | ']' | '}') {
         return GroupBoundary::Interior;
     }
-    if closing.map(|(close, _, _)| close) == Some(character) {
+    if closing.map(|held| held.delimiter) == Some(character) {
         return GroupBoundary::Closes;
     }
     GroupBoundary::NotOpened

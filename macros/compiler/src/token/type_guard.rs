@@ -376,8 +376,16 @@ impl<Position: Clone> CaptureLevel<'_, Position> {
         read: impl FnOnce(SpanHandle) -> Result<CapturedAtom, ProducerRefusal>,
     ) -> Result<Self, CaptureBuildRefusal<Position, ProducerRefusal>> {
         let (path, span, at) = self.issue(position)?;
-        let atom =
-            read(span).map_err(|cause| CaptureBuildRefusal::ProducerRefused { cause, at: span })?;
+        let atom = match read(span) {
+            Ok(atom) => atom,
+            Err(cause) => {
+                return Err(CaptureBuildRefusal::ProducerRefused {
+                    cause,
+                    path,
+                    at: span,
+                });
+            }
+        };
         self.trees
             .try_push(CapturedTokenTree::captured(atom.into(), path, span))
             .map_err(|_| CaptureBuildRefusal::Unbounded {
@@ -385,6 +393,14 @@ impl<Position: Clone> CaptureLevel<'_, Position> {
                 at,
             })?;
         Ok(self)
+    }
+
+    /// The declaration-local route the group currently being filled stands under.
+    ///
+    /// This crate-only view lets a producer retain the path when it establishes a refusal about the open group itself without widening the public fill callback.
+    #[must_use]
+    pub(crate) const fn path(&self) -> &TokenPath {
+        &self.path
     }
 
     /// Append one group and let the same builder own its nested level.
