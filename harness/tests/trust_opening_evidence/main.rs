@@ -2,33 +2,22 @@
 
 mod discovery;
 mod interpretation;
+mod proposal;
 mod specimen;
 mod structural_rewrite_planning;
 mod support;
 
 use macroonz_harness::clock::{HarnessClock, MeasurementReading};
-use macroonz_harness::depot::capsules::{
-    ReplayCapsuleEntry, ReplayDepotRefusal, ReplayDepotSink, StoredReplayEntryRef,
-};
 use macroonz_harness::descriptor::{
-    AuthoredTableName, AuthoredTableRefusal, Binding, CheckRef, ClaimRef, Classification,
-    ExecutableAttachment, ExecutionSuite, GeneratedSupportSchemaId, MutationPointRef, Origin,
-    PopulationRef, ProposalId, Provenance, RevisionBinding, Role, Row, SubjectRoute,
-    SynthesisFacts, Tag, TrialTableRefusal,
+    Binding, CheckRef, ClaimRef, Classification, ExecutableAttachment, ExecutionSuite,
+    MutationPointRef, Origin, PopulationRef, Provenance, RevisionBinding, Role, Row, SubjectRoute,
+    Tag, TrialTableRefusal,
 };
-use macroonz_harness::generate::{
-    ByteReducerId, FingerprintPreservation, ProbeOutcome, ReductionBudget, ReductionPlan,
-    ReductionPlanRefusal, ReductionProbeBinding, ReductionProbeRefusal, ReductionRefusal,
-    capture_replay, reduce,
-};
+use macroonz_harness::generate::{ReductionPlanRefusal, ReductionProbeRefusal, ReductionRefusal};
 use macroonz_harness::identity::{ContentAddress, DomainTag, IdentityProfileVersion};
 use macroonz_harness::muterprater::discover::lower_discoveries;
 use macroonz_harness::muterprater::interpret::{
     availability, execute_active, observe_no_mutation, qualify_no_mutation,
-};
-use macroonz_harness::muterprater::propose::{
-    human_admit_discharge, human_admit_replay, offer_claim_pin, offer_mutant_kill,
-    offer_obligation_discharge, prove_candidate,
 };
 use macroonz_harness::muterprater::rewrite::admission;
 use macroonz_harness::muterprater::specimen::demonstrate_compiled_projection;
@@ -39,32 +28,28 @@ use macroonz_harness::muterprater::{
     ArtifactCustodyRefusal, ArtifactManifestRefusal, BackendCommand, BackendVersion,
     BackendVersionPosture, CompiledProjectionPressure, CompiledProjectionRefusal,
     CompiledSuiteArtifactCustody, CompiledSuiteArtifactManifest, CompiledSuiteArtifactStanding,
-    CompiledSuitePressure, Demonstration, DischargeEvidence, DischargeProposalRefusal,
-    DiscoveredMutationSite, DiscoveryLoweringRefusal, DiscoveryRefusal, DuplicateRefusal,
-    EvaluationBinding, EvaluationCall, EvaluationCallRefusal, EvaluationDirective,
-    EvaluationFamilyRef, EvaluationObservation, EvaluationPair, EvaluationPairRefusal,
-    EvaluationSurface, FamilyAttribution, GrammarStanding, HumanAdmissionRefusal,
-    IntendedRejection, InterpretedExecutionRefusal, InterpreterAvailability, KillProposalRefusal,
-    MissingTrustEvidence, MutationBackendInvocation, MutationIdentity, MutationOutcome,
-    MutationPermission, MutationPolicy, MutationReport, MutationSite, MutationSourceRevision,
-    MutationVerdict, MutationWitness, MutationWitnessRefusal, NoComparisonReason,
-    NoMutationObservationRefusal, NoMutationParityReading, ObligationLane, OperatorFamilyRef,
-    OwedClaim, OwedClaimRefusal, OwnerClaimMapping, ParityQualificationRefusal, PermissionRefusal,
-    PlanRefusal, PolicyRefusal, ProductionBinding, ProofDelta, ProofDeltaRefusal, ProofRefusal,
-    ProposalDestination, ProposalDocument, ProposalRefusal, ProposalSink, QualificationRefusal,
-    ReadingSource, ReplayBearingProposal, RewriteAdmission, RewriteWithheld, SelectionRefusal,
-    SinkRefusal, SourceCoordinate, SpecimenMaterializerBinding, StoredProposalRef,
-    SuitePressureRefusal, WrapReading, WrapRefusal, WrappedBackend,
+    CompiledSuitePressure, DischargeProposalRefusal, DiscoveredMutationSite,
+    DiscoveryLoweringRefusal, DiscoveryRefusal, EvaluationBinding, EvaluationCall,
+    EvaluationCallRefusal, EvaluationDirective, EvaluationFamilyRef, EvaluationObservation,
+    EvaluationPair, EvaluationPairRefusal, EvaluationSurface, FamilyAttribution, GrammarStanding,
+    HumanAdmissionRefusal, IntendedRejection, InterpretedExecutionRefusal, InterpreterAvailability,
+    KillProposalRefusal, MissingTrustEvidence, MutationBackendInvocation, MutationIdentity,
+    MutationOutcome, MutationPermission, MutationPolicy, MutationReport, MutationSite,
+    MutationSourceRevision, MutationVerdict, MutationWitness, MutationWitnessRefusal,
+    NoMutationObservationRefusal, NoMutationParityReading, OperatorFamilyRef, OwedClaimRefusal,
+    OwnerClaimMapping, ParityQualificationRefusal, PermissionRefusal, PlanRefusal, PolicyRefusal,
+    ProductionBinding, ProofDeltaRefusal, ProofRefusal, ProposalRefusal, QualificationRefusal,
+    ReadingSource, RewriteAdmission, RewriteWithheld, SelectionRefusal, SinkRefusal,
+    SourceCoordinate, SpecimenMaterializerBinding, SuitePressureRefusal, WrapReading, WrapRefusal,
+    WrappedBackend,
 };
 use macroonz_harness::properties::{Agreement, agreement};
 use macroonz_harness::report::{
-    ByteBudget, CaseBudget, FindingCause, Fingerprint, GenerationProfile, InvocationProfile,
-    MinimizationProfile, ReplayCapsule, RunAttempt, TargetBinding, TargetTriple, TimeBudget,
-    ToolchainIdentity, TrialConclusion, TrialId, TrialReport, TrialSite,
+    ByteBudget, CaseBudget, CoverageRefusal, FindingCause, InvocationProfile, RunAttempt,
+    TargetBinding, TargetTriple, TimeBudget, ToolchainIdentity, TrialConclusion, TrialId,
+    TrialReport, TrialSite,
 };
-use macroonz_harness::runner::{
-    Invocation, TrialBinding, TrialTable, lens_verdict, trial_identity,
-};
+use macroonz_harness::runner::{Invocation, TrialBinding, lens_verdict};
 use std::process::Command;
 use std::sync::atomic::{AtomicU32, Ordering};
 use support::{
@@ -143,6 +128,7 @@ enum MutationRoadFailure {
     ReductionPlan(ReductionPlanRefusal),
     ReductionProbe(ReductionProbeRefusal),
     Reduction(ReductionRefusal),
+    Coverage(CoverageRefusal),
     Proposal(KillProposalRefusal),
     PinProposal(ProposalRefusal),
     DischargeProposal(DischargeProposalRefusal),
@@ -304,6 +290,12 @@ impl From<ReductionRefusal> for MutationRoadFailure {
     }
 }
 
+impl From<CoverageRefusal> for MutationRoadFailure {
+    fn from(refusal: CoverageRefusal) -> Self {
+        Self::Coverage(refusal)
+    }
+}
+
 impl From<KillProposalRefusal> for MutationRoadFailure {
     fn from(refusal: KillProposalRefusal) -> Self {
         Self::Proposal(refusal)
@@ -313,37 +305,6 @@ impl From<KillProposalRefusal> for MutationRoadFailure {
 impl From<HumanAdmissionRefusal> for MutationRoadFailure {
     fn from(refusal: HumanAdmissionRefusal) -> Self {
         Self::Admission(refusal)
-    }
-}
-
-#[derive(Default)]
-struct ReviewSink {
-    proposals: Vec<ProposalId>,
-}
-
-impl ProposalSink for ReviewSink {
-    fn store<Document: ProposalDocument>(
-        &mut self,
-        proposal: &Document,
-    ) -> Result<StoredProposalRef, SinkRefusal> {
-        let identity = proposal.identity();
-        self.proposals.push(identity);
-        StoredProposalRef::at(identity, "review://mutation-proposal")
-    }
-}
-
-#[derive(Default)]
-struct ReplayDepot {
-    entries: Vec<ReplayCapsuleEntry>,
-}
-
-impl ReplayDepotSink for ReplayDepot {
-    fn store(
-        &mut self,
-        entry: &ReplayCapsuleEntry,
-    ) -> Result<StoredReplayEntryRef, ReplayDepotRefusal> {
-        self.entries.push(entry.clone());
-        StoredReplayEntryRef::at(entry.replay(), "depot://mutation-replay")
     }
 }
 
@@ -510,313 +471,6 @@ fn trial_binding_for(claim_stem: &'static str) -> Result<TrialBinding, TrialTabl
 
 fn trial_binding() -> Result<TrialBinding, TrialTableRefusal> {
     trial_binding_for("comparison-behaviour")
-}
-
-fn candidate_trial_call(_invocation: &Invocation) -> TrialConclusion {
-    check(&CompiledRosterMeaning::Unstated)
-}
-
-fn candidate_binding(point: MutationPointRef) -> Result<TrialBinding, TrialTableRefusal> {
-    let subject = SubjectRoute::named(OWNER, "comparison-subject")?;
-    let check_ref = CheckRef::named(OWNER, "comparison-check")?;
-    let row = Row::declared(
-        ClaimRef::named(OWNER, "comparison-behaviour")?,
-        ExecutionSuite::named(OWNER, "mutation-receiver")?,
-        Classification::authored(
-            vec![Role::named(OWNER, "mutation")?],
-            vec![Tag::named(OWNER, "outside-consumer")?],
-        )?,
-        subject,
-        check_ref,
-        PopulationRef::named(OWNER, "one-input")?,
-        Origin::Candidate(SynthesisFacts::Survivor(point)),
-    )?;
-    let revision = RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, b"trial"));
-    Binding::bound(
-        row,
-        ExecutableAttachment::attached(
-            subject,
-            check_ref,
-            revision,
-            revision,
-            candidate_trial_call,
-        ),
-        Provenance::Unproduced,
-    )
-    .map_err(TrialTableRefusal::from)
-}
-
-fn authored_parent() -> Result<TrialTable, TrialTableRefusal> {
-    TrialTable::authored(
-        AuthoredTableName::named(OWNER, "mutation-parent")?,
-        Provenance::Unproduced,
-        vec![trial_binding_for("parent-behaviour")?],
-    )
-    .map_err(TrialTableRefusal::TableNotAuthored)
-}
-
-fn replay_probe(_input: &[u8]) -> ProbeOutcome {
-    let Ok(point) = MutationPointRef::named(OWNER, "comparison-edge") else {
-        return ProbeOutcome::NoFailure;
-    };
-    let Ok(binding) = candidate_binding(point) else {
-        return ProbeOutcome::NoFailure;
-    };
-    let Ok(invocation) = invocation() else {
-        return ProbeOutcome::NoFailure;
-    };
-    let TrialConclusion::Refused(finding) = candidate_trial_call(&invocation) else {
-        return ProbeOutcome::NoFailure;
-    };
-    ProbeOutcome::Reproduced(Fingerprint::of(trial_identity(binding.row()), &finding))
-}
-
-fn demonstrate_mutation(
-    mutation: &MutationReport,
-) -> Result<(Row, Demonstration), MutationRoadFailure> {
-    let Some(point) = mutation.target().identity().point() else {
-        return Err(MutationRoadFailure::MissingActiveSelection);
-    };
-    let candidate = candidate_binding(point)?;
-    let candidate_key = candidate.trial_key();
-    let candidate_row = candidate.row().clone();
-    assert!(matches!(
-        TrialTable::authored(
-            AuthoredTableName::named(OWNER, "candidate-cannot-enter")
-                .map_err(|_| MutationRoadFailure::Name)?,
-            Provenance::Unproduced,
-            vec![candidate.clone()],
-        ),
-        Err(AuthoredTableRefusal::CandidateOrigin(found)) if found == candidate_key
-    ));
-    let demonstration = prove_candidate(
-        &authored_parent()?,
-        candidate,
-        mutation.target(),
-        &invocation()?,
-    )?;
-    let mutation_fingerprint = match mutation.outcome() {
-        MutationOutcome::Killed(IntendedRejection::Demonstrated(rejection)) => {
-            rejection.fingerprint()
-        }
-        MutationOutcome::Killed(IntendedRejection::ReportedByBackend { stated: _ })
-        | MutationOutcome::Survived
-        | MutationOutcome::Inconclusive(_) => {
-            return Err(MutationRoadFailure::MissingActiveSelection);
-        }
-    };
-    assert_eq!(
-        demonstration.rejection().fingerprint(),
-        mutation_fingerprint
-    );
-    Ok((candidate_row, demonstration))
-}
-
-fn capture_demonstration(
-    demonstration: &Demonstration,
-) -> Result<ReplayCapsule, MutationRoadFailure> {
-    let reduction_binding = ReductionProbeBinding::bound(
-        demonstration.trial_report(),
-        GenerationProfile::declared("mutation-replay", 1),
-        GeneratedSupportSchemaId::over(ContentAddress::derived(
-            REPLAY_SCHEMA_TAG,
-            b"mutation-replay-schema",
-        )),
-        RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, b"replay-probe")),
-        replay_probe,
-    )?;
-    let reduction_plan = ReductionPlan::declared(
-        MinimizationProfile::declared("mutation-replay", 1),
-        ByteReducerId::ChunkRemovalAndZeroing,
-        Vec::new(),
-        FingerprintPreservation::Required,
-        ReductionBudget::declared(1),
-    )?;
-    let reduction = reduce(&reduction_plan, &[1u8, 2u8], &reduction_binding)?;
-    let capsule = capture_replay(&reduction);
-    assert_eq!(capsule.key(), demonstration.trial_report().standing().key());
-    assert_eq!(
-        capsule.fingerprint(),
-        demonstration.rejection().fingerprint()
-    );
-    Ok(capsule)
-}
-
-fn reject_capsule_for_another_execution(
-    candidate: &Row,
-    mutation: &MutationReport,
-    demonstration: &Demonstration,
-    destination: ProposalDestination,
-) -> Result<(), MutationRoadFailure> {
-    let Some(point) = mutation.target().identity().point() else {
-        return Err(MutationRoadFailure::MissingActiveSelection);
-    };
-    let foreign_demonstration = prove_candidate(
-        &authored_parent()?,
-        candidate_binding(point)?,
-        mutation.target(),
-        &foreign_invocation(),
-    )?;
-    let foreign_capsule = capture_demonstration(&foreign_demonstration)?;
-    let replay = foreign_capsule.key().address();
-    let expected = demonstration.trial_report().standing().key().address();
-    assert!(matches!(
-        offer_mutant_kill(
-            candidate.clone(),
-            mutation,
-            foreign_capsule,
-            demonstration.clone(),
-            Vec::new(),
-            destination,
-        ),
-        Err(KillProposalRefusal::ReplayExecutionMismatch {
-            replay: found,
-            demonstration: required,
-        }) if found == replay && required == expected
-    ));
-    Ok(())
-}
-
-fn admit_mutation(mutation: &MutationReport) -> Result<(), MutationRoadFailure> {
-    let (candidate, demonstration) = demonstrate_mutation(mutation)?;
-    let capsule = capture_demonstration(&demonstration)?;
-    let destination = ProposalDestination::naming(
-        ExecutionSuite::named(OWNER, "mutation-receiver").map_err(|_| MutationRoadFailure::Name)?,
-    );
-    reject_capsule_for_another_execution(&candidate, mutation, &demonstration, destination)?;
-    let proposal = offer_mutant_kill(
-        candidate,
-        mutation,
-        capsule.clone(),
-        demonstration,
-        Vec::new(),
-        destination,
-    )?;
-    let mut review = ReviewSink::default();
-    let proposal_custody = review
-        .store(&proposal)
-        .map_err(MutationRoadFailure::ProposalSink)?;
-    assert_eq!(proposal_custody.proposal(), proposal.identity());
-    assert_eq!(review.proposals.as_slice(), &[proposal.identity()]);
-    reject_foreign_proposal_custody(&proposal)?;
-    let mut depot = ReplayDepot::default();
-    let receipt = human_admit_replay(&proposal, proposal_custody, &mut depot)?;
-    assert_eq!(receipt.entry().proposal(), proposal.identity());
-    assert_eq!(receipt.entry().capsule(), &capsule);
-    assert_eq!(receipt.replay_custody().replay(), receipt.entry().replay());
-    assert_eq!(depot.entries.as_slice(), &[receipt.entry().clone()]);
-    assert!(matches!(receipt.row().origin(), Origin::AdmittedReplay(_)));
-    admit_row(receipt.row().clone())
-}
-
-/// The pin and the discharge walk the same offer → store → human road the kill walks, each on its own ground.
-///
-/// The duplicate gate is observed on both sides of it: a pin's comparison states its own vacancy, and a discharge over an already-recorded roster is refused at the offer rather than reviewed.
-fn admit_pin_and_discharge(mutation: &MutationReport) -> Result<(), MutationRoadFailure> {
-    let (candidate, demonstration) = demonstrate_mutation(mutation)?;
-    let capsule = capture_demonstration(&demonstration)?;
-    let destination = ProposalDestination::naming(
-        ExecutionSuite::named(OWNER, "mutation-receiver").map_err(|_| MutationRoadFailure::Name)?,
-    );
-    let claim = candidate.claim();
-
-    let delta = ProofDelta::between(0, 1).map_err(MutationRoadFailure::Delta)?;
-    let pin = offer_claim_pin(
-        candidate.clone(),
-        claim,
-        capsule.clone(),
-        delta,
-        destination,
-    )
-    .map_err(MutationRoadFailure::PinProposal)?;
-    assert_eq!(
-        pin.duplicate().reason(),
-        NoComparisonReason::GroundCarriesNoFailure
-    );
-    let mut review = ReviewSink::default();
-    let pin_custody = review
-        .store(&pin)
-        .map_err(MutationRoadFailure::ProposalSink)?;
-    let mut depot = ReplayDepot::default();
-    let pin_receipt = human_admit_replay(&pin, pin_custody, &mut depot)
-        .map_err(MutationRoadFailure::Admission)?;
-    assert!(matches!(
-        pin_receipt.row().origin(),
-        Origin::AdmittedReplay(_)
-    ));
-    assert_eq!(pin_receipt.entry().capsule(), &capsule);
-
-    let trial = trial_identity(&candidate);
-    let owed = OwedClaim::declared(claim, "uncovered-claim").map_err(MutationRoadFailure::Owed)?;
-    let evidence = DischargeEvidence::recorded(
-        ObligationLane::TestRow,
-        trial,
-        demonstration.trial_report().standing().key().clone(),
-    );
-    assert!(matches!(
-        offer_obligation_discharge(
-            candidate.clone(),
-            owed,
-            evidence.clone(),
-            &[trial],
-            destination,
-        ),
-        Err(DischargeProposalRefusal::Duplicate(
-            DuplicateRefusal::ObligationAlreadyDischarged(recorded)
-        )) if recorded == trial
-    ));
-    let discharge = offer_obligation_discharge(candidate, owed, evidence, &[], destination)
-        .map_err(MutationRoadFailure::DischargeProposal)?;
-    assert_eq!(discharge.duplicate().owed(), claim);
-    let discharge_custody = review
-        .store(&discharge)
-        .map_err(MutationRoadFailure::ProposalSink)?;
-    let receipt = human_admit_discharge(&discharge, discharge_custody)
-        .map_err(MutationRoadFailure::Admission)?;
-    assert!(matches!(
-        receipt.row().origin(),
-        Origin::AdmittedDischarge(_)
-    ));
-    admit_row(receipt.row().clone())
-}
-
-fn reject_foreign_proposal_custody(
-    proposal: &impl ReplayBearingProposal,
-) -> Result<(), MutationRoadFailure> {
-    let foreign = ProposalId::over(ContentAddress::derived(
-        REPLAY_SCHEMA_TAG,
-        b"foreign-proposal",
-    ));
-    let custody = StoredProposalRef::at(foreign, "review://foreign")
-        .map_err(MutationRoadFailure::ProposalSink)?;
-    let mut depot = ReplayDepot::default();
-    assert!(matches!(
-        human_admit_replay(proposal, custody, &mut depot),
-        Err(HumanAdmissionRefusal::ProposalCustodyMismatch { expected, found })
-            if expected == proposal.identity() && found == foreign
-    ));
-    assert!(depot.entries.is_empty());
-    Ok(())
-}
-
-fn admit_row(admitted: Row) -> Result<(), MutationRoadFailure> {
-    let subject = admitted.subject();
-    let check = admitted.check();
-    let revision = RevisionBinding::declared(ContentAddress::derived(REVISION_TAG, b"trial"));
-    let binding = Binding::bound(
-        admitted,
-        ExecutableAttachment::attached(subject, check, revision, revision, candidate_trial_call),
-        Provenance::Unproduced,
-    )
-    .map_err(TrialTableRefusal::from)?;
-    let world = TrialTable::authored(
-        AuthoredTableName::named(OWNER, "admitted-world").map_err(|_| MutationRoadFailure::Name)?,
-        Provenance::Unproduced,
-        vec![binding],
-    )
-    .map_err(TrialTableRefusal::TableNotAuthored)?;
-    assert_eq!(world.bindings().len(), 1);
-    Ok(())
 }
 
 fn check_ref() -> Result<CheckRef, MutationRoadFailure> {
@@ -1230,16 +884,7 @@ fn assert_interpreted_evidence_custody(
     ));
 }
 
-/// Claim: generic suite pressure and exact projection pressure join without flattening their evidence into interpreted execution.
-///
-/// Subject: the compiled-suite, specimen-projection, and interpretation execution composition.
-/// Population: one two-alternative surface and one selected compiled projection.
-/// Hostile control: a foreign invocation is refused before evaluation or clock effects.
-/// Denominator: every evidence book and custody join traversed by the selected execution.
-/// Evidence ceiling: this establishes one complete outside composition and preserves each owner's narrower evidence ceiling.
-/// Retained regression: the cross-owner claim remains in the original integration target.
-#[test]
-fn compiled_and_interpreted_evidence_join_without_flattening() -> Result<(), MutationRoadFailure> {
+fn interpreted_kill() -> Result<MutationReport, MutationRoadFailure> {
     let _specimen_guard = lock_specimen_tests()?;
     let family = family("comparison-family")?;
     let surface = surface_with(family, vec![b"input > 0", SELECTED_OPERATION])?;
@@ -1318,8 +963,21 @@ fn compiled_and_interpreted_evidence_join_without_flattening() -> Result<(), Mut
         selection,
     );
 
-    admit_mutation(evidence.mutation())?;
-    admit_pin_and_discharge(evidence.mutation())?;
+    Ok(evidence.mutation().clone())
+}
+
+/// Claim: generic suite pressure and exact projection pressure join without flattening their evidence into interpreted execution.
+///
+/// Subject: the compiled-suite, specimen-projection, and interpretation execution composition.
+/// Population: one two-alternative surface and one selected compiled projection.
+/// Hostile control: a foreign invocation is refused before evaluation or clock effects.
+/// Denominator: every evidence book and custody join traversed by the selected execution.
+/// Evidence ceiling: this establishes one complete outside composition and preserves each owner's narrower evidence ceiling.
+/// Retained regression: the cross-owner claim remains in the original integration target.
+#[test]
+fn compiled_and_interpreted_evidence_join_without_flattening() -> Result<(), MutationRoadFailure> {
+    let mutation = interpreted_kill()?;
+    assert_eq!(mutation.verdict(), MutationVerdict::Killed);
     Ok(())
 }
 

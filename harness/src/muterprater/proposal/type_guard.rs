@@ -260,36 +260,9 @@ impl Demonstration {
     ///
     /// Refuses, in a declared dependent order: a report standing over the authored world rather than a staged view, a census that does not carry the candidate, a candidate the selection passed over, a candidate that did not execute, and a candidate that executed and did not refuse.
     pub fn read(report: RunReport, candidate: TrialId) -> Result<Self, ProofRefusal> {
-        match report.posture() {
-            TablePosture::Staged { parent: _ } => {}
-            TablePosture::Authored => return Err(ProofRefusal::NotStaged),
-        }
-        let (trial_report, rejection) = {
-            let Some(entry) = report
-                .census()
-                .iter()
-                .find(|accounting| accounting.trial() == candidate)
-            else {
-                return Err(ProofRefusal::CandidateNotInCensus);
-            };
-            let Some(executed) = entry.disposition().report() else {
-                return Err(ProofRefusal::CandidateNotSelected);
-            };
-            match executed.attempt() {
-                RunAttempt::Executed(TrialConclusion::Refused(finding)) => (
-                    executed.clone(),
-                    DemonstratedRejection::demonstrated(candidate, finding.clone()),
-                ),
-                RunAttempt::Executed(TrialConclusion::Passed) => {
-                    return Err(ProofRefusal::CandidateDidNotRefuse);
-                }
-                RunAttempt::SkippedWithReason(_)
-                | RunAttempt::TimedOut
-                | RunAttempt::InfrastructureFailed(_) => {
-                    return Err(ProofRefusal::CandidateDidNotExecute);
-                }
-            }
-        };
+        require_staged(&report)?;
+        let trial_report = candidate_report(&report, candidate)?;
+        let rejection = demonstrated_rejection(&trial_report, candidate)?;
         Ok(Self {
             report,
             trial_report,
@@ -313,6 +286,45 @@ impl Demonstration {
     #[must_use]
     pub const fn rejection(&self) -> &DemonstratedRejection {
         &self.rejection
+    }
+}
+
+/// Require the table posture one candidate demonstration stands over.
+fn require_staged(report: &RunReport) -> Result<(), ProofRefusal> {
+    match report.posture() {
+        TablePosture::Staged { parent: _ } => Ok(()),
+        TablePosture::Authored => Err(ProofRefusal::NotStaged),
+    }
+}
+
+/// Read the selected candidate's trial report from the complete staged census.
+fn candidate_report(report: &RunReport, candidate: TrialId) -> Result<TrialReport, ProofRefusal> {
+    let Some(entry) = report
+        .census()
+        .iter()
+        .find(|accounting| accounting.trial() == candidate)
+    else {
+        return Err(ProofRefusal::CandidateNotInCensus);
+    };
+    let Some(executed) = entry.disposition().report() else {
+        return Err(ProofRefusal::CandidateNotSelected);
+    };
+    Ok(executed.clone())
+}
+
+/// Read the demonstrated rejection from one selected candidate report.
+fn demonstrated_rejection(
+    report: &TrialReport,
+    candidate: TrialId,
+) -> Result<DemonstratedRejection, ProofRefusal> {
+    match report.attempt() {
+        RunAttempt::Executed(TrialConclusion::Refused(finding)) => Ok(
+            DemonstratedRejection::demonstrated(candidate, finding.clone()),
+        ),
+        RunAttempt::Executed(TrialConclusion::Passed) => Err(ProofRefusal::CandidateDidNotRefuse),
+        RunAttempt::SkippedWithReason(_)
+        | RunAttempt::TimedOut
+        | RunAttempt::InfrastructureFailed(_) => Err(ProofRefusal::CandidateDidNotExecute),
     }
 }
 

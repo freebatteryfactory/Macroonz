@@ -257,8 +257,7 @@ fn no_mutation_reading_retains_exact_pairing_and_substrate_identities()
 /// Denominator: the selected active execution and its one retained report.
 /// Evidence ceiling: this establishes report-derived survival for one outside fixture after the existing specimen gate.
 /// Retained regression: the interpretation claim remains separate from specimen materialization claims.
-#[test]
-fn active_classification_is_derived_from_the_admitted_report() -> Result<(), MutationRoadFailure> {
+pub(super) fn interpreted_survivor() -> Result<MutationReport, MutationRoadFailure> {
     let _specimen_guard = lock_specimen_tests()?;
     let family = family("surviving-family")?;
     let surface = surface_with(family, vec![b"a <= b"])?;
@@ -303,6 +302,12 @@ fn active_classification_is_derived_from_the_admitted_report() -> Result<(), Mut
             MutationOutcome::Survived,
         )
     ));
+    Ok(evidence.mutation().clone())
+}
+
+#[test]
+fn active_classification_is_derived_from_the_admitted_report() -> Result<(), MutationRoadFailure> {
+    assert_eq!(interpreted_survivor()?.verdict(), MutationVerdict::Survived);
     Ok(())
 }
 
