@@ -1,8 +1,10 @@
-//! The three attributes applied for real: each expands where it stands, and the item survives beside its carrier.
+//! The item-preserving attributes applied for real: each expands where it stands, and the item survives beside its carrier.
 //!
 //! Compiling this file is most of the claim.
 //! Each attribute below ran as an actual proc macro, walked the whole road — capture, request, render, close, explain, bind — and emitted an exported carrier this crate now defines; a refusal anywhere would be a `compile_error!` and this target would not build.
 //! The carriers stay inert on purpose: invoking one is the consumption target's act, performed where that target's harness and host facts live.
+
+use core::mem::size_of;
 
 #[macroonz_macros::trials(
     support = greet_support,
@@ -33,13 +35,14 @@ mod greeted {
     map named("proc", "cause-order") = named("proc", "order-held"),
     permit named("proc", "order-held") = ["declared-order-permutation"],
 )]
+#[repr(u16)]
 pub enum Cause {
     /// The first cause in the declared order.
-    First,
+    First = 11,
     /// The second cause in the declared order.
-    Second,
+    Second = 29,
     /// The third cause in the declared order.
-    Third,
+    Third = 47,
 }
 
 #[macroonz_macros::bench(
@@ -60,9 +63,16 @@ pub enum Cause {
         observe = [named("proc", "bytes-touched")],
     },
 )]
-mod paced {
-    /// The one fact the bench declaration stands beside.
-    pub(crate) const WORKLOAD: &str = "encode";
+/// The type-shaped benchmark declaration preserves attributes, visibility, generics, and its where clause.
+#[cfg(test)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(transparent)]
+pub(crate) struct Paced<T>
+where
+    T: Copy,
+{
+    /// The value whose shape the preservation claim observes.
+    value: T,
 }
 
 /// The one shadow declaration a crate writes: both faces of every chosen name, emitted where it stands.
@@ -79,9 +89,11 @@ mod shadowed {
 #[test]
 fn the_items_survive_beside_their_carriers() {
     assert_eq!(greeted::ANSWER, "hello");
-    assert_eq!(paced::WORKLOAD, "encode");
+    let paced = Paced { value: "encode" };
+    assert_eq!(paced.value, "encode");
     let held = Cause::Second;
     assert!(matches!(held, Cause::First | Cause::Second | Cause::Third));
+    assert_eq!(size_of::<Cause>(), 2usize);
 }
 
 /// The shadowed names resolve to their ordinary faces off the loom configuration, and behave as the standard library.

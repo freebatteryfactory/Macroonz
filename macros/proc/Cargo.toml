@@ -18,3 +18,4 @@ macroonz-compiler = { workspace = true, features = ["host"] }
 
 [dev-dependencies]
 mh = { package = "macroonz-harness", path = "../../harness", version = "=0.1.0" }
+trybuild.workspace = true

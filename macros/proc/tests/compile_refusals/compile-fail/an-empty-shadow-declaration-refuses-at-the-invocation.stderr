@@ -1,0 +1,7 @@
+error: macroonz: the declaration was not read: in `shadow`: a required clause is absent (at semantic-origin position 0)
+ --> tests/compile_refusals/compile-fail/an-empty-shadow-declaration-refuses-at-the-invocation.rs:3:1
+  |
+3 | macroonz_macros::shadow! {}
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in the macro `macroonz_macros::shadow` (in Nightly builds, run with -Z macro-backtrace for more info)

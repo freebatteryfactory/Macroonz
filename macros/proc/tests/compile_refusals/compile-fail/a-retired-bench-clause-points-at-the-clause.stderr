@@ -1,0 +1,5 @@
+error: macroonz: the declaration was not read: in `bench`: a clause is not one the grammar declares (at semantic-origin position 20)
+ --> tests/compile_refusals/compile-fail/a-retired-bench-clause-points-at-the-clause.rs:8:5
+  |
+8 |     backend = retired,
+  |     ^^^^^^^

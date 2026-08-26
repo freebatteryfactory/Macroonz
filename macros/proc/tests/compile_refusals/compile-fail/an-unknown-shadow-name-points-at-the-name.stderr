@@ -1,0 +1,5 @@
+error: macroonz: the declaration was not read: in `shadow`: a chosen name is not one the shadow roster covers (at semantic-origin position 7)
+ --> tests/compile_refusals/compile-fail/an-unknown-shadow-name-points-at-the-name.rs:5:14
+  |
+5 |     names = [Telepathy],
+  |              ^^^^^^^^^
