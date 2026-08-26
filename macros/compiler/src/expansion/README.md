@@ -39,9 +39,10 @@ Neither absence is a seat somebody forgot to fill: a seat that could hold an inv
 
 An expansion is what a door produced, and it is silent about every kind that produced nothing, because there is nothing of those for it to hold.
 
-`Accounted` seats a disposition record beside it — one required seat per kind of a declared set — so a reader asking why a kind is absent reads the answer instead of inferring it from an emptiness.
-The record's shape is the consumer's: `KindSet` names it, the `kinds!` stamp writes it, and this home reads it through nothing at all.
-Which kind an expansion stands for, and therefore which seat of the record says generated about it, is the door's decision; a value that decided it here would be this compiler electing what a door meant.
+`Accounted` seats a `DispositionSet` beside it, so a reader asking why a kind is absent reads the answer instead of inferring it from an emptiness.
+The record's source shape remains the consumer's: `KindSet` names it and the `kinds!` stamp writes the ordinary field record.
+Before this home can hold it, the kind home consumes that record in declaration order, checks its row count against the set's complete name roster, and seals the rows behind private fields.
+Which kind an expansion stands for, and therefore which row of the witness says generated about it, is the door's decision; a value that decided it here would be this compiler electing what a door meant.
 
 ## How it says no
 

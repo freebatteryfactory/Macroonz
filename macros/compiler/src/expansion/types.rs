@@ -1,11 +1,11 @@
-//! The expansion home's declarations: the fact a binding refusal cites, how binding refuses, the sealed account one request produces, and the record a door seats beside it.
+//! The expansion home's declarations: the fact a binding refusal cites, how binding refuses, the sealed account one request produces, and the complete disposition witness a door seats beside it.
 //!
 //! Declarations only, with every road that reaches a private field in `type_guard.rs`, this file's own child.
 
 use crate::closure::Closure;
 use crate::explanation::View;
 use crate::identity::{ClosedExpansionId, ClosureId, OwnerFact, PlanId, Provenance};
-use crate::kind::{Kind, KindSet};
+use crate::kind::{DispositionSet, Kind, KindSet};
 use crate::plan::Plan;
 
 #[path = "type_guard.rs"]
@@ -67,11 +67,11 @@ pub struct Expansion<K: Kind> {
 
 /// One door's complete account: the expansion it produced, and what happened to every kind of the set it answers for.
 ///
-/// The expansion carries what was produced and is silent about every kind that produced nothing; the record beside it carries one required seat per kind of the declared set.
-/// The record's rows are read through nothing here, because which seat says generated about this expansion is the door's decision.
+/// The expansion carries what was produced and is silent about every kind that produced nothing; the sealed witness beside it carries one disposition per declared kind.
+/// Which row says generated about this expansion remains the door's decision, but an incomplete or overfull record cannot become the witness stored here.
 #[must_use = "an accounted expansion is what one door produced and what happened to every kind it did not"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Accounted<K: Kind, Set: KindSet> {
     expansion: Expansion<K>,
-    dispositions: Set::Dispositions,
+    dispositions: DispositionSet<Set>,
 }

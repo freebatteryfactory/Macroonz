@@ -59,8 +59,8 @@ pub use identity::{
     encode_bytes, encode_length, names_are_separating,
 };
 pub use kind::{
-    Answer, CanonicalContent, Destination, Disposition, Kind, KindSet, NoQuestions, Question, Role,
-    SoleRole,
+    Answer, CanonicalContent, Destination, Disposition, DispositionRecord, DispositionSet,
+    DispositionSetError, Kind, KindSet, NoQuestions, Question, Role, SoleRole,
 };
 pub use origin::{
     DecisionTrace, Nonclaim, ORIGIN_EDGE_LIMIT, OriginEdge, OriginRelation, OriginTrail,

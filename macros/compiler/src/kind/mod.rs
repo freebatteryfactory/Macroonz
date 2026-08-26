@@ -4,6 +4,6 @@ mod type_contract;
 mod types;
 
 pub use types::{
-    Answer, CanonicalContent, Destination, Disposition, Kind, KindSet, NoQuestions, Question, Role,
-    SoleRole,
+    Answer, CanonicalContent, Destination, Disposition, DispositionRecord, DispositionSet,
+    DispositionSetError, Kind, KindSet, NoQuestions, Question, Role, SoleRole,
 };
