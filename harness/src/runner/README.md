@@ -1,86 +1,104 @@
-# runner — a table of declared trials becomes a run
+# runner — declared trials become evidence
 
-This is the harness's execution engine.
+The runner is the harness's execution engine.
+It receives the complete authored world, a declared selection over that world, and one invocation, then returns a report without discovering, scanning, printing, exiting, or retaining run state.
 
-Hand it the complete authored world, one selection over that world, and one invocation, and it hands back a report.
-Nothing here discovers, scans, prints, or exits.
-A run is a function of the values a caller declared, and its answer is a value.
+```mermaid
+flowchart LR
+    world[(Complete authored world)]
+    selection{{Declared selection}}
+    invocation[/Invocation facts/]
 
-## Two roads, one assembler
+    subgraph runner[runner]
+        direction TB
+        admission{Selected?}
+        execute[In-process execution]
+        record[Host observation admission]
+        assemble[Shared report assembler]
+    end
 
-There are two ways in, and they are not two engines.
+    report[(Complete run report)]
 
-- **In process.** `run_one` executes one binding; `run_all` executes a selection over a whole table view.
-- **From a host.** `record_one` and `record_all` take observations some external runner made and turn them into the same reports.
+    world --> admission
+    selection --> admission
+    invocation --> execute
+    invocation --> record
+    admission -->|yes| execute
+    admission -->|host ran it| record
+    admission -->|no, keep reason| assemble
+    execute --> assemble
+    record --> assemble
+    assemble --> report
 
-A host observation carries only what a host can know: which trial, what the attempt did, and the wall reading.
-Everything else is joined here — from the binding, the invocation, the table, and the selection — so a host cannot author evidence it never observed.
+    classDef authority fill:#1f2937,color:#f9fafb,stroke:#111827,stroke-width:2px;
+    classDef choice fill:#fef3c7,color:#78350f,stroke:#f59e0b,stroke-width:2px;
+    classDef operation fill:#dbeafe,color:#1e3a8a,stroke:#3b82f6,stroke-width:2px;
+    classDef evidence fill:#dcfce7,color:#14532d,stroke:#22c55e,stroke-width:2px;
+    class world,invocation authority;
+    class selection,admission choice;
+    class execute,record,assemble operation;
+    class report evidence;
+```
 
-Both roads walk one assembler, so the two spellings of a run cannot disagree about what a run means.
+## One meaning, two admission roads
 
-## The table is the denominator
+An in-process call and an external host observation are two ways to establish the attempt axis, not two report engines.
+Both roads enter one assembler, which derives the standing a host cannot author from the binding, invocation, table, and selection.
 
-The table is always the complete world.
-A selection chooses from it and never shrinks it.
+A host may state only the semantic trial it ran, what became of the attempt, and the wall reading it observed.
+The join refuses records that are duplicated, outside the table, outside the selection, or absent for a selected trial.
 
-Each report accounts on two axes, in this order:
+## The complete table is the denominator
 
-1. the **selection disposition** — selected, or passed over with the reason it was passed over;
-2. a **run attempt**, and only where the selection admitted one.
+A selection chooses from the authored world and never shrinks it.
+Every report accounts for every row, recording either a selected attempt or the reason that row was passed over.
 
-Reading the disposition first is what keeps a row nobody ran from ever being recorded as a row that failed.
-A caller narrows a run; the denominator stays whatever the table says it is.
+```mermaid
+flowchart TD
+    row[One authored row]
+    selected{Selection admits it?}
+    attempt[Record one run attempt]
+    passed[Record why it was not selected]
+    census[(One census seat)]
 
-A row is data and cannot execute.
-The callable rides on the binding beside it, which is why no hidden registry from row to function exists anywhere.
+    row --> selected
+    selected -->|yes| attempt --> census
+    selected -->|no| passed --> census
+```
 
-## Saying in advance that you might select nothing
+The selection disposition is established before execution, so a row nobody ran cannot become an attempt that failed.
+A row remains data; its capture-free callable rides beside it in the binding, and no hidden registry maps rows to functions.
 
-A selection plan is a selection joined to what the run expects that selection to match.
+## Empty work is declared in advance
 
-`SelectionPlan::of` is the ordinary road and asks for nothing but the selection, because a run expects to exercise something unless somebody says otherwise.
-`SelectionPlan::allowing_empty` is the one escape, and it states the reason in the same call.
-A run that then selects nothing renders a zero-work result carrying that reason, and no reading anywhere calls it passed.
+A selection plan states both what to choose and whether choosing nothing is an admitted result.
+The ordinary posture expects at least one row.
+The explicit zero-work posture carries its closed reason into the report, and no verdict reads that result as a passing trial.
 
-## What a seat reads
+## Verdicts fold typed records
 
-A stamped test function answers with a `Result`, and the two folds that produce it live here.
+The aggregate-seat fold reads the selection outcome and every selected report.
+The single-lens fold reads one trial report.
+Both carry typed failure facts out of the record rather than interpreting prose, and a cache-satisfied skip still refuses because the conclusion it stands in for is absent from the report being judged.
 
-- `seat_verdict` reads a whole run report and answers with a `SeatOutcome`: every selected trial concluded, or no work as stated.
-- `lens_verdict` reads one trial report and answers with nothing, because a lens has one binding, no selection, and no expectation to satisfy.
+## Host facts remain declared facts
 
-Both refuse with `SeatRefusal`, the one type a seat returns instead of passing.
-A construction refusal enters it unchanged through `From`, and that is the only road in, so `?` is the whole ceremony at a seat.
+The invocation carries the target, toolchain, budgets, site, and clock.
+The engine derives none of them from ambient process state and does not let elapsed-time availability change a check's conclusion.
 
-Neither reading reads a word of prose.
-A failure is described by carrying the record's own typed fields, so a refusal that reworded its message is still the same typed arm.
+## The panic boundary
 
-They live here rather than in the stamp on purpose: a fold copied into every expansion is one calculator standing in as many places as there are invocations, and two seats disagreeing about what a passing run means is the disagreement a harness exists to make impossible.
+A subject panic that unwinds is recorded as a typed subject finding.
+The unwind catcher retains a safely readable payload while one process-global hook observes the origin, chains the hook that preceded it, and correlates observations per thread.
 
-A selected trial that was skipped refuses a seat, cache-satisfied skips included.
-The conclusion a cached execution stood in for is not in the report being read, and a seat may not pass on a verdict it never saw.
+The hook is installed once.
+A later process-wide replacement can remove origin capture, so the payload remains evidence while the origin becomes unavailable.
 
-## Host facts arrive; they are never derived
+An abort or stack overflow does not unwind and therefore cannot produce a trial finding in process.
+Process isolation may establish that ceiling, but hosting the process is outside this home.
 
-The target triple and the toolchain identity come in as a `TargetBinding` the invoker states.
-A triple assembled out of `cfg!` predicates would be a plausible spelling entering a cache key that nothing verified.
+## What this home does not own
 
-The clock arrives the same way.
-`run_one` opens it before the subject and finishes it afterwards, then records the observed, unavailable, or failed reading without concluding anything from it.
-An observed zero is a real measurement, not the spelling of no measurement.
-
-## Panics
-
-A subject panic is a verdict about the subject, so it is caught at the trial boundary and recorded as the finding it is.
-That needs two mechanisms: an unwind catch, which returns the payload but not where the panic was raised, and a process-global panic hook, which sees the origin but cannot stop the unwind.
-This home installs one hook, once, and chains whatever hook was standing before it — the one process-global effect the engine performs.
-
-Aborts and stack overflows are not unwinds.
-They end the process, no finding is produced, and nothing here pretends otherwise.
-Process isolation is a hosting recipe, not machinery in this home.
-
-## What this home is not
-
-It runs no protocol: no argument vector, no output stream, no exit code.
-It keeps no memory between runs, so comparing two reports is the report home's operation over what this one wrote.
-It hosts nothing — listing, filtering, sharding, and parallelism belong to whatever test harness the caller runs the stamped seats under.
+The runner owns neither a command protocol nor hosting policy.
+Argument parsing, output streams, exit codes, listing, filtering, sharding, and process supervision belong to the caller's host.
+Comparing reports belongs to the report home, over the records this home produced.
