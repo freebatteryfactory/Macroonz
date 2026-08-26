@@ -53,6 +53,29 @@ fn read_once(reader: Reader) -> ReadOutcome {
     }
 }
 
+fn elapsed_reading(opened: MeasurementTick, closed: MeasurementTick) -> MeasurementReading {
+    match elapsed(opened, closed) {
+        Ok(duration) => MeasurementReading::Observed(duration),
+        Err(failure) => MeasurementReading::Failed(failure),
+    }
+}
+
+fn close_opened(reader: Reader, opened: MeasurementTick) -> MeasurementReading {
+    match read_once(reader) {
+        ReadOutcome::Tick(closed) => elapsed_reading(opened, closed),
+        ReadOutcome::Refused => MeasurementReading::Failed(ClockFailure::ClosingRefused),
+        ReadOutcome::Unwound => MeasurementReading::Failed(ClockFailure::ClosingUnwound),
+    }
+}
+
+fn finish_opening(opening: &Opening) -> MeasurementReading {
+    match opening {
+        Opening::Unavailable => MeasurementReading::Unavailable,
+        Opening::Failed(failure) => MeasurementReading::Failed(*failure),
+        Opening::Opened { reader, tick } => close_opened(*reader, *tick),
+    }
+}
+
 impl HarnessClock {
     /// Open one wall measurement, granting the reading no authority over anything.
     ///
@@ -77,17 +100,6 @@ impl MeasurementStart {
     /// An unavailable or failed opening reads nothing further.
     /// A second admitted tick becomes a duration by checked subtraction, so an observed zero stays a zero and a backwards pair becomes [`ClockFailure::Regressed`].
     pub fn finish(self) -> MeasurementReading {
-        match self.opening {
-            Opening::Unavailable => MeasurementReading::Unavailable,
-            Opening::Failed(failure) => MeasurementReading::Failed(failure),
-            Opening::Opened { reader, tick } => match read_once(reader) {
-                ReadOutcome::Tick(closed) => match elapsed(tick, closed) {
-                    Ok(duration) => MeasurementReading::Observed(duration),
-                    Err(failure) => MeasurementReading::Failed(failure),
-                },
-                ReadOutcome::Refused => MeasurementReading::Failed(ClockFailure::ClosingRefused),
-                ReadOutcome::Unwound => MeasurementReading::Failed(ClockFailure::ClosingUnwound),
-            },
-        }
+        finish_opening(&self.opening)
     }
 }

@@ -1,0 +1,15 @@
+error[E0382]: use of moved value: `start`
+ --> tests/compile_refusals/compile-fail/a-measurement-start-cannot-be-finished-twice.rs:8:19
+  |
+6 |     let start = HarnessClock::unavailable().begin();
+  |         ----- move occurs because `start` has type `MeasurementStart`, which does not implement the `Copy` trait
+7 |     let _first = start.finish();
+  |                        -------- `start` moved due to this method call
+8 |     let _second = start.finish();
+  |                   ^^^^^ value used here after move
+  |
+note: `clock::read::<impl MeasurementStart>::finish` takes ownership of the receiver `self`, which moves `start`
+ --> src/clock/read.rs
+  |
+  |     pub fn finish(self) -> MeasurementReading {
+  |                   ^^^^
