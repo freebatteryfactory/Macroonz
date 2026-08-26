@@ -8,11 +8,14 @@ use crate::report::ForeignText;
 use core::any::Any;
 use std::panic::{AssertUnwindSafe, catch_unwind, resume_unwind};
 
-/// The private payload that proves an unwind came from a typed model return rather than the backend.
+/// The private payload that proves an unwind came from a typed model return rather than foreign panic text.
 #[derive(Debug)]
 struct ModelRefusal(PreemptionModelFailure);
 
 /// Run the pinned backend with every result-affecting builder seat forced explicitly.
+///
+/// The declaration supplies branch and preemption ceilings.
+/// The road fixes the backend's thread ceiling, removes permutation, duration, and checkpoint early stops, restores the pinned checkpoint interval, disables explicit-explore, location, and log modes, and admits no ambient value after construction.
 #[must_use]
 pub(super) fn explored(
     bounds: PreemptionBounds,
@@ -43,13 +46,7 @@ pub(super) fn explored(
     builder.location = false;
     builder.log = false;
 
-    let outcome = catch_unwind(AssertUnwindSafe(move || {
-        builder.check(move || {
-            if let Err(failure) = model() {
-                resume_unwind(Box::new(ModelRefusal(failure)));
-            }
-        });
-    }));
+    let outcome = catch_unwind(AssertUnwindSafe(move || scheduled(&builder, model)));
     let outcome = match outcome {
         Ok(()) => PreemptionOutcome::Completed(PreemptionVerdict::AllInterleavingsHeld),
         Err(payload) => match payload.downcast::<ModelRefusal>() {
@@ -65,7 +62,19 @@ pub(super) fn explored(
     PreemptionReading::read(bounds, outcome)
 }
 
-/// Admit a foreign unwind payload only in the two standard text shapes.
+/// Walk the schedules admitted by the configured builder.
+fn scheduled(builder: &loom::model::Builder, model: fn() -> PreemptionModelResult) {
+    builder.check(move || checked(model));
+}
+
+/// Turn one typed model refusal into the backend's private stop signal.
+fn checked(model: fn() -> PreemptionModelResult) {
+    if let Err(failure) = model() {
+        resume_unwind(Box::new(ModelRefusal(failure)));
+    }
+}
+
+/// Admit a foreign unwind payload only in the two standard text shapes, without interpreting its words.
 fn foreign_panic_report(payload: &(dyn Any + Send)) -> Option<ForeignText> {
     let text = payload
         .downcast_ref::<&str>()

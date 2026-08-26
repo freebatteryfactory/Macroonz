@@ -14,6 +14,7 @@ use crate::report::{
 ///
 /// The model returns its check as a value, so only an explicit [`Err`] can establish [`PreemptionVerdict::ModelBroke`].
 /// A target without the pinned backend returns typed unavailability through the same reading rather than removing the public door or compiling an unsupported dependency.
+/// A qualified backend forces the declaration's branch and preemption seats and neutralizes ambient early-stop configuration before walking the model.
 #[must_use]
 pub fn explored(
     bounds: PreemptionBounds,

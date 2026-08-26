@@ -20,20 +20,18 @@ pub const MODEL_BROKE: FindingCause = FindingCause::named(CAUSE_FAMILY, "model-b
 /// A mirror of the manifest's `=`-pin, held here so evidence can spell which scheduler semantics a reading ran under; the preemption lane holds the two spellings together.
 pub const LOOM_PIN: &str = "0.7.2";
 
-/// How many preemptions one explored execution may spend.
-///
-/// Loom's search is exhaustive under this bound: two or three preemptions catch most real memory-model bugs, and `Exhaustive` removes the bound where the model is small enough to walk whole.
+/// The independent preemption ceiling one explored execution runs under.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PreemptionBound {
-    /// No bound: every reachable interleaving, however many preemptions it takes.
+    /// No independent preemption cap; the declared branch budget still bounds each execution.
     Exhaustive,
-    /// At most this many preemptions per execution.
+    /// At most this many preemptions per execution, within the declared branch budget.
     AtMost(u32),
 }
 
 /// The declared budget one exploration runs under.
 ///
-/// Both seats are the author's statement, never runner-tuned.
+/// Both seats are the author's statement, never runner-tuned or read from ambient backend configuration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PreemptionBounds {
     preemptions: PreemptionBound,
@@ -62,7 +60,7 @@ pub type PreemptionModelResult = Result<(), PreemptionModelFailure>;
 /// What one completed bounded exploration established.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PreemptionVerdict {
-    /// Every execution under the declared bounds completed with every model check standing.
+    /// Every execution the backend reached under the declared bounds completed with every model check standing.
     AllInterleavingsHeld,
     /// One execution returned an explicit model-owned refusal.
     ModelBroke {
@@ -83,7 +81,7 @@ pub enum IncompleteExploration {
     },
     /// The backend unwound after exploration began without a Macroonz-minted model refusal.
     ///
-    /// Loom 0.7.2 does not type whether this was declared branch exhaustion, cleanup failure, an undeclared model panic, or a backend defect; the report remains foreign and is never parsed into invented authority.
+    /// The pinned backend does not type the underlying cause on this rail, so the report remains foreign and is never parsed into invented authority.
     ExecutionUnresolved {
         /// The backend's bounded report, where its payload was text.
         report: Option<ForeignText>,

@@ -5,7 +5,7 @@ use super::types::{
     PreemptionReading,
 };
 
-/// Retain the request as typed backend unavailability without invoking the model.
+/// Retain the request as typed backend unavailability without invoking the supplied model.
 #[must_use]
 pub(super) const fn explored(
     bounds: PreemptionBounds,
