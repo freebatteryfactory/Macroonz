@@ -30,6 +30,7 @@ pub trait Subject: Copy + 'static {
 /// Declares one roster of identity subjects under one stem, as the home's README shows.
 ///
 /// Each row becomes a marker type carrying its declared name, and the roster settles both ways it could fail to separate while it compiles: a name outside the context grammar, and a name two rows declare.
+/// A declared name is lowercase ASCII letters and digits in `-`-joined segments, with no leading, trailing, or doubled separator.
 #[macro_export]
 macro_rules! subjects {
     (stem = $stem:expr; $( $(#[$note:meta])* $name:ident = $declared:literal ),+ $(,)?) => {
@@ -303,7 +304,7 @@ pub const GENERATOR_VERSION_PROFILE: Profile =
 
 /// The grammar a diagnostic's related identities are derived under, at both levels.
 ///
-/// One refusal family's tag byte, then the framed material the level stands over — the issue's own canonical bytes at the issue level, and the framing of every issue in order at the body level — rooted, at the tag as the position.
+/// One refusal family's name and the framed material the level stands over — the issue's own canonical bytes at the issue level, and the framing of every issue in order at the body level — rooted at position zero.
 /// The two levels are separated by their subjects, [`RelatedIssue`] and [`RelatedBody`], which is what keeps a body's preimage from being reachable as an issue's.
 pub const DIAGNOSTIC_RELATION_PROFILE: Profile =
     Profile::declared(MACROONZ_STEM, "diagnostic-relation", Version::declared(1));
