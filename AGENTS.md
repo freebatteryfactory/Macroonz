@@ -112,4 +112,6 @@ A README has no yaml blocks, no ledgers, no status tables.
 - **Unused is not dead.** `unused`, `uncalled`, and `unreached` are wiring facts, never deletion authority.
 - **Read whole.** Every assigned file, top to bottom, before classifying or editing it. Search output enumerates candidates; it is never the denominator.
 - **Name the plane.** "Complete", "closed", and "proven" are never written bare. Local green is not hosted, packaged, or accepted.
-- **Agents commit accepted work:** an agent may stage and commit work within the authorized task, including at an accepted checkpoint; a task-specific no-commit boundary controls while it is active; pushes, branch rewrites, ref movement, and recovery operations require explicit human authorization.
+- **Agents commit accepted work:** an agent may stage and commit qualified files within the authorized task after its required checks pass, using a truthful message and never folding unrelated dirty work into the commit.
+- **Task boundaries control:** an active task-specific no-commit instruction overrides autonomous commit authority until that boundary is lifted.
+- **Humans authorize Git publication and surgery:** pushes, merges, branch rewrites, ref movement, and recovery operations require explicit human authorization, and an agent performs only the bounded operation authorized.
