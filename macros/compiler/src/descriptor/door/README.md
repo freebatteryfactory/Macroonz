@@ -1,27 +1,29 @@
-# `door` — the roads a generic entry walks
+# `door` — from a declared grammar to a sealed expansion
 
-A proc host carries tokens and owns no grammar, so the whole road between "an author wrote a declaration" and "an expansion is ready to emit" has to live on this side of the wall.
-This home is that road, once per grammar the descriptor home declares.
+A proc host converts tokens and preserves compiler spans, while each descriptor child owns the grammar and rendering for its projection.
+This home owns the orchestration between those boundaries: an informed declaration enters, the generic request road runs, and either a sealed expansion or one typed diagnostic leaves.
 
-## What one road does
+## Authority crossing
 
-Each carrier road takes a captured body, reads it through its own grammar, walks the descriptor kind's request to a sealed expansion, composes the carrier's axes out of what that expansion proved, and hands the verified assembly to the carrier's own delivery road.
+Each road receives the captured material, the grammar selected by its caller, and the request door that names the caller's act.
+Where a projection needs producer qualification, a physical dependency binding, or a second capture, that authority also arrives as declared input rather than being inferred here.
 
-What comes back is an ordinary sealed expansion of the carrier kind, whose one declaration-site unit is the exported carrier — the host emits it and appends the item it decorates, untouched.
+The descriptor child reads and renders its own meaning.
+The request, diagnostic, support, and identity homes retain their own mints, so this home composes their public roads without restating their laws.
 
-- **`trials`** reads a trial payload from the attribute's body. The stamped table rides the declared axis, read off the trial terminal's own declaration-site delivery; the other axes state their absence.
-- **`mutations`** reads a mutation declaration from the attribute's body and completes it from the item the attribute sits on — the one road here that reads two captures, which is why the item's identity rides the request as a dependency. The rendered module rides the deferred axis as proved test-carrier cargo, and the stamped seat is honestly empty.
-- **`bench`** reads a neutral benchmark declaration from the attribute's body. The table rides the declared axis and the target-supplied report reader rides the bench axis, so the carrier writes the bench form.
-- **`shadow`** is the first road with no carrier at all: the reading chooses roster rows, the rendering writes each row's two `cfg`-gated faces, and the sealed expansion's one declaration-site unit is those items directly — production `pub use` rows, inert inside nothing.
-- **`network`** reads a topology and its fault schedules and emits their builder module directly: `topology()`, one function per schedule, one generated fault enum. What the tokens can know refuses at capture; what the harness's value guards own still refuses there, through the builders' honest results.
-- **`concurrency`** reads named exploration rows — population, ceiling, samples, seed — and emits one generic function per row, taking the strand set and the contract at the call and handing back the reading beside its concluded verdict.
+## Delivery postures
 
-## One attribute, one carrier
+A carrier projection hands verified axes to the support home and returns an inert declaration-site carrier whose cargo remains behind the consumption boundary.
+A direct projection returns ordinary declaration-site items without inventing a carrier it does not need.
+The projection kind determines which posture applies, and this home does not flatten the two into one weaker representation.
 
-Each road composes exactly the axes its own reading produced, and a declaration wearing two of these attributes gets two carriers under two exported names.
-The joint carrier — one vehicle composing a trial table beside a mutation module — remains what it always was: a door an adopter writes, on the same public roads these three walk.
+## Composition
 
-## What no road decides
+The proc crate calls these roads after capture and emits the expansion it receives, while a callable compiler user may invoke the same public roads directly.
+The facade preserves those owning modules rather than adding another door vocabulary.
 
-The attribute's spelling, the emitter's names, and the door a diagnostic is composed under arrive as values from the caller, because they are the caller's own act.
-No road here invents a fact either: an axis nothing filled carries the disposition of what would have filled it, citing the fact declared beside these roads.
+## Evidence ceiling
+
+A successful road establishes that the declared projection completed the compiler's generic request sequence and produced a sealed expansion under the caller's stated authority.
+It does not establish that a consumption target invokes a carrier, that generated code behaves correctly after compilation, or that any downstream harness judgment is true.
+Those claims remain with the external compiler, proc, facade, generated-support, package, and target observations that exercise the resulting expansion.
