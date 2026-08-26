@@ -19,6 +19,9 @@ It is the only loop of its kind here, so a lane that needs a structured input dr
 Semantic reducers you declared propose candidates first; the generic byte reducer follows, removing and zeroing windows at halving widths until a whole round admits nothing.
 Every candidate, from either source, is admitted on one ground and one only: it still fails, under the same fingerprint.
 
+The private [`generation`](generation/README.md) and [`reduction`](reduction/README.md) homes own those two vocabularies and operation roads.
+This parent remains the composition and compatibility door: every existing item is still reachable from `macroonz_harness::generate`, `macroonz_harness::generate::types`, `macroonz_harness::generate::driver`, or `macroonz_harness::generate::reduce` exactly where it was before the split.
+
 ## The census is the point
 
 Six things can become of one request for a case, and all six have a seat.

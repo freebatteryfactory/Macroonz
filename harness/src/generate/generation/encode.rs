@@ -1,4 +1,4 @@
-//! The complete preimages the two generation identities are derived over.
+//! The complete preimages the two input-generation identities are derived over.
 //!
 //! Two primitives, both borrowed from the record instrument rather than invented a second time here:
 //!

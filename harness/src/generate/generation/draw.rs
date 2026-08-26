@@ -1,4 +1,4 @@
-//! Reading bytes off a source, over the one chunk grid both arms share.
+//! Reading bytes off a source over the one chunk grid both arms share.
 //!
 //! A draw hands back the width it was asked for, or it hands back nothing and says how far short the source fell.
 //! Neither road reads anything but the source, the cursor, and the width.
