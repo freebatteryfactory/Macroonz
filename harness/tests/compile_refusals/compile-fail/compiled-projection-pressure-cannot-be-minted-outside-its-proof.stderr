@@ -1,0 +1,17 @@
+error[E0451]: fields `parity`, `baseline_artifact`, `standing`, `baseline_report`, `selected_report` and `mutation` of struct `macroonz_harness::muterprater::CompiledProjectionPressure` are private
+  --> tests/compile_refusals/compile-fail/compiled-projection-pressure-cannot-be-minted-outside-its-proof.rs:25:9
+   |
+24 |     CompiledProjectionPressure {
+   |     -------------------------- in this type
+25 |         parity,
+   |         ^^^^^^ private field
+26 |         baseline_artifact,
+   |         ^^^^^^^^^^^^^^^^^ private field
+27 |         standing,
+   |         ^^^^^^^^ private field
+28 |         baseline_report,
+   |         ^^^^^^^^^^^^^^^ private field
+29 |         selected_report,
+   |         ^^^^^^^^^^^^^^^ private field
+30 |         mutation,
+   |         ^^^^^^^^ private field
