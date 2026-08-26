@@ -2,7 +2,7 @@
 
 A plan is the complete output set of one request, named before a token of the target language has been written.
 
-Four of the road's eight steps live here.
+The planning road moves through related views of one declared request.
 The **account** is what the caller walked in with: the kind-specific content bound to its exact captured declaration and owner-qualified kind, and the independent captures it declares it stands on.
 The **intent** is what that request meant — its owner-qualified kind over the content commitment, and nothing else, so two requests that meant the same thing derive one intent whatever machinery would realize them.
 The **context** is what the request is decided under: the profile it selected, and the generator answering.
@@ -20,7 +20,7 @@ Closure matches a rendered unit to a planned one BY SEAT, so a doubled seat woul
 
 ## One account, and no second copy
 
-Four readings take the account: the intent derived from it, the triggers that watch it, the declaration a diagnostic names as the cause, and the origin node its bound content stands at.
+The intent, invalidation, diagnostic-cause, and origin readings all take the account.
 
 None of them keeps a copy.
 A second list of what content depends on — beside a plan, inside a context, at a call site — would agree with the first until it did not, and nothing downstream could tell which of the two a plan was actually planned over.
@@ -29,10 +29,9 @@ A second list of what content depends on — beside a plan, inside a context, at
 
 The watch set is derived from the account and the context rather than listed at a call site, and it covers all of both.
 
-A set watching one of three declarations is byte for byte the shape of a complete one, so a plan over it would read as current after the other two changed.
-The compiler-owned rows watch the content commitment, every independent captured dependency, the selected profile, and the generator that produced the plan.
-The content commitment is already derived under the account's own captured declaration, so a second trigger over that declaration would be a weaker restatement rather than another cause.
-The consumer-owned row watches anything else it declared, under the name it declared for it.
+A set watching only part of a declaration's causes is byte for byte the shape of a complete one, so a plan over it would read as current after an unwatched cause changed.
+Compiler-owned invalidation follows the identity-bearing facts the account and context already hold rather than restating them at the planning call.
+Consumer-owned invalidation names any further declared fact in the consumer's own vocabulary.
 The compiler enumerates no further nouns there, because a mechanism profile, a work formula, and a fixture population are three different owners' meanings and a roster of them would be this crate minting vocabulary for facts it does not hold.
 
 ## What it does not do
@@ -49,11 +48,3 @@ Planning issues are independent and co-establishable — one pass may find a dou
 
 A body that fills its bound keeps what fits and counts the rest, which is a different statement from "no further defects exist".
 The refusal is an ordinary error: it prints, it is a `core::error::Error`, and it projects into a diagnostic through the one contract every refusing step implements.
-
-## The seats
-
-`types.rs` declares, and its own child `type_guard.rs` holds every road that reaches a private field — the account's doors, the output firewall, the watch derivation, and the plan itself.
-
-`anchor.rs` reads what a plan hangs off and where its content stands in the origin graph.
-`encode.rs` writes the canonical bytes a plan's transcript is taken over.
-`type_contract.rs` states the rosters' constant answers and the two contracts a refusal stands under.
