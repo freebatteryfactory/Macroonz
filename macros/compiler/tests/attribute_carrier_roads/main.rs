@@ -194,9 +194,13 @@ fn a_trial_body_missing_its_support_clause_refuses() -> Result<(), ()> {
     Ok(())
 }
 
-/// A mutation declaration becomes one carrier whose opaque seat carries the rendered module.
-///
-/// The declared order is the item's own variant list: every variant spelling appears in the emitted carrier, and so does the one operator family the door produces alternatives under.
+/// Claim: A mutation declaration becomes one carrier whose opaque seat calls the public discovery-lowering road.
+/// Subject: The rendered module carried by one complete mutation declaration.
+/// Population: The carrier text, all three declared variants, and the one generated discovery call.
+/// Hostile control: The assertion rejects the private semantic-home path and requires the exact public operation path.
+/// Denominator: The complete emitted carrier for the declaration and item used by this fixture.
+/// Evidence ceiling: This compiler-side test establishes generated tokens only, not downstream execution.
+/// Retained regression: Public-path drift, private-home leakage, and lost declared variants remain permanent regressions.
 #[test]
 fn a_mutation_declaration_becomes_one_carrier_carrying_the_module() -> Result<(), ()> {
     let carrier = mutations(MUTATION_BODY, MUTATION_ITEM)
@@ -206,6 +210,13 @@ fn a_mutation_declaration_becomes_one_carrier_carrying_the_module() -> Result<()
     let text = emitted(&carrier).ok_or(())?;
     assert!(text.contains("press_support"));
     assert!(text.contains("declared-order-permutation"));
+    assert!(
+        text.contains(
+            "$harness $( :: $harness_segment ) * :: muterprater :: discover :: lower_discoveries"
+        ),
+        "{text}"
+    );
+    assert!(!text.contains("$harness $( :: $harness_segment ) * :: muterprater :: discovery"));
     for variant in ["First", "Second", "Third"] {
         assert!(text.contains(variant), "the order does not carry {variant}");
     }
