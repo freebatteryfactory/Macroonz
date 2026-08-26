@@ -1,8 +1,6 @@
-//! One row's canonical preimage, and the identity derived over it.
+//! One row's canonical preimage and the identity derived over it.
 
-use super::types::{
-    BENCH_ROW_KEY_TAG, BenchMeasurement, BenchReferences, BenchRowKey, ContentionPosture,
-};
+use super::{BENCH_ROW_KEY_TAG, BenchMeasurement, BenchReferences, BenchRowKey, ContentionPosture};
 use crate::descriptor::EncodeRefusal;
 use crate::identity::ContentAddress;
 
@@ -15,7 +13,7 @@ fn write_bytes(into: &mut Vec<u8>, material: &[u8]) -> Result<(), EncodeRefusal>
     Ok(())
 }
 
-/// Derive one row's identity over the preimage this home's README spells out.
+/// Derive one row's identity over the preimage the parent bench README spells out.
 pub(super) fn derive_row_key(
     references: BenchReferences,
     measurement: &BenchMeasurement,

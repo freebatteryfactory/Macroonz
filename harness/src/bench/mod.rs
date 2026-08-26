@@ -1,12 +1,13 @@
 #![doc = include_str!("README.md")]
 
-mod encode;
+mod declaration;
 mod execute;
-mod measure;
 mod stamp;
+mod timed;
 mod type_contract;
 mod types;
 mod verdict;
+mod work;
 
 pub use execute::run_all;
 pub use types::{

@@ -1,11 +1,12 @@
 //! The host road: admit the whole table, take each row through its stages, and publish one report.
 
-use super::measure::{curve, judge, timed_pass};
+use super::timed::timed_pass;
 use super::types::{
     BenchBinding, BenchCall, BenchInvocation, BenchOutcome, BenchReading, BenchReport,
     BenchRunRefusal, BenchTable, BenchTargetMismatch, PrimaryWorkPhase, WorkCurve,
     WorkQualificationRefusal,
 };
+use super::work::{curve, judge};
 use crate::runner::{lens_verdict, run_one};
 
 /// Which target fact disagrees between one row's preflight and this run, where either does.
@@ -49,10 +50,12 @@ fn primary(
     call: BenchCall,
     phase: PrimaryWorkPhase,
 ) -> Result<WorkCurve, BenchRunRefusal> {
-    curve(call, binding).map_err(|refusal| BenchRunRefusal::WorkNotRecorded {
-        row: binding.row().key(),
-        phase,
-        refusal,
+    curve(call, binding.row(), binding.attachment()).map_err(|refusal| {
+        BenchRunRefusal::WorkNotRecorded {
+            row: binding.row().key(),
+            phase,
+            refusal,
+        }
     })
 }
 
@@ -82,7 +85,7 @@ fn run_row(
         attachment.planted_worse(),
         PrimaryWorkPhase::PlantedWorse,
     )?;
-    let judgment = judge(binding, &measured, &planted_worse);
+    let judgment = judge(row, attachment, &measured, &planted_worse);
 
     let outcome = match judgment.qualification() {
         Err(WorkQualificationRefusal::PlantedWorseNotDistinguished { .. }) => {

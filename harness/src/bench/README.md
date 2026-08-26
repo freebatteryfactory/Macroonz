@@ -91,6 +91,16 @@ A reading keeps the complete row, the target it stood on, the preflight report, 
 A renderer may take a `&BenchReport` and do whatever it likes with it.
 What it cannot do is build one, reach a benchmark callable or the judge, or change a stage or a denominator.
 
+## The private owners
+
+The public owner remains this `bench` home, and every public item stays at `macroonz_harness::bench`.
+
+`declaration/` owns the row facts and the one canonical preimage from which `BenchRowKey` is derived.
+`work/` owns scoped recording, work curves, owner judgment, and the executable work attachment.
+The parent owns preflight binding, table admission, host execution, timed observation, report minting, verdict, and stamped refusal composition across those children.
+
+The child modules are private implementation homes and add no public path.
+
 ## What this home will not grow
 
 There is no benchmark backend here, and there will not be one.
