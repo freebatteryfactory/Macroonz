@@ -107,7 +107,10 @@ A README has no yaml blocks, no ledgers, no status tables.
 - **No Python.** Ever. Tooling is Rust.
 - **Declared input only.** Expansion and judgment are functions of what they were handed: no network, no filesystem scan, no environment, no clock, no entropy. The harness may read the host facts it needs to run; they never enter an identity or a verdict.
 - **The proc host carries.** Token conversion, span custody, one compiler call, diagnostic placement, emission. It owns no grammar.
-- **Nothing sneaks in.** No probes, no symlinks, no `build.rs`. LF everywhere. No person's name in any file.
+- **Nothing sneaks in.** No product or runtime probes, no symlinks, no `build.rs`. LF everywhere. No person's name in any file.
+- **Qualification drivers stay outside product authority:** a bounded external driver may consume declared public inputs from ignored qualification storage only when it is outside the published packages and ordinary workspace API, adds no product observation channel, records its exact source, tool, command, host, target, seed or corpus, and evidence, and promotes every meaningful minimized finding into the owning tracked regression plane.
+- **`.durafx` is a warehouse, never an oracle:** it is Git-ignored durable local qualification evidence, never product source or a Cargo target, and every consuming run declares and identifies its stored input explicitly while a sealed run remains unchanged behind its receipt hashes.
+- **Build output is disposable:** a task may clean its exact target directory after every retained artifact has been sealed or promoted, never while another live task uses that directory and never by redirecting general build caches into `.durafx` or a slower drive.
 - **Red is a sensor.** A failing lane, lint, metric, or search result is evidence; the owner rules on the substance before code changes to answer it. No code is edited to silence a finding.
 - **Unused is not dead.** `unused`, `uncalled`, and `unreached` are wiring facts, never deletion authority.
 - **Read whole.** Every assigned file, top to bottom, before classifying or editing it. Search output enumerates candidates; it is never the denominator.
