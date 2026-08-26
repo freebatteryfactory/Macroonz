@@ -25,6 +25,22 @@ Where a pattern declares a reach coordinate, the definition carries one front ar
 An opaque `vis` fragment cannot be transported at all — a wrapper that captured a whole visibility and forwarded it has handed over something no arm can place.
 The last arm says so with the compiler's own refusal rather than guessing a scope, because a guessed reach publishes somebody's private item and nothing downstream reports it.
 
+```mermaid
+flowchart LR
+    site["site coordinate"] -->|private or pub(self)| enclosing["pub(super) in the seated module"]
+    site -->|pub(super)| ancestor["pub(in super::super) in the seated module"]
+    site -->|pub(crate)| crate["pub(crate), unchanged"]
+    site -->|pub| public["pub, unchanged"]
+    opaque["forwarded $vis fragment"] --> refusal["compile-time refusal"]
+
+    classDef coordinate fill:#eef6ff,stroke:#2563eb,color:#172554;
+    classDef admitted fill:#ecfdf5,stroke:#059669,color:#064e3b;
+    classDef refused fill:#fff1f2,stroke:#e11d48,color:#881337;
+    class site coordinate;
+    class enclosing,ancestor,crate,public admitted;
+    class opaque,refusal refused;
+```
+
 ## What it claims
 
 That the definition and every invocation were rendered from one declaration, and that the record states which of the two grounds makes publication lawful.
@@ -32,15 +48,12 @@ That the definition and every invocation were rendered from one declaration, and
 ## What it does not
 
 It stages nothing, writes no file, and commits nothing.
-What it hands back is rendered trees and one record; a publication step lands them and a person commits them.
+What it hands back is rendered trees and one record; the publication actor independently verifies and lands them.
 
 It reads no plan of its own accord either.
 A caller hands it what its plan decided, and the two refusals that reading raises are about the plan's seat and delivery, never about the pattern.
 
-## The seats
+## The boundary
 
-`types.rs` declares, and its own child `type_guard.rs` holds every road that reaches a private field — the identifier alphabet, the two closed namespaces, and the one road that composes an artifact whole.
-
-`render.rs` is the token half: the matcher, the arms, the definition, and one invocation per site.
-`plan.rs` reads what a plan decided into the statement a record is built from.
-`type_contract.rs` states the reach transport and how a refusal reads.
+This home owns the authored pattern, the closed seat and site namespaces, the one-level reach transport, and the whole rendered publication value.
+Planning owns whether a requested seat exists and lands as an artifact; a publication actor owns staged bytes, filesystem placement, independent comparison with the record, and version-control custody.
