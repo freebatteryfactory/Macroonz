@@ -273,6 +273,11 @@ impl BenchMeasurement {
 impl BenchRow {
     /// One row, with its identity derived from the whole declaration.
     ///
+    /// # Identity
+    ///
+    /// The preimage is the workload name, authored axis length and values, preflight name, planted-worse name, sample and warmup counts, exact ratio, contention tag, optional formula, and complexity name, in that order.
+    /// Names encode as length-prefixed namespace and stem bytes, lengths and axis values are big-endian `u64`, sample and warmup counts are big-endian `u32`, ratio members are big-endian `u64`, contention is its declared one-byte tag, and formula absence or presence is `0` or `1` followed on presence by length-prefixed bytes.
+    ///
     /// # Errors
     ///
     /// Refuses only where the canonical encoder cannot hold a member's length in the width it declares.

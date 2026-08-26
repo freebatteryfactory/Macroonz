@@ -9,7 +9,8 @@ The judge sees the declared formula, complexity claim, budgets, and both primary
 It never sees a clock reading.
 The planted-worse control must refuse and satisfy the declared exact gap before the measured curve can qualify.
 
-`types.rs` owns the work, judgment, recorder, and attachment vocabulary, `type_guard.rs` owns their invariant nuclei, and `measure.rs` records primary curves and invokes the owner judge.
+Executable attachments bind both callables, the judge, and one nonempty duplicate-free observation roster.
+Primary measurement records each callable over the authored input axis and then hands both curves to the owner judge together.
 
 The child is private.
 The parent [`crate::bench`] door preserves every public path and owns host execution.

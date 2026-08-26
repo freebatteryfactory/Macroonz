@@ -36,6 +36,10 @@ static FAST_CLOCK: AtomicU64 = AtomicU64::new(1u64);
 static SLOW_CLOCK: AtomicU64 = AtomicU64::new(1u64);
 pub(super) static DRIFT_CALLS: AtomicU64 = AtomicU64::new(0u64);
 pub(super) static DRIFT_PRIMARY_CALLS: AtomicU64 = AtomicU64::new(0u64);
+pub(super) static TIMED_WARMUP_CALLS: AtomicU64 = AtomicU64::new(0u64);
+pub(super) static TIMED_WARMUP_FAILURE_AT: AtomicU64 = AtomicU64::new(u64::MAX);
+pub(super) static TIMED_SAMPLE_CALLS: AtomicU64 = AtomicU64::new(0u64);
+pub(super) static TIMED_SAMPLE_FAILURE_AT: AtomicU64 = AtomicU64::new(u64::MAX);
 const MEASURED_REFUSED: FindingCause = FindingCause::named(OWNER, "measured-work-refused");
 const WORSE_REFUSED: FindingCause = FindingCause::named(OWNER, "planted-worse-refused");
 const GAP_REFUSED: FindingCause = FindingCause::named(OWNER, "declared-gap-not-observed");
@@ -295,6 +299,30 @@ pub(super) fn drifting_measured(
         super::fixture::measured(input_size, recorder)
     } else {
         super::fixture::planted_worse(input_size, recorder)
+    }
+}
+
+pub(super) fn refusing_timed_warmup(
+    input_size: u64,
+    recorder: &mut WorkRecorder,
+) -> Result<(), WorkRecordingRefusal> {
+    let at = TIMED_WARMUP_CALLS.fetch_add(1u64, Ordering::SeqCst);
+    if at == TIMED_WARMUP_FAILURE_AT.load(Ordering::SeqCst) {
+        unknown_observation(input_size, recorder)
+    } else {
+        super::fixture::measured(input_size, recorder)
+    }
+}
+
+pub(super) fn refusing_timed_sample(
+    input_size: u64,
+    recorder: &mut WorkRecorder,
+) -> Result<(), WorkRecordingRefusal> {
+    let at = TIMED_SAMPLE_CALLS.fetch_add(1u64, Ordering::SeqCst);
+    if at == TIMED_SAMPLE_FAILURE_AT.load(Ordering::SeqCst) {
+        unknown_observation(input_size, recorder)
+    } else {
+        super::fixture::measured(input_size, recorder)
     }
 }
 

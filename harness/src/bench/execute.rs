@@ -125,6 +125,11 @@ fn run_row(
 
 /// Run one whole table under the host facts the caller declared.
 ///
+/// # Order
+///
+/// Prevalidates every preflight target and toolchain before caller code runs, then takes each row through correctness preflight, measured work, planted-worse work, owner judgment, and the timed pass.
+/// Publishes a report only after every row has produced its stage-shaped reading and no execution refusal has aborted the table.
+///
 /// # Authority
 ///
 /// Work counts and the owner's judge decide qualification.

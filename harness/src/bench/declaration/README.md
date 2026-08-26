@@ -6,9 +6,10 @@ A row names its workload, correctness preflight, planted-worse control, complexi
 It cannot carry a callable, a clock, a judgment, or a report.
 
 `BenchRowKey` is derived once from the complete declaration under `BENCH_ROW_KEY_TAG`.
-The encoder preserves authored axis order and the exact byte grammar stated by the parent bench home.
+The encoder preserves authored axis order and the exact byte grammar stated by the public row constructor.
 
-`types.rs` owns this vocabulary, `type_guard.rs` owns its constructors and readers, and `encode.rs` owns the canonical row preimage.
+Construction refuses a vacuous or repeated input axis, invalid budgets, an empty present formula, and a row whose canonical preimage exceeds its declared encoding width.
+The public constructor contract and an independent external transcript establish the exact row preimage.
 
 The child is private.
 The parent [`crate::bench`] door preserves every public path.

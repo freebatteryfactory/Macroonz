@@ -156,3 +156,88 @@ fn recorder_and_secondary_failures_never_become_qualified_reports() -> Result<()
     ));
     Ok(())
 }
+
+#[test]
+fn planted_worse_amount_overflow_names_its_phase_and_input() -> Result<(), BenchRoadFailure> {
+    let binding = BenchBinding::bound(
+        fixture::row_with_axis(vec![2u64, u64::MAX])?,
+        fixture::lawful_attachment(
+            zeroed_measured_work,
+            fixture::planted_worse,
+            fixture::lawful_judge,
+        )?,
+        fixture::lawful_preflight(fixture::preflight_passes)?,
+    )
+    .map_err(BenchStampRefusal::from)?;
+    assert!(matches!(
+        run_all(&table_with(binding)?, &fixture::invocation()),
+        Err(BenchRunRefusal::WorkNotRecorded {
+            phase: PrimaryWorkPhase::PlantedWorse,
+            refusal: WorkRecordingRefusal::AmountOverflow {
+                input_size: u64::MAX,
+                ..
+            },
+            ..
+        })
+    ));
+    Ok(())
+}
+
+#[test]
+fn timed_warmup_and_sample_refusals_remain_distinct() -> Result<(), BenchRoadFailure> {
+    TIMED_WARMUP_CALLS.store(0u64, Ordering::SeqCst);
+    let warmup = fixture::binding(
+        refusing_timed_warmup,
+        fixture::planted_worse,
+        fixture::lawful_judge,
+        fixture::preflight_passes,
+    )?;
+    let warmup_primary_calls = warmup
+        .row()
+        .input_sizes()
+        .sizes()
+        .iter()
+        .flat_map(|_| 0..warmup.row().budgets().samples())
+        .count();
+    let warmup_primary_calls = u64::try_from(warmup_primary_calls)?;
+    TIMED_WARMUP_FAILURE_AT.store(warmup_primary_calls, Ordering::SeqCst);
+    assert!(matches!(
+        run_all(&table_with(warmup)?, &fixture::invocation()),
+        Err(BenchRunRefusal::SecondaryWorkRefused {
+            refusal: SecondaryObservationRefusal::Warmup(WorkRecordingRefusal::UnknownObservation(
+                _
+            )),
+            ..
+        })
+    ));
+
+    TIMED_SAMPLE_CALLS.store(0u64, Ordering::SeqCst);
+    let sample = fixture::binding(
+        refusing_timed_sample,
+        fixture::planted_worse,
+        fixture::lawful_judge,
+        fixture::preflight_passes,
+    )?;
+    let sample_primary_calls = sample
+        .row()
+        .input_sizes()
+        .sizes()
+        .iter()
+        .flat_map(|_| 0..sample.row().budgets().samples())
+        .count();
+    let sample_primary_calls = u64::try_from(sample_primary_calls)?;
+    TIMED_SAMPLE_FAILURE_AT.store(
+        sample_primary_calls.saturating_add(u64::from(sample.row().budgets().warmups())),
+        Ordering::SeqCst,
+    );
+    assert!(matches!(
+        run_all(&table_with(sample)?, &fixture::invocation()),
+        Err(BenchRunRefusal::SecondaryWorkRefused {
+            refusal: SecondaryObservationRefusal::Sample(WorkRecordingRefusal::UnknownObservation(
+                _
+            )),
+            ..
+        })
+    ));
+    Ok(())
+}
