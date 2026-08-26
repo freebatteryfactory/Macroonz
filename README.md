@@ -37,9 +37,9 @@ One storefront opens onto the oven, the hand that loads it, and the taste tester
 
 | Crate | Directory | What it is |
 | --- | --- | --- |
-| **`macroonz`** | `/` | The storefront. It preserves the three owners as `compiler`, `macros`, and feature-gated `harness` modules. This is the crate you add. |
+| **`macroonz`** | `/` | The storefront. It preserves the owners as `compiler`, `macros`, and feature-gated `harness` modules. This is the crate you add. |
 | **`macroonz-compiler`** | `macros/compiler/` | The compiler, as ordinary functions. Capture a declaration, build a request, plan, render, close, explain, bind, emit. |
-| **`macroonz-macros`** | `macros/proc/` | The generic entries: `#[trials]`, `#[bench]`, and `#[mutations]`, each expanding to one inert exported carrier beside the item it decorates, and the three direct declarations — `shadow!` for two-faced synchronization imports, `network!` for a topology's builder module, `concurrency!` for declared interleaving explorations. It owns no grammar — every reading and every road is the compiler's. |
+| **`macroonz-macros`** | `macros/proc/` | The thin procedural host. Item-preserving attributes and direct declarations call compiler-owned descriptor doors, then carry token conversion, span custody, diagnostic placement, and emission. It owns no grammar. |
 | **`macroonz-harness`** | `harness/` | The judge. Descriptors, generation, properties, oracles, faults, corpus, mutation, benches, reports, replay. The default storefront includes it; the diet posture removes it from a shipping graph. |
 
 ```mermaid
