@@ -8,21 +8,33 @@ use macroonz_harness::generate::{
     InputOrigin, PreconditionVerdict, RejectionAllowance, SizeProgression, admit_every_sequence,
 };
 use macroonz_harness::properties::{
-    AMBIENT_PATHWAY_DISAGREEMENT, ANSWER_EXPECTED, Agreement, COMPOSED_RETURN_DISAGREEMENT,
-    CONSERVATION_DISAGREEMENT, ComposedRoads, ContractRefusal, FUSED_VERSUS_SEPARATE_DISAGREEMENT,
-    Holding, IDEMPOTENCE_DISAGREEMENT, MONOTONICITY_DISAGREEMENT, NO_SEQUENCE_DRIVEN,
-    PERMUTATION_DISAGREEMENT, ParitySuite, REFUSAL_EXPECTED, ROUNDTRIP_DISAGREEMENT,
-    SharedSubstrate, SubstrateRef, SubstrateRefusal, SubstrateRoster, TemporalClaim,
-    TemporalDemand, TemporalDriveStanding, TransitionContract, ambient_pathway_invariance,
-    composed_return, conservation, holds_over_drive, idempotence, monotonicity, parity,
-    permutation_insensitivity, roundtrip,
+    AMBIENT_PATHWAY_DISAGREEMENT, ANSWER_EXPECTED, Agreement, COMPOSED_CONSERVATION_DISAGREEMENT,
+    COMPOSED_DETERMINISM_DISAGREEMENT, COMPOSED_IDEMPOTENCE_DISAGREEMENT,
+    COMPOSED_RETURN_DISAGREEMENT, CONSERVATION_DISAGREEMENT, ComposedRoads, ContractRefusal,
+    DETERMINISM_DISAGREEMENT, FAIL_CLOSED_ANSWERED, FUSED_VERSUS_SEPARATE_DISAGREEMENT, Holding,
+    IDEMPOTENCE_DISAGREEMENT, LAWFUL_TWIN_REFUSED, MONOTONICITY_DISAGREEMENT, NO_SEQUENCE_DRIVEN,
+    PERMUTATION_DISAGREEMENT, ParitySuite, PoisonResponse, REFUSAL_EXPECTED,
+    ROUNDTRIP_DISAGREEMENT, RoadPairing, SharedSubstrate, SubstrateRef, SubstrateRefusal,
+    SubstrateRoster, TemporalClaim, TemporalDemand, TemporalDriveStanding, TransitionContract,
+    admits_lawful, ambient_pathway_invariance, composed, composed_conservation,
+    composed_determinism, composed_idempotence, composed_return, conservation,
+    determinism_run_twice, fail_closed, holds_over_drive, holds_over_history, idempotence,
+    monotonicity, parity, permutation_insensitivity, roundtrip,
 };
 use macroonz_harness::report::{
     ByteBudget, CaseBudget, FailureClass, FindingCause, GenerationProfile, TrialConclusion,
 };
 use std::fmt;
+use std::sync::atomic::{AtomicU8, Ordering as AtomicOrdering};
 
 const TEMPORAL_CAUSE: FindingCause = FindingCause::named("harness", "bounded-state");
+const NEVER_CAUSE: FindingCause = FindingCause::named("harness", "never-above-three");
+const EVENTUALLY_CAUSE: FindingCause = FindingCause::named("harness", "eventually-positive");
+const LATCH_CAUSE: FindingCause = FindingCause::named("harness", "positive-latch");
+const ORDER_CAUSE: FindingCause = FindingCause::named("harness", "state-order");
+
+static METAMORPHIC_CALL: AtomicU8 = AtomicU8::new(0u8);
+static COMPOSITION_CALL: AtomicU8 = AtomicU8::new(0u8);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Scalar(u8);
@@ -108,6 +120,14 @@ fn same_word(left: &Word, right: &Word) -> Agreement {
     }
 }
 
+const SAME_U8: fn(&u8, &u8) -> Agreement = |left, right| {
+    if left == right {
+        Agreement::Agrees
+    } else {
+        Agreement::Differs
+    }
+};
+
 fn natural_scalar(left: &Scalar, right: &Scalar) -> Ordering {
     left.0.cmp(&right.0)
 }
@@ -164,6 +184,14 @@ fn triple(value: &Scalar) -> Scalar {
     Scalar(value.0.saturating_mul(3u8))
 }
 
+fn changing(_value: &Scalar) -> Scalar {
+    Scalar(METAMORPHIC_CALL.fetch_add(1u8, AtomicOrdering::SeqCst))
+}
+
+fn changing_composition(_value: &Scalar) -> Scalar {
+    Scalar(COMPOSITION_CALL.fetch_add(1u8, AtomicOrdering::SeqCst))
+}
+
 fn add_one(value: &Scalar) -> Scalar {
     Scalar(value.0.saturating_add(1u8))
 }
@@ -174,6 +202,10 @@ fn subtract_one(value: &Scalar) -> Scalar {
 
 fn identity(value: &Scalar) -> Scalar {
     value.clone()
+}
+
+fn scalar_value(value: &Scalar) -> u8 {
+    value.0
 }
 
 fn refusal_signature(conclusion: &TrialConclusion) -> Option<(FailureClass, FindingCause)> {
@@ -289,19 +321,57 @@ fn metamorphic_families_distinguish_lawful_and_damaged_paths() {
         )),
         Some(property_refusal(AMBIENT_PATHWAY_DISAGREEMENT))
     );
+
+    assert_eq!(
+        determinism_run_twice(double, same_scalar, &value),
+        TrialConclusion::Passed
+    );
+    METAMORPHIC_CALL.store(0u8, AtomicOrdering::SeqCst);
+    assert_eq!(
+        refusal_signature(&determinism_run_twice(changing, same_scalar, &value)),
+        Some(property_refusal(DETERMINISM_DISAGREEMENT))
+    );
 }
 
 #[test]
 fn composition_distinguishes_returning_and_damaged_wiring() {
     let lawful = ComposedRoads::wired(add_one, subtract_one, same_scalar);
     let damaged = ComposedRoads::wired(add_one, identity, same_scalar);
+    let value = Scalar(7u8);
+    assert_eq!(composed(&lawful, &value), value);
+    assert_eq!(composed_return(&lawful, &value), TrialConclusion::Passed);
     assert_eq!(
-        composed_return(&lawful, &Scalar(7u8)),
+        refusal_signature(&composed_return(&damaged, &value)),
+        Some(property_refusal(COMPOSED_RETURN_DISAGREEMENT))
+    );
+    assert_eq!(
+        composed_idempotence(&lawful, &value),
         TrialConclusion::Passed
     );
     assert_eq!(
-        refusal_signature(&composed_return(&damaged, &Scalar(7u8))),
-        Some(property_refusal(COMPOSED_RETURN_DISAGREEMENT))
+        refusal_signature(&composed_idempotence(&damaged, &value)),
+        Some(property_refusal(COMPOSED_IDEMPOTENCE_DISAGREEMENT))
+    );
+    assert_eq!(
+        composed_conservation(&lawful, scalar_value, scalar_value, SAME_U8, &value,),
+        TrialConclusion::Passed
+    );
+    assert_eq!(
+        refusal_signature(&composed_conservation(
+            &damaged,
+            scalar_value,
+            scalar_value,
+            SAME_U8,
+            &value,
+        )),
+        Some(property_refusal(COMPOSED_CONSERVATION_DISAGREEMENT))
+    );
+
+    COMPOSITION_CALL.store(0u8, AtomicOrdering::SeqCst);
+    let nondeterministic = ComposedRoads::wired(changing_composition, identity, same_scalar);
+    assert_eq!(
+        refusal_signature(&composed_determinism(&nondeterministic, &value)),
+        Some(property_refusal(COMPOSED_DETERMINISM_DISAGREEMENT))
     );
 }
 
@@ -327,6 +397,30 @@ fn remains_zero(state: &State) -> Holding {
     } else {
         Holding::Fails
     }
+}
+
+fn above_three(state: &State) -> Holding {
+    if state.0 > 3u8 {
+        Holding::Holds
+    } else {
+        Holding::Fails
+    }
+}
+
+fn positive(state: &State) -> Holding {
+    if state.0 > 0u8 {
+        Holding::Holds
+    } else {
+        Holding::Fails
+    }
+}
+
+fn replace_command(_state: &State, command: &Command) -> State {
+    State(command.0)
+}
+
+fn state_order(left: &State, right: &State) -> Ordering {
+    left.0.cmp(&right.0)
 }
 
 fn reject_every_sequence(_commands: &[Command]) -> PreconditionVerdict {
@@ -439,9 +533,93 @@ fn temporal_reading_distinguishes_complete_partial_counterexample_and_empty()
 }
 
 #[test]
+fn temporal_history_reads_never_eventually_latch_and_order() -> Result<(), PropertyRoadFailure> {
+    let never = TransitionContract::declared(
+        opening_state,
+        apply_command,
+        vec![TemporalClaim::declared(
+            NEVER_CAUSE,
+            TemporalDemand::Never(above_three),
+        )],
+    )?;
+    assert_eq!(
+        holds_over_history(&never, &[Command(1u8)]),
+        TrialConclusion::Passed
+    );
+    assert_eq!(
+        refusal_signature(&holds_over_history(&never, &[Command(4u8)])),
+        Some(property_refusal(NEVER_CAUSE))
+    );
+
+    let eventually = TransitionContract::declared(
+        opening_state,
+        apply_command,
+        vec![TemporalClaim::declared(
+            EVENTUALLY_CAUSE,
+            TemporalDemand::Eventually(positive),
+        )],
+    )?;
+    assert_eq!(
+        holds_over_history(&eventually, &[Command(1u8)]),
+        TrialConclusion::Passed
+    );
+    assert_eq!(
+        refusal_signature(&holds_over_history(&eventually, &[])),
+        Some(property_refusal(EVENTUALLY_CAUSE))
+    );
+
+    let latch = TransitionContract::declared(
+        opening_state,
+        replace_command,
+        vec![TemporalClaim::declared(
+            LATCH_CAUSE,
+            TemporalDemand::OnceHoldingAlwaysHolding(positive),
+        )],
+    )?;
+    assert_eq!(
+        holds_over_history(&latch, &[Command(1u8), Command(2u8)]),
+        TrialConclusion::Passed
+    );
+    assert_eq!(
+        refusal_signature(&holds_over_history(&latch, &[Command(1u8), Command(0u8)])),
+        Some(property_refusal(LATCH_CAUSE))
+    );
+
+    let ordered = TransitionContract::declared(
+        opening_state,
+        replace_command,
+        vec![TemporalClaim::declared(
+            ORDER_CAUSE,
+            TemporalDemand::NeverDecreases(state_order),
+        )],
+    )?;
+    assert_eq!(
+        holds_over_history(&ordered, &[Command(1u8), Command(2u8)]),
+        TrialConclusion::Passed
+    );
+    assert_eq!(
+        refusal_signature(&holds_over_history(&ordered, &[Command(2u8), Command(1u8)])),
+        Some(property_refusal(ORDER_CAUSE))
+    );
+    assert!(matches!(
+        TransitionContract::<State, Command>::declared(opening_state, apply_command, Vec::new()),
+        Err(ContractRefusal::NoClaimDeclared)
+    ));
+    Ok(())
+}
+
+#[test]
 fn parity_reading_retains_suite_input_results_and_exact_refusal() -> Result<(), PropertyRoadFailure>
 {
     let substrate = SubstrateRef::named("harness", "neutral-arithmetic")?;
+    assert_eq!(
+        SubstrateRoster::declared(&[]),
+        Err(SubstrateRefusal::EmptyRoster)
+    );
+    assert_eq!(
+        SubstrateRoster::declared(&[substrate, substrate]),
+        Err(SubstrateRefusal::DuplicateSubstrate(substrate))
+    );
     let standing = SharedSubstrate::Standing(SubstrateRoster::declared(&[substrate])?);
     let lawful = ParitySuite::fused_versus_separate(double, double, same_scalar, standing.clone());
     let input = Scalar(5u8);
@@ -462,7 +640,64 @@ fn parity_reading_retains_suite_input_results_and_exact_refusal() -> Result<(), 
         refusal_signature(damaged_reading.conclusion()),
         Some(property_refusal(FUSED_VERSUS_SEPARATE_DISAGREEMENT))
     );
+
+    let pairing =
+        macroonz_harness::descriptor::NamespacedName::named("harness", "declared-parity-pair")?;
+    let declared = ParitySuite::over(
+        RoadPairing::Declared(pairing),
+        double,
+        triple,
+        same_scalar,
+        SharedSubstrate::DeclaredIndependent,
+    );
+    assert_eq!(
+        refusal_signature(parity(&declared, &input).conclusion()),
+        Some(property_refusal(FindingCause::named(
+            "harness",
+            "declared-parity-pair",
+        )))
+    );
     Ok(())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Response {
+    Refused,
+    Answered,
+}
+
+fn refusal_response(_value: &Scalar) -> Response {
+    Response::Refused
+}
+
+fn answer_response(_value: &Scalar) -> Response {
+    Response::Answered
+}
+
+const RESPONSE_READING: fn(&Response) -> PoisonResponse = |response| match response {
+    Response::Refused => PoisonResponse::Refused,
+    Response::Answered => PoisonResponse::Answered,
+};
+
+#[test]
+fn hostile_refusal_and_lawful_twin_must_both_hold() {
+    let value = Scalar(7u8);
+    assert_eq!(
+        fail_closed(refusal_response, RESPONSE_READING, &value),
+        TrialConclusion::Passed
+    );
+    assert_eq!(
+        refusal_signature(&fail_closed(answer_response, RESPONSE_READING, &value)),
+        Some(check_refusal(FAIL_CLOSED_ANSWERED))
+    );
+    assert_eq!(
+        admits_lawful(answer_response, RESPONSE_READING, &value),
+        TrialConclusion::Passed
+    );
+    assert_eq!(
+        refusal_signature(&admits_lawful(refusal_response, RESPONSE_READING, &value)),
+        Some(check_refusal(LAWFUL_TWIN_REFUSED))
+    );
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

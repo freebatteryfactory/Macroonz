@@ -1,47 +1,77 @@
-# properties — the laws a subject is held to
+# properties — laws over owner-supplied meaning
 
-A check asserts one answer about one input.
-A property is a law: it states what must be true of *every* answer, and generation spends the rest of the run hunting the input that makes it false.
+A check answers one question about one input.
+A property states a law over a population, a relation, a wiring, or a history and turns a counterexample into typed evidence.
 
-This home carries the law shapes and nothing else.
-The subject is yours, the equality is yours, the order is yours, and the verdict comes back typed.
-No law here demands a trait of anything it judges — every seat a meaning could enter through is a bare type parameter or a function pointer you wrote.
+This home supplies the law shapes and the one conclusion algebra they share.
+The subject, sameness, ordering, transition meaning, and refusal reading remain caller-owned function pointers over otherwise unbounded types.
+No subject trait or product vocabulary enters here.
 
-## The families
+```mermaid
+flowchart LR
+    accTitle: Property evidence flow
+    accDescr: Caller-owned semantics enter a law perspective, each perspective reaches the shared typed conclusion road, and the result composes into ordinary report evidence.
 
-| File | The law relates | What it needs |
-| --- | --- | --- |
-| `algebra` | a subject to the algebra its owner declared — roundtrip, idempotence, conservation, monotonicity | nothing but the declaration; the declared algebra is its own oracle |
-| `metamorphic` | one run of a subject to another — the input rearranged, the input twice, the input down two pathways | nothing at all, not even the right answer |
-| `parity` | two separately maintained roads to one meaning | both roads, and a statement of what they share |
-| `composition` | a wiring to the same algebraic shapes, read over the wiring rather than over a step | the two steps, in the order they run |
-| `temporal` | a whole history to what it always, never, or eventually owes | a transition system and a command sequence |
-| `refusal` | what a subject did with material it owed a refusal, and with that material's lawful twin | your reading of what a refusal looks like |
+    O([Caller-owned semantics])
 
-`conclude` is the single road from a demand to a verdict, so a disagreement becomes a finding in one place.
-`ensure` is the macro sugar over it, and it expands to exactly that call and nothing else.
+    subgraph P[Law perspectives]
+        direction TB
+        A[Declared algebra]
+        M[Related runs]
+        Y[Two roads]
+        C[Composed roads]
+        T[Whole histories]
+        R[Refusal and lawful twin]
+    end
 
-Histories come from the harness's one sequence driver, not from a loop grown here.
-A command sequence is a structured input like any other, and a failing sequence is a counterexample carrying its seed like any other.
+    O --> A
+    O --> M
+    O --> Y
+    O --> C
+    O --> T
+    O --> R
 
-## Two honesty clauses
+    A --> D{Demand holds?}
+    M --> D
+    Y --> D
+    C --> D
+    T --> D
+    R --> D
 
-A declared-algebra law proves the subject honors the law its owner declared.
-It can never falsify the declaration itself: an owner who declares the wrong algebra and implements it faithfully passes everything here, and passing says exactly that much.
+    D -->|yes| H[Typed pass]
+    D -->|no| F[Typed finding]
+    H --> E([Ordinary report evidence])
+    F --> E
+```
 
-Agreement between two roads is silence about everything the two roads share.
-So a parity suite cannot be built without saying what it stands on.
-Name the shared foundations and the evidence is worth exactly what those foundations are worth; declare the two roads independent and you have made the loudest claim in this vocabulary, by hand, in your own words.
-An empty roster is a typed refusal rather than a quiet promotion into that claim.
+Declared-algebra laws compare a subject with the algebra its owner stated.
+Metamorphic laws relate runs without requiring a known right answer.
+Parity compares separately maintained roads only after the caller declares what they share.
+Composition reads law shapes over a wiring rather than pretending correct steps imply correct assembly.
+Temporal laws read every state in a driven history.
+Refusal laws pair hostile material with its lawful twin so a subject that refuses everything cannot impersonate fail-closed behavior.
 
-## What a disagreement names
+Histories come from the harness's sequence driver rather than from a private generation loop in this home.
+A failing sequence remains the counterexample that generation and reduction can retain, minimize, and replay.
 
-The pair, never the culprit.
-Which road moved is a ruling its owner makes, and a check that guessed would be minting a verdict out of a comparison that cannot carry one.
+## Evidence ceilings
 
-## What this home will not do
+A declared-algebra law proves only that the subject honors the algebra its owner declared.
+An incorrect declaration faithfully implemented can still pass.
 
-- Panic, assert, unwrap, or index. A failed check hands back a conclusion carrying its evidence.
-- Read a message, a rendering, or any other prose to decide whether a subject refused correctly.
-- Learn what a state, a command, or a refusal means. Those stay spelled in your vocabulary, and this home stores names it never reads inside.
-- Answer for what your own functions do. Their effects are yours, and an unwind out of one is the runner boundary's separate observation rather than a verdict from here.
+Agreement between two roads is silent about every foundation they share.
+Parity therefore requires either a nonempty shared-substrate roster or an explicit declaration of independence.
+The latter is the strongest statement in this vocabulary and has no inferred construction road.
+
+A disagreement names the relation or road pair, never the culprit.
+Determining which side moved requires evidence outside the comparison itself.
+
+Caller-supplied functions retain ordinary Rust effects and unwind behavior.
+The runner observes an unwind at its own boundary; this home does not relabel one as a property verdict.
+
+## Nonclaims
+
+- This home does not infer equality, order, transition meaning, or refusal shape from a subject.
+- It does not inspect prose to classify an answer.
+- It does not promote a generation drive that admitted no sequence, an empty shared-foundation roster, or a claim-free transition contract into passing evidence.
+- It does not answer for the truth of a caller's declaration beyond the relation the caller supplied.
