@@ -96,12 +96,27 @@ impl ReadyPreflight {
     }
 }
 
+/// Every named ceiling the F0 Frida accept receipt retains with the selection.
+pub(crate) const REQUIRED_F0_CEILINGS: &[NamedCeiling] = &[
+    NamedCeiling::Lnk4098Coexistence,
+    NamedCeiling::LibAppendMsvcSdk,
+    NamedCeiling::RustStdDllOnPath,
+    NamedCeiling::LinuxMacOsUnexecutedUntilWaveF,
+];
+
+/// Every host disposition the F0 Frida accept receipt retains with the selection.
+pub(crate) const REQUIRED_F0_HOSTS: &[HostDisposition] = &[
+    HostDisposition::ObservedWindows,
+    HostDisposition::CredibleUnexecutedLinux,
+    HostDisposition::CredibleUnexecutedMacOs,
+];
+
 impl BackendSelection {
-    /// Select `LibAFL` plus Frida with the ceilings and host dispositions the F0 receipt requires.
+    /// Select `LibAFL` plus Frida with the complete F0 ceiling and host roster.
     ///
     /// # Errors
     ///
-    /// Refuses an empty ceiling or host roster, a Windows observation without the LNK4098 ceiling, or a cross-host credible disposition without the Wave F ceiling.
+    /// Refuses an empty roster or any selection that omits a required F0 ceiling or host disposition.
     pub fn libafl_frida(
         name: NamespacedName,
         ceilings: Vec<NamedCeiling>,
@@ -113,28 +128,15 @@ impl BackendSelection {
         if hosts.is_empty() {
             return Err(BackendSelectionRefusal::NoHostDisposition);
         }
-        let has_lnk4098 = ceilings
-            .iter()
-            .any(|ceiling| matches!(ceiling, NamedCeiling::Lnk4098Coexistence));
-        let has_wave_f = ceilings
-            .iter()
-            .any(|ceiling| matches!(ceiling, NamedCeiling::LinuxMacOsUnexecutedUntilWaveF));
-        if hosts
-            .iter()
-            .any(|host| matches!(host, HostDisposition::ObservedWindows))
-            && !has_lnk4098
-        {
-            return Err(BackendSelectionRefusal::WindowsWithoutLnk4098Ceiling);
+        for required in REQUIRED_F0_CEILINGS {
+            if !ceilings.iter().any(|ceiling| ceiling == required) {
+                return Err(BackendSelectionRefusal::MissingRequiredCeiling(*required));
+            }
         }
-        if hosts.iter().any(|host| {
-            matches!(
-                host,
-                HostDisposition::CredibleUnexecutedLinux
-                    | HostDisposition::CredibleUnexecutedMacOs
-            )
-        }) && !has_wave_f
-        {
-            return Err(BackendSelectionRefusal::CrossHostWithoutWaveFCeiling);
+        for required in REQUIRED_F0_HOSTS {
+            if !hosts.iter().any(|host| host == required) {
+                return Err(BackendSelectionRefusal::MissingRequiredHost(*required));
+            }
         }
         Ok(Self {
             name,

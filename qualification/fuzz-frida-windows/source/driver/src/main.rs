@@ -652,27 +652,25 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     // Prefer a LibAFL corpus entry that itself reproduces typed refusal under TextCapture.
-    // Prefer evolved (non-seed) refusals when present; never hand Macroonz substituted bytes.
+    // Require a post-seed evolved refusal: the planted SEED_REFUSED alone is not handoff evidence.
     let mut interesting: Option<Vec<u8>> = None;
     for id in state.corpus().ids() {
         let testcase = state.corpus().get(id)?;
         let borrowed = testcase.borrow();
         if let Some(input) = borrowed.input() {
             let bytes = input.target_bytes().as_ref().to_vec();
+            if bytes.as_slice() == SEED_REFUSED {
+                continue;
+            }
             if matches!(observe(&bytes), CaptureOutcome::Refused { .. }) {
-                if bytes.as_slice() != SEED_REFUSED {
-                    interesting = Some(bytes);
-                    break;
-                }
-                if interesting.is_none() {
-                    interesting = Some(bytes);
-                }
+                interesting = Some(bytes);
+                break;
             }
         }
     }
     let interesting = interesting.ok_or_else(|| {
         io::Error::other(
-            "no LibAFL corpus entry reproduced typed refusal for Macroonz handoff; refusing rather than substituting bytes",
+            "no post-seed LibAFL corpus refusal for Macroonz handoff; refusing unevolved SEED_REFUSED rather than claiming interesting bytes",
         )
     })?;
     compose::prove_libafl_to_macroonz(&final_exam, &interesting)?;

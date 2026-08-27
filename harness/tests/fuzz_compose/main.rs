@@ -277,18 +277,56 @@ fn hostile_surface_refuses_malformed_fuzz_road() -> Result<(), FuzzRoadFailure> 
     assert_eq!(
         BackendSelection::libafl_frida(
             name,
-            vec![NamedCeiling::LibAppendMsvcSdk],
-            vec![HostDisposition::ObservedWindows],
+            vec![
+                NamedCeiling::LibAppendMsvcSdk,
+                NamedCeiling::RustStdDllOnPath,
+                NamedCeiling::LinuxMacOsUnexecutedUntilWaveF,
+            ],
+            vec![
+                HostDisposition::ObservedWindows,
+                HostDisposition::CredibleUnexecutedLinux,
+                HostDisposition::CredibleUnexecutedMacOs,
+            ],
         ),
-        Err(BackendSelectionRefusal::WindowsWithoutLnk4098Ceiling)
+        Err(BackendSelectionRefusal::MissingRequiredCeiling(
+            NamedCeiling::Lnk4098Coexistence
+        ))
     );
     assert_eq!(
         BackendSelection::libafl_frida(
             name,
-            vec![NamedCeiling::Lnk4098Coexistence],
-            vec![HostDisposition::CredibleUnexecutedLinux],
+            vec![
+                NamedCeiling::Lnk4098Coexistence,
+                NamedCeiling::LibAppendMsvcSdk,
+                NamedCeiling::RustStdDllOnPath,
+                NamedCeiling::LinuxMacOsUnexecutedUntilWaveF,
+            ],
+            vec![
+                HostDisposition::ObservedWindows,
+                HostDisposition::CredibleUnexecutedMacOs,
+            ],
         ),
-        Err(BackendSelectionRefusal::CrossHostWithoutWaveFCeiling)
+        Err(BackendSelectionRefusal::MissingRequiredHost(
+            HostDisposition::CredibleUnexecutedLinux
+        ))
+    );
+    assert_eq!(
+        BackendSelection::libafl_frida(
+            name,
+            vec![
+                NamedCeiling::Lnk4098Coexistence,
+                NamedCeiling::LibAppendMsvcSdk,
+                NamedCeiling::LinuxMacOsUnexecutedUntilWaveF,
+            ],
+            vec![
+                HostDisposition::ObservedWindows,
+                HostDisposition::CredibleUnexecutedLinux,
+                HostDisposition::CredibleUnexecutedMacOs,
+            ],
+        ),
+        Err(BackendSelectionRefusal::MissingRequiredCeiling(
+            NamedCeiling::RustStdDllOnPath
+        ))
     );
 
     let mut unavailable = all_available_facts();

@@ -131,10 +131,10 @@ pub enum BackendSelectionRefusal {
     NoCeiling,
     /// No host disposition was declared.
     NoHostDisposition,
-    /// Windows observation was claimed without the LNK4098 coexistence ceiling.
-    WindowsWithoutLnk4098Ceiling,
-    /// A Linux or macOS credible-unexecuted host was claimed without the Wave F ceiling.
-    CrossHostWithoutWaveFCeiling,
+    /// A required F0 ceiling was absent from the declared roster.
+    MissingRequiredCeiling(NamedCeiling),
+    /// A required F0 host disposition was absent from the declared roster.
+    MissingRequiredHost(HostDisposition),
 }
 
 /// Exact bytes a coverage backend admitted as interesting for Macroonz reduction.

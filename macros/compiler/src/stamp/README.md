@@ -27,18 +27,18 @@ The last arm says so with the compiler's own refusal rather than guessing a scop
 
 ```mermaid
 flowchart LR
-    site["site coordinate"] -->|private or pub(self)| enclosing["pub(super) in the seated module"]
-    site -->|pub(super)| ancestor["pub(in super::super) in the seated module"]
-    site -->|pub(crate)| crate["pub(crate), unchanged"]
-    site -->|pub| public["pub, unchanged"]
+    site["site coordinate"] -->|"private or pub(self)"| enclosing["pub(super) in the seated module"]
+    site -->|"pub(super)"| ancestor["pub(in super::super) in the seated module"]
+    site -->|"pub(crate)"| crateVis["pub(crate), unchanged"]
+    site -->|"pub"| public["pub, unchanged"]
     opaque["forwarded $vis fragment"] --> refusal["compile-time refusal"]
 
-    classDef coordinate fill:#eef6ff,stroke:#2563eb,color:#172554;
-    classDef admitted fill:#ecfdf5,stroke:#059669,color:#064e3b;
-    classDef refused fill:#fff1f2,stroke:#e11d48,color:#881337;
-    class site coordinate;
-    class enclosing,ancestor,crate,public admitted;
-    class opaque,refusal refused;
+    classDef coordinate fill:#eef6ff,stroke:#2563eb,color:#172554
+    classDef admitted fill:#ecfdf5,stroke:#059669,color:#064e3b
+    classDef refused fill:#fff1f2,stroke:#e11d48,color:#881337
+    class site coordinate
+    class enclosing,ancestor,crateVis,public admitted
+    class opaque,refusal refused
 ```
 
 ## What it claims

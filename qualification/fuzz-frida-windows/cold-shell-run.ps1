@@ -64,7 +64,7 @@ if (-not $Install) { throw "vswhere returned no installationPath" }
 $VcVars = Join-Path $Install "VC\Auxiliary\Build\vcvarsall.bat"
 if (-not (Test-Path $VcVars)) { throw "vcvarsall missing: $VcVars" }
 
-$Batch = Join-Path $env:TEMP "macroonz-fuzz-frida-vcvars-dump.bat"
+$Batch = Join-Path $env:TEMP ("macroonz-fuzz-frida-vcvars-dump-{0}.bat" -f [guid]::NewGuid().ToString("n"))
 @(
   "@echo off"
   "call `"$VcVars`" x64"
@@ -130,7 +130,7 @@ $env:MACROONZ_FUZZ_FRIDA_WORK = $Work
 
 Set-Location $Source
 $ErrorActionPreference = "Continue"
-cargo +1.98.0 build -p macroonz-fuzz-frida-driver
+cargo +1.98.0 build --locked -p macroonz-fuzz-frida-driver
 $buildExit = $LASTEXITCODE
 $ErrorActionPreference = "Stop"
 if ($buildExit -ne 0) { throw "cargo build failed" }
