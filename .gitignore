@@ -7,6 +7,9 @@ desktop.ini
 
 .vscode/
 .idea/
+.cursor/
+.codex/
+.claude/
 
 *.rs.bk
 *.orig
