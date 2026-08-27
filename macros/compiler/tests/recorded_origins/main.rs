@@ -3,10 +3,75 @@
 //! The lane independently spells every canonical byte below rather than calling the identity home's framing helpers.
 //! It therefore observes the origin home's public tables, walk and trace invariants, refusal priority, ordering, ceilings, and exact byte contract without becoming a second implementation of planning.
 
+use core::error::Error;
 use macroonz_compiler::identity::{self, Identity, Transcript};
+use macroonz_compiler::origin::{
+    DecisionTrace as ModuleDecisionTrace, Nonclaim as ModuleNonclaim,
+    ORIGIN_EDGE_LIMIT as MODULE_ORIGIN_EDGE_LIMIT, OriginEdge as ModuleOriginEdge,
+    OriginRelation as ModuleOriginRelation, OriginTrail as ModuleOriginTrail,
+    TRACE_ENTRY_LIMIT as MODULE_TRACE_ENTRY_LIMIT, TraceDecision as ModuleTraceDecision,
+    TraceEntry as ModuleTraceEntry, TrailError as ModuleTrailError,
+};
 use macroonz_compiler::{
-    DecisionTrace, Empty, NonEmptyError, Nonclaim, ORIGIN_EDGE_LIMIT, OriginEdge, OriginRelation,
-    OriginTrail, Overflow, OwnerFact, TRACE_ENTRY_LIMIT, TraceDecision, TraceEntry, TrailError,
+    BoundAxis, CrateBinding, DecisionTrace, Destination, Door, Empty, GeneratedToken,
+    GeneratedTree, Kind, NoQuestions, NonEmptyError, Nonclaim, ORIGIN_EDGE_LIMIT, Observed,
+    OriginEdge, OriginRelation, OriginTrail, Overflow, OwnerFact, PlanError, PlanIssue, Producer,
+    Refused, Request, Role, SELECTION_FACT, TRACE_ENTRY_LIMIT, TextCapture, TraceDecision,
+    TraceEntry, TrailError,
+};
+
+/// The kind used to observe the live request crossing into origin values.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct GeneratedOrigin;
+
+impl Kind for GeneratedOrigin {
+    const NAME: &'static str = "lane.generated-origin";
+    type Content = &'static str;
+    type Role = Seat;
+    type Question = NoQuestions;
+}
+
+/// The one generated seat in the crossing fixture.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Seat {
+    /// The unit emitted at the declaration site.
+    Unit,
+}
+
+impl Role for Seat {
+    const ALL: &'static [Self] = &[Self::Unit];
+
+    fn name(self) -> &'static str {
+        "unit"
+    }
+
+    fn destination(self) -> Destination {
+        Destination::DeclarationSite
+    }
+}
+
+/// The door used by the live request crossing.
+const DOOR: Door = Door::declared(
+    "origin-lane",
+    "origin-lane.grammar",
+    "origin_lane::expand",
+    CrateBinding::declared("origin_lane"),
+    Producer {
+        namespace: "origin-lane",
+        name: "recorded-origins",
+    },
+);
+
+/// The first caller fact recorded after the request home's selection fact.
+const FIRST_FACT: OwnerFact = OwnerFact {
+    home: "origin-lane",
+    name: "first-declared-fact",
+};
+
+/// The second caller fact recorded after the first.
+const SECOND_FACT: OwnerFact = OwnerFact {
+    home: "origin-lane",
+    name: "second-declared-fact",
 };
 
 /// One length in the canonical eight-byte big-endian spelling.
@@ -28,6 +93,15 @@ fn node(material: &[u8]) -> Identity<identity::OriginNode> {
 /// One traced subject over declared lane material.
 fn subject(material: &[u8]) -> Identity<identity::Traced> {
     Identity::derived(Transcript::rooted(identity::Role::Plan, material, 0))
+}
+
+/// One generated-unit identity over declared lane material.
+fn unit(material: &[u8]) -> Identity<identity::GeneratedUnit> {
+    Identity::derived(Transcript::rooted(
+        identity::Role::GeneratedUnit,
+        material,
+        0,
+    ))
 }
 
 /// The independently spelled citation bytes of one owner fact.
@@ -60,6 +134,132 @@ fn decision_bytes(decision: TraceDecision, into: &mut Vec<u8>) {
 fn entry_bytes(entry: TraceEntry, into: &mut Vec<u8>) {
     framed(entry.subject.as_bytes(), into);
     decision_bytes(entry.decision, into);
+}
+
+/// The root roster and the named module expose the same established public origin vocabulary.
+#[test]
+fn root_and_module_origin_paths_remain_public() {
+    let one = node(b"one");
+    let two = node(b"two");
+    let relation: ModuleOriginRelation = OriginRelation::ExplicitLink;
+    let edge: ModuleOriginEdge = OriginEdge {
+        from: one,
+        relation,
+        to: two,
+    };
+    let trail: ModuleOriginTrail = OriginTrail::from_edge(edge);
+    let decision: ModuleTraceDecision = TraceDecision::NotRun;
+    let entry: ModuleTraceEntry = TraceEntry {
+        subject: subject(b"public-path"),
+        decision,
+    };
+    let trace: ModuleDecisionTrace = DecisionTrace::from_entry(entry);
+    let nonclaim: ModuleNonclaim = Nonclaim {
+        unclaimed: Identity::derived(Transcript::rooted(identity::Role::Plan, b"public-path", 0)),
+        because: FIRST_FACT,
+    };
+    let refusal: ModuleTrailError = TrailError::Discontinuous { at: 1 };
+    assert_eq!(trail.first(), &edge);
+    assert_eq!(trace.first(), &entry);
+    assert_eq!(decision, TraceDecision::NotRun);
+    assert_eq!(nonclaim.because, FIRST_FACT);
+    assert_eq!(refusal, TrailError::Discontinuous { at: 1 });
+    assert_eq!(MODULE_ORIGIN_EDGE_LIMIT, ORIGIN_EDGE_LIMIT);
+    assert_eq!(MODULE_TRACE_ENTRY_LIMIT, TRACE_ENTRY_LIMIT);
+}
+
+/// A complete request mints the plan trail, member trail, and decision order that the public road promises.
+#[test]
+fn a_request_carries_authored_derivation_and_decision_order_into_its_plan() -> Result<(), ()> {
+    let read = TextCapture::read("struct Generated;").map_err(|_| ())?;
+    let expansion = Request::<GeneratedOrigin>::over(read.input().clone(), "generated", &DOOR)
+        .assuming(vec![FIRST_FACT, SECOND_FACT])
+        .render(|_plan, out| {
+            out.unit(
+                Seat::Unit,
+                GeneratedTree::assembled(vec![GeneratedToken::word("generated")])?,
+            )
+        })
+        .map_err(|_| ())?;
+    let plan = expansion.plan();
+    let member = plan.membership().under(Seat::Unit).ok_or(())?;
+    let plan_edge = plan.origin().first();
+    let member_edge = member.output.origin.first();
+    assert_eq!(plan.origin().edges().count(), 1);
+    assert_eq!(member.output.origin.edges().count(), 1);
+    assert_eq!(plan_edge.from, plan.account().origin_node());
+    assert_eq!(member_edge.from, plan.account().origin_node());
+    assert_eq!(plan_edge.to, member_edge.to);
+    assert_eq!(plan_edge.relation, OriginRelation::AuthoredDeclaration);
+    assert_eq!(member_edge.relation, OriginRelation::SemanticDerivation);
+
+    let decisions: Vec<TraceDecision> = plan
+        .trace()
+        .entries()
+        .iter()
+        .map(|entry| entry.decision)
+        .collect();
+    assert_eq!(
+        decisions,
+        [
+            TraceDecision::SelectedBecause(SELECTION_FACT),
+            TraceDecision::SelectedBecause(FIRST_FACT),
+            TraceDecision::SelectedBecause(SECOND_FACT),
+        ]
+    );
+    Ok(())
+}
+
+/// Every trail refusal keeps its existing planning issue and diagnostic classification.
+#[test]
+fn trail_refusals_keep_their_planning_and_diagnostic_meaning() {
+    let generated = unit(b"generated");
+    let orphan = PlanError::over_trail(generated, TrailError::Empty(Empty));
+    assert_eq!(
+        orphan.first_issue(),
+        &PlanIssue::OrphanGeneratedNode { node: generated }
+    );
+    assert_eq!(orphan.observed(), Observed::OriginAbsent);
+
+    let discontinuous = PlanError::over_trail(generated, TrailError::Discontinuous { at: 7 });
+    assert_eq!(
+        discontinuous.first_issue(),
+        &PlanIssue::TrailDiscontinuous { at: 7 }
+    );
+    assert_eq!(discontinuous.observed(), Observed::OriginAbsent);
+
+    let overflow = Overflow {
+        capacity: ORIGIN_EDGE_LIMIT,
+        offered: ORIGIN_EDGE_LIMIT.saturating_add(1),
+    };
+    let unbounded = PlanError::over_trail(generated, TrailError::Overflow(overflow));
+    assert_eq!(
+        unbounded.first_issue(),
+        &PlanIssue::BoundExceeded {
+            axis: BoundAxis::OriginEdges,
+            bound: u64::try_from(overflow.capacity).unwrap_or(u64::MAX),
+            observed: u64::try_from(overflow.offered).unwrap_or(u64::MAX),
+        }
+    );
+    assert_eq!(unbounded.observed(), Observed::BoundExceeded);
+}
+
+/// Trail errors retain their own sentence and the bounded refusal that caused one where a cause exists.
+#[test]
+fn trail_error_contracts_preserve_the_concrete_cause() {
+    let discontinuous = TrailError::Discontinuous { at: 7 };
+    let empty = TrailError::from(NonEmptyError::Empty(Empty));
+    let overflow = TrailError::from(NonEmptyError::Overflow(Overflow {
+        capacity: 2,
+        offered: 3,
+    }));
+    assert_eq!(
+        discontinuous.to_string(),
+        "the edge at position 7 does not start where the edge before it ended"
+    );
+    assert!(discontinuous.source().is_none());
+    assert!(empty.source().is_some_and(<dyn Error>::is::<Empty>));
+    assert!(overflow.source().is_some_and(<dyn Error>::is::<Overflow>));
 }
 
 /// Every relation has one declared name, one append-only slot, and one exact edge spelling.

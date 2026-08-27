@@ -1,9 +1,3 @@
-//! The origin home's invariant nucleus: every road that reaches a private field.
-//!
-//! Declared inside `types.rs` as its own child, which is what makes this home's two central claims structural.
-//! A trail is drawn here and nowhere else, so a generated unit with no origin, and a trail whose edges do not join, are values that do not exist rather than shapes a reader has to watch for.
-//! A trace is recorded here and nowhere else, in the order the decisions were made.
-
 use super::{
     DecisionTrace, ORIGIN_EDGE_LIMIT, OriginEdge, OriginTrail, TRACE_ENTRY_LIMIT, TraceEntry,
     TrailError,
@@ -45,7 +39,7 @@ impl OriginTrail {
     ///
     /// # Ordering
     ///
-    /// Walk order is the trail's own meaning — it is the path back to the authored material — so an identity may be derived from it.
+    /// Walk order is the trail's own meaning — it is the derivation path from producing material toward the generated unit — so an identity may be derived from it.
     #[must_use]
     pub fn edges(&self) -> &NonEmpty<OriginEdge, ORIGIN_EDGE_LIMIT> {
         &self.edges

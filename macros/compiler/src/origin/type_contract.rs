@@ -1,8 +1,3 @@
-//! The stated tables of this home's two rosters, and how a refused trail reads.
-//!
-//! A relation's slot and a decision's discriminant are bytes a canonical encoding carries, so both tables are part of what an origin MEANS rather than a convenience for the encoder that reads them.
-//! Each is total: a row admitted later stops the compiler here until somebody says what its name and its byte are.
-
 use super::{OriginRelation, TraceDecision, TrailError};
 use crate::bounded::NonEmptyError;
 
