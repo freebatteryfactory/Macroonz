@@ -5,7 +5,7 @@ This home exists for the claims where that is not enough: where the only thing a
 
 So the oracle goes and gets its answer from somewhere else.
 
-## Four lanes, four different somewhere-elses
+## Different methods, different somewhere-elses
 
 | Lane | Where the second opinion comes from | What it may claim |
 | --- | --- | --- |
@@ -22,13 +22,13 @@ The structural read never claims a path resolves; the compiled read-back never c
 A vector is born from the specification and read here.
 It is never exported from the thing under judgement: a vector copied out of a producer turns the lane into a mirror, and a producer that silently changes then agrees with itself forever.
 The vectors belong to whoever owns the specification, and this home ships only the reader — so anyone writing vectors for their own types gets the same instrument.
-`VectorPack::read` states the complete pack grammar, and nothing else in the harness reads one.
+The vector reader states the complete pack grammar, and nothing else in the harness reads one.
 
 ## The ceiling on the word "independent"
 
 No comparison here earns independence by being described as independent.
 
-These four lanes give method-specific evidence, good exactly as far as the method reaches.
+These methods give method-specific evidence, good exactly as far as each one reaches.
 Author-declared independence — the property suites' loudest arm — records what an author claims about two roads, never that anything established the claim.
 A caller-supplied reference implementation is a second road like any other, and calling it a reference does not promote it to a judge.
 The stronger status is a qualified implementation bound to the revision it was qualified at, with the qualification history kept behind that binding, and it is not built here.

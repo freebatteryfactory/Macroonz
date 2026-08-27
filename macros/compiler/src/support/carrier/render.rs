@@ -17,10 +17,9 @@
 //! A byte string has many spellings of one value and the spelling on this side is a literal writer's choice rather than a declaration anybody made, so a byte string here would be a producer hostage to an escaping convention nobody controls.
 //! An unsuffixed integer has exactly one rendering, so the two sides are one token by construction.
 
-use super::{
-    AxisCargo, BoundPath, CrateFacing, DeclaredCargo, DeliveryForm, SchemaId, ShellName,
-    SupportName,
-};
+use super::super::cargo::{AxisCargo, DeclaredCargo};
+use super::super::types::{BoundPath, CrateFacing, DeliveryForm, SchemaId, SupportName};
+use super::ShellName;
 use crate::bounded::Overflow;
 use crate::request::Door;
 use crate::token::{

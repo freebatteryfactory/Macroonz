@@ -4,6 +4,12 @@ A declaration expands where it stands, while some of its generated material belo
 Compiling that material in the declaring crate as well as in the target would erase the boundary the declaration asked for.
 This home owns the exported carrier that preserves that boundary.
 
+## Private owners
+
+The parent retains only declaration and schema-pin vocabulary shared across the crossing.
+The private dependency graph is `carrier -> assembly -> cargo`.
+Cargo owns material, promotion, and axes; assembly owns the checked join; carrier owns rendering and delivery.
+
 ## The boundary
 
 Authority enters as one captured declaration, terminal deliveries already proved by the compiler, the producer's published schema expectation, and an optional address chosen by the declaration.

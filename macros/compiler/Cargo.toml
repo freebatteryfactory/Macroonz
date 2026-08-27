@@ -19,3 +19,8 @@ ra-ap-rustc_lexer = { workspace = true }
 
 [dev-dependencies]
 trybuild = { workspace = true }
+
+[[test]]
+name = "host_capture_identity"
+path = "tests/host_capture_identity/main.rs"
+required-features = ["host"]

@@ -1,0 +1,5 @@
+error[E0451]: field `members` of struct `DeclaredMemberRoster` is private
+  --> tests/compile_refusals/compile-fail/an-oracle-structural-member-roster-cannot-bypass-declaration.rs:15:28
+   |
+15 |     DeclaredMemberRoster { members }
+   |                            ^^^^^^^ private field

@@ -16,7 +16,10 @@ members = [
     "macros/compiler",
     "macros/proc",
 ]
-exclude = ["macros/proc/tests/support/capture-observer"]
+exclude = [
+    "macros/proc/tests/support/capture-observer",
+    "qualification/durafx-sealer",
+]
 
 [workspace.package]
 version = "0.1.0"
@@ -46,6 +49,11 @@ full = ["harness", "preemption"]
 macroonz-compiler = { workspace = true, features = ["host"] }
 macroonz-harness = { workspace = true, optional = true }
 macroonz-macros = { workspace = true }
+
+[[test]]
+name = "facade_harness_surface"
+path = "tests/facade_harness_surface.rs"
+required-features = ["harness"]
 
 [lints]
 workspace = true

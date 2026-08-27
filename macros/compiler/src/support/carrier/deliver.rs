@@ -6,7 +6,8 @@
 //! The shell road's own refusal crosses honestly.
 //! A renderer answers in the render vocabulary, which has no seat for a shell refusal, so the refusal is parked beside the walk and converted to the diagnostic it deserves — the render-level abort it rides out on is never what a person reads.
 
-use super::types::{ShellError, SupportAssembly, SupportCarrier, SupportShell};
+use super::super::assembly::SupportAssembly;
+use super::{ShellError, SupportCarrier, SupportShell};
 use crate::diagnostic::{Diagnostic, Placement};
 use crate::expansion::Expansion;
 use crate::identity::{self, Identity};

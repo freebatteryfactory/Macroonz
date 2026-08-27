@@ -2,8 +2,6 @@
 //!
 //! The checked token builder mints both coordinates, while the host refusal projects declaration identity from the path and retains the handle for producer placement.
 
-#![cfg(feature = "host")]
-
 use macroonz_compiler::host::CaptureError;
 use macroonz_compiler::{
     CaptureBound, CaptureBuildRefusal, CaptureBuilder, CapturedAtom, LiteralReadCause, SpanHandle,

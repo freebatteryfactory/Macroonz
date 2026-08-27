@@ -1,0 +1,11 @@
+error[E0423]: cannot initialize a tuple struct which contains private fields
+  --> tests/compile_refusals/compile-fail/an-oracle-structural-path-segment-cannot-bypass-informing.rs:13:5
+   |
+13 |     StructuralPathSegment(spelling)
+   |     ^^^^^^^^^^^^^^^^^^^^^
+   |
+note: constructor is not visible here due to private fields
+  --> src/oracle/structural/types.rs
+   |
+   | pub struct StructuralPathSegment(String);
+   |                                  ^^^^^^ private field
