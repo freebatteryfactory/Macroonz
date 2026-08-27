@@ -12,7 +12,7 @@
 //! [`interleave`] explores the orders concurrent parties' commands can merge in, with the schedule itself a generated input, and [`network`] is the deterministic message-passing sim whose command-shaped deliveries feed that exploration.
 //! The feature-gated `preemption` module explores instruction-level interleavings and the memory model through a target-qualified backend: the feature enables Loom where the pinned scheduler supports the target and retains typed backend unavailability everywhere else.
 //! [`fault`] schedules owner-declared adversity, [`clock`] is the caller-declared wall-measurement boundary, and [`mod@bench`] judges work under a pinned profile.
-//! [`fuzz`] owns the Macroonz campaign shell around a selected coverage backend: declared preflight facts, named ceilings, interesting-byte handoff into reduction and replay.
+//! [`fuzz`] owns the Macroonz campaign shell around a selected coverage backend: declared preflight facts, named ceilings, interesting-byte handoff into reduction and replay, with the `LibAFL` plus Frida mechanism behind the opt-in `fuzz-frida` feature.
 //! [`muterprater`] is the mutation-pressure engine, and [`oracle`] is the independence annex for claims where self-agreement would be vacuous.
 //! [`report`] owns what a run leaves behind, [`depot`] is the harness's own fact bank, and [`identity`] is the derivation substrate every identity here goes through.
 //! Executable challenge material sits under `tests/`, where cargo requires it to live.

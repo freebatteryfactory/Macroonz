@@ -18,8 +18,6 @@ members = [
 ]
 exclude = [
     "macros/proc/tests/support/capture-observer",
-    "qualification/durafx-sealer",
-    "qualification/fuzz-frida-windows/source",
 ]
 
 [workspace.package]
@@ -34,7 +32,11 @@ arbitrary = { version = "=1.4.2", default-features = false }
 syn = { version = "=3.0.3", default-features = false, features = ["full", "parsing"] }
 blake3 = { version = "=1.8.6", default-features = false }
 loom = { version = "=0.7.2", default-features = false, features = ["futures"] }
+frida-gum = { version = "=0.17.2", default-features = false, features = ["event-sink", "std"] }
+libafl = { version = "=0.16.1", default-features = false, features = ["derive", "serdeany_autoreg", "std"] }
+libafl_bolts = { version = "=0.16.1", default-features = false, features = ["derive", "std"] }
 ra-ap-rustc_lexer = { version = "=0.174.0", default-features = false }
+serde = { version = "=1.0.229", default-features = false, features = ["alloc", "derive"] }
 trybuild = "=1.0.120"
 macroonz-compiler = { path = "macros/compiler", version = "=0.1.0" }
 macroonz-harness = { path = "harness", version = "=0.1.0", default-features = false }
@@ -44,6 +46,7 @@ macroonz-macros = { path = "macros/proc", version = "=0.1.0" }
 default = ["full"]
 harness = ["dep:macroonz-harness"]
 preemption = ["harness", "macroonz-harness/preemption"]
+fuzz-frida = ["harness", "macroonz-harness/fuzz-frida"]
 full = ["harness", "preemption"]
 
 [dependencies]

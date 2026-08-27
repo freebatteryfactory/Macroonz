@@ -1,9 +1,10 @@
 //! Smart constructors and readers for the fuzz home.
 
 use super::{
-    BackendSelection, BackendSelectionRefusal, HostDisposition, InterestingBytes,
-    InterestingBytesRefusal, NamedCeiling, PreflightCapability, PreflightFact, PreflightIncomplete,
-    PreflightStatus, ReadyPreflight, SelectedBackend,
+    BackendSelection, BackendSelectionRefusal, FridaCampaign, FridaCampaignRefusal,
+    FridaCampaignResult, FridaModuleName, FridaTarget, FridaTargetRefusal, FuzzExecution,
+    HostDisposition, InterestingBytes, InterestingBytesRefusal, NamedCeiling, PreflightCapability,
+    PreflightFact, PreflightIncomplete, PreflightStatus, ReadyPreflight, SelectedBackend,
 };
 use crate::descriptor::NamespacedName;
 
@@ -188,5 +189,170 @@ impl InterestingBytes {
     #[must_use]
     pub fn as_bytes(&self) -> &[u8] {
         &self.bytes
+    }
+}
+
+impl FuzzExecution {
+    pub(crate) const fn index(self) -> usize {
+        match self {
+            Self::LawfulSuccess => 0,
+            Self::TypedRefusal => 1,
+            Self::NotUtf8 => 2,
+            Self::Crash => 3,
+            Self::Timeout => 4,
+            Self::ResourceExhaustion => 5,
+            Self::AmbiguousPartialAcceptance => 6,
+        }
+    }
+}
+
+impl FridaTarget {
+    /// Declare one loaded module by its exact runtime name.
+    ///
+    /// # Errors
+    ///
+    /// Refuses an empty module name.
+    pub fn named(name: impl Into<String>) -> Result<Self, FridaTargetRefusal> {
+        FridaModuleName::declared(name).map(Self::NamedModule)
+    }
+}
+
+impl FridaModuleName {
+    fn declared(name: impl Into<String>) -> Result<Self, FridaTargetRefusal> {
+        let name = name.into();
+        if name.is_empty() {
+            return Err(FridaTargetRefusal::EmptyModuleName);
+        }
+        Ok(Self { name })
+    }
+
+    pub(crate) fn as_str(&self) -> &str {
+        &self.name
+    }
+}
+
+impl FridaCampaign {
+    /// Declare one deterministic bounded native Frida campaign.
+    ///
+    /// # Errors
+    ///
+    /// Refuses missing seeds or zero execution, mutation, or timeout bounds.
+    pub fn declared(
+        target: FridaTarget,
+        seeds: Vec<Vec<u8>>,
+        handoff: FuzzExecution,
+        random_seed: u64,
+        iterations: u64,
+        mutation_iterations: usize,
+        timeout: std::time::Duration,
+    ) -> Result<Self, FridaCampaignRefusal> {
+        if seeds.is_empty() {
+            return Err(FridaCampaignRefusal::NoSeeds);
+        }
+        if iterations == 0 {
+            return Err(FridaCampaignRefusal::ZeroIterations);
+        }
+        if mutation_iterations == 0 {
+            return Err(FridaCampaignRefusal::ZeroMutationIterations);
+        }
+        if timeout.is_zero() {
+            return Err(FridaCampaignRefusal::ZeroTimeout);
+        }
+        Ok(Self {
+            target,
+            seeds,
+            handoff,
+            random_seed,
+            iterations,
+            mutation_iterations,
+            timeout,
+        })
+    }
+
+    pub(crate) const fn target(&self) -> &FridaTarget {
+        &self.target
+    }
+
+    pub(crate) fn seeds(&self) -> &[Vec<u8>] {
+        &self.seeds
+    }
+
+    pub(crate) const fn handoff(&self) -> FuzzExecution {
+        self.handoff
+    }
+
+    pub(crate) const fn random_seed(&self) -> u64 {
+        self.random_seed
+    }
+
+    pub(crate) const fn iterations(&self) -> u64 {
+        self.iterations
+    }
+
+    pub(crate) const fn mutation_iterations(&self) -> usize {
+        self.mutation_iterations
+    }
+
+    pub(crate) const fn timeout(&self) -> std::time::Duration {
+        self.timeout
+    }
+}
+
+impl FridaCampaignResult {
+    pub(crate) const fn established(
+        corpus_after_seeds: usize,
+        corpus_after_loop: usize,
+        nonempty_edge_entries: u64,
+        monitor_events: usize,
+        execution_counts: [u64; 7],
+        interesting: InterestingBytes,
+    ) -> Self {
+        Self {
+            corpus_after_seeds,
+            corpus_after_loop,
+            nonempty_edge_entries,
+            monitor_events,
+            execution_counts,
+            interesting,
+        }
+    }
+
+    /// The corpus population after declared seeds were evaluated.
+    #[must_use]
+    pub const fn corpus_after_seeds(&self) -> usize {
+        self.corpus_after_seeds
+    }
+
+    /// The corpus population after the bounded mutational loop.
+    #[must_use]
+    pub const fn corpus_after_loop(&self) -> usize {
+        self.corpus_after_loop
+    }
+
+    /// Nonzero entries in the final target-relative edge map.
+    #[must_use]
+    pub const fn nonempty_edge_entries(&self) -> u64 {
+        self.nonempty_edge_entries
+    }
+
+    /// Events emitted by the `LibAFL` monitor during the campaign.
+    #[must_use]
+    pub const fn monitor_events(&self) -> usize {
+        self.monitor_events
+    }
+
+    /// Executions observed under one caller-supplied classification.
+    #[must_use]
+    pub fn executions(&self, execution: FuzzExecution) -> u64 {
+        self.execution_counts
+            .get(execution.index())
+            .copied()
+            .unwrap_or(0)
+    }
+
+    /// The exact evolved bytes selected for Macroonz reduction and replay.
+    #[must_use]
+    pub const fn interesting(&self) -> &InterestingBytes {
+        &self.interesting
     }
 }

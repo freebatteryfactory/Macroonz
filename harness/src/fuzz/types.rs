@@ -3,6 +3,7 @@
 //! Construction and reading live in this module's own child `type_guard.rs`.
 
 use crate::descriptor::NamespacedName;
+use std::time::Duration;
 
 #[path = "type_guard.rs"]
 mod guard;
@@ -161,4 +162,109 @@ pub enum ComposeRefusal {
     ReplayFingerprintMoved,
     /// Replay established no failure.
     ReplayNoFailure,
+}
+
+/// One outcome class the caller's subject reports to the native fuzz mechanism.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum FuzzExecution {
+    /// The subject admitted the bytes lawfully.
+    LawfulSuccess,
+    /// The subject established a typed refusal.
+    TypedRefusal,
+    /// The bytes never entered the subject because they were not UTF-8.
+    NotUtf8,
+    /// The subject or its process crashed.
+    Crash,
+    /// The subject exceeded its execution-time bound.
+    Timeout,
+    /// A supervising process established resource exhaustion.
+    ResourceExhaustion,
+    /// Execution ended without a complete semantic classification.
+    AmbiguousPartialAcceptance,
+}
+
+/// The loaded module whose relative blocks enter the Frida edge map.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum FridaTarget {
+    /// Observe the executable that owns the current process.
+    MainExecutable,
+    /// Observe one explicitly named loaded module.
+    NamedModule(FridaModuleName),
+}
+
+/// One nonempty loaded-module name used for target-relative Frida observation.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FridaModuleName {
+    name: String,
+}
+
+/// Why a Frida target declaration was refused.
+#[must_use = "a refusal is the reason a Frida target was not declared"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FridaTargetRefusal {
+    /// A named module must have a nonempty name.
+    EmptyModuleName,
+}
+
+/// One deterministic bounded `LibAFL` plus Frida campaign declaration.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FridaCampaign {
+    target: FridaTarget,
+    seeds: Vec<Vec<u8>>,
+    handoff: FuzzExecution,
+    random_seed: u64,
+    iterations: u64,
+    mutation_iterations: usize,
+    timeout: Duration,
+}
+
+/// Why a Frida campaign declaration was refused.
+#[must_use = "a refusal is the reason a Frida campaign was not declared"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FridaCampaignRefusal {
+    /// At least one declared seed is required.
+    NoSeeds,
+    /// The bounded fuzz loop must execute at least once.
+    ZeroIterations,
+    /// Each mutation stage must execute at least once.
+    ZeroMutationIterations,
+    /// The executor timeout must be positive.
+    ZeroTimeout,
+}
+
+/// Why the selected `LibAFL` plus Frida mechanism could not complete a campaign.
+#[must_use = "a refusal is the reason the Frida campaign did not complete"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum FridaRunRefusal {
+    /// The selected feature was invoked on a host outside its native support posture.
+    UnsupportedHost,
+    /// Frida Stalker is unavailable on this host.
+    StalkerUnavailable,
+    /// The declared target module was not loaded.
+    TargetModuleUnavailable,
+    /// Frida event delivery overlapped an edge-trace borrow.
+    ObservationBorrowCollision,
+    /// A declared seed produced no target-relative edge observation.
+    EmptyObservation,
+    /// Repeating the same seed changed its edge map.
+    UnstableObservation,
+    /// `LibAFL` or Frida refused an internal engine operation.
+    Engine(String),
+    /// Coverage feedback did not grow the corpus beyond its admitted seeds.
+    CorpusDidNotGrow,
+    /// No evolved corpus entry had the requested handoff classification.
+    NoEvolvedHandoff,
+    /// The selected evolved entry could not become nonempty interesting bytes.
+    InterestingBytes(InterestingBytesRefusal),
+}
+
+/// The bounded facts retained from one completed native Frida campaign.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FridaCampaignResult {
+    corpus_after_seeds: usize,
+    corpus_after_loop: usize,
+    nonempty_edge_entries: u64,
+    monitor_events: usize,
+    execution_counts: [u64; 7],
+    interesting: InterestingBytes,
 }
