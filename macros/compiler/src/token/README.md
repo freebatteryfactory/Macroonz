@@ -1,6 +1,8 @@
-# token — the seam on both sides
+# token — the public seam on both sides
 
 What a producer hands the compiler, and what a renderer hands back.
+
+The private `capture/` and `generation/` homes own the two directions while this module keeps the established public `token` paths unchanged.
 
 ## Why it is typed
 
@@ -15,7 +17,8 @@ So the seam is typed on both sides.
 ## Reading
 
 [`CapturedTokenTree`] is one token of a declared input: a payload, a stable [`TokenPath`] naming exactly where it sits in the tree, and an opaque [`SpanHandle`] indexing the producer's own table.
-Delimited groups stay groups; nothing is re-lexed and no balance is re-discovered.
+Delimited groups stay groups, including a compiler's invisible group.
+Compiler-host input is never re-lexed.
 
 [`CaptureBuilder`] is the only mint of a complete captured input.
 A producer supplies its own source position and a [`CapturedAtom`], or opens a nested group; the builder issues the path and handle, spends every declared magnitude, retains positions in handle order, and derives the final denominator from that roster.
@@ -28,6 +31,10 @@ A payload carries a literal's **value** and never its spelling.
 `"x"` and `r"x"` are one text, `"a\nb"` is three characters, and which prefix a producer read is not a fact the tree keeps.
 [`capture_literal`] is where a lexed spelling becomes that value, and it refuses a form it has no row for rather than filing it under a neighbouring one.
 
+Token distinctions that change a proc macro's input remain distinct: ordinary and raw identifiers have different rows, punctuation retains whether it joins what follows, lifetimes remain quote-plus-identifier tokens, and invisible compiler groups remain groups.
+Whitespace and ordinary comments do not enter the normalized declaration.
+Doc comments enter as the `doc` attributes the compiler presents to a proc macro.
+
 Every producer walks under the same captured-input magnitudes — depth, level, whole tree, and capture work — declared as plain constants beside the capacities they govern.
 A producer that skips or backtracks charges that observation through [`CaptureLevel::examined`], so work discarded before capture does not disappear from the budget.
 A [`SpanHandle`] means "the token at this index of the table the producer built while capturing".
@@ -35,6 +42,9 @@ The compiler never resolves one; it carries the handle into a diagnostic so that
 
 [`TextCapture::read`] is the third producer.
 A compiler is one, a test is another, and text is the third — it exists so that the reproduction route a diagnostic names is a real road and not a promise.
+It uses a pinned low-level compiler lexer for token boundaries and slices every spelling from the original source by the lexer-reported byte range.
+Its source-byte magnitude is checked before lexing and stands independently of the capture tree and work magnitudes.
+The [`CapturedInput`] it returns is the shared normalization boundary against which the compiler-token producer is observed.
 
 ## Writing
 
@@ -42,11 +52,12 @@ A compiler is one, a test is another, and text is the third — it exists so tha
 A renderer states a literal's value and never its spelling here too: the quoting, the escaping, and the absence of a suffix belong to the tree.
 That is what keeps `b"…"` from being assembled out of a word and a quoted string — two tokens where the address reading it matches one — and what lets one count be written into a `u32` seat, a `u64` seat, and a `usize` seat, because an unsuffixed literal is typed by the position it lands in.
 
-`compose.rs` is the rest of what a renderer needs: paths, calls, method chains, bindings, constants, functions, attributes, rosters.
+The private generation home's composers are the rest of what a renderer needs: paths, calls, method chains, bindings, constants, functions, attributes, rosters.
 A renderer states what it means and never assembles punctuation by hand.
 
 The written roster grows only at its end.
 Each arm's slot lives in `encode.rs`, a slot is a byte of the tree's canonical bytes, and those bytes are what a rendered unit's identity is derived over.
+An ordinary identifier and a raw identifier occupy distinct rows, while every pre-existing row keeps its occupied slot.
 
 ## What it is not
 

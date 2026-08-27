@@ -12,6 +12,11 @@ pub(super) fn inspect_token(token: &GeneratedToken, into: &mut String) {
             into.push_str(word);
             into.push(' ');
         }
+        GeneratedToken::RawIdentifier(name) => {
+            into.push_str("r#");
+            into.push_str(name);
+            into.push(' ');
+        }
         GeneratedToken::Punct { mark, spacing } => {
             into.push(*mark);
             if *spacing == GeneratedSpacing::Alone {

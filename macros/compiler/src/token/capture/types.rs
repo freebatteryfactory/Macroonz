@@ -1,4 +1,4 @@
-//! The seam's declarations: what one captured declaration is, how a producer's span table answers, how a text read refuses, and what a renderer writes.
+//! The capture home's declarations: what one captured declaration is, how a producer's span table answers, and how a text read refuses.
 //!
 //! Declarations only.
 //! Every road that reaches a private field lives in `type_guard.rs`, this file's own child, which is where all five magnitudes below are settled.
@@ -26,8 +26,10 @@ pub const CAPTURED_TREE_TOKEN_LIMIT: usize = 16_384;
 /// Deliberately wider than the whole-tree magnitude, because a walk may look at more than it keeps, and a budget at the tree magnitude exactly would refuse a lawful input the moment its producer looked twice at anything.
 pub const CAPTURE_WORK_LIMIT: usize = 65_536;
 
-/// Tokens one generated tree may carry at any one nesting level.
-pub const GENERATED_TOKEN_LIMIT: usize = 4096;
+/// Source bytes one text capture may read before tokenization.
+///
+/// This magnitude is independent of token count, tree depth, and capture work so a hostile trivia-only input cannot evade every structural bound by producing no retained token.
+pub const TEXT_SOURCE_BYTE_LIMIT: usize = 65_536;
 
 /// An opaque index into the producer's span table.
 ///
@@ -107,9 +109,9 @@ pub struct CaptureWalk {
 /// Groups have their own builder operation so no caller can smuggle child trees carrying foreign paths or handles through an atom seat.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CapturedAtom {
-    /// An identifier-shaped word.
+    /// An ordinary identifier-shaped word or keyword.
     Word(String),
-    /// One punctuation character.
+    /// One punctuation character that stands alone.
     Punct(char),
     /// A text literal's text.
     Text(String),
@@ -123,6 +125,10 @@ pub enum CapturedAtom {
     Byte(u8),
     /// A C string literal's material without its terminating NUL.
     NulTerminatedText(Vec<u8>),
+    /// A raw identifier's name without its `r#` spelling marker.
+    RawIdentifier(String),
+    /// One punctuation character joined to the token after it.
+    JointPunct(char),
 }
 
 /// What one captured token carries.
@@ -134,9 +140,9 @@ pub enum CapturedAtom {
 /// The roster grows at its end and nowhere else: each arm's slot is a byte of the canonical bytes a captured declaration's identity is derived over.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CapturedPayload {
-    /// An identifier-shaped word.
+    /// An ordinary identifier-shaped word or keyword.
     Word(String),
-    /// One punctuation character.
+    /// One punctuation character that stands alone.
     Punct(char),
     /// A text literal's text: `"…"` and `r"…"` alike, escapes read and quotes removed.
     Text(String),
@@ -157,6 +163,10 @@ pub enum CapturedPayload {
     Byte(u8),
     /// A C string literal's material: `c"…"` and `cr"…"`, without the terminating NUL, which is the literal form's and never the value's.
     NulTerminatedText(Vec<u8>),
+    /// A raw identifier's name without its `r#` spelling marker.
+    RawIdentifier(String),
+    /// One punctuation character joined to the token after it.
+    JointPunct(char),
 }
 
 /// Why one literal spelling could not be read into the value it names.
@@ -265,21 +275,47 @@ pub enum SpanTable {
     ProducerHeld,
 }
 
+/// Why the low-level lexer could not normalize one spelling.
+#[must_use = "a lexical refusal names the spelling distinction that could not be normalized"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TextLexicalCause {
+    /// A block comment was not terminated.
+    BlockCommentNotTerminated,
+    /// An identifier contains a character the compiler lexer rejects.
+    InvalidIdentifier,
+    /// A prefix is reserved or not meaningful without an edition-aware parser.
+    UnknownPrefix,
+    /// A lifetime prefix is reserved or not meaningful without an edition-aware parser.
+    UnknownLifetimePrefix,
+    /// A guarded-string prefix requires parser context this boundary does not own.
+    GuardedStringPrefix,
+    /// A literal carries a malformed low-level spelling.
+    MalformedLiteral,
+    /// A lifetime begins with a number.
+    LifetimeStartsWithNumber,
+    /// Frontmatter is not Rust token input at this boundary.
+    Frontmatter,
+    /// The lexer reported a character with no lawful Rust token kind.
+    UnknownToken,
+}
+
 /// Why one text read refused.
 ///
 /// Dependent checks: there is no group to balance until the characters were cut, and no magnitude to exceed until the trees were built.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TextReadCause {
-    /// A text literal was never closed.
+    /// A literal was never closed.
     NotTerminated,
-    /// A text literal carries an escape sequence, which this route admits none of.
-    ///
-    /// The captured grammar is wider than the route: a compiler shell hands escaped spellings over and `capture_literal` reads them, so what this cause bounds is this reader's own alphabet and never what a captured text may hold.
+    /// A literal carries an escape sequence the literal owner could not read.
     NotEscapeFree,
     /// A delimited group was never closed.
     NotBalanced,
     /// A closing delimiter arrived with no group open.
     NotOpened,
+    /// The declared text exceeds the independent source-byte magnitude.
+    SourceBytesUnbounded,
+    /// The low-level lexer established a malformed or context-dependent spelling.
+    Lexical(TextLexicalCause),
     /// The read exceeds a declared magnitude, and this is which one — a reader told only "unbounded" cannot tell a tree that nests too deep from one that spends the walk's budget.
     Unbounded(CaptureBound),
 }
@@ -304,71 +340,4 @@ pub struct TextCapture {
     pub(super) input: CapturedInput,
     /// The byte offsets that resolve the handles that read issued.
     pub(super) spans: SpanTable,
-}
-
-/// Whether one generated punctuation mark joins the token after it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum GeneratedSpacing {
-    /// It joins what follows: `::`, `->`, `'static`.
-    Joint,
-    /// It stands alone.
-    Alone,
-}
-
-/// The delimiter one generated group is written with.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum GeneratedDelimiter {
-    /// `( … )`.
-    Parenthesis,
-    /// `{ … }`.
-    Brace,
-    /// `[ … ]`.
-    Bracket,
-}
-
-/// One token a renderer writes.
-///
-/// A renderer states a literal's value and never its spelling, and the quoting, the escaping, and the absence of a suffix are the tree's business.
-/// That is what keeps a caller from composing `b"…"` out of a word and a quoted string — a pair that is two tokens where the address reading it matches one.
-///
-/// # Ordering
-///
-/// The roster grows at its end and nowhere else: each arm's slot is a byte of [`GeneratedTree::canonical_bytes`], which is what a rendered unit's identity is derived over.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum GeneratedToken {
-    /// An identifier-shaped word.
-    Word(String),
-    /// One punctuation character and whether it joins what follows.
-    Punct {
-        /// The character.
-        mark: char,
-        /// Whether it joins what follows.
-        spacing: GeneratedSpacing,
-    },
-    /// A text literal, stated as its text; the quoting is the tree's business.
-    Text(String),
-    /// A delimited group.
-    Group {
-        /// The delimiter.
-        delimiter: GeneratedDelimiter,
-        /// The tokens inside.
-        tokens: Bounded<GeneratedToken, GENERATED_TOKEN_LIMIT>,
-    },
-    /// A byte-string literal's material, written `b"…"`, because a clause declared to take `b"…"` does not take `"…"`.
-    ByteText(Vec<u8>),
-    /// An integer literal, written unsuffixed: plain digits and nothing else.
-    ///
-    /// The seat it lands in is what types it, so one renderer writes a count into a `u32` seat, a `u64` seat, and a `usize` seat without being told which, where a suffix would state a second type beside the one the address declares.
-    /// It carries no sign and no fraction, and a value the destination seat cannot hold is refused at that seat by the reader's own type.
-    Number(u64),
-}
-
-/// One generated token tree: the artifact a renderer produces.
-///
-/// # Nonclaims
-///
-/// The Rust source text a person reads is [`GeneratedTree::inspected`], a projection of this value rather than the other way round: nothing parses it back, and the digest is taken over [`GeneratedTree::canonical_bytes`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct GeneratedTree {
-    tokens: Bounded<GeneratedToken, GENERATED_TOKEN_LIMIT>,
 }

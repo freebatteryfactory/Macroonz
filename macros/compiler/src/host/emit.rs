@@ -34,6 +34,9 @@ fn emit_tree(tree: &GeneratedTree) -> TokenStream {
 fn emit_token(token: &GeneratedToken) -> TokenTree {
     match token {
         GeneratedToken::Word(word) => TokenTree::Ident(Ident::new(word, Span::call_site())),
+        GeneratedToken::RawIdentifier(name) => {
+            TokenTree::Ident(Ident::new_raw(name, Span::call_site()))
+        }
         GeneratedToken::Punct { mark, spacing } => {
             TokenTree::Punct(Punct::new(*mark, written_spacing(*spacing)))
         }

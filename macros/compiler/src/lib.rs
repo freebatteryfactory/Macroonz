@@ -82,8 +82,9 @@ pub use token::{
     CapturedDelimiter, CapturedInput, CapturedPayload, CapturedTokenTree, CoordinateRole,
     GENERATED_TOKEN_LIMIT, GeneratedDelimiter, GeneratedSpacing, GeneratedToken, GeneratedTree,
     LiteralReadCause, SourceCoordinate, SpanHandle, SpanResolutionRefusal, SpanTable,
-    TOKEN_PATH_DEPTH_LIMIT, TextCapture, TextReadCause, TextReadRefusal, TokenPath, absolute_path,
-    and_all, attribute, bound_local, bound_path, call, capture_literal, comma, comma_many,
-    constant, documentation, equality, function, group, metavariable, method_call, method_chain,
-    rendered_identifier, rendered_name, result_type, roster, rust_keyword, text_pair, twin_path,
+    TEXT_SOURCE_BYTE_LIMIT, TOKEN_PATH_DEPTH_LIMIT, TextCapture, TextLexicalCause, TextReadCause,
+    TextReadRefusal, TokenPath, absolute_path, and_all, attribute, bound_local, bound_path, call,
+    capture_literal, comma, comma_many, constant, documentation, equality, function, group,
+    metavariable, method_call, method_chain, rendered_identifier, rendered_name, result_type,
+    roster, rust_keyword, text_pair, twin_path,
 };

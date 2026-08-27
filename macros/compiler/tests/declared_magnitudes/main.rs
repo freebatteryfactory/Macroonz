@@ -20,8 +20,8 @@ use core::convert::Infallible;
 use macroonz_compiler::{
     CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound,
     CaptureBuildRefusal, CaptureBuilder, CapturedAtom, CapturedDelimiter, CapturedInput,
-    CapturedTokenTree, CoordinateRole, TOKEN_PATH_DEPTH_LIMIT, TextCapture, TextReadCause,
-    TextReadRefusal, TokenPath,
+    CapturedTokenTree, CoordinateRole, TEXT_SOURCE_BYTE_LIMIT, TOKEN_PATH_DEPTH_LIMIT, TextCapture,
+    TextReadCause, TextReadRefusal, TokenPath,
 };
 
 /// An ordinary declaration, small enough that no magnitude is anywhere near it.
@@ -235,6 +235,22 @@ fn malformed_text_shapes_refuse_at_their_established_bytes() {
     for (source, expected) in cases {
         assert_eq!(TextCapture::read(source), Err(expected));
     }
+}
+
+/// A trivia-only source reaches the source-byte magnitude even though it retains no token tree.
+#[test]
+fn source_bytes_are_bounded_independently_of_structural_tokens() {
+    let lawful = " ".repeat(TEXT_SOURCE_BYTE_LIMIT);
+    assert!(TextCapture::read(&lawful).is_ok_and(|read| read.input().is_empty()));
+
+    let hostile = " ".repeat(TEXT_SOURCE_BYTE_LIMIT.saturating_add(1));
+    assert_eq!(
+        TextCapture::read(&hostile),
+        Err(TextReadRefusal {
+            cause: TextReadCause::SourceBytesUnbounded,
+            at: u64::try_from(TEXT_SOURCE_BYTE_LIMIT).unwrap_or(u64::MAX),
+        })
+    );
 }
 
 /// Nesting to the declared depth reads, and one level deeper refuses naming the depth.

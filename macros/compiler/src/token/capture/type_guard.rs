@@ -1,20 +1,18 @@
-//! The seam's invariant nucleus: every road that reaches a private field.
+//! The capture home's invariant nucleus: every road that reaches a private field.
 //!
-//! Declared inside `types.rs` as its own child, so the walk's budget, the route's steps, the captured trees, and the generated tree's tokens are reachable here and nowhere else.
+//! Declared inside `types.rs` as its own child, so the walk's budget, the route's steps, and the captured trees are reachable here and nowhere else.
 //! Each magnitude is settled at the moment a value is made, which is why nothing downstream re-checks one.
 //!
-//! The two byte-producing seats read their private collections here and hand each element to the walkers in `encode.rs` and `inspect.rs`: the value's own bytes are the value's business, and walking a token is the walker's.
+//! The byte-producing seats read their private collections here and hand each element to the walker in `encode.rs`.
 
-use super::super::encode::{encode_captured, encode_generated};
-use super::super::inspect::inspect_token;
+use super::super::encode::encode_captured;
 use super::{
     CAPTURE_WORK_LIMIT, CAPTURED_TOKEN_LIMIT, CAPTURED_TREE_TOKEN_LIMIT, CaptureBound,
     CaptureBuildRefusal, CaptureBuilder, CaptureBuilderStanding, CaptureLevel,
     CaptureLevelStanding, CaptureWalk, CapturedAtom, CapturedDelimiter, CapturedInput,
-    CapturedPayload, CapturedTokenTree, GeneratedDelimiter, GeneratedSpacing, GeneratedToken,
-    GeneratedTree, SpanHandle, TokenPath,
+    CapturedPayload, CapturedTokenTree, SpanHandle, TokenPath,
 };
-use crate::bounded::{Bounded, Overflow};
+use crate::bounded::Bounded;
 
 impl SpanHandle {
     /// The handle at one index of the producer's table.
@@ -170,15 +168,17 @@ impl CapturedTokenTree {
             | CapturedPayload::ByteText(_)
             | CapturedPayload::Character(_)
             | CapturedPayload::Byte(_)
-            | CapturedPayload::NulTerminatedText(_) => None,
+            | CapturedPayload::NulTerminatedText(_)
+            | CapturedPayload::RawIdentifier(_)
+            | CapturedPayload::JointPunct(_) => None,
         }
     }
 
-    /// The punctuation character this token spells, where it is one.
+    /// The punctuation character this token spells, whether it stands alone or joins what follows.
     #[must_use]
     pub const fn punct(&self) -> Option<char> {
         match &self.payload {
-            CapturedPayload::Punct(mark) => Some(*mark),
+            CapturedPayload::Punct(mark) | CapturedPayload::JointPunct(mark) => Some(*mark),
             CapturedPayload::Word(_)
             | CapturedPayload::Text(_)
             | CapturedPayload::Number(_)
@@ -186,7 +186,44 @@ impl CapturedTokenTree {
             | CapturedPayload::ByteText(_)
             | CapturedPayload::Character(_)
             | CapturedPayload::Byte(_)
-            | CapturedPayload::NulTerminatedText(_) => None,
+            | CapturedPayload::NulTerminatedText(_)
+            | CapturedPayload::RawIdentifier(_) => None,
+        }
+    }
+
+    /// The raw identifier's name without its `r#` marker, where this is one.
+    #[must_use]
+    pub fn raw_identifier(&self) -> Option<&str> {
+        match &self.payload {
+            CapturedPayload::RawIdentifier(name) => Some(name.as_str()),
+            CapturedPayload::Word(_)
+            | CapturedPayload::Punct(_)
+            | CapturedPayload::Text(_)
+            | CapturedPayload::Number(_)
+            | CapturedPayload::Group { .. }
+            | CapturedPayload::ByteText(_)
+            | CapturedPayload::Character(_)
+            | CapturedPayload::Byte(_)
+            | CapturedPayload::NulTerminatedText(_)
+            | CapturedPayload::JointPunct(_) => None,
+        }
+    }
+
+    /// The punctuation character joined to what follows, where this is one.
+    #[must_use]
+    pub const fn joint_punct(&self) -> Option<char> {
+        match &self.payload {
+            CapturedPayload::JointPunct(mark) => Some(*mark),
+            CapturedPayload::Word(_)
+            | CapturedPayload::Punct(_)
+            | CapturedPayload::Text(_)
+            | CapturedPayload::Number(_)
+            | CapturedPayload::Group { .. }
+            | CapturedPayload::ByteText(_)
+            | CapturedPayload::Character(_)
+            | CapturedPayload::Byte(_)
+            | CapturedPayload::NulTerminatedText(_)
+            | CapturedPayload::RawIdentifier(_) => None,
         }
     }
 
@@ -208,7 +245,9 @@ impl CapturedTokenTree {
             | CapturedPayload::ByteText(_)
             | CapturedPayload::Character(_)
             | CapturedPayload::Byte(_)
-            | CapturedPayload::NulTerminatedText(_) => None,
+            | CapturedPayload::NulTerminatedText(_)
+            | CapturedPayload::RawIdentifier(_)
+            | CapturedPayload::JointPunct(_) => None,
         }
     }
 
@@ -226,7 +265,9 @@ impl CapturedTokenTree {
             | CapturedPayload::ByteText(_)
             | CapturedPayload::Character(_)
             | CapturedPayload::Byte(_)
-            | CapturedPayload::NulTerminatedText(_) => None,
+            | CapturedPayload::NulTerminatedText(_)
+            | CapturedPayload::RawIdentifier(_)
+            | CapturedPayload::JointPunct(_) => None,
         }
     }
 
@@ -242,7 +283,9 @@ impl CapturedTokenTree {
             | CapturedPayload::ByteText(_)
             | CapturedPayload::Character(_)
             | CapturedPayload::Byte(_)
-            | CapturedPayload::NulTerminatedText(_) => None,
+            | CapturedPayload::NulTerminatedText(_)
+            | CapturedPayload::RawIdentifier(_)
+            | CapturedPayload::JointPunct(_) => None,
         }
     }
 }
@@ -507,141 +550,5 @@ impl<Position> Drop for CaptureLevel<'_, Position> {
                 retained_before_capture: self.retained_before_capture,
             };
         }
-    }
-}
-
-impl GeneratedToken {
-    /// Append this token's canonical bytes to a containing compiler-owned encoding.
-    pub(crate) fn encode_into(&self, into: &mut Vec<u8>) {
-        encode_generated(self, into);
-    }
-
-    /// One word.
-    #[must_use]
-    pub fn word(spelling: &str) -> Self {
-        Self::Word(spelling.to_owned())
-    }
-
-    /// One punctuation mark that joins what follows.
-    #[must_use]
-    pub const fn joint(mark: char) -> Self {
-        Self::Punct {
-            mark,
-            spacing: GeneratedSpacing::Joint,
-        }
-    }
-
-    /// One punctuation mark that stands alone.
-    #[must_use]
-    pub const fn alone(mark: char) -> Self {
-        Self::Punct {
-            mark,
-            spacing: GeneratedSpacing::Alone,
-        }
-    }
-
-    /// One text literal.
-    #[must_use]
-    pub fn text(content: &str) -> Self {
-        Self::Text(content.to_owned())
-    }
-
-    /// One byte-string literal, over the material a caller holds.
-    ///
-    /// The material is taken as bytes and stays bytes, so material that is not text crosses without a lossy road existing for it to take.
-    #[must_use]
-    pub fn byte_text(material: &[u8]) -> Self {
-        Self::ByteText(material.to_vec())
-    }
-
-    /// One unsuffixed integer literal.
-    ///
-    /// Total: every `u64` is a lawful unsuffixed integer literal, so there is no value to refuse and no refusal branch to invent.
-    #[must_use]
-    pub const fn number(value: u64) -> Self {
-        Self::Number(value)
-    }
-
-    /// One delimited group.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`Overflow`] where the group carries more tokens than the declared magnitude admits.
-    pub fn group(delimiter: GeneratedDelimiter, tokens: Vec<Self>) -> Result<Self, Overflow> {
-        Bounded::new(tokens).map(|tokens| Self::Group { delimiter, tokens })
-    }
-
-    /// One fixed-arity delimited group whose fit is settled at compile time.
-    #[must_use]
-    pub(crate) fn fixed_group<const N: usize>(
-        delimiter: GeneratedDelimiter,
-        tokens: [Self; N],
-    ) -> Self {
-        Self::Group {
-            delimiter,
-            tokens: Bounded::from_array(tokens),
-        }
-    }
-}
-
-impl GeneratedTree {
-    /// Assemble one generated tree.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`Overflow`] where the tree carries more top-level tokens than the declared magnitude admits.
-    pub fn assembled(tokens: Vec<GeneratedToken>) -> Result<Self, Overflow> {
-        Bounded::new(tokens).map(|tokens| Self { tokens })
-    }
-
-    /// The top-level tokens, in the order they were written.
-    #[must_use]
-    pub fn tokens(&self) -> &[GeneratedToken] {
-        self.tokens.as_slice()
-    }
-
-    /// How many top-level tokens the tree carries.
-    #[must_use]
-    pub fn len(&self) -> usize {
-        self.tokens.len()
-    }
-
-    /// Whether the tree carries nothing.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.tokens.is_empty()
-    }
-
-    /// Join one tree onto another, producing the tree that carries both.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`Overflow`] where the joined tree outgrows the declared magnitude.
-    pub fn joined(&self, other: &Self) -> Result<Self, Overflow> {
-        let mut tokens = self.tokens.as_slice().to_vec();
-        tokens.extend_from_slice(other.tokens.as_slice());
-        Self::assembled(tokens)
-    }
-
-    /// The Rust source text this tree projects, for a person to read.
-    ///
-    /// A projection and only a projection: nothing reads it back, no identity is derived from it, and a caller comparing two trees compares the trees.
-    #[must_use]
-    pub fn inspected(&self) -> String {
-        let mut rendered = String::new();
-        for token in self.tokens.as_slice() {
-            inspect_token(token, &mut rendered);
-        }
-        rendered
-    }
-
-    /// The tree's canonical bytes — what a digest over the rendered unit is taken from.
-    #[must_use]
-    pub fn canonical_bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-        for token in self.tokens.as_slice() {
-            token.encode_into(&mut bytes);
-        }
-        bytes
     }
 }

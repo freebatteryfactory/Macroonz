@@ -1,4 +1,4 @@
-//! The canonical byte form of a token tree, in both directions.
+//! The canonical byte form of a captured token tree.
 //!
 //! Spans are excluded on the reading side on purpose: a capture's identity is about the declaration, and two producers reading one declaration issue different handles for it.
 //! Every variable-length member is written through the one length framing, so no two token sequences can be cut at another boundary and produce one byte string.
@@ -6,14 +6,13 @@
 //!
 //! # The slot tables
 //!
-//! The first byte written for a token is that arm's slot, and a slot is content: these bytes are what an identity over a captured declaration and over a rendered unit is derived from.
+//! The first byte written for a token is that arm's slot, and a slot is content: these bytes are what an identity over a captured declaration is derived from.
 //! So a table grows at its end and is never renumbered.
 //! Renumbering an occupied slot re-encodes trees that were already encoded, which renames every identity derived from them; appending re-encodes nothing, because a tree that could not carry the new arm encodes exactly as it did before.
 
 #[cfg(feature = "host")]
 use super::TokenPath;
 use super::{CapturedDelimiter, CapturedPayload, CapturedTokenTree};
-use super::{GeneratedDelimiter, GeneratedSpacing, GeneratedToken};
 use crate::identity::{encode_bytes, encode_length};
 
 /// Encode one declaration-local token path as its step count followed by fixed-width steps.
@@ -81,54 +80,19 @@ pub(super) fn encode_captured(tree: &CapturedTokenTree, into: &mut Vec<u8>) {
             into.push(9);
             encode_bytes(material, into);
         }
+        CapturedPayload::RawIdentifier(name) => {
+            into.push(10);
+            encode_text(name, into);
+        }
+        CapturedPayload::JointPunct(mark) => {
+            into.push(11);
+            let mut buffer = [0u8; 4];
+            encode_text(mark.encode_utf8(&mut buffer), into);
+        }
     }
 }
 
 /// Encode one length-prefixed text under the one length framing.
 fn encode_text(text: &str, into: &mut Vec<u8>) {
     encode_bytes(text.as_bytes(), into);
-}
-
-/// Encode one generated token into the canonical byte form.
-pub(super) fn encode_generated(token: &GeneratedToken, into: &mut Vec<u8>) {
-    match token {
-        GeneratedToken::Word(word) => {
-            into.push(1);
-            encode_text(word, into);
-        }
-        GeneratedToken::Punct { mark, spacing } => {
-            into.push(2);
-            into.push(match spacing {
-                GeneratedSpacing::Joint => 0,
-                GeneratedSpacing::Alone => 1,
-            });
-            let mut buffer = [0u8; 4];
-            encode_text(mark.encode_utf8(&mut buffer), into);
-        }
-        GeneratedToken::Text(text) => {
-            into.push(3);
-            encode_text(text, into);
-        }
-        GeneratedToken::Group { delimiter, tokens } => {
-            into.push(4);
-            into.push(match delimiter {
-                GeneratedDelimiter::Parenthesis => 0,
-                GeneratedDelimiter::Brace => 1,
-                GeneratedDelimiter::Bracket => 2,
-            });
-            encode_length(tokens.len(), into);
-            for inner in tokens.as_slice() {
-                encode_generated(inner, into);
-            }
-        }
-        GeneratedToken::ByteText(material) => {
-            into.push(5);
-            encode_bytes(material, into);
-        }
-        // Eight big-endian bytes, unframed, written from the value and never from its digits: two spellings of one number would be two preimages for one token.
-        GeneratedToken::Number(value) => {
-            into.push(6);
-            into.extend_from_slice(&value.to_be_bytes());
-        }
-    }
 }

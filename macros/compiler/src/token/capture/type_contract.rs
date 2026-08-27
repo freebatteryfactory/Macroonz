@@ -1,11 +1,11 @@
-//! The seam's stated tables and its trait implementations.
+//! The capture home's stated tables and its trait implementations.
 //!
 //! Every refusal this home raises renders as one sentence about a declared input and names no caller, no attribute, and no product.
 //! A projection that is a constant per row sits beside the row rather than in a second file that has to be kept in step with it.
 
 use super::{
     CaptureBound, CapturedAtom, CapturedPayload, LiteralReadCause, SpanResolutionRefusal,
-    TextReadCause, TextReadRefusal,
+    TextLexicalCause, TextReadCause, TextReadRefusal,
 };
 
 impl From<CapturedAtom> for CapturedPayload {
@@ -19,9 +19,68 @@ impl From<CapturedAtom> for CapturedPayload {
             CapturedAtom::Character(character) => Self::Character(character),
             CapturedAtom::Byte(byte) => Self::Byte(byte),
             CapturedAtom::NulTerminatedText(material) => Self::NulTerminatedText(material),
+            CapturedAtom::RawIdentifier(name) => Self::RawIdentifier(name),
+            CapturedAtom::JointPunct(mark) => Self::JointPunct(mark),
         }
     }
 }
+
+impl TextLexicalCause {
+    /// Every low-level lexical refusal, in declaration order.
+    pub const ALL: &'static [Self] = &[
+        Self::BlockCommentNotTerminated,
+        Self::InvalidIdentifier,
+        Self::UnknownPrefix,
+        Self::UnknownLifetimePrefix,
+        Self::GuardedStringPrefix,
+        Self::MalformedLiteral,
+        Self::LifetimeStartsWithNumber,
+        Self::Frontmatter,
+        Self::UnknownToken,
+    ];
+
+    /// The stable name of this row.
+    #[must_use]
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::BlockCommentNotTerminated => "block-comment-not-terminated",
+            Self::InvalidIdentifier => "invalid-identifier",
+            Self::UnknownPrefix => "unknown-prefix",
+            Self::UnknownLifetimePrefix => "unknown-lifetime-prefix",
+            Self::GuardedStringPrefix => "guarded-string-prefix",
+            Self::MalformedLiteral => "malformed-literal",
+            Self::LifetimeStartsWithNumber => "lifetime-starts-with-number",
+            Self::Frontmatter => "frontmatter",
+            Self::UnknownToken => "unknown-token",
+        }
+    }
+}
+
+impl core::fmt::Display for TextLexicalCause {
+    fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        into.write_str(match self {
+            Self::BlockCommentNotTerminated => "a block comment was never closed",
+            Self::InvalidIdentifier => {
+                "an identifier contains a character the compiler lexer rejects"
+            }
+            Self::UnknownPrefix => {
+                "a token prefix requires parser context this boundary does not own"
+            }
+            Self::UnknownLifetimePrefix => {
+                "a lifetime prefix requires parser context this boundary does not own"
+            }
+            Self::GuardedStringPrefix => {
+                "a guarded-string prefix requires parser context this boundary does not own"
+            }
+            Self::MalformedLiteral => "a literal carries a malformed low-level spelling",
+            Self::LifetimeStartsWithNumber => "a lifetime begins with a number",
+            Self::Frontmatter => "frontmatter is not Rust token input at this boundary",
+            Self::UnknownToken => "the compiler lexer reported no lawful Rust token kind",
+        })
+    }
+}
+
+impl core::error::Error for TextLexicalCause {}
 
 impl CaptureBound {
     /// Every bound a capture can run past, in declaration order.
@@ -86,12 +145,15 @@ impl core::error::Error for LiteralReadCause {}
 impl core::fmt::Display for TextReadCause {
     fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::NotTerminated => into.write_str("a text literal was never closed"),
-            Self::NotEscapeFree => {
-                into.write_str("a text literal carries an escape sequence this route does not read")
-            }
+            Self::NotTerminated => into.write_str("a literal was never closed"),
+            Self::NotEscapeFree => into
+                .write_str("a literal carries an escape sequence the literal owner could not read"),
             Self::NotBalanced => into.write_str("a delimited group was never closed"),
             Self::NotOpened => into.write_str("a closing delimiter arrived with no group open"),
+            Self::SourceBytesUnbounded => into.write_str(
+                "the declared text carries more source bytes than the declared magnitude",
+            ),
+            Self::Lexical(cause) => write!(into, "{cause}"),
             Self::Unbounded(bound) => write!(into, "{bound}"),
         }
     }

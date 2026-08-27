@@ -85,10 +85,11 @@ fn charred<'spelling>(spelling: &'spelling str, opening: &str) -> Option<&'spell
 ///
 /// The leading minus is admitted because a producer can hand one over: a token stream a macro composed may carry a suffixed negative integer as one literal token, where source text spells the same value as a punctuation mark beside an unsigned one.
 fn opens_number(spelling: &str) -> bool {
-    spelling
-        .strip_prefix('-')
-        .unwrap_or(spelling)
-        .starts_with(|character: char| character.is_ascii_digit())
+    let unsigned = match spelling.strip_prefix('-') {
+        Some(unsigned) => unsigned,
+        None => spelling,
+    };
+    unsigned.starts_with(|character: char| character.is_ascii_digit())
 }
 
 /// The body of one raw literal, between the opening quote and the closing quote that carries the same hash count.

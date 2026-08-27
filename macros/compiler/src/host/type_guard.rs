@@ -27,9 +27,12 @@ impl Spans {
     /// Where the table does not reach, the invocation stands — never the declaration's first span, which is a real token the observation is not about and would read exactly like an answer.
     #[must_use]
     pub fn at(&self, handle: SpanHandle) -> Span {
-        usize::try_from(handle.index())
+        match usize::try_from(handle.index())
             .ok()
             .and_then(|index| self.builder.positions().get(index).copied())
-            .unwrap_or_else(Span::call_site)
+        {
+            Some(span) => span,
+            None => Span::call_site(),
+        }
     }
 }

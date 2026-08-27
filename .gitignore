@@ -1,4 +1,4 @@
-/target
+target/
 /.durafx/
 
 .DS_Store

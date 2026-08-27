@@ -74,6 +74,16 @@ fn captured(offset: u64) -> Option<CapturedInput> {
             Ok::<_, Infallible>(CapturedAtom::NulTerminatedText(vec![b'c']))
         })
         .ok()?;
+    let level = level
+        .atom(offset.saturating_add(12), |_| {
+            Ok::<_, Infallible>(CapturedAtom::RawIdentifier(String::from("type")))
+        })
+        .ok()?;
+    let level = level
+        .atom(offset.saturating_add(13), |_| {
+            Ok::<_, Infallible>(CapturedAtom::JointPunct('+'))
+        })
+        .ok()?;
     Some(level.finish())
 }
 
@@ -105,6 +115,8 @@ fn captured_receipt() -> Vec<u8> {
     framed(7, "é".as_bytes(), &mut bytes);
     bytes.extend_from_slice(&[8, 0xff]);
     framed(9, b"c", &mut bytes);
+    framed(10, b"type", &mut bytes);
+    framed(11, b"+", &mut bytes);
     bytes
 }
 
@@ -120,6 +132,7 @@ fn generated() -> Option<GeneratedTree> {
         GeneratedToken::group(GeneratedDelimiter::Bracket, Vec::new()).ok()?,
         GeneratedToken::byte_text(&[0, 0xff]),
         GeneratedToken::number(0x0102_0304_0506_0708),
+        GeneratedToken::raw_identifier("type"),
     ];
     GeneratedTree::assembled(tokens).ok()
 }
@@ -142,6 +155,7 @@ fn generated_receipt() -> Vec<u8> {
     framed(5, &[0, 0xff], &mut bytes);
     bytes.push(6);
     bytes.extend_from_slice(&0x0102_0304_0506_0708u64.to_be_bytes());
+    framed(7, b"type", &mut bytes);
     bytes
 }
 
@@ -166,7 +180,7 @@ fn the_root_and_home_paths_name_one_public_surface() {
 
 /// Claim: every captured payload and delimiter retains its exact canonical slot and framing.
 /// Subject: two captures with identical token values and different producer coordinates.
-/// Population: all nine captured payload slots and all four captured delimiter slots.
+/// Population: all eleven captured payload slots and all four captured delimiter slots.
 /// Hostile control: the two producer coordinate sequences differ at every token but must reach one receipt.
 /// Evidence ceiling: this fixes the current slot table and span exclusion, not future appended rows.
 #[test]
@@ -176,13 +190,13 @@ fn captured_slots_are_exact_and_producer_coordinates_stay_out() -> Result<(), ()
     let expected = captured_receipt();
     assert_eq!(first.canonical_bytes(), expected);
     assert_eq!(moved.canonical_bytes(), expected);
-    assert_eq!(first.issued(), 12usize);
-    assert_eq!(moved.issued(), 12usize);
+    assert_eq!(first.issued(), 14usize);
+    assert_eq!(moved.issued(), 14usize);
     Ok(())
 }
 
 /// Claim: every generated token and delimiter retains its exact canonical slot, framing, and readable spelling.
-/// Subject: one generated tree carrying all six token slots, both spacing rows, and all three delimiters.
+/// Subject: one generated tree carrying all seven token slots, both spacing rows, and all three delimiters.
 /// Population: the complete current generated-token roster.
 /// Hostile control: joint and alone punctuation share one mark but encode apart, while the projection makes their spacing difference visible.
 /// Evidence ceiling: this fixes canonical bytes and the one-way readable projection, not proc-macro span placement or downstream parsing.
@@ -192,7 +206,7 @@ fn generated_slots_and_readable_spelling_are_exact() -> Result<(), ()> {
     assert_eq!(tree.canonical_bytes(), generated_receipt());
     assert_eq!(
         tree.inspected(),
-        r#"word :: "a\"\\" ( ) { } [ ] b"\x00\xFF" 72623859790382856 "#
+        r#"word :: "a\"\\" ( ) { } [ ] b"\x00\xFF" 72623859790382856 r#type "#
     );
     Ok(())
 }

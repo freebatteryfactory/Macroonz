@@ -5,7 +5,7 @@ use crate::token::{
     CaptureBuildRefusal, CaptureLevel, CapturedAtom, CapturedDelimiter, CapturedInput,
     LiteralReadCause, capture_literal,
 };
-use proc_macro::{Delimiter, Span, TokenStream, TokenTree};
+use proc_macro::{Delimiter, Spacing, Span, TokenStream, TokenTree};
 
 /// Capture one declared input, issuing one handle per token into the table beside it.
 ///
@@ -30,10 +30,10 @@ fn capture_stream(
         let position = tree.span();
         level = match tree {
             TokenTree::Ident(word) => level.atom(position, |_| {
-                Ok::<_, LiteralReadCause>(CapturedAtom::Word(word.to_string()))
+                Ok::<_, LiteralReadCause>(captured_identifier(&word.to_string()))
             })?,
             TokenTree::Punct(punct) => level.atom(position, |_| {
-                Ok::<_, LiteralReadCause>(CapturedAtom::Punct(punct.as_char()))
+                Ok::<_, LiteralReadCause>(captured_punctuation(punct.as_char(), punct.spacing()))
             })?,
             TokenTree::Literal(literal) => {
                 level.atom(position, |_| capture_literal(&literal.to_string()))?
@@ -46,6 +46,22 @@ fn capture_stream(
         };
     }
     Ok(level)
+}
+
+/// Preserve whether the compiler token was written as an ordinary or raw identifier.
+fn captured_identifier(spelling: &str) -> CapturedAtom {
+    spelling.strip_prefix("r#").map_or_else(
+        || CapturedAtom::Word(spelling.to_owned()),
+        |name| CapturedAtom::RawIdentifier(name.to_owned()),
+    )
+}
+
+/// Preserve whether one compiler punctuation mark joins the token after it.
+const fn captured_punctuation(mark: char, spacing: Spacing) -> CapturedAtom {
+    match spacing {
+        Spacing::Joint => CapturedAtom::JointPunct(mark),
+        Spacing::Alone => CapturedAtom::Punct(mark),
+    }
 }
 
 /// Lower the checked builder's two refusal seats into this host's capture refusal.

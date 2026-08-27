@@ -7,7 +7,9 @@ So the bridge lives behind the `host` feature, which only a proc-macro crate tur
 
 ## Capture
 
-A `TokenStream` becomes a `CapturedInput` through the token home's checked builder, walked natively: groups stay groups, nothing is re-lexed, and no balance is re-discovered.
+A `TokenStream` becomes a `CapturedInput` through the token home's checked builder, walked natively: groups stay groups, including invisible groups, nothing is re-lexed, and no balance is re-discovered.
+Raw identifiers stay raw identifiers, and every punctuation token keeps the compiler's `Joint` or `Alone` spacing.
+Lifetimes already arrive as joined quote punctuation plus an identifier, doc comments already arrive as attributes, and ordinary comments do not arrive at all; the host preserves those compiler dispositions without owning a second grammar for them.
 
 Which value a literal's spelling names is asked of `capture_literal`.
 The forms, the value each one names, and the two ways reading one refuses are the compiler's grammar; a host deciding them here would be a second grammar nobody ever compared against the first.
