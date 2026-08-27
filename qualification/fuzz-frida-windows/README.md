@@ -22,8 +22,8 @@ This driver reuses those roads and the F0-proven EventSink + LibAFL loop rather 
 
 1. Rust 1.98.0 as in the repository toolchain.
 2. Visual Studio Build Tools with the MSVC x64 toolset (`vswhere` must find `vcvarsall.bat`).
-3. Frida Gum Windows x86-64 **17.9.5** devkit extracted under `target/qualification/fuzz-frida-windows/devkit/frida-gum-17.9.5/`.
-   Pin and hash live in [`devkit-pin.tsv`](devkit-pin.tsv).
+3. Frida Gum Windows x86-64 **17.9.5** archive under `target/qualification/fuzz-frida-windows/devkit/` (see [`devkit-pin.tsv`](devkit-pin.tsv)).
+   The cold shell verifies the archive SHA-256, extracts into a clean directory, and records linked `.lib`/`.h` hashes before Cargo builds.
 
 ## Run
 

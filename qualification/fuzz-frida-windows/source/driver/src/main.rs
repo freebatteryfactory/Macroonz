@@ -48,10 +48,19 @@ use libafl_bolts::{
     rands::StdRand,
     tuples::{Handle, Handled, MatchNameRef, tuple_list},
 };
-use macroonz_f0_target::observe;
+use macroonz_f0_target::{observe, CaptureOutcome};
 use serde::{Deserialize, Serialize};
 
-use crate::{classify::classify, evidence::HandoffCase, preflight::PreflightStatus};
+use macroonz_harness::fuzz::{
+    PreflightCapability as HarnessPreflightCapability, PreflightFact,
+    PreflightStatus as HarnessPreflightStatus, SelectedBackend, preflight_ready,
+};
+
+use crate::{
+    classify::classify,
+    evidence::HandoffCase,
+    preflight::{Capability, PreflightRow, PreflightStatus},
+};
 
 const TARGET_MODULE: &str = "macroonz_f0_target.dll";
 const EDGE_MAP_SIZE: usize = 16_384;
@@ -341,6 +350,35 @@ fn prove_observation_seam(
     Ok(())
 }
 
+fn harness_capability(capability: Capability) -> HarnessPreflightCapability {
+    match capability {
+        Capability::VsWhere => HarnessPreflightCapability::VsWhere,
+        Capability::VcVarsAll => HarnessPreflightCapability::VcVarsAll,
+        Capability::ComposedMsvcSdkEnv => HarnessPreflightCapability::ComposedMsvcSdkEnv,
+        Capability::Rustc198 => HarnessPreflightCapability::RustcMsrv,
+        Capability::RustHostTuple => HarnessPreflightCapability::RustcHostTuple,
+        Capability::RustSysroot => HarnessPreflightCapability::RustcSysroot,
+        Capability::RustTargetLibdir => HarnessPreflightCapability::RustcTargetLibdir,
+        Capability::RustStdDll => HarnessPreflightCapability::RustStdDll,
+        Capability::LlvmReported => HarnessPreflightCapability::LlvmReported,
+        Capability::FridaGumLib => HarnessPreflightCapability::FridaGumLib,
+        Capability::FridaGumHeader => HarnessPreflightCapability::FridaGumHeader,
+        Capability::FridaDevkitHash => HarnessPreflightCapability::FridaDevkitHash,
+    }
+}
+
+fn harness_facts(rows: &[PreflightRow]) -> Vec<PreflightFact> {
+    rows.iter()
+        .map(|row| {
+            let status = match row.status {
+                PreflightStatus::Available { .. } => HarnessPreflightStatus::Available,
+                PreflightStatus::Unavailable { .. } => HarnessPreflightStatus::Unavailable,
+            };
+            PreflightFact::declared(harness_capability(row.capability), status)
+        })
+        .collect()
+}
+
 fn report_line(writer: &mut impl Write, line: &str) -> Result<(), io::Error> {
     writeln!(writer, "{line}")
 }
@@ -385,6 +423,20 @@ fn main() -> Result<(), Box<dyn Error>> {
             missing.join(",")
         ))
         .into());
+    }
+    let facts = harness_facts(&preflight_rows);
+    preflight_ready(SelectedBackend::LibAflFrida, &facts).map_err(|refusal| {
+        io::Error::other(format!(
+            "macroonz_harness::fuzz::preflight_ready refused: {refusal:?}"
+        ))
+    })?;
+    {
+        let mut ready_out = fs::File::create(final_exam.join("harness-preflight-ready.tsv"))?;
+        writeln!(ready_out, "phase\tclaim\tstatus\tfact")?;
+        writeln!(
+            ready_out,
+            "preflight\tmacroonz_harness::fuzz::preflight_ready\tavailable\tSelectedBackend::LibAflFrida; all required capabilities Available without duplicates"
+        )?;
     }
 
     witnesses::prove_crash_timeout(&final_exam)?;
@@ -516,23 +568,30 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err(io::Error::other("bounded LibAFL loop ended with an empty edge map").into());
     }
 
-    // Prefer a corpus entry beyond the three declared seeds when present.
-    let mut interesting = SEED_REFUSED.to_vec();
+    // Prefer a LibAFL corpus entry that itself reproduces typed refusal under TextCapture.
+    // Prefer evolved (non-seed) refusals when present; never hand Macroonz substituted bytes.
+    let mut interesting: Option<Vec<u8>> = None;
     for id in state.corpus().ids() {
         let testcase = state.corpus().get(id)?;
         let borrowed = testcase.borrow();
         if let Some(input) = borrowed.input() {
             let bytes = input.target_bytes().as_ref().to_vec();
-            if bytes.as_slice() != SEED_LAWFUL
-                && bytes.as_slice() != SEED_REFUSED
-                && bytes.as_slice() != SEED_NON_UTF8
-            {
-                interesting = bytes;
-                break;
+            if matches!(observe(&bytes), CaptureOutcome::Refused { .. }) {
+                if bytes.as_slice() != SEED_REFUSED {
+                    interesting = Some(bytes);
+                    break;
+                }
+                if interesting.is_none() {
+                    interesting = Some(bytes);
+                }
             }
-            interesting = bytes;
         }
     }
+    let interesting = interesting.ok_or_else(|| {
+        io::Error::other(
+            "no LibAFL corpus entry reproduced typed refusal for Macroonz handoff; refusing rather than substituting bytes",
+        )
+    })?;
     compose::prove_libafl_to_macroonz(&final_exam, &interesting)?;
 
     report_line(&mut output, "phase\tmetric\tvalue")?;

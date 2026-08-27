@@ -228,11 +228,37 @@ fn preflight_ready_requires_every_frida_windows_capability() -> Result<(), FuzzR
     incomplete.pop();
     assert_eq!(
         preflight_ready(SelectedBackend::LibAflFrida, &incomplete),
-        Err(PreflightIncomplete::CapabilityMissing(
+        Err(PreflightIncomplete::Missing(
             PreflightCapability::FridaDevkitHash
         ))
     );
     Ok(())
+}
+
+#[test]
+fn preflight_ready_rejects_duplicate_and_contradictory_facts() {
+    let mut duplicate = all_available_facts();
+    duplicate.push(PreflightFact::declared(
+        PreflightCapability::VsWhere,
+        PreflightStatus::Available,
+    ));
+    assert_eq!(
+        preflight_ready(SelectedBackend::LibAflFrida, &duplicate),
+        Err(PreflightIncomplete::Duplicate(
+            PreflightCapability::VsWhere
+        ))
+    );
+    let mut contradictory = all_available_facts();
+    contradictory.push(PreflightFact::declared(
+        PreflightCapability::VsWhere,
+        PreflightStatus::Unavailable,
+    ));
+    assert_eq!(
+        preflight_ready(SelectedBackend::LibAflFrida, &contradictory),
+        Err(PreflightIncomplete::Contradictory(
+            PreflightCapability::VsWhere
+        ))
+    );
 }
 
 #[test]

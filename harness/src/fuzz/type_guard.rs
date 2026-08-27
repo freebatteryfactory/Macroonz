@@ -42,12 +42,37 @@ pub(crate) const REQUIRED_FRIDA_WINDOWS: &[PreflightCapability] = &[
     PreflightCapability::FridaDevkitHash,
 ];
 
+fn unique_required_fact(
+    facts: &[PreflightFact],
+    capability: PreflightCapability,
+) -> Result<PreflightFact, PreflightIncomplete> {
+    let matches: Vec<PreflightFact> = facts
+        .iter()
+        .copied()
+        .filter(|fact| fact.capability() == capability)
+        .collect();
+    match matches.as_slice() {
+        [] => Err(PreflightIncomplete::Missing(capability)),
+        [only] => Ok(*only),
+        [first, rest @ ..] => {
+            let contradictory = rest
+                .iter()
+                .any(|fact| fact.status() != first.status());
+            if contradictory {
+                Err(PreflightIncomplete::Contradictory(capability))
+            } else {
+                Err(PreflightIncomplete::Duplicate(capability))
+            }
+        }
+    }
+}
+
 impl ReadyPreflight {
     /// Judge caller-supplied facts for one selected backend.
     ///
     /// # Errors
     ///
-    /// Refuses when a required capability is missing from the roster or marked unavailable.
+    /// Refuses when a required capability is missing, duplicated, contradictory, or marked unavailable.
     pub fn from_facts(
         backend: SelectedBackend,
         facts: &[PreflightFact],
@@ -56,11 +81,9 @@ impl ReadyPreflight {
             SelectedBackend::LibAflFrida => REQUIRED_FRIDA_WINDOWS,
         };
         for capability in required {
-            let Some(fact) = facts.iter().find(|fact| fact.capability() == *capability) else {
-                return Err(PreflightIncomplete::CapabilityMissing(*capability));
-            };
+            let fact = unique_required_fact(facts, *capability)?;
             if !matches!(fact.status(), PreflightStatus::Available) {
-                return Err(PreflightIncomplete::CapabilityUnavailable(*capability));
+                return Err(PreflightIncomplete::Unavailable(*capability));
             }
         }
         Ok(Self { backend })

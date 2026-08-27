@@ -99,9 +99,13 @@ pub struct PreflightFact {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PreflightIncomplete {
     /// At least one required capability was unavailable.
-    CapabilityUnavailable(PreflightCapability),
+    Unavailable(PreflightCapability),
     /// A required capability was not present in the declared roster.
-    CapabilityMissing(PreflightCapability),
+    Missing(PreflightCapability),
+    /// The same capability was declared more than once.
+    Duplicate(PreflightCapability),
+    /// The same capability was declared with disagreeing availability.
+    Contradictory(PreflightCapability),
 }
 
 /// A preflight roster in which every required capability was declared Available.

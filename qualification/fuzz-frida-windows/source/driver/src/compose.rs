@@ -108,6 +108,9 @@ fn invocation() -> Invocation {
 }
 
 /// Reduce + replay one LibAFL-admitted byte string through `macroonz_harness::fuzz`.
+///
+/// The exact LibAFL candidate bytes are the reduction seed.
+/// This road refuses rather than substituting a different seed when the candidate is not a typed refusal.
 pub(crate) fn prove_libafl_to_macroonz(
     evidence_dir: &Path,
     interesting: &[u8],
@@ -117,17 +120,20 @@ pub(crate) fn prove_libafl_to_macroonz(
     writeln!(out, "phase\tclaim\tstatus\tfact")?;
     fs::write(evidence_dir.join("libafl-interesting.bin"), interesting)?;
 
-    let seed = if matches!(observe(interesting), CaptureOutcome::Refused { .. }) {
-        interesting.to_vec()
-    } else {
-        b"struct Refused {".to_vec()
-    };
-    if !matches!(observe(&seed), CaptureOutcome::Refused { .. }) {
-        return Err(io::Error::other("compose seed did not produce typed refusal").into());
+    match observe(interesting) {
+        CaptureOutcome::Refused { .. } => {}
+        other => {
+            return Err(io::Error::other(format!(
+                "LibAFL candidate did not produce typed refusal under TextCapture; refusing Macroonz handoff without byte substitution; observed={other:?}; bytes={}",
+                interesting.len()
+            ))
+            .into());
+        }
     }
+    let seed = interesting.to_vec();
     writeln!(
         out,
-        "compose\tinput\tavailable\tbytes={}; path=libafl-interesting.bin; reduce-seed-len={}",
+        "compose\tinput\tavailable\tlibafl-bytes={}; path=libafl-interesting.bin; reduce-seed-len={}; bytes-identical=true",
         interesting.len(),
         seed.len()
     )?;

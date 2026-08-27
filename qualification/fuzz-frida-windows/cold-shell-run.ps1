@@ -1,5 +1,5 @@
 # Cold-shell launcher for the first-party Windows Frida/LibAFL fuzz road.
-# Ordinary PowerShell → clean vcvarsall → rustc prints → build/run.
+# Ordinary PowerShell -> clean vcvarsall -> rustc prints -> build/run.
 # Ambient Developer Command Prompt is not required.
 # Ambient Cursor/shell env is cleared for the vcvars child (inherited PATH can break vcvarsall).
 
@@ -11,11 +11,51 @@ if (-not (Test-Path (Join-Path $Root "source\Cargo.toml"))) {
 $RepoRoot = (Resolve-Path (Join-Path $Root "..\..")).Path
 $Work = Join-Path $RepoRoot "target\qualification\fuzz-frida-windows"
 $Source = Join-Path $Root "source"
-$Devkit = Join-Path $Work "devkit\frida-gum-17.9.5"
+$DevkitRoot = Join-Path $Work "devkit"
+$Archive = Join-Path $DevkitRoot "frida-gum-devkit-17.9.5-windows-x86_64.tar.xz"
+$ExpectedArchiveSha = "07E0DF78E2EF962D8228A3C9866F97B6D9BEEA310434377DCCCFA402B01F9DE1"
+$Devkit = Join-Path $DevkitRoot "frida-gum-17.9.5"
 $Build = Join-Path $Work "build"
 $Evidence = Join-Path $Work "evidence\final-exam"
 New-Item -ItemType Directory -Force -Path $Evidence | Out-Null
-New-Item -ItemType Directory -Force -Path (Split-Path $Devkit) | Out-Null
+New-Item -ItemType Directory -Force -Path $DevkitRoot | Out-Null
+
+$Pin = Join-Path $Root "devkit-pin.tsv"
+if (Test-Path $Pin) {
+  foreach ($line in Get-Content -LiteralPath $Pin) {
+    if ($line -match "^sha256`t([0-9A-Fa-f]{64})$") {
+      $ExpectedArchiveSha = $Matches[1].ToUpperInvariant()
+    }
+  }
+}
+
+if (-not (Test-Path -LiteralPath $Archive)) {
+  throw "Frida Gum Windows x86-64 17.9.5 archive missing at $Archive; download the pinned archive named in devkit-pin.tsv"
+}
+$ArchiveSha = (Get-FileHash -Algorithm SHA256 -LiteralPath $Archive).Hash.ToUpperInvariant()
+if ($ArchiveSha -ne $ExpectedArchiveSha) {
+  throw "Frida archive SHA-256 mismatch: got $ArchiveSha expected $ExpectedArchiveSha"
+}
+
+# Always extract from the verified archive into a clean directory so linked .lib/.h cannot diverge from the hash.
+if (Test-Path -LiteralPath $Devkit) {
+  Remove-Item -LiteralPath $Devkit -Recurse -Force
+}
+New-Item -ItemType Directory -Force -Path $Devkit | Out-Null
+tar -xf $Archive -C $Devkit
+$Lib = Join-Path $Devkit "frida-gum.lib"
+$Header = Join-Path $Devkit "frida-gum.h"
+if (-not (Test-Path -LiteralPath $Lib)) { throw "frida-gum.lib missing after extract from verified archive" }
+if (-not (Test-Path -LiteralPath $Header)) { throw "frida-gum.h missing after extract from verified archive" }
+$LibSha = (Get-FileHash -Algorithm SHA256 -LiteralPath $Lib).Hash.ToUpperInvariant()
+$HeaderSha = (Get-FileHash -Algorithm SHA256 -LiteralPath $Header).Hash.ToUpperInvariant()
+@(
+  "archive`t$Archive"
+  "archive-sha256`t$ArchiveSha"
+  "frida-gum.lib-sha256`t$LibSha"
+  "frida-gum.h-sha256`t$HeaderSha"
+  "extract`tclean-from-verified-archive"
+) | Set-Content -Encoding ascii (Join-Path $Evidence "devkit-auth.tsv")
 
 $VsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
 if (-not (Test-Path $VsWhere)) { throw "vswhere missing: $VsWhere" }
@@ -62,10 +102,6 @@ foreach ($line in ($Dump -split "`r?`n")) {
 }
 if (-not $EnvMap.ContainsKey("LIB")) { throw "vcvarsall did not produce LIB" }
 
-if (-not (Test-Path (Join-Path $Devkit "frida-gum.lib"))) {
-  throw "Frida Gum Windows x86-64 17.9.5 devkit missing under $Devkit; download the pinned archive named in devkit-pin.tsv and extract it there"
-}
-
 $EnvMap["LIB"] = "$Devkit;$($EnvMap['LIB'])"
 $EnvMap["INCLUDE"] = if ($EnvMap.ContainsKey("INCLUDE")) { "$Devkit;$($EnvMap['INCLUDE'])" } else { $Devkit }
 
@@ -88,6 +124,7 @@ $env:MACROONZ_FUZZ_FRIDA_WORK = $Work
   "vcvars-mode`tclean-child-env"
   "target-libdir`t$TargetLibdir"
   "frida-lib`t$Devkit"
+  "frida-archive-sha256`t$ArchiveSha"
   "work`t$Work"
 ) | Set-Content -Encoding ascii (Join-Path $Evidence "cold-shell-launcher.tsv")
 
