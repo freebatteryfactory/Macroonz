@@ -1,0 +1,17 @@
+[package]
+name = "macroonz-fuzz-frida-driver"
+version = "0.0.0"
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+frida-gum = { version = "=0.17.2", default-features = false, features = ["event-sink", "std"] }
+libafl = { version = "=0.16.1", default-features = false, features = ["derive", "serdeany_autoreg", "std"] }
+libafl_bolts = { version = "=0.16.1", default-features = false, features = ["derive", "std"] }
+macroonz-f0-target = { path = "../target-module" }
+macroonz-harness = { path = "../../../../harness", version = "=0.1.0", default-features = false }
+serde = { version = "=1.0.229", default-features = false, features = ["derive", "alloc"] }
+
+[lints]
+workspace = true

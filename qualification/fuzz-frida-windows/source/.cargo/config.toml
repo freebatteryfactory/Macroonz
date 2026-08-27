@@ -1,0 +1,28 @@
+# Qualification-only cargo config for the ignored F0 Frida pilot.
+# Does not replace parent Macroonz law for published packages.
+#
+# CRT posture (receipt-bound):
+# 1. Frida Gum Windows static `frida-gum.lib` requires the static CRT (`libcmt`).
+# 2. Rust `+crt-static` is required so the driver executable agrees with that library.
+# 3. Dropping `msvcrt` / `msvcrtd` defaultlibs is the structural preference for the dynamic CRT.
+# 4. LNK4098 still remains after (2)+(3) on this host for the Frida + separately linked
+#    `macroonz_f0_target.dll` composition; `/IGNORE:4098` masks only that residual defaultlib
+#    conflict and is a Frida-backend choreography ceiling, not a general “silence the linker” rule.
+# 5. Parent Macroonz `[build] warnings = "deny"` is overridden to `warn` here only so a residual
+#    linker message cannot abort qualification while the ceiling is under measurement; the sealed
+#    receipt must still name the conflict.
+
+[build]
+warnings = "warn"
+
+[target.x86_64-pc-windows-msvc]
+rustflags = [
+  "-C",
+  "target-feature=+crt-static",
+  "-C",
+  "link-arg=/NODEFAULTLIB:msvcrt",
+  "-C",
+  "link-arg=/NODEFAULTLIB:msvcrtd",
+  "-C",
+  "link-arg=/IGNORE:4098",
+]

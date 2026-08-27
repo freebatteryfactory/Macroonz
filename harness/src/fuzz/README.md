@@ -10,7 +10,7 @@ This home does not own edge maps, schedulers, mutators, executors, or process is
 
 The F0 selection is `LibAFL` plus Frida under explicit ceilings recorded with the selection receipt.
 Linux and macOS remain credible-but-unexecuted until Wave F hosts establish native Macroonz receipts.
-The engine loop and instrumentation stay in qualification tooling or an optional future feature road; they are not smuggled into default product dependencies here.
+The engine loop and instrumentation stay in durable qualification tooling at `qualification/fuzz-frida-windows/`; they are not smuggled into default product dependencies here.
 
 ```mermaid
 flowchart LR
@@ -43,4 +43,5 @@ This home does not duplicate those owners.
 
 Selection pins and ceilings are typed constants and values, not ambient discovery.
 A host disposition of credible-unexecuted is an honest F0 posture, not an executed receipt.
-Runnable Frida choreography remains outside this package until a separately disposed feature or durable qualification driver carries the process and linker posture the Windows pilot named.
+The first-party Windows Frida runnable road is the tracked durable driver under `qualification/fuzz-frida-windows/`, which calls this home's composition APIs after the F0-proven cold-shell choreography.
+That road remains open for Wave F host qualification; it does not by itself close the adopter-facing capability until those receipts exist.

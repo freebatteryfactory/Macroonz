@@ -19,6 +19,7 @@ members = [
 exclude = [
     "macros/proc/tests/support/capture-observer",
     "qualification/durafx-sealer",
+    "qualification/fuzz-frida-windows/source",
 ]
 
 [workspace.package]
