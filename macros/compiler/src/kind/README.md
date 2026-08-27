@@ -19,7 +19,7 @@ flowchart LR
     K --> C
     K --> R
     K --> Q
-    S --> D -->|"count checked"| W
+    S --> D -->|"every seat checked"| W
     K --> A
     W --> A
 
@@ -64,15 +64,15 @@ Silence is not one of its answers.
 Where a projection is absent the absence has a name and cites the fact that caused it, so a reader asking why one kind is missing from a set is never handed a gap.
 There is no refused answer, because a request that fails any step of the road is refused whole and produces a diagnostic rather than a set.
 
-`KindSet` names the set, its declaration-ordered names, and the consumer-owned `DispositionRecord` that surrenders its answers in the same order.
-Both contracts remain open because the compiler declares no product kinds.
+`KindSet` names the set and its declaration-ordered names, while the consumer-owned `DispositionRecord` surrenders each name with its answer in the same order.
+These contracts remain open because the compiler declares no product kinds.
 
 Naming a record is not evidence that the record is complete.
-`DispositionSet::complete` compares the surrendered rows with the declared names and seals the rows behind private fields only when the counts agree.
+`DispositionSet::complete` compares every surrendered name with the declared name at that position and seals the rows behind private fields only when no seat is missing, doubled, foreign, or reordered.
 `Accounted` accepts that informed witness rather than the consumer record, so an arbitrary implementation cannot turn silence into a complete account.
 
 The stamp-generated record is stronger at its own construction site: it has one required field per declared kind, and adding a kind makes every record construction incomplete until the new answer is stated.
-The independent count check remains at the public accounting boundary so a handwritten implementation cannot substitute an unrelated record shape for completeness.
+The independent seat check remains at the public accounting boundary so a handwritten implementation cannot substitute an unrelated record shape for completeness.
 
 ## What is not here
 

@@ -34,8 +34,25 @@ struct TruncatedDispositions {
 }
 
 impl DispositionRecord for TruncatedDispositions {
-    fn into_dispositions(self) -> impl Iterator<Item = Disposition> {
-        core::iter::once(self.first)
+    fn into_dispositions(self) -> impl Iterator<Item = (&'static str, Disposition)> {
+        core::iter::once(("handwritten.first", self.first))
+    }
+}
+
+/// A handwritten record with the right row count but the wrong kind at the second seat.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct DoubledDispositions {
+    first: Disposition,
+    second: Disposition,
+}
+
+impl DispositionRecord for DoubledDispositions {
+    fn into_dispositions(self) -> impl Iterator<Item = (&'static str, Disposition)> {
+        [
+            ("handwritten.first", self.first),
+            ("handwritten.first", self.second),
+        ]
+        .into_iter()
     }
 }
 
@@ -45,6 +62,16 @@ struct HandwrittenKinds;
 
 impl KindSet for HandwrittenKinds {
     type Dispositions = TruncatedDispositions;
+
+    const NAMES: &'static [&'static str] = &["handwritten.first", "handwritten.second"];
+}
+
+/// A handwritten two-kind set whose record repeats the first named seat.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct DoubledKinds;
+
+impl KindSet for DoubledKinds {
+    type Dispositions = DoubledDispositions;
 
     const NAMES: &'static [&'static str] = &["handwritten.first", "handwritten.second"];
 }
@@ -106,7 +133,7 @@ fn stamped_kinds_build_one_complete_disposition_witness() -> Result<(), ()> {
     Ok(())
 }
 
-/// A consumer-owned record remains only input until the declared-name denominator agrees with its row count.
+/// A consumer-owned record remains only input until the declared-name denominator agrees with every surrendered name and the whole row count.
 #[test]
 fn a_handwritten_record_cannot_shrink_its_kind_set() {
     let refusal = DispositionSet::<HandwrittenKinds>::complete(TruncatedDispositions {
@@ -119,6 +146,26 @@ fn a_handwritten_record_cannot_shrink_its_kind_set() {
         Err(DispositionSetError::CountMismatch {
             expected: 2usize,
             observed: 1usize,
+        })
+    );
+}
+
+/// Matching the count cannot substitute a repeated kind for the declared second seat.
+#[test]
+fn a_handwritten_record_cannot_repeat_one_kind_at_another_kinds_seat() {
+    let refusal = DispositionSet::<DoubledKinds>::complete(DoubledDispositions {
+        first: Disposition::NotRequested {
+            because: NOT_REQUESTED,
+        },
+        second: Disposition::NotApplicable {
+            because: NOT_APPLICABLE,
+        },
+    });
+    assert_eq!(
+        refusal,
+        Err(DispositionSetError::KindMismatch {
+            expected: "handwritten.second",
+            observed: "handwritten.first",
         })
     );
 }

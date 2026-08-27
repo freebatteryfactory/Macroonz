@@ -212,8 +212,8 @@ struct ProductDisposition {
 }
 
 impl DispositionRecord for ProductDisposition {
-    fn into_dispositions(self) -> impl Iterator<Item = Disposition> {
-        [self.product].into_iter()
+    fn into_dispositions(self) -> impl Iterator<Item = (&'static str, Disposition)> {
+        [(Product::NAME, self.product)].into_iter()
     }
 }
 

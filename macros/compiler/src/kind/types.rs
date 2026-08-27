@@ -193,13 +193,13 @@ pub enum Disposition {
     },
 }
 
-/// A consumer-owned record that can surrender its dispositions in kind declaration order.
+/// A consumer-owned record that can surrender its named dispositions in kind declaration order.
 ///
 /// Implementations state rows, not completeness.
-/// [`DispositionSet::complete`] compares the surrendered row count with the owning [`KindSet`] before the record can become the witness an account seats.
+/// [`DispositionSet::complete`] compares every surrendered name and the whole row count with the owning [`KindSet`] before the record can become the witness an account seats.
 pub trait DispositionRecord: Clone + Eq + core::fmt::Debug {
-    /// Surrender every stated disposition, in the set's declaration order.
-    fn into_dispositions(self) -> impl Iterator<Item = Disposition>;
+    /// Surrender every stated kind name and disposition, in the set's declaration order.
+    fn into_dispositions(self) -> impl Iterator<Item = (&'static str, Disposition)>;
 }
 
 /// One declared set of kinds and the record from which its complete disposition witness is built.
@@ -216,7 +216,7 @@ pub trait KindSet {
 
 /// A disposition for every declared kind of one set, in declaration order.
 ///
-/// The rows are private and the only public constructor checks their count against [`KindSet::NAMES`], so an incomplete record cannot become this value and cannot be seated beside an expansion.
+/// The rows are private and the only public constructor checks every name and the complete row count against [`KindSet::NAMES`], so an omitted, doubled, foreign, or reordered seat cannot become this value and cannot be seated beside an expansion.
 #[must_use = "a complete disposition set is the witness an accounted expansion requires"]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DispositionSet<Set: KindSet> {
@@ -225,7 +225,7 @@ pub struct DispositionSet<Set: KindSet> {
 }
 
 /// How a disposition record refuses to become a complete set witness.
-#[must_use = "a disposition-set refusal names the declared and observed row counts"]
+#[must_use = "a disposition-set refusal names the count or kind-name disagreement"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DispositionSetError {
     /// The record surrendered a different number of rows than the kind set declares.
@@ -234,6 +234,13 @@ pub enum DispositionSetError {
         expected: usize,
         /// How many disposition rows the record surrendered.
         observed: usize,
+    },
+    /// One surrendered row names a kind other than the kind declared at that position.
+    KindMismatch {
+        /// The kind name the set declares at this position.
+        expected: &'static str,
+        /// The kind name the record surrendered at this position.
+        observed: &'static str,
     },
 }
 
@@ -299,7 +306,7 @@ macro_rules! roster {
 ///
 /// One declaration, so the marker, the set, and the record cannot drift apart.
 /// A kind added to a declaration grows all three together and stops the compiler at every construction of the record until somebody says what happens to it.
-/// The record then becomes a [`DispositionSet`] only after the compiler independently checks that its surrendered rows still match the set's names.
+/// The record then becomes a [`DispositionSet`] only after the compiler independently checks every surrendered name and the whole row count against the set's declaration.
 ///
 /// The seat is the field name the record carries a row's answer under, declared beside the kind rather than composed from the marker's spelling, for the same reason the declared name beside it is: a field renamed by every refactor of a Rust identifier is a field nobody can rely on.
 ///
@@ -402,8 +409,8 @@ macro_rules! kinds {
         impl $crate::kind::DispositionRecord for $record {
             fn into_dispositions(
                 self,
-            ) -> impl Iterator<Item = $crate::kind::Disposition> {
-                [$( self.$seat ),+].into_iter()
+            ) -> impl Iterator<Item = (&'static str, $crate::kind::Disposition)> {
+                [$( (<$kind as $crate::kind::Kind>::NAME, self.$seat) ),+].into_iter()
             }
         }
     };

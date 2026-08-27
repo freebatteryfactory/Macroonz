@@ -62,6 +62,10 @@ impl fmt::Display for DispositionSetError {
                 into,
                 "the kind set declares {expected} names but its disposition record surrendered {observed} rows"
             ),
+            Self::KindMismatch { expected, observed } => write!(
+                into,
+                "the kind set declares `{expected}` at this position but its disposition record surrendered `{observed}`"
+            ),
         }
     }
 }

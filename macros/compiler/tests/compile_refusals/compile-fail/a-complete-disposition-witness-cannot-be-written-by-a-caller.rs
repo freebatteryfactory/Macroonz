@@ -1,4 +1,4 @@
-//! A complete disposition witness has private fields, so an external kind-set implementation cannot bypass the count-checking constructor.
+//! A complete disposition witness has private fields, so an external kind-set implementation cannot bypass the constructor that checks every seat.
 
 use core::marker::PhantomData;
 use macroonz_compiler::{Disposition, DispositionRecord, DispositionSet, KindSet};
@@ -7,7 +7,7 @@ use macroonz_compiler::{Disposition, DispositionRecord, DispositionSet, KindSet}
 struct EmptyRecord;
 
 impl DispositionRecord for EmptyRecord {
-    fn into_dispositions(self) -> impl Iterator<Item = Disposition> {
+    fn into_dispositions(self) -> impl Iterator<Item = (&'static str, Disposition)> {
         core::iter::empty()
     }
 }

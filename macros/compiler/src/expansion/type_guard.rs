@@ -150,7 +150,7 @@ impl<K: Kind, Set: KindSet> Accounted<K, Set> {
 
     /// What happened to every kind of the set, whole and declaration-ordered.
     ///
-    /// The witness pairs each declared name with the disposition surrendered at that position only after its count matched the complete set.
+    /// The witness pairs each declared name with the disposition surrendered at that position only after every surrendered name and the whole row count matched the complete set.
     pub const fn dispositions(&self) -> &DispositionSet<Set> {
         &self.dispositions
     }

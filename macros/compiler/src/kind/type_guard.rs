@@ -9,6 +9,7 @@ impl<Set: KindSet> DispositionSet<Set> {
     /// # Errors
     ///
     /// Returns [`DispositionSetError::CountMismatch`] when the record surrenders fewer or more dispositions than [`KindSet::NAMES`] declares.
+    /// Returns [`DispositionSetError::KindMismatch`] when a surrendered row names a kind other than the kind declared at that position.
     /// Nothing is truncated, padded, or inferred: silence remains unable to enter an account.
     pub fn complete(record: Set::Dispositions) -> Result<Self, DispositionSetError> {
         let rows: Vec<_> = record.into_dispositions().collect();
@@ -17,8 +18,19 @@ impl<Set: KindSet> DispositionSet<Set> {
         if expected != observed {
             return Err(DispositionSetError::CountMismatch { expected, observed });
         }
+        for ((observed_name, _), expected_name) in rows.iter().zip(Set::NAMES.iter().copied()) {
+            if *observed_name != expected_name {
+                return Err(DispositionSetError::KindMismatch {
+                    expected: expected_name,
+                    observed: observed_name,
+                });
+            }
+        }
         Ok(Self {
-            dispositions: rows,
+            dispositions: rows
+                .into_iter()
+                .map(|(_name, disposition)| disposition)
+                .collect(),
             kind_set: PhantomData,
         })
     }
