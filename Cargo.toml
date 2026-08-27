@@ -6,7 +6,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-include = ["src/**", "tests/**", "assets/**", "AGENTS.md", "Cargo.toml", "README.md", "LICENSE-*"]
+include = ["src/**", "tests/**", "assets/**", "AGENTS.md", "CONTRIBUTING.md", "SECURITY.md", "Cargo.toml", "README.md", "LICENSE-*"]
 
 [workspace]
 resolver = "3"

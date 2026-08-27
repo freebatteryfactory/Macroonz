@@ -40,7 +40,7 @@ One storefront opens onto the oven, the hand that loads it, and the taste tester
 | **`macroonz`** | `/` | The storefront. It preserves the owners as `compiler`, `macros`, and feature-gated `harness` modules. This is the crate you add. |
 | **`macroonz-compiler`** | `macros/compiler/` | The compiler, as ordinary functions. Capture a declaration, build a request, plan, render, close, explain, bind, emit. |
 | **`macroonz-macros`** | `macros/proc/` | The thin procedural host. Item-preserving attributes and direct declarations call compiler-owned descriptor doors, then carry token conversion, span custody, diagnostic placement, and emission. It owns no grammar. |
-| **`macroonz-harness`** | `harness/` | The judge. Descriptors, generation, properties, oracles, faults, corpus, mutation, benches, reports, replay. The default storefront includes it; the diet posture removes it from a shipping graph. |
+| **`macroonz-harness`** | `harness/` | The judge. Descriptors, generation, properties, oracles, faults, corpus, fuzz composition, mutation, benches, reports, replay. The default storefront includes it; the diet posture removes it from a shipping graph. |
 
 ```mermaid
 flowchart LR
@@ -135,12 +135,24 @@ The harness hands you the instruments — each independently callable, composed 
 - **Generates** inputs against the description, structure-aware, from a seed it records.
 - **Injects** faults on a declared schedule, and measures against a clock the caller declares, so the subject is judged under pressure and not on a sunny day.
 - **Reduces** a failure to the smallest witness reached under the declared reducers and budget, and mints a replay capsule over it.
+- **Hands off** coverage-admitted bytes into that same reduction and replay road when a selected native backend is in use.
 - **Mutates** the subject's own code and runs the trials against each mutant, to prove the trials can tell right from wrong.
 - **Benchmarks** with the same receiver and the same pinned profile, so a number means the same thing tomorrow.
 - **Reports** each verdict with its standing, its site, and its complete denominator — joined to its replay capsule, where a reduction earned one, on one execution key.
 
 Descriptors, trials, mutations, and benches live in your tests — written through the generic `macroonz::macros` attributes, through your own attributes, or by hand.
 The harness owns how they are judged, never what they mean.
+
+---
+
+## Getting started
+
+1. Pick a posture from [The three postures](#the-three-postures).
+2. Add `macroonz` with that command.
+3. Follow the compiler, proc, or harness crate README for the road you are on.
+
+Contribution procedure lives in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Security reporting lives in [`SECURITY.md`](SECURITY.md).
 
 ---
 
