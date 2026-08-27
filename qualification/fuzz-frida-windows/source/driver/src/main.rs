@@ -33,15 +33,16 @@ use libafl::{
     corpus::{Corpus, InMemoryCorpus},
     events::SimpleEventManager,
     executors::{ExitKind, HasObservers, InProcessExecutor},
-    feedbacks::{ConstFeedback, MaxMapFeedback},
-    fuzzer::{Evaluator, Fuzzer, StdFuzzer},
+    feedback_or,
+    feedbacks::{CrashFeedback, MaxMapFeedback, TimeoutFeedback},
+    fuzzer::{Evaluator, ExecuteInputResult, Fuzzer, StdFuzzer},
     inputs::{BytesInput, HasTargetBytes},
     monitors::SimpleMonitor,
     mutators::{havoc_mutations, scheduled::HavocScheduledMutator},
     observers::{MapObserver, Observer},
     schedulers::QueueScheduler,
     stages::mutational::StdMutationalStage,
-    state::{HasCorpus, StdState},
+    state::{HasCorpus, HasSolutions, StdState},
 };
 use libafl_bolts::{
     Error as BoltsError, HasLen, Named,
@@ -72,6 +73,10 @@ const MUTATION_STAGE_ITERS: usize = 4;
 const SEED_LAWFUL: &[u8] = b"struct Lawful;";
 const SEED_REFUSED: &[u8] = b"struct Refused {";
 const SEED_NON_UTF8: &[u8] = &[0xff];
+/// Planted executor exit for solutions-corpus crash custody (not a TextCapture abort).
+const SEED_CRASH_CUSTODY: &[u8] = b"macroonz-crash-custody";
+/// Planted executor exit for solutions-corpus timeout custody (not a wall-clock hang).
+const SEED_TIMEOUT_CUSTODY: &[u8] = b"macroonz-timeout-custody";
 
 /// Ordered target-relative block starts for one execution.
 #[derive(Debug, Default)]
@@ -490,7 +495,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         FridaEdgeMapObserver::new("edges", Rc::clone(&blocks), Rc::clone(&borrow_collision));
     let observer_handle: Handle<FridaEdgeMapObserver> = observer.handle();
     let mut feedback = MaxMapFeedback::new(&observer);
-    let mut objective = ConstFeedback::False;
+    let mut objective = feedback_or!(CrashFeedback::new(), TimeoutFeedback::new());
     let mut state = StdState::new(
         StdRand::with_seed(FIXED_SEED),
         InMemoryCorpus::<BytesInput>::new(),
@@ -512,7 +517,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut harness = |input: &BytesInput| {
         let bytes = input.target_bytes();
-        let _outcome = observe(bytes.as_ref());
+        let slice = bytes.as_ref();
+        if slice == SEED_CRASH_CUSTODY {
+            return ExitKind::Crash;
+        }
+        if slice == SEED_TIMEOUT_CUSTODY {
+            return ExitKind::Timeout;
+        }
+        let _outcome = observe(slice);
         ExitKind::Ok
     };
 
@@ -524,7 +536,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .fuzzer(&mut fuzzer)
         .state(&mut state)
         .event_mgr(&mut mgr)
-        .build::<BytesInput, ConstFeedback>()?;
+        .build::<BytesInput, _>()?;
 
     let seed_count = 3_usize;
     for seed in [SEED_LAWFUL, SEED_REFUSED, SEED_NON_UTF8] {
@@ -568,6 +580,77 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err(io::Error::other("bounded LibAFL loop ended with an empty edge map").into());
     }
 
+    // Retain planted crash/timeout exits through the live objective into the solutions corpus.
+    let crash_input = BytesInput::new(SEED_CRASH_CUSTODY.to_vec());
+    let (crash_result, _) = fuzzer.evaluate_input(
+        &mut state,
+        &mut executor,
+        &mut mgr,
+        &crash_input,
+    )?;
+    let timeout_input = BytesInput::new(SEED_TIMEOUT_CUSTODY.to_vec());
+    let (timeout_result, _) = fuzzer.evaluate_input(
+        &mut state,
+        &mut executor,
+        &mut mgr,
+        &timeout_input,
+    )?;
+    if crash_result != ExecuteInputResult::Solution {
+        return Err(io::Error::other(format!(
+            "crash custody input was not retained as a solution; got {crash_result:?}"
+        ))
+        .into());
+    }
+    if timeout_result != ExecuteInputResult::Solution {
+        return Err(io::Error::other(format!(
+            "timeout custody input was not retained as a solution; got {timeout_result:?}"
+        ))
+        .into());
+    }
+    let solutions_count = state.solutions().count();
+    if solutions_count < 2 {
+        return Err(io::Error::other(format!(
+            "solutions corpus retained fewer than two crash/timeout outcomes; count={solutions_count}"
+        ))
+        .into());
+    }
+    {
+        let mut custody = fs::File::create(final_exam.join("solutions-custody.tsv"))?;
+        writeln!(custody, "phase\tclaim\tstatus\tfact")?;
+        writeln!(
+            custody,
+            "objective\tCrashFeedback|TimeoutFeedback\tavailable\treplaced ConstFeedback::False; live evaluate_input retains ExitKind::Crash and ExitKind::Timeout"
+        )?;
+        writeln!(
+            custody,
+            "solutions\tcount\tavailable\t{solutions_count}"
+        )?;
+        for id in state.solutions().ids() {
+            let testcase = state.solutions().get(id)?;
+            let borrowed = testcase.borrow();
+            let Some(input) = borrowed.input() else {
+                continue;
+            };
+            let owned = input.target_bytes().as_ref().to_vec();
+            let kind = if owned.as_slice() == SEED_CRASH_CUSTODY {
+                "Crash"
+            } else if owned.as_slice() == SEED_TIMEOUT_CUSTODY {
+                "Timeout"
+            } else {
+                "Other"
+            };
+            writeln!(
+                custody,
+                "solutions\tretained\tavailable\tkind={kind}; bytes={}",
+                owned.len()
+            )?;
+            fs::write(
+                final_exam.join(format!("solution-{kind}.bin")),
+                &owned,
+            )?;
+        }
+    }
+
     // Prefer a LibAFL corpus entry that itself reproduces typed refusal under TextCapture.
     // Prefer evolved (non-seed) refusals when present; never hand Macroonz substituted bytes.
     let mut interesting: Option<Vec<u8>> = None;
@@ -609,7 +692,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     report_line(
         &mut output,
-        "classification\tcrash-timeout-resource\tin-process-textcapture\tno-crash-no-timeout-no-resource-blowup-observed-in-bounded-loop; executor-timeout-bound=2s",
+        "classification\tcrash-timeout-resource\tin-process-textcapture\tlive CrashFeedback|TimeoutFeedback objective retained planted ExitKind::Crash and ExitKind::Timeout in solutions corpus; TextCapture seeds remain non-aborting; executor-timeout-bound=2s; Job Object resource witness separate",
+    )?;
+    report_line(
+        &mut output,
+        &format!("libafl-loop\tsolutions-retained\t{solutions_count}"),
     )?;
     report_line(
         &mut output,

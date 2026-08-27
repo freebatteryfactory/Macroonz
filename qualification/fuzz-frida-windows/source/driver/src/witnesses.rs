@@ -98,7 +98,7 @@ pub(crate) fn prove_crash_timeout(evidence_dir: &Path) -> Result<(), Box<dyn std
     )?;
     writeln!(
         out,
-        "witness\tlibafl-InProcessExecutor-timeout-bound\tavailable\tmain F0 executor is built with timeout=2s; ExitKind::Timeout maps through CrashFeedback/TimeoutFeedback + classify"
+        "witness\tlibafl-InProcessExecutor-timeout-bound\tavailable\tmain executor timeout=2s; live objective is CrashFeedback|TimeoutFeedback; planted ExitKind::Crash/Timeout evaluate_input retains solutions; wall-clock hang remains optional"
     )?;
     Ok(())
 }
