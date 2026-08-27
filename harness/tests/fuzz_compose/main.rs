@@ -262,6 +262,72 @@ fn preflight_ready_rejects_duplicate_and_contradictory_facts() {
 }
 
 #[test]
+fn hostile_surface_refuses_malformed_fuzz_road() -> Result<(), FuzzRoadFailure> {
+    let Some(name) = NamespacedName::named("harness", "f0-frida-hostile").ok() else {
+        return Err(FuzzRoadFailure::Fixture);
+    };
+    assert_eq!(
+        BackendSelection::libafl_frida(name, Vec::new(), vec![HostDisposition::ObservedWindows]),
+        Err(BackendSelectionRefusal::NoCeiling)
+    );
+    assert_eq!(
+        BackendSelection::libafl_frida(name, vec![NamedCeiling::Lnk4098Coexistence], Vec::new()),
+        Err(BackendSelectionRefusal::NoHostDisposition)
+    );
+    assert_eq!(
+        BackendSelection::libafl_frida(
+            name,
+            vec![NamedCeiling::LibAppendMsvcSdk],
+            vec![HostDisposition::ObservedWindows],
+        ),
+        Err(BackendSelectionRefusal::WindowsWithoutLnk4098Ceiling)
+    );
+    assert_eq!(
+        BackendSelection::libafl_frida(
+            name,
+            vec![NamedCeiling::Lnk4098Coexistence],
+            vec![HostDisposition::CredibleUnexecutedLinux],
+        ),
+        Err(BackendSelectionRefusal::CrossHostWithoutWaveFCeiling)
+    );
+
+    let mut unavailable = all_available_facts();
+    let Some(first) = unavailable.get_mut(0) else {
+        return Err(FuzzRoadFailure::Fixture);
+    };
+    *first = PreflightFact::declared(
+        PreflightCapability::VsWhere,
+        PreflightStatus::Unavailable,
+    );
+    assert_eq!(
+        preflight_ready(SelectedBackend::LibAflFrida, &unavailable),
+        Err(PreflightIncomplete::Unavailable(PreflightCapability::VsWhere))
+    );
+
+    assert_eq!(
+        InterestingBytes::admitted(Vec::new()),
+        Err(InterestingBytesRefusal::Empty)
+    );
+
+    let interesting = InterestingBytes::admitted(vec![9u8])?;
+    let plan = ReductionPlan::declared(
+        MinimizationProfile::declared("fuzz-compose-hostile", 1),
+        ByteReducerId::ChunkRemovalAndZeroing,
+        Vec::new(),
+        FingerprintPreservation::Required,
+        ReductionBudget::declared(4),
+    )?;
+    let Some(binding) = probe_binding() else {
+        return Err(FuzzRoadFailure::Fixture);
+    };
+    match compose_reduce_replay(&interesting, &plan, &binding) {
+        Err(ComposeRefusal::Reduction(ReductionRefusal::BaselineDidNotFail)) => Ok(()),
+        Err(refusal) => Err(FuzzRoadFailure::Compose(refusal)),
+        Ok(_) => Err(FuzzRoadFailure::Fixture),
+    }
+}
+
+#[test]
 fn interesting_bytes_compose_into_exact_derived_replay() -> Result<(), FuzzRoadFailure> {
     assert_eq!(
         InterestingBytes::admitted(Vec::new()),
