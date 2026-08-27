@@ -17,10 +17,6 @@ impl DeferredCargo {
     }
 }
 impl DeclaredCargo {
-    /// Binds a stamped body to its matcher.
-    pub const fn declared(matched: GeneratedTree, stamped: GeneratedTree) -> Self {
-        Self { matched, stamped }
-    }
     pub(in crate::support) fn proved_stamped_from<K: Kind>(
         expansion: &Expansion<K>,
         matched: GeneratedTree,
@@ -35,9 +31,21 @@ impl DeclaredCargo {
             });
         };
         Ok(Self {
+            source,
+            root: expansion.plan().account().commitment(),
             matched,
             stamped: proved.tree().clone(),
         })
+    }
+    /// Reads the terminal that proved the stamped body.
+    #[must_use]
+    pub const fn source(&self) -> ClosedExpansionId {
+        self.source
+    }
+    /// Reads the declaration the proving terminal was planned over.
+    #[must_use]
+    pub const fn root(&self) -> Identity<identity::CapturedDeclaration> {
+        self.root
     }
     /// Reads matcher clauses.
     #[must_use]
@@ -58,7 +66,10 @@ impl ProvedCargo {
         cargo: DeferredCargo,
     ) -> Result<Self, CargoProofIssue> {
         let source = expansion.identity();
-        if axis.reads_from() != Some(destination) {
+        if axis == CargoAxis::Declared {
+            return Err(CargoProofIssue::DeclaredAxisRequiresStampedCargo);
+        }
+        if axis.reads_from() != destination {
             return Err(CargoProofIssue::DestinationMismatch { axis, destination });
         }
         let Some(PartitionCargo::Carried(proved)) = expansion.emission().joined(destination) else {

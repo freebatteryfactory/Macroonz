@@ -1,10 +1,14 @@
-//! The three roads a generic attribute walks, exercised from outside: a captured body in, one sealed carrier expansion out.
+//! The three roads a generic attribute walks, exercised from outside: a captured body and semantic item in, one sealed carrier expansion out.
 //!
 //! Every claim below is asked through the road a proc host takes — `descriptor::door` — with nothing reached around it.
 //! The positive lanes establish that each road's carrier really composes what its reading produced, and each refusal lane reverses one clause of that, so a road that stopped reading or stopped refusing is caught from this side of the wall.
 
+use macroonz_compiler::descriptor::bench::BENCH_HELPER_POSITION;
 use macroonz_compiler::descriptor::door;
+use macroonz_compiler::descriptor::mutation::MUTATION_HELPER_POSITION;
+use macroonz_compiler::descriptor::trial::TRIAL_HELPER_POSITION;
 use macroonz_compiler::descriptor::{Emitter, Grammar};
+use macroonz_compiler::request;
 use macroonz_compiler::support::SupportCarrier;
 use macroonz_compiler::{
     CrateBinding, Diagnostic, Door, Expansion, PartitionCargo, Phase, Producer, TextCapture,
@@ -79,6 +83,9 @@ const MUTATION_BODY: &str = r#"
 /// The item a mutation declaration sits on: three variants, so two adjacent transpositions exist.
 const MUTATION_ITEM: &str = "pub enum Cause { First, Second, Third }";
 
+/// The semantic item the trial and bench helpers exercise.
+const DECLARATION_ITEM: &str = "pub struct Declaration;";
+
 /// One lawful bench declaration body.
 const BENCH_BODY: &str = r#"
     support = pace_support,
@@ -102,8 +109,10 @@ const BENCH_BODY: &str = r#"
 /// The trial road walked over one source, or nothing where the lane's own source did not capture.
 fn trials(source: &str) -> Option<Result<Expansion<SupportCarrier>, Diagnostic>> {
     let read = TextCapture::read(source).ok()?;
+    let item = TextCapture::read(DECLARATION_ITEM).ok()?;
     Some(door::trials(
-        read.input().clone(),
+        read.input(),
+        item.input(),
         TRIALS,
         TRIALS_EMITTER,
         &DOOR,
@@ -115,7 +124,7 @@ fn mutations(body: &str, item: &str) -> Option<Result<Expansion<SupportCarrier>,
     let read = TextCapture::read(body).ok()?;
     let sat_on = TextCapture::read(item).ok()?;
     Some(door::mutations(
-        read.input().clone(),
+        read.input(),
         sat_on.input(),
         MUTATIONS,
         &DOOR,
@@ -125,8 +134,10 @@ fn mutations(body: &str, item: &str) -> Option<Result<Expansion<SupportCarrier>,
 /// The bench road walked over one source, on the same terms.
 fn bench(source: &str) -> Option<Result<Expansion<SupportCarrier>, Diagnostic>> {
     let read = TextCapture::read(source).ok()?;
+    let item = TextCapture::read(DECLARATION_ITEM).ok()?;
     Some(door::bench(
-        read.input().clone(),
+        read.input(),
+        item.input(),
         BENCH,
         BENCH_EMITTER,
         &DOOR,
@@ -139,6 +150,14 @@ fn emitted(expansion: &Expansion<SupportCarrier>) -> Option<String> {
         .emit()
         .tokens()
         .map(macroonz_compiler::GeneratedTree::inspected)
+}
+
+/// Removes the last trailing comma while leaving every declared value unchanged.
+fn without_trailing_comma(source: &str) -> Option<String> {
+    let at = source.rfind(',')?;
+    let mut changed = source.to_owned();
+    changed.remove(at);
+    Some(changed)
 }
 
 /// A trial declaration becomes one carrier at the declaration site and nothing anywhere else.
@@ -227,19 +246,152 @@ fn a_mutation_declaration_becomes_one_carrier_carrying_the_module() -> Result<()
     Ok(())
 }
 
-/// The item's capture rides the mutation request as a dependency, so editing the item moves the plan.
+/// The mutation item is the declaration root rather than a dependency beside the helper body.
 #[test]
-fn the_mutation_item_rides_as_a_dependency() -> Result<(), ()> {
+fn the_mutation_item_is_the_request_root() -> Result<(), ()> {
     let carrier = mutations(MUTATION_BODY, MUTATION_ITEM)
         .ok_or(())?
         .ok()
         .ok_or(())?;
-    assert_eq!(carrier.plan().account().dependencies().len(), 1);
+    let captured_item = TextCapture::read(MUTATION_ITEM).map_err(|_refusal| ())?;
+    assert_eq!(
+        carrier.plan().account().commitment(),
+        request::committed(captured_item.input())
+    );
+    assert!(carrier.plan().account().dependencies().is_empty());
     let reordered = mutations(MUTATION_BODY, "pub enum Cause { Third, Second, First }")
         .ok_or(())?
         .ok()
         .ok_or(())?;
     assert_ne!(carrier.identity(), reordered.identity());
+    Ok(())
+}
+
+/// Prove one helper road's movement and non-movement slice.
+fn assert_helper_movement(
+    name: &str,
+    first: &Expansion<SupportCarrier>,
+    changed: &Expansion<SupportCarrier>,
+) -> Result<(), ()> {
+    let first_account = first.plan().account();
+    let changed_account = changed.plan().account();
+    let first_content = first_account.content();
+    let changed_content = changed_account.content();
+    let first_helper = first_content.helper().ok_or(())?;
+    let changed_helper = changed_content.helper().ok_or(())?;
+    assert_eq!(
+        first_account.commitment(),
+        changed_account.commitment(),
+        "{name} moved the semantic declaration"
+    );
+    assert_eq!(
+        first_account.kind(),
+        changed_account.kind(),
+        "{name} moved the unrelated projection kind"
+    );
+    assert_eq!(first_content.root(), changed_content.root());
+    assert_eq!(first_content.expectation(), changed_content.expectation());
+    assert_eq!(first_content.address(), changed_content.address());
+    assert_eq!(first_content.declared(), changed_content.declared());
+    assert_eq!(first_content.deferred(), changed_content.deferred());
+    assert_eq!(first_content.bench(), changed_content.bench());
+    assert_ne!(
+        first_helper, changed_helper,
+        "{name} did not move the captured helper"
+    );
+    assert_ne!(
+        first_account.content_commitment(),
+        changed_account.content_commitment(),
+        "{name} did not carry helper movement into the assembly content"
+    );
+    assert_ne!(
+        first.identity(),
+        changed.identity(),
+        "{name} did not carry helper movement into the sealed expansion"
+    );
+    Ok(())
+}
+
+/// Prove that one actual door uses the position its semantic helper owner declares.
+fn assert_helper_position(
+    expansion: &Expansion<SupportCarrier>,
+    body: &str,
+    item: &str,
+    position: u32,
+) -> Result<(), ()> {
+    let captured_body = TextCapture::read(body).map_err(|_| ())?;
+    let captured_item = TextCapture::read(item).map_err(|_| ())?;
+    assert_eq!(
+        expansion.plan().account().content().helper(),
+        Some(request::committed_helper(
+            captured_item.input(),
+            captured_body.input(),
+            position,
+        ))
+    );
+    Ok(())
+}
+
+/// Each attribute-helper door seats its captured body at the public position its owner declares.
+#[test]
+fn the_three_attribute_doors_use_their_declared_helper_positions() -> Result<(), ()> {
+    assert_eq!(
+        [
+            TRIAL_HELPER_POSITION,
+            MUTATION_HELPER_POSITION,
+            BENCH_HELPER_POSITION,
+        ],
+        [0, 1, 2],
+    );
+    let trial = trials(TRIAL_BODY).ok_or(())?.ok().ok_or(())?;
+    assert_helper_position(&trial, TRIAL_BODY, DECLARATION_ITEM, TRIAL_HELPER_POSITION)?;
+
+    let mutation = mutations(MUTATION_BODY, MUTATION_ITEM)
+        .ok_or(())?
+        .ok()
+        .ok_or(())?;
+    assert_helper_position(
+        &mutation,
+        MUTATION_BODY,
+        MUTATION_ITEM,
+        MUTATION_HELPER_POSITION,
+    )?;
+
+    let benchmark = bench(BENCH_BODY).ok_or(())?.ok().ok_or(())?;
+    assert_helper_position(
+        &benchmark,
+        BENCH_BODY,
+        DECLARATION_ITEM,
+        BENCH_HELPER_POSITION,
+    )?;
+    Ok(())
+}
+
+/// Each helper identity moves independently while the semantic item and unrelated kind identity remain fixed.
+///
+/// Removing a trailing comma changes the helper's canonical token material without changing the declaration each grammar reads, so the final assembly commitment and carrier expansion can move only through the captured-helper seat.
+#[test]
+fn all_three_helper_roads_move_only_the_helper_side_of_the_join() -> Result<(), ()> {
+    let trial_changed = without_trailing_comma(TRIAL_BODY).ok_or(())?;
+    let first_trial = trials(TRIAL_BODY).ok_or(())?.ok().ok_or(())?;
+    let changed_trial = trials(&trial_changed).ok_or(())?.ok().ok_or(())?;
+    assert_helper_movement("trials", &first_trial, &changed_trial)?;
+
+    let mutation_changed = without_trailing_comma(MUTATION_BODY).ok_or(())?;
+    let first_mutation = mutations(MUTATION_BODY, MUTATION_ITEM)
+        .ok_or(())?
+        .ok()
+        .ok_or(())?;
+    let changed_mutation = mutations(&mutation_changed, MUTATION_ITEM)
+        .ok_or(())?
+        .ok()
+        .ok_or(())?;
+    assert_helper_movement("mutations", &first_mutation, &changed_mutation)?;
+
+    let bench_changed = without_trailing_comma(BENCH_BODY).ok_or(())?;
+    let first_bench = bench(BENCH_BODY).ok_or(())?.ok().ok_or(())?;
+    let changed_bench = bench(&bench_changed).ok_or(())?.ok().ok_or(())?;
+    assert_helper_movement("bench", &first_bench, &changed_bench)?;
     Ok(())
 }
 

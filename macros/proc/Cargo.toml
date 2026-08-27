@@ -6,7 +6,10 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-exclude = ["tests/support/capture-observer/**"]
+exclude = [
+    "tests/generated_support_crossing.rs",
+    "tests/support/capture-observer/**",
+]
 
 [lib]
 proc-macro = true

@@ -223,6 +223,25 @@ pub fn committed(capture: &CapturedInput) -> Identity<identity::CapturedDeclarat
     ))
 }
 
+/// The identity of one helper capture read beside a semantic declaration.
+///
+/// The declaration's commitment is the anchor, the helper capture's complete canonical bytes are the material, and the caller supplies the position its helper grammar declares.
+/// This is the one derivation of a captured helper's identity, so descriptor and adopter roads do not restate the preimage beside this owner.
+#[must_use]
+pub fn committed_helper(
+    declaration: &CapturedInput,
+    helper: &CapturedInput,
+    position: u32,
+) -> Identity<identity::CapturedHelper> {
+    let anchor = committed(declaration);
+    Identity::derived(Transcript::under_projection(
+        identity::Role::CapturedHelper,
+        &anchor,
+        &helper.canonical_bytes(),
+        position,
+    ))
+}
+
 /// What one seat's identities are derived over: the owner-qualified kind, the content commitment, and the seat's own name, each framed.
 ///
 /// Framed rather than raw, which is what keeps a seat named `content` at position zero from deriving the origin node an account already stands at.

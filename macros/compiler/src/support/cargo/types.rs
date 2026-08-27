@@ -21,10 +21,12 @@ crate::roster! {
 pub struct DeferredCargo {
     tokens: GeneratedTree,
 }
-/// One stamped body and the matcher clauses it consumes.
-#[must_use = "declared cargo is one stamped body and the clauses its invocation must supply"]
+/// One terminal's proved declaration-site body, its parentage, and the matcher clauses it consumes.
+#[must_use = "declared cargo is one terminal's proved declaration-site body and the clauses its invocation must supply"]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DeclaredCargo {
+    source: ClosedExpansionId,
+    root: Identity<identity::CapturedDeclaration>,
     matched: GeneratedTree,
     stamped: GeneratedTree,
 }
@@ -64,6 +66,8 @@ pub struct SupportAxes {
 /// A private promotion finding projected by assembly.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(in crate::support) enum CargoProofIssue {
+    /// Opaque deferred cargo was offered for the stamped declaration axis.
+    DeclaredAxisRequiresStampedCargo,
     /// The axis and destination disagree.
     DestinationMismatch {
         /// The requested axis.

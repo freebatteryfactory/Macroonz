@@ -7,11 +7,12 @@ use crate::bounded::{Capped, Capping, NonEmpty};
 use crate::expansion::Expansion;
 use crate::identity::{self, ClosedExpansionId, Identity};
 use crate::kind::{Destination, Kind};
+use crate::request::{committed, committed_helper};
 use crate::support::cargo::{
     AxisCargo, CargoAxis, CargoProofIssue, DeclaredCargo, DeferredCargo, ProvedCargo, SupportAxes,
 };
 use crate::support::{DeliveryForm, EXPECTED_SCHEMA_ID, SchemaId, SupportName};
-use crate::token::GeneratedTree;
+use crate::token::{CapturedInput, GeneratedTree};
 impl DeclaredCargo {
     /// Reads a stamped body from the terminal which proved it.
     ///
@@ -25,10 +26,10 @@ impl DeclaredCargo {
     }
 }
 impl ProvedCargo {
-    /// Promotes one terminal's own delivery into proved cargo.
+    /// Promotes one terminal's own opaque test or benchmark delivery into proved cargo.
     ///
     /// # Errors
-    /// Returns the established destination or delivery-ownership issue.
+    /// Returns [`AssemblyIssue::DeclaredAxisRequiresStampedCargo`] for the declared axis, the established destination issue where the opaque axis and destination disagree, or the delivery-ownership issue where the terminal did not prove the supplied cargo.
     pub fn carried<K: Kind>(
         expansion: &Expansion<K>,
         axis: CargoAxis,
@@ -77,10 +78,39 @@ impl SupportAssembly {
         address: Option<SupportName>,
         axes: SupportAxes,
     ) -> Result<Self, AssemblyError> {
+        Self::checked(root, None, address, axes)
+    }
+
+    /// Checks and assembles one complete axis set read from a helper beside a declaration.
+    ///
+    /// The declaration and helper commitments are derived together from the two captures, so the assembly cannot be handed a helper identity anchored under another root.
+    ///
+    /// # Errors
+    ///
+    /// Returns every independently established issue within the issue bound.
+    pub fn assembled_for_helper(
+        declaration: &CapturedInput,
+        helper: &CapturedInput,
+        helper_position: u32,
+        address: Option<SupportName>,
+        axes: SupportAxes,
+    ) -> Result<Self, AssemblyError> {
+        let root = committed(declaration);
+        let helper = committed_helper(declaration, helper, helper_position);
+        Self::checked(root, Some(helper), address, axes)
+    }
+
+    /// Checks and assembles one complete axis set under an optional helper commitment.
+    fn checked(
+        root: Identity<identity::CapturedDeclaration>,
+        helper: Option<Identity<identity::CapturedHelper>>,
+        address: Option<SupportName>,
+        axes: SupportAxes,
+    ) -> Result<Self, AssemblyError> {
         let mut issues = Vec::new();
         {
             let carried = carried_axes(&axes);
-            issues.extend(root_issues(root, &carried));
+            issues.extend(root_issues(root, &axes, &carried));
             issues.extend(destination_issues(&carried));
             issues.extend(consumption_issues(&carried));
         }
@@ -90,6 +120,7 @@ impl SupportAssembly {
         }
         Ok(Self {
             root,
+            helper,
             expectation: EXPECTED_SCHEMA_ID,
             address,
             declared: axes.declared,
@@ -101,6 +132,12 @@ impl SupportAssembly {
     #[must_use]
     pub const fn root(&self) -> Identity<identity::CapturedDeclaration> {
         self.root
+    }
+
+    /// Reads the captured helper this assembly was composed from, where it was built for one.
+    #[must_use]
+    pub const fn helper(&self) -> Option<Identity<identity::CapturedHelper>> {
+        self.helper
     }
     /// Reads the pinned expectation.
     #[must_use]
@@ -134,13 +171,20 @@ impl SupportAssembly {
     }
     /// Iterates proving terminals in axis order.
     pub fn sources(&self) -> impl Iterator<Item = ClosedExpansionId> {
-        [source(&self.deferred), source(&self.bench)]
-            .into_iter()
-            .flatten()
+        [
+            declared_source(&self.declared),
+            source(&self.deferred),
+            source(&self.bench),
+        ]
+        .into_iter()
+        .flatten()
     }
 }
 fn project(issue: CargoProofIssue) -> AssemblyError {
     AssemblyError::of(match issue {
+        CargoProofIssue::DeclaredAxisRequiresStampedCargo => {
+            AssemblyIssue::DeclaredAxisRequiresStampedCargo
+        }
         CargoProofIssue::DestinationMismatch { axis, destination } => {
             AssemblyIssue::CargoReachesASecondDestination { axis, destination }
         }
@@ -162,5 +206,12 @@ fn source(axis: &AxisCargo<ProvedCargo>) -> Option<ClosedExpansionId> {
     match axis {
         AxisCargo::Absent { .. } => None,
         AxisCargo::Carried(proved) => Some(proved.source()),
+    }
+}
+
+fn declared_source(axis: &AxisCargo<DeclaredCargo>) -> Option<ClosedExpansionId> {
+    match axis {
+        AxisCargo::Absent { .. } => None,
+        AxisCargo::Carried(declared) => Some(declared.source()),
     }
 }

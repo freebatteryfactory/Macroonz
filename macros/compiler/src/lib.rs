@@ -34,12 +34,12 @@ pub use closure::{
 };
 pub use diagnostic::{
     ASSEMBLY_FAMILY, BENCH_HELPER_FAMILY, BINDING_FAMILY, CAPTURE_FAMILY, CLOSURE_FAMILY,
-    CODEC_DECLARATION_FAMILY, CONCURRENCY_HELPER_FAMILY, DECLARATION_FAMILY,
-    DESCRIPTOR_PLAN_FAMILY, Diagnostic, EXPLANATION_FAMILY, ExplanationSeat, FIRST_HELPER_FAMILY,
-    Family, Line, LineBody, LineSite, NETWORK_HELPER_FAMILY, Observed, PLANNING_FAMILY, Phase,
-    Placement, RELATED_ISSUE_LIMIT, RENDERING_FAMILY, REPAIR_LIMIT, RefusalClass, Refused,
-    RelatedIdentity, RelatedSet, RenderedMagnitude, Repair, Route, SECOND_HELPER_FAMILY,
-    SHADOW_HELPER_FAMILY, SHELL_FAMILY, SUPPORT_DECLARATION_FAMILY, Site, SiteCoordinate, composed,
+    CODEC_DECLARATION_FAMILY, CONCURRENCY_HELPER_FAMILY, DECLARATION_FAMILY, Diagnostic,
+    DiagnosticName, DiagnosticNameRefusal, EXPLANATION_FAMILY, FIRST_HELPER_FAMILY, Family, Line,
+    LineBody, LineSite, NETWORK_HELPER_FAMILY, Observed, PLANNING_FAMILY, Phase, Placement,
+    RELATED_ISSUE_LIMIT, RENDERING_FAMILY, REPAIR_LIMIT, RefusalClass, Refused, RelatedIdentity,
+    RelatedSet, RenderedMagnitude, Repair, Route, SECOND_HELPER_FAMILY, SHADOW_HELPER_FAMILY,
+    SHELL_FAMILY, SUPPORT_DECLARATION_FAMILY, Site, SiteCoordinate, composed,
 };
 pub use expansion::{Accounted, BINDING_FACT, BindError, Expansion};
 pub use explanation::{

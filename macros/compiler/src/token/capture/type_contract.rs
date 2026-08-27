@@ -7,6 +7,12 @@ use super::{
     CaptureBound, CapturedAtom, CapturedPayload, LiteralReadCause, SpanResolutionRefusal,
     TextLexicalCause, TextReadCause, TextReadRefusal,
 };
+use crate::bounded::Bounded;
+use crate::diagnostic::{
+    CAPTURE_FAMILY, Diagnostic, Family, IntrinsicRefused, LineBody, Observed, Phase, REPAIR_LIMIT,
+    RefusalClass, Refused, Repair, Site, intrinsic_diagnostic,
+};
+use crate::request::Door;
 
 impl From<CapturedAtom> for CapturedPayload {
     fn from(atom: CapturedAtom) -> Self {
@@ -166,6 +172,62 @@ impl core::fmt::Display for TextReadRefusal {
 }
 
 impl core::error::Error for TextReadRefusal {}
+
+impl TextReadRefusal {
+    /// Project this refused text read at the byte coordinate it established.
+    ///
+    /// No caller supplies a coordinate or a phase on this road, so a pre-capture diagnostic cannot be paired with a different byte, semantic-origin coordinate, or refusal vocabulary.
+    pub fn diagnostic(&self, door: &Door) -> Diagnostic {
+        intrinsic_diagnostic(&IntrinsicTextRead(self), door)
+    }
+}
+
+/// The private diagnostic projection that keeps a text refusal off the caller-placed public road.
+struct IntrinsicTextRead<'refusal>(&'refusal TextReadRefusal);
+
+impl IntrinsicRefused for IntrinsicTextRead<'_> {
+    fn site(&self) -> Site {
+        Site::before_capture(self.0.coordinate())
+    }
+}
+
+impl Refused for IntrinsicTextRead<'_> {
+    const PHASE: Phase = Phase::Capture;
+    const FAMILY: Family = CAPTURE_FAMILY;
+
+    fn class(&self) -> RefusalClass {
+        RefusalClass::DeclarationNotRead
+    }
+
+    fn first(&self) -> String {
+        self.0.cause.to_string()
+    }
+
+    fn observed(&self) -> Observed {
+        match self.0.cause {
+            TextReadCause::SourceBytesUnbounded | TextReadCause::Unbounded(_) => {
+                Observed::BoundExceeded
+            }
+            TextReadCause::NotTerminated
+            | TextReadCause::NotEscapeFree
+            | TextReadCause::NotBalanced
+            | TextReadCause::NotOpened
+            | TextReadCause::Lexical(_) => Observed::ContractDisagreement,
+        }
+    }
+
+    fn body(&self) -> LineBody {
+        LineBody::SingleCause
+    }
+
+    fn related(&self) -> Vec<Vec<u8>> {
+        Vec::new()
+    }
+
+    fn repairs(&self) -> Bounded<Repair, REPAIR_LIMIT> {
+        Bounded::empty()
+    }
+}
 
 impl core::fmt::Display for SpanResolutionRefusal {
     fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

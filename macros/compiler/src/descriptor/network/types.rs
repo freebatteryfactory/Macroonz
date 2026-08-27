@@ -7,9 +7,6 @@ use crate::descriptor::{DirectBinding, HelperRefusal};
 #[path = "type_guard.rs"]
 mod guard;
 
-/// Where this helper's family sits among the declaration helpers.
-pub const NETWORK_HELPER_POSITION: u32 = 4;
-
 /// One declared link: its spelling, and the two node spellings it joins.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LinkRow {

@@ -2,19 +2,22 @@
 
 use super::types::{SOLE_READING_FACT, TRIALS_FORM_FACT};
 use super::walk::{helper_refused, proved_off, support_address, unit_tree, whole};
-use crate::descriptor::mutation::{self, MutationCaptureError, MutationSurface, SurfaceRole};
+use crate::descriptor::mutation::{
+    self, MUTATION_HELPER_POSITION, MutationCaptureError, MutationSurface, SurfaceRole,
+};
 use crate::descriptor::{CaptureCause, Grammar};
 use crate::diagnostic::Diagnostic;
 use crate::expansion::Expansion;
 use crate::kind::{Destination, Disposition};
 use crate::request::Door;
-use crate::request::{self, Request};
+use crate::request::Request;
 use crate::support::{self, AxisCargo, CargoAxis, SupportAxes, SupportCarrier};
 use crate::token::{CapturedInput, CapturedTokenTree, SpanHandle};
 
 /// Walk one mutation declaration to the sealed carrier expansion its module rides out inside.
 ///
-/// The body is read through the mutation grammar and completed from the item — the declared order is the item's own variant list — so the item's identity rides the request as a dependency.
+/// The body is read through the mutation grammar and completed from the item — the declared order is the item's own variant list — so the item is the semantic declaration both requests stand over.
+/// The body is committed separately at [`MUTATION_HELPER_POSITION`].
 /// The rendered module is proved into the test-carrier delivery and composes as the deferred axis; the stamped seat is honestly empty, and the carrier still writes the trials form.
 ///
 /// A standalone attribute owns its carrier, so the `support` clause is required here even though the grammar admits its absence for a declaration whose carrier another helper already addressed.
@@ -23,7 +26,7 @@ use crate::token::{CapturedInput, CapturedTokenTree, SpanHandle};
 ///
 /// Returns one [`Diagnostic`], composed under the door: the grammar's refusal at the token it was established at, the absent support address as the grammar's own absent-clause cause, and every downstream road's refusal about the declaration as a whole.
 pub fn mutations(
-    body: CapturedInput,
+    body: &CapturedInput,
     item: &CapturedInput,
     grammar: Grammar,
     door: &Door,
@@ -47,10 +50,8 @@ pub fn mutations(
     };
     let address = support_address(spelling.spelling(), door)?;
 
-    let dependency = request::committed(item);
-    let module = Request::<MutationSurface>::over(body.clone(), surface, door)
-        .depending_on(vec![dependency])
-        .render(|plan, out| {
+    let module =
+        Request::<MutationSurface>::over(item.clone(), surface, door).render(|plan, out| {
             let rendered = unit_tree(mutation::generated_module(plan.content()))?;
             out.unit(SurfaceRole::Module, rendered)
         })?;
@@ -69,8 +70,13 @@ pub fn mutations(
             },
         },
     };
-    let root = module.plan().account().commitment();
-    let assembly = support::SupportAssembly::assembled(root, Some(address), axes)
-        .map_err(|refusal| whole(&refusal, door))?;
-    support::delivered(body, vec![dependency], assembly, door)
+    let assembly = support::SupportAssembly::assembled_for_helper(
+        item,
+        body,
+        MUTATION_HELPER_POSITION,
+        Some(address),
+        axes,
+    )
+    .map_err(|refusal| whole(&refusal, door))?;
+    support::delivered(item.clone(), Vec::new(), assembly, door)
 }

@@ -56,6 +56,8 @@ subjects! {
     stem = MACROONZ_STEM;
     /// The token material one expansion was handed.
     CapturedDeclaration = "captured-declaration",
+    /// One helper attribute's material, read beside a declaration.
+    CapturedHelper = "captured-helper",
     /// What a request MEANT, ahead of anything decided about it.
     ProjectionIntent = "projection-intent",
     /// The canonical facts one kind-specific content value carries.

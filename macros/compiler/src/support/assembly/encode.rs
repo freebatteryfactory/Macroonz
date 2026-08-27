@@ -37,7 +37,7 @@ impl AssemblyIssue {
                 encode_bytes(axis.name().as_bytes(), into);
                 encode_bytes(destination.name().as_bytes(), into);
             }
-            Self::TwoFormsCarried => {}
+            Self::DeclaredAxisRequiresStampedCargo | Self::TwoFormsCarried => {}
             Self::StampedCargoAbsent { form } => encode_bytes(form.name().as_bytes(), into),
         }
     }

@@ -1,0 +1,11 @@
+error[E0423]: cannot initialize a tuple struct which contains private fields
+ --> tests/compile_refusals/compile-fail/a-diagnostic-name-cannot-bypass-kebab-case-admission.rs:8:13
+  |
+8 |     let _ = DiagnosticName("Not-Kebab");
+  |             ^^^^^^^^^^^^^^
+  |
+note: constructor is not visible here due to private fields
+ --> src/diagnostic/types.rs
+  |
+  | pub struct DiagnosticName(&'static str);
+  |                           ^^^^^^^^^^^^ private field

@@ -18,6 +18,7 @@ pub const ASSEMBLY_FACT: OwnerFact = OwnerFact {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SupportAssembly {
     root: Identity<identity::CapturedDeclaration>,
+    helper: Option<Identity<identity::CapturedHelper>>,
     expectation: SchemaId,
     address: Option<SupportName>,
     declared: AxisCargo<DeclaredCargo>,
@@ -36,6 +37,8 @@ pub enum AssemblyIssue {
         /// The carried declaration.
         carried: Identity<identity::CapturedDeclaration>,
     },
+    /// Opaque deferred cargo was offered for the stamped declaration axis.
+    DeclaredAxisRequiresStampedCargo,
     /// One delivery was consumed twice.
     CargoConsumedTwice {
         /// The terminal.

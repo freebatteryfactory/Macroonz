@@ -4,7 +4,8 @@
 //! The reversal changes only authored order, so an encoder that sorted a roster would fail beside the exact receipts rather than appearing equivalent.
 
 use macroonz_compiler::descriptor::{
-    Grammar, bench, concurrency, mutation, network, shadow, trial,
+    CaptureIssue, DeclarationError, Grammar, Seat, bench, concurrency, mutation, network, shadow,
+    trial,
 };
 use macroonz_compiler::{CanonicalContent, CapturedInput, SpanHandle, TextCapture};
 
@@ -94,6 +95,18 @@ fn captured(source: &str) -> Result<CapturedInput, ()> {
     TextCapture::read(source)
         .map(|read| read.input().clone())
         .map_err(|_refusal| ())
+}
+
+/// One enum carrying the requested number of distinct variants.
+fn enum_with_members(members: u32) -> Result<String, core::fmt::Error> {
+    use core::fmt::Write as _;
+
+    let mut item = "pub enum Cause {".to_owned();
+    for member in 0..members {
+        write!(&mut item, "V{member},")?;
+    }
+    item.push('}');
+    Ok(item)
 }
 
 fn trees(input: &CapturedInput) -> Vec<&macroonz_compiler::CapturedTokenTree> {
@@ -260,6 +273,50 @@ fn authored_order_is_a_canonical_content_member() -> Result<(), ()> {
     assert_ne!(
         network_content(NETWORK_BODY)?,
         network_content(REVERSED_NETWORK_BODY)?
+    );
+    Ok(())
+}
+
+#[test]
+/// Claim: the declared-order ceiling counts the alternatives the completion operation creates rather than the enum members it reads.
+/// Subject: mutation completion before the independent generated-token magnitude is applied by rendering.
+/// Population: sixty-five members producing exactly sixty-four adjacent alternatives, and sixty-six members producing sixty-five.
+/// Hostile control: the sixty-six-member order must refuse with the truthful alternative count and seat.
+/// Denominator: both sides of the public `ALTERNATIVE_LIMIT` boundary.
+/// Evidence ceiling: a completed maximum-width surface may still meet an independent generated-token magnitude when rendered.
+/// Retained-regression policy: changing the count or limit requires an explicit mutation-vocabulary ruling.
+fn declared_order_completion_counts_emitted_alternatives_at_its_limit() -> Result<(), ()> {
+    let grammar = Grammar {
+        attribute: "mutations",
+    };
+    let body = captured(MUTATION_BODY)?;
+    let lawful_source = enum_with_members(65).map_err(|_| ())?;
+    let lawful_item = captured(&lawful_source)?;
+    let lawful_declaration =
+        mutation::captured(&trees(&body), SpanHandle::at(0), grammar).map_err(|_| ())?;
+    let lawful_surface =
+        mutation::completed(lawful_declaration, &trees(&lawful_item), grammar).map_err(|_| ())?;
+    assert_eq!(
+        lawful_surface.site().alternatives().len(),
+        mutation::ALTERNATIVE_LIMIT
+    );
+
+    let unbounded_source = enum_with_members(66).map_err(|_| ())?;
+    let unbounded_item = captured(&unbounded_source)?;
+    let unbounded_declaration =
+        mutation::captured(&trees(&body), SpanHandle::at(0), grammar).map_err(|_| ())?;
+    let refusal = mutation::completed(unbounded_declaration, &trees(&unbounded_item), grammar)
+        .err()
+        .ok_or(())?;
+    assert_eq!(
+        refusal.refusal().issue(),
+        CaptureIssue::Vocabulary {
+            refusal: DeclarationError::Unbounded {
+                seat: Seat::Alternative,
+                bound: 64,
+                observed: 65,
+            },
+        }
     );
     Ok(())
 }

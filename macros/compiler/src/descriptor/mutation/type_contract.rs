@@ -127,7 +127,7 @@ impl Refused for MutationCaptureError {
     }
 
     fn related(&self) -> Vec<Vec<u8>> {
-        vec![self.refusal().canonical_bytes()]
+        Vec::new()
     }
 
     fn repairs(&self) -> Bounded<Repair, REPAIR_LIMIT> {

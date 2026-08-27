@@ -1,8 +1,8 @@
-//! The road one `trials` attribute walks: a captured body in, the carrier expansion out.
+//! The road one `trials` attribute walks: a captured body and the item it exercises in, the carrier expansion out.
 
 use super::types::{SOLE_READING_FACT, TRIALS_FORM_FACT};
 use super::walk::{helper_refused, support_address, unit_tree, whole};
-use crate::descriptor::trial::{self, TrialAnswer, TrialRole, TrialTable};
+use crate::descriptor::trial::{self, TRIAL_HELPER_POSITION, TrialAnswer, TrialRole, TrialTable};
 use crate::descriptor::{Emitter, Grammar};
 use crate::diagnostic::Diagnostic;
 use crate::expansion::Expansion;
@@ -14,13 +14,15 @@ use crate::token::{CapturedInput, CapturedTokenTree, GeneratedTree, SpanHandle};
 
 /// Walk one trial declaration to the sealed carrier expansion its table rides out inside.
 ///
-/// The body is read through the trial grammar, the trial terminal proves the stamped table into its declaration-site delivery, and the carrier composes that table as declared cargo with both proved axes honestly absent.
+/// The body is read through the trial grammar beside the item it exercises, the trial terminal proves the stamped table into its declaration-site delivery, and the carrier composes that table as declared cargo with both proved axes honestly absent.
+/// The item is the semantic declaration both requests stand over, while the body is committed separately at [`TRIAL_HELPER_POSITION`].
 ///
 /// # Errors
 ///
 /// Returns one [`Diagnostic`], composed under the door: the grammar's refusal at the token it was established at, and every downstream road's refusal about the declaration as a whole.
 pub fn trials(
-    body: CapturedInput,
+    body: &CapturedInput,
+    item: &CapturedInput,
     grammar: Grammar,
     emitter: Emitter,
     door: &Door,
@@ -39,7 +41,7 @@ pub fn trials(
         rows,
     };
 
-    let table = Request::<TrialTable>::over(body.clone(), read, door)
+    let table = Request::<TrialTable>::over(item.clone(), read, door)
         .answering(vec![answer])
         .render(|plan, out| {
             let stamped = unit_tree(trial::stamped_module(plan.content(), emitter))?;
@@ -61,8 +63,13 @@ pub fn trials(
             },
         },
     };
-    let root = table.plan().account().commitment();
-    let assembly = support::SupportAssembly::assembled(root, Some(address), axes)
-        .map_err(|refusal| whole(&refusal, door))?;
-    support::delivered(body, Vec::new(), assembly, door)
+    let assembly = support::SupportAssembly::assembled_for_helper(
+        item,
+        body,
+        TRIAL_HELPER_POSITION,
+        Some(address),
+        axes,
+    )
+    .map_err(|refusal| whole(&refusal, door))?;
+    support::delivered(item.clone(), Vec::new(), assembly, door)
 }

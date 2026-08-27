@@ -5,7 +5,8 @@ This home owns the orchestration between those boundaries: an informed declarati
 
 ## Authority crossing
 
-Each road receives the captured material, the grammar selected by its caller, and the request door that names the caller's act.
+Each helper road receives the captured body and the semantic item it exercises, the grammar selected by its caller, and the request door that names the caller's act.
+The item is the declaration both projection and carrier requests stand over, while the body's independent helper identity reaches the final support assembly at the grammar's declared position.
 Where a projection needs producer qualification, a physical dependency binding, or a second capture, that authority also arrives as declared input rather than being inferred here.
 
 The descriptor child reads and renders its own meaning.

@@ -13,22 +13,35 @@ pub(super) fn carried_axes(axes: &SupportAxes) -> Vec<(CargoAxis, &ProvedCargo)>
 }
 pub(super) fn root_issues(
     root: Identity<identity::CapturedDeclaration>,
+    axes: &SupportAxes,
     carried: &[(CargoAxis, &ProvedCargo)],
 ) -> Vec<AssemblyIssue> {
-    carried
-        .iter()
-        .filter(|(_, proved)| proved.root() != root)
-        .map(|(axis, proved)| AssemblyIssue::RootsDisagree {
-            axis: *axis,
+    let mut issues = Vec::new();
+    if let AxisCargo::Carried(declared) = &axes.declared
+        && declared.root() != root
+    {
+        issues.push(AssemblyIssue::RootsDisagree {
+            axis: CargoAxis::Declared,
             stated: root,
-            carried: proved.root(),
-        })
-        .collect()
+            carried: declared.root(),
+        });
+    }
+    issues.extend(
+        carried
+            .iter()
+            .filter(|(_, proved)| proved.root() != root)
+            .map(|(axis, proved)| AssemblyIssue::RootsDisagree {
+                axis: *axis,
+                stated: root,
+                carried: proved.root(),
+            }),
+    );
+    issues
 }
 pub(super) fn destination_issues(carried: &[(CargoAxis, &ProvedCargo)]) -> Vec<AssemblyIssue> {
     carried
         .iter()
-        .filter(|(axis, proved)| axis.reads_from() != Some(proved.destination()))
+        .filter(|(axis, proved)| axis.reads_from() != proved.destination())
         .map(
             |(axis, proved)| AssemblyIssue::CargoReachesASecondDestination {
                 axis: *axis,

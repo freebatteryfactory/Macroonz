@@ -2,13 +2,13 @@
 use super::CargoAxis;
 use crate::kind::Destination;
 impl CargoAxis {
-    /// The proved delivery this axis reads, if any.
+    /// The proved delivery this axis reads.
     #[must_use]
-    pub const fn reads_from(self) -> Option<Destination> {
+    pub const fn reads_from(self) -> Destination {
         match self {
-            Self::Declared => None,
-            Self::Deferred => Some(Destination::TestCarrier),
-            Self::Bench => Some(Destination::BenchCarrier),
+            Self::Declared => Destination::DeclarationSite,
+            Self::Deferred => Destination::TestCarrier,
+            Self::Bench => Destination::BenchCarrier,
         }
     }
 }

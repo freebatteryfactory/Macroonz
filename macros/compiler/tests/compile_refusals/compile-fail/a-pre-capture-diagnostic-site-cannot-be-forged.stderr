@@ -1,0 +1,23 @@
+error[E0277]: the trait bound `TextReadRefusal: Refused` is not satisfied
+  --> tests/compile_refusals/compile-fail/a-pre-capture-diagnostic-site-cannot-be-forged.rs:25:33
+   |
+25 |     let _ = Diagnostic::refused(&refusal, &DOOR, &Placement::WholeDeclaration);
+   |             ------------------- ^^^^^^^^ the trait `Refused` is not implemented for `TextReadRefusal`
+   |             |
+   |             required by a bound introduced by this call
+   |
+   = help: the following other types implement trait `Refused`:
+             AssemblyError
+             BenchCaptureError
+             BindError
+             ClosureError<R>
+             CodecError
+             ConcurrencyCaptureError
+             ExplanationError
+             MutationCaptureError
+           and $N others
+note: required by a bound in `diagnostic::types::guard::<impl Diagnostic>::refused`
+  --> src/diagnostic/type_guard.rs
+   |
+   |     pub fn refused<E: Refused>(refusal: &E, door: &Door, placement: &Placement<'_>) -> Self {
+   |                       ^^^^^^^ required by this bound in `diagnostic::types::guard::<impl Diagnostic>::refused`

@@ -133,8 +133,14 @@ const SHADOW_DOOR: Door = Door::declared(
 /// A malformed declaration expands to `compile_error!` at the offending token, carrying the compiler's own rendering of the established cause.
 #[proc_macro_attribute]
 pub fn trials(body: TokenStream, item: TokenStream) -> TokenStream {
-    let mut expanded = host::expand(body, |capture| {
-        door::trials(capture, TRIALS_GRAMMAR, TRIALS_EMITTER, &TRIALS_DOOR)
+    let mut expanded = host::expand_on(body, item.clone(), |captured_body, captured_item| {
+        door::trials(
+            &captured_body,
+            &captured_item,
+            TRIALS_GRAMMAR,
+            TRIALS_EMITTER,
+            &TRIALS_DOOR,
+        )
     });
     expanded.extend(item);
     expanded
@@ -151,7 +157,7 @@ pub fn trials(body: TokenStream, item: TokenStream) -> TokenStream {
 pub fn mutations(body: TokenStream, item: TokenStream) -> TokenStream {
     let mut expanded = host::expand_on(body, item.clone(), |captured_body, captured_item| {
         door::mutations(
-            captured_body,
+            &captured_body,
             &captured_item,
             MUTATIONS_GRAMMAR,
             &MUTATIONS_DOOR,
@@ -169,8 +175,14 @@ pub fn mutations(body: TokenStream, item: TokenStream) -> TokenStream {
 /// A malformed declaration expands to `compile_error!` at the offending token, carrying the compiler's own rendering of the established cause.
 #[proc_macro_attribute]
 pub fn bench(body: TokenStream, item: TokenStream) -> TokenStream {
-    let mut expanded = host::expand(body, |capture| {
-        door::bench(capture, BENCH_GRAMMAR, BENCH_EMITTER, &BENCH_DOOR)
+    let mut expanded = host::expand_on(body, item.clone(), |captured_body, captured_item| {
+        door::bench(
+            &captured_body,
+            &captured_item,
+            BENCH_GRAMMAR,
+            BENCH_EMITTER,
+            &BENCH_DOOR,
+        )
     });
     expanded.extend(item);
     expanded
