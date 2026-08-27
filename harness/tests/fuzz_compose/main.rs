@@ -202,21 +202,21 @@ fn selection_pins_and_ceilings_match_f0_accept() -> Result<(), FuzzRoadFailure> 
     let Some(name) = NamespacedName::named("harness", "f0-frida").ok() else {
         return Err(FuzzRoadFailure::Fixture);
     };
-    let selection = BackendSelection::libafl_frida(
-        name,
-        vec![
-            NamedCeiling::Lnk4098Coexistence,
-            NamedCeiling::LibAppendMsvcSdk,
-            NamedCeiling::RustStdDllOnPath,
-            NamedCeiling::LinuxMacOsUnexecutedUntilWaveF,
-        ],
-        vec![
-            HostDisposition::ObservedWindows,
-            HostDisposition::CredibleUnexecutedLinux,
-            HostDisposition::CredibleUnexecutedMacOs,
-        ],
-    )?;
+    let ceilings = vec![
+        NamedCeiling::Lnk4098Coexistence,
+        NamedCeiling::LibAppendMsvcSdk,
+        NamedCeiling::RustStdDllOnPath,
+        NamedCeiling::LinuxMacOsUnexecutedUntilWaveF,
+    ];
+    let hosts = vec![
+        HostDisposition::ObservedWindows,
+        HostDisposition::CredibleUnexecutedLinux,
+        HostDisposition::CredibleUnexecutedMacOs,
+    ];
+    let selection = BackendSelection::libafl_frida(name, ceilings.clone(), hosts.clone())?;
     assert_eq!(selection.backend(), SelectedBackend::LibAflFrida);
+    assert_eq!(selection.ceilings(), ceilings.as_slice());
+    assert_eq!(selection.hosts(), hosts.as_slice());
     Ok(())
 }
 
