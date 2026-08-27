@@ -30,6 +30,14 @@ const REVISION_TAG: DomainTag =
 const SCHEMA_TAG: DomainTag =
     DomainTag::declared("reduction-schema", IdentityProfileVersion::declared(1));
 
+const fn independent_replay_posture_slot(posture: ReplayPosture) -> u8 {
+    match posture {
+        ReplayPosture::ExactDerived => 0,
+        ReplayPosture::DeclaredByAuthor => 1,
+        ReplayPosture::UnavailableBecauseUntracked => 2,
+    }
+}
+
 fn independently_derived_capsule_identity(capsule: &ReplayCapsule) -> ContentAddress {
     let mut preimage = Vec::new();
     encode_bytes(capsule.key().address().as_bytes(), &mut preimage);
@@ -40,7 +48,7 @@ fn independently_derived_capsule_identity(capsule: &ReplayCapsule) -> ContentAdd
     encode_bytes(capsule.minimization().name().as_bytes(), &mut preimage);
     preimage.extend_from_slice(&capsule.minimization().version().to_be_bytes());
     encode_bytes(capsule.schema().address().as_bytes(), &mut preimage);
-    preimage.push(capsule.posture().slot());
+    preimage.push(independent_replay_posture_slot(capsule.posture()));
     ContentAddress::derived(REPLAY_CAPSULE_TAG, &preimage)
 }
 
@@ -265,6 +273,10 @@ fn generic_reduction_preserves_one_fingerprint_and_reports_every_candidate_class
 #[test]
 fn semantic_reducer_custody_and_replay_posture_are_run_derived() -> Result<(), ReductionRoadFailure>
 {
+    assert_eq!(ReplayPosture::ExactDerived.slot(), 0);
+    assert_eq!(ReplayPosture::DeclaredByAuthor.slot(), 1);
+    assert_eq!(ReplayPosture::UnavailableBecauseUntracked.slot(), 2);
+
     let reducer = SemanticReducerId::named("harness", "sequence-aware")
         .map_err(|_| ReductionRoadFailure::Fixture)?;
     let derived_revision = revision_derived_from(b"semantic-reducer");
