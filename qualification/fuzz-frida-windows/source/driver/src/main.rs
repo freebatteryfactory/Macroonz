@@ -49,7 +49,7 @@ use libafl_bolts::{
     rands::StdRand,
     tuples::{Handle, Handled, MatchNameRef, tuple_list},
 };
-use macroonz_f0_target::{observe, CaptureOutcome};
+use macroonz_f0_target::{observe, observe_literal, CaptureOutcome};
 use serde::{Deserialize, Serialize};
 
 use macroonz_harness::fuzz::{
@@ -525,6 +525,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             return ExitKind::Timeout;
         }
         let _outcome = observe(slice);
+        // Second Macroonz self-fuzz surface: public literal capture alongside TextCapture.
+        let _literal = observe_literal(slice);
         ExitKind::Ok
     };
 

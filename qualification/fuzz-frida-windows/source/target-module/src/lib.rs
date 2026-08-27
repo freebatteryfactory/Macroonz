@@ -1,10 +1,12 @@
 #![deny(missing_docs)]
 
-//! The separately linked compiler target observed by the native Windows F0 pilot.
+//! The separately linked compiler target observed by the native Windows Frida road.
 
-use macroonz_compiler::{TextCapture, TextReadCause};
+use macroonz_compiler::{
+    CapturedAtom, LiteralReadCause, TextCapture, TextReadCause, capture_literal,
+};
 
-/// The public target outcome retained by the qualification driver.
+/// The public text-capture outcome retained by the qualification driver.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CaptureOutcome {
     /// The candidate bytes were not UTF-8 and therefore never entered `TextCapture`.
@@ -22,6 +24,23 @@ pub enum CaptureOutcome {
         cause: TextReadCause,
         /// The source byte at which the cause was established.
         at: u64,
+    },
+}
+
+/// The public literal-capture outcome for the second self-fuzz surface.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LiteralOutcome {
+    /// The candidate bytes were not UTF-8.
+    NotUtf8,
+    /// A known literal form produced an atom.
+    Atom {
+        /// Discriminant name of the captured atom.
+        kind: &'static str,
+    },
+    /// The literal reader established a typed refusal.
+    Refused {
+        /// The established refusal cause.
+        cause: LiteralReadCause,
     },
 }
 
@@ -43,3 +62,31 @@ pub fn observe(candidate: &[u8]) -> CaptureOutcome {
     }
 }
 
+/// Observe one exact candidate through the compiler's public literal-capture road.
+#[must_use]
+pub fn observe_literal(candidate: &[u8]) -> LiteralOutcome {
+    let Ok(source) = core::str::from_utf8(candidate) else {
+        return LiteralOutcome::NotUtf8;
+    };
+    match capture_literal(source) {
+        Ok(atom) => LiteralOutcome::Atom {
+            kind: atom_kind(&atom),
+        },
+        Err(cause) => LiteralOutcome::Refused { cause },
+    }
+}
+
+fn atom_kind(atom: &CapturedAtom) -> &'static str {
+    match atom {
+        CapturedAtom::Word(_) => "word",
+        CapturedAtom::Punct(_) => "punct",
+        CapturedAtom::Text(_) => "text",
+        CapturedAtom::Number(_) => "number",
+        CapturedAtom::ByteText(_) => "byte_text",
+        CapturedAtom::Character(_) => "character",
+        CapturedAtom::Byte(_) => "byte",
+        CapturedAtom::NulTerminatedText(_) => "nul_terminated_text",
+        CapturedAtom::RawIdentifier(_) => "raw_identifier",
+        CapturedAtom::JointPunct(_) => "joint_punct",
+    }
+}

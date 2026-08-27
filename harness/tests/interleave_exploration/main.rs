@@ -608,6 +608,31 @@ fn more_strands_than_one_choice_byte_addresses_refuses() -> Result<(), LaneFailu
     Ok(())
 }
 
+/// Exactly [`ADDRESSABLE_STRANDS`] parties remain lawful; the refusal boundary is strict greater-than.
+#[test]
+fn the_addressable_strand_ceiling_itself_is_admitted() -> Result<(), LaneFailure> {
+    let words = [
+        "s00", "s01", "s02", "s03", "s04", "s05", "s06", "s07", "s08", "s09", "s10", "s11", "s12",
+        "s13", "s14", "s15", "s16",
+    ];
+    let mut strands = Vec::new();
+    'names: for &namespace in &words {
+        for &stem in &words {
+            strands.push(Strand::declared(
+                NamespacedName::named(namespace, stem)?,
+                vec![Move::Deposit(1u64)],
+            )?);
+            if strands.len() == ADDRESSABLE_STRANDS {
+                break 'names;
+            }
+        }
+    }
+    assert_eq!(strands.len(), ADDRESSABLE_STRANDS);
+    let set = StrandSet::declared(strands)?;
+    assert_eq!(set.strands().len(), ADDRESSABLE_STRANDS);
+    Ok(())
+}
+
 /// A bound with an empty seat on either side is a budget that could never spend.
 #[test]
 fn a_zero_seated_bound_refuses() {
