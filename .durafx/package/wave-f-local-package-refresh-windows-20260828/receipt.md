@@ -43,3 +43,8 @@ This Git-tracked receipt refreshes the local source-package plane after the Wave
 
 - This is local Windows source-package evidence, not a hosted, published, registry-delivered, attested, physical-Linux, macOS, or ARM64 result.
 - Package material remained disposable beneath `target/qualification/wave-f-package-refresh-20260828` until this receipt was committed.
+
+## Cleanup
+
+- After this receipt was committed, Cargo removed 696 files totaling 262.5 MiB from the exact package target.
+- `target/qualification/wave-f-package-refresh-20260828` no longer exists.
