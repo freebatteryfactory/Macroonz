@@ -1,12 +1,17 @@
 [package]
 name = "macroonz"
-description = "One module-preserving front door for the Macroonz compiler, procedural declarations, and test harness."
+description = "Code generation that proves what it made, plus a harness for property, fuzz, fault, schedule, mutation, and benchmark testing."
+keywords = ["codegen", "testing", "fuzzing", "proc-macro", "harness"]
+categories = ["development-tools::testing", "development-tools::procedural-macro-helpers"]
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 include = ["src/**", "tests/**", "examples/**", "assets/**", "AGENTS.md", "CONTRIBUTING.md", "SECURITY.md", "Cargo.toml", "README.md", "LICENSE-*"]
+
+[package.metadata.docs.rs]
+all-features = true
 
 [workspace]
 resolver = "3"

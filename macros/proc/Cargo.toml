@@ -1,6 +1,8 @@
 [package]
 name = "macroonz-macros"
-description = "Generic trials, bench, and mutations attributes over the macroonz compiler, with the shadow, network, and concurrency declarations beside them."
+description = "Procedural macros for Macroonz trials, benches, mutations, shadow, network, and concurrency declarations."
+keywords = ["proc-macro", "attribute-macro", "testing", "codegen", "concurrency"]
+categories = ["development-tools::testing", "development-tools::procedural-macro-helpers"]
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -10,6 +12,9 @@ exclude = [
     "tests/generated_support_crossing.rs",
     "tests/support/capture-observer/**",
 ]
+
+[package.metadata.docs.rs]
+all-features = true
 
 [lib]
 proc-macro = true

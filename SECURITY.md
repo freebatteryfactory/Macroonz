@@ -10,8 +10,8 @@ There is no response-time promise until there is a release to stand behind, beca
 
 ## Supported versions
 
-None yet.
-Nothing has been published; a report names the revision it is against.
+The most recent published `0.1` release, when one exists, is supported.
+Before the first publication, a report names the revision it is against.
 
 ## In scope
 

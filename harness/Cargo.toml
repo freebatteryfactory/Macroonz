@@ -1,11 +1,16 @@
 [package]
 name = "macroonz-harness"
-description = "An independent test harness: descriptor-driven, property-generated, fault-injected, mutation-pressured, with reports and reduction-minted replay capsules joined on one execution key."
+description = "Safe-Rust property, fuzz, fault, schedule, mutation, network, and benchmark testing with typed evidence, reduction, and replay."
+keywords = ["testing", "fuzzing", "property-testing", "mutation-testing", "simulation"]
+categories = ["development-tools::testing"]
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
 
 [lints]
 workspace = true
