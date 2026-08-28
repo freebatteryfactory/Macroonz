@@ -1,8 +1,5 @@
 target/
 
-# Orphaned local warehouse left by retired sealer experiments; never repository custody.
-/.durafx/
-
 .DS_Store
 Thumbs.db
 desktop.ini

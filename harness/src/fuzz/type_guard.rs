@@ -1,12 +1,40 @@
 //! Smart constructors and readers for the fuzz home.
 
 use super::{
-    BackendSelection, BackendSelectionRefusal, FridaCampaign, FridaCampaignRefusal,
-    FridaCampaignResult, FridaModuleName, FridaTarget, FridaTargetRefusal, FuzzExecution,
-    HostDisposition, InterestingBytes, InterestingBytesRefusal, NamedCeiling, PreflightCapability,
-    PreflightFact, PreflightIncomplete, PreflightStatus, ReadyPreflight, SelectedBackend,
+    BackendSelection, BackendSelectionRefusal, CoverageAdmission, CoverageAdmissionRefusal,
+    CoverageCorpus, CoverageObservation, CoveragePoint, FuzzExecution, HostDisposition,
+    InstrumentedTarget, InterestingBytes, InterestingBytesRefusal, MutationCandidate, MutationKind,
+    MutationPlan, MutationPlanRefusal, NamedCeiling, PreflightCapability, PreflightFact,
+    PreflightIncomplete, PreflightStatus, ReadyPreflight, RustcCoverageTools, RustcProfileRequest,
+    RustcProfileRequestRefusal, RustcProfileResult, SelectedBackend,
 };
 use crate::descriptor::NamespacedName;
+use std::collections::BTreeSet;
+use std::path::PathBuf;
+
+pub(crate) const REQUIRED_RUSTC_COVERAGE: &[PreflightCapability] = &[
+    PreflightCapability::RustcMsrv,
+    PreflightCapability::RustcHostTuple,
+    PreflightCapability::RustcSysroot,
+    PreflightCapability::LlvmReported,
+    PreflightCapability::LlvmToolsPreview,
+    PreflightCapability::LlvmProfdata,
+    PreflightCapability::LlvmCov,
+    PreflightCapability::InstrumentCoverage,
+];
+
+pub(crate) const REQUIRED_RUSTC_CEILINGS: &[NamedCeiling] = &[
+    NamedCeiling::FreshProcessPerCandidate,
+    NamedCeiling::InstrumentedSourceTargetRequired,
+    NamedCeiling::LlvmCoverageToolsRequired,
+    NamedCeiling::CallerSuppliesProcessSupervisor,
+];
+
+pub(crate) const REQUIRED_RUSTC_HOSTS: &[HostDisposition] = &[
+    HostDisposition::ObservedWindows,
+    HostDisposition::UnexecutedLinux,
+    HostDisposition::UnexecutedMacOs,
+];
 
 impl PreflightFact {
     /// Record one capability observation the caller already established.
@@ -28,60 +56,17 @@ impl PreflightFact {
     }
 }
 
-pub(crate) const REQUIRED_FRIDA_WINDOWS: &[PreflightCapability] = &[
-    PreflightCapability::VsWhere,
-    PreflightCapability::VcVarsAll,
-    PreflightCapability::ComposedMsvcSdkEnv,
-    PreflightCapability::RustcMsrv,
-    PreflightCapability::RustcHostTuple,
-    PreflightCapability::RustcSysroot,
-    PreflightCapability::RustcTargetLibdir,
-    PreflightCapability::RustStdDll,
-    PreflightCapability::LlvmReported,
-    PreflightCapability::FridaGumLib,
-    PreflightCapability::FridaGumHeader,
-    PreflightCapability::FridaDevkitHash,
-];
-
-fn unique_required_fact(
-    facts: &[PreflightFact],
-    capability: PreflightCapability,
-) -> Result<PreflightFact, PreflightIncomplete> {
-    let matches: Vec<PreflightFact> = facts
-        .iter()
-        .copied()
-        .filter(|fact| fact.capability() == capability)
-        .collect();
-    match matches.as_slice() {
-        [] => Err(PreflightIncomplete::Missing(capability)),
-        [only] => Ok(*only),
-        [first, rest @ ..] => {
-            let contradictory = rest
-                .iter()
-                .any(|fact| fact.status() != first.status());
-            if contradictory {
-                Err(PreflightIncomplete::Contradictory(capability))
-            } else {
-                Err(PreflightIncomplete::Duplicate(capability))
-            }
-        }
-    }
-}
-
 impl ReadyPreflight {
     /// Judge caller-supplied facts for one selected backend.
     ///
     /// # Errors
     ///
-    /// Refuses when a required capability is missing, duplicated, contradictory, or marked unavailable.
+    /// Refuses when a required capability is missing, duplicated, contradictory, or unavailable.
     pub fn from_facts(
         backend: SelectedBackend,
         facts: &[PreflightFact],
     ) -> Result<Self, PreflightIncomplete> {
-        let required = match backend {
-            SelectedBackend::LibAflFrida => REQUIRED_FRIDA_WINDOWS,
-        };
-        for capability in required {
+        for capability in REQUIRED_RUSTC_COVERAGE {
             let fact = unique_required_fact(facts, *capability)?;
             if !matches!(fact.status(), PreflightStatus::Available) {
                 return Err(PreflightIncomplete::Unavailable(*capability));
@@ -97,28 +82,13 @@ impl ReadyPreflight {
     }
 }
 
-/// Every named ceiling the F0 Frida accept receipt retains with the selection.
-pub(crate) const REQUIRED_F0_CEILINGS: &[NamedCeiling] = &[
-    NamedCeiling::Lnk4098Coexistence,
-    NamedCeiling::LibAppendMsvcSdk,
-    NamedCeiling::RustStdDllOnPath,
-    NamedCeiling::LinuxMacOsUnexecutedUntilWaveF,
-];
-
-/// Every host disposition the F0 Frida accept receipt retains with the selection.
-pub(crate) const REQUIRED_F0_HOSTS: &[HostDisposition] = &[
-    HostDisposition::ObservedWindows,
-    HostDisposition::CredibleUnexecutedLinux,
-    HostDisposition::CredibleUnexecutedMacOs,
-];
-
 impl BackendSelection {
-    /// Select `LibAFL` plus Frida with the complete F0 ceiling and host roster.
+    /// Select stable rustc coverage with its complete ceiling and host roster.
     ///
     /// # Errors
     ///
-    /// Refuses an empty roster or any selection that omits a required F0 ceiling or host disposition.
-    pub fn libafl_frida(
+    /// Refuses an empty roster or any selection that omits a required ceiling or host disposition.
+    pub fn rustc_coverage(
         name: NamespacedName,
         ceilings: Vec<NamedCeiling>,
         hosts: Vec<HostDisposition>,
@@ -129,19 +99,19 @@ impl BackendSelection {
         if hosts.is_empty() {
             return Err(BackendSelectionRefusal::NoHostDisposition);
         }
-        for required in REQUIRED_F0_CEILINGS {
+        for required in REQUIRED_RUSTC_CEILINGS {
             if !ceilings.iter().any(|ceiling| ceiling == required) {
                 return Err(BackendSelectionRefusal::MissingRequiredCeiling(*required));
             }
         }
-        for required in REQUIRED_F0_HOSTS {
+        for required in REQUIRED_RUSTC_HOSTS {
             if !hosts.iter().any(|host| host == required) {
                 return Err(BackendSelectionRefusal::MissingRequiredHost(*required));
             }
         }
         Ok(Self {
             name,
-            backend: SelectedBackend::LibAflFrida,
+            backend: SelectedBackend::RustcInstrumentCoverage,
             ceilings,
             hosts,
         })
@@ -173,7 +143,7 @@ impl BackendSelection {
 }
 
 impl InterestingBytes {
-    /// Admit nonempty bytes a coverage backend marked interesting.
+    /// Admit nonempty bytes a coverage observation marked interesting.
     ///
     /// # Errors
     ///
@@ -192,167 +162,264 @@ impl InterestingBytes {
     }
 }
 
-impl FuzzExecution {
-    pub(crate) const fn index(self) -> usize {
-        match self {
-            Self::LawfulSuccess => 0,
-            Self::TypedRefusal => 1,
-            Self::NotUtf8 => 2,
-            Self::Crash => 3,
-            Self::Timeout => 4,
-            Self::ResourceExhaustion => 5,
-            Self::AmbiguousPartialAcceptance => 6,
+impl CoverageObservation {
+    pub(crate) fn established(points: BTreeSet<CoveragePoint>) -> Self {
+        Self {
+            points: points.into_iter().collect(),
         }
+    }
+
+    pub(crate) const fn empty() -> Self {
+        Self { points: Vec::new() }
+    }
+
+    /// The canonical covered points in lexical order.
+    #[must_use]
+    pub fn points(&self) -> &[CoveragePoint] {
+        &self.points
     }
 }
 
-impl FridaTarget {
-    /// Declare one loaded module by its exact runtime name.
+impl CoverageCorpus {
+    /// Open an empty coverage frontier.
+    #[must_use]
+    pub const fn opening() -> Self {
+        Self {
+            observed: BTreeSet::new(),
+            interesting: Vec::new(),
+        }
+    }
+
+    /// Compare one candidate observation with the accumulated frontier.
     ///
     /// # Errors
     ///
-    /// Refuses an empty module name.
-    pub fn named(name: impl Into<String>) -> Result<Self, FridaTargetRefusal> {
-        FridaModuleName::declared(name).map(Self::NamedModule)
-    }
-}
-
-impl FridaModuleName {
-    fn declared(name: impl Into<String>) -> Result<Self, FridaTargetRefusal> {
-        let name = name.into();
-        if name.is_empty() {
-            return Err(FridaTargetRefusal::EmptyModuleName);
+    /// Refuses an empty observation or empty candidate.
+    pub fn admit(
+        &mut self,
+        candidate: Vec<u8>,
+        observation: &CoverageObservation,
+    ) -> Result<CoverageAdmission, CoverageAdmissionRefusal> {
+        if observation.points().is_empty() {
+            return Err(CoverageAdmissionRefusal::EmptyObservation);
         }
-        Ok(Self { name })
+        if candidate.is_empty() {
+            return Err(CoverageAdmissionRefusal::EmptyCandidate);
+        }
+        let adds_point = observation
+            .points()
+            .iter()
+            .any(|point| !self.observed.contains(point));
+        if !adds_point {
+            return Ok(CoverageAdmission::Known);
+        }
+        self.observed.extend(observation.points().iter().cloned());
+        let interesting = InterestingBytes { bytes: candidate };
+        self.interesting.push(interesting.clone());
+        Ok(CoverageAdmission::Interesting(interesting))
     }
 
-    pub(crate) fn as_str(&self) -> &str {
-        &self.name
+    /// Every point observed across admitted candidates.
+    #[must_use]
+    pub const fn observed(&self) -> &BTreeSet<CoveragePoint> {
+        &self.observed
+    }
+
+    /// Interesting candidates in admission order.
+    #[must_use]
+    pub fn interesting(&self) -> &[InterestingBytes] {
+        &self.interesting
     }
 }
 
-impl FridaCampaign {
-    /// Declare one deterministic bounded native Frida campaign.
+impl MutationPlan {
+    /// Declare one bounded deterministic neighboring-input plan.
     ///
     /// # Errors
     ///
-    /// Refuses missing seeds or zero execution, mutation, or timeout bounds.
+    /// Refuses a zero budget, zero byte ceiling, or empty dictionary token.
     pub fn declared(
-        target: FridaTarget,
-        seeds: Vec<Vec<u8>>,
-        handoff: FuzzExecution,
-        random_seed: u64,
-        iterations: u64,
-        mutation_iterations: usize,
-        timeout: std::time::Duration,
-    ) -> Result<Self, FridaCampaignRefusal> {
-        if seeds.is_empty() {
-            return Err(FridaCampaignRefusal::NoSeeds);
+        budget: u32,
+        byte_limit: usize,
+        dictionary: Vec<Vec<u8>>,
+    ) -> Result<Self, MutationPlanRefusal> {
+        if budget == 0 {
+            return Err(MutationPlanRefusal::ZeroBudget);
         }
-        if iterations == 0 {
-            return Err(FridaCampaignRefusal::ZeroIterations);
+        if byte_limit == 0 {
+            return Err(MutationPlanRefusal::ZeroByteLimit);
         }
-        if mutation_iterations == 0 {
-            return Err(FridaCampaignRefusal::ZeroMutationIterations);
-        }
-        if timeout.is_zero() {
-            return Err(FridaCampaignRefusal::ZeroTimeout);
+        if let Some(at) = dictionary.iter().position(Vec::is_empty) {
+            return Err(MutationPlanRefusal::EmptyDictionaryToken { at });
         }
         Ok(Self {
-            target,
-            seeds,
-            handoff,
-            random_seed,
-            iterations,
-            mutation_iterations,
-            timeout,
+            budget,
+            byte_limit,
+            dictionary,
         })
     }
 
-    pub(crate) const fn target(&self) -> &FridaTarget {
-        &self.target
+    pub(crate) const fn budget(&self) -> u32 {
+        self.budget
     }
 
-    pub(crate) fn seeds(&self) -> &[Vec<u8>] {
-        &self.seeds
+    pub(crate) const fn byte_limit(&self) -> usize {
+        self.byte_limit
     }
 
-    pub(crate) const fn handoff(&self) -> FuzzExecution {
-        self.handoff
-    }
-
-    pub(crate) const fn random_seed(&self) -> u64 {
-        self.random_seed
-    }
-
-    pub(crate) const fn iterations(&self) -> u64 {
-        self.iterations
-    }
-
-    pub(crate) const fn mutation_iterations(&self) -> usize {
-        self.mutation_iterations
-    }
-
-    pub(crate) const fn timeout(&self) -> std::time::Duration {
-        self.timeout
+    pub(crate) fn dictionary(&self) -> &[Vec<u8>] {
+        &self.dictionary
     }
 }
 
-impl FridaCampaignResult {
+impl MutationCandidate {
+    pub(crate) const fn established(kind: MutationKind, bytes: Vec<u8>) -> Self {
+        Self { kind, bytes }
+    }
+
+    /// The operation that produced this neighbor.
+    #[must_use]
+    pub const fn kind(&self) -> MutationKind {
+        self.kind
+    }
+
+    /// The exact neighboring bytes.
+    #[must_use]
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+}
+
+impl RustcCoverageTools {
+    /// Declare the exact matching LLVM profile tools.
+    ///
+    /// # Errors
+    ///
+    /// Refuses an empty tool path.
+    pub fn declared(profdata: PathBuf, cov: PathBuf) -> Result<Self, RustcProfileRequestRefusal> {
+        if profdata.as_os_str().is_empty() {
+            return Err(RustcProfileRequestRefusal::Profdata);
+        }
+        if cov.as_os_str().is_empty() {
+            return Err(RustcProfileRequestRefusal::Cov);
+        }
+        Ok(Self { profdata, cov })
+    }
+
+    pub(crate) fn profdata(&self) -> &std::path::Path {
+        &self.profdata
+    }
+
+    pub(crate) fn cov(&self) -> &std::path::Path {
+        &self.cov
+    }
+}
+
+impl InstrumentedTarget {
+    /// Declare one already-instrumented target executable.
+    ///
+    /// # Errors
+    ///
+    /// Refuses an empty executable path.
+    pub fn declared(
+        executable: PathBuf,
+        arguments: Vec<String>,
+    ) -> Result<Self, RustcProfileRequestRefusal> {
+        if executable.as_os_str().is_empty() {
+            return Err(RustcProfileRequestRefusal::Target);
+        }
+        Ok(Self {
+            executable,
+            arguments,
+        })
+    }
+
+    pub(crate) fn executable(&self) -> &std::path::Path {
+        &self.executable
+    }
+
+    pub(crate) fn arguments(&self) -> &[String] {
+        &self.arguments
+    }
+}
+
+impl RustcProfileRequest {
+    /// Declare one profile observation request.
+    ///
+    /// # Errors
+    ///
+    /// Refuses an empty scratch path.
+    pub fn declared(
+        target: InstrumentedTarget,
+        tools: RustcCoverageTools,
+        scratch: PathBuf,
+    ) -> Result<Self, RustcProfileRequestRefusal> {
+        if scratch.as_os_str().is_empty() {
+            return Err(RustcProfileRequestRefusal::Scratch);
+        }
+        Ok(Self {
+            target,
+            tools,
+            scratch,
+        })
+    }
+
+    pub(crate) const fn target(&self) -> &InstrumentedTarget {
+        &self.target
+    }
+
+    pub(crate) const fn tools(&self) -> &RustcCoverageTools {
+        &self.tools
+    }
+
+    pub(crate) fn scratch(&self) -> &std::path::Path {
+        &self.scratch
+    }
+}
+
+impl RustcProfileResult {
     pub(crate) const fn established(
-        corpus_after_seeds: usize,
-        corpus_after_loop: usize,
-        nonempty_edge_entries: u64,
-        monitor_events: usize,
-        execution_counts: [u64; 7],
-        interesting: InterestingBytes,
+        execution: FuzzExecution,
+        observation: CoverageObservation,
     ) -> Self {
         Self {
-            corpus_after_seeds,
-            corpus_after_loop,
-            nonempty_edge_entries,
-            monitor_events,
-            execution_counts,
-            interesting,
+            execution,
+            observation,
         }
     }
 
-    /// The corpus population after declared seeds were evaluated.
+    /// How the instrumented target process ended.
     #[must_use]
-    pub const fn corpus_after_seeds(&self) -> usize {
-        self.corpus_after_seeds
+    pub const fn execution(&self) -> FuzzExecution {
+        self.execution
     }
 
-    /// The corpus population after the bounded mutational loop.
+    /// Coverage the target flushed before it ended.
     #[must_use]
-    pub const fn corpus_after_loop(&self) -> usize {
-        self.corpus_after_loop
+    pub const fn observation(&self) -> &CoverageObservation {
+        &self.observation
     }
+}
 
-    /// Nonzero entries in the final target-relative edge map.
-    #[must_use]
-    pub const fn nonempty_edge_entries(&self) -> u64 {
-        self.nonempty_edge_entries
-    }
-
-    /// Events emitted by the `LibAFL` monitor during the campaign.
-    #[must_use]
-    pub const fn monitor_events(&self) -> usize {
-        self.monitor_events
-    }
-
-    /// Executions observed under one caller-supplied classification.
-    #[must_use]
-    pub fn executions(&self, execution: FuzzExecution) -> u64 {
-        self.execution_counts
-            .get(execution.index())
-            .copied()
-            .unwrap_or(0)
-    }
-
-    /// The exact evolved bytes selected for Macroonz reduction and replay.
-    #[must_use]
-    pub const fn interesting(&self) -> &InterestingBytes {
-        &self.interesting
+fn unique_required_fact(
+    facts: &[PreflightFact],
+    capability: PreflightCapability,
+) -> Result<PreflightFact, PreflightIncomplete> {
+    let matches: Vec<PreflightFact> = facts
+        .iter()
+        .copied()
+        .filter(|fact| fact.capability() == capability)
+        .collect();
+    match matches.as_slice() {
+        [] => Err(PreflightIncomplete::Missing(capability)),
+        [only] => Ok(*only),
+        [first, rest @ ..] => {
+            let contradictory = rest.iter().any(|fact| fact.status() != first.status());
+            if contradictory {
+                Err(PreflightIncomplete::Contradictory(capability))
+            } else {
+                Err(PreflightIncomplete::Duplicate(capability))
+            }
+        }
     }
 }

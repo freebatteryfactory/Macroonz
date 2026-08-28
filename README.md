@@ -170,9 +170,6 @@ The `preemption` feature always implies `harness`.
 On a native target supported by the pinned Loom backend, enabling `preemption` installs that backend.
 On every other target, including Wasm, the same harness result plane remains available and reports typed backend unavailability instead of trying to compile Loom.
 
-The `fuzz-frida` feature is a separate opt-in.
-It forwards to `macroonz-harness/fuzz-frida` and stays out of every posture above.
-
 ---
 
 ## Working here
@@ -181,16 +178,14 @@ It forwards to `macroonz-harness/fuzz-frida` and stays out of every posture abov
 The wall it names, run locally:
 
 ```sh
-cargo check  --workspace --all-targets --features full
-cargo clippy --workspace --all-targets --features full
-cargo nextest run --workspace --features full --run-ignored all
-cargo test -p macroonz-harness --features preemption --run-ignored all
+cargo check  --workspace --all-targets --all-features
+cargo clippy --workspace --all-targets --all-features
+cargo nextest run --workspace --all-features
 cargo fmt --all -- --check
 cargo deny --workspace check
 ```
 
-The ordinary wall exercises the default product postures, including the target-qualified Loom-backed `preemption` road through `full`.
-It does not enable `fuzz-frida`; that opt-in road is qualified separately under stable Rust 1.98.
+The wall runs with every feature on, so the optional homes — the target-qualified Loom-backed `preemption` exploration among them — are exercised together.
 
 ---
 

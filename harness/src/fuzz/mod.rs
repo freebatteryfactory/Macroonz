@@ -1,34 +1,22 @@
 #![doc = include_str!("README.md")]
 
 mod compose;
-#[cfg(all(
-    feature = "fuzz-frida",
-    any(windows, target_os = "linux", target_os = "macos")
-))]
-mod frida;
-#[cfg(all(
-    feature = "fuzz-frida",
-    not(any(windows, target_os = "linux", target_os = "macos"))
-))]
-mod frida_unsupported;
+mod coverage;
+mod execute;
+mod mutate;
 mod types;
 
 pub use compose::{compose_reduce_replay, preflight_ready};
-#[cfg(all(
-    feature = "fuzz-frida",
-    any(windows, target_os = "linux", target_os = "macos")
-))]
-pub use frida::run_libafl_frida;
-#[cfg(all(
-    feature = "fuzz-frida",
-    not(any(windows, target_os = "linux", target_os = "macos"))
-))]
-pub use frida_unsupported::run_libafl_frida;
+pub use coverage::read_lcov;
+pub use execute::observe_rustc_profile;
+pub use mutate::neighboring_inputs;
 pub use types::{
-    BackendSelection, BackendSelectionRefusal, ComposeRefusal, FRIDA_GUM_CRATE_PIN,
-    FRIDA_GUM_WINDOWS_X86_64_DEVKIT, FridaCampaign, FridaCampaignRefusal, FridaCampaignResult,
-    FridaModuleName, FridaRunRefusal, FridaTarget, FridaTargetRefusal, FuzzExecution,
-    HostDisposition, InterestingBytes, InterestingBytesRefusal, LIBAFL_PIN, NamedCeiling,
-    PreflightCapability, PreflightFact, PreflightIncomplete, PreflightStatus, ReadyPreflight,
+    BackendSelection, BackendSelectionRefusal, ComposeRefusal, CoverageAdmission,
+    CoverageAdmissionRefusal, CoverageCorpus, CoverageObservation, CoveragePoint,
+    CoverageReadRefusal, FuzzExecution, HostDisposition, InstrumentedTarget, InterestingBytes,
+    InterestingBytesRefusal, MutationCandidate, MutationKind, MutationPlan, MutationPlanRefusal,
+    MutationRefusal, NamedCeiling, PreflightCapability, PreflightFact, PreflightIncomplete,
+    PreflightStatus, RUSTC_COVERAGE_TOOLCHAIN, ReadyPreflight, RustcCoverageTools,
+    RustcProfileRefusal, RustcProfileRequest, RustcProfileRequestRefusal, RustcProfileResult,
     SelectedBackend,
 };

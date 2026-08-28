@@ -1,51 +1,53 @@
 # fuzz
 
-Coverage-guided search is an external witness; this home owns the Macroonz campaign shell around it.
+Stable rustc supplies the coverage sensor; this home composes that observation with Macroonz campaign semantics.
 
 ## Boundary
 
-A selected native backend admits interesting bytes.
-Macroonz owns campaign declaration, typed preflight facts the caller supplies, failure fingerprint, reduction, replay, and named ceilings.
-The opt-in `fuzz-frida` feature opens the `LibAFL` plus Frida mechanism under this home: safe `EventSink` block recording, target-relative edge maps, deterministic bounded corpus evolution, and evolved [`InterestingBytes`] handoff.
-That feature stays out of `default`, `full`, `diet-lite`, and `diet`.
-Callers still install `macroonz` and enable `fuzz-frida` explicitly.
+An adopter compiles a Rust target with stable `-C instrument-coverage` and declares the exact target, matching LLVM tools, scratch directory, and process supervisor.
+[`observe_rustc_profile`] runs one candidate in a fresh child process, reads the emitted profile through `llvm-profdata` and `llvm-cov`, and returns canonical covered source points.
+It uses only safe Rust and the standard library.
+It introduces no native instrumentation library, FFI wrapper, general fuzz-engine dependency, feature, or additional Cargo package.
+
+The caller-supplied supervisor owns waiting, deadlines, resource policy, termination, and the typed success, nonzero, crash, timeout, or resource-exhaustion classification.
+That port keeps ambient time and operating-system policy outside this home while preserving process isolation.
+
+[`CoverageCorpus`] owns the small feedback frontier this repository was missing.
+It retains a candidate only when its observation adds a previously unseen point.
+[`neighboring_inputs`] deterministically expands one retained input through bounded safe byte operations and a caller-declared dictionary.
+The ordinary [`crate::corpus`] owner remains responsible for content-addressed seed packs and warm starts.
+The ordinary [`crate::generate`] owner remains responsible for deterministic candidate streams, budgets, accounting, reduction, and replay.
 
 ```mermaid
 flowchart LR
-    classDef input fill:#fff4d6,stroke:#9a6700,color:#3d2b00
-    classDef backend fill:#e8f1ff,stroke:#3465a4,color:#102a43
-    classDef held fill:#e6f4ea,stroke:#26864a,color:#123d22
-    classDef ceiling fill:#f1e9ff,stroke:#7d4ab0,color:#32184f
-
-    FACTS["declared preflight facts"]:::input --> READY{"every required<br/>capability available?"}:::held
-    READY -->|no| INCOMPLETE["incomplete preflight"]:::ceiling
-    READY -->|yes| SELECT["selected backend<br/>+ named ceilings"]:::backend
-    SELECT --> BYTES["interesting bytes"]:::input
-    BYTES --> REDUCE["generate::reduce<br/>+ capture_replay"]:::held
-    REDUCE --> CAPSULE["ReplayCapsule"]:::held
+    PLAN["generate plan"] --> BYTES["candidate bytes"]
+    BYTES --> TARGET["instrumented Rust target"]
+    TARGET --> RAW["per-case .profraw"]
+    RAW --> TOOLS["matching llvm-profdata + llvm-cov"]
+    TOOLS --> POINTS["canonical covered points"]
+    POINTS --> NOVEL{"adds a point?"}
+    NOVEL -->|no| DISCARD["known candidate"]
+    NOVEL -->|yes| KEEP["corpus seed"]
+    KEEP --> REDUCE["generate::reduce + replay"]
 ```
 
 ## Composition
 
-[`compose_reduce_replay`] runs the existing [`crate::generate::reduce`] and [`crate::generate::capture_replay`] roads under a [`crate::generate::ReductionProbeBinding`] the caller already opened from a refused report.
-Interesting bytes enter as the reduction seed; Frida edges remain search compass unless the caller declares them as the fingerprint.
+[`read_lcov`] reads line and branch rows that the matching toolchain actually exports and ignores zero-count rows.
+This home does not claim AFL-style edge coverage.
+Stable line or region-derived coverage is the initial feedback signal, while explicit rustc branch-coverage modes remain outside the stable denominator.
 
-[`preflight_ready`] judges only the facts it is handed.
+[`preflight_ready`] judges only caller-supplied facts.
 It never scans the filesystem, environment, or network.
 
-[`run_libafl_frida`] is available only with `fuzz-frida`.
-The caller supplies the subject classification; this home invents no product capture policy.
-
-[`corpus`](crate::corpus) still owns seed packs and warm starts.
-[`muterprater`](crate::muterprater) still owns pressure-lane vocabulary that names a fuzz road.
-This home does not duplicate those owners.
+[`compose_reduce_replay`] runs the existing [`crate::generate::reduce()`] and [`crate::generate::capture_replay`] roads under a [`crate::generate::ReductionProbeBinding`] the caller already opened from a refused report.
+Interesting bytes enter as the reduction seed; coverage points remain search compass unless the caller separately makes them part of a failure fingerprint.
 
 ## Evidence ceiling
 
-Selection pins and ceilings are typed constants and values, not ambient discovery.
-A host disposition of credible-unexecuted is an honest posture, not an executed receipt.
-The first-party Windows runnable road remains an open seat under an existing package target; disposable campaign scratch stays under `target/qualification/fuzz-frida-windows/`.
-That road does not by itself close Linux or macOS native receipts.
-Hostile composition cases refuse empty interesting bytes, incomplete or contradictory preflight facts, incomplete F0 ceiling or host rosters, and reduction seeds that do not establish a baseline failure.
-Branch coverage under nightly toolchains is not an accepted evidence plane; stable Rust 1.98 is the authorized toolchain.
-The distilled Windows F0 selection receipt lives beside this README as [`windows_frida_f0_receipt.md`](windows_frida_f0_receipt.md).
+The stable Rust 1.98 Windows pilot established distinct, repeatable coverage observations, deterministic neighboring inputs, discarded known-coverage neighbors, and an evolved retained corpus.
+Linux and macOS remain unexecuted host dispositions until native hosts establish their own receipts.
+The fresh-process profile loop is intentionally slower than an in-process instrumentation engine.
+The Windows crossing also transports an actual abort and planted supervisor stops into crash, timeout, and resource-exhaustion classes.
+The planted stops prove typed composition, not elapsed-time or operating-system resource causality.
+Raw profiles and campaign build output remain disposable under `target/qualification`.

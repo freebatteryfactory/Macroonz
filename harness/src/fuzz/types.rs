@@ -3,78 +3,65 @@
 //! Construction and reading live in this module's own child `type_guard.rs`.
 
 use crate::descriptor::NamespacedName;
-use std::time::Duration;
+use std::collections::BTreeSet;
+use std::path::PathBuf;
 
 #[path = "type_guard.rs"]
 mod guard;
 
-/// Exact `LibAFL` crate pin the F0 selection established.
-pub const LIBAFL_PIN: &str = "0.16.1";
+/// The stable product toolchain whose coverage format this home qualifies.
+pub const RUSTC_COVERAGE_TOOLCHAIN: &str = "1.98.0";
 
-/// Exact `frida-gum` crate pin the F0 selection established.
-pub const FRIDA_GUM_CRATE_PIN: &str = "0.17.2";
-
-/// Exact Frida Gum Windows x86-64 devkit pin the F0 selection established.
-pub const FRIDA_GUM_WINDOWS_X86_64_DEVKIT: &str = "17.9.5";
-
-/// Which native coverage backend the campaign selected.
+/// Which coverage mechanism the campaign selected.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum SelectedBackend {
-    /// `LibAFL` plus Frida under the named F0 ceilings.
-    LibAflFrida,
+    /// Stable rustc source instrumentation and its matching LLVM profile tools.
+    RustcInstrumentCoverage,
 }
 
-/// One named Windows/process choreography ceiling retained with Frida selection.
+/// One named ceiling retained with the rustc coverage mechanism.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NamedCeiling {
-    /// Residual LNK4098 / mixed defaultlib coexistence after structural CRT attempts.
-    Lnk4098Coexistence,
-    /// `LIB` must append MSVC and Windows SDK roots rather than replace them with the Frida devkit alone.
-    LibAppendMsvcSdk,
-    /// Rust 1.98 `std-*.dll` directory must be on `PATH` when the driver and target import those DLLs.
-    RustStdDllOnPath,
-    /// Linux and macOS Macroonz receipts remain unexecuted until Wave F hosts run them.
-    LinuxMacOsUnexecutedUntilWaveF,
+    /// Each candidate executes in a fresh instrumented process and therefore pays process startup cost.
+    FreshProcessPerCandidate,
+    /// The target must be compiled from available Rust source with coverage instrumentation.
+    InstrumentedSourceTargetRequired,
+    /// The matching `llvm-profdata` and `llvm-cov` tools must be installed with the toolchain.
+    LlvmCoverageToolsRequired,
+    /// The caller's host must supervise the child and classify its termination without an ambient harness clock.
+    CallerSuppliesProcessSupervisor,
 }
 
 /// What one host class established for the selected backend.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum HostDisposition {
-    /// Native execution was observed on Windows.
+    /// Native stable-toolchain execution was observed on Windows.
     ObservedWindows,
-    /// Upstream supports the host; Macroonz has not yet executed a native receipt.
-    CredibleUnexecutedLinux,
-    /// Upstream supports the host; Macroonz has not yet executed a native receipt.
-    CredibleUnexecutedMacOs,
+    /// The same rustc mechanism remains unexecuted on a native Linux host.
+    UnexecutedLinux,
+    /// The same rustc mechanism remains unexecuted on a native macOS host.
+    UnexecutedMacOs,
 }
 
-/// One capability a Frida Windows cold-shell preflight may name.
+/// One capability a stable rustc coverage preflight may name.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PreflightCapability {
-    /// Visual Studio locator (`vswhere`).
-    VsWhere,
-    /// MSVC environment script (`vcvarsall` / equivalent).
-    VcVarsAll,
-    /// Composed MSVC and Windows SDK search paths.
-    ComposedMsvcSdkEnv,
-    /// Rustc at the product MSRV.
+    /// Rustc is the product MSRV.
     RustcMsrv,
-    /// Host triple from `rustc --print`.
+    /// Rustc reported its host tuple.
     RustcHostTuple,
-    /// Sysroot from `rustc --print`.
+    /// Rustc reported its sysroot.
     RustcSysroot,
-    /// Target libdir from `rustc --print`.
-    RustcTargetLibdir,
-    /// Rust standard-library DLL search directory.
-    RustStdDll,
-    /// LLVM version rustc reports.
+    /// Rustc reported the LLVM version it carries.
     LlvmReported,
-    /// Frida Gum static library present at the declared path.
-    FridaGumLib,
-    /// Frida Gum header present at the declared path.
-    FridaGumHeader,
-    /// Pinned Frida devkit archive hash matched.
-    FridaDevkitHash,
+    /// The matching `llvm-tools` component is installed.
+    LlvmToolsPreview,
+    /// The matching `llvm-profdata` executable is available at a declared path.
+    LlvmProfdata,
+    /// The matching `llvm-cov` executable is available at a declared path.
+    LlvmCov,
+    /// The target was compiled with stable `-C instrument-coverage`.
+    InstrumentCoverage,
 }
 
 /// Whether one declared preflight capability was available.
@@ -109,7 +96,7 @@ pub enum PreflightIncomplete {
     Contradictory(PreflightCapability),
 }
 
-/// A preflight roster in which every required capability was declared Available.
+/// A preflight roster in which every required capability was declared available.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ReadyPreflight {
     backend: SelectedBackend,
@@ -128,17 +115,17 @@ pub struct BackendSelection {
 #[must_use = "a refusal is the reason a fuzz backend selection was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BackendSelectionRefusal {
-    /// No named ceiling was declared, so the selection would hide the F0 coexistence facts.
+    /// No named ceiling was declared.
     NoCeiling,
     /// No host disposition was declared.
     NoHostDisposition,
-    /// A required F0 ceiling was absent from the declared roster.
+    /// A required ceiling was absent from the declared roster.
     MissingRequiredCeiling(NamedCeiling),
-    /// A required F0 host disposition was absent from the declared roster.
+    /// A required host disposition was absent from the declared roster.
     MissingRequiredHost(HostDisposition),
 }
 
-/// Exact bytes a coverage backend admitted as interesting for Macroonz reduction.
+/// Exact bytes a coverage observation admitted as interesting for Macroonz reduction.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InterestingBytes {
     bytes: Vec<u8>,
@@ -152,6 +139,242 @@ pub enum InterestingBytesRefusal {
     Empty,
 }
 
+/// One canonical covered source point exported by `llvm-cov`.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CoveragePoint {
+    /// One source line executed at least once.
+    Line {
+        /// The source spelling exported by the toolchain.
+        source: String,
+        /// The one-based source line.
+        line: u64,
+    },
+    /// One reported source branch executed at least once.
+    Branch {
+        /// The source spelling exported by the toolchain.
+        source: String,
+        /// The one-based source line.
+        line: u64,
+        /// The toolchain's block ordinal.
+        block: u64,
+        /// The branch ordinal within the block.
+        branch: u64,
+    },
+}
+
+/// One canonical set of covered source points from a single candidate execution.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CoverageObservation {
+    pub(super) points: Vec<CoveragePoint>,
+}
+
+/// Why an LCOV coverage export was not admitted.
+#[must_use = "a refusal is the reason a coverage export was not admitted"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CoverageReadRefusal {
+    /// The export was not UTF-8.
+    NonUtf8,
+    /// A source record carried no path.
+    EmptySource {
+        /// The one-based LCOV record position.
+        record: usize,
+    },
+    /// A coverage point appeared before its source record.
+    MissingSource {
+        /// The one-based LCOV record position.
+        record: usize,
+    },
+    /// A line-coverage row was malformed.
+    MalformedLine {
+        /// The one-based LCOV record position.
+        record: usize,
+    },
+    /// A branch-coverage row was malformed.
+    MalformedBranch {
+        /// The one-based LCOV record position.
+        record: usize,
+    },
+}
+
+/// The campaign's accumulated coverage frontier and retained interesting inputs.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CoverageCorpus {
+    pub(super) observed: BTreeSet<CoveragePoint>,
+    pub(super) interesting: Vec<InterestingBytes>,
+}
+
+/// What became of one candidate at the coverage frontier.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CoverageAdmission {
+    /// The candidate added no covered point.
+    Known,
+    /// The candidate added at least one covered point and was retained exactly.
+    Interesting(InterestingBytes),
+}
+
+/// Why one candidate could not be compared with the coverage frontier.
+#[must_use = "a refusal is the reason a coverage candidate was not judged"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CoverageAdmissionRefusal {
+    /// The execution reported no covered point.
+    EmptyObservation,
+    /// The candidate bytes were empty.
+    EmptyCandidate,
+}
+
+/// One bounded deterministic neighboring-input plan.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MutationPlan {
+    budget: u32,
+    byte_limit: usize,
+    dictionary: Vec<Vec<u8>>,
+}
+
+/// Why a neighboring-input plan was not constructed.
+#[must_use = "a refusal is the reason a mutation plan was not built"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MutationPlanRefusal {
+    /// The plan admitted no candidate.
+    ZeroBudget,
+    /// The plan admitted no candidate byte.
+    ZeroByteLimit,
+    /// One dictionary token was empty.
+    EmptyDictionaryToken {
+        /// The token's position in declared order.
+        at: usize,
+    },
+}
+
+/// Which deterministic operation produced one neighboring input.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MutationKind {
+    /// Flip one bit in one existing byte.
+    BitFlip,
+    /// Replace one byte with a boundary value.
+    BoundarySubstitution,
+    /// Increment one byte when it is below `0xff`.
+    Increment,
+    /// Decrement one byte when it is above zero.
+    Decrement,
+    /// Remove one byte while keeping the candidate nonempty.
+    Delete,
+    /// Insert one boundary byte.
+    InsertBoundary,
+    /// Duplicate one existing byte.
+    Duplicate,
+    /// Join one prefix of the seed to one suffix of a retained partner.
+    Splice,
+    /// Insert one caller-declared dictionary token.
+    DictionaryInsert,
+}
+
+/// One nonempty deterministic neighbor and the operation that produced it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MutationCandidate {
+    kind: MutationKind,
+    bytes: Vec<u8>,
+}
+
+/// Why neighboring-input enumeration could not begin.
+#[must_use = "a refusal is the reason neighboring inputs were not produced"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MutationRefusal {
+    /// The seed was empty.
+    EmptySeed,
+    /// The seed already exceeded the plan's byte ceiling.
+    SeedExceedsByteLimit,
+    /// A declared splice partner was empty.
+    EmptyPartner,
+}
+
+/// The exact tool paths used to read rustc coverage profiles.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RustcCoverageTools {
+    profdata: PathBuf,
+    cov: PathBuf,
+}
+
+/// One already-instrumented Rust target and its declared arguments.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InstrumentedTarget {
+    executable: PathBuf,
+    arguments: Vec<String>,
+}
+
+/// One declared rustc-profile observation request.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RustcProfileRequest {
+    target: InstrumentedTarget,
+    tools: RustcCoverageTools,
+    scratch: PathBuf,
+}
+
+/// Why a rustc-profile request was not constructed.
+#[must_use = "a refusal is the reason a rustc coverage request was not built"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RustcProfileRequestRefusal {
+    /// The target executable path was empty.
+    Target,
+    /// The `llvm-profdata` path was empty.
+    Profdata,
+    /// The `llvm-cov` path was empty.
+    Cov,
+    /// The scratch path was empty.
+    Scratch,
+}
+
+/// How one instrumented target process ended.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum FuzzExecution {
+    /// The target exited successfully.
+    Success,
+    /// The target exited unsuccessfully with an optional platform exit code.
+    NonzeroExit(Option<i32>),
+    /// The caller's host classified the target as crashed.
+    Crash(Option<i32>),
+    /// The caller's host stopped the target at its declared time bound.
+    Timeout,
+    /// The caller's host stopped the target at its declared resource bound.
+    ResourceExhaustion,
+}
+
+/// One target execution together with any coverage it flushed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RustcProfileResult {
+    execution: FuzzExecution,
+    observation: CoverageObservation,
+}
+
+/// Why one rustc-profile execution could not produce a truthful result.
+#[must_use = "a refusal is the reason a rustc coverage execution did not complete"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RustcProfileRefusal {
+    /// The caller supplied an empty candidate.
+    EmptyCandidate,
+    /// The deterministic case directory already existed.
+    CaseAlreadyExists(PathBuf),
+    /// The case directory could not be created.
+    CreateCase(String),
+    /// The target process could not be started.
+    StartTarget(String),
+    /// The candidate could not be written to target standard input.
+    WriteTarget(String),
+    /// The caller's declared supervisor could not complete or classify the target.
+    SuperviseTarget(String),
+    /// A successful target execution did not write its declared raw profile.
+    MissingProfile,
+    /// `llvm-profdata` could not be started.
+    StartProfdata(String),
+    /// `llvm-profdata` exited unsuccessfully.
+    ProfdataFailed(Option<i32>),
+    /// `llvm-cov` could not be started.
+    StartCov(String),
+    /// `llvm-cov` exited unsuccessfully.
+    CovFailed(Option<i32>),
+    /// The exported coverage was malformed.
+    Coverage(CoverageReadRefusal),
+}
+
 /// Why compose-reduce-replay refused.
 #[must_use = "a refusal is the reason fuzz compose did not mint a replay capsule"]
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -162,109 +385,4 @@ pub enum ComposeRefusal {
     ReplayFingerprintMoved,
     /// Replay established no failure.
     ReplayNoFailure,
-}
-
-/// One outcome class the caller's subject reports to the native fuzz mechanism.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum FuzzExecution {
-    /// The subject admitted the bytes lawfully.
-    LawfulSuccess,
-    /// The subject established a typed refusal.
-    TypedRefusal,
-    /// The bytes never entered the subject because they were not UTF-8.
-    NotUtf8,
-    /// The subject or its process crashed.
-    Crash,
-    /// The subject exceeded its execution-time bound.
-    Timeout,
-    /// A supervising process established resource exhaustion.
-    ResourceExhaustion,
-    /// Execution ended without a complete semantic classification.
-    AmbiguousPartialAcceptance,
-}
-
-/// The loaded module whose relative blocks enter the Frida edge map.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum FridaTarget {
-    /// Observe the executable that owns the current process.
-    MainExecutable,
-    /// Observe one explicitly named loaded module.
-    NamedModule(FridaModuleName),
-}
-
-/// One nonempty loaded-module name used for target-relative Frida observation.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct FridaModuleName {
-    name: String,
-}
-
-/// Why a Frida target declaration was refused.
-#[must_use = "a refusal is the reason a Frida target was not declared"]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FridaTargetRefusal {
-    /// A named module must have a nonempty name.
-    EmptyModuleName,
-}
-
-/// One deterministic bounded `LibAFL` plus Frida campaign declaration.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FridaCampaign {
-    target: FridaTarget,
-    seeds: Vec<Vec<u8>>,
-    handoff: FuzzExecution,
-    random_seed: u64,
-    iterations: u64,
-    mutation_iterations: usize,
-    timeout: Duration,
-}
-
-/// Why a Frida campaign declaration was refused.
-#[must_use = "a refusal is the reason a Frida campaign was not declared"]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FridaCampaignRefusal {
-    /// At least one declared seed is required.
-    NoSeeds,
-    /// The bounded fuzz loop must execute at least once.
-    ZeroIterations,
-    /// Each mutation stage must execute at least once.
-    ZeroMutationIterations,
-    /// The executor timeout must be positive.
-    ZeroTimeout,
-}
-
-/// Why the selected `LibAFL` plus Frida mechanism could not complete a campaign.
-#[must_use = "a refusal is the reason the Frida campaign did not complete"]
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum FridaRunRefusal {
-    /// The selected feature was invoked on a host outside its native support posture.
-    UnsupportedHost,
-    /// Frida Stalker is unavailable on this host.
-    StalkerUnavailable,
-    /// The declared target module was not loaded.
-    TargetModuleUnavailable,
-    /// Frida event delivery overlapped an edge-trace borrow.
-    ObservationBorrowCollision,
-    /// A declared seed produced no target-relative edge observation.
-    EmptyObservation,
-    /// Repeating the same seed changed its edge map.
-    UnstableObservation,
-    /// `LibAFL` or Frida refused an internal engine operation.
-    Engine(String),
-    /// Coverage feedback did not grow the corpus beyond its admitted seeds.
-    CorpusDidNotGrow,
-    /// No evolved corpus entry had the requested handoff classification.
-    NoEvolvedHandoff,
-    /// The selected evolved entry could not become nonempty interesting bytes.
-    InterestingBytes(InterestingBytesRefusal),
-}
-
-/// The bounded facts retained from one completed native Frida campaign.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FridaCampaignResult {
-    corpus_after_seeds: usize,
-    corpus_after_loop: usize,
-    nonempty_edge_entries: u64,
-    monitor_events: usize,
-    execution_counts: [u64; 7],
-    interesting: InterestingBytes,
 }

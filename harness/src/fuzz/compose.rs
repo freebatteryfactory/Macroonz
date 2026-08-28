@@ -4,9 +4,7 @@ use super::{
     ComposeRefusal, InterestingBytes, PreflightFact, PreflightIncomplete, ReadyPreflight,
     SelectedBackend,
 };
-use crate::generate::{
-    ProbeOutcome, ReductionPlan, ReductionProbeBinding, capture_replay, reduce,
-};
+use crate::generate::{ProbeOutcome, ReductionPlan, ReductionProbeBinding, capture_replay, reduce};
 use crate::report::ReplayCapsule;
 
 /// Judge caller-supplied preflight facts for one selected backend.
@@ -31,7 +29,8 @@ pub fn compose_reduce_replay(
     plan: &ReductionPlan,
     binding: &ReductionProbeBinding,
 ) -> Result<ReplayCapsule, ComposeRefusal> {
-    let evidence = reduce(plan, interesting.as_bytes(), binding).map_err(ComposeRefusal::Reduction)?;
+    let evidence =
+        reduce(plan, interesting.as_bytes(), binding).map_err(ComposeRefusal::Reduction)?;
     let capsule = capture_replay(&evidence);
     match (binding.probe())(capsule.input()) {
         ProbeOutcome::Reproduced(fp) if fp == capsule.fingerprint() => Ok(capsule),
