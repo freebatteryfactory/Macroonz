@@ -27,5 +27,5 @@ This Git-tracked receipt retains the package observation available before Macroo
 
 ## Cleanup
 
-- After this receipt was committed, the exact archive, verified unpacked package directory, and facade package-list file were moved recoverably out of the repository to `C:\Users\eayou\Downloads\macroonz-night-scratch-20260827`.
+- After this receipt was committed, the exact archive, verified unpacked package directory, and facade package-list file were moved recoverably to the task-created `macroonz-night-scratch-20260827` archive outside the repository.
 - Their original `target/package` paths no longer exist, and the recoverable copies have no evidence authority.

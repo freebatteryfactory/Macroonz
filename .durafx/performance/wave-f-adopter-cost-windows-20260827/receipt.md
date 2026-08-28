@@ -46,5 +46,5 @@ It is not a portable performance baseline, a package-archive result, or a claim 
 ## Cleanup
 
 - After this receipt was committed, Cargo removed 165.6 MiB from `target/q/pf`, 109.5 MiB from `target/q/pl`, and 73.9 MiB from `target/q/pd`.
-- The validated exact scratch-adopter source tree was moved recoverably out of the repository to `C:\Users\eayou\Downloads\macroonz-night-scratch-20260827\wave-f-adopter-cost-windows-20260827` because host policy blocked a direct recursive deletion.
+- The validated exact scratch-adopter source tree was moved recoverably to the `wave-f-adopter-cost-windows-20260827` leaf of the task-created `macroonz-night-scratch-20260827` archive outside the repository because host policy blocked a direct recursive deletion.
 - None of the five live repository scratch paths remains, and the recoverable archive has no evidence authority.

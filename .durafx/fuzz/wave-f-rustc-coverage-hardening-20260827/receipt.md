@@ -1,6 +1,6 @@
 # Stable rustc coverage hardening receipt
 
-This Git-tracked receipt retains the accepted observations from the Wave F rustc-coverage hardening pass.
+This Git-tracked receipt retains qualified observations from the Wave F rustc-coverage hardening pass pending owner acceptance.
 
 Git supplies history, hashing, replication, and change detection for this receipt.
 
@@ -10,7 +10,7 @@ No ignored warehouse, custom filesystem sealer, compiled output, raw profile, or
 
 - The source base was `fdc8691f56eb1134c54b357344d169636ff35c1b` on `codex/macroonz-repository-completion`.
 - Qualification executed against the complete source snapshot now recorded by `b5d3a5b9b482e48a75bb9d0a7f562f5ba6c33a0f`.
-- That source commit and its push occurred externally while qualification was running, so this receipt is retained by a later local evidence commit rather than folded into the externally created commit.
+- The owner deliberately pushed that source commit while qualification was running, so this receipt is retained by a later evidence commit rather than folded into the source commit.
 - Local commit `b83922d6eb51873fabc38599b8c9537e9a2600ff` makes the successful facade example remove its exact scratch run after the qualification audit found accumulated example output.
 - The product graph remained the four existing packages plus the compiler-required narrow proc-macro test fixture.
 - Stable Rust 1.98 and its matching LLVM tools were the only coverage toolchain.
@@ -26,7 +26,7 @@ No ignored warehouse, custom filesystem sealer, compiled output, raw profile, or
 - An actual abort crossed as `Crash`, and declared supervisor outcomes crossed as `Timeout` and `ResourceExhaustion`.
 - The timeout and resource results establish typed supervisor transport, not elapsed-time or operating-system quota causality.
 - Coverage identity contains a declared logical root and root-relative source path rather than a physical checkout path.
-- Two relocated checkouts and ordinary versus verbatim Windows path spellings produced identical logical coverage observations.
+- Synthetic LCOV documents beneath two distinct declared checkout roots produced identical logical coverage observations, and ordinary versus verbatim Windows path spellings normalized identically.
 - Mutation budgets select an exact deterministic prefix of the documented priority order.
 - The root facade example compiles an instrumented subject, establishes preflight, observes novelty, evolves a corpus, and composes interesting bytes through reduction and replay.
 
@@ -45,8 +45,8 @@ No ignored warehouse, custom filesystem sealer, compiled output, raw profile, or
 
 ## WSL-native qualification
 
-- The accepted WSL run used `/home/heyoub/macroonz-wave-f-20260827`, not the Windows checkout mounted under `/mnt/c`.
-- Its Cargo target was `/home/heyoub/macroonz-wave-f-20260827/target/qualification/wave-f-rustc-fuzz` on the Linux filesystem.
+- The qualified WSL run used a checkout on the invoking user's Linux-native home filesystem rather than the Windows checkout mounted under `/mnt/c`.
+- Its Cargo target was the checkout-local `target/qualification/wave-f-rustc-fuzz` directory on that Linux filesystem.
 - The host compiler was Rust 1.98.0 for `x86_64-unknown-linux-gnu` with LLVM 22.1.8.
 - The focused `fuzz_compose` target passed 11 of 11 tests.
 - The root facade `rustc_coverage` example passed.
@@ -65,8 +65,8 @@ No ignored warehouse, custom filesystem sealer, compiled output, raw profile, or
 ## Remaining ceilings
 
 - Physical Linux, cloud Linux, macOS, and ARM64 remain unexecuted.
-- Stable repository line or region coverage, targeted mutation, long schedule, and performance campaigns remain separate Wave F evidence planes.
+- Stable repository line or region coverage, long schedules, and performance remain separate evidence planes retained by later Wave F receipts; targeted mutation remained unexecuted at this receipt's source snapshot.
 - GitHub governance, hosted CI, merge, publication, attestation, and registry-delivery work remain at their explicit human boundaries.
 - The exact Linux-filesystem WSL qualification checkout was removed after its retained observations were recorded.
-- Host policy blocked direct recursive deletion of the exact Windows scratch directories, so they were moved recoverably out of the repository to `C:\Users\eayou\Downloads\macroonz-wave-f-scratch-20260827`.
+- Host policy blocked direct recursive deletion of the exact Windows scratch directories, so they were moved recoverably to the task-created `macroonz-wave-f-scratch-20260827` archive outside the repository.
 - The recoverable Windows scratch archive is disposable and has no evidence authority.

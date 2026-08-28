@@ -13,11 +13,11 @@ The raw profile, instrumented objects, test executables, and exported summary re
 - Cargo was 1.98.0 commit `797e8a9bc`.
 - `cargo-llvm-cov` was exactly 0.9.0 and remained external qualification tooling rather than a product dependency.
 - `Cargo.lock` had SHA-256 `471BD8BF8BAA28392CA4B14CB49C175877E6D8E06CD778E20D1AD71C21E3D586`.
-- The accepted command used no branch flag, nightly toolchain, threshold, or ignored long-campaign test.
+- The qualified command used no branch flag, nightly toolchain, threshold, or ignored long-campaign test.
 
 ## Observation
 
-- `cargo +1.98.0 llvm-cov nextest -j1 --workspace --all-features --locked --no-fail-fast --json --summary-only --output-path C:\Users\eayou\code_dir\Macroonz\target\q\cw\summary.json` completed successfully with `CARGO_TARGET_DIR=C:\Users\eayou\code_dir\Macroonz\target\q\cw\t`.
+- With the absolute repository root elided, `cargo +1.98.0 llvm-cov nextest -j1 --workspace --all-features --locked --no-fail-fast --json --summary-only --output-path target/q/cw/summary.json` completed successfully with `CARGO_TARGET_DIR=target/q/cw/t`.
 - The ordinary nextest denominator passed 401 of 401 tests across 60 binaries, while opt-in long campaigns remained separately executed under their own receipt.
 - Function coverage was 2,850 of 3,366, or 84.67023172905526 percent.
 - Line coverage was 21,043 of 24,747, or 85.03252919545803 percent.
@@ -29,7 +29,7 @@ The raw profile, instrumented objects, test executables, and exported summary re
 ## Post-observer census
 
 - A second stable census executed the clean tracked snapshot `fb1307bc5a2216a9ed77aea20646ffab75d6486d`, including the observer source committed at `53cc0df59cdce64aa524051c96888746e5a801b7`.
-- `cargo +1.98.0 llvm-cov nextest -j1 --workspace --all-features --locked --no-fail-fast --json --summary-only --output-path C:\Users\eayou\code_dir\Macroonz\target\q\c2\summary.json` completed successfully with `CARGO_TARGET_DIR=C:\Users\eayou\code_dir\Macroonz\target\q\c2\t`.
+- With the absolute repository root elided, `cargo +1.98.0 llvm-cov nextest -j1 --workspace --all-features --locked --no-fail-fast --json --summary-only --output-path target/q/c2/summary.json` completed successfully with `CARGO_TARGET_DIR=target/q/c2/t`.
 - The second ordinary nextest denominator passed 411 of 411 tests across 60 binaries, while nine intentional child or ignored tests remained outside direct nextest enumeration.
 - Function coverage rose to 2,915 of 3,366, or 86.60130718954248 percent.
 - Line coverage rose to 21,487 of 24,747, or 86.82668606295712 percent.
@@ -62,5 +62,5 @@ The raw profile, instrumented objects, test executables, and exported summary re
 ## Cleanup
 
 - After the post-observer receipt was committed, Cargo refused to clean `target/q/c2/t` because that coverage layout carried no valid `CACHEDIR.TAG`, and host policy blocked a direct recursive deletion.
-- The validated exact `target/q/c2` tree was moved recoverably out of the repository to `C:\Users\eayou\Downloads\macroonz-night-scratch-20260827\c2`.
+- The validated exact `target/q/c2` tree was moved recoverably to the `c2` leaf of the task-created `macroonz-night-scratch-20260827` archive outside the repository.
 - The live repository coverage path no longer exists, and the recoverable archive remains disposable with no evidence authority.
