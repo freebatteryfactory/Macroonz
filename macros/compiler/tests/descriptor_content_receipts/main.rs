@@ -4,8 +4,8 @@
 //! The reversal changes only authored order, so an encoder that sorted a roster would fail beside the exact receipts rather than appearing equivalent.
 
 use macroonz_compiler::descriptor::{
-    CaptureIssue, Composition, CompositionIssue, DeclarationError, Grammar, PROVIDER_LIMIT,
-    Provider, Seat, bench, concurrency, mutation, network, shadow, trial,
+    CaptureIssue, Composition, CompositionIssue, DESCRIPTOR_MEANING_FACT, DeclarationError,
+    Grammar, PROVIDER_LIMIT, Provider, Seat, bench, concurrency, mutation, network, shadow, trial,
 };
 use macroonz_compiler::{
     CanonicalContent, Capping, CapturedInput, CrateBinding, Diagnostic, Door, LineBody, Observed,
@@ -24,6 +24,11 @@ const COMPOSITION_DOOR: Door = Door::declared(
         name: "descriptor-content-receipts",
     },
 );
+
+/// Distinct doubled identities that exactly fill the declared provider magnitude.
+const MAXIMUM_DOUBLED_PROVIDERS: usize = 32;
+
+const _: () = assert!(MAXIMUM_DOUBLED_PROVIDERS.saturating_mul(2) == PROVIDER_LIMIT);
 
 const TRIAL_BODY: &str = r#"
     support = greet_support,
@@ -351,6 +356,16 @@ fn provider(subject: &'static str, discriminator: u8) -> Provider {
     }
 }
 
+/// Appends one independently stated eight-byte length prefix and its material.
+fn framed(material: &[u8], into: &mut Vec<u8>) {
+    into.extend_from_slice(
+        &u64::try_from(material.len())
+            .unwrap_or(u64::MAX)
+            .to_be_bytes(),
+    );
+    into.extend_from_slice(material);
+}
+
 /// One declared provider roster with distinct identities.
 fn providers(count: usize) -> Vec<Provider> {
     (0..count)
@@ -411,7 +426,14 @@ fn empty_composition_refuses_as_an_absent_provider() -> Result<(), ()> {
             .contains("the declaration states no provider")
     );
     assert!(diagnostic.related().carried().is_empty());
-    assert_eq!(diagnostic.repairs().len(), 1usize);
+    let [repair] = diagnostic.repairs() else {
+        return Err(());
+    };
+    assert_eq!(repair.declared_by, DESCRIPTOR_MEANING_FACT);
+    assert_eq!(
+        repair.description.shown(),
+        "state at least one provider of descriptor material"
+    );
     Ok(())
 }
 
@@ -452,7 +474,7 @@ fn descriptor_composition_reports_each_doubled_provider_once() -> Result<(), ()>
         .err()
         .ok_or(())?;
     assert_eq!(
-        refusal.issues().iter().copied().collect::<Vec<_>>(),
+        refusal.issues().copied().collect::<Vec<_>>(),
         vec![
             CompositionIssue::ProviderDoubled {
                 provider: first.identity,
@@ -462,7 +484,6 @@ fn descriptor_composition_reports_each_doubled_provider_once() -> Result<(), ()>
             },
         ]
     );
-    assert_eq!(refusal.capping(), Capping::Complete);
     assert_eq!(Refused::class(&refusal), RefusalClass::CarrierNotDeclared);
     assert_eq!(Refused::observed(&refusal), Observed::IdentityDisagreement);
     assert_eq!(
@@ -477,7 +498,47 @@ fn descriptor_composition_reports_each_doubled_provider_once() -> Result<(), ()>
         return Err(());
     };
     assert_ne!(refusal.first_issue().canonical_bytes(), *second_issue_bytes);
-    assert!(Refused::repairs(&refusal).is_empty());
+    let repairs = Refused::repairs(&refusal);
+    let [repair] = repairs.as_slice() else {
+        return Err(());
+    };
+    assert_eq!(repair.declared_by, DESCRIPTOR_MEANING_FACT);
+    assert_eq!(
+        repair.description.shown(),
+        "state each provider identity once"
+    );
+    Ok(())
+}
+
+/// Claim: the provider ceiling itself bounds duplicate findings, so every lawful finding fits and no capping posture exists.
+/// Subject: the public `Composition::declared`, `CompositionError::issues`, and `Refused::body` roads.
+/// Population: thirty-two distinct identities, each declared exactly twice, filling the sixty-four-provider ceiling.
+/// Hostile control: any prefix cap below the derived thirty-two-finding denominator would omit a declared duplicate.
+/// Denominator: the maximum number of distinct doubled identities one admitted provider roster can contain.
+/// Evidence ceiling: this proves complete maximum-width duplicate reporting under the current provider magnitude, not larger future provider postures.
+/// Retained-regression policy: any missing identity or truncated body requires an explicit provider-magnitude and diagnostic ruling.
+#[test]
+fn descriptor_composition_retains_every_maximum_width_duplicate() -> Result<(), ()> {
+    let distinct = providers(MAXIMUM_DOUBLED_PROVIDERS);
+    let declared = distinct
+        .iter()
+        .flat_map(|provider| [*provider, *provider])
+        .collect();
+    let refusal = Composition::declared(declared).err().ok_or(())?;
+    let expected = distinct
+        .iter()
+        .map(|provider| CompositionIssue::ProviderDoubled {
+            provider: provider.identity,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(refusal.issues().copied().collect::<Vec<_>>(), expected);
+    assert_eq!(
+        Refused::body(&refusal),
+        LineBody::Body {
+            further: MAXIMUM_DOUBLED_PROVIDERS.saturating_sub(1),
+            capping: Capping::Complete,
+        }
+    );
     Ok(())
 }
 
@@ -505,8 +566,16 @@ fn descriptor_composition_reports_its_provider_magnitude() -> Result<(), ()> {
             },
         }
     );
-    assert_eq!(refusal.capping(), Capping::Complete);
     assert_eq!(Refused::observed(&refusal), Observed::BoundExceeded);
+    let repairs = Refused::repairs(&refusal);
+    let [repair] = repairs.as_slice() else {
+        return Err(());
+    };
+    assert_eq!(repair.declared_by, DESCRIPTOR_MEANING_FACT);
+    assert_eq!(
+        repair.description.shown(),
+        "state no more than the declared provider magnitude"
+    );
     Ok(())
 }
 
@@ -536,54 +605,65 @@ fn composition_settles_magnitude_before_duplicate_work() -> Result<(), ()> {
     Ok(())
 }
 
-/// Claim: absence, magnitude, and each doubled identity have distinct canonical issue material.
+/// Claim: absence, magnitude, and each doubled identity publish their exact canonical issue material under stable public slots.
 /// Subject: `CompositionIssue::canonical_bytes`.
 /// Population: one absent provider seat, one overrun provider seat, and two doubled provider identities.
-/// Hostile control: all four share one refusal family, so family separation cannot rescue a byte collision.
+/// Hostile control: independently framed expected vectors disagree with a moved slot, nested declaration row, field order, length, subject, or identity byte.
 /// Denominator: every current composition issue shape and two values of its identity-bearing shape.
-/// Evidence ceiling: this establishes separation for the current roster, not cryptographic collision resistance.
-/// Retained-regression policy: a collision or changed shape requires an explicit canonical-byte ruling.
+/// Evidence ceiling: this fixes the complete current byte grammar, not cryptographic collision resistance.
+/// Retained-regression policy: any changed vector requires an explicit canonical-byte ruling.
 #[test]
-fn composition_issue_bytes_retain_shape_and_identity() {
-    assert_eq!(
-        CompositionIssue::ProviderDoubled {
-            provider: provider("lane/first-provider", 1).identity,
-        }
-        .slot(),
-        0
-    );
-    assert_eq!(
-        CompositionIssue::Declaration {
-            refusal: DeclarationError::Absent {
-                seat: Seat::Provider,
-            },
-        }
-        .slot(),
-        1
-    );
-    let bytes = std::collections::BTreeSet::from([
-        CompositionIssue::Declaration {
-            refusal: DeclarationError::Absent {
-                seat: Seat::Provider,
-            },
-        }
-        .canonical_bytes(),
-        CompositionIssue::Declaration {
-            refusal: DeclarationError::Unbounded {
-                seat: Seat::Provider,
-                bound: 64,
-                observed: 65,
-            },
-        }
-        .canonical_bytes(),
-        CompositionIssue::ProviderDoubled {
-            provider: provider("lane/first-provider", 1).identity,
-        }
-        .canonical_bytes(),
-        CompositionIssue::ProviderDoubled {
-            provider: provider("lane/second-provider", 2).identity,
-        }
-        .canonical_bytes(),
-    ]);
-    assert_eq!(bytes.len(), 4usize);
+fn composition_issue_bytes_retain_exact_shape_and_identity() {
+    let absent = CompositionIssue::Declaration {
+        refusal: DeclarationError::Absent {
+            seat: Seat::Provider,
+        },
+    };
+    let mut absent_refusal = vec![3];
+    framed(b"provider", &mut absent_refusal);
+    let mut absent_expected = vec![1];
+    framed(&absent_refusal, &mut absent_expected);
+
+    let unbounded = CompositionIssue::Declaration {
+        refusal: DeclarationError::Unbounded {
+            seat: Seat::Provider,
+            bound: 64,
+            observed: 65,
+        },
+    };
+    let mut unbounded_refusal = vec![5];
+    framed(b"provider", &mut unbounded_refusal);
+    unbounded_refusal.extend_from_slice(&64_u64.to_be_bytes());
+    unbounded_refusal.extend_from_slice(&65_u64.to_be_bytes());
+    let mut unbounded_expected = vec![1];
+    framed(&unbounded_refusal, &mut unbounded_expected);
+
+    let first_doubled = CompositionIssue::ProviderDoubled {
+        provider: provider("lane/first-provider", 1).identity,
+    };
+    let mut first_citation = Vec::new();
+    framed(b"lane/first-provider", &mut first_citation);
+    framed(&[1; 32], &mut first_citation);
+    let mut first_expected = vec![0];
+    framed(&first_citation, &mut first_expected);
+
+    let second_doubled = CompositionIssue::ProviderDoubled {
+        provider: provider("lane/second-provider", 2).identity,
+    };
+    let mut second_citation = Vec::new();
+    framed(b"lane/second-provider", &mut second_citation);
+    framed(&[2; 32], &mut second_citation);
+    let mut second_expected = vec![0];
+    framed(&second_citation, &mut second_expected);
+
+    let cases = [
+        (absent, 1, absent_expected),
+        (unbounded, 1, unbounded_expected),
+        (first_doubled, 0, first_expected),
+        (second_doubled, 0, second_expected),
+    ];
+    for (issue, slot, expected) in cases {
+        assert_eq!(issue.slot(), slot);
+        assert_eq!(issue.canonical_bytes(), expected);
+    }
 }

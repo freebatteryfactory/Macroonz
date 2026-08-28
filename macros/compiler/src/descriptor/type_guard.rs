@@ -7,11 +7,11 @@
 
 use super::super::composition::doubled_providers;
 use super::{
-    COMPOSITION_ISSUE_LIMIT, CaptureCause, CaptureIssue, Composition, CompositionError,
-    CompositionIssue, DeclarationError, DirectBinding, FunctionName, Grammar, HelperRefusal,
-    ModuleName, Name, PATH_SEGMENT_LIMIT, PROVIDER_LIMIT, Provider, Seat, SupportName, TypeName,
+    CaptureCause, CaptureIssue, Composition, CompositionError, CompositionIssue, DeclarationError,
+    DirectBinding, FunctionName, Grammar, HelperRefusal, ModuleName, Name, PATH_SEGMENT_LIMIT,
+    PROVIDER_LIMIT, Provider, Seat, SupportName, TypeName,
 };
-use crate::bounded::{Capped, Capping, NonEmpty, NonEmptyError};
+use crate::bounded::{NonEmpty, NonEmptyError};
 use crate::token::SpanHandle;
 
 impl Grammar {
@@ -196,33 +196,33 @@ impl CompositionError {
         let mut walk = issues.into_iter();
         let first = walk.next()?;
         Some(Self {
-            body: Capped::<CompositionIssue, COMPOSITION_ISSUE_LIMIT>::first_n(first, walk),
+            first,
+            further: walk.collect(),
         })
     }
 
     /// The refusal one declaration issue amounts to.
     const fn one(issue: CompositionIssue) -> Self {
         Self {
-            body: Capped::all(NonEmpty::one(issue)),
+            first: issue,
+            further: Vec::new(),
         }
     }
 
     /// The first established issue.
     #[must_use]
-    pub fn first_issue(&self) -> &CompositionIssue {
-        self.body.items().first()
+    pub const fn first_issue(&self) -> &CompositionIssue {
+        &self.first
     }
 
-    /// Every issue this refusal carries, in the order the scan established them; structurally at least one.
-    #[must_use]
-    pub fn issues(&self) -> &NonEmpty<CompositionIssue, COMPOSITION_ISSUE_LIMIT> {
-        self.body.items()
+    /// Every issue this refusal carries, in the order the declaration pass established them; structurally at least one and never truncated.
+    pub fn issues(&self) -> impl Iterator<Item = &CompositionIssue> {
+        core::iter::once(&self.first).chain(self.further.iter())
     }
 
-    /// Whether the body kept every issue the scan established.
-    #[must_use]
-    pub const fn capping(&self) -> Capping {
-        self.body.capping()
+    /// How many complete issues the declaration pass established.
+    pub(in crate::descriptor) const fn issue_count(&self) -> usize {
+        self.further.len().saturating_add(1)
     }
 }
 

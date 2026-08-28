@@ -2,7 +2,7 @@
 
 use super::{
     CaptureCause, CaptureIssue, CompositionError, CompositionIssue, DESCRIPTOR_MEANING_FACT,
-    DeclarationError, HelperRefusal, RENDERED_SPELLING_FACT,
+    DeclarationError, HelperRefusal, RENDERED_SPELLING_FACT, Seat,
 };
 use crate::bounded::{Bounded, Capping};
 use crate::diagnostic::{
@@ -342,17 +342,11 @@ impl core::fmt::Display for CompositionError {
     fn fmt(&self, into: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let first = self.first_issue();
         write!(into, "{first}")?;
-        let further = self.issues().count().saturating_sub(1);
+        let further = self.issue_count().saturating_sub(1);
         if further > 0 {
             write!(into, ", and {further} further issues")?;
         }
-        match self.capping() {
-            Capping::Complete => Ok(()),
-            Capping::Truncated { omitted } => write!(
-                into,
-                "; {omitted} of them do not fit the declared issue bound"
-            ),
-        }
+        Ok(())
     }
 }
 
@@ -375,28 +369,55 @@ impl Refused for CompositionError {
     }
 
     fn body(&self) -> LineBody {
-        let further = self.issues().count().saturating_sub(1);
-        let capping = self.capping();
-        if further == 0 && capping == Capping::Complete {
+        let further = self.issue_count().saturating_sub(1);
+        if further == 0 {
             LineBody::SingleCause
         } else {
-            LineBody::Body { further, capping }
+            LineBody::Body {
+                further,
+                capping: Capping::Complete,
+            }
         }
     }
 
     /// The issues established beyond the primary cause; the primary is the summary's own subject, never a member of its related set.
     fn related(&self) -> Vec<Vec<u8>> {
         self.issues()
-            .iter()
             .skip(1)
             .map(CompositionIssue::canonical_bytes)
             .collect()
     }
 
-    /// A shared declaration refusal retains its shared repair, while a doubled provider cites no new owner fact.
+    /// The exact descriptor meaning that repairs the first established composition issue.
     fn repairs(&self) -> Bounded<Repair, REPAIR_LIMIT> {
         match self.first_issue() {
-            CompositionIssue::ProviderDoubled { .. } => Bounded::empty(),
+            CompositionIssue::ProviderDoubled { .. } => Bounded::from_array([Repair {
+                declared_by: DESCRIPTOR_MEANING_FACT,
+                description: human_projection!("state each provider identity once"),
+            }]),
+            CompositionIssue::Declaration {
+                refusal:
+                    DeclarationError::Absent {
+                        seat: Seat::Provider,
+                    },
+            } => Bounded::from_array([Repair {
+                declared_by: DESCRIPTOR_MEANING_FACT,
+                description: human_projection!(
+                    "state at least one provider of descriptor material"
+                ),
+            }]),
+            CompositionIssue::Declaration {
+                refusal:
+                    DeclarationError::Unbounded {
+                        seat: Seat::Provider,
+                        ..
+                    },
+            } => Bounded::from_array([Repair {
+                declared_by: DESCRIPTOR_MEANING_FACT,
+                description: human_projection!(
+                    "state no more than the declared provider magnitude"
+                ),
+            }]),
             CompositionIssue::Declaration { refusal } => {
                 <DeclarationError as Refused>::repairs(refusal)
             }

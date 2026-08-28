@@ -4,7 +4,6 @@ This file binds every person, model, and agent who edits this repository.
 It is the only such file; `CLAUDE.md` is a pointer to it.
 The [README](README.md) owns the product and the crate map, and nothing here repeats it.
 
-> There is no CI and no gate.
 > The toolchain at the root, run locally, is the enforcement surface: the lint wall in `Cargo.toml`, `clippy.toml`, `deny.toml`, `.cargo/config.toml`, the compiler itself, and the lanes.
 > Checks report.
 > A human decides.
