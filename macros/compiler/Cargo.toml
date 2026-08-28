@@ -1,11 +1,16 @@
 [package]
 name = "macroonz-compiler"
-description = "A deterministic code generator as ordinary callable Rust: plan, render, close, explain, and bind one sealed expansion from a complete request."
+description = "Deterministic Rust code generation for procedural macros: plan, render, close, explain, and bind one sealed expansion from declared input."
+keywords = ["codegen", "proc-macro", "derive", "metaprogramming", "code-generation"]
+categories = ["development-tools::procedural-macro-helpers"]
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
 
 [lints]
 workspace = true
