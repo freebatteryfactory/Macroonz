@@ -2,9 +2,10 @@
 
 use super::types::RustcCoverageTools;
 use super::{
-    CoverageSourceRoot, CoverageTool, PreflightIncomplete, RUSTC_COVERAGE_TOOLCHAIN,
-    ReadyPreflight, RustcCommand, RustcField, RustcProfileRequest,
+    CoverageSourceRoot, CoverageStanding, CoverageTool, PreflightIncomplete,
+    RUSTC_COVERAGE_TOOLCHAIN, ReadyPreflight, RustcCommand, RustcField, RustcProfileRequest,
 };
+use crate::report::{TargetBinding, TargetTriple, ToolchainIdentity};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
@@ -66,10 +67,17 @@ pub fn preflight_ready(
     }
 
     let tools = RustcCoverageTools::established(profdata, cov);
+    let toolchain = format!("rustc {release} LLVM {rustc_llvm}");
+    let target = TargetBinding::bound(
+        TargetTriple::declared(host),
+        ToolchainIdentity::declared(&toolchain),
+    );
+    let standing = CoverageStanding::established(request.campaign(), target);
     Ok(ReadyPreflight {
         request,
         tools,
         source_root,
+        standing,
         sysroot,
         release: release.to_owned(),
         host: host.to_owned(),

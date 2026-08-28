@@ -1,11 +1,12 @@
 //! Safe process execution for one stable rustc coverage observation.
 
 use super::{
-    CoverageObservation, FuzzExecution, ReadyPreflight, RustcProfileRefusal, RustcProfileResult,
-    read_lcov,
+    CoverageCorpus, CoverageObservation, FuzzExecution, ReadyPreflight, RustcProfileRefusal,
+    RustcProfileResult, read_lcov,
 };
 use std::ffi::OsString;
 use std::fs::{self, File};
+use std::io::Read;
 use std::process::{Child, Command, Stdio};
 
 /// Run one candidate through an already-instrumented target and read its coverage profile.
@@ -25,13 +26,14 @@ use std::process::{Child, Command, Stdio};
 /// Refuses an empty candidate, an existing deterministic case directory, process or filesystem failures, a missing successful profile, tool failures, or malformed coverage output.
 pub fn observe_rustc_profile(
     ready: &ReadyPreflight,
+    corpus: &mut CoverageCorpus,
     candidate: &[u8],
-    case: u64,
     supervise: impl FnOnce(&mut Child) -> Result<FuzzExecution, String>,
 ) -> Result<RustcProfileResult, RustcProfileRefusal> {
     if candidate.is_empty() {
         return Err(RustcProfileRefusal::EmptyCandidate);
     }
+    let case = corpus.reserve_execution(ready, candidate.len())?;
     fs::create_dir_all(ready.scratch())
         .map_err(|error| RustcProfileRefusal::CreateCase(error.to_string()))?;
     let case_directory = ready.scratch().join(format!("case-{case:020}"));
@@ -42,6 +44,23 @@ pub fn observe_rustc_profile(
         }
         Err(error) => return Err(RustcProfileRefusal::CreateCase(error.to_string())),
     }
+    let result = observe_case(ready, candidate, case, &case_directory, supervise);
+    match fs::remove_dir_all(&case_directory) {
+        Ok(()) => result,
+        Err(error) => Err(RustcProfileRefusal::CleanupCase {
+            after: result.err().map(Box::new),
+            cleanup: error.to_string(),
+        }),
+    }
+}
+
+fn observe_case(
+    ready: &ReadyPreflight,
+    candidate: &[u8],
+    case: u32,
+    case_directory: &std::path::Path,
+    supervise: impl FnOnce(&mut Child) -> Result<FuzzExecution, String>,
+) -> Result<RustcProfileResult, RustcProfileRefusal> {
     let raw = case_directory.join("coverage.profraw");
     let merged = case_directory.join("coverage.profdata");
     let input_path = case_directory.join("candidate.bin");
@@ -53,13 +72,22 @@ pub fn observe_rustc_profile(
             return Err(RustcProfileRefusal::MissingProfile);
         }
         return Ok(RustcProfileResult::established(
+            case,
+            candidate.to_vec(),
             execution,
             CoverageObservation::empty(),
+            ready.standing().clone(),
         ));
     }
     merge_profile(ready, &raw, &merged)?;
     let observation = export_coverage(ready, &merged)?;
-    Ok(RustcProfileResult::established(execution, observation))
+    Ok(RustcProfileResult::established(
+        case,
+        candidate.to_vec(),
+        execution,
+        observation,
+        ready.standing().clone(),
+    ))
 }
 
 fn run_target(
@@ -114,17 +142,18 @@ fn export_coverage(
 ) -> Result<CoverageObservation, RustcProfileRefusal> {
     let mut profile_argument = OsString::from("-instr-profile=");
     profile_argument.push(merged.as_os_str());
-    let output = Command::new(ready.tools().cov())
+    let child = Command::new(ready.tools().cov())
         .arg("export")
         .arg("-format=lcov")
         .arg(profile_argument)
         .arg(ready.target().executable())
-        .output()
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
         .map_err(|error| RustcProfileRefusal::StartCov(error.to_string()))?;
-    if !output.status.success() {
-        return Err(RustcProfileRefusal::CovFailed(output.status.code()));
-    }
-    read_lcov(ready.source_root(), &output.stdout).map_err(RustcProfileRefusal::Coverage)
+    let output = CovProcess::running(child)
+        .bounded_output(ready.standing().campaign().budgets().export_bytes())?;
+    read_lcov(ready.source_root(), &output).map_err(RustcProfileRefusal::Coverage)
 }
 
 /// One started target that remains responsible for termination and reaping until it proves otherwise.
@@ -195,6 +224,86 @@ impl TargetProcess {
 }
 
 impl Drop for TargetProcess {
+    fn drop(&mut self) {
+        if matches!(self.custody, ProcessCustody::Running) {
+            let _cleanup = self.terminate_and_reap();
+        }
+    }
+}
+
+/// One coverage-export process that remains responsible for termination and reaping until it proves otherwise.
+struct CovProcess {
+    child: Child,
+    custody: ProcessCustody,
+}
+
+impl CovProcess {
+    fn running(child: Child) -> Self {
+        Self {
+            child,
+            custody: ProcessCustody::Running,
+        }
+    }
+
+    fn bounded_output(mut self, bound: u64) -> Result<Vec<u8>, RustcProfileRefusal> {
+        let Some(stdout) = self.child.stdout.take() else {
+            return self.refuse(RustcProfileRefusal::ReadCov(
+                "coverage export stdout was not piped".to_owned(),
+            ));
+        };
+        let mut output = Vec::new();
+        let mut bounded = stdout.take(bound.saturating_add(1));
+        if let Err(error) = bounded.read_to_end(&mut output) {
+            return self.refuse(RustcProfileRefusal::ReadCov(error.to_string()));
+        }
+        let observed_at_least = u64::try_from(output.len()).unwrap_or(u64::MAX);
+        if observed_at_least > bound {
+            return self.refuse(RustcProfileRefusal::CovOutputBudgetExhausted {
+                bound,
+                observed_at_least,
+            });
+        }
+        let status = match self.child.wait() {
+            Ok(status) => status,
+            Err(error) => {
+                return self.refuse(RustcProfileRefusal::WaitCov(error.to_string()));
+            }
+        };
+        self.custody = ProcessCustody::Reaped;
+        if status.success() {
+            Ok(output)
+        } else {
+            Err(RustcProfileRefusal::CovFailed(status.code()))
+        }
+    }
+
+    fn refuse(mut self, refusal: RustcProfileRefusal) -> Result<Vec<u8>, RustcProfileRefusal> {
+        match self.terminate_and_reap() {
+            Ok(()) => Err(refusal),
+            Err(cleanup) => Err(RustcProfileRefusal::CleanupCov {
+                after: Box::new(refusal),
+                cleanup,
+            }),
+        }
+    }
+
+    fn terminate_and_reap(&mut self) -> Result<(), String> {
+        if let Ok(Some(_status)) = self.child.try_wait() {
+            self.custody = ProcessCustody::Reaped;
+            return Ok(());
+        }
+        self.child
+            .kill()
+            .map_err(|error| format!("coverage export termination failed: {error}"))?;
+        self.child
+            .wait()
+            .map_err(|error| format!("coverage export reap failed: {error}"))?;
+        self.custody = ProcessCustody::Reaped;
+        Ok(())
+    }
+}
+
+impl Drop for CovProcess {
     fn drop(&mut self) {
         if matches!(self.custody, ProcessCustody::Running) {
             let _cleanup = self.terminate_and_reap();

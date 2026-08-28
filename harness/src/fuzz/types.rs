@@ -2,7 +2,8 @@
 //!
 //! Construction and reading live in this module's own child `type_guard.rs`.
 
-use crate::descriptor::NamespacedName;
+use crate::descriptor::{NamespacedName, PopulationRef, RevisionBinding};
+use crate::report::{ByteBudget, CaseBudget, TargetBinding};
 use std::collections::BTreeSet;
 use std::path::PathBuf;
 
@@ -31,6 +32,58 @@ pub enum CoverageSourceRootRefusal {
     CheckoutTraversal,
     /// The checkout path could not be represented in the UTF-8 coverage document.
     NonUtf8Checkout,
+}
+
+/// The named and versioned interpretation applied to one coverage export.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CoverageProfile {
+    name: NamespacedName,
+    version: u32,
+}
+
+/// The closed resource ceiling for one coverage campaign.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CoverageBudgets {
+    executions: CaseBudget,
+    input_bytes: ByteBudget,
+    export_bytes: u64,
+    points: u64,
+    retained_cases: CaseBudget,
+    retained_bytes: ByteBudget,
+}
+
+/// Why a coverage campaign's resource ceiling was not informed.
+#[must_use = "a refusal is the reason coverage budgets were not built"]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CoverageBudgetRefusal {
+    /// No candidate attempt was admitted.
+    Executions,
+    /// No candidate byte was admitted across the campaign.
+    InputBytes,
+    /// No exported coverage byte was admitted per execution.
+    ExportBytes,
+    /// No canonical coverage point was admitted.
+    Points,
+    /// No coverage-novel candidate was admitted for retention.
+    RetainedCases,
+    /// No coverage-novel candidate byte was admitted for retention.
+    RetainedBytes,
+}
+
+/// The caller-declared semantic and resource standing of one coverage campaign before host preflight.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CoverageCampaign {
+    population: PopulationRef,
+    revision: RevisionBinding,
+    profile: CoverageProfile,
+    budgets: CoverageBudgets,
+}
+
+/// One coverage campaign joined to the target and toolchain established by active preflight.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CoverageStanding {
+    campaign: CoverageCampaign,
+    target: TargetBinding,
 }
 
 /// One root-independent source identity carried by a coverage point.
@@ -164,14 +217,6 @@ pub struct InterestingBytes {
     bytes: Vec<u8>,
 }
 
-/// Why interesting bytes were refused.
-#[must_use = "a refusal is the reason interesting bytes were not admitted"]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum InterestingBytesRefusal {
-    /// The byte string was empty, so it cannot seed a reduction.
-    Empty,
-}
-
 /// One canonical covered source point exported by `llvm-cov`.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CoveragePoint {
@@ -252,8 +297,12 @@ pub enum CoverageReadRefusal {
 /// The campaign's accumulated coverage frontier and retained interesting inputs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CoverageCorpus {
+    pub(super) standing: CoverageStanding,
+    pub(super) attempted_cases: u32,
+    pub(super) attempted_input_bytes: u64,
     pub(super) observed: BTreeSet<CoveragePoint>,
     pub(super) interesting: Vec<InterestingBytes>,
+    pub(super) retained_bytes: u64,
 }
 
 /// What became of one candidate at the coverage frontier.
@@ -269,10 +318,31 @@ pub enum CoverageAdmission {
 #[must_use = "a refusal is the reason a coverage candidate was not judged"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CoverageAdmissionRefusal {
+    /// The reading belongs to another campaign standing.
+    CampaignMismatch,
+    /// Coverage novelty is retained only from a successful target execution.
+    Execution(FuzzExecution),
     /// The execution reported no covered point.
     EmptyObservation,
-    /// The candidate bytes were empty.
-    EmptyCandidate,
+    /// The joined observation would exceed the campaign's point ceiling.
+    PointBudgetExhausted {
+        /// The declared point ceiling.
+        bound: u64,
+        /// The point count the admission would require.
+        attempted: u64,
+    },
+    /// The campaign already retained its declared number of interesting cases.
+    RetainedCaseBudgetExhausted {
+        /// The declared retained-case ceiling.
+        bound: u32,
+    },
+    /// The joined candidate would exceed the retained-byte ceiling.
+    RetainedByteBudgetExhausted {
+        /// The declared retained-byte ceiling.
+        bound: u64,
+        /// The retained-byte count the admission would require.
+        attempted: u64,
+    },
 }
 
 /// One bounded deterministic neighboring-input plan.
@@ -361,6 +431,7 @@ pub struct RustcProfileRequest {
     target: InstrumentedTarget,
     source_root: CoverageSourceRoot,
     scratch: PathBuf,
+    campaign: CoverageCampaign,
 }
 
 /// Why a rustc-profile request was not constructed.
@@ -387,6 +458,7 @@ pub struct ReadyPreflight {
     pub(super) request: RustcProfileRequest,
     pub(super) tools: RustcCoverageTools,
     pub(super) source_root: CoverageSourceRoot,
+    pub(super) standing: CoverageStanding,
     pub(super) sysroot: PathBuf,
     pub(super) release: String,
     pub(super) host: String,
@@ -408,11 +480,14 @@ pub enum FuzzExecution {
     ResourceExhaustion,
 }
 
-/// One target execution together with any coverage it flushed.
+/// One target execution joined to its exact candidate, observation, and qualified campaign standing.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RustcProfileResult {
+    case: u32,
+    candidate: Vec<u8>,
     execution: FuzzExecution,
     observation: CoverageObservation,
+    standing: CoverageStanding,
 }
 
 /// Why one rustc-profile execution could not produce a truthful result.
@@ -421,6 +496,20 @@ pub struct RustcProfileResult {
 pub enum RustcProfileRefusal {
     /// The caller supplied an empty candidate.
     EmptyCandidate,
+    /// The supplied corpus belongs to another qualified campaign standing.
+    CampaignMismatch,
+    /// The campaign already executed its declared number of cases.
+    CaseBudgetExhausted {
+        /// The declared candidate-attempt ceiling.
+        bound: u32,
+    },
+    /// The candidate would exceed the campaign's cumulative input-byte ceiling.
+    InputBudgetExhausted {
+        /// The declared input-byte ceiling.
+        bound: u64,
+        /// The input-byte count the execution would require.
+        attempted: u64,
+    },
     /// The deterministic case directory already existed.
     CaseAlreadyExists(PathBuf),
     /// The case directory could not be created.
@@ -452,10 +541,35 @@ pub enum RustcProfileRefusal {
     ProfdataFailed(Option<i32>),
     /// `llvm-cov` could not be started.
     StartCov(String),
+    /// The declared coverage export ceiling was exceeded.
+    CovOutputBudgetExhausted {
+        /// The declared output-byte ceiling.
+        bound: u64,
+        /// The minimum output size observed before termination.
+        observed_at_least: u64,
+    },
+    /// `llvm-cov` output could not be read.
+    ReadCov(String),
+    /// `llvm-cov` could not be waited on after its output was read.
+    WaitCov(String),
     /// `llvm-cov` exited unsuccessfully.
     CovFailed(Option<i32>),
+    /// Termination or reaping failed after an `llvm-cov` refusal.
+    CleanupCov {
+        /// The refusal that required cleanup.
+        after: Box<RustcProfileRefusal>,
+        /// The cleanup failure.
+        cleanup: String,
+    },
     /// The exported coverage was malformed.
     Coverage(CoverageReadRefusal),
+    /// The task-created case directory could not be removed after observation or refusal.
+    CleanupCase {
+        /// The earlier refusal, when cleanup followed an unsuccessful observation.
+        after: Option<Box<RustcProfileRefusal>>,
+        /// The cleanup failure.
+        cleanup: String,
+    },
 }
 
 /// Why compose-reduce-replay refused.

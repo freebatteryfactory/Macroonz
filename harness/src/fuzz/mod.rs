@@ -13,10 +13,11 @@ pub use execute::observe_rustc_profile;
 pub use mutate::neighboring_inputs;
 pub use preflight::preflight_ready;
 pub use types::{
-    ComposeRefusal, CoverageAdmission, CoverageAdmissionRefusal, CoverageCorpus,
-    CoverageObservation, CoveragePoint, CoverageReadRefusal, CoverageSource, CoverageSourceRoot,
-    CoverageSourceRootRefusal, CoverageTool, FuzzExecution, InstrumentedTarget, InterestingBytes,
-    InterestingBytesRefusal, MutationCandidate, MutationKind, MutationPlan, MutationPlanRefusal,
+    ComposeRefusal, CoverageAdmission, CoverageAdmissionRefusal, CoverageBudgetRefusal,
+    CoverageBudgets, CoverageCampaign, CoverageCorpus, CoverageObservation, CoveragePoint,
+    CoverageProfile, CoverageReadRefusal, CoverageSource, CoverageSourceRoot,
+    CoverageSourceRootRefusal, CoverageStanding, CoverageTool, FuzzExecution, InstrumentedTarget,
+    InterestingBytes, MutationCandidate, MutationKind, MutationPlan, MutationPlanRefusal,
     MutationRefusal, PreflightIncomplete, RUSTC_COVERAGE_TOOLCHAIN, ReadyPreflight, RustcCommand,
     RustcField, RustcProfileRefusal, RustcProfileRequest, RustcProfileRequestRefusal,
     RustcProfileResult,
