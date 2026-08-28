@@ -11,10 +11,17 @@ use macroonz_harness::preemption::{
     PreemptionVerdict, attempted, explored,
 };
 use macroonz_harness::report::{FailureClass, InfrastructureFault, RunAttempt, TrialConclusion};
+use std::io::Write;
 use std::process::{Command, Output};
 
 /// The workspace manifest, read at compile time, where the loom pin is declared.
 const ROOT_MANIFEST: &str = include_str!("../../../Cargo.toml");
+
+/// The ignored exact child that observes intentional branch exhaustion without backtrace generation.
+const BRANCH_EXHAUSTION_CHILD: &str = "supported::branch_exhaustion_is_typed_child";
+
+/// The child marker written only after the typed branch-exhaustion assertions hold.
+const BRANCH_EXHAUSTION_CHILD_MARKER: &[u8] = b"macroonz-branch-exhaustion-typed\n";
 
 /// Every environment seat Loom 0.7.2 reads while constructing its builder.
 const LOOM_ENVIRONMENT: [&str; 8] = [
@@ -27,9 +34,6 @@ const LOOM_ENVIRONMENT: [&str; 8] = [
     "LOOM_MAX_PERMUTATIONS",
     "LOOM_MAX_PREEMPTIONS",
 ];
-
-/// The stack reserved for the external lane's intentional Loom branch-exhaustion unwind.
-const BRANCH_EXHAUSTION_STACK_BYTES: usize = 8_388_608usize;
 
 loom::thread_local! {
     /// One shadowed thread-local, declared through loom's own macro and read inside a model.
@@ -169,7 +173,7 @@ fn bounds() -> Result<PreemptionBounds, PreemptionBoundsRefusal> {
     PreemptionBounds::declared(PreemptionBound::AtMost(2u32), 1_000u32)
 }
 
-/// Run one ignored child claim under a declared Loom environment and no inherited Loom seat.
+/// Run one ignored child claim under declared environment changes and no inherited Loom seat.
 fn child_with_environment(name: &str, environment: &[(&str, &str)]) -> std::io::Result<Output> {
     let mut command = Command::new(std::env::current_exe()?);
     command.args(["--exact", name, "--ignored", "--nocapture"]);
@@ -269,22 +273,15 @@ fn lookalike_panic_text_stays_infrastructure_unresolved() -> Result<(), Preempti
     Ok(())
 }
 
-/// A budget the backend cannot complete under remains infrastructure-incomplete rather than a subject panic.
-///
-/// The external lane owns an explicit worker stack so the intended backend unwind remains catchable on hosts whose test-process stack would otherwise turn the observation into process-level stack exhaustion.
+/// The exact child retains intentional branch exhaustion on the typed infrastructure rail.
 #[test]
-fn branch_exhaustion_stays_infrastructure_unresolved() -> std::io::Result<()> {
+#[ignore = "driven by the parent under a scoped diagnostic environment"]
+fn branch_exhaustion_is_typed_child() -> std::io::Result<()> {
     let narrow =
         PreemptionBounds::declared(PreemptionBound::AtMost(2u32), 1u32).map_err(|refusal| {
             std::io::Error::other(format!("the narrow bounds refused: {refusal:?}"))
         })?;
-    let worker = std::thread::Builder::new()
-        .name(String::from("macroonz-loom-branch-exhaustion"))
-        .stack_size(BRANCH_EXHAUSTION_STACK_BYTES)
-        .spawn(move || explored(narrow, branching_model))?;
-    let reading = worker.join().map_err(|_payload| {
-        std::io::Error::other("the declared-stack Loom worker did not return its typed reading")
-    })?;
+    let reading = explored(narrow, branching_model);
     assert!(matches!(
         reading.outcome(),
         PreemptionOutcome::Incomplete(IncompleteExploration::ExecutionUnresolved {
@@ -298,6 +295,33 @@ fn branch_exhaustion_stays_infrastructure_unresolved() -> std::io::Result<()> {
             if failure.fault() == InfrastructureFault::BackendExecutionUnresolved
                 && failure.foreign().is_some()
     ));
+    let mut stdout = std::io::stdout().lock();
+    stdout.write_all(BRANCH_EXHAUSTION_CHILD_MARKER)?;
+    stdout.flush()?;
+    Ok(())
+}
+
+/// A budget the backend cannot complete under remains infrastructure-incomplete rather than a subject panic.
+///
+/// The parent retains the workflow's diagnostic posture while the exact child disables only backtrace generation for the intentional Loom panic that must unwind into the typed reading.
+#[test]
+fn branch_exhaustion_stays_infrastructure_unresolved() -> std::io::Result<()> {
+    let output = child_with_environment(
+        BRANCH_EXHAUSTION_CHILD,
+        &[("RUST_BACKTRACE", "0"), ("RUST_LIB_BACKTRACE", "0")],
+    )?;
+    assert!(
+        output.status.success(),
+        "the scoped branch-exhaustion child failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        output
+            .stdout
+            .windows(BRANCH_EXHAUSTION_CHILD_MARKER.len())
+            .any(|window| window == BRANCH_EXHAUSTION_CHILD_MARKER),
+        "the scoped branch-exhaustion child returned without its completion marker"
+    );
     Ok(())
 }
 
