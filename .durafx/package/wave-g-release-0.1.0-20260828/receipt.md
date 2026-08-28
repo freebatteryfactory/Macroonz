@@ -64,8 +64,13 @@
 
 ## Cleanup status
 
-- Disposable package verification remains beneath exact targets `target/qualification/release-eb4e6c0-compiler`, `target/qualification/release-eb4e6c0-harness`, `target/qualification/release-eb4e6c0-macros`, and `target/qualification/release-eb4e6c0-facade` until this receipt is committed.
-- The registry-delivered adopter remains beneath exact target `target/qualification/release-eb4e6c0-registry-adopter` until this receipt is committed.
+- After the first receipt commit, Cargo removed 435 files and 133.2 MiB from exact target `target/qualification/release-eb4e6c0-compiler`.
+- Cargo removed 512 files and 171.3 MiB from exact target `target/qualification/release-eb4e6c0-harness`.
+- Cargo removed 175 files and 56.9 MiB from exact target `target/qualification/release-eb4e6c0-macros`.
+- Cargo removed 404 files and 319.9 MiB from exact target `target/qualification/release-eb4e6c0-facade`.
+- The adopter's own Cargo clean removed 413 compiled files and 380.3 MiB from its nested build target.
+- The patch mechanism then removed only the generated adopter manifest, lockfile, and source, and non-recursive removal deleted the two empty directories.
+- All five exact `target/qualification/release-eb4e6c0-*` paths named by this receipt are absent.
 
 ## Plane limits
 
