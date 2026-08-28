@@ -4,3 +4,12 @@ nextest-version = "0.9.132"
 fail-fast = false
 slow-timeout = { period = "60s" }
 failure-output = "immediate-final"
+
+[profile.ci]
+inherits = "default"
+
+[profile.ci.junit]
+path = "junit.xml"
+report-name = "macroonz-hosted"
+store-success-output = false
+store-failure-output = true
