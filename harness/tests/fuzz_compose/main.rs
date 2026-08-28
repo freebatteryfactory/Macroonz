@@ -30,9 +30,11 @@ use macroonz_harness::report::{
 use macroonz_harness::runner::{Invocation, TrialBinding, run_one};
 use std::cell::Cell;
 use std::collections::BTreeSet;
+use std::ffi::OsString;
 use std::fmt;
+use std::fs::File;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 const PRESERVED_CAUSE: FindingCause = FindingCause::named("harness", "fuzz-compose-preserved");
 const SCHEMA_TAG: DomainTag =
@@ -586,6 +588,21 @@ fn campaign_join_and_execution_budgets_refuse_before_process_start() -> Result<(
 }
 
 #[test]
+fn an_existing_case_directory_keeps_its_specific_refusal() -> Result<(), FuzzRoadFailure> {
+    let (ready, run) = rustc_profile_request("existing-case-directory")?;
+    let case = run.join("cases").join("case-00000000000000000000");
+    std::fs::create_dir_all(&case).map_err(external)?;
+    let mut coverage = CoverageCorpus::opening(&ready);
+    assert_eq!(
+        observe_rustc_profile(&ready, &mut coverage, &[0], wait_for_exit),
+        Err(RustcProfileRefusal::CaseAlreadyExists(case))
+    );
+    assert_eq!(coverage.attempted_cases(), 1);
+    std::fs::remove_dir_all(run).map_err(external)?;
+    Ok(())
+}
+
+#[test]
 fn coverage_export_and_point_budgets_refuse_atomically() -> Result<(), FuzzRoadFailure> {
     let export_campaign =
         coverage_campaign_with_budgets(coverage_budgets(1, 1, 1, 1_000_000, 1, 1)?)?;
@@ -629,6 +646,50 @@ fn coverage_export_and_point_budgets_refuse_atomically() -> Result<(), FuzzRoadF
     for run in [export_run, point_run] {
         std::fs::remove_dir_all(run).map_err(external)?;
     }
+    Ok(())
+}
+
+#[test]
+fn exact_coverage_export_byte_ceiling_is_inclusive() -> Result<(), FuzzRoadFailure> {
+    let (ready, run) = rustc_profile_request("exact-export-bound")?;
+    let export_bytes = coverage_export_size(&ready, &run, &[0])?;
+    if export_bytes == 0 {
+        return Err(FuzzRoadFailure::Fixture);
+    }
+    let campaign =
+        coverage_campaign_with_budgets(coverage_budgets(1, 1, export_bytes, 1_000_000, 1, 1)?)?;
+    let exact = rebound_ready(&ready, &run, "exact-export-cases", campaign)?;
+    let mut coverage = CoverageCorpus::opening(&exact);
+    let result = observe_rustc_profile(&exact, &mut coverage, &[0], wait_for_exit)?;
+    assert_eq!(result.execution(), FuzzExecution::Success);
+    assert!(!result.observation().points().is_empty());
+    std::fs::remove_dir_all(run).map_err(external)?;
+    Ok(())
+}
+
+#[test]
+fn exact_coverage_point_ceiling_is_inclusive() -> Result<(), FuzzRoadFailure> {
+    let (ready, run) = rustc_profile_request("exact-point-bound")?;
+    let mut discovery = CoverageCorpus::opening(&ready);
+    let observed = observe_rustc_profile(&ready, &mut discovery, &[0], wait_for_exit)?;
+    let points = u64::try_from(observed.observation().points().len()).map_err(external)?;
+    if points == 0 {
+        return Err(FuzzRoadFailure::Fixture);
+    }
+    let campaign =
+        coverage_campaign_with_budgets(coverage_budgets(1, 1, 33_554_432, points, 1, 1)?)?;
+    let exact = rebound_ready(&ready, &run, "exact-point-cases", campaign)?;
+    let mut coverage = CoverageCorpus::opening(&exact);
+    let result = observe_rustc_profile(&exact, &mut coverage, &[0], wait_for_exit)?;
+    assert!(matches!(
+        coverage.admit(result)?,
+        CoverageAdmission::Interesting(_)
+    ));
+    assert_eq!(
+        u64::try_from(coverage.observed().len()).map_err(external)?,
+        points
+    );
+    std::fs::remove_dir_all(run).map_err(external)?;
     Ok(())
 }
 
@@ -969,6 +1030,102 @@ fn ready_for_compiled_root(
     let request =
         RustcProfileRequest::declared(rustc, target, root, scratch, campaign).map_err(external)?;
     preflight_ready(request).map_err(FuzzRoadFailure::Preflight)
+}
+
+fn rebound_ready(
+    _ready: &ReadyPreflight,
+    run: &std::path::Path,
+    scratch: &str,
+    campaign: CoverageCampaign,
+) -> Result<ReadyPreflight, FuzzRoadFailure> {
+    let target =
+        InstrumentedTarget::declared(profile_subject(run), Vec::new()).map_err(external)?;
+    let repository = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .ok_or_else(|| FuzzRoadFailure::External("harness has no repository parent".to_owned()))?
+        .to_path_buf();
+    let Some(logical) = NamespacedName::named("harness", "rustc-profile-subject").ok() else {
+        return Err(FuzzRoadFailure::Fixture);
+    };
+    let root = CoverageSourceRoot::declared(logical, repository).map_err(external)?;
+    let request =
+        RustcProfileRequest::declared(rustc_path()?, target, root, run.join(scratch), campaign)
+            .map_err(external)?;
+    preflight_ready(request).map_err(FuzzRoadFailure::Preflight)
+}
+
+fn coverage_export_size(
+    ready: &ReadyPreflight,
+    run: &std::path::Path,
+    candidate: &[u8],
+) -> Result<u64, FuzzRoadFailure> {
+    let probe = run.join("export-size-probe");
+    std::fs::create_dir(&probe).map_err(external)?;
+    let input_path = probe.join("candidate.bin");
+    let raw = probe.join("coverage.profraw");
+    let merged = probe.join("coverage.profdata");
+    std::fs::write(&input_path, candidate).map_err(external)?;
+    let input = File::open(&input_path).map_err(external)?;
+    let subject = profile_subject(run);
+    let status = Command::new(&subject)
+        .env("LLVM_PROFILE_FILE", &raw)
+        .stdin(Stdio::from(input))
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map_err(external)?;
+    if !status.success() || !raw.is_file() {
+        return Err(FuzzRoadFailure::External(
+            "coverage-size probe did not produce a successful raw profile".to_owned(),
+        ));
+    }
+    let tools = ready
+        .sysroot()
+        .join("lib")
+        .join("rustlib")
+        .join(ready.host())
+        .join("bin");
+    let profdata = tools.join(format!("llvm-profdata{}", std::env::consts::EXE_SUFFIX));
+    let cov = tools.join(format!("llvm-cov{}", std::env::consts::EXE_SUFFIX));
+    let merge = Command::new(profdata)
+        .arg("merge")
+        .arg("-sparse")
+        .arg(&raw)
+        .arg("-o")
+        .arg(&merged)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map_err(external)?;
+    if !merge.success() {
+        return Err(FuzzRoadFailure::External(
+            "coverage-size profile merge failed".to_owned(),
+        ));
+    }
+    let mut profile = OsString::from("-instr-profile=");
+    profile.push(merged.as_os_str());
+    let output = Command::new(cov)
+        .arg("export")
+        .arg("-format=lcov")
+        .arg(profile)
+        .arg(subject)
+        .output()
+        .map_err(external)?;
+    if !output.status.success() {
+        return Err(FuzzRoadFailure::External(
+            "coverage-size export failed".to_owned(),
+        ));
+    }
+    let bytes = u64::try_from(output.stdout.len()).map_err(external)?;
+    std::fs::remove_dir_all(probe).map_err(external)?;
+    Ok(bytes)
+}
+
+fn profile_subject(run: &std::path::Path) -> PathBuf {
+    run.join(format!(
+        "rustc-coverage-subject{}",
+        std::env::consts::EXE_SUFFIX
+    ))
 }
 
 fn rustc_path() -> Result<PathBuf, FuzzRoadFailure> {
