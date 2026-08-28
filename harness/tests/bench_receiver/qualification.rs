@@ -9,6 +9,20 @@
 use super::{fixture, support::*};
 use std::sync::atomic::Ordering;
 
+fn assert_work_point(
+    point: &macroonz_harness::bench::WorkCurvePoint,
+    input_size: u64,
+    observation: WorkObservationRef,
+    count: u64,
+) {
+    assert_eq!(point.input_size(), input_size);
+    assert_eq!(point.counts().len(), 1usize);
+    for found in point.counts() {
+        assert_eq!(found.observation(), observation);
+        assert_eq!(found.count(), count);
+    }
+}
+
 #[test]
 fn lawful_receiver_retains_complete_primary_and_secondary_readings() -> Result<(), BenchRoadFailure>
 {
@@ -40,7 +54,21 @@ fn lawful_receiver_retains_complete_primary_and_secondary_readings() -> Result<(
         binding.row().input_sizes().sizes().len()
     );
     assert_eq!(planted_worse.points().len(), measured.points().len());
+    let observation = WorkObservationRef::named("harness.bench.consumer", "unit-work")?;
+    let [measured_two, measured_four, measured_eight] = measured.points() else {
+        return Err(BenchRoadFailure::MissingReading);
+    };
+    assert_work_point(measured_two, 2u64, observation, 4u64);
+    assert_work_point(measured_four, 4u64, observation, 8u64);
+    assert_work_point(measured_eight, 8u64, observation, 16u64);
+    let [worse_two, worse_four, worse_eight] = planted_worse.points() else {
+        return Err(BenchRoadFailure::MissingReading);
+    };
+    assert_work_point(worse_two, 2u64, observation, 8u64);
+    assert_work_point(worse_four, 4u64, observation, 32u64);
+    assert_work_point(worse_eight, 8u64, observation, 128u64);
     assert!(judgment.qualifies());
+    assert_eq!(secondary.work(), measured);
     let expected_measurements = binding
         .row()
         .input_sizes()

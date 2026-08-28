@@ -348,6 +348,76 @@ fn beyond_the_bound_the_space_is_sampled_and_the_census_says_so() -> Result<(), 
     Ok(())
 }
 
+/// A larger four-party space is still walked literally when its exact multinomial count fits the declared exhaustive ceiling.
+#[test]
+#[ignore = "long deterministic local exhaustive-schedule campaign; run explicitly"]
+fn a_long_exhaustive_campaign_walks_every_counted_schedule() -> Result<(), LaneFailure> {
+    let north = Strand::declared(name("north")?, vec![Move::Deposit(1u64); 3])?;
+    let east = Strand::declared(name("east")?, vec![Move::Deposit(2u64); 3])?;
+    let south = Strand::declared(name("south")?, vec![Move::Deposit(3u64); 3])?;
+    let west = Strand::declared(name("west")?, vec![Move::Deposit(4u64); 3])?;
+    let set = StrandSet::declared(vec![north, east, south, west])?;
+    let contract = TransitionContract::declared(
+        opening,
+        applied,
+        vec![TemporalClaim::declared(
+            BALANCE_GREW,
+            TemporalDemand::NeverDecreases(by_balance),
+        )],
+    )?;
+    let reading = explored(
+        &set,
+        &contract,
+        ExplorationBound::declared(369_600u32, 1u32)?,
+        population()?,
+        RootSeed::declared(0u64),
+    )?;
+    assert_eq!(reading.space(), InterleavingSpace::Counted(369_600u128));
+    assert_eq!(reading.mode(), ExplorationMode::Exhaustive);
+    assert_eq!(reading.explored(), 369_600u64);
+    assert_eq!(
+        reading.standing(),
+        &ExplorationStanding::SpaceExhaustedAllHold
+    );
+    assert_eq!(concluded(&reading), TrialConclusion::Passed);
+    Ok(())
+}
+
+/// A larger space remains explicitly sampled, and one declared seed reproduces the same bounded reading without gaining exhaustive standing.
+#[test]
+#[ignore = "long deterministic local sampled-schedule campaign; run explicitly"]
+fn a_long_sampled_campaign_repeats_without_claiming_the_space() -> Result<(), LaneFailure> {
+    let steady = Strand::declared(name("steady-long")?, vec![Move::Deposit(1u64); 32])?;
+    let eager = Strand::declared(name("eager-long")?, vec![Move::Deposit(2u64); 32])?;
+    let set = StrandSet::declared(vec![steady, eager])?;
+    let contract = TransitionContract::declared(
+        opening,
+        applied,
+        vec![TemporalClaim::declared(
+            BALANCE_GREW,
+            TemporalDemand::NeverDecreases(by_balance),
+        )],
+    )?;
+    let bound = ExplorationBound::declared(1_000_000u32, 4_096u32)?;
+    let seed = RootSeed::declared(0xA5A5_5A5A_F0F0_0F0Fu64);
+    let first = explored(&set, &contract, bound, population()?, seed)?;
+    let repeated = explored(&set, &contract, bound, population()?, seed)?;
+    assert_eq!(first, repeated);
+    assert_eq!(
+        first.space(),
+        InterleavingSpace::Counted(1_832_624_140_942_590_534u128)
+    );
+    assert_eq!(first.explored(), 4_096u64);
+    assert_eq!(first.standing(), &ExplorationStanding::SampledAllHold);
+    let ExplorationMode::Sampled { census, halt } = first.mode() else {
+        return Err(LaneFailure::Standing);
+    };
+    assert_eq!(census.count_of(GenerationDisposition::Generated), 4_096u32);
+    assert_eq!(halt, GenerationHalt::CaseBudgetMet);
+    assert_eq!(concluded(&first), TrialConclusion::Passed);
+    Ok(())
+}
+
 /// A sampled counterexample replays through its interleaving alone, and a one-byte material still breaks the same claim.
 #[test]
 fn a_sampled_counterexample_replays_through_its_interleaving() -> Result<(), LaneFailure> {

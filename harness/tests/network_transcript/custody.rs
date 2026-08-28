@@ -133,3 +133,85 @@ fn incomplete_or_foreign_playback_cannot_open_the_join() -> Result<(), LaneFailu
     );
     Ok(())
 }
+
+/// A long deterministic drive retains same-tick order, reproduces every addressed row, and exhausts playback under one address.
+#[test]
+#[ignore = "long deterministic local network and transcript campaign; run explicitly"]
+fn a_long_network_campaign_reproduces_and_exhausts_exactly() -> Result<(), LaneFailure> {
+    fn long_pack() -> Result<PackedRun, LaneFailure> {
+        let schedule = NetworkSchedule::declared(
+            name("long-mixed-discipline")?,
+            vec![LinkDiscipline::declared(
+                forward()?,
+                vec![
+                    LinkFault::DropAt {
+                        position: SendOrdinal::at(0u32),
+                    },
+                    LinkFault::DuplicateAt {
+                        position: SendOrdinal::at(1u32),
+                    },
+                    LinkFault::Partition {
+                        opens: Tick::at(8u64),
+                        heals: Tick::at(16u64),
+                    },
+                ],
+            )],
+        )?;
+        let campaign = NetworkCampaign::declared(vec![schedule.clone()])?;
+        let mut sim = SimNet::declared(
+            pair_topology()?,
+            campaign.select(name("long-mixed-discipline")?)?,
+        )?;
+        let mut deliveries = Vec::new();
+        for ordinal in 0u32..2_048u32 {
+            let _receipt = sim.send(forward()?, ordinal.to_be_bytes().to_vec())?;
+            if ordinal.saturating_add(1u32).is_multiple_of(8u32) {
+                deliveries.extend(sim.advance());
+            }
+        }
+        while sim.pending() > 0usize {
+            deliveries.extend(sim.advance());
+        }
+        let census = sim.census();
+        assert_eq!(census.sends(), 2_048u64);
+        assert_eq!(census.dropped_by_discipline(), 1u64);
+        assert_eq!(census.dropped_by_partition(), 64u64);
+        assert_eq!(census.scheduled_deliveries(), 1_984u64);
+        assert_eq!(census.delivered(), 1_984u64);
+        let (pack, reproduction) = simulated(&sim, Vec::clone)?;
+        Ok((deliveries, schedule, pack, reproduction))
+    }
+
+    let (deliveries, schedule, pack, written_reproduction) = long_pack()?;
+    let (_repeated_deliveries, _repeated_schedule, repeated, _repeated_reproduction) = long_pack()?;
+    assert_eq!(pack.address(), repeated.address());
+    assert_eq!(pack.encoded(), repeated.encoded());
+    assert_eq!(pack.entries().len(), 1_984usize);
+
+    let [first, second, third, ..] = pack.entries() else {
+        return Err(LaneFailure::Standing);
+    };
+    assert_eq!(first.ordinal(), SendOrdinal::at(1u32));
+    assert_eq!(first.copy(), DeliveryCopy::Original);
+    assert_eq!(second.ordinal(), SendOrdinal::at(1u32));
+    assert_eq!(second.copy(), DeliveryCopy::Duplicate);
+    assert_eq!(first.delivered_at(), second.delivered_at());
+    assert_eq!(third.ordinal(), SendOrdinal::at(2u32));
+
+    let reread = read_simulated(&pair_topology()?, &schedule, pack.encoded())?;
+    let decoded_reproduction = reproduce(&reread)?;
+    assert_eq!(decoded_reproduction, written_reproduction);
+    let (mut replay, opening) = Replay::opened(&reread);
+    assert!(opening.is_empty());
+    let mut played = Vec::new();
+    while replay.remaining() > 0usize {
+        played.extend(replay.advance());
+    }
+    assert_eq!(played, deliveries);
+    let exhaustion = replay.exhaust()?;
+    assert_eq!(exhaustion.total(), 1_984usize);
+    let joined = ReproducedReplay::joined(decoded_reproduction, exhaustion)?;
+    assert_eq!(joined.reproduction(), decoded_reproduction);
+    assert_eq!(joined.exhaustion(), exhaustion);
+    Ok(())
+}

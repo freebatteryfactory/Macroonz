@@ -89,6 +89,33 @@ fn fused_model() -> PreemptionModelResult {
     }
 }
 
+/// A larger fused counter with explicit yields on both sides of each atomic operation.
+fn longer_fused_model() -> PreemptionModelResult {
+    let value = Arc::new(AtomicUsize::new(0));
+    let handles: Vec<_> = (0usize..3usize)
+        .map(|_| {
+            let value = Arc::clone(&value);
+            thread::spawn(move || {
+                thread::yield_now();
+                value.fetch_add(1usize, Ordering::SeqCst);
+                thread::yield_now();
+            })
+        })
+        .collect();
+    for handle in handles {
+        if handle.join().is_err() {
+            return Err(PreemptionModelFailure::reported(b"a worker did not join"));
+        }
+    }
+    if value.load(Ordering::SeqCst) == 3usize {
+        Ok(())
+    } else {
+        Err(PreemptionModelFailure::reported(
+            b"the longer fused update was lost",
+        ))
+    }
+}
+
 /// An async model: one thread races an async block driven by loom's own executor.
 ///
 /// The claim is that the futures face is real — `block_on` participates in the exploration like any other loom operation.
@@ -179,6 +206,24 @@ fn the_racy_counter_is_caught_with_its_typed_report() -> Result<(), PreemptionBo
 #[test]
 fn the_fused_counter_holds_over_the_bounded_space() -> Result<(), PreemptionBoundsRefusal> {
     let reading = explored(bounds()?, fused_model);
+    assert_eq!(
+        reading.outcome(),
+        &PreemptionOutcome::Completed(PreemptionVerdict::AllInterleavingsHeld)
+    );
+    assert_eq!(
+        attempted(&reading),
+        RunAttempt::Executed(TrialConclusion::Passed)
+    );
+    Ok(())
+}
+
+/// Three yielded workers hold over the longer declared schedule campaign without claiming schedules beyond its preemption and branch ceilings.
+#[test]
+#[ignore = "long deterministic local preemption campaign; run explicitly"]
+fn the_longer_fused_counter_holds_over_its_bounded_space() -> Result<(), PreemptionBoundsRefusal> {
+    let campaign = PreemptionBounds::declared(PreemptionBound::AtMost(4u32), 100_000u32)?;
+    let reading = explored(campaign, longer_fused_model);
+    assert_eq!(reading.bounds(), campaign);
     assert_eq!(
         reading.outcome(),
         &PreemptionOutcome::Completed(PreemptionVerdict::AllInterleavingsHeld)
