@@ -28,6 +28,11 @@ cargo +1.98.0 run -j1 --example rustc_coverage --features harness --locked
 Set `RUSTDOCFLAGS` to `-Dwarnings` for the documentation command so rustdoc warnings are part of the wall.
 Keep the evidence and the unproven planes in the same report as the change.
 
+## Hosted pulse
+
+The manual [hosted qualification](.github/README.md) observes the committed wall on declared cloud hosts after the local wall is green.
+It reports host and architecture evidence without replacing local enforcement or human acceptance.
+
 ## Git boundaries
 
 An agent may stage and commit accepted work inside an authorized task after the required checks pass.
