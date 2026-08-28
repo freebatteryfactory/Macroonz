@@ -24,7 +24,7 @@ It does not activate hosted CI, governance, publication, or another host plane.
 - Public Muterprater operation paths remain stated while private file and mount mechanics no longer form a second specification.
 - The root product README points to one contributor-owned local-wall surface instead of duplicating a partial command list.
 - Every README filesystem link resolves, no prose uses four-space Markdown indentation outside a fence, and the changed prose obeys the sentence-per-source-line law.
-- The tracked identity search is empty for `eassa`, `heyoub`, `eayou`, `C:\Users`, `Downloads`, and `/mnt/c` after two host-location phrases were made neutral.
+- The complete declared personal-name and absolute-host-path search is empty after two receipt location phrases were made host-neutral.
 - The repository still contains sixteen Mermaid blocks, each with an accessibility title and description.
 - Every Mermaid block is byte-identical to the merged-main base, so the prior hosted visual observation at `.durafx/qualification/wave-f-github-mermaid-20260828/receipt.md` remains the applicable rendering receipt.
 
