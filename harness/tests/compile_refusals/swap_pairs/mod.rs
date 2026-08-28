@@ -10,32 +10,35 @@ use macroonz_harness::depot::swap_pairs::SWAP_PAIRS;
 #[test]
 fn every_swap_pair_is_observed_in_its_declared_direction() -> Result<(), String> {
     let scratch = scratch::Scratch::claimed()?;
-    let mut challenges = Vec::with_capacity(SWAP_PAIRS.len());
+    let outcome = (|| -> Result<(), String> {
+        let mut challenges = Vec::with_capacity(SWAP_PAIRS.len());
 
-    for (ordinal, pair) in SWAP_PAIRS.iter().enumerate() {
-        let challenge = render::Challenge::for_pair(ordinal, *pair)?;
-        scratch.write(&challenge.lawful)?;
-        scratch.write(&challenge.hostile)?;
-        challenges.push(challenge);
-    }
-
-    scratch.generate_lockfile()?;
-
-    for challenge in &challenges {
-        let lawful = scratch.check(&challenge.lawful.bin_name)?;
-        if !lawful.status.success() {
-            return Err(scratch::failed_command("lawful control", &lawful));
+        for (ordinal, pair) in SWAP_PAIRS.iter().enumerate() {
+            let challenge = render::Challenge::for_pair(ordinal, *pair)?;
+            scratch.write(&challenge.lawful)?;
+            scratch.write(&challenge.hostile)?;
+            challenges.push(challenge);
         }
 
-        let hostile = scratch.check(&challenge.hostile.bin_name)?;
-        if hostile.status.success() {
-            return Err(format!(
-                "swap-pair row {} accepted {} where {} was required",
-                challenge.ordinal, challenge.substitute, challenge.seat
-            ));
-        }
-        diagnostic::require_one_mismatch(&hostile.stdout, &challenge.hostile.primary)?;
-    }
+        scratch.generate_lockfile()?;
 
-    Ok(())
+        for challenge in &challenges {
+            let lawful = scratch.check(&challenge.lawful.bin_name)?;
+            if !lawful.status.success() {
+                return Err(scratch::failed_command("lawful control", &lawful));
+            }
+
+            let hostile = scratch.check(&challenge.hostile.bin_name)?;
+            if hostile.status.success() {
+                return Err(format!(
+                    "swap-pair row {} accepted {} where {} was required",
+                    challenge.ordinal, challenge.substitute, challenge.seat
+                ));
+            }
+            diagnostic::require_one_mismatch(&hostile.stdout, &challenge.hostile.primary)?;
+        }
+
+        Ok(())
+    })();
+    scratch.finish(outcome)
 }

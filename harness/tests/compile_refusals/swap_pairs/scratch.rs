@@ -8,6 +8,7 @@ use std::process::{Command, Output};
 
 /// One atomically claimed qualification run.
 pub(super) struct Scratch {
+    qualification: PathBuf,
     root: PathBuf,
     manifest: PathBuf,
     target: PathBuf,
@@ -30,7 +31,7 @@ impl Scratch {
         for ordinal in 0_u64.. {
             let root = qualification.join(format!("run-{ordinal}"));
             match fs::create_dir(&root) {
-                Ok(()) => return Self::at(root),
+                Ok(()) => return Self::at(qualification, root),
                 Err(error) if error.kind() == ErrorKind::AlreadyExists => {}
                 Err(error) => {
                     return Err(format!(
@@ -44,7 +45,7 @@ impl Scratch {
         Err("the qualification run ordinal space was exhausted".to_owned())
     }
 
-    fn at(root: PathBuf) -> Result<Self, String> {
+    fn at(qualification: PathBuf, root: PathBuf) -> Result<Self, String> {
         let source = root.join("src").join("bin");
         fs::create_dir_all(&source)
             .map_err(|error| format!("could not create {}: {error}", source.display()))?;
@@ -65,6 +66,7 @@ impl Scratch {
         )
         .map_err(|error| format!("could not write {}: {error}", manifest.display()))?;
         Ok(Self {
+            qualification,
             target: root.join("build"),
             root,
             manifest,
@@ -113,6 +115,33 @@ impl Scratch {
             .current_dir(&self.root)
             .output()
             .map_err(|error| format!("could not launch Cargo for {bin_name}: {error}"))
+    }
+
+    pub(super) fn finish(self, outcome: Result<(), String>) -> Result<(), String> {
+        let cleanup = fs::remove_dir_all(&self.root)
+            .map_err(|error| format!("could not remove {}: {error}", self.root.display()))
+            .and_then(|()| match fs::remove_dir(&self.qualification) {
+                Ok(()) => Ok(()),
+                Err(error)
+                    if matches!(
+                        error.kind(),
+                        ErrorKind::NotFound | ErrorKind::DirectoryNotEmpty
+                    ) =>
+                {
+                    Ok(())
+                }
+                Err(error) => Err(format!(
+                    "could not remove empty qualification root {}: {error}",
+                    self.qualification.display()
+                )),
+            });
+        match (outcome, cleanup) {
+            (Ok(()), Ok(())) => Ok(()),
+            (Err(failure), Ok(())) | (Ok(()), Err(failure)) => Err(failure),
+            (Err(failure), Err(cleanup_failure)) => Err(format!(
+                "{failure}\nscratch cleanup also failed: {cleanup_failure}"
+            )),
+        }
     }
 }
 
