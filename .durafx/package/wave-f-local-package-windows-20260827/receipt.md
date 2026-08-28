@@ -24,3 +24,8 @@ This Git-tracked receipt retains the package observation available before Macroo
 - `macroonz-harness`, `macroonz-macros`, and `macroonz` cannot complete dependency-verifying package or publish-dry-run qualification until the first-publication registry order makes `macroonz-compiler = 0.1.0` resolvable.
 - This is a local source-package observation, not registry delivery, publication, hosted CI, attestation, or post-publication adopter evidence.
 - The archive and package-list scratch under `target/package` remain disposable after their hashes and observations are committed.
+
+## Cleanup
+
+- After this receipt was committed, the exact archive, verified unpacked package directory, and facade package-list file were moved recoverably out of the repository to `C:\Users\eayou\Downloads\macroonz-night-scratch-20260827`.
+- Their original `target/package` paths no longer exist, and the recoverable copies have no evidence authority.
