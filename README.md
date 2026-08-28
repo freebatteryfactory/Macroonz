@@ -135,13 +135,14 @@ The harness hands you the instruments — each independently callable, composed 
 - **Generates** inputs against the description, structure-aware, from a seed it records.
 - **Injects** faults on a declared schedule, and measures against a clock the caller declares, so the subject is judged under pressure and not on a sunny day.
 - **Reduces** a failure to the smallest witness reached under the declared reducers and budget, and mints a replay capsule over it.
-- **Hands off** coverage-admitted bytes into that same reduction and replay road when a selected native backend is in use.
+- **Observes** stable-Rust targets compiled with rustc coverage instrumentation through the pinned toolchain's matching LLVM tools, retains coverage-novel bytes, and hands them into that same reduction and replay road.
 - **Mutates** the subject's own code and runs the trials against each mutant, to prove the trials can tell right from wrong.
 - **Benchmarks** with the same receiver and the same pinned profile, so a number means the same thing tomorrow.
 - **Reports** each verdict with its standing, its site, and its complete denominator — joined to its replay capsule, where a reduction earned one, on one execution key.
 
 Descriptors, trials, mutations, and benches live in your tests — written through the generic `macroonz::macros` attributes, through your own attributes, or by hand.
 The harness owns how they are judged, never what they mean.
+The stable coverage path remains one-package usage through `macroonz::harness::fuzz`; its [fuzz home](harness/src/fuzz/README.md#runnable-road) owns the runnable facade example and command.
 
 ---
 
@@ -186,6 +187,7 @@ cargo deny --workspace check
 ```
 
 The wall runs with every feature on, so the optional homes — the target-qualified Loom-backed `preemption` exploration among them — are exercised together.
+The pinned stable Rust 1.98 toolchain also installs `llvm-tools-preview`, whose matching `llvm-profdata` and `llvm-cov` binaries read profiles for the safe-Rust fuzz composition road.
 
 ---
 

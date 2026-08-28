@@ -1,144 +1,68 @@
 //! Smart constructors and readers for the fuzz home.
 
 use super::{
-    BackendSelection, BackendSelectionRefusal, CoverageAdmission, CoverageAdmissionRefusal,
-    CoverageCorpus, CoverageObservation, CoveragePoint, FuzzExecution, HostDisposition,
+    CoverageAdmission, CoverageAdmissionRefusal, CoverageCorpus, CoverageObservation,
+    CoveragePoint, CoverageSource, CoverageSourceRoot, CoverageSourceRootRefusal, FuzzExecution,
     InstrumentedTarget, InterestingBytes, InterestingBytesRefusal, MutationCandidate, MutationKind,
-    MutationPlan, MutationPlanRefusal, NamedCeiling, PreflightCapability, PreflightFact,
-    PreflightIncomplete, PreflightStatus, ReadyPreflight, RustcCoverageTools, RustcProfileRequest,
-    RustcProfileRequestRefusal, RustcProfileResult, SelectedBackend,
+    MutationPlan, MutationPlanRefusal, ReadyPreflight, RustcCoverageTools, RustcProfileRequest,
+    RustcProfileRequestRefusal, RustcProfileResult,
 };
 use crate::descriptor::NamespacedName;
 use std::collections::BTreeSet;
-use std::path::PathBuf;
+use std::path::{Component, Path, PathBuf};
 
-pub(crate) const REQUIRED_RUSTC_COVERAGE: &[PreflightCapability] = &[
-    PreflightCapability::RustcMsrv,
-    PreflightCapability::RustcHostTuple,
-    PreflightCapability::RustcSysroot,
-    PreflightCapability::LlvmReported,
-    PreflightCapability::LlvmToolsPreview,
-    PreflightCapability::LlvmProfdata,
-    PreflightCapability::LlvmCov,
-    PreflightCapability::InstrumentCoverage,
-];
-
-pub(crate) const REQUIRED_RUSTC_CEILINGS: &[NamedCeiling] = &[
-    NamedCeiling::FreshProcessPerCandidate,
-    NamedCeiling::InstrumentedSourceTargetRequired,
-    NamedCeiling::LlvmCoverageToolsRequired,
-    NamedCeiling::CallerSuppliesProcessSupervisor,
-];
-
-pub(crate) const REQUIRED_RUSTC_HOSTS: &[HostDisposition] = &[
-    HostDisposition::ObservedWindows,
-    HostDisposition::UnexecutedLinux,
-    HostDisposition::UnexecutedMacOs,
-];
-
-impl PreflightFact {
-    /// Record one capability observation the caller already established.
-    #[must_use]
-    pub const fn declared(capability: PreflightCapability, status: PreflightStatus) -> Self {
-        Self { capability, status }
-    }
-
-    /// The capability this fact names.
-    #[must_use]
-    pub const fn capability(self) -> PreflightCapability {
-        self.capability
-    }
-
-    /// Whether the capability was available.
-    #[must_use]
-    pub const fn status(self) -> PreflightStatus {
-        self.status
-    }
-}
-
-impl ReadyPreflight {
-    /// Judge caller-supplied facts for one selected backend.
+impl CoverageSourceRoot {
+    /// Declare one logical source root and its absolute checkout seat.
     ///
     /// # Errors
     ///
-    /// Refuses when a required capability is missing, duplicated, contradictory, or unavailable.
-    pub fn from_facts(
-        backend: SelectedBackend,
-        facts: &[PreflightFact],
-    ) -> Result<Self, PreflightIncomplete> {
-        for capability in REQUIRED_RUSTC_COVERAGE {
-            let fact = unique_required_fact(facts, *capability)?;
-            if !matches!(fact.status(), PreflightStatus::Available) {
-                return Err(PreflightIncomplete::Unavailable(*capability));
-            }
+    /// Refuses an empty, relative, traversing, or non-UTF-8 checkout path.
+    pub fn declared(
+        logical: NamespacedName,
+        checkout: PathBuf,
+    ) -> Result<Self, CoverageSourceRootRefusal> {
+        if checkout.as_os_str().is_empty() {
+            return Err(CoverageSourceRootRefusal::EmptyCheckout);
         }
-        Ok(Self { backend })
+        if !checkout.is_absolute() {
+            return Err(CoverageSourceRootRefusal::RelativeCheckout);
+        }
+        if checkout
+            .components()
+            .any(|component| matches!(component, Component::ParentDir))
+        {
+            return Err(CoverageSourceRootRefusal::CheckoutTraversal);
+        }
+        if checkout.to_str().is_none() {
+            return Err(CoverageSourceRootRefusal::NonUtf8Checkout);
+        }
+        Ok(Self { logical, checkout })
     }
 
-    /// The backend this ready roster was judged for.
-    #[must_use]
-    pub const fn backend(self) -> SelectedBackend {
-        self.backend
+    pub(crate) const fn logical(&self) -> NamespacedName {
+        self.logical
+    }
+
+    pub(crate) fn checkout(&self) -> &Path {
+        &self.checkout
     }
 }
 
-impl BackendSelection {
-    /// Select stable rustc coverage with its complete ceiling and host roster.
-    ///
-    /// # Errors
-    ///
-    /// Refuses an empty roster or any selection that omits a required ceiling or host disposition.
-    pub fn rustc_coverage(
-        name: NamespacedName,
-        ceilings: Vec<NamedCeiling>,
-        hosts: Vec<HostDisposition>,
-    ) -> Result<Self, BackendSelectionRefusal> {
-        if ceilings.is_empty() {
-            return Err(BackendSelectionRefusal::NoCeiling);
-        }
-        if hosts.is_empty() {
-            return Err(BackendSelectionRefusal::NoHostDisposition);
-        }
-        for required in REQUIRED_RUSTC_CEILINGS {
-            if !ceilings.iter().any(|ceiling| ceiling == required) {
-                return Err(BackendSelectionRefusal::MissingRequiredCeiling(*required));
-            }
-        }
-        for required in REQUIRED_RUSTC_HOSTS {
-            if !hosts.iter().any(|host| host == required) {
-                return Err(BackendSelectionRefusal::MissingRequiredHost(*required));
-            }
-        }
-        Ok(Self {
-            name,
-            backend: SelectedBackend::RustcInstrumentCoverage,
-            ceilings,
-            hosts,
-        })
+impl CoverageSource {
+    pub(crate) const fn established(root: NamespacedName, relative: String) -> Self {
+        Self { root, relative }
     }
 
-    /// The namespaced campaign name bound to this selection.
+    /// The caller-declared logical root.
     #[must_use]
-    pub const fn name(&self) -> NamespacedName {
-        self.name
+    pub const fn root(&self) -> NamespacedName {
+        self.root
     }
 
-    /// The selected backend.
+    /// The canonical slash-separated path beneath the logical root.
     #[must_use]
-    pub const fn backend(&self) -> SelectedBackend {
-        self.backend
-    }
-
-    /// The named ceilings retained with the selection.
-    #[must_use]
-    pub fn ceilings(&self) -> &[NamedCeiling] {
-        &self.ceilings
-    }
-
-    /// The host dispositions retained with the selection.
-    #[must_use]
-    pub fn hosts(&self) -> &[HostDisposition] {
-        &self.hosts
+    pub fn relative(&self) -> &str {
+        &self.relative
     }
 }
 
@@ -291,26 +215,15 @@ impl MutationCandidate {
 }
 
 impl RustcCoverageTools {
-    /// Declare the exact matching LLVM profile tools.
-    ///
-    /// # Errors
-    ///
-    /// Refuses an empty tool path.
-    pub fn declared(profdata: PathBuf, cov: PathBuf) -> Result<Self, RustcProfileRequestRefusal> {
-        if profdata.as_os_str().is_empty() {
-            return Err(RustcProfileRequestRefusal::Profdata);
-        }
-        if cov.as_os_str().is_empty() {
-            return Err(RustcProfileRequestRefusal::Cov);
-        }
-        Ok(Self { profdata, cov })
+    pub(crate) const fn established(profdata: PathBuf, cov: PathBuf) -> Self {
+        Self { profdata, cov }
     }
 
-    pub(crate) fn profdata(&self) -> &std::path::Path {
+    pub(crate) fn profdata(&self) -> &Path {
         &self.profdata
     }
 
-    pub(crate) fn cov(&self) -> &std::path::Path {
+    pub(crate) fn cov(&self) -> &Path {
         &self.cov
     }
 }
@@ -320,7 +233,7 @@ impl InstrumentedTarget {
     ///
     /// # Errors
     ///
-    /// Refuses an empty executable path.
+    /// Refuses an empty or relative executable path.
     pub fn declared(
         executable: PathBuf,
         arguments: Vec<String>,
@@ -328,13 +241,16 @@ impl InstrumentedTarget {
         if executable.as_os_str().is_empty() {
             return Err(RustcProfileRequestRefusal::Target);
         }
+        if !executable.is_absolute() {
+            return Err(RustcProfileRequestRefusal::RelativeTarget);
+        }
         Ok(Self {
             executable,
             arguments,
         })
     }
 
-    pub(crate) fn executable(&self) -> &std::path::Path {
+    pub(crate) fn executable(&self) -> &Path {
         &self.executable
     }
 
@@ -348,32 +264,85 @@ impl RustcProfileRequest {
     ///
     /// # Errors
     ///
-    /// Refuses an empty scratch path.
+    /// Refuses an empty or relative rustc or scratch path.
     pub fn declared(
+        rustc: PathBuf,
         target: InstrumentedTarget,
-        tools: RustcCoverageTools,
+        source_root: CoverageSourceRoot,
         scratch: PathBuf,
     ) -> Result<Self, RustcProfileRequestRefusal> {
+        if rustc.as_os_str().is_empty() {
+            return Err(RustcProfileRequestRefusal::Rustc);
+        }
+        if !rustc.is_absolute() {
+            return Err(RustcProfileRequestRefusal::RelativeRustc);
+        }
         if scratch.as_os_str().is_empty() {
             return Err(RustcProfileRequestRefusal::Scratch);
         }
+        if !scratch.is_absolute() {
+            return Err(RustcProfileRequestRefusal::RelativeScratch);
+        }
         Ok(Self {
+            rustc,
             target,
-            tools,
+            source_root,
             scratch,
         })
+    }
+
+    pub(crate) fn rustc(&self) -> &Path {
+        &self.rustc
     }
 
     pub(crate) const fn target(&self) -> &InstrumentedTarget {
         &self.target
     }
 
+    pub(crate) const fn source_root(&self) -> &CoverageSourceRoot {
+        &self.source_root
+    }
+}
+
+impl ReadyPreflight {
+    pub(crate) const fn target(&self) -> &InstrumentedTarget {
+        &self.request.target
+    }
+
     pub(crate) const fn tools(&self) -> &RustcCoverageTools {
         &self.tools
     }
 
-    pub(crate) fn scratch(&self) -> &std::path::Path {
-        &self.scratch
+    pub(crate) const fn source_root(&self) -> &CoverageSourceRoot {
+        &self.source_root
+    }
+
+    pub(crate) fn scratch(&self) -> &Path {
+        &self.request.scratch
+    }
+
+    /// The qualified compiler-reported rustc sysroot that owns the matching LLVM tools.
+    #[must_use]
+    pub fn sysroot(&self) -> &Path {
+        &self.sysroot
+    }
+
+    /// The stable rustc release established by preflight.
+    #[must_use]
+    pub fn release(&self) -> &str {
+        &self.release
+    }
+
+    /// The rustc host tuple established by preflight.
+    #[must_use]
+    pub fn host(&self) -> &str {
+        &self.host
+    }
+
+    /// The LLVM version shared by rustc and its matching tools.
+    #[must_use]
+    pub fn llvm_version(&self) -> &str {
+        &self.llvm_version
     }
 }
 
@@ -398,28 +367,5 @@ impl RustcProfileResult {
     #[must_use]
     pub const fn observation(&self) -> &CoverageObservation {
         &self.observation
-    }
-}
-
-fn unique_required_fact(
-    facts: &[PreflightFact],
-    capability: PreflightCapability,
-) -> Result<PreflightFact, PreflightIncomplete> {
-    let matches: Vec<PreflightFact> = facts
-        .iter()
-        .copied()
-        .filter(|fact| fact.capability() == capability)
-        .collect();
-    match matches.as_slice() {
-        [] => Err(PreflightIncomplete::Missing(capability)),
-        [only] => Ok(*only),
-        [first, rest @ ..] => {
-            let contradictory = rest.iter().any(|fact| fact.status() != first.status());
-            if contradictory {
-                Err(PreflightIncomplete::Contradictory(capability))
-            } else {
-                Err(PreflightIncomplete::Duplicate(capability))
-            }
-        }
     }
 }

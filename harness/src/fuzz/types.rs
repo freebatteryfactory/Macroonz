@@ -12,117 +12,150 @@ mod guard;
 /// The stable product toolchain whose coverage format this home qualifies.
 pub const RUSTC_COVERAGE_TOOLCHAIN: &str = "1.98.0";
 
-/// Which coverage mechanism the campaign selected.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum SelectedBackend {
-    /// Stable rustc source instrumentation and its matching LLVM profile tools.
-    RustcInstrumentCoverage,
-}
-
-/// One named ceiling retained with the rustc coverage mechanism.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum NamedCeiling {
-    /// Each candidate executes in a fresh instrumented process and therefore pays process startup cost.
-    FreshProcessPerCandidate,
-    /// The target must be compiled from available Rust source with coverage instrumentation.
-    InstrumentedSourceTargetRequired,
-    /// The matching `llvm-profdata` and `llvm-cov` tools must be installed with the toolchain.
-    LlvmCoverageToolsRequired,
-    /// The caller's host must supervise the child and classify its termination without an ambient harness clock.
-    CallerSuppliesProcessSupervisor,
-}
-
-/// What one host class established for the selected backend.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum HostDisposition {
-    /// Native stable-toolchain execution was observed on Windows.
-    ObservedWindows,
-    /// The same rustc mechanism remains unexecuted on a native Linux host.
-    UnexecutedLinux,
-    /// The same rustc mechanism remains unexecuted on a native macOS host.
-    UnexecutedMacOs,
-}
-
-/// One capability a stable rustc coverage preflight may name.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PreflightCapability {
-    /// Rustc is the product MSRV.
-    RustcMsrv,
-    /// Rustc reported its host tuple.
-    RustcHostTuple,
-    /// Rustc reported its sysroot.
-    RustcSysroot,
-    /// Rustc reported the LLVM version it carries.
-    LlvmReported,
-    /// The matching `llvm-tools` component is installed.
-    LlvmToolsPreview,
-    /// The matching `llvm-profdata` executable is available at a declared path.
-    LlvmProfdata,
-    /// The matching `llvm-cov` executable is available at a declared path.
-    LlvmCov,
-    /// The target was compiled with stable `-C instrument-coverage`.
-    InstrumentCoverage,
-}
-
-/// Whether one declared preflight capability was available.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PreflightStatus {
-    /// The capability was present under the caller's declared fact.
-    Available,
-    /// The capability was absent under the caller's declared fact.
-    Unavailable,
-}
-
-/// One caller-supplied preflight observation.
-///
-/// The harness never discovers these facts; the driver or adopter hands them in.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct PreflightFact {
-    capability: PreflightCapability,
-    status: PreflightStatus,
-}
-
-/// Why a preflight roster was incomplete.
-#[must_use = "a refusal is the reason fuzz preflight was not ready"]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PreflightIncomplete {
-    /// At least one required capability was unavailable.
-    Unavailable(PreflightCapability),
-    /// A required capability was not present in the declared roster.
-    Missing(PreflightCapability),
-    /// The same capability was declared more than once.
-    Duplicate(PreflightCapability),
-    /// The same capability was declared with disagreeing availability.
-    Contradictory(PreflightCapability),
-}
-
-/// A preflight roster in which every required capability was declared available.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ReadyPreflight {
-    backend: SelectedBackend,
-}
-
-/// The selected backend together with the ceilings and host dispositions it carries.
+/// One logical source root and its physical checkout seat.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct BackendSelection {
-    name: NamespacedName,
-    backend: SelectedBackend,
-    ceilings: Vec<NamedCeiling>,
-    hosts: Vec<HostDisposition>,
+pub struct CoverageSourceRoot {
+    logical: NamespacedName,
+    checkout: PathBuf,
 }
 
-/// Why a backend selection was refused.
-#[must_use = "a refusal is the reason a fuzz backend selection was not built"]
+/// Why a coverage source root was not informed.
+#[must_use = "a refusal is the reason a coverage source root was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BackendSelectionRefusal {
-    /// No named ceiling was declared.
-    NoCeiling,
-    /// No host disposition was declared.
-    NoHostDisposition,
-    /// A required ceiling was absent from the declared roster.
-    MissingRequiredCeiling(NamedCeiling),
-    /// A required host disposition was absent from the declared roster.
-    MissingRequiredHost(HostDisposition),
+pub enum CoverageSourceRootRefusal {
+    /// The checkout path was empty.
+    EmptyCheckout,
+    /// The checkout path was not absolute.
+    RelativeCheckout,
+    /// The checkout path contained a parent traversal.
+    CheckoutTraversal,
+    /// The checkout path could not be represented in the UTF-8 coverage document.
+    NonUtf8Checkout,
+}
+
+/// One root-independent source identity carried by a coverage point.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CoverageSource {
+    root: NamespacedName,
+    relative: String,
+}
+
+/// Which matching LLVM coverage tool preflight or execution names.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CoverageTool {
+    /// The profile-merging tool.
+    Profdata,
+    /// The coverage-export tool.
+    Cov,
+}
+
+/// Which rustc preflight command produced an observation or refusal.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RustcCommand {
+    /// The verbose compiler identity query.
+    VerboseVersion,
+    /// The compiler sysroot query.
+    Sysroot,
+}
+
+/// Which required rustc identity field was absent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RustcField {
+    /// The compiler release.
+    Release,
+    /// The compiler host tuple.
+    Host,
+    /// The compiler's LLVM version.
+    LlvmVersion,
+    /// The compiler sysroot.
+    Sysroot,
+}
+
+/// Why active stable-rustc coverage preflight did not establish readiness.
+#[must_use = "a refusal is the reason rustc coverage preflight was not ready"]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PreflightIncomplete {
+    /// The declared target could not be inspected.
+    TargetUnavailable {
+        /// The target path.
+        path: PathBuf,
+        /// The host error.
+        error: String,
+    },
+    /// The declared target path did not name a file.
+    TargetNotFile(PathBuf),
+    /// The declared source root could not be inspected or canonicalized.
+    SourceRootUnavailable {
+        /// The source-root path.
+        path: PathBuf,
+        /// The host error.
+        error: String,
+    },
+    /// The declared source root did not name a directory.
+    SourceRootNotDirectory(PathBuf),
+    /// The canonical source root violated coverage source-identity requirements.
+    SourceRootIdentity(CoverageSourceRootRefusal),
+    /// A rustc identity command could not be started.
+    StartRustc {
+        /// The command role.
+        command: RustcCommand,
+        /// The host error.
+        error: String,
+    },
+    /// A rustc identity command exited unsuccessfully.
+    RustcFailed {
+        /// The command role.
+        command: RustcCommand,
+        /// The optional platform exit code.
+        code: Option<i32>,
+    },
+    /// A rustc identity command did not return UTF-8.
+    RustcOutputNotUtf8(RustcCommand),
+    /// A required rustc identity field was absent.
+    MissingRustcField(RustcField),
+    /// The declared compiler was not the product toolchain.
+    RustcRelease {
+        /// The required stable release.
+        required: &'static str,
+        /// The observed release.
+        observed: String,
+    },
+    /// Rustc reported a relative sysroot.
+    RelativeRustcSysroot(PathBuf),
+    /// A matching LLVM tool could not be started at its derived path.
+    StartLlvmTool {
+        /// The tool role.
+        tool: CoverageTool,
+        /// The derived tool path.
+        path: PathBuf,
+        /// The host error.
+        error: String,
+    },
+    /// A matching LLVM tool exited unsuccessfully.
+    LlvmToolFailed {
+        /// The tool role.
+        tool: CoverageTool,
+        /// The optional platform exit code.
+        code: Option<i32>,
+    },
+    /// A matching LLVM tool did not return UTF-8.
+    LlvmToolOutputNotUtf8(CoverageTool),
+    /// A matching LLVM tool did not report its version.
+    MissingLlvmToolVersion(CoverageTool),
+    /// The two tools derived from one sysroot reported different versions.
+    LlvmToolVersionsDiffer {
+        /// The `llvm-profdata` version.
+        profdata: String,
+        /// The `llvm-cov` version.
+        cov: String,
+    },
+    /// The matching tools did not report rustc's LLVM version.
+    RustcLlvmVersion {
+        /// The LLVM version reported by rustc.
+        rustc: String,
+        /// The LLVM version reported by the tools.
+        tools: String,
+    },
 }
 
 /// Exact bytes a coverage observation admitted as interesting for Macroonz reduction.
@@ -144,15 +177,15 @@ pub enum InterestingBytesRefusal {
 pub enum CoveragePoint {
     /// One source line executed at least once.
     Line {
-        /// The source spelling exported by the toolchain.
-        source: String,
+        /// The root-independent source identity.
+        source: CoverageSource,
         /// The one-based source line.
         line: u64,
     },
     /// One reported source branch executed at least once.
     Branch {
-        /// The source spelling exported by the toolchain.
-        source: String,
+        /// The root-independent source identity.
+        source: CoverageSource,
         /// The one-based source line.
         line: u64,
         /// The toolchain's block ordinal.
@@ -176,6 +209,26 @@ pub enum CoverageReadRefusal {
     NonUtf8,
     /// A source record carried no path.
     EmptySource {
+        /// The one-based LCOV record position.
+        record: usize,
+    },
+    /// A source record was relative rather than rooted in the declared checkout.
+    RelativeSource {
+        /// The one-based LCOV record position.
+        record: usize,
+    },
+    /// A source record contained a parent traversal.
+    SourceTraversal {
+        /// The one-based LCOV record position.
+        record: usize,
+    },
+    /// A source record was outside the declared checkout root.
+    SourceOutsideRoot {
+        /// The one-based LCOV record position.
+        record: usize,
+    },
+    /// A source record named the checkout root without a source member.
+    EmptyRelativeSource {
         /// The one-based LCOV record position.
         record: usize,
     },
@@ -287,9 +340,9 @@ pub enum MutationRefusal {
     EmptyPartner,
 }
 
-/// The exact tool paths used to read rustc coverage profiles.
+/// The exact tool paths derived from one qualified rustc sysroot.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RustcCoverageTools {
+pub(crate) struct RustcCoverageTools {
     profdata: PathBuf,
     cov: PathBuf,
 }
@@ -304,8 +357,9 @@ pub struct InstrumentedTarget {
 /// One declared rustc-profile observation request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RustcProfileRequest {
+    rustc: PathBuf,
     target: InstrumentedTarget,
-    tools: RustcCoverageTools,
+    source_root: CoverageSourceRoot,
     scratch: PathBuf,
 }
 
@@ -313,14 +367,30 @@ pub struct RustcProfileRequest {
 #[must_use = "a refusal is the reason a rustc coverage request was not built"]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RustcProfileRequestRefusal {
+    /// The rustc executable path was empty.
+    Rustc,
+    /// The rustc executable path was relative.
+    RelativeRustc,
     /// The target executable path was empty.
     Target,
-    /// The `llvm-profdata` path was empty.
-    Profdata,
-    /// The `llvm-cov` path was empty.
-    Cov,
+    /// The target executable path was relative.
+    RelativeTarget,
     /// The scratch path was empty.
     Scratch,
+    /// The scratch path was relative.
+    RelativeScratch,
+}
+
+/// One actively established rustc, target, source-root, and tool environment carrying a declared scratch path.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReadyPreflight {
+    pub(super) request: RustcProfileRequest,
+    pub(super) tools: RustcCoverageTools,
+    pub(super) source_root: CoverageSourceRoot,
+    pub(super) sysroot: PathBuf,
+    pub(super) release: String,
+    pub(super) host: String,
+    pub(super) llvm_version: String,
 }
 
 /// How one instrumented target process ended.
@@ -357,10 +427,23 @@ pub enum RustcProfileRefusal {
     CreateCase(String),
     /// The target process could not be started.
     StartTarget(String),
-    /// The candidate could not be written to target standard input.
-    WriteTarget(String),
+    /// The candidate could not be materialized before target start.
+    WriteCandidate(String),
+    /// The materialized candidate could not be opened as target standard input.
+    OpenCandidate(String),
     /// The caller's declared supervisor could not complete or classify the target.
     SuperviseTarget(String),
+    /// The supervisor returned an outcome while the child was still running.
+    SupervisorReturnedBeforeExit,
+    /// The child process state could not be inspected after supervision.
+    InspectTarget(String),
+    /// Termination or reaping failed after another execution refusal.
+    CleanupTarget {
+        /// The refusal that required cleanup.
+        after: Box<RustcProfileRefusal>,
+        /// The cleanup failure.
+        cleanup: String,
+    },
     /// A successful target execution did not write its declared raw profile.
     MissingProfile,
     /// `llvm-profdata` could not be started.

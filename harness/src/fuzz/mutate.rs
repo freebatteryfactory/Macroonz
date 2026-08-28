@@ -8,6 +8,10 @@ const BOUNDARIES: &[u8] = &[0, 1, 0x7f, 0x80, 0xff];
 /// Enumerate deterministic nonempty neighbors of one retained seed.
 ///
 /// Candidates are unique, remain beneath the declared byte ceiling, and stop at the declared budget.
+/// Enumeration priority is bit flips, boundary substitutions, checked increment then decrement at each byte, deletions, boundary insertions, duplications, optional splices, then dictionary insertions.
+/// Byte, bit, and cut positions rise from first to last; boundary values are `0`, `1`, `0x7f`, `0x80`, then `0xff`; dictionary tokens keep their declared order before insertion positions rise.
+/// Duplicate, unchanged, empty, and oversized candidates are skipped without spending budget.
+/// For otherwise identical inputs, every smaller-budget result is therefore an exact prefix of every larger-budget result.
 ///
 /// # Errors
 ///

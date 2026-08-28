@@ -1,23 +1,8 @@
 //! Pure Macroonz composition over coverage-admitted bytes.
 
-use super::{
-    ComposeRefusal, InterestingBytes, PreflightFact, PreflightIncomplete, ReadyPreflight,
-    SelectedBackend,
-};
+use super::{ComposeRefusal, InterestingBytes};
 use crate::generate::{ProbeOutcome, ReductionPlan, ReductionProbeBinding, capture_replay, reduce};
 use crate::report::ReplayCapsule;
-
-/// Judge caller-supplied preflight facts for one selected backend.
-///
-/// # Errors
-///
-/// Returns [`PreflightIncomplete`] when a required capability is missing or unavailable.
-pub fn preflight_ready(
-    backend: SelectedBackend,
-    facts: &[PreflightFact],
-) -> Result<ReadyPreflight, PreflightIncomplete> {
-    ReadyPreflight::from_facts(backend, facts)
-}
 
 /// Reduce interesting bytes under a Macroonz probe binding and mint a replay capsule.
 ///

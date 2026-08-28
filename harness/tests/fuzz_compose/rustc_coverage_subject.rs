@@ -3,6 +3,11 @@
 use std::io::{self, Read};
 
 fn main() -> io::Result<()> {
+    if std::env::args().any(|argument| argument == "--park-before-read") {
+        loop {
+            std::thread::park();
+        }
+    }
     let mut input = Vec::new();
     io::stdin().read_to_end(&mut input)?;
     match input.as_slice() {

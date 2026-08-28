@@ -4,19 +4,20 @@ mod compose;
 mod coverage;
 mod execute;
 mod mutate;
+mod preflight;
 mod types;
 
-pub use compose::{compose_reduce_replay, preflight_ready};
+pub use compose::compose_reduce_replay;
 pub use coverage::read_lcov;
 pub use execute::observe_rustc_profile;
 pub use mutate::neighboring_inputs;
+pub use preflight::preflight_ready;
 pub use types::{
-    BackendSelection, BackendSelectionRefusal, ComposeRefusal, CoverageAdmission,
-    CoverageAdmissionRefusal, CoverageCorpus, CoverageObservation, CoveragePoint,
-    CoverageReadRefusal, FuzzExecution, HostDisposition, InstrumentedTarget, InterestingBytes,
+    ComposeRefusal, CoverageAdmission, CoverageAdmissionRefusal, CoverageCorpus,
+    CoverageObservation, CoveragePoint, CoverageReadRefusal, CoverageSource, CoverageSourceRoot,
+    CoverageSourceRootRefusal, CoverageTool, FuzzExecution, InstrumentedTarget, InterestingBytes,
     InterestingBytesRefusal, MutationCandidate, MutationKind, MutationPlan, MutationPlanRefusal,
-    MutationRefusal, NamedCeiling, PreflightCapability, PreflightFact, PreflightIncomplete,
-    PreflightStatus, RUSTC_COVERAGE_TOOLCHAIN, ReadyPreflight, RustcCoverageTools,
-    RustcProfileRefusal, RustcProfileRequest, RustcProfileRequestRefusal, RustcProfileResult,
-    SelectedBackend,
+    MutationRefusal, PreflightIncomplete, RUSTC_COVERAGE_TOOLCHAIN, ReadyPreflight, RustcCommand,
+    RustcField, RustcProfileRefusal, RustcProfileRequest, RustcProfileRequestRefusal,
+    RustcProfileResult,
 };

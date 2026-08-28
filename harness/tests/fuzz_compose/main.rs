@@ -8,12 +8,11 @@ use macroonz_harness::descriptor::{
     RevisionBinding, Role, Row, SubjectRoute, Tag, TrialCoordinates, TrialKey,
 };
 use macroonz_harness::fuzz::{
-    BackendSelection, BackendSelectionRefusal, ComposeRefusal, CoverageAdmission,
-    CoverageAdmissionRefusal, CoverageCorpus, CoveragePoint, CoverageReadRefusal, FuzzExecution,
-    HostDisposition, InstrumentedTarget, InterestingBytes, InterestingBytesRefusal, MutationKind,
-    MutationPlan, NamedCeiling, PreflightCapability, PreflightFact, PreflightIncomplete,
-    PreflightStatus, RUSTC_COVERAGE_TOOLCHAIN, RustcCoverageTools, RustcProfileRefusal,
-    RustcProfileRequest, SelectedBackend, compose_reduce_replay, neighboring_inputs,
+    ComposeRefusal, CoverageAdmission, CoverageAdmissionRefusal, CoverageCorpus, CoveragePoint,
+    CoverageReadRefusal, CoverageSourceRoot, CoverageSourceRootRefusal, FuzzExecution,
+    InstrumentedTarget, InterestingBytes, InterestingBytesRefusal, MutationKind, MutationPlan,
+    PreflightIncomplete, RUSTC_COVERAGE_TOOLCHAIN, ReadyPreflight, RustcProfileRefusal,
+    RustcProfileRequest, RustcProfileRequestRefusal, compose_reduce_replay, neighboring_inputs,
     observe_rustc_profile, preflight_ready, read_lcov,
 };
 use macroonz_harness::generate::{
@@ -29,6 +28,7 @@ use macroonz_harness::report::{
     TrialProfile, TrialSite,
 };
 use macroonz_harness::runner::{Invocation, TrialBinding, run_one};
+use std::cell::Cell;
 use std::collections::BTreeSet;
 use std::fmt;
 use std::path::PathBuf;
@@ -37,11 +37,11 @@ use std::process::Command;
 const PRESERVED_CAUSE: FindingCause = FindingCause::named("harness", "fuzz-compose-preserved");
 const SCHEMA_TAG: DomainTag =
     DomainTag::declared("fuzz-compose-schema", IdentityProfileVersion::declared(1));
+const SUPERVISED_MATERIALIZED_INPUT_BYTES: usize = 16_777_216;
 
 enum FuzzRoadFailure {
     Plan(ReductionPlanRefusal),
     Compose(ComposeRefusal),
-    Selection(BackendSelectionRefusal),
     Interesting(InterestingBytesRefusal),
     Preflight(PreflightIncomplete),
     CoverageAdmission(CoverageAdmissionRefusal),
@@ -56,7 +56,6 @@ impl fmt::Debug for FuzzRoadFailure {
         match self {
             Self::Plan(refusal) => formatter.debug_tuple("Plan").field(refusal).finish(),
             Self::Compose(refusal) => formatter.debug_tuple("Compose").field(refusal).finish(),
-            Self::Selection(refusal) => formatter.debug_tuple("Selection").field(refusal).finish(),
             Self::Interesting(refusal) => {
                 formatter.debug_tuple("Interesting").field(refusal).finish()
             }
@@ -85,12 +84,6 @@ impl From<ReductionPlanRefusal> for FuzzRoadFailure {
 impl From<ComposeRefusal> for FuzzRoadFailure {
     fn from(refusal: ComposeRefusal) -> Self {
         Self::Compose(refusal)
-    }
-}
-
-impl From<BackendSelectionRefusal> for FuzzRoadFailure {
-    fn from(refusal: BackendSelectionRefusal) -> Self {
-        Self::Selection(refusal)
     }
 }
 
@@ -214,159 +207,30 @@ fn probe_binding() -> Option<ReductionProbeBinding> {
     .ok()
 }
 
-fn all_available_facts() -> Vec<PreflightFact> {
-    [
-        PreflightCapability::RustcMsrv,
-        PreflightCapability::RustcHostTuple,
-        PreflightCapability::RustcSysroot,
-        PreflightCapability::LlvmReported,
-        PreflightCapability::LlvmToolsPreview,
-        PreflightCapability::LlvmProfdata,
-        PreflightCapability::LlvmCov,
-        PreflightCapability::InstrumentCoverage,
-    ]
-    .into_iter()
-    .map(|capability| PreflightFact::declared(capability, PreflightStatus::Available))
-    .collect()
-}
-
 #[test]
-fn selection_retains_rustc_ceiling_and_host_truth() -> Result<(), FuzzRoadFailure> {
+fn declared_execution_inputs_refuse_ambient_paths() -> Result<(), FuzzRoadFailure> {
     assert_eq!(RUSTC_COVERAGE_TOOLCHAIN, "1.98.0");
-    let Some(name) = NamespacedName::named("harness", "rustc-coverage").ok() else {
+    assert_eq!(
+        InstrumentedTarget::declared(PathBuf::from("target"), Vec::new()),
+        Err(RustcProfileRequestRefusal::RelativeTarget)
+    );
+    let Some(logical) = NamespacedName::named("harness", "rustc-coverage").ok() else {
         return Err(FuzzRoadFailure::Fixture);
     };
-    let ceilings = vec![
-        NamedCeiling::FreshProcessPerCandidate,
-        NamedCeiling::InstrumentedSourceTargetRequired,
-        NamedCeiling::LlvmCoverageToolsRequired,
-        NamedCeiling::CallerSuppliesProcessSupervisor,
-    ];
-    let hosts = vec![
-        HostDisposition::ObservedWindows,
-        HostDisposition::UnexecutedLinux,
-        HostDisposition::UnexecutedMacOs,
-    ];
-    let selection = BackendSelection::rustc_coverage(name, ceilings.clone(), hosts.clone())?;
     assert_eq!(
-        selection.backend(),
-        SelectedBackend::RustcInstrumentCoverage
+        CoverageSourceRoot::declared(logical, PathBuf::from("checkout")),
+        Err(CoverageSourceRootRefusal::RelativeCheckout)
     );
-    assert_eq!(selection.ceilings(), ceilings.as_slice());
-    assert_eq!(selection.hosts(), hosts.as_slice());
-    Ok(())
-}
-
-#[test]
-fn preflight_ready_requires_every_rustc_coverage_capability() -> Result<(), FuzzRoadFailure> {
-    let ready = preflight_ready(
-        SelectedBackend::RustcInstrumentCoverage,
-        &all_available_facts(),
-    )?;
-    assert_eq!(ready.backend(), SelectedBackend::RustcInstrumentCoverage);
-    let mut incomplete = all_available_facts();
-    incomplete.pop();
+    let traversing = std::env::temp_dir().join("coverage-root").join("..");
     assert_eq!(
-        preflight_ready(SelectedBackend::RustcInstrumentCoverage, &incomplete),
-        Err(PreflightIncomplete::Missing(
-            PreflightCapability::InstrumentCoverage
-        ))
+        CoverageSourceRoot::declared(logical, traversing),
+        Err(CoverageSourceRootRefusal::CheckoutTraversal)
     );
     Ok(())
-}
-
-#[test]
-fn preflight_ready_rejects_duplicate_and_contradictory_facts() {
-    let mut duplicate = all_available_facts();
-    duplicate.push(PreflightFact::declared(
-        PreflightCapability::RustcMsrv,
-        PreflightStatus::Available,
-    ));
-    assert_eq!(
-        preflight_ready(SelectedBackend::RustcInstrumentCoverage, &duplicate),
-        Err(PreflightIncomplete::Duplicate(
-            PreflightCapability::RustcMsrv
-        ))
-    );
-    let mut contradictory = all_available_facts();
-    contradictory.push(PreflightFact::declared(
-        PreflightCapability::RustcMsrv,
-        PreflightStatus::Unavailable,
-    ));
-    assert_eq!(
-        preflight_ready(SelectedBackend::RustcInstrumentCoverage, &contradictory),
-        Err(PreflightIncomplete::Contradictory(
-            PreflightCapability::RustcMsrv
-        ))
-    );
 }
 
 #[test]
 fn hostile_surface_refuses_malformed_fuzz_road() -> Result<(), FuzzRoadFailure> {
-    let Some(name) = NamespacedName::named("harness", "rustc-coverage-hostile").ok() else {
-        return Err(FuzzRoadFailure::Fixture);
-    };
-    assert_eq!(
-        BackendSelection::rustc_coverage(name, Vec::new(), vec![HostDisposition::ObservedWindows]),
-        Err(BackendSelectionRefusal::NoCeiling)
-    );
-    assert_eq!(
-        BackendSelection::rustc_coverage(
-            name,
-            vec![NamedCeiling::FreshProcessPerCandidate],
-            Vec::new()
-        ),
-        Err(BackendSelectionRefusal::NoHostDisposition)
-    );
-    assert_eq!(
-        BackendSelection::rustc_coverage(
-            name,
-            vec![
-                NamedCeiling::InstrumentedSourceTargetRequired,
-                NamedCeiling::LlvmCoverageToolsRequired,
-                NamedCeiling::CallerSuppliesProcessSupervisor,
-            ],
-            vec![
-                HostDisposition::ObservedWindows,
-                HostDisposition::UnexecutedLinux,
-                HostDisposition::UnexecutedMacOs,
-            ],
-        ),
-        Err(BackendSelectionRefusal::MissingRequiredCeiling(
-            NamedCeiling::FreshProcessPerCandidate
-        ))
-    );
-    assert_eq!(
-        BackendSelection::rustc_coverage(
-            name,
-            vec![
-                NamedCeiling::FreshProcessPerCandidate,
-                NamedCeiling::InstrumentedSourceTargetRequired,
-                NamedCeiling::LlvmCoverageToolsRequired,
-                NamedCeiling::CallerSuppliesProcessSupervisor,
-            ],
-            vec![
-                HostDisposition::ObservedWindows,
-                HostDisposition::UnexecutedMacOs,
-            ],
-        ),
-        Err(BackendSelectionRefusal::MissingRequiredHost(
-            HostDisposition::UnexecutedLinux
-        ))
-    );
-
-    let mut unavailable = all_available_facts();
-    let Some(first) = unavailable.get_mut(0) else {
-        return Err(FuzzRoadFailure::Fixture);
-    };
-    *first = PreflightFact::declared(PreflightCapability::RustcMsrv, PreflightStatus::Unavailable);
-    assert_eq!(
-        preflight_ready(SelectedBackend::RustcInstrumentCoverage, &unavailable),
-        Err(PreflightIncomplete::Unavailable(
-            PreflightCapability::RustcMsrv
-        ))
-    );
-
     assert_eq!(
         InterestingBytes::admitted(Vec::new()),
         Err(InterestingBytesRefusal::Empty)
@@ -393,25 +257,69 @@ fn hostile_surface_refuses_malformed_fuzz_road() -> Result<(), FuzzRoadFailure> 
 #[test]
 fn lcov_points_are_canonical_and_frontier_admission_is_deterministic() -> Result<(), FuzzRoadFailure>
 {
-    let alpha = read_lcov(
-        b"TN:\nSF:src/subject.rs\nDA:10,1\nDA:11,0\nBRDA:12,0,0,1\nBRDA:12,0,1,-\nDA:10,4\nend_of_record\n",
-    )?;
-    assert_eq!(
-        alpha.points(),
-        &[
-            CoveragePoint::Line {
-                source: "src/subject.rs".to_owned(),
-                line: 10,
-            },
-            CoveragePoint::Branch {
-                source: "src/subject.rs".to_owned(),
-                line: 12,
-                block: 0,
-                branch: 0,
-            },
-        ]
+    let Some(logical) = NamespacedName::named("harness", "rustc-coverage-source").ok() else {
+        return Err(FuzzRoadFailure::Fixture);
+    };
+    let first_checkout = std::env::temp_dir().join("macroonz-coverage-first");
+    let second_checkout = std::env::temp_dir().join("macroonz-coverage-second");
+    let first_root =
+        CoverageSourceRoot::declared(logical, first_checkout.clone()).map_err(external)?;
+    let second_root =
+        CoverageSourceRoot::declared(logical, second_checkout.clone()).map_err(external)?;
+    let first_source = first_checkout.join("src").join("subject.rs");
+    let second_source = second_checkout.join("src").join("subject.rs");
+    let alpha_lcov = format!(
+        "TN:\nSF:{}\nDA:10,1\nDA:11,0\nBRDA:12,0,0,1\nBRDA:12,0,1,-\nDA:10,4\nend_of_record\n",
+        first_source.display()
     );
-    let beta = read_lcov(b"TN:\nSF:src/subject.rs\nDA:10,1\nDA:20,1\nend_of_record\n")?;
+    let relocated_lcov = format!(
+        "TN:\nSF:{}\nDA:10,1\nDA:11,0\nBRDA:12,0,0,1\nBRDA:12,0,1,-\nDA:10,4\nend_of_record\n",
+        second_source.display()
+    );
+    let alpha = read_lcov(&first_root, alpha_lcov.as_bytes())?;
+    let relocated = read_lcov(&second_root, relocated_lcov.as_bytes())?;
+    assert_eq!(alpha, relocated);
+    let [line_point, branch_point] = alpha.points() else {
+        return Err(FuzzRoadFailure::Fixture);
+    };
+    let CoveragePoint::Line {
+        source: line_source,
+        line: line_number,
+    } = line_point
+    else {
+        return Err(FuzzRoadFailure::Fixture);
+    };
+    assert_eq!(line_source.root(), logical);
+    assert_eq!(line_source.relative(), "src/subject.rs");
+    assert_eq!(*line_number, 10);
+    let CoveragePoint::Branch {
+        source: branch_source,
+        line: branch_line,
+        block,
+        branch,
+    } = branch_point
+    else {
+        return Err(FuzzRoadFailure::Fixture);
+    };
+    assert_eq!(branch_source.root(), logical);
+    assert_eq!(branch_source.relative(), "src/subject.rs");
+    assert_eq!((*branch_line, *block, *branch), (12, 0, 0));
+    assert!(!format!("{alpha:?}").contains(&first_checkout.display().to_string()));
+
+    #[cfg(windows)]
+    {
+        let verbatim = format!(r"\\?\{}", first_source.display());
+        let verbatim_lcov = format!(
+            "TN:\nSF:{verbatim}\nDA:10,1\nDA:11,0\nBRDA:12,0,0,1\nBRDA:12,0,1,-\nDA:10,4\nend_of_record\n"
+        );
+        assert_eq!(read_lcov(&first_root, verbatim_lcov.as_bytes())?, alpha);
+    }
+
+    let beta_lcov = format!(
+        "TN:\nSF:{}\nDA:10,1\nDA:20,1\nend_of_record\n",
+        first_source.display()
+    );
+    let beta = read_lcov(&first_root, beta_lcov.as_bytes())?;
     let mut corpus = CoverageCorpus::opening();
     assert_eq!(
         corpus.admit(b"alpha".to_vec(), &alpha)?,
@@ -427,6 +335,42 @@ fn lcov_points_are_canonical_and_frontier_admission_is_deterministic() -> Result
     );
     assert_eq!(corpus.observed().len(), 3);
     assert_eq!(corpus.interesting().len(), 2);
+    Ok(())
+}
+
+#[test]
+fn lcov_refuses_paths_that_cannot_have_root_independent_identity() -> Result<(), FuzzRoadFailure> {
+    let Some(logical) = NamespacedName::named("harness", "rustc-coverage-hostile").ok() else {
+        return Err(FuzzRoadFailure::Fixture);
+    };
+    let checkout = std::env::temp_dir().join("macroonz-coverage-root");
+    let root = CoverageSourceRoot::declared(logical, checkout.clone()).map_err(external)?;
+    assert_eq!(
+        read_lcov(&root, b"TN:\nSF:src/subject.rs\nDA:1,1\nend_of_record\n"),
+        Err(CoverageReadRefusal::RelativeSource { record: 2 })
+    );
+    let traversing = format!(
+        "TN:\nSF:{}\nDA:1,1\nend_of_record\n",
+        checkout.join("src").join("..").join("escape.rs").display()
+    );
+    assert_eq!(
+        read_lcov(&root, traversing.as_bytes()),
+        Err(CoverageReadRefusal::SourceTraversal { record: 2 })
+    );
+    let outside = format!(
+        "TN:\nSF:{}\nDA:1,1\nend_of_record\n",
+        std::env::temp_dir().join("macroonz-outside.rs").display()
+    );
+    assert_eq!(
+        read_lcov(&root, outside.as_bytes()),
+        Err(CoverageReadRefusal::SourceOutsideRoot { record: 2 })
+    );
+    let root_only = format!("TN:\nSF:{}\nDA:1,1\nend_of_record\n", checkout.display());
+    assert_eq!(
+        read_lcov(&root, root_only.as_bytes()),
+        Err(CoverageReadRefusal::EmptyRelativeSource { record: 2 })
+    );
+    assert_eq!(read_lcov(&root, &[0xff]), Err(CoverageReadRefusal::NonUtf8));
     Ok(())
 }
 
@@ -465,8 +409,39 @@ fn neighboring_frontier_is_bounded_unique_and_repeatable() -> Result<(), FuzzRoa
 }
 
 #[test]
+fn neighboring_frontier_budget_is_an_exact_priority_prefix() -> Result<(), FuzzRoadFailure> {
+    let exhaustive = MutationPlan::declared(512, 16, vec![b"token".to_vec()]).map_err(external)?;
+    let full = neighboring_inputs(&[11, 200], Some(b"peer"), &exhaustive).map_err(external)?;
+    for limit in 1..=full.len() {
+        let budget = u32::try_from(limit).map_err(external)?;
+        let bounded =
+            MutationPlan::declared(budget, 16, vec![b"token".to_vec()]).map_err(external)?;
+        let observed = neighboring_inputs(&[11, 200], Some(b"peer"), &bounded).map_err(external)?;
+        let expected = full.iter().take(limit).cloned().collect::<Vec<_>>();
+        assert_eq!(observed, expected);
+    }
+    let over_budget = u32::try_from(full.len().saturating_add(1)).map_err(external)?;
+    let exhausted =
+        MutationPlan::declared(over_budget, 16, vec![b"token".to_vec()]).map_err(external)?;
+    assert_eq!(
+        neighboring_inputs(&[11, 200], Some(b"peer"), &exhausted).map_err(external)?,
+        full
+    );
+
+    let eight = MutationPlan::declared(8, 4, Vec::new()).map_err(external)?;
+    let bit_prefix = neighboring_inputs(&[0], None, &eight).map_err(external)?;
+    assert_eq!(bit_prefix.len(), 8);
+    assert!(
+        bit_prefix
+            .iter()
+            .all(|candidate| candidate.kind() == MutationKind::BitFlip)
+    );
+    Ok(())
+}
+
+#[test]
 fn stable_rustc_profiles_cross_generation_novelty_and_corpus() -> Result<(), FuzzRoadFailure> {
-    let (request, run) = rustc_profile_request("feedback")?;
+    let (ready, run) = rustc_profile_request("feedback")?;
     let Some(population) = PopulationRef::named("harness", "rustc-profile-seeds").ok() else {
         return Err(FuzzRoadFailure::Fixture);
     };
@@ -501,7 +476,7 @@ fn stable_rustc_profiles_cross_generation_novelty_and_corpus() -> Result<(), Fuz
             return Err(FuzzRoadFailure::Fixture);
         };
         assert_eq!(candidate.input(), material.as_slice());
-        let result = observe_rustc_profile(&request, candidate.input(), 0, wait_for_exit)?;
+        let result = observe_rustc_profile(&ready, candidate.input(), 0, wait_for_exit)?;
         assert_eq!(result.execution(), FuzzExecution::Success);
         match coverage.admit(candidate.input().to_vec(), result.observation())? {
             CoverageAdmission::Interesting(_) => {}
@@ -514,7 +489,7 @@ fn stable_rustc_profiles_cross_generation_novelty_and_corpus() -> Result<(), Fuz
     let mut known = 0usize;
     for (ordinal, candidate) in neighbors.iter().enumerate() {
         let case = u64::try_from(ordinal.saturating_add(1)).map_err(external)?;
-        let result = observe_rustc_profile(&request, candidate.bytes(), case, wait_for_exit)?;
+        let result = observe_rustc_profile(&ready, candidate.bytes(), case, wait_for_exit)?;
         assert_eq!(result.execution(), FuzzExecution::Success);
         match coverage.admit(candidate.bytes().to_vec(), result.observation())? {
             CoverageAdmission::Interesting(_) => {}
@@ -545,22 +520,125 @@ fn stable_rustc_profiles_cross_generation_novelty_and_corpus() -> Result<(), Fuz
 }
 
 #[test]
+fn active_preflight_refuses_wrong_release_and_mismatched_llvm() -> Result<(), FuzzRoadFailure> {
+    let rustc = rustc_path()?;
+    let host = rustc_field(&rustc, "host: ")?;
+    let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let repository = manifest
+        .parent()
+        .ok_or_else(|| FuzzRoadFailure::External("harness has no repository parent".to_owned()))?;
+    let run = repository
+        .join("target")
+        .join("qualification")
+        .join(format!(
+            "fuzz-preflight-refusal-test-{}",
+            std::process::id()
+        ));
+
+    let wrong_release = preflight_double(
+        &rustc,
+        &manifest,
+        &run.join("wrong-release"),
+        &host,
+        ["1.97.0", "22.1.8", "22.1.8", "22.1.8"],
+    )?;
+    let wrong_request = preflight_double_request(wrong_release, repository, &run, "wrong-release")?;
+    let Err(wrong_refusal) = preflight_ready(wrong_request) else {
+        return Err(FuzzRoadFailure::Fixture);
+    };
+    assert_eq!(
+        wrong_refusal,
+        PreflightIncomplete::RustcRelease {
+            required: RUSTC_COVERAGE_TOOLCHAIN,
+            observed: "1.97.0".to_owned(),
+        }
+    );
+
+    let mismatched_tools = preflight_double(
+        &rustc,
+        &manifest,
+        &run.join("mismatched-tools"),
+        &host,
+        [RUSTC_COVERAGE_TOOLCHAIN, "22.1.8", "22.1.8", "22.1.9"],
+    )?;
+    let mismatch_request =
+        preflight_double_request(mismatched_tools, repository, &run, "mismatched-tools")?;
+    let Err(mismatch_refusal) = preflight_ready(mismatch_request) else {
+        return Err(FuzzRoadFailure::Fixture);
+    };
+    assert_eq!(
+        mismatch_refusal,
+        PreflightIncomplete::LlvmToolVersionsDiffer {
+            profdata: "22.1.8".to_owned(),
+            cov: "22.1.9".to_owned(),
+        }
+    );
+    std::fs::remove_dir_all(run).map_err(external)?;
+    Ok(())
+}
+
+#[test]
 fn declared_supervisor_transports_crash_timeout_and_resource_classes() -> Result<(), FuzzRoadFailure>
 {
-    let (request, run) = rustc_profile_request("classifications")?;
-    let crash = observe_rustc_profile(&request, &[0xff], 100, wait_for_crash)?;
+    let (ready, run) = rustc_profile_request("classifications")?;
+    assert_eq!(ready.release(), RUSTC_COVERAGE_TOOLCHAIN);
+    assert!(!ready.host().is_empty());
+    assert!(!ready.llvm_version().is_empty());
+    assert!(ready.sysroot().is_absolute());
+    let crash = observe_rustc_profile(&ready, &[0xff], 100, wait_for_crash)?;
     assert!(matches!(crash.execution(), FuzzExecution::Crash(_)));
     assert!(crash.observation().points().is_empty());
-    let timeout = observe_rustc_profile(&request, &[0xfe], 101, |child| {
+    let timeout = observe_rustc_profile(&ready, &[0xfe], 101, |child| {
         stop_as(child, FuzzExecution::Timeout)
     })?;
     assert_eq!(timeout.execution(), FuzzExecution::Timeout);
     assert!(timeout.observation().points().is_empty());
-    let resource = observe_rustc_profile(&request, &[0xfe], 102, |child| {
+    let resource = observe_rustc_profile(&ready, &[0xfe], 102, |child| {
         stop_as(child, FuzzExecution::ResourceExhaustion)
     })?;
     assert_eq!(resource.execution(), FuzzExecution::ResourceExhaustion);
     assert!(resource.observation().points().is_empty());
+
+    let early_process = Cell::new(None);
+    assert_eq!(
+        observe_rustc_profile(&ready, &[0xfe], 103, |child| {
+            early_process.set(Some(child.id()));
+            Ok(FuzzExecution::Timeout)
+        }),
+        Err(RustcProfileRefusal::SupervisorReturnedBeforeExit)
+    );
+    let Some(early_process) = early_process.get() else {
+        return Err(FuzzRoadFailure::Fixture);
+    };
+    assert!(!process_is_running(early_process)?);
+
+    let refused_process = Cell::new(None);
+    assert_eq!(
+        observe_rustc_profile(&ready, &[0xfe], 104, |child| {
+            refused_process.set(Some(child.id()));
+            Err("planted supervisor refusal".to_owned())
+        }),
+        Err(RustcProfileRefusal::SuperviseTarget(
+            "planted supervisor refusal".to_owned()
+        ))
+    );
+    let Some(refused_process) = refused_process.get() else {
+        return Err(FuzzRoadFailure::Fixture);
+    };
+    assert!(!process_is_running(refused_process)?);
+
+    let (large_input_ready, large_input_run) = rustc_profile_request_with_arguments(
+        "large-input-supervision",
+        vec!["--park-before-read".to_owned()],
+    )?;
+    let large_input = observe_rustc_profile(
+        &large_input_ready,
+        &vec![0_u8; SUPERVISED_MATERIALIZED_INPUT_BYTES],
+        105,
+        |child| stop_as(child, FuzzExecution::Timeout),
+    )?;
+    assert_eq!(large_input.execution(), FuzzExecution::Timeout);
+    std::fs::remove_dir_all(large_input_run).map_err(external)?;
     std::fs::remove_dir_all(run).map_err(external)?;
     Ok(())
 }
@@ -569,33 +647,15 @@ fn admit_byte_sequences(_commands: &[u8]) -> PreconditionVerdict {
     PreconditionVerdict::Admitted
 }
 
-fn rustc_profile_request(stem: &str) -> Result<(RustcProfileRequest, PathBuf), FuzzRoadFailure> {
-    let version = successful_output(Command::new("rustc").arg("--version"), "rustc version")?;
-    let version = String::from_utf8(version).map_err(external)?;
-    if !version.starts_with("rustc 1.98.0 ") {
-        return Err(FuzzRoadFailure::External(format!(
-            "rustc profile crossing requires 1.98.0, found {version:?}"
-        )));
-    }
-    let sysroot = successful_output(
-        Command::new("rustc").args(["--print", "sysroot"]),
-        "rustc sysroot",
-    )?;
-    let sysroot = PathBuf::from(String::from_utf8(sysroot).map_err(external)?.trim());
-    let verbose = successful_output(Command::new("rustc").arg("-vV"), "rustc verbose version")?;
-    let verbose = String::from_utf8(verbose).map_err(external)?;
-    let host = verbose
-        .lines()
-        .find_map(|line| line.strip_prefix("host: "))
-        .ok_or_else(|| FuzzRoadFailure::External("rustc did not report its host".to_owned()))?;
-    let tool_directory = sysroot.join("lib").join("rustlib").join(host).join("bin");
-    let profdata = tool_directory.join(format!("llvm-profdata{}", std::env::consts::EXE_SUFFIX));
-    let cov = tool_directory.join(format!("llvm-cov{}", std::env::consts::EXE_SUFFIX));
-    if !profdata.is_file() || !cov.is_file() {
-        return Err(FuzzRoadFailure::External(
-            "matching llvm-tools component is not installed".to_owned(),
-        ));
-    }
+fn rustc_profile_request(stem: &str) -> Result<(ReadyPreflight, PathBuf), FuzzRoadFailure> {
+    rustc_profile_request_with_arguments(stem, Vec::new())
+}
+
+fn rustc_profile_request_with_arguments(
+    stem: &str,
+    arguments: Vec<String>,
+) -> Result<(ReadyPreflight, PathBuf), FuzzRoadFailure> {
+    let rustc = rustc_path()?;
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let repository = manifest
         .parent()
@@ -616,7 +676,7 @@ fn rustc_profile_request(stem: &str) -> Result<(RustcProfileRequest, PathBuf), F
         .join("tests")
         .join("fuzz_compose")
         .join("rustc_coverage_subject.rs");
-    let status = Command::new("rustc")
+    let status = Command::new(&rustc)
         .args([
             "--edition=2024",
             "-C",
@@ -634,11 +694,109 @@ fn rustc_profile_request(stem: &str) -> Result<(RustcProfileRequest, PathBuf), F
             "rustc coverage subject compilation failed with {status}"
         )));
     }
-    let target = InstrumentedTarget::declared(subject, Vec::new()).map_err(external)?;
-    let tools = RustcCoverageTools::declared(profdata, cov).map_err(external)?;
-    let request =
-        RustcProfileRequest::declared(target, tools, run.join("cases")).map_err(external)?;
-    Ok((request, run))
+    let target = InstrumentedTarget::declared(subject, arguments).map_err(external)?;
+    let Some(logical) = NamespacedName::named("harness", "rustc-profile-subject").ok() else {
+        return Err(FuzzRoadFailure::Fixture);
+    };
+    let source_root =
+        CoverageSourceRoot::declared(logical, repository.to_path_buf()).map_err(external)?;
+    let request = RustcProfileRequest::declared(rustc, target, source_root, run.join("cases"))
+        .map_err(external)?;
+    let ready = preflight_ready(request)?;
+    Ok((ready, run))
+}
+
+fn rustc_path() -> Result<PathBuf, FuzzRoadFailure> {
+    let output = successful_output(
+        Command::new("rustup").args(["which", "--toolchain", RUSTC_COVERAGE_TOOLCHAIN, "rustc"]),
+        "rustup rustc path",
+    )?;
+    let path = PathBuf::from(String::from_utf8(output).map_err(external)?.trim());
+    if path.is_absolute() {
+        Ok(path)
+    } else {
+        Err(FuzzRoadFailure::External(
+            "rustup returned a relative rustc path".to_owned(),
+        ))
+    }
+}
+
+fn rustc_field(rustc: &PathBuf, prefix: &str) -> Result<String, FuzzRoadFailure> {
+    let output = successful_output(Command::new(rustc).arg("-vV"), "rustc identity")?;
+    let text = String::from_utf8(output).map_err(external)?;
+    text.lines()
+        .find_map(|line| line.strip_prefix(prefix))
+        .filter(|field| !field.is_empty())
+        .map(str::to_owned)
+        .ok_or(FuzzRoadFailure::Fixture)
+}
+
+fn preflight_double(
+    rustc: &PathBuf,
+    manifest: &std::path::Path,
+    directory: &std::path::Path,
+    host: &str,
+    versions: [&str; 4],
+) -> Result<PathBuf, FuzzRoadFailure> {
+    let [release, rustc_llvm, profdata_llvm, cov_llvm] = versions;
+    std::fs::create_dir_all(directory).map_err(external)?;
+    let executable = directory.join(format!("fake-rustc{}", std::env::consts::EXE_SUFFIX));
+    let source = manifest
+        .join("tests")
+        .join("fuzz_compose")
+        .join("rustc_preflight_subject.rs");
+    let status = Command::new(rustc)
+        .arg("--edition=2024")
+        .arg(source)
+        .arg("-o")
+        .arg(&executable)
+        .status()
+        .map_err(external)?;
+    if !status.success() {
+        return Err(FuzzRoadFailure::External(format!(
+            "preflight double compilation failed with {status}"
+        )));
+    }
+    let sysroot = directory.join("sysroot");
+    let tool_directory = sysroot.join("lib").join("rustlib").join(host).join("bin");
+    std::fs::create_dir_all(&tool_directory).map_err(external)?;
+    std::fs::write(directory.join("release.txt"), release).map_err(external)?;
+    std::fs::write(directory.join("host.txt"), host).map_err(external)?;
+    std::fs::write(directory.join("rustc-llvm.txt"), rustc_llvm).map_err(external)?;
+    std::fs::write(
+        directory.join("sysroot.txt"),
+        sysroot.to_string_lossy().as_bytes(),
+    )
+    .map_err(external)?;
+    std::fs::write(tool_directory.join("profdata-version.txt"), profdata_llvm).map_err(external)?;
+    std::fs::write(tool_directory.join("cov-version.txt"), cov_llvm).map_err(external)?;
+    std::fs::copy(
+        &executable,
+        tool_directory.join(format!("llvm-profdata{}", std::env::consts::EXE_SUFFIX)),
+    )
+    .map_err(external)?;
+    std::fs::copy(
+        &executable,
+        tool_directory.join(format!("llvm-cov{}", std::env::consts::EXE_SUFFIX)),
+    )
+    .map_err(external)?;
+    Ok(executable)
+}
+
+fn preflight_double_request(
+    rustc: PathBuf,
+    repository: &std::path::Path,
+    run: &std::path::Path,
+    stem: &str,
+) -> Result<RustcProfileRequest, FuzzRoadFailure> {
+    let target = InstrumentedTarget::declared(rustc.clone(), Vec::new()).map_err(external)?;
+    let Some(logical) = NamespacedName::named("harness", "preflight-double").ok() else {
+        return Err(FuzzRoadFailure::Fixture);
+    };
+    let source_root =
+        CoverageSourceRoot::declared(logical, repository.to_path_buf()).map_err(external)?;
+    RustcProfileRequest::declared(rustc, target, source_root, run.join(stem).join("cases"))
+        .map_err(external)
 }
 
 fn wait_for_exit(child: &mut std::process::Child) -> Result<FuzzExecution, String> {
@@ -666,6 +824,34 @@ fn stop_as(
     child.kill().map_err(|error| error.to_string())?;
     child.wait().map_err(|error| error.to_string())?;
     Ok(execution)
+}
+
+#[cfg(windows)]
+fn process_is_running(process: u32) -> Result<bool, FuzzRoadFailure> {
+    let filter = format!("PID eq {process}");
+    let output = successful_output(
+        Command::new("tasklist").args(["/FI", &filter, "/FO", "CSV", "/NH"]),
+        "tasklist process observation",
+    )?;
+    let text = String::from_utf8(output).map_err(external)?;
+    Ok(text.contains(&format!("\"{process}\"")))
+}
+
+#[cfg(unix)]
+fn process_is_running(process: u32) -> Result<bool, FuzzRoadFailure> {
+    let output = Command::new("ps")
+        .args(["-p", &process.to_string(), "-o", "pid="])
+        .output()
+        .map_err(external)?;
+    let text = String::from_utf8(output.stdout).map_err(external)?;
+    Ok(output.status.success() && text.trim() == process.to_string())
+}
+
+#[cfg(not(any(windows, unix)))]
+fn process_is_running(_process: u32) -> Result<bool, FuzzRoadFailure> {
+    Err(FuzzRoadFailure::External(
+        "this target has no external process observer".to_owned(),
+    ))
 }
 
 fn successful_output(command: &mut Command, role: &str) -> Result<Vec<u8>, FuzzRoadFailure> {

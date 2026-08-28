@@ -6,7 +6,7 @@ edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-include = ["src/**", "tests/**", "assets/**", "AGENTS.md", "CONTRIBUTING.md", "SECURITY.md", "Cargo.toml", "README.md", "LICENSE-*"]
+include = ["src/**", "tests/**", "examples/**", "assets/**", "AGENTS.md", "CONTRIBUTING.md", "SECURITY.md", "Cargo.toml", "README.md", "LICENSE-*"]
 
 [workspace]
 resolver = "3"
@@ -52,6 +52,11 @@ macroonz-macros = { workspace = true }
 [[test]]
 name = "facade_harness_surface"
 path = "tests/facade_harness_surface.rs"
+required-features = ["harness"]
+
+[[example]]
+name = "rustc_coverage"
+path = "examples/rustc_coverage.rs"
 required-features = ["harness"]
 
 [lints]
