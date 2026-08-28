@@ -28,6 +28,9 @@ const LOOM_ENVIRONMENT: [&str; 8] = [
     "LOOM_MAX_PREEMPTIONS",
 ];
 
+/// The stack reserved for the external lane's intentional Loom branch-exhaustion unwind.
+const BRANCH_EXHAUSTION_STACK_BYTES: usize = 8_388_608usize;
+
 loom::thread_local! {
     /// One shadowed thread-local, declared through loom's own macro and read inside a model.
     static SEAT: u8 = 7u8;
@@ -267,10 +270,21 @@ fn lookalike_panic_text_stays_infrastructure_unresolved() -> Result<(), Preempti
 }
 
 /// A budget the backend cannot complete under remains infrastructure-incomplete rather than a subject panic.
+///
+/// The external lane owns an explicit worker stack so the intended backend unwind remains catchable on hosts whose test-process stack would otherwise turn the observation into process-level stack exhaustion.
 #[test]
-fn branch_exhaustion_stays_infrastructure_unresolved() -> Result<(), PreemptionBoundsRefusal> {
-    let narrow = PreemptionBounds::declared(PreemptionBound::AtMost(2u32), 1u32)?;
-    let reading = explored(narrow, branching_model);
+fn branch_exhaustion_stays_infrastructure_unresolved() -> std::io::Result<()> {
+    let narrow =
+        PreemptionBounds::declared(PreemptionBound::AtMost(2u32), 1u32).map_err(|refusal| {
+            std::io::Error::other(format!("the narrow bounds refused: {refusal:?}"))
+        })?;
+    let worker = std::thread::Builder::new()
+        .name(String::from("macroonz-loom-branch-exhaustion"))
+        .stack_size(BRANCH_EXHAUSTION_STACK_BYTES)
+        .spawn(move || explored(narrow, branching_model))?;
+    let reading = worker.join().map_err(|_payload| {
+        std::io::Error::other("the declared-stack Loom worker did not return its typed reading")
+    })?;
     assert!(matches!(
         reading.outcome(),
         PreemptionOutcome::Incomplete(IncompleteExploration::ExecutionUnresolved {
